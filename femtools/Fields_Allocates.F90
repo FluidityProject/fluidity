@@ -1134,7 +1134,30 @@ contains
        mesh%region_ids=old_mesh%region_ids
     end if
 
-    allocate(mesh%ndglno(size(old_mesh%ndglno)))
+   ! should happen in derived type initialisation already,
+    ! but just to make sure in case an mesh variable is supplied
+    ! that has previously been used for something else:
+    nullify(mesh%faces)
+    nullify(mesh%columns)
+    nullify(mesh%element_columns)
+
+    allocate(mesh%colourings(NUM_COLOURINGS))
+    do i = 1, NUM_COLOURINGS
+       nullify(mesh%colourings(i)%sets)
+    end do
+    allocate(mesh%ndglno(mesh%elements*old_mesh%shape%loc))
+
+#ifdef _OPENMP
+    ! Use first touch policy.
+    !$OMP PARALLEL DO SCHEDULE(STATIC)
+    do i=1, mesh%elements
+       do j=1, shape%loc
+          mesh%ndglno((i-1)*shape%loc+j)=0
+       end do
+    end do
+    !$OMP END PARALLEL DO
+#endif
+
     mesh%ndglno = old_mesh%ndglno
 #ifdef HAVE_MEMORY_STATS
     call register_allocation("mesh_type", "integer", &

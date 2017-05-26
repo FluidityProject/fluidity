@@ -904,7 +904,7 @@ contains
 
        if(have_option("/mesh_adaptivity/delaunay_adaptivity")) then
 
-          if(do_adapt_mesh_connectivity(current_time, timestep)) then
+          if(do_adapt_mesh_connectivity(current_time, timestep) .and. .not. do_adapt_mesh(current_time, timestep)) then
 
              if (have_option("/mesh_adaptivity/delaunay_adaptivity/vertically_structured_adaptivity")) then
                 call update_base_coordinates(state)

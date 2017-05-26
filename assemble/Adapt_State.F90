@@ -136,8 +136,12 @@ contains
         call adapt_mesh_1d(stripped_positions, stripped_metric, new_positions, &
           & node_ownership = node_ownership, force_preserve_regions = force_preserve_regions)
       case(2)
-         if (present_and_true(lock_all_nodes) .and. isparallel()) then
-            call parallel_connectivity_adaptivity(stripped_positions, new_positions, 3)
+         if (present_and_true(lock_all_nodes)) then
+            if (isparallel()) then
+               call parallel_connectivity_adaptivity(stripped_positions, new_positions, 3)
+            else
+               call connectivity_adaptivity(stripped_positions, new_positions)
+            end if
          else
             call adapt_mesh_mba2d(stripped_positions, stripped_metric, new_positions, &
                  & force_preserve_regions=force_preserve_regions, lock_faces=lock_faces, &
@@ -1915,6 +1919,74 @@ contains
     end do
 
   end subroutine parallel_connectivity_adaptivity
+
+    subroutine connectivity_adaptivity(X_in, X_out)
+    type(vector_field), intent(inout) ::  X_in
+    type(vector_field), intent(out) ::  X_out
+
+    type(mesh_type) :: mesh
+
+    integer :: i, nloc
+
+    integer, allocatable, dimension(:) :: &
+            boundary_ids, surface_ids, coplanar_ids
+    integer, allocatable, dimension(:,:) :: new_sndgln
+    integer :: max_coplanar_id, partition_surface_id, stotel
+
+    nloc = x_in%mesh%shape%loc
+
+    mesh = deep_copy_mesh(X_in%mesh, trim(X_in%mesh%name))
+    mesh%shape%refcount%tagged = .false.
+    mesh%shape%quadrature%refcount%tagged = .false.
+    mesh%option_path=X_in%mesh%option_path
+
+    call allocate(X_out, X_in%dim, mesh, name = X_in%name)
+
+    call set(X_out, X_in)
+    call deallocate(mesh)
+
+    call adapt_mesh_mba2d_delaunay_short(x_out)
+
+
+    !! add back the faces
+    
+    allocate(surface_ids(unique_surface_element_count(X_in%mesh)))
+    call interleave_surface_ids(X_in%mesh, surface_ids, max_coplanar_id)
+    partition_surface_id = maxval(surface_ids) + 1
+
+    stotel=unique_surface_element_count(X_in%mesh)
+
+    allocate(boundary_ids(stotel), new_sndgln(nloc-1,stotel))
+
+    do i=1, unique_surface_element_count(x_in%mesh)
+       new_sndgln(:,i) = face_global_nodes(x_in, i)
+       boundary_ids(i) = surface_ids(i)
+    end do
+
+    call deallocate_faces(x_out%mesh)
+    call remove_eelist(x_out%mesh)
+    call add_eelist(x_out%mesh)
+    call add_faces(x_out%mesh, sndgln=reshape(new_sndgln, (/ (nloc-1)*stotel /) ), &
+         boundary_ids=boundary_ids)
+
+    deallocate(boundary_ids)
+
+    ! and only deinterleave now we know the total number of elements in the surface mesh
+    ! add_faces will have copied the interleaved id to the second copy of each interior facet
+    stotel = surface_element_count(x_out%mesh)
+    allocate(boundary_ids(stotel), coplanar_ids(stotel))
+    call deinterleave_surface_ids(x_out%mesh%faces%boundary_ids, &
+         max_coplanar_id, boundary_ids, coplanar_ids)
+    
+    x_out%mesh%faces%boundary_ids = boundary_ids
+    
+    if(associated(x_in%mesh%faces%coplanar_ids)) then
+       allocate(x_out%mesh%faces%coplanar_ids(1:stotel))
+       x_out%mesh%faces%coplanar_ids = coplanar_ids
+    end if
+    deallocate(boundary_ids, coplanar_ids)
+
+  end subroutine connectivity_adaptivity
 
 
   subroutine parallel_connectivity_adaptivity_in_place(X)

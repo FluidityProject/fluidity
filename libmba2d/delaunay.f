@@ -2,7 +2,7 @@ C ================================================================
       Subroutine Delaunay(
 C ================================================================
      &           nP, nE, XYP, IPE,
-     &           MaxWr, MaxWi, rW, iW)
+     &           MaxWr, MaxWi, rW, iW, iErr)
 C ================================================================
       implicit none
       include 'makS.fd'
@@ -26,6 +26,8 @@ C ================================================================
 
       Integer  MaxWr, MaxWi, iW(*)
       real   rW(*)
+
+      Integer iErr
 
       Integer  iref(4)
       Logical  check22, DelonePair, flagREPEAT, flagDELONE
@@ -146,17 +148,19 @@ c                    Call draw_T(nP, 0, nE, XYP, iW, iW, IPE, 'fin.ps')
       If(flagREPEAT) Then
          nloop = nloop + 1
  
-         If(nloop.GT.10*nP) Then
+         If(nloop.GT.100*nP) Then
 c          Call draw_T(nP, 0, nE, XYP, iW, iW, IPE, 'fin.ps')
-           Call wrnMes(6026, 
-     &                'delaunay.f', 'Cannot build Delaunay mesh')
+            iErr = 6026
+c           Call wrnMes(6026, 
+c     &                'delaunay.f', 'Cannot build Delaunay mesh')
            Return
          End if
 
          nswapold = nswap
          goto 100
       End if
- 
+
+      iErr=0
       Return
       End
 

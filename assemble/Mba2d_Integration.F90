@@ -412,7 +412,7 @@ module mba2d_integration
     if (present_and_true(lock_all_nodes)) then
 
        call Delaunay(nonods,npe,pos,nipe,&
-            maxWr, maxWi, rW, iW)
+            maxWr, maxWi, rW, iW, iErr)
 
     else
 
@@ -446,8 +446,6 @@ module mba2d_integration
           end if
        end do
     end if
-
-   assert( j==npe+1)
 
     call allocate(new_mesh, nonods, totele, ele_shape(xmesh, 1), trim(xmesh%name))
     ! Hack: untag these references so that people (i.e. me) don't get confused.
@@ -700,7 +698,7 @@ module mba2d_integration
     allocate(iW(maxWi))
 
     call Delaunay(nonods,nfree_ele,pos,ipe,&
-         maxWr, maxWi, rW, iW)
+         maxWr, maxWi, rW, iW, iErr)
 
     call incrementeventcounter(EVENT_ADAPTIVITY)
     call incrementeventcounter(EVENT_MESH_MOVEMENT)
