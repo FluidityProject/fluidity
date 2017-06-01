@@ -102,8 +102,8 @@ module multiphase_diagnostics
          if(have_option(trim(s_field%option_path)//'/diagnostic/algorithm::particle_reynolds_number/particle_diameter')) then
             call get_option(trim(s_field%option_path)//'/diagnostic/algorithm::particle_reynolds_number/particle_diameter', dia)
             have_constant_pd = .true.
-         else if(have_option(trim(s_field%option_path)//'/diagnostic/algorithm::particle_reynolds_number/particle_dia_use_scalar_field')) then
-            call get_option(trim(s_field%option_path)//'/diagnostic/algorithm::particle_reynolds_number/particle_dia_use_scalar_field', pd_field_name)
+         else if(have_option(trim(s_field%option_path)//'/diagnostic/algorithm::particle_reynolds_number/particle_diameter_use_scalar_field')) then
+            call get_option(trim(s_field%option_path)//'/diagnostic/algorithm::particle_reynolds_number/particle_diameter_use_scalar_field', pd_field_name)
             pd_scalar_field => extract_scalar_field(states(state_index), pd_field_name)
             have_constant_pd = .false.
          end if
