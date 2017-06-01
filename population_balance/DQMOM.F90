@@ -825,10 +825,10 @@ contains
           sigma = 0.072
           eps_ngi = ele_val_at_quad(turbulent_dissipation,ele)
           ! Assuming isotropic molecular viscosity here   
-          allocate(visc_ngi(ele_ngi(abscissa(1), ele), viscosity_continuous%dim(1), viscosity_continuous%dim(1)))
+          allocate(visc_ngi( viscosity_continuous%dim(1), viscosity_continuous%dim(1),ele_ngi(abscissa(1), ele)))
           visc_ngi = ele_val_at_quad(viscosity_continuous,ele)
           do i = 1, N
-             break_freq(:,i) = 6.0*eps_ngi**(1./3) * erfc(sqrt( 0.04*(sigma/density_continuous)*(1./(eps_ngi**(2./3) * abscissa_val_at_quad(:,i)**(5./3))) + 0.01*(visc_ngi(:,1,1)/sqrt(density_continuous*density_dispersed))*(1./(eps_ngi**(1./3)*abscissa_val_at_quad(:,i)**(4./3)))))
+             break_freq(:,i) = 6.0*eps_ngi**(1./3) * erfc(sqrt( 0.04*(sigma/density_continuous)*(1./(eps_ngi**(2./3) * abscissa_val_at_quad(:,i)**(5./3))) + 0.01*(visc_ngi(1,1,:)/sqrt(density_continuous*density_dispersed))*(1./(eps_ngi**(1./3)*abscissa_val_at_quad(:,i)**(4./3)))))
           end do
           deallocate(visc_ngi)
        end if
@@ -885,11 +885,11 @@ contains
           sigma = 0.072
           eps_ngi = ele_val_at_quad(turbulent_dissipation,ele)
           ! Assuming isotropic molecular viscosity here   
-          allocate(visc_ngi(ele_ngi(abscissa(1), ele), viscosity_continuous%dim(1), viscosity_continuous%dim(1)))
+          allocate(visc_ngi( viscosity_continuous%dim(1), viscosity_continuous%dim(1),ele_ngi(abscissa(1), ele)))
           visc_ngi = ele_val_at_quad(viscosity_continuous,ele)
           do i = 1, N
              do j = 1, N
-                aggregation_freq(:,i,j) = C5 * eps_ngi**(1./3) * (abscissa_val_at_quad(:,i) + abscissa_val_at_quad(:,j))**2 * (abscissa_val_at_quad(:,i)**(2./3) + abscissa_val_at_quad(:,j)**(2./3))**(1./2) * exp(-6.0E9*((visc_ngi(:,1,1)*density_continuous)/sigma**2)*eps_ngi*((abscissa_val_at_quad(:,i)*abscissa_val_at_quad(:,j))/(abscissa_val_at_quad(:,i)+abscissa_val_at_quad(:,j)))**4)
+                aggregation_freq(:,i,j) = C5 * eps_ngi**(1./3) * (abscissa_val_at_quad(:,i) + abscissa_val_at_quad(:,j))**2 * (abscissa_val_at_quad(:,i)**(2./3) + abscissa_val_at_quad(:,j)**(2./3))**(1./2) * exp(-6.0E9*((visc_ngi(1,1,:)*density_continuous)/sigma**2)*eps_ngi*((abscissa_val_at_quad(:,i)*abscissa_val_at_quad(:,j))/(abscissa_val_at_quad(:,i)+abscissa_val_at_quad(:,j)))**4)
              end do
           end do
           deallocate(visc_ngi)
