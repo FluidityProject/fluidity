@@ -10,13 +10,14 @@
 import numpy,sys,copy,operator
 
 class State:
-  def __init__(self,n=""):
+  def __init__(self,n="",ptr=0):
     self.scalar_fields = {}
     self.vector_fields = {}
     self.tensor_fields = {}
     self.csr_matrices = {}
     self.meshes = {}
     self.name = n
+    self.ptr = ptr
   def __repr__(self):
     return '(State) %s' % self.name
   def print_fields(self):

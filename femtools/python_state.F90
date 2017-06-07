@@ -22,6 +22,7 @@
 #include "fdebug.h"
 
 module python_state
+  use iso_c_binding
   use fldebug
   use global_parameters, only:FIELD_NAME_LEN, current_debug_level, OPTION_PATH_LEN, PYTHON_FUNC_LEN
   use futils, only: int2str
@@ -53,10 +54,12 @@ module python_state
     end subroutine python_end
 
     !! Add a state_type object into the Python interpreter
-    subroutine python_add_statec(name,nlen)
+    subroutine python_add_statec(name,nlen,ptr)
+      use iso_c_binding, only: c_ptr
       implicit none
       integer :: nlen
       character(len=nlen) :: name
+      type(c_ptr), value :: ptr
     end subroutine python_add_statec
 
     !! Run a python string and file
@@ -419,10 +422,10 @@ module python_state
 
   !! Insert a complete state into the python interpreter
   subroutine python_add_state(S)
-    type(state_type) :: S
+    type(state_type), target :: S
     integer :: i,nlen
     nlen = len(trim(S%name))
-    call python_add_statec(trim(S%name),nlen)
+    call python_add_statec(trim(S%name),nlen, c_loc(S))
 
     if ( associated(S%meshes) )  then
       do i=1,(size(S%meshes))
