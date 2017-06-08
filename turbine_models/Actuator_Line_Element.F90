@@ -7,13 +7,13 @@ module actuator_line_element
     use futils 
     use airfoils
     use actuator_line_model_utils 
-    use dynstall_legacy
+    use dynstall
 
 type ActuatorLineType
     integer :: NElem                    ! Number of Elements of the Blade
     character(len=100):: name           ! Actuator line name
     character(len=100):: geom_file      ! Actuator line file name (is not used for the turbines)
-
+    character(len=100):: DynStallpath   ! Path for the dynstall to read constats
     ! Station parameters
     logical :: FlipN =.false.           ! Flip Normal
     real, allocatable :: QCx(:)         ! Blade quarter-chord line x coordinates at element ends
@@ -25,6 +25,7 @@ type ActuatorLineType
     real, allocatable :: C(:)           ! Blade chord length at element ends
     real, allocatable :: thick(:)       ! Blade thickness at element ends
     real, allocatable :: pitch(:)       ! Blade station pitch at element ends
+    real, allocatable :: mount(:)       ! Chord mount (usually 0.25c for HAT and 0.5c for VAT)
 
     ! Element parameters 
     real, allocatable :: PEx(:)         ! Element centre x coordinates
@@ -45,6 +46,7 @@ type ActuatorLineType
     real, allocatable :: Eepsilon(:)    ! Element Force Projection Parameter
     real, allocatable :: ERdist(:)      ! Element Distance from the origin 
     real, allocatable :: ETtoC(:)       ! Element thickness to Chord ratio
+    real, allocatable :: EMount(:)       ! Element thickness to Chord ratio
     
     ! Angle of Attack, Pitch, local Reynolds number and relative velocity
     real, allocatable :: Epitch(:)      ! Element pitch angle
@@ -100,7 +102,7 @@ type ActuatorLineType
     type(AirfoilType), allocatable :: EAirfoil(:) ! Element Airfoil 
     integer :: NAirfoilData
     type(AirfoilType), allocatable :: AirfoilData(:) ! Element Airfoil 
-    type(LB_Type), allocatable :: E_LB_Model(:)   ! Element Leishman-Beddoes Model
+    type(DS_Type), allocatable :: EDynstall(:)   ! Element Leishman-Beddoes Model
     
     ! Forces and Torques on the ActuatorLine 
     real :: Fx     ! Element Force in the global x-direction
@@ -111,12 +113,14 @@ type ActuatorLineType
     real :: L 
     ! Degrees of Freedom
     
-    real :: COR(3)       ! Center of Rotation
+    real :: omega         ! Center of Rotation
+    real :: COR(3)        ! Center of Rotation
     real :: SpanWise(3)   ! Point of Rotation
    
     ! Unsteady Loading
     logical :: do_added_mass=.false.
     logical :: do_dynamic_stall=.false.
+    logical :: do_flow_curvature=.false.
     logical :: do_DynStall_AlphaEquiv=.false.
 
     ! Blade/Actuator_line Pitch
@@ -137,8 +141,8 @@ end type ActuatorLineType
 
     implicit none
     type(ActuatorLineType),intent(inout) :: actuatorline
-    real, allocatable :: rR(:),ctoR(:),pitch(:),thick(:)
-    real :: SVec(3), length 
+    real, allocatable :: rR(:),ctoR(:),mount(:),pitch(:),thick(:)
+    real :: SVec(3), length, chordDisplacement 
     integer :: Nstations, Istation, ielem
 
     ewrite(2,*) 'Entering set_actuatorline_geometry'
@@ -146,7 +150,7 @@ end type ActuatorLineType
     ewrite(2,*) 'Actuatorline Name : ', actuatorline%name 
     ewrite(2,*) '============================='
 
-    call read_actuatorline_geometry(actuatorline%geom_file,length,SVec,rR,ctoR,pitch,thick,Nstations)
+    call read_actuatorline_geometry(actuatorline%geom_file,length,SVec,rR,ctoR,mount,pitch,thick,Nstations)
     
     call allocate_actuatorline(actuatorline,Nstations)
    
@@ -172,6 +176,15 @@ end type ActuatorLineType
     actuatorline%C(istation)=ctoR(istation)*length
     actuatorline%thick(istation)=thick(istation)
     actuatorline%FlipN=.true.
+    ! Compute the chord length, thickness, pitch etc..
+    actuatorline%pitch(istation)=pitch(istation)/180.0*pi
+    actuatorline%mount(istation)=mount(istation)
+    
+    ! Apply the chord mount
+    chordDisplacement=(actuatorline%mount(istation)-0.25)*actuatorline%C(istation)
+    actuatorline%QCx(istation)=actuatorline%QCx(istation)-chordDisplacement*actuatorline%tx(istation)
+    actuatorline%QCy(istation)=actuatorline%QCy(istation)-chordDisplacement*actuatorline%ty(istation)  
+    actuatorline%QCz(istation)=actuatorline%QCz(istation)-chordDisplacement*actuatorline%tz(istation) 
     end do
 
     call make_actuatorline_geometry(actuatorline)
@@ -197,7 +210,7 @@ end type ActuatorLineType
     actuatorline%EAOA_LAST(:)=-666.0
     
     do ielem=1,actuatorline%Nelem
-    call dystl_init_LB(actuatorline%E_LB_Model(ielem))
+    call dystl_init(actuatorline%EDynstall(ielem),actuatorline%DynStallpath)
     end do
     
     ewrite(2,*) 'Exiting set_actuatorline_geometry'
@@ -279,7 +292,11 @@ end type ActuatorLineType
     !====================================
     ! Correct for flow curvature
     !====================================
-         
+    if(act_line%do_flow_curvature) then
+    alpha=alpha+act_line%omega*(act_line%Emount(ielem)-0.25)*ElemChord/ur
+    alpha=alpha+act_line%omega*ElemChord/(4.0*ur)
+    endif
+
     !====================================
     ! Compute the Aerofoil Coefficients
     !====================================
@@ -289,11 +306,11 @@ end type ActuatorLineType
     ! Correct for dynamic stall 
     !=============================================== 
     if(act_line%do_dynamic_stall) then 
-    call LB_DynStall(act_line%EAirfoil(ielem),act_line%E_LB_Model(ielem),CL,CD,alpha,alpha,act_line%ERe(ielem),CLdyn,CDdyn) 
-    CL=CLdyn
-    CD=CDdyn
-    ds=2*ur*dt/ElemChord
-    call LB_UpdateStates(act_line%E_LB_Model(ielem),act_line%EAirfoil(ielem),act_line%ERE(ielem),ds)
+    !call LB_DynStall(act_line%EAirfoil(ielem),act_line%E_LB_Model(ielem),CL,CD,alpha,alpha,act_line%ERe(ielem),CLdyn,CDdyn) 
+    !CL=CLdyn
+    !CD=CDdyn
+    !ds=2*ur*dt/ElemChord
+    !call LB_UpdateStates(act_line%E_LB_Model(ielem),act_line%EAirfoil(ielem),act_line%ERE(ielem),ds)
     end if
     
     !===============================================
@@ -578,12 +595,12 @@ end type ActuatorLineType
 
     end subroutine rotate_actuatorline
 
-    subroutine read_actuatorline_geometry(FN,Rmax,SpanwiseVec,rR,ctoR,pitch,thick,Nstations)
+    subroutine read_actuatorline_geometry(FN,Rmax,SpanwiseVec,rR,ctoR,mount,pitch,thick,Nstations)
     
     implicit none
     character(len=100),intent(in)  :: FN ! FileName of the geometry file
     real,dimension(3) :: SpanwiseVec
-    real, allocatable,intent(out) :: rR(:),ctoR(:),pitch(:),thick(:)  
+    real, allocatable,intent(out) :: rR(:),ctoR(:),mount(:),pitch(:),thick(:)  
     real, intent(out) :: Rmax  
     integer, intent(out) :: Nstations
     integer :: i
@@ -601,13 +618,13 @@ end type ActuatorLineType
     read(15,'(A)') ReadLine
     read(ReadLine(index(ReadLine,':')+1:),*) Nstations
 
-    allocate(rR(Nstations),ctoR(Nstations),pitch(Nstations),thick(Nstations))
+    allocate(rR(Nstations),ctoR(Nstations),mount(Nstations),pitch(Nstations),thick(Nstations))
     ! Read the stations specs
     do i=1,NStations
     
     read(15,'(A)') ReadLine ! Blade ....
 
-    read(ReadLine,*) rR(i), ctoR(i), pitch(i), thick(i)
+    read(ReadLine,*) rR(i), ctoR(i), mount(i), pitch(i), thick(i)
 
     end do
     
@@ -696,6 +713,7 @@ end type ActuatorLineType
     blade%EC(nej-1)=blade%EArea(nej-1)/sEM
     blade%ETtoC(nej-1)=0.5*(blade%thick(nej)+blade%thick(nej-1))
     blade%Epitch(nej-1)=0.5*(blade%pitch(nej)+blade%pitch(nej-1))
+    blade%Emount(nej-1)=0.5*(blade%mount(nej)+blade%mount(nej-1))
     end do
     ewrite(2,*) 'Exiting make_actuatorline_geometry'
 
@@ -721,6 +739,7 @@ end type ActuatorLineType
     allocate(actuatorline%C(NElem+1))
     allocate(actuatorline%thick(NElem+1))
     allocate(actuatorline%pitch(NElem+1))
+    allocate(actuatorline%mount(NElem+1))
     allocate(actuatorline%PEx(NElem))
     allocate(actuatorline%PEy(NElem))
     allocate(actuatorline%PEz(NElem))
@@ -737,9 +756,10 @@ end type ActuatorLineType
     allocate(actuatorline%EDS(NElem))
     allocate(actuatorline%EArea(NElem))
     allocate(actuatorline%ETtoC(NElem))
+    allocate(actuatorline%Emount(NElem))
     allocate(actuatorline%Eepsilon(NElem))
     allocate(actuatorline%EAirfoil(Nelem))
-    allocate(actuatorline%E_LB_Model(Nelem))
+    allocate(actuatorline%EDynstall(Nelem))
     allocate(actuatorline%ERdist(Nelem))
     allocate(actuatorline%EVx(NElem))
     allocate(actuatorline%EVy(NElem))

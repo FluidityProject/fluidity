@@ -358,10 +358,7 @@ contains
       !> Get Position and Velocity Field
       positions => extract_vector_field(states(state_index),"Coordinate")  
       velocity  => extract_vector_field(states(state_index), "Velocity")
-   
-      call allocate(remapped_pos, mesh=velocity%mesh, dim=positions%dim, name="RemappedField")
-      call remap_field(positions, remapped_pos)
-    
+      
       if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon") ) then
         ViscosityTens => extract_tensor_field(states(state_index),"BackgroundViscosity")
       else if (have_option("/material_phase[0]/subgridscale_parameterisations/k-omega") ) then 
@@ -369,6 +366,11 @@ contains
       else
         ViscosityTens => extract_tensor_field(states(state_index),"Viscosity")
       endif   
+  
+
+      call allocate(remapped_pos, mesh=velocity%mesh, dim=positions%dim, name="RemappedField")
+      call remap_field(positions, remapped_pos)
+    
       ! there should be two models: one for checking a single airfoil
       ! And another for checking the turbine
       call MPI_Comm_rank(MPI_COMM_WORLD,rank,ierr)
@@ -407,16 +409,18 @@ contains
         Su(isource)=value_vel(1)
         Sv(isource)=value_vel(2)
         Sw(isource)=value_vel(3)
-        ! Local Background Compute Viscosity
+        !Local Background Compute Viscosity
         nu=eval_field(ele,ViscosityTens,local_coord)
         
-        Visc=1.0/3.0*(nu(1,1)+nu(2,2)+nu(3,3)) ! Compute trace of the viscosity tensor 
         
+        Visc=1.0/3.0*(nu(1,1)+nu(2,2)+nu(3,3)) ! Compute trace of the viscosity tensor 
+        ewrite(1,*) Visc
+
         volume=element_volume(positions,ele)
 
         if(has_constant_epsilon) then
             Se(isource)=constant_epsilon
-            if (Se(isource)<4.0*volume**(1/3.0)) then
+            if (Se(isource)<4.0*volume**(1.0/3.0)) then
                 ewrite(1,*) 'problem with the source term of ', isource
             endif
         else if (has_mesh_based_epsilon) then 

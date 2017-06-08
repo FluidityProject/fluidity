@@ -27,11 +27,6 @@ module Airfoils
   integer, allocatable :: nTBL(:)   ! Number of AOA values for each Re number, in each section data table
   integer  :: nRET   ! Number of Re number values in each section data table
 
-  ! Airfoil parameterss for Leishman-Beddoes Dynamic stall model
-  real, allocatable :: CLaData(:)
-  real, allocatable :: CLCritPData(:)
-  real, allocatable :: CLCritNData(:)
-
   end type AirfoilType
  
   ! Maximum Numbers of Reynolds Number data that can be stored
@@ -40,7 +35,7 @@ module Airfoils
   integer, parameter :: MaxAOAVals = 1000
  
   ! Public subroutines
-  public airfoil_init_data, compute_StaticLoads , EvalStaticCoeff, read_airfoil,allocate_airfoil, copy_airfoil_values
+  public airfoil_init_data, compute_StaticLoads , read_airfoil,allocate_airfoil, copy_airfoil_values
 
 
 contains
@@ -80,9 +75,6 @@ contains
     airfoil1%TCM(1:MaxAOAVals,1:MaxReVals)=airfoil2%TCM(1:MaxAOAVals,1:MaxReVals)
     airfoil1%TRE(1:MaxReVals)=airfoil2%TRE(1:MaxReVals)
     airfoil1%nTBL(1:MaxReVals)=airfoil2%nTBL(1:MaxReVals)
-    airfoil1%CLaData(1:MaxReVals)=airfoil2%CLaData(1:MaxReVals)
-    airfoil1%CLCritPData(1:MaxReVals)=airfoil2%CLCritPData(1:MaxReVals)
-    airfoil1%CLCritNData(1:MaxReVals)=airfoil2%CLCritNData(1:MaxReVals)
 
     ewrite(2,*) 'Exiting copy_airfoil_values'
 
@@ -156,19 +148,6 @@ contains
         i=i+1
         ! Read Re and dyn. stall data
         read(ReadLine(index(ReadLine,':')+1:),*) airfoil%TRE(i)
-        read(15,'(A)') ReadLine                          
-        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%CLaData(i)
-        read(15,'(A)') ReadLine                          
-        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%CLcritPData(i)
-        read(15,'(A)') ReadLine                          
-        read(ReadLine(index(ReadLine,':')+1:),*) airfoil%CLcritNData(i)
-
-        ! Reverse camber direction if desired
-        if (airfoil%camb == 1) then
-            temp = airfoil%CLcritPData(i)
-            airfoil%CLCritPData(i) = -airfoil%CLcritNData(i)
-            airfoil%CLCritNData(i) = -temp 
-        end if
 
         ! Read AOA data
         read(15,'(A)') ReadLine
@@ -274,9 +253,6 @@ contains
     allocate(airfoil%TCM(MaxAOAVals,MaxReVals))
     allocate(airfoil%TRE(MAxReVals))
     allocate(airfoil%nTBL(MaxReVals))
-    allocate(airfoil%CLaData(MaxReVals))
-    allocate(airfoil%CLCritPData(MaxReVals))
-    allocate(airfoil%CLCritNData(MaxReVals))
 
     ewrite(1,*) 'Exiting allocate_airfoil'
     
@@ -411,57 +387,5 @@ ewrite(2,*) 'Warning : The upper Reynolds number available data was exceeded. Ca
 
         ewrite(2,*) 'Exiting intp subroutine'
     END SUBROUTINE EvalStaticCoeff
-
-    Subroutine EvalStaticStallParams(airfoil,Re,CLCritP,CLCritN,CLAlpha)
-
-        implicit none
-        type(AirfoilType),intent(IN) :: airfoil
-        real,intent(in) :: Re
-        real, intent(out) :: CLcritP, CLcritN, CLAlpha
-        real :: XRE
-        integer :: iUB, iLB
-        logical :: NotDone 
-
-        ! Find Re upper and lower bounds.                               
-
-        if(RE>=airfoil%TRE(1))then            
-            NotDone=.true.    
-            iUB=2                                                                 
-            do while (NotDone)   
-            if (RE <= airfoil%TRE(iUB)) then
-                ! Done
-                NotDone=.false.
-                if (RE == airfoil%TRE(iUB)) then
-                    iLB=iUB
-                else
-                    iLB=iUB-1                                                           
-                    XRE=(RE-airfoil%TRE(iLB))/(airfoil%TRE(iUB)-airfoil%TRE(iLB))
-                end if
-            else
-                if (iUB == airfoil%nRET) then       
-                    ! No upper bound in table, take last point...
-                    NotDone=.false.                                                       
-                    iLB=iUB                                                           
-                    XRE=0.0                                                           
-                else    
-                    ! No upper bound, increment and continue                                
-                    iUB=iUB+1
-                end if
-            end if
-
-            end do
-
-        else        
-            iLB=1                                                             
-            iUB=1                                                             
-            XRE=0.0                                                      
-        end if
-
-        ! Interp
-        CLAlpha=airfoil%CLaData(iLB)+xRE*(airfoil%CLaData(iUB)-airfoil%CLaData(iLB))            
-        CLcritP=airfoil%CLcritPData(iLB)+xRE*(airfoil%CLcritPData(iUB)-airfoil%CLcritPData(iLB))  
-        CLcritN=airfoil%CLcritNData(iLB)+xRE*(airfoil%CLcritNData(iUB)-airfoil%CLcritNData(iLB)) 
-
-    End Subroutine EvalStaticStallParams
 
 end module Airfoils 

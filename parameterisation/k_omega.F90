@@ -583,7 +583,7 @@ function tensor_inner_product(A, B)
   real, dimension(size(A,3)) :: tensor_inner_product
   integer :: i
   
-  C = A*B
+  C = A*B ! ? GD
   do i = 1, size(A,3)
      tensor_inner_product(i) = sum(C(:,:,i))
   end do

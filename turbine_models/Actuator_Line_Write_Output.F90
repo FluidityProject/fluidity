@@ -41,7 +41,7 @@ write(2017,Format)ielem,',',act_line%PEx(ielem),',',act_line%PEy(ielem),',',act_
         write(2018,*) 'ielem,rdist/R,pitch,AOA,f'
         Format="(I5,A,15(E14.7,A))"
         do ielem=1,act_line%NElem
-write(2018,Format)ielem,',',act_line%ERdist(ielem)/act_line%L,',',act_line%Epitch(ielem)*180/pi,',',act_line%EAOA(ielem)*180/pi,',',act_line%E_LB_MODEL(ielem)%F
+write(2018,Format)ielem,',',act_line%ERdist(ielem)/act_line%L,',',act_line%Epitch(ielem)*180/pi,',',act_line%EAOA(ielem)*180/pi,',',act_line%EDynstall(ielem)%F
         end do
         close(2018)
  

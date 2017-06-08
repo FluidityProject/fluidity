@@ -38,7 +38,55 @@ turbine_models=(
         element dynamic_stall{
            element do_calcAlphaEquiv{
                empty
-           }?
+           }?,
+           ## Default value = 1.7
+           element Tp{
+               real
+           },
+           ## Default value = 3.0
+           element Tf{
+               real
+           },
+           ## Recommended value = 6.25
+           element TAlpha{
+               real
+           },
+           ## Recommended value = 3.8
+           element alphaDS0DiffDeg{
+               real
+           },
+           ## Recommended value = 0.01
+           element r0{
+               real
+           },
+           ## Recommended value = 11
+           element Tv{
+               real
+           },
+           ## Recommended value = 8.7
+           element Tvl{
+               real
+           },
+           ## Recommended value = 0.5
+           element B1{
+               real
+           },
+           ## Recommended value = 0.98
+           element eta{ 
+               real
+           },
+           ## Recommended value = 0.16
+           element E0{
+               real
+           },
+           ## Recommended value = 0.16
+           element stall_data{
+                attribute file_name { xsd:string },
+## The format of the input file containing field data.
+        element string_value {
+            "ascii"
+        }
+           }
         }?,
         element BladeEndEffects {
             element tip_correction{
@@ -47,11 +95,11 @@ turbine_models=(
                     empty
                 }|
                 element ShenEtAl2005{
-                    # Recommended Value 0.125
+                    ## Recommended Value 0.125
                     element c1{
                         real
                     },
-                    # Recommended Value 21
+                    ## Recommended Value 21
                     element c2{
                         real
                     }

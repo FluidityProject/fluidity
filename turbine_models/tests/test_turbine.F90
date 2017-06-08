@@ -23,8 +23,8 @@ subroutine test_turbine
  call load_options("TestTurbine.flml")
  
  Ntimesteps=1000
- deltaT=0.001
- visc=1.5e-5
+ deltaT=0.01
+ visc=1.e-6
  current_time=0.0
  dump_step=50
  
@@ -41,13 +41,13 @@ subroutine test_turbine
  !> Set the velocities
     do itur=1, Ntur
         do iblade=1,Turbine(itur)%NBlades
-        Turbine(itur)%Blade(iblade)%EVx(:)=10.0
+        Turbine(itur)%Blade(iblade)%EVx(:)=turbine(itur)%Uref
         Turbine(itur)%Blade(iblade)%EVy(:)=0.0
         Turbine(itur)%Blade(iblade)%EVz(:)=0.0
         Turbine(itur)%Blade(iblade)%Eepsilon(:)=constant_epsilon
         
         enddo
-        Turbine(itur)%Tower%EVx(:)=10.0
+        Turbine(itur)%Tower%EVx(:)=turbine(itur)%Uref
         Turbine(itur)%Tower%EVy(:)=0.0
         Turbine(itur)%Tower%EVz(:)=0.0
         Turbine(itur)%Tower%Eepsilon(:)=constant_epsilon

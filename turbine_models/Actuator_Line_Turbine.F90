@@ -57,8 +57,8 @@ contains
 
     implicit none
     type(TurbineType),intent(inout) :: turbine
-    real, allocatable :: rR(:),ctoR(:),pitch(:),thick(:)
-    real :: SVec(3), theta
+    real, allocatable :: rR(:),ctoR(:),mount(:),pitch(:),thick(:)
+    real :: SVec(3), theta, chordDisplacement
     integer :: Nstations, iblade, Istation,ielem
 
     ewrite(2,*) 'Entering set_turbine_geometry'
@@ -69,7 +69,7 @@ contains
     ewrite(2,*) 'Origin           : ', turbine%origin
     ewrite(2,*) 'Axis of Rotation : ', turbine%RotN
  
-    call read_actuatorline_geometry(turbine%blade_geom_file,turbine%Rmax,SVec,rR,ctoR,pitch,thick,Nstations)
+    call read_actuatorline_geometry(turbine%blade_geom_file,turbine%Rmax,SVec,rR,ctoR,mount,pitch,thick,Nstations)
     ! Make sure that the spanwise is [0 0 1]
     Svec = (/0.0,0.0,1.0/)
     ! Make sure that origin is [0,0,0] : we set everything to origin 0 and then translate the
@@ -91,18 +91,23 @@ contains
         turbine%blade(iblade)%tx(istation)=sin(pitch(istation)/180.0*pi)    
         turbine%blade(iblade)%ty(istation)=-cos(pitch(istation)/180.0*pi)    
         turbine%blade(iblade)%tz(istation)= 0.0
-        turbine%blade(iblade)%C(istation)=ctoR(istation)*turbine%Rmax
-        turbine%blade(iblade)%thick(istation)=thick(istation)
-        turbine%blade(iblade)%pitch(istation)=pitch(istation)/180.0*pi
     elseif(turbine%IsClockwise) then
         turbine%blade(iblade)%tx(istation)=sin(pitch(istation)/180.0*pi)    
         turbine%blade(iblade)%ty(istation)=cos(pitch(istation)/180.0*pi)    
         turbine%blade(iblade)%tz(istation)= 0.0
-        turbine%blade(iblade)%C(istation)=ctoR(istation)*turbine%Rmax
-        turbine%blade(iblade)%thick(istation)=thick(istation)
-        turbine%blade(iblade)%pitch(istation)=pitch(istation)/180.0*pi
         turbine%blade(iblade)%FlipN = .true.
     endif
+    ! Compute the chord length, thickness, pitch etc..
+    turbine%blade(iblade)%C(istation)=ctoR(istation)*turbine%Rmax
+    turbine%blade(iblade)%thick(istation)=thick(istation)
+    turbine%blade(iblade)%pitch(istation)=pitch(istation)/180.0*pi
+    turbine%blade(iblade)%mount(istation)=mount(istation)
+    
+    ! Apply the chord mount
+    chordDisplacement=(turbine%blade(iblade)%mount(istation)-0.25)*turbine%blade(iblade)%C(istation)
+    turbine%blade(iblade)%QCx(istation)=turbine%blade(iblade)%QCx(istation)-chordDisplacement*turbine%blade(iblade)%tx(istation)
+    turbine%blade(iblade)%QCy(istation)=turbine%blade(iblade)%QCy(istation)-chordDisplacement*turbine%blade(iblade)%ty(istation)  
+    turbine%blade(iblade)%QCz(istation)=turbine%blade(iblade)%QCz(istation)-chordDisplacement*turbine%blade(iblade)%tz(istation) 
     end do
 
     ! Rotate Blade 1 to forme the other blades 
@@ -119,7 +124,7 @@ contains
     ! Initialize LB_model and Tip Correction Coeffs
     do ielem=1,turbine%blade(iblade)%Nelem
     if(turbine%blade(iblade)%do_dynamic_stall) then
-        call dystl_init_LB(turbine%blade(iblade)%E_LB_Model(ielem))
+        call dystl_init(turbine%blade(iblade)%EDynstall(ielem),turbine%blade(iblade)%DynStallPath)
     endif
     end do 
 
@@ -135,7 +140,7 @@ contains
     ! Create a Tower
     !=========================================================
     if(turbine%has_Tower) then
-    call read_actuatorline_geometry(turbine%tower%geom_file,turbine%Towerheight,SVec,rR,ctoR,pitch,thick,Nstations)
+    call read_actuatorline_geometry(turbine%tower%geom_file,turbine%Towerheight,SVec,rR,ctoR,mount,pitch,thick,Nstations)
     ! Make sure that the spanwise is [0 0 1]
     Svec = (/0.0,0.0,1.0/)
     
@@ -144,7 +149,7 @@ contains
    
     turbine%Tower%COR=turbine%origin
     turbine%Tower%NElem=Nstations-1  
-    
+ 
     do istation=1,Nstations
     turbine%Tower%QCx(istation)= turbine%Tower%COR(1) + turbine%TowerOffset  
     turbine%Tower%QCy(istation)= turbine%Tower%COR(2)
@@ -175,6 +180,9 @@ contains
     !Compute a number of global parameters for the turbine
     !========================================================
     turbine%angularVel=turbine%Uref*turbine%TSR/turbine%Rmax
+    do iblade=1,turbine%NBlades
+    turbine%Blade(iblade)%omega=turbine%angularVel ! To be used by the Actuator line element  
+    enddo
     turbine%A=pi*turbine%Rmax**2
     
     call Compute_Turbine_RotVel(turbine)

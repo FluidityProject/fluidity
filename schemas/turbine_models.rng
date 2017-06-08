@@ -56,6 +56,56 @@
                         <empty/>
                       </element>
                     </optional>
+                    <element name="Tp">
+                      <a:documentation>Default value = 1.7</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <element name="Tf">
+                      <a:documentation>Default value = 3.0</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <element name="TAlpha">
+                      <a:documentation>Recommended value = 6.25</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <element name="alphaDS0DiffDeg">
+                      <a:documentation>Recommended value = 3.8</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <element name="r0">
+                      <a:documentation>Recommended value = 0.01</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <element name="Tv">
+                      <a:documentation>Recommended value = 11</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <element name="Tvl">
+                      <a:documentation>Recommended value = 8.7</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <element name="B1">
+                      <a:documentation>Recommended value = 0.5</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <element name="eta">
+                      <a:documentation>Recommended value = 0.98</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <element name="E0">
+                      <a:documentation>Recommended value = 0.16</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <element name="stall_data">
+                      <a:documentation>Recommended value = 0.16</a:documentation>
+                      <attribute name="file_name">
+                        <data type="string"/>
+                      </attribute>
+                      <element name="string_value">
+                        <a:documentation>The format of the input file containing field data.</a:documentation>
+                        <value>ascii</value>
+                      </element>
+                    </element>
                   </element>
                 </optional>
                 <optional>
@@ -66,12 +116,12 @@
                           <empty/>
                         </element>
                         <element name="ShenEtAl2005">
-                          <!-- Recommended Value 0.125 -->
                           <element name="c1">
+                            <a:documentation>Recommended Value 0.125</a:documentation>
                             <ref name="real"/>
                           </element>
-                          <!-- Recommended Value 21 -->
                           <element name="c2">
+                            <a:documentation>Recommended Value 21</a:documentation>
                             <ref name="real"/>
                           </element>
                         </element>

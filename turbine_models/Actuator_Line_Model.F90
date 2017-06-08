@@ -13,7 +13,8 @@ module actuator_line_model
     use actuator_line_element
     use actuator_line_turbine
     use actuator_line_write_output
-    use dynstall_legacy
+    use dynstall
+    !use dynstall_legacy
 
     implicit none
 
@@ -203,7 +204,8 @@ contains
             Turbine(i)%Blade(j)%do_dynamic_stall=.true.  
             if(have_option(trim(turbine_path(i))//"/Blades/dynamic_stall/do_calcAlphaEquiv")) then
                 Turbine(i)%Blade(j)%do_DynStall_AlphaEquiv=.true.
-            endif
+            endif 
+            Turbine(i)%Blade(j)%DynStallpath= trim(turbine_path(i))//"/Blades/dynamic_stall/" 
             end do
         endif
 
@@ -215,8 +217,8 @@ contains
                     Turbine(i)%EndEffectModel_is_Glauret=.true.
                 else if(have_option(trim(turbine_path(i))//"/Blades/BladeEndEffects/tip_correction/ShenEtAl2005")) then
                     Turbine(i)%EndEffectModel_is_Shen=.true.
-                    call get_option(trim(turbine_path(i))//"/Blades/BladeEndEffects/tip_correction/ShenEtAl2005/c1",Turbine(i)%ShenCoeff_c1)
-                    call get_option(trim(turbine_path(i))//"/Blades/BladeEndEffects/tip_correction/ShenEtAl2005/c2",Turbine(i)%ShenCoeff_c2)
+                    call get_option(trim(turbine_path(i))//"/Blades/BladeEndEffects/tip_correction/ShenEtAl2005/c1",Turbine(i)%ShenCoeff_c1,default=0.125)
+                    call get_option(trim(turbine_path(i))//"/Blades/BladeEndEffects/tip_correction/ShenEtAl2005/c2",Turbine(i)%ShenCoeff_c2,default=21.0)
                 endif
             endif
             if(have_option(trim(turbine_path(i))//"/Blades/BladeEndEffects/root_correction")) then
@@ -225,11 +227,18 @@ contains
                     Turbine(i)%EndEffectModel_is_Glauret=.true.
                 else if(have_option(trim(turbine_path(i))//"/Blades/BladeEndEffects/root_correction/ShenEtAl2005")) then
                     Turbine(i)%EndEffectModel_is_Shen=.true.
-                    call get_option(trim(turbine_path(i))//"Blades/BladeEndEffects/root_correction/ShenEtAl2005/c1",Turbine(i)%ShenCoeff_c1)
-                    call get_option(trim(turbine_path(i))//"Blades/BladeEndEffects/root_correction/ShenEtAl2005/c2",Turbine(i)%ShenCoeff_c2)
+                    call get_option(trim(turbine_path(i))//"Blades/BladeEndEffects/root_correction/ShenEtAl2005/c1",Turbine(i)%ShenCoeff_c1,default=0.125)
+                    call get_option(trim(turbine_path(i))//"Blades/BladeEndEffects/root_correction/ShenEtAl2005/c2",Turbine(i)%ShenCoeff_c2,default=21.0)
                 endif 
             endif
         endif
+        
+        if(have_option(trim(turbine_path(i))//"/Blades/flow_curvature")) then
+            do j=1,Turbine(i)%NBlades
+            Turbine(i)%Blade(j)%do_flow_curvature=.true.
+            end do
+        endif
+
         end do
 
         ewrite(2,*) 'Exiting get_turbine_options'
