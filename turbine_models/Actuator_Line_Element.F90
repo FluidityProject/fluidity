@@ -228,7 +228,7 @@ end type ActuatorLineType
     real :: urdn,urdc,ur,alpha,ds
     real :: CL,CD,CN,CT,CM25,MS,FN,FT,FX,Fy,Fz
     real :: dal,dUn
-    real :: CLdyn,CDdyn,CNAM,CTAM,CMAM
+    real :: CLdyn,CDdyn,CM25dyn, CNAM,CTAM,CMAM
     integer :: ielem
   
     ewrite(2,*) 'Entering Compute_Forces '
@@ -306,11 +306,9 @@ end type ActuatorLineType
     ! Correct for dynamic stall 
     !=============================================== 
     if(act_line%do_dynamic_stall) then 
-    !call LB_DynStall(act_line%EAirfoil(ielem),act_line%E_LB_Model(ielem),CL,CD,alpha,alpha,act_line%ERe(ielem),CLdyn,CDdyn) 
+    call DynstallCorrect(act_line%Edynstall(ielem),act_line%Eairfoil(ielem),time,dt,ur,ElemChord,alpha,act_line%ERe(ielem),CLdyn,CDdyn,CM25dyn)
     !CL=CLdyn
     !CD=CDdyn
-    !ds=2*ur*dt/ElemChord
-    !call LB_UpdateStates(act_line%E_LB_Model(ielem),act_line%EAirfoil(ielem),act_line%ERE(ielem),ds)
     end if
     
     !===============================================

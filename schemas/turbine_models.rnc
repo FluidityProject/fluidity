@@ -71,6 +71,10 @@ turbine_models=(
            element B1{
                real
            },
+           ## Recommended value = 0.2
+           element B2{
+               real
+           },
            ## Recommended value = 0.98
            element eta{ 
                real

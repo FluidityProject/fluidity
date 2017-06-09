@@ -88,6 +88,10 @@
                       <a:documentation>Recommended value = 0.5</a:documentation>
                       <ref name="real"/>
                     </element>
+                    <element name="B2">
+                      <a:documentation>Recommended value = 0.2</a:documentation>
+                      <ref name="real"/>
+                    </element>
                     <element name="eta">
                       <a:documentation>Recommended value = 0.98</a:documentation>
                       <ref name="real"/>
