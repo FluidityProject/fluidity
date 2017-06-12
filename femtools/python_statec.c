@@ -153,14 +153,19 @@ void python_add_statec_(char *name,int *len, void *ptr){
 #ifdef HAVE_PYTHON
   // Add a new state object to the Python environment
   char *n = fix_string(name,*len);
-  int tlen=38+2*(*len);
-  char t[tlen];
   // 'state' in Python will always be the last state added while the 'states' dictionary 
   // includes all added states
-  snprintf(t, tlen, "states[\"%s\"] = State(\"%s\",%p)",n,n,ptr);
-  PyRun_SimpleString(t);
-  snprintf(t, tlen, "state = states[\"%s\"]",n);
-  PyRun_SimpleString(t);
+
+  PyObject*   m = PyImport_AddModule("__main__");
+
+  PyObject* args = PyTuple_Pack(1, PyString_FromString(n));
+  PyObject* State = PyObject_CallObject(PyObject_GetAttrString(m, "State"), args);
+  Py_DECREF(args);
+
+  PyObject_SetAttrString(State, "c_ptr", PyCapsule_New(ptr, NULL, NULL));
+
+  PyDict_SetItemString(PyObject_GetAttrString(m, "states"), n, State);
+  PyObject_SetAttrString(m, "state", State);
 
   free(n); 
 #endif
