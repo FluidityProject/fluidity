@@ -1,0 +1,38 @@
+# - Config file for the FooBar package
+# It defines the following variables
+#  FLUIDITY_INCLUDE_DIRS - include directories for Fluidity
+#  FLUIDITY_LIBRARIES    - libraries to link against
+#  FLUIDITY_LINKER_FLAGS   - additional linker flags
+#  FLUIDITY_C_FLAGS   - C compiler flags
+#  FLUIDITY_CXX_FLAGS   - C++ compiler flags
+#  FLUIDITY_Fortran_FLAGS   - Fortran flags
+ 
+
+
+cmake_minimum_required( VERSION 2.8 )
+
+# Compute paths
+get_filename_component(FLUIDITY_BASE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+
+find_package(PkgConfig REQUIRED)
+find_package(PythonLibs 2.6 REQUIRED )
+find_package(VTK REQUIRED)
+pkg_search_module(PETSc REQUIRED PETSc)
+
+set(FLUIDITY_Fortran_COMPILER @FC@)
+set(FLUIDITY_Fortran_FLAGS "@FCFLAGS@")
+set(FLUIDITY_C_COMPILER @CC@)
+set(FLUIDITY_C_FLAGS "@CFLAGS@")
+set(FLUIDITY_CXX_COMPILER @CXX@)
+set(FLUIDITY_CXX_FLAGS "@CPPFLAGS@ @CXXFLAGS@")
+
+set(FLUIDITY_INCLUDE_DIRS ${FLUIDITY_BASE_DIR}/include ${PETSc_STATIC_INCLUDE_DIRS}
+  ${VTK_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIRS})
+set(FLUIDITY_LIBRARY_DIRS ${FLUIDITY_BASE_DIR}/lib ${PETSc_STATIC_LIBRARY_DIRS})
+set(FLUIDITY_LIBRARIES fluidity spatialindex Judy spud vtkfortran adaptivity ${PETSc_STATIC_LIBRARIES} ${VTK_LIBRARIES} ${PYTHON_LIBRARIES}) 
+set(FLUIDITY_LINKER_FLAGS  ${PETSc_STATIC_LDFLAGS_OTHER})
+
+IF(APPLE)
+   FIND_LIBRARY(CARBON_LIBRARY Carbon)
+   set(FLUIDITY_LIBRARIES ${FLUIDITY_LIBRARIES} ${CARBON_LIBRARY})
+ENDIF(APPLE)

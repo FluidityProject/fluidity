@@ -162,7 +162,8 @@ void python_add_statec_(char *name,int *len, void *ptr){
   PyObject* State = PyObject_CallObject(PyObject_GetAttrString(m, "State"), args);
   Py_DECREF(args);
 
-  PyObject_SetAttrString(State, "c_ptr", PyCapsule_New(ptr, NULL, NULL));
+  PyObject_SetAttrString(State, "c_ptr",
+			 PyCapsule_New(ptr, NULL, PyObject_GetAttrString(State,"name")));
 
   PyDict_SetItemString(PyObject_GetAttrString(m, "states"), n, State);
   PyObject_SetAttrString(m, "state", State);
