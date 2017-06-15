@@ -13,7 +13,7 @@ from fluidity_tools import stat_parser
 s = stat_parser("med.stat")
 final_time = s["ElapsedTime"]["value"][-1]
     </variable>
-    <variable name="RMS" language="python">
+    <variable name="M2RMS" language="python">
 import vtktools
 import vtk
 import math
@@ -135,12 +135,12 @@ O1RMS = numpy.sqrt(numpy.sum(numpy.power(ampdiff,2))/len(ampdiff))
 assert abs(final_time-720000) &gt; -10
     </test>
     <test name="check RMS difference for M2 amp not too big" language="python">
-print RMS
-assert(RMS &lt; 4.0)
+print M2RMS
+assert(M2RMS &lt; 4.0)
     </test>
     <test name="check RMS difference for M2 amp not 0" language="python">
-print RMS
-assert(RMS &gt; 0.1)   
+print M2RMS
+assert(M2RMS &gt; 0.1)   
     </test>
     <test name="check RMS difference for S2 amp not too big" language="python">
 print S2RMS
