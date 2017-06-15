@@ -3,8 +3,8 @@
   <name>tides in the Mediterranean Sea</name>
   <owner userid="ajm02"/>
   <tags>flml</tags>
-  <problem_definition length="vlong" nprocs="64">
-    <command_line>mpiexec flredecomp -i 1 -o 64 -v -l med med_flredecomp &amp;&amp;
+  <problem_definition length="vlong" nprocs="48">
+    <command_line>mpiexec flredecomp -i 1 -o 48 -v -l med med_flredecomp &amp;&amp;
 mpiexec fluidity -v2 -l med_flredecomp.flml</command_line>
   </problem_definition>
    <variables>
@@ -136,7 +136,7 @@ assert abs(final_time-720000) &gt; -10
     </test>
     <test name="check RMS difference for M2 amp not too big" language="python">
 print M2RMS
-assert(M2RMS &lt; 4.0)
+assert(M2RMS &lt; 5.0)
     </test>
     <test name="check RMS difference for M2 amp not 0" language="python">
 print M2RMS
