@@ -322,7 +322,7 @@ module dynstall
         ds%TI=chord/ds%speed_of_sound*(1.0+3.0*ds%mach)/4.0
 
         ds%H=ds%H_prev*exp(-dt/ds%TI)+(ds%lambdaL-ds%lambdaL_prev)*exp(-dt/(2.0*ds%TI))
-        ds%CNI=-4.0/ds%mach*ds%H
+        ds%CNI=4.0/ds%mach*ds%H
 
         ! Calculate the impulsive moment coefficient
         ds%lambdaM=3*pi/16.0*(ds%alpha+chord/(4.0*Ur)*ds%deltaAlpha/dt)+pi/16*chord/Ur*ds%deltaAlpha/dt
