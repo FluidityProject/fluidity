@@ -263,6 +263,7 @@ contains
        ! set population balance initial conditions - for first adaptivity
        call dqmom_init(state)
 
+       
        call adapt_state_first_timestep(state)
 
        ! Auxilliary fields.
@@ -276,6 +277,33 @@ contains
        ! Ensure that checkpoints do not adapt at first timestep.
        call delete_option(&
             "/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")
+
+       ! Remove dummy field used by implicit_solids
+       if (have_option("/implicit_solids")) call remove_dummy_field(state(1))
+   else if(have_option("/mesh_adaptivity/hr_adaptivity_prescribed_metric/adapt_at_first_timestep")) then
+
+      if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
+         call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt',nonlinear_iterations_adapt)
+         nonlinear_iterations = nonlinear_iterations_adapt
+       end if
+      
+       ! set population balance initial conditions - for first adaptivity
+       call dqmom_init(state)
+
+       
+       call adapt_state_first_timestep_prescribed_metric(state)
+
+       ! Auxilliary fields.
+       call allocate_and_insert_auxilliary_fields(state)
+       call copy_to_stored_values(state,"Old")
+       call copy_to_stored_values(state,"Iterated")
+       call relax_to_nonlinear(state)
+
+       call enforce_discrete_properties(state)
+
+       ! Ensure that checkpoints do not adapt at first timestep.
+       call delete_option(&
+            "/mesh_adaptivity/hr_adaptivity_prescribed_metric/adapt_at_first_timestep")
 
        ! Remove dummy field used by implicit_solids
        if (have_option("/implicit_solids")) call remove_dummy_field(state(1))
@@ -389,6 +417,8 @@ contains
 
     if (have_option("/mesh_adaptivity/hr_adaptivity")) then
        call allocate(metric_tensor, extract_mesh(state(1), topology_mesh_name), "ErrorMetric")
+    else if (have_option('/mesh_adaptivity/hr_adaptivity_prescribed_metric')) then
+        call allocate( metric_tensor, extract_mesh(state(1), topology_mesh_name), 'MetricTensor' )
     end if
 
     !     Determine the output format.
@@ -919,6 +949,22 @@ contains
              call run_diagnostics(state)
  
           end if
+       else if(have_option("/mesh_adaptivity/hr_adaptivity/hr_adaptivity_prescribed")) then
+          if(do_adapt_mesh(current_time, timestep)) then
+             call pre_adapt_tasks(sub_state)
+
+             call get_prescribed_metric(state(1), metric_tensor)
+
+             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
+             call run_diagnostics(state)
+
+             call adapt_state(state, metric_tensor)
+
+             call update_state_post_adapt(state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
+
+             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
+             call run_diagnostics(state)
+          end if
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
           if(do_adapt_state_prescribed(current_time)) then
 
@@ -969,7 +1015,9 @@ contains
     call print_references(1)
 
     ! Deallocate the metric tensor
-    if(have_option("/mesh_adaptivity/hr_adaptivity")) call deallocate(metric_tensor)
+    if(have_option("/mesh_adaptivity/hr_adaptivity") &
+         .or. have_option("/mesh_adaptivity/hr_adaptivity_prescribed_metric"))&
+         call deallocate(metric_tensor)
     ! Deallocate state
     do i = 1, size(state)
        call deallocate(state(i))

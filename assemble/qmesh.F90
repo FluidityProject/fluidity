@@ -31,6 +31,7 @@ module qmesh_module
 
   use fldebug
   use spud
+  use global_parameters, only: OPTION_PATH_LEN
   use parallel_tools
   use fields
   use state_module
@@ -73,6 +74,13 @@ contains
     
     integer :: int_adapt_period, i, stat
     real :: real_adapt_period, current_cpu_time
+    character(len = OPTION_PATH_LEN) :: adapt_path
+
+    if (have_option("/mesh_adaptivity/hr_adaptivity")) then
+       adapt_path = "/mesh_adaptivity/hr_adaptivity"
+    else
+       adapt_path = "/mesh_adaptivity/hr_adaptivity_prescribed_metric"
+    end if
     
     do_adapt_mesh = .false.
     
@@ -85,7 +93,7 @@ contains
             exit
           end if
         case(2)
-          call get_option("/mesh_adaptivity/hr_adaptivity/period", real_adapt_period, stat)
+          call get_option(trim(adapt_path)// "/period", real_adapt_period, stat)
           if(stat == SPUD_NO_ERROR) then
             if(real_adapt_period == 0.0 .or. adapt_count_greater(current_time, last_adapt_mesh_time, real_adapt_period)) then
               do_adapt_mesh = .true.
@@ -93,7 +101,7 @@ contains
             end if
           end if
         case(3)
-          call get_option("/mesh_adaptivity/hr_adaptivity/period_in_timesteps", int_adapt_period, stat)
+          call get_option(adapt_path//"/period_in_timesteps", int_adapt_period, stat)
           if(stat == SPUD_NO_ERROR) then
             if(int_adapt_period == 0 .or. mod(timestep, int_adapt_period) == 0) then
               do_adapt_mesh = .true.
@@ -103,7 +111,7 @@ contains
         case(4)
           call cpu_time(current_cpu_time)
           call allmax(current_cpu_time)
-          call get_option("/mesh_adaptivity/hr_adaptivity/cpu_period", real_adapt_period, stat)
+          call get_option(adapt_path//"cpu_period", real_adapt_period, stat)
           if(stat == SPUD_NO_ERROR) then
             if(real_adapt_period == 0.0 .or. adapt_count_greater(current_cpu_time, last_adapt_mesh_cpu_time, real_adapt_period)) then
               do_adapt_mesh = .true.

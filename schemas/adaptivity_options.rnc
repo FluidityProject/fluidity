@@ -1190,6 +1190,353 @@ hr_adaptivity =
          }?
       }
    )
+
+hr_adaptivity_prescribed_metric =
+   (
+   ## Anisotropic mesh hr-adaptivity with known metric
+      element hr_adaptivity_prescribed_metric {
+         (
+            ## Time interval (in simulation time) when mesh adaptivity performed.
+            ##
+            ## DO NOT SET THIS EQUAL TO OR LESS THAN ONE TIME-STEP SMALLER
+            ## THAN YOUR DUMP PERIOD BECAUSE ALL YOUR DIAGNOSTIC FIELDS WILL
+            ## APPEAR AS ZERO OR JUNK
+            ## DIAGNOSTIC FIELDS GET ZEROED AFTER AN ADAPT
+            ##
+            ## Usually set to 10-20 times the timestep.
+            element period {
+               real
+            }|
+            ## Adapt period in timesteps.
+            element period_in_timesteps {
+               integer
+            }
+         ),
+         ## Time interval (in cpu time) when mesh adaptivity performed
+         ## Manual suggests disabling this option.
+         element cpu_period {
+            real
+         }?,
+         ## Use the minimum timestep at an adapt and ramp back up the maximum
+         element adaptive_timestep_at_adapt {
+            empty
+         }?,
+         ## Enable to lock nodes in the mesh.
+         element node_locking {
+           ## Python function defining nodes to lock. Return 0 for free
+           ## nodes, and non-zero for locked nodes. Functions should be
+           ## of the form:
+           ##
+           ##  def val(x, t):
+           ##     # Function code
+           ##     return # Return value
+           ##
+           ## The return value must be an integer.
+           element python {
+              python_code
+           },
+           comment
+         }?,
+         ## Specifies the minimum element functional value for which elements
+         ## are considered for adaptivity. For the Pain et al 2001 functional,
+         ## ideal tetrahdera have a functional value of 0.0. A functional value
+         ## of 0.5 corresponds to a tetrehedron with: unit edge lengths and
+         ## and in-sphere radius of 0.3, or alternatively unit in-sphere radius,
+         ## five edges of unit length and a single edge of length 2
+         ## (all measured in metric space).
+         ##
+         ## The minimum permitted value is 0.15 - the value supplied to
+         ## libadaptivity is max(abs(user value), 0.15).
+         ##
+         ## Default value if not specified: 0.15
+         element functional_tolerance {
+            real
+         }?,
+         ## Prescribed metric tensor. Define the target ellipse directly
+         element tensor_field {
+           attribute name { "MetricTensor" },
+           element anisotropic_symmetric {
+             input_choice_real_dim_symmetric_tensor
+           }
+         },
+         ## Adapt at first timestep
+         element adapt_at_first_timestep {
+            ## Number of adapts done after initialisation but
+            ## before the actual simulation starts
+            element number_of_adapts{integer},
+            ## Write out the first timestep adapted mesh.
+            ## This is useful when needing to re-run simulations
+            ## without waiting for the first timestep adapt
+            element output_adapted_mesh {
+               comment
+            }?
+         }?,
+         ## Enable this option to preserve any regions in your
+         ## mesh (i.e. those specified by region_ids).
+         ## Also, any prescribed fields using region_ids will be
+         ## reinitialised using them on the new mesh.
+         ##
+         ## Therefore this is a required option if you want your
+         ## prescribed region_id fields to survive adapts!
+         ## Obviously this does not apply to initial conditions
+         ## set using region_ids.
+         element preserve_mesh_regions {
+            comment
+         }?,
+         ## Zoltan Options
+         ##
+         ## Set up some Zoltan options, including which partitioner to use.
+         ## Only works if you have the --with-zoltan option in your configure.
+         ##
+         ## Note that Zoltan will become the default (replacing Sam at some point)
+         ## and these options are currently here only for development and testing
+         ## purposes. They are subject to change and may not be in the final "release".
+         element zoltan_options {
+            ## Select which partitioner to use during all but the last adapt iteration.
+            ## Graph partitioners available are ParMETIS and Zoltan PHG. The Zoltan
+            ## PHG hypergraph partitoner is also available.
+            ## Default is the Zoltan PHG graph partitioner.
+            element partitioner {
+                ## Use the ParMETIS graph partitioner. ParMETIS setup to match as
+                ## closely as possible the setup used previously by Sam.
+                element metis {
+                    empty
+                }|
+                ## Use the PT-Scotch graph partitioner. *CURRENTLY UNAVAILABLE*
+                element scotch {
+                    empty
+                }|
+                ## Use the Zoltan PHG partitioner.
+                element zoltan {
+                    ## Select the partitioning method you would like used by Zoltan PHG.
+                    ## Currently hypergraph partitioning is the simplest implementation
+                    ## and can produce non-contiguous partitions for certain problems.
+                    element method {
+                    "graph"|"hypergraph"
+                    }
+                }
+            }?,
+            ## Select which partitioner to use after the final adapt iteration.
+            ## Graph partitioners available are ParMETIS and Zoltan PHG. The 
+            ## Zoltan PHG hypergraph partitoner is also available.
+            ## Default is the Zoltan PHG graph partitioner.
+            element final_partitioner {
+                ## Use the ParMETIS graph partitioner. ParMETIS setup to match as
+                ## closely as possible the setup used previously by Sam.
+                element metis {
+                    empty
+                }|
+                ## Use the PT-Scotch graph partitioner. *CURRENTLY UNAVAILABLE* 
+                element scotch {
+                    empty
+                }|
+                ## Use the Zoltan PHG partitioner.
+                element zoltan {
+                    ## Select the partitioning method you would like used by Zoltan PHG.
+                    ## Currently hypergraph partitioning is the simplest implementation
+                    ## and can produce non-contiguous partitions for certain problems.
+                    element method {
+                    "graph"|"hypergraph"
+                    }
+                }
+            }?,
+            ## Element quality cut off. 
+            ## Elements with a quality greater than this will be liable to be
+            ## on the parition boundary. Below this, they will be free to be adapted
+            ## and improved. Range is 0 to 1, with default 0.6
+            element element_quality_cutoff {
+                real
+            }?,
+            ## Load imbalance tolerance.
+            ## The amount of load imbalance the partitioning algorithm should deem acceptable.
+            ## The imbalance is computed as the maximum load divided by the average load.
+            ## A value for load_imbalance_tol of 1.2 indicates that 20% imbalance is okay.
+            ## A high value for this parameter (~1.5) could see Zoltan produce poorer partitions
+            ## but be able to move the partition boundaries easier to allow adaption. For some 
+            ## problems where the partitioner creates empty partitions lowering this (~1.075) will
+            ## force Zoltan to create more evenly balanced partitions (no empty ones) but may
+            ## require more adapt iterations to produce a fully adapted final mesh.
+            element load_imbalance_tolerance {
+                real
+            }?,
+            ## Zoltan Debugging
+            ## 
+            ## Turn on more verbose output for use when debugging Zoltan.
+            element zoltan_debug {
+               ## Turn on graph checking.
+               ## When using ParMETIS or PT-Scotch options for turning on
+               ## graph checking are provided by Zoltan.
+               ## 1 - on process checking,
+               ## 2 - full checking (very slow)
+               element graph_checking {
+                   "1"|"2"
+               }?,
+               ## Print out a dump file of the edge counts.
+               ## Edge counts for each owned node are calculated in zoltan_cb_get_num_edges.
+               ## This option dumps the edge count for each owned node.
+               ## Dump is to the current directory, in a file called edge_counts_*.dat
+               ## One dump file is created for each rank.
+               ## Will get overwritten at each adapt.
+               element dump_edge_counts {
+                  empty
+               }?,
+               ## Print out a dump file of the edge weights.
+               ## Edge weights are calculated for each edge in zoltan_cb_get_edge_list.
+               ## Permits a visualisation of how the edge weights are distributed.
+               ## Dump is to the current directory, in a file called edge_weights_*.dat
+               ## One dump file is created for each rank.
+               ## Will get overwritten at each adapt.
+               element dump_edge_weights {
+                  empty
+               }?,
+               ## Print out a dump file of node sizes.
+               ## Zoltan needs to be told how much data is associated with each node when
+               ## doing phase one migration.
+               ## Here we dump the size calculated by zoltan_cb_pack_node_sizes for each
+               ## owned node.
+               ## Dump is to the current directory, in a file called node_sizes_*.dat
+               ## One dump file is created for each rank.
+               element dump_node_sizes {
+                  empty
+               }?,
+               ## Print out a dump file of halo node sizes.
+               ## Zoltan needs to be told how much data is associated with each halo node when
+               ## doing phase two migration.
+               ## Here we dump the size calculated by zoltan_cb_pack_halo_node_sizes for each
+               ## owned node.
+               ## Dump is to the current directory, in a file called halo_node_sizes_*.dat
+               ## One dump file is created for each rank.
+               element dump_halo_node_sizes {
+                  empty
+               }?,
+               ## Print out a dump file of field sizes.
+               ## Zoltan needs to be told how much data is associated with the fields for each 
+               ## element when we're transfering fields.
+               ## Here we dump the size calculated by zoltan_cb_pack_field_sizes for each
+               ## owned node.
+               ## Dump is to the current directory, in a file called field_sizes_*.dat
+               ## One dump file is created for each rank.
+               element dump_field_sizes {
+                  empty
+               }?
+            }?
+         }?,
+         ## Select the adaptivity library used by hr-adaptivity. If disabled,
+         ## the defaults are:
+         ##   In 3D: libadaptivity
+         ##   In 2D: libmba2d
+         ##   In 1D: adaptivity_1d
+         element adaptivity_library {
+            ## libadaptivity. 3D, parallelised.
+            element libadaptivity {
+               ## The number of adaptivity sweeps. Default value: 10
+               element sweeps {
+                  integer
+               }?,
+               ## Enable this option to turn off edge splitting
+               element disable_edge_split {
+                  comment
+               }?,
+               ## Enable this option to turn off edge collapsing
+               element disable_edge_collapse {
+                  comment
+               }?,
+               ## Enable this option to turn off edge/face, face/edge and
+               ## edge/edge swapping
+               element disable_edge_swap {
+                  comment
+               }?,
+               ## Enable this option to turn off node movement, and use
+               ## h-adaptivity only.
+               element disable_node_movement {
+                  comment
+               }?,
+               ## Writes vtus containing the Pain 2001 P0 element functionals
+               ## of the adapted meshes.
+               element write_adapted_quality {
+                  comment
+               }?,
+               comment
+            }|
+            ## libmba2d. 2D. A testing parallel implementation is available.
+            element libmba2d {               
+               ## Desired output mesh quality, 0 <= quality <= 1.
+               ## Default value 0.6.
+               element quality {
+                 real
+               }?,
+               comment
+            }|
+            ## Re-uses 1D adaptivity code from 2+1D adaptivity. 1D, serial only.
+            element adaptivity_1d {
+               comment
+            }|
+            ## libmba3d. 3D, serial only.
+            element libmba3d {           
+               ## Desired output mesh quality, 0 <= quality <= 1.
+               ## Default value 0.6.
+               element quality {
+                  real
+               }?,
+               ## Maximum number of mesh optimisations. Default value 10^5.
+               element max_optimisations {
+                  integer
+               }?,
+               comment
+            }
+         }?,
+         ## Number of times the adaptivity library is called. In parallel elements
+         ## near the local domain boundary are locked during the mesh adaptation. The mesh
+         ## is then redistributed in such a way that these locked regions are moved into the
+         ## interior of local domains and adaptivity is called again to adapt these not-yet-adapted
+         ## regions. By default, in parallel, the number of times the adaptivity library is called
+         ## in this way is three. If a relatively small mesh is distributed among a large number
+         ## of processors, a large proportion of the mesh is locked during adaptivity and more
+         ## iterations may be necessary.
+         element adapt_iterations {
+            integer
+         }?,
+         ## hr adptivity debugging options
+         element debug {
+            ## Write out error metric at each stage of the processing
+            ## pipeline. This can be very useful in diagnosing why
+            ## adaptivity is doing something you don't expect.
+            element write_metric_stages {
+               comment
+            }?,
+            ## Write out the Coordinate field to a triangle mesh for every
+            ## state adapt. In parallel, a triangle mesh and .halo files
+            ## will be written for every parallel adapt iteration.
+            element write_adapted_mesh {
+               comment
+            }?,
+            ## Write out the system state to a vtu adapt every state adapt.
+            ## In parallel, a vtu will be written for every parallel
+            ## adapt iteration.
+            element write_adapted_state {
+               comment
+            }?,
+            ## Write periodic meshes and surface IDs to vtus at each stage of the processing
+            ## pipeline. This can be very useful in diagnosing why
+            ## adaptivity is doing something you don't expect.
+            element write_periodic_adapted_mesh {
+               comment
+            }?,
+            ## Checkpoint the simulation after every adapt. In parallel, a
+            ## checkpoint will be written <b>only</b> after the final adapt
+            ## iteration. Checkpoints are postfixed with "adapt_checkpoint".
+            element checkpoint {
+               ## Number of checkpoints to write before overwriting existing
+               ## checkpoints.
+               element max_checkpoint_count {
+                  integer
+               }?,
+               comment
+            }?,
+            comment
+         }?
+      }
+   )
       
 prescribed_adaptivity =
    (
@@ -1959,6 +2306,7 @@ mesh_adaptivity_options =
       }?,
       (
          hr_adaptivity |
+         hr_adaptivity_prescribed_metric |
          prescribed_adaptivity
       )?
    }

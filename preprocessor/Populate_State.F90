@@ -78,7 +78,7 @@ periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
        allocate_and_insert_auxilliary_fields, &
        initialise_field, allocate_metric_limits, &
        make_mesh_periodic_from_options, make_mesh_unperiodic_from_options, &
-       compute_domain_statistics
+       compute_domain_statistics, get_prescribed_metric
 
   interface allocate_field_as_constant
     
@@ -3164,6 +3164,21 @@ contains
       quad_family = FAMILY_COOLS
     end if
   end function get_quad_family
+
+  subroutine get_prescribed_metric(state, metric_tensor)
+
+    type(state_type) :: state
+    type(tensor_field) :: metric_tensor
+
+    type(vector_field), pointer :: positions
+
+    positions => extract_vector_field(state,"Coordinate")
+
+    call initialise_field(metric_tensor,&
+         '/mesh_adaptivity/hr_adaptivity_prescribed_metric/tensor_field::MetricTensor',&
+         positions)
+
+  end subroutine get_prescribed_metric
 
   subroutine compute_domain_statistics(states)
     type(state_type), dimension(:), intent(in) :: states

@@ -91,7 +91,8 @@ module adapt_state_module
 
   private
 
-  public :: adapt_mesh, adapt_state, adapt_state_first_timestep
+  public :: adapt_mesh, adapt_state, adapt_state_first_timestep,&
+       adapt_state_first_timestep_prescribed_metric
   public :: insert_metric_for_interpolation, extract_and_remove_metric, sam_options
   public :: adapt_state_module_check_options
 
@@ -1027,6 +1028,73 @@ contains
     ewrite(1, *) "Exiting adapt_state_first_timestep"
 
   end subroutine adapt_state_first_timestep
+
+  subroutine adapt_state_first_timestep_prescribed_metric(states)
+    !!< Subroutine to adapt the supplied states at the simulation start
+
+    type(state_type), dimension(:), intent(inout) :: states
+
+    character(len = *), parameter :: base_path = &
+         "/mesh_adaptivity/hr_adaptivity_prescribed_metric/adapt_at_first_timestep"
+    integer :: adapt_iterations, i
+    type(mesh_type), pointer :: old_mesh
+    type(tensor_field) :: metric
+    type(vector_field), pointer :: output_positions
+    real :: dt
+
+    ewrite(1, *) "In adapt_state_first_timestep_prescribed_metric"
+
+    call get_option(trim(base_path) // "/number_of_adapts", adapt_iterations)
+
+    do i = 1, adapt_iterations
+      ewrite(2, "(a,i0,a,i0)") "Performing first timestep adapt ", i, " of ", adapt_iterations
+
+      ! Recalculate diagnostics, as error metric formulations may need them
+      call allocate_and_insert_auxilliary_fields(states)
+      call copy_to_stored_values(states,"Old")
+      call copy_to_stored_values(states,"Iterated")
+      call relax_to_nonlinear(states)
+
+      call calculate_diagnostic_variables(states)
+      call calculate_diagnostic_variables_new(states)
+
+      call enforce_discrete_properties(states)
+      if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then
+        ! doing this here helps metric advection get the right amount of advection
+        call get_option("/timestepping/timestep", dt)
+        call calc_cflnumber_field_based_dt(states, dt, force_calculation = .true.)
+        call set_option("/timestepping/timestep", dt)
+      end if
+
+      ! Form the new metric
+      old_mesh => extract_mesh(states(1), topology_mesh_name)
+      call allocate(metric, old_mesh, "ErrorMetric")
+      call get_prescribed_metric(states(1), metric)
+
+      ! Adapt state, initialising fields from the options tree rather than
+      ! interpolating them
+      call adapt_state(states, metric, initialise_fields = .true.)
+      
+      ! Population balance equation initialise - dqmom_init() helps to recalculate the abscissas and weights 
+      ! based on moment initial conditions (if provided)
+      call dqmom_init(states)
+    end do
+
+    if(have_option(trim(base_path) // "/output_adapted_mesh")) then
+      output_positions => extract_vector_field(states(1), "Coordinate")
+
+      if(isparallel()) then
+        call write_gmsh_file(parallel_filename("first_timestep_adapted_mesh"), output_positions)
+        call write_halos("first_timestep_adapted_mesh", output_positions%mesh)
+      else
+        call write_gmsh_file("first_timestep_adapted_mesh", output_positions)
+      end if
+
+    end if
+
+    ewrite(1, *) "Exiting adapt_state_first_timestep_prescribed_metric"
+
+  end subroutine adapt_state_first_timestep_prescribed_metric
 
   subroutine adapt_state_internal(states, metric, initialise_fields)
     !!< Adapt the supplied states according to the supplied metric. In parallel,
