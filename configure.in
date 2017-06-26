@@ -804,7 +804,7 @@ if test "$with_netcdf" != "no" ; then
     fi
   fi
   ACX_lib_automagic(netcdf, nc_create, [AC_DEFINE(HAVE_LIBNETCDF, [1])])
-  ACX_lib_automagic(netcdff, nc_create, [AC_DEFINE(HAVE_LIBNETCDFF, [1])])
+  ACX_lib_fautomagic(netcdff, nccre, [AC_DEFINE(HAVE_LIBNETCDFF, [1])])
 fi
 
 # Exodus-II support
