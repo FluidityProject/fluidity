@@ -488,12 +488,14 @@ contains
 
   end function integrate_over_surface_element_tensor
 
-  subroutine diagnostic_body_drag(state, force, surface_integral_name, pressure_force, viscous_force)
+  subroutine diagnostic_body_drag(state, force, surface_integral_name, pressure_force, viscous_force,&
+       prescribed_ids)
     type(state_type), intent(in) :: state
     real, dimension(:) :: force
-    character(len = FIELD_NAME_LEN), intent(in) :: surface_integral_name
+    character(len = *), intent(in) :: surface_integral_name
     real, dimension(size(force)), optional, intent(out) :: pressure_force
     real, dimension(size(force)), optional, intent(out) :: viscous_force
+    integer, dimension(:), optional, intent(in) :: prescribed_ids
 
     type(vector_field), pointer :: velocity, position
     type(tensor_field), pointer :: viscosity
@@ -513,12 +515,15 @@ contains
     ewrite(1,*) 'In diagnostic_body_drag'
     ewrite(1,*) 'Computing body forces for label "'//trim(surface_integral_name)//'"'
 
+    ewrite(1,*) 'In diagnostic_body_drag'
+
     position => extract_vector_field(state, "Coordinate")
     pressure => extract_scalar_field(state, "Pressure")  
     velocity => extract_vector_field(state, "Velocity")
     viscosity=> extract_tensor_field(state, "Viscosity", stat)
     have_viscosity = stat == 0
 
+    ewrite(1,*) 'In diagnostic_body_drag'
     assert(size(force) == position%dim)
     
     meshdim = mesh_dim(velocity)
@@ -531,8 +536,12 @@ contains
     ngi   = ele_ngi(velocity, 1)
     sngi  = face_ngi(velocity, 1)
     stotel = surface_element_count(velocity)
-    option_path = velocity%option_path          
-    shape_option = option_shape(trim(option_path)//'/prognostic/stat/compute_body_forces_on_surfaces::'//trim(surface_integral_name)//'/surface_ids')
+    option_path = velocity%option_path        
+    if (present(prescribed_ids)) then
+       shape_option(1) = size(prescribed_ids)
+    else
+       shape_option = option_shape(trim(option_path)//'/prognostic/stat/compute_body_forces_on_surfaces::'//trim(surface_integral_name)//'/surface_ids')
+    end if
     allocate( surface_ids(shape_option(1)), face_detwei(sngi), &
               dn_t(nloc, ngi, meshdim), &
               velocity_ele(meshdim, nloc), normal(meshdim, sngi), &
@@ -541,8 +550,13 @@ contains
               force_at_quad(meshdim, sngi))
 
     allocate(vol_dshape_face(ele_loc(velocity, 1), face_ngi(velocity, 1),meshdim))
+    ewrite(1,*) 'In diagnostic_body_drag'
 
-    call get_option(trim(option_path)//'/prognostic/stat/compute_body_forces_on_surfaces::'//trim(surface_integral_name)//'/surface_ids', surface_ids)
+    if (present(prescribed_ids)) then
+       surface_ids = prescribed_ids
+    else
+       call get_option(trim(option_path)//'/prognostic/stat/compute_body_forces_on_surfaces::'//trim(surface_integral_name)//'/surface_ids', surface_ids)
+    end if
     ewrite(2,*) 'Calculating forces on surfaces with these IDs: ', surface_ids
 
     sarea = 0.0
@@ -636,12 +650,15 @@ contains
     
   end subroutine diagnostic_body_drag
 
-  subroutine diagnostic_body_torque(state, torque, surface_integral_name, pressure_torque, viscous_torque)
+  subroutine diagnostic_body_torque(state, torque, surface_integral_name, pressure_torque, viscous_torque, prescribed_ids, prescribed_axis, prescribed_point)
     type(state_type), intent(in) :: state
     real :: torque
-    character(len = FIELD_NAME_LEN), intent(in) :: surface_integral_name
+    character(len = *), intent(in) :: surface_integral_name
     real, optional, intent(out) :: pressure_torque
     real, optional, intent(out) :: viscous_torque
+    integer, dimension(:), optional, intent(in) :: prescribed_ids
+    real, dimension(:), optional, intent(in) :: prescribed_axis,&
+         prescribed_point
 
     type(vector_field), pointer :: velocity
     character(len=OPTION_PATH_LEN) :: option_path
@@ -653,17 +670,34 @@ contains
     ewrite(1,*) 'Computing body torques for label "'//trim(surface_integral_name)//'"'
 
     velocity => extract_vector_field(state, "Velocity")
-    option_path = velocity%option_path          
-    shape_option = option_shape(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/surface_ids')
+    option_path = velocity%option_path
+
+    if (present(prescribed_ids)) then
+       shape_option(1) = size(prescribed_ids)
+    else
+       shape_option = option_shape(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/surface_ids')
+    end if
 
     allocate( surface_ids(shape_option(1)), &
          axis(mesh_dim(velocity)), point(mesh_dim(velocity)))
 
-    call get_option(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/surface_ids', surface_ids)
+    if (present(prescribed_ids)) then
+       surface_ids = prescribed_ids
+    else
+       call get_option(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/surface_ids', surface_ids)
     ewrite(2,*) 'Calculating torques on surfaces with these IDs: ', surface_ids
+    end if
 
-    call get_option(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/axis_of_rotation', axis)
-    call get_option(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/point_on_axis', point)
+    if (present(prescribed_axis)) then
+       axis = prescribed_axis(1:mesh_dim(velocity))
+    else
+       call get_option(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/axis_of_rotation', axis)
+    end if
+    if (present(prescribed_point)) then
+       point = prescribed_point(1:mesh_dim(velocity))
+    else
+       call get_option(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/point_on_axis', point)
+    end if
 
     call torque_on_surface(state, torque, surface_ids, axis, point,&
          pressure_torque, viscous_torque)
