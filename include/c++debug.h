@@ -39,11 +39,11 @@
 #include "fmangle.h"
 
 void FLAbort(const char*, const char *, int);
-void FLExit(const char*, const char *, int);
 
 void print_backtrace();
 
 extern "C"{
+  void FLExit(const char*, const char *, int);
   void set_global_debug_level_fc(const int* level);
 }
 

@@ -88,18 +88,18 @@ void FLAbort(const char *ErrorStr, const char *FromFile, int LineNumber){
 #endif
 }
 
-void FLExit(const char *ErrorStr, const char *FromFile, int LineNumber){
-  cerr<<"*** ERROR ***\n"
-#ifndef NDEBUG
-      <<"Source location: ("<<FromFile<<", "<<LineNumber<<")\n"
-#endif
-      <<"Error message: "<<ErrorStr<<endl;
-#ifdef HAVE_MPI
-  MPI::COMM_WORLD.Abort(MPI::ERR_OTHER);
-#endif
-}
-
 extern "C"{
+  void FLExit(const char *ErrorStr, const char *FromFile, int LineNumber){
+    cerr<<"*** ERROR ***\n"
+#ifndef NDEBUG
+	<<"Source location: ("<<FromFile<<", "<<LineNumber<<")\n"
+#endif
+	<<"Error message: "<<ErrorStr<<endl;
+#ifdef HAVE_MPI
+    MPI::COMM_WORLD.Abort(MPI::ERR_OTHER);
+#endif
+  }
+
   void fprint_backtrace_fc(){
 #ifdef _GNU_SOURCE
     void *bt[40];

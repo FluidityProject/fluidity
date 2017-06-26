@@ -339,6 +339,8 @@ if test "$enable_shared" = "yes" ; then
 else
   PIC_FLAG=""
 fi
+BUILD_SHARED="$enable_shared"
+AC_SUBST(BUILD_SHARED)
 
 ##
 ## what compiler options work
@@ -606,7 +608,16 @@ EOF
     CXXFLAGS="-fbounds-check -Wall ${CXXFLAGS}"
     if test "$DARWIN" = "no" ; then
         LDFLAGS="-rdynamic ${LDFLAGS}"
+	SHARED="-shared"
+	EXE_FLAGS="-Wl,-rpath,'$$ORIGIN/../lib'"
+	SHARED_SUFFIX="so"
+	AC_SUBST(EXE_FLAGS)
+    else
+	SHARED="-Wl,-dynamiclib -Wl,-install_name,@executable_path/../lib/libfluidity.dylib"
+	SHARED_SUFFIX="dylib"
     fi
+    AC_SUBST(SHARED)
+    AC_SUBST(SHARED_SUFFIX)
   elif test "$fcompiler" = "g95" ; then
     FFLAGS="-fbounds-check -ftrace=full ${FFLAGS}"
     FCFLAGS="-fbounds-check -ftrace=full ${FCFLAGS}"
@@ -1792,7 +1803,6 @@ AC_PROG_SED
 AC_PROG_GREP
 
 AC_OUTPUT(Makefile
-          fluidity.pc
 	  FluidityConfig.cmake
           debug/Makefile
           bathymetry/Makefile

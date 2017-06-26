@@ -653,6 +653,8 @@ X_PRE_LIBS
 X_CFLAGS
 XMKMF
 HAVE_EXODUSII
+FCFLAGS_f
+FCFLAGS_f90
 MPICXX
 MPIF77
 MPIF90
@@ -662,6 +664,9 @@ FLPSMILE_PATH
 FEMDEM
 LIB_FEMDEM
 FLFEMDEM_PATH
+SHARED_SUFFIX
+SHARED
+EXE_FLAGS
 RANLIB
 AR
 MAKE
@@ -669,6 +674,7 @@ INSTALL_DATA
 INSTALL_SCRIPT
 INSTALL_PROGRAM
 UNROLL_LOOPS
+BUILD_SHARED
 OPENMP_CXXFLAGS
 LAPACK_LIBS
 BLAS_LIBS
@@ -2170,6 +2176,52 @@ fi
 
 } # ac_fn_f77_try_link
 
+# ac_fn_fc_try_link LINENO
+# ------------------------
+# Try to link conftest.$ac_ext, and return whether this succeeded.
+ac_fn_fc_try_link ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  rm -f conftest.$ac_objext conftest$ac_exeext
+  if { { ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
+$as_echo "$ac_try_echo"; } >&5
+  (eval "$ac_link") 2>conftest.err
+  ac_status=$?
+  if test -s conftest.err; then
+    grep -v '^ *+' conftest.err >conftest.er1
+    cat conftest.er1 >&5
+    mv -f conftest.er1 conftest.err
+  fi
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; } && {
+	 test -z "$ac_fc_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 test -x conftest$ac_exeext
+       }; then :
+  ac_retval=0
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_retval=1
+fi
+  # Delete the IPA/IPO (Inter Procedural Analysis/Optimization) information
+  # created by the PGI compiler (conftest_ipa8_conftest.oo), as it would
+  # interfere with the next link command; also delete a directory that is
+  # left behind by Apple's compiler.  We do this before executing the actions.
+  rm -rf conftest.dSYM conftest_ipa8_conftest.oo
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+  as_fn_set_status $ac_retval
+
+} # ac_fn_fc_try_link
+
 # ac_fn_c_check_func LINENO FUNC VAR
 # ----------------------------------
 # Tests whether FUNC exists, setting the cache variable VAR accordingly
@@ -2252,52 +2304,6 @@ $as_echo "$ac_res" >&6; }
   eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
 
 } # ac_fn_c_check_func
-
-# ac_fn_fc_try_link LINENO
-# ------------------------
-# Try to link conftest.$ac_ext, and return whether this succeeded.
-ac_fn_fc_try_link ()
-{
-  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  rm -f conftest.$ac_objext conftest$ac_exeext
-  if { { ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
-$as_echo "$ac_try_echo"; } >&5
-  (eval "$ac_link") 2>conftest.err
-  ac_status=$?
-  if test -s conftest.err; then
-    grep -v '^ *+' conftest.err >conftest.er1
-    cat conftest.er1 >&5
-    mv -f conftest.er1 conftest.err
-  fi
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; } && {
-	 test -z "$ac_fc_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext && {
-	 test "$cross_compiling" = yes ||
-	 test -x conftest$ac_exeext
-       }; then :
-  ac_retval=0
-else
-  $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-	ac_retval=1
-fi
-  # Delete the IPA/IPO (Inter Procedural Analysis/Optimization) information
-  # created by the PGI compiler (conftest_ipa8_conftest.oo), as it would
-  # interfere with the next link command; also delete a directory that is
-  # left behind by Apple's compiler.  We do this before executing the actions.
-  rm -rf conftest.dSYM conftest_ipa8_conftest.oo
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
-  as_fn_set_status $ac_retval
-
-} # ac_fn_fc_try_link
 
 # ac_fn_c_check_header_mongrel LINENO HEADER VAR INCLUDES
 # -------------------------------------------------------
@@ -10027,6 +10033,8 @@ if test "$enable_shared" = "yes" ; then
 else
   PIC_FLAG=""
 fi
+BUILD_SHARED="$enable_shared"
+
 
 ##
 ## what compiler options work
@@ -10698,7 +10706,16 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
     CXXFLAGS="-fbounds-check -Wall ${CXXFLAGS}"
     if test "$DARWIN" = "no" ; then
         LDFLAGS="-rdynamic ${LDFLAGS}"
+	SHARED="-shared"
+	EXE_FLAGS="-Wl,-rpath,'$$ORIGIN/../lib'"
+	SHARED_SUFFIX="so"
+
+    else
+	SHARED="-Wl,-dynamiclib -Wl,-install_name,@executable_path/../lib/libfluidity.dylib"
+	SHARED_SUFFIX="dylib"
     fi
+
+
   elif test "$fcompiler" = "g95" ; then
     FFLAGS="-fbounds-check -ftrace=full ${FFLAGS}"
     FCFLAGS="-fbounds-check -ftrace=full ${FCFLAGS}"
@@ -11380,47 +11397,84 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
+ac_ext=${ac_fc_srcext-f}
+ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_fc_compiler_gnu
+
+ac_ext=${ac_fc_srcext-f}
+ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_fc_compiler_gnu
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Fortran flag to compile .f90 files" >&5
+$as_echo_n "checking for Fortran flag to compile .f90 files... " >&6; }
+if ${ac_cv_fc_srcext_f90+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_ext=f90
+ac_fcflags_srcext_save=$ac_fcflags_srcext
+ac_fcflags_srcext=
+ac_cv_fc_srcext_f90=unknown
+case $ac_ext in #(
+  [fF]77) ac_try=f77;; #(
+  *) ac_try=f95;;
+esac
+for ac_flag in none -qsuffix=f=f90 -Tf "-x $ac_try"; do
+  test "x$ac_flag" != xnone && ac_fcflags_srcext="$ac_flag"
+  cat > conftest.$ac_ext <<_ACEOF
+      program main
+
+      end
+_ACEOF
+if ac_fn_fc_try_compile "$LINENO"; then :
+  ac_cv_fc_srcext_f90=$ac_flag; break
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+done
+rm -f conftest.$ac_objext conftest.f90
+ac_fcflags_srcext=$ac_fcflags_srcext_save
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_fc_srcext_f90" >&5
+$as_echo "$ac_cv_fc_srcext_f90" >&6; }
+if test "x$ac_cv_fc_srcext_f90" = xunknown; then
+  as_fn_error $? "Fortran could not compile .f90 files" "$LINENO" 5
+else
+  ac_fc_srcext=f90
+  if test "x$ac_cv_fc_srcext_f90" = xnone; then
+    ac_fcflags_srcext=""
+    FCFLAGS_f90=""
+  else
+    ac_fcflags_srcext=$ac_cv_fc_srcext_f90
+    FCFLAGS_f90=$ac_cv_fc_srcext_f90
+  fi
+
+
+fi
+ac_ext=${ac_fc_srcext-f}
+ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking netcdff automagic" >&5
 $as_echo_n "checking netcdff automagic... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
+cat > conftest.$ac_ext <<_ACEOF
 
-void nc_create();
+   program test
 
-#ifdef F77_DUMMY_MAIN
+   interface
+      subroutine nccre()
+      end subroutine
+   end interface
 
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
+   call nccre()
 
-#endif
-#ifdef FC_DUMMY_MAIN
-#ifndef FC_DUMMY_MAIN_EQ_F77
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int FC_DUMMY_MAIN() { return 1; }
-#endif
-#endif
-int
-main ()
-{
+   end program test
 
-nc_create();
 
-  ;
-  return 0;
-}
 _ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
+if ac_fn_fc_try_link "$LINENO"; then :
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
@@ -11431,59 +11485,30 @@ else
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for nc_create in -lnetcdff" >&5
-$as_echo_n "checking for nc_create in -lnetcdff... " >&6; }
-if ${ac_cv_lib_netcdff_nc_create+:} false; then :
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for nccre in -lnetcdff" >&5
+$as_echo_n "checking for nccre in -lnetcdff... " >&6; }
+if ${ac_cv_lib_netcdff_nccre+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
 LIBS="-lnetcdff  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char nc_create ();
-#ifdef F77_DUMMY_MAIN
-
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
-#endif
-#ifdef FC_DUMMY_MAIN
-#ifndef FC_DUMMY_MAIN_EQ_F77
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int FC_DUMMY_MAIN() { return 1; }
-#endif
-#endif
-int
-main ()
-{
-return nc_create ();
-  ;
-  return 0;
-}
+cat > conftest.$ac_ext <<_ACEOF
+      program main
+      call nccre
+      end
 _ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_netcdff_nc_create=yes
+if ac_fn_fc_try_link "$LINENO"; then :
+  ac_cv_lib_netcdff_nccre=yes
 else
-  ac_cv_lib_netcdff_nc_create=no
+  ac_cv_lib_netcdff_nccre=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_netcdff_nc_create" >&5
-$as_echo "$ac_cv_lib_netcdff_nc_create" >&6; }
-if test "x$ac_cv_lib_netcdff_nc_create" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_netcdff_nccre" >&5
+$as_echo "$ac_cv_lib_netcdff_nccre" >&6; }
+if test "x$ac_cv_lib_netcdff_nccre" = xyes; then :
   $as_echo "#define HAVE_LIBNETCDFF 1" >>confdefs.h
 
        LIBS="-lnetcdff $LIBS"
@@ -11493,6 +11518,60 @@ fi
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
+
+ac_ext=${ac_fc_srcext-f}
+ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_fc_compiler_gnu
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Fortran flag to compile .f files" >&5
+$as_echo_n "checking for Fortran flag to compile .f files... " >&6; }
+if ${ac_cv_fc_srcext_f+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_ext=f
+ac_fcflags_srcext_save=$ac_fcflags_srcext
+ac_fcflags_srcext=
+ac_cv_fc_srcext_f=unknown
+case $ac_ext in #(
+  [fF]77) ac_try=f77;; #(
+  *) ac_try=f95;;
+esac
+for ac_flag in none -qsuffix=f=f -Tf "-x $ac_try"; do
+  test "x$ac_flag" != xnone && ac_fcflags_srcext="$ac_flag"
+  cat > conftest.$ac_ext <<_ACEOF
+      program main
+
+      end
+_ACEOF
+if ac_fn_fc_try_compile "$LINENO"; then :
+  ac_cv_fc_srcext_f=$ac_flag; break
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+done
+rm -f conftest.$ac_objext conftest.f
+ac_fcflags_srcext=$ac_fcflags_srcext_save
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_fc_srcext_f" >&5
+$as_echo "$ac_cv_fc_srcext_f" >&6; }
+if test "x$ac_cv_fc_srcext_f" = xunknown; then
+  as_fn_error $? "Fortran could not compile .f files" "$LINENO" 5
+else
+  ac_fc_srcext=f
+  if test "x$ac_cv_fc_srcext_f" = xnone; then
+    ac_fcflags_srcext=""
+    FCFLAGS_f=""
+  else
+    ac_fcflags_srcext=$ac_cv_fc_srcext_f
+    FCFLAGS_f=$ac_cv_fc_srcext_f
+  fi
+
+
+fi
+ac_ext=${ac_fc_srcext-f}
+ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -16212,7 +16291,7 @@ $as_echo "$ac_cv_path_GREP" >&6; }
 
 
 
-ac_config_files="$ac_config_files Makefile fluidity.pc FluidityConfig.cmake debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile population_balance/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile main/Makefile tools/Makefile tools/version-info python/setup.py climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libwm/Makefile libvtkfortran/Makefile reduced_modelling/Makefile tests/tools.mk"
+ac_config_files="$ac_config_files Makefile FluidityConfig.cmake debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile population_balance/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile main/Makefile tools/Makefile tools/version-info python/setup.py climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libwm/Makefile libvtkfortran/Makefile reduced_modelling/Makefile tests/tools.mk"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -16906,7 +16985,6 @@ do
   case $ac_config_target in
     "include/config.h") CONFIG_HEADERS="$CONFIG_HEADERS include/config.h" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
-    "fluidity.pc") CONFIG_FILES="$CONFIG_FILES fluidity.pc" ;;
     "FluidityConfig.cmake") CONFIG_FILES="$CONFIG_FILES FluidityConfig.cmake" ;;
     "debug/Makefile") CONFIG_FILES="$CONFIG_FILES debug/Makefile" ;;
     "bathymetry/Makefile") CONFIG_FILES="$CONFIG_FILES bathymetry/Makefile" ;;
