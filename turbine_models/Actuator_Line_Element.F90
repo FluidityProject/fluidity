@@ -276,16 +276,7 @@ end type ActuatorLineType
     alpha=atan2(urdn,urdc)
     act_line%ERe(ielem) = ur*ElemChord/Visc
     
-    act_line%EAOA(ielem)=alpha
     act_line%EUn(ielem)=urdn 
-    
-    if(act_line%EAOA_Last(ielem)<-665) then
-    dal=0.0
-    dUn=0.0
-    else
-    dal=act_line%EAOA(ielem)-act_line%EAOA_Last(ielem)
-    dUn=act_line%EUn(ielem)-act_line%EUn_LAST(ielem)
-    endif
     
     act_line%EAOAdot(ielem)=dal/dt
     act_line%EUndot(ielem)=dUn/dt
@@ -296,6 +287,8 @@ end type ActuatorLineType
     alpha=alpha+act_line%omega*(act_line%Emount(ielem)-0.25)*ElemChord/ur
     alpha=alpha+act_line%omega*ElemChord/(4.0*ur)
     endif
+    
+    act_line%EAOA(ielem)=alpha
 
     !====================================
     ! Compute the Aerofoil Coefficients
@@ -307,9 +300,17 @@ end type ActuatorLineType
     !=============================================== 
     if(act_line%do_dynamic_stall) then 
     call DynstallCorrect(act_line%Edynstall(ielem),act_line%Eairfoil(ielem),time,dt,ur,ElemChord,alpha,act_line%ERe(ielem),CLdyn,CDdyn,CM25dyn)
-    !CL=CLdyn
-    !CD=CDdyn
+    CL=CLdyn
+    CD=CDdyn
     end if
+    
+    if(act_line%EAOA_Last(ielem)<-665) then
+    dal=0.0
+    dUn=0.0
+    else
+    dal=act_line%EAOA(ielem)-act_line%EAOA_Last(ielem)
+    dUn=act_line%EUn(ielem)-act_line%EUn_LAST(ielem)
+    endif
     
     !===============================================
     ! Correct for added mass
