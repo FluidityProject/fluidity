@@ -1,17 +1,26 @@
 from scipy import *
 from pylab import *
 from math import cos,pi
+##Set initial x/y coordinates of detectors
 x = 0.5+0.25*arange(0,100.)/100.
 y = zeros(100) + 0.5
 
+##Set timestep parameters and number of cycles
 t = 0.
 n_cycles = 1
 dt = 0.1/n_cycles
 tmax = 8
 
+##Velocity function defined for an oscillatory rotating velocity field
 def vel(x,y,t):
     return [-(y-0.5)*(cos(pi/2.0*t)),(x-0.5)*(cos(pi/2.0*t))]
 
+##Classical 4th order Runge-Kutta scheme
+##k1 defined at initial coordinates and time
+##k2 defined at initial coordinates plus a half step based on k1, and initial time plus a half step of dt
+##k3 defined at initial coordinates plus a half step based on k2, and initial time plus a half step of dt
+##k4 defined at initial coordinates plus a full step based on k3, and initial time plus a full step of dt
+##Final weightings of each parameter introduced from the 4th order butcher array
 while(t<tmax):
     t = t + dt
     [k1_x,k1_y] = vel(x,y,t)

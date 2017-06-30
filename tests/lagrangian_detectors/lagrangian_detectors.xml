@@ -2,12 +2,12 @@
 
 <testproblem>
   <name>lagrangian_detectors</name>
-  <owner userid="colin"/>
+  <owner userid="drhodrid"/>
   <tags>flml parallel zoltan</tags>
   <problem_definition length="short" nprocs="4">
     <command_line>
-mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian_detectors_rk lagrangian_detectors_rk_flredecomp;
-mpiexec ../../bin/fluidity -v3 -l lagrangian_detectors_rk_flredecomp.flml
+mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian-detectors-rk lagrangian-detectors-rk-flredecomp;
+mpiexec ../../bin/fluidity -v3 -l lagrangian-detectors-rk-flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>
