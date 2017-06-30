@@ -70,7 +70,8 @@ current_debug_level, FIELD_NAME_LEN
        apply_dirichlet_conditions_inverse_mass, impose_reference_pressure_node, &
        find_reference_node_from_coordinates, impose_reference_velocity_node
   public :: populate_scalar_boundary_conditions, &
-    & populate_vector_boundary_conditions, initialise_rotated_bcs
+    & populate_vector_boundary_conditions, initialise_rotated_bcs, &
+    set_scalar_boundary_conditions_values
 
   interface apply_dirichlet_conditions_inverse_mass
      module procedure apply_dirichlet_conditions_inverse_mass_vector, &
@@ -492,11 +493,28 @@ contains
 
        case("drag")
 
+          if(have_option(trim(bc_path_i)//"/type[0]/align_bc_with_cartesian")) then
+             aligned_components=cartesian_aligned_components
+             bc_type_path=trim(bc_path_i)//"/type[0]/align_bc_with_cartesian"
+          else
+             aligned_components=surface_aligned_components             
+             bc_type_path=trim(bc_path_i)//"/type[0]/align_bc_with_surface"
+          end if
+          do j=1,3
+             bc_component_path=trim(bc_type_path)//"/"//aligned_components(j)
+             applies(j)=have_option(trim(bc_component_path))
+          end do
+
           call add_boundary_condition(field, trim(bc_name), trim(bc_type), &
-               & surface_ids, option_path=bc_path_i, suppress_warnings=suppress_warnings)
+               & surface_ids, applies = applies, option_path=bc_path_i, &
+               suppress_warnings=suppress_warnings)
           deallocate(surface_ids)
 
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
+
+          call allocate(surface_field, field%dim, surface_mesh, name="value")
+          call insert_surface_field(field, i+1, surface_field)
+          call deallocate(surface_field)
           call allocate(scalar_surface_field, surface_mesh, name="DragCoefficient")
           call insert_surface_field(field, i+1, scalar_surface_field)
           call deallocate(scalar_surface_field)
@@ -1142,6 +1160,38 @@ contains
 
           call initialise_field(scalar_surface_field, bc_path_i, bc_position, &
             time=time)
+          call deallocate(bc_position)
+
+          if(have_option(trim(bc_path_i)//"/align_bc_with_cartesian")) then
+             aligned_components=cartesian_aligned_components
+             bc_type_path=trim(bc_path_i)//"/align_bc_with_cartesian"
+          else
+             aligned_components=surface_aligned_components             
+             bc_type_path=trim(bc_path_i)//"/align_bc_with_surface"
+          end if
+
+          call get_boundary_condition(field, i+1, applies=applies, surface_mesh=surface_mesh, &
+               surface_element_list=surface_element_list)
+          surface_field => extract_surface_field(field, bc_name, name="value")
+          
+          bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list)
+         
+          call zero(surface_field)
+            
+          do j=1,3
+             if (applies(j)) then
+                if (j>surface_field%dim) then
+                   FLAbort("Too many dimensions in boundary condition")
+                end if
+               
+                bc_component_path=trim(bc_type_path)//"/"//aligned_components(j)
+                surface_field_component=extract_scalar_field(surface_field, j)
+               ! initialise directly on the value component surface field
+                call initialise_vector_field_component(surface_field_component, state,  &
+                     bc_component_path, bc_position, surface_element_list, j, time)
+             end if
+          end do
+
           call deallocate(bc_position)
 
        case("prescribed_normal_flow")

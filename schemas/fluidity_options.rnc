@@ -3244,11 +3244,12 @@ velocity_boundary_conditions =
               }|
               ## Use a linear drag (basically just a surface absorption term).
               ##
-              ## This means that the drag coefficient has units of momentum.
+              ## This means that the drag coefficient has units of moment.
               element linear_drag {
                 empty
               }
-            )
+            ),
+            velocity_components_choice?
          }|
 
 
