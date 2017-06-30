@@ -57,6 +57,8 @@ subroutine drag_surface(bigm, rhs, state, density)
    type(vector_field), pointer:: velocity, nl_velocity, position, old_velocity
    type(scalar_field), pointer:: drag_coefficient, distance_top, distance_bottom
    character(len=OPTION_PATH_LEN) bctype
+   type(vector_field) :: bc_value
+   integer, dimension(:,:), allocatable :: bc_type
    real, dimension(:), allocatable:: face_detwei, coefficient, density_face_gi
    real, dimension(:,:), allocatable:: drag_mat
    real dt, theta, gravity_magnitude
@@ -95,6 +97,10 @@ subroutine drag_surface(bigm, rhs, state, density)
      drag_mat(1:snloc,1:snloc), density_face_gi(1:sngi))
    
    nobcs=option_count(trim(velocity%option_path)//'/prognostic/boundary_conditions')
+
+   allocate(bc_type(velocity%dim, surface_element_count(velocity)))
+   call get_entire_boundary_condition(velocity, ['drag'], bc_value, bc_type)
+
    do i=1, nobcs
       call get_boundary_condition(velocity, i, type=bctype, &
          surface_element_list=surface_element_list)
@@ -126,7 +132,7 @@ subroutine drag_surface(bigm, rhs, state, density)
             else ! default to quadratic_drag
               ! drag coefficient: C_D * |u|
               coefficient=ele_val_at_quad(drag_coefficient, j)* &
-                sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1))
+                sqrt(sum((face_val_at_quad(nl_velocity, sele)-ele_val_at_quad(bc_value,sele))**2, dim=1))
               if (manning_strickler) then
                  ! The manning-strickler formulation takes the form n**2g|u|u/(H**0.3333), where H is the water level, g is gravity and n is the Manning coefficient
                  ! Note that distance_bottom+distance_top is the current water level H
@@ -142,16 +148,23 @@ subroutine drag_surface(bigm, rhs, state, density)
                face_shape(velocity, sele), coefficient*face_detwei*density_face_gi)
                
             do k=1, velocity%dim
-               call addto(bigm, k, k, faceglobalnodes, faceglobalnodes, &
+               Call addto(bigm, k, k, faceglobalnodes, faceglobalnodes, &
                   dt*theta*drag_mat)
                call addto(rhs, k, faceglobalnodes, &
-                  -matmul(drag_mat, face_val(old_velocity, k, sele)) )
+                  -matmul(drag_mat, face_val(old_velocity, k, sele)))
+               if (bc_type(k,sele) == 1) then
+                  call addto(rhs, k, faceglobalnodes, &
+                       +matmul(drag_mat, ele_val(bc_value,k,sele)))
+               end if
             end do
             
          end do
             
       end if
    end do
+
+   call deallocate(bc_value)
+   deallocate(bc_type)
      
    deallocate(faceglobalnodes, face_detwei, coefficient, drag_mat)
    
