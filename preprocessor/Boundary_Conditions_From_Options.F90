@@ -1174,8 +1174,8 @@ contains
                 bc_component_path=trim(bc_type_path)//"/"//aligned_components(j)
                 surface_field_component=extract_scalar_field(surface_field, j)
                ! initialise directly on the value component surface field
-                call initialise_vector_field_component(surface_field_component, state,  &
-                     bc_component_path, bc_position, surface_element_list, j, time)
+                call initialise_field(surface_field_component, bc_component_path,&
+                     bc_position, time)
              end if
           end do
 

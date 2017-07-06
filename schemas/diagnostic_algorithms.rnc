@@ -1565,6 +1565,38 @@ vector_scalar_time_averaged_algorithm =
       }
    )
 
+scalar_distance_function = 
+   (
+      ## Algorithm for calulating an average of a scalar field over 
+      ## a set period, e.g. daily
+      ## Note that we assume the simulation starts at zero for the
+      ## averaging period,
+      ## This field needs to be interpolated between adapts.
+      element algorithm {
+         attribute name { "scalar_distance_function" },
+         attribute material_phase_support { "single" },
+         element surface_ids {
+	    integer_vector
+         }
+      }
+   )
+
+vector_distance_function = 
+   (
+      ## Algorithm for calulating an average of a scalar field over 
+      ## a set period, e.g. daily
+      ## Note that we assume the simulation starts at zero for the
+      ## averaging period,
+      ## This field needs to be interpolated between adapts.
+      element algorithm {
+         attribute name { "vector_distance_function" },
+         attribute material_phase_support { "single" },
+         element surface_ids {
+	    integer_vector
+         }
+      }
+   )
+
 # surface algorithm
 
 surface_horizontal_divergence_algorithm = 
@@ -1598,6 +1630,7 @@ scalar_diagnostic_algorithms |= scalar_squared_time_averaged_algorithm
 scalar_diagnostic_algorithms |= scalar_potential_algorithm
 scalar_diagnostic_algorithms |= scalar_laplacian_algorithm
 scalar_diagnostic_algorithms |= scalar_galerkin_projection_algorithm
+scalar_diagnostic_algorithms |= scalar_distance_function
 scalar_diagnostic_algorithms |= scalar_difference_algorithm
 scalar_diagnostic_algorithms |= scalar_copy_algorithm
 scalar_diagnostic_algorithms |= scalar_advection_algorithm
@@ -1631,6 +1664,7 @@ vector_diagnostic_algorithms |= vector_sum_algorithm
 vector_diagnostic_algorithms |= vector_scalar_time_averaged_algorithm
 vector_diagnostic_algorithms |= vector_laplacian_algorithm
 vector_diagnostic_algorithms |= vector_galerkin_projection_algorithm
+vector_diagnostic_algorithms |= vector_distance_function
 vector_diagnostic_algorithms |= vector_difference_algorithm
 vector_diagnostic_algorithms |= vector_copy_algorithm
 vector_diagnostic_algorithms |= vector_advection_algorithm

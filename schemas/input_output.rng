@@ -486,6 +486,9 @@ An example that returns the three-dimensional identity:
                [0, 0, 1]]</a:documentation>
         <ref name="python_code"/>
       </element>
+      <element name="python_state">
+        <ref name="python_code"/>
+      </element>
     </choice>
   </define>
   <!--

@@ -973,7 +973,18 @@ prognostic_velocity_field =
                      (
                         element prescribed {
                            velocity_mesh_choice,
-                           prescribed_scalar_field
+		           prescribed_scalar_field
+                        }
+		     |
+		        element diagnostic {
+                           velocity_mesh_choice,
+			   element algorithm {
+			      attribute name{ "scalar_distance_function" },
+			      element surface_ids{
+			         integer_vector
+                              }
+                           },
+		           diagnostic_scalar_field
                         }
                      )
                   }?,

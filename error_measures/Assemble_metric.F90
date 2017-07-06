@@ -40,6 +40,7 @@ module metric_assemble
   use anisotropic_zz_module
   use reference_meshes
   use hadapt_metric_based_extrude, only: get_1d_mesh, recombine_metric, get_1d_tensor
+  use initialise_fields_module
   
   implicit none
 
@@ -75,6 +76,8 @@ module metric_assemble
       if (stat == 0) exit
     end do
 
+
+    call update_bounds(state(1),"/mesh_adaptivity/hr_adaptivity/")
     max_tensor => extract_tensor_field(state(1), "MinMetricEigenbound")
 
     if (debug_metric) then
@@ -393,5 +396,34 @@ module metric_assemble
     call deallocate(oned_shape)
 
   end subroutine apply_vertical_gradation
+
+  subroutine update_bounds(state, path)
+
+    type(state_type) :: state
+    character(len=*) :: path
+
+    type(vector_field), pointer :: X
+    type(tensor_field), pointer :: eval
+    integer :: node
+
+    X => extract_vector_field(state, "Coordinate")
+    if (.not. have_option(path // "/tensor_field::MinimumEdgeLengths/anisotropic_symmetric/constant")) then
+       eval => extract_tensor_field(state, "MaxMetricEigenbound")
+       call initialise_field(eval,  path // "/tensor_field::MinimumEdgeLengths", X, state=state)
+       do node=1,node_count(eval)
+          call set(eval, node, &
+               eigenvalue_from_edge_length(node_val(eval, node)))
+       end do
+    end if
+    if (.not. have_option(path // "/tensor_field::MaximumEdgeLengths/anisotropic_symmetric/constant")) then
+       eval => extract_tensor_field(state, "MinMetricEigenbound")
+       call initialise_field(eval,  path // "/tensor_field::MaximumEdgeLengths", X, state = state)
+       do node=1,node_count(eval)
+          call set(eval, node, &
+               eigenvalue_from_edge_length(node_val(eval, node)))
+       end do
+    end if
+  end subroutine update_bounds
+     
 
 end module metric_assemble

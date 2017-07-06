@@ -132,7 +132,8 @@ subroutine drag_surface(bigm, rhs, state, density)
             else ! default to quadratic_drag
               ! drag coefficient: C_D * |u|
               coefficient=ele_val_at_quad(drag_coefficient, j)* &
-                sqrt(sum((face_val_at_quad(nl_velocity, sele)-ele_val_at_quad(bc_value,sele))**2, dim=1))
+                sqrt(sum((face_val_at_quad(nl_velocity, sele)&
+                -ele_val_at_quad(bc_value,sele))**2, dim=1))
               if (manning_strickler) then
                  ! The manning-strickler formulation takes the form n**2g|u|u/(H**0.3333), where H is the water level, g is gravity and n is the Manning coefficient
                  ! Note that distance_bottom+distance_top is the current water level H

@@ -419,6 +419,9 @@ input_choice_real_dim_symmetric_tensor =
       ##                [0, 0, 1]]
       element python {
          python_code
+      }|
+      element python_state {
+         python_code
       }
    )
 

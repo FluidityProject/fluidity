@@ -3114,7 +3114,7 @@ contains
       call set(max_eigen, eigenvalue_from_edge_length(node_val(min_edge, 1)))
     else
       call allocate(min_edge, mesh, "MinimumEdgeLengths")
-      call initialise_field(min_edge, path // "/tensor_field::MinimumEdgeLengths", X)
+      call initialise_field(min_edge, path // "/tensor_field::MinimumEdgeLengths", X, state=state)
       call allocate(max_eigen, mesh, "MaxMetricEigenbound")
       do node=1,node_count(mesh)
         call set(max_eigen, node, eigenvalue_from_edge_length(node_val(min_edge, node)))
@@ -3128,12 +3128,12 @@ contains
     is_constant = (have_option(path // "/tensor_field::MaximumEdgeLengths/anisotropic_symmetric/constant"))
     if (is_constant) then
       call allocate(max_edge, mesh, "MaximumEdgeLengths", field_type=FIELD_TYPE_CONSTANT)
-      call initialise_field(max_edge, path // "/tensor_field::MaximumEdgeLengths", X)
+      call initialise_field(max_edge, path // "/tensor_field::MaximumEdgeLengths", X, state = state)
       call allocate(min_eigen, mesh, "MinMetricEigenbound", field_type=FIELD_TYPE_CONSTANT)
       call set(min_eigen, eigenvalue_from_edge_length(node_val(max_edge, 1)))
     else
       call allocate(max_edge, mesh, "MaximumEdgeLengths")
-      call initialise_field(max_edge, path // "/tensor_field::MaximumEdgeLengths", X)
+      call initialise_field(max_edge, path // "/tensor_field::MaximumEdgeLengths", X, state = state)
       call allocate(min_eigen, mesh, "MinMetricEigenbound")
       do node=1,node_count(mesh)
         call set(min_eigen, node, eigenvalue_from_edge_length(node_val(max_edge, node)))

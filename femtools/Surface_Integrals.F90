@@ -653,10 +653,11 @@ contains
     ewrite(1,*) 'Computing body torques for label "'//trim(surface_integral_name)//'"'
 
     velocity => extract_vector_field(state, "Velocity")
-    allocate( surface_ids(shape_option(1)), &
-         axis(mesh_dim(velocity)), point(mesh_dim(velocity)))
     option_path = velocity%option_path          
     shape_option = option_shape(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/surface_ids')
+    allocate( surface_ids(shape_option(1)), &
+         axis(mesh_dim(velocity)), point(mesh_dim(velocity)))
+
 
     call get_option(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/surface_ids', surface_ids)
     ewrite(2,*) 'Calculating torques on surfaces with these IDs: ', surface_ids
