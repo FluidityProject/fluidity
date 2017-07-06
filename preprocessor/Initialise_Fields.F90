@@ -40,6 +40,8 @@ use fluxes
 use nemo_states_module
 use physics_from_options
 use load_netcdf_module
+use state_module
+use python_state
 
 implicit none
 
@@ -369,7 +371,8 @@ contains
  
   end subroutine initialise_vector_field
 
-  subroutine initialise_tensor_field(field, path, position, time, phase_path)
+  subroutine initialise_tensor_field(field, path, position, time, phase_path,&
+       state)
     !!< Initialises field with values prescribed in option_path
     !!< This is used for initial conditions, prescribed fields and
     !!< setting a boundary condition surface_field, a.o.
@@ -380,6 +383,7 @@ contains
     !! if present use this time level, instead of that in the options tree
     real, optional, intent(in):: time
     character(len=*), intent(in), optional :: phase_path
+    type(state_type), intent(in), optional :: state
     
     integer :: i
     logical :: is_isotropic, is_diagonal, is_symmetric
@@ -506,6 +510,16 @@ contains
             call get_option("/timestepping/current_time", current_time)
           end if
           call set_from_python_function(field, trim(func), position,&
+                  & current_time) 
+       else if (have_option(trim(tpath)//"/python_state")) then
+          call get_option(trim(tpath)//"/python_state", func)
+          ! Get current time
+          if (present(time)) then
+            current_time=time
+          else
+            call get_option("/timestepping/current_time", current_time)
+          end if
+          call set_from_python_state_function(state, field, trim(func),&
                   & current_time) 
        else if (have_option(trim(tpath)//"/generic_function")) then
           FLExit("Generic functions are obsolete. Use a Python function.")
@@ -703,5 +717,44 @@ contains
     end if
 
   end subroutine apply_region_ids_tensor
+
+  subroutine set_from_python_state_function(state, t_field, pycode, time)
+    !!< Set a field from Python
+    !!< So add the whole state and make a variable with the diagnostic
+    !!< field available to the interpreter
+    
+    type(state_type), target, intent(in) :: state
+    type(tensor_field), intent(inout) :: t_field
+    character(len = *), intent(in) :: pycode
+    real, intent(in) :: time
+    
+#ifdef HAVE_NUMPY
+    character(len = 30) :: buffer
+    character(len = OPTION_PATH_LEN) :: material_phase_support
+    type(state_type), pointer :: this_state
+    
+    ! Clean up to make sure that nothing else interferes
+    call python_reset()
+    
+    call python_add_state(state)
+
+    call python_add_tensor_directly(t_field, state)
+
+    call python_run_string("field = state.tensor_fields['"//trim(t_field%name)//"']")
+    write(buffer,*) current_time
+    call python_run_string("time="//trim(buffer))
+!    write(buffer,*) dt
+!    call python_run_string("dt="//trim(buffer))  
+      
+    ! And finally run the user's code
+    call python_run_string(trim(pycode))
+    
+    ! Cleanup
+    call python_reset()
+#else
+    FLAbort("Python diagnostic fields require NumPy, which cannot be located.")
+#endif
+    
+  end subroutine set_from_python_state_function
     
 end module initialise_fields_module

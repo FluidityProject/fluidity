@@ -306,7 +306,7 @@ module metric_assemble
         call set(min_bound, eigenvalue_from_edge_length(node_val(min_edge, 1)))
       else
         call allocate(min_edge, full_metric%mesh, "MinimumEdgeLengths")
-        call initialise_field(min_edge, path // "/tensor_field::MinimumEdgeLengths", full_positions)
+        call initialise_field(min_edge, path // "/tensor_field::MinimumEdgeLengths", full_positions, state = state)
         call allocate(min_bound, full_metric%mesh, "MaxMetricEigenbound")
         do node=1,node_count(full_metric%mesh)
           call set(min_bound, node, eigenvalue_from_edge_length(node_val(min_edge, node)))
@@ -323,7 +323,7 @@ module metric_assemble
         call set(max_bound, eigenvalue_from_edge_length(node_val(max_edge, 1)))
       else
         call allocate(max_edge, full_metric%mesh, "MaximumEdgeLengths")
-        call initialise_field(max_edge, path // "/tensor_field::MaximumEdgeLengths", full_positions)
+        call initialise_field(max_edge, path // "/tensor_field::MaximumEdgeLengths", full_positions, state = state)
         call allocate(max_bound, full_metric%mesh, "MinMetricEigenbound")
         do node=1,node_count(full_metric%mesh)
           call set(max_bound, node, eigenvalue_from_edge_length(node_val(max_edge, node)))
