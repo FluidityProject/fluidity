@@ -1258,6 +1258,8 @@ start =
                   ## for thermal fields. This is used to calculate the turbulent buoyancy term.
                   ## Recommended value (default): 1.0.
                   element sigma_p {real},
+                  ## yPlus value (default): 11.06.
+                  element yPlus {real}?,
                   ## Time discretisation of the source terms in the k and epsilon equations and also
                   ## of the eddy viscosity
                   element time_discretisation {  
@@ -2926,6 +2928,11 @@ diagnostic_vector_field_bed_shear_stress =
             element drag_coefficient {
                real
             }|
+            ## density*friction_velocity/yPlus*u 
+            ## This is calculated at all boundaries
+            element friction_velocity {
+               empty
+            }|
             ## nu * (grad(u) + grad(u).T)
             ## This uses the velocity gradient at the boundaries to calculate the 
             ## bed shear stress. Valid for non parameterised velocity boundaries.
@@ -3241,6 +3248,15 @@ velocity_boundary_conditions =
               ## This means that the drag coefficient has units of moment.
               element linear_drag {
                 empty
+              }|
+              ## Wall function for k_epsilon RANS model.
+              ## Shear stress at the wall is set following
+              ## the methodology outlined in Kuzmin and Mierka (2006).
+              ## Constant not needed! Set to zero (or whatever).
+              ## Set yPlus value to the same value set under k-epsilon!
+              element log_law_friction_velocity {
+                ## yPlus value (default): 11.06.
+                element yPlus {real}?
               }
             ),
             velocity_components_choice?
