@@ -275,11 +275,8 @@ end type ActuatorLineType
     ! This is the dynamic angle of attack 
     alpha=atan2(urdn,urdc)
     act_line%ERe(ielem) = ur*ElemChord/Visc
-    
-    act_line%EUn(ielem)=urdn 
-    
-    act_line%EAOAdot(ielem)=dal/dt
-    act_line%EUndot(ielem)=dUn/dt
+    act_line%EUn(ielem)=urdn  
+
     !====================================
     ! Correct for flow curvature
     !====================================
@@ -298,10 +295,13 @@ end type ActuatorLineType
     !===============================================
     ! Correct for dynamic stall 
     !=============================================== 
+    
     if(act_line%do_dynamic_stall) then 
     call DynstallCorrect(act_line%Edynstall(ielem),act_line%Eairfoil(ielem),time,dt,ur,ElemChord,alpha,act_line%ERe(ielem),CLdyn,CDdyn,CM25dyn)
     CL=CLdyn
     CD=CDdyn
+    CM25=CM25dyn
+    act_line%EAOA(ielem)=alpha
     end if
     
     if(act_line%EAOA_Last(ielem)<-665) then
@@ -311,6 +311,9 @@ end type ActuatorLineType
     dal=act_line%EAOA(ielem)-act_line%EAOA_Last(ielem)
     dUn=act_line%EUn(ielem)-act_line%EUn_LAST(ielem)
     endif
+    
+    act_line%EAOAdot(ielem)=dal/dt
+    act_line%EUndot(ielem)=dUn/dt
     
     !===============================================
     ! Correct for added mass
