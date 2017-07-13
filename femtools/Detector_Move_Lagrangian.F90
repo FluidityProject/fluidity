@@ -79,6 +79,8 @@ contains
           parameters%n_stages = 1
           allocate(parameters%timestep_weights(parameters%n_stages))
           parameters%timestep_weights = 1.0
+          allocate(parameters%timestep_nodes(parameters%n_stages))
+          parameters%timestep_nodes = 0.0
        end if
 
        ! Parameters for classical Runge-Kutta
@@ -99,6 +101,8 @@ contains
           end do
           allocate(parameters%timestep_weights(parameters%n_stages))
           parameters%timestep_weights = (/ 1./6., 1./3., 1./3., 1./6. /)
+          allocate(parameters%timestep_nodes(parameters%n_stages))
+          parameters%timestep_nodes = (/ 0., 1./2., 1./2., 1. /)
        end if
 
        ! Generic Runge-Kutta options
@@ -139,6 +143,18 @@ contains
              FLExit('Timestep Array wrong size')
           end if
           call get_option(trim(detector_path)//trim(rk_gs_path)//"/timestep_weights",parameters%timestep_weights)
+
+           ! Allocate and read timestep_nodes from options
+          allocate(parameters%timestep_nodes(parameters%n_stages))
+          option_rank = option_shape(trim(detector_path)//trim(rk_gs_path)//"/timestep_nodes")
+          if (option_rank(2).ne.-1) then
+             FLExit('Timestep Array wrong rank')
+          end if
+          if (option_rank(1).ne.size(parameters%timestep_nodes)) then
+             FLExit('Timestep Array wrong size')
+          end if
+          call get_option(trim(detector_path)//trim(rk_gs_path)//"/timestep_nodes",parameters%timestep_nodes)
+          
        end if
 
     else
@@ -157,7 +173,7 @@ contains
     integer, intent(in) :: timestep
 
     type(rk_gs_parameters), pointer :: parameters
-    type(vector_field), pointer :: vfield, xfield
+    type(vector_field), pointer :: vfield, xfield, vfield_old
     type(detector_type), pointer :: detector
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
     type(halo_type), pointer :: ele_halo
@@ -165,15 +181,20 @@ contains
     logical :: any_lagrangian
     real :: rk_dt
 
+    ! Rhodri HACK:
+    !real, allocatable, dimension(:) :: timestep_nodes    
+
     ewrite(1,*) "In move_lagrangian_detectors"
     ewrite(2,*) "Detector list", detector_list%id, "has", detector_list%length, &
          "local and", detector_list%total_num_det, "global detectors"
-
+    
     parameters => detector_list%move_parameters
 
     ! Pull some information from state
     xfield=>extract_vector_field(state(1), "Coordinate")
     vfield => extract_vector_field(state(1),"Velocity")
+    ! Rhodri HACK:
+    vfield_old => extract_vector_field(state(1),"OldVelocity")    
 
     ! We allocate a sendlist for every processor
     nprocs=getnprocs()
@@ -186,8 +207,9 @@ contains
     subcycling_loop: do cycle = 1, parameters%n_subcycles
        RKstages_loop: do stage = 1, parameters%n_stages
 
+          
           ! Compute the update vector
-          call set_stage(detector_list,vfield,xfield,rk_dt,stage)
+          call set_stage(detector_list,vfield,xfield,rk_dt,stage,vfield_old)
 
           ! This loop continues until all detectors have completed their
           ! timestep this is measured by checking if the send and receive
@@ -314,11 +336,11 @@ contains
     end do
   end subroutine deallocate_rk_guided_search
 
-  subroutine set_stage(detector_list,vfield,xfield,dt0,stage0)
+  subroutine set_stage(detector_list,vfield,xfield,dt0,stage0,vfield_old)
     ! Compute the vector to search for in the next RK stage
     ! If this is the last stage, update detector position
     type(detector_linked_list), intent(inout) :: detector_list
-    type(vector_field), pointer, intent(in) :: vfield, xfield
+    type(vector_field), pointer, intent(in) :: vfield, xfield, vfield_old
     real, intent(in) :: dt0
     integer, intent(in) :: stage0
     
@@ -326,6 +348,7 @@ contains
     type(detector_type), pointer :: det0
     integer :: j0
     real, dimension(mesh_dim(xfield)+1) :: stage_local_coords
+    real, dimension(vfield%dim):: Vel_new, Vel_old
 
     parameters => detector_list%move_parameters
     
@@ -340,8 +363,9 @@ contains
 
           ! stage vector is computed by evaluating velocity at current position
           stage_local_coords=local_coords(xfield,det0%element,det0%update_vector)
-          det0%k(stage0,:)=eval_field(det0%element, vfield, stage_local_coords)
-
+          Vel_new=eval_field(det0%element, vfield, stage_local_coords)
+          Vel_old=eval_field(det0%element, vfield_old, stage_local_coords)
+          det0%k(stage0,:)=parameters%timestep_nodes(stage0)*Vel_new + (1.-parameters%timestep_nodes(stage0))*Vel_old
           if(stage0<parameters%n_stages) then
              ! update vector maps from current position to place required
              ! for computing next stage vector

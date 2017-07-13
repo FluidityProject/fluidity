@@ -138,7 +138,6 @@ contains
     type(scalar_field) :: sfield, old_sfield
     type(vector_field) :: vfield, old_vfield
     type(tensor_field) :: tfield, old_tfield
-
     do s=1,size(state)
 
        do f=1,scalar_field_count(state(s))
@@ -166,29 +165,22 @@ contains
 
        end do
 
-       do f=1,vector_field_count(state(s))
-
+      do f=1,vector_field_count(state(s))
           vfield=extract_vector_field(state(s), f)
-
           if(.not.aliased(vfield)) then
 
             ! Special case: do not copy back the coordinates or the gridvelocity
             if ((vfield%name=="Coordinate").or.(vfield%name=="GridVelocity")) then
               cycle
             end if
-
             old_vfield=extract_vector_field(state(s), trim(prefix)//vfield%name,&
                 & stat=stat)
 
             if ((stat==0).and.(.not.aliased(old_vfield))) then
               ! In this case there is an old field to be set.
-
               call set(vfield, old_vfield)
-
             end if
-
           end if
-
        end do
        
        do f=1,tensor_field_count(state(s))

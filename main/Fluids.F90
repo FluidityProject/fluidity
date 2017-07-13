@@ -169,7 +169,6 @@ contains
     ! Needed for k-epsilon VelocityBuoyancyDensity calculation line:~630
     ! S Parkinson 31-08-12
     type(state_type), dimension(:), pointer :: submaterials     
-
     ! Pointers for scalars and velocity fields
     type(scalar_field), pointer :: sfield
     type(scalar_field) :: foam_velocity_potential
@@ -181,6 +180,9 @@ contains
 
     INTEGER :: adapt_count
 
+    !!!Chris hacks
+    type(vector_field), pointer:: vfield
+    
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
     ewrite(1,*) "Options sanity check successful"
@@ -516,7 +518,6 @@ contains
        ! evaluate prescribed fields at time = current_time+dt
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time+dt)
-
        if(use_sub_state()) call set_full_domain_prescribed_fields(state,time=current_time+dt)
 
        ! move the mesh according to a prescribed grid velocity
@@ -534,7 +535,6 @@ contains
        call enforce_discrete_properties(state, only_prescribed=.true., &
             exclude_interpolated=.true., &
             exclude_nonreprescribed=.true.)
-
 #ifdef HAVE_HYPERLIGHT
        ! Calculate multispectral irradiance fields from hyperlight
        if(have_option("/ocean_biology/lagrangian_ensemble/hyperlight")) then
@@ -543,7 +543,6 @@ contains
 #endif
 
        ! nonlinear_iterations=maximum no of iterations within a time step
-
        nonlinear_iteration_loop: do  ITS=1,nonlinear_iterations
 
           ewrite(1,*)'###################'
@@ -556,9 +555,14 @@ contains
           ! (this could be fixed by replacing relax_to_nonlinear on the field
           !  with a dependency on the iterated field but then copy_to_stored_values
           !  would have to come before relax_to_nonlinear)
-          call relax_to_nonlinear(state)
-          call copy_from_stored_values(state, "Old")
-
+          
+          !chris hack
+          vfield => extract_vector_field(state(1),"Velocity")
+          if (.not.(have_option(trim(vfield%option_path)//"/prescribed"))&
+               .and. .not.(have_option("/io/detectors/lagrangian_timestepping")))then
+             call relax_to_nonlinear(state)
+             call copy_from_stored_values(state, "Old")
+          end if
           ! move the mesh according to the free surface algorithm
           ! this should not be at the end of the nonlinear iteration:
           ! if nonlinear_iterations==1:

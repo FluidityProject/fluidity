@@ -79,6 +79,7 @@ module detector_data_types
     ! Runk-Kutta Guided Search parameters
     integer :: n_stages, n_subcycles
     real, allocatable, dimension(:) :: timestep_weights
+    real, allocatable, dimension(:) :: timestep_nodes
     real, allocatable, dimension(:,:) :: stage_matrix
     real :: search_tolerance
   end type rk_gs_parameters

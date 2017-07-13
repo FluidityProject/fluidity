@@ -2372,8 +2372,11 @@ contains
        end do
 
        nvfields = vector_field_count(states(p+1))
+
+       ewrite(2,*) "In set_prescribed - nvfields ", nvfields
        do f = 1, nvfields
           vfield => extract_vector_field(states(p+1), f)
+          ewrite(2,*) "In set_prescribed - vector field name: ", trim(vfield%name)
           if (have_option(trim(vfield%option_path)//'/prescribed') .and. &
               .not. aliased(vfield) .and. &              
               .not. (present_and_true(exclude_interpolated) .and. &
@@ -2614,6 +2617,14 @@ contains
           if((prognostic.or.diagnostic)&
              .and.((steady_state_global.and.steady_state_field(vfield)).or.(iterations>1))) then
 
+            call allocate(aux_vfield, vfield%dim, vfield%mesh, "Old"//trim(vfield%name))
+            call zero(aux_vfield)
+            call insert(states(p), aux_vfield, trim(aux_vfield%name))
+            call deallocate(aux_vfield)
+            
+            !chris hack, potentially add prognostic and diagnostic too
+         else if((prescribed).and.(have_option("/io/detectors/lagrangian_timestepping"))&
+              .and.(trim(vfield%name)=="Velocity")) then !Need velocity or will catch GravityDirection
             call allocate(aux_vfield, vfield%dim, vfield%mesh, "Old"//trim(vfield%name))
             call zero(aux_vfield)
             call insert(states(p), aux_vfield, trim(aux_vfield%name))

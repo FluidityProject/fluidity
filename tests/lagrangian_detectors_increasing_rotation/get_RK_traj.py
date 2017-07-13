@@ -22,14 +22,13 @@ def vel(x,y,t):
 ##k4 defined at initial coordinates plus a full step based on k3, and initial time plus a full step of dt
 ##Final weightings of each parameter introduced from the 4th order butcher array
 while(t<tmax):
-    t = t + dt
     [k1_x,k1_y] = vel(x,y,t)
     [k2_x,k2_y] = vel(x+0.5*dt*k1_x,y+0.5*dt*k1_y,t+0.5*dt)
     [k3_x,k3_y] = vel(x+0.5*dt*k2_x,y+0.5*dt*k2_y,t+0.5*dt)
     [k4_x,k4_y] = vel(x+dt*k3_x,y+dt*k3_y,t+dt)
     x = x + dt*(k1_x/6.+k2_x/3. + k3_x/3. + k4_x/6.)
     y = y + dt*(k1_y/6.+k2_y/3. + k3_y/3. + k4_y/6.)
-    
+    t = t + dt
 plot(x,y,'.')
 show()
 
