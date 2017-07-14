@@ -480,10 +480,6 @@ def petsc_memory_stats(log):
         profile = profile.split()
         stats[object.strip()] = [int(x) for x in profile[0:3]] + [float(profile[3]),]
 
-    # when the memory stats are written out to STDOUT or a file, PETSC uses a viewer itself
-    # therefore the log_summary always seems to have one missing ViewerDestroy which is called after the log is written
-    stats['Viewer'][1] += 1
-
     return stats
 
 if __name__ == "__main__":

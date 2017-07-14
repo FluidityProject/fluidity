@@ -19,14 +19,17 @@ DeltaU_iterations_MG = check_velocity_iterations('log_mg')</variable>
     <variable name="DeltaU_iterations_SOR" language="python">from check_iterations import *
 DeltaU_iterations_SOR = check_velocity_iterations('log_sor')</variable>
     <variable name="mem_stats_gamg" language="python">from fluidity_tools import petsc_memory_stats
-mem_stats_gamg = petsc_memory_stats(open('log_gamg', 'r').read())</variable>
+mem_stats_gamg = petsc_memory_stats(open('log_gamg', 'r').read())
+mem_stats_gamg.pop('Viewer')</variable>
     <variable name="mem_stats_fs" language="python">from fluidity_tools import petsc_memory_stats
-mem_stats_fs = petsc_memory_stats(open('log_fs', 'r').read())</variable>
+mem_stats_fs = petsc_memory_stats(open('log_fs', 'r').read())
+mem_stats_fs.pop('Viewer')</variable>
     <variable name="mem_stats_mg" language="python">from fluidity_tools import petsc_memory_stats
-mem_stats_mg = petsc_memory_stats(open('log_mg', 'r').read())</variable>
+mem_stats_mg = petsc_memory_stats(open('log_mg', 'r').read())
+mem_stats_mg.pop('Viewer')</variable>
     <variable name="mem_stats_sor" language="python">from fluidity_tools import petsc_memory_stats
 mem_stats_sor = petsc_memory_stats(open('log_sor', 'r').read())
-print all(stat[0]==stat[1] for stat in mem_stats_sor.itervalues())</variable>
+mem_stats_sor.pop('Viewer')</variable>
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">assert(solvers_converged)</test>
