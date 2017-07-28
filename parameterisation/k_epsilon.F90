@@ -31,7 +31,7 @@ module k_epsilon
 
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, current_time
   use fldebug
-  use futils, only: int2str
+  use futils, only: int2str, vmean
   use vector_tools
   use quadrature
   use spud
@@ -60,8 +60,7 @@ module k_epsilon
   logical, save  :: low_Re = .false.                     
 
   public :: keps_advdif_diagnostics, keps_momentum_diagnostics, keps_bcs, &
-       & k_epsilon_check_options, tensor_inner_product, keps_bound, &
-       find_friction_velocity
+       & k_epsilon_check_options, tensor_inner_product, keps_bound, get_friction_velocity
 
   ! Outline:
   !  - call diagnostics to obtain source terms and calculate eddy viscosity
@@ -232,8 +231,8 @@ subroutine keps_calculate_rhs(state)
   type(scalar_field) :: src_to_abs, vfrac
   type(vector_field), pointer :: x, u, g
   type(scalar_field), pointer :: dummydensity, density, buoyancy_density, scalar_eddy_visc
-  integer :: i, ele, term, stat
-  real :: g_magnitude, c_eps_1, c_eps_2, sigma_p, eps_bc
+  integer :: i, ele, term, stat, sele
+  real :: g_magnitude, c_eps_1, c_eps_2, sigma_p, eps_bc, c_mu
   logical :: have_buoyancy_turbulence = .true., lump_mass, multiphase
   character(len=OPTION_PATH_LEN) :: option_path 
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
@@ -241,13 +240,13 @@ subroutine keps_calculate_rhs(state)
 
   type(vector_field) :: bc_value
   integer, dimension(:,:), allocatable :: bc_type    
-  logical :: dg_velocity, dg_keps
+  logical :: dg_velocity, dg_keps, compressible, control_volumes
 
   integer                        :: wnode, nbcs, ii, j, jj
-  real                           :: Pk_val, u_tau_val, mag_u_val, yPlus, nut_val, kappa, Abs_val
+  real                           :: Pk_val, u_tau_val, mag_u_val, yPlus, nut_val, kappa, Abs_val, y, beta
   character(len=FIELD_NAME_LEN)  :: bctype, bc_name, wall_fns
   character(len=OPTION_PATH_LEN) :: bc_path, bc_path_i
-  integer, dimension(:), pointer :: surface_node_list
+  integer, dimension(:), pointer :: surface_element_list
   type(scalar_field), pointer    :: field1, field2
   type(tensor_field), pointer    :: bg_visc
 
@@ -263,6 +262,8 @@ subroutine keps_calculate_rhs(state)
   call get_option(trim(option_path)//'/C_eps_1', c_eps_1, default = 1.44)
   call get_option(trim(option_path)//'/C_eps_2', c_eps_2, default = 1.92)
   call get_option(trim(option_path)//'/sigma_p', sigma_p, default = 1.0)
+  call get_option(trim(option_path)//'/C_mu', c_mu, default = 0.09)
+  call get_option(trim(option_path)//'/beta', beta, default = 5.2)
   
   ! get field data
   x => extract_vector_field(state, "Coordinate")
@@ -284,8 +285,8 @@ subroutine keps_calculate_rhs(state)
 
   !! required for dg gradient calculation of u
   if(dg_velocity) then
-      allocate(bc_type(u%dim, 1:surface_element_count(u)))	
-      call get_entire_boundary_condition(u, (/"weakdirichlet"/), bc_value, bc_type)	
+      allocate(bc_type(u%dim, 1:surface_element_count(u)))
+      call get_entire_boundary_condition(u, (/"weakdirichlet"/), bc_value, bc_type)
   end if
 
   ! Depending on the equation type, extract the density or set it to some dummy field allocated above
@@ -320,11 +321,16 @@ subroutine keps_calculate_rhs(state)
   field_names(1) = 'TurbulentKineticEnergy'
   field_names(2) = 'TurbulentDissipation'
 
+  compressible = have_option(trim(state%option_path)//"/equation_of_state/compressible")
+
   field_loop: do i = 1, 2
      if (have_option(trim(option_path)//'scalar_field::'// &
           trim(field_names(i))//'/prescribed')) then
         cycle
      end if
+
+     control_volumes = have_option(trim(option_path)//'scalar_field::'// &
+          trim(field_names(i))//'/prognostic/spatial_discretisation/control_volumes')
 
      !-----------------------------------------------------------------------------------
      
@@ -357,10 +363,16 @@ subroutine keps_calculate_rhs(state)
        ! ele is owned.  For example, if ele is the only owned element on
        ! this process.  Hence we have to check for element ownership
        ! directly as well.
-       if (.not.dg_keps.or.element_neighbour_owned(u, ele).or.element_owned(u, ele)) then
-         call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
+       if (.not. dg_keps.or.element_neighbour_owned(u, ele).or.element_owned(u, ele)) then
+          if (control_volumes) then
+             call assemble_rhs_cv_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
               density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, multiphase, &
-              vfrac, x, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i, bc_value, bc_type)
+              vfrac, x, c_eps_1, c_eps_2, sigma_p, c_mu, f_1, f_2, ele, i, bc_value, bc_type, compressible)
+          else
+             call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
+              density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, multiphase, &
+              vfrac, x, c_eps_1, c_eps_2, sigma_p, c_mu, f_1, f_2, ele, i, bc_value, bc_type, compressible)
+          end if
        end if
      end do
 
@@ -373,7 +385,7 @@ subroutine keps_calculate_rhs(state)
 
      ! For non-DG we apply inverse mass globally
      if(continuity(fields(1))>=0) then
-        lump_mass = have_option(trim(option_path)//'mass_terms/lump_mass')
+        lump_mass = have_option(trim(option_path)//'mass_terms/lump_mass') .or. control_volumes
         do term = 1, 3
            call solve_cg_inv_mass(state, src_abs_terms(term), lump_mass, option_path)           
         end do
@@ -383,8 +395,10 @@ subroutine keps_calculate_rhs(state)
      ! high Re wall functions: modify production term P_k on the boundary!
 
      !A! yPlus = 300.0 !!! 11.06 !using fixed yPlus value atm
+     call get_option(trim(option_path)//'/kappa', kappa, default = 0.41)
      call get_option(trim(option_path)//'/yPlus', yPlus, default = 11.06) !A! grab yPlus from diamond
-     kappa = 0.41
+     call get_option(trim(option_path)//'/y', y, default = 0.0)
+
 
      if(i==1) then
         field1 => extract_scalar_field(state, "TurbulentKineticEnergy")
@@ -412,32 +426,24 @@ subroutine keps_calculate_rhs(state)
         ! Do we have high Re wall functions?
         if (trim(bctype)=="k_epsilon" .and. wall_fns=="high_Re") then
 
-           call get_boundary_condition(field1, ii+1, type=bctype, surface_node_list=surface_node_list)
+           call get_boundary_condition(field1, ii+1, type=bctype, surface_element_list=surface_element_list)
+           do j=1, size(surface_element_list)
 
-
-           do j=1, size(surface_node_list)
-              wnode = surface_node_list(j)
-
-              nut_val   = kappa*yPlus*node_val(bg_visc,1,1,wnode)
-              mag_u_val = sqrt(sum(node_val(u,wnode)**2, dim=1))
+              sele = surface_element_list(j)
 
               if (i==1) then
 !                 u_tau_val = max( sqrt(node_val(field1,wnode))*0.09**0.25, mag_u_val/yPlus )
-!                 Pk_val    = ((u_tau_val**3)*mag_u_val)/(nut_val*yPlus)
-                 eps_bc = (0.09**0.25*sqrt(max(fields_min,node_val(field1, wnode))))**3*1.0/(nut_val*yPlus)
-                 Pk_val    = eps_bc
-                 Abs_val   = (max(fields_min,node_val(field1,wnode)))/nut_val
+                 u_tau_val =  get_friction_velocity(face_val(u, sele),&
+                      vmean(pack(face_val(bg_visc, sele), .true.)),&
+                      C_mu, y, kappa, beta, face_val(field1, sele))
+                 Pk_val    = (u_tau_val**3)/(kappa*y)
               elseif (i==2) then
-!                 u_tau_val = max( sqrt(node_val(field2,wnode))*0.09**0.25, mag_u_val/yPlus )
-!                 Pk_val    = ((u_tau_val**3)*mag_u_val)/(nut_val*yPlus) &
-!                           * (node_val(field1,wnode)/node_val(field2,wnode))
-                 eps_bc = (0.09**0.25*sqrt(max(fields_min,node_val(field2, wnode))))**3*1.0/(nut_val*yPlus)
-                 Pk_val    = (max(fields_min,node_val(field2,wnode)))/nut_val*c_eps_1*eps_bc
-                 Abs_val   = (max(fields_min,node_val(field2,wnode)))/nut_val*c_eps_2 !A! (eps**2/k)*(C1-C2)
+                 u_tau_val =  get_friction_velocity(face_val(u, sele),&
+                      vmean(pack(face_val(bg_visc, sele), .true.)),&
+                      C_mu, y, kappa, beta, face_val(field2, sele))
+                 Pk_val = c_eps_1*vmean(pack(face_val(field1, sele),.true.))*C_mu*u_tau_val/(kappa*y)
               end if 
-
-              call set(src_abs_terms(1), wnode, Pk_val)
-              call set(src_abs_terms(2), wnode, Abs_val)
+              call set(src_abs_terms(1), face_global_nodes(field1, sele), max(Pk_val, face_val(src_abs_terms(1), sele)))
 !if (i==2) then
 !ewrite(1,*) 'AMIN: Are we here yet?', Abs_val, node_val(field1,wnode), node_val(field2,wnode), c_eps_2, c_eps_1
 !end if
@@ -520,7 +526,7 @@ subroutine keps_calculate_rhs(state)
   !! deallocate velocity bc_type
   if(dg_velocity) then
       deallocate(bc_type)
-      call deallocate(bc_value)	
+      call deallocate(bc_value)
   end if
   call deallocate(dummydensity)
   deallocate(dummydensity)
@@ -533,28 +539,177 @@ end subroutine keps_calculate_rhs
     
 !------------------------------------------------------------------------------!
 
-subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density, &
+subroutine assemble_rhs_cv_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density, &
      buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, multiphase, vfrac, &
-     X, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, field_id, bc_value, bc_type)
+     X, c_eps_1, c_eps_2, sigma_p, c_mu, f_1, f_2, ele, field_id, bc_value, bc_type, compressible)
 
   type(scalar_field), dimension(3), intent(inout) :: src_abs_terms
   type(scalar_field), intent(in) :: k, eps, scalar_eddy_visc, f_1, f_2, vfrac
   type(vector_field), intent(in) :: X, u, g
   type(scalar_field), intent(in) :: density, buoyancy_density
-  real, intent(in) :: g_magnitude, c_eps_1, c_eps_2, sigma_p
+  real, intent(in) :: g_magnitude, c_eps_1, c_eps_2, sigma_p, C_mu
   logical, intent(in) :: have_buoyancy_turbulence, multiphase
   integer, intent(in) :: ele, field_id
+  logical, intent(in) :: compressible
+
+  real, dimension(ele_loc(k, ele), ele_ngi(k, ele), x%dim) :: dshape
+  real, dimension(ele_ngi(k, ele)) :: detwei, rhs
+  real, dimension(3, ele_loc(k, ele)) :: rhs_addto
+  integer, dimension(ele_loc(k, ele)) :: nodes
+  real, dimension(ele_loc(k, ele)) :: gamma_cv
+  real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: stress_tensor, grad_u
+  type(element_type), pointer :: shape, shape_u
+  integer :: term, ngi, dim, gi, i
+
+  type(vector_field), intent(in) :: bc_value
+  integer, dimension(:,:), intent(in) :: bc_type    
+
+  real, dimension(:, :, :), allocatable :: dshape_u
+
+  ! For buoyancy turbulence stuff
+  real, dimension(u%dim, ele_loc(u, ele))  :: vector, u_quad, g_quad
+  real :: u_z, u_xy
+  real, dimension(ele_loc(u, ele)) :: scalar, c_eps_3
+  type(element_type), pointer :: shape_density
+  real, dimension(:, :, :), allocatable :: dshape_density
+
+  shape => ele_shape(k, ele)
+  nodes = ele_nodes(k, ele)
+  ngi = ele_ngi(k, ele)
+
+  call transform_to_physical( X, ele, shape, dshape=dshape, detwei=detwei )
+
+  ! get bounded values of k and epsilon for source terms
+  ! this doesn't change the field values of k and epsilon
+
+  ! Compute Reynolds stress
+  if(.not.(u%mesh%shape == k%mesh%shape)) then
+     shape_u => ele_shape(u, ele)
+     allocate(dshape_u(ele_loc(u, ele), ele_ngi(u, ele), X%dim))
+     call transform_to_physical( X, ele, shape_u, dshape=dshape_u )
+     grad_u = ele_grad_at_quad(u, ele, dshape_u)
+     deallocate(dshape_u)  
+  else
+     if(continuity(u)<0) then
+        grad_u = dg_ele_grad_at_quad(u, ele, shape, X, bc_value, bc_type)
+     else
+        grad_u = ele_grad_at_quad(u, ele, dshape)
+     end if
+  end if
+
+  where (ele_val(scalar_eddy_visc,ele)>0) 
+     gamma_cv = max(0.0,C_mu * ele_val(k,ele)/ele_val(scalar_eddy_visc,ele))
+  elsewhere
+     gamma_cv = max(0.0,ele_val(eps,ele))/max(fields_min,ele_val(k,ele))
+  end where
+
+
+  dim = u%dim
+  do gi = 1, ngi
+     stress_tensor(:,:,gi) = (grad_u(:,:,gi) + transpose(grad_u(:,:,gi)))
+  end do
+
+  ! Compute P
+  rhs = 0.5*tensor_inner_product(stress_tensor, stress_tensor)
+
+  if(field_id==1) then
+     rhs_addto(1,:) = ele_val(scalar_eddy_visc, ele)*rhs(1)&
+          *sum(detwei)/ele_loc(k,ele)
+     rhs_addto(2,:) = gamma_cv*ele_val(density,ele)*sum(detwei)/ele_loc(k,ele)
+  else
+     rhs_addto(1,:) = ele_val(scalar_eddy_visc, ele)*gamma_cv*rhs(1)&
+          *c_eps_1*ele_val(f_1,ele)&
+          *sum(detwei)/ele_loc(k,ele)
+     rhs_addto(2,:) = c_eps_2*ele_val(f_2,ele)&
+          *gamma_cv*ele_val(density,ele)*sum(detwei)/ele_loc(k,ele)
+  end if
+  
+  ! Gk:  
+  ! Calculate buoyancy turbulence term and add to addto array
+  if(have_buoyancy_turbulence) then    
+  
+    ! calculate scalar and vector components of the source term    
+    allocate(dshape_density(ele_loc(buoyancy_density, ele), ele_ngi(buoyancy_density, ele), X%dim))
+    if(.not.(buoyancy_density%mesh == k%mesh)) then
+       shape_density => ele_shape(buoyancy_density, ele)
+       call transform_to_physical( X, ele, shape_density, dshape=dshape_density ) 
+    else
+       dshape_density = dshape
+    end if
+     
+    scalar = -1.0*g_magnitude*ele_val(scalar_eddy_visc, ele)/(sigma_p*ele_val(density,ele))
+    vector = spread(matmul(ele_val(buoyancy_density, ele),&
+         dshape_density(:,1,:)),2, size(vector,2))
+    vector = vector* ele_val(g, ele)
+    
+    ! multiply vector component by scalar and sum across dimensions - note that the
+    ! vector part has been multiplied by the gravitational direction so that it is
+    ! zero everywhere apart from in this direction.
+
+
+    scalar = scalar * sum(vector, dim=1)
+   
+    if (field_id == 2) then
+       ! calculate c_eps_3 = tanh(v/u)
+       g_quad = ele_val(g, ele)
+       u_quad = ele_val(u, ele)
+       do gi = 1, ele_loc(k,ele)
+          ! get components of velocity in direction of gravity and in other directions
+          u_z = dot_product(g_quad(:, gi), u_quad(:, gi))
+          u_xy = (norm2(u_quad(:, gi))**2.0 - u_z**2.0)**0.5
+          if (u_xy > fields_min) then
+             c_eps_3(gi) = tanh(u_z/u_xy) 
+          else
+             c_eps_3(gi) = 1.0
+          end if
+       end do     
+       scalar = scalar*c_eps_1*ele_val(f_1,ele)*c_eps_3*ele_val(eps,ele)/ele_val(k, ele)
+    end if
+
+    ! multiply by determinate weights, integrate and assign to rhs
+    if(multiphase) then
+       rhs_addto(3,:) = scalar * detwei/ele_loc(k, ele) * ele_val(vfrac,ele)
+    else
+       rhs_addto(3,:) = scalar * detwei/ele_loc(k, ele)
+    end if
+    
+    deallocate(dshape_density)
+    
+  else
+    ! No buoyancy term, so set this part of the array to zero.
+    rhs_addto(3,:) = 0.0    
+  end if
+
+  do term = 1, 3
+     call addto(src_abs_terms(term), nodes, rhs_addto(term,:))
+  end do
+
+end subroutine assemble_rhs_cv_ele
+
+subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density, &
+     buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, multiphase, vfrac, &
+     X, c_eps_1, c_eps_2, sigma_p, c_mu, f_1, f_2, ele, field_id, bc_value, bc_type, compressible)
+
+  type(scalar_field), dimension(3), intent(inout) :: src_abs_terms
+  type(scalar_field), intent(in) :: k, eps, scalar_eddy_visc, f_1, f_2, vfrac
+  type(vector_field), intent(in) :: X, u, g
+  type(scalar_field), intent(in) :: density, buoyancy_density
+  real, intent(in) :: g_magnitude, c_eps_1, c_eps_2, sigma_p, C_mu
+  logical, intent(in) :: have_buoyancy_turbulence, multiphase
+  integer, intent(in) :: ele, field_id
+  logical, intent(in) :: compressible
 
   real, dimension(ele_loc(k, ele), ele_ngi(k, ele), x%dim) :: dshape
   real, dimension(ele_ngi(k, ele)) :: detwei, rhs, scalar_eddy_visc_ele, k_ele, eps_ele, gamma
   real, dimension(3, ele_loc(k, ele)) :: rhs_addto
   integer, dimension(ele_loc(k, ele)) :: nodes
+  real, dimension(ele_loc(k, ele)) :: gamma_cv
   real, dimension(ele_loc(k, ele), ele_loc(k, ele)) :: invmass
-  real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: reynolds_stress, grad_u
+  real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: stress_tensor, grad_u
   type(element_type), pointer :: shape, shape_u
   integer :: term, ngi, dim, gi, i
 
-  type(vector_field), intent(in) :: bc_value	
+  type(vector_field), intent(in) :: bc_value
   integer, dimension(:,:), intent(in) :: bc_type    
 
   real, dimension(:, :, :), allocatable :: dshape_u
@@ -582,14 +737,14 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   end do
 
   ! Compute Reynolds stress
-  if(.not.(u%mesh == k%mesh)) then
+  if(.not.(u%mesh%shape == k%mesh%shape)) then
      shape_u => ele_shape(u, ele)
      allocate(dshape_u(ele_loc(u, ele), ele_ngi(u, ele), X%dim))
      call transform_to_physical( X, ele, shape_u, dshape=dshape_u )
      grad_u = ele_grad_at_quad(u, ele, dshape_u)
      deallocate(dshape_u)  
   else
-     if(continuity(u)<0 .and. .false.) then
+     if(continuity(u)<0) then
         grad_u = dg_ele_grad_at_quad(u, ele, shape, X, bc_value, bc_type)
      else
         grad_u = ele_grad_at_quad(u, ele, dshape)
@@ -599,28 +754,39 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   scalar_eddy_visc_ele = ele_val_at_quad(scalar_eddy_visc, ele)
 
   where (scalar_eddy_visc_ele>0) 
-     gamma = 0.09 * k_ele/scalar_eddy_visc_ele
+     gamma = C_mu * k_ele/scalar_eddy_visc_ele
   elsewhere
      gamma = eps_ele/k_ele
   end where
 
+  where (ele_val(scalar_eddy_visc,ele)>0) 
+     gamma_cv = max(0.0,C_mu * ele_val(k,ele)/ele_val(scalar_eddy_visc,ele))
+  elsewhere
+     gamma_cv = max(0.0,ele_val(eps,ele)/ele_val(k,ele))
+  end where
+
+
   dim = u%dim
   do gi = 1, ngi
-     reynolds_stress(:,:,gi) = scalar_eddy_visc_ele(gi)*(grad_u(:,:,gi) + transpose(grad_u(:,:,gi)))
-  end do
-  do i = 1, dim
-     reynolds_stress(i,i,:) = reynolds_stress(i,i,:) - 0.0*(2./3.)*k_ele*ele_val_at_quad(density, ele)
+     stress_tensor(:,:,gi) = (grad_u(:,:,gi) + transpose(grad_u(:,:,gi)))
   end do
 
   ! Compute P
-  rhs = tensor_inner_product(reynolds_stress, grad_u)
+  rhs = 0.5*scalar_eddy_visc_ele*tensor_inner_product(stress_tensor, stress_tensor)
+  if (compressible) then
+     do i = 1, dim
+        rhs = rhs - 2.0/3.0*scalar_eddy_visc_ele*k_ele*ele_val_at_quad(density, ele)*grad_u(i,i,:)
+     end do
+  end if
+
   if (field_id==2) then
      rhs = rhs*c_eps_1*ele_val_at_quad(f_1,ele)*gamma
   end if
+
   if(multiphase) then
      rhs_addto(1,:) = shape_rhs(shape, detwei*rhs*ele_val_at_quad(vfrac,ele))
   else
-     rhs_addto(1,:) = shape_rhs(shape, detwei*max(0.0,rhs))
+     rhs_addto(1,:) = shape_rhs(shape, detwei*rhs)
   end if
 
   ! A:
@@ -631,7 +797,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   if(multiphase) then
      rhs_addto(2,:) = shape_rhs(shape, detwei*rhs*ele_val_at_quad(vfrac,ele))
   else
-     rhs_addto(2,:) = shape_rhs(shape, max(0.0,detwei*rhs))
+     rhs_addto(2,:) = shape_rhs(shape, detwei*max(0.0,rhs))
   end if
   
   ! Gk:  
@@ -738,15 +904,16 @@ subroutine keps_eddyvisc(state, advdif)
   integer                          :: i, j, ele, stat
   
   ! Options grabbed from the options tree
-  real                             :: c_mu
+  real                             :: c_mu, ev_min, l_max
   character(len=OPTION_PATH_LEN)   :: option_path
   logical                          :: lump_mass, have_visc = .true.
   character(len=FIELD_NAME_LEN)    :: equation_type
 
   integer                        :: wnode, nbcs, ii, jj, sele, snloc, jjj
-  real                           :: yPlus, nut_val, kappa
+  real                           :: yPlus, y, nut_val, kappa, beta, u_tau_val
   character(len=FIELD_NAME_LEN)  :: bctype, bc_name, wall_fns
   character(len=OPTION_PATH_LEN) :: bc_path, bc_path_i
+  real, dimension(:,:,:), allocatable :: bg_visc_ele
   integer, dimension(:), pointer :: surface_node_list, surface_element_list
   type(scalar_field), pointer    :: fieldk
   integer, dimension(:), allocatable :: faceglobalnodes
@@ -759,8 +926,10 @@ subroutine keps_eddyvisc(state, advdif)
 
   ewrite(1,*) "In keps_eddyvisc"
 
-  ! Get model constant
+  ! Get model constants
   call get_option(trim(option_path)//'/C_mu', c_mu, default = 0.09)
+  call get_option(trim(option_path)//'/l_max', l_max, default = huge(1.0))
+  call get_option(trim(option_path)//'/minimum_eddy_ratio', ev_min, default = 0.0)
   
   ! Get field data
   call time_averaged_value(state, kk, "TurbulentKineticEnergy", advdif, option_path)
@@ -776,6 +945,8 @@ subroutine keps_eddyvisc(state, advdif)
   if (stat /= 0) then
      have_visc = .false.
   end if
+
+  allocate(bg_visc_ele(bg_visc%dim(1),bg_visc%dim(2),ele_loc(bg_visc,1)))
 
   ewrite_minmax(kk)
   ewrite_minmax(eps)
@@ -832,32 +1003,32 @@ subroutine keps_eddyvisc(state, advdif)
 
   ! Calculate scalar eddy viscosity by integration over element
   do ele = 1, ele_count(scalar_eddy_visc)
-     call keps_eddyvisc_ele(ele, X, kk, eps, scalar_eddy_visc, f_mu, density, ev_rhs)
+     bg_visc_ele=ele_val(bg_visc,ele)
+     call keps_eddyvisc_ele(ele, X, kk, eps, scalar_eddy_visc, f_mu, &
+          density, ev_rhs, ev_min*bg_visc_ele(1,1,1), l_max)
   end do
 
 
-  ! For non-DG we apply inverse mass globally
-!  if(continuity(scalar_eddy_visc)>=0) then
+!!  ! For non-DG we apply inverse mass globally
+!  if(continuity(scalar_eddy_visc)>=0 .and. .not. &
+!       have_option(trim(kk%option_path)//'/spatial_discretisation/control_volumes')) then
 !     lump_mass = have_option(trim(option_path)//'mass_terms/lump_mass')
 !     call solve_cg_inv_mass(state, ev_rhs, lump_mass, option_path)  
 !  end if
   
   ! Allow for prescribed eddy-viscosity
   if (.not. have_option(trim(option_path)//'/scalar_field::ScalarEddyViscosity/prescribed')) then
-!     print*, current_time
-!     if (current_time > 0.0e-4) then
-        call set(scalar_eddy_visc, ev_rhs)
-!     else
-!        call set(scalar_eddy_visc, 1.0e-2)
-!     end if
+     call set(scalar_eddy_visc, ev_rhs)
   end if
 
   !-----------------------------------------------------------------------------------
   ! Update eddy viscosity at the wall if wall function is selected:
 
      !A! yPlus = 300.0 !!! 11.06 !using fixed yPlus value atm
+     call get_option(trim(option_path)//'/kappa', kappa, default = 0.41)
      call get_option(trim(option_path)//'/yPlus', yPlus, default = 11.06) !A! grab yPlus from diamond
-     kappa = 0.41
+     call get_option(trim(option_path)//'/y', y, default = 0.0)
+     call get_option(trim(option_path)//'/beta', beta, default = 5.2)
      fieldk => extract_scalar_field(state, "TurbulentKineticEnergy")
 
      snloc=face_loc(u,1)
@@ -887,20 +1058,24 @@ subroutine keps_eddyvisc(state, advdif)
               ! nodes_ids for the field on this surface element
               faceglobalnodes=face_global_nodes(scalar_eddy_visc, sele)
 
+              u_tau_val = get_friction_velocity( face_val(u, sele), &
+                       vmean(pack(face_val(bg_visc, sele), .true.)),&
+                       C_mu, y, kappa, beta, face_val(fieldk, sele))
+
               do jjj=1, size(faceglobalnodes)
 !ewrite(1,*) 'AMIN: Before:', sele, jjj, faceglobalnodes(jjj), node_val(scalar_eddy_visc,faceglobalnodes(jjj))
-                   nut_val   = kappa*yPlus*node_val(bg_visc,1,1,faceglobalnodes(jjj))
-!                   call set(scalar_eddy_visc, faceglobalnodes(jjj), nut_val) !AMIN
+                   nut_val   = kappa*u_tau_val*y
+                   call set(scalar_eddy_visc, faceglobalnodes(jjj), nut_val) !AMIN
 !ewrite(1,*) 'AMIN: After :', sele, jjj, faceglobalnodes(jjj), node_val(scalar_eddy_visc,faceglobalnodes(jjj)), node_val(x,1,faceglobalnodes(jjj)), node_val(x,2,faceglobalnodes(jjj))
               end do
            end do
 
-           call get_boundary_condition(fieldk, ii+1, type=bctype, surface_node_list=surface_node_list)
-           do jj=1, size(surface_node_list)
-              wnode = surface_node_list(jj)
-              nut_val   = kappa*yPlus*node_val(bg_visc,1,1,wnode)
-              call set(scalar_eddy_visc, wnode, nut_val)
-           end do
+!           call get_boundary_condition(fieldk, ii+1, type=bctype, surface_node_list=surface_node_list)
+!           do jj=1, size(surface_node_list)
+!              wnode = surface_node_list(jj)
+!              nut_val   = kappa*yPlus*node_val(bg_visc,1,1,wnode)
+!              call set(scalar_eddy_visc, wnode, nut_val)
+!           end do
 
         end if
      end do
@@ -996,12 +1171,13 @@ subroutine keps_eddyvisc(state, advdif)
 
    end subroutine vles_filter
 
-   subroutine keps_eddyvisc_ele(ele, X, kk, eps, scalar_eddy_visc, f_mu, density, ev_rhs)
+   subroutine keps_eddyvisc_ele(ele, X, kk, eps, scalar_eddy_visc, f_mu, density, ev_rhs, ev_min, l_max)
    
       type(vector_field), intent(in)   :: x
       type(scalar_field), intent(in)   :: kk, eps, scalar_eddy_visc, f_mu, density
       type(scalar_field), intent(inout):: ev_rhs
       integer, intent(in)              :: ele
+      real, intent(in)                 :: ev_min, l_max
       
       type(element_type), pointer      :: shape_ev
       integer, pointer, dimension(:)   :: nodes_ev
@@ -1042,21 +1218,23 @@ subroutine keps_eddyvisc(state, advdif)
                      ele_val_at_quad(f_mu,ele)*(kk_at_quad**2.0)/eps_at_quad)
          invmass = inverse(shape_shape(shape_ev, shape_ev, detwei))
          rhs_addto = matmul(rhs_addto, invmass)
+      ! Add the element's contribution to the nodes of ev_rh
          call addto(ev_rhs, nodes_ev, rhs_addto)    
       else
          
-         rhs_addto = ele_val(density,ele)*C_mu*ele_val(kk, ele)**2/ele_val(eps,ele)
-         where(rhs_addto<1.0e-4)
-            rhs_addto=1.0e-4
+
+         where(C_mu*max(0.0,ele_val(kk,ele))**(1.5)<l_max*ele_val(eps,ele))
+            rhs_addto = ele_val(density,ele)*C_mu*ele_val(kk, ele)**2/max(fields_min, ele_val(eps,ele))
+         elsewhere
+            rhs_addto=l_max*sqrt(max(0.0,ele_val(kk,ele)))
          end where
-         where(rhs_addto>10.e-3*sqrt(max(0.0,ele_val(kk,ele))))
-            rhs_addto=10.e-3*sqrt(max(0.0,ele_val(kk,ele)))
+         where(rhs_addto<ev_min)
+            rhs_addto=ev_min
          end where
+      ! Add the element's contribution to the nodes of ev_rh
          call set(ev_rhs, nodes_ev, rhs_addto)    
       end if
       
-      ! Add the element's contribution to the nodes of ev_rhs
-
    
    end subroutine keps_eddyvisc_ele
 
@@ -1089,7 +1267,7 @@ subroutine keps_diffusion(state)
   diff => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
   
   ! PhaseVolumeFraction for multiphase flow simulations
-  if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+  if(option_count("/material_phase/vector_field::Velocity/prgnostic") > 1) then
      multiphase = .true.
      call time_averaged_value(state, vfrac, "PhaseVolumeFraction", .true., option_path)
      call allocate(remapvfrac, diff%mesh, "RemppedPhaseVolumeFraction")
@@ -1105,7 +1283,7 @@ subroutine keps_diffusion(state)
            call addto(diff, j, j, i, node_val(bg_visc, j, j, i)*node_val(remapvfrac, i))
            call addto(diff, j, j, i, node_val(eddy_visc, j, j, i)*node_val(remapvfrac, i) / sigma_k)
         else
-!           call addto(diff, j, j, i, node_val(bg_visc, j, j, i))
+           call addto(diff, j, j, i, node_val(bg_visc, j, j, i))
            call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) / sigma_k)
         end if
      end do
@@ -1231,16 +1409,16 @@ subroutine keps_bcs(state)
   type(mesh_type), pointer                   :: surface_mesh
   integer                                    :: i, j, sele, index, nbcs, stat
   integer, dimension(:), pointer             :: surface_elements, surface_node_list
-  integer, allocatable, dimension(:)         :: vol_nodes
+  integer, allocatable, dimension(:)         :: vol_nodes, vel_vol_nodes
   character(len=FIELD_NAME_LEN)              :: bc_type, bc_name, wall_fns
   character(len=OPTION_PATH_LEN)             :: bc_path, bc_path_i, option_path 
-  real                                       :: c_mu
+  real                                       :: c_mu, sigma_eps, beta
   character(len=FIELD_NAME_LEN)              :: equation_type
 
   integer, dimension(:), pointer             :: surface_element_list
-  real                                       :: yPlus, kappa, u_tau_val, nut_val, eps_bc_val, y_val
+  real                                       :: yPlus, kappa, u_tau_val, nut_val, eps_bc_val, y_val, y
   real, dimension(:), allocatable            :: friction_velocity
-  integer                                    :: sngi, surface_node, ele, iloc, inode, vnode
+  integer                                    :: sngi, surface_node, ele, iloc, inode, vnode, vel_vnode
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
@@ -1274,13 +1452,16 @@ subroutine keps_bcs(state)
   end select
 
   call get_option(trim(option_path)//"C_mu", c_mu, default = 0.09)
+  call get_option(trim(option_path)//"sigma_eps", sigma_eps, default = 1.3)
 
   sngi=face_ngi(u, 1)
   allocate(friction_velocity(1:sngi))
 
   !A! yPlus = 300.0 !!! 11.06 !using fixed yPlus value atm
+  call get_option(trim(option_path)//'/kappa', kappa, default = 0.41)
   call get_option(trim(option_path)//'/yPlus', yPlus, default = 11.06) !A! grab yPlus from diamond
-  kappa = 0.41
+  call get_option(trim(option_path)//'/y', y, default = 0.0)
+  call get_option(trim(option_path)//'/beta', beta, default = 5.1)
 
   field_loop: do index=1,2
 
@@ -1330,6 +1511,7 @@ subroutine keps_bcs(state)
 !           end do
 
               allocate(vol_nodes(face_loc(field2,1)))
+              allocate(vel_vol_nodes(face_loc(u,1)))
 
               ! pull out the bc value field:
               surface_field => extract_surface_field(field1, bc_name, 'value')
@@ -1339,14 +1521,22 @@ subroutine keps_bcs(state)
                   ! Establish local node lists for surface_field
                   surface_elements => ele_nodes(surface_field,ele)
                   vol_nodes = face_global_nodes(field2,surface_element_list(ele))
+                  vel_vol_nodes = face_global_nodes(u,surface_element_list(ele))
+                  sele = surface_element_list(ele)
                   !vol_nodes = face_global_nodes(field2,ele)
                   ! Loop the nodes
+
+                  u_tau_val = get_friction_velocity( face_val(u, sele), &
+                       vmean(pack(face_val(bg_visc, sele), .true.)),&
+                       C_mu, y, kappa, beta, face_val(field2, sele))
+
                   do iloc=1, size(surface_elements)
                      inode = surface_elements(iloc) !get the surface node number
                      vnode = vol_nodes(iloc)        !get the volume node number
+                     vel_vnode = vel_vol_nodes(iloc)
 
-                     !u_tau_val  = sqrt(node_val(field2,vnode)) * c_mu**0.25
-                     u_tau_val  = max( sqrt(sum(node_val(u, vnode)**2, dim=1)) / yPlus , u_tau_val)
+!                     u_tau_val  = sqrt(node_val(field2,vnode)) * c_mu**0.25
+!                     u_tau_val  = max( sqrt(sum(node_val(u, vel_vnode)**2, dim=1)) / yPlus , u_tau_ele)
 
                      if(node_val(scalar_eddy_visc,vnode) .le. 1.0e-16) then
                         eps_bc_val = 0.0
@@ -1355,7 +1545,11 @@ subroutine keps_bcs(state)
                         !eps_bc_val = (u_tau_val**5.0)/( node_val(scalar_eddy_visc,vnode)*yPlus*node_val(bg_visc,1,1,1) ) ! Neumann II
                         !eps_bc_val = ( c_mu*node_val(field2,vnode)**2 )/( kappa*yPlus*node_val(bg_visc,1,1,1) ) ! Dirichlet
                         !eps_bc_val = ((kappa*u_tau_val)/1.3) * node_val(field1,vnode) ! Flux
-                        eps_bc_val = (u_tau_val**5.0)/( 1.3*yPlus*node_val(bg_visc,1,1,1) ) ! Neumann III
+
+
+!                        eps_bc_val = get_friction_velocity(ele_val(u, surface_elements(iloc))) **4/(1.0e-3*sigma_eps
+                        eps_bc_val = (u_tau_val**4.0)/( sigma_eps*y) ! Neumann III
+!                        eps_bc_val = (u_tau_val**5.0)/( sigma_eps*yPlus*node_val(bg_visc,1,1,1) ) ! Neumann III
                         !eps_bc_val = 0.0
                      endif
 
@@ -1472,48 +1666,46 @@ end subroutine solve_cg_inv_mass_vector
 
 !---------------------------------------------------------------------------------
 
-subroutine find_friction_velocity(kappa, beta, nu, velocity, friction_velocity,&
-     yplus, mode, y)
+function get_friction_velocity( U , nu, C_mu, y, kappa, beta, tke) result (u_tau)
 
-  real, intent(in) :: kappa, beta
-  type(vector_field), intent(in) :: velocity
+  real, dimension(:,:), intent(in) :: U
+  real, intent(in) :: nu, C_mu, y, kappa, beta
+  real, dimension(:), intent(in), optional :: tke
 
-  type(scalar_field), optional :: y
-  type(scalar_field), intent(inout) :: yplus, friction_velocity, nu
-  integer :: mode
+  real :: u_tau
+  
+  real :: u_bar
+  integer :: i
 
-  !! if mode is 0, then y is prescribed and yplus found using Newton iteration
-  !! if mode is 1, then yplus is presribed and y calculated as a diagnostic
-  !! Use mode set to 2 to just calculate the friction velocity
+  u_bar = sqrt(sum(u**2)/size(u,2))
 
-  real :: u, u_tau, yp
-  integer :: i, itr
-
-  if (mode==0) then
-     do i=1, node_count(friction_velocity)
-        u =sqrt(sum(node_val(velocity,i)**2))
-        u_tau = sqrt(node_val(nu,i)*u/node_val(y,i))
-        if  (u_tau*node_val(y,i)/node_val(nu,i) > 20) then
-           do itr=1, 10
-              yp = max(20.0,u_tau*node_val(y,i)/node_val(nu,i))
-              u_tau = u_tau + (u-u_tau*(log(yp)/kappa+beta))&
-                   /(1.0/kappa+(log(yp)/kappa+beta))
-           end do
-        end if
-        call set(yplus, i, u_tau*node_val(y,i)/node_val(nu,i))
-        call set(friction_velocity, i, u_tau)
-     end do
-  else
-     do i=1, node_count(friction_velocity)
-        call set(friction_velocity, i, sqrt(sum(node_val(velocity,i)**2))&
-             /(log(node_val(yplus,i))/kappa+beta))
-     end do
-     if (mode==1) then
-        call set(y,i, node_val(nu,i)*node_val(yplus,i)&
-             /max(1.0e-16,node_val(friction_velocity,i)))
-     end if
+  u_tau = sqrt(nu*u_bar/y)
+  
+  do i=1,20
+        
+     if (u_tau*y/nu< 20) exit
+     
+     u_tau = u_tau+(u_bar-u_tau*f(u_tau))/(1.0/kappa+f(u_tau))
+     
+  end do
+  
+  if ( present(tke)) then
+     u_tau = max(u_tau, sqrt(sqrt(C_mu)*u_tau))
   end if
-end subroutine find_friction_velocity
+  
+  contains 
+
+    real function f(x)
+      real x, y_plus
+
+      y_plus = max( 20.0 , x*y/nu)
+
+      f = 1.0/kappa*log(y_plus) + beta
+
+    end function f
+    
+  end function get_friction_velocity
+
 
 subroutine k_epsilon_check_options
 

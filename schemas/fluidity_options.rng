@@ -1639,8 +1639,38 @@ Recommended value (default): 1.0.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <optional>
-                    <element name="yPlus">
-                      <a:documentation>yPlus value (default): 11.06.</a:documentation>
+                    <choice>
+                      <element name="yPlus">
+                        <a:documentation>yPlus value (default): 11.06.</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="y">
+                        <a:documentation> excluded boundary thickness</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                    </choice>
+                  </optional>
+                  <optional>
+                    <element name="beta">
+                      <a:documentation>beta value in log law (default): 5.2.</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="kappa">
+                      <a:documentation>kappa value (default): 0.41.</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="l_max">
+                      <a:documentation>maximum mixing length (default): infinity.</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="minimum_eddy_ratio">
+                      <a:documentation>Minimum ratio of eddy to background viscosity (default): 0.0.</a:documentation>
                       <ref name="real"/>
                     </element>
                   </optional>
@@ -4487,12 +4517,18 @@ This means that the drag coefficient has units of moment.</a:documentation>
 Shear stress at the wall is set following
 the methodology outlined in Kuzmin and Mierka (2006).
 Constant not needed! Set to zero (or whatever).
-Set yPlus value to the same value set under k-epsilon!</a:documentation>
+Set y/yPlus value to the same value set under k-epsilon!</a:documentation>
             <optional>
-              <element name="yPlus">
-                <a:documentation>yPlus value (default): 11.06.</a:documentation>
-                <ref name="real"/>
-              </element>
+              <choice>
+                <element name="yPlus">
+                  <a:documentation>yPlus value (default): 11.06.</a:documentation>
+                  <ref name="real"/>
+                </element>
+                <element name="y">
+                  <a:documentation>excluded boundary thickness.</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </choice>
             </optional>
           </element>
         </choice>
