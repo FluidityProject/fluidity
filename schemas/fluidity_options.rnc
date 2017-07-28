@@ -2847,18 +2847,6 @@ lagrangian_timestepping =
                ## [1/6,1/3,1/3,1/6]
                element timestep_weights {
                   real_vector
-               },
-	       ## ERK timestep nodes. This is the
-               ## c vector that explains how to
-               ## compute the timestep from the RK
-               ## stages.  See
-               ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
-               ## for notation.  It should have size
-               ## s where s is the number of stages.
-               ## For the RK4 method, it should be
-               ## [0,1/2,1/2,1]
-               element timestep_nodes {
-                  real_vector
                }
             }|
             ## Use explicit Forward Euler method with

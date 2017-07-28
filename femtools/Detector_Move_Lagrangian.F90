@@ -144,17 +144,15 @@ contains
           end if
           call get_option(trim(detector_path)//trim(rk_gs_path)//"/timestep_weights",parameters%timestep_weights)
 
-           ! Allocate and read timestep_nodes from options
+          ! Allocate and set timestep_nodes
           allocate(parameters%timestep_nodes(parameters%n_stages))
-          option_rank = option_shape(trim(detector_path)//trim(rk_gs_path)//"/timestep_nodes")
-          if (option_rank(2).ne.-1) then
-             FLExit('Timestep Array wrong rank')
-          end if
-          if (option_rank(1).ne.size(parameters%timestep_nodes)) then
-             FLExit('Timestep Array wrong size')
-          end if
-          call get_option(trim(detector_path)//trim(rk_gs_path)//"/timestep_nodes",parameters%timestep_nodes)
-          
+          parameters%timestep_nodes= 0.
+          do i = 1, parameters%n_stages
+             do j = 1,parameters%n_stages
+                parameters%timestep_nodes(i)=parameters%timestep_nodes(i) + parameters%stage_matrix(i,j)
+             end do
+          end do
+
        end if
 
     else
