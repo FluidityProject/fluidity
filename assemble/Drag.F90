@@ -29,7 +29,7 @@ module drag_module
 use fldebug
 use global_parameters, only : OPTION_PATH_LEN
 use spud
-use futils, only: int2str
+use futils, only: int2str, vmean
 use parallel_tools
 use sparse_tools
 use fetools
@@ -38,6 +38,7 @@ use fields
 use sparse_tools_petsc
 use state_module
 use boundary_conditions
+use k_epsilon, only: get_friction_velocity 
 
 implicit none
 
@@ -55,6 +56,7 @@ subroutine drag_surface(bigm, rhs, state, density)
    type(scalar_field), intent(in) :: density
    
    type(vector_field), pointer:: velocity, nl_velocity, position, old_velocity
+   type(tensor_field), pointer:: bg_visc
    type(scalar_field), pointer:: drag_coefficient, distance_top, distance_bottom
    character(len=OPTION_PATH_LEN) bctype
    real, dimension(:), allocatable:: face_detwei, coefficient, density_face_gi
@@ -66,7 +68,7 @@ subroutine drag_surface(bigm, rhs, state, density)
    integer snloc, sele, sngi
    logical:: parallel_dg, have_distance_bottom, have_distance_top, have_gravity, manning_strickler
 
-   real                            :: yPlus
+   real                            :: yPlus, y, C_mu, kappa, beta
    type(scalar_field), pointer     :: TKE
    real, dimension(:), allocatable :: friction_velocity
 
@@ -82,6 +84,7 @@ subroutine drag_surface(bigm, rhs, state, density)
    have_distance_bottom = stat == 0
    distance_top => extract_scalar_field(state, "DistanceToTop", stat)
    have_distance_top = stat == 0
+   bg_visc => extract_tensor_field(state, "BackgroundViscosity", stat)
    
    call get_option("/timestepping/timestep", dt)
    call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/theta", &
@@ -118,6 +121,17 @@ subroutine drag_surface(bigm, rhs, state, density)
             end if
          end if
          drag_coefficient => extract_scalar_surface_field(velocity, i, "DragCoefficient")
+         call get_option(trim(velocity%option_path)//&
+              '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity/yPlus', yPlus, default = 11.06) !A! grab yPlus from diamond
+         call get_option(trim(velocity%option_path)//&
+              '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity/y', y, default = 0.0)
+         call get_option(trim(velocity%option_path)//&
+              '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity/kappa', kappa, default = 0.41)
+         call get_option(trim(velocity%option_path)//&
+              '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity/C_mu', C_mu, default = 0.09)
+         call get_option(trim(velocity%option_path)//&
+              '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity/beta', beta, default = 5.2)
+
          do j=1, size(surface_element_list)
            
             sele=surface_element_list(j)
@@ -137,24 +151,25 @@ subroutine drag_surface(bigm, rhs, state, density)
             elseif(have_option(trim(velocity%option_path)//&
                '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity')) then
 
-              !A! yPlus = 300.0 !!! 11.06 !using fixed yPlus value atm
-              call get_option(trim(velocity%option_path)//&
-                   '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity/yPlus', yPlus, default = 11.06) !A! grab yPlus from diamond
-
               if(have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon")) then
                 TKE => extract_scalar_field(state, "TurbulentKineticEnergy")
 
                  ! calc friction velocity: u_tau_1 = |u_wall|/yPlus, u_tau_2 = C_mu^0.25*sqrt(k), u_tau = max ( u_tau_1 , u_tau_2 )
-                 friction_velocity = max( sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1)) / yPlus , &
-                                          sqrt(face_val_at_quad(TKE, sele)) * 0.09**0.25 )
+                 friction_velocity = get_friction_velocity(face_val(nl_velocity, sele), &
+                      vmean(pack(ele_val(bg_visc, sele), .true.)), C_mu, y, kappa, beta, face_val(TKE,sele))
+! max( sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1)) / yPlus , &
+!                                          sqrt(face_val_at_quad(TKE, sele)) * 0.09**0.25 )
               else
                  ! calc friction velocity: u_tau = u_tau_1
-                 friction_velocity = sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1)) / yPlus
+                 friction_velocity = get_friction_velocity(face_val(nl_velocity, sele), &
+                      vmean(pack(ele_val(bg_visc, sele), .true.)), C_mu, y, kappa, beta)
+!                 friction_velocity = sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1)) / yPlus
               end if
 
               ! calc wall shear stress: tau_wall = - (u_tau/yPlus)*|u_wall|
               !coefficient = (friction_velocity/yPlus)*sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1))
-              coefficient = (friction_velocity/yPlus)
+!              coefficient = (friction_velocity/yPlus)
+              coefficient = friction_velocity(1)**2*sqrt(face_loc(nl_velocity, sele)/max(1.0e-8,sum(face_val(nl_velocity, sele)**2)))
               !ewrite(1,*) 'AMIN: Are we here yet?', yPlus, coefficient, coefficient*sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1))
             else ! default to quadratic_drag
               ! drag coefficient: C_D * |u|
