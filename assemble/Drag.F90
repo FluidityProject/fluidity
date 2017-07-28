@@ -38,7 +38,7 @@ use fields
 use sparse_tools_petsc
 use state_module
 use boundary_conditions
-use k_epsilon, only: get_friction_velocity 
+use k_epsilon, only: get_friction_velocity, k_epsilon_model
 
 implicit none
 
@@ -68,9 +68,9 @@ subroutine drag_surface(bigm, rhs, state, density)
    integer snloc, sele, sngi
    logical:: parallel_dg, have_distance_bottom, have_distance_top, have_gravity, manning_strickler
 
-   real                            :: yPlus, y, C_mu, kappa, beta
    type(scalar_field), pointer     :: TKE
    real, dimension(:), allocatable :: friction_velocity
+   type(k_epsilon_model) :: keps_model
 
    ewrite(1,*) 'Inside drag_surface'
    
@@ -122,15 +122,15 @@ subroutine drag_surface(bigm, rhs, state, density)
          end if
          drag_coefficient => extract_scalar_surface_field(velocity, i, "DragCoefficient")
          call get_option(trim(velocity%option_path)//&
-              '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity/yPlus', yPlus, default = 11.06) !A! grab yPlus from diamond
+              '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity/yPlus', keps_model%yPlus, default = 11.06) !A! grab yPlus from diamond
          call get_option(trim(velocity%option_path)//&
-              '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity/y', y, default = 0.0)
+              '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity/y', keps_model%y, default = 0.0)
          call get_option(trim(velocity%option_path)//&
-              '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity/kappa', kappa, default = 0.41)
+              '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity/kappa', keps_model%kappa, default = 0.41)
          call get_option(trim(velocity%option_path)//&
-              '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity/C_mu', C_mu, default = 0.09)
+              '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity/C_mu', keps_model%C_mu, default = 0.09)
          call get_option(trim(velocity%option_path)//&
-              '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity/beta', beta, default = 5.2)
+              '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity/beta', keps_model%beta, default = 5.2)
 
          do j=1, size(surface_element_list)
            
@@ -156,13 +156,13 @@ subroutine drag_surface(bigm, rhs, state, density)
 
                  ! calc friction velocity: u_tau_1 = |u_wall|/yPlus, u_tau_2 = C_mu^0.25*sqrt(k), u_tau = max ( u_tau_1 , u_tau_2 )
                  friction_velocity = get_friction_velocity(face_val(nl_velocity, sele), &
-                      vmean(pack(ele_val(bg_visc, sele), .true.)), C_mu, y, kappa, beta, face_val(TKE,sele))
+                      vmean(pack(ele_val(bg_visc, sele), .true.)), tke=face_val(TKE,sele))
 ! max( sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1)) / yPlus , &
 !                                          sqrt(face_val_at_quad(TKE, sele)) * 0.09**0.25 )
               else
                  ! calc friction velocity: u_tau = u_tau_1
                  friction_velocity = get_friction_velocity(face_val(nl_velocity, sele), &
-                      vmean(pack(ele_val(bg_visc, sele), .true.)), C_mu, y, kappa, beta)
+                      vmean(pack(ele_val(bg_visc, sele), .true.)), keps_model_in=keps_model)
 !                 friction_velocity = sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1)) / yPlus
               end if
 
