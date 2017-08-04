@@ -48,6 +48,8 @@ module interpolation_module
     integer, dimension(node_count(new_position)) :: map
     integer :: i
 
+    if (size(map) == 0) return
+
     ! Thanks, James!
     call find_node_ownership(old_position, new_position, map)
     

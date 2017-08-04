@@ -115,6 +115,7 @@ contains
 !! Query what is the naming convention for halos.
               name=trim(halo_name(element_halo)) // "DG", &
               nprocs=element_halo%nprocs, &
+              communicator=halo_communicator(element_halo), &
               nowned_nodes=element_halo%nowned_nodes*element%loc, &
               data_type=HALO_TYPE_DG_NODE, &
               ordering_scheme=halo_ordering_scheme(element_halo))

@@ -45,9 +45,13 @@ module parallel_tools
        getnprocs, getpinteger, getpreal, getprocno, getrank, &
        isparallel, parallel_filename, parallel_filename_len, &
        pending_communication, valid_communicator, next_mpi_tag, &
-       MPI_COMM_FEMTOOLS, set_communicator
+       MPI_COMM_FEMTOOLS, set_communicator, split_communicator,&
+       free_communicator, reset_next_mpi_tag, MPI_COMM_NONEMPTY
 
   integer(c_int), bind(c) :: MPI_COMM_FEMTOOLS = MPI_COMM_WORLD
+  integer(c_int), bind(c), save ::   MPI_COMM_NONEMPTY = MPI_COMM_WORLD
+
+  integer, save :: last_tag = 0
 
   interface allmax
     module procedure allmax_integer, allmax_real
@@ -78,9 +82,13 @@ module parallel_tools
 
 contains
 
+  subroutine reset_next_mpi_tag()
+    call allmax(last_tag)
+  end subroutine reset_next_mpi_tag
+
   integer function next_mpi_tag()
 #ifdef HAVE_MPI
-    integer, save::last_tag=0, tag_ub=0
+    integer, save::tag_ub=0
     integer flag, ierr
     if(tag_ub==0) then
        call MPI_Attr_get(MPI_COMM_FEMTOOLS, MPI_TAG_UB, tag_ub, flag, ierr)
@@ -190,7 +198,7 @@ contains
   logical function isparallel()
     !!< Return true if we are running in parallel, and false otherwise.
   
-    isparallel = (getnprocs()>1)
+    isparallel = (getnprocs(MPI_COMM_FEMTOOLS)>1)
     
   end function isparallel
 
@@ -959,5 +967,33 @@ contains
     MPI_COMM_FEMTOOLS = communicator
 
   end subroutine set_communicator
+
+  subroutine split_communicator(old_communicator, new_communicator, key)
+    integer(c_int), intent(in) :: old_communicator
+    integer(c_int), intent(out) :: new_communicator
+    logical, intent(in) :: key
+
+    integer ::ierr, ikey
+
+    if (key) then
+       ikey = 1
+    else
+       ikey = 0
+    end if
+
+    call MPI_Comm_split(old_communicator, key, getrank(MPI_COMM_WORLD), new_communicator, ierr)
+
+  end subroutine split_communicator
+
+  subroutine free_communicator(communicator)
+    integer(c_int), intent(inout) :: communicator
+    integer :: ierr
+
+    if ((communicator .ge. 0) .and. communicator .ne. MPI_COMM_WORLD) then
+       call MPI_Comm_free(communicator, ierr)
+       communicator =-1
+    end if
+
+  end subroutine free_communicator
 
 end module parallel_tools

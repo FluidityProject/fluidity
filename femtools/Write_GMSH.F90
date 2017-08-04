@@ -206,7 +206,7 @@ contains
 
     ! Sanity check.
     if (numNodes==0) then
-       FLAbort("write_gmsh_nodes(): no nodes to write out")
+       ewrite(-1,*) "write_gmsh_nodes(): no nodes to write out"
     end if
 
     ! header line: nodes, dim, no attributes, no boundary markers
@@ -278,7 +278,7 @@ contains
 
     ! Sanity check.
     if (numGMSHElems==0) then
-       FLAbort("write_gmsh_faces_and_elements(): none of either!")
+       ewrite(-1,*) "write_gmsh_faces_and_elements(): none of either!"
     end if
 
 

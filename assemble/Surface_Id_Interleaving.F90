@@ -105,7 +105,7 @@ contains
     if(isparallel()) then
 #ifdef HAVE_MPI
       ! Max. coplanar_id must be global to ensure consistent global surface ids
-      call mpi_allreduce(max_coplanar_id, all_max_coplanar_id, 1, getpinteger(), MPI_MAX, MPI_COMM_FEMTOOLS, ierr)
+      call mpi_allreduce(max_coplanar_id, all_max_coplanar_id, 1, getpinteger(), MPI_MAX, MPI_COMM_NONEMPTY, ierr)
       assert(ierr == MPI_SUCCESS)
       max_coplanar_id = all_max_coplanar_id
 #endif
