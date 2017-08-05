@@ -195,7 +195,7 @@ contains
     type(state_type), dimension(:), intent(inout) :: state
 
     character(len = OPTION_PATH_LEN) :: dump_filename, dump_format
-    integer :: max_dump_no, stat
+    integer :: max_dump_no, stat, projection
 
     ewrite(1, *) "In write_state"
     call profiler_tic("I/O")
@@ -205,11 +205,18 @@ contains
 
     dump_no = modulo(dump_no, max_dump_no)
 
+    projection = DGIFY
+    if (have_option("/io/project/mass_lumped")) then
+       projection = MASS_LUMPED_PROJECTION
+    else if (have_option("/io/project/full_projection")) then
+       projection = GAUSSIAN_PROJECTION
+    end if
+
     call get_option("/io/dump_format", dump_format)
     select case(trim(dump_format))
       case("vtk")
          ewrite(2, *) "Writing output " // int2str(dump_no) // " to vtu"
-         call vtk_write_state_new_options(dump_filename, dump_no, state)
+         call vtk_write_state_new_options(dump_filename, dump_no, state, projection=projection)
       case default
         FLAbort("Unrecognised dump file format.")      
     end select
@@ -222,7 +229,7 @@ contains
 
   end subroutine write_state
 
-  subroutine vtk_write_state_new_options(filename, index, state, write_region_ids)
+  subroutine vtk_write_state_new_options(filename, index, state, write_region_ids, projection)
     !!< Write the state variables out to a vtu file according to options
     !!< set in the options tree. Only fields present in the option tree
     !!< will be written, except for those disabled in the same options tree.
@@ -234,6 +241,7 @@ contains
     integer, intent(in), optional :: index    !! Index number of dump for filename.
     type(state_type), dimension(:), intent(inout) :: state
     logical, intent(in), optional :: write_region_ids
+    integer, intent(in), optional :: projection
     
     type(vector_field), pointer :: model_coordinate
     type(mesh_type), pointer :: model_mesh
@@ -358,7 +366,8 @@ contains
          sfields=lsfields, &
          vfields=lvfields, &
          tfields=ltfields, &
-         write_region_ids=write_region_ids)
+         write_region_ids=write_region_ids, &
+         projection=projection, state=state(1))
          
     ewrite(1, *) "Exiting vtk_write_state_new_options"
     

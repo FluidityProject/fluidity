@@ -97,6 +97,7 @@ module fields_manipulation
                    & set_vector_field_nodes, &
                    & set_vector_field_nodes_dim, &
                    & set_tensor_field_nodes, &
+                   & set_tensor_field_nodes_dim, &
                    & set_scalar_field_field, &
                    & set_scalar_field_from_vector_field, &
                    & set_vector_field_field, &
@@ -1369,6 +1370,23 @@ module fields_manipulation
     field%val(:, :, node_numbers) = val
     
   end subroutine set_tensor_field_nodes
+
+  subroutine set_tensor_field_nodes_dim(field, dim1, dim2, node_numbers, val)
+    !!< Set the tensor field at the specified nodes
+    !!< Does not work for constant fields
+    type(tensor_field), intent(inout) :: field
+    integer, intent(in) :: dim1, dim2
+    integer, dimension(:), intent(in) :: node_numbers
+    real, intent(in), dimension(:) :: val
+
+    assert(field%field_type==FIELD_TYPE_NORMAL)
+    assert(field%field_type==FIELD_TYPE_NORMAL)
+    assert(dim1>=1 .and. dim1<=field%dim(1))
+    assert(dim2>=1 .and. dim2<=field%dim(2))
+
+    field%val(dim1, dim2, node_numbers) = val
+    
+  end subroutine set_tensor_field_nodes_dim
     
   subroutine set_tensor_field(field, val)
     !!< Sets tensor with constant value

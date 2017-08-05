@@ -41,14 +41,6 @@ module state_fields_module
   interface get_cv_mass
     module procedure get_cv_mass_single_state, get_cv_mass_multiple_states
   end interface get_cv_mass
-
-  interface get_lumped_mass
-    module procedure get_lumped_mass_single_state, get_lumped_mass_multiple_states
-  end interface get_lumped_mass
-  
-  interface get_mass_matrix
-    module procedure get_mass_matrix_single_state, get_mass_matrix_multiple_states
-  end interface get_mass_matrix
   
   interface get_dg_inverse_mass
     module procedure get_dg_inverse_mass_single_state, get_dg_inverse_mass_multiple_states
@@ -106,97 +98,6 @@ contains
     end if
   
   end function get_cv_mass_multiple_states
-
-  function get_lumped_mass_single_state(state, mesh) result(lumped_mass)
-    !!< extracts the lumped mass from states or creates it if it doesn't find it
-    type(scalar_field), pointer :: lumped_mass
-    type(state_type), intent(inout) :: state
-    type(mesh_type), intent(inout) :: mesh
-    
-    type(state_type), dimension(1) :: states
-    
-    states = (/state/)
-    lumped_mass => get_lumped_mass(states, mesh)
-    state = states(1)
-  
-  end function get_lumped_mass_single_state
-
-  function get_lumped_mass_multiple_states(states, mesh) result(lumped_mass)
-    !!< extracts the lumped mass from states or creates it if it doesn't find it
-    type(scalar_field), pointer :: lumped_mass
-    type(state_type), dimension(:), intent(inout) :: states
-    type(mesh_type), intent(inout) :: mesh
-    
-    integer :: stat
-    character(len=FIELD_NAME_LEN) :: name
-    type(scalar_field) :: temp_lumped_mass
-    type(vector_field), pointer :: positions
-    integer, save :: last_mesh_movement = -1
-    
-    name = trim(mesh%name)//"LumpedMass"
-    
-    lumped_mass => extract_scalar_field(states, trim(name), stat)
-    
-    if((stat/=0).or.(eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement)) then
-    
-      positions => extract_vector_field(states(1), "Coordinate")
-      call allocate(temp_lumped_mass, mesh, name=trim(name))
-      call compute_lumped_mass(positions, temp_lumped_mass)
-      call insert(states, temp_lumped_mass, trim(name))
-      call deallocate(temp_lumped_mass)
-      
-      lumped_mass => extract_scalar_field(states, trim(name))
-      last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
-    end if
-  
-  end function get_lumped_mass_multiple_states
-
-  function get_mass_matrix_single_state(state, mesh) result(mass)
-    !!< extracts the mass from states or creates it if it doesn't find it
-    type(csr_matrix), pointer :: mass
-    type(state_type), intent(inout) :: state
-    type(mesh_type), intent(inout) :: mesh
-    
-    type(state_type), dimension(1) :: states
-    
-    states = (/state/)
-    mass => get_mass_matrix(states, mesh)
-    state = states(1)
-  
-  end function get_mass_matrix_single_state
-
-  function get_mass_matrix_multiple_states(states, mesh) result(mass)
-    !!< extracts the mass from states or creates it if it doesn't find it
-    type(csr_matrix), pointer :: mass
-    type(state_type), dimension(:), intent(inout) :: states
-    type(mesh_type), intent(inout) :: mesh
-    
-    integer :: stat
-    character(len=FIELD_NAME_LEN) :: name
-    type(csr_matrix) :: temp_mass
-    type(csr_sparsity), pointer :: temp_mass_sparsity
-    type(vector_field), pointer :: positions
-    
-    integer, save :: last_mesh_movement = -1
-    
-    name = trim(mesh%name)//"MassMatrix"
-    
-    mass => extract_csr_matrix(states, trim(name), stat)
-    
-    if((stat/=0).or.(eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement)) then
-      positions => extract_vector_field(states(1), "Coordinate")
-      
-      temp_mass_sparsity => get_csr_sparsity_firstorder(states, mesh, mesh)
-      call allocate(temp_mass, temp_mass_sparsity, name=trim(name))
-      call compute_mass(positions, mesh, temp_mass)
-      call insert(states, temp_mass, trim(name))
-      call deallocate(temp_mass)
-      
-      mass => extract_csr_matrix(states, trim(name))
-      last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
-    end if
-  
-  end function get_mass_matrix_multiple_states
 
   function get_dg_inverse_mass_single_state(state, mesh) result(inverse_mass)
     !!< extracts the dg inverse mass from state or creates it if it doesn't find it

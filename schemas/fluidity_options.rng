@@ -165,6 +165,27 @@ interpolated for VTK output.</a:documentation>
           </element>
         </choice>
         <optional>
+          <element name="project">
+            <a:documentation>If a continuous model output mesh is selected, and choosing to
+output discontinuous fields, the default behaviour is to
+output on a discontinuous mesh of the same degree. 
+
+Turning this option on causes a projection to be used instead.
+Select either a mass lumped method, or a full Galerkin projection
+(The full projection requires a linear solve)</a:documentation>
+            <choice>
+              <element name="mass_lumped">
+                <empty/>
+              </element>
+              <element name="full_projection">
+                <element name="solver">
+                  <ref name="linear_solver_options_sym"/>
+                </element>
+              </element>
+            </choice>
+          </element>
+        </optional>
+        <optional>
           <element name="convergence">
             <a:documentation>Options for convergence analysis.</a:documentation>
             <optional>

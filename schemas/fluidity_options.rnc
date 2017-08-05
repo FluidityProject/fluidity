@@ -135,6 +135,24 @@ start =
                   attribute name { xsd:string }
                }
             ),
+	    ## If a continuous model output mesh is selected, and choosing to
+	    ## output discontinuous fields, the default behaviour is to
+	    ## output on a discontinuous mesh of the same degree. 
+	    ##
+	    ## Turning this option on causes a projection to be used instead.
+	    ## Select either a mass lumped method, or a full Galerkin projection
+	    ## (The full projection requires a linear solve)
+	    element project {
+	       (
+	       element mass_lumped { 
+	          empty 
+	       }|
+	       element full_projection {
+	          element solver {
+                     linear_solver_options_sym
+		  }
+               })
+	    }?,
             ## Options for convergence analysis.
             element convergence {
                ## Whether to enable the creation of a convergence

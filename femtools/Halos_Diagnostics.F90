@@ -35,11 +35,37 @@ module halos_diagnostics
   use halos_numbering
   use fields_allocates
   use fields_manipulation
-  use vtk_interfaces
+!  use vtk_interfaces
   implicit none
 
   private
   public write_universal_numbering
+
+  interface 
+     subroutine vtk_write_fields(filename, index, position, model, sfields,&
+       & vfields, tfields, write_region_ids, write_columns, number_of_partitions,&
+       projection, stat)
+
+       use fields
+
+       implicit none
+
+     character(len=*), intent(in) :: filename ! Base filename with no
+     ! trailing _number.vtu
+     integer, intent(in), optional :: index ! Index number of dump for filename.
+     type(vector_field), intent(in) :: position
+     type(mesh_type), intent(in) :: model
+     type(scalar_field), dimension(:), intent(in), optional :: sfields
+     type(vector_field), dimension(:), intent(in), optional :: vfields
+     type(tensor_field), dimension(:), intent(in), optional :: tfields
+     logical, intent(in), optional :: write_region_ids
+     logical, intent(in), optional :: write_columns
+     !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+     integer, optional, intent(in):: number_of_partitions
+     integer, optional, intent(in) :: projection
+     integer, intent(out), optional :: stat
+   end subroutine vtk_write_fields
+end interface
 
 contains
 
