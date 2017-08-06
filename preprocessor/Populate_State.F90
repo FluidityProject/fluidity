@@ -2622,9 +2622,8 @@ contains
             call insert(states(p), aux_vfield, trim(aux_vfield%name))
             call deallocate(aux_vfield)
             
-            !chris hack, potentially add prognostic and diagnostic too
-         else if((prescribed).and.(have_option("/io/detectors/lagrangian_timestepping"))&
-              .and.(trim(vfield%name)=="Velocity")) then !Need velocity or will catch GravityDirection
+          else if((prescribed).and.(trim(vfield%name)=="Velocity")) then 
+
             call allocate(aux_vfield, vfield%dim, vfield%mesh, "Old"//trim(vfield%name))
             call zero(aux_vfield)
             call insert(states(p), aux_vfield, trim(aux_vfield%name))
@@ -2644,6 +2643,13 @@ contains
 
           if((prognostic.or.diagnostic)&
               .and.(convergence_field(vfield).and.(iterations>1))) then
+
+            call allocate(aux_vfield, vfield%dim, vfield%mesh, "Iterated"//trim(vfield%name))
+            call zero(aux_vfield)
+            call insert(states(p), aux_vfield, trim(aux_vfield%name))
+            call deallocate(aux_vfield)
+
+          else if((prescribed).and.((trim(vfield%name)=="Velocity"))) then 
 
             call allocate(aux_vfield, vfield%dim, vfield%mesh, "Iterated"//trim(vfield%name))
             call zero(aux_vfield)

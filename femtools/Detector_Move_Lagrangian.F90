@@ -189,9 +189,8 @@ contains
     parameters => detector_list%move_parameters
 
     ! Pull some information from state
-    xfield=>extract_vector_field(state(1), "Coordinate")
-    vfield => extract_vector_field(state(1),"Velocity")
-    ! Rhodri HACK:
+    xfield     => extract_vector_field(state(1),"Coordinate")
+    vfield     => extract_vector_field(state(1),"IteratedVelocity")
     vfield_old => extract_vector_field(state(1),"OldVelocity")    
 
     ! We allocate a sendlist for every processor
@@ -207,7 +206,7 @@ contains
 
           
           ! Compute the update vector
-          call set_stage(detector_list,vfield,xfield,rk_dt,stage,vfield_old)
+          call set_stage(detector_list,vfield,vfield_old,xfield,rk_dt,stage)
 
           ! This loop continues until all detectors have completed their
           ! timestep this is measured by checking if the send and receive
@@ -334,11 +333,11 @@ contains
     end do
   end subroutine deallocate_rk_guided_search
 
-  subroutine set_stage(detector_list,vfield,xfield,dt0,stage0,vfield_old)
+  subroutine set_stage(detector_list,vfield,vfield_old,xfield,dt0,stage0)
     ! Compute the vector to search for in the next RK stage
     ! If this is the last stage, update detector position
     type(detector_linked_list), intent(inout) :: detector_list
-    type(vector_field), pointer, intent(in) :: vfield, xfield, vfield_old
+    type(vector_field), pointer, intent(in) :: vfield, vfield_old, xfield
     real, intent(in) :: dt0
     integer, intent(in) :: stage0
     
@@ -346,7 +345,6 @@ contains
     type(detector_type), pointer :: det0
     integer :: j0
     real, dimension(mesh_dim(xfield)+1) :: stage_local_coords
-    real, dimension(vfield%dim):: Vel_new, Vel_old
 
     parameters => detector_list%move_parameters
     
@@ -361,9 +359,8 @@ contains
 
           ! stage vector is computed by evaluating velocity at current position
           stage_local_coords=local_coords(xfield,det0%element,det0%update_vector)
-          Vel_new=eval_field(det0%element, vfield, stage_local_coords)
-          Vel_old=eval_field(det0%element, vfield_old, stage_local_coords)
-          det0%k(stage0,:)=parameters%timestep_nodes(stage0)*Vel_new + (1.-parameters%timestep_nodes(stage0))*Vel_old
+          det0%k(stage0,:)=parameters%timestep_nodes(stage0)*eval_field(det0%element, vfield, stage_local_coords) + &
+          (1.-parameters%timestep_nodes(stage0))*eval_field(det0%element, vfield_old, stage_local_coords)
           if(stage0<parameters%n_stages) then
              ! update vector maps from current position to place required
              ! for computing next stage vector
