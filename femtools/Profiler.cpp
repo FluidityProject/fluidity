@@ -141,10 +141,17 @@ extern "C" {
   void cprofiler_tic_fc(const char *key, const int *key_len){
     flprofiler.tic(string(key, *key_len));
   }
+  void cprofiler_tic(const char *key){
+    flprofiler.tic(string(key, strlen(key)));
+  }
+  
 
 #define cprofiler_toc_fc F77_FUNC(cprofiler_toc, CPROFILER_TOC)
   void cprofiler_toc_fc(const char *key, const int *key_len){
     flprofiler.toc(string(key, *key_len));
+  }
+  void cprofiler_toc(const char *key){
+    flprofiler.toc(string(key, strlen(key)));
   }
 
 #define cprofiler_zero_fc F77_FUNC(cprofiler_zero, CPROFILER_ZERO)

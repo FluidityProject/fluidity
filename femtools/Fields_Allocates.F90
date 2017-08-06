@@ -62,6 +62,7 @@ implicit none
   public :: add_lists, extract_lists, add_nnlist, extract_nnlist, add_nelist, &
     & extract_nelist, add_eelist, extract_eelist, remove_lists, remove_nnlist, &
     & remove_nelist, remove_eelist, extract_elements, remove_boundary_conditions
+  public :: extract_surface_mesh
 
   interface allocate
      module procedure allocate_scalar_field, allocate_vector_field,&
@@ -2111,6 +2112,52 @@ contains
     end if
   
   end subroutine create_surface_mesh
+
+  subroutine extract_surface_mesh(surface_mesh, mesh,  name)
+  !! Creates a surface mesh consisting of all surface elements of a mesh
+  !! The mesh uses the global numbering
+  type(mesh_type), intent(out):: surface_mesh
+  !! mesh to take surface from (should have %faces component)
+  type(mesh_type), intent(in):: mesh
+  !! name for the new surface_mesh
+  character(len=*), intent(in):: name
+  
+    integer, dimension(:), pointer:: suf_ndglno
+    integer, dimension(:), allocatable:: nod2sufnod
+    integer, dimension(mesh%faces%shape%loc):: glnodes
+    integer j, sele, sufnod, snloc
+    
+    snloc=mesh%faces%shape%loc
+      
+    allocate(nod2sufnod(1:node_count(mesh)))
+    nod2sufnod=0
+    
+    ! mark surface nodes with nod2sufnod(nod)==1
+    sufnod=0
+    do sele=1, surface_element_count(mesh)
+      glnodes=face_global_nodes(mesh, sele)
+      do j=1, snloc
+        if (nod2sufnod(glnodes(j))==0) then
+          sufnod=sufnod+1
+          nod2sufnod(glnodes(j))=1
+        end if
+      end do
+    end do
+      
+    call allocate(surface_mesh, nodes=sufnod, &
+         elements=surface_element_count(mesh), shape=mesh%faces%shape, &
+         name=name)
+      
+    surface_mesh%periodic=mesh%periodic
+    surface_mesh%continuity=mesh%continuity
+      
+    ! map global node numbering to surface node numbering
+    suf_ndglno => surface_mesh%ndglno
+    do sele=1, surface_element_count(mesh)
+      suf_ndglno( (sele-1)*snloc+1:sele*snloc )=face_global_nodes(mesh, sele)
+    end do
+  
+  end subroutine extract_surface_mesh
     
   logical function SetContains(a, b)
   !!< Auxillary function that returns true if b contains a

@@ -221,6 +221,43 @@ tensor_copy_algorithm =
          }?
       }
    )
+stress_free_field_algorithm =
+  (
+      ## Finds the vector field which solves the equation
+      ## 
+      ## div sigma (v) - C1*v +C2*u_s = 0
+      ##
+      ## where sigma is a stress-like tensor operator,
+      ##
+      ## sigma(v) = lambda div v I + 2 * mu * (nabla v + nabla v^T).   
+     
+      element algorithm {
+         attribute name { "stress_free_field" },
+         attribute material_phase_support { "single" },
+         element solver {
+            linear_solver_options_sym
+         },
+         element coordinate_field {
+            attribute name { string }
+         }?,
+         element lambda_parameter { real }?,
+         element mu_parameter { real }?,
+         element C1 { real }?,
+         element C2 { real }?,
+         vector_source_field,
+         element chi_parameter { real }?,
+         element depends { string }?,
+         element boundary_conditions {
+            attribute name { string },
+            ## Surface id:
+            element surface_ids {
+               integer_vector
+            },
+            velocity_boundary_conditions
+         }*
+      }
+   )
+
 scalar_galerkin_projection_algorithm =
    (
       ## Galerkin projects the source field.
@@ -1597,6 +1634,7 @@ vector_diagnostic_algorithms |= vector_galerkin_projection_algorithm
 vector_diagnostic_algorithms |= vector_difference_algorithm
 vector_diagnostic_algorithms |= vector_copy_algorithm
 vector_diagnostic_algorithms |= vector_advection_algorithm
+vector_diagnostic_algorithms |= stress_free_field_algorithm
 vector_diagnostic_algorithms |= perp_algorithm
 vector_diagnostic_algorithms |= lumped_mass_smoothed_vector_algorithm
 vector_diagnostic_algorithms |= helmholtz_smoothed_vector_algorithm

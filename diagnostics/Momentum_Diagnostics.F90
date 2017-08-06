@@ -30,7 +30,7 @@
 module momentum_diagnostics
 
   use fldebug
-  use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
+  use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN, timestep
   use spud
   use sparse_tools
   use fetools
@@ -45,6 +45,7 @@ module momentum_diagnostics
   use sparsity_patterns_meshes
   use state_fields_module
   use sediment, only : get_n_sediment_fields, get_sediment_item
+  use momentum_cg, only: get_stress_free_field
   use geostrophic_pressure
   use multimaterial_module
   
@@ -58,7 +59,8 @@ module momentum_diagnostics
             calculate_imposed_material_velocity_source, &
             calculate_imposed_material_velocity_absorption, &
             calculate_scalar_potential, calculate_projection_scalar_potential, &
-            calculate_geostrophic_velocity, calculate_viscous_dissipation
+            calculate_geostrophic_velocity, calculate_viscous_dissipation, calculate_q_criterion,&
+            calculate_stress_free_field
            
   
 contains
@@ -108,6 +110,63 @@ contains
     ewrite_minmax(s_field) 
 
   end subroutine calculate_strain_rate_second_invariant
+
+  subroutine calculate_q_criterion(state, s_field)
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: s_field
+
+    type(vector_field), pointer :: positions
+    type(vector_field), pointer :: velocity
+
+    type(tensor_field) :: grad_vel
+
+    integer :: i, j
+    real, dimension(mesh_dim(s_Field),mesh_dim(s_Field)) :: t
+    real :: trace, Omega2, S2
+    real, parameter :: tol=1.0e-32
+    logical :: normalise
+
+    !! Subrountine calculates the Q criterion, possibly normalised
+
+    ewrite(1,*) 'In calculate_q_criterion'
+
+    normalise=have_option(trim(complete_field_path(trim(s_field%option_path))) // &
+                    "/algorithm/normalise")
+    positions => extract_vector_field(state, "Coordinate")
+    velocity  => extract_vector_field(state, "IteratedVelocity")
+
+    ! Allocate strain_rate and vorticity:
+    call allocate(grad_vel, s_field%mesh, name="grad_vel")
+    
+    ! Calculate strain rate second invariant:
+    call grad(velocity,positions,grad_vel)
+
+    do i=1, node_count(s_field) 
+       t=node_val(grad_vel,i)
+       trace=0
+       do j=1,velocity%dim
+          trace=trace+t(j,j)
+       end do
+       do j=1,velocity%dim
+          t(j,j)=t(j,j)-trace/velocity%dim
+       end do
+       omega2=sum(((t-transpose(t))/2.)**2)
+       S2=sum(((t+transpose(t))/2.) **2)
+       if (normalise) then
+          call set(s_field,i, (omega2-s2)/(tol+omega2+s2))
+       else
+          call set(s_field,i, (omega2-s2)/2.0)
+       end if
+    end do
+ 
+    ! Clean-up:
+    call deallocate(grad_vel)
+
+    ! Print min and max:
+    ewrite_minmax(s_field) 
+
+
+  end subroutine calculate_q_criterion
 
   subroutine calculate_sediment_concentration_dependent_viscosity(state, t_field)
     ! calculates viscosity based upon total sediment concentration
@@ -596,5 +655,37 @@ contains
     if(stat == SPUD_NO_ERROR) call scale(v_field, scale_factor)
   
   end subroutine calculate_geostrophic_velocity
+
+  subroutine calculate_stress_free_field(state,v_field)
+    type(state_type), intent(inout) :: state
+    type(vector_field), intent(inout) :: v_field
+    
+    character(len = OPTION_PATH_LEN) :: path
+    character(len = FIELD_NAME_LEN) :: name
+    type(vector_field), pointer :: positions, velocity
+    real :: chi, C1, C2, lame1, lame2
+
+    path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
+
+    call get_option(trim(path)//"/chi_parameter", chi, default=0.0)
+    call get_option(trim(path)//"/lambda_parameter", lame1, default=1.0)
+    call get_option(trim(path)//"/mu_parameter", lame2, default=1.0)
+    call get_option(trim(path)//"/C1", C1, default=0.0)
+    call get_option(trim(path)//"/C2", C2, default=0.0)
+
+    ! Extract positions field from state:
+    if (have_option(trim(path)//"/coordinate_field")) then
+       call get_option(trim(path)//"/coordinate_field/name", name)
+    else
+       name = "Coordinate"
+    end if
+    positions => extract_vector_field(state, trim(name))
+    velocity => vector_source_field(state, v_field)
+    
+    call get_stress_free_field(state, positions, v_field,&
+         chi, C1, C2, lame1, lame2, path, velocity)
+
+  end subroutine calculate_stress_free_field
+
 
 end module momentum_diagnostics

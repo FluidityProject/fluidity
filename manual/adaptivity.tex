@@ -619,4 +619,90 @@ $M_2$ & 10 & CI & no	& 4.1			& 3.4			& 7.5		 \\ \hline
 \label{table:adaptivity_cost}
 \end{table}
 
+\section{Pure mesh movement}
+
+It will be seen from the previous section that the interpolation of data between meshes, and the use of metric advection to ensure the mesh remains of high quality between adapt steps are both relatively expensive processes. Nevertheless they can be necessitated by the fact that the $hr$--adaptivity algorithm described above inserts new degrees of freedom into the mesh and should not generally be run after every time step on grounds of cost. An alternative is to continuously modify the mesh over the course of the model time integration step, by moving the mesh vertices (i.e pure $r$--adaptivity) in the manner of the Arbitrary Lagrangian--Eulerian framework described by \cite{doneahuerta2004}. This gives a further advantage, in that the boundaries of the geometry can be explicitly allowed to move or deform.
+
+\begin{figure}[h] 
+\centering
+\includegraphics[width=0.475\textwidth]{./adaptivity_images/moving_mesh_schematic}
+
+\caption[Example of a moving mesh.]{A cartoon of mesh movement for a fluids problem. While a Lagrangian fluid parcel is advected by the fluid velocity, $\bmu$, the mesh vertices are transported by a grid velocity, $\bm{v}$. In this frame of reference the material derivative is a function of of the convective velocity $\bm{c}:=\bm{u}-\bm{v}$, i.e. $\DDt{a}\equiv\frac{\partial a}{\partial{t}}+\bm{c}\cdot\nabla a$.}
+\label{fig:mesh_movement}
+\end{figure}
+
+In the \fluidity implementation of mesh movement, this method requires the specification of a continous, piecewise linear vector field, called the grid velocity, which defines the rate of change of the locations of the elements of the mesh. In this formalism the material derivative at fixed Eulerian location, 
+\begin{equation}\left.\DDt{a}\right|_{\bmx}\equiv\frac{\partial{a}}{\partial{t}}+\bmu\cdot\nabla a
+\end{equation} is replaced by one moving with the mesh, 
+\begin{equation}
+\left.\DDt{a}\right|_{\bm{\chi}}\equiv\frac{\partial{a}}{\partial{t}}+\bmu\cdot\nabla a-\bm{v}\cdot\nabla a
+\end{equation}
+where the mesh coordinate evolves under the action of the grid velocity,
+\begin{equation}
+\frac{\partial \bm{\chi}}{\partial t} = \bm{v}(\bm{\chi},t).
+\end{equation}
+ This grid velocity may be explicitly chosen by the user. Alternatively, a number of algorithms are available to determine an optimal grid velocity from other information.
+
+\subsection{A pseudo-Lagrangian approach}
+
+Here the mesh velocity is set equal to the fluid velocity at the start of the timestep. This is only pseudo-Lagrangian, rather than fully Lagrangian since the two velocities diverge over the course of the time integration. This means that the advective term doesn't fully cancel. However stability criteria such as the CFL number will be derived from this convective velocity, which for steady flow will be smaller than the same criterion on a static mesh.
+
+%%\subsection{free surface method}
+
+%%\subsection{Explicit ALE methods}
+
+\subsection{A linear elasticity/viscosity scheme}
+
+In this approach \citep{alauzet2014changing} the grid velocity, $\bm{v}$ satisfies a partial differential equation based on a pseudo-force balance, with an optional drag term coupling to the fluid velocity, $\bmu$:
+\[\frac{\partial \sigma(\bm{v})_{ij}}{\partial X_j} + C_1 u_j  -C_2 v_j = 0,\]
+with a grid pseudo stress tensor,
+\[ \sigma_{ij} := \lambda \frac{\partial}{\partial X_i}\frac{\partial v_k}{\partial X_k}\delta_{ij} + 2 \mu \left(\frac{\partial v_i}{\partial X_j} + \frac{\partial v_i}{\partial X_j}\right).\]
+
+Here the user is free to choose the coordinate system, $\bm{X}$, in which the differential calculations are performed, as well as choosing the constand coefficients $\lambda$, $\mu$, $C_1$ and $C_2$. If the coordinate system of the original mesh is used (i.e. $\bm{X}=\bm{\chi}$, the mesh coordinate) then the stress equation can be identified with the equilibrium deformation of a linear elastic solid with Lamé parameters $\lambda$ and $\mu$. Equally if the coordinates of the current mesh are used (i.e. $\bm{X}=\bm{x}$, the \fluidity default) then the equation models a highly viscous compressible fluid, with shear viscosity $2\mu$ and bulk viscosity $\lambda +4\mu/3$. For well-posedness it is necessary that $\mu>0$ and $\lambda\geq0$. As implemented, the mesh movement force equation requires Dirichlet boundary conditions for $\bm{v}$ over the entire boundary of the solution domain. This information will then be smoothly extended into the interior of the domain.
+
+\subsection{Laplacian Smoothing}
+In this approach \citep{buell1973,field} a boundary deformation displaces internal nodes according to the solution of a modified Laplace's equation
+\begin{equation}
+\label{eq:modified_laplaces}
+\frac{{\partial}^{2}\bm{U}}{\partial \xi^{2}} + \frac{\partial^{2}\bm{U}}{\partial \eta^{2}} = 0,
+\end{equation} 
+where $\left(\xi,\eta\right) \in \Omega_{c}\,(\textrm{predeformed domain}),\,\left(x,y\right) \in \Omega_{p}\,(\textrm{postdeformed domain}),\, \bm{U}\left(\xi,\eta\right)\,:\,\Omega_{c} \to \Omega_{p}$. Here it is important to highlight the underlying vector nature of $\bm{U}=\left(U^{\xi},U^{\eta}\right)$ meaning \ref{eq:modified_laplaces} can be recast as
+\begin{equation}
+\label{eq:recast_modified_laplaces}
+\frac{\partial^{2}U^{\xi}}{\partial \xi^{2}} + \frac{\partial^{2}U^{\xi}}{\partial \eta^{2}} = 0\quad \textrm{and}\quad \frac{\partial^{2}U^{\eta}}{\partial \xi^{2}} + \frac{\partial^{2}U^{\eta}}{\partial \eta^{2}}=0,
+\end{equation} 
+
+where solutions to $U^{\xi}$ and $U^{\eta}$ can be found analytically by separation of variables.  Having found $\bm{U}$ the grid velocity, $\bm{v}$, mentioned above, immediately follows.
+  
+There are a number of important facts to keep in mind when using this smoothing technique.  First, solutions to Laplace's equation in the context of this method, are not coupled (see \ref{eq:recast_modified_laplaces}).  This means that a boundary deformation solely in the $y$-direction, for example, will cause nodes on the interior to be displaced solely along the $y$-direction.  In a few instances this behaviour is desired (e.g. holes in domains), but more often than not this lack of coupling is a shortcoming of Laplacian smoothing.  Second, Laplacian smoothing has no inbuilt safeguards against mesh tangling, which when deformations are large compared to the largest dimension of the domain, often occur near the boundary.  Lastly, it is worth mentioning that for this particular smoothing technique, along with the following two, that in the absence of a boundary deformation, no mesh smoothing will occur along the interior.  Laplacian smoothing, practically speaking, is computationally inexpensive and in general works well for convex domains that expand outward from their centres.  However, if an external boundary moves inward too much and creates a nonconvex domain this smoother will most likely produce a tangled mesh. 
+
+\subsection{Lineal Spring Analogy}
+In this approach \citep{farhat1998} a mesh is viewed as a discrete structural system described as
+\begin{equation}
+\label{eq:discrete_struc_system}
+\bm{M}\ddot{\bm{q}} + \bm{D}\dot{\bm{q}} + \bm{K}\bm{q} = 0,
+\end{equation}
+where $\bm{M}$, $\bm{D}$, $\bm{K}$, $\bm{q}$ are the fictitious mass, damping and stiffness matrices, respectively and $\bm{q}$ is the displacement vector.  The displacement vector is defined as
+\begin{equation}
+\bm{q}\left(t\right) = \bm{\xi}\left(t\right) - \bm{\xi}\left(0\right),
+\end{equation}
+where $\bm{\xi}$ denotes the grid point coordinates and $t$ time.  In this particular implementation, the quasi-static version of \ref{eq:discrete_struc_system} is assumed 
+\begin{equation}
+\label{eq:static_version}
+\bm{K}\bm{q}=0,
+\end{equation}
+and $\bm{q}=\bar{\bm{q}}$ along the moving boundary $\Gamma_{m}$ which is normally furnished by the solution to an underlying physical PDE.  In the greater context of $r$-based adaptivity as it appears in this manual, $\bm{q}$ is the grid velocity $\bm{v}$.   The main idea behind this technique is that a fictitious spring is attached to each edge connecting two vertices ($i$ and $j$), whose spring constant $k_{ij}$ is inversely proportional to the distance separating vertices $i$ and $j$.  This means that $\bm{K} = \bm{K}^{ij}_{\textrm{lineal}}$.  
+
+There are a number of important facts to keep in mind when using this smoothing technique.  First,  $k_{ij}$ is not a scalar, but is in fact a matrix which couples displacement in directions other than the direction of the boundary displacement (unlike Laplacian smoothing).  Second, this technique only insures that neighbouring vertices never collide which in and of itself does not ensure the mesh will not tangle.  Lastly, this technique operates on the coordinates of the current mesh and not the original mesh (see Lineal elasticity/viscosity scheme above).  This smoother, practically speaking, can be thought of as a more robust version of Laplacian smoothing (without much more computational effort) and assuming the boundary deformation is small relative to the largest dimension of the domain, it should produce a reliable mesh.
+
+\subsection{Lineal Torsional Spring Analogy}
+This approach \citep{farhat1998} is a direct extension of the Lineal Spring Analogy.  What sets the two methods apart is that $\bm{K}$ as it appears in \ref{eq:static_version} is no longer solely a function of elemental edge length, but also elemental area.  Conceptually this means $\bm{K} = \bm{K}^{ij}_{\textrm{lineal}} + \bm{K}^{ijk}_{\textrm{torsional}}$.  Elemental (triangle $\mathcal{T}_{ijk}$ in this case) area contributes to torsional spring stiffness at vertex $i$ via 
+\begin{equation}
+\label{eq:torsional_stiffness}
+C^{ijk}_{i} = \frac{l^{2}_{ij}l^{2}_{ik}}{4A^{2}_{ijk}},
+\end{equation}
+where $l_{ij}$ is the distance between vertices $i$ and $j$, $l_{ik}$ is the distance between vertices $i$ and $k$, and $A_{ijk}$ is the area of the triangle $\mathcal{T}_{ijk}$.  This addition does not entirely safeguard against mesh tangling, and a further step must be taken to limit the rotation, $\bm{R}^{ijk}$, of each triangle within the mesh as well (see \citep{farhat1998} for further details).  
+
+There are two important facts to keep in mind when using this smoothing technique.  First, though this smoother ensures that no vertex will ever collide with its neighbour and that the mesh will not tangle (assuming it is given a valid mesh in the first place), this does guarantee good element quality (e.g. radii ratio).  Second, because this smoother operates on the current mesh and not the original mesh, it can be regarded as a discrete version of the linear viscosity scheme discussed above.  In turn, this technique may be an attractive alternative to those using the linear viscosity scheme.  This smoother, practically speaking, offers very good performance (relative to Laplacian smoothing and Lineal spring smoothing) not just for external moving boundaries, but also for internal moving boundaries (e.g. turbines, pumps, etc.).  A purely torsional implementation of this smoother for three-dimensional problems can be found in \citep{degand}.
+
 

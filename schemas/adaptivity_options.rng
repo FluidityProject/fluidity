@@ -2205,6 +2205,32 @@ on the cost of a worse internal representation of the wetting and drying interfa
 Requires a prescribed GridVelocity field (see below).</a:documentation>
               <empty/>
             </element>
+            <element name="laplacian_smoothing">
+              <a:documentation>Enable movement of mesh to satisfy a moving mesh PDE.
+The boundary condition on the GridVelocity field is imposed
+on the calculated solution.</a:documentation>
+              <empty/>
+            </element>
+            <element name="lineal_smoothing">
+              <a:documentation>Enable Lineal Spring.
+The boundary condition on the GridVelocity field is imposed
+on the calculated solution.</a:documentation>
+              <empty/>
+            </element>
+            <element name="lineal_torsional_smoothing">
+              <a:documentation>Enable Lineal Torsional Spring.
+The boundary condition on the GridVelocity field is imposed
+on the calculated solution.</a:documentation>
+              <empty/>
+            </element>
+            <element name="centroid_relaxer">
+              <a:documentation>Enable Centroid Relaxer.  This relaxer is an adaptation of Johnson's 
+"Using Parameterization and Springs to Determine Aneurysm Wall Thickess". 
+DOI: 10.1007/978-3-642-04319-2_23.
+The boundary condition on the GridVelocity field is imposed
+on the calculated solution.</a:documentation>
+              <empty/>
+            </element>
             <element name="pseudo_lagrangian">
               <a:documentation>Enable movement of mesh by the Velocity.
 Note that this is only pseudo-lagrangian as the
@@ -2342,6 +2368,12 @@ Please specify a scalar field</a:documentation>
               </optional>
             </element>
           </choice>
+          <optional>
+            <element name="solver">
+              <a:documentation>Specify the solver options for methods which solve a linear equation using an internal algorithm. Default optionds are used otherwise.</a:documentation>
+              <ref name="pc_ksp_solver_options"/>
+            </element>
+          </optional>
           <element name="vector_field">
             <a:documentation>The velocity of the mesh.</a:documentation>
             <attribute name="name">
@@ -2352,7 +2384,32 @@ Please specify a scalar field</a:documentation>
             </attribute>
             <choice>
               <element name="diagnostic">
-                <ref name="internal_algorithm"/>
+                <choice>
+                  <element name="algorithm">
+                    <a:documentation>This diagnostic is internal - i.e. it is calculated 
+somewhere within the main code, and is not wrapped by
+the automatic diagnostics wrappers.</a:documentation>
+                    <attribute name="name">
+                      <value>Internal</value>
+                    </attribute>
+                    <attribute name="material_phase_support">
+                      <value>multiple</value>
+                    </attribute>
+                    <zeroOrMore>
+                      <element name="boundary_conditions">
+                        <attribute name="name">
+                          <data type="string" datatypeLibrary=""/>
+                        </attribute>
+                        <element name="surface_ids">
+                          <a:documentation>Surface id:</a:documentation>
+                          <ref name="integer_vector"/>
+                        </element>
+                        <ref name="velocity_boundary_conditions"/>
+                      </element>
+                    </zeroOrMore>
+                  </element>
+                  <ref name="stress_free_field_algorithm"/>
+                </choice>
                 <element name="mesh">
                   <attribute name="name">
                     <value>CoordinateMesh</value>

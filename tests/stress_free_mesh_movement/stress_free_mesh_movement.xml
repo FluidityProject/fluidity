@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>laplacian_smoothing</name>
+  <owner userid="jrper"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity stress_free_mesh_movement.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="bbox" language="python">import vtk
+
+reader = vtk.vtkXMLUnstructuredGridReader()
+reader.SetFileName('stress_free_mesh_movement_1.vtu')
+reader.Update()
+
+ugrid = reader.GetOutput()
+bbox = ugrid.GetBounds()</variable>
+    <variable name="areas" language="python">import vtktools
+import numpy
+
+#load the output
+ug = vtktools.vtu('stress_free_mesh_movement_1.vtu')
+areas = []
+## get signed areas
+for i in range(ug.ugrid.GetNumberOfCells()):
+  cell = ug.ugrid.GetCell(i).GetPoints()
+  p0 = numpy.array(cell.GetPoint(0))[:2]
+  p1 = numpy.array(cell.GetPoint(1))[:2]
+  p2 = numpy.array(cell.GetPoint(2))[:2]
+  areas.append(0.5*numpy.cross(p1-p0,p2-p0))
+areas = numpy.array(areas)
+  </variable>
+  </variables>
+  <pass_tests>
+    <test name="CheckBounds" language="python">import numpy
+assert(all(numpy.array([abs(x-y) for x,y in zip(bbox, (0,1,0,1.15,0,0))])&lt;1.0e-32))</test>
+    <test name="PositiveAreas" language="python">assert(all(areas&gt;0.0))</test>
+  </pass_tests>
+</testproblem>

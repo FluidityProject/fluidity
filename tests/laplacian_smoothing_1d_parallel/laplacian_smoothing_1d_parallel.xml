@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>laplacian smoothing 1d parallel</name>
+  <owner userid="tmcmanus"/>
+  <tags>flml radapt parallel</tags>
+    <problem_definition length="short" nprocs="2">
+      <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l laplacian_smoothing_1d laplacian_smoothing_1d_flredecomp &amp;&amp;
+mpiexec ../../bin/fluidity -v2 -l laplacian_smoothing_1d_flredecomp.flml</command_line>
+  </problem_definition>  
+  <variables>
+    <variable name="solvers_converged" language="python">                                                                                                                                                         
+import os                                                                                                                                                                                                         
+files = os.listdir("./")                                                                                                                                                                                          
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files                                                                                                                                  
+    </variable>
+<variable name="mingridvelocity_x_1d" language="python">
+from fluidity_tools import stat_parser
+s=stat_parser("laplacian_smoothing_1d.stat")
+mingridvelocity_x_1d=s["Fluid"]["GridVelocity%1"]["min"][-1]
+    </variable>
+    <variable name="maxgridvelocity_x_1d" language="python">
+from fluidity_tools import stat_parser
+s=stat_parser("laplacian_smoothing_1d.stat")
+maxgridvelocity_x_1d=s["Fluid"]["GridVelocity%1"]["max"][-1]
+    </variable>
+  </variables>    
+  <pass_tests>
+    <test name="Solvers converged" language="python">                                                                                                                                                             
+assert(solvers_converged)                                                                                                                                                                                         
+    </test>
+     <test name="Check minimum grid velocity in x-direction for 1D Lap." language="python">
+print 'min(GridVelocity%1)_1d = ', mingridvelocity_x_1d
+assert mingridvelocity_x_1d &lt; 1E-5
+    </test>
+    <test name="Check maximum grid velocity in x-direction for 1D Lap." language="python">
+print 'max(GridVelocity%1)_1d = ', maxgridvelocity_x_1d
+assert maxgridvelocity_x_1d &gt; 0.75 and maxgridvelocity_x_1d &lt; 1.25  
+    </test>
+  </pass_tests>
+</testproblem>

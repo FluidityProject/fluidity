@@ -1864,6 +1864,32 @@ mesh_adaptivity_options =
             element imposed_grid_velocity {
                empty
             }|
+            ## Enable movement of mesh to satisfy a moving mesh PDE.
+            ## The boundary condition on the GridVelocity field is imposed
+            ## on the calculated solution.
+            element laplacian_smoothing {
+               empty
+            }|
+	    ## Enable Lineal Spring.
+            ## The boundary condition on the GridVelocity field is imposed
+            ## on the calculated solution.
+            element lineal_smoothing {
+               empty
+            }|
+	    ## Enable Lineal Torsional Spring.
+            ## The boundary condition on the GridVelocity field is imposed
+            ## on the calculated solution.
+            element lineal_torsional_smoothing {
+               empty
+            }|
+	    ## Enable Centroid Relaxer.  This relaxer is an adaptation of Johnson's 
+	    ## "Using Parameterization and Springs to Determine Aneurysm Wall Thickess". 
+	    ## DOI: 10.1007/978-3-642-04319-2_23.
+            ## The boundary condition on the GridVelocity field is imposed
+            ## on the calculated solution.
+            element centroid_relaxer {
+               empty
+            }|
             ## Enable movement of mesh by the Velocity.
             ## Note that this is only pseudo-lagrangian as the
             ## Velocity and GridVelocity only match at the beginning of
@@ -1933,13 +1959,35 @@ mesh_adaptivity_options =
                )
             }                  
          ),
+	 ## Specify the solver options for methods which solve a linear equation using an internal algorithm. Default optionds are used otherwise.
+	 element solver {
+	    pc_ksp_solver_options
+         }?,
          ## The velocity of the mesh.
          element vector_field {
             attribute name { "GridVelocity" },
             attribute rank { "1" },
             (
-               element diagnostic {
-                 internal_algorithm,
+                element diagnostic {
+                   (
+                      ## This diagnostic is internal - i.e. it is calculated 
+                      ## somewhere within the main code, and is not wrapped by
+                      ## the automatic diagnostics wrappers.
+                      element algorithm {
+                         attribute name { "Internal" },
+                         attribute material_phase_support { "multiple" },
+                         element boundary_conditions {
+                            attribute name { string },
+                            ## Surface id:
+                            element surface_ids {
+                               integer_vector
+                            },
+                            velocity_boundary_conditions
+                         }*
+                      }
+                   |
+                      stress_free_field_algorithm
+                   ),
                  element mesh {
                    attribute name {  "CoordinateMesh" }
                  },
