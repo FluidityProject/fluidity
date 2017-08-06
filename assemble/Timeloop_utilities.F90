@@ -64,17 +64,15 @@ contains
           sfield=extract_scalar_field(state(s), f)
 
           if(.not.aliased(sfield)) then
-
-            old_sfield=extract_scalar_field(state(s), trim(prefix)//sfield%name,&
-                & stat=stat)
-
-            if ((stat==0).and.(.not.aliased(old_sfield))) then
-              ! In this case there is an old field to be set.
-
-              call set(old_sfield, sfield)
-
-            end if
-
+                
+             old_sfield=extract_scalar_field(state(s), trim(prefix)//sfield%name,&
+                  & stat=stat)
+             
+             if ((stat==0).and.(.not.aliased(old_sfield))) then
+                ! In this case there is an old field to be set.
+                call set(old_sfield, sfield)
+             end if
+             
           end if
 
        end do
@@ -85,40 +83,36 @@ contains
 
           if(.not.aliased(vfield)) then
 
-            ! Special case: do not copy to the coordinates
-            if ((vfield%name=="Coordinate")) then
-              cycle
-            end if
+             ! Special case: do not copy to the coordinates
+             if ((vfield%name=="Coordinate")) then
+                cycle
+             end if
 
-            old_vfield=extract_vector_field(state(s), trim(prefix)//vfield%name,&
-                & stat=stat)
+             old_vfield=extract_vector_field(state(s), trim(prefix)//vfield%name,&
+                  & stat=stat)
 
-            if ((stat==0).and.(.not.aliased(old_vfield))) then
-              ! In this case there is an old field to be set.
-
-              call set(old_vfield, vfield)
-
-            end if
+             if ((stat==0).and.(.not.aliased(old_vfield))) then
+                ! In this case there is an old field to be set.
+                call set(old_vfield, vfield)
+             end if
 
           end if
 
        end do
        
        do f=1,tensor_field_count(state(s))
-
+          
           tfield=extract_tensor_field(state(s), f)
-
+          
           if(.not.aliased(tfield)) then
 
-            old_tfield=extract_tensor_field(state(s), trim(prefix)//tfield%name,&
-                & stat=stat)
+             old_tfield=extract_tensor_field(state(s), trim(prefix)//tfield%name,&
+                  & stat=stat)
   
-            if ((stat==0).and.(.not.aliased(old_tfield))) then
-              ! In this case there is an old field to be set.
-  
-              call set(old_tfield, tfield)
-  
-            end if
+             if ((stat==0).and.(.not.aliased(old_tfield))) then
+                ! In this case there is an old field to be set.
+                call set(old_tfield, tfield)
+             end if
 
           end if
 
@@ -145,48 +139,52 @@ contains
 
           sfield=extract_scalar_field(state(s), f)
 
-          if(.not.aliased(sfield)) then
+          if(.not.(have_option(trim(sfield%option_path)//"/prescribed"))) then
+             
+             if(.not.aliased(sfield)) then
 
-            ! Special case: do not copy back pressure or density or geostrophic pressure
-            if ((sfield%name=="Pressure").or.(sfield%name=="Density").or.(sfield%name=="GeostrophicPressure")) then
-              cycle
-            end if
+                ! Special case: do not copy back pressure or density or geostrophic pressure
+                if ((sfield%name=="Pressure").or.(sfield%name=="Density").or.(sfield%name=="GeostrophicPressure")) then
+                   cycle
+                end if
 
-            old_sfield=extract_scalar_field(state(s), trim(prefix)//sfield%name,&
-                & stat=stat)
+                old_sfield=extract_scalar_field(state(s), trim(prefix)//sfield%name,&
+                     & stat=stat)
 
-            if ((stat==0).and.(.not.aliased(old_sfield))) then
-              ! In this case there is an old field to be set.
+                if ((stat==0).and.(.not.aliased(old_sfield))) then
+                   ! In this case there is an old field to be set.
+                   call set(sfield, old_sfield)
+                end if
 
-              call set(sfield, old_sfield)
-
-            end if
+             end if
 
           end if
-
+          
        end do
 
        do f=1,vector_field_count(state(s))
 
           vfield=extract_vector_field(state(s), f)
 
-          if(.not.aliased(vfield)) then
+          if(.not.(have_option(trim(vfield%option_path)//"/prescribed"))) then
+             
+             if(.not.aliased(vfield)) then
 
-            ! Special case: do not copy back the coordinates or the gridvelocity
-            if ((vfield%name=="Coordinate").or.(vfield%name=="GridVelocity")) then
-              cycle
-            end if
+                ! Special case: do not copy back the coordinates or the gridvelocity
+                if ((vfield%name=="Coordinate").or.(vfield%name=="GridVelocity")) then
+                   cycle
+                end if
 
-            old_vfield=extract_vector_field(state(s), trim(prefix)//vfield%name,&
-                & stat=stat)
-
-            if ((stat==0).and.(.not.aliased(old_vfield))) then
-              ! In this case there is an old field to be set.
-
-              call set(vfield, old_vfield)
-
-            end if
-
+                old_vfield=extract_vector_field(state(s), trim(prefix)//vfield%name,&
+                     & stat=stat)
+                
+                if ((stat==0).and.(.not.aliased(old_vfield))) then
+                   ! In this case there is an old field to be set.
+                   call set(vfield, old_vfield)
+                end if
+                
+             end if
+             
           end if
 
        end do
@@ -195,17 +193,19 @@ contains
 
           tfield=extract_tensor_field(state(s), f)
 
-          if(.not.aliased(tfield)) then
+          if(.not.(have_option(trim(tfield%option_path)//"/prescribed"))) then
+             
+             if(.not.aliased(tfield)) then
 
-            old_tfield=extract_tensor_field(state(s), trim(prefix)//tfield%name,&
-                & stat=stat)
+                old_tfield=extract_tensor_field(state(s), trim(prefix)//tfield%name,&
+                     & stat=stat)
 
-            if ((stat==0).and.(.not.aliased(old_tfield))) then
-              ! In this case there is an old field to be set.
+                if ((stat==0).and.(.not.aliased(old_tfield))) then
+                   ! In this case there is an old field to be set.
+                   call set(tfield, old_tfield)
+                end if
 
-              call set(tfield, old_tfield)
-
-            end if
+             end if
 
           end if
 
@@ -263,19 +263,21 @@ contains
 
           sfield=extract_scalar_field(state(s), f)
 
-          if(.not.aliased(sfield)) then
+          if(.not.(have_option(trim(sfield%option_path)//"/prescribed"))) then
+             
+             if(.not.aliased(sfield)) then
 
-            old_sfield=extract_scalar_field(state(s), "Old"//trim(sfield%name),&
-                & stat=old_stat)
+                old_sfield=extract_scalar_field(state(s), "Old"//trim(sfield%name),&
+                     & stat=old_stat)
 
-            nl_sfield=extract_scalar_field(state(s), "Nonlinear"//trim(sfield%name),&
-                & stat=nl_stat)
+                nl_sfield=extract_scalar_field(state(s), "Nonlinear"//trim(sfield%name),&
+                     & stat=nl_stat)
 
-            if ((old_stat==0).and.(nl_stat==0)) then
-            
-              call set(nl_sfield, sfield, old_sfield, itheta)
+                if ((old_stat==0).and.(nl_stat==0)) then
+                   call set(nl_sfield, sfield, old_sfield, itheta)
+                end if
 
-            end if
+             end if
 
           end if
 
@@ -285,19 +287,21 @@ contains
 
           vfield=extract_vector_field(state(s), f)
 
-          if(.not.aliased(vfield)) then
+          if(.not.(have_option(trim(vfield%option_path)//"/prescribed"))) then
+             
+             if(.not.aliased(vfield)) then
 
-            old_vfield=extract_vector_field(state(s), "Old"//trim(vfield%name),&
-                & stat=old_stat)
+                old_vfield=extract_vector_field(state(s), "Old"//trim(vfield%name),&
+                     & stat=old_stat)
 
-            nl_vfield=extract_vector_field(state(s), "Nonlinear"//trim(vfield%name),&
-                & stat=nl_stat)
+                nl_vfield=extract_vector_field(state(s), "Nonlinear"//trim(vfield%name),&
+                     & stat=nl_stat)
 
-            if ((old_stat==0).and.(nl_stat==0)) then
+                if ((old_stat==0).and.(nl_stat==0)) then
+                   call set(nl_vfield, vfield, old_vfield, itheta)
+                end if
 
-              call set(nl_vfield, vfield, old_vfield, itheta)
-
-           end if
+             end if
 
           end if
 
@@ -307,19 +311,21 @@ contains
 
           tfield=extract_tensor_field(state(s), f)
 
-          if(.not.aliased(tfield)) then
+          if(.not.(have_option(trim(tfield%option_path)//"/prescribed"))) then
+             
+             if(.not.aliased(tfield)) then
 
-            old_tfield=extract_tensor_field(state(s), "Old"//trim(tfield%name),&
-                & stat=old_stat)
+                old_tfield=extract_tensor_field(state(s), "Old"//trim(tfield%name),&
+                     & stat=old_stat)
 
-            nl_tfield=extract_tensor_field(state(s), "Nonlinear"//trim(tfield%name),&
-                & stat=nl_stat)
+                nl_tfield=extract_tensor_field(state(s), "Nonlinear"//trim(tfield%name),&
+                     & stat=nl_stat)
 
-            if ((old_stat==0).and.(nl_stat==0)) then
+                if ((old_stat==0).and.(nl_stat==0)) then
+                   call set(nl_tfield, tfield, old_tfield, itheta)
+                end if
 
-              call set(nl_tfield, tfield, old_tfield, itheta)
-
-            end if
+             end if
 
           end if
 

@@ -179,9 +179,6 @@ contains
     logical::use_advdif=.true.  ! decide whether we enter advdif or not
 
     INTEGER :: adapt_count
-
-    !!!Chris hacks
-    type(vector_field), pointer:: vfield
     
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
@@ -555,14 +552,8 @@ contains
           ! (this could be fixed by replacing relax_to_nonlinear on the field
           !  with a dependency on the iterated field but then copy_to_stored_values
           !  would have to come before relax_to_nonlinear)
-          
-          !chris hack
-          vfield => extract_vector_field(state(1),"Velocity")
-          if (.not.(have_option(trim(vfield%option_path)//"/prescribed"))&
-               .and. .not.(have_option("/io/detectors/lagrangian_timestepping")))then
-             call relax_to_nonlinear(state)
-             call copy_from_stored_values(state, "Old")
-          end if
+          call relax_to_nonlinear(state)
+          call copy_from_stored_values(state, "Old")
           ! move the mesh according to the free surface algorithm
           ! this should not be at the end of the nonlinear iteration:
           ! if nonlinear_iterations==1:
