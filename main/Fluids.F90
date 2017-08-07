@@ -98,7 +98,6 @@ module fluids_module
   use meshmovement
   use biology
   use foam_flow_module, only: calculate_potential_flow, calculate_foam_velocity
-  use reduced_model_runtime
   use implicit_solids
   use momentum_equation
   use saturation_distribution_search_hookejeeves
@@ -138,7 +137,6 @@ contains
     !     System state wrapper.
     type(state_type), dimension(:), pointer :: state => null()
     type(state_type), dimension(:), pointer :: sub_state => null()
-    type(state_type), dimension(:), allocatable :: POD_state
 
     type(tensor_field) :: metric_tensor
     !     Dump index
@@ -226,13 +224,6 @@ contains
     call populate_state(state)
 
     ewrite(3,*)'before have_option test'
-
-    if (have_option("/reduced_model/execute_reduced_model")) then
-       call read_pod_basis(POD_state, state)
-    else
-       ! need something to pass into solve_momentum
-       allocate(POD_state(1:0))
-    end if
 
     ! Check the diagnostic field dependencies for circular dependencies
     call check_diagnostic_dependencies(state)
@@ -398,11 +389,13 @@ contains
        FLExit("Rejig your FLML: /io/dump_format")
     end if
 
-    ! initialise the multimaterial fields
+    ! Initialise multimaterial fields:
     call initialise_diagnostic_material_properties(state)
 
-    call calculate_diagnostic_variables(State)
+    ! Calculate diagnostic variables:
+    call calculate_diagnostic_variables(state)
     call calculate_diagnostic_variables_new(state)
+    
     ! This is mostly to ensure that the photosynthetic radiation
     ! has a non-zero value before the first adapt.
     if (have_option("/ocean_biology")) then
@@ -471,11 +464,11 @@ contains
        call tic(TICTOC_ID_TIMESTEP)
 
        if( &
-                                ! Do not dump at the start of the simulation (this is handled by write_state call earlier)
+            ! Do not dump at the start of the simulation (this is handled by write_state call earlier)
             & current_time > simulation_start_time &
-                                ! Do not dump at the end of the simulation (this is handled by later write_state call)
+            ! Do not dump at the end of the simulation (this is handled by later write_state call)
             & .and. current_time < finish_time &
-                                ! Test write_state conditions
+            ! Test write_state conditions
             & .and. do_write_state(current_time, timestep) &
             & ) then
 
@@ -550,14 +543,10 @@ contains
           ewrite(1,*)'Start of another nonlinear iteration; ITS,nonlinear_iterations=',ITS,nonlinear_iterations
           ewrite(1,*)'###################'
 
+          ! Cope velocity to Iterated velocity for later convergence analysis:
           call copy_to_stored_values(state, "Iterated")
-          ! relax to nonlinear has to come before copy_from_stored_values
-          ! so that the up to date values don't get wiped from the field itself
-          ! (this could be fixed by replacing relax_to_nonlinear on the field
-          !  with a dependency on the iterated field but then copy_to_stored_values
-          !  would have to come before relax_to_nonlinear)
+          ! Calculate nonlinear velocity field:
           call relax_to_nonlinear(state)
-          call copy_from_stored_values(state, "Old")
 
           ! move the mesh according to the free surface algorithm
           ! this should not be at the end of the nonlinear iteration:
@@ -771,10 +760,10 @@ contains
 
           if(use_sub_state()) then
              call update_subdomain_fields(state,sub_state)
-             call solve_momentum(sub_state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
+             call solve_momentum(sub_state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep)
              call sub_state_remap_to_full_mesh(state, sub_state)
           else
-             call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
+             call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep)
           end if
 
           ! Apply minimum weight condition on weights - population balance
@@ -984,12 +973,6 @@ contains
        end do
     end if
 
-    if (allocated(pod_state)) then
-       do i=1, size(pod_state)
-          call deallocate(pod_state(i))
-       end do
-    end if
-    
     ! deallocate the pointer to the array of states and sub-state:
     deallocate(state)
     if(use_sub_state()) deallocate(sub_state)

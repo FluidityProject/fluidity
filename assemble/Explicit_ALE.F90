@@ -111,7 +111,7 @@ contains
 
     !Extract or allocate fields
     coordinates=extract_vector_field(state(fs),"Coordinate")
-    v=extract_vector_field(state(fs),"Velocity")
+    v=extract_vector_field(state(fs),"OldVelocity")
     gv=extract_vector_field(state(fs),"GridVelocity")
     volumefraction=extract_scalar_field(state(fs),"MaterialVolumeFraction")  
     mesh=extract_mesh(state(fs),"CoordinateMesh")

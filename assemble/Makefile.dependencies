@@ -622,7 +622,6 @@ Momentum_Equation.o ../include/momentum_equation.mod: Momentum_Equation.F90 \
    ../include/oceansurfaceforcing.mod ../include/parallel_fields.mod \
    ../include/parallel_tools.mod ../include/petsc_solve_state_module.mod \
    ../include/pressure_dirichlet_bcs_cv.mod ../include/profiler.mod \
-   ../include/reduced_model_runtime.mod \
    ../include/rotated_boundary_conditions.mod \
    ../include/shallow_water_equations.mod ../include/slope_limiters_dg.mod \
    ../include/solvers.mod ../include/sparse_matrices_fields.mod \
@@ -715,16 +714,6 @@ Pseudo_supermesh.o ../include/pseudo_supermesh.mod: Pseudo_supermesh.F90 \
    ../include/interpolation_module.mod ../include/limit_metric_module.mod \
    ../include/merge_tensors.mod ../include/state_module.mod \
    ../include/vtk_interfaces.mod
-
-../include/reduced_model_runtime.mod: Reduced_Model_Runtime.o
-	@true
-
-Reduced_Model_Runtime.o ../include/reduced_model_runtime.mod: \
-   Reduced_Model_Runtime.F90 ../include/fdebug.h ../include/field_options.mod \
-   ../include/fields.mod ../include/fldebug.mod \
-   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
-   ../include/sparse_tools_petsc.mod ../include/state_module.mod \
-   ../include/vector_tools.mod ../include/vtk_interfaces.mod
 
 ../include/sam_integration.mod: Sam_integration.o
 	@true
