@@ -5,7 +5,6 @@ include "diagnostic_algorithms.rnc"
 include "input_output.rnc"
 include "solvers.rnc"
 include "stabilisation.rnc"
-include "reduced_model.rnc"
 include "mesh_options.rnc"
 include "physical_parameters.rnc"
 include "prognostic_field_options.rnc"
@@ -1811,7 +1810,6 @@ start =
          }?, 
          biology?,
          forcing?,
-         reduced_model?,
          porous_media_model?,
          embedded_models?,
          flredecomp?,

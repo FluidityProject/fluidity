@@ -6,7 +6,6 @@
   <include href="input_output.rng"/>
   <include href="solvers.rng"/>
   <include href="stabilisation.rng"/>
-  <include href="reduced_model.rng"/>
   <include href="mesh_options.rng"/>
   <include href="physical_parameters.rng"/>
   <include href="prognostic_field_options.rng"/>
@@ -2548,9 +2547,6 @@ while a factor of 1 represents a connected domain.</a:documentation>
       </optional>
       <optional>
         <ref name="forcing"/>
-      </optional>
-      <optional>
-        <ref name="reduced_model"/>
       </optional>
       <optional>
         <ref name="porous_media_model"/>
