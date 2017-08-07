@@ -148,7 +148,7 @@ contains
           allocate(parameters%timestep_nodes(parameters%n_stages))
           parameters%timestep_nodes= 0.
           do i = 1, parameters%n_stages
-             do j = 1,parameters%n_stages
+             do j = 1, parameters%n_stages
                 parameters%timestep_nodes(i)=parameters%timestep_nodes(i) + parameters%stage_matrix(i,j)
              end do
           end do
@@ -178,9 +178,6 @@ contains
     integer :: i, j, k, num_proc, dim, all_send_lists_empty, nprocs, stage, cycle
     logical :: any_lagrangian
     real :: rk_dt
-
-    ! Rhodri HACK:
-    !real, allocatable, dimension(:) :: timestep_nodes    
 
     ewrite(1,*) "In move_lagrangian_detectors"
     ewrite(2,*) "Detector list", detector_list%id, "has", detector_list%length, &
