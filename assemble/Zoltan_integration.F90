@@ -1721,16 +1721,16 @@ module zoltan_integration
     ! Allocate the halo and such
     ! We had to grow dreads to change our description, two cops is on a milkbox, missin'
     call reset_next_mpi_tag()
-    call split_communicator(MPI_COMM_WORLD, MPI_COMM_NONEMPTY, node_count(zoltan_global_new_positions)>0)
+    call split_communicator(MPI_COMM_FEMTOOLS, MPI_COMM_NONEMPTY, node_count(zoltan_global_new_positions)>0)
 
     call MPI_Allgather(merge(1,0,node_count(zoltan_global_new_positions)>0), 1, MPI_INT,&
-         nonempty, 1,  MPI_INT, MPI_COMM_WORLD, ierr)
+         nonempty, 1,  MPI_INT, MPI_COMM_FEMTOOLS, ierr)
 
     allocate(zoltan_global_new_positions%mesh%halos(2))
 
     call allocate(zoltan_global_new_positions%mesh%halos(2), &
-         nsends = pack(nsends, nonempty == nonempty(getprocno(MPI_COMM_WORLD))), &
-         nreceives = pack(nreceives, nonempty == nonempty(getprocno(MPI_COMM_WORLD))), &
+         nsends = pack(nsends, nonempty == nonempty(getprocno(MPI_COMM_FEMTOOLS))), &
+         nreceives = pack(nreceives, nonempty == nonempty(getprocno(MPI_COMM_FEMTOOLS))), &
          nprocs = getnprocs(MPI_COMM_NONEMPTY), &
          name = halo_name(zoltan_global_zz_halo), &
          communicator = MPI_COMM_NONEMPTY, &

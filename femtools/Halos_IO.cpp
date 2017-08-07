@@ -72,9 +72,6 @@ HaloReadError Fluidity::ReadHalos(const string& filename, int& process, int& npr
     return HALO_READ_FILE_INVALID;
   }
   nprocs = atoi(charBuffer);
-  if(process >= nprocs){
-    return HALO_READ_FILE_INVALID;
-  }
   
   // Extract halo data for each process for each level
   npnodes.clear();
@@ -176,7 +173,6 @@ HaloReadError Fluidity::ReadHalos(const string& filename, int& process, int& npr
 int Fluidity::WriteHalos(const string& filename, const unsigned int& process, const unsigned int& nprocs, const map<int, int>& npnodes, const map<int, vector<vector<int> > >& send, const map<int, vector<vector<int> > >& recv){
 #ifdef DDEBUG
   // Input check
-  assert(process < nprocs);
   assert(send.size() == recv.size());
   for(map<int, vector<vector<int> > >::const_iterator sendIter = send.begin(), recvIter = recv.begin();sendIter != send.end() and recvIter != recv.end(), recvIter != recv.end();sendIter++, recvIter++){
     assert(recv.count(sendIter->first) != 0);

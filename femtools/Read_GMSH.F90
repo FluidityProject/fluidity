@@ -117,8 +117,16 @@ contains
     call read_nodes_coords( fd, lfilename, gmshFormat, nodes )
 
     ! Read in elements
+    dim = 0
     call read_faces_and_elements( fd, lfilename, gmshFormat, &
          elements, faces, dim)
+    if (dim == 0) then
+       if (present(mdim)) then
+          dim = mdim
+       else
+          FLExit("Unable to ascertain mesh dimension")
+       end if
+    end if
 
     call read_node_column_IDs( fd, lfilename, gmshFormat, nodes )
 
@@ -185,7 +193,13 @@ contains
       coordinate_dim  = dim
     end if
 
-    loc = size( elements(1)%nodeIDs )
+    if (size(elements)>0) then
+       loc = size( elements(1)%nodeIDs )
+    elseif (present(mdim))  then
+       loc = mdim+1
+    else
+       FLExit("Can't find dimension of zero size file")
+    end if
     if (numFaces>0) then
       sloc = size( faces(1)%nodeIDs )
     else
@@ -214,7 +228,9 @@ contains
     if (haveRegionIDs) then
       allocate( field%mesh%region_ids(numElements) )
     end if
-    if(nodes(1)%columnID>=0)  allocate(field%mesh%columns(1:numNodes))
+    if (size(nodes)>0) then
+       if(nodes(1)%columnID>=0)  allocate(field%mesh%columns(1:numNodes))
+    end if
 
     ! Loop round nodes copying across coords and column IDs to field mesh,
     ! if they exist
@@ -364,7 +380,7 @@ contains
 
     read(fd, *) numNodes
 
-    if(numNodes < 2) then
+    if(numNodes > 0 .and. numNodes < 2) then
        FLExit("Error: GMSH number of nodes field < 2")
     end if
 
@@ -387,7 +403,7 @@ contains
 
     ! Skip newline character when in binary mode
     if( gmshFormat == binaryFormat ) then
-       read(fd), newlineChar
+       if(numNodes>0) read(fd), newlineChar
        call ascii_formatting(fd, filename, "read")
     end if
 
@@ -525,8 +541,8 @@ contains
     read(fd,*) numAllElements
 
     ! Sanity check.
-    if(numAllElements<1) then
-       FLExit("Error: number of elements in GMSH file < 1")
+    if(numAllElements<0) then
+       FLExit("Error: number of elements in GMSH file < 0")
     end if
 
     allocate( allElements(numAllElements) )
@@ -592,13 +608,13 @@ contains
 
     ! Skip final newline
     if(gmshFormat==binaryFormat) then
-      read(fd) newlineChar
+      if (numAllElements>0) read(fd) newlineChar
       call ascii_formatting( fd, filename, "read" )
     end if
 
     ! Check for $EndElements tag
     read(fd,*) charBuf
-    if( trim(charBuf) .ne. "$EndElements" ) then
+    if( trim(adjustl(charBuf)) .ne. "$EndElements" ) then
        FLExit("Error: cannot find '$EndElements' in GMSH mesh file")
     end if
 
@@ -691,7 +707,7 @@ contains
        dim = 1
 
     else
-       FLExit("Unsupported mixture of face/element types")
+       if (numAllElements>0) FLExit("Unsupported mixture of face/element types")
     end if
 
     call copy_to_faces_and_elements( allElements, &

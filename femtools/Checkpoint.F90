@@ -514,11 +514,11 @@ contains
           position => extract_vector_field(state(1), trim(mesh%name)//"Coordinate")
         end if
 
-        if(nparts > 1) then
+        if(getnprocs() > 1) then
           call write_mesh_files(parallel_filename(mesh_filename), mesh_format, position, number_of_partitions=number_of_partitions)
           ! Write out the halos
           ewrite(2, *) "Checkpointing halos"
-          call write_halos(mesh_filename, mesh, number_of_partitions=number_of_partitions)
+          call write_halos(mesh_filename, mesh, number_of_partitions=getnprocs(MPI_COMM_NONEMPTY))
         else
           ! Write out the mesh
           call write_mesh_files(mesh_filename, mesh_format, position, number_of_partitions=number_of_partitions)

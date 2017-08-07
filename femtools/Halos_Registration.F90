@@ -140,10 +140,10 @@ contains
     if(present(communicator)) then
       lcommunicator = communicator
     else
-      lcommunicator = MPI_COMM_FEMTOOLS
+      lcommunicator = MPI_COMM_NONEMPTY
     end if
     
-    procno = getprocno(communicator = lcommunicator)
+    procno = getprocno(communicator = MPI_COMM_FEMTOOLS)
     nprocs = getnprocs(communicator = lcommunicator)
     
     error_count = chalo_reader_set_input(filename, len_trim(filename), procno - 1, nprocs)
@@ -259,7 +259,7 @@ contains
     if(nhalos == 0) return
     
     communicator = halo_communicator(mesh%halos(nhalos))
-    procno = getprocno(communicator = communicator)
+    procno = getprocno(communicator = MPI_COMM_FEMTOOLS)
 
     if (present(number_of_partitions)) then
       nparts = number_of_partitions
@@ -267,7 +267,7 @@ contains
       nparts = getnprocs()
     end if
     
-    if(procno <= nparts) then
+    if(procno <= getnprocs()) then
       nprocs = getnprocs(communicator = communicator)
       
       call chalo_writer_initialise(procno - 1, nparts)
@@ -293,7 +293,7 @@ contains
       error_count = 0
     end if
     
-    call allsum(error_count, communicator = communicator)
+    call allsum(error_count, communicator = MPI_COMM_FEMTOOLS)
     if(error_count > 0) then
       FLExit("Unable to write halos with name " // trim(filename))
     end if

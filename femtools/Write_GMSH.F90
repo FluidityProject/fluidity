@@ -231,9 +231,9 @@ contains
        end if
     end do
 
-    if( useBinaryGMSH) then
+    if( useBinaryGMSH ) then
        ! Write newline character
-       write(fd) char(10)
+       if (numNodes>0) write(fd) char(10)
 
        call ascii_formatting(fd, lfilename, "write")
     end if
@@ -279,6 +279,11 @@ contains
     ! Sanity check.
     if (numGMSHElems==0) then
        ewrite(-1,*) "write_gmsh_faces_and_elements(): none of either!"
+       call ascii_formatting(fd, lfilename, "write")
+       write(fd, "(A)") "$Elements"
+       write(fd, "(A)") "0"
+       write(fd, "(A)") "$EndElements"
+       return
     end if
 
 
@@ -421,7 +426,7 @@ contains
        deallocate(lnodelist)
     end do
 
-    if(useBinaryGMSH) then
+    if(useBinaryGMSH .and. numElements>0) then
        write(fd, err=301) newLineChar
     end if
     
