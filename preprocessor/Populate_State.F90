@@ -2670,22 +2670,10 @@ contains
 
           if(trim(vfield%name)=="Velocity") then
 
-            if(iterations>1) then
-
-              call allocate(aux_vfield, vfield%dim, vfield%mesh, "Nonlinear"//trim(vfield%name))
-              call zero(aux_vfield)
-              call insert(states(p), aux_vfield, trim(aux_vfield%name))
-              call deallocate(aux_vfield)
-
-            else
-
-              aux_vfield = extract_vector_field(states(p), trim(vfield%name))
-              aux_vfield%name = "Nonlinear"//trim(vfield%name)
-              aux_vfield%option_path=""
-              aux_vfield%aliased = .true.
-              call insert(states(p), aux_vfield, trim(aux_vfield%name))
-
-            end if
+            call allocate(aux_vfield, vfield%dim, vfield%mesh, "Nonlinear"//trim(vfield%name))
+            call zero(aux_vfield)
+            call insert(states(p), aux_vfield, trim(aux_vfield%name))
+            call deallocate(aux_vfield)
 
             if(prognostic) then
               gravity = have_option("/physical_parameters/gravity")

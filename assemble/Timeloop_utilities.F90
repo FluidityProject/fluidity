@@ -263,20 +263,16 @@ contains
 
           sfield=extract_scalar_field(state(s), f)
 
-          if(.not.(have_option(trim(sfield%option_path)//"/prescribed"))) then
+          if(.not.aliased(sfield)) then
+
+             old_sfield=extract_scalar_field(state(s), "Old"//trim(sfield%name),&
+                  & stat=old_stat)
              
-             if(.not.aliased(sfield)) then
+             nl_sfield=extract_scalar_field(state(s), "Nonlinear"//trim(sfield%name),&
+                  & stat=nl_stat)
 
-                old_sfield=extract_scalar_field(state(s), "Old"//trim(sfield%name),&
-                     & stat=old_stat)
-
-                nl_sfield=extract_scalar_field(state(s), "Nonlinear"//trim(sfield%name),&
-                     & stat=nl_stat)
-
-                if ((old_stat==0).and.(nl_stat==0)) then
-                   call set(nl_sfield, sfield, old_sfield, itheta)
-                end if
-
+             if ((old_stat==0).and.(nl_stat==0)) then
+                call set(nl_sfield, sfield, old_sfield, itheta)
              end if
 
           end if
@@ -287,22 +283,18 @@ contains
 
           vfield=extract_vector_field(state(s), f)
 
-          if(.not.(have_option(trim(vfield%option_path)//"/prescribed"))) then
+          if(.not.aliased(vfield)) then
+
+             old_vfield=extract_vector_field(state(s), "Old"//trim(vfield%name),&
+                  & stat=old_stat)
              
-             if(.not.aliased(vfield)) then
-
-                old_vfield=extract_vector_field(state(s), "Old"//trim(vfield%name),&
-                     & stat=old_stat)
-
-                nl_vfield=extract_vector_field(state(s), "Nonlinear"//trim(vfield%name),&
-                     & stat=nl_stat)
-
-                if ((old_stat==0).and.(nl_stat==0)) then
-                   call set(nl_vfield, vfield, old_vfield, itheta)
-                end if
-
+             nl_vfield=extract_vector_field(state(s), "Nonlinear"//trim(vfield%name),&
+                  & stat=nl_stat)
+                
+             if ((old_stat==0).and.(nl_stat==0)) then
+                call set(nl_vfield, vfield, old_vfield, itheta)
              end if
-
+             
           end if
 
        end do
@@ -311,20 +303,16 @@ contains
 
           tfield=extract_tensor_field(state(s), f)
 
-          if(.not.(have_option(trim(tfield%option_path)//"/prescribed"))) then
-             
-             if(.not.aliased(tfield)) then
+          if(.not.aliased(tfield)) then
 
-                old_tfield=extract_tensor_field(state(s), "Old"//trim(tfield%name),&
-                     & stat=old_stat)
+             old_tfield=extract_tensor_field(state(s), "Old"//trim(tfield%name),&
+                  & stat=old_stat)
 
-                nl_tfield=extract_tensor_field(state(s), "Nonlinear"//trim(tfield%name),&
-                     & stat=nl_stat)
+             nl_tfield=extract_tensor_field(state(s), "Nonlinear"//trim(tfield%name),&
+                  & stat=nl_stat)
 
-                if ((old_stat==0).and.(nl_stat==0)) then
-                   call set(nl_tfield, tfield, old_tfield, itheta)
-                end if
-
+             if ((old_stat==0).and.(nl_stat==0)) then
+                call set(nl_tfield, tfield, old_tfield, itheta)
              end if
 
           end if
