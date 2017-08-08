@@ -191,14 +191,6 @@ contains
     assert(count == num_obj)
     
     my_num_edges = sum(num_edges(1:num_obj))
-
-
-    if (allocated(global_proc_no)) deallocate(global_proc_no)
-    allocate(global_proc_no(getnprocs(MPI_COMM_NONEMPTY)))
-    call MPI_ALLGATHER(getprocno(MPI_COMM_WORLD),1,MPI_INTEGER, &
-         global_proc_no,1,MPI_INTEGER, &
-         MPI_COMM_NONEMPTY,err)
-
     
     if (.NOT. zoltan_global_calculate_edge_weights) then
        

@@ -101,7 +101,7 @@ module zoltan_integration
     real :: load_imbalance_tolerance
     logical :: flredecomp
     real :: minimum_quality
-    integer :: flredecomp_input_procs = -1, flredecomp_target_procs = -1
+    integer :: flredecomp_input_procs = -1, flredecomp_target_procs = -1, ierr
 
     ewrite(1,*) "In zoltan_drive"
 
@@ -139,6 +139,13 @@ module zoltan_integration
 
     zoltan_global_field_weighted_partitions = &
      have_option(trim(zoltan_global_base_option_path) // "/field_weighted_partitions")
+
+    if (.not. allocated(global_proc_no)) then
+       allocate(global_proc_no(getnprocs(MPI_COMM_NONEMPTY)))
+       call MPI_ALLGATHER(getprocno(MPI_COMM_WORLD),1,MPI_INTEGER, &
+            global_proc_no,1,MPI_INTEGER, &
+            MPI_COMM_NONEMPTY,ierr)
+    end if
 
     call setup_module_variables(states, final_adapt_iteration, zz, flredecomp)
 
@@ -1722,6 +1729,11 @@ module zoltan_integration
     ! We had to grow dreads to change our description, two cops is on a milkbox, missin'
     call reset_next_mpi_tag()
     call split_communicator(MPI_COMM_FEMTOOLS, MPI_COMM_NONEMPTY, node_count(zoltan_global_new_positions)>0)
+    if (allocated(global_proc_no)) deallocate(global_proc_no)
+    allocate(global_proc_no(getnprocs(MPI_COMM_NONEMPTY)))
+    call MPI_ALLGATHER(getprocno(MPI_COMM_WORLD),1,MPI_INTEGER, &
+         global_proc_no,1,MPI_INTEGER, &
+         MPI_COMM_NONEMPTY,ierr)
 
     call MPI_Allgather(merge(1,0,node_count(zoltan_global_new_positions)>0), 1, MPI_INT,&
          nonempty, 1,  MPI_INT, MPI_COMM_FEMTOOLS, ierr)
