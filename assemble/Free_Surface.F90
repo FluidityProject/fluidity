@@ -2287,7 +2287,7 @@ contains
     complete = .false.
 
     do i=1, size(states)
-      velocity => extract_vector_field(states(i), "OldVelocity") ! Rhodri check with Steph
+      velocity => extract_vector_field(states(i), "Velocity") ! Rhodri check with Steph
       
       if (aliased(velocity)) cycle
       

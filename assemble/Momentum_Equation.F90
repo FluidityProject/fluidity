@@ -1839,6 +1839,10 @@
          type(block_csr_matrix), dimension(:), intent(inout) :: subcycle_m
          type(vector_field), dimension(:), intent(inout) :: subcycle_rhs
 
+         ! Slope limiter variables:
+         integer :: d
+         type(scalar_field) :: u_cpt
+
          ewrite(1,*) 'Entering finalise_state'
 
          call profiler_tic(u, "assembly")
@@ -1853,6 +1857,13 @@
                call zero_non_owned(u)
             end if
             call rotate_velocity_back_sphere(u, state(istate))
+         end if
+         if (subcycle(istate)) then
+            ! Filter wiggles from u
+            do d = 1, mesh_dim(u)
+               u_cpt = extract_scalar_field_from_vector_field(u, d)
+               call limit_vb(state(istate), u_cpt)
+            end do
          end if
          call profiler_toc(u, "assembly")
 
