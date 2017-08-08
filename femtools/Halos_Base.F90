@@ -705,11 +705,6 @@ contains
     integer :: max_node
     
     integer :: i
-
-    if (halo_proc_count(halo) == 1) then
-       max_node = 0
-       return
-    end if
     
     max_node = -huge(0)
     do i = 1, halo_proc_count(halo)
