@@ -70,8 +70,6 @@ OBJS    = Momentum_Diagnostic_Fields.o \
 	Upwind_Stabilisation.o \
         Coriolis.o Full_Projection.o \
         Mba2d_Integration.o Slope_limiters_DG.o \
-        Spontaneous_Potentials.o LES.o \
-        Saturation_Distribution_Search_HookeJeeves.o \
         Petsc_Solve_State.o Adaptivity_1D.o \
 	Zoltan_global_variables.o Zoltan_integration.o Zoltan_callbacks.o Zoltan_detectors.o \
         Diagnostic_Children.o Turbine.o Implicit_Solids.o \

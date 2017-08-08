@@ -68,7 +68,6 @@ module fluids_module
   use field_priority_lists
   use multiphase_module
   use multimaterial_module
-  use spontaneous_potentials, only: calculate_electrical_potential
   use free_surface_module
   use momentum_diagnostic_fields, only: calculate_densities
   use sediment_diagnostics, only: calculate_sediment_flux
@@ -100,7 +99,6 @@ module fluids_module
   use foam_flow_module, only: calculate_potential_flow, calculate_foam_velocity
   use implicit_solids
   use momentum_equation
-  use saturation_distribution_search_hookejeeves
   use gls
   use iceshelf_meltrate_surf_normal
 #ifdef HAVE_HYPERLIGHT
@@ -592,23 +590,6 @@ contains
              call explicit_ale(state,fs)
           end if
           !end explicit ale ------------  jem 21/07/08
-
-          ! Call to electrical properties for porous_media module 
-          if (have_option("/porous_media")) then
-             ! compute spontaneous electrical potentials
-             do i=1,size(state)
-                option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/'
-                ! Option to search through a space of saturation distributions to find
-                ! best match to measured electrical data - for reservoir modelling.
-                if (have_option(trim(option_buffer)//'Saturation_Distribution_Search')) then
-                   call search_saturations_hookejeeves(state, i)
-                elseif (have_option(trim(option_buffer)//'coupling_coefficients/scalar_field::Electrokinetic').or.&
-                    have_option(trim(option_buffer)//'coupling_coefficients/scalar_field::Thermoelectric').or.&
-                    have_option(trim(option_buffer)//'coupling_coefficients/scalar_field::Electrochemical')) then
-                   call calculate_electrical_potential(state(i), i)
-                end if
-             end do
-          end if
 
           if (have_option("/ocean_biology")) then
              call calculate_biology_terms(state(1))

@@ -225,9 +225,8 @@ Diagnostic_fields_wrapper.o ../include/diagnostic_fields_wrapper.mod: \
    ../include/momentum_diagnostic_fields.mod \
    ../include/multimaterial_module.mod ../include/multiphase_module.mod \
    ../include/parallel_tools.mod ../include/sediment_diagnostics.mod \
-   ../include/sparse_matrices_fields.mod ../include/spontaneous_potentials.mod \
-   ../include/state_module.mod ../include/tidal_module.mod \
-   ../include/vorticity_diagnostics.mod
+   ../include/sparse_matrices_fields.mod ../include/state_module.mod \
+   ../include/tidal_module.mod ../include/vorticity_diagnostics.mod
 
 ../include/discrete_properties_module.mod: Discrete_Properties.o
 	@true
@@ -735,20 +734,6 @@ Sam_integration.o ../include/sam_integration.mod: Sam_integration.F90 \
    ../include/surface_id_interleaving.mod ../include/surfacelabels.mod \
    ../include/tictoc.mod
 
-../include/saturation_distribution_search_hookejeeves.mod: \
-   Saturation_Distribution_Search_HookeJeeves.o
-	@true
-
-Saturation_Distribution_Search_HookeJeeves.o \
-   ../include/saturation_distribution_search_hookejeeves.mod: \
-   Saturation_Distribution_Search_HookeJeeves.F90 \
-   ../include/diagnostic_fields_wrapper_new.mod ../include/fdebug.h \
-   ../include/fetools.mod ../include/field_options.mod ../include/fields.mod \
-   ../include/fldebug.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/momentum_equation.mod \
-   ../include/spontaneous_potentials.mod ../include/state_module.mod \
-   ../include/write_state_module.mod
-
 ../include/shallow_water_equations.mod: Shallow_Water_Equations.o
 	@true
 
@@ -802,17 +787,6 @@ Solid_Configuration.o ../include/solidconfiguration.mod: \
    ../include/state_module.mod ../include/transform_elements.mod \
    ../include/vector_tools.mod ../include/vtk_interfaces.mod \
    ../include/write_triangle.mod
-
-../include/spontaneous_potentials.mod: Spontaneous_Potentials.o
-	@true
-
-Spontaneous_Potentials.o ../include/spontaneous_potentials.mod: \
-   Spontaneous_Potentials.F90 ../include/boundary_conditions.mod \
-   ../include/boundary_conditions_from_options.mod ../include/fdebug.h \
-   ../include/fetools.mod ../include/field_options.mod ../include/fields.mod \
-   ../include/fldebug.mod ../include/futils.mod ../include/solvers.mod \
-   ../include/sparse_tools.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/state_module.mod
 
 ../include/state_matrices_module.mod: State_Matrices.o
 	@true

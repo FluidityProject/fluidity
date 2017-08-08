@@ -62,22 +62,6 @@ the first material_phase state then aliased in all others.</a:documentation>
             </element>
           </choice>
         </optional>
-        <optional>
-          <element name="scalar_field">
-            <a:documentation>Specify scalar field Electrical Conductivity</a:documentation>
-            <attribute name="name">
-              <value>ElectricalConductivity</value>
-            </attribute>
-            <element name="diagnostic">
-              <ref name="velocity_mesh_choice"/>
-              <choice>
-                <ref name="internal_algorithm"/>
-                <ref name="scalar_python_diagnostic_algorithm"/>
-              </choice>
-              <ref name="diagnostic_scalar_field_no_adapt"/>
-            </element>
-          </element>
-        </optional>
       </element>
     </optional>
   </define>

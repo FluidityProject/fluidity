@@ -51,19 +51,7 @@ porous_media_model =
                   }
                )
             }
-         )?,
-         ## Specify scalar field Electrical Conductivity
-         element scalar_field {
-            attribute name { "ElectricalConductivity" },
-            element diagnostic {
-               velocity_mesh_choice,
-               (
-                  internal_algorithm |
-                  scalar_python_diagnostic_algorithm
-               ),
-               diagnostic_scalar_field_no_adapt
-            }
-         }?
+         )?
       }?   
    )
 
