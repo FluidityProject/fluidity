@@ -2373,10 +2373,8 @@ contains
 
        nvfields = vector_field_count(states(p+1))
 
-       ewrite(2,*) "In set_prescribed - nvfields ", nvfields
        do f = 1, nvfields
           vfield => extract_vector_field(states(p+1), f)
-          ewrite(2,*) "In set_prescribed - vector field name: ", trim(vfield%name)
           if (have_option(trim(vfield%option_path)//'/prescribed') .and. &
               .not. aliased(vfield) .and. &              
               .not. (present_and_true(exclude_interpolated) .and. &

@@ -171,7 +171,7 @@ contains
     integer, intent(in) :: timestep
 
     type(rk_gs_parameters), pointer :: parameters
-    type(vector_field), pointer :: vfield, xfield, vfield_old
+    type(vector_field), pointer :: vfield, vfield_old, xfield
     type(detector_type), pointer :: detector
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
     type(halo_type), pointer :: ele_halo
@@ -182,12 +182,12 @@ contains
     ewrite(1,*) "In move_lagrangian_detectors"
     ewrite(2,*) "Detector list", detector_list%id, "has", detector_list%length, &
          "local and", detector_list%total_num_det, "global detectors"
-    
+
     parameters => detector_list%move_parameters
 
     ! Pull some information from state
     xfield     => extract_vector_field(state(1),"Coordinate")
-    vfield     => extract_vector_field(state(1),"IteratedVelocity")
+    vfield     => extract_vector_field(state(1),"Velocity")
     vfield_old => extract_vector_field(state(1),"OldVelocity")    
 
     ! We allocate a sendlist for every processor
