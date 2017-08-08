@@ -11,7 +11,6 @@ include "prognostic_field_options.rnc"
 include "prescribed_field_options.rnc"
 include "spatial_discretisation.rnc"
 include "temporal_discretisation.rnc"
-include "embedded_models.rnc"
 include "flredecomp.rnc"
 include "porous_media.rnc"
 include "multiphase_interaction.rnc"
@@ -1811,7 +1810,6 @@ start =
          biology?,
          forcing?,
          porous_media_model?,
-         embedded_models?,
          flredecomp?,
          multiphase_interaction?,
          element population_balance_continuous_phase_name{ string }?

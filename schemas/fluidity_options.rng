@@ -12,7 +12,6 @@
   <include href="prescribed_field_options.rng"/>
   <include href="spatial_discretisation.rng"/>
   <include href="temporal_discretisation.rng"/>
-  <include href="embedded_models.rng"/>
   <include href="flredecomp.rng"/>
   <include href="porous_media.rng"/>
   <include href="multiphase_interaction.rng"/>
@@ -2550,9 +2549,6 @@ while a factor of 1 represents a connected domain.</a:documentation>
       </optional>
       <optional>
         <ref name="porous_media_model"/>
-      </optional>
-      <optional>
-        <ref name="embedded_models"/>
       </optional>
       <optional>
         <ref name="flredecomp"/>
