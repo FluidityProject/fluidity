@@ -7,9 +7,8 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/adapt_state_prescribed_module.mod \
    ../include/adaptive_timestepping.mod ../include/adjacency_lists.mod \
    ../include/advection_diffusion_cg.mod ../include/advection_diffusion_dg.mod \
-   ../include/advection_diffusion_fv.mod ../include/ale_module.mod \
-   ../include/auxilaryoptions.mod ../include/biology.mod \
-   ../include/boundary_conditions.mod \
+   ../include/advection_diffusion_fv.mod ../include/auxilaryoptions.mod \
+   ../include/biology.mod ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod ../include/checkpoint.mod \
    ../include/conformity_measurement.mod ../include/detector_parallel.mod \
    ../include/diagnostic_children.mod ../include/diagnostic_fields_new.mod \
@@ -32,10 +31,10 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/populate_sub_state_module.mod ../include/qmesh_module.mod \
    ../include/reference_counting.mod ../include/reserve_state_module.mod \
    ../include/sediment_diagnostics.mod ../include/signal_vars.mod \
-   ../include/solidconfiguration.mod ../include/sparse_tools.mod \
-   ../include/state_module.mod ../include/synthetic_bc.mod \
-   ../include/tictoc.mod ../include/timeloop_utilities.mod \
-   ../include/timers.mod ../include/transform_elements.mod \
+   ../include/sparse_tools.mod ../include/state_module.mod \
+   ../include/synthetic_bc.mod ../include/tictoc.mod \
+   ../include/timeloop_utilities.mod ../include/timers.mod \
+   ../include/transform_elements.mod \
    ../include/vertical_extrapolation_module.mod ../include/vtk_interfaces.mod \
    ../include/write_state_module.mod ../include/write_triangle.mod
 
