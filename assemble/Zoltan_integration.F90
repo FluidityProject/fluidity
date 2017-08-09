@@ -230,7 +230,8 @@ module zoltan_integration
 
     call reconstruct_enlist
     call reconstruct_senlist
-    call reconstruct_halo(zz, flredecomping, input_procs, target_procs)
+    call reconstruct_halo(zz, flredecomp, flredecomp_input_procs, &
+         flredecomp_target_procs)
     
     if(zoltan_global_migrate_extruded_mesh) then
       zoltan_global_new_positions_m1d = zoltan_global_new_positions ! save a reference to the horizontal mesh you've just load balanced
@@ -273,7 +274,8 @@ module zoltan_integration
 
       call reconstruct_enlist
       call reconstruct_senlist
-      call reconstruct_halo(zz, flredecomping, input_procs, target_procs)
+      call reconstruct_halo(zz, flredecomp, flredecomp_input_procs, &
+           flredecomp_target_procs)
 
       if (.not. verify_consistent_local_element_numbering(zoltan_global_new_positions%mesh) ) then
         ewrite(-1,*) "For the extruded mesh, the local element numbering of elements in the halo region" // &
@@ -1639,7 +1641,7 @@ module zoltan_integration
     ewrite(1,*) "Exiting reconstruct_senlist"
   end subroutine reconstruct_senlist
 
-  subroutine reconstruct_halo(zz, flredecomping, input_procs, target_procs)
+  subroutine reconstruct_halo(zz, flredecomp, input_procs, target_procs)
     ! At this point, the receives sets have been populated with all
     ! the universal node numbers we need to receive from each process.
     ! So, we are going to use zoltan to invert this to compute
@@ -1650,7 +1652,7 @@ module zoltan_integration
     ! Supply the peeps with jeeps, brick apiece, capiche?
 
     type(zoltan_struct), pointer, intent(in) :: zz
-    logical, intent(in) :: flredecomping
+    logical, intent(in) :: flredecomp
     integer, intent(in) :: input_procs, target_procs
 
     integer :: num_import, num_export, nprocs
@@ -1732,7 +1734,7 @@ module zoltan_integration
     allocate(zoltan_global_new_positions%mesh%halos(2))
     if (allocated(global_proc_no)) deallocate(global_proc_no)
 
-    if (flredecomping .and. input_procs>target_procs) then
+    if (flredecomp .and. input_procs>target_procs) then
        allocate(global_proc_no(input_procs))
        global_proc_no = [(i,i=1,input_procs)]
        nprocs = input_procs
