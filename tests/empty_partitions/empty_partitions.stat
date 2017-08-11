@@ -1,0 +1,64 @@
+<header>
+<constant name="FluidityVersion" type="string" value="allow_empty_partitions:6057376d68b9850eabb07d70ed2f24385c822e3c" />
+<constant name="CompileTime" type="string" value="Aug  9 2017 14:02:17" />
+<constant name="StartTime" type="string" value="20170811 173340.294+0100" />
+<constant name="HostName" type="string" value="Unknown" />
+<constant name="format" type="string" value="plain_text" />
+<field column="1" name="ElapsedTime" statistic="value"/>
+<field column="2" name="dt" statistic="value"/>
+<field column="3" name="ElapsedWallTime" statistic="value"/>
+<field column="4" name="CoordinateMesh" statistic="nodes"/>
+<field column="5" name="CoordinateMesh" statistic="elements"/>
+<field column="6" name="CoordinateMesh" statistic="surface_elements"/>
+<field column="7" name="TotalMemory" statistic="current" material_phase="Memory"/>
+<field column="8" name="TotalMemory" statistic="min" material_phase="Memory"/>
+<field column="9" name="TotalMemory" statistic="max" material_phase="Memory"/>
+<field column="10" name="MeshMemory" statistic="current" material_phase="Memory"/>
+<field column="11" name="MeshMemory" statistic="min" material_phase="Memory"/>
+<field column="12" name="MeshMemory" statistic="max" material_phase="Memory"/>
+<field column="13" name="ScalarFieldMemory" statistic="current" material_phase="Memory"/>
+<field column="14" name="ScalarFieldMemory" statistic="min" material_phase="Memory"/>
+<field column="15" name="ScalarFieldMemory" statistic="max" material_phase="Memory"/>
+<field column="16" name="VectorFieldMemory" statistic="current" material_phase="Memory"/>
+<field column="17" name="VectorFieldMemory" statistic="min" material_phase="Memory"/>
+<field column="18" name="VectorFieldMemory" statistic="max" material_phase="Memory"/>
+<field column="19" name="TensorFieldMemory" statistic="current" material_phase="Memory"/>
+<field column="20" name="TensorFieldMemory" statistic="min" material_phase="Memory"/>
+<field column="21" name="TensorFieldMemory" statistic="max" material_phase="Memory"/>
+<field column="22" name="MatrixSparsityMemory" statistic="current" material_phase="Memory"/>
+<field column="23" name="MatrixSparsityMemory" statistic="min" material_phase="Memory"/>
+<field column="24" name="MatrixSparsityMemory" statistic="max" material_phase="Memory"/>
+<field column="25" name="MatrixMemory" statistic="current" material_phase="Memory"/>
+<field column="26" name="MatrixMemory" statistic="min" material_phase="Memory"/>
+<field column="27" name="MatrixMemory" statistic="max" material_phase="Memory"/>
+<field column="28" name="TransformCacheMemory" statistic="current" material_phase="Memory"/>
+<field column="29" name="TransformCacheMemory" statistic="min" material_phase="Memory"/>
+<field column="30" name="TransformCacheMemory" statistic="max" material_phase="Memory"/>
+<field column="31" name="Pressure" statistic="min" material_phase="Fluid"/>
+<field column="32" name="Pressure" statistic="max" material_phase="Fluid"/>
+<field column="33" name="Pressure" statistic="l2norm" material_phase="Fluid"/>
+<field column="34" name="Pressure" statistic="integral" material_phase="Fluid"/>
+<field column="35" name="Density" statistic="min" material_phase="Fluid"/>
+<field column="36" name="Density" statistic="max" material_phase="Fluid"/>
+<field column="37" name="Density" statistic="l2norm" material_phase="Fluid"/>
+<field column="38" name="Density" statistic="integral" material_phase="Fluid"/>
+<field column="39" name="NodeOwner" statistic="min" material_phase="Fluid"/>
+<field column="40" name="NodeOwner" statistic="max" material_phase="Fluid"/>
+<field column="41" name="NodeOwner" statistic="l2norm" material_phase="Fluid"/>
+<field column="42" name="NodeOwner" statistic="integral" material_phase="Fluid"/>
+<field column="43" name="Velocity%magnitude" statistic="min" material_phase="Fluid"/>
+<field column="44" name="Velocity%magnitude" statistic="max" material_phase="Fluid"/>
+<field column="45" name="Velocity%magnitude" statistic="l2norm" material_phase="Fluid"/>
+<field column="46" name="Velocity%1" statistic="min" material_phase="Fluid"/>
+<field column="47" name="Velocity%1" statistic="max" material_phase="Fluid"/>
+<field column="48" name="Velocity%1" statistic="l2norm" material_phase="Fluid"/>
+<field column="49" name="Velocity%1" statistic="integral" material_phase="Fluid"/>
+<field column="50" name="Velocity%2" statistic="min" material_phase="Fluid"/>
+<field column="51" name="Velocity%2" statistic="max" material_phase="Fluid"/>
+<field column="52" name="Velocity%2" statistic="l2norm" material_phase="Fluid"/>
+<field column="53" name="Velocity%2" statistic="integral" material_phase="Fluid"/>
+</header>
+  0.10000000000000000E+001  0.10000000000000000E+001  0.13100000000000001E+000 4 2 4  0.20440000000000000E+004  0.00000000000000000E+000  0.23480000000000000E+004  0.25600000000000000E+003  0.00000000000000000E+000  0.25600000000000000E+003  0.13600000000000000E+003  0.00000000000000000E+000  0.26400000000000000E+003  0.14400000000000000E+003  0.00000000000000000E+000  0.33600000000000000E+003  0.38400000000000000E+003  0.00000000000000000E+000  0.41600000000000000E+003  0.33200000000000000E+003  0.00000000000000000E+000  0.33200000000000000E+003  0.50400000000000000E+003  0.00000000000000000E+000  0.61600000000000000E+003  0.28800000000000000E+003  0.00000000000000000E+000  0.28800000000000000E+003  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.10000000000000000E+001  0.10000000000000000E+001  0.10000000000000000E+001  0.10000000000000000E+001  0.10000000000000000E+001  0.40000000000000000E+001  0.25819888974716108E+001  0.25000000000000000E+001  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000
+  0.20000000000000000E+001  0.10000000000000000E+001  0.48529999999999998E+001 4 2 4  0.26800000000000000E+003  0.23600000000000000E+003  0.21440000000000000E+004  0.00000000000000000E+000  0.00000000000000000E+000  0.58400000000000000E+003  0.80000000000000000E+001  0.00000000000000000E+000  0.16800000000000000E+003  0.16000000000000000E+002  0.00000000000000000E+000  0.28800000000000000E+003  0.00000000000000000E+000  0.00000000000000000E+000  0.51200000000000000E+003  0.16000000000000000E+002  0.80000000000000000E+001  0.46400000000000000E+003  0.00000000000000000E+000  0.00000000000000000E+000  0.54400000000000000E+003  0.22800000000000000E+003  0.14400000000000000E+003  0.28800000000000000E+003  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.10000000000000000E+001  0.10000000000000000E+001  0.10000000000000000E+001  0.10000000000000000E+001  0.10000000000000000E+001  0.10000000000000000E+001  0.10000000000000000E+001  0.10000000000000000E+001  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000
+  0.30000000000000000E+001  0.10000000000000000E+001  0.91509999999999998E+001 5 4 4  0.32800000000000000E+003  0.24000000000000000E+003  0.32120000000000000E+004  0.00000000000000000E+000  0.00000000000000000E+000  0.10880000000000000E+004  0.80000000000000000E+001  0.00000000000000000E+000  0.15200000000000000E+003  0.16000000000000000E+002  0.00000000000000000E+000  0.36800000000000000E+003  0.00000000000000000E+000  0.00000000000000000E+000  0.80000000000000000E+003  0.16000000000000000E+002  0.80000000000000000E+001  0.74000000000000000E+003  0.00000000000000000E+000  0.00000000000000000E+000  0.14400000000000000E+003  0.28800000000000000E+003  0.14400000000000000E+003  0.28800000000000000E+003  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.10000000000000000E+001  0.10000000000000000E+001  0.10000000000000000E+001  0.10000000000000000E+001  0.10000000000000000E+001  0.10000000000000000E+001  0.10000000000000000E+001  0.10000000000000000E+001  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000
+  0.40000000000000000E+001  0.10000000000000000E+001  0.13734000000000000E+002 9 8 8  0.63400000000000000E+004  0.30000000000000000E+003  0.70600000000000000E+004  0.83200000000000000E+003  0.00000000000000000E+000  0.23680000000000000E+004  0.29600000000000000E+003  0.00000000000000000E+000  0.58400000000000000E+003  0.30400000000000000E+003  0.00000000000000000E+000  0.73600000000000000E+003  0.86400000000000000E+003  0.00000000000000000E+000  0.14400000000000000E+004  0.94000000000000000E+003  0.12000000000000000E+002  0.15400000000000000E+004  0.20480000000000000E+004  0.00000000000000000E+000  0.23760000000000000E+004  0.10560000000000000E+004  0.14400000000000000E+003  0.10560000000000000E+004  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.10000000000000000E+001  0.10000000000000000E+001  0.10000000000000000E+001  0.10000000000000000E+001  0.10000000000000000E+001  0.40000000000000000E+001  0.22032173444003806E+001  0.20833333333333330E+001  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000
