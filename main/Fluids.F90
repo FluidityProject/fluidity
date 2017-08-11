@@ -487,11 +487,11 @@ contains
           ewrite(1,*)'Start of another nonlinear iteration; ITS,nonlinear_iterations=',ITS,nonlinear_iterations
           ewrite(1,*)'###################'
 
-          ! Cope velocity to Iterated velocity for later convergence analysis:
+          ! For each field, set the iterated field, if present:
           call copy_to_stored_values(state, "Iterated")
-          ! Calculate nonlinear velocity field:
+          ! For each field, set the nonlinear field, if present:
           call relax_to_nonlinear(state)
-          call copy_from_stored_values(state, "Old")          
+          call copy_from_stored_values(state, "Old")
 
           ! move the mesh according to the free surface algorithm
           ! this should not be at the end of the nonlinear iteration:
