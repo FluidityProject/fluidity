@@ -310,6 +310,76 @@ this option to these these internal algorithms.</a:documentation>
       </optional>
     </element>
   </define>
+  <define name="stress_free_field_algorithm">
+    <element name="algorithm">
+      <a:documentation>Finds the vector field which solves the equation
+
+div sigma (v) - C1*v +C2*u_s = 0
+
+where sigma is a stress-like tensor operator,
+
+sigma(v) = lambda div v I + 2 * mu * (nabla v + nabla v^T).   </a:documentation>
+      <attribute name="name">
+        <value>stress_free_field</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <element name="solver">
+        <ref name="linear_solver_options_sym"/>
+      </element>
+      <optional>
+        <element name="coordinate_field">
+          <attribute name="name">
+            <data type="string" datatypeLibrary=""/>
+          </attribute>
+        </element>
+      </optional>
+      <optional>
+        <element name="lambda_parameter">
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="mu_parameter">
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="C1">
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="C2">
+          <ref name="real"/>
+        </element>
+      </optional>
+      <ref name="vector_source_field"/>
+      <optional>
+        <element name="chi_parameter">
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="depends">
+          <data type="string" datatypeLibrary=""/>
+        </element>
+      </optional>
+      <zeroOrMore>
+        <element name="boundary_conditions">
+          <attribute name="name">
+            <data type="string" datatypeLibrary=""/>
+          </attribute>
+          <element name="surface_ids">
+            <a:documentation>Surface id:</a:documentation>
+            <ref name="integer_vector"/>
+          </element>
+          <ref name="velocity_boundary_conditions"/>
+        </element>
+      </zeroOrMore>
+    </element>
+  </define>
   <define name="scalar_galerkin_projection_algorithm">
     <element name="algorithm">
       <a:documentation>Galerkin projects the source field.</a:documentation>
@@ -2079,6 +2149,42 @@ This field needs to be interpolated between adapts.</a:documentation>
       </optional>
     </element>
   </define>
+  <define name="scalar_distance_function">
+    <element name="algorithm">
+      <a:documentation>Algorithm for calulating an average of a scalar field over 
+a set period, e.g. daily
+Note that we assume the simulation starts at zero for the
+averaging period,
+This field needs to be interpolated between adapts.</a:documentation>
+      <attribute name="name">
+        <value>scalar_distance_function</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <element name="surface_ids">
+        <ref name="integer_vector"/>
+      </element>
+    </element>
+  </define>
+  <define name="vector_distance_function">
+    <element name="algorithm">
+      <a:documentation>Algorithm for calulating an average of a scalar field over 
+a set period, e.g. daily
+Note that we assume the simulation starts at zero for the
+averaging period,
+This field needs to be interpolated between adapts.</a:documentation>
+      <attribute name="name">
+        <value>vector_distance_function</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <element name="surface_ids">
+        <ref name="integer_vector"/>
+      </element>
+    </element>
+  </define>
   <!-- surface algorithm -->
   <define name="surface_horizontal_divergence_algorithm">
     <element name="algorithm">
@@ -2143,6 +2249,9 @@ a horizontal vector living on the specified surface.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_galerkin_projection_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="scalar_distance_function"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_difference_algorithm"/>
@@ -2241,6 +2350,9 @@ a horizontal vector living on the specified surface.</a:documentation>
     <ref name="vector_galerkin_projection_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="vector_distance_function"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="vector_difference_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
@@ -2248,6 +2360,9 @@ a horizontal vector living on the specified surface.</a:documentation>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="vector_advection_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="stress_free_field_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="perp_algorithm"/>

@@ -31,6 +31,18 @@ Differential_Operators.o ../include/differential_operator_diagnostics.mod: \
    ../include/sparsity_patterns_meshes.mod ../include/state_fields_module.mod \
    ../include/state_module.mod ../include/vector_tools.mod
 
+../include/distance_diagnostics.mod: DistanceDiagnostics.o
+	@true
+
+DistanceDiagnostics.o ../include/distance_diagnostics.mod: \
+   DistanceDiagnostics.F90 ../include/boundary_conditions.mod \
+   ../include/diagnostic_source_fields.mod ../include/fdebug.h \
+   ../include/field_options.mod ../include/fields.mod \
+   ../include/fields_manipulation.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/initialise_fields_module.mod \
+   ../include/parallel_tools.mod ../include/state_fields_module.mod \
+   ../include/state_module.mod
+
 ../include/field_copies_diagnostics.mod: Field_Copies.o
 	@true
 
