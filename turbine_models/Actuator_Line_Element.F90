@@ -300,7 +300,7 @@ end type ActuatorLineType
     call DynstallCorrect(act_line%Edynstall(ielem),act_line%Eairfoil(ielem),time,dt,ur,ElemChord,alpha,act_line%ERe(ielem),CLdyn,CDdyn,CM25dyn)
     CL=CLdyn
     CD=CDdyn
-    CM25=CM25dyn
+    !CM25=CM25dyn
     act_line%EAOA(ielem)=alpha
     end if
     
