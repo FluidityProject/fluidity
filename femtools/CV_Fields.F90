@@ -64,10 +64,6 @@ contains
     ! somewhere to put strings temporarily
     character(len=FIELD_NAME_LEN) :: tmpstring
     integer :: nfields
-    ! porosity options - need to be the same for all possibilities
-    character(len=FIELD_NAME_LEN) :: porosity_field_name
-    real :: porosity_theta, porosity_theta_tmp
-    logical :: found_porosity_field_name, found_porosity_theta
 
     nfields = size(field_option_path)
     if(present(density_option_path)) then
@@ -84,12 +80,6 @@ contains
     ! of the courant number
     cfl_type="start"
     cfl_stat=1
-    
-    ! for all occurances of cfl numbers which include porosity options
-    ! the porosity field name and theta value need to be the same
-    ! (which if not given are by default)
-    found_porosity_field_name = .false.
-    found_porosity_theta = .false.
     
     do f = 1, nfields
       ! check to see if the field discretisation requires a courant number
@@ -155,101 +145,6 @@ contains
                       "using a "//trim(cfl_type)//" courant number"
           ewrite(-1,*) "and to limit "//&
                       "using a "//trim(tmpstring)//" courant number."
-          FLExit("This is not currently supported.")
-        end if
-      end if
-      
-      ! check that if any cfl porous media related numbers are found
-      ! that the porosity names and theta values are all the same
-      
-      ! check the porosity field name
-      call get_option(trim(complete_cv_field_path(field_option_path(f)))//&
-                            "/face_value[0]/courant_number[0]/porosity_field_name", &
-                            tmpstring, stat)
-      if(stat==0) then
-        if(.not. found_porosity_field_name) then
-          porosity_field_name = tmpstring
-          found_porosity_field_name = .true.
-        elseif(trim(porosity_field_name)/=trim(tmpstring)) then
-          ewrite(-1,*) "Attempting to discretise or subcycle fields using interstitial velocity"
-          ewrite(-1,*) "courant numbers with different porosity field names."
-          FLExit("This is not currently supported.")
-        end if
-      end if
-      
-      call get_option(trim(field_option_path(f))//&
-                            "/prognostic/temporal_discretisation&
-                            &/control_volumes/maximum_courant_number_per_subcycle&
-                            &/courant_number[0]/porosity_field_name", &
-                            tmpstring, stat)
-      if(stat==0) then
-        if(.not. found_porosity_field_name) then
-          porosity_field_name = tmpstring
-          found_porosity_field_name = .true.
-        elseif(trim(porosity_field_name)/=trim(tmpstring)) then
-          ewrite(-1,*) "Attempting to discretise or subcycle fields using interstitial velocity"
-          ewrite(-1,*) "courant numbers with different porosity field names."
-          FLExit("This is not currently supported.")
-        end if
-      end if
-
-      call get_option(trim(complete_cv_field_path(field_option_path(f)))//&
-                            "/face_value[0]/limit_face_value/limiter[0]&
-                            &/courant_number[0]/porosity_field_name", &
-                            tmpstring, stat)
-      if(stat==0) then
-        if(.not. found_porosity_field_name) then
-          porosity_field_name = tmpstring
-          found_porosity_field_name = .true.
-        elseif(trim(porosity_field_name)/=trim(tmpstring)) then
-          ewrite(-1,*) "Attempting to discretise or subcycle fields using interstitial velocity"
-          ewrite(-1,*) "courant numbers with different porosity field names."
-          FLExit("This is not currently supported.")
-        end if
-      end if
-      
-      ! check the porosity theta value
-      call get_option(trim(complete_cv_field_path(field_option_path(f)))//&
-                            "/face_value[0]/courant_number[0]/porosity_temporal_theta", &
-                            porosity_theta_tmp, stat)
-      if(stat==0) then
-        if(.not. found_porosity_theta) then
-          porosity_theta = porosity_theta_tmp
-          found_porosity_theta = .true.
-        elseif(abs(porosity_theta-porosity_theta_tmp)>epsilon(0.0)) then
-          ewrite(-1,*) "Attempting to discretise or subcycle fields using interstitial velocity"
-          ewrite(-1,*) "courant numbers with different porosity temporal theta values."
-          FLExit("This is not currently supported.")
-        end if
-      end if
-      
-      call get_option(trim(field_option_path(f))//&
-                            "/prognostic/temporal_discretisation&
-                            &/control_volumes/maximum_courant_number_per_subcycle&
-                            &/courant_number[0]/porosity_temporal_theta", &
-                            porosity_theta_tmp, stat)
-      if(stat==0) then
-        if(.not. found_porosity_theta) then
-          porosity_theta = porosity_theta_tmp
-          found_porosity_theta = .true.
-        elseif(abs(porosity_theta-porosity_theta_tmp)>epsilon(0.0)) then
-          ewrite(-1,*) "Attempting to discretise or subcycle fields using interstitial velocity"
-          ewrite(-1,*) "courant numbers with different porosity temporal theta values."
-          FLExit("This is not currently supported.")
-        end if
-      end if
-
-      call get_option(trim(complete_cv_field_path(field_option_path(f)))//&
-                            "/face_value[0]/limit_face_value/limiter[0]&
-                            &/courant_number[0]/porosity_temporal_theta", &
-                            porosity_theta_tmp, stat)
-      if(stat==0) then
-        if(.not. found_porosity_theta) then
-          porosity_theta = porosity_theta_tmp
-          found_porosity_theta = .true.
-        elseif(abs(porosity_theta-porosity_theta_tmp)>epsilon(0.0)) then
-          ewrite(-1,*) "Attempting to discretise or subcycle fields using interstitial velocity"
-          ewrite(-1,*) "courant numbers with different porosity temporal theta values."
           FLExit("This is not currently supported.")
         end if
       end if

@@ -3308,7 +3308,6 @@ scalar_field_choice =
          }|
 
          ## PhaseVolumeFraction:
-         ## Required in porous_media problem type
          element scalar_field {
             attribute rank { "0" },
             attribute name { "PhaseVolumeFraction" },
@@ -3970,24 +3969,6 @@ scalar_field_choice =
             )
          }|
 
-         ## Volume of the vehicles
-         ##
-         ## used in Traffic Modelling
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "SolidPhase" },
-            attribute raplaces { "IDENT = -42"},
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
          ## Absolute Difference between two scalar fields.
          ##
          ## Both fields must be in this material_phase.

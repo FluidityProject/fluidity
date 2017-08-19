@@ -13,7 +13,6 @@
   <include href="spatial_discretisation.rng"/>
   <include href="temporal_discretisation.rng"/>
   <include href="flredecomp.rng"/>
-  <include href="porous_media.rng"/>
   <include href="multiphase_interaction.rng"/>
   <include href="equation_of_state.rng"/>
   <start>
@@ -1962,234 +1961,6 @@ via a compressible equation of state.</a:documentation>
             <ref name="population_balance"/>
           </zeroOrMore>
           <optional>
-            <element name="electrical_properties">
-              <a:documentation>Parameters required to model spontaneous electrical potentials in porous media.</a:documentation>
-              <choice>
-                <element name="conductivity">
-                  <a:documentation>Specify electrical conductivity of fluid (S/m).
-This assumes that salinity and temperature are not used.</a:documentation>
-                  <ref name="real"/>
-                </element>
-                <element name="conductivity_from_salinity">
-                  <a:documentation>Calculate conductivity from fluid salinity</a:documentation>
-                  <empty/>
-                </element>
-                <element name="conductivity_from_salinity_and_temperature">
-                  <a:documentation>Calculate conductivity from fluid salinity and temperature</a:documentation>
-                  <empty/>
-                </element>
-              </choice>
-              <element name="coupling_coefficients">
-                <a:documentation>Various coupling coefficients associated with spontaneous potentials.</a:documentation>
-                <optional>
-                  <element name="scalar_field">
-                    <a:documentation>Electrokinetic coupling coefficient (V/Pa).</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>Electrokinetic</value>
-                    </attribute>
-                    <choice>
-                      <element name="prescribed">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="prescribed_scalar_field_no_adapt"/>
-                      </element>
-                      <element name="diagnostic">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="scalar_python_diagnostic_algorithm"/>
-                        <ref name="diagnostic_scalar_field_no_adapt"/>
-                      </element>
-                    </choice>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="scalar_field">
-                    <a:documentation>Thermoelectric coupling coefficient (V/K).</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>Thermoelectric</value>
-                    </attribute>
-                    <choice>
-                      <element name="prescribed">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="prescribed_scalar_field_no_adapt"/>
-                      </element>
-                      <element name="diagnostic">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="scalar_python_diagnostic_algorithm"/>
-                        <ref name="diagnostic_scalar_field_no_adapt"/>
-                      </element>
-                    </choice>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="scalar_field">
-                    <a:documentation>Electrochemical coupling coefficient (V.L/mol).</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>Electrochemical</value>
-                    </attribute>
-                    <choice>
-                      <element name="prescribed">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="prescribed_scalar_field_no_adapt"/>
-                      </element>
-                      <element name="diagnostic">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="scalar_python_diagnostic_algorithm"/>
-                        <ref name="diagnostic_scalar_field_no_adapt"/>
-                      </element>
-                    </choice>
-                  </element>
-                </optional>
-              </element>
-              <optional>
-                <element name="Saturation_Distribution_Search">
-                  <a:documentation>Option to do a saturation distribution search which looks for the
-saturation distribution which gives the best fit of electrical potential
-to measured data</a:documentation>
-                  <choice>
-                    <element name="search_criteria_horizontal_well">
-                      <a:documentation>Here we specify the extents of the search space in x, y and z directions:</a:documentation>
-                      <element name="x_min">
-                        <a:documentation>The minimum x-coordinate of the test space</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="x_max">
-                        <a:documentation>The maximum x-coordinate of the test space</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="width">
-                        <a:documentation>The initial width of the segments, positioned symmetrically opposite the borehole</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <optional>
-                        <element name="search_for_width">
-                          <a:documentation>Option to search for the optimum width</a:documentation>
-                          <ref name="comment"/>
-                        </element>
-                      </optional>
-                      <element name="y_min">
-                        <a:documentation>The minimum y-coordinate of the test space</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="y_max">
-                        <a:documentation>The maximum y-coordinate of the test space</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="z_min">
-                        <a:documentation>The minimum z-coordinate of the test space,
-usually equal to the initial position of the water front</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="borehole_x">
-                        <a:documentation>x-coordinate of the borehole</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="borehole_z">
-                        <a:documentation>z-coordinate of the borehole</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="z_max">
-                        <a:documentation>The maximum z-coordinate of the test space,
-probably equal to the location of the borehole</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="sections">
-                        <a:documentation>The number of sections into which to divide the space</a:documentation>
-                        <ref name="integer"/>
-                      </element>
-                      <element name="initial_step_length">
-                        <a:documentation>Initial step length for the Hooke and Jeeves search</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <optional>
-                        <element name="initial_base_point">
-                          <a:documentation>Set initial base_point, perhaps make this optional later.
-Starts at the bottom for vertical well!!</a:documentation>
-                          <ref name="real_vector"/>
-                        </element>
-                      </optional>
-                      <element name="target_filename">
-                        <a:documentation>filename for target file (real potential curve)</a:documentation>
-                        <data type="string" datatypeLibrary=""/>
-                      </element>
-                    </element>
-                    <element name="search_criteria_vertical_well">
-                      <element name="x_min">
-                        <a:documentation>The minimum x-coordinate of the test space</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="x_max">
-                        <a:documentation>The maximum x-coordinate of the test space</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="width">
-                        <a:documentation>The initial width of the segments, positioned symmetrically opposite the borehole</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <optional>
-                        <element name="search_for_width">
-                          <a:documentation>Option to search for the optimum width</a:documentation>
-                          <ref name="comment"/>
-                        </element>
-                      </optional>
-                      <element name="y_min">
-                        <a:documentation>The minimum y-coordinate of the test space,
-usually equal to the initial position of the water front</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="y_max">
-                        <a:documentation>The maximum y-coordinate of the test space,
-probably equal to the location of the borehole</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="z_min">
-                        <a:documentation>The minimum z-coordinate of the test space</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="z_max">
-                        <a:documentation>The maximum z-coordinate of the test space</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="borehole_x">
-                        <a:documentation>x-coordinate of the borehole</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="borehole_y">
-                        <a:documentation>y-coordinate of the borehole</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="sections">
-                        <a:documentation>The number of sections into which to divide the space</a:documentation>
-                        <ref name="integer"/>
-                      </element>
-                      <element name="initial_step_length">
-                        <a:documentation>Initial step length for the Hooke and Jeeves search</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <optional>
-                        <element name="initial_base_point">
-                          <a:documentation>Set initial base_point, perhaps make this optional later</a:documentation>
-                          <ref name="real_vector"/>
-                        </element>
-                      </optional>
-                      <element name="target_filename">
-                        <a:documentation>filename for target file (real potential curve)</a:documentation>
-                        <data type="string" datatypeLibrary=""/>
-                      </element>
-                    </element>
-                  </choice>
-                </element>
-              </optional>
-            </element>
-          </optional>
-          <optional>
             <element name="multiphase_properties">
               <a:documentation>Phase interaction options for Fluidity's multiphase flow model</a:documentation>
               <ref name="comment"/>
@@ -2330,9 +2101,6 @@ while a factor of 1 represents a connected domain.</a:documentation>
       </optional>
       <optional>
         <ref name="forcing"/>
-      </optional>
-      <optional>
-        <ref name="porous_media_model"/>
       </optional>
       <optional>
         <ref name="flredecomp"/>
@@ -3211,7 +2979,7 @@ Diameter must be specified here or under each sediment class.</a:documentation>
             </optional>
             <optional>
               <element name="bed_porosity">
-                <a:documentation>Set porosity to use. Default is 0.3. 1.0 is a sold material.</a:documentation>
+                <a:documentation>Set porosity to use. Default is 0.3. 1.0 is a solid material.</a:documentation>
                 <ref name="real"/>
               </element>
             </optional>
@@ -5539,7 +5307,7 @@ Requires a continuous mesh.</a:documentation>
       </element>
       <element name="scalar_field">
         <a:documentation>PhaseVolumeFraction
-Required in porous_media and multiphase problem types</a:documentation>
+Required multiphase problem types</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -5567,22 +5335,6 @@ Required in porous_media and multiphase problem types</a:documentation>
             </optional>
           </element>
         </choice>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Electrical Potential:
-Required in electrokinetic, electrothermal
-and electrochemical problems
-(sub-option of porous_media problem type)</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>ElectricalPotential</value>
-        </attribute>
-        <element name="prognostic">
-          <ref name="velocity_mesh_choice"/>
-          <ref name="prognostic_scalar_field"/>
-        </element>
       </element>
       <!--
         Insert new prognostic scalar fields here using the template:
@@ -5904,84 +5656,6 @@ Adapting to this field is not recommended</a:documentation>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>InterstitialVelocityCGCourantNumber
-
-Courant Number as defined on a CG mesh 
-using the interstitial velocity for 
-porous media flow.
-
-Adapting to this field is not recommended</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>InterstitialVelocityCGCourantNumber</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="porosity_include_dg_and_cg_cfl"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>InterstitialVelocityCVCourantNumber
-
-Courant Number as defined on a CV mesh 
-using the interstitial velocity for 
-porous media flow.
-
-Adapting to this field is not recommended</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>InterstitialVelocityCVCourantNumber</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="porosity_include_cv_cfl"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>InterstitialVelocityDGCourantNumber
-
-Courant Number as defined on a DG mesh 
-using the interstitial velocity for 
-porous media flow.
-
-Adapting to this field is not recommended</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>InterstitialVelocityDGCourantNumber</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="porosity_include_dg_and_cg_cfl"/>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
@@ -7897,26 +7571,6 @@ This uses the finite element approximation of the CFL Number.</a:documentation>
         <empty/>
       </element>
       <element name="courant_number">
-        <a:documentation>Select the Courant Number definition to be used.
-
-This uses the control volume approximation of the CFL Number 
-and the interstitial velocity for porous media flow.</a:documentation>
-        <attribute name="name">
-          <value>InterstitialVelocityCVCourantNumber</value>
-        </attribute>
-        <ref name="porosity_include_cv_cfl"/>
-      </element>
-      <element name="courant_number">
-        <a:documentation>Select the Courant Number definition to be used.
-
-This uses the CG finite element approximation of the CFL Number 
-and the interstitial velocity for porous media flow.</a:documentation>
-        <attribute name="name">
-          <value>InterstitialVelocityCGCourantNumber</value>
-        </attribute>
-        <ref name="porosity_include_cv_cfl"/>
-      </element>
-      <element name="courant_number">
         <a:documentation>Select the Courant Number definition to be used.</a:documentation>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
@@ -7938,18 +7592,6 @@ This uses the DG finite element approximation of the CFL Number.</a:documentatio
             <value>DG_CourantNumber</value>
           </attribute>
           <empty/>
-        </element>
-        <element name="courant_number">
-          <a:documentation>IF NOT SELECTED THEN THE DEFAULT DG_CourantNumber IS USED.
-
-Select the Courant Number definition to be used.
-
-This uses the DG finite element approximation of the CFL Number 
-and the interstitial velocity for porous media flow.</a:documentation>
-          <attribute name="name">
-            <value>InterstitialVelocityDGCourantNumber</value>
-          </attribute>
-          <ref name="porosity_include_cv_cfl"/>
         </element>
         <element name="courant_number">
           <a:documentation>IF NOT SELECTED THEN THE DEFAULT DG_CourantNumber IS USED.
@@ -7999,16 +7641,6 @@ This uses the finite element approximation of the CFL Number.</a:documentation>
         <empty/>
       </element>
       <element name="courant_number">
-        <a:documentation>Select the Courant Number definition to be used in the slope of
-the NVD diagram upper bound.
-This uses a control volume definition of the CFL Number
-and the interstitial velocity for porous media flow.</a:documentation>
-        <attribute name="name">
-          <value>InterstitialVelocityCVCourantNumber</value>
-        </attribute>
-        <ref name="porosity_include_cv_cfl"/>
-      </element>
-      <element name="courant_number">
         <a:documentation>***UNDER TESTING***
 
 Select the Courant Number definition to be used in the slope of
@@ -8041,26 +7673,6 @@ This uses the control volume definition of the CFL Number.</a:documentation>
         <ref name="velocity_mesh_choice">
           <a:documentation>Select the mesh on which you wish to evaluate the ControlVolumeCFLNumber.</a:documentation>
         </ref>
-      </element>
-      <element name="courant_number">
-        <a:documentation>Select the Courant Number definition to be used for adaptive timestepping.
-This uses the CG finite element approximation of the CFL Number 
-and the interstitial velocity for porous media flow.</a:documentation>
-        <attribute name="name">
-          <value>InterstitialVelocityCGCourantNumber</value>
-        </attribute>
-        <ref name="velocity_mesh_choice"/>
-        <ref name="porosity_include_dg_and_cg_cfl"/>
-      </element>
-      <element name="courant_number">
-        <a:documentation>Select the Courant Number definition to be used for adaptive timestepping.
-This uses the control volume approximation of the CFL Number 
-and the interstitial velocity for porous media flow.         </a:documentation>
-        <attribute name="name">
-          <value>InterstitialVelocityCVCourantNumber</value>
-        </attribute>
-        <ref name="velocity_mesh_choice"/>
-        <ref name="porosity_include_cv_cfl"/>
       </element>
     </choice>
   </define>

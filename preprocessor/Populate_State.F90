@@ -89,13 +89,12 @@ periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
     
   !! A list of locations in which additional scalar/vector/tensor fields
   !! are to be found. These are absolute paths in the schema.
-  character(len=OPTION_PATH_LEN), dimension(8) :: additional_fields_absolute=&
+  character(len=OPTION_PATH_LEN), dimension(7) :: additional_fields_absolute=&
        (/ &
        "/ocean_biology/pznd                                                                                                   ", &
        "/ocean_biology/six_component                                                                                          ", &
        "/ocean_forcing/iceshelf_meltrate/Holland08                                                                            ", &
        "/ocean_forcing/bulk_formulae/output_fluxes_diagnostics                                                                ", &
-       "/porous_media                                                                                                         ", &
        "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
        "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order", &
        "/material_phase[0]/sediment/                                                                                          " &
@@ -1624,37 +1623,6 @@ contains
     ! Deal with subgridscale parameterisations.
     call alias_diffusivity(states)
     
-    ! Porous media fields
-    have_porous_media: if (have_option('/porous_media')) then
-       
-       ! alias the Porosity field
-       sfield=extract_scalar_field(states(1), 'Porosity')
-       sfield%aliased = .true.
-       do i = 1,nstates-1
-          call insert(states(i+1), sfield, 'Porosity')
-       end do
-       
-       ! alias the Permeability field which may be 
-       ! either scalar or vector (if present)
-       
-       sfield=extract_scalar_field(states(1), 'Permeability', stat = stat)
-       if (stat == 0) then       
-          sfield%aliased = .true.
-          do i = 1,nstates-1
-             call insert(states(i+1), sfield, 'Permeability')
-          end do       
-       end if
-       
-       vfield=extract_vector_field(states(1), 'Permeability', stat = stat)
-       if (stat == 0) then       
-          vfield%aliased = .true.
-          do i = 1,nstates-1
-             call insert(states(i+1), vfield, 'Permeability')
-          end do       
-       end if
-    
-    end if have_porous_media
-
   end subroutine alias_fields
 
   subroutine alias_diffusivity(states)
@@ -2894,69 +2862,6 @@ contains
     aux_sfield%option_path = ""
     call insert(states, aux_sfield, trim(aux_sfield%name))
     call deallocate(aux_sfield)
-    
-    ! Porous media fields
-    have_porous_media: if (have_option('/porous_media')) then
-       
-       ! alias the OldPorosity field
-       aux_sfield=extract_scalar_field(states(1), 'OldPorosity')
-       aux_sfield%aliased = .true.
-       aux_sfield%option_path = ""
-       do p = 1,size(states)-1
-          call insert(states(p+1), aux_sfield, 'OldPorosity')
-       end do
-       
-       ! alias the OldPermeability field which may be 
-       ! either scalar or vector (if present)
-       
-       aux_sfield=extract_scalar_field(states(1), 'OldPermeability', stat = stat)
-       if (stat == 0) then       
-          aux_sfield%aliased = .true.
-          aux_sfield%option_path = ""
-          do p = 1,size(states)-1
-             call insert(states(p+1), aux_sfield, 'OldPermeability')
-          end do       
-       end if
-       
-       aux_vfield=extract_vector_field(states(1), 'OldPermeability', stat = stat)
-       if (stat == 0) then       
-          aux_vfield%aliased = .true.
-          aux_vfield%option_path = ""
-          do p = 1,size(states)-1
-             call insert(states(p+1), aux_vfield, 'OldPermeability')
-          end do       
-       end if
-
-       ! alias the IteratedPorosity field
-       aux_sfield=extract_scalar_field(states(1), 'IteratedPorosity')
-       aux_sfield%aliased = .true.
-       aux_sfield%option_path = ""
-       do p = 1,size(states)-1
-          call insert(states(p+1), aux_sfield, 'IteratedPorosity')
-       end do
-       
-       ! alias the IteratedPermeability field which may be 
-       ! either scalar or vector (if present)
-       
-       aux_sfield=extract_scalar_field(states(1), 'IteratedPermeability', stat = stat)
-       if (stat == 0) then       
-          aux_sfield%aliased = .true.
-          aux_sfield%option_path = ""
-          do p = 1,size(states)-1
-             call insert(states(p+1), aux_sfield, 'IteratedPermeability')
-          end do       
-       end if
-       
-       aux_vfield=extract_vector_field(states(1), 'IteratedPermeability', stat = stat)
-       if (stat == 0) then       
-          aux_vfield%aliased = .true.
-          aux_vfield%option_path = ""
-          do p = 1,size(states)-1
-             call insert(states(p+1), aux_vfield, 'IteratedPermeability')
-          end do       
-       end if
-    
-    end if have_porous_media
     
   end subroutine allocate_and_insert_auxilliary_fields
 

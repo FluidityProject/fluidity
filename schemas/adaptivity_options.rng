@@ -677,9 +677,6 @@ and divides the rhs by this.</a:documentation>
               <empty/>
             </element>
           </choice>
-          <optional>
-            <ref name="porosity_include"/>
-          </optional>
           <element name="output">
             <a:documentation>Debugging output options</a:documentation>
             <optional>

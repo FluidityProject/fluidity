@@ -91,11 +91,11 @@ Advection_Diffusion_CG.o ../include/advection_diffusion_cg.mod: \
    ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/futils.mod ../include/global_parameters.mod \
    ../include/integer_set_module.mod ../include/multiphase_module.mod \
-   ../include/petsc_solve_state_module.mod ../include/porous_media.mod \
-   ../include/profiler.mod ../include/quadrature.mod \
-   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/state_module.mod \
-   ../include/transform_elements.mod ../include/upwind_stabilisation.mod
+   ../include/petsc_solve_state_module.mod ../include/profiler.mod \
+   ../include/quadrature.mod ../include/sparse_tools.mod \
+   ../include/sparse_tools_petsc.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/state_module.mod ../include/transform_elements.mod \
+   ../include/upwind_stabilisation.mod
 
 ../include/advection_diffusion_dg.mod: Advection_Diffusion_DG.o
 	@true
@@ -110,13 +110,13 @@ Advection_Diffusion_DG.o ../include/advection_diffusion_dg.mod: \
    ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/integer_set_module.mod \
    ../include/parallel_fields.mod ../include/parallel_tools.mod \
-   ../include/petsc_solve_state_module.mod ../include/porous_media.mod \
-   ../include/profiler.mod ../include/shape_functions.mod \
-   ../include/slope_limiters_dg.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/state_module.mod \
-   ../include/transform_elements.mod ../include/upwind_stabilisation.mod \
-   ../include/vector_tools.mod ../include/vtk_interfaces.mod
+   ../include/petsc_solve_state_module.mod ../include/profiler.mod \
+   ../include/shape_functions.mod ../include/slope_limiters_dg.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/state_module.mod ../include/transform_elements.mod \
+   ../include/upwind_stabilisation.mod ../include/vector_tools.mod \
+   ../include/vtk_interfaces.mod
 
 ../include/advection_diffusion_fv.mod: Advection_Diffusion_FV.o
 	@true
@@ -130,13 +130,13 @@ Advection_Diffusion_FV.o ../include/advection_diffusion_fv.mod: \
    ../include/field_derivatives.mod ../include/field_options.mod \
    ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/integer_set_module.mod \
-   ../include/petsc_solve_state_module.mod ../include/porous_media.mod \
-   ../include/profiler.mod ../include/shape_functions.mod \
-   ../include/slope_limiters_dg.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/state_module.mod \
-   ../include/transform_elements.mod ../include/upwind_stabilisation.mod \
-   ../include/vector_tools.mod ../include/vtk_interfaces.mod
+   ../include/petsc_solve_state_module.mod ../include/profiler.mod \
+   ../include/shape_functions.mod ../include/slope_limiters_dg.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/state_module.mod ../include/transform_elements.mod \
+   ../include/upwind_stabilisation.mod ../include/vector_tools.mod \
+   ../include/vtk_interfaces.mod
 
 ../include/assemble_cmc.mod: Assemble_CMC.o
 	@true
@@ -292,7 +292,7 @@ Field_Equations_CV.o ../include/field_equations_cv.mod: Field_Equations_CV.F90 \
    ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/halos.mod \
    ../include/multiphase_module.mod ../include/parallel_tools.mod \
-   ../include/petsc_solve_state_module.mod ../include/porous_media.mod \
+   ../include/petsc_solve_state_module.mod \
    ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
    ../include/sparsity_patterns_meshes.mod ../include/state_fields_module.mod \
    ../include/state_module.mod ../include/transform_elements.mod
@@ -636,14 +636,6 @@ Petsc_Solve_State.o ../include/petsc_solve_state_module.mod: \
    ../include/free_surface_module.mod ../include/global_parameters.mod \
    ../include/parallel_fields.mod ../include/solvers.mod \
    ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
-   ../include/state_module.mod
-
-../include/porous_media.mod: Porous_Media.o
-	@true
-
-Porous_Media.o ../include/porous_media.mod: Porous_Media.F90 \
-   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/futils.mod ../include/global_parameters.mod \
    ../include/state_module.mod
 
 ../include/pressure_dirichlet_bcs_cv.mod: Pressure_Dirichlet_BCS_CV.o
