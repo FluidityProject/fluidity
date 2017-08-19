@@ -95,7 +95,6 @@ module fluids_module
   use meshmovement
   use biology
   use foam_flow_module, only: calculate_potential_flow, calculate_foam_velocity
-  use implicit_solids
   use momentum_equation
   use gls
   use iceshelf_meltrate_surf_normal
@@ -252,9 +251,6 @@ contains
        ! Ensure that checkpoints do not adapt at first timestep.
        call delete_option(&
             "/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")
-
-       ! Remove dummy field used by implicit_solids
-       if (have_option("/implicit_solids")) call remove_dummy_field(state(1))
     else
        ! Auxilliary fields.
        call allocate_and_insert_auxilliary_fields(state)
@@ -524,10 +520,6 @@ contains
              call calculate_biology_terms(state(1))
           end if
 
-          if (have_option("/implicit_solids")) then
-             call solids(state(1), its, nonlinear_iterations)
-          end if
-
           ! Do we have the k-epsilon turbulence model?
           ! If we do then we want to calculate source terms and diffusivity for the k and epsilon 
           ! fields and also tracer field diffusivities at n + theta_nl
@@ -713,15 +705,6 @@ contains
           if(its >= nonlinear_iterations .and. change >= abs(nonlinear_iteration_tolerance)) then
              ewrite(0, *) "Nonlinear iteration tolerance not reached - termininating"
              exit timestep_loop
-          end if
-       end if
-
-       if (have_option("/implicit_solids")) then
-          call implicit_solids_update(state(1))
-          if (have_option("/timestepping/nonlinear_iterations/tolerance")) then
-             if ((its < nonlinear_iterations .and. change < abs(nonlinear_iteration_tolerance))) then
-                call implicit_solids_nonlinear_iteration_converged()
-             end if
           end if
        end if
 

@@ -75,7 +75,6 @@
       use foam_drainage, only: calculate_drainage_source_absor
       use oceansurfaceforcing
       use drag_module
-      use implicit_solids
       use pressure_dirichlet_bcs_cv
       use shallow_water_equations
 
@@ -819,16 +818,6 @@
                      end if
                      call rotate_ct_m_sphere(state(istate), ctp_m(istate)%ptr, u)
                   end if
-               end if
-
-               ! Add mass source-absorption for implicit solids.
-               ! This needs to be done after ct_rhs has been formed
-               ! in the divergence routines as they zero the field.
-               ! This routine assumes the continuity is tested with 
-               ! FE basis functions, so is not correct for cv_pressure
-               ! or cg_pressure_cv_test_continuity.
-               if (have_option("/implicit_solids/two_way_coupling")) then
-                  call add_mass_source_absorption(ct_rhs(istate), state(istate))
                end if
 
                ewrite_minmax(ctp_m(istate)%ptr)
@@ -2095,9 +2084,7 @@
             ! Check options for case with CG pressure and
             ! testing continuity with CV dual mesh. 
             ! Will not work with compressible, free surface or 
-            ! wetting and drying and implicit solids two way coupling 
-            ! (when solves for the fluid velocity). 
-            ! Also will not work if the pressure is on a mesh that has 
+            ! wetting and drying. Also will not work if the pressure is on a mesh that has 
             ! bubble or trace shape functions.
             if (have_option("/material_phase["//int2str(i)//&
                                  &"]/scalar_field::Pressure/prognostic&
@@ -2123,11 +2110,6 @@
                   FLExit("For CG Pressure cannot test the continuity equation with CV when using the wetting and drying model")
                end if
                
-               ! Check that implicit solids two way coupling is not being used
-               if (have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_fluid_velocity")) then
-                  FLExit("For CG Pressure cannot test the continuity equation with CV when using implicit solids two way coupling model")
-               end if
-               
                ! get the pressure mesh name
                call get_option("/material_phase["//int2str(i)//"]/scalar_field::Pressure/prognostic/mesh/name", &
                                 pressure_mesh)
@@ -2144,21 +2126,6 @@
                
                if (trim(pressure_mesh_element_type) == "trace") then
                   FLExit("For CG Pressure cannot test the continuity equation with CV if the pressure mesh has element type trace")
-               end if
-               
-            end if
-            
-            ! Check that is using implicit solids two way coupling that 
-            ! the pressure is NOT CV. CV pressure implies CV tested continuity
-            ! which is not possible yet for the two way coupling terms.
-            ! Note the check of CG pressure with CV tested continuity 
-            ! and implicit solids two way coupling has been done above.
-            if (have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_fluid_velocity")) then
-               
-               if (have_option("/material_phase["//int2str(i)//&
-                                 &"]/scalar_field::Pressure/prognostic&
-                                 &/spatial_discretisation/control_volumes")) then
-                  FLExit("Cannot use implicit solids two way coupling if the pressure is control volume discretised")
                end if
                
             end if
