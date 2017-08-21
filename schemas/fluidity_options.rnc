@@ -299,8 +299,8 @@ start =
                      empty
                   }
                ),
-               ## Enable to write detector output in binary format
-               element binary_output {
+               ## Enable to write detector output in ascii format
+               element ascii_output {
                   comment
                }?,
                ## Enable to let detectors move with the domain if mesh_movement is enabled.

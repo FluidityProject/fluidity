@@ -1699,10 +1699,10 @@ contains
 
     end if  ! from_checkpoint
 
-
-    default_stat%detector_list%binary_output = have_option("/io/detectors/binary_output")
-    if (isparallel()) then
-       default_stat%detector_list%binary_output=.true.
+    !chris hack
+    default_stat%detector_list%binary_output = .true.
+    if (have_option("/io/detectors/ascii_output")) then
+       default_stat%detector_list%binary_output=.false.
     end if
 
     ! Only the first process should write the header file
@@ -2599,8 +2599,11 @@ contains
        return
     end if
 
-    ! This is only for single processor with non-binary output
-    if ((.not.isparallel()).and.(.not. detector_list%binary_output)) then
+    !chris hack
+    ! If isparallel() or binary output use this
+    if (.not.have_option("/io/detectors/ascii_output")) then
+       call write_mpi_out(state,detector_list,time,dt)
+    else ! This is only for single processor with non-binary output
 
        if(getprocno() == 1) then
           if(detector_list%binary_output) then
@@ -2696,10 +2699,6 @@ contains
           write(detector_list%output_unit,'(a)') ""
        end if
        flush(detector_list%output_unit)
-
-    ! If isparallel() or binary output us this
-    else
-       call write_mpi_out(state,detector_list,time,dt)
     end if
 
     totaldet_global=detector_list%length

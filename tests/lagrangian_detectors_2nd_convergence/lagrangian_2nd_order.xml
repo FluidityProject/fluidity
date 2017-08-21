@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>lagrangian_2nd_order</name>
+  <owner userid="cmath2"/>
+  <tags>flml parallel zoltan</tags>
+  <problem_definition length="medium" nprocs="4">
+    <command_line>
+mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian-2nd-A lagrangian-2nd-A-flredecomp;
+mpiexec ../../bin/fluidity -v3 -l lagrangian-2nd-A-flredecomp.flml
+mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian-2nd-B lagrangian-2nd-B-flredecomp;
+mpiexec ../../bin/fluidity -v3 -l lagrangian-2nd-B-flredecomp.flml
+mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian-2nd-C lagrangian-2nd-C-flredecomp;
+mpiexec ../../bin/fluidity -v3 -l lagrangian-2nd-C-flredecomp.flml
+mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian-2nd-D lagrangian-2nd-D-flredecomp;
+mpiexec ../../bin/fluidity -v3 -l lagrangian-2nd-D-flredecomp.flml
+
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="ab_convergence" language="python">
+from fluidity_tools import stat_parser
+import numpy as np 
+from numpy import zeros,fromfile
+from math import sqrt, log
+
+X=np.zeros(100,float)
+Y=np.zeros(100,float)
+f = open('Xvals.npy', "r")
+X_in= np.fromfile(f,dtype=np.float)
+f = open('Yvals.npy', "r")
+Y_in= np.fromfile(f,dtype=np.float)
+for i in range(0,100):
+    X[i]=X_in[i+10]
+    Y[i]=Y_in[i+10]
+
+sa = stat_parser('lagrangian_2nd_A.detectors')
+last_locations_errora = zeros((2,100))
+lsa = 0
+for i in range(100):
+    emaga = 0
+    name = 'Chris_' + str(i+1).zfill(3)
+    last_locations_errora[0,i] = sa[name]['position'][0][-1] - X[i]
+    last_locations_errora[1,i] = sa[name]['position'][1][-1] - Y[i]
+    emaga = sqrt(last_locations_errora[0,i]**2 + last_locations_errora[1,i]**2)
+    lsa = lsa + emaga**2
+l2_norm_a=sqrt(lsa)
+
+sb = stat_parser('lagrangian_2nd_B.detectors')
+last_locations_errorb = zeros((2,100))
+lsb = 0
+for i in range(100):
+    emagb = 0
+    name = 'Chris_' + str(i+1).zfill(3)
+    last_locations_errorb[0,i] = sb[name]['position'][0][-1] - X[i]
+    last_locations_errorb[1,i] = sb[name]['position'][1][-1] - Y[i]
+    emagb = sqrt(last_locations_errorb[0,i]**2 + last_locations_errorb[1,i]**2)
+    lsb = lsb + emagb**2
+l2_norm_b=sqrt(lsb)
+
+ab_ratio = l2_norm_a/l2_norm_b
+ab_convergence = log(ab_ratio, 10)
+    </variable>
+    
+    <variable name="bc_convergence" language="python">
+from fluidity_tools import stat_parser
+import numpy as np 
+from numpy import zeros,fromfile
+from math import sqrt, log
+
+X=np.zeros(100,float)
+Y=np.zeros(100,float)
+f = open('Xvals.npy', "r")
+X_in= np.fromfile(f,dtype=np.float)
+f = open('Yvals.npy', "r")
+Y_in= np.fromfile(f,dtype=np.float)
+for i in range(0,100):
+    X[i]=X_in[i+10]
+    Y[i]=Y_in[i+10]
+
+sb = stat_parser('lagrangian_2nd_B.detectors')
+last_locations_errorb = zeros((2,100))
+lsb = 0
+for i in range(100):
+    emagb = 0
+    name = 'Chris_' + str(i+1).zfill(3)
+    last_locations_errorb[0,i] = sb[name]['position'][0][-1] - X[i]
+    last_locations_errorb[1,i] = sb[name]['position'][1][-1] - Y[i]
+    emagb = sqrt(last_locations_errorb[0,i]**2 + last_locations_errorb[1,i]**2)
+    lsb = lsb + emagb**2
+l2_norm_b=sqrt(lsb)
+
+sc = stat_parser('lagrangian_2nd_C.detectors')
+last_locations_errorc = zeros((2,100))
+lsc = 0
+for i in range(100):
+    emagc = 0
+    name = 'Chris_' + str(i+1).zfill(3)
+    last_locations_errorc[0,i] = sc[name]['position'][0][-1] - X[i]
+    last_locations_errorc[1,i] = sc[name]['position'][1][-1] - Y[i]
+    emagc = sqrt(last_locations_errorc[0,i]**2 + last_locations_errorc[1,i]**2)
+    lsc = lsc + emagc**2
+l2_norm_c=sqrt(lsc)
+
+bc_ratio = l2_norm_b/l2_norm_c
+bc_convergence = log(bc_ratio, 10)
+    </variable>
+
+    <variable name="cd_convergence" language="python">
+from fluidity_tools import stat_parser
+import numpy as np 
+from numpy import zeros,fromfile
+from math import sqrt, log
+
+X=np.zeros(100,float)
+Y=np.zeros(100,float)
+f = open('Xvals.npy', "r")
+X_in= np.fromfile(f,dtype=np.float)
+f = open('Yvals.npy', "r")
+Y_in= np.fromfile(f,dtype=np.float)
+for i in range(0,100):
+    X[i]=X_in[i+10]
+    Y[i]=Y_in[i+10]
+
+sc = stat_parser('lagrangian_2nd_C.detectors')
+last_locations_errorc = zeros((2,100))
+lsc = 0
+for i in range(100):
+    emagc = 0
+    name = 'Chris_' + str(i+1).zfill(3)
+    last_locations_errorc[0,i] = sc[name]['position'][0][-1] - X[i]
+    last_locations_errorc[1,i] = sc[name]['position'][1][-1] - Y[i]
+    emagc = sqrt(last_locations_errorc[0,i]**2 + last_locations_errorc[1,i]**2)
+    lsc = lsc + emagc**2
+l2_norm_c=sqrt(lsc)
+
+sd = stat_parser('lagrangian_2nd_D.detectors')
+last_locations_errord = zeros((2,100))
+lsd = 0
+for i in range(100):
+    emagd = 0
+    name = 'Chris_' + str(i+1).zfill(3)
+    last_locations_errord[0,i] = sd[name]['position'][0][-1] - X[i]
+    last_locations_errord[1,i] = sd[name]['position'][1][-1] - Y[i]
+    emagd = sqrt(last_locations_errord[0,i]**2 + last_locations_errord[1,i]**2)
+    lsd = lsd + emagd**2
+l2_norm_d=sqrt(lsd)
+
+cd_ratio = l2_norm_c/l2_norm_d
+cd_convergence = log(cd_ratio, 10)
+    </variable>
+  </variables>
+
+  <pass_tests>
+    <test name="ab_convergence > 1.8" language="python">
+assert (ab_convergence &gt; 1.8)
+    </test>
+    <test name="bc_convergence > 1.8" language="python">
+assert (bc_convergence &gt; 1.8)
+    </test>
+    <test name="cd_convergence > 1.8" language="python">
+assert (cd_convergence &gt; 1.8)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

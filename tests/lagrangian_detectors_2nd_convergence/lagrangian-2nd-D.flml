@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">lagrangian_detectors</string_value>
+    <string_value lines="1">lagrangian_2nd_D</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -52,22 +52,7 @@
     <output_mesh name="VelocityMesh"/>
     <stat/>
     <detectors>
-      <lagrangian_detector name="Single_Lagr_1">
-        <location>
-          <real_value shape="2" dim1="dim" rank="1">0.5 0.5</real_value>
-        </location>
-      </lagrangian_detector>
-      <lagrangian_detector name="Single_Lagr_2">
-        <location>
-          <real_value shape="2" dim1="dim" rank="1">0.625 0.5</real_value>
-        </location>
-      </lagrangian_detector>
-      <lagrangian_detector name="Single_Lagr_3">
-        <location>
-          <real_value shape="2" dim1="dim" rank="1">0.7475 0.5</real_value>
-        </location>
-      </lagrangian_detector>
-      <detector_array name="Steve">
+      <detector_array name="Chris">
         <number_of_detectors>
           <integer_value rank="0">100</integer_value>
         </number_of_detectors>
@@ -81,7 +66,6 @@
         </python>
       </detector_array>
       <fail_outside_domain/>
-      <binary_output/>
       <lagrangian_timestepping>
         <subcycles>
           <integer_value rank="0">1</integer_value>
@@ -89,7 +73,17 @@
         <search_tolerance>
           <real_value rank="0">1.0e-10</real_value>
         </search_tolerance>
-        <rk4_guided_search/>
+        <explicit_runge_kutta_guided_search>
+          <n_stages>
+            <integer_value rank="0">2</integer_value>
+          </n_stages>
+          <stage_weights>
+            <real_value shape="1" rank="1">1</real_value>
+          </stage_weights>
+          <timestep_weights>
+            <real_value shape="2" rank="1">0.5 0.5</real_value>
+          </timestep_weights>
+        </explicit_runge_kutta_guided_search>
       </lagrangian_timestepping>
     </detectors>
   </io>
@@ -98,13 +92,13 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">1.0</real_value>
+      <real_value rank="0">0.001</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">8</real_value>
     </finish_time>
     <final_timestep>
-      <integer_value rank="0">8</integer_value>
+      <integer_value rank="0">8000</integer_value>
     </final_timestep>
   </timestepping>
   <physical_parameters>

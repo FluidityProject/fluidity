@@ -364,8 +364,8 @@ The t argument is for future use only - currently detector locations are only se
               </element>
             </choice>
             <optional>
-              <element name="binary_output">
-                <a:documentation>Enable to write detector output in binary format</a:documentation>
+              <element name="ascii_output">
+                <a:documentation>Enable to write detector output in ascii format</a:documentation>
                 <ref name="comment"/>
               </element>
             </optional>
