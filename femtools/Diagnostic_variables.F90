@@ -1699,7 +1699,6 @@ contains
 
     end if  ! from_checkpoint
 
-    !chris hack
     default_stat%detector_list%binary_output = .true.
     if (have_option("/io/detectors/ascii_output")) then
        default_stat%detector_list%binary_output=.false.
@@ -2599,7 +2598,6 @@ contains
        return
     end if
 
-    !chris hack
     ! If isparallel() or binary output use this
     if (.not.have_option("/io/detectors/ascii_output")) then
        call write_mpi_out(state,detector_list,time,dt)
