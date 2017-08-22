@@ -4,7 +4,7 @@
   <owner userid="jrper"/>
   <tags>flml parallel</tags>
   <problem_definition length = "short" nprocs = "4">
-    <command_line>make clean-run-debug; mpiexec fluidity -v2 -l empty_partitions.flml; mpiexec fluidity -v2 -l empty_partitions_2_checkpoint.flml</command_line>
+    <command_line>make clean-run-debug; mpiexec fluidity -l empty_partitions.flml; mpiexec fluidity -l empty_partitions_2_checkpoint.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">

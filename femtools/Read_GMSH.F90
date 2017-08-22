@@ -663,6 +663,9 @@ contains
     ! meshes are verboten:
     !   tet/hex, tet/quad, triangle/hex and triangle/quad
 
+    numElements=0
+    numFaces=0
+
     if (numTets>0) then
        numElements = numTets
        elementType = GMSH_TET
