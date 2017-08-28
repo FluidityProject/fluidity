@@ -4,10 +4,9 @@
   <name>lagrangian_detectors</name>
   <owner userid="drhodrid"/>
   <tags>flml parallel zoltan</tags>
-  <problem_definition length="short" nprocs="4">
+  <problem_definition length="short" nprocs="1">
     <command_line>
-mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian-detectors-rk lagrangian-detectors-rk-flredecomp;
-mpiexec ../../bin/fluidity -v3 -l lagrangian-detectors-rk-flredecomp.flml
+mpiexec ../../bin/fluidity -v2 -l lagrangian-detectors.flml
     </command_line>
   </problem_definition>
   <variables>

@@ -81,6 +81,7 @@
         </python>
       </detector_array>
       <fail_outside_domain/>
+      <ascii_output/>
       <lagrangian_timestepping>
         <subcycles>
           <integer_value rank="0">1</integer_value>
