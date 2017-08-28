@@ -1489,8 +1489,8 @@ contains
     ! after checkpointing and the reading of the detector positions must be
     ! done from a file
     if (have_option("/io/detectors/static_detector/from_checkpoint_file").or. & 
-& have_option("/io/detectors/lagrangian_detector/from_checkpoint_file").or. &
-& have_option("/io/detectors/detector_array/from_checkpoint_file")) then
+         & have_option("/io/detectors/lagrangian_detector/from_checkpoint_file").or. &
+         & have_option("/io/detectors/detector_array/from_checkpoint_file")) then
        default_stat%from_checkpoint=.true.
     else
        default_stat%from_checkpoint=.false.
@@ -1701,7 +1701,10 @@ contains
 
     default_stat%detector_list%binary_output = .true.
     if (have_option("/io/detectors/ascii_output")) then
-       default_stat%detector_list%binary_output=.false.
+       default_stat%detector_list%binary_output = .false.
+       if(isparallel()) then
+          FLAbort("No support for ascii detector output in parallel. Please use binary output.")
+       end if
     end if
 
     ! Only the first process should write the header file
@@ -1809,27 +1812,21 @@ contains
      if (getprocno() == 1) then
        write(default_stat%detector_list%output_unit, '(a)') "</header>"
        flush(default_stat%detector_list%output_unit)
-
        ! when using mpi_subroutines to write into the detectors file we need to close the file since 
        ! filename.detectors.dat needs to be open now with MPI_OPEN
-       if ((.not.isparallel()).and.(.not. default_stat%detector_list%binary_output)) then
-
-       else    
+       if ((isparallel()).or.(default_stat%detector_list%binary_output)) then
           close(default_stat%detector_list%output_unit)
        end if
     end if  
 
-    if ((isparallel()).or.((.not.isparallel()).and.(default_stat%detector_list%binary_output))) then
-
-    ! bit of hack to delete any existing .detectors.dat file
-    ! if we don't delete the existing .detectors.dat would simply be opened for random access and 
-    ! gradually overwritten, mixing detector output from the current with that of a previous run
-    call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, default_stat%detector_list%mpi_fh, IERROR)
-    call MPI_FILE_CLOSE(default_stat%detector_list%mpi_fh, IERROR)
-    
-    call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, default_stat%detector_list%mpi_fh, IERROR)
-    assert(ierror == MPI_SUCCESS)
-
+    if ((isparallel()).or.(default_stat%detector_list%binary_output)) then
+       ! bit of hack to delete any existing .detectors.dat file
+       ! if we don't delete the existing .detectors.dat would simply be opened for random access and 
+       ! gradually overwritten, mixing detector output from the current with that of a previous run
+       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, default_stat%detector_list%mpi_fh, IERROR)
+       call MPI_FILE_CLOSE(default_stat%detector_list%mpi_fh, IERROR)
+       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, default_stat%detector_list%mpi_fh, IERROR)
+       assert(ierror == MPI_SUCCESS)
     end if 
 
     !Get options for lagrangian detector movement
@@ -2598,11 +2595,10 @@ contains
        return
     end if
 
-    ! If isparallel() or binary output use this
-    if (.not.have_option("/io/detectors/ascii_output")) then
+    ! If isparallel() or binary output use this:
+    if ((isparallel()).or.(default_stat%detector_list%binary_output)) then    
        call write_mpi_out(state,detector_list,time,dt)
-    else ! This is only for single processor with non-binary output
-
+    else ! This is only for single processor with ascii output
        if(getprocno() == 1) then
           if(detector_list%binary_output) then
              write(detector_list%output_unit) time
