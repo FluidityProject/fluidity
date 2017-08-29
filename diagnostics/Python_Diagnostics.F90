@@ -30,7 +30,8 @@
 module python_diagnostics
 
   use fldebug
-  use global_parameters, only : PYTHON_FUNC_LEN, OPTION_PATH_LEN
+  use global_parameters, only : PYTHON_FUNC_LEN, OPTION_PATH_LEN,&
+       iteration, timestep
   use spud
   use fields
   use python_state
@@ -90,8 +91,13 @@ contains
     call python_run_string("time="//trim(buffer))
     write(buffer,*) dt
     call python_run_string("dt="//trim(buffer))  
+    write(buffer,*) iteration
+    call python_run_string("iteration="//trim(buffer))  
+    write(buffer,*) timestep
+    call python_run_string("timestep="//trim(buffer))  
+    
       
-    ! And finally run the user's codey
+    ! And finally run the user's code
     call get_option(trim(s_field%option_path)//"/diagnostic/algorithm",pycode)
     call python_run_string(trim(pycode))
     
@@ -147,7 +153,9 @@ contains
     write(buffer,*) current_time
     call python_run_string("time="//trim(buffer))
     write(buffer,*) dt
-    call python_run_string("dt="//trim(buffer))  
+    call python_run_string("dt="//trim(buffer))
+    write(buffer,*) iteration
+    call python_run_string("iteration="//trim(buffer))  
       
     ! And finally run the user's code
     call get_option(trim(v_field%option_path)//"/diagnostic/algorithm",pycode)
@@ -204,6 +212,8 @@ contains
     call python_run_string("time="//trim(buffer))
     write(buffer,*) dt
     call python_run_string("dt="//trim(buffer))  
+    write(buffer,*) iteration
+    call python_run_string("iteration="//trim(buffer))  
       
     ! And finally run the user's code
     call get_option(trim(t_field%option_path)//"/diagnostic/algorithm",pycode)

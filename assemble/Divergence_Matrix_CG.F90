@@ -107,14 +107,16 @@ module divergence_matrix_cg
       integer :: ele, sele, dim
 
       ! pointer to coordinates
-      type(vector_field), pointer :: coordinate
+      type(vector_field), pointer :: coordinate, u_mesh
       character(len=OPTION_PATH_LEN) :: l_option_path
 
       ! integrate by parts
       logical :: integrate_by_parts
 
-      integer, dimension(:,:), allocatable :: field_bc_type
-      type(vector_field) :: field_bc
+      logical :: move_mesh
+
+      integer, dimension(:,:), allocatable :: field_bc_type, u_mesh_bc_type
+      type(vector_field) :: field_bc, u_mesh_bc
 
       real, dimension(:,:), allocatable :: div_mass_mat, grad_mass_mat
       
@@ -160,6 +162,14 @@ module divergence_matrix_cg
           &"/spatial_discretisation/discontinuous_galerkin")
 
       ewrite(2,*) "Divergence is integrated by parts: ", integrate_by_parts
+
+      move_mesh =  have_option("/mesh_adaptivity/mesh_movement")
+      if (move_mesh) then
+         U_mesh => extract_vector_field(state, "GridVelocity")
+         allocate(u_mesh_bc_type(field%dim, surface_element_count(field)))
+         call get_entire_boundary_condition(U_mesh, ['dirichlet'],&
+              u_mesh_bc, u_mesh_bc_type)
+      end if
 
       if(present(ct_rhs)) call zero(ct_rhs)
 
@@ -305,11 +315,12 @@ module divergence_matrix_cg
           "no_normal_flow         ", &
           "internal               ", &
           "free_surface           ", &
-          "prescribed_normal_flow "/), field_bc, field_bc_type)
+          "prescribed_normal_flow ", &
+          "tmp_fix                "/), field_bc, field_bc_type)
 
         do sele = 1, surface_element_count(test_mesh)
 
-          if(any(field_bc_type(:,sele)==2)&
+          if((any(field_bc_type(:,sele)==2) .and. .not. move_mesh)&
                .or.any(field_bc_type(:,sele)==3)&
                .or.any(field_bc_type(:,sele)==4)) cycle
 
@@ -345,10 +356,15 @@ module divergence_matrix_cg
             end if
 
             do dim = 1, field%dim
-              if((field_bc_type(dim, sele)==1).and.present(ct_rhs)) then
+              if((field_bc_type(dim, sele)==1 .or.field_bc_type(dim, sele)==6 ).and.present(ct_rhs)) then
                 call addto(ct_rhs, test_nodes_bdy, &
                             -matmul(ele_mat_bdy(dim,:,:), &
                             ele_val(field_bc, dim, sele)))
+              elseif (field_bc_type(1, sele)==2) then
+                 !! No normal flow and moving mesh
+                 call addto(ct_rhs, test_nodes_bdy, &
+                            -matmul(ele_mat_bdy(dim,:,:), &
+                            ele_val(u_mesh_bc, dim, sele)))
               else
                  if (l_get_ct) then
                     call addto(ct_m, 1, dim, test_nodes_bdy, field_nodes_bdy, &
@@ -360,6 +376,10 @@ module divergence_matrix_cg
         end do
         
         call deallocate(field_bc)
+        if (move_mesh) then
+           call deallocate(u_mesh_bc)
+           deallocate(u_mesh_bc_type)
+        end if
         deallocate(field_bc_type)
         deallocate(detwei_bdy, normal_bdy)
         deallocate(test_nodes_bdy, field_nodes_bdy)

@@ -1218,10 +1218,24 @@ start =
                   element scalar_field {
                      attribute rank { "0" },
                      attribute name { "DistanceToWall" },
-                     element prescribed {
-                        velocity_mesh_choice,
-                        prescribed_scalar_field
-                     }
+		     (
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field
+                        }
+                     |
+		        element diagnostic {
+                           element algorithm{
+			      attribute name {"scalar_distance_function"},
+			      attribute material_phase_support { "single" },
+			      element surface_ids {
+			         integer_vector
+                              }
+                           },
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
+                        }
+                     )
                   }?,
                   ## VLES Filter function (diagnostic).
                   ## Run a VLES by switching this option on.
@@ -3150,6 +3164,31 @@ velocity_boundary_conditions =
       (
          element type {
             attribute name { "dirichlet" },
+            ## Apply the dirichlet bc weakly.  Available automatically
+            ## with a discontinuous_galerkin Velocity
+            ## spatial_discretisation.  Available if you
+            ## integrate_continuity_by_parts with a
+            ## continuous_galerkin Pressure or use a control_volume
+            ## Pressure spatial_discretisation and/or
+            ## integrate_advection_by_parts under Velocity
+            ## spatial_discretisation with continuous_galerkin.
+            ##
+            ## If not selected boundary conditions are applied strongly.
+            element apply_weakly {
+               ## If the initial condition and boundary conditions
+               ## differ, setting this option will cause the initial
+               ## condition on the boundary to be overwritten with
+               ## the boundary condition. Since you are applying the
+               ## boundary condition weakly, you probably do *not*
+               ## want this.
+               element boundary_overwrites_initial_condition {
+                  empty
+               }?
+            }?,
+            velocity_components_choice
+         }|
+	  element type {
+            attribute name { "tmp_fix" },
             ## Apply the dirichlet bc weakly.  Available automatically
             ## with a discontinuous_galerkin Velocity
             ## spatial_discretisation.  Available if you

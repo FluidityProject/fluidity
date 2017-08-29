@@ -1564,10 +1564,27 @@ Elias et al 2007: "Simple finite element-based computation of distance functions
                       <attribute name="name">
                         <value>DistanceToWall</value>
                       </attribute>
-                      <element name="prescribed">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="prescribed_scalar_field"/>
-                      </element>
+                      <choice>
+                        <element name="prescribed">
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="prescribed_scalar_field"/>
+                        </element>
+                        <element name="diagnostic">
+                          <element name="algorithm">
+                            <attribute name="name">
+                              <value>scalar_distance_function</value>
+                            </attribute>
+                            <attribute name="material_phase_support">
+                              <value>single</value>
+                            </attribute>
+                            <element name="surface_ids">
+                              <ref name="integer_vector"/>
+                            </element>
+                          </element>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
+                        </element>
+                      </choice>
                     </element>
                   </optional>
                   <optional>
@@ -4310,6 +4327,37 @@ normals and tangenials 1/2</a:documentation>
       <element name="type">
         <attribute name="name">
           <value>dirichlet</value>
+        </attribute>
+        <optional>
+          <element name="apply_weakly">
+            <a:documentation>Apply the dirichlet bc weakly.  Available automatically
+with a discontinuous_galerkin Velocity
+spatial_discretisation.  Available if you
+integrate_continuity_by_parts with a
+continuous_galerkin Pressure or use a control_volume
+Pressure spatial_discretisation and/or
+integrate_advection_by_parts under Velocity
+spatial_discretisation with continuous_galerkin.
+
+If not selected boundary conditions are applied strongly.</a:documentation>
+            <optional>
+              <element name="boundary_overwrites_initial_condition">
+                <a:documentation>If the initial condition and boundary conditions
+differ, setting this option will cause the initial
+condition on the boundary to be overwritten with
+the boundary condition. Since you are applying the
+boundary condition weakly, you probably do *not*
+want this.</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+        </optional>
+        <ref name="velocity_components_choice"/>
+      </element>
+      <element name="type">
+        <attribute name="name">
+          <value>tmp_fix</value>
         </attribute>
         <optional>
           <element name="apply_weakly">

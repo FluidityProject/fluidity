@@ -65,7 +65,7 @@ subroutine drag_surface(bigm, rhs, state, density)
    integer, dimension(:), allocatable:: faceglobalnodes
    integer, dimension(:), pointer:: surface_element_list
    integer i, j, k, nobcs, stat
-   integer snloc, sele, sngi
+   integer snloc, sele, sngi, log_bc_count
    logical:: parallel_dg, have_distance_bottom, have_distance_top, have_gravity, manning_strickler
 
    real                            :: yPlus
@@ -105,11 +105,16 @@ subroutine drag_surface(bigm, rhs, state, density)
 !   end if
    allocate(friction_velocity(1:sngi))
 
+!   log_bc_count = option_count(trim(velocity%option_path)//'/prognostic/boundary_conditions/type/linear_drag')
    
    nobcs=option_count(trim(velocity%option_path)//'/prognostic/boundary_conditions')
 
    allocate(bc_type(velocity%dim, surface_element_count(velocity)))
    call get_entire_boundary_condition(velocity, ['drag'], bc_value, bc_type)
+
+!   if (log_bc_count>0.0) then
+!      call drag_friction_bc(velocity, u_tau)
+!   end if
 
    do i=1, nobcs
       call get_boundary_condition(velocity, i, type=bctype, &
@@ -203,5 +208,33 @@ subroutine drag_surface(bigm, rhs, state, density)
    deallocate(faceglobalnodes, face_detwei, coefficient, drag_mat)
    
 end subroutine drag_surface
+
+subroutine drag_friction_bc(velocity,u_tau, bc_value)
+  type(vector_field) :: velocity, bc_value
+  type(scalar_field) :: u_tau
+ 
+  type(vector_field) :: surface_velocity
+  type(scalar_field) :: y, yplus, nu
+
+  integer :: sele
+  integer, dimension(:), pointer :: snodes
+
+!  call allocate(surface_velocity, bc_value%mesh, dim=velocity%dim)
+  call allocate(y, bc_value%mesh)
+  call allocate(yplus, bc_value%mesh)
+  call allocate(nu, bc_value%mesh)
+
+  do sele=1, surface_element_count(velocity)
+
+     snodes => ele_nodes(bc_value,sele)
+     call set(surface_velocity, snodes, &
+          face_val(velocity, sele) - ele_val(bc_value, sele))
+     call set(y, snodes, 1.0e-4)
+
+  end do
+
+!  call find_friction_velocity(0.41, 5.5, 
+
+end subroutine drag_friction_bc
 
 end module drag_module

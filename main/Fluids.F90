@@ -36,7 +36,7 @@ module fluids_module
        simulation_start_time, &
        simulation_start_cpu_time, &
        simulation_start_wall_time, &
-       topology_mesh_name, FIELD_NAME_LEN
+       topology_mesh_name, FIELD_NAME_LEN, iteration
   use futils, only: int2str
   use reference_counting, only: print_references
   use parallel_tools
@@ -587,6 +587,8 @@ contains
           ewrite(1,*)'###################'
           ewrite(1,*)'Start of another nonlinear iteration; ITS,nonlinear_iterations=',ITS,nonlinear_iterations
           ewrite(1,*)'###################'
+          
+          iteration = its
 
           call copy_to_stored_values(state, "Iterated")
           ! relax to nonlinear has to come before copy_from_stored_values
@@ -898,6 +900,9 @@ contains
 !       if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
 !          call melt_surf_calc(state(1))
 !       end if
+       
+       call update_surface_positions(state(1))
+
        ! calculate and write diagnostics before the timestep gets changed
        call calculate_diagnostic_variables(State, exclude_nonrecalculated=.true.)
        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
@@ -952,6 +957,8 @@ contains
 
              call adapt_state(state, metric_tensor)
 
+             call add_surface_positions(state(1))
+
              call update_state_post_adapt(state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
 
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
@@ -988,6 +995,7 @@ contains
              call run_diagnostics(state)
 
              call adapt_state_prescribed(state, current_time)
+             call add_surface_positions(state(1))
              call update_state_post_adapt(state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
 
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
@@ -1311,5 +1319,22 @@ contains
     call deallocate(surface_nodes)
 
   end subroutine add_surface_positions
+
+  subroutine update_surface_positions(state)
+
+    type(state_type) :: state
+    type(vector_field), pointer :: positions, surface_positions
+
+    integer:: sele
+    
+    positions=>extract_vector_field(state,"Coordinate")
+    surface_positions=>extract_vector_field(state,"SurfaceCoordinate")
+
+    do sele = 1, element_count(surface_positions)
+       call set(surface_positions, ele_nodes(surface_positions, sele),&
+            face_val(positions, sele))
+    end do
+
+  end subroutine update_surface_positions
 
   end module fluids_module

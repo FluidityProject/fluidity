@@ -81,6 +81,10 @@ module global_parameters
   real, save, target ::  dt
   !! The current timestep number
   integer, save, target :: timestep = 0
+  !! The current nonlinear
+  integer, save :: iteration = 0
+
+
 
   real, parameter:: pi = 3.1415926535897931
 

@@ -402,7 +402,7 @@ contains
        end if
 
        select case(trim(bc_type))
-       case("dirichlet", "neumann", "weakdirichlet", "flux", "solid_body", "weaksolid_body")
+       case("dirichlet", "neumann", "weakdirichlet", "flux", "solid_body", "weaksolid_body", "tmp_fix")
 
           if(have_option(trim(bc_path_i)//"/type[0]/align_bc_with_cartesian")) then
              aligned_components=cartesian_aligned_components
@@ -982,7 +982,7 @@ contains
        end if
 
        select case(trim(bc_type))
-       case("dirichlet", "neumann", "weakdirichlet", "flux")
+       case("dirichlet", "neumann", "weakdirichlet", "flux", "tmp_fix")
 
           if(have_option(trim(bc_path_i)//"/align_bc_with_cartesian")) then
              aligned_components=cartesian_aligned_components
