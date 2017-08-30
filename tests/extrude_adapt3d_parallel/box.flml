@@ -308,7 +308,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="code" lines="20" language="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from math import pi, exp, sin
   k = pi**2
   return exp(-k*t)*sin(pi*X[2])-X[2]</string_value>
@@ -323,7 +323,7 @@
     </scalar_field>
     <scalar_field name="HeatError" rank="0">
       <diagnostic>
-        <algorithm name="scalar_difference" source_field_1_name="AnalyticalHeat" source_field_2_name="Heat" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="AnalyticalHeat" source_field_2_name="Heat" material_phase_support="single" source_field_1_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="VelocityMesh"/>

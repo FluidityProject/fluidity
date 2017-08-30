@@ -189,9 +189,6 @@
    import mms_les_second_order_Ri_p1dgp2_tools as mms
    return mms.U(X)</string_value>
           </python>
-          <!-- <constant> -->
-          <!--   <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value> -->
-          <!-- </constant> -->
         </value>
         <output/>
         <stat>

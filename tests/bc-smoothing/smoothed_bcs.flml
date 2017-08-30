@@ -122,7 +122,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value type="code" lines="20" language="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   uvw = [0,0,0]
   for i in range(3):
     if X[i]&lt;0.499:
@@ -140,7 +140,7 @@
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value type="code" lines="20" language="python">def val(X,t):
+                  <string_value lines="20" type="code" language="python">def val(X,t):
   if X[0]&lt;0.499:
     return -1.0
   else:
@@ -437,7 +437,7 @@
     <vector_field name="VelocityGradAlongSurface" rank="1">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="single">
-          <string_value type="code" lines="20" language="python"># compute the x-derivative of the u component of velocity
+          <string_value lines="20" type="code" language="python"># compute the x-derivative of the u component of velocity
 # only at those surfaces where this component is along the surface
 # followed by y-derivative of v-velocity, and z-derivative of w-velocity
 grad=state.tensor_fields['VelocityGrad']
@@ -466,7 +466,7 @@ for i, component in enumerate('XYZ'):
     </vector_field>
     <tensor_field name="VelocityGrad" rank="2">
       <diagnostic>
-        <algorithm material_phase_support="single " source_field_type="vector" source_field_name="Velocity" name="grad_vector"/>
+        <algorithm source_field_type="vector" material_phase_support="single " name="grad_vector" source_field_name="Velocity"/>
         <mesh name="P1DG"/>
         <output/>
         <stat>
