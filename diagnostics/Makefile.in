@@ -50,7 +50,7 @@ LIB = ../lib/lib$(FLUIDITY).a
 AUTO_WRAPPER = Diagnostic_Fields_New
 DISABLED_DIAGS = $(AUTO_WRAPPER) Diagnostic_Source_Fields Diagnostic_Fields_Interfaces
 DIAGOBJS = $(addsuffix .o, $(filter-out $(DISABLED_DIAGS), $(basename $(wildcard *.F90))))
-OBJS = $(AUTO_WRAPPER).o $(DIAGOBJS) Diagnostic_Source_Fields.o  Diagnostic_Fields_Interfaces.o
+OBJS = $(AUTO_WRAPPER).o $(DIAGOBJS) Diagnostic_Source_Fields.o  Diagnostic_Fields_Interfaces.o Distance.o
 
 .SUFFIXES: .F90 .c .cpp .o .a
 
