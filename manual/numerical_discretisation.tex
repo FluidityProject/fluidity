@@ -1472,38 +1472,6 @@ where $c_{f_k}^{LO}$ is the low order face value and $\tilde{c}_{f_k}^{HO}$ and 
 
 In \fluidity\ the low order pivot value uses first order upwinding (see section \ref{sec:cv_fou}) and the pivot implicitness factor, $\theta_p$, defaults to $1$.  This implicit pivot is then used to overcome the timestep restriction and an extra advection iteration loop is introduced to update the values of $\tilde{c}_{f_k}^{HO}$ and $\tilde{c}_{f_k}^{LO}$.  If this converges, then after a number of iterations $c_{f_k}^{LO n+1} \approx \tilde{c}_{f_k}^{LO}$ and $c_{f_k} \approx \theta c_{f_k}^{HO n+1} + \theta c_{f_k}^{HO n}$.  Hence an implicit high order face value is achieved.  If the iteration does not converge, either due to too few advection iterations being selected or as a result of non-convergent behaviour in the face value limiter, then $c_{f_k}$ is just a linear combination of low order and high order face values.  This still results in a valid face value, although as is generally the case for implicit advection methods, it is not possible to guarantee the boundedness of this scheme.
 
-\subsection{Porous Media}
-\label{sec:time_disc_scalar_field_porous}
-\index{porous media darcy flow}
-
-In this section the modification to the temporal discretisation of the general scalar transport equation to include porosity is described. 
-
-Using the product rule for the time partial derivative of the modified scalar transport equation \eqref{eq:general_scalar_eqn_single_phase_darcy} gives:
-\begin{equation}
-   \phi \ppt{c} + \ppt{\phi} c + \nabla\cdot(\vec{u}_{\phi} c) = 0.
-\end{equation}
-This is discretised using the classical $\theta$ scheme to give:
-\begin{equation}
-  \phi^{n} \frac{c^{n+1}-c^{n}}{\Delta t} + \nabla\cdot(\urelax_{\phi} c^{n+\theta}) = - c^{n} \frac{\phi^{n+1}-\phi^{n}}{\Delta t}.
-\end{equation}
-This discretisation has chosen to explicitly represent $\phi$ when associated with the discretised time derivative of $c$ and vice versa. In a similar manner to that derived in section \ref{sec:ND_time_disct_adv_diff} this can be expressed in semi discrete form as:
-\begin{equation}
-  \left ( \mat{M}_{\phi^{n}} + \thetac \Delta t \mat{A}(\urelax_{\phi}) \right ) \cnew = 
-  \left ( \mat{M}_{\phi^{n}} - ( 1 - \thetac ) \Delta t \mat{A}(\urelax_{\phi}) \right ) \cold - 
-  \mat{M}_{c^{n}} (\dvec{\phi}^{n+1}-\dvec{\phi}^{n}).
-\end{equation}
-Taking $\psi$ to represent the test and basis function space associated with $c$ and $\zeta$ to represent the basis function space associated with the porosity $\phi$, the modified mass matrices take the form:
-\begin{equation}
-  \mat{M}_{\phi^{n}_{ij}} = \int_\Omega \psi_i \psi_j \phi^{n}, \quad
-  \mat{M}_{c^{n}_{ij}} = \int_\Omega \psi_i \zeta_j c^{n},
-\end{equation}
-where $\phi^{n}$ and $c^{n}$ are known functions (which are thus numerically evaluated at the quadrature points during the integration sum). If the rate of change of porosity with time is negligible then the discretised equation for $c$ reduces to
- \begin{equation}
-  \left ( \mat{M}_{\phi^{n}} + \thetac \Delta t \mat{A}(\urelax_{\phi}) \right ) \cnew = 
-  \left ( \mat{M}_{\phi^{n}} - ( 1 - \thetac ) \Delta t \mat{A}(\urelax_{\phi}) \right ) \cold.
-\end{equation}
-This form of the porous media scalar transport equation is the one permitted in \fluidity for control volume discretisations with $\zeta$ equal to $\psi$ or piece wise constant over an element. A similar derivation is used for the transport of the individual components of the metric tensor associated with mesh adaptivity.
-
 \section{Momentum equation}
 \index{momentum equation!discretised}
 
@@ -1582,26 +1550,6 @@ where (again assuming CG and ignoring boundary conditions):
   \matC_{ij}=\int_\Omega \bmphi_i\cdot\grad\psi_j, \quad
     \dvec{b}_i(\rho')=\int_\Omega \bmphi_i\cdot\vec g\rho',\quad
     \dvec{F}_i=\int_\Omega \bmphi_i \cdot\vec F
-\end{split}
-\end{equation*}
-
-\subsection{Porous Media Darcy Flow}
-\label{sec:porous_media_darcy_flow_discretisation}
-\index{porous media darcy flow}
-
-\subsubsection{Single Phase}
-
-The discretisation of the Darcy velocity equation \eqref{eq:mom_press_single_phase_darcy} is given by:
-\begin{equation}
-  \mat{M}_{\sigma} \dvec{u}_{\phi}
-    = - \matC \dvec{p} + \dvec{b}(\rho),
-\end{equation}
-where (ignoring boundary conditions):
-\begin{equation*}
-\begin{split}
-  \mat{M}_{\sigma_{ij}}=\int_\Omega \bmphi_i\cdot\bmphi_j \tensor{\sigma}, \quad
-  \matC_{ij}=\int_\Omega \bmphi_i\cdot\grad\psi_j, \quad
-  \dvec{b}_i(\rho)=\int_\Omega \bmphi_i\cdot\vec g\rho.
 \end{split}
 \end{equation*}
 
@@ -1819,42 +1767,6 @@ have the following property\citep{cotter2009}:
 That is, the discretised pressure equation \eqref{eqn:pressure_correction}
 is the same as that would be obtained from a direct $P_{n+1}$
 discretisation of the continuous pressure poisson equation.
-
-\subsection{Porous Media Darcy Flow}
-\label{sec:porous_media_darcy_flow_pressure_correction}
-\index{porous media darcy flow}
-
-\subsubsection{Single Phase}
-
-To solve the single phase porous media Darcy force balance \eqref{eq:mom_press_single_phase_darcy} 
-and incompressible mass conservation \eqref{eq:cty_single_phase_darcy} the pressure correction 
-algorithm described in section \ref{sec:pressure_correction} requires modification. As there is 
-no momentum time term the absorption term is instead included in the correction step. The pressure 
-correction algorithm then takes the same steps as before but solving for the Darcy velocity rather 
-than the interstitial velocity. The first step is to solve for a preliminary $\dvec{u}_{\phi}^{*}$ 
-from an initial pressure guess $\dvec{p}^{*}$ via:
-\begin{equation}
-  \mat{M}_{\sigma} \dvec{u}_{\phi_{*}}
-    = - \matC \dvec{p}_{*} + \dvec{b}(\rho).
-\end{equation}
-A pressure correction is then solved for via the derived equation
-\begin{equation}
- \matB^T \mat{M_{\sigma}^{-1}}\matC~\Delta\dvec p
-   = \matB^T \dvec{u}_{\phi_{*}}-\vec{\mat{M}}_{D} ~\dvec{g}_{D}.
-\end{equation}
-After obtaining the pressure correction the pressure and velocity can
-be updated by:
-\begin{equation*}
-\begin{split}
-  \dvec{\tilde p} &= \dvec p_{*} + \Delta\dvec p, \\
-  \dvec{\tilde u}_{\phi} &= \dvec{u}_{\phi_{*}}
-  - M_{\sigma}^{-1} \matC \Delta\dvec p.
-\end{split}
-\end{equation*}
-For incompressible flow as there is no Darcy velocity time dependence and because all the 
-Darcy velocity terms (being only the absorption) are included in the pressure correction step 
-there is no requirement for multiple non linear iterations, unless there is a non linear absorption 
-coefficient or source term.
 
 \section{Velocity and pressure element pairs}
 \label{sec:velocity_pressure_element_pairs}

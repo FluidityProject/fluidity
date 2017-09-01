@@ -445,9 +445,6 @@ which case it should be on a continuous mesh.</a:documentation>
         </choice>
       </element>
     </optional>
-    <optional>
-      <ref name="porosity_include"/>
-    </optional>
     <ref name="prognostic_scalar_output_options"/>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
@@ -1747,7 +1744,7 @@ Only works for incompressible flow. This will make the pressure matrix non symme
 considered when selecting the pressure solver options. This cannot be used with the standard p=0 
 free surface model (but can be used with the zero normal stress free surface). It will not work with 
 wetting and drying models. Also the mesh assoicated with the pressure field must use the lagrangian 
-element type (the default). This will not work with the implicit solids model using two way coupling. </a:documentation>
+element type (the default).</a:documentation>
               <ref name="comment"/>
             </element>
           </optional>
@@ -2514,13 +2511,6 @@ Uses a non-conservative time discretisation.</a:documentation>
           <value>InternalEnergy</value>
         </attribute>
         <ref name="equation_coefficients"/>
-      </element>
-      <element name="equation">
-        <a:documentation>Option to solve for electrical potential from
-electrokinetic, electrochemical or electrothermal sources </a:documentation>
-        <attribute name="name">
-          <value>ElectricalPotential</value>
-        </attribute>
       </element>
       <element name="equation">
         <a:documentation>Equation type for the k-epsilon model fields.

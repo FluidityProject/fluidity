@@ -181,15 +181,6 @@ bin/$(FLUIDITY): main.o lib/lib$(FLUIDITY).a
 	@echo "    LD $(PROGRAM)"
 	@$(EVAL) $(LINKER) -o $(PROGRAM) main.o $(LIBS)
 
-bin/form_pod_basis: fluidity_library reduced_modelling/Form_Pod_Basis_Main.F90
-	@cd reduced_modelling; $(MAKE) Form_Pod_Basis_Main.o
-	@echo "BUILD Form_Pod_Basis"
-	@echo "    MKDIR bin"
-	@mkdir -p bin
-	@echo "    LD Form_Pod_Basis"
-	@$(EVAL) $(LINKER) -o bin/form_pod_basis reduced_modelling/Form_Pod_Basis_Main.o $(LIBS)
-
-
 static: fluidity_library
 
 shared: lib/shared/$(SLIB_FLUIDITY).1
@@ -272,8 +263,6 @@ endif
 	@cd assemble;   	$(MAKE)
 	@echo "    MAKE diagnostics"
 	@cd diagnostics;   	$(MAKE)
-	@echo "    MAKE reduced_modelling"
-	@cd reduced_modelling;   	$(MAKE)
 	@echo "    MAKE main"
 	@cd main; $(MAKE)
 	@echo "    MAKE options_check"
@@ -298,7 +287,6 @@ population_balance/*.o \
 error_measures/*.o \
 assemble/*.o \
 diagnostics/*.o \
-reduced_modelling/*.o \
 main/*.o
 ifeq (@HYPERLIGHT@,yes)
 	@$(AR) $(ARFLAGS) lib/libfluidity.a hyperlight/*.o
@@ -364,10 +352,8 @@ ifeq (@HYPERLIGHT@,yes)
 	@echo "    CLEAN hyperlight"
 	@cd hyperlight; $(MAKE) clean
 endif
-	@cd climatology;  $(MAKE) clean
 	@echo "    CLEAN climatology"
-	@echo "    CLEAN reduced_modelling"
-	@cd reduced_modelling; $(MAKE) clean
+	@cd climatology;  $(MAKE) clean
 	@echo "    CLEAN main"
 	@cd main; $(MAKE) clean
 	@rm -fr bin lib
@@ -548,8 +534,6 @@ endif
 	"Diagnostic_Fields_Interfaces.F90 Diagnostic_Fields_New.F90" $(TESTOPTS)
 	@cd diagnostics;   	$(MAKE) Diagnostic_Fields_Interfaces.o \
 	Diagnostic_Fields_New.o 
-	@echo "    Generating reduced_modelling dependencies"
-	@cd reduced_modelling;   	../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating main dependencies"
 	@cd main; ../bin/create_makefile --exclude test_coupler.F90 $(TESTOPTS)
 	@echo "    Cleaning up the mess"

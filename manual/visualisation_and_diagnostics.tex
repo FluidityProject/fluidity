@@ -71,9 +71,6 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 \item[ControlVolumeDivergence:]Divergence of the velocity field where the divergence operator is defined using the control volume $\mathrm{C}^\mathrm{T}$ matrix. This assumes that the test space is discontinuous control volumes.
 \item[CVMaterialDensityCFLNumber:]Courant Number as defined on a control volume mesh and incorporating the MaterialDensity. Requires a MaterialDensity field!
 \item[DG\_CourantNumber:]CFLNumber as defined on a DG mesh. It is calculated as $\triangle t \frac{1}{V} \int _{element} \vec{u}$ where $\triangle t$ is the timestep and $\vec{u}$ the velocity. The integral is taken over the faces of the element $V$ is the volume of the element.
-\item[InterstitialVelocityCGCourantNumber:]CFLNumber as defined on the CG mesh using the interstitial velocity for porous media flow. It is calculated as $\frac{\triangle t \vec{u}_{\phi}} {\mat{J} \phi}$ where $\triangle t$ is the timestep, $\vec{u}_{\phi}$ the velocity with embedded porosity that was solved for, $\mat{J}$ the Jacobian and $\phi$ is the porosity. 
-\item[InterstitialVelocityCVCourantNumber:]CFL Number as defined on a control volume mesh using the interstitial velocity for porous media flow. It is calculated as $\triangle t \frac{1}{V} \int _{cv_{face}} \frac{\vec{u}_{\phi}}{\phi}$ where $\triangle t$ is the timestep, $\vec{u}_{\phi}$ the velocity with embedded porosity that was solved for and $\phi$ is the porosity. The integral is taken over the faces of the control volume and $V$ is the volume of the control volume.
-\item[InterstitialVelocityDGCourantNumber:]CFLNumber as defined on a DG mesh using the interstitial velocity for porous media flow. It is calculated as $\triangle t \frac{1}{V} \int _{element} \frac{\vec{u}_{\phi}}{\phi}$ where $\triangle t$ is the timestep, $\vec{u}_{\phi}$ the velocity with embedded porosity that was solved for and $\phi$ is the porosity. The integral is taken over the faces of the element $V$ is the volume of the element.
 \item[DiffusiveDissipation:]The rate at which internal energy is converted to potential energy: $-g\ppx[y]{\rho}$, where $\rho$ is the Density. Note the actual diffusive dissipation is $-2g\tensor{\kappa} \ppx[y]{\rho}$ (2 subject to definition) where $\ppt[t]{\rho} + \vec{u}\cdot \nabla \rho = \tensor{\kappa} \nabla^2 \rho$. This should be taken into account when post-processing. It also assumes kappa is isotropic and constant, cf. \cite{winters1995}.
 \item[DiscontinuityDetector:]This field detects the discontinuities in a discontinuous Galerkin field, the larger the discontinuity, the larger the value it takes. The discontinuity field is used by the HWENO slope limiter, \ref{sec:ND_hermite_weno_limiter}.
 \item[FiniteElementDivergence:]Divergence of the velocity field where the divergence operator is defined using the finite element $\mathrm{C}^\mathrm{T}$ matrix.
@@ -130,11 +127,6 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 \item[ViscousDissipation:] $\nabla \vec{u} : \nabla \vec{u} = \sum _{ij}\frac{\partial u_i}{\partial x_j}\frac{\partial u_i}{\partial x_j}$. The actual viscous dissipation for a Boussinesq fluid with isotropic viscosity, $\nu$, is $\nu \rho_0 (\nabla \vec{u}):(\nabla \vec{u})$ where $\rho_0$ is the reference density in the equation of state. This should be taken into account when post-processing, cf. \cite{winters1995}. \\
 Limitations: Only coded for 2D.
 \item[CopyofDensity:]This scalar field is meant to replace DENTRAF. Basically, if you use new options, DENTRAF is no longer needed. No repointing is done from this field to DENTRAF. 
-\item[ParticleScalar:]Add a field to be used by Solid\_configuration to map the solid\_Concentration from particle mesh to the fluid mesh. 
-\item[SolidConcentration:]The volume fraction of the solid phase in FEMDEM.
-\item[SolidPhase:]Zero everywhere except for the boundary of the solid phase in FEMDEM.
-\item[VisualizeSolid:]Add a field to be used by Solid\_configuration to visualise the solid\_Concentration 
-\item[VisualizeSolidFluid:]Add a field to be used by Solid\_configuration to visualise the solids and MaterialVolumeFraction together.
 \item[WettingDryingAlpha:]Wetting and drying alpha coefficient. Alpha is 1 in dry and 0 in wet regions. Note: the diagnostic WettingDryingAlpha only works in combination with the free\_surface boundary condition applied to the Velocity field. It gives you a 3D field (constant over the vertical) of the wetting and drying alpha coefficient.
 \end{description}
 
@@ -153,10 +145,8 @@ The available internal \option{vector\_field}  diagnostics are:
   Limitations: Requires a geometry dimension of 3. Requires inner element active for momentum.
  \item[DgMappedVorticity:]Vorticity of the DG mapped Velocity. Note vorticity is actually calculated over a DG field.
   Limitations: Requires a geometry dimension of 3. Requires inner element active for momentum.
- \item[ElectricalConductivity:]A spontaneous potentials diagnostic to compute electrical conductivity.
  \item[FiniteElementDivergenceTransposed:]Gradient of a scalar field evaluated using the transpose of the $\mathrm{C}^\mathrm{T}$ divergence matrix constructed using finite elements. The field must be in the same \option{material\_phase} as \option{vector\_field::FiniteElementDivergenceTransposed}.   
  \item[FiniteElementGradient:]Gradient of a scalar field evaluated using the C gradient matrix constructed using finite elements. The field must be in the same \option{material\_phase} as \option{vector\_field::FiniteElementGradient}. 
-  \item[FunctionalGradient:]Same as \option{vector\_field::SolidVelocity} but it is on the Particle mesh. It is used to map the velocities coming from an external program like FEMDEM or DEM to the fluid mesh.    
  \item[GalerkinProjection:]Galerkin projection of one field onto another mesh. The field must be in the same \option{material\_phase} as \option{vector\_field::GalerkinProjection}     
  \item[InnerElementFullVelocity:]Full velocity in an inner element SGS treatment of momentum.
   Limitations: Requires a geometry dimension of 3. Requires inner element active for momentum. 
@@ -166,15 +156,10 @@ The available internal \option{vector\_field}  diagnostics are:
   Limitations: Requires a geometry dimension of 3. Requires inner element active for momentum.
  \item[LinearMomentum:]LinearMomentum field: $p = \rho \vec{u}$ (where $p$ is the linear momentum, $\rho$ the density and $\vec{u}$ the velocity)
  \item[MaxBedShearStress:]Max Bed Shear Stress. Note that you need \option{vector\_field::BedShearStress} turned on for this to work.    
- \item[ParticleForce:] Same as Solid Velocity field but it is on the Particle mesh. It is used to map the velocities coming from an external program like FEMDEM or DEM to the fluid mesh.       
- \item[ParticleVector:]Same as Solid Velocity field but it is on the Particle mesh. It is used to map the velocities coming from an external program like FEMDEM or DEM to the fluid mesh.   
  \item[PlanetaryVorticity:]Planetary vorticity
 	Limitations: Requires geometry dimension of 3. 
- \item[SolidForce:]Same as Solid Velocity field but it is on the Particle mesh. It is used to map the velocities coming from an external program like FEMDEM or DEM to the fluid mesh.    
- \item[SolidVelocity:]Solid Velocity field.  Used to generate the momentum source   
  \item[TemperatureGradient:]Temperature gradient
  \item[VectorAbsoluteDifference:]Absolute Difference between two vector fields. Assumes both fields are on the same mesh as \option{vector\_field::AbsoluteDifference}. Both fields and \option{vector\_field::AbsoluteDifference} must be in the same \option{material\_phase}.    
- \item[VelocityPlotForSolids:]Implicit solids related field for the velocity of the solid phase.
  \item[Vorticity:](Relative vorticity field) - (curl of the velocity field)    
 \end{description}
 

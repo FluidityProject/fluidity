@@ -1247,7 +1247,6 @@ The current limitations of this method are:
   \item It can only be used for incompressible flow \ref{sec:ND_pressure_equation}.
   \item It cannot be used with the standard $p=0$ free surface model (but can be used with the zero normal stress free surface) \ref{sec:free_surface}.
   \item It cannot be used with the wetting and drying model \ref{sec:wetting_and_drying}.
-  \item It cannot be used with the implicit solids model with two way coupling.
   \item It can only be used if the pressure has a mesh associated with Lagrangian shape functions.
   \item It can only be used with control volume shape functions that are available, of which only P1CV are considered reliable. 
 \end{enumerate}
@@ -2821,53 +2820,3 @@ Note that unlike all the other hydrostatic/geostrophic balance options in Fluidi
 \subsection{Restrictions: discretisation options and element pairs}
 Either continuous Galerkin or control volumes can be used as discretisation options for pressure and density (both fields need to have the same option). When using control volumes pressure and density have to be on the same order of parent mesh.
 
-\section{Porous Media Darcy Flow}
-\label{sec:porous_media_darcy_flow_configure}
-\index{porous media Darcy flow}
-
-\subsection{Single Phase}
-
-This section describes how to configure \fluidity to simulate single phase incompressible Darcy flow.
-
-First, the \option{Porosity} and \option{Permeability} fields found under the option element \option{/porous\_media} require configuring. Both fields can be either \option{prescribed} or \option{diagnostic}. The \option{Permeability} field can be either a \option{scalar\_field} or a \option{vector\_field}. The \option{Porosity} field will only be used in the transport of scalar fields and the metric tensor. The \option{Permeability} field will only be used in forming the absorption coefficient in the Darcy velocity equation. The use of these two fields should be considered when selecting their associated mesh. If \option{Porosity} is to be included in the transport of scalar fields (and the metric tensor) that are discretised using control volumes, due to the way this method is coded, the mesh associated with the \option{Porosity} must be either element wise (meaning discontinuous order zero) or the same order as field to be transported. It is therefore recommended that the \option{Porosity} field always be 
-associated with a mesh that is discontinuous order zero. It is recommended that the \option{Permeability} field also be associated with a mesh that is discontinuous order zero, due to the recommended Darcy velocity - pressure element pair (being p0p1cv or p0p1 with the continuity tested with the p1 control volume dual space)
-
-Second, the prognostic \option{Velocity} vector field of the (only) phase is now taken to be the Darcy velocity \ref{sec:porous_media_darcy_flow_equations}. There is no option to select Darcy flow but this can be achieved via a careful selection of the \option{Velocity} field options tree given by:
-\begin{itemize}
-\item the momentum equation must be set to \option{\ldots/equation::Boussinesq},
-\item the time term must be removed via including the option \option{\ldots/mass\_terms/exclude\_mass\_terms},
-\item the momentum advection term must be removed via including the option \option{\ldots/discontinuous\_galerkin/advection\_scheme/none} or the option \option{\ldots/continuous\_galerkin/advection\_terms/exclude\_advection\_terms},
-\item the option \option{\ldots/spatial\_discretisation/conservative\_advection} is not used and can be set to $0.0$,
-\item the temporal options \option{\ldots/temporal\_discretisation/theta} and \option{\ldots/temporal\_discretisation/relaxation} are not used and can be set to $1.0$,
-\item the solver options require setting up to solve the resulting symmetric mass matrix that includes the absorption term (which for a discontinuous discretisation is element wise block diagonal),
-\item the initial condition is only used as the initial guess into the solver as there is no time dependence,
-\item the absorption term is included via the option \option{\ldots/vector\_field::Velocity/prognostic/vector\_field::Absorption},
-\item the absorption term must be included in the pressure correction via the option \option{\ldots/vector\_field::Absorption/include\_pressure\_correction},
-\item the absorption field can be set as prescribed if known or set to be diagnostic and formed using the python diagnostics via \option{\ldots/vector\_field::Absorption/diagnostic/algorithm::vector\_python\_diagnostic},
-\item the mesh associated with the absorption field is recommended to be discontinuous order zero, 
-\item the tensor field \option{\ldots/vector\_field::Velocity/prognostic/tensor\_field::Viscosity} must NOT be included as this will automatically include stress terms.
-\end{itemize}
-To finish the configure of the Darcy velocity field the absorption coefficient ($\sigma$ in equation \eqref{eq:mom_press_single_phase_darcy}) has to be input as defined by equation \eqref{eq:single_phase_darcy_velocity_abs}. This can be easily achieved using the python diagnostics where it is recommended that a generic field in the associated \option{material\_phase} is used to represent viscosity.
-
-Third, the pressure options require setting where:
-\begin{itemize}
-\item it is recommended to use the option \option{\ldots/scalar\_field::Pressure/prognostic/scheme/use\_projection\_method},
-\item it is recommended to use the option \option{\ldots/scalar\_field::Pressure/prognostic/spatial\_discretisation/control\_volumes} or \option{\ldots/scalar\_field::Pressure/prognostic/spatial\_discretisation/continuous\_galerkin/test\_continuity\_with\_cv\_dual},
-\item the option \option{\ldots/scalar\_field::Pressure/prognostic/scheme/update\_discretised\_equation} must be included if the absorption term is non linear.
-\end{itemize}
-
-Fourth, to transport a scalar field (for example \option{Tracer}) through the porous media using the Darcy velocity requires:
-\begin{itemize}
-\item the \option{Tracer} field to include the porosity via the option \option{\ldots/scalar\_field::Tracer/prognostic/porosity},
-\item the metric advection to include porosity via the option \option{/mesh\_adaptivity/hr\_adaptivity/metric\_advection/porosity},
-\item if a diffusivity, absorption or source term is included in the \option{Tracer} equation then the \option{Porosity} must be included manually using the python diagnostics,
-\item for CV or DG subcycling a Courant number field based on the interstitial velocity should be chosen,
-\item for CV face value schemes and limiters a Courant number field based on the interstitial velocity should be chosen, 
-\item for adaptive time stepping a Courant number field based on the interstitial velocity should be chosen.
-\end{itemize}
-
-Finally, the inclusion of porosity defaults to use the scalar field named \option{Porosity} and a theta value of $0.0$. These can be changed via the options
-\begin{itemize}
-\item \option{\ldots/porosity/porosity\_field\_name},
-\item \option{\ldots/porosity/porosity\_temporal\_theta}.
-\end{itemize} 
