@@ -341,7 +341,6 @@ prognostic_scalar_field =
             }
          )
       }?,
-      porosity_include?,
       prognostic_scalar_output_options,
       prognostic_scalar_stat_options,
       scalar_convergence_options,
@@ -1408,7 +1407,7 @@ prognostic_pressure_field =
                ## considered when selecting the pressure solver options. This cannot be used with the standard p=0 
                ## free surface model (but can be used with the zero normal stress free surface). It will not work with 
                ## wetting and drying models. Also the mesh assoicated with the pressure field must use the lagrangian 
-               ## element type (the default). This will not work with the implicit solids model using two way coupling. 
+               ## element type (the default).
                element test_continuity_with_cv_dual {
                   comment
                }?
@@ -2040,11 +2039,6 @@ scalar_equation_choice =
          element equation {
             attribute name { "InternalEnergy" },
             equation_coefficients
-         }|
-         ## Option to solve for electrical potential from
-         ## electrokinetic, electrochemical or electrothermal sources 
-         element equation { 
-            attribute name { "ElectricalPotential" }
          }|
          ## Equation type for the k-epsilon model fields.
          ## Note: Only works for continuous galerkin or control volume discretisations.

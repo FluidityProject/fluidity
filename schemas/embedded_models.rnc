@@ -1,9 +1,0 @@
-# The embedded models
-
-embedded_models = 
-   (
-      ## Fluidity embedded models
-      element embedded_models {
-         comment
-      }
-   )

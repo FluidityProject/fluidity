@@ -6,16 +6,13 @@
   <include href="input_output.rng"/>
   <include href="solvers.rng"/>
   <include href="stabilisation.rng"/>
-  <include href="reduced_model.rng"/>
   <include href="mesh_options.rng"/>
   <include href="physical_parameters.rng"/>
   <include href="prognostic_field_options.rng"/>
   <include href="prescribed_field_options.rng"/>
   <include href="spatial_discretisation.rng"/>
   <include href="temporal_discretisation.rng"/>
-  <include href="embedded_models.rng"/>
   <include href="flredecomp.rng"/>
-  <include href="porous_media.rng"/>
   <include href="multiphase_interaction.rng"/>
   <include href="equation_of_state.rng"/>
   <start>
@@ -1964,234 +1961,6 @@ via a compressible equation of state.</a:documentation>
             <ref name="population_balance"/>
           </zeroOrMore>
           <optional>
-            <element name="electrical_properties">
-              <a:documentation>Parameters required to model spontaneous electrical potentials in porous media.</a:documentation>
-              <choice>
-                <element name="conductivity">
-                  <a:documentation>Specify electrical conductivity of fluid (S/m).
-This assumes that salinity and temperature are not used.</a:documentation>
-                  <ref name="real"/>
-                </element>
-                <element name="conductivity_from_salinity">
-                  <a:documentation>Calculate conductivity from fluid salinity</a:documentation>
-                  <empty/>
-                </element>
-                <element name="conductivity_from_salinity_and_temperature">
-                  <a:documentation>Calculate conductivity from fluid salinity and temperature</a:documentation>
-                  <empty/>
-                </element>
-              </choice>
-              <element name="coupling_coefficients">
-                <a:documentation>Various coupling coefficients associated with spontaneous potentials.</a:documentation>
-                <optional>
-                  <element name="scalar_field">
-                    <a:documentation>Electrokinetic coupling coefficient (V/Pa).</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>Electrokinetic</value>
-                    </attribute>
-                    <choice>
-                      <element name="prescribed">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="prescribed_scalar_field_no_adapt"/>
-                      </element>
-                      <element name="diagnostic">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="scalar_python_diagnostic_algorithm"/>
-                        <ref name="diagnostic_scalar_field_no_adapt"/>
-                      </element>
-                    </choice>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="scalar_field">
-                    <a:documentation>Thermoelectric coupling coefficient (V/K).</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>Thermoelectric</value>
-                    </attribute>
-                    <choice>
-                      <element name="prescribed">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="prescribed_scalar_field_no_adapt"/>
-                      </element>
-                      <element name="diagnostic">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="scalar_python_diagnostic_algorithm"/>
-                        <ref name="diagnostic_scalar_field_no_adapt"/>
-                      </element>
-                    </choice>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="scalar_field">
-                    <a:documentation>Electrochemical coupling coefficient (V.L/mol).</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>Electrochemical</value>
-                    </attribute>
-                    <choice>
-                      <element name="prescribed">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="prescribed_scalar_field_no_adapt"/>
-                      </element>
-                      <element name="diagnostic">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="scalar_python_diagnostic_algorithm"/>
-                        <ref name="diagnostic_scalar_field_no_adapt"/>
-                      </element>
-                    </choice>
-                  </element>
-                </optional>
-              </element>
-              <optional>
-                <element name="Saturation_Distribution_Search">
-                  <a:documentation>Option to do a saturation distribution search which looks for the
-saturation distribution which gives the best fit of electrical potential
-to measured data</a:documentation>
-                  <choice>
-                    <element name="search_criteria_horizontal_well">
-                      <a:documentation>Here we specify the extents of the search space in x, y and z directions:</a:documentation>
-                      <element name="x_min">
-                        <a:documentation>The minimum x-coordinate of the test space</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="x_max">
-                        <a:documentation>The maximum x-coordinate of the test space</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="width">
-                        <a:documentation>The initial width of the segments, positioned symmetrically opposite the borehole</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <optional>
-                        <element name="search_for_width">
-                          <a:documentation>Option to search for the optimum width</a:documentation>
-                          <ref name="comment"/>
-                        </element>
-                      </optional>
-                      <element name="y_min">
-                        <a:documentation>The minimum y-coordinate of the test space</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="y_max">
-                        <a:documentation>The maximum y-coordinate of the test space</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="z_min">
-                        <a:documentation>The minimum z-coordinate of the test space,
-usually equal to the initial position of the water front</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="borehole_x">
-                        <a:documentation>x-coordinate of the borehole</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="borehole_z">
-                        <a:documentation>z-coordinate of the borehole</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="z_max">
-                        <a:documentation>The maximum z-coordinate of the test space,
-probably equal to the location of the borehole</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="sections">
-                        <a:documentation>The number of sections into which to divide the space</a:documentation>
-                        <ref name="integer"/>
-                      </element>
-                      <element name="initial_step_length">
-                        <a:documentation>Initial step length for the Hooke and Jeeves search</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <optional>
-                        <element name="initial_base_point">
-                          <a:documentation>Set initial base_point, perhaps make this optional later.
-Starts at the bottom for vertical well!!</a:documentation>
-                          <ref name="real_vector"/>
-                        </element>
-                      </optional>
-                      <element name="target_filename">
-                        <a:documentation>filename for target file (real potential curve)</a:documentation>
-                        <data type="string" datatypeLibrary=""/>
-                      </element>
-                    </element>
-                    <element name="search_criteria_vertical_well">
-                      <element name="x_min">
-                        <a:documentation>The minimum x-coordinate of the test space</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="x_max">
-                        <a:documentation>The maximum x-coordinate of the test space</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="width">
-                        <a:documentation>The initial width of the segments, positioned symmetrically opposite the borehole</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <optional>
-                        <element name="search_for_width">
-                          <a:documentation>Option to search for the optimum width</a:documentation>
-                          <ref name="comment"/>
-                        </element>
-                      </optional>
-                      <element name="y_min">
-                        <a:documentation>The minimum y-coordinate of the test space,
-usually equal to the initial position of the water front</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="y_max">
-                        <a:documentation>The maximum y-coordinate of the test space,
-probably equal to the location of the borehole</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="z_min">
-                        <a:documentation>The minimum z-coordinate of the test space</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="z_max">
-                        <a:documentation>The maximum z-coordinate of the test space</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="borehole_x">
-                        <a:documentation>x-coordinate of the borehole</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="borehole_y">
-                        <a:documentation>y-coordinate of the borehole</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="sections">
-                        <a:documentation>The number of sections into which to divide the space</a:documentation>
-                        <ref name="integer"/>
-                      </element>
-                      <element name="initial_step_length">
-                        <a:documentation>Initial step length for the Hooke and Jeeves search</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <optional>
-                        <element name="initial_base_point">
-                          <a:documentation>Set initial base_point, perhaps make this optional later</a:documentation>
-                          <ref name="real_vector"/>
-                        </element>
-                      </optional>
-                      <element name="target_filename">
-                        <a:documentation>filename for target file (real potential curve)</a:documentation>
-                        <data type="string" datatypeLibrary=""/>
-                      </element>
-                    </element>
-                  </choice>
-                </element>
-              </optional>
-            </element>
-          </optional>
-          <optional>
             <element name="multiphase_properties">
               <a:documentation>Phase interaction options for Fluidity's multiphase flow model</a:documentation>
               <ref name="comment"/>
@@ -2237,222 +2006,6 @@ for the inter-phase heat transfer term.</a:documentation>
       </oneOrMore>
       <optional>
         <ref name="mesh_adaptivity_options"/>
-      </optional>
-      <optional>
-        <element name="imported_solids">
-          <a:documentation>Information needed are a set of coordinates and 
-radius for each particle.</a:documentation>
-          <choice>
-            <element name="solid_type">
-              <attribute name="name">
-                <value>cylinders</value>
-              </attribute>
-              <element name="cylinder_width">
-                <ref name="real"/>
-              </element>
-            </element>
-            <element name="solid_type">
-              <attribute name="name">
-                <value>spheres</value>
-              </attribute>
-            </element>
-            <element name="solid_type">
-              <attribute name="name">
-                <value>small_spheres</value>
-              </attribute>
-            </element>
-            <element name="solid_type">
-              <attribute name="name">
-                <value>external_2D_mesh</value>
-              </attribute>
-              <choice>
-                <element name="mapping_type">
-                  <attribute name="name">
-                    <value>brute_force</value>
-                  </attribute>
-                  <empty/>
-                </element>
-                <element name="mapping_type">
-                  <attribute name="name">
-                    <value>fastest_n_to_n</value>
-                  </attribute>
-                  <element name="max_number_of_bins_x">
-                    <a:documentation>As a rule of thumb, (Xmax-Xmin)/(number of bins_x) should be
-greater than (at least twice) the maximum element size
-of the fluid mesh (in the region where the particle is).
-Same thing applies in Y and Z
-directions. Note that in some cases,
-choosing the maximum element size for the
-whole fluid mesh
-might prove to slow down the mapping a
-bit.(bins might not have the
-optimal size)</a:documentation>
-                    <ref name="integer"/>
-                  </element>
-                  <element name="max_number_of_bins_y">
-                    <ref name="integer"/>
-                  </element>
-                  <element name="max_number_of_bins_z">
-                    <ref name="integer"/>
-                  </element>
-                  <element name="ntry">
-                    <ref name="integer"/>
-                  </element>
-                </element>
-              </choice>
-              <element name="volume_checking_tol">
-                <ref name="real"/>
-              </element>
-            </element>
-            <element name="solid_type">
-              <attribute name="name">
-                <value>external_3D_mesh</value>
-              </attribute>
-              <choice>
-                <element name="mapping_type">
-                  <attribute name="name">
-                    <value>brute_force</value>
-                  </attribute>
-                  <empty/>
-                </element>
-                <element name="mapping_type">
-                  <attribute name="name">
-                    <value>fastest_n_to_n</value>
-                  </attribute>
-                  <element name="max_number_of_bins_x">
-                    <a:documentation>As a rule of thumb, (Xmax-Xmin)/(number of bins_x) should be
-greater than (at least twice) the maximum element size
-of the fluid mesh (in the region where the particle is).
-Same thing applies in Y and Z
-directions. Note that in some cases,
-choosing the maximum element size for the whole fluid mesh 
-might prove to slow down the mapping a
-bit.(bins might not have the
-optimal size)</a:documentation>
-                    <ref name="integer"/>
-                  </element>
-                  <element name="max_number_of_bins_y">
-                    <ref name="integer"/>
-                  </element>
-                  <element name="max_number_of_bins_z">
-                    <ref name="integer"/>
-                  </element>
-                  <element name="ntry">
-                    <ref name="integer"/>
-                  </element>
-                </element>
-              </choice>
-              <element name="volume_checking_tol">
-                <ref name="real"/>
-              </element>
-            </element>
-          </choice>
-          <ref name="input_solid_dynamics_choice"/>
-          <element name="number_of_particles">
-            <ref name="integer"/>
-          </element>
-          <optional>
-            <element name="position_script">
-              <ref name="python_code"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="radius_script">
-              <ref name="python_code"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="translation_velocity_script">
-              <ref name="python_code"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="angular_velocity_script">
-              <ref name="python_code"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="buoyancy">
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="oneway">
-              <empty/>
-            </element>
-          </optional>
-          <element name="solid_concentration_max">
-            <ref name="real"/>
-          </element>
-          <element name="solid_absorption_factor">
-            <ref name="real"/>
-          </element>
-          <element name="solid_density">
-            <ref name="real"/>
-          </element>
-          <optional>
-            <element name="use_multimaterials">
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="calculate_total_volume">
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="create_buffer">
-              <element name="buffer">
-                <ref name="real"/>
-              </element>
-              <element name="solid_concentration_min">
-                <ref name="real"/>
-              </element>
-              <optional>
-                <element name="include_in_drag">
-                  <empty/>
-                </element>
-              </optional>
-              <element name="profile1">
-                <ref name="real"/>
-              </element>
-              <element name="profile2">
-                <ref name="real"/>
-              </element>
-              <element name="profile3">
-                <ref name="real"/>
-                <element name="constant_profile">
-                  <ref name="real"/>
-                </element>
-              </element>
-            </element>
-          </optional>
-          <optional>
-            <element name="visualize_solidfluid">
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="use_particle_cfl">
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="calculate_drag">
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="output_drag">
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="output_particle_vtus">
-              <empty/>
-            </element>
-          </optional>
-        </element>
       </optional>
       <optional>
         <element name="turbine_model">
@@ -2548,15 +2101,6 @@ while a factor of 1 represents a connected domain.</a:documentation>
       </optional>
       <optional>
         <ref name="forcing"/>
-      </optional>
-      <optional>
-        <ref name="reduced_model"/>
-      </optional>
-      <optional>
-        <ref name="porous_media_model"/>
-      </optional>
-      <optional>
-        <ref name="embedded_models"/>
       </optional>
       <optional>
         <ref name="flredecomp"/>
@@ -3435,7 +2979,7 @@ Diameter must be specified here or under each sediment class.</a:documentation>
             </optional>
             <optional>
               <element name="bed_porosity">
-                <a:documentation>Set porosity to use. Default is 0.3. 1.0 is a sold material.</a:documentation>
+                <a:documentation>Set porosity to use. Default is 0.3. 1.0 is a solid material.</a:documentation>
                 <ref name="real"/>
               </element>
             </optional>
@@ -5763,7 +5307,7 @@ Requires a continuous mesh.</a:documentation>
       </element>
       <element name="scalar_field">
         <a:documentation>PhaseVolumeFraction
-Required in porous_media and multiphase problem types</a:documentation>
+Required multiphase problem types</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -5791,22 +5335,6 @@ Required in porous_media and multiphase problem types</a:documentation>
             </optional>
           </element>
         </choice>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Electrical Potential:
-Required in electrokinetic, electrothermal
-and electrochemical problems
-(sub-option of porous_media problem type)</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>ElectricalPotential</value>
-        </attribute>
-        <element name="prognostic">
-          <ref name="velocity_mesh_choice"/>
-          <ref name="prognostic_scalar_field"/>
-        </element>
       </element>
       <!--
         Insert new prognostic scalar fields here using the template:
@@ -6136,84 +5664,6 @@ Adapting to this field is not recommended</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>InterstitialVelocityCGCourantNumber
-
-Courant Number as defined on a CG mesh 
-using the interstitial velocity for 
-porous media flow.
-
-Adapting to this field is not recommended</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>InterstitialVelocityCGCourantNumber</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="porosity_include_dg_and_cg_cfl"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>InterstitialVelocityCVCourantNumber
-
-Courant Number as defined on a CV mesh 
-using the interstitial velocity for 
-porous media flow.
-
-Adapting to this field is not recommended</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>InterstitialVelocityCVCourantNumber</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="porosity_include_cv_cfl"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>InterstitialVelocityDGCourantNumber
-
-Courant Number as defined on a DG mesh 
-using the interstitial velocity for 
-porous media flow.
-
-Adapting to this field is not recommended</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>InterstitialVelocityDGCourantNumber</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="porosity_include_dg_and_cg_cfl"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
         <a:documentation>Buoyancy Adjustment diffusivity
 
 The element-wise diffusion applied
@@ -6332,24 +5782,6 @@ Adapting to this field is not recommended</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>SolidConcentration</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
         <a:documentation>This scalar field is meant to replace DENTRAF.
 Basically, if you use new options, DENTRAF is no longer needed
 No repointing is done from this field to DENTRAF.</a:documentation>
@@ -6362,82 +5794,6 @@ No repointing is done from this field to DENTRAF.</a:documentation>
         <element name="diagnostic">
           <ref name="internal_algorithm"/>
           <ref name="velocity_mesh_choice"/>
-          <ref name="diagnostic_scalar_field"/>
-        </element>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Add field to be used by Solid_configuration to 
-Visualize the solids and MaterialVolumeFraction together</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>VisualizeSolidFluid</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="velocity_mesh_choice"/>
-          <ref name="diagnostic_scalar_field"/>
-        </element>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Add field to be used by Solid_configuration to 
-Visualize the solid_Concentration</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>VisualizeSolid</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="velocity_mesh_choice"/>
-          <ref name="diagnostic_scalar_field"/>
-        </element>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Add field to be used by Solid_configuration to 
-map  the solid_Concentration from particle mesh to 
-the fluid mesh.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>ParticleScalar</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="mesh_choice"/>
-          <ref name="diagnostic_scalar_field"/>
-        </element>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Add field to be used by Explicit_ALE to 
-visualize functional values before iterations start.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>FunctionalBegin</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="mesh_choice"/>
-          <ref name="diagnostic_scalar_field"/>
-        </element>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Add field to be used by Explicit_ALE to 
-visualize functional values at each iteration.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>FunctionalIter</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="mesh_choice"/>
           <ref name="diagnostic_scalar_field"/>
         </element>
       </element>
@@ -6916,31 +6272,7 @@ Limitations:
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Used in implicit_solids to determine the interface (i.e. boundary) between the fluid and solid.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>SolidPhase</value>
-        </attribute>
-        <attribute name="raplaces">
-          <value>IDENT = -42</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Absolute Difference between two scalar fields.
-
-Both fields must be in this material_phase.
+        <a:documentation>Both fields must be in this material_phase.
 Assumes both fields are on the same mesh as the AbsoluteDifference field.</a:documentation>
         <attribute name="rank">
           <value>0</value>
@@ -7597,97 +6929,6 @@ Field must be in this material_phase.</a:documentation>
         </choice>
       </element>
       <element name="vector_field">
-        <a:documentation>Solid Velocity field.  Used to generate the momentum source </a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>SolidVelocity</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="mesh_choice"/>
-          <ref name="diagnostic_vector_field"/>
-        </element>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Same as Solid Velocity field but it is on the Particle mesh.
-It is used to map the velocities coming from an external program like
-FEMDEM or DEM to the fluid mesh. </a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>ParticleVector</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="mesh_choice"/>
-          <ref name="diagnostic_vector_field"/>
-        </element>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Same as Solid Velocity field but it is on the Particle mesh.
-It is used to map the velocities coming from an external program like
-FEMDEM or DEM to the fluid mesh. </a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>ParticleForce</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="mesh_choice"/>
-          <ref name="diagnostic_vector_field"/>
-        </element>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Same as Solid Velocity field but it is on the Particle mesh.
-It is used to map the velocities coming from an external program like
-FEMDEM or DEM to the fluid mesh. </a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>SolidForce</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="velocity_mesh_choice"/>
-          <ref name="diagnostic_vector_field"/>
-        </element>
-      </element>
-      <element name="vector_field">
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>VelocityPlotForSolids</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="velocity_mesh_choice"/>
-          <ref name="diagnostic_vector_field"/>
-        </element>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Same as Solid Velocity field but it is on the Particle mesh.
-It is used to map the velocities coming from an external program like
-FEMDEM or DEM to the fluid mesh. </a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>FunctionalGradient</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="velocity_mesh_choice"/>
-          <ref name="diagnostic_vector_field"/>
-        </element>
-      </element>
-      <element name="vector_field">
         <a:documentation>LinearMomentum field.
  p = \rho*u 
 (where p is the linear momentum, \rho the density and u the velocity)</a:documentation>
@@ -8051,111 +7292,6 @@ in a multimaterial simulation.</a:documentation>
              }
     -->
   </define>
-  <!--
-    Select the type of dynamic control to be used
-    Note: DEM and FEMDEM require the respective libraries
-    to be compiled.
-  -->
-  <define name="input_solid_dynamics_choice">
-    <choice>
-      <element name="dynamic_type">
-        <a:documentation>Obtain values from point and radius file.
-
-First line of file is free to use (for comments)
-Second line must contain the number of particles
-Third and fourth line are again for comments. 
-Following lines include 10 columns, corresponding to 
-the particle's x, y, and z positions, followed by the radius, then
-velocities in x, y, and z directions, followed by angular velocities
-in the x, y, and z directions.</a:documentation>
-        <attribute name="name">
-          <value>from_input_file</value>
-        </attribute>
-        <attribute name="file_name">
-          <data type="string"/>
-        </attribute>
-      </element>
-      <element name="dynamic_type">
-        <a:documentation>Two python scripts must be provided. The script is cycled over each particle.
-One script for particle position (output is tuple of position coords)
-Second script is for particle radius (output is tuple of position coords)
-Third script is for particle translational velocity.
-Fourth script is for particle angular velocity. (Note: particles 
-have a no slip boundary condition at the surface, so this angular velocity
-WILL matter to the flow.)
-Python functions should be of the form:
- def val(X, t):
-   Function code
-   return # Return value
-where X is a tuple of length geometry dimension.
-   X[0] contains the number of the particle (in real format)</a:documentation>
-        <attribute name="name">
-          <value>python_script</value>
-        </attribute>
-      </element>
-      <element name="dynamic_type">
-        <attribute name="name">
-          <value>use_simple_dynamics</value>
-        </attribute>
-        <element name="set_bottom">
-          <ref name="real"/>
-        </element>
-        <element name="set_xmin">
-          <ref name="real"/>
-        </element>
-        <element name="set_ymin">
-          <ref name="real"/>
-        </element>
-        <element name="set_zmin">
-          <ref name="real"/>
-        </element>
-        <element name="set_xmax">
-          <ref name="real"/>
-        </element>
-        <element name="set_ymax">
-          <ref name="real"/>
-        </element>
-        <element name="set_zmax">
-          <ref name="real"/>
-        </element>
-      </element>
-      <element name="dynamic_type">
-        <a:documentation>Using y3D to model dynamics. Filename of input file for y3D must
-be specified.</a:documentation>
-        <attribute name="name">
-          <value>use_y3D</value>
-        </attribute>
-        <attribute name="file_name">
-          <data type="string"/>
-        </attribute>
-      </element>
-      <element name="dynamic_type">
-        <a:documentation>Using femdem 2D to model dynamics. Filename of input file must
-be specified.</a:documentation>
-        <attribute name="name">
-          <value>use_2Dfemdem</value>
-        </attribute>
-        <attribute name="file_name">
-          <data type="string"/>
-        </attribute>
-      </element>
-      <element name="dynamic_type">
-        <a:documentation>Using femdem 3D to model dynamics. Filename of input file must
-be specified.</a:documentation>
-        <attribute name="name">
-          <value>use_3Dfemdem</value>
-        </attribute>
-        <attribute name="file_name">
-          <data type="string"/>
-        </attribute>
-        <element name="quad2lin">
-          <attribute name="file_name">
-            <data type="string"/>
-          </attribute>
-        </element>
-      </element>
-    </choice>
-  </define>
   <define name="cap_option">
     <element name="cap_values">
       <a:documentation>Cap the min and max values of this field when using
@@ -8435,26 +7571,6 @@ This uses the finite element approximation of the CFL Number.</a:documentation>
         <empty/>
       </element>
       <element name="courant_number">
-        <a:documentation>Select the Courant Number definition to be used.
-
-This uses the control volume approximation of the CFL Number 
-and the interstitial velocity for porous media flow.</a:documentation>
-        <attribute name="name">
-          <value>InterstitialVelocityCVCourantNumber</value>
-        </attribute>
-        <ref name="porosity_include_cv_cfl"/>
-      </element>
-      <element name="courant_number">
-        <a:documentation>Select the Courant Number definition to be used.
-
-This uses the CG finite element approximation of the CFL Number 
-and the interstitial velocity for porous media flow.</a:documentation>
-        <attribute name="name">
-          <value>InterstitialVelocityCGCourantNumber</value>
-        </attribute>
-        <ref name="porosity_include_cv_cfl"/>
-      </element>
-      <element name="courant_number">
         <a:documentation>Select the Courant Number definition to be used.</a:documentation>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
@@ -8476,18 +7592,6 @@ This uses the DG finite element approximation of the CFL Number.</a:documentatio
             <value>DG_CourantNumber</value>
           </attribute>
           <empty/>
-        </element>
-        <element name="courant_number">
-          <a:documentation>IF NOT SELECTED THEN THE DEFAULT DG_CourantNumber IS USED.
-
-Select the Courant Number definition to be used.
-
-This uses the DG finite element approximation of the CFL Number 
-and the interstitial velocity for porous media flow.</a:documentation>
-          <attribute name="name">
-            <value>InterstitialVelocityDGCourantNumber</value>
-          </attribute>
-          <ref name="porosity_include_cv_cfl"/>
         </element>
         <element name="courant_number">
           <a:documentation>IF NOT SELECTED THEN THE DEFAULT DG_CourantNumber IS USED.
@@ -8537,16 +7641,6 @@ This uses the finite element approximation of the CFL Number.</a:documentation>
         <empty/>
       </element>
       <element name="courant_number">
-        <a:documentation>Select the Courant Number definition to be used in the slope of
-the NVD diagram upper bound.
-This uses a control volume definition of the CFL Number
-and the interstitial velocity for porous media flow.</a:documentation>
-        <attribute name="name">
-          <value>InterstitialVelocityCVCourantNumber</value>
-        </attribute>
-        <ref name="porosity_include_cv_cfl"/>
-      </element>
-      <element name="courant_number">
         <a:documentation>***UNDER TESTING***
 
 Select the Courant Number definition to be used in the slope of
@@ -8579,26 +7673,6 @@ This uses the control volume definition of the CFL Number.</a:documentation>
         <ref name="velocity_mesh_choice">
           <a:documentation>Select the mesh on which you wish to evaluate the ControlVolumeCFLNumber.</a:documentation>
         </ref>
-      </element>
-      <element name="courant_number">
-        <a:documentation>Select the Courant Number definition to be used for adaptive timestepping.
-This uses the CG finite element approximation of the CFL Number 
-and the interstitial velocity for porous media flow.</a:documentation>
-        <attribute name="name">
-          <value>InterstitialVelocityCGCourantNumber</value>
-        </attribute>
-        <ref name="velocity_mesh_choice"/>
-        <ref name="porosity_include_dg_and_cg_cfl"/>
-      </element>
-      <element name="courant_number">
-        <a:documentation>Select the Courant Number definition to be used for adaptive timestepping.
-This uses the control volume approximation of the CFL Number 
-and the interstitial velocity for porous media flow.         </a:documentation>
-        <attribute name="name">
-          <value>InterstitialVelocityCVCourantNumber</value>
-        </attribute>
-        <ref name="velocity_mesh_choice"/>
-        <ref name="porosity_include_cv_cfl"/>
       </element>
     </choice>
   </define>

@@ -50,7 +50,6 @@ OBJS    = Momentum_Diagnostic_Fields.o \
 	qmesh.o \
 	OceanSurfaceForcing.o \
 	Momentum_DG.o Advection_Diffusion_CG.o Advection_Diffusion_DG.o Advection_Diffusion_FV.o \
-	Solid_Configuration.o Explicit_ALE.o \
 	MeshMovement.o \
 	Field_Equations_CV.o Assemble_CMC.o \
 	Divergence_Matrix_CG.o Gradient_Matrix_CG.o Divergence_Matrix_CV.o \
@@ -70,13 +69,10 @@ OBJS    = Momentum_Diagnostic_Fields.o \
 	Upwind_Stabilisation.o \
         Coriolis.o Full_Projection.o \
         Mba2d_Integration.o Slope_limiters_DG.o \
-        Spontaneous_Potentials.o LES.o \
-        Saturation_Distribution_Search_HookeJeeves.o \
         Petsc_Solve_State.o Adaptivity_1D.o \
 	Zoltan_global_variables.o Zoltan_integration.o Zoltan_callbacks.o Zoltan_detectors.o \
-        Diagnostic_Children.o Reduced_Model_Runtime.o Turbine.o Implicit_Solids.o \
-				Manifold_Projections.o Hybridized_Helmholtz.o Burgers_Assembly.o Pressure_Dirichlet_BCS_CV.o \
-            Porous_Media.o
+        Diagnostic_Children.o Turbine.o \
+	Manifold_Projections.o Hybridized_Helmholtz.o Burgers_Assembly.o Pressure_Dirichlet_BCS_CV.o
 
 .SUFFIXES: .F90 .c .cpp .o .a
 

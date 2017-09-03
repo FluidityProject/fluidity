@@ -1823,5 +1823,4 @@ AC_OUTPUT(Makefile
           libjudy/src/JudyHS/Makefile
           libwm/Makefile
           libvtkfortran/Makefile
-	  reduced_modelling/Makefile
 	  tests/tools.mk)

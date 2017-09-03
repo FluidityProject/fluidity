@@ -677,9 +677,6 @@ and divides the rhs by this.</a:documentation>
               <empty/>
             </element>
           </choice>
-          <optional>
-            <ref name="porosity_include"/>
-          </optional>
           <element name="output">
             <a:documentation>Debugging output options</a:documentation>
             <optional>
@@ -2220,123 +2217,6 @@ in a flml file!</a:documentation>
                   <attribute name="material_phase_name">
                     <data type="string"/>
                   </attribute>
-                  <empty/>
-                </element>
-              </optional>
-            </element>
-            <element name="explicit_ale">
-              <a:documentation>enable full ale movement of mesh</a:documentation>
-              <element name="number_of_linesearch_pts">
-                <ref name="integer"/>
-              </element>
-              <element name="maximum_iterations">
-                <ref name="integer"/>
-              </element>
-              <element name="max_elements_second_level">
-                <ref name="integer"/>
-              </element>
-              <element name="functional1_weight">
-                <ref name="real"/>
-              </element>
-              <element name="functional2_weight">
-                <ref name="real"/>
-              </element>
-              <element name="functional3_weight">
-                <ref name="real"/>
-              </element>
-              <element name="functional4_weight">
-                <ref name="real"/>
-              </element>
-              <element name="functional5_weight">
-                <ref name="real"/>
-              </element>
-              <element name="minimum_val_functional_change">
-                <ref name="real"/>
-              </element>
-              <element name="minimum_val_functional">
-                <ref name="real"/>
-              </element>
-              <element name="coarse_tolerance">
-                <ref name="real"/>
-              </element>
-              <element name="fine_tolerance">
-                <ref name="real"/>
-              </element>
-              <element name="gradient_dx">
-                <ref name="real"/>
-              </element>
-              <element name="gradient_dy">
-                <ref name="real"/>
-              </element>
-              <element name="gradient_dz">
-                <ref name="real"/>
-              </element>
-              <optional>
-                <element name="move_nodes_in_x">
-                  <empty/>
-                </element>
-              </optional>
-              <optional>
-                <element name="move_nodes_in_y">
-                  <empty/>
-                </element>
-              </optional>
-              <optional>
-                <element name="move_nodes_in_z">
-                  <empty/>
-                </element>
-              </optional>
-            </element>
-            <element name="vertical_ale">
-              <a:documentation>enable vertical movement of mesh (TBD)</a:documentation>
-              <element name="physical_functionals">
-                <a:documentation>Functionals</a:documentation>
-                <choice>
-                  <element name="minimise_relative_velocity_dot_grad_density">
-                    <a:documentation>move the nodes along an isosurface
-Please specify a scalar field</a:documentation>
-                    <attribute name="name">
-                      <data type="string"/>
-                    </attribute>
-                  </element>
-                  <element name="use_hessian_density">
-                    <a:documentation>Lock a node to a high curvature region, 
-Please specify a scalar field</a:documentation>
-                    <attribute name="name">
-                      <data type="string"/>
-                    </attribute>
-                  </element>
-                </choice>
-              </element>
-              <optional>
-                <element name="mesh_quality_terms">
-                  <a:documentation>Mesh Quality terms</a:documentation>
-                  <optional>
-                    <element name="spring_term">
-                      <a:documentation>Spring term, default value is 1.0</a:documentation>
-                      <ref name="real"/>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="exponential_term">
-                      <a:documentation>Exponential term, default value is 1.0</a:documentation>
-                      <ref name="real"/>
-                    </element>
-                  </optional>
-                </element>
-              </optional>
-              <optional>
-                <element name="block_nodes_in_x">
-                  <empty/>
-                </element>
-              </optional>
-              <optional>
-                <element name="block_nodes_in_y">
-                  <empty/>
-                </element>
-              </optional>
-              <optional>
-                <element name="block_nodes_in_z">
                   <empty/>
                 </element>
               </optional>

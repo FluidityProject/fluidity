@@ -1072,29 +1072,6 @@ prognostic_velocity_field =
            }
          )
       }?,
-      ## Elastic parameters for elastic and visco-elastic materials
-      ## For a linearly elastic solid
-      ## In legacy elastic solids were run with SOLIDS = 2 from solidity_options.inp.
-      ## In gem ONEMU and CONMU = .TRUE.
-      ## and RMUPZZ taken as the isotropic Young`s modulus
-      ## UNDER DEVELOPMENT
-      ##  - currently only works for lagrangian meshes
-      ##  - only single materials tested so far
-      ##  - momentum equations assembled in solid3d so not all
-      ##    discretisation options above are valid
-      element tensor_field {
-         attribute name { "Elasticity" },
-         attribute rank { "2" },
-         (
-            element prescribed {
-               prescribed_values_tensor_field
-            }|
-            element diagnostic {
-               internal_algorithm,
-               diagnostic_tensor_field
-            }
-         )
-      }?,
       ## SurfaceTension
       element tensor_field {
          attribute name { "SurfaceTension" },
@@ -1116,44 +1093,6 @@ prognostic_velocity_field =
                   empty
                 }?,
                 diagnostic_tensor_field
-            }
-         )
-      }?,
-      ## Cohesion for plastic materials
-      ## UNDER DEVELOPMENT
-      ##  - currently only works for lagrangian meshes
-      ##  - only single materials tested so far
-      ##  - momentum equations assembled in solid3d so not all
-      ##    discretisation options above are valid
-      element scalar_field {
-         attribute name { "Cohesion" },
-         attribute rank { "0" },
-         (
-            element prescribed {
-               prescribed_scalar_field_no_adapt
-            }|
-            element diagnostic {
-               internal_algorithm,
-               diagnostic_scalar_field
-            }
-         )
-      }?,
-      ## Friction Angle for plastic materials
-      ## UNDER DEVELOPMENT
-      ##  - currently only works for lagrangian meshes
-      ##  - only single materials tested so far
-      ##  - momentum equations assembled in solid3d so not all
-      ##    discretisation options above are valid
-      element scalar_field {
-         attribute name { "FrictionAngle" },
-         attribute rank { "0" },
-         (
-            element prescribed {
-               prescribed_scalar_field_no_adapt
-            }|
-            element diagnostic {
-               internal_algorithm,
-               diagnostic_scalar_field
             }
          )
       }?,
@@ -3369,7 +3308,6 @@ scalar_field_choice =
          }|
 
          ## PhaseVolumeFraction:
-         ## Required in porous_media problem type
          element scalar_field {
             attribute rank { "0" },
             attribute name { "PhaseVolumeFraction" },
@@ -3381,21 +3319,6 @@ scalar_field_choice =
                element prescribed {
                   velocity_mesh_choice,
                   prescribed_scalar_field
-               }
-            )
-         }|
-
-         ## Electrical Potential:
-         ## Required in electrokinetic, electrothermal
-         ## and electrochemical problems
-         ## (sub-option of porous_media problem type)
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "ElectricalPotential" },
-            (
-               element prognostic {
-                  velocity_mesh_choice,
-                  prognostic_scalar_field
                }
             )
          }|
@@ -3681,20 +3604,6 @@ scalar_field_choice =
                }
             )
          }|
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "SolidConcentration" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
          ## This scalar field is meant to replace DENTRAF.
          ## Basically, if you use new options, DENTRAF is no longer needed
          ## No repointing is done from this field to DENTRAF.
@@ -3705,72 +3614,6 @@ scalar_field_choice =
                element diagnostic {
                   internal_algorithm,
                   velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }
-            )
-         }|
-         ## Add field to be used by Solid_configuration to 
-         ## Visualize the solids and MaterialVolumeFraction together
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "VisualizeSolidFluid" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }
-            )
-         }|
-         ## Add field to be used by Solid_configuration to 
-         ## Visualize the solid_Concentration
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "VisualizeSolid" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }
-            )
-         }|
-         ## Add field to be used by Solid_configuration to 
-         ## map  the solid_Concentration from particle mesh to 
-         ## the fluid mesh.
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "ParticleScalar" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
-                  diagnostic_scalar_field
-               }
-            )
-         }|
-         ## Add field to be used by Explicit_ALE to 
-         ## visualize functional values before iterations start.
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "FunctionalBegin" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
-                  diagnostic_scalar_field
-               }
-            )
-         }|
-         ## Add field to be used by Explicit_ALE to 
-         ## visualize functional values at each iteration.
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "FunctionalIter" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
                   diagnostic_scalar_field
                }
             )
@@ -4126,24 +3969,6 @@ scalar_field_choice =
             )
          }|
 
-         ## Volume of the vehicles
-         ##
-         ## used in Traffic Modelling
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "SolidPhase" },
-            attribute raplaces { "IDENT = -42"},
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
          ## Absolute Difference between two scalar fields.
          ##
          ## Both fields must be in this material_phase.
@@ -4917,86 +4742,6 @@ vector_field_choice =
                }|
                element aliased {
                   generic_aliased_field
-               }
-            )
-         }|
-         ## Solid Velocity field.  Used to generate the momentum source 
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "SolidVelocity" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
-                  diagnostic_vector_field
-               }
-            )
-         }|
-         ## Same as Solid Velocity field but it is on the Particle mesh.
-         ## It is used to map the velocities coming from an external program like
-         ## FEMDEM or DEM to the fluid mesh. 
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "ParticleVector" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
-                  diagnostic_vector_field
-               }
-            )
-         }|
-         ## Same as Solid Velocity field but it is on the Particle mesh.
-         ## It is used to map the velocities coming from an external program like
-         ## FEMDEM or DEM to the fluid mesh. 
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "ParticleForce" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
-                  diagnostic_vector_field
-               }
-            )
-         }|
-
-         ## Same as Solid Velocity field but it is on the Particle mesh.
-         ## It is used to map the velocities coming from an external program like
-         ## FEMDEM or DEM to the fluid mesh. 
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "SolidForce" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_vector_field
-               }
-            )
-         }|
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "VelocityPlotForSolids" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_vector_field
-               }
-            )
-         }|
-         ## Same as Solid Velocity field but it is on the Particle mesh.
-         ## It is used to map the velocities coming from an external program like
-         ## FEMDEM or DEM to the fluid mesh. 
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "FunctionalGradient" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_vector_field
                }
             )
          }|
@@ -6335,73 +6080,6 @@ compressive_control_volume_options =
       }
    )
 
-#Select the type of dynamic control to be used
-#Note: DEM and FEMDEM require the respective libraries
-#to be compiled.
-input_solid_dynamics_choice =         
-   (
-      ## Obtain values from point and radius file.
-      ##
-      ## First line of file is free to use (for comments)
-      ## Second line must contain the number of particles
-      ## Third and fourth line are again for comments. 
-      ## Following lines include 10 columns, corresponding to 
-      ## the particle's x, y, and z positions, followed by the radius, then
-      ## velocities in x, y, and z directions, followed by angular velocities
-      ## in the x, y, and z directions.
-      element dynamic_type {
-         attribute name {"from_input_file"},
-         attribute file_name {xsd:string}
-      }|
-      ## Two python scripts must be provided. The script is cycled over each particle.
-      ## One script for particle position (output is tuple of position coords)
-      ## Second script is for particle radius (output is tuple of position coords)
-      ## Third script is for particle translational velocity.
-      ## Fourth script is for particle angular velocity. (Note: particles 
-      ## have a no slip boundary condition at the surface, so this angular velocity
-      ## WILL matter to the flow.)
-      ## Python functions should be of the form:
-      ##  def val(X, t):
-      ##    Function code
-      ##    return # Return value
-      ## where X is a tuple of length geometry dimension.
-      ##    X[0] contains the number of the particle (in real format)
-      element dynamic_type {
-         attribute name {"python_script"}
-      }|
-      element dynamic_type {
-         attribute name {"use_simple_dynamics"},
-         element set_bottom{real},
-         element set_xmin{real},
-         element set_ymin{real},
-         element set_zmin{real},
-         element set_xmax{real},
-         element set_ymax{real},
-         element set_zmax{real}
-      }|
-      ## Using y3D to model dynamics. Filename of input file for y3D must
-      ## be specified.
-      element dynamic_type {
-         attribute name {"use_y3D"},
-         attribute file_name {xsd:string}
-      }|
-      ## Using femdem 2D to model dynamics. Filename of input file must
-      ## be specified.
-      element dynamic_type {
-         attribute name {"use_2Dfemdem"},
-         attribute file_name {xsd:string}
-      }|
-      ## Using femdem 3D to model dynamics. Filename of input file must
-      ## be specified.
-      element dynamic_type {
-         attribute name {"use_3Dfemdem"},
-         attribute file_name {xsd:string},
-         element quad2lin {
-            attribute file_name {xsd:string}
-         }
-      }         
-   )
-
 cap_option =
    (
       ## Cap the min and max values of this field when using
@@ -6926,11 +6604,6 @@ scalar_equation_choice =
                }
             )
          }|
-         ## Option to solve for electrical potential from
-         ## electrokinetic, electrochemical or electrothermal sources 
-         element equation { 
-            attribute name { "ElectricalPotential" }
-         }
       )
    )
 
