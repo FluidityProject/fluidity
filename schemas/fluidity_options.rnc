@@ -1940,6 +1940,12 @@ population_balance =
                   element laakkonen_2007_aggregation{ 
                      ## enter the value of the coefficient C5 in Laakkonen's aggregation rate expression. default: 0.88  
                      element C5{ real }? 
+                  }|
+                  element coulaloglou_aggregation{
+                      ## enter the value of the coefficient K3 in Coulaloglou's aggregation rate expression. default: 0.88
+                     element K3{ real }?,
+                     ## enter the value of the coefficient K4 in Coulaloglou's aggregation rate expression. default: 6.0E9
+                     element K4{ real }?
                   }
                }
             }?,
@@ -1956,7 +1962,14 @@ population_balance =
                      ## degree r in breakage frequency a_{alpha} = p * \xi_{alpha}^r
                      element degree{ real }
                   }|
-                  element laakkonen_breakage{ empty }
+                  element laakkonen_breakage{ empty }|
+                  ##
+                  element coulaloglou_breakage{
+                     ## enter the value of the coefficient K1 in Coulaloglou's aggregation rate expression. default: 0.453
+                     element K1{ real }?,
+                     ## enter the value of the coefficient K2 in Coulaloglou's aggregation rate expression. default: 0.058
+                     element K2{ real }?
+                  }
                },
                element distribution_function{
                   ##

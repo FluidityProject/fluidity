@@ -361,7 +361,7 @@ contains
     type(tensor_field), pointer :: D
     type(vector_field), pointer :: X
     type(scalar_field) :: dummy_scalar
-    real :: theta, cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree, perturb_val, C5
+    real :: theta, cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree, perturb_val, C5, K1, K2, K3, K4
     integer :: i_pop, N, i, j, stat, i_node
     character(len=OPTION_PATH_LEN) :: option_path 
     character(len=FIELD_NAME_LEN) :: type, field_name, growth_type, aggregation_freq_type, breakage_freq_type, breakage_dist_type, singular_option
@@ -474,6 +474,33 @@ contains
                 FLAbort("I can't find the Viscosity field for continuous phase for population balance aggregation term calculations.")
              end if
           end if 
+       else if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/coulaloglou_aggregation')) then
+           aggregation_freq_type = 'coulaloglou_aggregation'
+           call get_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/coulaloglou_aggregation/K3', K3, &
+           &default = 0.88)
+           call get_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/coulaloglou_aggregation/K4', K4, &
+           &default = 6.0E9)
+           if (.not. have_option("/population_balance_continuous_phase_name")) then
+             FLAbort("Enable the option population_balance_continuous_phase_name and provide a name for the continuous phase&
+                      as it is needed for extracting the turbulence dissipation needed in coulaloglou_aggregation kernel")
+          end if
+          turbulent_dissipation => extract_scalar_field(states(cont_state), "TurbulentDissipation", stat=stat)
+          if (stat/=0) then
+             FLAbort("I can't find the Turbulent Dissipation field of continuous phase for population balance aggregation term calculations.")
+          end if
+          if (have_option(trim(states(cont_state)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
+             viscosity_continuous => extract_tensor_field(states(cont_state), "BackgroundViscosity", stat=stat)  
+             if (stat/=0) then
+                FLAbort("I can't find the Background Viscosity field in k-epsilon for continuous phase for population balance aggregation term calculations.")
+             end if
+          else 
+             viscosity_continuous => extract_tensor_field(states(cont_state), "Viscosity", stat=stat)
+             if (stat/=0) then
+                FLAbort("I can't find the Viscosity field for continuous phase for population balance aggregation term calculations.")
+             end if
+          end if 
+       else if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/foam_aggregation')) then
+          aggregation_freq_type = 'foam_aggregation'
        end if
     else
        have_aggregation = .FALSE.
@@ -512,6 +539,19 @@ contains
                 end if
              end if
           end if
+       else if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/coulaloglou_breakage')) then
+           breakage_freq_type = 'coulaloglou_breakage'
+           call get_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/coulaloglou_breakage/K1', K1, &
+           &default = 0.453)
+           call get_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/coulaloglou_breakage/K2', K2, & 
+           &default = 0.058)
+       if (.not. have_option("/population_balance_continuous_phase_name")) then
+                FLAbort("Enable the option population_balance_continuous_phase_name and provide a name for the continuous phase as it is needed for extracting the turbulence dissipation needed in coulaloglou_breakage kernel")
+           end if
+             turbulent_dissipation => extract_scalar_field(states(cont_state), "TurbulentDissipation", stat=stat)
+           if (stat/=0) then
+             FLAbort("I can't find the Turbulent Dissipation field of continuous phase for population balance breakage term calculations.")
+           end if
        end if
 
        if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/distribution_function/symmetric_fragmentation')) then
@@ -543,7 +583,7 @@ contains
     do i = 1, ele_count(r_abscissa(1))
        call dqmom_calculate_source_term_ele(r_abscissa, r_weight, s_weighted_abscissa, s_weight, &
                 &D, have_D, have_growth, growth_type, growth_r, have_internal_dispersion, internal_dispersion_coeff, &
-                &have_aggregation, aggregation_freq_type, aggregation_freq_const, C5, &
+                &have_aggregation, aggregation_freq_type, aggregation_freq_const, C5, K1, K2, K3, K4, &
                 &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, &
                 &turbulent_dissipation, viscosity_continuous, X, singular_option, perturb_val, cond, i)       
     end do
@@ -710,7 +750,7 @@ contains
 
   subroutine dqmom_calculate_source_term_ele(abscissa, weight, s_weighted_abscissa, s_weight, &
                  &D, have_D, have_growth, growth_type, growth_r, have_internal_dispersion, internal_dispersion_coeff, &
-                 &have_aggregation, aggregation_freq_type, aggregation_freq_const, C5, &
+                 &have_aggregation, aggregation_freq_type, aggregation_freq_const, C5, K1, K2, K3, K4, &
                  &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, &
                  &turbulent_dissipation, viscosity_continuous, &
                  &X, singular_option, perturb_val, cond, ele)
@@ -722,18 +762,18 @@ contains
     type(tensor_field), pointer, intent(in) :: D
     type(vector_field), pointer, intent(in) :: X
     integer, intent(in) :: ele
-    real, intent(in) :: cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree, perturb_val, C5
+    real, intent(in) :: cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree, perturb_val, C5, K1, K2, K3, K4
     logical, intent(in) :: have_D, have_growth, have_internal_dispersion, have_aggregation, have_breakage
     character(len=FIELD_NAME_LEN), intent(in) :: growth_type, aggregation_freq_type, breakage_freq_type, breakage_dist_type, singular_option
     
-    real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)) :: abscissa_val_at_quad
+    real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)) :: abscissa_val_at_quad, N_film, F_denominator 
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2, size(abscissa)*2) :: A
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2, size(abscissa)) :: A_3
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)) :: C
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2) :: S_rhs  ! source term (includes growth, breakage and coalescence term)
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2, size(abscissa)) :: moment_daughter_dist_func
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)) :: break_freq
-    real, dimension(ele_ngi(abscissa(1), ele), size(abscissa), size(abscissa)) :: aggregation_freq   ! at present it is not dependent on space coordinate, but can be dependent and will have to be a scalar field
+    real, dimension(ele_ngi(abscissa(1), ele), size(abscissa), size(abscissa)) :: aggregation_freq  ! at present it is not dependent on space coordinate, but can be dependent and will have to be a scalar field
     real, dimension(size(abscissa)*2, 1) :: b
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)) :: abscissa_S_at_quad
     real, dimension(ele_ngi(abscissa(1), ele), size(weight)) :: weight_S_at_quad
@@ -751,7 +791,7 @@ contains
     real, dimension(size(abscissa)*2) :: SV
     integer :: stat, N, i, j, k
 
-    real :: sigma, density_continuous, density_dispersed
+    real :: sigma, density_continuous, density_dispersed, Kf, W, Ppb, Pc
 
     N = size(abscissa)
     
@@ -762,7 +802,7 @@ contains
 
     ! construct A matrices (lhs knowns)
     do i = 1, N
-       abscissa_val_at_quad(:,i) = ele_val_at_quad(abscissa(i), ele)       
+       abscissa_val_at_quad(:,i) = ele_val_at_quad(abscissa(i), ele)  
     end do
     A = A_matrix(abscissa_val_at_quad)
 
@@ -831,7 +871,14 @@ contains
              break_freq(:,i) = 6.0*eps_ngi**(1./3) * erfc(sqrt( 0.04*(sigma/density_continuous)*(1./(eps_ngi**(2./3) * abscissa_val_at_quad(:,i)**(5./3))) + 0.01*(visc_ngi(:,1,1)/sqrt(density_continuous*density_dispersed))*(1./(eps_ngi**(1./3)*abscissa_val_at_quad(:,i)**(4./3)))))
           end do
           deallocate(visc_ngi)
-       end if
+       else if (breakage_freq_type=='coulaloglou_breakage') then
+          density_dispersed = 1.205
+          sigma = 0.072
+	  eps_ngi = ele_val_at_quad(turbulent_dissipation,ele)
+	  do i = 1, N
+	     break_freq(:,i) = K1*(1./abscissa_val_at_quad(:,i)**(2./3))*eps_ngi**(1./3) *exp(-K2*sigma*(1./(density_dispersed*eps_ngi**(2./3) *abscissa_val_at_quad(:,i)**(5./3))))
+	  end do
+       	end if
 
        if (breakage_dist_type=='symmetric_fragmentation') then
           do i = 1, 2*N
@@ -888,11 +935,40 @@ contains
           allocate(visc_ngi(ele_ngi(abscissa(1), ele), viscosity_continuous%dim(1), viscosity_continuous%dim(1)))
           visc_ngi = ele_val_at_quad(viscosity_continuous,ele)
           do i = 1, N
-             do j = 1, N
-                aggregation_freq(:,i,j) = C5 * eps_ngi**(1./3) * (abscissa_val_at_quad(:,i) + abscissa_val_at_quad(:,j))**2 * (abscissa_val_at_quad(:,i)**(2./3) + abscissa_val_at_quad(:,j)**(2./3))**(1./2) * exp(-6.0E9*((visc_ngi(:,1,1)*density_continuous)/sigma**2)*eps_ngi*((abscissa_val_at_quad(:,i)*abscissa_val_at_quad(:,j))/(abscissa_val_at_quad(:,i)+abscissa_val_at_quad(:,j)))**4)
+            do j = 1, N
+              aggregation_freq(:,i,j) = C5 * eps_ngi**(1./3) * (abscissa_val_at_quad(:,i) + abscissa_val_at_quad(:,j))**2 * (abscissa_val_at_quad(:,i)**(2./3) + abscissa_val_at_quad(:,j)**(2./3))**(1./2) * exp(-6.0E9*((visc_ngi(:,1,1)*density_continuous)/sigma**2)*eps_ngi*((abscissa_val_at_quad(:,i)*abscissa_val_at_quad(:,j))/(abscissa_val_at_quad(:,i)+abscissa_val_at_quad(:,j)))**4)
              end do
           end do
           deallocate(visc_ngi)
+	  
+       else if (aggregation_freq_type=='coulaloglou_aggregation') then
+          density_continuous = 998.2
+          sigma = 0.072
+          eps_ngi = ele_val_at_quad(turbulent_dissipation,ele)
+          ! Assuming isotropic molecular viscosity here   
+          allocate(visc_ngi(ele_ngi(abscissa(1), ele), viscosity_continuous%dim(1), viscosity_continuous%dim(1)))
+	  visc_ngi = ele_val_at_quad(viscosity_continuous,ele)
+          do i = 1, N
+             do j = 1, N
+          aggregation_freq(:,i,j) = K3 * eps_ngi**(1./3) * (abscissa_val_at_quad(:,i)**2 + abscissa_val_at_quad(:,j)**2) * (abscissa_val_at_quad(:,i)**(2./3) + abscissa_val_at_quad(:,j)**(2./3))**(1./2) * exp(-K4*((visc_ngi(:,1,1)*density_continuous)/sigma**2)*eps_ngi*((abscissa_val_at_quad(:,i)*abscissa_val_at_quad(:,j))/(abscissa_val_at_quad(:,i)+abscissa_val_at_quad(:,j)))**4)
+              end do   
+          end do
+	  deallocate(visc_ngi)
+       else if (aggregation_freq_type=='foam_aggregation') then
+          N_film = 6
+          F_denominator = 0
+          Kf = 0.00005
+          W = 0.005
+          Ppb= 0.002
+          Pc = 0.001
+          do i = 1, N
+             F_denominator(:,1) = F_denominator(:,1) +  N_film(:,i)*ele_val_at_quad(weight(i), ele)
+          end do
+          do i = 1, N
+            do j = 1, N
+              aggregation_freq(:,i,j) = ((Kf* (Ppb- Pc) * (1+(W/abscissa_val_at_quad(:,i))**2) *N_film(:,i)*N_film(:,j))/(F_denominator(:,1) * W**2))
+          end do
+            end do
        end if
 
        do i = 1, 2*N
