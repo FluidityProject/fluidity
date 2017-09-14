@@ -330,7 +330,7 @@ contains
 
         implicit none
         real, intent(in) :: dt, current_time
-        integer :: i,j, Nstation
+        integer :: i,j, Nstation, iblade
         real :: theta 
 
         ewrite(1,*) 'Entering the actuator_line_model_update'
@@ -349,7 +349,11 @@ contains
             else if (Turbine(i)%Is_force_based_operated) then
                 ! Compute the rotor averaged velocity
                 call Compute_Rotor_Averaged_Vel(Turbine(i))
+                ! This should not be here 
                 Turbine(i)%angularVel=Turbine(i)%OptimumTSR*Turbine(i)%Urotor_average/Turbine(i)%Rmax
+                do iblade=1,Turbine(i)%NBlades
+                    Turbine(i)%Blade(iblade)%omega=Turbine(i)%angularVel ! To be used by the Actuator line element  
+                enddo
                 theta=Turbine(i)%angularVel*DeltaT
                 Turbine(i)%AzimAngle=Turbine(i)%AzimAngle+theta
                 call rotate_turbine(Turbine(i),Turbine(i)%RotN,theta)

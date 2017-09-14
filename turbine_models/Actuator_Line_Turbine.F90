@@ -181,8 +181,15 @@ contains
     !Compute a number of global parameters for the turbine
     !========================================================
     if(turbine%Type=='Horizontal_Axis') then
-    turbine%angularVel=turbine%Uref*turbine%TSR/turbine%Rmax
-    elseif(turbine%Type=='Vertical_Axis') then
+    
+        if (turbine%Is_constant_rotation_operated) then
+            turbine%angularVel=turbine%Uref*turbine%TSR/turbine%Rmax
+        else if (turbine%Is_force_based_operated) then
+            turbine%angularVel=turbine%Uref*turbine%OptimumTSR/turbine%Rmax
+        else
+            FLAbort("You shouldn't be here")
+        endif
+elseif(turbine%Type=='Vertical_Axis') then
     turbine%angularVel=turbine%Uref*turbine%TSR/turbine%dist_from_axis
     else
         FLAbort("You shouldn't be here")
@@ -262,7 +269,11 @@ contains
     turbine%CFz=Fz_tot/(0.5*turbine%A*turbine%Uref**2)
     turbine%CT=sqrt(turbine%CFx**2.0+turbine%CFy**2.0+turbine%CFz**2.0)
     turbine%CTR=Torq_tot/(0.5*turbine%A*turbine%Rmax*turbine%Uref**2.0)
-    turbine%CP= abs(turbine%CTR)*turbine%TSR
+        if(turbine%Is_constant_rotation_operated) then
+        turbine%CP= abs(turbine%CTR)*turbine%TSR
+    else if(turbine%Is_force_based_operated) then
+        turbine%CP= abs(turbine%CTR)*turbine%OptimumTSR
+    end if
     elseif(turbine%Type=='Vertical_Axis') then
     turbine%A=2.0*turbine%Rmax*turbine%dist_from_axis
     turbine%CFx=FX_tot/(0.5*turbine%A*turbine%Uref**2)

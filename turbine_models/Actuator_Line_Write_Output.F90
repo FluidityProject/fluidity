@@ -55,9 +55,9 @@ write(2018,Format)ielem,',',act_line%ERdist(ielem)/act_line%L,',',act_line%Epitc
         character(LEN=22) :: Format
         
         open(2016,File=trim(dir)//'/'//trim(turbine%name)//'.perf')
-        write(2016,*) 'Number of Revs, Urotor_averaged, CFx , CFy , CFz , CT , CTR , CP'
-        Format="(8(E14.7,A))"
-write(2016,Format) turbine%AzimAngle/(2*pi),',',turbine%Urotor_average,',' ,turbine%CFx,',',turbine%CFy,',',turbine%CFz,',',turbine%CT,',',turbine%CTR,',',turbine%CP
+        write(2016,*) 'Number of Revs, Uref,Urotor_averaged, CFx , CFy , CFz , CT , CTR , CP'
+        Format="(9(E14.7,A))"
+write(2016,Format) turbine%AzimAngle/(2*pi),',',turbine%Uref,',',turbine%Urotor_average,',' ,turbine%CFx,',',turbine%CFy,',',turbine%CFz,',',turbine%CT,',',turbine%CTR,',',turbine%CP
         close(2016)
 
     end subroutine actuator_line_turbine_write_output
