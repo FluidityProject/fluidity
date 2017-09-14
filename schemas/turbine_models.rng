@@ -235,9 +235,23 @@ and calculation of the actual rotational velocity of the rotor</a:documentation>
                     </element>
                   </element>
                   <element name="force_based_rotational_velocity">
-                    <attribute name="name">
-                      <data type="string"/>
-                    </attribute>
+                    <element name="Uref">
+                      <a:documentation>forced based rotational velocity computed from the average velocity at the rotor </a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <element name="OptimumTSR">
+                      <ref name="real"/>
+                    </element>
+                    <element name="rotation_direction">
+                      <choice>
+                        <element name="clockwise">
+                          <empty/>
+                        </element>
+                        <element name="counter_clockwise">
+                          <empty/>
+                        </element>
+                      </choice>
+                    </element>
                   </element>
                 </choice>
               </element>

@@ -207,7 +207,23 @@ turbine_models=(
 
              }|
             element force_based_rotational_velocity {
-                attribute name {xsd:string}
+## forced based rotational velocity computed from the average velocity at the rotor 
+             element Uref{
+             real
+             },
+             element OptimumTSR{
+             real
+             },
+             element rotation_direction{
+             (
+              element clockwise{
+              empty
+              }|
+              element counter_clockwise{
+              empty
+              }
+             )
+             }
             }
             )
         }
