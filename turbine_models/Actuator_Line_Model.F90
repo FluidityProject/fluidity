@@ -188,6 +188,16 @@ contains
             endif 
         else if(have_option(trim("turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]")//"/operation/force_based_rotational_velocity")) then
             Turbine(i)%Is_force_based_operated = .true. 
+            call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/operation/force_based_rotational_velocity/Uref",Turbine(i)%Uref)
+            call get_option("/turbine_models/actuator_line_model/turbine["//int2str(i-1)//"]/operation/force_based_rotational_velocity/OptimumTSR",Turbine(i)%OptimumTSR)
+            if(have_option(trim(turbine_path(i))//"/operation/force_based_rotational_velocity/rotation_direction/clockwise")) then
+                Turbine(i)%IsClockwise=.true.
+            elseif(have_option(trim(turbine_path(i))//"/operation/force_based_rotational_velocity/rotation_direction/counter_clockwise")) then
+                Turbine(i)%IsCounterClockwise=.true.
+                Turbine(i)%RotN=-Turbine(i)%RotN
+            else
+                FLExit("You should not be here. The options are clockwise and counterclockwise")
+            endif 
         else
             FLExit("At the moment only the constant and the force_based rotational velocity models are supported") 
         endif
@@ -331,6 +341,14 @@ contains
         if (Ntur>0) then
             do i=1,Ntur
             if(Turbine(i)%Is_constant_rotation_operated) then
+                theta=Turbine(i)%angularVel*DeltaT
+                Turbine(i)%AzimAngle=Turbine(i)%AzimAngle+theta
+                call rotate_turbine(Turbine(i),Turbine(i)%RotN,theta)
+                call Compute_Turbine_RotVel(Turbine(i))  
+            else if (Turbine(i)%Is_force_based_operated) then
+                ! Compute the rotor averaged velocity
+                call Compute_Rotor_Averaged_Vel(Turbine(i))
+                Turbine(i)%angularVel=Turbine(i)%OptimumTSR*Turbine(i)%Urotor_average/Turbine(i)%Rmax
                 theta=Turbine(i)%angularVel*DeltaT
                 Turbine(i)%AzimAngle=Turbine(i)%AzimAngle+theta
                 call rotate_turbine(Turbine(i),Turbine(i)%RotN,theta)

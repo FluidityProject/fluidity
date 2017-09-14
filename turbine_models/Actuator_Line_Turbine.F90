@@ -22,7 +22,8 @@ type TurbineType
     real :: hub_tilt_angle, blade_cone_angle, yaw_angle 
     real :: Rmax ! Reference radius, velocity, viscosity
     real :: A   ! Rotor area
-    real :: angularVel,TSR,Uref
+    real :: angularVel,TSR,OptimumTSR,Uref, Urotor_average
+    real, dimension(3) :: DirRotor_averaged ! Direction of the rotor average velocity field
     real :: AzimAngle=0.0
     real :: dist_from_axis=0.0
     integer :: No_rev=0.0
@@ -179,7 +180,14 @@ contains
     !========================================================
     !Compute a number of global parameters for the turbine
     !========================================================
-    turbine%angularVel=turbine%Uref*turbine%TSR/turbine%Rmax
+    if(turbine%Is_constant_rotation_operated) then 
+        turbine%angularVel=turbine%Uref*turbine%TSR/turbine%Rmax
+    else if(turbine%Is_force_based_operated) then
+        turbine%angularVel=turbine%Uref*turbine%OptimumTSR/turbine%Rmax ! This is for the first time step only
+    else 
+        FLExit("You should not be here. The only options are constant rotation and force based operated")
+    endif 
+
     do iblade=1,turbine%NBlades
     turbine%Blade(iblade)%omega=turbine%angularVel ! To be used by the Actuator line element  
     enddo
@@ -331,6 +339,35 @@ contains
     end do
 
     end subroutine Compute_Turbine_EndEffects
+    
+    subroutine Compute_Rotor_Averaged_Vel(turbine)
+    
+        implicit none
+        type(TurbineType),intent(inout) :: turbine
+        integer :: iblade, ielem,Nelem
+        real :: Ux,Uy,Uz,phi,sigma
+        Ux=0.
+        Uy=0.
+        Uz=0.
+        Nelem=0
+        do iblade=1,turbine%NBlades
+            Nelem=Nelem+turbine%Blade(iblade)%Nelem
+            do ielem=1,turbine%Blade(iblade)%Nelem
+                 Ux=Ux+turbine%Blade(iblade)%EVx(ielem)
+                 Uy=Uy+turbine%Blade(iblade)%EVy(ielem)
+                 Uz=Uz+turbine%Blade(iblade)%EVz(ielem)
+            enddo
+        enddo
+            ! Average for the rotor
+            Ux=Ux/Nelem
+            Uy=Uy/Nelem
+            Uz=Uz/Nelem
+            turbine%Urotor_average=sqrt(Ux**2.0+Uy**2.0+Uz**2.0)
+            phi=atan2(Uy,Ux) ! This is the angle in the x-y plane
+            sigma=atan2(Uz,Ux) ! This is the angle in the y-z plane
+            turbine%DirRotor_averaged=[cos(phi),-sin(phi), 0.0]
+
+    end subroutine Compute_Rotor_Averaged_Vel
 
     subroutine Compute_Turbine_RotVel(turbine)
     implicit none
