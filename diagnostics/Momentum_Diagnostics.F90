@@ -458,8 +458,10 @@ contains
 
       !## Compute the forces
       call actuator_line_model_compute_forces  
-      !## 
+      !##
+      ewrite(2,*) 'Get forces'
       call get_forces  
+      ewrite(2,*) 'Got forces'
        
       !gggggggggggggggggggggggggggggggggggggggggggggggg
       ! In case the interpolation is the RBF one
@@ -479,6 +481,7 @@ contains
                 call solve(A,SFz)                         
         endif
       !!ggggggggggggggggggggggggggggggggggggggggggggggg
+      ewrite(2,*) 'Started interpolating source'
 
       ! Set the elements
       do i = 1, node_count(v_field)

@@ -201,7 +201,8 @@ module dynstall
         implicit none
         type(DS_Type), intent(inout) :: dynstall
         type(AirfoilType),intent(in) :: airfoil
-        real, intent(in) :: time,dt,Urel,chord,alpha,Re
+        real, intent(in) :: time,dt,Urel,chord,Re
+        real, intent(inout):: alpha
         real, intent(out) :: CLdyn,CDdyn,CM25dyn
         real :: mach
 
@@ -221,7 +222,7 @@ module dynstall
         dynstall%mach=urel/dynstall%speed_of_sound 
         dynstall%Re=Re
         dynstall%deltaAlpha=dynstall%Alpha-dynstall%alpha_Prev
-        dynstall%deltaS=2*Urel*dt/chord
+        dynstall%deltaS=2.0*Urel*dt/chord
 
         if (dynstall%do_calcAlphaEquiv) then
             call calcAlphaEquiv(dynstall)
@@ -236,6 +237,11 @@ module dynstall
         call calcUnsteady(dynstall,chord,Urel,dt)
         
         call calcSeparated(dynstall)
+    
+        ! Info for dynstall
+        ewrite(2,*) '=================='
+        ewrite(2,*) 'Element in stall ?', dynstall%StallFlag
+        ewrite(2,*) '=================='
 
         ! Modify Coefficients
         CLdyn=dynstall%CN*cos(dynstall%alpha)+dynstall%CT*sin(dynstall%alpha)
