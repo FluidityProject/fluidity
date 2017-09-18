@@ -97,13 +97,13 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">1.0</real_value>
+      <real_value rank="0">0.01</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">8</real_value>
     </finish_time>
     <final_timestep>
-      <integer_value rank="0">8</integer_value>
+      <integer_value rank="0">800</integer_value>
     </final_timestep>
   </timestepping>
   <physical_parameters>

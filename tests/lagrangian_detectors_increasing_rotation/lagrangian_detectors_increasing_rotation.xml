@@ -16,8 +16,17 @@ import numpy as np
 from fluidity_tools import stat_parser
 s = stat_parser("lagrangian_detectors.detectors")
 last_single_locations_error = np.zeros((2,3))
-X = np.fromfile('Xvals.txt',sep=' ')
-Y = np.fromfile('Yvals.txt',sep=' ')
+
+X=np.zeros(100,float)
+Y=np.zeros(100,float)
+f = open('Xvals.npy', "r")
+X_in= np.fromfile(f,dtype=np.float)
+f = open('Yvals.npy', "r")
+Y_in= np.fromfile(f,dtype=np.float)
+for i in range(0,100):
+    X[i]=X_in[i+10]
+    Y[i]=Y_in[i+10]
+    
 last_single_locations_error[0,0] = s['Single_Lagr_1']['position'][0][-1] - X[0]
 last_single_locations_error[1,0] = s['Single_Lagr_1']['position'][1][-1] - Y[0]
 last_single_locations_error[0,1] = s['Single_Lagr_2']['position'][0][-1] - X[50]
@@ -27,12 +36,21 @@ last_single_locations_error[1,2] = s['Single_Lagr_3']['position'][1][-1] - Y[99]
     </variable>
     <variable name="last_locations_error" language="python">
 from fluidity_tools import stat_parser
-from numpy import zeros,fromfile
+import numpy as np
 
 s = stat_parser('lagrangian_detectors.detectors')
-last_locations_error = zeros((2,100))
-X = fromfile('Xvals.txt',sep=' ')
-Y = fromfile('Yvals.txt',sep=' ')
+last_locations_error = np.zeros((2,100))
+
+X=np.zeros(100,float)
+Y=np.zeros(100,float)
+f = open('Xvals.npy', "r")
+X_in= np.fromfile(f,dtype=np.float)
+f = open('Yvals.npy', "r")
+Y_in= np.fromfile(f,dtype=np.float)
+for i in range(0,100):
+    X[i]=X_in[i+10]
+    Y[i]=Y_in[i+10]
+
 for i in range(100):
     name = 'Steve_' + str(i+1).zfill(3)
     last_locations_error[0,i] = s[name]['position'][0][-1] - X[i]
