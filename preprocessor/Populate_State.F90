@@ -2613,7 +2613,7 @@ contains
 
           if(trim(vfield%name)=="Velocity") then
 
-             if((iterations > 1) .or. (prescribed)) then
+             if( iterations>1 .or. prescribed) then
              
                 call allocate(aux_vfield, vfield%dim, vfield%mesh, "Nonlinear"//trim(vfield%name))
                 call zero(aux_vfield)
@@ -2630,7 +2630,6 @@ contains
                 
              end if
 
-             
              if(prognostic) then
                 gravity = have_option("/physical_parameters/gravity")
                 if(gravity) then
@@ -2646,7 +2645,7 @@ contains
                    call deallocate(aux_sfield)
                 end if
              end if
-             
+
           end if
 
           if(trim(vfield%name)=="VelocityInnerElement") then
