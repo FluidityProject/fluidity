@@ -207,7 +207,7 @@
       character(len=OPTION_PATH_LEN) :: inner_option_path, inner_solver_option_path
       integer, dimension(:,:), pointer :: save_gnn2unn
       type(integer_set), dimension(velocity%dim):: boundary_row_set      
-      integer reference_node, stat, i, rotation_stat
+      integer reference_node, i, rotation_stat
       logical parallel, have_auxiliary_matrix, have_preconditioner_matrix
 
       logical :: apply_reference_node, apply_reference_node_from_coordinates, reference_node_owned
@@ -365,55 +365,62 @@
          end if
       end if
       
-      ! Set ksp for M block solver inside the Schur Complement (the inner, inner solve!). 
-      call MatSchurComplementGetKSP(A,ksp_schur,ierr)
-      call petsc_solve_state_setup(inner_solver_option_path, prolongators, surface_nodes, &
-        state, inner_mesh, blocks(div_matrix_comp,2), inner_option_path, matrix_has_solver_cache=.false., &
-        mesh_positions=mesh_positions)
-      rotation_matrix => extract_petsc_csr_matrix(state, "RotationMatrix", stat=rotation_stat)
+      if (have_option(trim(inner_option_path)//"/solver")) then
+        ! for FullMass solver/ is required - and this is the first time we use these options
+        ! for FullMomentum solver/ is optional - if present the specified nullspace options are possibly different
+        ! in both cases we need to setup the null spaces of the inner matrix here
 
-      if (associated(mesh_positions)) then
-        if (rotation_stat==0) then
+        ! this call returns, depending on options, prolongators and mesh_positions needed for setting
+        ! up the ksp and the nullspaces
+        call petsc_solve_state_setup(inner_solver_option_path, prolongators, surface_nodes, &
+          state, inner_mesh, blocks(div_matrix_comp,2), inner_option_path, matrix_has_solver_cache=.false., &
+          mesh_positions=mesh_positions)
+
+        if (associated(prolongators))then
+          FLExit("mg vertical_lumping and higher_order_lumping not supported for inner_matrix solve")
+        end if
+
+        rotation_matrix => extract_petsc_csr_matrix(state, "RotationMatrix", stat=rotation_stat)
+        if (associated(mesh_positions)) then
+          if (rotation_stat==0) then
+            call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
+              positions=mesh_positions, rotation_matrix=rotation_matrix%M, &
+              petsc_numbering=petsc_numbering_u)
+          else
+            call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
+              positions=mesh_positions, petsc_numbering=petsc_numbering_u)
+          end if
+          call deallocate(mesh_positions)
+          deallocate(mesh_positions)
+        elseif (rotation_stat==0) then
           call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
-            positions=mesh_positions, rotation_matrix=rotation_matrix%M, &
-            petsc_numbering=petsc_numbering_u)
+            rotation_matrix=rotation_matrix%M, petsc_numbering=petsc_numbering_u)
         else
           call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
-            positions=mesh_positions, petsc_numbering=petsc_numbering_u)
+            petsc_numbering=petsc_numbering_u)
         end if
-      elseif (rotation_stat==0) then
-        call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
-          rotation_matrix=rotation_matrix%M, petsc_numbering=petsc_numbering_u)
+
       else
-        call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
-          petsc_numbering=petsc_numbering_u)
+        ! for FullMomentum solver/ is optional - if it's not there we reuse the option path of velocity
+        inner_solver_option_path = complete_solver_option_path(velocity%option_path)
       end if
 
-      if (associated(prolongators)) then
-        if (rotation_stat==0) then
-          FLExit("Rotated boundary conditions do not work with mg prolongators")
-        end if
 
-        if (associated(surface_nodes)) then
-          FLExit("Internal smoothing not available for inner solve")
-        end if
-        call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
-          inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
-          prolongators=prolongators)
-        do i=1, size(prolongators)
-          call deallocate(prolongators(i))
-        end do
-        deallocate(prolongators)
+      if (inner_M%ksp==PETSC_NULL_OBJECT) then
+        ! use the one that's just been created for us
+        call MatSchurComplementGetKSP(A,ksp_schur,ierr)
+
+        ! we keep our own reference, so it can be re-used in the velocity correction solve
+        call PetscObjectReference(ksp_schur, ierr)
+        inner_M%ksp = ksp_schur
       else
-        call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
+        ! we have a ksp (presumably from the first velocity solve), try to reuse it
+        ewrite(2,*) "Reusing the ksp from the initial velocity solve"
+        call MatSchurComplementSetKSP(A, inner_M%ksp, ierr)
+      end if
+
+      call setup_ksp_from_options(inner_M%ksp, inner_M%M, inner_M%M, &
           inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true.)
-      end if
-      
-      if (associated(mesh_positions)) then
-        call deallocate(mesh_positions)
-        deallocate(mesh_positions)
-      end if
-       
       ! leaving out petsc_numbering and mesh, so "iteration_vtus" monitor won't work!
 
       ! Assemble preconditioner matrix in petsc format (if required):
@@ -437,7 +444,7 @@
       parallel=IsParallel()
 
       call attach_null_space_from_options(A, solver_option_path, pmat=pmat, petsc_numbering=petsc_numbering_p)
-      call SetupKSP(ksp,A,pmat,solver_option_path,parallel,petsc_numbering_p, lstartfromzero)
+      call create_ksp_from_options(ksp,A,pmat,solver_option_path,parallel,petsc_numbering_p, lstartfromzero)
       
       ! Destroy the matrices setup for the schur complement computation. While
       ! these matrices are destroyed here, they are still required for the inner solve,

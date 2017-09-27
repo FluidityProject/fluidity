@@ -1835,6 +1835,8 @@ Make sure you've not lumped your mass in the velocity spatial_discretisation if 
                   <value>FullMassMatrix</value>
                 </attribute>
                 <element name="solver">
+                  <a:documentation>Solver options to solve the inner (mass) matrix in the schur complement solve, also used
+to solve the correction solve afterwards. </a:documentation>
                   <ref name="linear_solver_options_sym"/>
                 </element>
               </element>
@@ -1846,9 +1848,13 @@ Doesn't really matter if you've lumped your mass or not but why would you if you
                 <attribute name="name">
                   <value>FullMomentumMatrix</value>
                 </attribute>
-                <element name="solver">
-                  <ref name="linear_solver_options_asym_vector"/>
-                </element>
+                <optional>
+                  <element name="solver">
+                    <a:documentation>Solver options to solve the inner (momentum) matrix in the schur complement solve, also used
+to solve the correction solve afterwards. If not provided uses the solver options under Velocity</a:documentation>
+                    <ref name="linear_solver_options_asym_vector"/>
+                  </element>
+                </optional>
               </element>
             </choice>
             <choice>

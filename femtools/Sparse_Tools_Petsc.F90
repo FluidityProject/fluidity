@@ -65,6 +65,9 @@ module sparse_tools_petsc
      !! if .false. we need to call assemble before extracting info
      !! and or go into a solve:
      logical:: is_assembled=.false.
+     !! this ksp solver object can be used to cache ksp/pc setup between subsequent solves:
+     !! ( should always be allocated, to ensure different references all point to the same KSP)
+     KSP, pointer :: ksp => null()
   end type petsc_csr_matrix
 
   type petsc_csr_matrix_pointer
@@ -269,6 +272,9 @@ contains
       matrix%column_halo = sparsity%column_halo
       call incref(matrix%column_halo)
     end if
+
+    allocate(matrix%ksp)
+    matrix%ksp = PETSC_NULL_OBJECT
     
     nullify(matrix%refcount) ! Hack for gfortran component initialisation
     !                         bug.
@@ -478,6 +484,9 @@ contains
       matrix%column_halo = lcolumn_halo
       call incref(matrix%column_halo)
     end if
+
+    allocate(matrix%ksp)
+    matrix%ksp = PETSC_NULL_OBJECT
     
     nullify(matrix%refcount) ! Hack for gfortran component initialisation
     !                         bug.
@@ -553,6 +562,9 @@ contains
       end if
     end if
 
+    allocate(matrix%ksp)
+    matrix%ksp = PETSC_NULL_OBJECT
+
     nullify(matrix%refcount) ! Hack for gfortran component initialisation
     !                         bug.
     call addref(matrix)
@@ -588,6 +600,23 @@ contains
        call deallocate(matrix%column_halo)
        deallocate(matrix%column_halo)
     end if
+
+    if (.not. associated(matrix%ksp)) then
+      FLAbort("Attempt made to deallocate a non-allocated or damaged petsc_csr_matrix.")
+    end if
+
+    if (matrix%ksp/=PETSC_NULL_OBJECT) then
+      call KSPDestroy(matrix%ksp, lstat)
+      if (lstat/=0) then
+        if (present(stat)) then
+          ewrite(0,*) "Error from KSPDestroy in deallocate_csr_matrix."
+          stat=lstat
+          return
+        end if
+        FLAbort("Error from KSPDestroy in deallocate_csr_matrix.")
+      end if
+    end if
+    deallocate(matrix%ksp)
     
 42  if (present(stat)) then
        stat=lstat
@@ -973,6 +1002,9 @@ contains
     
     ! make up a name
     c%name=trim(a%name)//"_"//trim(p%name)//"_ptap"
+
+    allocate(c%ksp)
+    c%ksp = PETSC_NULL_OBJECT
     
     ! the new c get its own reference:
     nullify(c%refcount) ! Hack for gfortran component initialisation
