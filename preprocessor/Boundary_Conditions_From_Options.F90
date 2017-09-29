@@ -848,7 +848,9 @@ contains
             call get_option(trim(bc_type_path)//"/from_field/parent_field_name", parent_field_name)
             parent_field => extract_scalar_field(state, parent_field_name, stat)
             if(stat /= 0) then
-               FLExit("Could not extract parent field. Check options file?")
+               ewrite(-1,*) "For boundary conditions specified at " // trim(bc_type_path)
+               ewrite(-1,*) "Could not find scalar parent field " // trim(parent_field_name)
+               FLExit("Could not extract scalar parent field. Check options file?")
             end if
 
             call remap_field_to_surface(parent_field, surface_field, surface_element_list, stat)
@@ -1202,7 +1204,9 @@ contains
                 call get_option(trim(bc_path_i)//"/external_density/from_field/parent_field_name", parent_field_name)
                 scalar_parent_field => extract_scalar_field(state, parent_field_name, stat)
                 if(stat /= 0) then
-                  FLExit("Could not extract parent field. Check options file?")
+                  ewrite(-1,*) "For external_density specified under " // trim(bc_path_i)
+                  ewrite(-1,*) "Could not find scalar parent field " // trim(parent_field_name)
+                  FLExit("Could not extract scalar parent field. Check options file?")
                 end if
                 call remap_field_to_surface(scalar_parent_field, scalar_surface_field, surface_element_list, stat)
               else
@@ -1265,6 +1269,8 @@ contains
           vector_parent_field => extract_vector_field(state, parent_field_name, stat)
           if(stat /= 0) then
              ! Parent field not found.
+             ewrite(-1,*) "For boundary condition set from_field under " // trim(bc_component_path)
+             ewrite(-1,*) "Could not find scalar or vector parent field " // trim(parent_field_name)
              FLExit("Could not extract parent field. Check options file?")
           else
              ! Apply the j-th component of parent_field to the j-th component
