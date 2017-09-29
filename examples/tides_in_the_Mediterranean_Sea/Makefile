@@ -23,7 +23,7 @@ endif
 
 postprocess: envcheck
 	@echo **********Reprojecting final output to long-lat and extracting RMS differences:
-	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH python ./reproject-to-loglat.py
+	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH python ./reproject-to-lonlat.py
 	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH python ./Med-tides-probe.py
 
 
@@ -35,3 +35,5 @@ clean:
 input: clean
 	$(MAKE) preprocess
 
+config: envcheck
+	diamond -s $(FLOPTIONSPREFIX)/fluidity_options.rng  med.flml

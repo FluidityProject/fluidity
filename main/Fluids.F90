@@ -68,7 +68,6 @@ module fluids_module
   use field_priority_lists
   use multiphase_module
   use multimaterial_module
-  use spontaneous_potentials, only: calculate_electrical_potential
   use free_surface_module
   use momentum_diagnostic_fields, only: calculate_densities
   use sediment_diagnostics, only: calculate_sediment_flux
@@ -93,15 +92,10 @@ module fluids_module
   use field_equations_cv, only: solve_field_eqn_cv, initialise_advection_convergence, coupled_cv_field_eqn
   use qmesh_module
   use write_triangle
-  use solidconfiguration
-  use ale_module
   use meshmovement
   use biology
   use foam_flow_module, only: calculate_potential_flow, calculate_foam_velocity
-  use reduced_model_runtime
-  use implicit_solids
   use momentum_equation
-  use saturation_distribution_search_hookejeeves
   use gls
   use iceshelf_meltrate_surf_normal
 #ifdef HAVE_HYPERLIGHT
@@ -138,7 +132,6 @@ contains
     !     System state wrapper.
     type(state_type), dimension(:), pointer :: state => null()
     type(state_type), dimension(:), pointer :: sub_state => null()
-    type(state_type), dimension(:), allocatable :: POD_state
 
     type(tensor_field) :: metric_tensor
     !     Dump index
@@ -153,17 +146,6 @@ contains
     logical :: not_to_move_det_yet = .false.
 
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-
-    !     STUFF for MEsh movement, and Solid-fluid-coupling.  ------ jem
-
-    !     Ale mesh movement - Julian 05-02-07
-    LOGICAL:: USE_ALE
-    INTEGER:: fs
-
-    !     Solid-fluid coupling - Julian 18-09-06
-    !New options
-    INTEGER :: ss,ph
-    LOGICAL :: have_solids
 
     ! An array of submaterials of the current phase in state(istate).
     ! Needed for k-epsilon VelocityBuoyancyDensity calculation line:~630
@@ -227,13 +209,6 @@ contains
 
     ewrite(3,*)'before have_option test'
 
-    if (have_option("/reduced_model/execute_reduced_model")) then
-       call read_pod_basis(POD_state, state)
-    else
-       ! need something to pass into solve_momentum
-       allocate(POD_state(1:0))
-    end if
-
     ! Check the diagnostic field dependencies for circular dependencies
     call check_diagnostic_dependencies(state)
 
@@ -276,9 +251,6 @@ contains
        ! Ensure that checkpoints do not adapt at first timestep.
        call delete_option(&
             "/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")
-
-       ! Remove dummy field used by implicit_solids
-       if (have_option("/implicit_solids")) call remove_dummy_field(state(1))
     else
        ! Auxilliary fields.
        call allocate_and_insert_auxilliary_fields(state)
@@ -344,47 +316,6 @@ contains
 
     call run_diagnostics(state)
 
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     Initialise solid-fluid coupling, and ALE ----------- -Julian 17-07-2008
-    have_solids=.false.
-    use_ale=.false.
-
-    !Read the amount of SolidConcentration fields
-    !and save their IT numbers.
-    if(have_option(trim('/imported_solids'))) then
-       ss=0
-       phaseloop: do ph = 1, size(state)
-          write(option_buffer, '(a,i0,a)') "/material_phase[",ph-1,"]"
-          if(have_option(trim(option_buffer)//"/scalar_field::SolidConcentration") &
-             .and. have_option("/imported_solids")) then
-             ss = ph
-             have_solids=.true.
-          end if
-       end do phaseloop
-       if(ss==0) then
-          ewrite(-1,*) "You have /imported_solids on but..."
-          FLExit("..couldn't find a material phase containing solid concentration.")
-       end if
-       EWRITE(2,*) 'solid state= ',ss
-    end if
-
-    if(have_option(trim('/mesh_adaptivity/mesh_movement/explicit_ale'))) then
-       !if using ALE with two fluids, look for the prognostic Material Volume fraction field.
-       !This will later be changed to be more general (i.e.: be able to do this with any field by providing
-       !its name)
-       use_ale=.true.
-       fs=-1
-       phaseloop1: do ph = 1, size(state)
-          write(option_buffer, '(a,i0,a)') "/material_phase[",ph-1,"]"
-          if(have_option(trim(option_buffer)//"/scalar_field::MaterialVolumeFraction/prognostic")) then
-             fs = ph
-          end if
-       end do phaseloop1
-       if (fs==-1) then
-          FLExit('No prognostic MaterialVolumeFraction was defined, which is needed for ALE')
-       end if
-    end if
-    !     end initialise solid-fluid coupling, and ALE  -Julian 17-07-2008
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
     if (have_option("/mesh_adaptivity/hr_adaptivity")) then
@@ -398,11 +329,13 @@ contains
        FLExit("Rejig your FLML: /io/dump_format")
     end if
 
-    ! initialise the multimaterial fields
+    ! Initialise multimaterial fields:
     call initialise_diagnostic_material_properties(state)
 
-    call calculate_diagnostic_variables(State)
+    ! Calculate diagnostic variables:
+    call calculate_diagnostic_variables(state)
     call calculate_diagnostic_variables_new(state)
+    
     ! This is mostly to ensure that the photosynthetic radiation
     ! has a non-zero value before the first adapt.
     if (have_option("/ocean_biology")) then
@@ -471,11 +404,11 @@ contains
        call tic(TICTOC_ID_TIMESTEP)
 
        if( &
-                                ! Do not dump at the start of the simulation (this is handled by write_state call earlier)
+            ! Do not dump at the start of the simulation (this is handled by write_state call earlier)
             & current_time > simulation_start_time &
-                                ! Do not dump at the end of the simulation (this is handled by later write_state call)
+            ! Do not dump at the end of the simulation (this is handled by later write_state call)
             & .and. current_time < finish_time &
-                                ! Test write_state conditions
+            ! Test write_state conditions
             & .and. do_write_state(current_time, timestep) &
             & ) then
 
@@ -550,12 +483,9 @@ contains
           ewrite(1,*)'Start of another nonlinear iteration; ITS,nonlinear_iterations=',ITS,nonlinear_iterations
           ewrite(1,*)'###################'
 
+          ! For each field, set the iterated field, if present:
           call copy_to_stored_values(state, "Iterated")
-          ! relax to nonlinear has to come before copy_from_stored_values
-          ! so that the up to date values don't get wiped from the field itself
-          ! (this could be fixed by replacing relax_to_nonlinear on the field
-          !  with a dependency on the iterated field but then copy_to_stored_values
-          !  would have to come before relax_to_nonlinear)
+          ! For each field, set the nonlinear field, if present:
           call relax_to_nonlinear(state)
           call copy_from_stored_values(state, "Old")
 
@@ -586,46 +516,8 @@ contains
           ! Calculate source terms for population balance scalars
           call dqmom_calculate_source_terms(state, ITS)
 
-          !------------------------------------------------
-          ! Addition for calculating drag force ------ jem 05-06-2008
-          if (have_option("/imported_solids/calculate_drag_on_surface")) then
-             call drag_on_surface(state)
-          end if
-
-          !     Addition for reading solids in - jem  02-04-2008
-          if (have_solids) call solid_configuration(state(ss:ss))
-
-          !Explicit ALE ------------   jem 21/07/08
-          if (use_ale) then
-             EWRITE(0,'(A)') '----------------------------------------------'
-             EWRITE(0,'(A26,E12.6)') 'Using explicit_ale. time: ',current_time
-             call explicit_ale(state,fs)
-          end if
-          !end explicit ale ------------  jem 21/07/08
-
-          ! Call to electrical properties for porous_media module 
-          if (have_option("/porous_media")) then
-             ! compute spontaneous electrical potentials
-             do i=1,size(state)
-                option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/'
-                ! Option to search through a space of saturation distributions to find
-                ! best match to measured electrical data - for reservoir modelling.
-                if (have_option(trim(option_buffer)//'Saturation_Distribution_Search')) then
-                   call search_saturations_hookejeeves(state, i)
-                elseif (have_option(trim(option_buffer)//'coupling_coefficients/scalar_field::Electrokinetic').or.&
-                    have_option(trim(option_buffer)//'coupling_coefficients/scalar_field::Thermoelectric').or.&
-                    have_option(trim(option_buffer)//'coupling_coefficients/scalar_field::Electrochemical')) then
-                   call calculate_electrical_potential(state(i), i)
-                end if
-             end do
-          end if
-
           if (have_option("/ocean_biology")) then
              call calculate_biology_terms(state(1))
-          end if
-
-          if (have_option("/implicit_solids")) then
-             call solids(state(1), its, nonlinear_iterations)
           end if
 
           ! Do we have the k-epsilon turbulence model?
@@ -749,12 +641,6 @@ contains
           ! Assemble and solve N.S equations.
           !
 
-          if (have_solids) then
-             ewrite(2,*) 'into solid_drag_calculation'
-             call solid_drag_calculation(state(ss:ss), its, nonlinear_iterations)
-             ewrite(2,*) 'out of solid_drag_calculation'
-          end if
-
           do i=1, option_count("/material_phase")
             option_path="/material_phase["//int2str(i-1)//"]/scalar_field::FoamVelocityPotential"
             if( have_option(trim(option_path)//"/prognostic")) then
@@ -771,10 +657,10 @@ contains
 
           if(use_sub_state()) then
              call update_subdomain_fields(state,sub_state)
-             call solve_momentum(sub_state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
+             call solve_momentum(sub_state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep)
              call sub_state_remap_to_full_mesh(state, sub_state)
           else
-             call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
+             call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep)
           end if
 
           ! Apply minimum weight condition on weights - population balance
@@ -806,12 +692,6 @@ contains
              end if
           end if
 
-          if(have_solids) then
-             ewrite(2,*) 'into solid_data_update'
-             call solid_data_update(state(ss:ss), its, nonlinear_iterations)
-             ewrite(2,*) 'out of solid_data_update'
-          end if
-
        end do nonlinear_iteration_loop
 
        ! Calculate prognostic sediment deposit fields
@@ -828,20 +708,6 @@ contains
           end if
        end if
 
-       if (have_option("/implicit_solids")) then
-          call implicit_solids_update(state(1))
-          if (have_option("/timestepping/nonlinear_iterations/tolerance")) then
-             if ((its < nonlinear_iterations .and. change < abs(nonlinear_iteration_tolerance))) then
-                call implicit_solids_nonlinear_iteration_converged()
-             end if
-          end if
-       end if
-
-       if(have_option(trim('/mesh_adaptivity/mesh_movement/vertical_ale'))) then
-          ewrite(1,*) 'Entering vertical_ale routine'
-          !move the mesh and calculate the grid velocity
-          call movemeshy(state(1))
-       end if
        if (have_option('/mesh_adaptivity/mesh_movement')) then
           ! During the timestep Coordinate is evaluated at n+theta, i.e.
           ! (1-theta)*OldCoordinate+theta*IteratedCoordinate. For writing
@@ -984,12 +850,6 @@ contains
        end do
     end if
 
-    if (allocated(pod_state)) then
-       do i=1, size(pod_state)
-          call deallocate(pod_state(i))
-       end do
-    end if
-    
     ! deallocate the pointer to the array of states and sub-state:
     deallocate(state)
     if(use_sub_state()) deallocate(sub_state)

@@ -63,7 +63,6 @@ COLOURING_DG0
   use upwind_stabilisation
   use slope_limiters_dg
   use diagnostic_fields, only: calculate_diagnostic_variable
-  use porous_media
   use colouring, only: get_mesh_colouring
 
   implicit none
@@ -111,9 +110,6 @@ COLOURING_DG0
   logical :: include_mass
   ! are we moving the mesh?
   logical :: move_mesh
-
-  ! Include porosity?
-  logical :: include_porosity
 
   ! Stabilisation schemes.
   integer :: stabilisation_scheme
@@ -743,9 +739,6 @@ contains
 
     type(mesh_type), pointer :: mesh_cg
     
-    ! Porosity field
-    type(scalar_field) :: porosity_theta
-    
     !! Add the Source directly to the right hand side?
     logical :: add_src_directly_to_rhs
 
@@ -892,18 +885,6 @@ contains
        include_advection=.true.
     end if
 
-    ! Porosity
-    if (have_option(trim(T%option_path)//'/prognostic/porosity')) then
-       include_porosity = .true.
-
-       ! get the porosity theta averaged field - this will allocate it
-       call form_porosity_theta(porosity_theta, state, option_path = trim(T%option_path)//'/prognostic/porosity')       
-    else
-       include_porosity = .false.
-       call allocate(porosity_theta, T%mesh, field_type=FIELD_TYPE_CONSTANT)
-       call set(porosity_theta, 1.0)
-    end if
-
     ! Retrieve scalar options from the options dictionary.
     if (.not.semi_discrete) then
        call get_option(trim(T%option_path)//&
@@ -921,9 +902,6 @@ contains
            
     move_mesh = (have_option("/mesh_adaptivity/mesh_movement").and.include_mass)
     if(move_mesh) then
-      if (include_porosity) then
-         FLExit('Cannot include porosity in DG advection diffusion of a field with a moving mesh')
-      end if
       ewrite(2,*) 'Moving mesh'
       X_old => extract_vector_field(state, "OldCoordinate")
       X_new => extract_vector_field(state, "IteratedCoordinate")
@@ -1047,7 +1025,7 @@ contains
             & Absorption, Diffusivity, bc_value, bc_type, q_mesh, mass, &
             & buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude, &
             & buoyancy_adjustment_diffusivity, &
-            & add_src_directly_to_rhs, porosity_theta) 
+            & add_src_directly_to_rhs) 
        
       end do element_loop
       !$OMP END DO
@@ -1068,7 +1046,6 @@ contains
     call deallocate(U_nl)
     call deallocate(U_nl_backup)
     call deallocate(bc_value)
-    call deallocate(porosity_theta)
     
   end subroutine construct_advection_diffusion_dg
 
@@ -1292,7 +1269,7 @@ contains
        & bc_value, bc_type, &
        & q_mesh, mass, buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude, &
        & buoyancy_adjustment_diffusivity, &
-       & add_src_directly_to_rhs, porosity_theta)
+       & add_src_directly_to_rhs)
     !!< Construct the advection_diffusion equation for discontinuous elements in
     !!< acceleration form.
     implicit none
@@ -1327,9 +1304,6 @@ contains
     !! do nothing with it here
     logical, intent(in) :: add_src_directly_to_rhs
     
-    !! Porosity theta averaged field
-    type(scalar_field), intent(in) :: porosity_theta
-
     !! Flag for a periodic boundary
     logical :: Periodic_neigh 
 
@@ -1631,12 +1605,7 @@ contains
     if(move_mesh) then
       mass_mat = shape_shape(T_shape, T_shape, detwei_new)
     else
-      if (include_porosity) then
-        assert(ele_ngi(T, ele)==ele_ngi(porosity_theta, ele))
-        mass_mat = shape_shape(T_shape, T_shape, detwei*ele_val_at_quad(porosity_theta, ele))      
-      else
-        mass_mat = shape_shape(T_shape, T_shape, detwei)
-      end if
+      mass_mat = shape_shape(T_shape, T_shape, detwei)
     end if
 
     if (include_advection) then

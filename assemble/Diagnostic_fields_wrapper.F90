@@ -54,7 +54,6 @@ module diagnostic_fields_wrapper
        calculate_diagnostic_wettingdrying_alpha
   use vorticity_diagnostics
   use momentum_diagnostic_fields
-  use spontaneous_potentials, only: calculate_formation_conductivity
   use sediment_diagnostics
   use dqmom
   use geostrophic_pressure
@@ -132,30 +131,6 @@ contains
        if(stat == 0) then
          if(recalculate(trim(s_field%option_path))) then
            call calculate_diagnostic_variable(state(i), "CVMaterialDensityCFLNumber", &
-             & s_field)
-         end if
-       end if
-
-       s_field => extract_scalar_field(state(i), "InterstitialVelocityCGCourantNumber", stat)
-       if(stat == 0) then
-         if(recalculate(trim(s_field%option_path))) then
-           call calculate_diagnostic_variable(state(i), "InterstitialVelocityCGCourantNumber", &
-             & s_field)
-         end if
-       end if
-
-       s_field => extract_scalar_field(state(i), "InterstitialVelocityDGCourantNumber", stat)
-       if(stat == 0) then
-         if(recalculate(trim(s_field%option_path))) then
-           call calculate_diagnostic_variable(state(i), "InterstitialVelocityDGCourantNumber", &
-             & s_field)
-         end if
-       end if
-
-       s_field => extract_scalar_field(state(i), "InterstitialVelocityCVCourantNumber", stat)
-       if(stat == 0) then
-         if(recalculate(trim(s_field%option_path))) then
-           call calculate_diagnostic_variable(state(i), "InterstitialVelocityCVCourantNumber", &
              & s_field)
          end if
        end if
@@ -535,18 +510,6 @@ contains
          end if
        end if
        ! End of vorticity diagnostics
-
-       ! Start of spontaneous potentials diagnostics
-       if(i == 1) then
-         s_field => extract_scalar_field(state(i), "ElectricalConductivity", stat)
-         if(stat == 0) then
-           diagnostic = have_option(trim(s_field%option_path)//"/diagnostic/algorithm::Internal")
-           if(diagnostic .and. recalculate(trim(s_field%option_path))) then
-             call calculate_formation_conductivity(state(i), i, s_field, stat)
-           end if
-         end if
-       end if
-       ! End of spontaneous potentials diagnostics
 
        ! Start of sediment diagnostics.
        if (have_option("/material_phase[0]/sediment")) then

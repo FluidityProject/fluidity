@@ -60,7 +60,7 @@
     use field_derivatives
     use coordinates, only: radial_inward_normal_at_quad_face,&
          rotate_diagonal_to_sphere_face, radial_inward_normal_at_quad_ele,&
-	 rotate_diagonal_to_sphere_gi
+         rotate_diagonal_to_sphere_gi
     use boundary_conditions_from_options
     use petsc_solve_state_module, only: petsc_solve
     use coriolis_module, only: coriolis, set_coriolis_parameters
@@ -2597,6 +2597,11 @@
       delta_u2%option_path = trim(delta_p%option_path)//&
                                   &"/prognostic/scheme/use_projection_method"//&
                                   &"/full_schur_complement/inner_matrix[0]"
+      if (.not. have_option(trim(delta_u2%option_path)//"/solver")) then
+        ! inner solver options are optional (for FullMomemtumMatrix), if not
+        ! present use the same as those for the initial velocity solve
+        delta_u2%option_path = u%option_path
+      end if
       
       ! compute delta_u1=grad delta_p
       call mult_t(delta_u1, ct_m, delta_p)

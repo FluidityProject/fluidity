@@ -82,10 +82,11 @@ public petsc_solve, set_solver_options, &
    complete_solver_option_path, petsc_solve_needs_positions
 
 ! meant for unit-testing solver code only:
-public petsc_solve_setup, petsc_solve_core, petsc_solve_destroy, &
+public petsc_solve_core, petsc_solve_destroy, &
   petsc_solve_copy_vectors_from_scalar_fields, &
-  setup_ksp_from_options, SetupKSP, petsc_solve_monitor_exact, &
-  petsc_solve_monitor_iteration_vtus, attach_null_space_from_options
+  setup_ksp_from_options, create_ksp_from_options, petsc_solve_monitor_exact, &
+  petsc_solve_monitor_iteration_vtus, attach_null_space_from_options, &
+  petsc_solve_setup
 
 interface petsc_solve
    module procedure petsc_solve_scalar, petsc_solve_vector, &
@@ -419,7 +420,6 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
   !! surface_node_list for internal smoothing
   integer, dimension(:), optional, intent(in) :: surface_node_list
 
-  KSP ksp
   Vec y, b
 
   character(len=OPTION_PATH_LEN) solver_option_path
@@ -431,7 +431,7 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
   assert(size(rhs%val)==size(matrix,1))
   
   ! setup PETSc object and petsc_numbering from options and 
-  call petsc_solve_setup_petsc_csr(y, b, ksp, &
+  call petsc_solve_setup_petsc_csr(y, b, &
         solver_option_path, lstartfromzero, &
         matrix, &
         sfield=x, &
@@ -443,7 +443,7 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
      petsc_numbering=matrix%row_numbering, startfromzero=lstartfromzero)
     
   ! the solve and convergence check
-  call petsc_solve_core(y, matrix%M, b, ksp, matrix%row_numbering, &
+  call petsc_solve_core(y, matrix%M, b, matrix%ksp, matrix%row_numbering, &
           solver_option_path, lstartfromzero, literations, &
           sfield=x, x0=x%val)
         
@@ -451,7 +451,7 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
   call petsc2field(y, matrix%column_numbering, x)
   
   ! destroy all PETSc objects and the petsc_numbering
-  call petsc_solve_destroy_petsc_csr(y, b, ksp, solver_option_path)
+  call petsc_solve_destroy_petsc_csr(y, b, solver_option_path)
   
 end subroutine petsc_solve_scalar_petsc_csr
 
@@ -486,7 +486,7 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
   assert(rhs%dim==blocks(matrix,1))
   
   ! setup PETSc object and petsc_numbering from options and 
-  call petsc_solve_setup_petsc_csr(y, b, ksp, &
+  call petsc_solve_setup_petsc_csr(y, b, &
         solver_option_path, lstartfromzero, &
         matrix, vfield=x, option_path=option_path, &
         prolongators=prolongators, &
@@ -497,7 +497,7 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
      matrix%row_numbering, lstartfromzero)
     
   ! the solve and convergence check
-  call petsc_solve_core(y, matrix%M, b, ksp, matrix%row_numbering, &
+  call petsc_solve_core(y, matrix%M, b, matrix%ksp, matrix%row_numbering, &
           solver_option_path, lstartfromzero, literations, &
           vfield=x, vector_x0=x)
         
@@ -505,7 +505,7 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
   call petsc2field(y, matrix%column_numbering, x)
   
   ! destroy all PETSc objects and the petsc_numbering
-  call petsc_solve_destroy_petsc_csr(y, b, ksp, solver_option_path)
+  call petsc_solve_destroy_petsc_csr(y, b, solver_option_path)
   
 end subroutine petsc_solve_vector_petsc_csr
 
@@ -687,42 +687,39 @@ type(vector_field), intent(in), optional :: positions
   logical:: parallel, timing, have_cache
   type(halo_type), pointer ::  halo
   integer i, j
+  character(len=FIELD_NAME_LEN) :: name
   KSP, pointer:: ksp_pointer
 
   ! Initialise profiler
   if(present(sfield)) then
      call profiler_tic(sfield, "petsc_setup")
+     name = sfield%name
   else if(present(vfield)) then
      call profiler_tic(vfield, "petsc_setup")
+     name = vfield%name
   else if(present(tfield)) then
      call profiler_tic(tfield, "petsc_setup")
-  end if
-  
-  if (present(sfield)) then
-    if (present(option_path)) then
-      solver_option_path=complete_solver_option_path(option_path)
-    else
-      solver_option_path=complete_solver_option_path(sfield%option_path)
-    end if
-  else if (present(vfield)) then
-    if (present(option_path)) then
-      solver_option_path=complete_solver_option_path(option_path)
-    else
-      solver_option_path=complete_solver_option_path(vfield%option_path)
-    end if
-  else if (present(tfield)) then
-    if (present(option_path)) then
-      solver_option_path=complete_solver_option_path(option_path)
-    else
-      solver_option_path=complete_solver_option_path(tfield%option_path)
-    end if
+     name = tfield%name
   else
-    FLAbort("Need to provide either sfield or vfield to petsc_solve_setup.")
+     FLAbort("petsc_solve_setup should be called with sfield, vfield or tfield")
   end if
-  
+
   timing=(debug_level()>=2)
   if (timing) then
     call cpu_time(time1)
+  end if
+  
+  
+  if (present(option_path)) then
+    solver_option_path=complete_solver_option_path(option_path)
+  else if (present(sfield)) then
+    solver_option_path=complete_solver_option_path(sfield%option_path)
+  else if (present(vfield)) then
+    solver_option_path=complete_solver_option_path(vfield%option_path)
+  else if (present(tfield)) then
+    solver_option_path=complete_solver_option_path(tfield%option_path)
+  else
+    FLAbort("Need to provide either sfield, vfield or tfield to petsc_solve_setup.")
   end if
   
   startfromzero=have_option(trim(solver_option_path)//'/start_from_zero')
@@ -852,23 +849,26 @@ type(vector_field), intent(in), optional :: positions
   if (have_cache) then
     ! write the cached solver options to log:
     call ewrite_ksp_options(ksp)
-  else if (present(preconditioner_matrix)) then
-    ewrite(2,*)  'Using provided preconditioner matrix'
-    pmat=csr2petsc(preconditioner_matrix, petsc_numbering)
   else
-    pmat=A
-  end if
 
-  ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
-  call attach_null_space_from_options(A, solver_option_path, pmat=pmat, &
-    positions=positions, petsc_numbering=petsc_numbering)
-    
-  call SetupKSP(ksp, A, pmat, solver_option_path, parallel, &
-    petsc_numbering, &
-    startfromzero_in=startfromzero_in, &
-    prolongators=prolongators, surface_node_list=surface_node_list, &
-    matrix_csr=matrix, &
-    internal_smoothing_option=internal_smoothing_option)
+    if (present(preconditioner_matrix)) then
+      ewrite(2,*)  'Using provided preconditioner matrix'
+      pmat=csr2petsc(preconditioner_matrix, petsc_numbering)
+    else
+      pmat=A
+    end if
+
+    ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
+    call attach_null_space_from_options(A, solver_option_path, pmat=pmat, &
+      positions=positions, petsc_numbering=petsc_numbering)
+
+    call create_ksp_from_options(ksp, A, pmat, solver_option_path, parallel, &
+      petsc_numbering, &
+      startfromzero_in=startfromzero_in, &
+      prolongators=prolongators, surface_node_list=surface_node_list, &
+      matrix_csr=matrix, &
+      internal_smoothing_option=internal_smoothing_option)
+  end if
   
   if (.not. have_cache .and. have_option(trim(solver_option_path)// &
     &'/cache_solver_context')) then
@@ -908,7 +908,7 @@ type(vector_field), intent(in), optional :: positions
   
   if (timing) then
     call cpu_time(time2)
-    ewrite(2,*) "Time spent in Petsc setup: ", time2-time1
+    ewrite(2,*) trim(name)// " CPU time spent in PETSc setup: ", time2-time1
   end if
 
   if(present(sfield)) then
@@ -921,7 +921,7 @@ type(vector_field), intent(in), optional :: positions
   
 end subroutine petsc_solve_setup
   
-subroutine petsc_solve_setup_petsc_csr(y, b, ksp, &
+subroutine petsc_solve_setup_petsc_csr(y, b, &
   solver_option_path, startfromzero, &
   matrix, sfield, vfield, tfield, &
   option_path, startfromzero_in, &
@@ -934,8 +934,6 @@ subroutine petsc_solve_setup_petsc_csr(y, b, ksp, &
 Vec, intent(out):: y
 !! PETSc rhs vector
 Vec, intent(out):: b
-!! Solver object
-Mat, intent(out):: ksp
 !! returns the option path to solver/ block for new options, otherwise ""
 character(len=*), intent(out):: solver_option_path
 !! whether to start with zero initial guess
@@ -968,32 +966,37 @@ Mat, intent(in), optional:: rotation_matrix
   real time1, time2
   integer ierr
   logical parallel, timing
+  character(len=FIELD_NAME_LEN) :: name
 
-  if (present(sfield)) then
-    if (present(option_path)) then
-      solver_option_path=complete_solver_option_path(option_path)
-    else
-      solver_option_path=complete_solver_option_path(sfield%option_path)
-    end if
-  else if (present(vfield)) then
-    if (present(option_path)) then
-      solver_option_path=complete_solver_option_path(option_path)
-    else
-      solver_option_path=complete_solver_option_path(vfield%option_path)
-    end if
-  else if (present(tfield)) then
-    if (present(option_path)) then
-      solver_option_path=complete_solver_option_path(option_path)
-    else
-      solver_option_path=complete_solver_option_path(tfield%option_path)
-    end if
+  ! Initialise profiler
+  if(present(sfield)) then
+     call profiler_tic(sfield, "petsc_setup")
+     name = sfield%name
+  else if(present(vfield)) then
+     call profiler_tic(vfield, "petsc_setup")
+     name = vfield%name
+  else if(present(tfield)) then
+     call profiler_tic(tfield, "petsc_setup")
+     name = tfield%name
   else
-    FLAbort("Need to provide either sfield, vfield or tfield to petsc_solve_setup.")
+     FLAbort("petsc_solve_setup should be called with sfield, vfield or tfield")
   end if
 
   timing=(debug_level()>=2)
   if (timing) then
     call cpu_time(time1)
+  end if
+
+  if (present(option_path)) then
+    solver_option_path=complete_solver_option_path(option_path)
+  else if (present(sfield)) then
+    solver_option_path=complete_solver_option_path(sfield%option_path)
+  else if (present(vfield)) then
+    solver_option_path=complete_solver_option_path(vfield%option_path)
+  else if (present(tfield)) then
+    solver_option_path=complete_solver_option_path(tfield%option_path)
+  else
+    FLAbort("Need to provide either sfield, vfield or tfield to petsc_solve_setup.")
   end if
   
   call assemble(matrix)
@@ -1013,19 +1016,36 @@ Mat, intent(in), optional:: rotation_matrix
   else
     parallel= .false.
   end if
-  
+
   ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
-  call SetupKSP(ksp, matrix%M, matrix%M, solver_option_path, parallel, &
-      matrix%column_numbering, &
-      startfromzero_in=startfromzero_in, &
-      prolongators=prolongators, surface_node_list=surface_node_list)
+  if (matrix%ksp==PETSC_NULL_OBJECT) then
+  
+    call create_ksp_from_options(matrix%ksp, matrix%M, matrix%M, solver_option_path, parallel, &
+        matrix%column_numbering, &
+        startfromzero_in=startfromzero_in, &
+       prolongators=prolongators, surface_node_list=surface_node_list)
+  else
+    ewrite(2, *) "Reusing ksp from a previous solve"
+    call setup_ksp_from_options(matrix%ksp, matrix%M, matrix%M, solver_option_path, &
+        matrix%column_numbering, &
+        startfromzero_in=startfromzero_in, &
+       prolongators=prolongators, surface_node_list=surface_node_list)
+  end if
   
   b=PetscNumberingCreateVec(matrix%column_numbering)
   call VecDuplicate(b, y, ierr)
 
   if (timing) then
     call cpu_time(time2)
-    ewrite(2,*) "Time spent in Petsc setup: ", time2-time1
+    ewrite(2,*) trim(name)// " CPU time spent in PETSc setup: ", time2-time1
+  end if
+
+  if(present(sfield)) then
+     call profiler_toc(sfield, "petsc_setup")
+  else if(present(vfield)) then
+     call profiler_toc(vfield, "petsc_setup")
+  else if(present(tfield)) then
+     call profiler_toc(tfield, "petsc_setup")
   end if
       
 end subroutine petsc_solve_setup_petsc_csr
@@ -1190,6 +1210,8 @@ logical, optional, intent(in):: nomatrixdump
   else if(present(tfield)) then
     name=tfield%name
     call profiler_tic(tfield, "solve")
+  else
+    FLAbort("petsc_solve_core should be called with sfield, vfield or tfield")
   end if
   
   timing=( debug_level()>=2 )
@@ -1320,24 +1342,15 @@ character(len=*), intent(in):: solver_option_path
   
 end subroutine petsc_solve_destroy
 
-subroutine petsc_solve_destroy_petsc_csr(y, b, ksp, solver_option_path)
+subroutine petsc_solve_destroy_petsc_csr(y, b, solver_option_path)
 Vec, intent(inout):: y
 Vec, intent(inout):: b
-KSP, intent(inout):: ksp
 character(len=*), intent(in):: solver_option_path
 
-  PC pc
-  PCType pctype
   integer ierr
   
   call VecDestroy(y, ierr)
   call VecDestroy(b, ierr)
-  call KSPGetPC(ksp, pc, ierr)
-  call PCGetType(pc, pctype, ierr)
-  if (pctype==PCMG) then
-    call DestroyMultigrid(pc)
-  end if
-  call KSPDestroy(ksp, ierr)
   
   ! destroy everything associated with the monitors
   if(have_option(trim(solver_option_path)// &
@@ -1508,7 +1521,7 @@ subroutine dump_matrix_option(solver_option_path, startfromzero, A, b, &
  
 end subroutine dump_matrix_option
 
-subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
+subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel, &
        petsc_numbering, &
        startfromzero_in, &
        prolongators, surface_node_list, matrix_csr, &
@@ -1549,7 +1562,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
       matrix_csr=matrix_csr, &
       internal_smoothing_option=internal_smoothing_option)
       
-  end subroutine SetupKSP
+  end subroutine create_ksp_from_options
     
   recursive subroutine setup_ksp_from_options(ksp, mat, pmat, solver_option_path, &
       petsc_numbering, startfromzero_in, prolongators, surface_node_list, matrix_csr, &
@@ -1653,6 +1666,9 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
       max_its, atol, rtol, dtol
     ewrite(2, *) 'startfromzero:', startfromzero
     
+    ! cancel all existing monitors (if reusing the same ksp)
+    call KSPMonitorCancel(ksp, ierr)
+
     ! Set up the monitors:
     if (have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/preconditioned_residual')) then
@@ -2004,14 +2020,29 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     MatNullSpace :: null_space
     IS:: index_set
     PetscErrorCode:: ierr
-    integer:: i
+    integer:: i, n
 
     call PCSetType(pc, "fieldsplit", ierr)
 
-    do i=1, size(subksps)
-      index_set = petsc_numbering_create_is(petsc_numbering, dim=i)
-      call PCFieldSplitSetIS(pc, PETSC_NULL_CHARACTER, index_set, ierr)
-    end do
+    call PCFieldSplitGetSubKSP(pc, n, subksps, ierr)
+    if (n==0) then
+      ! first time this pc set to type fieldplit: it's the first time we set it up,
+      ! or it was previously set to a different type - in this case, PCSetType will
+      ! have called PCCreate_FieldSplit which will have set n/o splits to zero
+      do i=1, size(subksps)
+        index_set = petsc_numbering_create_is(petsc_numbering, dim=i)
+        call PCFieldSplitSetIS(pc, PETSC_NULL_CHARACTER, index_set, ierr)
+        call ISDestroy(index_set, ierr)
+      end do
+
+    elseif (n/=size(subksps)) then
+
+      ! if this pc is reused (and we've previously already set it up with fieldsplit)
+      ! we need to check the n/o fieldsplits is the same
+
+      FLAbort("PC being reused with different number of fieldsplits")
+
+    end if
 
     call get_option(trim(option_path)//"/fieldsplit_type/name", &
       fieldsplit_type, ierr)
@@ -2026,7 +2057,10 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
       FLAbort("Unknown fieldsplit_type")
     end select
 
-    call pcfieldsplitgetsubksp(pc, PETSC_NULL_INTEGER, subksps, ierr)
+    call pcfieldsplitgetsubksp(pc, n, subksps, ierr)
+    
+    assert(n==size(subksps))
+
     do i=1, size(subksps)
 
       call KSPGetOperators(subksps(i), mat, pmat, ierr)

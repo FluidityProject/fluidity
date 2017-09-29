@@ -75,8 +75,6 @@
       use foam_drainage, only: calculate_drainage_source_absor
       use oceansurfaceforcing
       use drag_module
-      use reduced_model_runtime
-      use implicit_solids
       use pressure_dirichlet_bcs_cv
       use shallow_water_equations
 
@@ -127,8 +125,6 @@
 
       logical :: diagonal_big_m
       logical :: pressure_debugging_vtus
-      !! True if the momentum equation should be solved with the reduced model.
-      logical :: reduced_model
 
       ! Increased each call to momentum equation, used as index for pressure debugging vtus
       integer, save :: pdv_count = -1
@@ -144,7 +140,7 @@
 
    contains
 
-      subroutine solve_momentum(state, at_first_timestep, timestep, POD_state)
+      subroutine solve_momentum(state, at_first_timestep, timestep)
          !!< Construct and solve the momentum and continuity equations
          !!< using Chorin's projection method (Chorin, 1968)
 
@@ -153,7 +149,6 @@
          type(state_type), dimension(:), intent(inout) :: state
          logical, intent(in) :: at_first_timestep
          integer, intent(in) :: timestep
-         type(state_type), dimension(:), intent(inout) :: POD_state
 
          ! Counter iterating over each state
          integer :: istate 
@@ -258,11 +253,6 @@
          ! information that would be required to recompile the list)
          type(ilist), save :: stiff_nodes_list
 
-         !! Variables for reduced model
-         type(vector_field), pointer :: snapmean_velocity
-         type(scalar_field), pointer :: snapmean_pressure
-         integer :: d
-
          !! Variables for multi-phase flow model
          integer :: prognostic_count
          ! Do we have a prognostic pressure field to solve for?
@@ -287,7 +277,6 @@
 
          ! Get some options that are independent of the states
          call get_option("/timestepping/timestep", dt)
-         reduced_model = have_option("/reduced_model/execute_reduced_model")
 
          ! Are we running a multi-phase simulation?
          prognostic_count = option_count("/material_phase/vector_field::Velocity/prognostic")
@@ -767,7 +756,7 @@
             ! Do we want to solve for pressure?
             call profiler_tic(p, "assembly")
             
-            if (prognostic_p .and. .not.reduced_model) then
+            if (prognostic_p) then
                
                ! Set up the left C matrix in CMC
                
@@ -831,16 +820,6 @@
                   end if
                end if
 
-               ! Add mass source-absorption for implicit solids.
-               ! This needs to be done after ct_rhs has been formed
-               ! in the divergence routines as they zero the field.
-               ! This routine assumes the continuity is tested with 
-               ! FE basis functions, so is not correct for cv_pressure
-               ! or cg_pressure_cv_test_continuity.
-               if (have_option("/implicit_solids/two_way_coupling")) then
-                  call add_mass_source_absorption(ct_rhs(istate), state(istate))
-               end if
-
                ewrite_minmax(ctp_m(istate)%ptr)
                ewrite_minmax(ct_rhs(istate))
 
@@ -851,7 +830,7 @@
                      & .and. u%mesh%shape%numbering%family == FAMILY_SIMPLEX &
                      & .and. .not. have_option(trim(p%option_path) // &
                      & "/prognostic/spatial_discretisation/continuous_galerkin/remove_stabilisation_term") &
-                     & .and. .not. cv_pressure .and. .not. reduced_model)
+                     & .and. .not. cv_pressure)
                assemble_kmk = apply_kmk .and. &
                         ((.not. has_csr_matrix(state(istate), "PressureStabilisationMatrix")) .or. &
                         have_option(trim(p%option_path)// &
@@ -987,7 +966,7 @@
 
 
          ! Do we have a prognostic pressure field we can actually solve for?
-         if(prognostic_p .and. .not.reduced_model) then
+         if(prognostic_p) then
             call profiler_tic(p, "assembly")
 
             u => extract_vector_field(state(prognostic_p_istate), "Velocity", stat)
@@ -1023,224 +1002,162 @@
             call profiler_toc(p, "assembly")
          end if ! end of prognostic pressure
 
+         !! Advance velocity from u^{n} to an intermediate velocity u^{*}
 
-         if (.not.reduced_model) then
+         call profiler_tic("velocity_solve_loop")
+         velocity_solve_loop: do istate = 1, size(state)
 
-            !! Advance velocity from u^{n} to an intermediate velocity u^{*}
+            ! Get the velocity u^{n}
+            u => extract_vector_field(state(istate), "Velocity", stat)
 
-            call profiler_tic("velocity_solve_loop")
-            velocity_solve_loop: do istate = 1, size(state)
+            ! If there's no velocity then cycle
+            if(stat/=0) cycle
+            ! If this is an aliased velocity then cycle
+            if(aliased(u)) cycle
+            ! If the velocity isn't prognostic then cycle
+            if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
+            
+            if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                 &"/continuous_galerkin").or.&
+                 have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                 &"/discontinuous_galerkin")) then
 
-               ! Get the velocity u^{n}
+               x => extract_vector_field(state(istate), "Coordinate")
+
+               if(use_theta_divergence) then
+                  ! old_u is only used if use_theta_divergence, i.e. if theta_divergence/=1.0
+                  old_u => extract_vector_field(state(istate), "OldVelocity")
+                  if (old_u%aliased) then
+                     ! in the case of one non-linear iteration, there is no OldVelocity,
+                     ! it's just aliased to Velocity, therefore we make temp. version
+                     allocate(old_u)
+                     ! give it a distinct name, so we know to deallocate it
+                     call allocate(old_u, u%dim, u%mesh, "TempOldVelocity")
+                     call set(old_u, u)
+                  end if
+               end if
+               
+               call advance_velocity(state, istate, x, u, p_theta, big_m, ct_m, &
+                    mom_rhs, subcycle_m, subcycle_rhs, inverse_mass)
+
+               if(prognostic_p) then
+                  call assemble_projection(state, istate, u, old_u, p, cmc_m, reassemble_cmc_m, cmc_global, ctp_m, &
+                       ct_rhs, projec_rhs, p_theta, theta_pg, theta_divergence)
+               end if
+
+               ! Deallocate the old velocity field
+               if(use_theta_divergence) then
+                  if (old_u%name == "TempOldVelocity") then
+                     call deallocate(old_u)
+                     deallocate(old_u)
+                  else if (have_rotated_bcs(u)) then
+                     if (dg(istate)) then
+                        call zero_non_owned(old_u)
+                     end if
+                     call rotate_velocity_back(old_u, state(istate))
+                  end if
+                  if (sphere_absorption(istate)) then
+                     if (dg(istate)) then
+                        call zero_non_owned(old_u)
+                     end if
+                     call rotate_velocity_back_sphere(old_u, state(istate))
+                  end if
+               end if
+               
+            end if ! end of prognostic velocity
+            
+         end do velocity_solve_loop
+         call profiler_toc("velocity_solve_loop")
+
+
+         !! Solve for delta_p -- the pressure correction term
+         if(prognostic_p) then
+            call profiler_tic(p, "assembly")
+            
+            ! Get the intermediate velocity u^{*} and the coordinate vector field
+            u=>extract_vector_field(state(prognostic_p_istate), "Velocity", stat)
+            x=>extract_vector_field(state(prognostic_p_istate), "Coordinate")
+            
+            if(multiphase) then
+               cmc_m => cmc_global ! Use the sum over all individual phase CMC matrices
+            end if
+            
+            call correct_pressure(state, prognostic_p_istate, x, u, p, old_p, delta_p, &
+                 p_theta, free_surface, theta_pg, theta_divergence, &
+                 cmc_m, ct_m, ctp_m, projec_rhs, inner_m, full_projection_preconditioner, &
+                 schur_auxiliary_matrix, stiff_nodes_list)
+            
+            call deallocate(projec_rhs)
+            call profiler_toc(p, "assembly")
+         end if
+         
+         
+         !! Correct and update velocity fields to u^{n+1} using pressure correction term delta_p
+         if(prognostic_p) then
+            
+            call profiler_tic("velocity_correction_loop")
+            velocity_correction_loop: do istate = 1, size(state)
+               
+               ! Get the velocity u^{*}
                u => extract_vector_field(state(istate), "Velocity", stat)
-
+               
                ! If there's no velocity then cycle
                if(stat/=0) cycle
                ! If this is an aliased velocity then cycle
                if(aliased(u)) cycle
                ! If the velocity isn't prognostic then cycle
                if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
-
+               
                if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
-                                       &"/continuous_galerkin").or.&
-                  have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
-                                       &"/discontinuous_galerkin")) then
-
-                  x => extract_vector_field(state(istate), "Coordinate")
-
-                  if(use_theta_divergence) then
-                     ! old_u is only used if use_theta_divergence, i.e. if theta_divergence/=1.0
-                     old_u => extract_vector_field(state(istate), "OldVelocity")
-                     if (old_u%aliased) then
-                        ! in the case of one non-linear iteration, there is no OldVelocity,
-                        ! it's just aliased to Velocity, therefore we make temp. version
-                        allocate(old_u)
-                        ! give it a distinct name, so we know to deallocate it
-                        call allocate(old_u, u%dim, u%mesh, "TempOldVelocity")
-                        call set(old_u, u)
-                     end if
+                    &"/continuous_galerkin").or.&
+                    have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                    &"/discontinuous_galerkin")) then
+                  
+                  call profiler_tic(u, "assembly")
+                  
+                  ! Correct velocity according to new delta_p
+                  if(full_schur) then
+                     call correct_velocity_cg(u, inner_m(istate)%ptr, ct_m(istate)%ptr, delta_p, state(istate))
+                  else if(lump_mass(istate)) then
+                     call correct_masslumped_velocity(u, inverse_masslump(istate), ct_m(istate)%ptr, delta_p)
+                  else if(dg(istate)) then
+                     call correct_velocity_dg(u, inverse_mass(istate), ct_m(istate)%ptr, delta_p)
+                  else
+                     ! Something's gone wrong in the code
+                     FLAbort("Don't know how to correct the velocity.")
                   end if
-
-                  call advance_velocity(state, istate, x, u, p_theta, big_m, ct_m, &
-                                        mom_rhs, subcycle_m, subcycle_rhs, inverse_mass)
-
-                  if(prognostic_p) then
-                     call assemble_projection(state, istate, u, old_u, p, cmc_m, reassemble_cmc_m, cmc_global, ctp_m, &
-                                              ct_rhs, projec_rhs, p_theta, theta_pg, theta_divergence)
+                  
+                  if(implicit_prognostic_fs.or.explicit_prognostic_fs) then
+                     call update_prognostic_free_surface(state(istate), free_surface, implicit_prognostic_fs, &
+                          explicit_prognostic_fs)
                   end if
-
-                  ! Deallocate the old velocity field
-                  if(use_theta_divergence) then
-                     if (old_u%name == "TempOldVelocity") then
-                        call deallocate(old_u)
-                        deallocate(old_u)
-                     else if (have_rotated_bcs(u)) then
-                        if (dg(istate)) then
-                          call zero_non_owned(old_u)
-                        end if
-                        call rotate_velocity_back(old_u, state(istate))
-                     end if
-                     if (sphere_absorption(istate)) then
-                        if (dg(istate)) then
-                          call zero_non_owned(old_u)
-                        end if
-                        call rotate_velocity_back_sphere(old_u, state(istate))
-                     end if
+                  
+                  call profiler_toc(u, "assembly")
+                  
+                  if(compressible_eos .or. shallow_water_projection) then
+                     call deallocate(ctp_m(istate)%ptr)
+                     deallocate(ctp_m(istate)%ptr)
                   end if
-
-               end if ! end of prognostic velocity
-
-            end do velocity_solve_loop
-            call profiler_toc("velocity_solve_loop")
-
-
-            !! Solve for delta_p -- the pressure correction term
-            if(prognostic_p) then
-               call profiler_tic(p, "assembly")
-
-               ! Get the intermediate velocity u^{*} and the coordinate vector field
-               u=>extract_vector_field(state(prognostic_p_istate), "Velocity", stat)
-               x=>extract_vector_field(state(prognostic_p_istate), "Coordinate")
-
-               if(multiphase) then
-                  cmc_m => cmc_global ! Use the sum over all individual phase CMC matrices
-               end if
-
-               call correct_pressure(state, prognostic_p_istate, x, u, p, old_p, delta_p, &
-                                    p_theta, free_surface, theta_pg, theta_divergence, &
-                                    cmc_m, ct_m, ctp_m, projec_rhs, inner_m, full_projection_preconditioner, &
-                                    schur_auxiliary_matrix, stiff_nodes_list)
-
-               call deallocate(projec_rhs)
-               call profiler_toc(p, "assembly")
+                  
+               end if ! prognostic velocity
+               
+            end do velocity_correction_loop
+            call profiler_toc("velocity_correction_loop")
+            
+            !! Deallocate some memory reserved for the pressure solve
+            call deallocate(delta_p)
+            
+            if(assemble_schur_auxiliary_matrix) then
+               ! Deallocate schur_auxiliary_matrix:
+               call deallocate(schur_auxiliary_matrix)
+            end if
+            
+            if(get_scaled_pressure_mass_matrix) then
+               ! Deallocate scaled pressure mass matrix:
+               call deallocate(scaled_pressure_mass_matrix)
             end if
 
-
-            !! Correct and update velocity fields to u^{n+1} using pressure correction term delta_p
-            if(prognostic_p) then
-
-               call profiler_tic("velocity_correction_loop")
-               velocity_correction_loop: do istate = 1, size(state)
-
-                  ! Get the velocity u^{*}
-                  u => extract_vector_field(state(istate), "Velocity", stat)
-
-                  ! If there's no velocity then cycle
-                  if(stat/=0) cycle
-                  ! If this is an aliased velocity then cycle
-                  if(aliased(u)) cycle
-                  ! If the velocity isn't prognostic then cycle
-                  if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
-
-                  if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
-                                          &"/continuous_galerkin").or.&
-                        have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
-                                          &"/discontinuous_galerkin")) then
-                           
-                     call profiler_tic(u, "assembly")
-
-                     ! Correct velocity according to new delta_p
-                     if(full_schur) then
-                        call correct_velocity_cg(u, inner_m(istate)%ptr, ct_m(istate)%ptr, delta_p, state(istate))
-                     else if(lump_mass(istate)) then
-                        call correct_masslumped_velocity(u, inverse_masslump(istate), ct_m(istate)%ptr, delta_p)
-                     else if(dg(istate)) then
-                        call correct_velocity_dg(u, inverse_mass(istate), ct_m(istate)%ptr, delta_p)
-                     else
-                        ! Something's gone wrong in the code
-                        FLAbort("Don't know how to correct the velocity.")
-                     end if
-
-                     if(implicit_prognostic_fs.or.explicit_prognostic_fs) then
-                       call update_prognostic_free_surface(state(istate), free_surface, implicit_prognostic_fs, &
-                                                           explicit_prognostic_fs)
-                     end if
-
-                     call profiler_toc(u, "assembly")
-
-                     if(compressible_eos .or. shallow_water_projection) then
-                        call deallocate(ctp_m(istate)%ptr)
-                        deallocate(ctp_m(istate)%ptr)
-                     end if
-
-                  end if ! prognostic velocity
-
-               end do velocity_correction_loop
-               call profiler_toc("velocity_correction_loop")
-
-               !! Deallocate some memory reserved for the pressure solve
-               call deallocate(delta_p)
-
-               if(assemble_schur_auxiliary_matrix) then
-                  ! Deallocate schur_auxiliary_matrix:
-                  call deallocate(schur_auxiliary_matrix)
-               end if
-
-               if(get_scaled_pressure_mass_matrix) then
-                  ! Deallocate scaled pressure mass matrix:
-                  call deallocate(scaled_pressure_mass_matrix)
-               end if
-
-            end if ! prognostic pressure
-
-         else !! Reduced model version
-
-            call profiler_tic("reduced_model_loop")
-            reduced_model_loop: do istate = 1, size(state)
-
-               ! Get the velocity
-               u => extract_vector_field(state(istate), "Velocity", stat)
-
-               ! If there's no velocity then cycle
-               if(stat/=0) cycle
-               ! If this is an aliased velocity then cycle
-               if(aliased(u)) cycle
-               ! If the velocity isn't prognostic then cycle
-               if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
-
-               if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
-                                       &"/continuous_galerkin").or.&
-                  have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
-                                       &"/discontinuous_galerkin")) then
-
-                  ! Allocate the change in pressure field
-                  call allocate(delta_p, p_mesh, "DeltaP")
-                  delta_p%option_path = trim(p%option_path)
-                  call zero(delta_p)
-
-                  call allocate(delta_u, u%dim, u%mesh, "DeltaU")
-                  delta_u%option_path = trim(u%option_path)
-                  call zero(delta_u)
-
-                  call solve_momentum_reduced(delta_u, delta_p, big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), timestep, POD_state)
-
-                  snapmean_velocity => extract_vector_field(POD_state(1), "SnapmeanVelocity")
-                  snapmean_pressure => extract_scalar_field(POD_state(1), "SnapmeanPressure")
-
-                  if(timestep == 1) then
-                     do d = 1, snapmean_velocity%dim
-                        u%val(d,:)=snapmean_velocity%val(d,:)
-                     enddo
-                     p%val = snapmean_pressure%val
-
-                     call addto(u, delta_u, dt)
-                     call addto(p, delta_p, dt)
-                  else
-                     call addto(u, delta_u, dt)
-                     call addto(p, delta_p, dt)
-                  endif
-
-                  call deallocate(delta_p)
-                  call deallocate(delta_u)
-
-               end if ! prognostic velocity
-
-            end do reduced_model_loop
-            call profiler_toc("reduced_model_loop")
-
-         end if ! end of 'if .not.reduced_model'
-
-
+         end if ! prognostic pressure
 
          !! Finalisation and memory deallocation
          call profiler_tic("finalisation_loop")
@@ -1388,11 +1305,6 @@
                      "/prognostic/output/debugging_vtus")
          if (pressure_debugging_vtus) then
             pdv_count = pdv_count+1
-         end if
-
-         ! If we are using the reduced model then there is no pressure projection.
-         if (reduced_model) then
-            reassemble_all_cmc_m=.false.
          end if
 
          get_diag_schur = .false.
@@ -1889,7 +1801,6 @@
 
       end subroutine correct_pressure
 
-
       subroutine finalise_state(state, istate, u, mass, inverse_mass, inverse_masslump, &
                                big_m, mom_rhs, ct_rhs, subcycle_m, subcycle_rhs)
          !!< Does some finalisation steps to the velocity field and deallocates some memory
@@ -1917,12 +1828,11 @@
          type(block_csr_matrix), dimension(:), intent(inout) :: subcycle_m
          type(vector_field), dimension(:), intent(inout) :: subcycle_rhs
 
-         ! Local variables for reduced model
+         ! Slope limiter variables:
          integer :: d
          type(scalar_field) :: u_cpt
 
          ewrite(1,*) 'Entering finalise_state'
-
 
          call profiler_tic(u, "assembly")
          if (have_rotated_bcs(u)) then
@@ -2174,9 +2084,7 @@
             ! Check options for case with CG pressure and
             ! testing continuity with CV dual mesh. 
             ! Will not work with compressible, free surface or 
-            ! wetting and drying and implicit solids two way coupling 
-            ! (when solves for the fluid velocity). 
-            ! Also will not work if the pressure is on a mesh that has 
+            ! wetting and drying. Also will not work if the pressure is on a mesh that has 
             ! bubble or trace shape functions.
             if (have_option("/material_phase["//int2str(i)//&
                                  &"]/scalar_field::Pressure/prognostic&
@@ -2202,11 +2110,6 @@
                   FLExit("For CG Pressure cannot test the continuity equation with CV when using the wetting and drying model")
                end if
                
-               ! Check that implicit solids two way coupling is not being used
-               if (have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_fluid_velocity")) then
-                  FLExit("For CG Pressure cannot test the continuity equation with CV when using implicit solids two way coupling model")
-               end if
-               
                ! get the pressure mesh name
                call get_option("/material_phase["//int2str(i)//"]/scalar_field::Pressure/prognostic/mesh/name", &
                                 pressure_mesh)
@@ -2223,21 +2126,6 @@
                
                if (trim(pressure_mesh_element_type) == "trace") then
                   FLExit("For CG Pressure cannot test the continuity equation with CV if the pressure mesh has element type trace")
-               end if
-               
-            end if
-            
-            ! Check that is using implicit solids two way coupling that 
-            ! the pressure is NOT CV. CV pressure implies CV tested continuity
-            ! which is not possible yet for the two way coupling terms.
-            ! Note the check of CG pressure with CV tested continuity 
-            ! and implicit solids two way coupling has been done above.
-            if (have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_fluid_velocity")) then
-               
-               if (have_option("/material_phase["//int2str(i)//&
-                                 &"]/scalar_field::Pressure/prognostic&
-                                 &/spatial_discretisation/control_volumes")) then
-                  FLExit("Cannot use implicit solids two way coupling if the pressure is control volume discretised")
                end if
                
             end if

@@ -7,9 +7,8 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/adapt_state_prescribed_module.mod \
    ../include/adaptive_timestepping.mod ../include/adjacency_lists.mod \
    ../include/advection_diffusion_cg.mod ../include/advection_diffusion_dg.mod \
-   ../include/advection_diffusion_fv.mod ../include/ale_module.mod \
-   ../include/auxilaryoptions.mod ../include/biology.mod \
-   ../include/boundary_conditions.mod \
+   ../include/advection_diffusion_fv.mod ../include/auxilaryoptions.mod \
+   ../include/biology.mod ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod ../include/checkpoint.mod \
    ../include/conformity_measurement.mod ../include/detector_parallel.mod \
    ../include/diagnostic_children.mod ../include/diagnostic_fields_new.mod \
@@ -23,19 +22,16 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/foam_flow_module.mod ../include/free_surface_module.mod \
    ../include/futils.mod ../include/global_parameters.mod ../include/gls.mod \
    ../include/goals.mod ../include/halos.mod \
-   ../include/iceshelf_meltrate_surf_normal.mod ../include/implicit_solids.mod \
-   ../include/k_epsilon.mod ../include/memory_diagnostics.mod \
-   ../include/meshdiagnostics.mod ../include/meshmovement.mod \
-   ../include/momentum_diagnostic_fields.mod ../include/momentum_equation.mod \
-   ../include/multimaterial_module.mod ../include/multiphase_module.mod \
-   ../include/parallel_tools.mod ../include/populate_state_module.mod \
+   ../include/iceshelf_meltrate_surf_normal.mod ../include/k_epsilon.mod \
+   ../include/memory_diagnostics.mod ../include/meshdiagnostics.mod \
+   ../include/meshmovement.mod ../include/momentum_diagnostic_fields.mod \
+   ../include/momentum_equation.mod ../include/multimaterial_module.mod \
+   ../include/multiphase_module.mod ../include/parallel_tools.mod \
+   ../include/populate_state_module.mod \
    ../include/populate_sub_state_module.mod ../include/qmesh_module.mod \
-   ../include/reduced_model_runtime.mod ../include/reference_counting.mod \
-   ../include/reserve_state_module.mod \
-   ../include/saturation_distribution_search_hookejeeves.mod \
+   ../include/reference_counting.mod ../include/reserve_state_module.mod \
    ../include/sediment_diagnostics.mod ../include/signal_vars.mod \
-   ../include/solidconfiguration.mod ../include/sparse_tools.mod \
-   ../include/spontaneous_potentials.mod ../include/state_module.mod \
+   ../include/sparse_tools.mod ../include/state_module.mod \
    ../include/synthetic_bc.mod ../include/tictoc.mod \
    ../include/timeloop_utilities.mod ../include/timers.mod \
    ../include/transform_elements.mod \

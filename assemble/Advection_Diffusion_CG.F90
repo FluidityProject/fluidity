@@ -52,7 +52,6 @@ module advection_diffusion_cg
   use boundary_conditions_from_options
   use petsc_solve_state_module
   use upwind_stabilisation
-  use porous_media
   use multiphase_module
   use colouring
   
@@ -118,8 +117,6 @@ module advection_diffusion_cg
   logical :: isotropic_diffusivity
   ! Is the mesh moving?
   logical :: move_mesh
-  ! Include porosity?
-  logical :: include_porosity
   ! Is this material_phase compressible?
   logical :: compressible = .false.
   ! Are we running a multiphase flow simulation?
@@ -254,9 +251,6 @@ contains
     type(scalar_field), pointer :: vfrac
     type(scalar_field) :: nvfrac ! Non-linear version
 
-    ! Porosity field
-    type(scalar_field) :: porosity_theta
-        
     !! Coloring  data structures for OpenMP parallization
     type(integer_set), dimension(:), pointer :: colours
     integer :: clr, nnid, len, ele
@@ -382,19 +376,6 @@ contains
       ewrite(2, *) "No diffusivity"
     end if
 
-    ! Porosity
-    if (have_option(trim(complete_field_path(t%option_path))//'/porosity')) then
-       include_porosity = .true.
-       
-       ! get the porosity theta averaged field - this will allocate it
-       call form_porosity_theta(porosity_theta, state, option_path = trim(complete_field_path(t%option_path))//'/porosity')       
-    else
-       include_porosity = .false.
-       call allocate(porosity_theta, t%mesh, field_type=FIELD_TYPE_CONSTANT)
-       call set(porosity_theta, 1.0)
-    end if
-
-    
     ! Step 2: Pull options out of the options tree
     
     call get_option(trim(t%option_path) // "/prognostic/temporal_discretisation/theta", theta)
@@ -436,9 +417,6 @@ contains
     ! are we moving the mesh?
     move_mesh = (have_option("/mesh_adaptivity/mesh_movement") .and. have_mass)
     if(move_mesh) then
-      if (include_porosity) then
-         FLExit('Cannot include porosity in CG advection diffusion of a field with a moving mesh')
-      end if
       ewrite(2,*) "Moving the mesh"
       old_positions => extract_vector_field(state, "OldCoordinate")
       ewrite_minmax(old_positions)
@@ -608,7 +586,7 @@ contains
               positions, old_positions, new_positions, &
               velocity, grid_velocity, &
               source, absorption, diffusivity, &
-              density, olddensity, pressure, porosity_theta, nvfrac, &
+              density, olddensity, pressure, nvfrac, &
               supg_element(thread_num+1))
       end do element_loop
       !$OMP END DO
@@ -673,8 +651,6 @@ contains
     end if
     deallocate(supg_element)
 
-    call deallocate(porosity_theta)
-    
     ewrite(1, *) "Exiting assemble_advection_diffusion_cg"
     
   end subroutine assemble_advection_diffusion_cg
@@ -724,7 +700,7 @@ contains
                                       positions, old_positions, new_positions, &
                                       velocity, grid_velocity, &
                                       source, absorption, diffusivity, &
-                                      density, olddensity, pressure, porosity_theta, nvfrac, supg_shape)
+                                      density, olddensity, pressure, nvfrac, supg_shape)
     integer, intent(in) :: ele
     type(scalar_field), intent(in) :: t
     type(csr_matrix), intent(inout) :: matrix
@@ -739,7 +715,6 @@ contains
     type(scalar_field), intent(in) :: density
     type(scalar_field), intent(in) :: olddensity
     type(scalar_field), intent(in) :: pressure
-    type(scalar_field), intent(in) :: porosity_theta
     type(scalar_field), intent(in) :: nvfrac
     type(element_type), intent(inout) :: supg_shape
 
@@ -777,9 +752,6 @@ contains
       ! the following has been assumed in the declarations above
       assert(ele_loc(grid_velocity, ele) == ele_loc(positions, ele))
       assert(ele_ngi(grid_velocity, ele) == ele_ngi(velocity, ele))
-    end if
-    if (include_porosity) then
-      assert(ele_ngi(porosity_theta, ele) == ele_ngi(t, ele))    
     end if
 #endif
 
@@ -856,7 +828,7 @@ contains
     ! Step 3: Assemble contributions
     
     ! Mass
-    if(have_mass) call add_mass_element_cg(ele, test_function, t, density, olddensity, porosity_theta, nvfrac, detwei, detwei_old, detwei_new, matrix_addto, rhs_addto)
+    if(have_mass) call add_mass_element_cg(ele, test_function, t, density, olddensity,  nvfrac, detwei, detwei_old, detwei_new, matrix_addto, rhs_addto)
     
     ! Advection
     if(have_advection) call add_advection_element_cg(ele, test_function, t, &
@@ -889,12 +861,11 @@ contains
 
   end subroutine assemble_advection_diffusion_element_cg
   
-  subroutine add_mass_element_cg(ele, test_function, t, density, olddensity, porosity_theta, nvfrac, detwei, detwei_old, detwei_new, matrix_addto, rhs_addto)
+  subroutine add_mass_element_cg(ele, test_function, t, density, olddensity, nvfrac, detwei, detwei_old, detwei_new, matrix_addto, rhs_addto)
     integer, intent(in) :: ele
     type(element_type), intent(in) :: test_function
     type(scalar_field), intent(in) :: t
     type(scalar_field), intent(in) :: density, olddensity
-    type(scalar_field), intent(in) :: porosity_theta    
     type(scalar_field), intent(in) :: nvfrac    
     real, dimension(ele_ngi(t, ele)), intent(in) :: detwei, detwei_old, detwei_new
     real, dimension(ele_loc(t, ele), ele_loc(t, ele)), intent(inout) :: matrix_addto
@@ -904,11 +875,8 @@ contains
     real, dimension(ele_loc(t, ele), ele_loc(t, ele)) :: mass_matrix
     
     real, dimension(ele_ngi(density,ele)) :: density_at_quad
-    real, dimension(ele_ngi(porosity_theta,ele)) :: porosity_theta_at_quad
     
     assert(have_mass)
-    
-    if (include_porosity) porosity_theta_at_quad = ele_val_at_quad(porosity_theta, ele)
     
     select case(equation_type)
     case(FIELD_EQUATION_INTERNALENERGY)
@@ -920,9 +888,7 @@ contains
         ! needs to be evaluated at t+dt
         mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei_new*density_at_quad)
       else
-        if (include_porosity) then
-          mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad*porosity_theta_at_quad)        
-        else if(multiphase) then
+        if(multiphase) then
           mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad*ele_val_at_quad(nvfrac, ele))
         else
           mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad)
@@ -937,11 +903,7 @@ contains
         ! needs to be evaluated at t+dt
         mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei_new)
       else
-        if (include_porosity) then
-          mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*porosity_theta_at_quad)
-        else 
-          mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei)
-        end if
+        mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei)
       end if
       
     end select
