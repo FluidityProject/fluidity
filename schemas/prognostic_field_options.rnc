@@ -1483,6 +1483,8 @@ prognostic_pressure_field =
                 ## Make sure you've not lumped your mass in the velocity spatial_discretisation if you want to be consistent!
                 element inner_matrix {
                   attribute name { "FullMassMatrix" },
+                  ## Solver options to solve the inner (mass) matrix in the schur complement solve, also used
+                  ## to solve the correction solve afterwards.
                   element solver {
                     linear_solver_options_sym
                   }
@@ -1493,9 +1495,11 @@ prognostic_pressure_field =
                 ## Doesn't really matter if you've lumped your mass or not but why would you if you're doing a full inner solve anyway?
                 element inner_matrix {
                   attribute name { "FullMomentumMatrix" },
+                  ## Solver options to solve the inner (momentum) matrix in the schur complement solve, also used
+                  ## to solve the correction solve afterwards. If not provided uses the solver options under Velocity
                   element solver {
                     linear_solver_options_asym_vector
-                  }
+                  }?
                 }
               ),
               (

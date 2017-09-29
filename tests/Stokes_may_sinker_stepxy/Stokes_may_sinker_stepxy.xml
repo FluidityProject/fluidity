@@ -1,73 +1,46 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version='1.0' encoding='utf-8'?>
 <testproblem>
   <name>Stokes-may-sinker</name>
   <owner userid="rhodrid"/>
   <tags>flml petsc33</tags>
-
   <problem_definition length="medium" nprocs="1">
-    <command_line>fluidity -v2 -l Stokes-may-sinker-stepxy-gamg.flml; mv fluidity.log-0 log_gamg; fluidity -v2 -l Stokes-may-sinker-stepxy-fs.flml; mv fluidity.log-0 log_fs; fluidity -v2 -l Stokes-may-sinker-stepxy-mg.flml; mv fluidity.log-0 log_mg; fluidity -v2 -l Stokes-may-sinker-stepxy-sor.flml; mv fluidity.log-0 log_sor</command_line>
+    <command_line>export PETSC_OPTIONS='-log_view'; fluidity -v2 -l Stokes-may-sinker-stepxy-gamg.flml; mv fluidity.log-0 log_gamg; fluidity -v2 -l Stokes-may-sinker-stepxy-fs.flml; mv fluidity.log-0 log_fs; fluidity -v2 -l Stokes-may-sinker-stepxy-mg.flml; mv fluidity.log-0 log_mg; fluidity -v2 -l Stokes-may-sinker-stepxy-sor.flml; mv fluidity.log-0 log_sor</command_line>
   </problem_definition>
-
-<variables>  
-
-<variable name="solvers_converged" language="python">
-import os
+  <variables>
+    <variable name="solvers_converged" language="python">import os
 files = os.listdir("./")
-solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
-</variable>
-
-<variable name="DeltaU_iterations_GAMG" language="python">
-from check_iterations import *
-DeltaU_iterations_GAMG = check_velocity_iterations('log_gamg')
-</variable>
-
-<variable name="DeltaU_iterations_FS" language="python">
-from check_iterations import *
-DeltaU_iterations_FS = check_velocity_iterations('log_fs')
-</variable>
-
-<variable name="DeltaU_iterations_MG" language="python">
-from check_iterations import *
-DeltaU_iterations_MG = check_velocity_iterations('log_mg')
-</variable>
-
-<variable name="DeltaU_iterations_SOR" language="python">
-from check_iterations import *
-DeltaU_iterations_SOR = check_velocity_iterations('log_sor')
-</variable>
-
-</variables>
-
-<pass_tests>
-
-<test name="Solvers converged" language="python">
-assert(solvers_converged)
-</test>
-
-<test name="GAMG solver behaving as expected" language="python">
-assert(DeltaU_iterations_GAMG &lt; 14)
-</test>
-
-<test name="Fieldsplit solver behaving as expected" language="python">
-assert(DeltaU_iterations_FS &lt; 17)
-</test>
-
-<test name="MG solver behaving as expected" language="python">
-assert(abs(DeltaU_iterations_MG - 251) &lt; 5)
-</test>
-
-<test name="SOR solver behaving as expected" language="python">
-assert(abs(DeltaU_iterations_SOR - 599) &lt; 5)
-</test>
-
-</pass_tests>
-                                                                                                                                                                              
-<warn_tests>
-</warn_tests>
-
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+    <variable name="DeltaU_iterations_GAMG" language="python">from check_iterations import *
+DeltaU_iterations_GAMG = check_velocity_iterations('log_gamg')</variable>
+    <variable name="DeltaU_iterations_FS" language="python">from check_iterations import *
+DeltaU_iterations_FS = check_velocity_iterations('log_fs')</variable>
+    <variable name="DeltaU_iterations_MG" language="python">from check_iterations import *
+DeltaU_iterations_MG = check_velocity_iterations('log_mg')</variable>
+    <variable name="DeltaU_iterations_SOR" language="python">from check_iterations import *
+DeltaU_iterations_SOR = check_velocity_iterations('log_sor')</variable>
+    <variable name="mem_stats_gamg" language="python">from fluidity_tools import petsc_memory_stats
+mem_stats_gamg = petsc_memory_stats(open('log_gamg', 'r').read())
+mem_stats_gamg.pop('Viewer')</variable>
+    <variable name="mem_stats_fs" language="python">from fluidity_tools import petsc_memory_stats
+mem_stats_fs = petsc_memory_stats(open('log_fs', 'r').read())
+mem_stats_fs.pop('Viewer')</variable>
+    <variable name="mem_stats_mg" language="python">from fluidity_tools import petsc_memory_stats
+mem_stats_mg = petsc_memory_stats(open('log_mg', 'r').read())
+mem_stats_mg.pop('Viewer')</variable>
+    <variable name="mem_stats_sor" language="python">from fluidity_tools import petsc_memory_stats
+mem_stats_sor = petsc_memory_stats(open('log_sor', 'r').read())
+mem_stats_sor.pop('Viewer')</variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">assert(solvers_converged)</test>
+    <test name="GAMG solver behaving as expected" language="python">assert(DeltaU_iterations_GAMG &lt; 14)</test>
+    <test name="Fieldsplit solver behaving as expected" language="python">assert(DeltaU_iterations_FS &lt; 17)</test>
+    <test name="MG solver behaving as expected" language="python">assert(abs(DeltaU_iterations_MG - 251) &lt; 5)</test>
+    <test name="SOR solver behaving as expected" language="python">assert(abs(DeltaU_iterations_SOR - 599) &lt; 5)</test>
+    <test name="no_petsc_mem_leaks_sor" language="python">assert all(stat[0]==stat[1] for stat in mem_stats_sor.itervalues())</test>
+    <test name="no_petsc_mem_leaks_gamg" language="python">assert all(stat[0]==stat[1] for stat in mem_stats_gamg.itervalues())</test>
+    <test name="no_petsc_mem_leaks_fs" language="python">assert all(stat[0]==stat[1] for stat in mem_stats_fs.itervalues())</test>
+    <test name="no_petsc_mem_leaks_mg" language="python">assert all(stat[0]==stat[1] for stat in mem_stats_mg.itervalues())</test>
+  </pass_tests>
+  <warn_tests/>
 </testproblem>
-
-
-
-
-
