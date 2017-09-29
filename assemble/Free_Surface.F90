@@ -62,7 +62,8 @@ public move_mesh_free_surface, add_free_surface_to_cmc_projection, &
   vertical_prolongator_from_free_surface, &
   free_surface_nodes, calculate_diagnostic_free_surface, &
   add_free_surface_to_poisson_rhs, copy_poisson_solution_to_interior, &
-  calculate_diagnostic_wettingdrying_alpha, insert_original_distance_to_bottom
+  calculate_diagnostic_wettingdrying_alpha, insert_original_distance_to_bottom, &
+  calculate_volume_by_surface_integral
 public get_extended_pressure_mesh_for_viscous_free_surface, copy_to_extended_p, &
   get_extended_velocity_divergence_matrix, get_extended_pressure_poisson_matrix, &
   get_extended_schur_auxillary_sparsity, &
@@ -2921,6 +2922,116 @@ contains
 
   end subroutine calculate_diagnostic_wettingdrying_alpha
 
+
+  function calculate_volume_by_surface_integral(state) result(volume)
+      type(state_type), intent(in) :: state
+      real :: dt
+      
+      type(vector_field), pointer:: positions, u, gravity_normal
+      type(scalar_field), pointer:: p, original_bottomdist_remap
+      character(len=FIELD_NAME_LEN):: bctype
+      character(len=OPTION_PATH_LEN) :: fs_option_path
+      real:: g, rho0, alpha, volume, d0, delta_rho, external_density
+      integer, dimension(:), pointer:: surface_element_list
+      integer:: i, j, grav_stat
+      logical:: include_normals, move_mesh
+      logical:: have_wd
+      
+      ! gravity acceleration
+      call get_option('/physical_parameters/gravity/magnitude', g, stat=grav_stat)
+        
+      ! get the pressure, and the pressure at the beginning of the time step
+      p => extract_scalar_field(state, "Pressure")
+      u => extract_vector_field(state, "Velocity")
+      have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
+      if (have_wd) then
+        call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
+        ! original_bottomdist is needed on the pressure mesh
+        original_bottomdist_remap=>extract_scalar_field(state, "OriginalDistanceToBottomPressureMesh")
+      end if
+      
+      ! reference density
+      call get_fs_reference_density_from_options(rho0, state%option_path)
+      ! Timestep
+      call get_option('/timestepping/timestep', dt)
+      move_mesh = have_option("/mesh_adaptivity/mesh_movement/free_surface")
+      ! only include the inner product of gravity and surface normal
+      ! if the free surface nodes are actually moved (not necessary
+      ! for large scale ocean simulations) - otherwise the free surface is assumed flat
+      include_normals = move_mesh
+      if (include_normals) then
+        gravity_normal => extract_vector_field(state, "GravityDirection")
+      end if
+      positions => extract_vector_field(state, "Coordinate")
+      
+      volume=0.0
+      do i=1, get_boundary_condition_count(u)
+        call get_boundary_condition(u, i, type=bctype, &
+           surface_element_list=surface_element_list,option_path=fs_option_path)
+        if (bctype=="free_surface") then
+          call get_option(trim(fs_option_path)//"/type[0]/external_density", &
+             external_density, default=0.0)
+          delta_rho=rho0-external_density
+          alpha=1.0/g/delta_rho/dt
+          do j=1, size(surface_element_list)
+            volume=volume+calculate_volume_by_surface_integral_element(surface_element_list(j))
+          end do
+        end if
+      end do
+
+    contains 
+
+    function calculate_volume_by_surface_integral_element(sele) result(volume)
+        integer, intent(in) :: sele
+        integer :: i
+
+        real, dimension(positions%dim, face_ngi(positions, sele)):: normals
+        real, dimension(face_loc(p, sele), face_loc(p, sele)):: mass_ele, mass_ele_wd
+        real, dimension(face_ngi(p, sele)):: detwei, alpha_wetdry_quad 
+        real, dimension(face_loc(p, sele)) :: one
+        real :: volume
+
+        one = 1.0
+
+        if(include_normals) then
+          call transform_facet_to_physical(positions, sele, detwei_f=detwei,&
+              & normal=normals)
+          ! at each gauss point multiply with inner product of gravity and surface normal
+          detwei=detwei*(-1.0)*sum(face_val_at_quad(gravity_normal,sele)*normals, dim=1)
+        else
+          call transform_facet_to_physical(positions, sele, detwei_f=detwei)
+        end if
+        
+
+        if (have_wd) then
+            ! Calculate alpha_wetdry_quad. The resulting array is 0 if the quad point is wet (p > -g d_0)  
+            ! and 1 if the quad point is dry (p <= -g d_0)
+            alpha_wetdry_quad = -face_val_at_quad(p, sele)-face_val_at_quad(original_bottomdist_remap, sele)*g + d0 * g
+            do i=1, size(alpha_wetdry_quad)
+                if (alpha_wetdry_quad(i)>0.0)  then
+                    alpha_wetdry_quad(i)=1.0
+                else
+                    alpha_wetdry_quad(i)=0.0
+                end if
+            end do
+        end if
+        
+        if (have_wd) then
+          mass_ele=shape_shape(face_shape(p, sele), face_shape(p, sele), detwei*(1.0-alpha_wetdry_quad))
+          mass_ele_wd=shape_shape(face_shape(p, sele), face_shape(p, sele), detwei*alpha_wetdry_quad)
+        else
+          mass_ele=shape_shape(face_shape(p, sele), face_shape(p, sele), detwei)
+          mass_ele_wd=0.0
+        end if
+        
+        volume=dot_product(one,matmul(mass_ele, face_val(original_bottomdist_remap, sele)) &
+          +matmul(mass_ele_wd, face_val(original_bottomdist_remap, sele)))
+   
+        volume=volume-dt*dot_product(one,-matmul(mass_ele, face_val(p, sele))*alpha &
+          +matmul(mass_ele_wd, face_val(original_bottomdist_remap, sele)-d0)*alpha*g)
+       
+    end function calculate_volume_by_surface_integral_element
+  end function calculate_volume_by_surface_integral
 
   subroutine free_surface_module_check_options
     
