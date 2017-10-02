@@ -30,7 +30,8 @@
 module write_gmsh
 
   use fldebug
-
+  
+  use iso_c_binding
   use global_parameters, only : OPTION_PATH_LEN
   use futils
   use elements
@@ -82,8 +83,116 @@ contains
 
   end subroutine write_mesh_to_gmsh
 
+  ! -----------------------------------------------------------------
+
+#ifdef HAVE_LIBGMSH
+
+  subroutine write_libgmsh(filename, positions)
+
+    character(len=*), intent(in):: filename
+    type(vector_field), intent(in):: positions
+
+    integer :: numNodes, numElements, numFaces, sloc, loc, dim
+    integer, allocatable, dimension(:) :: sndglno
+    character(len=longStringLen) :: meshFile
+
+    type(c_ptr) :: gmodel
+
+    interface
+       subroutine cgmsh_initialise() bind(c)
+       end subroutine cgmsh_initialise
+    end interface
+
+    interface
+       subroutine cgmsh_finalise(gmodel) bind(c)
+         use iso_c_binding
+         type(c_ptr) :: gmodel
+       end subroutine cgmsh_finalise
+    end interface
+
+    interface
+       subroutine cmesh_to_gmodel(gmodel, binary, numNodes,&
+            numElements, numFaces, loc, sloc, gdim, val,&
+            etype, eles, ftype, faces, ele_ids, face_ids) bind(c)
+         use iso_c_binding
+         type(c_ptr) :: gmodel
+         integer(c_int) :: binary, numNodes, numElements, numFaces,&
+              loc, sloc, gdim, etype, ftype
+         real(c_double) :: val(gdim*numNodes)
+         integer(c_int) :: eles(numElements*loc), faces(numFaces*sloc)
+         type(c_ptr), value :: ele_ids, face_ids
+       end subroutine cmesh_to_gmodel
+    end interface
+
+    interface
+       subroutine cwrite_gmsh_file(gmodel, filename) bind(c)
+         use iso_c_binding
+         type(c_ptr) :: gmodel
+         character(c_char) :: filename(*)
+       end subroutine cwrite_gmsh_file
+    end interface
+
+    numNodes = node_count(positions)
+    numElements = element_count(positions)
+    numFaces = unique_surface_element_count(positions%mesh)
+
+    dim = mesh_dim(positions)
+    loc = ele_loc(positions, 1)
+    sloc = 1
+    if (numFaces>0) sloc = face_loc(positions, 1)
+
+    allocate(sndglno(numFaces*sloc))
+    call getsndgln(positions%mesh, sndglno)
+
+    call cmesh_to_gmodel(gmodel, merge(1,0,useBinaryGmsh), numNodes,&
+         numElements, numFaces, loc, sloc,&
+         dim, positions%val, &
+         gmsh_type(loc, dim), positions%mesh%ndglno,&
+         gmsh_type(sloc, dim-1), sndglno, c_loc(positions%mesh%region_ids),&
+         c_loc(positions%mesh%faces%boundary_ids))
+
+    deallocate(sndglno)
+
+    meshFile = trim(filename) // ".msh"
+    
+    call cwrite_gmsh_file(gmodel, trim(meshFile)//c_null_char)
+
+    call cgmsh_finalise(gmodel)
+
+    contains
+
+      function gmsh_type(loc, dim)
+
+        integer, intent(in) ::loc, dim
+        integer gmsh_type
 
 
+        if (loc .eq. dim+1) then
+           select case(dim)
+           case(0)
+              gmsh_type = 15
+           case(1)
+              gmsh_type = 1
+           case(2)
+              gmsh_type = 2
+           case(3)
+              gmsh_type = 4
+           end select
+        else
+           select case(dim)
+           case(2)
+              gmsh_type = 3
+           case(3)
+              gmsh_type = 5
+           end select
+        end if
+
+      end function gmsh_type
+
+
+  end subroutine write_libgmsh
+
+#endif
 
   ! -----------------------------------------------------------------
 
@@ -105,6 +214,16 @@ contains
     else
       numParts = getnprocs()
     end if
+
+#ifdef HAVE_LIBGMSH
+
+    if( getprocno() <= numParts ) then
+
+       call write_libgmsh(filename, positions)
+
+    end if
+
+#else
     
     ! Write out data only for those processes that contain data - SPMD requires
     ! that there be no early return    
@@ -135,7 +254,9 @@ contains
       ! Close GMSH file
       close( fileDesc )
 
-    end if
+   end if
+
+#endif
       
     return
 
@@ -364,17 +485,17 @@ contains
        case (2)
 
           if(useBinaryGMSH) then
-             write(fd, err=301) f, surface_element_id(mesh, f), 0, lnodelist
+             write(fd, err=301) f, surface_element_id(mesh, f), f, lnodelist
           else
-             write(fd, 6969, err=301) f, faceType, numTags, surface_element_id(mesh, f), 0, lnodelist
+             write(fd, 6969, err=301) f, faceType, numTags, surface_element_id(mesh, f), f, lnodelist
           end if
           
        case (4)
          
           if(useBinaryGMSH) then
-             write(fd, err=301) f, surface_element_id(mesh, f), 0, 0, face_ele(mesh, f), lnodelist
+             write(fd, err=301) f, surface_element_id(mesh, f), f, 0, face_ele(mesh, f), lnodelist
           else
-             write(fd, 6969, err=301) f, faceType, numTags, surface_element_id(mesh,f), 0, 0, &
+             write(fd, 6969, err=301) f, faceType, numTags, surface_element_id(mesh,f), f, 0, &
                   face_ele(mesh,f), lnodelist
           end if
           
@@ -401,19 +522,19 @@ contains
        if(associated(mesh%region_ids)) then
          
           if(useBinaryGMSH) then
-             write(fd, err=301) elemID, ele_region_id(mesh, e), 0, lnodelist
+             write(fd, err=301) elemID, ele_region_id(mesh, e), e, lnodelist
           else
              write(fd, 6969, err=301) elemID, elemType, 2, &
-                  ele_region_id(mesh, e), 0, lnodelist
+                  ele_region_id(mesh, e), e, lnodelist
           end if
           
        else
 
           if(useBinaryGMSH) then
-             write(fd, err=301) elemID, 0, 0, lnodelist
+             write(fd, err=301) elemID, 0, e, lnodelist
           else
              write(fd, 6969, err=301) elemID, elemType, 2, &
-                  0, 0, lnodelist
+                  0, e, lnodelist
           end if
 
        end if
