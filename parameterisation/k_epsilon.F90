@@ -378,7 +378,7 @@ subroutine keps_calculate_rhs(state)
 
      ! Check if k and epsilon are on a discontinuous mesh.
      ! It is currently assumed here that both fields are on the same mesh.
-     dg_keps = continuity(fields(1))<0
+     dg_keps = continuity(u)<0
 
      ! Assembly loop
      do ele = 1, ele_count(fields(1))  
@@ -390,7 +390,7 @@ subroutine keps_calculate_rhs(state)
        ! ele is owned.  For example, if ele is the only owned element on
        ! this process.  Hence we have to check for element ownership
        ! directly as well.
-       if (.not. dg_keps.or.element_neighbour_owned(u, ele).or.element_owned(u, ele)) then
+       if ((.not. dg_keps).or.element_neighbour_owned(u, ele).or.element_owned(u, ele)) then
           if (control_volumes) then
              call assemble_rhs_cv_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
               density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, multiphase, &
@@ -613,7 +613,7 @@ subroutine assemble_rhs_cv_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, densi
      grad_u = ele_grad_at_quad(u, ele, dshape_u)
      deallocate(dshape_u)  
   else
-     if(continuity(u)<0) then
+     if(continuity(u)<0) then 
         grad_u = dg_ele_grad_at_quad(u, ele, shape, X, bc_value, bc_type)
      else
         grad_u = ele_grad_at_quad(u, ele, dshape)
@@ -692,9 +692,9 @@ subroutine assemble_rhs_cv_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, densi
 
     ! multiply by determinate weights, integrate and assign to rhs
     if(multiphase) then
-       rhs_addto(3,:) = scalar * detwei/ele_loc(k, ele) * ele_val(vfrac,ele)
+       rhs_addto(3,:) = scalar * sum(detwei)/ele_loc(k, ele) * ele_val(vfrac,ele)
     else
-       rhs_addto(3,:) = scalar * detwei/ele_loc(k, ele)
+       rhs_addto(3,:) = scalar * sum(detwei)/ele_loc(k, ele)
     end if
     
     deallocate(dshape_density)
