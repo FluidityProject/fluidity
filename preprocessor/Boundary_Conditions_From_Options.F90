@@ -30,7 +30,7 @@ module boundary_conditions_from_options
   use fldebug
   use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi,&
 current_debug_level, FIELD_NAME_LEN
-  use futils, only: int2str, present_and_true
+  use futils, only: int2str, present_and_true, tokenize
   use vector_tools
   use quadrature
   use spud
@@ -222,7 +222,7 @@ contains
     character(len=OPTION_PATH_LEN) bc_path_i
     character(len=FIELD_NAME_LEN) bc_name, bc_type
     integer, dimension(:), allocatable:: surface_ids
-    integer i, nbcs, shape_option(2)
+    integer i, nbcs
 
     ! Get number of boundary conditions
     nbcs=option_count(trim(bc_path))
@@ -233,9 +233,7 @@ contains
        bc_path_i=trim(bc_path)//"["//int2str(i)//"]"
 
        ! Get vector of surface ids
-       shape_option=option_shape(trim(bc_path_i)//"/surface_ids")
-       allocate(surface_ids(1:shape_option(1)))
-       call get_option(trim(bc_path_i)//"/surface_ids", surface_ids)
+       call get_surface_ids(trim(bc_path_i), field%mesh, surface_ids)
 
        ! Get name of boundary
        call get_option(trim(bc_path_i)//"/name", bc_name)
@@ -375,15 +373,13 @@ contains
     logical applies(3), have_sem_bc, have_smoothing, debugging_mode, prescribed(3)
     integer, dimension(:), allocatable:: surface_ids
     integer, dimension(:), pointer:: surface_element_list, surface_node_list
-    integer i, j, nbcs, shape_option(2)
+    integer i, j, nbcs
 
     nbcs=option_count(trim(bc_path))
 
     boundary_conditions: do i=0, nbcs-1
        bc_path_i=trim(bc_path)//"["//int2str(i)//"]"
-       shape_option=option_shape(trim(bc_path_i)//"/surface_ids")
-       allocate(surface_ids(1:shape_option(1)))
-       call get_option(trim(bc_path_i)//"/surface_ids", surface_ids)
+       call get_surface_ids(trim(bc_path_i), field%mesh, surface_ids)
        call get_option(trim(bc_path_i)//"/name", bc_name)
 
        call get_option(trim(bc_path_i)//"/type[0]/name", bc_type)

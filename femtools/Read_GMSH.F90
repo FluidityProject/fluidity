@@ -33,7 +33,7 @@ module read_gmsh
 
   use iso_c_binding
   use fldebug
-  use global_parameters, only : OPTION_PATH_LEN
+  use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
   use futils
   use quadrature
   use elements
@@ -95,7 +95,10 @@ contains
     integer :: n, d, e, f, nodeID
 
 #ifdef HAVE_LIBGMSH
-    type(c_ptr) :: gmodel
+    integer :: snames
+    type(c_ptr) :: gmodel, c_str, it
+    integer, allocatable, dimension(:) :: id_list
+    character(len = FIELD_NAME_LEN), dimension(:), allocatable :: name_list
     real, dimension(:), allocatable :: lcolumn_ids
 #endif
 
@@ -166,6 +169,26 @@ contains
        end subroutine cread_gmsh_face_connectivity
     end interface
 
+   interface 
+       function cgmsh_count_physical_names(gm, dim) bind(c)
+         use iso_c_binding
+         type(c_ptr), intent(in) :: gm
+         integer(c_int) :: dim
+         integer (c_int) :: cgmsh_count_physical_names
+       end function cgmsh_count_physical_names
+    end interface
+
+    interface 
+       function cget_gmsh_physical_name(gm, it, dim, idx, c_string) bind(c)
+         use iso_c_binding
+         type(c_ptr), intent(in) :: gm
+         type(c_ptr), intent(inout) :: it
+         integer(c_int) :: dim, idx
+         type (c_ptr), intent(out) :: c_string
+         logical(c_bool) :: cget_gmsh_physical_name
+       end function cget_gmsh_physical_name
+    end interface
+
     interface
        subroutine cread_gmsh_node_data(gmodel, name, data, step) bind(c)
          use iso_c_binding
@@ -211,6 +234,18 @@ contains
     shape=make_element_shape(loc, dim, 1, quad)
     call allocate(mesh, numNodes, numElements, shape, name="CoordinateMesh")
     call allocate( field, coordinate_dim, mesh, name="Coordinate")
+
+    snames = cgmsh_count_physical_names(gmodel, dim-1)
+    if (snames>0) then
+       allocate(name_list(snames+1), id_list(snames+1))
+       n = 1
+       it = c_null_ptr
+       do while (cget_gmsh_physical_name(gmodel,it, dim-1, id_list(n), c_str))
+          call copy_c_string_to_fortran(c_str, name_list(n))
+          n = n+1
+       end do
+       call set_surface_names(field%mesh, name_list(1:snames), id_list(1:snames))
+    end if
 
     ! deallocate our references of mesh, shape and quadrature:
     call deallocate(mesh)

@@ -453,7 +453,6 @@ extern "C" {
       (*it) = gm->firstPhysicalName();
     }
     while ((*it) != gm->lastPhysicalName() && (*it)->first.first !=mdim) {
-      std::cout << ((*it)->first.second) << std::endl;
       ++(*it);
     }
     if ((*it) != gm->lastPhysicalName()) {

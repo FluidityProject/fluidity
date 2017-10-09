@@ -367,7 +367,8 @@ module fields_base
 	    extract_scalar_field_from_tensor_field, ele_curl_at_quad,&
 	    eval_shape, ele_jacobian_at_quad, ele_div_at_quad_tensor,&
 	    ele_2d_curl_at_quad, getsndgln, local_coords_matrix,&
-            local_coords_interpolation
+            local_coords_interpolation, set_surface_names, &
+            get_surface_ids_from_names
     
 contains
 
@@ -4198,5 +4199,40 @@ contains
     end do
 
   end subroutine write_minmax_tensor
+
+  subroutine set_surface_names(mesh, names, ids)
+    type(mesh_type), intent(inout) :: mesh
+    character(len=*), intent(in) :: names(:)
+    integer, intent(in) :: ids(:)
+
+    integer :: i
+
+    allocate(mesh%surface_names(size(ids)))
+   
+    do i=1, size(ids)
+       mesh%surface_names(i)%id = ids(i)
+       mesh%surface_names(i)%name = names(i)
+    end do
+  end subroutine set_surface_names
+
+  subroutine get_surface_ids_from_names(mesh, names, ids)
+    type(mesh_type), intent(in) :: mesh
+    character(len=*), intent(in) :: names(:)
+    integer, intent(out) :: ids(:)
+
+    integer :: i, j
+    
+    ids = -1
+    
+    do i=1, size(ids)
+       do j=1, size(mesh%surface_names)
+          if (trim(mesh%surface_names(j)%name) == trim(names(i))) then
+             ids(i) = mesh%surface_names(j)%id
+             exit
+          end if
+       end do
+    end do
+
+  end subroutine get_surface_ids_from_names
 
 end module fields_base

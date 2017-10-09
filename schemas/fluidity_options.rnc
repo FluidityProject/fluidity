@@ -2354,10 +2354,19 @@ prognostic_density_field =
       ## Boundary conditions
       element boundary_conditions {
          attribute name { string },
-         ## Surface id:
-         element surface_ids {
-            integer_vector
-         },
+         (
+            ## Surface id:
+            element surface_ids {
+               integer_vector
+            }
+         |
+            ## Surface names
+            ## 
+            ## Comma delimited list of Gmsh physical names
+            element surface_names {
+               anystring
+            }
+         ),
          ## Type
          (
             element type {
@@ -6824,10 +6833,19 @@ prognostic_photosynthetic_radiation =
       ## Boundary conditions
       element boundary_conditions {
          attribute name { string },
-         ## Surface id:
-         element surface_ids {
-            integer_vector
-         },
+         (
+            ## Surface id:
+            element surface_ids {
+               integer_vector
+            }
+         |
+            ## Surface names
+            ## 
+            ## Comma delimited list of Gmsh physical names
+            element surface_names {
+               anystring
+            }
+         ),
          ## Type
          (
             element type {

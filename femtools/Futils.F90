@@ -31,6 +31,7 @@ module futils
   !!< Some generic fortran utility functions.
   
   use fldebug
+  use iso_c_binding
   use global_parameters, only : real_digits_10
 
   implicit none
@@ -72,13 +73,23 @@ module futils
 #endif
   end type integer_vector
 
+  interface
+     function strlen(s) bind(c, name='strlen')
+       use iso_c_binding, only: c_ptr, c_size_t
+       implicit none
+       type(c_ptr), intent(in), value :: s
+       integer(c_size_t) :: strlen
+     end function strlen
+  end interface
+
   private
 
   public :: real_format_len, real_format, nullify, real_vector, real_matrix,&
        integer_vector, int2str, present_and_true, present_and_false, present_and_zero,&
        present_and_nonzero, present_and_nonempty, free_unit, nth_digit, count_chars,&
        multiindex, file_extension_len, file_extension, trim_file_extension_len,&
-       trim_file_extension, random_number_minmax, int2str_len, starts_with, tokenize 
+       trim_file_extension, random_number_minmax, int2str_len, starts_with, tokenize,&
+       copy_c_string_to_fortran
 
 contains
   
@@ -435,5 +446,31 @@ contains
     assert(start_index == len(string) + 1 + len(delimiter))
     
   end subroutine tokenize
+
+  subroutine copy_c_string_to_fortran(c_string, f_string)
+    
+    type(c_ptr), intent(in), target :: c_string
+    character(len=*) :: f_string
+    
+    character(kind=c_char), pointer :: arr(:)
+    character(:,kind = c_char), pointer :: f_ptr
+    
+!!! associate the array with the c string.
+    call c_f_pointer(c_string, arr, [strlen(c_string)])
+!!! make into a pointer to a Fortran string
+    call wrap_to_string(strlen(c_string), arr, f_ptr)
+!!! copy happens here
+    f_string = f_ptr
+    
+  contains
+    
+    subroutine wrap_to_string(array_len, char_array, f_string)
+      integer(c_size_t), intent(in) :: array_len
+      character(kind=c_char, len=array_len), intent(in), target :: char_array(1)
+      character(:,c_char), pointer :: f_string   
+      f_string => char_array(1)
+    end subroutine wrap_to_string
+    
+  end subroutine copy_c_string_to_fortran  
   
 end module futils

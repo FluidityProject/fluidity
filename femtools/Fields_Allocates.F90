@@ -538,6 +538,11 @@ contains
        deallocate(mesh%element_halos)
     end if
 
+    if (associated(mesh%surface_names)) then
+       deallocate(mesh%surface_names)
+       nullify(mesh%surface_names)
+    end if
+
     call deallocate_faces(mesh)
 
     if(associated(mesh%subdomain_mesh)) then
@@ -1096,6 +1101,10 @@ contains
        call register_allocation("mesh_type", "integer", &
             size(mesh%faces%surface_node_list), name='Surface'//trim(mesh%name))
 #endif
+    end if
+    if (associated(model%surface_names)) then
+       allocate(mesh%surface_names(size(model%surface_names)))
+       mesh%surface_names(:) = model%surface_names(:)
     end if
     call addref(mesh)
 
