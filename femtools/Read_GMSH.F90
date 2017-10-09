@@ -61,12 +61,12 @@ contains
   ! The main function for reading GMSH files
 
   function read_gmsh_simple( filename, quad_degree, &
-       quad_ngi, quad_family, mdim ) &
+       quad_ngi, quad_family, mdim, format_string ) &
        result (field)
     !!< Read a GMSH file into a coordinate field.
     !!< In parallel the filename must *not* include the process number.
 
-    character(len=*), intent(in) :: filename
+    character(len=*), intent(in) :: filename, format_string
     !! The degree of the quadrature.
     integer, intent(in), optional, target :: quad_degree
     !! The degree of the quadrature.
@@ -123,6 +123,13 @@ contains
          type(c_ptr) :: gmodel
          character(c_char) :: filename(*)
        end subroutine cread_gmsh_file
+    end interface
+
+    interface
+       subroutine cmesh_gmsh_file(gmodel) bind(c)
+         use iso_c_binding
+         type(c_ptr) :: gmodel
+       end subroutine cmesh_gmsh_file
     end interface
     
     interface
@@ -201,14 +208,20 @@ contains
          
     ! If running in parallel, add the process number
     if(isparallel()) then
-       lfilename = trim(parallel_filename(filename)) // ".msh"
+       lfilename = trim(parallel_filename(filename))&
+            // "." // format_string
     else
-       lfilename = trim(filename) // ".msh"
+       lfilename = trim(filename) // "." // format_string
     end if
 
 #if HAVE_LIBGMSH
 
     call cread_gmsh_file(gmodel, trim(lfilename)//c_null_char)
+    
+    if (format_string == "geo") then
+       call cmesh_gmsh_file(gmodel)
+    end if
+
     call cread_gmsh_sizes(gmodel, numNodes, numFaces, numElements,&
          haveRegionIDs, haveBounds, haveElementOwners, &
          haveColumns, dim, loc, sloc) 
@@ -310,6 +323,9 @@ contains
 
 #else
     fd = free_unit()
+
+    if (format_string == "geo") &
+         FlAbort(" Fluidity must be built with libgmsh support to read .geo files")
 
     ! Open node file
     ewrite(2, *) "Opening "//trim(lfilename)//" for reading."

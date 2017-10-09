@@ -11,8 +11,8 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="square">
-        <format name="gmsh"/>
+      <from_file file_name="src/square">
+        <format name="geo"/>
         <stat>
           <include_in_stat/>
         </stat>

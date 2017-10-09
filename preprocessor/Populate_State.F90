@@ -268,7 +268,7 @@ contains
 
           if (is_active_process) then
             select case (mesh_file_format)
-            case ("triangle", "gmsh", "exodusii")
+            case ("triangle", "gmsh", "geo", "exodusii")
               ! Get mesh dimension if present
               call get_option(trim(mesh_path)//"/from_file/dimension", mdim, stat)
               ! Read mesh
@@ -286,7 +286,8 @@ contains
               ! After successfully reading in an ExodusII mesh, change the option
               ! mesh file format to "gmsh", as the write routines for ExodusII are currently
               ! not implemented. Thus, checkpoints etc are dumped as gmsh mesh files
-              if (trim(mesh_file_format)=="exodusii") then
+              if (trim(mesh_file_format)=="exodusii" .or. &
+                   trim(mesh_file_format)=="geo") then
                 mesh_file_format = "gmsh"
                 call set_option_attribute(trim(from_file_path)//"/format/name", trim(mesh_file_format), stat=stat)
                 if (stat /= SPUD_NO_ERROR) then

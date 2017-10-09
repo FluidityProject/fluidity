@@ -101,8 +101,23 @@ extern "C" {
       gm = new GModel;
       // This swith swaps how Gmsh uses the first two integer tags on elements
       CTX::instance()->mesh.switchElementTags=1;
-      gm->readMSH(filename);
+      gm->load(filename);
       PView::readMSH(filename);
+  }
+
+  void cmesh_gmsh_file(GModel *&gm) {
+     // Get the largest dimensionality represented
+    dim = 0;
+    if (gm->getNumRegions()>0) {
+      dim = 3;
+    } else if (gm->getNumFaces()>0) {
+      dim = 2;
+    } else if (gm->getNumEdges()>0) {
+      dim = 1;
+    }
+    gm->mesh(dim);
+    gm->indexMeshVertices(false, 0, true);
+    CTX::instance()->mesh.switchElementTags=0;
   }
 
   void cread_gmsh_sizes(GModel *&gm, int &numNodes, int &numFaces,
@@ -149,9 +164,16 @@ extern "C" {
     } else {
       sloc = 0;
     }
+
+    bool physicals = CTX::instance()->mesh.switchElementTags==1;
+
     for (EntityVector::iterator it = eles.begin(); it != eles.end(); ++it) {
       numElements = numElements + (*it)->getNumMeshElements();
-      haveRegionIDs = haveRegionIDs || (*it)->tag()>0;
+      if (physicals) {
+	haveRegionIDs = haveRegionIDs || (*it)->tag()>0;
+      } else {
+	haveRegionIDs = haveRegionIDs || (*it)->getPhysicalEntities().size()>0;
+      }
     }
     
     for (EntityVector::iterator it = faces.begin(); it != faces.end(); ++it) {
@@ -211,6 +233,9 @@ extern "C" {
     std::vector<GEntity*> ents;
     std::vector<GEntity*> faces;
     gm->getEntities(ents);
+
+    bool physicals = CTX::instance()->mesh.switchElementTags==1;
+
     for (EntityVector::iterator it = ents.begin(); it != ents.end(); ++it) {
       if ((*it)->dim() == dim-1) faces.push_back(*it);
     }
@@ -222,10 +247,14 @@ extern "C" {
 	  sndglno[sloc*k+j] = v->getIndex();
 	}
 	if (haveBounds) {
-	  if ((*ent)->tag()>0) {
-	    boundaryIDs[k] = (*ent)->tag();
+	  if (physicals) {
+	    if ((*ent)->tag()>0) {
+	      boundaryIDs[k] = (*ent)->tag();
+	    } else {
+	      boundaryIDs[k] = 0;
+	    }
 	  } else {
-	    boundaryIDs[k] = 0;
+	    boundaryIDs[k] = (*ent)->getPhysicalEntities()[0];
 	  }
 	}
 	if (haveElementOwners) {
