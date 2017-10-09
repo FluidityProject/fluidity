@@ -88,13 +88,15 @@ contains
     character(len = parallel_filename_len(filename)) :: lfilename
     integer :: loc, sloc
     integer :: numNodes, numElements, numFaces
-    logical(c_bool) :: haveBounds, haveElementOwners, haveRegionIDs
+    logical(c_bool) :: haveBounds, haveElementOwners,&
+         haveRegionIDs, haveColumns
     integer :: dim, coordinate_dim, gdim
     integer :: gmshFormat
     integer :: n, d, e, f, nodeID
 
 #ifdef HAVE_LIBGMSH
     type(c_ptr) :: gmodel
+    real, dimension(:), allocatable :: lcolumn_ids
 #endif
 
     type(GMSHnode), pointer :: nodes(:)
@@ -122,11 +124,13 @@ contains
     
     interface
        subroutine cread_gmsh_sizes(gmodel, numNodes, numFaces, numElements,&
-         haveRegionIDs, haveBounds, haveElementOwners, dim, loc, sloc) bind(c)
+         haveRegionIDs, haveBounds, haveElementOwners, &
+         haveColumns, dim, loc, sloc) bind(c)
          use iso_c_binding
          type(c_ptr) :: gmodel
          integer(c_int) :: numNodes, numFaces, numElements, dim, loc, sloc
-         logical(c_bool) :: haveRegionIDs, haveBounds, haveElementOwners
+         logical(c_bool) :: haveRegionIDs, haveBounds, &
+              haveElementOwners, haveColumns
        end subroutine cread_gmsh_sizes
     end interface
 
@@ -150,14 +154,26 @@ contains
     end interface
 
     interface
-       subroutine cread_gmsh_face_connectivity(gmodel, numFaces, sloc, sndglno, &
-            boundaryIDs, faceOwner) bind(c)
+       subroutine cread_gmsh_face_connectivity(gmodel, numFaces, &
+            sloc, sndglno,  &
+            haveBounds, boundaryIDs, &
+            haveElementOwners, faceOwner) bind(c)
          use iso_c_binding
          type(c_ptr) :: gmodel
          integer(c_int) :: numFaces, sloc
-         integer(c_int) :: sndglno(*), boundaryIDs(*),&
-              faceOwner(numFaces)
+         logical(c_bool) :: haveBounds, haveElementOwners
+         integer(c_int) :: sndglno(*), boundaryIDs(*), faceOwner(*)
        end subroutine cread_gmsh_face_connectivity
+    end interface
+
+    interface
+       subroutine cread_gmsh_node_data(gmodel, name, data, step) bind(c)
+         use iso_c_binding
+         type(c_ptr), intent(in) :: gmodel
+         character(c_char), intent(in) :: name(*)
+         real(c_double), intent(out) :: data(*)
+         integer(c_int), intent(in) :: step
+       end subroutine cread_gmsh_node_data
     end interface
          
     ! If running in parallel, add the process number
@@ -171,7 +187,8 @@ contains
 
     call cread_gmsh_file(gmodel, trim(lfilename)//c_null_char)
     call cread_gmsh_sizes(gmodel, numNodes, numFaces, numElements,&
-         haveRegionIDs, haveBounds, haveElementOwners, dim, loc, sloc) 
+         haveRegionIDs, haveBounds, haveElementOwners, &
+         haveColumns, dim, loc, sloc) 
 
     if (present(mdim)) then
        coordinate_dim = mdim
@@ -203,6 +220,9 @@ contains
     if (haveRegionIDs) then
       allocate( field%mesh%region_ids(numElements) )
     end if
+    if(haveColumns) then
+       allocate(field%mesh%columns(1:numNodes), lcolumn_ids(1:numNodes))
+    end if
 
     call cread_gmsh_element_connectivity(gmodel, numElements, loc,&
          field%mesh%ndglno, field%mesh%region_ids)
@@ -221,7 +241,8 @@ contains
 
 
     call cread_gmsh_face_connectivity(gmodel, numFaces, sloc, &
-         sndglno, boundaryIDs, faceOwner)
+         sndglno, haveBounds, boundaryIDs, &
+         haveElementOwners, faceOwner)
 
     ! If we've got boundaries, do something
     if( haveBounds ) then
@@ -238,6 +259,12 @@ contains
     else
        ewrite(2,*) "WARNING: no boundaries in GMSH file "//trim(lfilename)
        call add_faces( field%mesh, sndgln = sndglno(1:numFaces*sloc) )
+    end if
+
+    if (haveColumns) then
+       call cread_gmsh_node_data(gmodel,"column_ids"//c_null_char,&
+            lcolumn_ids, 0)
+       field%mesh%columns = lcolumn_ids
     end if
 
     call cgmsh_finalise(gmodel)

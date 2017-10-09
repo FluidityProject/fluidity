@@ -104,6 +104,9 @@ endif
 ifneq (@HAVE_PETSC33@,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e petsc33
 endif
+ifneq (@HAVE_LIBGMSH@,yes)
+	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e libgmsh
+endif
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
 

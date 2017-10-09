@@ -672,6 +672,7 @@ INSTALL_SCRIPT
 INSTALL_PROGRAM
 UNROLL_LOOPS
 OPENMP_CXXFLAGS
+HAVE_LIBGMSH
 LAPACK_LIBS
 BLAS_LIBS
 HAVE_CGAL
@@ -9929,7 +9930,7 @@ LIBS="-lGmsh"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-  #include <Gmsh/Gmsh.h>
+  #include <gmsh/Gmsh.h>
 
 #ifdef F77_DUMMY_MAIN
 
@@ -9964,16 +9965,65 @@ $as_echo "yes" >&6; }
   LIBS="$LIBS $LIBS_bck"
   $as_echo "#define HAVE_LIBGMSH 1" >>confdefs.h
 
+  HAVE_LIBGMSH = yes
 
 else
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+  LIBS="-lgmsh"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+	#include <gmsh/Gmsh.h>
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+
+  	GmshInitialize ();
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+   	LIBS="$LIBS $LIBS_bck"
+  	$as_echo "#define HAVE_LIBGMSH 1" >>confdefs.h
+
+	HAVE_LIBGMSH = yes
+
+else
+
+        HAVE_LIBGMSH = no
+  	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-  LIBS="$LIBS_bck"
+  	LIBS="$LIBS_bck"
 
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -13929,7 +13979,7 @@ fi
 
 #####
 #
-LIBS="$LIBS -L./lib"
+LIB="$LIBS -L./lib"
 
 ##############################################################
 # Stream I/O
