@@ -2635,6 +2635,20 @@ breakage, aggegation and internal dispersion</a:documentation>
                     </element>
                   </optional>
                 </element>
+                <element name="coulaloglou_aggregation">
+                  <optional>
+                    <element name="K3">
+                      <a:documentation>enter the value of the coefficient K3 in Coulaloglou's aggregation rate expression. default: 0.88</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="K4">
+                      <a:documentation>enter the value of the coefficient K4 in Coulaloglou's aggregation rate expression. default: 6.0E9</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
+                </element>
               </choice>
             </element>
           </element>
@@ -2662,6 +2676,21 @@ breakage, aggegation and internal dispersion</a:documentation>
                 </element>
                 <element name="laakkonen_breakage">
                   <empty/>
+                </element>
+                <element name="coulaloglou_breakage">
+                  <a:documentation/>
+                  <optional>
+                    <element name="K1">
+                      <a:documentation>enter the value of the coefficient K1 in Coulaloglou's aggregation rate expression. default: 0.453</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="K2">
+                      <a:documentation>enter the value of the coefficient K2 in Coulaloglou's aggregation rate expression. default: 0.058</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
                 </element>
               </choice>
             </element>
