@@ -29,8 +29,14 @@
 
 ! This module contains code and variables common to all the GMSH I/O routines
 
+#include "fdebug.h"
 
 module gmsh_common
+
+  use iso_c_binding
+  use fields
+  
+  implicit none
 
   character(len=3), parameter :: GMSHVersionStr = "2.1"
   integer, parameter :: asciiFormat = 0
@@ -58,6 +64,151 @@ module gmsh_common
      integer, pointer :: tags(:), nodeIDs(:)
   end type GMSHelement
 
+    interface
+       subroutine cgmsh_initialise() bind(c)
+       end subroutine cgmsh_initialise
+    end interface
+
+    interface
+       subroutine cgmsh_finalise(gmodel) bind(c)
+         use iso_c_binding
+         type(c_ptr) :: gmodel
+       end subroutine cgmsh_finalise
+    end interface
+
+    interface
+       subroutine cread_gmsh_file(gmodel, filename) bind(c)
+         use iso_c_binding
+         type(c_ptr) :: gmodel
+         character(c_char) :: filename(*)
+       end subroutine cread_gmsh_file
+    end interface
+
+    interface
+       subroutine cmesh_gmsh_file(gmodel, view_name) bind(c)
+         use iso_c_binding
+         type(c_ptr) :: gmodel
+         character(c_char) :: view_name(*)
+       end subroutine cmesh_gmsh_file
+    end interface
+    
+    interface
+       subroutine cread_gmsh_sizes(gmodel, numNodes, numFaces, numElements,&
+         haveRegionIDs, haveBounds, haveElementOwners, &
+         haveColumns, dim, loc, sloc) bind(c)
+         use iso_c_binding
+         type(c_ptr) :: gmodel
+         integer(c_int) :: numNodes, numFaces, numElements, dim, loc, sloc
+         logical(c_bool) :: haveRegionIDs, haveBounds, &
+              haveElementOwners, haveColumns
+       end subroutine cread_gmsh_sizes
+    end interface
+
+    interface
+       subroutine cread_gmsh_element_connectivity(gmodel, numElements, loc,&
+            ndglno, regionIDs) bind(c)
+         use iso_c_binding
+         type(c_ptr) :: gmodel
+         integer(c_int) :: numElements, loc
+         integer(c_int) :: ndglno(numElements*loc), regionIDs(numElements)
+       end subroutine cread_gmsh_element_connectivity
+    end interface
+
+    interface
+       subroutine cread_gmsh_points(gmodel, dim, numNodes, val) bind(c)
+         use iso_c_binding
+         type(c_ptr) :: gmodel
+         integer(c_int) :: dim, numNodes
+         real(c_double) :: val(*)
+       end subroutine cread_gmsh_points
+    end interface
+
+    interface
+       subroutine cread_gmsh_face_connectivity(gmodel, numFaces, &
+            sloc, sndglno,  &
+            haveBounds, boundaryIDs, &
+            haveElementOwners, faceOwner) bind(c)
+         use iso_c_binding
+         type(c_ptr) :: gmodel
+         integer(c_int) :: numFaces, sloc
+         logical(c_bool) :: haveBounds, haveElementOwners
+         integer(c_int) :: sndglno(*), boundaryIDs(*), faceOwner(*)
+       end subroutine cread_gmsh_face_connectivity
+    end interface
+
+   interface 
+       function cgmsh_count_physical_names(gm, dim) bind(c)
+         use iso_c_binding
+         type(c_ptr), intent(in) :: gm
+         integer(c_int) :: dim
+         integer (c_int) :: cgmsh_count_physical_names
+       end function cgmsh_count_physical_names
+    end interface
+
+    interface 
+       function cget_gmsh_physical_name(gm, it, dim, idx, c_string) bind(c)
+         use iso_c_binding
+         type(c_ptr), intent(in) :: gm
+         type(c_ptr), intent(inout) :: it
+         integer(c_int) :: dim, idx
+         type (c_ptr), intent(out) :: c_string
+         logical(c_bool) :: cget_gmsh_physical_name
+       end function cget_gmsh_physical_name
+    end interface
+
+    interface
+       subroutine cread_gmsh_node_data(gmodel, name, data, step) bind(c)
+         use iso_c_binding
+         type(c_ptr), intent(in) :: gmodel
+         character(c_char), intent(in) :: name(*)
+         real(c_double), intent(out) :: data(*)
+         integer(c_int), intent(in) :: step
+       end subroutine cread_gmsh_node_data
+    end interface
+
+        interface
+       subroutine cmesh_to_gmodel(gmodel, numNodes,&
+            numElements, numFaces, loc, sloc, gdim, pdim, val,&
+            etype, eles, ftype, faces, ele_ids, face_ids, ele_owners) bind(c)
+         use iso_c_binding
+         type(c_ptr) :: gmodel
+         integer(c_int) :: numNodes, numElements, numFaces,&
+              loc, sloc, gdim, pdim, etype, ftype
+         real(c_double) :: val(gdim*numNodes)
+         integer(c_int) :: eles(numElements*loc), faces(numFaces*sloc)
+         type(c_ptr), value :: ele_ids, face_ids, ele_owners
+       end subroutine cmesh_to_gmodel
+    end interface
+
+    interface
+       subroutine cwrite_gmsh_file(gmodel, binary, filename) bind(c)
+         use iso_c_binding
+         type(c_ptr) :: gmodel
+         logical(c_bool) :: binary
+         character(c_char) :: filename(*)
+       end subroutine cwrite_gmsh_file
+    end interface
+
+    interface
+       subroutine cdata_to_pview_node_data(gm, pvdata, &
+            numNodes, data, &
+            name, numComponents) bind(c)
+         use iso_c_binding
+         type(c_ptr) :: gm, pvdata
+         integer(c_int) :: numNodes, numComponents
+         real(c_double) :: data(*)
+         character(c_char) :: name(*)
+       end subroutine cdata_to_pview_node_data
+    end interface
+
+    interface
+       subroutine cwrite_gmsh_data_file(pvdata, binary, filename) bind(c)
+         use iso_c_binding
+         type(c_ptr) :: pvdata
+         logical(c_bool) :: binary
+         character(c_char) :: filename(*)
+        end subroutine cwrite_gmsh_data_file
+    end interface
 
 contains
 
@@ -128,7 +279,7 @@ contains
   subroutine toFluidityElementNodeOrdering( oldList, elemType )
     integer, pointer :: oldList(:)
     integer, dimension(size(oldList)) :: nodeOrder, flNodeList
-    integer i, elemType
+    integer i, elemType, numNodes
 
     numNodes = size(oldList)
 
@@ -162,7 +313,7 @@ contains
   subroutine toGMSHElementNodeOrdering( oldList, elemType )
     integer, pointer :: oldList(:)
     integer, dimension(size(oldList)) :: nodeOrder, gmshNodeList
-    integer i, elemType
+    integer i, elemType, numNodes
 
     numNodes = size(oldList)
 
@@ -205,5 +356,118 @@ contains
     deallocate( elements )
 
   end subroutine deallocateElementList
+
+#ifdef HAVE_LIBGMSH
+
+  subroutine position_to_gmodel(positions, gmodel)
+    type(vector_field), intent(in) :: positions
+    type(c_ptr), intent(out) :: gmodel
+
+        integer :: numNodes, numElements, numFaces, sloc, &
+        loc, dim, pdim, i
+    integer, allocatable, dimension(:) :: sndglno
+    integer, allocatable, dimension(:), target ::owners
+    logical needs_element_owners
+
+    type(c_ptr) :: bnd_ids, reg_ids, ele_owners
+
+    numNodes = node_count(positions)
+    numElements = element_count(positions)
+    numFaces = unique_surface_element_count(positions%mesh)
+    needs_element_owners = has_discontinuous_internal_boundaries(positions%mesh)
+
+    dim = mesh_dim(positions)
+    pdim = size(positions%val,1)
+    loc = ele_loc(positions, 1)
+    sloc = 1
+    if (numFaces>0) sloc = face_loc(positions, 1)
+
+    allocate(sndglno(numFaces*sloc))
+    call getsndgln(positions%mesh, sndglno)
+
+    if (associated(positions%mesh%region_ids)) then
+       reg_ids = c_loc(positions%mesh%region_ids(1))
+    else
+       reg_ids = c_null_ptr
+    end if
+    if (associated(positions%mesh%faces%boundary_ids)) then
+       if (size(positions%mesh%faces%boundary_ids)>0) &
+            bnd_ids = c_loc(positions%mesh%faces%boundary_ids(1))
+    else
+       bnd_ids = c_null_ptr
+    end if
+    if (needs_element_owners) then
+       allocate(owners(numFaces))
+       do i=1, numFaces
+          owners(i) = face_ele(positions%mesh,i)
+       end do
+       ele_owners = c_loc(owners(1))
+    else
+       ele_owners = c_null_ptr
+    end if
+
+    call cmesh_to_gmodel(gmodel, numNodes,&
+         numElements, numFaces, loc, sloc,&
+         dim, pdim, positions%val, &
+         gmsh_type(loc, dim), positions%mesh%ndglno,&
+         gmsh_type(sloc, dim-1), sndglno, reg_ids,&
+         bnd_ids, ele_owners)
+
+    deallocate(sndglno)
+
+    contains
+
+      function gmsh_type(loc, dim)
+
+        integer, intent(in) ::loc, dim
+        integer gmsh_type
+
+
+        if (loc .eq. dim+1) then
+           select case(dim)
+           case(0)
+              gmsh_type = 15
+           case(1)
+              gmsh_type = 1
+           case(2)
+              gmsh_type = 2
+           case(3)
+              gmsh_type = 4
+           end select
+        else
+           select case(dim)
+           case(2)
+              gmsh_type = 3
+           case(3)
+              gmsh_type = 5
+           end select
+        end if
+
+      end function gmsh_type
+
+  end subroutine position_to_gmodel
+
+  subroutine tensor_field_to_pview(gmodel, tfield)
+    type(c_ptr) :: gmodel
+    type(tensor_field) :: tfield
+
+    type(c_ptr) :: pvdata
+
+    real, dimension(3,3,node_count(tfield)) :: data
+    integer :: dim
+
+    data=0
+    data(1,1,:)=1.0
+    data(2,2,:)=1.0
+    data(3,3,:)=1.0
+    dim = size(tfield%val,1)
+    data(1:dim,1:dim,:) = tfield%val
+    
+    call cdata_to_pview_node_data(gmodel, pvdata, &
+          node_count(tfield), data, trim(tfield%name)//c_null_char,9)
+    
+  end subroutine tensor_field_to_pview
+
+#endif
 
 end module gmsh_common

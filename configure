@@ -9965,7 +9965,7 @@ $as_echo "yes" >&6; }
   LIBS="$LIBS $LIBS_bck"
   $as_echo "#define HAVE_LIBGMSH 1" >>confdefs.h
 
-  HAVE_LIBGMSH = yes
+  HAVE_LIBGMSH="yes"
 
 else
 
@@ -10007,11 +10007,11 @@ $as_echo "yes" >&6; }
    	LIBS="$LIBS $LIBS_bck"
   	$as_echo "#define HAVE_LIBGMSH 1" >>confdefs.h
 
-	HAVE_LIBGMSH = yes
+	HAVE_LIBGMSH="yes"
 
 else
 
-        HAVE_LIBGMSH = no
+        HAVE_LIBGMSH="no"
   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
   	LIBS="$LIBS_bck"

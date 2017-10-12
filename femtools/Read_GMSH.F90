@@ -61,7 +61,8 @@ contains
   ! The main function for reading GMSH files
 
   function read_gmsh_simple( filename, quad_degree, &
-       quad_ngi, quad_family, mdim, format_string ) &
+       quad_ngi, quad_family, mdim, format_string, &
+        position, metric) &
        result (field)
     !!< Read a GMSH file into a coordinate field.
     !!< In parallel the filename must *not* include the process number.
@@ -75,6 +76,9 @@ contains
     integer, intent(in), optional :: quad_family
     !! Dimension of mesh
     integer, intent(in), optional :: mdim
+    !!
+    type(vector_field), optional :: position
+    type(tensor_field), optional :: metric
     !! result: a coordinate field
     type(vector_field) :: field
 
@@ -96,7 +100,7 @@ contains
 
 #ifdef HAVE_LIBGMSH
     integer :: snames
-    type(c_ptr) :: gmodel, c_str, it
+    type(c_ptr) :: gmodel, gm2, c_str, it
     integer, allocatable, dimension(:) :: id_list
     character(len = FIELD_NAME_LEN), dimension(:), allocatable :: name_list
     real, dimension(:), allocatable :: lcolumn_ids
@@ -105,106 +109,6 @@ contains
     type(GMSHnode), pointer :: nodes(:)
     type(GMSHelement), pointer :: elements(:), faces(:)
 
-    interface
-       subroutine cgmsh_initialise() bind(c)
-       end subroutine cgmsh_initialise
-    end interface
-
-    interface
-       subroutine cgmsh_finalise(gmodel) bind(c)
-         use iso_c_binding
-         type(c_ptr) :: gmodel
-       end subroutine cgmsh_finalise
-    end interface
-
-    interface
-       subroutine cread_gmsh_file(gmodel, filename) bind(c)
-         use iso_c_binding
-         type(c_ptr) :: gmodel
-         character(c_char) :: filename(*)
-       end subroutine cread_gmsh_file
-    end interface
-
-    interface
-       subroutine cmesh_gmsh_file(gmodel) bind(c)
-         use iso_c_binding
-         type(c_ptr) :: gmodel
-       end subroutine cmesh_gmsh_file
-    end interface
-    
-    interface
-       subroutine cread_gmsh_sizes(gmodel, numNodes, numFaces, numElements,&
-         haveRegionIDs, haveBounds, haveElementOwners, &
-         haveColumns, dim, loc, sloc) bind(c)
-         use iso_c_binding
-         type(c_ptr) :: gmodel
-         integer(c_int) :: numNodes, numFaces, numElements, dim, loc, sloc
-         logical(c_bool) :: haveRegionIDs, haveBounds, &
-              haveElementOwners, haveColumns
-       end subroutine cread_gmsh_sizes
-    end interface
-
-    interface
-       subroutine cread_gmsh_element_connectivity(gmodel, numElements, loc,&
-            ndglno, regionIDs) bind(c)
-         use iso_c_binding
-         type(c_ptr) :: gmodel
-         integer(c_int) :: numElements, loc
-         integer(c_int) :: ndglno(numElements*loc), regionIDs(numElements)
-       end subroutine cread_gmsh_element_connectivity
-    end interface
-
-    interface
-       subroutine cread_gmsh_points(gmodel, dim, numNodes, val) bind(c)
-         use iso_c_binding
-         type(c_ptr) :: gmodel
-         integer(c_int) :: dim, numNodes
-         real(c_double) :: val(*)
-       end subroutine cread_gmsh_points
-    end interface
-
-    interface
-       subroutine cread_gmsh_face_connectivity(gmodel, numFaces, &
-            sloc, sndglno,  &
-            haveBounds, boundaryIDs, &
-            haveElementOwners, faceOwner) bind(c)
-         use iso_c_binding
-         type(c_ptr) :: gmodel
-         integer(c_int) :: numFaces, sloc
-         logical(c_bool) :: haveBounds, haveElementOwners
-         integer(c_int) :: sndglno(*), boundaryIDs(*), faceOwner(*)
-       end subroutine cread_gmsh_face_connectivity
-    end interface
-
-   interface 
-       function cgmsh_count_physical_names(gm, dim) bind(c)
-         use iso_c_binding
-         type(c_ptr), intent(in) :: gm
-         integer(c_int) :: dim
-         integer (c_int) :: cgmsh_count_physical_names
-       end function cgmsh_count_physical_names
-    end interface
-
-    interface 
-       function cget_gmsh_physical_name(gm, it, dim, idx, c_string) bind(c)
-         use iso_c_binding
-         type(c_ptr), intent(in) :: gm
-         type(c_ptr), intent(inout) :: it
-         integer(c_int) :: dim, idx
-         type (c_ptr), intent(out) :: c_string
-         logical(c_bool) :: cget_gmsh_physical_name
-       end function cget_gmsh_physical_name
-    end interface
-
-    interface
-       subroutine cread_gmsh_node_data(gmodel, name, data, step) bind(c)
-         use iso_c_binding
-         type(c_ptr), intent(in) :: gmodel
-         character(c_char), intent(in) :: name(*)
-         real(c_double), intent(out) :: data(*)
-         integer(c_int), intent(in) :: step
-       end subroutine cread_gmsh_node_data
-    end interface
          
     ! If running in parallel, add the process number
     if(isparallel()) then
@@ -216,10 +120,18 @@ contains
 
 #if HAVE_LIBGMSH
 
+    call cgmsh_initialise()
+
     call cread_gmsh_file(gmodel, trim(lfilename)//c_null_char)
     
     if (format_string == "geo") then
-       call cmesh_gmsh_file(gmodel)
+       if (present(metric) ) then
+          call position_to_gmodel(position, gm2)
+          call tensor_field_to_pview(gm2, metric)
+          call cmesh_gmsh_file(gmodel, trim(metric%name)//c_null_char)
+       else
+          call cmesh_gmsh_file(gmodel,c_null_char)
+       end if
     end if
 
     call cread_gmsh_sizes(gmodel, numNodes, numFaces, numElements,&
@@ -325,7 +237,7 @@ contains
     fd = free_unit()
 
     if (format_string == "geo") &
-         FlAbort(" Fluidity must be built with libgmsh support to read .geo files")
+         FLAbort("Fluidity must be built with libgmsh support to read .geo files")
 
     ! Open node file
     ewrite(2, *) "Opening "//trim(lfilename)//" for reading."

@@ -52,7 +52,7 @@ module write_gmsh
   end interface
 
   ! Writes to GMSH binary format - can set to ASCII (handy for debugging)
-  logical(c_bool), parameter  :: useBinaryGMSH=.false.
+  logical(c_bool), parameter  :: useBinaryGMSH=.true.
 
 contains
 
@@ -92,113 +92,12 @@ contains
     character(len=*), intent(in):: filename
     type(vector_field), intent(in):: positions
 
-    integer :: numNodes, numElements, numFaces, sloc, &
-        loc, dim, pdim, i
-    integer, allocatable, dimension(:) :: sndglno
-    integer, allocatable, dimension(:), target ::owners
     character(len=longStringLen) :: meshFile
-    logical needs_element_owners
+    type(c_ptr) :: gmodel, pvdata
 
-    type(c_ptr) :: gmodel, bnd_ids, reg_ids, pvdata, ele_owners
+    call cgmsh_initialise()
 
-    interface
-       subroutine cgmsh_initialise() bind(c)
-       end subroutine cgmsh_initialise
-    end interface
-
-    interface
-       subroutine cgmsh_finalise(gmodel) bind(c)
-         use iso_c_binding
-         type(c_ptr) :: gmodel
-       end subroutine cgmsh_finalise
-    end interface
-
-    interface
-       subroutine cmesh_to_gmodel(gmodel, numNodes,&
-            numElements, numFaces, loc, sloc, gdim, pdim, val,&
-            etype, eles, ftype, faces, ele_ids, face_ids, ele_owners) bind(c)
-         use iso_c_binding
-         type(c_ptr) :: gmodel
-         integer(c_int) :: numNodes, numElements, numFaces,&
-              loc, sloc, gdim, pdim, etype, ftype
-         real(c_double) :: val(gdim*numNodes)
-         integer(c_int) :: eles(numElements*loc), faces(numFaces*sloc)
-         type(c_ptr), value :: ele_ids, face_ids, ele_owners
-       end subroutine cmesh_to_gmodel
-    end interface
-
-    interface
-       subroutine cwrite_gmsh_file(gmodel, binary, filename) bind(c)
-         use iso_c_binding
-         type(c_ptr) :: gmodel
-         logical(c_bool) :: binary
-         character(c_char) :: filename(*)
-       end subroutine cwrite_gmsh_file
-    end interface
-
-    interface
-       subroutine cdata_to_pview_node_data(gm, pvdata, &
-            numNodes, data, &
-            name, numComponents) bind(c)
-         use iso_c_binding
-         type(c_ptr) :: gm, pvdata
-         integer(c_int) :: numNodes, numComponents
-         real(c_double) :: data(*)
-         character(c_char) :: name(*)
-       end subroutine cdata_to_pview_node_data
-    end interface
-
-    interface
-       subroutine cwrite_gmsh_data_file(pvdata, binary, filename) bind(c)
-         use iso_c_binding
-         type(c_ptr) :: pvdata
-         logical(c_bool) :: binary
-         character(c_char) :: filename(*)
-        end subroutine cwrite_gmsh_data_file
-    end interface
-
-    numNodes = node_count(positions)
-    numElements = element_count(positions)
-    numFaces = unique_surface_element_count(positions%mesh)
-    needs_element_owners = has_discontinuous_internal_boundaries(positions%mesh)
-
-    dim = mesh_dim(positions)
-    pdim = size(positions%val,1)
-    loc = ele_loc(positions, 1)
-    sloc = 1
-    if (numFaces>0) sloc = face_loc(positions, 1)
-
-    allocate(sndglno(numFaces*sloc))
-    call getsndgln(positions%mesh, sndglno)
-
-    if (associated(positions%mesh%region_ids)) then
-       reg_ids = c_loc(positions%mesh%region_ids(1))
-    else
-       reg_ids = c_null_ptr
-    end if
-    if (associated(positions%mesh%faces%boundary_ids)) then
-       if (size(positions%mesh%faces%boundary_ids)>0) &
-            bnd_ids = c_loc(positions%mesh%faces%boundary_ids(1))
-    else
-       bnd_ids = c_null_ptr
-    end if
-    if (needs_element_owners) then
-       allocate(owners(numFaces))
-       do i=1, numFaces
-          owners(i) = face_ele(positions%mesh,i)
-       end do
-       ele_owners = c_loc(owners(1))
-    else
-       ele_owners = c_null_ptr
-    end if
-
-    call cmesh_to_gmodel(gmodel, numNodes,&
-         numElements, numFaces, loc, sloc,&
-         dim, pdim, positions%val, &
-         gmsh_type(loc, dim), positions%mesh%ndglno,&
-         gmsh_type(sloc, dim-1), sndglno, reg_ids, bnd_ids, ele_owners)
-
-    deallocate(sndglno)
+    call position_to_gmodel(positions, gmodel)
 
     meshFile = trim(filename) // ".msh"
     
@@ -206,44 +105,13 @@ contains
 
     if (associated(positions%mesh%columns)) then
        call cdata_to_pview_node_data(gmodel, pvdata, &
-            numNodes, real(positions%mesh%columns), &
+            node_count(positions), real(positions%mesh%columns), &
             "column_ids"//c_null_char,1)
        call cwrite_gmsh_data_file(pvdata, useBinaryGMSH, &
             trim(meshFile)//c_null_char)
     end if
 
     call cgmsh_finalise(gmodel)
-
-    contains
-
-      function gmsh_type(loc, dim)
-
-        integer, intent(in) ::loc, dim
-        integer gmsh_type
-
-
-        if (loc .eq. dim+1) then
-           select case(dim)
-           case(0)
-              gmsh_type = 15
-           case(1)
-              gmsh_type = 1
-           case(2)
-              gmsh_type = 2
-           case(3)
-              gmsh_type = 4
-           end select
-        else
-           select case(dim)
-           case(2)
-              gmsh_type = 3
-           case(3)
-              gmsh_type = 5
-           end select
-        end if
-
-      end function gmsh_type
-
 
   end subroutine write_libgmsh
 

@@ -317,7 +317,7 @@ AC_TRY_LINK([
   AC_MSG_RESULT([yes])
   LIBS="$LIBS $LIBS_bck"
   AC_DEFINE(HAVE_LIBGMSH, [1])
-  HAVE_LIBGMSH = yes	
+  HAVE_LIBGMSH="yes"	
   ],[
   LIBS="-lgmsh"
   AC_TRY_LINK([
@@ -327,9 +327,9 @@ AC_TRY_LINK([
 	AC_MSG_RESULT([yes])
    	LIBS="$LIBS $LIBS_bck"
   	AC_DEFINE(HAVE_LIBGMSH, [1])
-	HAVE_LIBGMSH = yes	
+	HAVE_LIBGMSH="yes"	
   	],[
-        HAVE_LIBGMSH = no	
+        HAVE_LIBGMSH="no"	
   	AC_MSG_RESULT([no])
   	LIBS="$LIBS_bck"
   	])

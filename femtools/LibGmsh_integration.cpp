@@ -30,7 +30,7 @@
 #ifdef HAVE_LIBGMSH
 #include "gmsh/Gmsh.h"
 #include "gmsh/GModel.h"
-#include "gmsh/JacobianBasis.h"
+#include "gmsh/Field.h"
 #include "gmsh/GEntity.h"
 #include "gmsh/MElement.h"
 #include "gmsh/MTetrahedron.h"
@@ -52,12 +52,11 @@
 typedef std::vector<GEntity*> EntityVector;
 typedef std::vector<MVertex*> VertexVector;
 
-int dim;
-
 // Length set to match FIELD_NAME_LEN
 char buffer[102]="";
 
 int FluidityNodeOrdering(int type, int node) {
+  // This routine maps fluidity ids to (linear) gmsh type vertex ids.
   int quads[]= {0,1,3,2};
   int hexes[]= {0,1,3,2,4,5,7,6};
   switch(type) {
@@ -71,6 +70,7 @@ int FluidityNodeOrdering(int type, int node) {
 
 
 int GmshNodeOrdering(int type, int node) {
+  // This routine maps specific gmsh type vertex ids to fluidity ids
   int quads[]= {0,1,3,2};
   int hexes[]= {0,1,3,2,4,5,7,6};
   switch(type) {
@@ -97,26 +97,29 @@ extern "C" {
   void cread_gmsh_file(GModel *&gm, const char* filename) {
     // Fortran accessible interface to fead a Gmsh .msh file
     // known to gmsh into a GModel object
-      GmshInitialize();
       gm = new GModel;
-      // This swith swaps how Gmsh uses the first two integer tags on elements
+      // This switch swaps how Gmsh uses the first two integer tags on elements
       CTX::instance()->mesh.switchElementTags=1;
+      // Use generic load, rather than readXXX to support multiple formats
       gm->load(filename);
+      // This call reads any data beyond the mesh topology
       PView::readMSH(filename);
   }
 
-  void cmesh_gmsh_file(GModel *&gm) {
-     // Get the largest dimensionality represented
-    dim = 0;
-    if (gm->getNumRegions()>0) {
-      dim = 3;
-    } else if (gm->getNumFaces()>0) {
-      dim = 2;
-    } else if (gm->getNumEdges()>0) {
-      dim = 1;
+  void cmesh_gmsh_file(GModel *&gm, char* name) {
+    // Load the file "name" into the GModel pointer provided
+    if (strlen(name)>0) {
+      PView* pv=PView::getViewByName(name);
+      if (pv) {
+	// This call assigns the PView "name" as the background mesh
+	gm->getFields()->setBackgroundMesh(pv->getIndex());
+	// use BAMG in 2d
+	CTX::instance()->mesh.algo2d = 7;
+	CTX::instance()->mesh.algo3d = 7;
+      }
     }
-    gm->mesh(dim);
-    gm->indexMeshVertices(false, 0, true);
+    // This causes the meshing to happen
+    gm->mesh(gm->getDim());
     CTX::instance()->mesh.switchElementTags=0;
   }
 
@@ -125,20 +128,13 @@ extern "C" {
 			bool &haveBounds, bool &haveElementOwners,
 			bool &haveColumns,
 			int &gdim, int &loc, int &sloc) {
-
-    // Number of mesh nodes in model
-    numNodes = gm->getNumMeshVertices();
+    // This utility routine provides Fortran with the sizes to allocate
+    // memory for.
     
     // Get the largest dimensionality represented
-    dim = 0;
-    if (gm->getNumRegions()>0) {
-      dim = 3;
-    } else if (gm->getNumFaces()>0) {
-      dim = 2;
-    } else if (gm->getNumEdges()>0) {
-      dim = 1;
-    }
-    gdim = dim;
+    gdim = gm->getDim();
+
+    bool physicals = CTX::instance()->mesh.switchElementTags==1;
 
     numElements = 0;
     numFaces = 0;
@@ -146,13 +142,24 @@ extern "C" {
     haveBounds = false;
     haveElementOwners = false;
     haveColumns = not (PView::getViewByName("column_ids") == NULL);
-    std::vector<GEntity*> ents;
-    std::vector<GEntity*> eles;
-    std::vector<GEntity*> faces;
+    EntityVector ents;
+    EntityVector eles, all_eles;
+    EntityVector faces;
     gm->getEntities(ents);
     for (EntityVector::iterator it = ents.begin(); it != ents.end(); ++it) {
-      if ((*it)->dim() == dim) eles.push_back(*it);
-      if ((*it)->dim() == dim-1) faces.push_back(*it);
+      if ((*it)->dim() == gdim) {
+	if((*it)->physicals.size()>0) {
+	  eles.push_back(*it);
+	} else {
+	  all_eles.push_back(*it);
+	}
+      }
+      if ((*it)->dim() == gdim-1 && (physicals || (*it)->physicals.size()>0)) 
+	  faces.push_back(*it);
+    }    // Number of mesh nodes in model
+
+    if (eles.size()==0 && all_eles.size()==1) {
+      eles.push_back(all_eles[0]);
     }
     if (eles.size()>0) {
       loc = eles[0]->getMeshElement(0)->getNumVertices();
@@ -165,8 +172,6 @@ extern "C" {
       sloc = 0;
     }
 
-    bool physicals = CTX::instance()->mesh.switchElementTags==1;
-
     for (EntityVector::iterator it = eles.begin(); it != eles.end(); ++it) {
       numElements = numElements + (*it)->getNumMeshElements();
       if (physicals) {
@@ -174,6 +179,10 @@ extern "C" {
       } else {
 	haveRegionIDs = haveRegionIDs || (*it)->getPhysicalEntities().size()>0;
       }
+    }
+    
+    if(not haveRegionIDs || physicals) {
+      eles[0]->addPhysicalEntity(0);
     }
     
     for (EntityVector::iterator it = faces.begin(); it != faces.end(); ++it) {
@@ -184,43 +193,77 @@ extern "C" {
     for (EntityVector::iterator it = faces.begin(); it != faces.end(); ++it) {
       numFaces = numFaces + (*it)->getNumMeshElements();
       haveBounds = haveBounds || (*it)->tag()>0;
+      if (physicals) (*it)->addPhysicalEntity(0);
     }
+
+    if (CTX::instance()->mesh.switchElementTags==0) {
+      numNodes = gm->indexMeshVertices(false, 0, true);
+    } else {
+      numNodes = gm->indexMeshVertices(false, 0, false);
+    }
+
+
   }
 
-  void cread_gmsh_element_connectivity(void *&gmv, int &numElements,
+  bool cmp_MElement( const MElement* e1, const MElement* e2) {
+    return e1->getNum() < e2->getNum();
+  }
+
+  void cread_gmsh_element_connectivity(GModel *&gm, int &numElements,
 				       int &loc, int *ndglno, int *regionIDs) {
 
-    GModel *gm = (GModel*) gmv; 
-    int k=0;
-    std::vector<GEntity*> ents;
-    std::vector<GEntity*> eles;
+    std::map<MElement*, int> ele_label;
+    std::list<MElement*> ele_list;
+
+    int dim = gm->getDim();
+    EntityVector ents;
     gm->getEntities(ents);
     for (EntityVector::iterator it = ents.begin(); it != ents.end(); ++it) {
-      if ((*it)->dim() == dim) eles.push_back(*it);
-    }
-    for (EntityVector::iterator ent = eles.begin(); ent != eles.end(); ++ent) {
-      for (unsigned int i=0; i< (*ent)->getNumMeshElements(); ++i) {
-	MElement* e = (*ent)->getMeshElement(i);
-	for (int j=0; j<e->getNumVertices(); ++j) {
-	  MVertex* v = e->getVertex(FluidityNodeOrdering(e->getType(),j));
-	  ndglno[loc*k+j] = v->getIndex();
+      if ((*it)->dim() == dim) {
+        for (unsigned int i=0; i< (*it)->getNumMeshElements(); ++i) {
+	  MElement* e = (*it)->getMeshElement(i);
+	  ele_list.push_back(e);
+	  ele_label[e] = (*it)->tag();
 	}
-	if ((*ent)->tag()>0) regionIDs[k] = (*ent)->tag();
-	++k;
       }
+    }
+
+    ele_list.sort(cmp_MElement);
+      
+    int k=0;
+    for (std::list<MElement*>::iterator e = ele_list.begin();
+	 e != ele_list.end(); ++e) {
+      for (int j=0; j<(*e)->getNumVertices(); ++j) {
+	MVertex* v = (*e)->getVertex(FluidityNodeOrdering((*e)->getType(),j));
+	ndglno[loc*k+j] = v->getIndex();
+      }
+      if (regionIDs) {
+	int tag = ele_label[*e];
+	if (tag>0) { 
+	  regionIDs[k] = tag; 
+	}
+      }
+      ++k;
     }
   }
 
   void cread_gmsh_points(GModel *&gm, int &dim, int &numNodes, double *val) {
-    for (int i=0; i<numNodes; ++i) {
-      MVertex *v = gm->getMeshVertexByTag(i+1);
-      switch(dim) {
-      case 3:
-	val[dim*i+2] = v->z(); 
-      case 2:
-        val[dim*i+1] = v->y(); 
-      case 1:
-	val[dim*i+0] = v->x(); 
+    EntityVector ents;
+    gm->getEntities(ents);
+    for (EntityVector::iterator it = ents.begin(); it != ents.end(); ++it) {
+      for (unsigned int i=0; i<(*it)->mesh_vertices.size(); ++i) {
+	MVertex *v = (*it)->mesh_vertices[i];
+	int idx = v->getIndex();
+	if (idx>-1) {
+	  switch(dim) {
+	  case 3:
+	    val[dim*(idx-1)+2] = v->z(); 
+	  case 2:
+	    val[dim*(idx-1)+1] = v->y(); 
+	  case 1:
+	    val[dim*(idx-1)+0] = v->x(); 
+	  }
+	}
       }
     }
   }
@@ -229,41 +272,55 @@ extern "C" {
 				    int &sloc, int *sndglno,
 				    bool &haveBounds, int *boundaryIDs,
 				    bool &haveElementOwners, int *faceOwner) {
-    int k=0;
-    std::vector<GEntity*> ents;
-    std::vector<GEntity*> faces;
+
+    EntityVector ents;
+    EntityVector faces;
     gm->getEntities(ents);
 
     bool physicals = CTX::instance()->mesh.switchElementTags==1;
 
+    int dim = gm->getDim();
+
+    std::map<MElement*, int> face_label;
+    std::list<MElement*> face_list;
+
     for (EntityVector::iterator it = ents.begin(); it != ents.end(); ++it) {
-      if ((*it)->dim() == dim-1) faces.push_back(*it);
-    }
-    for (EntityVector::iterator ent = faces.begin(); ent != faces.end(); ++ent) {
-      for (unsigned int i=0; i< (*ent)->getNumMeshElements(); ++i) {
-	MElement* e = (*ent)->getMeshElement(i);
-	for (int j=0; j<e->getNumVertices(); ++j) {
-	  MVertex* v = e->getVertex(FluidityNodeOrdering(e->getType(),j));
-	  sndglno[sloc*k+j] = v->getIndex();
-	}
-	if (haveBounds) {
+      if ((*it)->physicals.size()>0 && (*it)->dim() == dim-1) {
+	for (unsigned int i=0; i< (*it)->getNumMeshElements(); ++i) {
+	  MElement* e = (*it)->getMeshElement(i);
+	  face_list.push_back(e);
 	  if (physicals) {
-	    if ((*ent)->tag()>0) {
-	      boundaryIDs[k] = (*ent)->tag();
-	    } else {
-	      boundaryIDs[k] = 0;
-	    }
+	    face_label[e] = (*it)->tag();
 	  } else {
-	    boundaryIDs[k] = (*ent)->getPhysicalEntities()[0];
+	    face_label[e] = (*it)->getPhysicalEntities()[0];
 	  }
 	}
-	if (haveElementOwners) {
-	  if(e->getPartition()>0) {
-	    faceOwner[k] = e->getPartition();
-	  }
-	}     
-	++k;
       }
+    }
+
+    face_list.sort(cmp_MElement);
+  
+    unsigned int k=0;
+    for (std::list<MElement*>::iterator e = face_list.begin();
+	 e != face_list.end(); ++e) {
+      for (int j=0; j<(*e)->getNumVertices(); ++j) {
+	MVertex* v = (*e)->getVertex(FluidityNodeOrdering((*e)->getType(),j));
+	sndglno[sloc*k+j] = v->getIndex();
+      }
+      if (haveBounds) {
+	int tag = face_label[*e];
+	if (tag>0) {
+	  boundaryIDs[k] = tag;
+	} else {
+	  boundaryIDs[k] = 0;
+	}
+      }
+      if (haveElementOwners) {
+	if((*e)->getPartition()>0) {
+	  faceOwner[k] = (*e)->getPartition();
+	}
+      }     
+      ++k;
     }
   }
 
@@ -275,7 +332,6 @@ extern "C" {
 		       int &ftype, int* faces,
 		       int *ele_ids, int *face_ids, int *eleOwners) {
     
-    GmshInitialize();
     gm = new GModel;
 
     GEntity *e;
@@ -305,7 +361,7 @@ extern "C" {
       for (std::set<int>::iterator it=uele_ids.begin();
 	   it != uele_ids.end(); ++it) {
 	edge[*it] = new discreteEdge(gm,*it,NULL,NULL);
-	edge[*it]->addPhysicalEntity(*it);
+	edge[*it]->addPhysicalEntity(std::max(1,*it));
 	edge[*it]->setTag(*it);
 	gm->add(edge[*it]);
       }
@@ -322,7 +378,7 @@ extern "C" {
       for (std::set<int>::iterator it=uele_ids.begin();
 	   it != uele_ids.end(); ++it) {
 	face[*it] =  new discreteFace(gm,*it);
-	face[*it]->addPhysicalEntity(*it);
+	face[*it]->addPhysicalEntity(std::max(1,*it));
 	face[*it]->setTag(*it);
 	gm->add(face[*it]);
       }
@@ -339,7 +395,7 @@ extern "C" {
       for (std::set<int>::iterator it=uele_ids.begin();
 	   it != uele_ids.end(); ++it) {
 	region[*it] = new discreteRegion(gm,*it);
-	region[*it]->addPhysicalEntity(*it);
+	region[*it]->addPhysicalEntity(std::max(1,*it));
 	region[*it]->setTag(*it);
 	gm->add(region[*it]);
       }
