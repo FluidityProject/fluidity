@@ -450,17 +450,26 @@ contains
   subroutine copy_c_string_to_fortran(c_string, f_string)
     
     type(c_ptr), intent(in), target :: c_string
-    character(len=*) :: f_string
+    character(len=*), intent(out) :: f_string
     
     character(kind=c_char), pointer :: arr(:)
     character(:,kind = c_char), pointer :: f_ptr
+    integer(c_size_t) :: c_len
+
+    c_len = strlen(c_string)
     
 !!! associate the array with the c string.
-    call c_f_pointer(c_string, arr, [strlen(c_string)])
+    call c_f_pointer(c_string, arr, [c_len])
 !!! make into a pointer to a Fortran string
-    call wrap_to_string(strlen(c_string), arr, f_ptr)
+    call wrap_to_string(c_len, arr, f_ptr)
+    if (len(f_string) .ge. c_len) then
 !!! copy happens here
-    f_string = f_ptr
+       f_string = f_ptr
+    else
+!!! Warn about truncation
+       f_string = f_ptr(1:len(f_string))
+       ewrite(-1,*)  "Copy from C string truncated to "//f_string
+    end if
     
   contains
     

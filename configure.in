@@ -319,7 +319,7 @@ AC_TRY_LINK([
   AC_DEFINE(HAVE_LIBGMSH, [1])
   HAVE_LIBGMSH="yes"	
   ],[
-  LIBS="-lgmsh"
+  LIBS="-lgmsh -lgl2ps"
   AC_TRY_LINK([
 	#include <gmsh/Gmsh.h>],[
   	GmshInitialize ();
@@ -1098,7 +1098,7 @@ fi
 
 #####
 #
-LIB="$LIBS -L./lib"
+LIBS="$LIBS -L./lib"
 
 ##############################################################
 # Stream I/O

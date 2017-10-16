@@ -34,7 +34,9 @@
 module gmsh_common
 
   use iso_c_binding
-  use fields
+  use fields, only: vector_field, tensor_field, face_ele, ele_loc,&
+       face_loc, mesh_dim, has_discontinuous_internal_boundaries,&
+       node_count, element_count, getsndgln, unique_surface_element_count
   
   implicit none
 

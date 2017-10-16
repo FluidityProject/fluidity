@@ -1104,7 +1104,7 @@ contains
     end if
     if (associated(model%surface_names)) then
        allocate(mesh%surface_names(size(model%surface_names)))
-       mesh%surface_names(:) = model%surface_names(:)
+       mesh%surface_names = model%surface_names
     end if
     call addref(mesh)
 

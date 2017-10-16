@@ -4207,6 +4207,11 @@ contains
 
     integer :: i
 
+    !! This function allocates memory and stores in a mesh a map from
+    !! an array of boundary names to an array of integral boundary ids
+
+    assert(size(names) == size(ids))
+
     allocate(mesh%surface_names(size(ids)))
    
     do i=1, size(ids)
@@ -4221,6 +4226,11 @@ contains
     integer, intent(out) :: ids(:)
 
     integer :: i, j
+
+    !! This function performs a look-up of the integral boundary
+    !! stored in a mesh corresponding to a list of names
+
+    assert(size(names) == size(ids))
     
     ids = -1
     

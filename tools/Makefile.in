@@ -95,6 +95,9 @@ ifeq (@GFORTRAN_4_5_OR_NEWER@,yes)
 BINARIES += $(VISUALISE_ELEMENTS)
 endif
 
+ifeq (@HAVE_LIBGMSH@,yes)
+BINARIES += $(FLBOUNDADAPT)
+endif
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a 
 

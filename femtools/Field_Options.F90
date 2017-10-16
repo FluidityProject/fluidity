@@ -1345,6 +1345,10 @@ contains
     character(len = OPTION_PATH_LEN) :: surface_names
     character(len = FIELD_NAME_LEN), dimension(:), allocatable :: name_list
 
+    !! subroutine reads the set of integral surface ids from a
+    !! boundary condition path in an options file, performing
+    !! a lookup of named boundaries if necessary
+
     if (have_option(bc_path//"/surface_ids")) then
        shape_option=option_shape(bc_path//"/surface_ids")
        allocate(surface_ids(1:shape_option(1)))

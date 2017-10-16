@@ -34,7 +34,7 @@ module read_gmsh
   use iso_c_binding
   use fldebug
   use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
-  use futils
+  use futils, only : copy_c_string_to_fortran
   use quadrature
   use elements
   use spud

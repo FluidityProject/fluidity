@@ -601,7 +601,10 @@ to \onlypdf\option{gmsh}.  \fluidity\ will now look for a file with the extensio
 \lstinline[language=bash]+.msh+ when it runs.
 
 For information on generating meshes in Gmsh format, see chapter
-\ref{chap:meshes}. 
+\ref{chap:meshes}. If compiled with full libgmsh support, then for serial runs
+\fluidity can read the Gmsh geometry from a \lstinline[language=bash]+.geo+ file
+directly by setting the \onlypdf\option{/geometry/mesh/from\_file/format}\ option
+to \onlypdf\option{gmsh}
 
 \subsection{Deriving meshes from other meshes}
 \index{mesh!derived}

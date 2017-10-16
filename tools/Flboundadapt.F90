@@ -121,8 +121,7 @@ subroutine flboundadapt(input_flmlname_c, &
   call calculate_diagnostic_variables_new(states)
 
   ! Find the external mesh field
-  !call find_mesh_field_to_adapt(states(1), old_mesh_field)
-  old_mesh_field => extract_vector_field(states(1), "Coordinate")
+  old_mesh_field => extract_vector_field(states(1), topology_mesh_name)
   old_mesh => old_mesh_field%mesh
 
   ! Assemble the error metric
@@ -156,32 +155,6 @@ subroutine flboundadapt(input_flmlname_c, &
   
   call print_references(0)
   
-  ewrite(1, *) "Exiting fladapt"
-  
-contains
-
-  subroutine find_mesh_field_to_adapt(state, mesh_field)
-    !!< Find the external mesh field to be used by adaptivity
-
-    type(state_type), intent(in) :: state
-    type(vector_field), pointer :: mesh_field
-
-    character(len = FIELD_NAME_LEN) :: mesh_field_name    
-    type(mesh_type), pointer :: mesh
-    
-    call find_mesh_to_adapt(state, mesh)
-    if(trim(mesh%name) == "CoordinateMesh") then
-       mesh_field_name = "Coordinate"
-    else
-       mesh_field_name = trim(mesh%name) // "Coordinate"
-    end if
-    
-    if(.not. has_vector_field(state, mesh_field_name)) then
-      FLAbort("External mesh field " // trim(mesh_field_name) // " not found in the system state")
-    end if
-      
-    mesh_field => extract_vector_field(state, mesh_field_name)
-    
-  end subroutine find_mesh_field_to_adapt
-  
+  ewrite(1, *) "Exiting flboundadapt"
+   
 end subroutine flboundadapt
