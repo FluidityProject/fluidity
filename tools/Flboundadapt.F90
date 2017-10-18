@@ -35,7 +35,8 @@ subroutine flboundadapt(input_flmlname_c, &
  
   use iso_c_binding
   use futils
-  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
+  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN,&
+       topology_mesh_name
   use fldebug
   use parallel_tools, only: isparallel
   use reference_counting
@@ -77,7 +78,7 @@ subroutine flboundadapt(input_flmlname_c, &
   type(mesh_type), pointer :: old_mesh
   type(state_type), dimension(:), pointer :: states
   type(vector_field) :: new_mesh_field
-  type(vector_field), pointer :: new_mesh_field_ptr, old_mesh_field
+  type(vector_field), pointer :: new_mesh_field_ptr, position
   type(tensor_field) :: metric, t_edge_lengths
   character(len=FIELD_NAME_LEN) :: mesh_format
   character(len=OPTION_PATH_LEN) :: mesh_file_name
@@ -121,18 +122,22 @@ subroutine flboundadapt(input_flmlname_c, &
   call calculate_diagnostic_variables_new(states)
 
   ! Find the external mesh field
-  old_mesh_field => extract_vector_field(states(1), topology_mesh_name)
-  old_mesh => old_mesh_field%mesh
+  
+  ! Note that Gmsh expects metric data on a mesh covering the geometry
+  ! so this may not work for periodic data.
+
+  position => extract_vector_field(states(1), "Coordinate")
+  old_mesh => extract_mesh(states(1), topology_mesh_name)
 
   ! Assemble the error metric
   call allocate(metric, old_mesh, "ErrorMetric")
   call assemble_metric(states, metric)
   
-  ewrite(0, *) "Expected nodes = ", expected_nodes(old_mesh_field, metric)
+  ewrite(0, *) "Expected nodes = ", expected_nodes(position, metric)
   
   call allocate(t_edge_lengths, metric%mesh, "TensorEdgeLengths")
   call get_edge_lengths(metric, t_edge_lengths)
-  call vtk_write_fields(trim(output_meshname) // "EdgeLengths", position = old_mesh_field, model = metric%mesh, &
+  call vtk_write_fields(trim(output_meshname) // "EdgeLengths", position = position, model = position%mesh, &
     & tfields = (/t_edge_lengths, metric/))
   call deallocate(t_edge_lengths)
   
@@ -141,7 +146,7 @@ subroutine flboundadapt(input_flmlname_c, &
   new_mesh_field = read_gmsh_file(trim(input_geometryname),&
        format_string="geo", &
        quad_ngi=ele_ngi(old_mesh,1),&
-       position = old_mesh_field, metric = metric)
+       position = position, metric = metric)
   
   ! Write the output mesh
   call write_mesh_files(output_meshname, "gmsh", new_mesh_field)
