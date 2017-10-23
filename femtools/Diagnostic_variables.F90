@@ -1489,8 +1489,8 @@ contains
     ! after checkpointing and the reading of the detector positions must be
     ! done from a file
     if (have_option("/io/detectors/static_detector/from_checkpoint_file").or. & 
-         & have_option("/io/detectors/lagrangian_detector/from_checkpoint_file").or. &
-         & have_option("/io/detectors/detector_array/from_checkpoint_file")) then
+& have_option("/io/detectors/lagrangian_detector/from_checkpoint_file").or. &
+& have_option("/io/detectors/detector_array/from_checkpoint_file")) then
        default_stat%from_checkpoint=.true.
     else
        default_stat%from_checkpoint=.false.
@@ -1643,7 +1643,8 @@ contains
              if (default_stat%detector_group_names(j)==temp_name) then
                 read(default_stat%detector_checkpoint_unit) detector_location
                 call create_single_detector(default_stat%detector_list, xfield, &
-                      detector_location, i, STATIC_DETECTOR, trim(temp_name))                  
+                      detector_location, i, STATIC_DETECTOR, trim(temp_name))   
+                default_stat%detector_list%detector_names(i)=trim(temp_name)
              else
                 cycle
              end if
@@ -1659,6 +1660,7 @@ contains
                 read(default_stat%detector_checkpoint_unit) detector_location
                 call create_single_detector(default_stat%detector_list, xfield, &
                       detector_location, i+static_dete, LAGRANGIAN_DETECTOR, trim(temp_name)) 
+                default_stat%detector_list%detector_names(i+static_dete)=trim(temp_name)
              else
                 cycle
              end if
@@ -1812,6 +1814,7 @@ contains
      if (getprocno() == 1) then
        write(default_stat%detector_list%output_unit, '(a)') "</header>"
        flush(default_stat%detector_list%output_unit)
+
        ! when using mpi_subroutines to write into the detectors file we need to close the file since 
        ! filename.detectors.dat needs to be open now with MPI_OPEN
        if ((isparallel()).or.(default_stat%detector_list%binary_output)) then
@@ -2595,10 +2598,11 @@ contains
        return
     end if
 
-    ! If isparallel() or binary output use this:
-    if ((isparallel()).or.(default_stat%detector_list%binary_output)) then    
+    ! If isparallel() or binary output use this
+    if (.not.have_option("/io/detectors/ascii_output")) then
        call write_mpi_out(state,detector_list,time,dt)
-    else ! This is only for single processor with ascii output
+    else ! This is only for single processor with non-binary output
+
        if(getprocno() == 1) then
           if(detector_list%binary_output) then
              write(detector_list%output_unit) time
