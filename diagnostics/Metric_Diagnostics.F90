@@ -31,6 +31,7 @@ module metric_diagnostics
   use fldebug
   use quicksort
   use spud
+  use global_parameters, only: timestep
   use vector_tools
   use metric_tools
   use fields
@@ -40,14 +41,18 @@ module metric_diagnostics
   use diagnostic_source_fields
   use edge_length_module
   use field_derivatives
+  use merge_tensors
   use form_metric_field
+  use metric_assemble
+  use simple_diagnostics
 
   implicit none
   
   private
   
   public :: calculate_scalar_edge_lengths, calculate_field_tolerance, &
-    & calculate_eigenvalues_symmetric
+    & calculate_eigenvalues_symmetric, calculate_interpolation_metric, &
+    calculate_minimum_metric
 
 contains
 
@@ -129,5 +134,37 @@ contains
     end do
     
   end subroutine calculate_eigenvalues_symmetric
+
+  subroutine calculate_interpolation_metric(states, t_field)
+    type(state_type), dimension(:), intent(inout) :: states
+    type(tensor_field), intent(inout) :: t_field
+
+    call assemble_metric(states, t_field)
+
+  end subroutine calculate_interpolation_metric
+
+  subroutine calculate_minimum_metric(states, t_field)
+    type(state_type), intent(inout), dimension(:) :: states
+    type(tensor_field), intent(inout) :: t_field
+
+    type(tensor_field) :: metric
+    logical, save :: initialised = .false.
+
+    if (timestep==0) then 
+      call initialise_diagnostic_from_checkpoint(t_field)
+      initialised = .true.
+      return
+    end if
+
+    if (initialised) then
+       call allocate(metric, t_field%mesh, "ErrorMetric")
+       call assemble_metric(states, metric)
+       call merge_tensor_fields(t_field, metric)
+       call deallocate(metric)
+    else
+       call assemble_metric(states, t_field)
+       initialised = .true.
+    end if
+  end subroutine calculate_minimum_metric
 
 end module metric_diagnostics

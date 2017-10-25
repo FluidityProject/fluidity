@@ -28,22 +28,15 @@
 #include "fmangle.h"
 
 #ifdef HAVE_LIBGMSH
+#include "gmsh/Context.h"
+#include "gmsh/Field.h"
 #include "gmsh/Gmsh.h"
 #include "gmsh/GModel.h"
-#include "gmsh/Field.h"
 #include "gmsh/GEntity.h"
 #include "gmsh/MElement.h"
-#include "gmsh/MTetrahedron.h"
-#include "gmsh/MLine.h"
-#include "gmsh/MTriangle.h"
 #include "gmsh/MVertex.h"
-#include "gmsh/Context.h"
 #include "gmsh/PView.h"
 #include "gmsh/PViewDataGModel.h"
-#include "gmsh/discreteVertex.h"
-#include "gmsh/discreteEdge.h"
-#include "gmsh/discreteFace.h"
-#include "gmsh/discreteRegion.h"
 
 #include <vector>
 #include <map>
@@ -331,86 +324,16 @@ extern "C" {
 		       int &etype, int* eles,
 		       int &ftype, int* faces,
 		       int *ele_ids, int *face_ids, int *eleOwners) {
-    
-    gm = new GModel;
 
-    GEntity *e;
-    std::map<int,GVertex*> point;
-    std::map<int,GEdge*> edge;
-    std::map<int,GFace*> face;
-    std::map<int,GRegion*> region;
-    
-    std::set<int> uele_ids;
-    std::set<int> uface_ids;
-    
-    uele_ids.insert(0);
-    if (ele_ids) {
-      for (int i=0;i<numElements;++i) {
-	uele_ids.insert(ele_ids[i]);
-      }
-    } 
-    uface_ids.insert(0); 
-    if(face_ids) {
-      for (int i=0;i<numFaces;++i) {
-	uface_ids.insert(face_ids[i]);
-      }
-    }
+    std::map<int, MVertex*> vertexMap;
+    std::map<int, int> vertexInverseMap;
+    std::vector<int> elementNum;
+    std::vector<std::vector<int> > vertexIndices;
+    std::vector<int> elementType;
+    std::vector<int> physical;
+    std::vector<int> elementary;
+    std::vector<int> partition;
 
-    switch(gdim) {
-    case 1:
-      for (std::set<int>::iterator it=uele_ids.begin();
-	   it != uele_ids.end(); ++it) {
-	edge[*it] = new discreteEdge(gm,*it,NULL,NULL);
-	edge[*it]->addPhysicalEntity(std::max(1,*it));
-	edge[*it]->setTag(*it);
-	gm->add(edge[*it]);
-      }
-      e = edge[0];
-      for (std::set<int>::iterator it=uface_ids.begin();
-	   it != uface_ids.end(); ++it) {
-	point[*it] = new discreteVertex(gm,*it);
-	point[*it]->addPhysicalEntity(*it);
-	point[*it]->setTag(*it);
-	gm->add(point[*it]);
-      }
-      break;
-    case 2:
-      for (std::set<int>::iterator it=uele_ids.begin();
-	   it != uele_ids.end(); ++it) {
-	face[*it] =  new discreteFace(gm,*it);
-	face[*it]->addPhysicalEntity(std::max(1,*it));
-	face[*it]->setTag(*it);
-	gm->add(face[*it]);
-      }
-      e=face[0];
-      for (std::set<int>::iterator it=uface_ids.begin();
-	   it != uface_ids.end(); ++it) {
-	edge[*it] = new discreteEdge(gm,*it,NULL,NULL);
-	edge[*it]->addPhysicalEntity(*it);
-	edge[*it]->setTag(*it);
-	gm->add(edge[*it]);
-      }
-      break;
-    case 3:
-      for (std::set<int>::iterator it=uele_ids.begin();
-	   it != uele_ids.end(); ++it) {
-	region[*it] = new discreteRegion(gm,*it);
-	region[*it]->addPhysicalEntity(std::max(1,*it));
-	region[*it]->setTag(*it);
-	gm->add(region[*it]);
-      }
-      e=region[0];
-      for (std::set<int>::iterator it=uface_ids.begin();
-	   it != uface_ids.end(); ++it) {
-	face[*it] = new discreteFace(gm,*it);
-	face[*it]->addPhysicalEntity(*it);
-	face[*it]->setTag(*it);
-	gm->add(face[*it]);
-      }
-      break;
-    }
-
-    MElementFactory f;
 
     double x[3] = {0,0,0};
     for (int n=0;n<numNodes;++n) {
@@ -419,65 +342,56 @@ extern "C" {
       }
       MVertex* v =  new MVertex(x[0],x[1],x[2],NULL,n+1);
       v->setIndex(n+1);
-      e->addMeshVertex(v);
+      vertexMap[n+1] = v;
+      vertexInverseMap[v->getNum()] = n+1;
     }
 
-    for (int n=0;n<numElements;++n) {
-      int id = 0;
-      if (ele_ids) id = ele_ids[n];
-
-      VertexVector vertices;
-      for (int i=0;i<loc;++i) {
-	vertices.push_back(e->getMeshVertex(eles[loc*n+
-						 GmshNodeOrdering(etype,i)]-1));
+    for (int i=0; i< numElements; ++i) {
+      elementNum.push_back(i+1);
+      std::vector<int> vertices;
+      for (int j=0; j<loc; ++j) {
+	vertices.push_back(eles[loc*i+j]);
       }
-      MElement *ele = f.create(etype, vertices);
-      switch(etype) {
-      case MSH_LIN_2:
-	edge[id]->addLine((MLine*) ele);
-	break;
-      case MSH_TRI_3:
-	face[id]->addTriangle((MTriangle*) ele);
-	break;
-      case MSH_QUA_4:
-	face[id]->addQuadrangle((MQuadrangle*) ele);
-	break;
-      case MSH_TET_4:
-	region[id]->addTetrahedron((MTetrahedron*) ele);
-	break;
-      case MSH_HEX_8:
-	region[id]->addHexahedron((MHexahedron*) ele);
-	break;
-      }
+      elementType.push_back(etype);
+      vertexIndices.push_back(vertices);
+      physical.push_back( ele_ids ? ele_ids[i] : 1 );
+      elementary.push_back( ele_ids ? ele_ids[i] : i+1);
+      partition.push_back(0);
     }
 
-    for (int n=0;n<numFaces;++n) {
-      int id = 0;
-      if (face_ids) id = face_ids[n];
+    for (int i=0; i< numFaces; ++i) {
+      elementNum.push_back(numElements+i+1);
+      std::vector<int> vertices;
+      for (int j=0; j<sloc; ++j) {
+	vertices.push_back(faces[sloc*i+j]);
+      }
+      elementType.push_back(ftype);
+      vertexIndices.push_back(vertices);
+      physical.push_back( face_ids ? face_ids[i] : 1 );
+      elementary.push_back( face_ids ? face_ids[i] : i+1);
+      partition.push_back( eleOwners ? eleOwners[i] : 0);
+    }
 
-      VertexVector vertices;
-      for (int i=0;i<sloc;++i) {
-	vertices.push_back(e->getMeshVertex(faces[sloc*n
-						  +GmshNodeOrdering(ftype,i)]-1));
+    gm = GModel::createGModel(vertexMap, elementNum, vertexIndices,
+			      elementType, physical, elementary, partition);    
+    EntityVector ents;
+    gm->getEntities(ents);
+    
+    for (EntityVector::iterator it = ents.begin(); it != ents.end(); ++it) {
+      if ((*it)->dim()<gm->getDim()) continue;
+      for (unsigned int n=0;n<(*it)->getNumMeshElements();++n) {
+	MElement* e = (*it)->getMeshElement(n);
+	if (!e) continue;
+	for (int j=0; j<e->getNumVertices(); ++j) {
+	// This is necessary to get back the original node numbering
+	// (necessary for parallel runs).
+	  MVertex *v = e->getVertex(j);
+	  int idx = loc*(e->getNum()-1)+j;
+	  v->setIndex(eles[idx]);
+	}
       }
-      MElement *ele = f.create(ftype, vertices);
-      if (eleOwners) ele->setPartition(eleOwners[n]);
-      switch(ftype) {
-      case MSH_PNT:
-	point[id]->addPoint((MPoint*) ele);
-	break;
-      case MSH_LIN_2:
-	edge[id]->addLine((MLine*) ele);
-	break;
-      case MSH_TRI_3:
-	face[id]->addTriangle((MTriangle*) ele);
-	break;
-      case MSH_QUA_4:
-	face[id]->addQuadrangle((MQuadrangle*) ele);
-	break;
-      }
-    }    
-  }
+    }
+ }
 
   void cread_gmsh_node_data(GModel *&gm, char* name, double* data, int &step) {
     PView *pv = PView::getViewByName(name);

@@ -385,18 +385,19 @@ contains
     if (numFaces>0) sloc = face_loc(positions, 1)
 
     allocate(sndglno(numFaces*sloc))
-    call getsndgln(positions%mesh, sndglno)
+    if (numFaces>0) call getsndgln(positions%mesh, sndglno)
 
     if (associated(positions%mesh%region_ids)) then
        reg_ids = c_loc(positions%mesh%region_ids(1))
     else
        reg_ids = c_null_ptr
     end if
-    if (associated(positions%mesh%faces%boundary_ids)) then
-       if (size(positions%mesh%faces%boundary_ids)>0) &
-            bnd_ids = c_loc(positions%mesh%faces%boundary_ids(1))
-    else
-       bnd_ids = c_null_ptr
+    bnd_ids = c_null_ptr
+    if (numFaces>0) then
+       if (associated(positions%mesh%faces%boundary_ids)) then
+          if (size(positions%mesh%faces%boundary_ids)>0) &
+               bnd_ids = c_loc(positions%mesh%faces%boundary_ids(1))
+       end if
     end if
     if (needs_element_owners) then
        allocate(owners(numFaces))

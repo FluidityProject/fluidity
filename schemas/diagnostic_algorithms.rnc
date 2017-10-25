@@ -1070,6 +1070,24 @@ scalar_edge_lengths_algorithm =
          attribute material_phase_support { "single" }
       }
    )
+interpolation_metric_algorithm =
+   (
+      ## give the metric which the adaptivity routine would generate
+      ## at the current time level
+      element algorithm {
+         attribute name { "interpolation_metric" },
+         attribute material_phase_support { "multiple" }
+      }
+   )
+minimum_metric_algorithm =
+   (
+      ## give the strictest metric which the adaptivity routine would generate
+      ## for the current simulation
+      element algorithm {
+         attribute name { "minimum_metric" },
+         attribute material_phase_support { "multiple" }
+      }
+   )
 field_tolerance_algorithm =
    (
       ## From a field on a mesh, diagnose the anisotropic
@@ -1528,6 +1546,25 @@ vector_scalar_time_averaged_algorithm =
       }
    )
 
+tensor_time_averaged_algorithm =
+   (
+      ## Algorithm for time averaging tensor fields.
+      ## This field needs to be interpolated between adapts.
+      element algorithm {
+         attribute name { "time_averaged_tensor" },
+         attribute material_phase_support { "single" },
+         tensor_source_field,
+         ## When to start sampling?  Defaults to simulation start time.
+         element spin_up_time {
+            real
+         }?,
+         ## If enabled, the average of the absolute value is taken
+         element absolute_values {
+            comment
+         }?
+      }
+   )
+
 # surface algorithm
 
 surface_horizontal_divergence_algorithm = 
@@ -1609,8 +1646,11 @@ vector_diagnostic_algorithms |= curl_algorithm
 vector_diagnostic_algorithms |= vector_python_diagnostic_algorithm
 
 tensor_diagnostic_algorithms = tensor_copy_algorithm
+tensor_diagnostic_algorithms |= tensor_time_averaged_algorithm
 tensor_diagnostic_algorithms |= grad_vector_algorithm
 tensor_diagnostic_algorithms |= strain_rate_algorithm
+tensor_diagnostic_algorithms |= minimum_metric_algorithm
+tensor_diagnostic_algorithms |= interpolation_metric_algorithm
 tensor_diagnostic_algorithms |= hessian_algorithm
 tensor_diagnostic_algorithms |= helmholtz_smoothed_tensor_algorithm
 tensor_diagnostic_algorithms |= helmholtz_anisotropic_smoothed_tensor_algorithm

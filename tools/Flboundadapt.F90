@@ -29,7 +29,7 @@
 
 subroutine flboundadapt(input_flmlname_c, &
      input_geometryname_c, &
-     output_meshname_c)  bind(c)
+     output_meshname_c, metric_name_c)  bind(c)
   !!< Peforms a mesh adapt based on the supplied input options file.
   !!< Outputs the resulting mesh.
  
@@ -69,25 +69,26 @@ subroutine flboundadapt(input_flmlname_c, &
   end interface
   
   type(c_ptr), value :: input_flmlname_c, input_geometryname_c,&
-       output_meshname_c
+       output_meshname_c, metric_name_c
 
   character(len=FIELD_NAME_LEN):: input_flmlname
   character(len=FIELD_NAME_LEN):: input_geometryname
   character(len=FIELD_NAME_LEN):: output_meshname
-  integer :: i, stat
+  character(len=FIELD_NAME_LEN):: metric_name
+  integer :: i
   type(mesh_type), pointer :: old_mesh
   type(state_type), dimension(:), pointer :: states
   type(vector_field) :: new_mesh_field
-  type(vector_field), pointer :: new_mesh_field_ptr, position
-  type(tensor_field) :: metric, t_edge_lengths
-  character(len=FIELD_NAME_LEN) :: mesh_format
-  character(len=OPTION_PATH_LEN) :: mesh_file_name
-  real, dimension(:,:,:), allocatable :: metric_data 
+  type(vector_field), pointer :: position
+  type(tensor_field), pointer :: metric
+  type(tensor_field) :: t_edge_lengths
+  logical :: have_metric_name
 
   ! now turn into proper fortran string
   call copy_c_string_to_fortran(input_flmlname_c, input_flmlname)
   call copy_c_string_to_fortran(input_geometryname_c, input_geometryname)
   call copy_c_string_to_fortran(output_meshname_c, output_meshname)
+  call copy_c_string_to_fortran(metric_name_c, metric_name)
   
   ewrite(1, *) "In flboundadapt"
  
@@ -95,43 +96,58 @@ subroutine flboundadapt(input_flmlname_c, &
   call python_init()
 #endif
 
-  ewrite(2, *) "Input flml name: " // trim(input_flmlname)
+  have_metric_name = len(trim(metric_name)) > 0
+
+  ewrite(2, *) "Input file name: " // trim(input_flmlname)
   ewrite(2, *) "Input geometry name: " // trim(input_geometryname)
   ewrite(2, *) "Output mesh name: " // trim(output_meshname)
+  if (have_metric_name) then
+     ewrite(2, *) "Metric name: " // trim(output_meshname)
+  end if
 
-  ! Load the options tree
-  call load_options(trim(input_flmlname) // ".flml")
-  if(.not. have_option("/simulation_name")) then
-    FLExit("Failed to find simulation name after loading options file")
-  end if
-  if(debug_level() >= 1) then
-    ewrite(1, *) "Options tree:"
-    call print_options()
-  end if
+  if (have_metric_name) then
+     allocate(states(1))
+     call vtk_read_state(trim(input_flmlname)//".vtu", states(1))
+  else
+     !     Load the options tree
+     call load_options(trim(input_flmlname) // ".flml")
+     if(.not. have_option("/simulation_name")) then
+        FLExit("Failed to find simulation name after loading options file")
+     end if
+     if(debug_level() >= 1) then
+        ewrite(1, *) "Options tree:"
+        call print_options()
+     end if
 #ifdef DDEBUG
-  ewrite(1, *) "Performing options sanity check"
-  call check_options()
-  ewrite(1, *) "Options sanity check successful"
+     ewrite(1, *) "Performing options sanity check"
+     call check_options()
+     ewrite(1, *) "Options sanity check successful"
 #endif
 
-  ! Populate the system state
-  call populate_state(states)
+! Populate the system state
+     call populate_state(states)
 
   ! Calculate diagnostic fields
-  call calculate_diagnostic_variables(states)
-  call calculate_diagnostic_variables_new(states)
-
+     call calculate_diagnostic_variables(states)
+     call calculate_diagnostic_variables_new(states)
+  end if
   ! Find the external mesh field
   
   ! Note that Gmsh expects metric data on a mesh covering the geometry
   ! so this may not work for periodic data.
 
   position => extract_vector_field(states(1), "Coordinate")
-  old_mesh => extract_mesh(states(1), topology_mesh_name)
 
+  if (have_metric_name) then
+     metric => extract_tensor_field(states(1), metric_name)
+     old_mesh => metric%mesh 
+  else
   ! Assemble the error metric
-  call allocate(metric, old_mesh, "ErrorMetric")
-  call assemble_metric(states, metric)
+     allocate(metric)
+     old_mesh => extract_mesh(states(1), topology_mesh_name)
+     call allocate(metric, old_mesh, "ErrorMetric")
+     call assemble_metric(states, metric)
+  end if
   
   ewrite(0, *) "Expected nodes = ", expected_nodes(position, metric)
   
@@ -153,9 +169,14 @@ subroutine flboundadapt(input_flmlname_c, &
   
   ! Deallocate
   do i = 1, size(states)
-    call deallocate(states(i))
+     call deallocate(states(i))
   end do
-  call deallocate(metric)
+  if (have_metric_name) then
+     deallocate(states)
+  else
+     call deallocate(metric)
+     deallocate(metric)
+  end if
   call deallocate(new_mesh_field)
   
   call print_references(0)

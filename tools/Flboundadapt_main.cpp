@@ -42,7 +42,7 @@
 using namespace std;
 
 extern "C"{
-  void flboundadapt(const char *, const char *, const char *);
+  void flboundadapt(const char *, const char *, const char *, const char *);
 #ifdef HAVE_PYTHON
 #include "python_statec.h"
 #endif
@@ -50,6 +50,8 @@ extern "C"{
 
 void Usage(){
   cerr << "Usage: flboundadapt INPUT_FLML INPUT_GEO_FILE OUTPUT_MESH\n"
+       << "or\n"
+       << "flboundadapt -i INPUT_VTU METRIC_NAME INPUT_GEO_FILE OUTPUT_MESH\n"
        << "\n"
        << "Performs mesh generation based on the input options file (which may be a\n"
        << "checkpoint). Outputs the resulting mesh.\n"
@@ -57,6 +59,7 @@ void Usage(){
        << "Options:\n"
        << "\n"
        << "-h\t\tDisplay this help\n"
+       << "-i\t\t read from VTU file\n"
        << "-v\t\tVerbose mode" << endl;
 }
 
@@ -78,8 +81,10 @@ int main(int argc, char** argv){
   optarg = NULL;  
   char c;
   map<char, string> args;
-  while((c = getopt(argc, argv, "hv")) != -1){
+  bool vtk_mode = false;
+  while((c = getopt(argc, argv, "hiv")) != -1){
     if (c != '?'){
+      if (c == 'i') vtk_mode=true;
       if(optarg == NULL){
         args[c] = "true";
       }else{
@@ -110,15 +115,18 @@ int main(int argc, char** argv){
   set_global_debug_level_fc(&verbosity);
   
   // Input and output base names
-  string input_flmlname, input_geometryname, output_meshname;
-  if(argc > optind + 3){
-    input_flmlname = argv[optind + 1];
-    input_geometryname = argv[optind + 2];
-    output_meshname = argv[optind + 3];
-  }else if(argc == optind + 3){
-    input_flmlname = argv[optind];
-    input_geometryname = argv[optind+1];
-    output_meshname = argv[optind + 2];
+  int I = vtk_mode?1:0;
+  string input_name, input_geometryname, output_meshname, metric_name="";
+  if(argc > optind + 3 +I){
+    input_name = argv[optind + 1];
+    if (vtk_mode) metric_name = argv[optind + 2];
+    input_geometryname = argv[optind + 2 + I];
+    output_meshname = argv[optind + 3 + I];
+  }else if(argc == optind + 3+(vtk_mode?1:0) ){
+    input_name = argv[optind];
+    if (vtk_mode) metric_name = argv[optind + 1];
+    input_geometryname = argv[optind + 1 +I];
+    output_meshname = argv[optind + 2 + I];
   }else{
     Usage();
     exit(-1);
@@ -126,9 +134,10 @@ int main(int argc, char** argv){
       
 
 
-  flboundadapt(input_flmlname.c_str(),
+  flboundadapt(input_name.c_str(),
 	       input_geometryname.c_str(),
-	       output_meshname.c_str());
+	       output_meshname.c_str(),
+	       metric_name.c_str());
 
 #ifdef HAVE_PYTHON
   // Finalize the Python Interpreter
