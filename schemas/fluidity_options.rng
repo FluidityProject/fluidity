@@ -2551,6 +2551,9 @@ while a factor of 1 represents a connected domain.</a:documentation>
         <ref name="porous_media_model"/>
       </optional>
       <optional>
+        <ref name="embedded_models"/>
+      </optional>
+      <optional>
         <ref name="flredecomp"/>
       </optional>
       <optional>
