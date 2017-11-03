@@ -54,9 +54,13 @@ use sparsity_patterns
 use sparsity_patterns_meshes
 use solvers
 use cv_shape_functions
+use coordinates
 implicit none
 
 private
+
+! FIXME: option?
+logical:: radial_fs = .true.
 
 public move_mesh_free_surface, add_free_surface_to_cmc_projection, &
   vertical_prolongator_from_free_surface, &
@@ -329,7 +333,8 @@ contains
       ! if the free surface nodes are actually moved (not necessary
       ! for large scale ocean simulations) - otherwise the free surface is assumed flat
       ! (and on top unless we use a prognostic fs, which may be on the bottom)
-      include_normals = move_mesh .or. implicit_prognostic_fs
+      ! FIXME: bottom fs with radial_fs still needs the correct sign
+      include_normals = move_mesh .or. (implicit_prognostic_fs .and. .not. radial_fs)
       if (include_normals) then
         ewrite(2,*) 'Including inner product of normals in kinematic bc'
         gravity_normal => extract_vector_field(state, "GravityDirection")
@@ -1742,8 +1747,12 @@ contains
            detwei_f=detwei_bdy, normal=normal_bdy)
       ct_mat_bdy = shape_shape_vector(face_shape(p_mesh, sele), face_shape(u, sele), &
            detwei_bdy, normal_bdy)
-      ht_mat_bdy = shape_shape_vector(face_shape(fs, sele), face_shape(u, sele), &
-           detwei_bdy, normal_bdy)
+      if (radial_fs) then
+        ! what is correct? radials on gauss points, or radials on P2 nodes then interpolated
+        normal_bdy = radial_inward_normal_at_quad_face(X, sele)
+        ht_mat_bdy = shape_shape_vector(face_shape(fs, sele), face_shape(u, sele), &
+             detwei_bdy, normal_bdy)
+      end if
       do dim=1, u%dim
         ! we've integrated continuity by parts, but not yet added in the resulting
         ! surface integral - for the non-viscous free surface this is left
