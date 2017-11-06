@@ -1749,7 +1749,7 @@ contains
            detwei_bdy, normal_bdy)
       if (radial_fs) then
         ! what is correct? radials on gauss points, or radials on P2 nodes then interpolated
-        normal_bdy = radial_inward_normal_at_quad_face(X, sele)
+        normal_bdy = - radial_inward_normal_at_quad_face(X, sele)
         ht_mat_bdy = shape_shape_vector(face_shape(fs, sele), face_shape(u, sele), &
              detwei_bdy, normal_bdy)
       end if
