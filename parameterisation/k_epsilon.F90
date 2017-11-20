@@ -638,13 +638,13 @@ subroutine assemble_rhs_cv_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, densi
   if(field_id==1) then
      rhs_addto(1,:) = ele_val(scalar_eddy_visc, ele)*rhs(1)&
           *sum(detwei)/ele_loc(k,ele)
-     rhs_addto(2,:) = gamma_cv*ele_val(density,ele)*sum(detwei)/ele_loc(k,ele)
+     rhs_addto(2,:) = gamma_cv*sum(detwei)/ele_loc(k,ele)
   else
      rhs_addto(1,:) = ele_val(scalar_eddy_visc, ele)*gamma_cv*rhs(1)&
           *model%c_eps_1*ele_val(f_1,ele)&
           *sum(detwei)/ele_loc(k,ele)
      rhs_addto(2,:) = model%c_eps_2*ele_val(f_2,ele)&
-          *gamma_cv*ele_val(density,ele)*sum(detwei)/ele_loc(k,ele)
+          *gamma_cv*sum(detwei)/ele_loc(k,ele)
   end if
   
   ! Gk:  
@@ -681,13 +681,10 @@ subroutine assemble_rhs_cv_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, densi
           ! get components of velocity in direction of gravity and in other directions
           u_z = dot_product(g_quad(:, gi), u_quad(:, gi))
           u_xy = (norm2(u_quad(:, gi))**2.0 - u_z**2.0)**0.5
-          if (u_xy > fields_min) then
-             c_eps_3(gi) = tanh(u_z/u_xy) 
-          else
-             c_eps_3(gi) = 1.0
-          end if
-       end do     
-       scalar = scalar*model%c_eps_1*ele_val(f_1,ele)*c_eps_3*ele_val(eps,ele)/ele_val(k, ele)
+          c_eps_3(gi) = tanh(u_z/(1e-6 + u_xy))
+       end do
+       ewrite_minmax(c_eps_3)
+       scalar = scalar*model%c_eps_1*ele_val(f_1,ele)*c_eps_3*gamma_cv
     end if
 
     ! multiply by determinate weights, integrate and assign to rhs
@@ -856,13 +853,10 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
           ! get components of velocity in direction of gravity and in other directions
           u_z = dot_product(g_quad(:, gi), u_quad(:, gi))
           u_xy = (norm2(u_quad(:, gi))**2.0 - u_z**2.0)**0.5
-          if (u_xy > fields_min) then
-             c_eps_3(gi) = tanh(u_z/u_xy) 
-          else
-             c_eps_3(gi) = 1.0
-          end if
-       end do     
-       scalar = scalar*model%c_eps_1*ele_val_at_quad(f_1,ele)*c_eps_3*eps_ele/k_ele
+          c_eps_3(gi) = tanh(u_z/(1e-6 + u_xy))
+       end do
+       ewrite_minmax(c_eps_3)
+       scalar = scalar*model%c_eps_1*ele_val_at_quad(f_1,ele)*c_eps_3*gamma_cv
     end if
 
     ! multiply by determinate weights, integrate and assign to rhs
