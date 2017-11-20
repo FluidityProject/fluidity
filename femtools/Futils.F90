@@ -78,7 +78,7 @@ module futils
        integer_vector, int2str, present_and_true, present_and_false, present_and_zero,&
        present_and_nonzero, present_and_nonempty, free_unit, nth_digit, count_chars,&
        multiindex, file_extension_len, file_extension, trim_file_extension_len,&
-       trim_file_extension, random_number_minmax, int2str_len, starts_with, tokenize 
+       trim_file_extension, random_number_minmax, int2str_len, starts_with, tokenize , vmean
 
 contains
   
@@ -435,5 +435,12 @@ contains
     assert(start_index == len(string) + 1 + len(delimiter))
     
   end subroutine tokenize
+
+  real function vmean(x)
+    real, dimension(:), intent(in) :: x
+
+    vmean = sum(x)/(1.0*size(x))
+
+  end function vmean
   
 end module futils
