@@ -7899,6 +7899,14 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
                 <ref name="real"/>
               </element>
               <optional>
+                <element name="minimum_speed">
+                  <a:documentation>Minimum speed assumed in the melt calculation.
+Default value of 1.0E-3.
+Have investigated smaller values of 1.0E-4, 1.0E-5.</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
                 <element name="melt_surfaceID">
                   <a:documentation>Surface ID for the ice</a:documentation>
                   <ref name="integer_vector"/>
@@ -7908,6 +7916,22 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
                 <a:documentation>Distance for the far field</a:documentation>
                 <ref name="real"/>
               </element>
+              <optional>
+                <element name="melt_LayerRelax">
+                  <a:documentation>Options to relax the distance for the far field</a:documentation>
+                  <optional>
+                    <element name="string_value">
+                      <value>on</value>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="N">
+                      <a:documentation>Number of iterations to change the distance for the far field</a:documentation>
+                      <ref name="integer"/>
+                    </element>
+                  </optional>
+                </element>
+              </optional>
               <optional>
                 <element name="scalar_field">
                   <a:documentation>Meltrate, calculated from the three equations.</a:documentation>
@@ -8091,6 +8115,37 @@ melt_LayerLength = ||Location - Location_org||</a:documentation>
                 </element>
               </optional>
               <optional>
+                <element name="scalar_field">
+                  <a:documentation>Provide the hydrostatic pressure under the shelf
+for the interface melt parameterisation</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>subshelf_hydrostatic_pressure</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="subshelf_hydrostatic_pressure">
+                  <element name="python">
+                    <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+
+</a:documentation>
+                    <ref name="python_code"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
                 <element name="calculate_boundaries">
                   <a:documentation>Boundary stuff   </a:documentation>
                   <element name="string_value">
@@ -8099,6 +8154,20 @@ melt_LayerLength = ||Location - Location_org||</a:documentation>
                       <value>dirichlet</value>
                     </choice>
                   </element>
+                  <optional>
+                    <element name="bc_value_temperature">
+                      <a:documentation>This is for testing the BC implementation on ice-ocean ice-ocean interface. 
+By setting this value, the temperature of ice-ocean interface is fixed to this value.</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="bc_value_salinity">
+                      <a:documentation>This is for testing the BC implementation on ice-ocean ice-ocean interface. 
+By setting this value, the salinity of ice-ocean interface is fixed to this value.</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
                 </element>
               </optional>
             </element>

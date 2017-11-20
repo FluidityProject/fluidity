@@ -97,7 +97,7 @@ module fluids_module
   use foam_flow_module, only: calculate_potential_flow, calculate_foam_velocity
   use momentum_equation
   use gls
-  use iceshelf_meltrate_surf_normal
+  use ice_melt_interface
 #ifdef HAVE_HYPERLIGHT
   use hyperlight
 #endif
@@ -344,15 +344,9 @@ contains
 
     call initialise_diagnostics(filename, state)
 
-    ! Initialise ice_meltrate, read constatns, allocate surface, and calculate melt rate
+    ! Initialise melt interface paramerisation
     if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08")) then
-        call melt_surf_init(state(1))
-        call melt_allocate_surface(state(1))
-        call melt_surf_calc(state(1))
-         !BC for ice melt
-          if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries')) then
-            call melt_bc(state(1))
-          endif
+        call melt_interface_initialisation(state(1))
     end if
     
     ! Checkpoint at start
@@ -558,12 +552,13 @@ contains
                 end if
              end if
 
-             ! Calculate the meltrate
-             if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
-                if( (trim(field_name_list(it))=="MeltRate")) then
-                   call melt_surf_calc(state(1))
+            ! Calculate the (ice) interface meltrate
+            if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08")) then
+                if ((trim(field_name_list(it)) == "MeltRate")) then
+                    call melt_interface_calculate(state(1))
                 endif
-             end if
+            end if
+
 
              call get_option(trim(field_optionpath_list(it))//&
                   '/prognostic/equation[0]/name', &
@@ -629,9 +624,9 @@ contains
             call gls_diffusivity(state(1))
           end if
           
-          !BC for ice melt
+          ! Boundary conditions for the (ice) melt interface parameterisation
           if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries')) then
-            call melt_bc(state(1))
+            call melt_interface_boundary_condition(state(1))
           endif
           
           if(option_count("/material_phase/scalar_field/prognostic/spatial_discretisation/coupled_cv")>0) then
