@@ -3991,7 +3991,7 @@ bottom and sides.</a:documentation>
         <attribute name="name">
           <value>drag</value>
         </attribute>
-        <ref name="input_choice_real"/>
+        <ref name="input_choice_real_plus_field"/>
         <choice>
           <element name="quadratic_drag">
             <a:documentation>Use a quadratic drag.
