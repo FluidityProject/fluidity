@@ -7899,8 +7899,8 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
                 <ref name="real"/>
               </element>
               <optional>
-                <element name="minimum_speed">
-                  <a:documentation>Minimum speed assumed in the melt calculation.
+                <element name="minimum_friction_velocity">
+                  <a:documentation>Minimum friction velocity assumed in the melt calculation.
 Default value of 1.0E-3.
 Have investigated smaller values of 1.0E-4, 1.0E-5.</a:documentation>
                   <ref name="real"/>
