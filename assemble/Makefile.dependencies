@@ -272,9 +272,10 @@ Divergence_Matrix_CV.o ../include/divergence_matrix_cv.mod: \
 Drag.o ../include/drag_module.mod: Drag.F90 ../include/boundary_conditions.mod \
    ../include/fdebug.h ../include/fetools.mod ../include/fields.mod \
    ../include/fldebug.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/parallel_fields.mod \
-   ../include/parallel_tools.mod ../include/sparse_tools.mod \
-   ../include/sparse_tools_petsc.mod ../include/state_module.mod
+   ../include/global_parameters.mod ../include/k_epsilon.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
+   ../include/state_module.mod
 
 ../include/field_equations_cv.mod: Field_Equations_CV.o
 	@true
