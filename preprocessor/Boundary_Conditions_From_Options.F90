@@ -1156,8 +1156,22 @@ contains
           ! map the coordinate field onto this mesh
           bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
 
-          call initialise_field(scalar_surface_field, bc_path_i, bc_position, &
-            time=time)
+
+          if (have_option(trim(bc_path_i)//"/from_field")) then
+            ! The parent field contains the boundary values that you want to apply to surface_field.
+            call get_option(trim(bc_path_i)//"/from_field/parent_field_name", parent_field_name)
+            parent_field => extract_scalar_field(state, parent_field_name, stat)
+            if(stat /= 0) then
+               FLExit("Could not extract parent field. Check options file?")
+            end if
+
+            call remap_field_to_surface(parent_field, scalar_surface_field, surface_element_list, stat)
+
+          else
+            call initialise_field(scalar_surface_field, bc_path_i, bc_position, &
+              time=time)
+          end if
+
           call deallocate(bc_position)
 
        case("prescribed_normal_flow")
