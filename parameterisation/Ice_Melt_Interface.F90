@@ -195,9 +195,9 @@ contains
      ! Add boundary condition
     T => extract_scalar_field(state,"Temperature")
     S => extract_scalar_field(state,"Salinity")
-!    do i=1,node_count(T)
-!        ewrite(1,*) "line2100,i,node_val(T,i): ",i, node_val(T,i)
-!    enddo
+    !    do i=1,node_count(T)
+    !        ewrite(1,*) "line2100,i,node_val(T,i): ",i, node_val(T,i)
+    !    enddo
     call add_boundary_condition(T, 'temperature_iceshelf_BC', bc_type, surf_id)
     call add_boundary_condition(S, 'salinity_iceshelf_BC', bc_type, surf_id)
     deallocate(surf_id)
@@ -230,17 +230,17 @@ contains
     real, dimension(:), allocatable     :: vel
     integer                             :: i
     ! Some internal variables
-    real                                :: speed,speed_u,speed_k
+    real                                :: fv,fv_u,fv_k
     real                                :: T,S,P,Aa,Bb,Cc,topo,k
     real                                :: c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance
-    real                                ::loc_Tb,loc_Sb,loc_meltrate,loc_heatflux,loc_saltflux, minimum_speed
+    real                                ::loc_Tb,loc_Sb,loc_meltrate,loc_heatflux,loc_saltflux, minimum_fv
     ! Aa*Sb^2+Bv*Sb+Cc
     ! Sink mesh part
     integer                             :: ele,stat,the_node
     real, dimension(:), allocatable     :: local_coord,coord
     integer, dimension(:), allocatable  :: surface_node_list
     type(scalar_field)                  :: re_pressure,re_DistanceToTop
-    type(scalar_field), pointer         :: temperature, salinity
+    type(scalar_field), pointer         :: temperature, salinity, fric_vel
     character(len=*), parameter         :: option_path = '/ocean_forcing/iceshelf_meltrate/Holland08'
 
     
@@ -254,7 +254,7 @@ contains
 
     ewrite(1,*) "Melt interface calculation begins"
 
-    call melt_interface_read_coefficients(c0=c0, cI=cI, L=L, TI=TI, a=a, b=b, gammaT=gammaT, gammaS=gammaS, farfield_distance=farfield_distance, minimum_speed=minimum_speed)
+    call melt_interface_read_coefficients(c0=c0, cI=cI, L=L, TI=TI, a=a, b=b, gammaT=gammaT, gammaS=gammaS, farfield_distance=farfield_distance, minimum_fv=minimum_fv)
 
     !! All the variable under /ocean_forcing/iceshelf_meltrate/Holland08 should be in coordinate mesh
     !! coordinate mesh = continous mesh
@@ -309,6 +309,7 @@ contains
 
     temperature => extract_scalar_field(state,"Temperature")
     salinity    => extract_scalar_field(state,"Salinity")
+    fric_vel => extract_scalar_field(state,"FrictionVelocity")
     velocity => extract_vector_field(state,"Velocity")
 
     ! Loop over the surface nodes to calculate melt rate
@@ -339,10 +340,15 @@ contains
 
         ! Pressure from the schema
         P = node_val(re_pressure,the_node)
-        speed_u = sqrt(sum(vel**2)) / 11.06
-        speed_k = (0.09**0.25) * sqrt(k)
 
-        speed = max(speed_k, speed_u, minimum_speed)
+        ! Get friction velocity based on constant y 
+        ! (we're computing this in Python for now)
+        call scalar_finder_ele(fric_vel,ele,positions%dim+1,local_coord,fv)
+        fv = max(fv, minimum_fv)
+        ! This computes fric vel based on constant y_plus
+        ! fv_u = sqrt(sum(vel**2)) / 11.06
+        ! fv_k = (0.09**0.25) * sqrt(k)
+        ! fv = max(fv_k, fv_u, minimum_fv)
 
         ! constant = -7.53e-8 [C Pa^(-1)] comes from Holland and Jenkins Table 1
         ! TODO: Define as a constant explicitly, i.e. real, parameter :: topo = -7.53e-8
@@ -350,13 +356,13 @@ contains
 
         ! Define Aa,Bb,Cc
         ! Aa*Sb**2 + Bb*Sb + Cc = 0.0
-        Aa = -gammaS * speed * cI * a + a * c0 * gammaT * speed
+        Aa = -gammaS * fv * cI * a + a * c0 * gammaT * fv
 
-        Bb = -gammaS * speed * L + gammaS * speed * S * cI * a
-        Bb = Bb - gammaS * speed * cI * (b + topo) + gammaS * speed * cI * TI
-        Bb = Bb - c0 * gammaT * speed * T + c0 * gammaT * speed * (b + topo)
+        Bb = -gammaS * fv * L + gammaS * fv * S * cI * a
+        Bb = Bb - gammaS * fv * cI * (b + topo) + gammaS * fv * cI * TI
+        Bb = Bb - c0 * gammaT * fv * T + c0 * gammaT * fv * (b + topo)
 
-        Cc = gammaS * speed * S * L + gammaS * speed * S * cI * (b + topo) + gammaS * speed * S * (-cI * TI)
+        Cc = gammaS * fv * S * L + gammaS * fv * S * cI * (b + topo) + gammaS * fv * S * (-cI * TI)
 
         ! This could be a linear equation if Aa=0
         if (Aa .eq. 0.0) then
@@ -377,18 +383,18 @@ contains
             ewrite(0,*) "Melt interface, T: ",  T
             ewrite(0,*) "Melt interface, S: ",  S
             ewrite(0,*) "Melt interface, P: ",  P
-            ewrite(0,*) "Melt interface, speed: ",  speed
+            ewrite(0,*) "Melt interface, fv: ",  fv
             FLExit("Melt interface, Sb is negative. The range of Salinity is not right.")
           endif
         endif
 
         loc_Tb = a*loc_Sb + b + topo
-        loc_meltrate = gammaS*speed*(S-loc_Sb)/loc_Sb
+        loc_meltrate = gammaS*fv*(S-loc_Sb)/loc_Sb
         !! Heat flux to the ocean
-        loc_heatflux = (gammaT*speed + loc_meltrate)*(loc_Tb - T) ! or loc_meltrate*L + loc_meltrate*cI*(loc_Tb-TI)
-        ! loc_heatflux = c0 * (gammaT*speed + loc_meltrate)*(loc_Tb - T) ! Added missing c0 coeff
+        loc_heatflux = (gammaT*fv + loc_meltrate)*(loc_Tb - T) ! or loc_meltrate*L + loc_meltrate*cI*(loc_Tb-TI)
+        ! loc_heatflux = c0 * (gammaT*fv + loc_meltrate)*(loc_Tb - T) ! Added missing c0 coeff
         !! Salt flux to the ocean
-        loc_saltflux = (gammaS*speed + loc_meltrate)*(loc_Sb - S)
+        loc_saltflux = (gammaS*fv + loc_meltrate)*(loc_Sb - S)
 
         !! These are needed to implement BCs.
         call set(MeltRate, the_node, loc_meltrate)
@@ -461,7 +467,7 @@ contains
     calculate_boundary_temperature=have_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature')
     calculate_boundary_salinity=have_option(trim(option_path)//'/calculate_boundaries/bc_value_salinity')
 
-!! See ./preprocessor/Boundary_Conditions_From_options.F90 populate_iceshelf_boundary_conditions(states(1)) as well
+    !! See ./preprocessor/Boundary_Conditions_From_options.F90 populate_iceshelf_boundary_conditions(states(1)) as well
     ! Get the surface_id of the ice-ocean interface
     shape_option=option_shape(trim(option_path)//"/melt_surfaceID")
     allocate(surf_id(1:shape_option(1)))
@@ -480,7 +486,7 @@ contains
     endif
     call melt_surf_mesh(mesh,surface_ids,surface_mesh,surface_nodes,surface_element_list)
 
-!! Remapt the contious mesh to discon, unit_normal vecotr
+    !! Remapt the contious mesh to discon, unit_normal vecotr
 
     call allocate(unit_normal_vectors_vel,velocity%dim,TT%mesh,"MyVelocitySurfaceMesh")
 
@@ -796,7 +802,7 @@ contains
         ! farfield_distance = ||xyz - coord|| xyz and coord are vectors
         xyz = av_normal*farfield_distance + coord
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ! have options /ocean_forcing/iceshelf_meltrate/Holland08/melt_LayerRelax
         if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08/melt_LayerRelax")) then
           call get_option('/ocean_forcing/iceshelf_meltrate/Holland08/melt_LayerRelax/N',Nit)
@@ -822,7 +828,7 @@ contains
             FLExit("In setting funky_position, your funky_positions is out of the domain. Change melt_LayerLength.")
           endif
         endif
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         call set(funky_positions,node,xyz) ! Set the coordinate of sinked nodes, funky positions.
         call set(surface_positions,node,coord) !Original coordinate of the surface
@@ -870,8 +876,8 @@ contains
     call create_surface_mesh(surface_mesh, surface_nodes, mesh, surface_element_list, name=trim(mesh%name)//"ToshisMesh")
   end subroutine melt_surf_mesh
 
-  subroutine melt_interface_read_coefficients(c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance, T_steady, S_steady, minimum_speed)
-    real, intent(out), optional :: c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance, T_steady, S_steady, minimum_speed
+  subroutine melt_interface_read_coefficients(c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance, T_steady, S_steady, minimum_fv)
+    real, intent(out), optional :: c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance, T_steady, S_steady, minimum_fv
     real :: Cd
     character(len=*), parameter :: option_path = '/ocean_forcing/iceshelf_meltrate/Holland08'
 
@@ -898,7 +904,7 @@ contains
     if (present(T_steady)) call get_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature',T_steady, default = 0.0)
     if (present(S_steady)) call get_option(trim(option_path)//'/calculate_boundaries/bc_value_salinity',S_steady, default = 34.0)
     
-    if (present(minimum_speed)) call get_option(trim(option_path)//'/minimum_speed',minimum_speed, default = 1.0E-3)
+    if (present(minimum_fv)) call get_option(trim(option_path)//'/minimum_friction_velocity',minimum_fv, default = 1.0E-3)
 
   end subroutine melt_interface_read_coefficients
 
