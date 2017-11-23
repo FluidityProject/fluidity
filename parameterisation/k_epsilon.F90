@@ -1680,7 +1680,7 @@ function get_friction_velocity( U , nu, keps_model_in, y, yplus, tke) result (u_
 
   else
 
-    u_tau = sqrt(nu*u_bar/keps_model%y)**0.5
+    u_tau = sqrt(nu*u_bar/keps_model%y)
 
     ewrite(1,*) 'MADE IT HERE... not iterating.'
 
