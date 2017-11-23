@@ -57,7 +57,7 @@ module k_epsilon
 
   type k_epsilon_model
      real :: C_mu, c_eps_1, c_eps_2, sigma_k, sigma_p, sigma_eps, &
-          beta, kappa, y, yplus, ev_min, l_max
+          beta, kappa, y, yplus, ev_min, l_max, ut_tol
   end type k_epsilon_model
 
   ! locally allocatad fields
@@ -90,6 +90,7 @@ subroutine initialise_model(option_path)
   call get_option(option_path//'/kappa', model%kappa, default = 0.41)
   call get_option(option_path//'/yPlus', model%yPlus, default = 11.06)
   call get_option(option_path//'/y', model%y, default = 0.0)
+  call get_option(option_path//'/u_tau_solve_tolerance', model%ut_tol, default = 1.0e-7)
   call get_option(option_path//'/l_max', model%l_max, default = huge(1.0))
   call get_option(option_path//'/minimum_eddy_ratio', model%ev_min, default = 0.0)
   
@@ -453,7 +454,6 @@ subroutine keps_calculate_rhs(state)
               sele = surface_element_list(j)
 
               if (i==1) then
-!                 u_tau_val = max( sqrt(node_val(field1,wnode))*0.09**0.25, mag_u_val/yPlus )
                  u_tau_val =  get_friction_velocity(face_val(u, sele),&
                       vmean(pack(face_val(bg_visc, sele), .true.)),&
                       model, y=y, tke=face_val(field1, sele))
@@ -466,18 +466,12 @@ subroutine keps_calculate_rhs(state)
                       *model%C_mu*u_tau_val/(model%kappa*y)
               end if 
               call set(src_abs_terms(1), face_global_nodes(field1, sele), max(Pk_val, face_val(src_abs_terms(1), sele)))
-!if (i==2) then
-!ewrite(1,*) 'AMIN: Are we here yet?', Abs_val, node_val(field1,wnode), node_val(field2,wnode), c_eps_2, c_eps_1
-!end if
            end do
         end if
      end do boundary_conditions
 
-!     do jj = 1, node_count(src_abs_terms(1))
-!           ewrite(1,*) 'AMIN: Are we here yet?', node_val(src_abs_terms(1),jj), node_val(src_abs_terms(2),jj), node_val(x,1,jj), node_val(x,2,jj)
-!     end do
      !-----------------------------------------------------------------------------------
-
+     
      ! Source disabling for debugging purposes
      do term = 1, 3
         if(have_option(trim(option_path)//'debugging_options/disable_'//&
@@ -1024,12 +1018,12 @@ subroutine keps_eddyvisc(state, advdif)
   end do
 
 
-!!  ! For non-DG we apply inverse mass globally
-!  if(continuity(scalar_eddy_visc)>=0 .and. .not. &
-!       have_option(trim(kk%option_path)//'/spatial_discretisation/control_volumes')) then
-!     lump_mass = have_option(trim(option_path)//'mass_terms/lump_mass')
-!     call solve_cg_inv_mass(state, ev_rhs, lump_mass, option_path)  
-!  end if
+  !!  ! For non-DG we apply inverse mass globally
+  !  if(continuity(scalar_eddy_visc)>=0 .and. .not. &
+  !       have_option(trim(kk%option_path)//'/spatial_discretisation/control_volumes')) then
+  !     lump_mass = have_option(trim(option_path)//'mass_terms/lump_mass')
+  !     call solve_cg_inv_mass(state, ev_rhs, lump_mass, option_path)  
+  !  end if
   
   ! Allow for prescribed eddy-viscosity
   if (.not. have_option(trim(option_path)//'/scalar_field::ScalarEddyViscosity/prescribed')) then
@@ -1073,19 +1067,17 @@ subroutine keps_eddyvisc(state, advdif)
                        model, y=y, tke=face_val(fieldk, sele))
 
               do jjj=1, size(faceglobalnodes)
-!ewrite(1,*) 'AMIN: Before:', sele, jjj, faceglobalnodes(jjj), node_val(scalar_eddy_visc,faceglobalnodes(jjj))
                    nut_val   = model%kappa*u_tau_val*y
-                   call set(scalar_eddy_visc, faceglobalnodes(jjj), nut_val) !AMIN
-!ewrite(1,*) 'AMIN: After :', sele, jjj, faceglobalnodes(jjj), node_val(scalar_eddy_visc,faceglobalnodes(jjj)), node_val(x,1,faceglobalnodes(jjj)), node_val(x,2,faceglobalnodes(jjj))
+                   call set(scalar_eddy_visc, faceglobalnodes(jjj), nut_val)
               end do
            end do
 
-!           call get_boundary_condition(fieldk, ii+1, type=bctype, surface_node_list=surface_node_list)
-!           do jj=1, size(surface_node_list)
-!              wnode = surface_node_list(jj)
-!              nut_val   = kappa*yPlus*node_val(bg_visc,1,1,wnode)
-!              call set(scalar_eddy_visc, wnode, nut_val)
-!           end do
+  !           call get_boundary_condition(fieldk, ii+1, type=bctype, surface_node_list=surface_node_list)
+  !           do jj=1, size(surface_node_list)
+  !              wnode = surface_node_list(jj)
+  !              nut_val   = kappa*yPlus*node_val(bg_visc,1,1,wnode)
+  !              call set(scalar_eddy_visc, wnode, nut_val)
+  !           end do
 
         end if
      end do
@@ -1117,9 +1109,6 @@ subroutine keps_eddyvisc(state, advdif)
      do i = 1, eddy_visc%dim(1)
         do j = 1, eddy_visc%dim(1)
            call set(eddy_visc, i, j, scalar_eddy_visc)
-!           do jj = 1, node_count(scalar_eddy_visc)
-!              ewrite(1,*) 'AMIN: Are we here yet?', node_val(eddy_visc,i,j,jj), node_val(x,1,jj), node_val(x,2,jj)
-!           end do
         end do
      end do
   end if
@@ -1303,7 +1292,7 @@ subroutine keps_diffusion(state)
            call addto(diff, j, j, i, node_val(bg_visc, j, j, i)*node_val(remapvfrac, i))
            call addto(diff, j, j, i, node_val(eddy_visc, j, j, i)*node_val(remapvfrac, i) / model%sigma_eps)
         else   
-!           call addto(diff, j, j, i, node_val(bg_visc, j, j, i))
+           ! call addto(diff, j, j, i, node_val(bg_visc, j, j, i))
            call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) / model%sigma_eps)
         end if
      end do
@@ -1491,18 +1480,18 @@ subroutine keps_bcs(state)
 
            call get_boundary_condition(field1, i+1, surface_element_list=surface_element_list)
 
-!           do j=1, size(surface_node_list)
-!              surface_node = surface_node_list(j)
+  !           do j=1, size(surface_node_list)
+  !              surface_node = surface_node_list(j)
 
-!              ! Calculate y = yPlus*nu_bg / c_mu**0.25*sqrt(k)
-!              y_val = ( yPlus*node_val(bg_visc,1,1,surface_node) )/( (c_mu**0.25)*sqrt(node_val(field2,surface_node)) )
+  !              ! Calculate y = yPlus*nu_bg / c_mu**0.25*sqrt(k)
+  !              y_val = ( yPlus*node_val(bg_visc,1,1,surface_node) )/( (c_mu**0.25)*sqrt(node_val(field2,surface_node)) )
 
-!              ! Calculate eps_wall = c_mu**0.75*k**1.5 / kappa*y
-!              eps_bc_val = ( c_mu**0.75*node_val(field2,surface_node)**1.5 )/( kappa*y_val )
-!!              eps_bc_val = ( c_mu*node_val(field2,surface_node)**2 )/( kappa*yPlus*node_val(bg_visc,1,1,surface_node) ) 
+  !              ! Calculate eps_wall = c_mu**0.75*k**1.5 / kappa*y
+  !              eps_bc_val = ( c_mu**0.75*node_val(field2,surface_node)**1.5 )/( kappa*y_val )
+  !!              eps_bc_val = ( c_mu*node_val(field2,surface_node)**2 )/( kappa*yPlus*node_val(bg_visc,1,1,surface_node) ) 
 
-!              call set(field2, surface_node, eps_bc_val)
-!           end do
+  !              call set(field2, surface_node, eps_bc_val)
+  !           end do
 
               allocate(vol_nodes(face_loc(field2,1)))
               allocate(vel_vol_nodes(face_loc(u,1)))
@@ -1529,8 +1518,8 @@ subroutine keps_bcs(state)
                      vnode = vol_nodes(iloc)        !get the volume node number
                      vel_vnode = vel_vol_nodes(iloc)
 
-!                     u_tau_val  = sqrt(node_val(field2,vnode)) * c_mu**0.25
-!                     u_tau_val  = max( sqrt(sum(node_val(u, vel_vnode)**2, dim=1)) / yPlus , u_tau_ele)
+  !                     u_tau_val  = sqrt(node_val(field2,vnode)) * c_mu**0.25
+  !                     u_tau_val  = max( sqrt(sum(node_val(u, vel_vnode)**2, dim=1)) / yPlus , u_tau_ele)
 
                      if(node_val(scalar_eddy_visc,vnode) .le. 1.0e-16) then
                         eps_bc_val = 0.0
@@ -1541,9 +1530,9 @@ subroutine keps_bcs(state)
                         !eps_bc_val = ((kappa*u_tau_val)/1.3) * node_val(field1,vnode) ! Flux
 
 
-!                        eps_bc_val = get_friction_velocity(ele_val(u, surface_elements(iloc))) **4/(1.0e-3*sigma_eps
+  !                        eps_bc_val = get_friction_velocity(ele_val(u, surface_elements(iloc))) **4/(1.0e-3*sigma_eps
                         eps_bc_val = (u_tau_val**4.0)/( model%sigma_eps*y) ! Neumann III
-!                        eps_bc_val = (u_tau_val**5.0)/( sigma_eps*yPlus*node_val(bg_visc,1,1,1) ) ! Neumann III
+  !                        eps_bc_val = (u_tau_val**5.0)/( sigma_eps*yPlus*node_val(bg_visc,1,1,1) ) ! Neumann III
                         !eps_bc_val = 0.0
                      endif
 
@@ -1667,10 +1656,9 @@ function get_friction_velocity( U , nu, keps_model_in, y, yplus, tke) result (u_
   type(k_epsilon_model), intent(in), optional, target :: keps_model_in
   real, optional :: y, yplus
   real, dimension(:), intent(in), optional :: tke
-
   
   type(k_epsilon_model), pointer :: keps_model
-  real :: u_tau
+  real :: u_tau, u_tau_0
   
   real :: u_bar
   integer :: i
@@ -1692,18 +1680,24 @@ function get_friction_velocity( U , nu, keps_model_in, y, yplus, tke) result (u_
 
   else
 
-     u_tau = sqrt(nu*u_bar/keps_model%y)
-  
-     do i=1,20
-        
-        if (u_tau*keps_model%y/nu< 20) exit
-        
-        u_tau = u_tau+(u_bar-u_tau*f(u_tau))/(1.0/keps_model%kappa+f(u_tau))
+    u_tau = sqrt(nu*u_bar/keps_model%y)**0.5
+
+    ewrite(1,*) 'MADE IT HERE... not iterating.'
+
+    if ( (u_tau*keps_model%y/nu) > 20) then
+     u_tau_0 = u_tau + 1.0 ! This gets us into the while loop
+     do while ( abs(u_tau - u_tau_0) > model%ut_tol )
+
+        u_tau_0 = u_tau        
+        u_tau = u_tau_0+(u_bar-u_tau_0*f(u_tau_0))/(1.0/keps_model%kappa+f(u_tau_0))
+
+        ewrite(1,*) 'MADE IT! Iterating... Iterating...'
      
      end do
+    end if
 
-     if (present(y)) y = keps_model%y
-     if (present(yplus)) yplus = max( 20.0 , u_tau*keps_model%y/nu)
+    if (present(y)) y = keps_model%y
+    if (present(yplus)) yplus = max( 20.0 , u_tau*keps_model%y/nu)
 
   end if
   

@@ -1627,6 +1627,12 @@ Recommended value (default): 1.0.</a:documentation>
                       <element name="y">
                         <a:documentation> excluded boundary thickness</a:documentation>
                         <ref name="real"/>
+                        <optional>
+                          <element name="u_tau_solve_tolerance">
+                            <a:documentation>When choosing an excluded boundary thickness, we perform an iterative Newton solve for the friction velocity at the boundary. Default tolerance = 1.0e-7.</a:documentation>
+                            <ref name="real"/>
+                          </element>
+                        </optional>
                       </element>
                     </choice>
                   </optional>
