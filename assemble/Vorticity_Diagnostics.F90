@@ -83,7 +83,7 @@ contains
     call zero(vort_field, V_)
     do i = 1, node_count(vort_field)
       call set(vort_field,  W_, i, &
-           sum(coriolis(spread(node_val(positions, i), 2, 1)), 1))
+           sum(coriolis_xyz(spread(node_val(positions, i), 2, 1)), 1))
     end do
     
     call deallocate(positions)
@@ -203,7 +203,7 @@ contains
     end if
     
     coriolis_gi = 0.0
-    coriolis_gi(W_, :) = coriolis(ele_val_at_quad(positions, ele))
+    coriolis_gi(W_, :) = coriolis(positions, ele)
     
     vorticity_gi = ele_curl_at_quad(velocity, ele, du_t)
     grad_theta_gi = ele_grad_at_quad(perturbation_density, ele, dtheta_t)

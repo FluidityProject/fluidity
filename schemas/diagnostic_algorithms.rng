@@ -380,6 +380,40 @@ sigma(v) = lambda div v I + 2 * mu * (nabla v + nabla v^T).   </a:documentation>
       </zeroOrMore>
     </element>
   </define>
+  <define name="scalar_poisson_algorithm">
+    <element name="algorithm">
+      <a:documentation>Finds the scalar field which solves the equation
+
+div grad phi = 0
+</a:documentation>
+      <attribute name="name">
+        <value>scalar_poisson</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <element name="solver">
+        <ref name="linear_solver_options_sym"/>
+      </element>
+      <zeroOrMore>
+        <element name="boundary_conditions">
+          <attribute name="name">
+            <data type="string" datatypeLibrary=""/>
+          </attribute>
+          <element name="surface_ids">
+            <a:documentation>Surface id:</a:documentation>
+            <ref name="integer_vector"/>
+          </element>
+          <element name="type">
+            <attribute name="name">
+              <value>dirichlet</value>
+            </attribute>
+            <ref name="input_choice_real_plus_field"/>
+          </element>
+        </element>
+      </zeroOrMore>
+    </element>
+  </define>
   <define name="scalar_galerkin_projection_algorithm">
     <element name="algorithm">
       <a:documentation>Galerkin projects the source field.</a:documentation>
@@ -2231,6 +2265,9 @@ a horizontal vector living on the specified surface.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_time_averaged_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="scalar_poisson_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_period_averaged_algorithm"/>

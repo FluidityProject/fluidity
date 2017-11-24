@@ -60,7 +60,7 @@ module geostrophic_pressure
   use boundary_conditions_from_options
   use pickers
   use conservative_interpolation_module
-  use coriolis_module, only : two_omega => coriolis
+  use coriolis_module, only : two_omega => coriolis_xyz
   use divergence_matrix_cg
   use hydrostatic_pressure
   use petsc_solve_state_module

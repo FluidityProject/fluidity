@@ -258,6 +258,34 @@ stress_free_field_algorithm =
       }
    )
 
+scalar_poisson_algorithm =
+  (
+      ## Finds the scalar field which solves the equation
+      ## 
+      ## div grad phi = 0
+      ##
+       
+     
+      element algorithm {
+         attribute name { "scalar_poisson" },
+         attribute material_phase_support { "single" },
+         element solver {
+            linear_solver_options_sym
+         },
+         element boundary_conditions {
+            attribute name { string },
+            ## Surface id:
+            element surface_ids {
+               integer_vector
+            },
+            element type {
+               attribute name { "dirichlet" },
+               input_choice_real_plus_field
+            }
+         }*
+      }
+   )
+
 scalar_galerkin_projection_algorithm =
    (
       ## Galerkin projects the source field.
@@ -1624,6 +1652,7 @@ scalar_diagnostic_algorithms |= temporalmin_algorithm
 scalar_diagnostic_algorithms |= surface_horizontal_divergence_algorithm
 scalar_diagnostic_algorithms |= scalar_temporalmax_algorithm
 scalar_diagnostic_algorithms |= scalar_time_averaged_algorithm
+scalar_diagnostic_algorithms |= scalar_poisson_algorithm
 scalar_diagnostic_algorithms |= scalar_period_averaged_algorithm
 scalar_diagnostic_algorithms |= scalar_sum_algorithm
 scalar_diagnostic_algorithms |= scalar_squared_time_averaged_algorithm

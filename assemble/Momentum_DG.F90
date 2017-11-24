@@ -63,7 +63,7 @@ module momentum_DG
   use smoothing_module
   use sparsity_patterns_meshes
   use boundary_conditions_from_options
-  use coriolis_module, only : coriolis, set_coriolis_parameters
+  use coriolis_module, only : coriolis, set_coriolis_parameters, centrifugal_force
   use turbine
   use diagnostic_fields
   use slope_limiters_dg
@@ -401,7 +401,8 @@ contains
       swe_u_nl = extract_vector_field(state, "NonlinearVelocity")
     end if
 
-    have_centrifugal_force=have_option("/physical_parameters//coriolis/specified_axis")
+    have_centrifugal_force=have_option("/physical_parameters/coriolis/specified_axis") .or.&
+         have_option("/physical_parameters/coriolis/from_field")
 
     call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, stat)
     have_gravity = stat==0
@@ -488,6 +489,9 @@ contains
     end if
 
     have_coriolis = have_option("/physical_parameters/coriolis")
+    if (have_coriolis) then
+       call set_coriolis_parameters(state)
+    end if
     
     q_mesh=Viscosity%mesh
 
@@ -739,9 +743,6 @@ contains
     end if
 #ifdef _OPENMP
     cache_valid = prepopulate_transform_cache(X)
-    if (have_coriolis) then
-       call set_coriolis_parameters
-    end if
 #endif
     call profiler_toc(u, "element_loop-omp_overhead")
     
@@ -1224,7 +1225,8 @@ contains
     end if
     
     if(have_coriolis.and.(rhs%dim>1).and.assemble_element) then
-      Coriolis_q=coriolis(ele_val_at_quad(X,ele))
+
+      Coriolis_q=coriolis(X,ele)
     
       ! Element Coriolis parameter matrix.
       Coriolis_mat = shape_shape(u_shape, u_shape, Rho_q*Coriolis_q*detwei)
@@ -1369,7 +1371,7 @@ contains
       end if
     end if
 
-    if(have_centrifugal_force.and.acceleration.and.assemble_element) then
+    if(have_centrifugal_force.and.assemble_element) then
        coefficient_detwei = detwei*ele_val_at_quad(buoyancy, ele)
        if(multiphase) then
           rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &

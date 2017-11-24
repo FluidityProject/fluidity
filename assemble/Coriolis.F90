@@ -30,10 +30,13 @@
 module coriolis_module
 
   use spud
+  use vector_tools
   use fldebug
-  use global_parameters, only : current_time, PYTHON_FUNC_LEN
+  use global_parameters, only : current_time, PYTHON_FUNC_LEN, FIELD_NAME_LEN
   use embed_python
+  use fields
   use parallel_tools, only: abort_if_in_parallel_region
+  use state_module
 
   implicit none
   
@@ -47,26 +50,41 @@ module coriolis_module
   real, save :: latitude0, R_earth
   ! coriolis_option has to have one of the following values:
   integer, parameter :: NO_CORIOLIS=0, F_PLANE=1, BETA_PLANE=2, &
-     SINE_OF_LATITUDE=3, CORIOLIS_ON_SPHERE=4, PYTHON_F_PLANE=5, CORIOLIS_WITH_AXIS=6, CORIOLIS_WITH_AXIS_UNSTEADY=7, NOT_INITIALISED=-1
+     SINE_OF_LATITUDE=3, CORIOLIS_ON_SPHERE=4, PYTHON_F_PLANE=5, CORIOLIS_WITH_AXIS=6, CORIOLIS_WITH_AXIS_UNSTEADY=7, CORIOLIS_FROM_FIELD=8, NOT_INITIALISED=-1
   integer, save :: coriolis_option=NOT_INITIALISED
   
   character(len = PYTHON_FUNC_LEN), save :: coriolis_python_func
   logical, save :: python_coriolis_initialised = .false.
   real, save :: python_coriolis_time
-  real, dimension(3), save :: point_on_axis
+  real, dimension(3), save :: point_on_axis = [0.0,0.0,0.0]
   real, dimension(3), parameter :: axis = [0.0,0.0,1.0]
   
   ! legacy thing for use in funome():
   integer, save :: coriolis_dim=3
+
+  type(scalar_field), pointer, save :: coriolis_field
      
   private
   
   public :: coriolis, funome, set_coriolis_parameters, centrifugal_force,&
-     coriolis_module_check_options
+     coriolis_module_check_options, coriolis_xyz
 
   contains
 
-  function coriolis(xyz)
+  function coriolis(X, ele)
+    type(vector_field) :: X
+    integer :: ele
+    real, dimension(ele_ngi(X,ele)):: coriolis
+
+    if (coriolis_option == CORIOLIS_FROM_FIELD) then
+       coriolis = ele_val_at_quad(coriolis_field, ele)
+    else
+       coriolis = coriolis_xyz(ele_val_at_quad(X, ele))
+    end if
+
+  end function coriolis
+
+  function coriolis_xyz(xyz) result(coriolis)
   !!< Returns the coriolis magnitude f so that the coriolis force is given
   !!< by: f k x u
   real, dimension(:,:):: xyz
@@ -99,7 +117,7 @@ module coriolis_module
       FLAbort("Unknown coriolis option")
     end select
   
-  end function coriolis
+  end function coriolis_xyz
 
   subroutine update_unsteady_coriolis()
     if (current_time/=python_coriolis_time) then
@@ -153,7 +171,7 @@ module coriolis_module
       xyz(3,1)=zd
     end if
     
-    omega=coriolis(xyz)/2.0
+    omega=coriolis_xyz(xyz)/2.0
     funome=omega(1)
 
   end function funome
@@ -163,6 +181,7 @@ module coriolis_module
     integer, intent(in) :: ele
     real, dimension(mesh_dim(X),ele_ngi(u,ele)) :: force
 
+    real, dimension(ele_ngi(u,ele)) :: f
     integer :: gi, dim
     real, dimension(mesh_dim(X),ele_ngi(X,ele)) :: X_quad
     real, dimension(mesh_dim(X)) :: x_cross
@@ -176,6 +195,8 @@ module coriolis_module
     dim=mesh_dim(X)
     X_quad=ele_val_at_quad(X,ele)
 
+    f = coriolis(X, ele)
+
     do gi=1,ele_ngi(u,ele)
        if(dim==2) then
           x_cross=[-X_quad(2,gi)+point_on_axis(2),X_quad(1,gi)-point_on_axis(1)]
@@ -183,7 +204,7 @@ module coriolis_module
           x_cross=cross_product(axis,X_quad(:,gi))
        end if
 
-       force(:,gi)=(f0/2.0)**2*(X_quad(:,gi)-point_on_axis(1:dim)-dot_product(X_quad(:,gi)-point_on_axis(1:dim),axis(1:dim))*axis(1:dim))&
+       force(:,gi)=(f(gi)/2.0)**2*(X_quad(:,gi)-point_on_axis(1:dim)-dot_product(X_quad(:,gi)-point_on_axis(1:dim),axis(1:dim))*axis(1:dim))&
             +dOmega_dt*x_cross
     end do
 
@@ -222,11 +243,19 @@ module coriolis_module
   end subroutine centrifugal_potential
 
   
-  subroutine set_coriolis_parameters
+  subroutine set_coriolis_parameters(state)
+
+    type(state_type), intent(in), optional :: state
     
     real:: omega
     integer, dimension(2) :: dim
-    
+
+    character(len = FIELD_NAME_LEN) :: coriolis_field_name=""
+    if (coriolis_option==CORIOLIS_FROM_FIELD) then
+       call get_option("/physical_parameters/coriolis/from_field/source_name",&
+            coriolis_field_name)
+       coriolis_field => extract_scalar_field(state, coriolis_field_name) 
+    end if
     if (coriolis_option/=NOT_INITIALISED) return
 
     call abort_if_in_parallel_region
@@ -301,6 +330,12 @@ module coriolis_module
           dOmega_dt=0.0
           coriolis_option=CORIOLIS_WITH_AXIS
        end if
+    else if (have_option("/physical_parameters/coriolis/from_field")) then
+       call get_option("/physical_parameters/coriolis/from_field/source_name",&
+            coriolis_field_name)
+       coriolis_field => extract_scalar_field(state, coriolis_field_name)
+       dOmega_dt=0.0
+       coriolis_option=CORIOLIS_FROM_FIELD
     else 
     
       ewrite(2, *) "Coriolis type: None"

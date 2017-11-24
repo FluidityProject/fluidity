@@ -63,7 +63,7 @@
 	 rotate_diagonal_to_sphere_gi
     use boundary_conditions_from_options
     use petsc_solve_state_module, only: petsc_solve
-    use coriolis_module, only: coriolis, set_coriolis_parameters
+    use coriolis_module, only: coriolis, set_coriolis_parameters, centrifugal_force
     use upwind_stabilisation, only: make_supg_element, supg_test_function, element_upwind_stabilisation, get_upwind_options
     use les_module
     use multiphase_module
@@ -379,7 +379,8 @@
         nullify(old_pressure)
       end if
 
-      have_centrifugal_force=have_option("/physical_parameters//coriolis/specified_axis")
+      have_centrifugal_force=have_option("/physical_parameters//coriolis/specified_axis").or.&
+         have_option("/physical_parameters//coriolis/from_field")
 
       call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, &
           stat=stat)
@@ -723,7 +724,7 @@
 #ifdef _OPENMP
     cache_valid = prepopulate_transform_cache(x)
     if (have_coriolis) then
-       call set_coriolis_parameters
+       call set_coriolis_parameters(state)
     end if
 #endif
 
@@ -2421,7 +2422,7 @@
       !  /
       !
       ! scaling factor (omega, or f_0+\beta y, etc. depending on options):
-      coriolis_gi=coriolis(ele_val_at_quad(x,ele))
+      coriolis_gi=coriolis(x,ele)
       coriolis_mat = shape_shape(test_function, ele_shape(u, ele), density_gi*coriolis_gi*detwei)
       
       ! cross terms in U_ and V_ for coriolis

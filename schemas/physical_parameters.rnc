@@ -98,6 +98,11 @@ coriolis_options =
 	    element rate_of_change {
 	       real
 	    }?
+         }|
+         element from_field {
+            attribute source_name {
+               xsd:string
+            }
          }
       )
    }

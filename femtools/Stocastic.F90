@@ -30,7 +30,10 @@
 module stocastic
 
   use fldebug
+  use transform_elements, only: element_volume, &
+       element_volume_field_weighted
   use fields
+  use parallel_fields
   use parallel_tools
 
   implicit none

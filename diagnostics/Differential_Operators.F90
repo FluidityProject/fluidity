@@ -41,6 +41,8 @@ module differential_operator_diagnostics
   use fields
   use state_module
   use field_options
+  use boundary_conditions
+  use sparsity_patterns
   use diagnostic_source_fields
   use field_derivatives
   use sparse_matrices_fields
@@ -59,7 +61,8 @@ module differential_operator_diagnostics
     & calculate_curl_2d, calculate_finite_element_divergence, &
     & calculate_finite_element_divergence_transpose, &
     & calculate_scalar_advection, calculate_scalar_laplacian, &
-    & calculate_vector_advection, calculate_vector_laplacian
+    & calculate_vector_advection, calculate_vector_laplacian, &
+    & calculate_scalar_poisson
   
 contains
 
@@ -893,5 +896,71 @@ contains
     call addto(s_field, element_nodes, -dshape_dot_vector_rhs(dn_t, ele_grad_at_quad(source_field, ele, dn_t), detwei))
     
   end subroutine assemble_scalar_laplacian_ele
+
+  subroutine calculate_scalar_poisson(state, s_field)
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: s_field
+    
+    integer :: i
+    type(scalar_field) :: rhs
+    type(vector_field), pointer :: positions
+    type(csr_sparsity) :: sparsity
+    type(csr_matrix) :: M
+    type(element_type), pointer :: shape
+
+    character(len=OPTION_PATH_LEN) :: option_path
+
+    real, dimension(ele_ngi(s_field,1)) :: detwei
+    real, dimension(ele_loc(s_field,1), ele_ngi(s_field,1), &
+         mesh_dim(s_field)) :: do_t
+      
+    ewrite(1, *) "In calculate_scalar_poisson"
+    ewrite(2, *) "Solving poisson equation for field " // trim(s_field%name)
+    
+    positions => extract_vector_field(state, "Coordinate")
+    assert(ele_count(positions) == ele_count(s_field))
+
+    call allocate(rhs, s_field%mesh, name = "RHS")
+    sparsity = make_sparsity(s_field%mesh, s_field%mesh, "SparsityMat")
+    call allocate(M, sparsity, name = "Laplacian")
+    
+    call zero(s_field)
+    call zero(M)
+    call zero(rhs)
+
+    do i = 1, ele_count(s_field)
+       if (.not. element_owned(s_field,i)) cycle
+       shape => ele_shape(s_field, i)
+      call assemble_scalar_poisson_ele(i, ele_nodes(s_field, i))
+    end do
+
+    call apply_dirichlet_conditions(matrix=M, rhs=rhs, field=s_field)
+
+    option_path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
+
+    call petsc_solve(s_field, M, rhs, option_path)
+
+    call deallocate(M)
+    call deallocate(sparsity)
+    call deallocate(rhs)
+    
+    ewrite_minmax(s_field)
+    
+    ewrite(1, *) "Exiting calculate_scalar_poisson"
+
+    contains 
+      
+      subroutine assemble_scalar_poisson_ele(ele, nodes)
+        integer, intent(in) :: ele, nodes(:)
+
+        call transform_to_physical(positions, ele, shape=shape, &
+             dshape=do_t, detwei=detwei)
+
+        call addto(M,nodes,nodes,-dshape_dot_dshape(do_t,do_t,detwei))
+
+      end subroutine assemble_scalar_poisson_ele
+        
+  end subroutine calculate_scalar_poisson
+
 
 end module differential_operator_diagnostics
