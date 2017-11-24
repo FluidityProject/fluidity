@@ -702,8 +702,8 @@ subroutine assemble_rhs_cv_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, densi
 end subroutine assemble_rhs_cv_ele
 
 subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density, &
-     buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, multiphase, vfrac, &
-     X, f_1, f_2, ele, field_id, bc_value, bc_type, compressible)
+  buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, multiphase, vfrac, &
+  X, f_1, f_2, ele, field_id, bc_value, bc_type, compressible)
 
   type(scalar_field), dimension(3), intent(inout) :: src_abs_terms
   type(scalar_field), intent(in) :: k, eps, scalar_eddy_visc, f_1, f_2, vfrac
@@ -1660,7 +1660,7 @@ function get_friction_velocity( U , nu, keps_model_in, y, yplus, tke) result (u_
   type(k_epsilon_model), pointer :: keps_model
   real :: u_tau, u_tau_0
   
-  real :: u_bar
+  real :: u_bar, tke_bar
   integer :: i
 
   if (present(keps_model_in)) then
@@ -1702,7 +1702,8 @@ function get_friction_velocity( U , nu, keps_model_in, y, yplus, tke) result (u_
   end if
   
   if ( present(tke)) then
-     u_tau = max(u_tau, sqrt(sqrt(keps_model%C_mu)*u_tau))
+    tke_bar = sqrt(sum(tke**2))
+    u_tau = max(u_tau, sqrt(sqrt(keps_model%C_mu)*tke_bar))
   end if
   
   contains 
