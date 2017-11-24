@@ -38,6 +38,7 @@ module differential_operator_diagnostics
   use sparse_tools
   use eventcounter
   use fetools
+  use parallel_fields
   use fields
   use state_module
   use field_options
