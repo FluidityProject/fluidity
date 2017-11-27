@@ -2444,6 +2444,11 @@ the automatic diagnostics wrappers.</a:documentation>
               </optional>
             </element>
           </optional>
+          <optional>
+            <element name="frozen_rotor">
+              <empty/>
+            </element>
+          </optional>
         </element>
       </optional>
       <optional>

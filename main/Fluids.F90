@@ -1028,6 +1028,9 @@ contains
 
        end if
 
+       if (have_option("/mesh_adaptivity/mesh_movement/frozen_rotor")) &
+            call reset_mesh_positions(state)
+
     end do timestep_loop
 
     ! ****************************

@@ -2011,7 +2011,10 @@ mesh_adaptivity_options =
             element point_on_axis {
 	       real_dim_vector
 	    }?
-         }?                
+         }?,
+         element frozen_rotor {
+            empty
+         }?
       }?,
       (
          hr_adaptivity |

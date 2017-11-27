@@ -153,7 +153,8 @@ module meshmovement
        move_mesh_laplacian_smoothing, move_mesh_initialise_laplacian_smoothing,&
        move_mesh_lineal_smoothing, move_mesh_initialise_lineal_smoothing,&
        move_mesh_lineal_torsional_smoothing, move_mesh_initialise_lineal_torsional_smoothing,&
-       move_mesh_centroid_relaxer,move_mesh_initialise_centroid_relaxer
+       move_mesh_centroid_relaxer,move_mesh_initialise_centroid_relaxer,&
+       reset_mesh_positions
 
 contains
   subroutine movemeshy(state,move_option,TimeStep)
@@ -2024,6 +2025,24 @@ contains
     end do
 
   end subroutine set_boundary_values
+
+  subroutine reset_mesh_positions(states)
+    type(state_type), dimension(:), intent(inout) :: states
+    type(vector_field), pointer :: coordinate, &
+         old_coordinate, new_coordinate
+
+    coordinate => extract_vector_field(states(1), "Coordinate")
+    old_coordinate => extract_vector_field(states(1), "OldCoordinate")
+    new_coordinate => extract_vector_field(states(1), "IteratedCoordinate")
+
+    call set(new_coordinate, old_coordinate)
+    call set(coordinate, old_coordinate)
+
+    !! Should probably technically replace the velocity with
+    !! velocity - new_grid_velocity + old_grid_velocity
+    !! but that mostly falls out in the wash.
+
+  end subroutine reset_mesh_positions
 
 
 end module meshmovement
