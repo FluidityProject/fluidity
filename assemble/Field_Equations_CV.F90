@@ -1313,7 +1313,7 @@ contains
         end if
         
         if(move_mesh) then
-          FLExit("Moving mesh with this equation type not yet supported.")
+          call addto(rhs, massconservation)
         end if
 
       end select

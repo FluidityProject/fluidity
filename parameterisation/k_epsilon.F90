@@ -260,7 +260,7 @@ subroutine keps_calculate_rhs(state)
   type(scalar_field), dimension(2) :: fields
   type(scalar_field), pointer :: src, abs, f_1, f_2, debug
   type(scalar_field) :: src_to_abs, vfrac
-  type(vector_field), pointer :: x, u, g
+  type(vector_field), pointer :: x, u, g, grid_vel
   type(scalar_field), pointer :: dummydensity, density, buoyancy_density, scalar_eddy_visc
   integer :: i, ele, term, stat, sele
   real :: g_magnitude, c_eps_1, c_eps_2, sigma_p, eps_bc, c_mu
@@ -280,6 +280,8 @@ subroutine keps_calculate_rhs(state)
   integer, dimension(:), pointer :: surface_element_list
   type(scalar_field), pointer    :: field1, field2
   type(tensor_field), pointer    :: bg_visc
+  integer :: gv_stat
+  real, allocatable :: u_sele(:, :)
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
@@ -295,6 +297,8 @@ subroutine keps_calculate_rhs(state)
   ! get field data
   x => extract_vector_field(state, "Coordinate")
   u => extract_vector_field(state, "NonlinearVelocity")
+  grid_vel => extract_vector_field(state, "GridVelocity",gv_stat)
+  allocate(u_sele(u%dim, face_loc(u,1)))
   scalar_eddy_visc => extract_scalar_field(state, "ScalarEddyViscosity")
   f_1 => extract_scalar_field(state, "f_1")
   f_2 => extract_scalar_field(state, "f_2")
@@ -452,14 +456,17 @@ subroutine keps_calculate_rhs(state)
 
               sele = surface_element_list(j)
 
+              u_sele = face_val(u, sele)
+              if (gv_stat == 0) u_sele = u_sele - face_val(grid_vel, sele)
+
               if (i==1) then
 !                 u_tau_val = max( sqrt(node_val(field1,wnode))*0.09**0.25, mag_u_val/yPlus )
-                 u_tau_val =  get_friction_velocity(face_val(u, sele),&
+                 u_tau_val =  get_friction_velocity(u_sele,&
                       vmean(pack(face_val(bg_visc, sele), .true.)),&
                       model, y=y, tke=face_val(field1, sele))
                  Pk_val    = (u_tau_val**3)/(model%kappa*y)
               elseif (i==2) then
-                 u_tau_val =  get_friction_velocity(face_val(u, sele),&
+                 u_tau_val =  get_friction_velocity(u_sele,&
                       vmean(pack(face_val(bg_visc, sele), .true.)),&
                       model, y=y, tke=face_val(field2, sele))
                  Pk_val = model%c_eps_1*vmean(pack(face_val(field1, sele),.true.))&
@@ -606,7 +613,7 @@ subroutine assemble_rhs_cv_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, densi
   ! this doesn't change the field values of k and epsilon
 
   ! Compute Reynolds stress
-  if(.not.(u%mesh%shape == k%mesh%shape)) then
+  if(.not.(u%mesh%shape == k%mesh%shape).and.continuity(u)>0) then
      shape_u => ele_shape(u, ele)
      allocate(dshape_u(ele_loc(u, ele), ele_ngi(u, ele), X%dim))
      call transform_to_physical( X, ele, shape_u, dshape=dshape_u )
@@ -638,12 +645,12 @@ subroutine assemble_rhs_cv_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, densi
   if(field_id==1) then
      rhs_addto(1,:) = ele_val(scalar_eddy_visc, ele)*rhs(1)&
           *sum(detwei)/ele_loc(k,ele)
-     rhs_addto(2,:) = gamma_cv*sum(detwei)/ele_loc(k,ele)
+     rhs_addto(2,:) = ele_val(density, ele)*gamma_cv*sum(detwei)/ele_loc(k,ele)
   else
      rhs_addto(1,:) = ele_val(scalar_eddy_visc, ele)*gamma_cv*rhs(1)&
           *model%c_eps_1*ele_val(f_1,ele)&
           *sum(detwei)/ele_loc(k,ele)
-     rhs_addto(2,:) = model%c_eps_2*ele_val(f_2,ele)&
+     rhs_addto(2,:) = ele_val(density, ele)*model%c_eps_2*ele_val(f_2,ele)&
           *gamma_cv*sum(detwei)/ele_loc(k,ele)
   end if
   
@@ -916,7 +923,7 @@ subroutine keps_eddyvisc(state, advdif)
 
   type(tensor_field)               :: visc_dg
   type(tensor_field), pointer      :: eddy_visc, viscosity, bg_visc
-  type(vector_field), pointer      :: x, u
+  type(vector_field), pointer      :: x, u, grid_vel
   type(scalar_field)               :: kk, eps
   type(scalar_field), pointer      :: scalar_eddy_visc, ll, f_mu, density, dummydensity, filter
   type(scalar_field)               :: ev_rhs
@@ -935,6 +942,8 @@ subroutine keps_eddyvisc(state, advdif)
   integer, dimension(:), pointer :: surface_node_list, surface_element_list
   type(scalar_field), pointer    :: fieldk
   integer, dimension(:), allocatable :: faceglobalnodes
+  integer :: gv_stat
+  real, allocatable :: u_sele(:, :)
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
@@ -949,6 +958,8 @@ subroutine keps_eddyvisc(state, advdif)
   call time_averaged_value(state, eps, "TurbulentDissipation", advdif, option_path)
   x  => extract_vector_field(state, "Coordinate")
   u          => extract_vector_field(state, "NonlinearVelocity")
+  grid_vel => extract_vector_field(state, "GridVelocity",gv_stat)
+  allocate(u_sele(u%dim, face_loc(u,1)))
   eddy_visc  => extract_tensor_field(state, "EddyViscosity")
   f_mu       => extract_scalar_field(state, "f_mu")
   bg_visc    => extract_tensor_field(state, "BackgroundViscosity")
@@ -1065,16 +1076,24 @@ subroutine keps_eddyvisc(state, advdif)
            do jj=1, size(surface_element_list) !!! j is used again later!!! => use jj
               sele=surface_element_list(jj)
 
+              u_sele = face_val(u, sele)
+              if (gv_stat == 0) u_sele = u_sele - face_val(grid_vel, sele)
+
               ! nodes_ids for the field on this surface element
               faceglobalnodes=face_global_nodes(scalar_eddy_visc, sele)
 
-              u_tau_val = get_friction_velocity( face_val(u, sele), &
+              u_tau_val = get_friction_velocity( u_sele, &
                        vmean(pack(face_val(bg_visc, sele), .true.)),&
                        model, y=y, tke=face_val(fieldk, sele))
 
               do jjj=1, size(faceglobalnodes)
 !ewrite(1,*) 'AMIN: Before:', sele, jjj, faceglobalnodes(jjj), node_val(scalar_eddy_visc,faceglobalnodes(jjj))
-                   nut_val   = model%kappa*u_tau_val*y
+                   nut_val = model%kappa*u_tau_val*y
+                   if (nut_val> model%l_max*sqrt(max(fields_min,node_val(fieldk,faceglobalnodes(jjj))))) &
+                        nut_val = &
+                        node_val(density,faceglobalnodes(jjj))*model%l_max*sqrt(max(fields_min,node_val(fieldk,faceglobalnodes(jjj))))
+
+                    nut_val   = max(model%ev_min*node_val(bg_visc,1,1,faceglobalnodes(jjj)), nut_val)
                    call set(scalar_eddy_visc, faceglobalnodes(jjj), nut_val) !AMIN
 !ewrite(1,*) 'AMIN: After :', sele, jjj, faceglobalnodes(jjj), node_val(scalar_eddy_visc,faceglobalnodes(jjj)), node_val(x,1,faceglobalnodes(jjj)), node_val(x,2,faceglobalnodes(jjj))
               end do
@@ -1232,11 +1251,10 @@ subroutine keps_eddyvisc(state, advdif)
          call addto(ev_rhs, nodes_ev, rhs_addto)    
       else
          
-
-         where(model%C_mu*max(0.0,ele_val(kk,ele))**(1.5)<model%l_max*ele_val(eps,ele))
-            rhs_addto = ele_val(density,ele)*model%C_mu*ele_val(kk, ele)**2/max(fields_min, ele_val(eps,ele))
+         where(model%C_mu*max(fields_min,ele_val(kk,ele))**(1.5)<model%l_max*ele_val(eps,ele))
+            rhs_addto = ele_val(density,ele)*model%C_mu*(max(fields_min,ele_val(kk, ele))**2)/max(fields_min, ele_val(eps,ele))
          elsewhere
-            rhs_addto=model%l_max*sqrt(max(0.0,ele_val(kk,ele)))
+            rhs_addto=ele_val(density,ele)*model%l_max*sqrt(max(fields_min,ele_val(kk,ele)))
          end where
          where(rhs_addto<ev_min)
             rhs_addto=ev_min
@@ -1407,7 +1425,7 @@ subroutine keps_bcs(state)
   type(scalar_field), pointer                :: f_1, f_2, f_mu
   type(scalar_field), pointer                :: surface_field, scalar_eddy_visc
   type(scalar_field), pointer                :: density, dummydensity
-  type(vector_field), pointer                :: X, u
+  type(vector_field), pointer                :: X, u, grid_vel
   type(tensor_field), pointer                :: bg_visc
   type(scalar_field)                         :: rhs_field, surface_values
   type(mesh_type), pointer                   :: surface_mesh
@@ -1422,6 +1440,8 @@ subroutine keps_bcs(state)
   real                                       :: u_tau_val, nut_val, eps_bc_val, y_val, y
   real, dimension(:), allocatable            :: friction_velocity
   integer                                    :: sngi, surface_node, ele, iloc, inode, vnode, vel_vnode
+  integer :: gv_stat
+  real, allocatable :: u_sele(:,:)
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
@@ -1429,6 +1449,8 @@ subroutine keps_bcs(state)
 
   X => extract_vector_field(state, "Coordinate")
   u                 => extract_vector_field(state, "Velocity")
+  grid_vel => extract_vector_field(state, "GridVelocity",gv_stat)
+  allocate(u_sele(u%dim, face_loc(u,1)))
   scalar_eddy_visc  => extract_scalar_field(state, "ScalarEddyViscosity")
   bg_visc           => extract_tensor_field(state, "BackgroundViscosity")
   f_1               => extract_scalar_field(state, "f_1")
@@ -1517,10 +1539,14 @@ subroutine keps_bcs(state)
                   vol_nodes = face_global_nodes(field2,surface_element_list(ele))
                   vel_vol_nodes = face_global_nodes(u,surface_element_list(ele))
                   sele = surface_element_list(ele)
+
+                  u_sele = face_val(u, sele)
+                  if (gv_stat == 0) u_sele = u_sele - face_val(grid_vel, sele)
+
                   !vol_nodes = face_global_nodes(field2,ele)
                   ! Loop the nodes
 
-                  u_tau_val = get_friction_velocity( face_val(u, sele), &
+                  u_tau_val = get_friction_velocity( u_sele, &
                        vmean(pack(face_val(bg_visc, sele), .true.)),&
                        model, y=y, tke=face_val(field2, sele))
 
@@ -1707,9 +1733,9 @@ function get_friction_velocity( U , nu, keps_model_in, y, yplus, tke) result (u_
 
   end if
   
-  if ( present(tke)) then
-     u_tau = max(u_tau, sqrt(sqrt(keps_model%C_mu)*u_tau))
-  end if
+  !if ( present(tke)) then
+     !u_tau = max(u_tau, sqrt(sqrt(keps_model%C_mu)*vmean(tke)))
+  !end if
   
   contains 
 
