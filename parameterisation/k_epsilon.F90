@@ -490,7 +490,7 @@ subroutine keps_calculate_rhs(state)
         end if
      end do
      !-----------------------------------------------------------------------------------
-     
+
      ! Implement terms as source or absorbtion
      do term = 1, 3
         if (term == 2 ) then
@@ -677,7 +677,6 @@ subroutine assemble_rhs_cv_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, densi
           u_xy = (norm2(u_quad(:, gi))**2.0 - u_z**2.0)**0.5
           c_eps_3(gi) = tanh(u_z/(1e-6 + u_xy))
        end do
-       ewrite_minmax(c_eps_3)
        scalar = scalar*model%c_eps_1*ele_val(f_1,ele)*c_eps_3*gamma_cv
     end if
 
@@ -847,7 +846,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
           ! get components of velocity in direction of gravity and in other directions
           u_z = dot_product(g_quad(:, gi), u_quad(:, gi))
           u_xy = (norm2(u_quad(:, gi))**2.0 - u_z**2.0)**0.5
-          c_eps_3(gi) = tanh(u_z/(1e-6 + u_xy))
+          c_eps_3(gi) = tanh(u_z/(1e-16 + u_xy))
        end do
        ewrite_minmax(c_eps_3)
        scalar = scalar*model%c_eps_1*ele_val_at_quad(f_1,ele)*c_eps_3*gamma_cv
@@ -1675,6 +1674,11 @@ function get_friction_velocity( U , nu, keps_model_in, y, yplus, tke) result (u_
 
      u_tau = u_bar/keps_model%yPlus
 
+     if ( present(tke)) then
+      tke_bar = sqrt(sum(tke**2))
+      u_tau = max(u_tau, sqrt(sqrt(keps_model%C_mu)*tke_bar))
+    end if
+
      if (present(y)) y = nu*keps_model%yPlus/max(1.0e-16,u_tau)
      if (present(yplus)) yplus = keps_model%yplus
 
@@ -1682,36 +1686,29 @@ function get_friction_velocity( U , nu, keps_model_in, y, yplus, tke) result (u_
 
     u_tau = sqrt(nu*u_bar/keps_model%y)
 
-    ewrite(1,*) 'MADE IT HERE... not iterating.'
-
-    if ( (u_tau*keps_model%y/nu) > 20) then
+    if ( (u_tau*keps_model%y/nu) > 11.06) then
      u_tau_0 = u_tau + 1.0 ! This gets us into the while loop
      do while ( abs(u_tau - u_tau_0) > model%ut_tol )
 
         u_tau_0 = u_tau        
         u_tau = u_tau_0+(u_bar-u_tau_0*f(u_tau_0))/(1.0/keps_model%kappa+f(u_tau_0))
-
-        ewrite(1,*) 'MADE IT! Iterating... Iterating...'
      
      end do
     end if
 
     if (present(y)) y = keps_model%y
-    if (present(yplus)) yplus = max( 20.0 , u_tau*keps_model%y/nu)
+    if (present(yplus)) yplus = max( 11.06 , u_tau*keps_model%y/nu)
 
   end if
   
-  if ( present(tke)) then
-    tke_bar = sqrt(sum(tke**2))
-    u_tau = max(u_tau, sqrt(sqrt(keps_model%C_mu)*tke_bar))
-  end if
+
   
   contains 
 
     real function f(x)
       real :: x, yp
 
-      yp = max( 20.0 , x*keps_model%y/nu)
+      yp = max( 11.06 , x*keps_model%y/nu)
 
       f = 1.0/keps_model%kappa*log(yp) + keps_model%beta
 
