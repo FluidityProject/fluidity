@@ -56,7 +56,7 @@ module fluids_module
   use equation_of_state
   use timers
   use synthetic_bc
-  use k_epsilon, only: keps_advdif_diagnostics, keps_bound
+  use k_epsilon, only: keps_advdif_diagnostics, keps_bound, keps_bcs
   use tictoc
   use boundary_conditions_from_options
   use reserve_state_module
@@ -179,7 +179,7 @@ contains
     !     backward compatibility with new option structure - crgw 21/12/07
     logical::use_advdif=.true.  ! decide whether we enter advdif or not
 
-    INTEGER :: adapt_count
+    INTEGER :: adapt_count, tracer_its, n_tracer_its
 
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
@@ -252,6 +252,8 @@ contains
          & default=1)
     call get_option("/timestepping/nonlinear_iterations/tolerance", &
          & nonlinear_iteration_tolerance, default=0.0)
+	call get_option("/timestepping/scalar_acceleration_factor", &
+         & n_tracer_its, default=1)
     
     if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
 
@@ -266,6 +268,7 @@ contains
        call allocate_and_insert_auxilliary_fields(state)
        call copy_to_stored_values(state,"Old")
        call copy_to_stored_values(state,"Iterated")
+       call copy_to_stored_values(state,"Original")
        call relax_to_nonlinear(state)
 
        call enforce_discrete_properties(state)
@@ -525,6 +528,7 @@ contains
        ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
 
        call copy_to_stored_values(state,"Old")
+       call copy_to_stored_values(state,"Original")
        if (have_option('/mesh_adaptivity/mesh_movement') .and. .not. have_option('/mesh_adaptivity/mesh_movement/free_surface')) then
           ! Coordinate isn't handled by the standard timeloop utility calls.
           ! During the nonlinear iterations of a timestep, Coordinate is
@@ -597,7 +601,8 @@ contains
           !  with a dependency on the iterated field but then copy_to_stored_values
           !  would have to come before relax_to_nonlinear)
           call relax_to_nonlinear(state)
-          call copy_from_stored_values(state, "Old")
+          call copy_from_stored_values(state, "Original")
+          call copy_to_stored_values(state, "Old")
 
           ! move the mesh according to the free surface algorithm
           ! this should not be at the end of the nonlinear iteration:
@@ -668,6 +673,9 @@ contains
              call solids(state(1), its, nonlinear_iterations)
           end if
 
+
+          do tracer_its = 1,n_tracer_its
+
           ! Do we have the k-epsilon turbulence model?
           ! If we do then we want to calculate source terms and diffusivity for the k and epsilon 
           ! fields and also tracer field diffusivities at n + theta_nl
@@ -690,6 +698,7 @@ contains
                 end if
                 !call keps_bound(state(i))
                 call keps_advdif_diagnostics(state(i))
+                if (tracer_its>1) call keps_bcs(state(1))
              end if
           end do
 
@@ -725,7 +734,7 @@ contains
 
              IF(use_advdif)THEN
 
-                sfield => extract_scalar_field(state(field_state_list(it)), field_name_list(it))
+                sfield => extract_scalar_field(state(field_state_list(it)), field_name_list(it))               
                 call calculate_diagnostic_children(state, field_state_list(it), sfield)
 
 
@@ -771,6 +780,10 @@ contains
 
              ewrite(1, *) "Finished field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name)
           end do field_loop
+          call copy_to_stored_values(state,"Old")
+          call relax_to_nonlinear(state)
+
+          end do
 
           ! Sort out the dregs of GLS after the solve on Psi (GenericSecondQuantity) has finished
           if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option")) then

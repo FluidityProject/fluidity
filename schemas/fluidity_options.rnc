@@ -498,6 +498,17 @@ start =
                   empty
                }?
             }?,
+            ## If activated, then the code will perform this number of
+            ## timesteps to update scalar prognostic fields for each
+	    ## outer iteration of the momentum (i.e. the field will be
+            ## advected n times with the current nonlinear velocity.
+            ##
+            ## This is useful to spin up advection dominated fields which
+            ## are weakly coupled to the velocity, for example in a
+            ## quasi-steady simulation using a turbulence model
+	    element scalar_acceleration_factor{
+	       integer
+	    }?,
             ## Activate if you want to terminate the simulation once a
             ## steady state is reached.
             ## 

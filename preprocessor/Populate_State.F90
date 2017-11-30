@@ -2587,6 +2587,26 @@ contains
 
           end if
 
+          if((prognostic.or.diagnostic)&
+              .and.((convergence_field(sfield).and.(iterations>1)))) then
+
+            call allocate(aux_sfield, sfield%mesh, "Original"//trim(sfield%name))
+            call zero(aux_sfield)
+            call insert(states(p), aux_sfield, trim(aux_sfield%name))
+            call deallocate(aux_sfield)
+
+          else
+
+            aux_sfield = extract_scalar_field(states(p), trim(sfield%name))
+            aux_sfield%name = "Original"//trim(sfield%name)
+            aux_sfield%option_path=""  ! blank the option path so that it 
+                                       ! doesn't get picked up in the next 
+                                       ! aliased field loop
+            aux_sfield%aliased=.true.
+            call insert(states(p), aux_sfield, trim(aux_sfield%name))
+
+         end if
+
         end if
 
       end do sfields_loop
@@ -2643,6 +2663,26 @@ contains
 
             aux_vfield = extract_vector_field(states(p), trim(vfield%name))
             aux_vfield%name = "Iterated"//trim(vfield%name)
+            aux_vfield%option_path=""  ! blank the option path so that it 
+                                       ! doesn't get picked up in the next 
+                                       ! aliased field loop
+            aux_vfield%aliased=.true.
+            call insert(states(p), aux_vfield, trim(aux_vfield%name))
+
+          end if
+
+          if((prognostic.or.diagnostic)&
+              .and.(convergence_field(vfield).and.(iterations>1))) then
+
+            call allocate(aux_vfield, vfield%dim, vfield%mesh, "Original"//trim(vfield%name))
+            call zero(aux_vfield)
+            call insert(states(p), aux_vfield, trim(aux_vfield%name))
+            call deallocate(aux_vfield)
+
+          else
+
+            aux_vfield = extract_vector_field(states(p), trim(vfield%name))
+            aux_vfield%name = "Original"//trim(vfield%name)
             aux_vfield%option_path=""  ! blank the option path so that it 
                                        ! doesn't get picked up in the next 
                                        ! aliased field loop
@@ -2765,6 +2805,12 @@ contains
             aux_sfield%option_path = ""  ! blank the option path for consistency
             call insert(states(p), aux_sfield, trim(aux_sfield%name))
 
+            aux_sfield=extract_scalar_field(states(p2), "Original"//trim(field_name))
+            aux_sfield%name = "Original"//trim(sfield%name)
+            aux_sfield%aliased = .true.
+            aux_sfield%option_path = ""  ! blank the option path for consistency
+            call insert(states(p), aux_sfield, trim(aux_sfield%name))
+
           end if
 
         end if
@@ -2810,6 +2856,12 @@ contains
             call insert(states(p), aux_vfield, trim(aux_vfield%name))
 
             aux_vfield=extract_vector_field(states(p2), "Iterated"//trim(field_name))
+            aux_vfield%name = "Iterated"//trim(vfield%name)
+            aux_vfield%aliased = .true.
+            aux_vfield%option_path = ""  ! blank the option path for consistency
+            call insert(states(p), aux_vfield, trim(aux_vfield%name))
+
+            aux_vfield=extract_vector_field(states(p2), "Original"//trim(field_name))
             aux_vfield%name = "Iterated"//trim(vfield%name)
             aux_vfield%aliased = .true.
             aux_vfield%option_path = ""  ! blank the option path for consistency
