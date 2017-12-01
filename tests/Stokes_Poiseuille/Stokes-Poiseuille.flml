@@ -75,7 +75,7 @@
     </adaptive_timestep>
     <steady_state>
       <tolerance>
-        <real_value rank="0">1e-2</real_value>
+        <real_value rank="0">1e-7</real_value>
         <infinity_norm/>
       </tolerance>
     </steady_state>
@@ -159,7 +159,7 @@
             </python>
           </type>
         </boundary_conditions>
-        <boundary_conditions name="NoPressureRight">
+        <boundary_conditions name="AppliedPressureRight">
           <surface_ids>
             <integer_value shape="1" rank="1">2</integer_value>
           </surface_ids>

@@ -18,4 +18,4 @@ h = 1.
 # Driving pressure, the pressure applied at the inflow boundary
 drvP = 1e6
 # Pressure at the outflow boundary
-outP = 0.
+outP = 5e5
