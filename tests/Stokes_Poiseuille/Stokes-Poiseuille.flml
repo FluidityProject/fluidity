@@ -474,10 +474,11 @@ VAD = state.vector_fields["VectorAbsoluteDifference"]
 assert(VAD.node_count == field.node_count)
 for i in range(field.node_count):
     u = Va.node_val(i)[0]
-    v = Va.node_val(i)[1]
     du = VAD.node_val(i)[0]
-    dv = VAD.node_val(i)[1]
-    field.set(i, (du / u, dv / v))</string_value>
+    if u == 0:
+      field.set(i, (du, 0))
+    else:
+      field.set(i, (du / u, 0))</string_value>
           <depends>
             <string_value lines="1">VectorAbsoluteDifference, VelocityAnalytical</string_value>
           </depends>
