@@ -310,6 +310,42 @@ this option to these these internal algorithms.</a:documentation>
       </optional>
     </element>
   </define>
+  <define name="coordinate_remap_algorithm">
+    <element name="algorithm">
+      <a:documentation>Remaps the coordinate field.
+&lt;b&gt;only&lt;/b&gt;.</a:documentation>
+      <attribute name="name">
+        <value>coordinate_remap</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <optional>
+        <element name="allow_higher_lower_continuous_remap">
+          <a:documentation>When copying the field allow remapping between higher order and lower order continuous meshes.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="allow_unperiodic_periodic_remap">
+          <a:documentation>When copying the field allow remapping between unperiodic and periodic meshes.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="allow_discontinuous_continuous_remap">
+          <a:documentation>When copying the field allow remapping between discontinuous and continuous meshes.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="allow_bubble_lagrange_remap">
+          <a:documentation>When copying the field allow remapping between bubble and lagrange meshes.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+    </element>
+  </define>
   <define name="scalar_galerkin_projection_algorithm">
     <element name="algorithm">
       <a:documentation>Galerkin projects the source field.</a:documentation>
@@ -2248,6 +2284,9 @@ a horizontal vector living on the specified surface.</a:documentation>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="vector_advection_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="coordinate_remap_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="perp_algorithm"/>

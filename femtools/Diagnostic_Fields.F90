@@ -310,9 +310,6 @@ contains
       case("GalerkinProjection")
         call calculate_galerkin_projection(state, d_field)
         
-      case("DiagnosticCoordinate")
-        call calculate_diagnostic_coordinate_field(state, d_field)
-        
       case default
         if(present(stat)) then
           stat = 1
@@ -3266,17 +3263,5 @@ contains
          end if
        end subroutine assemble_galerkin_projection
    end subroutine calculate_galerkin_projection_tensor
-   
-   subroutine calculate_diagnostic_coordinate_field(state, field)
-    type(state_type), intent(in) :: state
-    type(vector_field), intent(inout) :: field
-    
-    type(vector_field) :: coordinate_field
-      
-    coordinate_field = get_nodal_coordinate_field(state, field%mesh)
-    call set(field, coordinate_field)
-    call deallocate(coordinate_field)
-   
-   end subroutine calculate_diagnostic_coordinate_field
    
 end module diagnostic_fields

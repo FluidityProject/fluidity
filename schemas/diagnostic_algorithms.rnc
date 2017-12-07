@@ -221,6 +221,31 @@ tensor_copy_algorithm =
          }?
       }
    )
+coordinate_remap_algorithm =
+   (
+      ## Remaps the coordinate field.
+      ## <b>only</b>.
+      element algorithm {
+         attribute name { "coordinate_remap" },
+         attribute material_phase_support { "single" },
+         ## When copying the field allow remapping between higher order and lower order continuous meshes.
+         element allow_higher_lower_continuous_remap {
+           empty
+         }?,
+         ## When copying the field allow remapping between unperiodic and periodic meshes.
+         element allow_unperiodic_periodic_remap {
+           empty
+         }?,
+         ## When copying the field allow remapping between discontinuous and continuous meshes.
+         element allow_discontinuous_continuous_remap {
+           empty
+         }?,
+         ## When copying the field allow remapping between bubble and lagrange meshes.
+         element allow_bubble_lagrange_remap {
+           empty
+         }?
+      }
+   )   
 scalar_galerkin_projection_algorithm =
    (
       ## Galerkin projects the source field.
@@ -1597,6 +1622,7 @@ vector_diagnostic_algorithms |= vector_galerkin_projection_algorithm
 vector_diagnostic_algorithms |= vector_difference_algorithm
 vector_diagnostic_algorithms |= vector_copy_algorithm
 vector_diagnostic_algorithms |= vector_advection_algorithm
+vector_diagnostic_algorithms |= coordinate_remap_algorithm
 vector_diagnostic_algorithms |= perp_algorithm
 vector_diagnostic_algorithms |= lumped_mass_smoothed_vector_algorithm
 vector_diagnostic_algorithms |= helmholtz_smoothed_vector_algorithm

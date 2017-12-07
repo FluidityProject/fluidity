@@ -295,13 +295,6 @@ contains
          end if
        end if
 
-       v_field => extract_vector_field(state(i), "DiagnosticCoordinate", stat)
-       if(stat == 0) then
-         if(recalculate(trim(v_field%option_path))) then
-           call calculate_diagnostic_variable(state(i), "DiagnosticCoordinate", v_field)
-         end if
-       end if
-
        v_field => extract_vector_field(state(i), "BedShearStress", stat)  
        if(stat == 0) then  
          if(recalculate(trim(v_field%option_path))) then

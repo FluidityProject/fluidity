@@ -219,7 +219,7 @@ for i in range(field.node_count):
     </vector_field>
     <vector_field name="DiagnosticCoordinate" rank="1">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
+        <algorithm name="coordinate_remap" material_phase_support="single"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>

@@ -52,6 +52,7 @@ module field_copies_diagnostics
   private
   
   public :: calculate_scalar_copy, calculate_vector_copy, calculate_tensor_copy
+  public :: calculate_coordinate_remap
   public :: calculate_extract_scalar_component
   public :: calculate_scalar_galerkin_projection, calculate_vector_galerkin_projection
   public :: calculate_helmholtz_smoothed_scalar, calculate_helmholtz_smoothed_vector, calculate_helmholtz_smoothed_tensor
@@ -153,6 +154,36 @@ contains
     
   end subroutine calculate_tensor_copy
 
+  subroutine calculate_coordinate_remap(state, v_field)
+    type(state_type), intent(in) :: state
+    type(vector_field), intent(inout) :: v_field
+    
+    type(vector_field), pointer :: positions
+    integer :: stat
+
+    positions => extract_vector_field(state, "Coordinate")    
+    
+    call remap_field(positions, v_field, stat)
+    if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+      if(.not.have_option(trim(complete_field_path(v_field%option_path))//"/algorithm/allow_discontinuous_continuous_remap")) then
+        FLExit("In the coordinate_remap diagnostic algorithm: remapping from a discontinuous mesh to a continuous mesh isn't allowed.")
+      end if
+    else if(stat==REMAP_ERR_UNPERIODIC_PERIODIC) then
+      if(.not.have_option(trim(complete_field_path(v_field%option_path))//"/algorithm/allow_unperiodic_periodic_remap")) then
+        FLExit("In the coordinate_remap diagnostic algorithm: remapping from an unperiodic to a periodic mesh isn't allowed.")
+      end if
+    else if(stat==REMAP_ERR_HIGHER_LOWER_CONTINUOUS) then
+      if(.not.have_option(trim(complete_field_path(v_field%option_path))//"/algorithm/allow_higher_lower_continuous_remap")) then
+        FLExit("In the coordinate_remap diagnostic algorithm: remapping from a higher order continuous mesh to a lower order continuous mesh isn't allowed.")
+      end if
+    else if(stat==REMAP_ERR_BUBBLE_LAGRANGE) then
+      if(.not.have_option(trim(complete_field_path(v_field%option_path))//"/algorithm/allow_bubble_lagrange_remap")) then
+        FLExit("In the coordinate_remap diagnostic algorithm: remapping from a bubble mesh to a lagrange mesh isn't allowed.")
+      end if
+    end if
+    
+  end subroutine calculate_coordinate_remap
+  
   subroutine calculate_extract_scalar_component(state, s_field)
     type(state_type), intent(in) :: state
     type(scalar_field), intent(inout) :: s_field
