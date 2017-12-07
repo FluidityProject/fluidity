@@ -28,8 +28,8 @@ Physical Surface(1) = {1};
 // Set the elements sizes : a box is defined inside the domain and the
 // resolution of the mesh both inside and outside the box is set to be the same
 Field[1] = Box;
-Field[1].VIn = 2e-1;
-Field[1].VOut = 2e-1;
+Field[1].VIn = 3e-1;
+Field[1].VOut = 3e-1;
 Field[1].XMax = 3 * l / 4;
 Field[1].XMin = l / 4;
 Field[1].YMax = h / 2;
