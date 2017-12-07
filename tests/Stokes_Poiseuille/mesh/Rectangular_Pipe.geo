@@ -2,6 +2,12 @@
 h = 1;
 // Define rectangular length
 l = 2e1;
+// Define the mesh resolution
+r = 4e-1;
+// Define number of points on the horizontal lines
+nh = Round(l / r);
+// Define number of points on the vertical lines
+nv = Round(2 * h / r);
 
 // Define the four corners of the rectangle, clockwise starting from the
 // top-left one
@@ -25,19 +31,6 @@ Line Loop(1) = {1, 2, 3, 4};
 Plane Surface(1) = {1};
 Physical Surface(1) = {1};
 
-// Set the elements sizes : a box is defined inside the domain and the
-// resolution of the mesh both inside and outside the box is set to be the same
-Field[1] = Box;
-Field[1].VIn = 3e-1;
-Field[1].VOut = 3e-1;
-Field[1].XMax = 3 * l / 4;
-Field[1].XMin = l / 4;
-Field[1].YMax = h / 2;
-Field[1].YMin = -h / 2;
-
-Background Field = 1;
-
-// Force triangular elements
-Mesh.RecombineAll = 0;
-// Prevent elements sizes to be modified close to the boundaries
-Mesh.CharacteristicLengthExtendFromBoundary = 0;
+Transfinite Line{1, 3} = nh;
+Transfinite Line{2, 4} = nv;
+Transfinite Surface{1} = {1, 2, 3, 4};
