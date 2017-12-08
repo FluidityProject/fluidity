@@ -57,6 +57,7 @@ prescribed_vector_field =
 prescribed_vector_field_no_adapt =
    (
       prescribed_values_vector_field,
+      prescribed_relaxation_term?,
       prescribed_output_options,
       prescribed_vector_stat_options,
       prescribed_detector_options
@@ -83,6 +84,22 @@ prescribed_values_vector_field =
             input_choice_real_dim_vector_plus_file
          }
       )+
+   )
+
+prescribed_relaxation_term =
+   (
+      (
+         ## Temporal discretisation options
+      	 element temporal_discretisation {
+            ## Non-linear relaxation term
+            ##  = 0  -- previous timestep velocity solution used in non-linear terms of momentum equations
+            ##  = 1  -- previous iteration velocity solution used in non-linear terms of momentum equations
+            ##  0 <= ITHETA <= 1
+            element relaxation {
+               real
+            }
+ 	 }
+      )
    )
 
 # Default child of prescribed tensor field

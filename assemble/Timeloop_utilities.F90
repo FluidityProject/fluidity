@@ -253,10 +253,13 @@ contains
 
        velocity=>extract_vector_field(state(s), "Velocity", stat)
        if(stat==0) then
-         call get_option(trim(velocity%option_path)//"/prognostic&
-                        &/temporal_discretisation/relaxation", itheta, default=0.5)
+          if (have_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/relaxation")) then
+             call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/relaxation", itheta, default=0.5)
+          else if (have_option(trim(velocity%option_path)//"/prescribed/temporal_discretisation/relaxation")) then
+             call get_option(trim(velocity%option_path)//"/prescribed/temporal_discretisation/relaxation", itheta, default=0.5)
+          end if
        else
-         itheta = 0.5
+          itheta = 0.5
        end if
 
        do f=1,scalar_field_count(state(s))

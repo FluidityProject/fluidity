@@ -78,6 +78,9 @@ In this case each value requires a distinct name for the options dictionary.</a:
   -->
   <define name="prescribed_vector_field_no_adapt">
     <ref name="prescribed_values_vector_field"/>
+    <optional>
+      <ref name="prescribed_relaxation_term"/>
+    </optional>
     <ref name="prescribed_output_options"/>
     <ref name="prescribed_vector_stat_options"/>
     <ref name="prescribed_detector_options"/>
@@ -110,6 +113,18 @@ In this case each value requires a distinct name for the options dictionary.</a:
         </element>
       </choice>
     </oneOrMore>
+  </define>
+  <define name="prescribed_relaxation_term">
+    <element name="temporal_discretisation">
+      <a:documentation>Temporal discretisation options</a:documentation>
+      <element name="relaxation">
+        <a:documentation>Non-linear relaxation term
+ = 0  -- previous timestep velocity solution used in non-linear terms of momentum equations
+ = 1  -- previous iteration velocity solution used in non-linear terms of momentum equations
+ 0 &lt;= ITHETA &lt;= 1</a:documentation>
+        <ref name="real"/>
+      </element>
+    </element>
   </define>
   <!--
     Default child of prescribed tensor field

@@ -97,6 +97,11 @@
    return (sin(X[0])*cos(X[1]), -1.0*cos(X[0])*sin(X[1]))</string_value>
           </python>
         </value>
+        <temporal_discretisation>
+          <relaxation>
+            <real_value rank="0">1</real_value>
+          </relaxation>
+        </temporal_discretisation>
         <output/>
         <stat>
           <include_in_stat/>
