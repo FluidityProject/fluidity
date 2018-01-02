@@ -6,13 +6,17 @@
 ! still need #ifdef PETSC_VERSION>... in the main code
 #include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
-#if PETSC_VERSION_MINOR>=6
+#if PETSC_VERSION_MINOR>=8
+#include "petsc/finclude/petsc.h"
+#elif PETSC_VERSION_MINOR>=6
 #include "petsc/finclude/petscdef.h"
 #else
 #include "finclude/petscdef.h"
 #endif
 #else
-#if PETSC_VERSION_MINOR>=6
+#if PETSC_VERSION_MINOR>=8
+#error "From PETSc v3.8, petsc fortran modules are required. Ensure petsc fortran modules, compiled with the same fortran compiler, are installed and configure without the --disable-petsc-fortran-modules option."
+#elif PETSC_VERSION_MINOR>=6
 #include "petsc/finclude/petsc.h"
 #else
 #include "finclude/petsc.h"
@@ -52,4 +56,21 @@
 #if PETSC_VERSION_MINOR<7
 #define PetscViewerAndFormatCreate NullPetscViewerAndFormatCreate
 #define PetscViewerAndFormatDestroy PETSC_NULL_FUNCTION
+#endif
+! from petsc 3.8 onward PETSC_NULL_OBJECT is gone, a specific PETSC_NULL_XXX needs to be used
+#if PETSC_VERSION_MINOR<8
+#define PETSC_NULL_OPTIONS PETSC_NULL_OBJECT
+#define PETSC_NULL_KSP PETSC_NULL_OBJECT
+#define PETSC_NULL_VEC PETSC_NULL_OBJECT
+#define PETSC_NULL_MAT PETSC_NULL_OBJECT
+#define PETSC_NULL_VECSCATTER PETSC_NULL_OBJECT
+#define PETSC_NULL_VIEWER PETSC_NULL_OBJECT
+#endif
+#if PETSC_VERSION_MINOR>=8
+#define PetscObjectReferenceWrapper(x, ierr) PetscObjectReference(x%v, ierr)
+#else
+#define PetscObjectReferenceWrapper(x, ierr) PetscObjectReference(x, ierr)
+#endif
+#if PETSC_VERSION_MINOR<8
+#define MatCreateSubMatrix MatGetSubMatrix
 #endif

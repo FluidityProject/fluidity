@@ -47,21 +47,23 @@ module Petsc_Tools
 
 #include "petsc_legacy.h"
 
+! Some routines, like MatCreateVecs, behave differently if a null vec is passed in, even though
+! the argument is normally intent(out) - when passing an uninitialised petsc object variable
+! it is possible (and not unlikely) that the uninitialised object happens to contain -1 which
+! in petsc v3.8 is recognized as a NULL object. Therefore in petsc v3.8 we have to pass in an
+! object that is known not to be a null vec
+#if PETSC_VERSION_MINOR>=8
+  Vec, parameter, public :: PETSC_NOTANULL_VEC = tVec(1)
+#else
+  ! previously Vec was just an integer (and NULL was checked by comparing its memory address with the one cannonical PETSC_NULL_OBJECT)
+  Vec, parameter, public :: PETSC_NOTANULL_VEC = 1
+#endif
+
   PetscReal, parameter, private :: dummy_petsc_real = 0.0
   integer, parameter, public :: PetscReal_kind = kind(dummy_petsc_real)
   PetscScalar, parameter, private :: dummy_petsc_scalar = 0.0
   integer, parameter, public :: PetscScalar_kind = kind(dummy_petsc_scalar)
   
-  ! see at the bottom of this file
-  interface
-    subroutine myMatGetInfo(A, flag, info, ierr)
-       Mat, intent(in):: A
-       MatInfoType, intent(in):: flag
-       double precision, dimension(:), intent(out):: info
-       PetscErrorCode, intent(out):: ierr
-    end subroutine myMatGetInfo
-  end interface
-
   type petsc_numbering_type
      type(halo_type), pointer :: halo => null()
      integer nprivatenodes
@@ -128,6 +130,8 @@ module Petsc_Tools
 #if PETSC_VERSION_MINOR<7
   public NullPetscViewerAndFormatCreate
 #endif
+  public IsNullMatNullSpace
+
 contains
 
   ! Note about definitions in this module:
@@ -1211,7 +1215,8 @@ contains
     call MatSetSizes(M, nrows, ncols, PETSC_DETERMINE, PETSC_DETERMINE, ierr)
     call MatSetBlockSizes(M, row_numbering%group_size, col_numbering%group_size, ierr)
     call MatSetType(M, MATAIJ, ierr)
-    call MatSeqAIJSetPreallocation(M, PETSC_NULL_INTEGER, nnz, ierr)
+    ! NOTE: 2nd argument is not used
+    call MatSeqAIJSetPreallocation(M, 0, nnz, ierr)
       
     if (.not. present_and_true(use_inodes)) then
       call MatSetOption(M, MAT_USE_INODES, PETSC_FALSE, ierr)
@@ -1339,16 +1344,16 @@ contains
     PetscScalar, dimension(:), allocatable:: row_vals
     integer, dimension(:), allocatable:: row_cols, unn2gnn
     integer private_columns
-    integer i, j, k, ui, rows, columns, entries, ncols, offset
+    integer i, j, k, ui, rows, columns, entries, ncols, offset, end_of_range
     logical parallel
     
     ! get the necessary info about the matrix:
-    call myMatGetInfo(matrix, MAT_LOCAL, matrixinfo, ierr)
+    call MatGetInfo(matrix, MAT_LOCAL, matrixinfo, ierr)
     entries=matrixinfo(MAT_INFO_NZ_USED)
     ! note we're no longer using MAT_INFO for getting local n/o rows and cols
     ! as it's bugged in Petsc < 3.0 and obsoloted thereafter:
     call MatGetLocalSize(matrix, rows, columns, ierr)
-    call MatGetOwnershipRange(matrix, offset, PETSC_NULL_INTEGER, ierr)
+    call MatGetOwnershipRange(matrix, offset, end_of_range, ierr)
     parallel=IsParallel()
 
     if (present(column_numbering)) then
@@ -1562,26 +1567,29 @@ subroutine NullPetscViewerAndFormatCreate(viewer, format, vf, ierr)
 
   assert(viewer==PETSC_VIEWER_STDOUT_WORLD)
   assert(format==PETSC_VIEWER_DEFAULT)
-  vf = PETSC_NULL_OBJECT
+  vf = PETSC_NULL_VIEWER
   ierr = 0
 
 end subroutine NullPetscViewerAndFormatCreate
 #endif
 
+function IsNullMatNullSpace(nullsp)
+  ! This function checks whether `nullsp` is a NULL nullspace
+  ! (the equivalent of (MatNullspace *) null in C)
+  MatNullSpace, intent(in) :: nullsp
+  logical :: IsNullMatNullSpace
+
+#if PETSC_VERSION_MINOR>=8
+    ! MatNullSpace(-1) is what is recognized as null in CHKFORTRANNULLOBJECT
+    ! MatNullSpace(0) is what is returned by MatGetNullspace if no nullspace is present
+    ! (because a wrapper on the output is missing, and there isn't a PETSC_NULL_MATNULLSPACE
+    ! in the first place)
+    IsNullMatNullSpace = nullsp%v==-1 .or. nullsp%v==0
+#else
+    IsNullMatNullSpace = nullsp==PETSC_NULL_OBJECT
+#endif
+
+end function IsNullMatNullSpace
+
 #include "Reference_count_petsc_numbering_type.F90"
 end module Petsc_Tools
-
-! this is a wrapper routine around MatGetInfo as it appears PETSc
-! provides the wrong explicit interface for it. By putting it outside
-! the module (and only including petsc headers and not use petsc modules)
-! this routine calls MatGetInfo with an implicit interface.
-subroutine myMatGetInfo(A, flag, info, ierr)
-Mat, intent(in):: A
-MatInfoType, intent(in):: flag
-double precision, dimension(:), intent(out):: info
-PetscErrorCode, intent(out):: ierr
-
-  call MatGetInfo(A, flag, info, ierr)
-  
-end subroutine myMatGetInfo
-

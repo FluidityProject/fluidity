@@ -643,7 +643,7 @@ Mat, intent(out):: A
 !! PETSc rhs vector
 Vec, intent(out):: b
 !! Solver object
-Mat, intent(out):: ksp
+KSP, intent(out):: ksp
 !! numbering from local (i.e. fluidity speak: global) to PETSc (fluidity: universal) numbering
 type(petsc_numbering_type), intent(out):: petsc_numbering
 !! returns the option path to solver/ block for new options, otherwise ""
@@ -729,7 +729,7 @@ type(vector_field), intent(in), optional :: positions
     startfromzero=.true.
   end if
   
-  ksp=PETSC_NULL_OBJECT
+  ksp=PETSC_NULL_KSP
   if (present(matrix)) then
     if (associated(matrix%ksp)) then
       ksp=matrix%ksp
@@ -740,7 +740,7 @@ type(vector_field), intent(in), optional :: positions
     end if
   end if
   
-  if (ksp/=PETSC_NULL_OBJECT) then
+  if (ksp/=PETSC_NULL_KSP) then
     ! oh goody, we've been left something useful!
     call KSPGetOperators(ksp, A, Pmat, ierr)
     have_cache=.true.
@@ -762,7 +762,7 @@ type(vector_field), intent(in), optional :: positions
   ! Note the explicitly-described options rcm, 1wd and natural are now not
   ! listed explicitly in the schema (but can still be used by adding the
   ! appropriate string in the solver reordering node).
-  call PetscOptionsGetString(PETSC_NULL_OBJECT, "", "-ordering_type", ordering_type, use_reordering, ierr)
+  call PetscOptionsGetString(PETSC_NULL_OPTIONS, "", "-ordering_type", ordering_type, use_reordering, ierr)
   if (.not. use_reordering) then
     call get_option(trim(solver_option_path)//'/reordering[0]/name', &
       ordering_type, stat=ierr)
@@ -885,7 +885,7 @@ type(vector_field), intent(in), optional :: positions
       ksp_pointer = ksp
       
       ! make sure we don't destroy it, the %ksp becomes a separate reference
-      call PetscObjectReference(ksp, ierr)
+      call PetscObjectReferenceWrapper(ksp, ierr)
     else
       ! matrices coming from block() can't cache
       FLAbort("User wants to cache solver context, but no proper matrix is provided.")
@@ -895,11 +895,11 @@ type(vector_field), intent(in), optional :: positions
   
     ! ksp is a copy of matrix%ksp, make it a separate reference, 
     ! so we can KSPDestroy it without destroying matrix%ksp
-    call PetscObjectReference(ksp, ierr)
+    call PetscObjectReferenceWrapper(ksp, ierr)
     
     ! same for the matrix, kspgetoperators returns the matrix reference
     ! owned by the ksp - make it a separate reference
-    call PetscObjectReference(A, ierr)
+    call PetscObjectReferenceWrapper(A, ierr)
     
   end if
   
@@ -1018,7 +1018,7 @@ Mat, intent(in), optional:: rotation_matrix
   end if
 
   ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
-  if (matrix%ksp==PETSC_NULL_OBJECT) then
+  if (matrix%ksp==PETSC_NULL_KSP) then
   
     call create_ksp_from_options(matrix%ksp, matrix%M, matrix%M, solver_option_path, parallel, &
         matrix%column_numbering, &
@@ -1244,9 +1244,9 @@ logical, optional, intent(in):: nomatrixdump
   ! if a null space is defined for the petsc matrix, make sure it's projected out of the rhs
   call KSPGetOperators(ksp, mat, pmat, ierr)
   call MatGetNullSpace(mat, nullsp, ierr)
-  if (ierr==0  .and. nullsp/=PETSC_NULL_OBJECT) then
+  if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
     ewrite(2,*) "Projecting nullspace from RHS"
-    call MatNullSpaceRemove(nullsp, b, PETSC_NULL_OBJECT, ierr)
+    call MatNullSpaceRemove(nullsp, b, ierr)
   end if
 
   call KSPSolve(ksp, b, y, ierr)
@@ -1709,8 +1709,10 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
          FLAbort("Need petsc_numbering for monitor")
        end if
        call petsc_monitor_setup(petsc_numbering, max_its)
-       call KSPMonitorSet(ksp,MyKSPMonitor,PETSC_NULL_OBJECT, &
-            &                     PETSC_NULL_FUNCTION,ierr)
+       ! NOTE: there doesn't seem to be a clean way to provide NULL to the void *mctx
+       ! argument in for fortran interface to PETSc v3.8 - PETSC_NULL_KSP does get translated to NULL
+       call KSPMonitorSet(ksp, MyKSPMonitor, PETSC_NULL_KSP, &
+            &                     PETSC_NULL_FUNCTION, ierr)
     end if
 
 #if PETSC_VERSION_MINOR<6
@@ -1722,11 +1724,11 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
       ! At this point KSPSetOperators, has already been called, so if mat has 
       ! a nullspace we want it to be set as the nullspace of the KSP
       call MatGetNullSpace(mat, nullsp, ierr)
-      if (ierr==0  .and. nullsp/=PETSC_NULL_OBJECT) then
+      if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
         call KSPSetNullSpace(ksp, nullsp, ierr)
       else
         call MatGetNullSpace(pmat, nullsp, ierr)
-        if (ierr==0  .and. nullsp/=PETSC_NULL_OBJECT) then
+        if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
           FLAbort("Preconditioner matrix has nullspace whereas the matrix itself doesn't")
           ! This is a problem because the nullspace on the preconditioner matrix is now
           ! attached to the ksp already. Not sure how to remove it again; Can I just call
@@ -1741,7 +1743,7 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
     ! in the krylov iteration is from *pmat* not mat (as it is in 3.6.1 and later)
     if (mat/=pmat) then
       call MatGetNullSpace(mat, nullsp, ierr)
-      if (ierr==0  .and. nullsp/=PETSC_NULL_OBJECT) then
+      if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
         ewrite(0,*) "Matrix and preconditioner matrix are different. For this case nullspaces"
         ewrite(0,*) "and petsc 3.6.0 are not supported. Please upgrade to petsc 3.6.1 or higher"
         FLExit("Cannot use petsc 3.6.0 with nullspaces when mat/=pmat")
@@ -1978,14 +1980,24 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
       if (pctype==PCGAMG) then
         ! we think this is a more useful default - the default value of 0.0
         ! causes spurious "unsymmetric" failures as well
+#if PETSC_VERSION_MINOR<8
         call PCGAMGSetThreshold(pc, 0.01, ierr)
+#else
+        ! From petsc v3.8: the threshold can be set at each level, levels that
+        ! are left unspecified are scaled by a factor level-by-level
+        ! I believe the following leads to the same default we were using previously:
+        ! 0.01 is set at level 1 only, and a scaling of 1.0 (i.e. no scaling) is applied
+        ! so that other levels get the same threshold value
+        call PCGAMGSetThresholdScale(pc, 1.0, ierr)
+        call PCGAMGSetThreshold(pc, (/ 0.01/), 1, ierr)
+#endif
         ! this was the old default:
         call PCGAMGSetCoarseEqLim(pc, 800, ierr)
         ! PC setup seems to be required so that the Coarse Eq Lim option is used.
         call PCSetup(pc,ierr)
 
         call MatGetNullSpace(pmat, nullsp, ierr)
-        if (ierr==0  .and. nullsp/=PETSC_NULL_OBJECT) then
+        if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
           ! if the preconditioner matrix has a nullspace, this may still be present
           ! at the coarsest level (the constant null vector always will be, the rotational
           ! are as well if a near-null-space is provided). In this case the default of 
@@ -2444,8 +2456,8 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
     call PCApply(pc, petsc_monitor_x, r, ierr)
     ! within petsc the nullspace is removed directly after pcapply (see KSP_PCApply)
     call MatGetNullSpace(Pmat, nullsp, ierr)
-    if (ierr==0  .and. nullsp/=PETSC_NULL_OBJECT) then
-      call MatNullSpaceRemove(nullsp, r, PETSC_NULL_OBJECT, ierr)
+    if (.not. IsNullMatNullSpace(nullsp) .and. ierr==0) then
+      call MatNullSpaceRemove(nullsp, r, ierr)
     end if
     if (size(petsc_monitor_numbering%gnn2unn,2)==1) then
       call petsc2field(r, petsc_monitor_numbering, petsc_monitor_sfields(3))
@@ -2476,14 +2488,12 @@ function create_null_space_from_options_scalar(mat, null_space_option_path) &
    !! the option path to remove_null_space
    character(len=*), intent(in):: null_space_option_path
 
-   ! hack to satisfy interface for MatNullSpaceCreate
-   ! only works as the array won't actually be used
-   PetscObject, dimension(1:0) :: PETSC_NULL_OBJECT_ARRAY
+   Vec, dimension(1:0) :: ArrayOfZeroVecs
    MatNullSpace :: null_space
    PetscErrorCode :: ierr
    PetscBool :: isnull
 
-   call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_TRUE, 0, PETSC_NULL_OBJECT_ARRAY, null_space, ierr)
+   call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_TRUE, 0, ArrayOfZeroVecs, null_space, ierr)
 
    if(have_option(trim(null_space_option_path)//'/test_null_space')) then
      call MatNullSpaceTest(null_space, mat, isnull, ierr)
