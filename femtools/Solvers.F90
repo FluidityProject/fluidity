@@ -885,7 +885,7 @@ type(vector_field), intent(in), optional :: positions
       ksp_pointer = ksp
       
       ! make sure we don't destroy it, the %ksp becomes a separate reference
-      call PetscObjectReferenceWrapper(ksp, ierr)
+      call PetscObjectReference(ksp, ierr)
     else
       ! matrices coming from block() can't cache
       FLAbort("User wants to cache solver context, but no proper matrix is provided.")
@@ -895,11 +895,11 @@ type(vector_field), intent(in), optional :: positions
   
     ! ksp is a copy of matrix%ksp, make it a separate reference, 
     ! so we can KSPDestroy it without destroying matrix%ksp
-    call PetscObjectReferenceWrapper(ksp, ierr)
+    call PetscObjectReference(ksp, ierr)
     
     ! same for the matrix, kspgetoperators returns the matrix reference
     ! owned by the ksp - make it a separate reference
-    call PetscObjectReferenceWrapper(A, ierr)
+    call PetscObjectReference(A, ierr)
     
   end if
   
@@ -1244,7 +1244,7 @@ logical, optional, intent(in):: nomatrixdump
   ! if a null space is defined for the petsc matrix, make sure it's projected out of the rhs
   call KSPGetOperators(ksp, mat, pmat, ierr)
   call MatGetNullSpace(mat, nullsp, ierr)
-  if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
+  if (ierr==0 .and. nullsp/=PETSC_NULL_MATNULLSPACE) then
     ewrite(2,*) "Projecting nullspace from RHS"
     call MatNullSpaceRemove(nullsp, b, ierr)
   end if
@@ -1724,11 +1724,11 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
       ! At this point KSPSetOperators, has already been called, so if mat has 
       ! a nullspace we want it to be set as the nullspace of the KSP
       call MatGetNullSpace(mat, nullsp, ierr)
-      if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
+      if (ierr==0 .and. nullsp/=PETSC_NULL_MATNULLSPACE) then
         call KSPSetNullSpace(ksp, nullsp, ierr)
       else
         call MatGetNullSpace(pmat, nullsp, ierr)
-        if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
+        if (ierr==0 .and. nullsp/=PETSC_NULL_MATNULLSPACE) then
           FLAbort("Preconditioner matrix has nullspace whereas the matrix itself doesn't")
           ! This is a problem because the nullspace on the preconditioner matrix is now
           ! attached to the ksp already. Not sure how to remove it again; Can I just call
@@ -1743,7 +1743,7 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
     ! in the krylov iteration is from *pmat* not mat (as it is in 3.6.1 and later)
     if (mat/=pmat) then
       call MatGetNullSpace(mat, nullsp, ierr)
-      if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
+      if (ierr==0 .and. nullsp/=PETSC_NULL_MATNULLSPACE) then
         ewrite(0,*) "Matrix and preconditioner matrix are different. For this case nullspaces"
         ewrite(0,*) "and petsc 3.6.0 are not supported. Please upgrade to petsc 3.6.1 or higher"
         FLExit("Cannot use petsc 3.6.0 with nullspaces when mat/=pmat")
@@ -1997,7 +1997,7 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
         call PCSetup(pc,ierr)
 
         call MatGetNullSpace(pmat, nullsp, ierr)
-        if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
+        if (ierr==0 .and. nullsp/=PETSC_NULL_MATNULLSPACE) then
           ! if the preconditioner matrix has a nullspace, this may still be present
           ! at the coarsest level (the constant null vector always will be, the rotational
           ! are as well if a near-null-space is provided). In this case the default of 
@@ -2456,7 +2456,7 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
     call PCApply(pc, petsc_monitor_x, r, ierr)
     ! within petsc the nullspace is removed directly after pcapply (see KSP_PCApply)
     call MatGetNullSpace(Pmat, nullsp, ierr)
-    if (.not. IsNullMatNullSpace(nullsp) .and. ierr==0) then
+    if (ierr==0 .and. nullsp/=PETSC_NULL_MATNULLSPACE) then
       call MatNullSpaceRemove(nullsp, r, ierr)
     end if
     if (size(petsc_monitor_numbering%gnn2unn,2)==1) then

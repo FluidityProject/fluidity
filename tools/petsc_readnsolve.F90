@@ -86,7 +86,7 @@ implicit none
   call PetscViewerDestroy(viewer, ierr)
   if (random_rhs) then
     call PetscRandomCreate(PETSC_COMM_WORLD, pr, ierr)
-    call VecSetRandom(rhs, pr, ierr)
+    call VecSetRandom(rhs, PETSC_NULL_RANDOM, ierr)
     call PetscRandomDestroy(pr, ierr)
   end if
 

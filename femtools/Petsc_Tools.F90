@@ -130,7 +130,6 @@ module Petsc_Tools
 #if PETSC_VERSION_MINOR<7
   public NullPetscViewerAndFormatCreate
 #endif
-  public IsNullMatNullSpace
 
 contains
 
@@ -1344,7 +1343,7 @@ contains
     PetscScalar, dimension(:), allocatable:: row_vals
     integer, dimension(:), allocatable:: row_cols, unn2gnn
     integer private_columns
-    integer i, j, k, ui, rows, columns, entries, ncols, offset, end_of_range
+    integer i, j, k, ui, rows, columns, entries, ncols, offset
     logical parallel
     
     ! get the necessary info about the matrix:
@@ -1353,7 +1352,7 @@ contains
     ! note we're no longer using MAT_INFO for getting local n/o rows and cols
     ! as it's bugged in Petsc < 3.0 and obsoloted thereafter:
     call MatGetLocalSize(matrix, rows, columns, ierr)
-    call MatGetOwnershipRange(matrix, offset, end_of_range, ierr)
+    call MatGetOwnershipRange(matrix, offset, PETSC_NULL_INTEGER, ierr)
     parallel=IsParallel()
 
     if (present(column_numbering)) then
@@ -1572,24 +1571,6 @@ subroutine NullPetscViewerAndFormatCreate(viewer, format, vf, ierr)
 
 end subroutine NullPetscViewerAndFormatCreate
 #endif
-
-function IsNullMatNullSpace(nullsp)
-  ! This function checks whether `nullsp` is a NULL nullspace
-  ! (the equivalent of (MatNullspace *) null in C)
-  MatNullSpace, intent(in) :: nullsp
-  logical :: IsNullMatNullSpace
-
-#if PETSC_VERSION_MINOR>=8
-    ! MatNullSpace(-1) is what is recognized as null in CHKFORTRANNULLOBJECT
-    ! MatNullSpace(0) is what is returned by MatGetNullspace if no nullspace is present
-    ! (because a wrapper on the output is missing, and there isn't a PETSC_NULL_MATNULLSPACE
-    ! in the first place)
-    IsNullMatNullSpace = nullsp%v==-1 .or. nullsp%v==0
-#else
-    IsNullMatNullSpace = nullsp==PETSC_NULL_OBJECT
-#endif
-
-end function IsNullMatNullSpace
 
 #include "Reference_count_petsc_numbering_type.F90"
 end module Petsc_Tools

@@ -66,11 +66,6 @@
 #define PETSC_NULL_VECSCATTER PETSC_NULL_OBJECT
 #define PETSC_NULL_VIEWER PETSC_NULL_OBJECT
 #endif
-#if PETSC_VERSION_MINOR>=8
-#define PetscObjectReferenceWrapper(x, ierr) PetscObjectReference(x%v, ierr)
-#else
-#define PetscObjectReferenceWrapper(x, ierr) PetscObjectReference(x, ierr)
-#endif
 #if PETSC_VERSION_MINOR<8
 #define MatCreateSubMatrix MatGetSubMatrix
 #endif

@@ -413,7 +413,7 @@
         call MatSchurComplementGetKSP(A,ksp_schur,ierr)
 
         ! we keep our own reference, so it can be re-used in the velocity correction solve
-        call PetscObjectReferenceWrapper(ksp_schur, ierr)
+        call PetscObjectReference(ksp_schur, ierr)
         inner_M%ksp = ksp_schur
       else
         ! we have a ksp (presumably from the first velocity solve), try to reuse it

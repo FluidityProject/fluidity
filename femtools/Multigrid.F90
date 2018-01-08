@@ -557,7 +557,7 @@ logical, intent(in), optional :: no_top_smoothing
     call PCMGGetCoarseSolve(prec, ksp_smoother, ierr)
     call KSPGetPC(ksp_smoother, prec_smoother, ierr)
     call MatGetNullSpace(matrix, nullsp, ierr)
-    if (IsParallel() .or. (ierr==0 .and. .not. IsNullMatNullSpace(nullsp))) then
+    if (IsParallel() .or. (ierr==0 .and. nullsp/=PETSC_NULL_MATNULLSPACE)) then
       ! if parallel or if we have a null space: use smoothing instead of direct solve
       call SetupSORSmoother(ksp_smoother, matrices(nolevels), &
         SOR_LOCAL_SYMMETRIC_SWEEP, 20)
@@ -726,14 +726,14 @@ integer, optional, dimension(:), intent(out):: cluster
   double precision, dimension(MAT_INFO_SIZE):: matrixinfo
   integer, dimension(:), allocatable:: findN, N, R
   integer:: nrows, nentries, ncols
-  integer:: jc, ccnt, base, end_of_range
+  integer:: jc, ccnt, base
     
   ! find out basic dimensions of A
   call MatGetLocalSize(A, nrows, ncols, ierr)
   ! use Petsc_Tools's MatGetInfo because of bug in earlier patch levels of petsc 3.0
   call MatGetInfo(A, MAT_LOCAL, matrixinfo, ierr)
   nentries=matrixinfo(MAT_INFO_NZ_USED)
-  call MatGetOwnerShipRange(A, base, end_of_range, ierr)
+  call MatGetOwnerShipRange(A, base, PETSC_NULL_INTEGER, ierr)
   ! we decrease by 1, so base+i gives 0-based petsc index if i is the local fortran index:
   base=base-1
   
@@ -1088,7 +1088,7 @@ Vec, intent(out):: eigvec
   
   ! initial guess
   call PetscRandomCreate(PETSC_COMM_WORLD, pr, ierr)
-  call VecSetRandom(x_k, pr, ierr)
+  call VecSetRandom(x_k, PETSC_NULL_RANDOM, ierr)
   call PetscRandomDestroy(pr, ierr)
 
   rho_k=0.0
