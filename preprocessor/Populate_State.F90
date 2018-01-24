@@ -2564,7 +2564,7 @@ contains
             call zero(aux_vfield)
             call insert(states(p), aux_vfield, trim(aux_vfield%name))
             call deallocate(aux_vfield)
-                   
+
           else if((prescribed).and.(trim(vfield%name)=="Velocity")) then 
 
             call allocate(aux_vfield, vfield%dim, vfield%mesh, "Old"//trim(vfield%name), field_type = vfield%field_type)
