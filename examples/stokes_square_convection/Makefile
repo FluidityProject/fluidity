@@ -8,6 +8,7 @@ preprocess: envcheck
 run:
 	@echo **********To run this case at a grid resolution of 24x24, use make run_24.
 	@echo **********To run this case at a grid resolution of 48x48, use make run_48.
+	@echo **********Note that you need to run both cases.
 
 run_24: envcheck
 	@echo **********Calling fluidity with verbose log output enabled:

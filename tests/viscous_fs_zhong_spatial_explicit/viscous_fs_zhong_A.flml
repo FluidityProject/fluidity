@@ -300,7 +300,9 @@
               <explicit/>
             </no_normal_stress>
             <external_density>
-              <real_value rank="0">2.0</real_value>
+              <constant>
+                <real_value rank="0">2.0</real_value>
+              </constant>
             </external_density>
           </type>
         </boundary_conditions>
