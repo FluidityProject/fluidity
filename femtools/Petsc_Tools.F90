@@ -446,11 +446,10 @@ contains
   end subroutine Array2Petsc
   
   subroutine VectorFields2Petsc(fields, petsc_numbering, vec)
-    !!< Assembles contiguous petsc array using the specified numbering from the given fields.
-    !!< Allocates a petsc Vec that should be destroyed with VecDestroy
+    !!< Assembles field into (previously created) petsc Vec using petsc_numbering for the DOFs of the fields combined
     type(vector_field), dimension(:), intent(in):: fields
     type(petsc_numbering_type), intent(in):: petsc_numbering
-    Vec :: vec
+    Vec, intent(inout) :: vec
   
     integer ierr, nnodp, b, nfields, nnodes
     integer i, j
@@ -497,17 +496,17 @@ contains
   end subroutine VectorFields2Petsc
   
   subroutine VectorField2Petsc(field, petsc_numbering, vec)
-    !!< Assembles contiguous petsc array using the specified numbering from the given field.
+    !!< Assembles given field into (previously created) petsc Vec using petsc_numbering
     type(vector_field), intent(in):: field
     type(petsc_numbering_type), intent(in):: petsc_numbering
-    Vec, intent(out) :: vec
+    Vec, intent(inout) :: vec
   
     call VectorFields2Petsc( (/ field /), petsc_numbering, vec)
     
   end subroutine VectorField2Petsc
   
   subroutine ScalarFields2Petsc(fields, petsc_numbering, vec)
-    !!< Assembles contiguous petsc array using the specified numbering from the given fields.
+    !!< Assembles field into (previously created) petsc Vec using petsc_numbering for the DOFs of the fields combined
     type(scalar_field), dimension(:), intent(in):: fields
     type(petsc_numbering_type), intent(in):: petsc_numbering
     Vec, intent(inout) :: vec
@@ -551,8 +550,7 @@ contains
   end subroutine ScalarFields2Petsc
   
   subroutine ScalarField2Petsc(field, petsc_numbering, vec)
-    !!< Assembles petsc array using the specified numbering.
-    !!< Allocates a petsc Vec that should be destroyed with VecDestroy
+    !!< Assembles given field into (previously created) petsc Vec using petsc_numbering
     type(scalar_field), intent(in):: field
     type(petsc_numbering_type), intent(in):: petsc_numbering
     Vec, intent(inout) :: vec

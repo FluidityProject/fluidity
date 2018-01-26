@@ -1569,7 +1569,7 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
       internal_smoothing_option)
   !!< Sets options for the given ksp according to the options
   !!< in the options tree.
-    KSP, intent(out) :: ksp
+    KSP, intent(inout) :: ksp
     ! PETSc mat and pmat used to solve
     Mat, intent(in):: mat, pmat
     ! path to solver block (including '/solver')
