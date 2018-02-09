@@ -462,6 +462,7 @@ logical, intent(in), optional :: no_top_smoothing
         call PowerMethod(matrices(ri), eigval, eigvec)
         emax(ri)=eigval
         
+        Px = PETSC_NOTANULL_VEC
         call MatCreateVecs(prolongators(ri-1), PETSC_NULL_VEC, Px, ierr)
         call MatMult(prolongators(ri-1), eigvec, Px, ierr)
         call VecNorm(Px, NORM_2, Px2, ierr)
@@ -533,21 +534,8 @@ logical, intent(in), optional :: no_top_smoothing
       
     end do
     
-    ! Create rhs's for coarsest to one but finest level:
-    ! This shouldn't be necessary, but PETSc messes up leaving
-    !   the vector when destroying the preconditioner. 
-    ! (believed fixed in PETSc 3.0.0)
-    do i=0, nolevels-2
-      ri=nolevels-i
-      ! using PETSC_NULL_OBJECT for rvec leaks a reference
-      call MatCreateVecs(matrices(ri), lvec, rvec, ierr)
-      call PCMGSetRHS(prec, i, lvec, ierr)
-      ! Again, this does not yet destroy rhs immediately:
-      call VecDestroy(lvec, ierr)
-      call VecDestroy(rvec, ierr)
-    end do
-      
     ! residual needs to be set if PCMG is used with KSPRICHARDSON
+    lvec = PETSC_NOTANULL_VEC; rvec = PETSC_NOTANULL_VEC
     call MatCreateVecs(matrices(1), lvec, rvec, ierr)
     call PCMGSetR(prec, nolevels-1, lvec, ierr)
     call VecDestroy(lvec, ierr)
@@ -881,6 +869,7 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
   end if
   call MatSetup(P, ierr)
   
+  rowsum_vec = PETSC_NOTANULL_VEC
   call MatCreateVecs(A, rowsum_vec, PETSC_NULL_VEC, ierr)
   call VecPlaceArray(rowsum_vec, Arowsum, ierr)
   call MatGetRowSum(A, rowsum_vec, ierr)
@@ -1084,6 +1073,7 @@ Vec, intent(out):: eigvec
   integer:: i
   PetscRandom:: pr
   
+  x_kp1 = PETSC_NOTANULL_VEC; x_k = PETSC_NOTANULL_VEC
   call MatCreateVecs(matrix, x_kp1, x_k, ierr)
   
   ! initial guess
