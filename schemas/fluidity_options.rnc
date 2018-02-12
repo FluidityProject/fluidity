@@ -325,6 +325,86 @@ start =
                }?
             }?
          },
+	 ## Particle options
+	 element particles {
+	    (
+		  ## Particles with their locations specified via a python function or from a file. Allows particle arrays to be added.
+                  element particle_array {
+                     attribute name { xsd:string },
+                     ## The number of particles prescribed by the python function.
+                     element number_of_particles {
+                        integer
+                     },
+		     (
+		       ##Initial position of particles
+		       element initial_position {
+                          ## Python function prescribing dimensional vector input. Functions should be of the form:
+                          ##
+                          ##  def val(t):
+                          ##     # Function code
+                          ##     return # Return value
+                          ##
+                          ## The return value must have length number_of_particles.
+                          ##
+                          ## *** IMPORTANT NOTE ***
+                          ##
+                          ## The t argument is for future use only - currently particle locations are only set at simulation start.
+                          element python {
+                             python_code
+                          }|
+                          ## File containing the particle positions in binary form
+                          element from_file {
+                             attribute file_name { xsd:string },
+                             ## The format of the input file containing field data.
+                             element format {
+                                element string_value {
+                                   "binary"
+                             	}
+                             }
+                          }|
+                          ## File containing the particle positions in binary form
+                          element from_checkpoint_file {
+                             attribute file_name { xsd:string },
+                             ## The format of the input file containing field data.
+                             element format {
+                                element string_value {
+                                   "binary"
+                              	}
+                             }
+			  }
+                       } 
+                     ),
+		     (
+		       ##Define particle attributes
+		       element attributes {
+		       	  element attribute {
+		             attribute name { xsd:string },
+			     generic_particle_field
+			  }+
+		       }?
+		     )
+                  }+
+	    )*,
+	    (
+               ## By default Fluidity will fail if a particle has left the domain.
+               element fail_outside_domain {
+                  empty
+               }|
+               ## Enable to write NaN values to particle output if a particle has left the domain.
+               element write_nan_outside_domain {
+                  empty
+               }
+            ),
+	    ## Enable to write particle output in ascii format
+            element ascii_output {
+               comment
+            }?,
+            ## Enable to let particles move with the domain if mesh_movement is enabled.
+            element move_with_mesh {
+               empty
+            }?,
+            lagrangian_timestepping
+         }?,
          ## Options dealing with time discretisation
          element timestepping {
             ## Current simulation time. At the start of the simulation this
@@ -3568,6 +3648,50 @@ generic_aliased_field =
       attribute field_name { xsd:string }
    )
 
+generic_particle_field =
+   (
+   ## Constant value
+   element constant {
+      real
+   }|
+   ## Python function prescribing real input. Functions should be of the form:
+   ##
+   ##  def val(X, t):
+   ##     # Function code
+   ##     return # Return value
+   ##
+   ## where X is a tuple of length geometry dimension.
+   element python {
+      python_code
+   }|
+   ## Python function prescribing real input. Functions should be of the form:
+   ##
+   ##  def val (X, t, fields):
+   ##     # Function code
+   ##     return # Return value
+   ##
+   ## where X is a tuple of length geometry dimension.
+   element python_fields {
+      python_code,
+      (
+         ## Field name
+         element field_name {
+            attribute name { xsd:string }
+	 }+
+      )
+   }|
+   ## File containing the particle positions in binary form
+   element from_checkpoint_file {
+      attribute file_name { xsd:string },
+       ## The format of the input file containing field data.
+       element format {
+          element string_value {
+              "binary"
+          }
+       }
+   }
+   )
+   
 # This is the choice of additional scalar field to be solved for
 scalar_field_choice =
    (

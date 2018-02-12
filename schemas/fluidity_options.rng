@@ -400,6 +400,104 @@ NOTE: Requires -v2</a:documentation>
           </element>
         </optional>
       </element>
+      <optional>
+        <element name="particles">
+          <a:documentation>Particle options</a:documentation>
+          <zeroOrMore>
+            <oneOrMore>
+              <element name="particle_array">
+                <a:documentation>Particles with their locations specified via a python function or from a file. Allows particle arrays to be added.</a:documentation>
+                <attribute name="name">
+                  <data type="string"/>
+                </attribute>
+                <element name="number_of_particles">
+                  <a:documentation>The number of particles prescribed by the python function.</a:documentation>
+                  <ref name="integer"/>
+                </element>
+                <element name="initial_position">
+                  <a:documentation>Initial position of particles</a:documentation>
+                  <choice>
+                    <element name="python">
+                      <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+
+The return value must have length number_of_particles.
+
+*** IMPORTANT NOTE ***
+
+The t argument is for future use only - currently particle locations are only set at simulation start.</a:documentation>
+                      <ref name="python_code"/>
+                    </element>
+                    <element name="from_file">
+                      <a:documentation>File containing the particle positions in binary form</a:documentation>
+                      <attribute name="file_name">
+                        <data type="string"/>
+                      </attribute>
+                      <element name="format">
+                        <a:documentation>The format of the input file containing field data.</a:documentation>
+                        <element name="string_value">
+                          <value>binary</value>
+                        </element>
+                      </element>
+                    </element>
+                    <element name="from_checkpoint_file">
+                      <a:documentation>File containing the particle positions in binary form</a:documentation>
+                      <attribute name="file_name">
+                        <data type="string"/>
+                      </attribute>
+                      <element name="format">
+                        <a:documentation>The format of the input file containing field data.</a:documentation>
+                        <element name="string_value">
+                          <value>binary</value>
+                        </element>
+                      </element>
+                    </element>
+                  </choice>
+                </element>
+                <optional>
+                  <element name="attributes">
+                    <a:documentation>Define particle attributes</a:documentation>
+                    <oneOrMore>
+                      <element name="attribute">
+                        <attribute name="name">
+                          <data type="string"/>
+                        </attribute>
+                        <ref name="generic_particle_field"/>
+                      </element>
+                    </oneOrMore>
+                  </element>
+                </optional>
+              </element>
+            </oneOrMore>
+          </zeroOrMore>
+          <choice>
+            <element name="fail_outside_domain">
+              <a:documentation>By default Fluidity will fail if a particle has left the domain.</a:documentation>
+              <empty/>
+            </element>
+            <element name="write_nan_outside_domain">
+              <a:documentation>Enable to write NaN values to particle output if a particle has left the domain.</a:documentation>
+              <empty/>
+            </element>
+          </choice>
+          <optional>
+            <element name="ascii_output">
+              <a:documentation>Enable to write particle output in ascii format</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="move_with_mesh">
+              <a:documentation>Enable to let particles move with the domain if mesh_movement is enabled.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <ref name="lagrangian_timestepping"/>
+        </element>
+      </optional>
       <element name="timestepping">
         <a:documentation>Options dealing with time discretisation</a:documentation>
         <element name="current_time">
@@ -4612,6 +4710,54 @@ i.e. excluding the components</a:documentation>
     <attribute name="field_name">
       <data type="string"/>
     </attribute>
+  </define>
+  <define name="generic_particle_field">
+    <choice>
+      <element name="constant">
+        <a:documentation>Constant value</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="python">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val(X, t):
+    # Function code
+    return # Return value
+
+where X is a tuple of length geometry dimension.</a:documentation>
+        <ref name="python_code"/>
+      </element>
+      <element name="python_fields">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val (X, t, fields):
+    # Function code
+    return # Return value
+
+where X is a tuple of length geometry dimension.</a:documentation>
+        <ref name="python_code"/>
+        <oneOrMore>
+          <element name="field_name">
+            <a:documentation>Field name</a:documentation>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+          </element>
+        </oneOrMore>
+      </element>
+      <element name="from_checkpoint_file">
+        <a:documentation>File containing the particle positions in binary form</a:documentation>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+        <element name="format">
+          <a:documentation>The format of the input file containing field data.</a:documentation>
+          <element name="string_value">
+            <value>binary</value>
+          </element>
+        </element>
+      </element>
+    </choice>
   </define>
   <!-- This is the choice of additional scalar field to be solved for -->
   <define name="scalar_field_choice">
