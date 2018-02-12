@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+   
+  <name>named_boundary</name>
+  <owner userid="jrper"/>
+  <tags>flml libgmsh</tags>
+  
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v2 -l named_boundary.flml</command_line>
+    <!-- This tests Fluidity's capability of enforcing boundary conditions specified using gmsh style names -->
+  </problem_definition>
+  
+  <variables>
+    <variable name="time" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("named_boundary.stat")
+time=s["ElapsedTime"]["value"]
+    </variable>
+            
+    <variable name="velocity" language="python">
+import vtktools
+
+file = vtktools.vtu('named_boundary_0.vtu')
+file.GetFieldNames()
+velocity = file.GetVectorField('Velocity')
+    </variable>
+    
+  </variables>
+    
+  <pass_tests>
+    <test name="Final time is 1 for named_boundary" language="python">
+import fluidity_tools
+fluidity_tools.compare_variable(abs(time[-1]), 1.0, 1.0e-14)
+    </test>
+      
+    <test name="i-th and j-th component of velocity are assigned correctly" language="python">
+import fluidity_tools
+
+nnodes = len(velocity)
+print 'max X error:', max(abs(velocity[:,0]- 1.0))
+print 'max Y error:', max(abs(velocity[:,1]- 0.0))
+assert(all(abs(velocity[:,0]- 1.0)&lt; 1.0e-6))
+assert(all(abs(velocity[:,1])&lt;1.0e-6))
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>

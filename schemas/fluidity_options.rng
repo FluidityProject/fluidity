@@ -3181,10 +3181,18 @@ requires a distinct name for the options dictionary.</a:documentation>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
         </attribute>
-        <element name="surface_ids">
-          <a:documentation>Surface id:</a:documentation>
-          <ref name="integer_vector"/>
-        </element>
+        <choice>
+          <element name="surface_ids">
+            <a:documentation>Surface id:</a:documentation>
+            <ref name="integer_vector"/>
+          </element>
+          <element name="surface_names">
+            <a:documentation>Surface names
+
+Comma delimited list of Gmsh physical names</a:documentation>
+            <ref name="anystring"/>
+          </element>
+        </choice>
         <group>
           <a:documentation>Type</a:documentation>
           <element name="type">
@@ -8576,10 +8584,18 @@ radiation for water and phytoplankton.</a:documentation>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
         </attribute>
-        <element name="surface_ids">
-          <a:documentation>Surface id:</a:documentation>
-          <ref name="integer_vector"/>
-        </element>
+        <choice>
+          <element name="surface_ids">
+            <a:documentation>Surface id:</a:documentation>
+            <ref name="integer_vector"/>
+          </element>
+          <element name="surface_names">
+            <a:documentation>Surface names
+
+Comma delimited list of Gmsh physical names</a:documentation>
+            <ref name="anystring"/>
+          </element>
+        </choice>
         <choice>
           <a:documentation>Type</a:documentation>
           <element name="type">

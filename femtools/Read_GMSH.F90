@@ -31,9 +31,10 @@ module read_gmsh
   ! This module reads GMSH files and results in a vector field of
   ! positions.
 
+  use iso_c_binding
   use fldebug
-  use global_parameters, only : OPTION_PATH_LEN
-  use futils
+  use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
+  use futils, only : copy_c_string_to_fortran
   use quadrature
   use elements
   use spud
@@ -60,12 +61,13 @@ contains
   ! The main function for reading GMSH files
 
   function read_gmsh_simple( filename, quad_degree, &
-       quad_ngi, quad_family, mdim ) &
+       quad_ngi, quad_family, mdim, format_string, &
+        position, metric) &
        result (field)
     !!< Read a GMSH file into a coordinate field.
     !!< In parallel the filename must *not* include the process number.
 
-    character(len=*), intent(in) :: filename
+    character(len=*), intent(in) :: filename, format_string
     !! The degree of the quadrature.
     integer, intent(in), optional, target :: quad_degree
     !! The degree of the quadrature.
@@ -74,6 +76,9 @@ contains
     integer, intent(in), optional :: quad_family
     !! Dimension of mesh
     integer, intent(in), optional :: mdim
+    !!
+    type(vector_field), optional :: position
+    type(tensor_field), optional :: metric
     !! result: a coordinate field
     type(vector_field) :: field
 
@@ -87,23 +92,152 @@ contains
     character(len = parallel_filename_len(filename)) :: lfilename
     integer :: loc, sloc
     integer :: numNodes, numElements, numFaces
-    logical :: haveBounds, haveElementOwners, haveRegionIDs
+    logical(c_bool) :: haveBounds, haveElementOwners,&
+         haveRegionIDs, haveColumns
     integer :: dim, coordinate_dim, gdim
     integer :: gmshFormat
     integer :: n, d, e, f, nodeID
 
+#ifdef HAVE_LIBGMSH
+    integer :: snames
+    type(c_ptr) :: gmodel, gm2, c_str, it
+    integer, allocatable, dimension(:) :: id_list
+    character(len = FIELD_NAME_LEN), dimension(:), allocatable :: name_list
+    real, dimension(:), allocatable :: lcolumn_ids
+#endif
+
     type(GMSHnode), pointer :: nodes(:)
     type(GMSHelement), pointer :: elements(:), faces(:)
 
-
+         
     ! If running in parallel, add the process number
     if(isparallel()) then
-       lfilename = trim(parallel_filename(filename)) // ".msh"
+       lfilename = trim(parallel_filename(filename))&
+            // "." // format_string
     else
-       lfilename = trim(filename) // ".msh"
+       lfilename = trim(filename) // "." // format_string
     end if
 
+#if HAVE_LIBGMSH
+
+    call cgmsh_initialise()
+
+    call cread_gmsh_file(gmodel, trim(lfilename)//c_null_char)
+    
+    if (format_string == "geo") then
+       if (present(metric) ) then
+          call position_to_gmodel(position, gm2)
+          call tensor_field_to_pview(gm2, metric)
+          call cmesh_gmsh_file(gmodel, trim(metric%name)//c_null_char)
+       else
+          call cmesh_gmsh_file(gmodel,c_null_char)
+       end if
+    end if
+
+    call cread_gmsh_sizes(gmodel, numNodes, numFaces, numElements,&
+         haveRegionIDs, haveBounds, haveElementOwners, &
+         haveColumns, dim, loc, sloc) 
+
+    if (present(mdim)) then
+       coordinate_dim = mdim
+    else if(have_option("/geometry/spherical_earth") ) then
+      ! on the n-sphere the input mesh may be 1/2d (extrusion), or 3d but
+      ! Coordinate is always geometry dimensional
+      call get_option('/geometry/dimension', gdim)
+      coordinate_dim  = gdim
+    else
+      coordinate_dim  = dim
+    end if
+
+    if (present(quad_degree)) then
+       quad = make_quadrature(loc, dim, degree=quad_degree, family=quad_family)
+    else if (present(quad_ngi)) then
+       quad = make_quadrature(loc, dim, ngi=quad_ngi, family=quad_family)
+    else
+       FLAbort("Need to specify either quadrature degree or ngi")
+    end if
+    shape=make_element_shape(loc, dim, 1, quad)
+    call allocate(mesh, numNodes, numElements, shape, name="CoordinateMesh")
+    call allocate( field, coordinate_dim, mesh, name="Coordinate")
+
+    snames = cgmsh_count_physical_names(gmodel, dim-1)
+    if (snames>0) then
+       allocate(name_list(snames+1), id_list(snames+1))
+       n = 1
+       it = c_null_ptr
+       do while (cget_gmsh_physical_name(gmodel,it, dim-1, id_list(n), c_str))
+          call copy_c_string_to_fortran(c_str, name_list(n))
+          n = n+1
+       end do
+       call set_surface_names(field%mesh, name_list(1:snames), id_list(1:snames))
+    end if
+
+    ! deallocate our references of mesh, shape and quadrature:
+    call deallocate(mesh)
+    call deallocate(shape)
+    call deallocate(quad)
+
+    if (haveRegionIDs) then
+      allocate( field%mesh%region_ids(numElements) )
+    end if
+    if(haveColumns) then
+       allocate(field%mesh%columns(1:numNodes), lcolumn_ids(1:numNodes))
+    end if
+
+    call cread_gmsh_element_connectivity(gmodel, numElements, loc,&
+         field%mesh%ndglno, field%mesh%region_ids)
+
+    call cread_gmsh_points(gmodel, coordinate_dim, numNodes, field%val)
+
+    ! Now faces
+    allocate(sndglno(1:numFaces*sloc))
+    sndglno=0
+    if(haveBounds) then
+      allocate(boundaryIDs(1:numFaces))
+    end if
+    if(haveElementOwners) then
+      allocate(faceOwner(1:numFaces))
+    end if
+
+
+    call cread_gmsh_face_connectivity(gmodel, numFaces, sloc, &
+         sndglno, haveBounds, boundaryIDs, &
+         haveElementOwners, faceOwner)
+
+    ! If we've got boundaries, do something
+    if( haveBounds ) then
+       if ( haveElementOwners ) then
+          call add_faces( field%mesh, &
+               sndgln = sndglno(1:numFaces*sloc), &
+               boundary_ids = boundaryIDs(1:numFaces), &
+               element_owner=faceOwner )
+       else
+          call add_faces( field%mesh, &
+               sndgln = sndglno(1:numFaces*sloc), &
+               boundary_ids = boundaryIDs(1:numFaces) )
+       end if
+    else
+       ewrite(2,*) "WARNING: no boundaries in GMSH file "//trim(lfilename)
+       call add_faces( field%mesh, sndgln = sndglno(1:numFaces*sloc) )
+    end if
+
+    if (haveColumns) then
+       call cread_gmsh_node_data(gmodel,"column_ids"//c_null_char,&
+            lcolumn_ids, 0)
+       field%mesh%columns = lcolumn_ids
+    end if
+
+    call cgmsh_finalise(gmodel)
+
+    deallocate(sndglno)
+    if (haveBounds) deallocate(boundaryIDs)
+    if (haveElementOwners) deallocate(faceOwner)    
+
+#else
     fd = free_unit()
+
+    if (format_string == "geo") &
+         FLAbort("Fluidity must be built with libgmsh support to read .geo files")
 
     ! Open node file
     ewrite(2, *) "Opening "//trim(lfilename)//" for reading."
@@ -173,7 +307,16 @@ contains
       haveRegionIDs = .false.
     
     end if
-    
+
+    loc = size( elements(1)%nodeIDs )
+    if (numFaces>0) then
+      sloc = size( faces(1)%nodeIDs )
+    else
+      sloc = 0
+    end if
+
+    ! Now construct within Fluidity data structures
+
     if (present(mdim)) then
        coordinate_dim = mdim
     else if(have_option("/geometry/spherical_earth") ) then
@@ -184,15 +327,6 @@ contains
     else
       coordinate_dim  = dim
     end if
-
-    loc = size( elements(1)%nodeIDs )
-    if (numFaces>0) then
-      sloc = size( faces(1)%nodeIDs )
-    else
-      sloc = 0
-    end if
-
-    ! Now construct within Fluidity data structures
 
     if (present(quad_degree)) then
        quad = make_quadrature(loc, dim, degree=quad_degree, family=quad_family)
@@ -279,6 +413,8 @@ contains
     deallocate(nodes)
     deallocate(faces)
     deallocate(elements)
+
+#endif
 
     return
 

@@ -6,10 +6,18 @@
       <attribute name="name">
         <data type="string" datatypeLibrary=""/>
       </attribute>
-      <element name="surface_ids">
-        <a:documentation>Surface id:</a:documentation>
-        <ref name="integer_vector"/>
-      </element>
+      <choice>
+        <element name="surface_ids">
+          <a:documentation>Surface id:</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+        <element name="surface_names">
+          <a:documentation>Surface names
+
+Comma delimited list of Gmsh physical names</a:documentation>
+          <ref name="anystring"/>
+        </element>
+      </choice>
       <choice>
         <a:documentation>Type</a:documentation>
         <element name="type">
@@ -1447,10 +1455,18 @@ requires a distinct name for the options dictionary.</a:documentation>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
         </attribute>
-        <element name="surface_ids">
-          <a:documentation>Surface id:</a:documentation>
-          <ref name="integer_vector"/>
-        </element>
+        <choice>
+          <element name="surface_ids">
+            <a:documentation>Surface id:</a:documentation>
+            <ref name="integer_vector"/>
+          </element>
+          <element name="surface_names">
+            <a:documentation>Surface names
+
+Comma delimited list of Gmsh physical names</a:documentation>
+            <ref name="anystring"/>
+          </element>
+        </choice>
         <ref name="velocity_boundary_conditions"/>
       </element>
     </zeroOrMore>
@@ -1949,10 +1965,18 @@ requires a distinct name for the options dictionary.</a:documentation>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
         </attribute>
-        <element name="surface_ids">
-          <a:documentation>Surface id:</a:documentation>
-          <ref name="integer_vector"/>
-        </element>
+        <choice>
+          <element name="surface_ids">
+            <a:documentation>Surface id:</a:documentation>
+            <ref name="integer_vector"/>
+          </element>
+          <element name="surface_names">
+            <a:documentation>Surface names
+
+Comma delimited list of Gmsh physical names</a:documentation>
+            <ref name="anystring"/>
+          </element>
+        </choice>
         <element name="type">
           <a:documentation>Type</a:documentation>
           <attribute name="name">
@@ -2083,10 +2107,18 @@ this only makes sense when excluding coriolis.</a:documentation>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
         </attribute>
-        <element name="surface_ids">
-          <a:documentation>Surface id:</a:documentation>
-          <ref name="integer_vector"/>
-        </element>
+        <choice>
+          <element name="surface_ids">
+            <a:documentation>Surface id:</a:documentation>
+            <ref name="integer_vector"/>
+          </element>
+          <element name="surface_names">
+            <a:documentation>Surface names
+
+Comma delimited list of Gmsh physical names</a:documentation>
+            <ref name="anystring"/>
+          </element>
+        </choice>
         <element name="type">
           <a:documentation>Type</a:documentation>
           <attribute name="name">
@@ -2123,10 +2155,18 @@ This is normally be a homogeneous bc on the top surface.</a:documentation>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
         </attribute>
-        <element name="surface_ids">
-          <a:documentation>Surface id:</a:documentation>
-          <ref name="integer_vector"/>
-        </element>
+        <choice>
+          <element name="surface_ids">
+            <a:documentation>Surface id:</a:documentation>
+            <ref name="integer_vector"/>
+          </element>
+          <element name="surface_names">
+            <a:documentation>Surface names
+
+Comma delimited list of Gmsh physical names</a:documentation>
+            <ref name="anystring"/>
+          </element>
+        </choice>
         <element name="type">
           <a:documentation>Type</a:documentation>
           <attribute name="name">
@@ -2272,10 +2312,18 @@ requires a distinct name for the options dictionary.</a:documentation>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
         </attribute>
-        <element name="surface_ids">
-          <a:documentation>Surface id:</a:documentation>
-          <ref name="integer_vector"/>
-        </element>
+        <choice>
+          <element name="surface_ids">
+            <a:documentation>Surface id:</a:documentation>
+            <ref name="integer_vector"/>
+          </element>
+          <element name="surface_names">
+            <a:documentation>Surface names
+
+Comma delimited list of Gmsh physical names</a:documentation>
+            <ref name="anystring"/>
+          </element>
+        </choice>
         <choice>
           <a:documentation>Type</a:documentation>
           <element name="type">
@@ -2374,10 +2422,18 @@ Only applicable to control volume spatial discretisations.</a:documentation>
       <attribute name="name">
         <data type="string" datatypeLibrary=""/>
       </attribute>
-      <element name="surface_ids">
-        <a:documentation>Surface id:</a:documentation>
-        <ref name="integer_vector"/>
-      </element>
+      <choice>
+        <element name="surface_ids">
+          <a:documentation>Surface id:</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+        <element name="surface_names">
+          <a:documentation>Surface names
+
+Comma delimited list of Gmsh physical names</a:documentation>
+          <ref name="anystring"/>
+        </element>
+      </choice>
       <element name="primary_boundary">
         <a:documentation>The streamfunction will be zero on the primary boundary. There must be exactly one primary boundary.</a:documentation>
         <empty/>
@@ -2400,10 +2456,18 @@ Only applicable to control volume spatial discretisations.</a:documentation>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
         </attribute>
-        <element name="surface_ids">
-          <a:documentation>Surface id:</a:documentation>
-          <ref name="integer_vector"/>
-        </element>
+        <choice>
+          <element name="surface_ids">
+            <a:documentation>Surface id:</a:documentation>
+            <ref name="integer_vector"/>
+          </element>
+          <element name="surface_names">
+            <a:documentation>Surface names
+
+Comma delimited list of Gmsh physical names</a:documentation>
+            <ref name="anystring"/>
+          </element>
+        </choice>
         <element name="secondary_boundary">
           <a:documentation>Secondary boundaries have a value given by the flux between this boundary and the primary boundary.  </a:documentation>
           <element name="primary_point">

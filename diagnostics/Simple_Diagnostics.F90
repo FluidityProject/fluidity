@@ -54,8 +54,10 @@ module simple_diagnostics
 
   public :: calculate_temporalmax_scalar, calculate_temporalmax_vector, calculate_temporalmin, calculate_l2norm, &
             calculate_time_averaged_scalar, calculate_time_averaged_vector, &
+            calculate_time_averaged_tensor, &
             calculate_time_averaged_scalar_squared, &
-            calculate_time_averaged_vector_times_scalar, calculate_period_averaged_scalar
+            calculate_time_averaged_vector_times_scalar, calculate_period_averaged_scalar, &
+            initialise_diagnostic_from_checkpoint
 
   ! for the period_averaged_scalar routine
   real, save :: last_output_time
@@ -313,6 +315,39 @@ contains
       call set(v_field, source_field)
     end if
   end subroutine calculate_time_averaged_vector
+
+  subroutine calculate_time_averaged_tensor(state, t_field)
+    type(state_type), intent(in) :: state
+    type(tensor_field), intent(inout) :: t_field
+
+    type(tensor_field), pointer :: source_field
+    real :: a, b, spin_up_time, current_time, dt
+    integer :: stat
+    logical :: absolute_vals
+
+    if (timestep==0) then 
+      call initialise_diagnostic_from_checkpoint(t_field)
+      return
+    end if
+
+    call get_option("/timestepping/current_time", current_time)
+    call get_option("/timestepping/timestep", dt)
+
+    absolute_vals=have_option(trim(t_field%option_path)//"/diagnostic/algorithm/absolute_values")
+    call get_option(trim(t_field%option_path)//"/diagnostic/algorithm/spin_up_time", spin_up_time, stat)
+    if (stat /=0) spin_up_time=0.
+    source_field => tensor_source_field(state, t_field)
+    if(absolute_vals) source_field%val = abs(source_field%val)
+
+    if (current_time>spin_up_time) then
+      a = (current_time-spin_up_time-dt)/(current_time-spin_up_time); b = dt/(current_time-spin_up_time)
+      ! v_field = a*v_field + b*source_field
+      call scale(t_field, a)
+      call addto(t_field, source_field, b)
+    else
+      call set(t_field, source_field)
+    end if
+  end subroutine calculate_time_averaged_tensor
 
   subroutine calculate_time_averaged_scalar_squared(state, s_field)
     type(state_type), intent(in) :: state

@@ -110,8 +110,10 @@ contains
 
     case("gmsh")
        field = read_gmsh_file(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
-            quad_family=quad_family, mdim=mdim)
-
+            quad_family=quad_family, mdim=mdim, format_string="msh")
+    case("geo")
+       field = read_gmsh_file(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
+            quad_family=quad_family, mdim=mdim, format_string="geo")
     case("exodusii")
 #ifdef HAVE_LIBEXOIIV2C
        field = read_exodusii_file(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &

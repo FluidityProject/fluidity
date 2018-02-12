@@ -1430,6 +1430,30 @@ Water::Velocity</a:documentation>
       </attribute>
     </element>
   </define>
+  <define name="interpolation_metric_algorithm">
+    <element name="algorithm">
+      <a:documentation>give the metric which the adaptivity routine would generate
+at the current time level</a:documentation>
+      <attribute name="name">
+        <value>interpolation_metric</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>multiple</value>
+      </attribute>
+    </element>
+  </define>
+  <define name="minimum_metric_algorithm">
+    <element name="algorithm">
+      <a:documentation>give the strictest metric which the adaptivity routine would generate
+for the current simulation</a:documentation>
+      <attribute name="name">
+        <value>minimum_metric</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>multiple</value>
+      </attribute>
+    </element>
+  </define>
   <define name="field_tolerance_algorithm">
     <element name="algorithm">
       <a:documentation>From a field on a mesh, diagnose the anisotropic
@@ -2079,6 +2103,31 @@ This field needs to be interpolated between adapts.</a:documentation>
       </optional>
     </element>
   </define>
+  <define name="tensor_time_averaged_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm for time averaging tensor fields.
+This field needs to be interpolated between adapts.</a:documentation>
+      <attribute name="name">
+        <value>time_averaged_tensor</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="tensor_source_field"/>
+      <optional>
+        <element name="spin_up_time">
+          <a:documentation>When to start sampling?  Defaults to simulation start time.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="absolute_values">
+          <a:documentation>If enabled, the average of the absolute value is taken</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </optional>
+    </element>
+  </define>
   <!-- surface algorithm -->
   <define name="surface_horizontal_divergence_algorithm">
     <element name="algorithm">
@@ -2283,10 +2332,19 @@ a horizontal vector living on the specified surface.</a:documentation>
     <ref name="tensor_copy_algorithm"/>
   </define>
   <define name="tensor_diagnostic_algorithms" combine="choice">
+    <ref name="tensor_time_averaged_algorithm"/>
+  </define>
+  <define name="tensor_diagnostic_algorithms" combine="choice">
     <ref name="grad_vector_algorithm"/>
   </define>
   <define name="tensor_diagnostic_algorithms" combine="choice">
     <ref name="strain_rate_algorithm"/>
+  </define>
+  <define name="tensor_diagnostic_algorithms" combine="choice">
+    <ref name="minimum_metric_algorithm"/>
+  </define>
+  <define name="tensor_diagnostic_algorithms" combine="choice">
+    <ref name="interpolation_metric_algorithm"/>
   </define>
   <define name="tensor_diagnostic_algorithms" combine="choice">
     <ref name="hessian_algorithm"/>

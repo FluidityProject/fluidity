@@ -50,6 +50,11 @@ module fields_data_types
   integer, public, parameter :: FIELD_TYPE_NORMAL=0, FIELD_TYPE_CONSTANT=1, FIELD_TYPE_PYTHON=2, &
     FIELD_TYPE_DEFERRED=3
 
+  type surface_name
+     integer :: id
+     character (len=FIELD_NAME_LEN) :: name
+  end type surface_name
+
   type adjacency_cache
     type(csr_sparsity), pointer :: nnlist => null()
     type(csr_sparsity), pointer :: nelist => null()
@@ -89,6 +94,8 @@ module fields_data_types
      !! A list of ids marking different parts of the mesh
      !! so that initial conditions can be associated with it.
      integer, dimension(:), pointer :: region_ids=>null()
+     !! list mapping surface names to ids
+     type(surface_name), dimension(:), pointer :: surface_names=>null()
      !! Halo information for parallel simulations.
      type(halo_type), dimension(:), pointer :: halos=>null()
      type(halo_type), dimension(:), pointer :: element_halos=>null()

@@ -30,7 +30,8 @@
 module write_gmsh
 
   use fldebug
-
+  
+  use iso_c_binding
   use global_parameters, only : OPTION_PATH_LEN
   use futils
   use elements
@@ -51,7 +52,7 @@ module write_gmsh
   end interface
 
   ! Writes to GMSH binary format - can set to ASCII (handy for debugging)
-  logical, parameter  :: useBinaryGMSH=.true.
+  logical(c_bool), parameter  :: useBinaryGMSH=.true.
 
 contains
 
@@ -82,8 +83,39 @@ contains
 
   end subroutine write_mesh_to_gmsh
 
+  ! -----------------------------------------------------------------
 
+#ifdef HAVE_LIBGMSH
 
+  subroutine write_libgmsh(filename, positions)
+
+    character(len=*), intent(in):: filename
+    type(vector_field), intent(in):: positions
+
+    character(len=longStringLen) :: meshFile
+    type(c_ptr) :: gmodel, pvdata
+
+    call cgmsh_initialise()
+
+    call position_to_gmodel(positions, gmodel)
+
+    meshFile = trim(filename) // ".msh"
+    
+    call cwrite_gmsh_file(gmodel, useBinaryGMSH, trim(meshFile)//c_null_char)
+
+    if (associated(positions%mesh%columns)) then
+       call cdata_to_pview_node_data(gmodel, pvdata, &
+            node_count(positions), real(positions%mesh%columns), &
+            "column_ids"//c_null_char,1)
+       call cwrite_gmsh_data_file(pvdata, useBinaryGMSH, &
+            trim(meshFile)//c_null_char)
+    end if
+
+    call cgmsh_finalise(gmodel)
+
+  end subroutine write_libgmsh
+
+#endif
 
   ! -----------------------------------------------------------------
 
@@ -105,6 +137,16 @@ contains
     else
       numParts = getnprocs()
     end if
+
+#ifdef HAVE_LIBGMSH
+
+    if( getprocno() <= numParts ) then
+
+       call write_libgmsh(filename, positions)
+
+    end if
+
+#else
     
     ! Write out data only for those processes that contain data - SPMD requires
     ! that there be no early return    
@@ -135,7 +177,9 @@ contains
       ! Close GMSH file
       close( fileDesc )
 
-    end if
+   end if
+
+#endif
       
     return
 
@@ -151,7 +195,7 @@ contains
   subroutine write_gmsh_header( fd, lfilename, useBinaryGMSH )
     integer :: fd
     character(len=*) :: lfilename
-    logical :: useBinaryGMSH
+    logical(c_bool) :: useBinaryGMSH
     character(len=999) :: GMSHVersionStr, GMSHFileFormat, GMSHdoubleNumBytes
 
     integer, parameter :: oneInt = 1
@@ -196,7 +240,7 @@ contains
     character(len=longStringLen) :: charBuf
     character(len=longStringLen) :: idStr, xStr, yStr, zStr
     type(vector_field), intent(in):: field
-    logical :: useBinaryGMSH
+    logical(c_bool) :: useBinaryGMSH
     integer numNodes, numDimen, numCoords, i, j
     real :: coords(3)
 
@@ -254,7 +298,7 @@ contains
        useBinaryGMSH )
     ! Writes out elements for the given mesh
     type(mesh_type), intent(in):: mesh
-    logical :: useBinaryGMSH
+    logical(c_bool) :: useBinaryGMSH
 
     character(len=*) :: lfilename
     character(len=longStringLen) :: charBuf
@@ -364,17 +408,17 @@ contains
        case (2)
 
           if(useBinaryGMSH) then
-             write(fd, err=301) f, surface_element_id(mesh, f), 0, lnodelist
+             write(fd, err=301) f, surface_element_id(mesh, f), f, lnodelist
           else
-             write(fd, 6969, err=301) f, faceType, numTags, surface_element_id(mesh, f), 0, lnodelist
+             write(fd, 6969, err=301) f, faceType, numTags, surface_element_id(mesh, f), f, lnodelist
           end if
           
        case (4)
          
           if(useBinaryGMSH) then
-             write(fd, err=301) f, surface_element_id(mesh, f), 0, 0, face_ele(mesh, f), lnodelist
+             write(fd, err=301) f, surface_element_id(mesh, f), f, 0, face_ele(mesh, f), lnodelist
           else
-             write(fd, 6969, err=301) f, faceType, numTags, surface_element_id(mesh,f), 0, 0, &
+             write(fd, 6969, err=301) f, faceType, numTags, surface_element_id(mesh,f), f, 0, &
                   face_ele(mesh,f), lnodelist
           end if
           
@@ -401,19 +445,19 @@ contains
        if(associated(mesh%region_ids)) then
          
           if(useBinaryGMSH) then
-             write(fd, err=301) elemID, ele_region_id(mesh, e), 0, lnodelist
+             write(fd, err=301) elemID, ele_region_id(mesh, e), e, lnodelist
           else
              write(fd, 6969, err=301) elemID, elemType, 2, &
-                  ele_region_id(mesh, e), 0, lnodelist
+                  ele_region_id(mesh, e), e, lnodelist
           end if
           
        else
 
           if(useBinaryGMSH) then
-             write(fd, err=301) elemID, 0, 0, lnodelist
+             write(fd, err=301) elemID, 0, e, lnodelist
           else
              write(fd, 6969, err=301) elemID, elemType, 2, &
-                  0, 0, lnodelist
+                  0, e, lnodelist
           end if
 
        end if
@@ -445,7 +489,7 @@ contains
     integer :: fd
     character(len=*) :: meshFile
     type(vector_field), intent(in) :: field
-    logical :: useBinaryGMSH
+    logical(c_bool) :: useBinaryGMSH
 
     character(len=longStringLen) :: charBuf
     integer :: numNodes, timeStepNum, numComponents, i

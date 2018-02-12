@@ -443,7 +443,8 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	differentiate\_vtu          		& \ref{sec:differentiate_vtu}		\\
 	edge\_length\_distribution		& \ref{sec:edgelengthdist} 		\\
 	encode                  		& \ref{sec:encode} 	        	\\
-	fladapt					& \ref{sec:fladapt}			\\
+        fladapt					& \ref{sec:fladapt}			\\
+        flboundadapt			        & \ref{sec:flboundadapt}		\\
 	fldecomp				& \ref{sec:fldecomp}			\\
 	fldiagnostics				& \ref{sec:fldiagnostics}		\\
 	flredecomp				& \ref{sec:flredecomp}			\\
@@ -702,6 +703,19 @@ fladapt performs a single mesh adapt based on the input options file (which may 
 fladapt [options] INPUT OUTPUT
 \end{lstlisting}
 where \lstinline[language = Bash]+INPUT+ is the name of the input options file and \lstinline[language = Bash]+OUPUT+ is the name of the generated mesh. The flag \lstinline[language = Bash]+-v+ flag enables verbose output and the flag \lstinline[language = Bash]+-h+ flag displays the help message.
+
+%%%%%%%%%%%%%%%%%%%%%%%%% FLBOUMDADAPT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{flboundadapt}
+\label{sec:flboundadapt}
+flbounadapt (only available if \fluidity is compiled with libgmsh support) performs a remeshing of an input geometry based on an input options file (which may be a checkpoint) and outputs the resulting mesh. It is run from the command line:
+
+\begin{lstlisting}[language = Bash]
+flboundadapt [options] INPUT MESH OUTPUT
+\end{lstlisting}
+where \lstinline[language = Bash]+INPUT+ is the name of the input options file, \lstinline[language = Bash]+MESH+ is the name of the input Gmsh geometry (without the \lstinline[language = Bash]+.geo+ suffix) and \lstinline[language = Bash]+OUPUT+ is the name of the generated mesh. The flag \lstinline[language = Bash]+-v+ flag enables verbose output and the flag \lstinline[language = Bash]+-h+ flag displays the help message.
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%% FLDECOMP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

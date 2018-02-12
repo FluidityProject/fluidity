@@ -75,6 +75,7 @@ SUPERMESH_DIFFERENCE=../bin/supermesh_difference
 DIFFERENTIATE_VTU=../bin/differentiate_vtu
 VTU_BINS=../bin/vtu_bins
 FLADAPT=../bin/fladapt
+FLBOUNDADAPT=../bin/flboundadapt
 VTKPROJECTION=../bin/vtk_projection
 PERIODISE=../bin/periodise
 
@@ -94,6 +95,9 @@ ifeq (@GFORTRAN_4_5_OR_NEWER@,yes)
 BINARIES += $(VISUALISE_ELEMENTS)
 endif
 
+ifeq (@HAVE_LIBGMSH@,yes)
+BINARIES += $(FLBOUNDADAPT)
+endif
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a 
 
@@ -206,6 +210,9 @@ $(VTU_BINS): Vtu_Bins.o Vtu_Bins_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(FLADAPT): Fladapt.o Fladapt_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(FLBOUNDADAPT): Flboundadapt.o Flboundadapt_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(UNIFIEDMESH): unifiedmesh.o unifiedmesh_main.o lib/

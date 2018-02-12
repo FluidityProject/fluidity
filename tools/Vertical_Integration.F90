@@ -78,7 +78,7 @@ subroutine vertical_integration(target_basename_, target_basename_len, &
   ! Step 1: Read in the data
   write(*,*) target_basename, output_basename, integrated_filename
 
-  positions_b_surf = read_gmsh_file(target_basename, quad_degree = quad_degree)
+  positions_b_surf = read_gmsh_file(target_basename, quad_degree = quad_degree,format_string="msh")
   dim = positions_b_surf%dim + 1
 
   call vtk_read_state(integrated_filename, state_a, quad_degree = quad_degree)

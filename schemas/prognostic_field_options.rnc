@@ -3,10 +3,19 @@ scalar_boundary_conditions =
       ## Boundary conditions
       element boundary_conditions {
          attribute name { string },
-         ## Surface id:
-         element surface_ids {
-            integer_vector
-         },
+         (
+            ## Surface id:
+            element surface_ids {
+               integer_vector
+            }
+         |
+            ## Surface names
+            ## 
+            ## Comma delimited list of Gmsh physical names
+            element surface_names {
+               anystring
+            }
+         ),
          ## Type
          (
             element type {
@@ -1186,10 +1195,19 @@ prognostic_velocity_field =
       ## Boundary conditions
       element boundary_conditions {
          attribute name { string },
-         ## Surface id:
-         element surface_ids {
-            integer_vector
-         },
+         (
+            ## Surface id:
+            element surface_ids {
+               integer_vector
+            }
+         |
+            ## Surface names
+            ## 
+            ## Comma delimited list of Gmsh physical names
+            element surface_names {
+               anystring
+            }
+         ),
          velocity_boundary_conditions
       }*,
       ## For a Newtonian fluid this is the shear viscosity.
@@ -1570,10 +1588,19 @@ prognostic_pressure_field =
       )*,
       element boundary_conditions {
          attribute name { string },
-         ## Surface id:
-         element surface_ids {
-            integer_vector
-         },
+         (
+            ## Surface id:
+            element surface_ids {
+               integer_vector
+            }
+         |
+            ## Surface names
+            ## 
+            ## Comma delimited list of Gmsh physical names
+            element surface_names {
+               anystring
+            }
+         ),
          ## Type
          element type {
             attribute name { "dirichlet" },
@@ -1674,10 +1701,19 @@ prognostic_geostrophic_pressure_field =
       ## this only makes sense when excluding coriolis.
       element boundary_conditions {
          attribute name { string },
-         ## Surface id:
-         element surface_ids {
-            integer_vector
-         },
+         (
+            ## Surface id:
+            element surface_ids {
+               integer_vector
+            }
+         |
+            ## Surface names
+            ## 
+            ## Comma delimited list of Gmsh physical names
+            element surface_names {
+               anystring
+            }
+         ),
          ## Type
          element type {
             attribute name { "dirichlet" },
@@ -1706,10 +1742,19 @@ prognostic_vertical_balance_pressure_field =
       ## This is normally be a homogeneous bc on the top surface.
       element boundary_conditions {
          attribute name { string },
-         ## Surface id:
-         element surface_ids {
-            integer_vector
-         },
+         (
+            ## Surface id:
+            element surface_ids {
+               integer_vector
+            }
+         |
+            ## Surface names
+            ## 
+            ## Comma delimited list of Gmsh physical names
+            element surface_names {
+               anystring
+            }
+         ),
          ## Type
          element type {
             attribute name { "dirichlet" },
@@ -1836,10 +1881,19 @@ prognostic_foam_velocity_potential_field =
       element boundary_conditions {
          attribute replaces { "boundary, TTPER1 TTPER2 TTPERI" },
          attribute name { string },
-         ## Surface id:
-         element surface_ids {
-            integer_vector
-         },
+         (
+            ## Surface id:
+            element surface_ids {
+               integer_vector
+            }
+         |
+            ## Surface names
+            ## 
+            ## Comma delimited list of Gmsh physical names
+            element surface_names {
+               anystring
+            }
+         ),
          ## Type
          (
             element type {
@@ -1920,10 +1974,19 @@ prognostic_multipath_stream_function_field =
       ## Boundary conditions
       element boundary_conditions {
          attribute name { string },
-         ## Surface id:
-         element surface_ids {
-            integer_vector
-         },
+         (
+            ## Surface id:
+            element surface_ids {
+               integer_vector
+            }
+         |
+            ## Surface names
+            ## 
+            ## Comma delimited list of Gmsh physical names
+            element surface_names {
+               anystring
+            }
+         ),
          ## The streamfunction will be zero on the primary boundary. There must be exactly one primary boundary.
           element primary_boundary{
             empty
@@ -1941,10 +2004,19 @@ prognostic_multipath_stream_function_field =
       ## Boundary conditions
       element boundary_conditions {
          attribute name { string },
-         ## Surface id:
-         element surface_ids {
-            integer_vector
-         },
+         (
+            ## Surface id:
+            element surface_ids {
+               integer_vector
+            }
+         |
+            ## Surface names
+            ## 
+            ## Comma delimited list of Gmsh physical names
+            element surface_names {
+               anystring
+            }
+         ),
          ## Secondary boundaries have a value given by the flux between this boundary and the primary boundary.  
          element secondary_boundary{
             ## A point on or behind the primary boundary *from* which the flux line should extend. 

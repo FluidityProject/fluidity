@@ -47,7 +47,7 @@ subroutine gmsh2vtu(filename_, filename_len) bind(c)
     filename(i:i)=filename_(i)
   end do
 
-  positions=read_gmsh_file(filename, quad_degree=3)
+  positions=read_gmsh_file(filename, quad_degree=3, format_string="msh")
 
   if (associated(positions%mesh%region_ids)) then
      regions=piecewise_constant_field(positions%mesh, name="Regions")

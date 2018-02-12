@@ -98,7 +98,7 @@ module field_options
      & extract_pressure_mesh, extract_velocity_mesh, &
      & postprocess_periodic_mesh, get_diagnostic_coordinate_field, &
      & get_nodal_coordinate_field, extract_prognostic_pressure, &
-     & extract_prognostic_velocity
+     & extract_prognostic_velocity, get_surface_ids
 
   integer, parameter, public :: FIELD_EQUATION_UNKNOWN                   = 0, &
                                 FIELD_EQUATION_ADVECTIONDIFFUSION        = 1, &
@@ -1336,5 +1336,30 @@ contains
   end if
 
   end function extract_prognostic_velocity
+
+  subroutine get_surface_ids(bc_path, mesh, surface_ids)
+    character(len=*), intent(in) ::  bc_path
+    type(mesh_type) :: mesh
+    integer, dimension(:), allocatable, intent(out) :: surface_ids
+    integer shape_option(2)
+    character(len = OPTION_PATH_LEN) :: surface_names
+    character(len = FIELD_NAME_LEN), dimension(:), allocatable :: name_list
+
+    !! subroutine reads the set of integral surface ids from a
+    !! boundary condition path in an options file, performing
+    !! a lookup of named boundaries if necessary
+
+    if (have_option(bc_path//"/surface_ids")) then
+       shape_option=option_shape(bc_path//"/surface_ids")
+       allocate(surface_ids(1:shape_option(1)))
+       call get_option(bc_path//"/surface_ids", surface_ids)
+    else if (have_option(bc_path//"/surface_names")) then
+       call get_option(bc_path//"/surface_names", surface_names)
+       call tokenize(trim(surface_names), name_list, ",")
+       allocate(surface_ids(size(name_list)))
+       call get_surface_ids_from_names(mesh, name_list, surface_ids)
+    end if
+
+  end subroutine get_surface_ids
 
 end module field_options
