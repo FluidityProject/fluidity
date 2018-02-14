@@ -361,8 +361,8 @@ The t argument is for future use only - currently detector locations are only se
               </element>
             </choice>
             <optional>
-              <element name="binary_output">
-                <a:documentation>Enable to write detector output in binary format</a:documentation>
+              <element name="ascii_output">
+                <a:documentation>Enable to write detector output in ascii format</a:documentation>
                 <ref name="comment"/>
               </element>
             </optional>
@@ -3354,6 +3354,7 @@ want this.</a:documentation>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="prognostic_detector_options"/>
+    <ref name="prognostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_prognostic_scalar_field"/>
     <ref name="interpolation_algorithm_scalar"/>
@@ -3629,6 +3630,7 @@ guided search particle tracking</a:documentation>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <optional>
@@ -3643,12 +3645,14 @@ guided search particle tracking</a:documentation>
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
   </define>
   <!-- Default child of diagnostic scalar field -->
   <define name="diagnostic_scalar_field_tidal_range">
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <element name="spin_up_time">
       <ref name="real"/>
@@ -3664,6 +3668,7 @@ guided search particle tracking</a:documentation>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="vector_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_vector_field"/>
     <optional>
@@ -3696,6 +3701,7 @@ bed shear stress. Valid for non parameterised velocity boundaries.</a:documentat
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="adaptivity_options_vector_field"/>
   </define>
   <!--
@@ -3800,6 +3806,7 @@ formulations</a:documentation>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="vector_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_vector_field"/>
     <optional>
@@ -3815,6 +3822,7 @@ formulations</a:documentation>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="vector_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_vector_field"/>
     <optional>
@@ -3827,6 +3835,7 @@ formulations</a:documentation>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <optional>
@@ -3842,6 +3851,7 @@ formulations</a:documentation>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <optional>
@@ -4703,6 +4713,48 @@ i.e. excluding the components</a:documentation>
   <define name="prescribed_detector_options">
     <ref name="detector_options_disabled_default"/>
   </define>
+  <!-- Options for whether a field is to be included in particles. -->
+  <define name="particle_options_enabled_default">
+    <element name="particles">
+      <a:documentation>Specify what is added to particles</a:documentation>
+      <choice>
+        <element name="include_in_particles">
+          <a:documentation>This field is included at each particle location.</a:documentation>
+          <ref name="comment"/>
+        </element>
+        <element name="exclude_from_particles">
+          <a:documentation>This field is not included at each particle location.</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <!-- Options for whether a field is to be included in particles. -->
+  <define name="particle_options_disabled_default">
+    <element name="particles">
+      <a:documentation>Specify what is added to particles</a:documentation>
+      <choice>
+        <element name="exclude_from_particles">
+          <a:documentation>This field is not included at each particle location.</a:documentation>
+          <ref name="comment"/>
+        </element>
+        <element name="include_in_particles">
+          <a:documentation>This field is included at each particle location.</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <!-- Particle defaults off for prognostic, diagnostic and prescribed fields -->
+  <define name="prognostic_particle_options">
+    <ref name="particle_options_disabled_default"/>
+  </define>
+  <define name="diagnostic_particle_options">
+    <ref name="particle_options_disabled_default"/>
+  </define>
+  <define name="prescribed_particle_options">
+    <ref name="particle_options_disabled_default"/>
+  </define>
   <define name="generic_aliased_field">
     <attribute name="material_phase_name">
       <data type="string"/>
@@ -4959,6 +5011,7 @@ requires a distinct name for the options dictionary.</a:documentation>
             <ref name="prognostic_scalar_stat_options"/>
             <ref name="scalar_convergence_options"/>
             <ref name="prognostic_detector_options"/>
+            <ref name="prognostic_particle_options"/>
             <ref name="scalar_steady_state_options"/>
             <ref name="adaptivity_options_prognostic_scalar_field"/>
             <ref name="interpolation_algorithm_scalar"/>
@@ -5498,7 +5551,9 @@ Required multiphase problem types</a:documentation>
                       }|
                       element aliased {
                          generic_aliased_field
-                      }
+                      }|
+        		 element particles {
+        		 }
                    )
                }
       -->
@@ -8761,6 +8816,7 @@ If not selected boundary conditions are applied strongly.</a:documentation>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="prognostic_detector_options"/>
+    <ref name="prognostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <optional>

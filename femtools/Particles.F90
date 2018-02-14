@@ -37,6 +37,7 @@ module particles
   use detector_move_lagrangian
   use detector_data_types
   use detector_tools
+  use detector_parallel
   use fields
   use parallel_tools
   use pickers
@@ -50,7 +51,7 @@ module particles
 
   private
 
-  public :: particle_lists
+  public :: initialise_particles, move_particles, write_particles_loop, destroy_particles
 
   type(detector_linked_list), allocatable, dimension(:), save :: particle_lists
 
@@ -61,17 +62,16 @@ contains
     character(len = *), intent(in) :: filename
     type(state_type), dimension(:), intent(in) :: state
 
-    character(len=FIELD_NAME_LEN) ::particle_name, funcnam, temp_name
+    character(len=FIELD_NAME_LEN) ::particle_name, funcnam
     character(len=PYTHON_FUNC_LEN) :: func
     character(len = OPTION_PATH_LEN) :: particle_file_filename, particles_cp_filename, name
-    character(len = 254) :: buffer, fmt
+    character(len = FIELD_NAME_LEN) :: buffer, fmt
     character(len=FIELD_NAME_LEN), allocatable, dimension(:) :: field_name
 
     real, allocatable, dimension(:,:) :: coords
     real, allocatable, dimension(:) :: packed_buff
     real, allocatable, dimension(:) :: particle_location
     real, allocatable, dimension(:) :: attribute_vals
-    real, allocatable, dimension(:) :: position
     type(vector_field), pointer :: xfield
     real:: current_time
 
@@ -81,7 +81,6 @@ contains
     integer :: particle_file_unit=0, particle_checkpoint_unit=0
     integer :: column, IERROR, totaldet_global
 
-    type(detector_type), pointer :: detector
     type(element_type), pointer :: shape
 
     logical :: from_checkpoint
@@ -137,6 +136,7 @@ contains
        if (have_option("/particles/write_nan_outside_domain")) then
           particle_lists(i)%write_nan_outside=.true.
        end if
+
        
        !Read particles from options
        if (.not.from_checkpoint) then
@@ -155,6 +155,7 @@ contains
              do l=1,j
                 write(particle_name, fmt) trim(funcnam)//"_", l
                 particle_lists(i)%detector_names(l)=trim(particle_name)
+
 
                 !Read in particle attributes
                 if (attribute_dims.ne.0) then
@@ -180,13 +181,13 @@ contains
                                  int2str(i-1)//']/attributes/attribute['//int2str(k)// &
                                  ']/python_fields/field_name['//int2str(n)//']/name', field_name(n+1))
                          end do
-                         call set_particle_fields_from_python(state, xfield, dim, position, attribute_vals(k+1), func, current_time, field_name)
+                         call set_particle_fields_from_python(state, xfield, dim, coords(:,l), attribute_vals(k+1), func, current_time, field_name)
                          deallocate(field_name)
                       end if
                    end do
                 end if
                 call create_single_particle(particle_lists(i), xfield, coords(:,l), &
-                     attribute_dims, l, trim(particle_name), attribute_vals)
+                     attribute_dims, l, LAGRANGIAN_DETECTOR, trim(particle_name), attribute_vals)
              end do
              deallocate(coords)
 
@@ -208,7 +209,7 @@ contains
                 particle_lists(i)%detector_names(l)=trim(particle_name)
                 read(particle_file_unit) particle_location
                 call create_single_particle(particle_lists(i), xfield, particle_location, &
-                     attribute_dims, l, trim(particle_name), attribute_vals)          
+                     attribute_dims, l, LAGRANGIAN_DETECTOR, trim(particle_name), attribute_vals)          
              end do
           end if
           deallocate(attribute_vals)
@@ -229,23 +230,24 @@ contains
 #endif
           
           !Read in particle locations from checkpoint file    
-          call get_option(trim(buffer)//"/name", temp_name)     
+          call get_option(trim(buffer)//"/name", funcnam)     
           allocate(packed_buff(dim+attribute_dims))
           str_size=len_trim(int2str(j))
           fmt="(a,I"//int2str(str_size)//"."//int2str(str_size)//")"
 
           do m=1,j
-             write(particle_name, fmt) trim(temp_name)//"_", m
+             write(particle_name, fmt) trim(funcnam)//"_", m
              read(particle_checkpoint_unit) packed_buff
              particle_location=packed_buff(1:dim)
              if (attribute_dims.NE.0) then
                 attribute_vals=packed_buff(dim+1:dim+attribute_dims)
              end if
              call create_single_particle(particle_lists(i), xfield, &
-                  particle_location, attribute_dims, m, trim(particle_name), attribute_vals)
+                  particle_location, attribute_dims, m, LAGRANGIAN_DETECTOR, trim(particle_name), attribute_vals)
              particle_lists(i)%detector_names(m)=trim(particle_name)
           end do
-          deallocate(packed_buff)                
+          deallocate(packed_buff)
+          deallocate(attribute_vals)
        end if !from checkpoint
        
        !Set type of output file
@@ -261,7 +263,7 @@ contains
        ! Only the first process should write the header file
        if (getprocno() == 1) then
           particle_lists(i)%output_unit=free_unit()
-          open(unit=particle_lists(i)%output_unit, file=trim(filename)//'.particles', action="write")
+          open(unit=particle_lists(i)%output_unit, file=trim(filename)//'.particles.'//trim(funcnam), action="write")
           
           write(particle_lists(i)%output_unit, '(a)') "<header>"
           call initialise_constant_diagnostics(particle_lists(i)%output_unit, &
@@ -281,10 +283,10 @@ contains
              write(particle_lists(i)%output_unit, '(a)') trim(buffer)
              column=column+xfield%dim 
           end do positionloop
-
+          
           ! Next columns contain attributes of particles
           attributeloop: do m=1,j
-             do n=1,attribute_dims-1
+             do n=1,attribute_dims
                 call get_option ('/particles/particle_array['&
                      //int2str(i-1)//']/attributes/attribute['//int2str(n-1)//']/name', name)
                 buffer=field_tag(name=particle_lists(i)%detector_names(m), column=column+1,&
@@ -305,19 +307,19 @@ contains
           end if
        end if
 
+
        if ((isparallel()).or.(particle_lists(i)%binary_output)) then
           ! bit of hack to delete any existing .particles.dat file
           ! if we don't delete the existing .particles.dat would simply be opened for random access and 
           ! gradually overwritten, mixing particle output from the current with that of a previous run
-          call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.particles.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, particle_lists(i)%mpi_fh, IERROR)
+          call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.particles.'//trim(funcnam)//'.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, particle_lists(i)%mpi_fh, IERROR)
           call MPI_FILE_CLOSE(particle_lists(i)%mpi_fh, IERROR)
-          call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.particles.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, particle_lists(i)%mpi_fh, IERROR)
+          call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.particles.'//trim(funcnam)//'.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, particle_lists(i)%mpi_fh, IERROR)
           assert(ierror == MPI_SUCCESS)
        end if
 
        !Get options for lagrangian particle movement
        call read_detector_move_options(particle_lists(i), "/particles")    
-       deallocate(attribute_vals)
     end do
 
     do i = 1,python_particles_func
@@ -326,20 +328,21 @@ contains
        call get_option(trim(buffer)//"/name",name)
        totaldet_global=particle_lists(i)%length
        call allsum(totaldet_global)
-       ewrite(2,*) "Found", particle_lists(i)%length, "local and ", totaldet_global, "global particles for particle array ", name
+       ewrite(2,*) "Found", particle_lists(i)%length, "local and ", totaldet_global, "global particles for particle array ", trim(name)
 
        assert(totaldet_global==particle_lists(i)%total_num_det)
     end do
 
+
   end subroutine initialise_particles
 
-  subroutine create_single_particle(detector_list, xfield, position, attribute_dims, id, name, attribute_vals)
+  subroutine create_single_particle(detector_list, xfield, position, attribute_dims, id, type, name, attribute_vals)
     ! Allocate a single particle, populate and insert it into the given list
     ! In parallel, first check if the particle would be local and only allocate if it is
     type(detector_linked_list), intent(inout) :: detector_list
     type(vector_field), pointer :: xfield
     real, dimension(xfield%dim), intent(in) :: position
-    integer, intent(in) :: id
+    integer, intent(in) :: id, type
     character(len=*), intent(in) :: name
 
     type(detector_type), pointer :: detector
@@ -349,12 +352,7 @@ contains
     real, dimension(attribute_dims), intent(in), optional :: attribute_vals
     integer, intent(in) :: attribute_dims
 
-    integer :: i, j, k, LAGRANGIAN_DET
     real ::  dt
-    character(len=PYTHON_FUNC_LEN) :: func
-    character(len=FIELD_NAME_LEN), allocatable, dimension(:) :: field_name
-    character(len=OPTION_PATH_LEN) :: format, filename
-    character(len=OPTION_PATH_LEN) :: option_buffer
     
     shape=>ele_shape(xfield,1)
     assert(xfield%dim+1==local_coord_count(shape))
@@ -387,7 +385,7 @@ contains
     detector%position=position
     detector%element=element
     detector%local_coords=lcoords
-    detector%type=LAGRANGIAN_DET
+    detector%type=type
     detector%id_number=id
     !Set attribute values
     if (attribute_dims.ne.0) then
@@ -395,22 +393,41 @@ contains
     end if
   end subroutine create_single_particle
 
-  subroutine move_particles(state, particle_lists, dt, timestep)
+  subroutine move_particles(state, dt, timestep)
     !!Routine to loop over particle arrays and call move_lagrangian_detectors
-    type(detector_linked_list), dimension(:), intent(inout) :: particle_lists
     type(state_type), dimension(:), intent(in) :: state
     real, intent(in) :: dt
     integer, intent(in) :: timestep
 
-    integer :: particle_arrays
+    integer :: particle_arrays, attribute_dims
     integer :: i
 
     particle_arrays = option_count("/particles/particle_array")
-    do i = 1, particle_arrays-1
-       call move_lagrangian_detectors(state, particle_lists(i), dt, timestep)
+    do i = 1, particle_arrays
+       attribute_dims = option_count("/particles/particle_array["//int2str(i-1)// &
+            "]/attributes/attribute")
+       call move_lagrangian_detectors(state, particle_lists(i), dt, timestep, attribute_dims)
     end do
 
   end subroutine move_particles
+
+  subroutine write_particles_loop(state, time, dt)
+    !!Subroutine to loop over particle_lists and call write_particles for each list
+    type(state_type), dimension(:), intent(in) :: state
+    real, intent(in) :: time, dt
+
+    integer :: particle_arrays, attribute_dims
+    integer :: i
+
+    particle_arrays = option_count("/particles/particle_array")
+    do i = 1, particle_arrays
+       attribute_dims = option_count("/particles/particle_array["//int2str(i-1)// &
+            "]/attributes/attribute")
+       call write_particles(state, particle_lists(i), attribute_dims, time, dt)
+    end do
+    
+
+  end subroutine write_particles_loop
 
   subroutine write_particles(state, detector_list, attribute_dims, time, dt)
     !!< Write values of particles to the previously opened particles file.
@@ -419,16 +436,9 @@ contains
     real, intent(in) :: time, dt
 
     character(len=10) :: format_buffer
-    integer :: i, j, k, phase, ele, check_no_det, totaldet_global
+    integer :: i, check_no_det, totaldet_global
     integer, intent(in) :: attribute_dims
-    real :: value
-    real, dimension(:), allocatable :: vvalue
-    type(scalar_field), pointer :: sfield
-    type(vector_field), pointer :: vfield
     type(detector_type), pointer :: detector
-
-    integer :: narrays, p, nattributes, f
-    logical :: particles
 
     ewrite(1,*) "In write_particles"
 
@@ -445,7 +455,7 @@ contains
 
     ! If isparallel() or binary output use this:
     if ((isparallel()).or.(detector_list%binary_output)) then    
-       call write_mpi_out(state,detector_list,time,dt)
+       call write_mpi_out_particles(state,detector_list, attribute_dims, time,dt)
     else ! This is only for single processor with ascii output
        if(getprocno() == 1) then
           if(detector_list%binary_output) then
@@ -517,6 +527,115 @@ contains
     end function reals_format
     
   end subroutine write_particles
+
+  subroutine write_mpi_out_particles(state,detector_list, attribute_dims, time,dt)
+    !!< Writes particle information (position, attributes, etc.) into particle file using MPI output 
+    ! commands so that when running in parallel all processors can write at the same time information into the file at the right location.       
+
+    type(state_type), dimension(:), intent(in) :: state
+    type(detector_linked_list), intent(inout) :: detector_list
+    real, intent(in) :: time, dt
+    integer, intent(in) :: attribute_dims
+
+    integer :: i, ierror, realsize, dim, procno
+    integer(KIND = MPI_OFFSET_KIND) :: location_to_write, offset
+    integer :: number_total_columns
+
+    type(vector_field), pointer :: vfield
+    type(detector_type), pointer :: node
+
+    ewrite(2, *) "In write_mpi_out"
+
+    detector_list%mpi_write_count = detector_list%mpi_write_count + 1
+    ewrite(2, *) "Writing particle output ", detector_list%mpi_write_count
+    
+    procno = getprocno()
+
+
+    call mpi_type_extent(getpreal(), realsize, ierror)
+    assert(ierror == MPI_SUCCESS)
+
+    vfield => extract_vector_field(state, "Coordinate")
+    dim = vfield%dim
+                           ! Time data
+    number_total_columns = 2 + &
+                           ! Particle coordinates
+                         & detector_list%total_num_det * dim + &
+                           ! Particle attributes
+                         & detector_list%total_num_det * attribute_dims
+
+    ! raise kind of one of the variables (each individually is a 4 byte-integer) such that the calculation is coerced to be of MPI_OFFSET_KIND (typically 8 bytes)
+    ! this is necessary for files bigger than 2GB
+    location_to_write = (int(detector_list%mpi_write_count, kind=MPI_OFFSET_KIND) - 1) * number_total_columns * realsize
+
+    if(procno == 1) then
+      ! Output time data
+      call mpi_file_write_at(detector_list%mpi_fh, location_to_write, time, 1, getpreal(), MPI_STATUS_IGNORE, ierror)
+      assert(ierror == MPI_SUCCESS)
+        
+      call mpi_file_write_at(detector_list%mpi_fh, location_to_write + realsize, dt, 1, getpreal(), MPI_STATUS_IGNORE, ierror)
+      assert(ierror == MPI_SUCCESS)
+    end if
+    location_to_write = location_to_write + 2 * realsize
+
+    node => detector_list%first
+    position_loop: do i = 1, detector_list%length
+      ! Output detector coordinates
+      assert(size(node%position) == dim)  
+    
+      offset = location_to_write + (node%id_number - 1) * dim * realsize
+
+      call mpi_file_write_at(detector_list%mpi_fh, offset, node%position, dim, getpreal(), MPI_STATUS_IGNORE, ierror)
+      assert(ierror == MPI_SUCCESS)
+      node => node%next
+    end do position_loop
+    assert(.not. associated(node))
+    location_to_write = location_to_write + detector_list%total_num_det * dim * realsize
+
+    if (attribute_dims.ne.0) then
+       node => detector_list%first
+       attribute_loop: do i = 1, detector_list%length
+          assert(size(node%attributes) == attribute_dims)
+          
+          offset = location_to_write + (node%id_number - 1) * attribute_dims * realsize
+          call mpi_file_write_at(detector_list%mpi_fh, offset, node%attributes, attribute_dims, getpreal(), MPI_STATUS_IGNORE, ierror)
+          assert(ierror == MPI_SUCCESS)
+          node => node%next
+       end do attribute_loop
+       assert(.not. associated(node))
+    end if
+    
+    call mpi_file_sync(detector_list%mpi_fh, ierror)
+    assert(ierror == MPI_SUCCESS)
+
+!    ! The following was used when debugging to check some of the data written
+!    ! into the file
+!    ! Left here in case someone would like to use the mpi_file_read_at for
+!    ! debugging or checking
+!   
+!    number_total_columns = 2 + total_num_det * dim
+!    allocate(buffer(number_total_columns))
+!
+!    call mpi_file_read_at(fh, 0, buffer, size(buffer), getpreal(), status, ierror)
+!    call mpi_get_count(status, getpreal(), count,  ierror)
+!    assert(ierror == MPI_SUCCESS)
+!
+!    call mpi_barrier(MPI_COMM_FEMTOOLS, ierror)
+!    assert(ierror == MPI_SUCCESS)
+!    
+!    deallocate(buffer)
+!    ewrite(2, "(a,i0,a)") "Read ", count, " reals"
+
+    ewrite(2, *) "Exiting write_mpi_out"
+   
+  end subroutine write_mpi_out_particles
+
+  subroutine destroy_particles()
+    !Deallocate all particle arrays (detector lists)
+
+    deallocate(particle_lists)
+    
+  end subroutine destroy_particles
 
 end module particles
 

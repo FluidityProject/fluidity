@@ -165,6 +165,47 @@ module embed_python
       integer, intent(out) :: stat
     end subroutine set_detectors_from_python
   end interface set_detectors_from_python
+
+  interface set_particles_from_python 
+    module procedure set_particles_from_python_sp
+     
+     subroutine set_particles_from_python(function, function_len, dim,&
+         & x, y, z, t, result, stat)
+      !! Interface to c wrapper function.
+      use iso_c_binding, only: c_double
+      implicit none
+      integer, intent(in) :: function_len
+      character(len = function_len) :: function
+      integer, intent(in) :: dim
+      real(kind = c_double), intent(in) :: x
+      real(kind = c_double), intent(in) :: y
+      real(kind = c_double), intent(in) :: z
+      real(kind = c_double), intent(in) :: t
+      real(kind = c_double), intent(out) :: result
+      integer, intent(out) :: stat
+     end subroutine set_particles_from_python
+  end interface set_particles_from_python
+
+    interface set_particles_fields_from_python
+    module procedure set_particles_fields_from_python_sp
+     
+     subroutine set_particles_fields_from_python(function, function_len, dim,&
+         & x, y, z, t, nfields, fields, result, stat)
+      !! Interface to c wrapper function.
+      use iso_c_binding, only: c_double
+      implicit none
+      integer, intent(in) :: function_len
+      character(len = function_len) :: function
+      integer, intent(in) :: dim, nfields
+      real(kind = c_double), intent(in) :: x
+      real(kind = c_double), intent(in) :: y
+      real(kind = c_double), intent(in) :: z
+      real(kind = c_double), intent(in) :: t
+      real(kind = c_double), dimension(nfields), intent(in) :: fields
+      real(kind = c_double), intent(out) :: result
+      integer, intent(out) :: stat
+     end subroutine set_particles_fields_from_python
+  end interface set_particles_fields_from_python
     
   interface real_from_python
     module procedure real_from_python_sp, real_from_python_interface
@@ -370,6 +411,43 @@ contains
     result_z = lresult_z
 
   end subroutine set_detectors_from_python_sp
+
+  subroutine set_particles_from_python_sp(function, function_len, dim, &
+       & x, y, z, t, result, stat)
+    integer, intent(in) :: function_len
+    character(len = function_len) :: function
+    integer, intent(in) :: dim
+    real(kind = c_float), intent(in) :: x
+    real(kind = c_float), intent(in) :: y
+    real(kind = c_float), intent(in) :: z
+    real(kind = c_float), intent(in) :: t
+    real(kind = c_float), intent(out) :: result
+    integer, intent(out) :: stat
+
+    real(kind = c_double) :: lresult
+    call set_particles_from_python(function, function_len, dim, &
+      & real(x, kind = c_double), real(y, kind = c_double), real(z, kind = c_double), real(t, kind = c_double), lresult, stat)
+    result = lresult
+  end subroutine set_particles_from_python_sp
+
+  subroutine set_particles_fields_from_python_sp(function, function_len, dim, &
+       & x, y, z, t, nfields, fields, result, stat)
+    integer, intent(in) :: function_len
+    character(len = function_len) :: function
+    integer, intent(in) :: dim, nfields
+    real(kind = c_float), intent(in) :: x
+    real(kind = c_float), intent(in) :: y
+    real(kind = c_float), intent(in) :: z
+    real(kind = c_float), intent(in) :: t
+    real(kind = c_float), dimension(nfields), intent(in) :: fields
+    real(kind = c_float), intent(out) :: result
+    integer, intent(out) :: stat
+
+    real(kind = c_double) :: lresult
+    call set_particles_fields_from_python(function, function_len, dim, &
+      & real(x, kind = c_double), real(y, kind = c_double), real(z, kind = c_double), real(t, kind = c_double), nfields, real(fields, kind = c_double), lresult, stat)
+    result = lresult
+  end subroutine set_particles_fields_from_python_sp
    
   subroutine set_particle_sfield_from_python_sp(function, function_len,&
     & nparticles,t, result, stat)

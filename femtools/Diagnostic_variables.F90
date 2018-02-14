@@ -98,7 +98,7 @@ module diagnostic_variables
        & diagnostic_variables_check_options, list_det_into_csr_sparsity, &
        & initialise_walltime, &
        & uninitialise_diagnostics, register_diagnostic, destroy_registered_diagnostics, set_diagnostic, &
-       & get_diagnostic, initialise_constant_diagnostics, create_single_detector
+       & get_diagnostic, initialise_constant_diagnostics, create_single_detector, write_mpi_out
 
   public :: default_stat
   public :: stat_type
@@ -1400,6 +1400,7 @@ contains
     allocate(detector)
     allocate(detector%position(xfield%dim))
     allocate(detector%local_coords(local_coord_count(shape)))
+    allocate(detector%attributes(0))
     call insert(detector,default_stat%detector_list)
 
     ! Populate detector

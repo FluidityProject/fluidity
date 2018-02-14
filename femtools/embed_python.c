@@ -938,6 +938,260 @@ void set_detectors_from_python(char *function, int *function_len, int *dim,
 #endif
 }
 
+#define set_particles_from_python F77_FUNC(set_particles_from_python, SET_PARTICLES_FROM_PYTHON)
+void set_particles_from_python(char *function, int *function_len, int *dim, 
+                                  double *x, double *y, double *z, double *t,  
+                                  double *result, int* stat)
+{
+#ifndef HAVE_PYTHON
+  int i;
+  strncpy(function, "No Python support!\n", (size_t) *function_len);
+  for (i=0; i < *function_len; i++)
+  {
+    if (function[i] == '\0')
+      function[i] = ' ';
+  }
+  
+  *stat=1;
+  return;
+#else
+  PyObject *pMain, *pGlobals, *pLocals, *pFunc, *pCode, *pResult, 
+    *pArgs, *pPos, *px, *pT;
+  
+  char *function_c;
+  int i;
+  
+  // the function string passed down from Fortran needs terminating,
+  // so make a copy and fiddle with it (remember to free it)
+  function_c = (char *)malloc(*function_len+3);
+  memcpy( function_c, function, *function_len );
+  function_c[*function_len] = 0;
+
+  // Get a reference to the main module and global dictionary
+  pMain = PyImport_AddModule("__main__");
+
+  pGlobals = PyModule_GetDict(pMain);
+  // Global and local namespace dictionaries for our code.
+  pLocals=PyDict_New();
+  
+  // Execute the user's code.
+  pCode=PyRun_String(function_c, Py_file_input, pGlobals, pLocals);
+
+  // Extract the function from the code.
+  pFunc=PyDict_GetItemString(pLocals, "val");
+  if (pFunc == NULL) {
+      printf("Couldn't find a 'val' function in your Python code.\n");
+      *stat=1;
+      return;
+  }
+
+  // Clean up memory from null termination.
+  free(function_c);
+  
+  // Check for errors in executing user code.
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    *stat=1;
+    return;
+  }
+
+  // Python form of time variable.
+  pT=PyFloat_FromDouble(*t);
+
+  // Tuple containing the current position vector.
+  pPos=PyTuple_New(*dim);
+
+  // Set values for position vector.
+   px=PyFloat_FromDouble(*x);
+   PyTuple_SetItem(pPos, 0, px);    
+
+  if (*dim>1) {
+    px=PyFloat_FromDouble(*y);
+    PyTuple_SetItem(pPos, 1, px);
+
+    if (*dim>2) {
+      px=PyFloat_FromDouble(*z);
+      PyTuple_SetItem(pPos, 2, px);
+    }
+  }
+  
+  // Tuple of arguments to function;
+  pArgs=PyTuple_New(2);
+  PyTuple_SetItem(pArgs, 1, pT);
+  PyTuple_SetItem(pArgs, 0, pPos);
+
+  // Check for a Python error in the function call
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    *stat=1;
+    return;
+  }
+
+  //had copy of px = pyfloat etc here for some reason
+  pResult=PyObject_CallObject(pFunc, pArgs); 
+    
+  // Check for a Python error in the function call
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    *stat=1;
+    return;
+  }
+    
+  *result=PyFloat_AsDouble(pResult);
+  
+  // Check for a Python error in result.
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    *stat=1;
+    return;
+  }
+  Py_DECREF(pResult);  
+  
+  // Clean up
+    Py_DECREF(pArgs);  
+    Py_DECREF(pLocals);  
+    Py_DECREF(pCode);  
+
+  // Force a garbage collection
+  PyGC_Collect();
+
+  *stat=0;
+  return;
+#endif
+}
+
+#define set_particles_fields_from_python F77_FUNC(set_particles_fields_from_python, SET_PARTICLES_FIELDS_FROM_PYTHON)
+void set_particles_fields_from_python(char *function, int *function_len, int *dim, 
+				      double *x, double *y, double *z, double *t,  
+				      int *nfields, double fields[], double *result, int* stat)
+{
+#ifndef HAVE_PYTHON
+  int i;
+  strncpy(function, "No Python support!\n", (size_t) *function_len);
+  for (i=0; i < *function_len; i++)
+  {
+    if (function[i] == '\0')
+      function[i] = ' ';
+  }
+  
+  *stat=1;
+  return;
+#else
+  PyObject *pMain, *pGlobals, *pLocals, *pFunc, *pCode, *pResult, 
+    *pArgs, *pPos, *px, *pT, *pFields, *pField;
+  
+  char *function_c;
+  int i;
+  
+  // the function string passed down from Fortran needs terminating,
+  // so make a copy and fiddle with it (remember to free it)
+  function_c = (char *)malloc(*function_len+3);
+  memcpy( function_c, function, *function_len );
+  function_c[*function_len] = 0;
+
+  // Get a reference to the main module and global dictionary
+  pMain = PyImport_AddModule("__main__");
+
+  pGlobals = PyModule_GetDict(pMain);
+  // Global and local namespace dictionaries for our code.
+  pLocals=PyDict_New();
+  
+  // Execute the user's code.
+  pCode=PyRun_String(function_c, Py_file_input, pGlobals, pLocals);
+
+  // Extract the function from the code.
+  pFunc=PyDict_GetItemString(pLocals, "val");
+  if (pFunc == NULL) {
+      printf("Couldn't find a 'val' function in your Python code.\n");
+      *stat=1;
+      return;
+  }
+
+  // Clean up memory from null termination.
+  free(function_c);
+  
+  // Check for errors in executing user code.
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    *stat=1;
+    return;
+  }
+
+  // Python form of time variable.
+  pT=PyFloat_FromDouble(*t);
+
+  // Tuple containing the current position vector.
+  pPos=PyTuple_New(*dim);
+
+  //Tuple containing the current field vector.
+  pFields=PyTuple_New(*nfields);
+
+  // Set values for position vector.
+   px=PyFloat_FromDouble(*x);
+   PyTuple_SetItem(pPos, 0, px);    
+
+  if (*dim>1) {
+    px=PyFloat_FromDouble(*y);
+    PyTuple_SetItem(pPos, 1, px);
+
+    if (*dim>2) {
+      px=PyFloat_FromDouble(*z);
+      PyTuple_SetItem(pPos, 2, px);
+    }
+  }
+
+  //Set values for fields vector.
+  for (i=0; i < *nfields; i++)
+  {
+    pField=PyFloat_FromDouble(fields[i]);
+    PyTuple_SetItem(pFields, i, pField);
+  }
+  
+  // Tuple of arguments to function;
+  pArgs=PyTuple_New(3);
+  PyTuple_SetItem(pArgs, 2, pFields);
+  PyTuple_SetItem(pArgs, 1, pT);
+  PyTuple_SetItem(pArgs, 0, pPos);
+
+  // Check for a Python error in the function call
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    *stat=1;
+    return;
+  }
+
+  pResult=PyObject_CallObject(pFunc, pArgs); 
+    
+  // Check for a Python error in the function call
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    *stat=1;
+    return;
+  }
+    
+  *result=PyFloat_AsDouble(pResult);
+  
+  // Check for a Python error in result.
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    *stat=1;
+    return;
+  }
+  Py_DECREF(pResult);  
+  
+  // Clean up
+    Py_DECREF(pArgs);  
+    Py_DECREF(pLocals);  
+    Py_DECREF(pCode);  
+
+  // Force a garbage collection
+  PyGC_Collect();
+
+  *stat=0;
+  return;
+#endif
+}
+
 #define real_from_python F77_FUNC(real_from_python, REAL_FROM_PYTHON)
 void real_from_python(char* function, int* function_len,
                         double* t,  

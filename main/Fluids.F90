@@ -98,6 +98,7 @@ module fluids_module
   use momentum_equation
   use gls
   use iceshelf_meltrate_surf_normal
+  use particles
 #ifdef HAVE_HYPERLIGHT
   use hyperlight
 #endif
@@ -343,6 +344,7 @@ contains
     end if
 
     call initialise_diagnostics(filename, state)
+    call initialise_particles(filename, state)
 
     ! Initialise ice_meltrate, read constatns, allocate surface, and calculate melt rate
     if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08")) then
@@ -731,6 +733,10 @@ contains
           
        ! Call the modern and significantly less satanic version of study
        call write_diagnostics(state, current_time, dt, timestep)
+
+       !Call move and write particles
+       call move_particles(state, dt, timestep)
+       call write_particles_loop(state, current_time, dt)
        ! Work out the domain volume by integrating the water depth function over the surface if using wetting and drying
        if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
           ewrite(1, *) "Domain volume (\int_{fs} (\eta.-b)n.n_z)): ", calculate_volume_by_surface_integral(state(1))
@@ -831,6 +837,9 @@ contains
     ! deallocate the array of all detector lists
     call deallocate_detector_list_array()
 
+    ! deallocate the array of particle lists
+    call destroy_particles()
+    
     ewrite(1, *) "Printing references before final deallocation"
     call print_references(1)
 

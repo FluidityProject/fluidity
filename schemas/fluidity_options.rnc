@@ -296,8 +296,8 @@ start =
                      empty
                   }
                ),
-               ## Enable to write detector output in binary format
-               element binary_output {
+               ## Enable to write detector output in ascii format
+               element ascii_output {
                   comment
                }?,
                ## Enable to let detectors move with the domain if mesh_movement is enabled.
@@ -2488,6 +2488,7 @@ prognostic_density_field =
       prognostic_scalar_stat_options,
       scalar_convergence_options,
       prognostic_detector_options,
+      prognostic_particle_options,
       scalar_steady_state_options,
       adaptivity_options_prognostic_scalar_field,
       interpolation_algorithm_scalar,
@@ -2701,7 +2702,6 @@ lagrangian_timestepping =
          )
       }
    )
-
 # Default child of diagnostic scalar field
 diagnostic_scalar_field =
    (
@@ -2709,6 +2709,7 @@ diagnostic_scalar_field =
       diagnostic_scalar_stat_options,
       scalar_convergence_options,
       diagnostic_detector_options,
+      diagnostic_particle_options,
       scalar_steady_state_options,
       adaptivity_options_scalar_field,
       recalculation_options?,
@@ -2720,7 +2721,8 @@ diagnostic_scalar_field_no_adapt =
    (
       diagnostic_output_options,
       diagnostic_scalar_stat_options,
-      diagnostic_detector_options
+      diagnostic_detector_options,
+      diagnostic_particle_options
    )
 
 # Default child of diagnostic scalar field
@@ -2729,6 +2731,7 @@ diagnostic_scalar_field_tidal_range =
       diagnostic_output_options,
       diagnostic_scalar_stat_options,
       diagnostic_detector_options,
+      diagnostic_particle_options,
       adaptivity_options_scalar_field,
       (
           element spin_up_time {
@@ -2746,6 +2749,7 @@ diagnostic_vector_field =
       diagnostic_vector_stat_options,
       vector_convergence_options,      
       diagnostic_detector_options,
+      diagnostic_particle_options,
       vector_steady_state_options,      
       adaptivity_options_vector_field,
       recalculation_options?,
@@ -2776,6 +2780,7 @@ diagnostic_vector_field_bed_shear_stress =
       diagnostic_output_options,
       diagnostic_vector_stat_options,
       diagnostic_detector_options,
+      diagnostic_particle_options,
       adaptivity_options_vector_field
    )
 
@@ -2862,6 +2867,7 @@ diagnostic_cv_gradient_vector_field =
       diagnostic_vector_stat_options,
       vector_convergence_options,
       diagnostic_detector_options,
+      diagnostic_particle_options,
       vector_steady_state_options,
       adaptivity_options_vector_field,
       recalculation_options?
@@ -2877,6 +2883,7 @@ diagnostic_gradient_vector_field =
       diagnostic_vector_stat_options,
       vector_convergence_options,
       diagnostic_detector_options,
+      diagnostic_particle_options,
       vector_steady_state_options,
       adaptivity_options_vector_field,
       recalculation_options?
@@ -2889,6 +2896,7 @@ diagnostic_cv_divergence_scalar_field =
       diagnostic_scalar_stat_options,
       scalar_convergence_options,
       diagnostic_detector_options,
+      diagnostic_particle_options,
       scalar_steady_state_options,
       adaptivity_options_scalar_field,
       recalculation_options?
@@ -2904,6 +2912,7 @@ diagnostic_fe_divergence_scalar_field =
       diagnostic_scalar_stat_options,
       scalar_convergence_options,
       diagnostic_detector_options,
+      diagnostic_particle_options,
       scalar_steady_state_options,
       adaptivity_options_scalar_field,
       recalculation_options?
@@ -3642,6 +3651,47 @@ prognostic_detector_options = detector_options_enabled_default
 diagnostic_detector_options = detector_options_enabled_default
 prescribed_detector_options = detector_options_disabled_default
 
+# Options for whether a field is to be included in particles.
+particle_options_enabled_default = 
+   (
+      ## Specify what is added to particles
+      element particles {
+         (
+            ## This field is included at each particle location.
+            element include_in_particles {
+               comment
+            }|
+            ## This field is not included at each particle location.
+            element exclude_from_particles {
+               comment
+            }
+         )
+      }
+   )
+
+# Options for whether a field is to be included in particles.
+particle_options_disabled_default = 
+   (
+      ## Specify what is added to particles
+      element particles {
+         (
+            ## This field is not included at each particle location.
+            element exclude_from_particles {
+               comment
+            }|
+            ## This field is included at each particle location.
+            element include_in_particles {
+               comment
+            }
+         )
+      }
+   )
+
+# Particle defaults off for prognostic, diagnostic and prescribed fields
+prognostic_particle_options = particle_options_disabled_default
+diagnostic_particle_options = particle_options_disabled_default
+prescribed_particle_options = particle_options_disabled_default
+
 generic_aliased_field =
    (
       attribute material_phase_name { xsd:string },
@@ -3691,7 +3741,7 @@ generic_particle_field =
        }
    }
    )
-   
+
 # This is the choice of additional scalar field to be solved for
 scalar_field_choice =
    (
@@ -3859,6 +3909,7 @@ scalar_field_choice =
                   prognostic_scalar_stat_options,
                   scalar_convergence_options,
                   prognostic_detector_options,
+		  prognostic_particle_options,
                   scalar_steady_state_options,
                   adaptivity_options_prognostic_scalar_field,
                   interpolation_algorithm_scalar
@@ -4307,7 +4358,9 @@ scalar_field_choice =
          #               }|
          #               element aliased {
          #                  generic_aliased_field
-         #               }
+         #               }|
+	 #		 element particles {
+	 #		 }
          #            )
          #        }
          
@@ -6980,6 +7033,7 @@ prognostic_photosynthetic_radiation =
       prognostic_scalar_stat_options,
       scalar_convergence_options,
       prognostic_detector_options,
+      prognostic_particle_options,
       scalar_steady_state_options,
       adaptivity_options_scalar_field,
       ## Set the priority of this field
