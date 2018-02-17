@@ -72,7 +72,7 @@ scalar_boundary_conditions =
                attribute name { "k_epsilon" },
                ## Select low Reynolds number wall function for k and epsilon fields.
                element string_value {
-               "low_Re"
+               "low_Re" | "high_Re"
                }
             }|
             ## Flux boundary condition. Currently only works with a control_volume 
