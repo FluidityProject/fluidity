@@ -39,6 +39,8 @@ module detector_tools
   use futils, only: int2str
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
   use pickers
+  use parallel_tools
+  use parallel_fields, only: element_owned
   
   implicit none
   
@@ -48,7 +50,7 @@ module detector_tools
             delete, delete_all, pack_detector, unpack_detector, &
             detector_value, set_detector_coords_from_python, &
             detector_buffer_size, set_particle_attribute_from_python, &
-            set_particle_fields_from_python
+            set_particle_fields_from_python, set_particle_constant_from_options
 
   interface insert
      module procedure insert_into_detector_list
@@ -149,6 +151,9 @@ contains
        end if
        if(allocated(detector%update_vector)) then
           deallocate(detector%update_vector)
+       end if
+       if(allocated(detector%attributes)) then
+          deallocate(detector%attributes)
        end if
        deallocate(detector)
     end if
@@ -347,27 +352,48 @@ contains
     assert(size(detector%position)==ndims)
     if (present(attribute_dims)) then
        assert(size(buff)>=ndims+3+attribute_dims)
+
+       ! Basic fields: ndims+3
+       buff(1:ndims) = detector%position
+       buff(ndims+1) = detector%element
+       buff(ndims+2) = detector%id_number
+       buff(ndims+3) = detector%type
+       if (attribute_dims.ne.0) then
+          buff(ndims+4:ndims+3+attribute_dims) = detector%attributes
+       end if
+       ! Lagrangian advection fields: (nstages+1)*ndims
+       if (present(nstages)) then
+          assert(size(buff)==(nstages+2)*ndims+3+attribute_dims)
+          assert(allocated(detector%update_vector))
+          assert(allocated(detector%k))
+          
+          buff(ndims+4+attribute_dims:2*ndims+3+attribute_dims) = detector%update_vector
+          buff(2*ndims+4+attribute_dims:(nstages+2)*ndims+3+attribute_dims) = reshape(detector%k,(/nstages*ndims/))
+       else
+          assert(size(buff)==ndims+4+attribute_dims)
+          buff(ndims+4+attribute_dims) = detector%list_id
+       end if
     else
        assert(size(buff)>=ndims+3)
-    end if
 
-    ! Basic fields: ndims+3
-    buff(1:ndims) = detector%position
-    buff(ndims+1) = detector%element
-    buff(ndims+2) = detector%id_number
-    buff(ndims+3) = detector%type
+       ! Basic fields: ndims+3
+       buff(1:ndims) = detector%position
+       buff(ndims+1) = detector%element
+       buff(ndims+2) = detector%id_number
+       buff(ndims+3) = detector%type
 
-    ! Lagrangian advection fields: (nstages+1)*ndims
-    if (present(nstages)) then
-       assert(size(buff)==(nstages+2)*ndims+3)
-       assert(allocated(detector%update_vector))
-       assert(allocated(detector%k))
-
-       buff(ndims+4:2*ndims+3) = detector%update_vector
-       buff(2*ndims+4:(nstages+2)*ndims+3) = reshape(detector%k,(/nstages*ndims/))
-    else
-       assert(size(buff)==ndims+4)
-       buff(ndims+4) = detector%list_id
+       ! Lagrangian advection fields: (nstages+1)*ndims
+       if (present(nstages)) then
+          assert(size(buff)==(nstages+2)*ndims+3)
+          assert(allocated(detector%update_vector))
+          assert(allocated(detector%k))
+          
+          buff(ndims+4:2*ndims+4) = detector%update_vector
+          buff(2*ndims+4:(nstages+2)*ndims+4) = reshape(detector%k,(/nstages*ndims/))
+       else
+          assert(size(buff)==ndims+4)
+          buff(ndims+4) = detector%list_id
+       end if
     end if
     
   end subroutine pack_detector
@@ -381,56 +407,114 @@ contains
     type(vector_field), intent(in), optional :: coordinates
     integer, intent(in), optional :: nstages
     integer, optional, intent(in) :: attribute_dims
+    if (present(attribute_dims)) then
+       assert(size(buff)>=ndims+3+attribute_dims)
 
-    assert(size(buff)>=ndims+3)
-
-    if (.not. allocated(detector%position)) then
-       allocate(detector%position(ndims))
-    end if
-
-    ! Basic fields: ndims+3
-    detector%position = reshape(buff(1:ndims),(/ndims/))
-    detector%element = buff(ndims+1)
-    detector%id_number = buff(ndims+2)
-    detector%type = buff(ndims+3)
-
-    ! Reconstruct element number if global-to-local mapping is given
-    if (present(global_to_local)) then
-       assert(has_key(global_to_local, detector%element))
-       detector%element=fetch(global_to_local,detector%element)
-
-       ! Update local coordinates if coordinate field is given
-       if (present(coordinates)) then
-          if (.not. allocated(detector%local_coords)) then
-             allocate(detector%local_coords(local_coord_count(ele_shape(coordinates,1))))
-          end if
-          detector%local_coords=local_coords(coordinates,detector%element,detector%position)
+       if (.not. allocated(detector%position)) then
+          allocate(detector%position(ndims))
        end if
-    end if
-
-    ! Lagrangian advection fields: (nstages+1)*ndims
-    if (present(nstages)) then
-       assert(size(buff)==(nstages+2)*ndims+3)
-
-       ! update_vector, dimension(ndim)
-       if (.not. allocated(detector%update_vector)) then
-          allocate(detector%update_vector(ndims))
-       end if       
-       detector%update_vector = reshape(buff(ndims+4:2*ndims+3),(/ndims/))
-
-       ! k, dimension(nstages:ndim)
-       if (.not. allocated(detector%k)) then
-          allocate(detector%k(nstages,ndims))
-       end if  
-       detector%k = reshape(buff(2*ndims+4:(nstages+2)*ndims+3),(/nstages,ndims/))
-
-       ! If update_vector still exists, we're not done moving
-       detector%search_complete=.false.
+       if (attribute_dims.ne.0) then
+          allocate(detector%attributes(attribute_dims))
+       end if
+       
+       ! Basic fields: ndims+3
+       detector%position = reshape(buff(1:ndims),(/ndims/))
+       detector%element = buff(ndims+1)
+       detector%id_number = buff(ndims+2)
+       detector%type = buff(ndims+3)
+       if (attribute_dims.ne.0) then  
+          detector%attributes = reshape(buff(ndims+4:ndims+3+attribute_dims),(/attribute_dims/))
+       end if
+       
+       ! Reconstruct element number if global-to-local mapping is given
+       if (present(global_to_local)) then
+          assert(has_key(global_to_local, detector%element))
+          detector%element=fetch(global_to_local,detector%element)
+          
+       ! Update local coordinates if coordinate field is given
+          if (present(coordinates)) then
+             if (.not. allocated(detector%local_coords)) then
+                allocate(detector%local_coords(local_coord_count(ele_shape(coordinates,1))))
+             end if
+             detector%local_coords=local_coords(coordinates,detector%element,detector%position)
+          end if
+       end if
+       
+       ! Lagrangian advection fields: (nstages+1)*ndims
+       if (present(nstages)) then
+          assert(size(buff)==(nstages+2)*ndims+3+attribute_dims)
+          
+          ! update_vector, dimension(ndim)
+          if (.not. allocated(detector%update_vector)) then
+             allocate(detector%update_vector(ndims))
+          end if
+          detector%update_vector = reshape(buff(ndims+4+attribute_dims:2*ndims+3+attribute_dims),(/ndims/))
+          
+          ! k, dimension(nstages:ndim)
+          if (.not. allocated(detector%k)) then
+             allocate(detector%k(nstages,ndims))
+          end if
+          detector%k = reshape(buff(2*ndims+4+attribute_dims:(nstages+2)*ndims+3+attribute_dims),(/nstages,ndims/))
+          
+          ! If update_vector still exists, we're not done moving
+          detector%search_complete=.false.
+       else
+          assert(size(buff)==ndims+4+attribute_dims)
+          
+          detector%list_id = buff(ndims+4+attribute_dims)
+          detector%search_complete=.true.
+       end if
     else
-       assert(size(buff)==ndims+4)
+       assert(size(buff)>=ndims+3)
 
-       detector%list_id = buff(ndims+4)
-       detector%search_complete=.true.
+       if (.not. allocated(detector%position)) then
+          allocate(detector%position(ndims))
+       end if
+       
+       ! Basic fields: ndims+3
+       detector%position = reshape(buff(1:ndims),(/ndims/))
+       detector%element = buff(ndims+1)
+       detector%id_number = buff(ndims+2)
+       detector%type = buff(ndims+3)
+       
+       ! Reconstruct element number if global-to-local mapping is given
+       if (present(global_to_local)) then
+          assert(has_key(global_to_local, detector%element))
+          detector%element=fetch(global_to_local,detector%element)
+          
+       ! Update local coordinates if coordinate field is given
+          if (present(coordinates)) then
+             if (.not. allocated(detector%local_coords)) then
+                allocate(detector%local_coords(local_coord_count(ele_shape(coordinates,1))))
+             end if
+             detector%local_coords=local_coords(coordinates,detector%element,detector%position)
+          end if
+       end if
+       
+       ! Lagrangian advection fields: (nstages+1)*ndims
+       if (present(nstages)) then
+          assert(size(buff)==(nstages+2)*ndims+3)
+          
+          ! update_vector, dimension(ndim)
+          if (.not. allocated(detector%update_vector)) then
+             allocate(detector%update_vector(ndims))
+          end if
+          detector%update_vector = reshape(buff(ndims+4:2*ndims+3),(/ndims/))
+          
+          ! k, dimension(nstages:ndim)
+          if (.not. allocated(detector%k)) then
+             allocate(detector%k(nstages,ndims))
+          end if
+          detector%k = reshape(buff(2*ndims+4:(nstages+2)*ndims+3),(/nstages,ndims/))
+          
+          ! If update_vector still exists, we're not done moving
+          detector%search_complete=.false.
+       else
+          assert(size(buff)==ndims+4)
+          
+          detector%list_id = buff(ndims+4)
+          detector%search_complete=.true.
+       end if
     end if
    
   end subroutine unpack_detector
@@ -496,38 +580,53 @@ contains
 
   end subroutine set_detector_coords_from_python
 
-  subroutine set_particle_attribute_from_python(attribute, position, func, time)
+  subroutine set_particle_constant_from_options(attributes, ndete, constant)
+    !!< Given a constant value, set full array of attributes from this value
+    real, dimension(:), intent(inout) :: attributes
+    integer, intent(in) :: ndete
+    real, intent(in) :: constant
+
+    integer :: i
+
+    do i = 1,ndete
+       attributes(i) = constant
+    end do
+
+  end subroutine set_particle_constant_from_options
+
+  subroutine set_particle_attribute_from_python(attributes, positions, ndete, func, time)
     !!< Given a particle position and time, evaluate the python function
     !!< specified in the string func at that location. 
-    real, intent(inout) :: attribute
+    real, dimension(:), intent(inout) :: attributes
     !! Func may contain any python at all but the following function must
     !! be defined::
     !!  def val(X,t)
     !! where X is position and t is the time. The result must be a float. 
     character(len=*), intent(in) :: func
-    real, intent(in) :: time !!!just changed this
-    real, dimension(:), intent(in) :: position
-    real :: lvx,lvy,lvz
+    integer, intent(in) :: ndete
+    real, intent(in) :: time
+    real, dimension(:,:), target, intent(in) :: positions
+    real, dimension(:), pointer :: lvx,lvy,lvz
+    real, dimension(0), target :: zero
     integer :: stat, dim
-    
     call get_option("/geometry/dimension",dim)
 
     select case(dim)
     case(1)
-      lvx=position(1)
-      lvy=0
-      lvz=0
+      lvx=>positions(1,:)
+      lvy=>zero
+      lvz=>zero
     case(2)
-      lvx=position(1)
-      lvy=position(2)
-      lvz=0
+      lvx=>positions(1,:)
+      lvy=>positions(2,:)
+      lvz=>zero
     case(3)
-      lvx=position(1)
-      lvy=position(2)
-      lvz=position(3)
+      lvx=>positions(1,:)
+      lvy=>positions(2,:)
+      lvz=>positions(3,:)
     end select
     call set_particles_from_python(func, len(func), dim, &
-         lvx, lvy, lvz, time, attribute, stat)
+         ndete, lvx, lvy, lvz, time, attributes, stat)
     if (stat/=0) then
       ewrite(-1, *) "Python error, Python string was:"
       ewrite(-1 , *) trim(func)
@@ -535,20 +634,22 @@ contains
     end if
   end subroutine set_particle_attribute_from_python
 
-  subroutine set_particle_fields_from_python(state, xfield, dim, position, attribute, func, time, field_name)
+  subroutine set_particle_fields_from_python(state, xfield, dim, positions, ndete, ele, lcoords, attributes, func, time, field_name)
     type(state_type), dimension(:), intent(in) :: state
-    real, intent(inout) :: attribute
+    real, dimension(:), intent(inout) :: attributes
     character(len=*), intent(in) :: func
     character(len=*), dimension(:), intent(in) :: field_name
+    integer, intent(in) :: ndete
     real, intent(in) :: time
     integer, intent(in) :: dim
-    real, dimension(dim), intent(in) :: position
-    real, allocatable, dimension(:) :: fields
-    real, dimension(dim+1) :: local_coord
+    real, dimension(:,:), target, intent(in) :: positions
+    real, dimension(:,:), intent(in) :: lcoords
+    integer, dimension(:), intent(in) :: ele
+    real, allocatable, dimension(:,:) :: fields
     type(vector_field), pointer :: xfield
-    integer:: ele
     real :: value
-    real :: lvx,lvy,lvz
+    real, dimension(:), pointer :: lvx,lvy,lvz
+    real, dimension(0), target :: zero
     character(len=FIELD_NAME_LEN) :: buffer !set len as number
 
     type(scalar_field), pointer :: sfield
@@ -557,25 +658,24 @@ contains
     integer :: p, f, stat, num_fields, k
     logical :: particles_f
 
-    !get position of particle for function
+    !get positions of particles for function
 
     select case(dim)
     case(1)
-      lvx=position(1)
-      lvy=0
-      lvz=0
+      lvx=>positions(1,:)
+      lvy=>zero
+      lvz=>zero
     case(2)
-      lvx=position(1)
-      lvy=position(2)
-      lvz=0
+      lvx=>positions(1,:)
+      lvy=>positions(2,:)
+      lvz=>zero
     case(3)
-      lvx=position(1)
-      lvy=position(2)
-      lvz=position(3)
+      lvx=>positions(1,:)
+      lvy=>positions(2,:)
+      lvz=>positions(3,:)
     end select
-
     num_fields=0
-    allocate(fields(size(field_name)))
+    allocate(fields(size(field_name),ndete))
     do phase=1,size(state)
        nfields = option_count('/material_phase[' &
             //int2str(phase-1)//']/scalar_field')
@@ -585,25 +685,24 @@ contains
           if (have_option(trim(sfield%option_path)//"/prescribed/particles/include_in_particles").or. &
                have_option(trim(sfield%option_path)//"/diagnostic/particles/include_in_particles").or. &
                have_option(trim(sfield%option_path)//"/prognostic/particles/include_in_particles")) then
-             call picker_inquire(xfield, position, ele, local_coord)
-             value = eval_field(ele, sfield, local_coord)
              do j=1,size(field_name)
                 if (name==field_name(j)) then
-                   fields(j) = value
+                   do i = 1,ndete
+                      value = eval_field(ele(i), sfield, lcoords(:,i))
+                      fields(j,i) = value
+                   end do
                    num_fields = num_fields+1
                 end if
              end do
           end if
        end do
     end do
-    
     if (size(field_name).ne.num_fields) then
        ewrite(2,*) "number of fields is not consistent"
        FLExit("Dying")
     end if
-    
-    call set_particles_fields_from_python(func, len(func), dim, &
-         lvx, lvy, lvz, time, num_fields, fields, attribute, stat)
+    call set_particles_fields_from_python(func, len(func), dim, ndete, &
+         lvx, lvy, lvz, time, num_fields, fields, attributes, stat)
     if (stat/=0) then
        ewrite(-1, *) "Python error, Python string was:"
        ewrite(-1 , *) trim(func)

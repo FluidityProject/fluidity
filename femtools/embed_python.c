@@ -939,9 +939,9 @@ void set_detectors_from_python(char *function, int *function_len, int *dim,
 }
 
 #define set_particles_from_python F77_FUNC(set_particles_from_python, SET_PARTICLES_FROM_PYTHON)
-void set_particles_from_python(char *function, int *function_len, int *dim, 
-                                  double *x, double *y, double *z, double *t,  
-                                  double *result, int* stat)
+void set_particles_from_python(char *function, int *function_len, int *dim, int *ndete, 
+                                  double x[], double y[], double z[], double *t,  
+                                  double result[], int* stat)
 {
 #ifndef HAVE_PYTHON
   int i;
@@ -955,7 +955,7 @@ void set_particles_from_python(char *function, int *function_len, int *dim,
   *stat=1;
   return;
 #else
-  PyObject *pMain, *pGlobals, *pLocals, *pFunc, *pCode, *pResult, 
+  PyObject *pMain, *pGlobals, *pLocals, *pFunc, *pCode, *pResult,
     *pArgs, *pPos, *px, *pT;
   
   char *function_c;
@@ -997,73 +997,81 @@ void set_particles_from_python(char *function, int *function_len, int *dim,
 
   // Python form of time variable.
   pT=PyFloat_FromDouble(*t);
-
+  
   // Tuple containing the current position vector.
   pPos=PyTuple_New(*dim);
 
-  // Set values for position vector.
-   px=PyFloat_FromDouble(*x);
-   PyTuple_SetItem(pPos, 0, px);    
-
-  if (*dim>1) {
-    px=PyFloat_FromDouble(*y);
-    PyTuple_SetItem(pPos, 1, px);
-
-    if (*dim>2) {
-      px=PyFloat_FromDouble(*z);
-      PyTuple_SetItem(pPos, 2, px);
-    }
-  }
-  
-  // Tuple of arguments to function;
+  //Tuple containing the Arguments
   pArgs=PyTuple_New(2);
   PyTuple_SetItem(pArgs, 1, pT);
   PyTuple_SetItem(pArgs, 0, pPos);
-
-  // Check for a Python error in the function call
-  if (PyErr_Occurred()){
-    PyErr_Print();
-    *stat=1;
-    return;
-  }
-
-  //had copy of px = pyfloat etc here for some reason
-  pResult=PyObject_CallObject(pFunc, pArgs); 
-    
-  // Check for a Python error in the function call
-  if (PyErr_Occurred()){
-    PyErr_Print();
-    *stat=1;
-    return;
-  }
-    
-  *result=PyFloat_AsDouble(pResult);
   
-  // Check for a Python error in result.
-  if (PyErr_Occurred()){
-    PyErr_Print();
-    *stat=1;
-    return;
-  }
-  Py_DECREF(pResult);  
+  for (i = 0; i < *ndete; i++)
+    {  
+      
+      // Set values for position vector.
+
+      px=PyFloat_FromDouble(x[i]);
+      PyTuple_SetItem(pPos, 0, px);
+      
+      if (*dim>1) {
+	px=PyFloat_FromDouble(y[i]);
+	PyTuple_SetItem(pPos, 1, px);
+	
+	if (*dim>2) {
+	  px=PyFloat_FromDouble(z[i]);
+	  PyTuple_SetItem(pPos, 2, px);
+	}
+      }
+      
+      
+      // Check for a Python error in the function call
+      if (PyErr_Occurred()){
+	PyErr_Print();
+	*stat=1;
+	return;
+      }
+      
+      
+      //had copy of px = pyfloat etc here for some reason
+      pResult=PyObject_CallObject(pFunc, pArgs); 
+      
+      // Check for a Python error in the function call
+      if (PyErr_Occurred()){
+	PyErr_Print();
+	*stat=1;
+	return;
+      }
+      
+      result[i]=PyFloat_AsDouble(pResult);
+      
+      // Check for a Python error in result.
+      if (PyErr_Occurred()){
+	PyErr_Print();
+	*stat=1;
+	return;
+      }
+
+    }
+  Py_DECREF(pResult);
   
   // Clean up
-    Py_DECREF(pArgs);  
-    Py_DECREF(pLocals);  
-    Py_DECREF(pCode);  
-
+  Py_DECREF(pArgs);
+  Py_DECREF(pLocals);  
+  Py_DECREF(pCode);  
+  
   // Force a garbage collection
   PyGC_Collect();
-
+  
   *stat=0;
   return;
 #endif
 }
 
 #define set_particles_fields_from_python F77_FUNC(set_particles_fields_from_python, SET_PARTICLES_FIELDS_FROM_PYTHON)
-void set_particles_fields_from_python(char *function, int *function_len, int *dim, 
-				      double *x, double *y, double *z, double *t,  
-				      int *nfields, double fields[], double *result, int* stat)
+void set_particles_fields_from_python(char *function, int *function_len, int *dim, int *ndete,
+				      double x[], double y[], double z[], double *t,  
+				      int *nfields, double fields[*nfields][*ndete], double result[], int* stat)
 {
 #ifndef HAVE_PYTHON
   int i;
@@ -1078,10 +1086,11 @@ void set_particles_fields_from_python(char *function, int *function_len, int *di
   return;
 #else
   PyObject *pMain, *pGlobals, *pLocals, *pFunc, *pCode, *pResult, 
-    *pArgs, *pPos, *px, *pT, *pFields, *pField;
-  
+    *pArgs, *pPos, *px, *pT, *pFields, *pField; 
+
+  double fields_new[(*ndete)*(*nfields)];
   char *function_c;
-  int i;
+  int i, j;
   
   // the function string passed down from Fortran needs terminating,
   // so make a copy and fiddle with it (remember to free it)
@@ -1126,67 +1135,80 @@ void set_particles_fields_from_python(char *function, int *function_len, int *di
   //Tuple containing the current field vector.
   pFields=PyTuple_New(*nfields);
 
-  // Set values for position vector.
-   px=PyFloat_FromDouble(*x);
-   PyTuple_SetItem(pPos, 0, px);    
-
-  if (*dim>1) {
-    px=PyFloat_FromDouble(*y);
-    PyTuple_SetItem(pPos, 1, px);
-
-    if (*dim>2) {
-      px=PyFloat_FromDouble(*z);
-      PyTuple_SetItem(pPos, 2, px);
-    }
-  }
-
-  //Set values for fields vector.
-  for (i=0; i < *nfields; i++)
-  {
-    pField=PyFloat_FromDouble(fields[i]);
-    PyTuple_SetItem(pFields, i, pField);
-  }
-  
   // Tuple of arguments to function;
   pArgs=PyTuple_New(3);
   PyTuple_SetItem(pArgs, 2, pFields);
   PyTuple_SetItem(pArgs, 1, pT);
   PyTuple_SetItem(pArgs, 0, pPos);
-
-  // Check for a Python error in the function call
-  if (PyErr_Occurred()){
-    PyErr_Print();
-    *stat=1;
-    return;
-  }
-
-  pResult=PyObject_CallObject(pFunc, pArgs); 
-    
-  // Check for a Python error in the function call
-  if (PyErr_Occurred()){
-    PyErr_Print();
-    *stat=1;
-    return;
-  }
-    
-  *result=PyFloat_AsDouble(pResult);
   
-  // Check for a Python error in result.
-  if (PyErr_Occurred()){
-    PyErr_Print();
-    *stat=1;
-    return;
-  }
+  for (j = 0; j < *nfields; j++)
+    {
+      for (i=0; i < *ndete; i++)
+	{
+	  fields_new[i+(j*(*ndete))]=fields[j][i];
+	}
+    }
+  
+  for (i = 0; i < *ndete; i++)
+    {  
+      
+      // Set values for position vector.
+      px=PyFloat_FromDouble(x[i]);
+      PyTuple_SetItem(pPos, 0, px);    
+      
+      if (*dim>1) {
+	px=PyFloat_FromDouble(y[i]);
+	PyTuple_SetItem(pPos, 1, px);
+	
+	if (*dim>2) {
+	  px=PyFloat_FromDouble(z[i]);
+	  PyTuple_SetItem(pPos, 2, px);
+	}
+      }
+      
+      //Set values for fields vector.
+      for (j=0; j < *nfields; j++)
+	{
+	  pField=PyFloat_FromDouble(fields_new[j+(i*(*nfields))]);
+	  PyTuple_SetItem(pFields, j, pField);
+	}
+      
+      // Check for a Python error in the function call
+      if (PyErr_Occurred()){
+	PyErr_Print();
+	*stat=1;
+	return;
+      }
+      
+      pResult=PyObject_CallObject(pFunc, pArgs); 
+      
+      // Check for a Python error in the function call
+      if (PyErr_Occurred()){
+	PyErr_Print();
+	*stat=1;
+	return;
+      }
+      
+      result[i]=PyFloat_AsDouble(pResult);
+      
+      // Check for a Python error in result.
+      if (PyErr_Occurred()){
+	PyErr_Print();
+	*stat=1;
+	return;
+      }
+
+    }
   Py_DECREF(pResult);  
   
   // Clean up
-    Py_DECREF(pArgs);  
-    Py_DECREF(pLocals);  
-    Py_DECREF(pCode);  
-
+  Py_DECREF(pArgs);  
+  Py_DECREF(pLocals);  
+  Py_DECREF(pCode);  
+  
   // Force a garbage collection
   PyGC_Collect();
-
+  
   *stat=0;
   return;
 #endif
