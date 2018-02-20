@@ -722,8 +722,9 @@ contains
 
   subroutine destroy_particles()
     !Deallocate all particle arrays (detector lists)
-
-    deallocate(particle_lists)
+    if (allocated(particle_lists)) then
+       deallocate(particle_lists)
+    end if
     
   end subroutine destroy_particles
 

@@ -388,8 +388,8 @@ contains
           assert(allocated(detector%update_vector))
           assert(allocated(detector%k))
           
-          buff(ndims+4:2*ndims+4) = detector%update_vector
-          buff(2*ndims+4:(nstages+2)*ndims+4) = reshape(detector%k,(/nstages*ndims/))
+          buff(ndims+4:2*ndims+3) = detector%update_vector
+          buff(2*ndims+4:(nstages+2)*ndims+3) = reshape(detector%k,(/nstages*ndims/))
        else
           assert(size(buff)==ndims+4)
           buff(ndims+4) = detector%list_id
