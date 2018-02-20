@@ -1,7 +1,9 @@
 import numpy
 from math import sqrt, atan2, cos, sin
 
-Ra = 1.
+eta = 1.
+g = 1.
+Ra = g/eta
 R = numpy.array([2.22, 1.22])
 Rr = R[::-1]
 rp = R[1]+0.5
@@ -14,6 +16,8 @@ if n>1:
             (Rr**2*rp**(2*n)-Rr**(2*n)*rp**2)/(R[0]**2*R[1]**(2*n)-R[0]**(2*n)*R[1]**2)
     C = -F/R**(2*n-2)
     D = -E*R**(2*n+2)
+    G = -4*eta*E*(n+1)
+    H = -4*eta*F*(n+1)
 else:
     raise NotImplemented()
 
@@ -26,9 +30,19 @@ def u_theta(r, theta):
   dpsi_dr = sin(n*theta)*(C*n*r**(n-1) + D*-n*r**(-n-1) + E*(n+2)*r**(n+1) + F*(-n+2)*r**(-n+1))
   return dpsi_dr
 
+def p(r, theta):
+    return (G*r**n + H*r**(-n))*cos(n*theta)
+
 def get_cartesian_solution(X, i):
+  # i==0: upper mantle, i==1: lower mantle
   r = sqrt(X[0]**2+X[1]**2)
   theta = atan2(X[1], X[0])
   ur = u_r(r,theta)[i]
   ut = u_theta(r,theta)[i]
   return [ur*X[0]/r - ut*X[1]/r, ur*X[1]/r + ut*X[0]/r]
+
+def get_cartesian_pressure_solution(X, i):
+  # i==0: upper mantle, i==1: lower mantle
+  r = sqrt(X[0]**2+X[1]**2)
+  theta = atan2(X[1], X[0])
+  return p(r, theta)[i]
