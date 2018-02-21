@@ -64,16 +64,15 @@ scalar_boundary_conditions =
                # still set)
                element set_to_zero { empty }?
             }|
-            ## Special type of Dirichlet boundary condition for the k-epsilon
+            ## Special type of Dirichlet boundary condition for the k-omega  
             ## turbulence model. Can be used on TurbulentKineticEnergy (k)
             ## and/or TurbulentDissipation (epsilon) fields.
             ## e.g. use a Dirichlet BC on inlets and k_epsilon on walls.
             element type {
-               attribute name { "k_epsilon" },
-               ## Select low Reynolds number wall function for k and epsilon fields.
-               element string_value {
-               "low_Re" | "high_Re"
-               }
+               attribute name { "standard_rough_wall" },
+               ## Standard rough wall model.
+               element z0 {real}?,
+               element zp {real}?
             }|
             ## Flux boundary condition. Currently only works with a control_volume 
             ## discretisation.

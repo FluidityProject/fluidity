@@ -3040,9 +3040,10 @@ velocity_boundary_conditions =
               ## the methodology outlined in Kuzmin and Mierka (2006).
               ## Constant not needed! Set to zero (or whatever).
               ## Set yPlus value to the same value set under k-epsilon!
-              element log_law_friction_velocity {
+              element standard_rough_wall {
                 ## yPlus value (default): 11.06.
-                element yPlus {real}?
+                element z0 {real}?,
+                element zp {real}?
               }
             )
          }|

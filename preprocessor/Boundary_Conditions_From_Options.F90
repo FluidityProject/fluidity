@@ -58,6 +58,7 @@ module boundary_conditions_from_options
   use pickers_inquire, only: picker_inquire
   use bulk_parameterisations, only: get_forcing_surface_element_list
   use k_epsilon, only: keps_bcs
+  use k_omega, only: komega_bcs
   use sediment, only: set_sediment_reentrainment
 
   implicit none
@@ -281,6 +282,18 @@ contains
              bc_type = "dirichlet"
           end if
        end if
+
+       if(trim(bc_type).eq."standard_rough_wall") then 
+          write(6,*) 'Hi there' 
+          if(trim(field%name).eq."TurbulentFrequency") then
+             bc_type = "neumann"
+          else if (trim(field%name).eq."TurbulentKineticEnergy") then 
+             bc_type = "zero_flux"
+          else
+             ewrite(2,*) "Changing k_epsilon BC type to dirichlet"
+             bc_type = "dirichlet"
+          endif
+       endif
 
        if(have_option(trim(bc_path_i)//"/type[0]/apply_weakly")) then
          bc_type = "weak"//trim(bc_type)
@@ -696,6 +709,12 @@ contains
           ewrite(2,*) "Calling keps_bcs"
           call keps_bcs(states(p+1))
        end if
+       
+       ! Special k-omega boundary conditions
+       if (have_option(trim(states(p+1)%option_path)//'/subgridscale_parameterisations/k-omega')) then
+          ewrite(2,*) "Calling komega_bcs"
+          call komega_bcs(states(p+1))
+       end if
 
     end do
 
@@ -850,9 +869,13 @@ contains
           
        case( "zero_flux" )
        
-          ! nothing to be done here
+       case( "standard_rough_wall" )
+           if(.not. have_option &
+           ("/material_phase[0]/subgridscale_parameterisations/k-omega/") ) then
+               FLAbort("Incorrect boundary condition type for field")
+           end if
 
-       case( "k_epsilon" )
+       case( "k_epsilon")
        
            if(.not. have_option &
            ("/material_phase[0]/subgridscale_parameterisations/k-epsilon/") ) then

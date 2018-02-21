@@ -66,7 +66,7 @@ subroutine drag_surface(bigm, rhs, state, density)
    integer snloc, sele, sngi
    logical:: parallel_dg, have_distance_bottom, have_distance_top, have_gravity, manning_strickler
 
-   real                            :: yPlus
+   real                            :: z0, zp, kappa
    type(scalar_field), pointer     :: TKE
    real, dimension(:), allocatable :: friction_velocity
 
@@ -135,26 +135,30 @@ subroutine drag_surface(bigm, rhs, state, density)
               coefficient=ele_val_at_quad(drag_coefficient, j)
 
             elseif(have_option(trim(velocity%option_path)//&
-               '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity')) then
+               '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/standard_rough_wall')) then
 
               !A! yPlus = 300.0 !!! 11.06 !using fixed yPlus value atm
               call get_option(trim(velocity%option_path)//&
-                   '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/log_law_friction_velocity/yPlus', yPlus, default = 11.06) !A! grab yPlus from diamond
+                   '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/standard_rough_wall/z0', z0, default = 0.16) 
+              
+              call get_option(trim(velocity%option_path)//&
+                   '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/standard_rough_wall/zp', zp, default = 10.) 
 
               if(have_option("/material_phase[0]/subgridscale_parameterisations/k-omega")) then
                 TKE => extract_scalar_field(state, "TurbulentKineticEnergy")
+              kappa = 0.41
 
                  ! calc friction velocity: u_tau_1 = |u_wall|/yPlus, u_tau_2 = C_mu^0.25*sqrt(k), u_tau = max ( u_tau_1 , u_tau_2 )
-                 friction_velocity = max( sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1)) / yPlus , &
+                 friction_velocity = max( sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1))*kappa/log((zp+z0)/z0) , &
                                           sqrt(face_val_at_quad(TKE, sele)) * 0.09**0.25 )
               else
-                 ! calc friction velocity: u_tau = u_tau_1
-                 friction_velocity = sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1)) / yPlus
+                 ! Do nothing 
               end if
+  
 
               ! calc wall shear stress: tau_wall = - (u_tau/yPlus)*|u_wall|
               !coefficient = (friction_velocity/yPlus)*sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1))
-              coefficient = (friction_velocity/yPlus)
+              coefficient = friction_velocity/(log((zp+z0)/z0)/kappa)
               !ewrite(1,*) 'AMIN: Are we here yet?', yPlus, coefficient, coefficient*sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1))
             else ! default to quadratic_drag
               ! drag coefficient: C_D * |u|

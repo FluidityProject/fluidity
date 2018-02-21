@@ -59,7 +59,7 @@ module k_omega
   real, save     :: fields_min = 1.0e-11
   !A!logical, save  :: low_Re = .false.
 
-  public :: komega_advdif_diagnostics, komega_momentum_diagnostics, & !A! komega_bcs removed
+  public :: komega_advdif_diagnostics, komega_momentum_diagnostics, komega_bcs , &
        & k_omega_check_options, tensor_inner_product
 
   ! Outline:
@@ -986,6 +986,151 @@ subroutine komega_tracer_diffusion(state)
 end subroutine komega_tracer_diffusion
 
 !---------------------------------------------------------------------------------
+subroutine komega_bcs(state)
+
+  type(state_type), intent(in)               :: state
+  type(scalar_field), pointer                :: field1, field2    ! k or omega
+  type(scalar_field), pointer                :: f_1, f_2, f_mu
+  type(scalar_field), pointer                :: surface_field, scalar_eddy_visc
+  type(scalar_field), pointer                :: density, dummydensity
+  type(vector_field), pointer                :: X, u
+  type(tensor_field), pointer                :: bg_visc
+  type(scalar_field)                         :: rhs_field, surface_values
+  type(mesh_type), pointer                   :: surface_mesh
+  integer                                    :: i, j, sele, index, nbcs, stat
+  integer, dimension(:), pointer             :: surface_elements, surface_node_list
+  integer, allocatable, dimension(:)         :: vol_nodes
+  character(len=FIELD_NAME_LEN)              :: bc_type, bc_name, wall_fns
+  character(len=OPTION_PATH_LEN)             :: bc_path, bc_path_i, option_path 
+  real                                       :: c_mu
+  character(len=FIELD_NAME_LEN)              :: equation_type
+
+  integer, dimension(:), pointer             :: surface_element_list
+  real                                       :: z0, zp, kappa, u_tau_val, nut_val, omega_bc_val, y_val
+  real, dimension(:), allocatable            :: friction_velocity
+  integer                                    :: sngi, surface_node, ele, iloc, inode, vnode
+
+  option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-omega/'
+
+  ewrite(2,*) "In komega_bcs"
+
+  X => extract_vector_field(state, "Coordinate")
+  u                 => extract_vector_field(state, "Velocity")
+  scalar_eddy_visc  => extract_scalar_field(state, "ScalarEddyViscosity")
+  bg_visc           => extract_tensor_field(state, "BackgroundViscosity")
+
+  allocate(dummydensity)
+  call allocate(dummydensity, X%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
+  call set(dummydensity, 1.0)
+  dummydensity%option_path = ""
+  
+  ! Depending on the equation type, extract the density or set it to some dummy field allocated above
+  call get_option(trim(u%option_path)//"/prognostic/equation[0]/name", equation_type)
+  select case(equation_type)
+     case("LinearMomentum")
+        density=>extract_scalar_field(state, "Density")
+     case("Boussinesq")
+        density=>dummydensity
+     case("Drainage")
+        density=>dummydensity
+     case default
+        ! developer error... out of sync options input and code
+        FLAbort("Unknown equation type for velocity")
+  end select
+
+  call get_option(trim(option_path)//"Beta_Star", c_mu, default = 0.09)
+
+  sngi=face_ngi(u, 1)
+  allocate(friction_velocity(1:sngi))
+
+  !A! yPlus = 300.0 !!! 11.06 !using fixed yPlus value atm
+  call get_option(trim(option_path)//'/z0', z0 , default = 0.16) !A! grab yPlus from diamond
+  call get_option(trim(option_path)//'/zp', zp , default = 10.) !A! grab yPlus from diamond
+  kappa = 0.41
+
+  field_loop: do index=1,2
+
+     if(index==1) then
+        field1 => extract_scalar_field(state, "TurbulentKineticEnergy")
+        field2 => null()
+     else
+        field1 => extract_scalar_field(state, "TurbulentFrequency")
+        field2 => extract_scalar_field(state, "TurbulentKineticEnergy")
+     end if
+
+     bc_path=trim(field1%option_path)//'/prognostic/boundary_conditions'
+     nbcs=option_count(trim(bc_path))
+
+     ! Loop over boundary conditions for field1
+     boundary_conditions: do i=0, nbcs-1
+
+        bc_path_i=trim(bc_path)//"["//int2str(i)//"]"
+
+        ! Get name and type of boundary condition
+        call get_option(trim(bc_path_i)//"/name", bc_name)
+        call get_option(trim(bc_path_i)//"/type[0]/name", bc_type)
+        ! Do we have low-Reynolds-number wall functions?
+        call get_option(trim(bc_path_i)//"/type::standard_rough_wall/", wall_fns, stat=stat)
+
+        if (trim(bc_type)=="k_omega" .and. wall_fns=="standard_rough_wall") then
+
+           call get_boundary_condition(field1, i+1, surface_element_list=surface_element_list)
+
+!           do j=1, size(surface_node_list)
+!              surface_node = surface_node_list(j)
+
+!              ! Calculate y = yPlus*nu_bg / c_mu**0.25*sqrt(k)
+!              y_val = ( yPlus*node_val(bg_visc,1,1,surface_node) )/( (c_mu**0.25)*sqrt(node_val(field2,surface_node)) )
+
+!              ! Calculate eps_wall = c_mu**0.75*k**1.5 / kappa*y
+!              eps_bc_val = ( c_mu**0.75*node_val(field2,surface_node)**1.5 )/( kappa*y_val )
+!!              eps_bc_val = ( c_mu*node_val(field2,surface_node)**2 )/( kappa*yPlus*node_val(bg_visc,1,1,surface_node) ) 
+
+!              call set(field2, surface_node, eps_bc_val)
+!           end do
+
+              allocate(vol_nodes(face_loc(field2,1)))
+
+              ! pull out the bc value field:
+              surface_field => extract_surface_field(field1, bc_name, 'value')
+
+              ! set epsilon neumann bc: n.grad(epsilon) = (kappa*u_tau)/nut_wall * epsilon_wall
+              do ele=1, ele_count(surface_field)
+                  ! Establish local node lists for surface_field
+                  surface_elements => ele_nodes(surface_field,ele)
+                  vol_nodes = face_global_nodes(field2,surface_element_list(ele))
+                  !vol_nodes = face_global_nodes(field2,ele)
+                  ! Loop the nodes
+                  do iloc=1, size(surface_elements)
+                     inode = surface_elements(iloc) !get the surface node number
+                     vnode = vol_nodes(iloc)        !get the volume node number
+
+                     u_tau_val  = sqrt(node_val(field2,vnode)) * c_mu**0.25
+                     !u_tau_val  = max( sqrt(sum(node_val(u, vnode)**2, dim=1)) / yPlus , u_tau_val)
+
+                     if(node_val(scalar_eddy_visc,vnode) .le. 1.0e-16) then
+                        omega_bc_val = 0.0
+                     else
+                        !eps_bc_val = ((kappa*u_tau_val)/node_val(scalar_eddy_visc,vnode)) * node_val(field1,vnode) ! Neumann
+                        !eps_bc_val = (u_tau_val**5.0)/( node_val(scalar_eddy_visc,vnode)*yPlus*node_val(bg_visc,1,1,1) ) ! Neumann II
+                        !eps_bc_val = ( c_mu*node_val(field2,vnode)**2 )/( kappa*yPlus*node_val(bg_visc,1,1,1) ) ! Dirichlet
+                        !eps_bc_val = ((kappa*u_tau_val)/1.3) * node_val(field1,vnode) ! Flux
+                        !eps_bc_val = (u_tau_val**5.0)/( 1.3*yPlus*node_val(bg_visc,1,1,1) ) ! Neumann III
+                        omega_bc_val=u_tau_val/(kappa*sqrt(c_mu)*(zp+z0)**2.0)
+                     endif
+
+                     call set(surface_field, inode, omega_bc_val) !AMIN
+
+                  end do
+              end do
+        end if
+     end do boundary_conditions
+  end do field_loop
+
+  call deallocate(dummydensity)
+  deallocate(dummydensity)
+
+end subroutine komega_bcs
 
 subroutine time_averaged_value(state, A, field_name, advdif, option_path)
   

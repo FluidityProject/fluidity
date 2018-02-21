@@ -97,20 +97,24 @@ sediment reentrainment. </a:documentation>
           </optional>
         </element>
         <element name="type">
-          <a:documentation>Special type of Dirichlet boundary condition for the k-epsilon
+          <a:documentation>Special type of Dirichlet boundary condition for the k-omega  
 turbulence model. Can be used on TurbulentKineticEnergy (k)
 and/or TurbulentDissipation (epsilon) fields.
 e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
           <attribute name="name">
-            <value>k_epsilon</value>
+            <value>standard_rough_wall</value>
           </attribute>
-          <element name="string_value">
-            <a:documentation>Select low Reynolds number wall function for k and epsilon fields.</a:documentation>
-            <choice>
-              <value>low_Re</value>
-              <value>high_Re</value>
-            </choice>
-          </element>
+          <optional>
+            <element name="z0">
+              <a:documentation>Standard rough wall model.</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="zp">
+              <ref name="real"/>
+            </element>
+          </optional>
         </element>
         <element name="type">
           <a:documentation>Flux boundary condition. Currently only works with a control_volume 
