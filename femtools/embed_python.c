@@ -1068,10 +1068,12 @@ void set_particles_from_python(char *function, int *function_len, int *dim, int 
 #endif
 }
 
-#define set_particles_fields_from_python F77_FUNC(set_particles_fields_from_python, SET_PARTICLES_FIELDS_FROM_PYTHON)
+//#define set_particles_fields_from_python F77_FUNC(set_particles_fields_from_python, SET_PARTICLES_FIELDS_FROM_PYTHON)
 void set_particles_fields_from_python(char *function, int *function_len, int *dim, int *ndete,
-				      double x[], double y[], double z[], double *t,  
-				      int *nfields, double fields[*nfields][*ndete], double result[], int* stat)
+				      double x[], double y[], double z[], double *t, int *FIELD_NAME_LEN,
+				      int *nfields, char field_names[*nfields][*FIELD_NAME_LEN],
+				      double field_vals[*nfields][*ndete], double result[], int* stat)
+  
 {
 #ifndef HAVE_PYTHON
   int i;
@@ -1085,9 +1087,8 @@ void set_particles_fields_from_python(char *function, int *function_len, int *di
   *stat=1;
   return;
 #else
-  PyObject *pMain, *pGlobals, *pLocals, *pFunc, *pCode, *pResult, 
-    *pArgs, *pPos, *px, *pT, *pFields, *pField; 
-
+  PyObject *pMain, *pGlobals, *pLocals, *pFunc, *pCode, *pResult,
+    *pArgs, *pPos, *px, *pT, *pField, *pNames;
   double fields_new[(*ndete)*(*nfields)];
   char *function_c;
   int i, j;
@@ -1114,8 +1115,9 @@ void set_particles_fields_from_python(char *function, int *function_len, int *di
       printf("Couldn't find a 'val' function in your Python code.\n");
       *stat=1;
       return;
-  }
 
+  }
+  
   // Clean up memory from null termination.
   free(function_c);
   
@@ -1126,35 +1128,41 @@ void set_particles_fields_from_python(char *function, int *function_len, int *di
     return;
   }
 
+    for (j = 0; j < *nfields; j++)
+    {
+      for (i=0; i < *ndete; i++)
+    	{
+    	  fields_new[i+(j*(*ndete))]=field_vals[j][i];
+    	}
+    }
+
+  // Field variable dictionary space
+  pNames=PyDict_New();
+
   // Python form of time variable.
   pT=PyFloat_FromDouble(*t);
 
   // Tuple containing the current position vector.
   pPos=PyTuple_New(*dim);
+  
 
   //Tuple containing the current field vector.
-  pFields=PyTuple_New(*nfields);
+  // pFields=PyTuple_New(*nfields);
 
   // Tuple of arguments to function;
   pArgs=PyTuple_New(3);
-  PyTuple_SetItem(pArgs, 2, pFields);
+  PyTuple_SetItem(pArgs, 2, pNames);
   PyTuple_SetItem(pArgs, 1, pT);
   PyTuple_SetItem(pArgs, 0, pPos);
-  
-  for (j = 0; j < *nfields; j++)
-    {
-      for (i=0; i < *ndete; i++)
-	{
-	  fields_new[i+(j*(*ndete))]=fields[j][i];
-	}
-    }
+
+  //Set values for fields vector.
   
   for (i = 0; i < *ndete; i++)
-    {  
+    {
       
       // Set values for position vector.
       px=PyFloat_FromDouble(x[i]);
-      PyTuple_SetItem(pPos, 0, px);    
+      PyTuple_SetItem(pPos, 0, px);
       
       if (*dim>1) {
 	px=PyFloat_FromDouble(y[i]);
@@ -1167,11 +1175,12 @@ void set_particles_fields_from_python(char *function, int *function_len, int *di
       }
       
       //Set values for fields vector.
+      
       for (j=0; j < *nfields; j++)
-	{
-	  pField=PyFloat_FromDouble(fields_new[j+(i*(*nfields))]);
-	  PyTuple_SetItem(pFields, j, pField);
-	}
+      {
+        pField=PyFloat_FromDouble(fields_new[j+i*(*nfields)]);
+        PyDict_SetItemString(pNames, field_names[j], pField);
+      }
       
       // Check for a Python error in the function call
       if (PyErr_Occurred()){
@@ -1180,7 +1189,7 @@ void set_particles_fields_from_python(char *function, int *function_len, int *di
 	return;
       }
       
-      pResult=PyObject_CallObject(pFunc, pArgs); 
+      pResult=PyObject_CallObject(pFunc, pArgs);
       
       // Check for a Python error in the function call
       if (PyErr_Occurred()){
@@ -1199,12 +1208,12 @@ void set_particles_fields_from_python(char *function, int *function_len, int *di
       }
 
     }
-  Py_DECREF(pResult);  
+  Py_DECREF(pResult);
   
   // Clean up
-  Py_DECREF(pArgs);  
-  Py_DECREF(pLocals);  
-  Py_DECREF(pCode);  
+  Py_DECREF(pArgs);
+  Py_DECREF(pLocals);
+  Py_DECREF(pCode);
   
   // Force a garbage collection
   PyGC_Collect();

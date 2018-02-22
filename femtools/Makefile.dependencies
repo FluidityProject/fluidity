@@ -343,7 +343,7 @@ Elements.o ../include/elements.mod: Elements.F90 \
 	@true
 
 Embed_Python_Fortran.o ../include/embed_python.mod: Embed_Python_Fortran.F90 \
-   ../include/fdebug.h ../include/fldebug.mod
+   ../include/fdebug.h ../include/fldebug.mod ../include/global_parameters.mod
 
 ../include/eventcounter.mod: EventCounter.o
 	@true

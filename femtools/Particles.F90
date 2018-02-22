@@ -449,7 +449,7 @@ contains
                   int2str(i-1)//']/attributes/attribute['//int2str(k)// &
                   ']/python_fields/field_name['//int2str(n)//']/name', field_name(n+1))
           end do
-          call set_particle_fields_from_python(state, xfield, dim, position(:,:), nparticles, ele(:), lcoords(:,:), attribute_array(k+1,:), func, time, field_name)
+          call set_particle_fields_from_python(state, xfield, dim, position(:,:), nparticles, ele(:), lcoords(:,:), attribute_array(k+1,:), func, time)
           deallocate(field_name)
        end if
     end do

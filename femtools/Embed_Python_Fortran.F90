@@ -31,6 +31,7 @@ module embed_python
 
   use fldebug
   use iso_c_binding
+  use global_parameters, only: FIELD_NAME_LEN
 
   implicit none
   
@@ -191,18 +192,21 @@ module embed_python
     module procedure set_particles_fields_from_python_sp
      
      subroutine set_particles_fields_from_python(function, function_len, dim,&
-         & ndete, x, y, z, t, nfields, fields, result, stat)
+         & ndete, x, y, z, t, fld_name_len, nfields, field_names, field_vals, result, stat) bind(c)
       !! Interface to c wrapper function.
-      use iso_c_binding, only: c_double
+      use iso_c_binding, only: c_double, c_char
+      use global_parameters, only: FIELD_NAME_LEN
       implicit none
       integer, intent(in) :: function_len
-      character(len = function_len) :: function
+      character(kind=c_char):: function
       integer, intent(in) :: dim, nfields, ndete
+      integer, intent(in) :: fld_name_len
       real(kind = c_double), dimension(nfields), intent(in) :: x
       real(kind = c_double), dimension(nfields), intent(in) :: y
       real(kind = c_double), dimension(nfields), intent(in) :: z
       real(kind = c_double), intent(in) :: t
-      real(kind = c_double), dimension(nfields,ndete), intent(in) :: fields
+      character(kind = c_char), dimension(FIELD_NAME_LEN,nfields), intent(in) :: field_names
+      real(kind = c_double), dimension(nfields,ndete), intent(in) :: field_vals
       real(kind = c_double), dimension(nfields), intent(out) :: result
       integer, intent(out) :: stat
      end subroutine set_particles_fields_from_python
@@ -295,7 +299,8 @@ module embed_python
     & set_vector_field_from_python, set_tensor_field_from_python, &
     & set_particle_sfield_from_python, set_particle_vfield_from_python, &
     & set_detectors_from_python, real_from_python, real_vector_from_python, &
-    & integer_from_python, string_from_python, integer_vector_from_python
+    & integer_from_python, string_from_python, integer_vector_from_python, &
+    & set_particles_fields_from_python, set_particles_from_python
 
 contains
 
@@ -432,21 +437,23 @@ contains
   end subroutine set_particles_from_python_sp
 
   subroutine set_particles_fields_from_python_sp(function, function_len, dim, &
-       & ndete, x, y, z, t, nfields, fields, result, stat)
+       & ndete, x, y, z, t, nfields, field_names, field_vals, result, stat)
     integer, intent(in) :: function_len
-    character(len = function_len) :: function
+    character(len = *) :: function
     integer, intent(in) :: dim, nfields, ndete
-    real(kind = c_float), dimension(ndete), intent(in) :: x
-    real(kind = c_float), dimension(ndete), intent(in) :: y
-    real(kind = c_float), dimension(ndete), intent(in) :: z
-    real(kind = c_float), intent(in) :: t
-    real(kind = c_float), dimension(nfields,ndete), intent(in) :: fields
-    real(kind = c_float), dimension(ndete), intent(out) :: result
+    real(kind = c_double), dimension(ndete), intent(in) :: x
+    real(kind = c_double), dimension(ndete), intent(in) :: y
+    real(kind = c_double), dimension(ndete), intent(in) :: z
+    real(kind = c_double), intent(in) :: t
+    character(kind = c_char), dimension(FIELD_NAME_LEN,nfields), intent(in) :: field_names
+    real(kind = c_double), dimension(nfields,ndete), intent(in) :: field_vals
+    real(kind = c_double), dimension(ndete), intent(out) :: result
     integer, intent(out) :: stat
 
     real(kind = c_double), dimension(ndete) :: lresult
     call set_particles_fields_from_python(function, function_len, dim, ndete, &
-      & real(x, kind = c_double), real(y, kind = c_double), real(z, kind = c_double), real(t, kind = c_double), nfields, real(fields, kind = c_double), lresult, stat)
+         & real(x, kind = c_double), real(y, kind = c_double), real(z, kind = c_double), real(t, kind = c_double), &
+         & FIELD_NAME_LEN, nfields, field_names, real(field_vals, kind = c_double), lresult, stat)
     result = lresult
   end subroutine set_particles_fields_from_python_sp
    

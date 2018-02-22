@@ -32,7 +32,7 @@ module detector_tools
   use fldebug
   use elements, only: local_coord_count
   use detector_data_types
-  use embed_python, only: set_detectors_from_python
+  use embed_python, only: set_detectors_from_python, set_particles_fields_from_python, set_particles_from_python
   use integer_hash_table_module
   use fields
   use state_module, only: state_type, extract_scalar_field
@@ -41,6 +41,7 @@ module detector_tools
   use pickers
   use parallel_tools
   use parallel_fields, only: element_owned
+  use iso_c_binding, only: C_NULL_CHAR
   
   implicit none
   
@@ -634,28 +635,28 @@ contains
     end if
   end subroutine set_particle_attribute_from_python
 
-  subroutine set_particle_fields_from_python(state, xfield, dim, positions, ndete, ele, lcoords, attributes, func, time, field_name)
+  subroutine set_particle_fields_from_python(state, xfield, dim, positions, ndete, ele, lcoords, attributes, func, time)
     type(state_type), dimension(:), intent(in) :: state
     real, dimension(:), intent(inout) :: attributes
     character(len=*), intent(in) :: func
-    character(len=*), dimension(:), intent(in) :: field_name
     integer, intent(in) :: ndete
     real, intent(in) :: time
     integer, intent(in) :: dim
+    character, allocatable, dimension(:,:) :: field_names
     real, dimension(:,:), target, intent(in) :: positions
     real, dimension(:,:), intent(in) :: lcoords
     integer, dimension(:), intent(in) :: ele
-    real, allocatable, dimension(:,:) :: fields
+    real, allocatable, dimension(:,:) :: field_vals
     type(vector_field), pointer :: xfield
     real :: value
     real, dimension(:), pointer :: lvx,lvy,lvz
     real, dimension(0), target :: zero
-    character(len=FIELD_NAME_LEN) :: buffer !set len as number
+    character(len=FIELD_NAME_LEN) :: buffer
 
     type(scalar_field), pointer :: sfield
     character(len=FIELD_NAME_LEN) :: name
-    integer :: phase, i, j, nfields
-    integer :: p, f, stat, num_fields, k
+    integer :: phase, i, j, nfields, nprognostic, nprescribed, ndiagnostic
+    integer :: p, f, stat, num_fields, k, pfields
     logical :: particles_f
 
     !get positions of particles for function
@@ -674,40 +675,46 @@ contains
       lvy=>positions(2,:)
       lvz=>positions(3,:)
     end select
-    num_fields=0
-    allocate(fields(size(field_name),ndete))
+    nprognostic = option_count('/material_phase/scalar_field/prognostic/particles/include_in_particles')
+    nprescribed = option_count('/material_phase/scalar_field/prescribed/particles/include_in_particles')
+    ndiagnostic = option_count('/material_phase/scalar_field/diagnostic/particles/include_in_particles')
+    nfields = ndiagnostic + nprescribed + nprognostic
+
+    allocate(field_names(FIELD_NAME_LEN,nfields))
+    allocate(field_vals(nfields,ndete))
+    j=1
     do phase=1,size(state)
-       nfields = option_count('/material_phase[' &
+       num_fields = option_count('/material_phase[' &
             //int2str(phase-1)//']/scalar_field')
-       do f = 1, nfields
+       do f = 1, num_fields
           call get_option('material_phase['//int2str(phase-1)//']/scalar_field['//int2str(f-1)//']/name', name)
           sfield => extract_scalar_field(state(phase),name)
           if (have_option(trim(sfield%option_path)//"/prescribed/particles/include_in_particles").or. &
                have_option(trim(sfield%option_path)//"/diagnostic/particles/include_in_particles").or. &
                have_option(trim(sfield%option_path)//"/prognostic/particles/include_in_particles")) then
-             do j=1,size(field_name)
-                if (name==field_name(j)) then
-                   do i = 1,ndete
-                      value = eval_field(ele(i), sfield, lcoords(:,i))
-                      fields(j,i) = value
-                   end do
-                   num_fields = num_fields+1
-                end if
+             do k = 1,len_trim(name)
+                field_names(k,j)=name(k:k)
              end do
+             field_names(k,j)= C_NULL_CHAR
+             do i = 1,ndete
+                value = eval_field(ele(i), sfield, lcoords(:,i))
+                field_vals(j,i)=value
+             end do
+             j=j+1
           end if
        end do
     end do
-    if (size(field_name).ne.num_fields) then
-       ewrite(2,*) "number of fields is not consistent"
-       FLExit("Dying")
-    end if
+    ewrite(2,*)"Hello 1 "
     call set_particles_fields_from_python(func, len(func), dim, ndete, &
-         lvx, lvy, lvz, time, num_fields, fields, attributes, stat)
+         lvx, lvy, lvz, time, nfields, field_names, field_vals, attributes, stat)
     if (stat/=0) then
        ewrite(-1, *) "Python error, Python string was:"
        ewrite(-1 , *) trim(func)
        FLExit("Dying")
     end if
+
+    deallocate(field_names)
+    deallocate(field_vals)
   end subroutine set_particle_fields_from_python
 
 end module detector_tools

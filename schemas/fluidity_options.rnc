@@ -3722,13 +3722,7 @@ generic_particle_field =
    ##
    ## where X is a tuple of length geometry dimension.
    element python_fields {
-      python_code,
-      (
-         ## Field name
-         element field_name {
-            attribute name { xsd:string }
-	 }+
-      )
+      python_code
    }|
    ## File containing the particle positions in binary form
    element from_checkpoint_file {
