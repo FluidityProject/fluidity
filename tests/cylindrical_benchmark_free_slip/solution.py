@@ -17,7 +17,7 @@ if n>1:
     C = -F/R**(2*n-2)
     D = -E*R**(2*n+2)
     G = -4*eta*E*(n+1)
-    H = -4*eta*F*(n+1)
+    H = -4*eta*F*(n-1)
 else:
     raise NotImplemented()
 
