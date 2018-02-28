@@ -121,7 +121,8 @@ In this case each value requires a distinct name for the options dictionary.</a:
         <a:documentation>Non-linear relaxation term
  = 0  -- previous timestep velocity solution used in non-linear terms of momentum equations
  = 1  -- previous iteration velocity solution used in non-linear terms of momentum equations
- 0 &lt;= ITHETA &lt;= 1</a:documentation>
+ 0 &lt;= ITHETA &lt;= 1
+Value will default to 1 if not set</a:documentation>
         <ref name="real"/>
       </element>
     </element>

@@ -296,7 +296,7 @@ start =
                      empty
                   }
                ),
-               ## Enable to write detector output in ascii format
+               ## Enable to write detector output in ascii format. This output format will not work in parallel, if not enabled format defaults to binary.
                element ascii_output {
                   comment
                }?,

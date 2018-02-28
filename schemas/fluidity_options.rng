@@ -362,7 +362,7 @@ The t argument is for future use only - currently detector locations are only se
             </choice>
             <optional>
               <element name="ascii_output">
-                <a:documentation>Enable to write detector output in ascii format</a:documentation>
+                <a:documentation>Enable to write detector output in ascii format. This output format will not work in parallel, if not enabled format defaults to binary.</a:documentation>
                 <ref name="comment"/>
               </element>
             </optional>

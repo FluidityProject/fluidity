@@ -95,6 +95,7 @@ prescribed_relaxation_term =
             ##  = 0  -- previous timestep velocity solution used in non-linear terms of momentum equations
             ##  = 1  -- previous iteration velocity solution used in non-linear terms of momentum equations
             ##  0 <= ITHETA <= 1
+	    ## Value will default to 1 if not set
             element relaxation {
                real
             }

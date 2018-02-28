@@ -1,6 +1,8 @@
 from pylab import *
 import numpy as np
 
+##Calculates analytical solutions for position with the given increasing-rotation velocity field. Plots the final positions and saves values as .npy
+
 ##Set initial x/y coordinates of detectors
 x = 0.5+0.25*arange(0,100.)/100.
 y = zeros(100) + 0.5

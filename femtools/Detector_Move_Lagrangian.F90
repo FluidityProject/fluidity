@@ -201,7 +201,6 @@ contains
     subcycling_loop: do cycle = 1, parameters%n_subcycles
        RKstages_loop: do stage = 1, parameters%n_stages
 
-          
           ! Compute the update vector
           call set_stage(detector_list,vfield,vfield_old,xfield,rk_dt,stage)
 
