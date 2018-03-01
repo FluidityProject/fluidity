@@ -145,8 +145,8 @@ Checkpoint.o ../include/checkpoint.mod: Checkpoint.F90 \
    ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/halos.mod \
    ../include/mesh_files.mod ../include/mpi_interfaces.mod \
-   ../include/parallel_tools.mod ../include/state_module.mod \
-   ../include/vtk_interfaces.mod
+   ../include/parallel_tools.mod ../include/particles.mod \
+   ../include/state_module.mod ../include/vtk_interfaces.mod
 
 ../include/colouring.mod: Colouring.o
 	@true

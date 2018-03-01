@@ -44,6 +44,7 @@ module checkpoint
   use mesh_files
   use detector_data_types
   use diagnostic_variables
+  use particles, only : checkpoint_particles_loop
 
   implicit none
 
@@ -146,6 +147,9 @@ contains
          .and. .not.present_and_true(ignore_detectors)) then
       call checkpoint_detectors(state, lprefix, postfix = lpostfix, cp_no = cp_no)
     end if
+    if (have_option("/particles")) then
+       call checkpoint_particles_loop(state, lprefix, lpostfix, cp_no)
+    end if
     if(getrank() == 0) then
       ! Only rank zero should write out the options tree in parallel
       call checkpoint_options(lprefix, postfix = lpostfix, cp_no = cp_no, &
@@ -237,7 +241,7 @@ contains
     
     call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(detectors_cp_filename) // '_det.positions.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, fhdet, IERROR)
 
-    ewrite(1,*) "after openning the IERROR is:", IERROR
+    ewrite(1,*) "after opening the IERROR is:", IERROR
 
     allocate( status(MPI_STATUS_SIZE) )
 

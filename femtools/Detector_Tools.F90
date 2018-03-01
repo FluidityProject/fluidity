@@ -704,7 +704,6 @@ contains
           end if
        end do
     end do
-    ewrite(2,*)"Hello 1 "
     call set_particles_fields_from_python(func, len(func), dim, ndete, &
          lvx, lvy, lvz, time, nfields, field_names, field_vals, attributes, stat)
     if (stat/=0) then

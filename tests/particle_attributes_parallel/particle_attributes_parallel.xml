@@ -50,6 +50,14 @@ for i in range(100):
     attributes_error_3[0,i] = s[name]['Chem2'][0][-1] - (X[i] + 8.0 + 5.0 - 1.0 + 2.0)
 print "max error",abs(attributes_error_3).max()
     </variable>
+    <variable name="Walltime" language="python">
+from fluidity_tools import stat_parser
+import numpy as np
+
+s = stat_parser('particle_attributes.stat')
+Walltime = s['ElapsedWallTime']["value"][-1]
+print "Total wall time", Walltime
+    </variable>
   </variables>
   <pass_tests>
     <test name="Correctattribteserror1" language="python">
