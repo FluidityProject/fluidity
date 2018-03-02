@@ -2141,7 +2141,7 @@ options</a:documentation>
       </attribute>
       <element name="kl_set_for_A_matrix">
         <a:documentation>Enter the {k,l} set for bivariate PBE as a list.
-E.g. {0,0}, {0,1}, {1,0}, {1,1} should be entered as a list 0 0  0 1  1 0  1 1.
+E.g. {0,0}, {0,1}, {1,0}, {1,1} should be entered as a list 0 0 0 1 1 0 1 1.
 The above set does not need to be the same as the diagnostic moments.</a:documentation>
         <ref name="integer_vector"/>
       </element>

@@ -102,7 +102,7 @@ periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
        
   !! A list of relative paths under /material_phase[i]
   !! that are searched for additional fields to be added.
-  character(len=OPTION_PATH_LEN), dimension(20) :: additional_fields_relative=&
+  character(len=OPTION_PATH_LEN), dimension(22) :: additional_fields_relative=&
        (/ &
        "/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
        "/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
@@ -119,9 +119,11 @@ periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
        "/vector_field::Velocity/prognostic/equation::ShallowWater                                           ", &
        "/vector_field::Velocity/prognostic/equation::ShallowWater/bottom_drag                               ", &
        "/vector_field::BedShearStress/diagnostic/calculation_method/velocity_gradient                       ", &
-       "/population_balance[#]/abscissa/                                                                    ", &
+       "/population_balance[#]/abscissa1/                                                                   ", &
+       "/population_balance[#]/abscissa2/                                                                   ", &
        "/population_balance[#]/weights/                                                                     ", &
-       "/population_balance[#]/weighted_abscissa/                                                           ", &
+       "/population_balance[#]/weighted_abscissa1/                                                          ", &
+       "/population_balance[#]/weighted_abscissa2/                                                          ", &
        "/population_balance[#]/moments/                                                                     ", &
        "/population_balance[#]/statistics/                                                                  "  &
        /)

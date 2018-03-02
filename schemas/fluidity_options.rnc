@@ -1604,7 +1604,7 @@ population_balance =
          ),
          attribute name { xsd:string },
          ## Enter the {k,l} set for bivariate PBE as a list.
-         ## E.g. {0,0}, {0,1}, {1,0}, {1,1} should be entered as a list 0 0  0 1  1 0  1 1.
+         ## E.g. {0,0}, {0,1}, {1,0}, {1,1} should be entered as a list 0 0 0 1 1 0 1 1.
          ## The above set does not need to be the same as the diagnostic moments.
          element kl_set_for_A_matrix {
             integer_vector
