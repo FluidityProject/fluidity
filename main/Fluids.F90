@@ -150,7 +150,7 @@ contains
     ! An array of submaterials of the current phase in state(istate).
     ! Needed for k-epsilon VelocityBuoyancyDensity calculation line:~630
     ! S Parkinson 31-08-12
-    type(state_type), dimension(:), pointer :: submaterials
+    type(state_type), dimension(:), pointer :: submaterials     
 
     ! Pointers for scalars and velocity fields
     type(scalar_field), pointer :: sfield
@@ -187,7 +187,7 @@ contains
        if (.not.have_option("/material_phase[0]/scalar_field::Chlorophyll")) then
           FLExit("You need Chlorophyll scalar field for Hyperlight")
        else
-          call hyperlight_init()
+          call hyperlight_init()       
        end if
     end if
 #else
@@ -216,7 +216,7 @@ contains
 
     ! For multiphase simulations, we have to call calculate_diagnostic_phase_volume_fraction *before*
     ! copy_to_stored(state,"Old") is called below. Otherwise, OldPhaseVolumeFraction (in the phase
-    ! containing the diagnostic PhaseVolumeFraction) will be zero and
+    ! containing the diagnostic PhaseVolumeFraction) will be zero and 
     ! NonlinearPhaseVolumeFraction will be calculated incorrectly at t=0.
     if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
       call calculate_diagnostic_phase_volume_fraction(state)
@@ -227,14 +227,14 @@ contains
          & default=1)
     call get_option("/timestepping/nonlinear_iterations/tolerance", &
          & nonlinear_iteration_tolerance, default=0.0)
-
+    
     if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
 
        if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
          call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt',nonlinear_iterations_adapt)
          nonlinear_iterations = nonlinear_iterations_adapt
        end if
-
+      
        ! set population balance initial conditions - for first adaptivity
 !       call dqmom_init(state)
 
@@ -302,7 +302,7 @@ contains
              call insert_original_distance_to_bottom(state(1))
              ! Wetting and drying only works with no poisson guess ... let's check that
              call get_option("/material_phase[0]/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution", option_buffer)
-             if (.not. trim(option_buffer) == "never") then
+             if (.not. trim(option_buffer) == "never") then 
                FLExit("Please choose 'never' under /material_phase[0]/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution when using wetting and drying")
              end if
           end if
@@ -335,7 +335,7 @@ contains
     ! Calculate diagnostic variables:
     call calculate_diagnostic_variables(state)
     call calculate_diagnostic_variables_new(state)
-
+    
     ! This is mostly to ensure that the photosynthetic radiation
     ! has a non-zero value before the first adapt.
     if (have_option("/ocean_biology")) then
@@ -354,7 +354,7 @@ contains
             call melt_bc(state(1))
           endif
     end if
-
+    
     ! Checkpoint at start
     if(do_checkpoint_simulation(dump_no)) call checkpoint_simulation(state, cp_no = dump_no)
     ! Dump at start
@@ -521,7 +521,7 @@ contains
           end if
 
           ! Do we have the k-epsilon turbulence model?
-          ! If we do then we want to calculate source terms and diffusivity for the k and epsilon
+          ! If we do then we want to calculate source terms and diffusivity for the k and epsilon 
           ! fields and also tracer field diffusivities at n + theta_nl
           do i= 1, size(state)
              if(have_option("/material_phase["//&
@@ -529,9 +529,9 @@ contains
                 if(timestep == 1 .and. its == 1 .and. have_option('/physical_parameters/gravity')) then
                    ! The very first time k-epsilon is called, VelocityBuoyancyDensity
                    ! is set to zero until calculate_densities is called in the momentum equation
-                   ! solve. Calling calculate_densities here is a work-around for this problem.
+                   ! solve. Calling calculate_densities here is a work-around for this problem.  
                    sfield => extract_scalar_field(state, 'VelocityBuoyancyDensity')
-                   if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+                   if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then 
                       call get_phase_submaterials(state, i, submaterials)
                       call calculate_densities(submaterials, buoyancy_density=sfield)
                       deallocate(submaterials)
@@ -627,12 +627,12 @@ contains
           if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option")) then
             call gls_diffusivity(state(1))
           end if
-
+          
           !BC for ice melt
           if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries')) then
             call melt_bc(state(1))
           endif
-
+          
           if(option_count("/material_phase/scalar_field/prognostic/spatial_discretisation/coupled_cv")>0) then
              call coupled_cv_field_eqn(state, global_it=its)
           end if
@@ -649,7 +649,7 @@ contains
                ! avoid outflow bc's for velocity being zero after adapts
                call set_boundary_conditions_values(state, shift_time=.true.)
             end if
-          end do
+          end do 
 
           ! This is where the non-legacy momentum stuff happens
           ! a loop over state (hence over phases) is incorporated into this subroutine call
@@ -728,13 +728,13 @@ contains
        ! calculate and write diagnostics before the timestep gets changed
        call calculate_diagnostic_variables(State, exclude_nonrecalculated=.true.)
        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
-
+          
        ! Call the modern and significantly less satanic version of study
        call write_diagnostics(state, current_time, dt, timestep)
        ! Work out the domain volume by integrating the water depth function over the surface if using wetting and drying
        if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
           ewrite(1, *) "Domain volume (\int_{fs} (\eta.-b)n.n_z)): ", calculate_volume_by_surface_integral(state(1))
-       end if
+       end if 
 
 
        if(have_option("/timestepping/adaptive_timestep")) call calc_cflnumber_field_based_dt(state, dt)
@@ -783,7 +783,7 @@ contains
 
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
-
+ 
           end if
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
           if(do_adapt_state_prescribed(current_time)) then
@@ -855,7 +855,7 @@ contains
     if(use_sub_state()) deallocate(sub_state)
 
     ! Clean up registered diagnostics
-    call destroy_registered_diagnostics
+    call destroy_registered_diagnostics 
 
     ! Delete the transform_elements cache.
     call deallocate_transform_cache
