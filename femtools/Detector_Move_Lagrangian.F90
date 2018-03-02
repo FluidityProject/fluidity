@@ -150,12 +150,12 @@ contains
 
   end subroutine read_detector_move_options
 
-  subroutine move_lagrangian_detectors(state, detector_list, dt, timestep, attribute_dims)
+  subroutine move_lagrangian_detectors(state, detector_list, dt, timestep, attributes_buffer)
     type(state_type), dimension(:), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     real, intent(in) :: dt
     integer, intent(in) :: timestep
-    integer, optional, intent(in) :: attribute_dims
+    integer, dimension(3), optional, intent(in) :: attributes_buffer
 
     type(rk_gs_parameters), pointer :: parameters
     type(vector_field), pointer :: vfield, xfield
@@ -204,7 +204,7 @@ contains
                 !such detectors are removed from the detector list
                 !and added to the send_list_array
                 call move_detectors_guided_search(detector_list,&
-                        vfield,xfield,send_list_array,parameters%search_tolerance)
+                        vfield,xfield,send_list_array,parameters%search_tolerance, attributes_buffer)
 
                 ! Work out whether all send lists are empty, in which case exit.
                 all_send_lists_empty=0
@@ -218,7 +218,7 @@ contains
 
                 !This call serialises send_list_array, sends it, 
                 !receives serialised receive_list_array, and unserialises that.
-                call exchange_detectors(state(1),detector_list, send_list_array, attribute_dims)
+                call exchange_detectors(state(1),detector_list, send_list_array, attributes_buffer)
              else
                 ! If we run out of lagrangian detectors for some reason, exit the loop
                 exit
@@ -232,7 +232,7 @@ contains
 
     ! Make sure all local detectors are owned and distribute the ones that 
     ! stoppped moving in a halo element
-    call distribute_detectors(state(1), detector_list, attribute_dims)
+    call distribute_detectors(state(1), detector_list, attributes_buffer)
 
     ! This needs to be called after distribute_detectors because the exchange  
     ! routine serialises det%k and det%update_vector if it finds the RK-GS option
@@ -365,7 +365,7 @@ contains
   end subroutine set_stage
 
 
-  subroutine move_detectors_guided_search(detector_list,vfield,xfield,send_list_array,search_tolerance, attribute_dims)
+  subroutine move_detectors_guided_search(detector_list,vfield,xfield,send_list_array,search_tolerance, attributes_buffer)
     !Subroutine to find the element containing the update vector:
     ! - Detectors leaving the computational domain are set to STATIC
     ! - Detectors leaving the processor domain are added to the list 
@@ -379,7 +379,7 @@ contains
     type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
     type(vector_field), pointer, intent(in) :: vfield,xfield
     real, intent(in) :: search_tolerance
-    integer, optional, intent(in) :: attribute_dims
+    integer, dimension(3), optional, intent(in) :: attributes_buffer
 
     type(detector_type), pointer :: det0, det_send
     integer :: det_count

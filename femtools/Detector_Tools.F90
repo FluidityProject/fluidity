@@ -101,10 +101,10 @@ module detector_tools
 
 contains 
 
-  subroutine detector_allocate_from_params(new_detector, ndims, local_coord_count, attribute_dims)
+  subroutine detector_allocate_from_params(new_detector, ndims, local_coord_count, attributes_buffer)
     type(detector_type),  pointer, intent(out) :: new_detector
     integer, intent(in) :: ndims, local_coord_count
-    integer, optional, intent(in) :: attribute_dims
+    integer, dimension(3), optional, intent(in) :: attributes_buffer
       
     assert(.not. associated(new_detector))
       
@@ -114,8 +114,10 @@ contains
     end if
     allocate(new_detector%position(ndims))
     allocate(new_detector%local_coords(local_coord_count))
-    if (present(attribute_dims)) then
-       allocate(new_detector%attributes(attribute_dims))
+    if (present(attributes_buffer)) then
+       allocate(new_detector%attributes(attributes_buffer(1)))
+       allocate(new_detector%old_attributes(attributes_buffer(2)))
+       allocate(new_detector%old_fields(attributes_buffer(3)))
     end if
       
     assert(associated(new_detector))
@@ -126,14 +128,17 @@ contains
     type(detector_type), pointer, intent(in) :: old_detector
     type(detector_type),  pointer, intent(out) :: new_detector
       
-    integer :: ndims, local_coord_count, attribute_dims
+    integer :: ndims, local_coord_count
+    integer, dimension(3) :: attributes_buffer
       
     ndims = size(old_detector%position)
     local_coord_count = size(old_detector%local_coords)
-    attribute_dims = size(old_detector%attributes)
+    attributes_buffer(1) = size(old_detector%attributes)
+    attributes_buffer(2) = size(old_detector%old_attributes)
+    attributes_buffer(3) = size(old_detector%old_fields)
       
     ! allocate the memory for the new detector
-    call detector_allocate_from_params(new_detector, ndims, local_coord_count, attribute_dims)
+    call detector_allocate_from_params(new_detector, ndims, local_coord_count, attributes_buffer)
       
   end subroutine detector_allocate_from_detector
     
@@ -314,19 +319,19 @@ contains
 
   end subroutine delete_all_detectors
 
-  function detector_buffer_size(ndims, have_update_vector, nstages, attribute_dims)
+  function detector_buffer_size(ndims, have_update_vector, nstages, attributes_buffer)
     ! Returns the number of reals we need to pack a detector
     integer, intent(in) :: ndims
     logical, intent(in) :: have_update_vector
     integer, intent(in), optional :: nstages
     integer :: detector_buffer_size
-    integer, optional, intent(in) :: attribute_dims
-    if (present(attribute_dims)) then
+    integer, dimension(3), optional, intent(in) :: attributes_buffer
+    if (present(attributes_buffer)) then
        if (have_update_vector) then
           assert(present(nstages))
-          detector_buffer_size=(nstages+2)*ndims+3+attribute_dims
+          detector_buffer_size=(nstages+2)*ndims+3+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3)
        else
-          detector_buffer_size=ndims+4+attribute_dims
+          detector_buffer_size=ndims+4+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3)
        end if
     else
        if (have_update_vector) then
@@ -339,7 +344,7 @@ contains
 
   end function detector_buffer_size
 
-  subroutine pack_detector(detector,buff,ndims,nstages, attribute_dims)
+  subroutine pack_detector(detector,buff,ndims,nstages, attributes_buffer)
     ! Packs (serialises) detector into buff
     ! Basic fields are: element, position, id_number and type
     ! If nstages is given, the detector is still moving
@@ -348,31 +353,41 @@ contains
     real, dimension(:), intent(out) :: buff
     integer, intent(in) :: ndims
     integer, intent(in), optional :: nstages
-    integer, optional, intent(in) :: attribute_dims
+    integer, dimension(3), optional, intent(in) :: attributes_buffer
     
     assert(size(detector%position)==ndims)
-    if (present(attribute_dims)) then
-       assert(size(buff)>=ndims+3+attribute_dims)
+    if (present(attributes_buffer)) then
+       assert(size(buff)>=ndims+3+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3))
 
        ! Basic fields: ndims+3
        buff(1:ndims) = detector%position
        buff(ndims+1) = detector%element
        buff(ndims+2) = detector%id_number
        buff(ndims+3) = detector%type
-       if (attribute_dims.ne.0) then
-          buff(ndims+4:ndims+3+attribute_dims) = detector%attributes
+       if (attributes_buffer(1).ne.0) then
+          buff(ndims+4:ndims+3+attributes_buffer(1)) = detector%attributes
+       end if
+       if (attributes_buffer(2).ne.0) then
+          buff(ndims+4+attributes_buffer(1):ndims+3+attributes_buffer(1)+attributes_buffer(2)) &
+               = detector%old_attributes
+       end if
+       if (attributes_buffer(3).ne.0) then
+          buff(ndims+4+attributes_buffer(1)+attributes_buffer(2):ndims+3+attributes_buffer(1)+ &
+               attributes_buffer(2)+attributes_buffer(3)) = detector%old_fields
        end if
        ! Lagrangian advection fields: (nstages+1)*ndims
        if (present(nstages)) then
-          assert(size(buff)==(nstages+2)*ndims+3+attribute_dims)
+          assert(size(buff)==(nstages+2)*ndims+3+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3))
           assert(allocated(detector%update_vector))
           assert(allocated(detector%k))
           
-          buff(ndims+4+attribute_dims:2*ndims+3+attribute_dims) = detector%update_vector
-          buff(2*ndims+4+attribute_dims:(nstages+2)*ndims+3+attribute_dims) = reshape(detector%k,(/nstages*ndims/))
+          buff(ndims+4+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3):2*ndims+3 &
+               +attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3)) = detector%update_vector
+          buff(2*ndims+4+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3):(nstages+2)*ndims &
+               +3+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3)) = reshape(detector%k,(/nstages*ndims/))
        else
-          assert(size(buff)==ndims+4+attribute_dims)
-          buff(ndims+4+attribute_dims) = detector%list_id
+          assert(size(buff)==ndims+4+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3))
+          buff(ndims+4+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3)) = detector%list_id
        end if
     else
        assert(size(buff)>=ndims+3)
@@ -399,7 +414,7 @@ contains
     
   end subroutine pack_detector
 
-  subroutine unpack_detector(detector,buff,ndims,global_to_local,coordinates,nstages, attribute_dims)
+  subroutine unpack_detector(detector,buff,ndims,global_to_local,coordinates,nstages,attributes_buffer)
     ! Unpacks the detector from buff and fills in the blanks
     type(detector_type), pointer :: detector
     real, dimension(:), intent(in) :: buff
@@ -407,24 +422,31 @@ contains
     type(integer_hash_table), intent(in), optional :: global_to_local
     type(vector_field), intent(in), optional :: coordinates
     integer, intent(in), optional :: nstages
-    integer, optional, intent(in) :: attribute_dims
-    if (present(attribute_dims)) then
-       assert(size(buff)>=ndims+3+attribute_dims)
+    integer, dimension(3), optional, intent(in) :: attributes_buffer
+    if (present(attributes_buffer)) then
+       assert(size(buff)>=ndims+3+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3))
 
        if (.not. allocated(detector%position)) then
           allocate(detector%position(ndims))
        end if
-       if (attribute_dims.ne.0) then
-          allocate(detector%attributes(attribute_dims))
-       end if
-       
+       allocate(detector%attributes(attributes_buffer(1)))
+       allocate(detector%old_attributes(attributes_buffer(2)))
+       allocate(detector%old_fields(attributes_buffer(3)))
        ! Basic fields: ndims+3
        detector%position = reshape(buff(1:ndims),(/ndims/))
        detector%element = buff(ndims+1)
        detector%id_number = buff(ndims+2)
        detector%type = buff(ndims+3)
-       if (attribute_dims.ne.0) then  
-          detector%attributes = reshape(buff(ndims+4:ndims+3+attribute_dims),(/attribute_dims/))
+       if (attributes_buffer(1).ne.0) then  
+          detector%attributes = reshape(buff(ndims+4:ndims+3+attributes_buffer(1)),(/attributes_buffer(1)/))
+       end if
+       if (attributes_buffer(2).ne.0) then  
+          detector%old_attributes = reshape(buff(ndims+4+attributes_buffer(1):ndims+3+attributes_buffer(1) &
+               +attributes_buffer(2)),(/attributes_buffer(2)/))
+       end if
+       if (attributes_buffer(3).ne.0) then  
+          detector%old_fields = reshape(buff(ndims+4+attributes_buffer(1)+attributes_buffer(2):ndims+3+ &
+               attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3)),(/attributes_buffer(3)/))
        end if
        
        ! Reconstruct element number if global-to-local mapping is given
@@ -443,26 +465,28 @@ contains
        
        ! Lagrangian advection fields: (nstages+1)*ndims
        if (present(nstages)) then
-          assert(size(buff)==(nstages+2)*ndims+3+attribute_dims)
+          assert(size(buff)==(nstages+2)*ndims+3++attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3))
           
           ! update_vector, dimension(ndim)
           if (.not. allocated(detector%update_vector)) then
              allocate(detector%update_vector(ndims))
           end if
-          detector%update_vector = reshape(buff(ndims+4+attribute_dims:2*ndims+3+attribute_dims),(/ndims/))
+          detector%update_vector = reshape(buff(ndims+4+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3) &
+               :2*ndims+3+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3)),(/ndims/))
           
           ! k, dimension(nstages:ndim)
           if (.not. allocated(detector%k)) then
              allocate(detector%k(nstages,ndims))
           end if
-          detector%k = reshape(buff(2*ndims+4+attribute_dims:(nstages+2)*ndims+3+attribute_dims),(/nstages,ndims/))
+          detector%k = reshape(buff(2*ndims+4+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3):(nstages+2) &
+               *ndims+3+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3)),(/nstages,ndims/))
           
           ! If update_vector still exists, we're not done moving
           detector%search_complete=.false.
        else
-          assert(size(buff)==ndims+4+attribute_dims)
+          assert(size(buff)==ndims+4+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3))
           
-          detector%list_id = buff(ndims+4+attribute_dims)
+          detector%list_id = buff(ndims+4+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3))
           detector%search_complete=.true.
        end if
     else
@@ -635,31 +659,45 @@ contains
     end if
   end subroutine set_particle_attribute_from_python
 
-  subroutine set_particle_fields_from_python(state, xfield, dim, positions, ndete, ele, lcoords, attributes, func, time)
+  subroutine set_particle_fields_from_python(particle_list, attributes_buffer, state, xfield, dim, positions, lcoords, ele ndete, attributes, func, time)
+    type(detector_linked_list), intent(inout) :: particle_list
     type(state_type), dimension(:), intent(in) :: state
     real, dimension(:), intent(inout) :: attributes
+    real, dimension(:), intent(inout) :: old_fields
+    real, dimension(:,:), target, intent(in) :: positions
+    real, dimension(:,:), intent(in) :: lcoords
+    integer, dimension(:), intent(in) :: ele
     character(len=*), intent(in) :: func
     integer, intent(in) :: ndete
     real, intent(in) :: time
     integer, intent(in) :: dim
     character, allocatable, dimension(:,:) :: field_names
-    real, dimension(:,:), target, intent(in) :: positions
-    real, dimension(:,:), intent(in) :: lcoords
-    integer, dimension(:), intent(in) :: ele
+    character, allocatable, dimension(:,:) :: old_field_names
+    integer, dimension(3), intent(in) :: attributes_buffer
     real, allocatable, dimension(:,:) :: field_vals
+    real, allocatable, dimension(:,:) :: old_field_vals
     type(vector_field), pointer :: xfield
     real :: value
     real, dimension(:), pointer :: lvx,lvy,lvz
     real, dimension(0), target :: zero
     character(len=FIELD_NAME_LEN) :: buffer
+    type(detector_type), pointer :: particle
+    real, dimension(:,:), target :: positions
+    real, dimension(:,:) :: lcoords
+    integer, dimension(:) :: ele
 
     type(scalar_field), pointer :: sfield
     character(len=FIELD_NAME_LEN) :: name
     integer :: phase, i, j, nfields, nprognostic, nprescribed, ndiagnostic
-    integer :: p, f, stat, num_fields, k, pfields
-    logical :: particles_f
+    integer :: p, f, stat, num_fields, k, pfields, l
+    logical :: pre_set
 
     !get positions of particles for function
+
+    nprognostic = option_count('/material_phase/scalar_field/prognostic/particles/include_in_particles')
+    nprescribed = option_count('/material_phase/scalar_field/prescribed/particles/include_in_particles')
+    ndiagnostic = option_count('/material_phase/scalar_field/diagnostic/particles/include_in_particles')
+    nfields = ndiagnostic + nprescribed + nprognostic
 
     select case(dim)
     case(1)
@@ -675,14 +713,15 @@ contains
       lvy=>positions(2,:)
       lvz=>positions(3,:)
     end select
-    nprognostic = option_count('/material_phase/scalar_field/prognostic/particles/include_in_particles')
-    nprescribed = option_count('/material_phase/scalar_field/prescribed/particles/include_in_particles')
-    ndiagnostic = option_count('/material_phase/scalar_field/diagnostic/particles/include_in_particles')
-    nfields = ndiagnostic + nprescribed + nprognostic
 
     allocate(field_names(FIELD_NAME_LEN,nfields))
     allocate(field_vals(nfields,ndete))
+    allocate(old_field_names(FIELD_NAME_LEN,attributes_buffer(3)))
+    allocate(old_field_vals(attributes_buffer(3),ndete))
+    allocate(attribute_array(attributes_buffer(1),nparticles))
+    particle => particle_lists(i)%first
     j=1
+    l=1
     do phase=1,size(state)
        num_fields = option_count('/material_phase[' &
             //int2str(phase-1)//']/scalar_field')
@@ -696,14 +735,39 @@ contains
                 field_names(k,j)=name(k:k)
              end do
              field_names(k,j)= C_NULL_CHAR
-             do i = 1,ndete
+             do i = 1,ndete      
                 value = eval_field(ele(i), sfield, lcoords(:,i))
                 field_vals(j,i)=value
+                if (have_option(trim(sfield%option_path)//"/prescribed/particles/include_in_particles/store_old_field").or. &
+                     have_option(trim(sfield%option_path)//"/diagnostic/particles/include_in_particles/store_old_field").or. &
+                     have_option(trim(sfield%option_path)//"/prognostic/particles/include_in_particles/store_old_field")) then
+                   old_field_vals(l,i)=value
+                   do k = 1,len_trim(name)
+                      old_field_names(k,l)=name(k:k)
+                   end do
+                   old_field_names(k,j)= C_NULL_CHAR
+                   l=l+1
+                end if
+                particle=>particle%next
              end do
              j=j+1
           end if
        end do
     end do
+
+    particle => particle_lists(i)%first
+    pre_set= .false.
+    if (attributes_buffer(3).ne.0) then
+       if(.not.allocated(particle%old_fields)) then
+          do i = 1,ndete
+             allocate(particle%old_fields(attributes_buffer(3))
+             particle%old_fields = old_field_vals(:,i)
+             particle=>particle%next
+          end do
+          pre_set = .true.
+       end if
+    end if
+    
     call set_particles_fields_from_python(func, len(func), dim, ndete, &
          lvx, lvy, lvz, time, nfields, field_names, field_vals, attributes, stat)
     if (stat/=0) then
@@ -712,8 +776,19 @@ contains
        FLExit("Dying")
     end if
 
+    if (attributes_buffer(3).ne.0) then
+       if((.not.pre_set)) then
+          do i = 1,ndete
+             particle%old_fields = old_field_vals(:,i)
+             particle=>particle%next
+          end do
+       end if
+    end if
+
     deallocate(field_names)
     deallocate(field_vals)
+    deallocate(old_field_names)
+    deallocate(old_field_vals)
   end subroutine set_particle_fields_from_python
 
 end module detector_tools

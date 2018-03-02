@@ -123,12 +123,12 @@ contains
 
   end subroutine deallocate_detector_list_array
 
-  subroutine distribute_detectors(state, detector_list, attribute_dims)
+  subroutine distribute_detectors(state, detector_list, attributes_buffer)
     ! Loop over all the detectors in the list and check that I own the element they are in. 
     ! If not, they need to be sent to the processor owner before adaptivity happens
     type(state_type), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
-    integer, optional, intent(in) :: attribute_dims
+    integer, dimension(3), optional, intent(in) :: attributes_buffer
 
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
     type(detector_linked_list) :: detector_bcast_list, lost_detectors_list
@@ -186,7 +186,7 @@ contains
     end do
     call allmax(all_send_lists_empty)
     if (all_send_lists_empty/=0) then
-       call exchange_detectors(state,detector_list,send_list_array, attribute_dims)
+       call exchange_detectors(state,detector_list,send_list_array, attributes_buffer)
     end if
 
     ! Make sure send lists are empty and deallocate them
@@ -221,7 +221,7 @@ contains
        bcast_rounds = maxval(ndets_being_bcast)
        call allmax(bcast_rounds)
        do round=1, bcast_rounds
-          ndata_per_det = detector_buffer_size(xfield%dim,.false., attribute_dims=attribute_dims)
+          ndata_per_det = detector_buffer_size(xfield%dim,.false., attributes_buffer=attributes_buffer)
 
           ! Broadcast detectors whose new owner we can't identify
           do i=1,getnprocs()
@@ -233,7 +233,7 @@ contains
 
                    ! Pack the first detector from the bcast_list
                    detector=>detector_bcast_list%first
-                   call pack_detector(detector, send_buff(1:ndata_per_det), xfield%dim, attribute_dims)
+                   call pack_detector(detector, send_buff(1:ndata_per_det), xfield%dim, attributes_buffer)
                    call delete(detector, detector_bcast_list)
 
                    ! Broadcast the detectors you want to send
@@ -253,8 +253,8 @@ contains
                       ! Unpack detector again and put in a temporary lost_detectors_list
                       shape=>ele_shape(xfield,1)
                       detector=>null()
-                      call allocate(detector, xfield%dim, local_coord_count(shape), attribute_dims)
-                      call unpack_detector(detector, send_buff(1:ndata_per_det), xfield%dim, attribute_dims=attribute_dims)
+                      call allocate(detector, xfield%dim, local_coord_count(shape), attributes_buffer)
+                      call unpack_detector(detector, send_buff(1:ndata_per_det), xfield%dim, attributes_buffer=attributes_buffer)
                       call insert(detector, lost_detectors_list)
                    end if
 
@@ -271,8 +271,8 @@ contains
                    ! Allocate and unpack the detector
                    shape=>ele_shape(xfield,1)
                    detector=>null()
-                   call allocate(detector, xfield%dim, local_coord_count(shape), attribute_dims)
-                   call unpack_detector(detector, recv_buff(1:ndata_per_det), xfield%dim, attribute_dims=attribute_dims)
+                   call allocate(detector, xfield%dim, local_coord_count(shape), attributes_buffer)
+                   call unpack_detector(detector, recv_buff(1:ndata_per_det), xfield%dim, attributes_buffer=attributes_buffer)
 
                    ! Try to find the detector position locally
                    call picker_inquire(xfield, detector%position, detector%element, detector%local_coords, global=.false.)
@@ -304,7 +304,7 @@ contains
 
   end subroutine distribute_detectors
 
-  subroutine exchange_detectors(state, detector_list, send_list_array, attribute_dims)
+  subroutine exchange_detectors(state, detector_list, send_list_array, attributes_buffer)
     ! This subroutine serialises send_list_array, sends it, 
     ! receives serialised detectors from all procs and unpacks them.
     type(state_type), intent(in) :: state
@@ -312,7 +312,7 @@ contains
     ! the assumption is here that we only send detectors located in element that we know about
     ! in the largest element halo
     type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
-    integer, optional, intent(in) :: attribute_dims
+    integer, dimension(3), optional, intent(in) :: attributes_buffer
 
     type(detector_buffer), dimension(:), allocatable :: send_buffer, recv_buffer
     type(detector_type), pointer :: detector, detector_received
@@ -350,9 +350,9 @@ contains
     have_update_vector=associated(detector_list%move_parameters)
     if(have_update_vector) then
        n_stages=detector_list%move_parameters%n_stages
-       det_size=detector_buffer_size(dim,have_update_vector,n_stages, attribute_dims=attribute_dims)
+       det_size=detector_buffer_size(dim,have_update_vector,n_stages, attributes_buffer=attributes_buffer)
     else
-       det_size=detector_buffer_size(dim,have_update_vector, attribute_dims=attribute_dims)
+       det_size=detector_buffer_size(dim,have_update_vector, attributes_buffer=attributes_buffer)
     end if
     
     ! Send to all procs
@@ -383,9 +383,9 @@ contains
              detector%element = halo_universal_number(ele_halo, detector%element)
 
              if (have_update_vector) then
-                call pack_detector(detector, send_buffer(target_proc)%ptr(j,1:det_size), dim, nstages=n_stages, attribute_dims=attribute_dims)
+                call pack_detector(detector, send_buffer(target_proc)%ptr(j,1:det_size), dim, nstages=n_stages, attributes_buffer=attributes_buffer)
              else
-                call pack_detector(detector, send_buffer(target_proc)%ptr(j,1:det_size), dim, attribute_dims=attribute_dims)
+                call pack_detector(detector, send_buffer(target_proc)%ptr(j,1:det_size), dim, attributes_buffer=attributes_buffer)
              end if
 
              ! delete also advances detector
@@ -433,10 +433,10 @@ contains
           ! back to local detector element
           if (have_update_vector) then
              call unpack_detector(detector_received,recv_buffer(receive_proc)%ptr(j,1:det_size),dim,&
-                    global_to_local=ele_numbering_inverse,coordinates=xfield,nstages=n_stages, attribute_dims=attribute_dims)
+                    global_to_local=ele_numbering_inverse,coordinates=xfield,nstages=n_stages, attributes_buffer=attributes_buffer)
           else
              call unpack_detector(detector_received,recv_buffer(receive_proc)%ptr(j,1:det_size),dim,&
-                    global_to_local=ele_numbering_inverse,coordinates=xfield, attribute_dims=attribute_dims)
+                    global_to_local=ele_numbering_inverse,coordinates=xfield, attributes_buffer=attributes_buffer)
           end if
 
           ! If there is a list of detector names, use it, otherwise set ID as name

@@ -69,6 +69,10 @@ module detector_data_types
      real, dimension(:), allocatable :: update_vector
      !! Attributes carried by particles.
      real, dimension(:), allocatable :: attributes
+     !! Old attributes carried by particles.
+     real, dimension(:), allocatable :: old_attributes
+     !! Old fields carried by particles.
+     real, dimension(:), allocatable :: old_fields
      !! Have we completed the search?
      logical :: search_complete
      !! Pointers for detector linked lists
