@@ -47,7 +47,7 @@ module dqmom
 
   ! public dqmom_init, dqmom_calculate_source_terms, dqmom_calculate_abscissa,&
   !      & dqmom_check_options, dqmom_calculate_moments, dqmom_calculate_statistics, dqmom_apply_min_weight
-   public dqmom_init, dqmom_calculate_abscissa,&
+   public dqmom_init, dqmom_calculate_source_terms, dqmom_calculate_abscissa,&
         & dqmom_check_options, dqmom_calculate_moments, dqmom_calculate_statistics
   private
 
@@ -104,23 +104,23 @@ contains
    subroutine dqmom_init(states)
 
      type(state_type), intent(in), dimension(:) :: states
-  !
-  !   integer :: i_state, i_pop
-  !   character(len=OPTION_PATH_LEN) :: option_path
-  !
-  !   do i_state = 1, option_count("/material_phase")
-  !      do i_pop = 1, option_count(trim(states(i_state)%option_path)//&
-  !           '/population_balance')
-  !         call get_pop_option_path(states(i_state), i_pop, option_path)
-  !         if (have_option(trim(option_path)// &
-  !              '/calculate_initial_conditions_from_moments')) then
-  !            call dqmom_PD_algorithm(states(i_state), i_pop)
-  !         end if
-  !      end do
-  !   end do
-  !
-  !   call dqmom_calculate_abscissa(states)
-  !
+
+    integer :: i_state, i_pop
+    character(len=OPTION_PATH_LEN) :: option_path
+
+    ! do i_state = 1, option_count("/material_phase")
+    !    do i_pop = 1, option_count(trim(states(i_state)%option_path)//&
+    !         '/population_balance')
+    !       call get_pop_option_path(states(i_state), i_pop, option_path)
+    !       if (have_option(trim(option_path)// &
+    !            '/calculate_initial_conditions_from_moments')) then
+    !          call dqmom_PD_algorithm(states(i_state), i_pop)
+    !       end if
+    !    end do
+    ! end do
+
+    call dqmom_calculate_abscissa(states)
+
    end subroutine dqmom_init
   !
   ! subroutine dqmom_PD_algorithm(state, i_pop)
@@ -323,266 +323,293 @@ contains
 !     ewrite(1, *) "Exiting dqmom_apply_min_weight"
 !   end subroutine dqmom_apply_min_weight
 !
-!   subroutine dqmom_calculate_source_terms(states, it)
-!
-!     type(state_type), dimension(:), intent(inout) :: states
-!     integer, intent(in) :: it
-!
-!     integer :: i_state, i_pop, cont_state = -1
-!     character(len=FIELD_NAME_LEN) :: cont_state_name
-!
-!     ! find the continuous state number
-!     if (have_option("/population_balance_continuous_phase_name")) then
-!        call get_option("/population_balance_continuous_phase_name", cont_state_name)
-!        do i_state = 1, option_count("/material_phase")
-!           if (states(i_state)%name == cont_state_name) then
-!              cont_state = i_state
-!              exit
-!           end if
-!        end do
-!        if (cont_state <0) then
-!           FLAbort("Continuous state name you mentioned could not be located in the population balance calculations.")
-!        end if
-!     end if
-!
-!     do i_state = 1, option_count("/material_phase")
-!        do i_pop = 1, option_count(trim(states(i_state)%option_path)//'/population_balance')
-!           call dqmom_calculate_source_term_pop(states(i_state), it, i_pop, states, cont_state)
-!        end do
-!     end do
-!
-!   end subroutine dqmom_calculate_source_terms
-!
-!   subroutine dqmom_calculate_source_term_pop(state, it, i_pop, states, cont_state)
-!
-!     type(state_type), intent(inout) :: state
-!     type(state_type), dimension(:), intent(inout) :: states
-!     integer, intent(in) :: it
-!     integer, intent(in) :: cont_state
-!
-!     type(scalar_field_pointer), dimension(:), allocatable :: abscissa,&
-!          weight, it_abscissa, it_weight, weighted_abscissa, s_weighted_abscissa, s_weight, a_weighted_abscissa, a_weight
-!     type(scalar_field), pointer :: lumped_mass, turbulent_dissipation, sponge_field
-!     type(tensor_field), pointer :: viscosity_continuous
-!     type(csr_matrix), pointer :: mass_matrix
-!     type(scalar_field), dimension(:), allocatable :: r_abscissa, r_weight
-!     type(tensor_field), pointer :: D
-!     type(vector_field), pointer :: X
-!     type(scalar_field) :: dummy_scalar
-!     real :: theta, cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree, perturb_val, C5
-!     integer :: i_pop, N, i, j, stat, i_node
-!     character(len=OPTION_PATH_LEN) :: option_path
-!     character(len=FIELD_NAME_LEN) :: type, field_name, growth_type, aggregation_freq_type, breakage_freq_type, breakage_dist_type, singular_option
-!     logical :: have_D = .false.
-!     logical :: have_growth = .FALSE.
-!     logical :: have_internal_dispersion = .FALSE.
-!     logical :: have_aggregation = .FALSE.
-!     logical :: have_breakage = .FALSE.
-!
-!     call get_pop_option_path(state, i_pop, option_path)
-!     N = option_count(trim(option_path)//'/abscissa/scalar_field')
-!     allocate(abscissa(N), weight(N), it_abscissa(N), it_weight(N), &
-!          r_abscissa(N), r_weight(N), weighted_abscissa(N), s_weighted_abscissa(N), s_weight(N), a_weighted_abscissa(N), a_weight(N))
-!
-!     do i = 1, N
-!        ! collect abscissa and weight fields
-!        type = 'weights'
-!        call get_pop_field(state, i_pop, i, type, weight(i)%ptr)
-!        call get_pop_field(state, i_pop, i, type, it_weight(i)%ptr, iterated=.true.)
-!        type = 'abscissa'
-!        call get_pop_field(state, i_pop, i, type, abscissa(i)%ptr)
-!        call get_pop_field(state, i_pop, i, type, it_abscissa(i)%ptr, iterated=.true.)
-!        type = 'weighted_abscissa'
-!        call get_pop_field(state, i_pop, i, type, weighted_abscissa(i)%ptr)
-!
-!        ! get source fields (note this is the weighted abscissa source not the abscissa source)
-!        s_weight(i)%ptr => extract_scalar_field(state, trim(weight(i)%ptr%name)//'Source')
-!        call get_option(trim(option_path)//'/weighted_abscissa/scalar_field['// &
-!             int2str(i - 1)//']/name', field_name)
-!        s_weighted_abscissa(i)%ptr => extract_scalar_field(state, trim(field_name)//'Source')
-!        call zero(s_weight(i)%ptr)
-!        call zero(s_weighted_abscissa(i)%ptr)
-!
-!        ! relax non-linear values
-!        ! all temporal relaxations must be the same
-!        call get_option(trim(weight(i)%ptr%option_path)// &
-!             '/prognostic/temporal_discretisation/theta', theta)
-!        ! do not recalculate source terms if theta = 0.0 after first non-linear iteration
-!        if ((theta == 0.0) .and. (it /= 1)) then
-!           return
-!        end if
-!        call allocate(r_abscissa(i), abscissa(i)%ptr%mesh, &
-!             "RelaxedAbscissa"//int2str(i))
-!        call allocate(r_weight(i), weight(i)%ptr%mesh, "RelaxedWeight"//int2str(i))
-!        call set(r_abscissa(i), it_abscissa(i)%ptr)
-!        call scale(r_abscissa(i), theta)
-!        call addto(r_abscissa(i), abscissa(i)%ptr, 1.0-theta)
-!        call set(r_weight(i), it_weight(i)%ptr)
-!        call scale(r_weight(i), theta)
-!        call addto(r_weight(i), weight(i)%ptr, 1.0-theta)
-!     end do
-!
-!     call allocate(dummy_scalar, r_abscissa(1)%mesh, name="DummyScalar")
-!
-!     ! get diffusion
-!     D => extract_tensor_field(state, trim(weight(1)%ptr%name)//'Diffusivity',stat)
-!     if (stat == 0) then
-!        have_D = .true.
-!     end if
-!
-!     ! check for growth term
-!     if (have_option(trim(option_path)//'/population_balance_source_terms/growth')) then
-!        have_growth = .TRUE.
-!        if (have_option(trim(option_path)//'/population_balance_source_terms/growth/power_law_growth')) then
-!           growth_type = 'power_law_growth';
-!           call get_option(trim(option_path)//'/population_balance_source_terms/growth/power_law_growth', growth_r)
-!        end if
-!     else
-!        have_growth = .FALSE.
-!     end if
-!
-!     ! check for internal dispersion term
-!     if (have_option(trim(option_path)//'/population_balance_source_terms/internal_dispersion')) then
-!        have_internal_dispersion = .TRUE.
-!        call get_option(trim(option_path)//'/population_balance_source_terms/internal_dispersion', internal_dispersion_coeff)
-!     else
-!        have_internal_dispersion = .FALSE.
-!     end if
-!
-!     ! check for aggregation term
-!     if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation')) then
-!        have_aggregation = .TRUE.
-!        if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/constant_aggregation')) then
-!           aggregation_freq_type = 'constant_aggregation'
-!           call get_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/constant_aggregation', aggregation_freq_const)
-!        else if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/hydrodynamic_aggregation')) then
-!           aggregation_freq_type = 'hydrodynamic_aggregation'
-!        else if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/sum_aggregation')) then
-!           aggregation_freq_type = 'sum_aggregation'
-!           call get_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/sum_aggregation', aggregation_freq_const)
-!        else if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/laakkonen_2007_aggregation')) then
-!           aggregation_freq_type = 'laakkonen_2007_aggregation'
-!           call get_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/laakkonen_2007_aggregation/C5', C5, default = 0.88)
-!           if (.not. have_option("/population_balance_continuous_phase_name")) then
-!              FLAbort("Enable the option population_balance_continuous_phase_name and provide a name for the continuous phase&
-!                       as it is needed for extracting the turbulence dissipation needed in laakkonen_2007_aggregation kernel")
-!           end if
-!           turbulent_dissipation => extract_scalar_field(states(cont_state), "TurbulentDissipation", stat=stat)
-!           if (stat/=0) then
-!              FLAbort("I can't find the Turbulent Dissipation field of continuous phase for population balance aggregation term calculations.")
-!           end if
-!           if (have_option(trim(states(cont_state)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
-!              viscosity_continuous => extract_tensor_field(states(cont_state), "BackgroundViscosity", stat=stat)
-!              if (stat/=0) then
-!                 FLAbort("I can't find the Background Viscosity field in k-epsilon for continuous phase for population balance aggregation term calculations.")
-!              end if
-!           else
-!              viscosity_continuous => extract_tensor_field(states(cont_state), "Viscosity", stat=stat)
-!              if (stat/=0) then
-!                 FLAbort("I can't find the Viscosity field for continuous phase for population balance aggregation term calculations.")
-!              end if
-!           end if
-!        end if
-!     else
-!        have_aggregation = .FALSE.
-!     end if
-!
-!     ! check for breakage term
-!     if (have_option(trim(option_path)//'/population_balance_source_terms/breakage')) then
-!        have_breakage = .TRUE.
-!        if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/constant_breakage')) then
-!           breakage_freq_type = 'constant_breakage'
-!           call get_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/constant_breakage', breakage_freq_const)
-!        else if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/power_law_breakage')) then
-!           breakage_freq_type = 'power_law_breakage'
-!           call get_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/power_law_breakage/coefficient', breakage_freq_const)
-!           call get_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/power_law_breakage/degree', breakage_freq_degree)
-!        else if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/laakkonen_breakage')) then
-!           breakage_freq_type = 'laakkonen_frequency'
-!           if (aggregation_freq_type /= 'laakkonen_2007_aggregation') then
-!              if (.not. have_option("/population_balance_continuous_phase_name")) then
-!                 FLAbort("Enable the option population_balance_continuous_phase_name and provide a name for the continuous phase &
-!                          as it is needed for extracting the turbulence dissipation needed in laakkonen_frequency kernel")
-!              end if
-!              turbulent_dissipation => extract_scalar_field(states(cont_state), "TurbulentDissipation", stat=stat)
-!              if (stat/=0) then
-!                 FLAbort("I can't find the Turbulent Dissipation field of continuous phase for population balance breakage term calculations.")
-!              end if
-!              if (have_option(trim(states(cont_state)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
-!                 viscosity_continuous => extract_tensor_field(states(cont_state), "BackgroundViscosity", stat=stat)
-!                 if (stat/=0) then
-!                    FLAbort("I can't find the Background Viscosity field in k-epsilon for continuous phase for population balance aggregation term calculations.")
-!                 end if
-!              else
-!                 viscosity_continuous => extract_tensor_field(states(cont_state), "Viscosity", stat=stat)
-!                 if (stat/=0) then
-!                    FLAbort("I can't find the Viscosity field for continuous phase for population balance aggregation term calculations.")
-!                 end if
-!              end if
-!           end if
-!        end if
-!
-!        if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/distribution_function/symmetric_fragmentation')) then
-!           breakage_dist_type = 'symmetric_fragmentation'
-!        else if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/distribution_function/mcCoy_madras_2003')) then
-!           breakage_dist_type = 'mcCoy_madras_2003'
-!        else if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/distribution_function/laakkonen_2007')) then
-!           breakage_dist_type = 'laakkonen_2007'
-!        end if
-!
-!     else
-!        have_breakage = .FALSE.
-!     end if
-!
-!     ! get ill-conditioned matrix settings
-!     call get_option(trim(option_path)//'/ill_conditioned_matrices/required_condition_number', cond)
-!     if (have_option(trim(option_path)//'/ill_conditioned_matrices/set_source_to_zero')) then
-!        singular_option = 'set_source_to_zero';
-!     else if (have_option(trim(option_path)//'/ill_conditioned_matrices/perturbate')) then
-!        singular_option = 'perturbate';
-!        call get_option(trim(option_path)//'/ill_conditioned_matrices/perturbate/perturbation', perturb_val)
-!     else if (have_option(trim(option_path)//'/ill_conditioned_matrices/do_nothing')) then
-!        singular_option = 'do_nothing';
-!     end if
-!
-!     X => extract_vector_field(state, 'Coordinate')
-!
-!     ! assembly loop
-!     do i = 1, ele_count(r_abscissa(1))
-!        call dqmom_calculate_source_term_ele(r_abscissa, r_weight, s_weighted_abscissa, s_weight, &
-!                 &D, have_D, have_growth, growth_type, growth_r, have_internal_dispersion, internal_dispersion_coeff, &
-!                 &have_aggregation, aggregation_freq_type, aggregation_freq_const, C5, &
-!                 &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, &
-!                 &turbulent_dissipation, viscosity_continuous, X, singular_option, perturb_val, cond, i)
-!     end do
-!
-!     ! for non-DG we apply inverse mass globally
-!     if(continuity(r_abscissa(1))>=0) then
-!        if(have_option(trim(option_path)//'/adv_diff_source_term_interpolation/use_full_mass_matrix')) then
-!           mass_matrix => get_mass_matrix(state, r_abscissa(1)%mesh)
-!           do j = 1, N
-!              call zero(dummy_scalar)
-!              call petsc_solve(dummy_scalar, mass_matrix, s_weight(j)%ptr, trim(option_path)//'/adv_diff_source_term_interpolation/use_full_mass_matrix')
-!              call set(s_weight(j)%ptr, dummy_scalar)
-!              call zero(dummy_scalar)
-!              call petsc_solve(dummy_scalar, mass_matrix, s_weighted_abscissa(j)%ptr, trim(option_path)//'/adv_diff_source_term_interpolation/use_full_mass_matrix')
-!              call set(s_weighted_abscissa(j)%ptr, dummy_scalar)
-!           end do
-!        else if(have_option(trim(option_path)//'/adv_diff_source_term_interpolation/use_mass_lumping')) then
-!           lumped_mass => get_lumped_mass(state, r_abscissa(1)%mesh)
-!           do j = 1, N
-!              do i = 1, node_count(r_abscissa(1))
-!                 call set(s_weighted_abscissa(j)%ptr, i, node_val(s_weighted_abscissa(j)%ptr,i)&
-!                      &/node_val(lumped_mass,i))
-!                 call set(s_weight(j)%ptr, i, node_val(s_weight(j)%ptr,i)&
-!                      &/node_val(lumped_mass,i))
-!              end do
-!           end do
-!        else
-!           FLAbort("Check the .flml file. You must specify an option under 'population_balance/adv_diff_source_term_interpolation'")
-!        end if
-!     end if
-!
+   subroutine dqmom_calculate_source_terms(states, it)
+
+     type(state_type), dimension(:), intent(inout) :: states
+     integer, intent(in) :: it
+
+     integer :: i_state, i_pop, cont_state = -1
+     character(len=FIELD_NAME_LEN) :: cont_state_name
+
+     ! find the continuous state number
+     if (have_option("/population_balance_continuous_phase_name")) then
+        call get_option("/population_balance_continuous_phase_name", cont_state_name)
+        do i_state = 1, option_count("/material_phase")
+           if (states(i_state)%name == cont_state_name) then
+              cont_state = i_state
+              exit
+           end if
+        end do
+        if (cont_state <0) then
+           FLAbort("Continuous state name you mentioned could not be located in the population balance calculations.")
+        end if
+     end if
+
+     do i_state = 1, option_count("/material_phase")
+        do i_pop = 1, option_count(trim(states(i_state)%option_path)//'/population_balance')
+           call dqmom_calculate_source_term_pop(states(i_state), it, i_pop, states, cont_state)
+        end do
+     end do
+
+   end subroutine dqmom_calculate_source_terms
+
+   subroutine dqmom_calculate_source_term_pop(state, it, i_pop, states, cont_state)
+
+     type(state_type), intent(inout) :: state
+     type(state_type), dimension(:), intent(inout) :: states
+     integer, intent(in) :: it
+     integer, intent(in) :: cont_state
+
+     type(scalar_field_pointer), dimension(:), allocatable :: abscissa1, abscissa2,&
+          weight, it_abscissa1, it_abscissa2, it_weight, weighted_abscissa1, weighted_abscissa2,&
+          s_weighted_abscissa1, s_weighted_abscissa2, s_weight, a_weighted_abscissa1, a_weighted_abscissa2, a_weight
+     type(scalar_field), pointer :: lumped_mass, turbulent_dissipation, sponge_field
+     type(tensor_field), pointer :: viscosity_continuous
+     type(csr_matrix), pointer :: mass_matrix
+     type(scalar_field), dimension(:), allocatable :: r_abscissa1, r_abscissa2, r_weight
+     type(tensor_field), pointer :: D
+     type(vector_field), pointer :: X
+     type(scalar_field) :: dummy_scalar
+     real :: theta, cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree, perturb_val, C5
+     integer :: i_pop, N, i, j, stat, i_node
+     integer, dimension(:), allocatable :: kl_set
+     character(len=OPTION_PATH_LEN) :: option_path
+     character(len=FIELD_NAME_LEN) :: type, field_name, growth_type, aggregation_freq_type, breakage_freq_type, breakage_dist_type, singular_option
+     logical :: have_D = .false.
+     logical :: have_growth = .FALSE.
+     logical :: have_internal_dispersion = .FALSE.
+     logical :: have_aggregation = .FALSE.
+     logical :: have_breakage = .FALSE.
+
+     call get_pop_option_path(state, i_pop, option_path)
+     N = option_count(trim(option_path)//'/abscissa1/scalar_field')
+     allocate(abscissa1(N), abscissa2(N), weight(N), it_abscissa1(N), it_abscissa2(N), it_weight(N), &
+          r_abscissa1(N), r_abscissa2(N), r_weight(N), weighted_abscissa1(N), weighted_abscissa2(N), &
+          s_weighted_abscissa1(N), s_weighted_abscissa2(N), s_weight(N), a_weighted_abscissa1(N), a_weighted_abscissa2(N), &
+          a_weight(N))
+
+     do i = 1, N
+        ! collect abscissa and weight fields
+        type = 'weights'
+        call get_pop_field(state, i_pop, i, type, weight(i)%ptr)
+        call get_pop_field(state, i_pop, i, type, it_weight(i)%ptr, iterated=.true.)
+        type = 'abscissa1'
+        call get_pop_field(state, i_pop, i, type, abscissa1(i)%ptr)
+        call get_pop_field(state, i_pop, i, type, it_abscissa1(i)%ptr, iterated=.true.)
+        type = 'abscissa2'
+        call get_pop_field(state, i_pop, i, type, abscissa2(i)%ptr)
+        call get_pop_field(state, i_pop, i, type, it_abscissa2(i)%ptr, iterated=.true.)
+        type = 'weighted_abscissa1'
+        call get_pop_field(state, i_pop, i, type, weighted_abscissa1(i)%ptr)
+        type = 'weighted_abscissa2'
+        call get_pop_field(state, i_pop, i, type, weighted_abscissa2(i)%ptr)
+
+        ! get source fields (note this is the weighted abscissa source terms not the abscissa source)
+        s_weight(i)%ptr => extract_scalar_field(state, trim(weight(i)%ptr%name)//'Source')
+        call get_option(trim(option_path)//'/weighted_abscissa1/scalar_field['// &
+             int2str(i - 1)//']/name', field_name)
+        s_weighted_abscissa1(i)%ptr => extract_scalar_field(state, trim(field_name)//'Source')
+        call get_option(trim(option_path)//'/weighted_abscissa2/scalar_field['// &
+             int2str(i - 1)//']/name', field_name)
+        s_weighted_abscissa2(i)%ptr => extract_scalar_field(state, trim(field_name)//'Source')
+        call zero(s_weight(i)%ptr)
+        call zero(s_weighted_abscissa1(i)%ptr)
+        call zero(s_weighted_abscissa2(i)%ptr)
+
+        ! relax non-linear values
+        ! all temporal relaxations must be the same
+        call get_option(trim(weight(i)%ptr%option_path)// &
+             '/prognostic/temporal_discretisation/theta', theta)
+        ! do not recalculate source terms if theta = 0.0 after first non-linear iteration
+        if ((theta == 0.0) .and. (it /= 1)) then
+           return
+        end if
+        call allocate(r_abscissa1(i), abscissa1(i)%ptr%mesh, &
+             "RelaxedAbscissa1"//int2str(i))
+        call allocate(r_abscissa2(i), abscissa2(i)%ptr%mesh, &
+             "RelaxedAbscissa2"//int2str(i))
+        call allocate(r_weight(i), weight(i)%ptr%mesh, "RelaxedWeight"//int2str(i))
+        call set(r_abscissa1(i), it_abscissa1(i)%ptr)
+        call set(r_abscissa2(i), it_abscissa2(i)%ptr)
+        call scale(r_abscissa1(i), theta)
+        call scale(r_abscissa2(i), theta)
+        call addto(r_abscissa1(i), abscissa1(i)%ptr, 1.0-theta)
+        call addto(r_abscissa2(i), abscissa2(i)%ptr, 1.0-theta)
+        call set(r_weight(i), it_weight(i)%ptr)
+        call scale(r_weight(i), theta)
+        call addto(r_weight(i), weight(i)%ptr, 1.0-theta)
+     end do
+
+     call allocate(dummy_scalar, r_abscissa1(1)%mesh, name="DummyScalar")
+
+     ! Get the value of {k,l} set for constructing the A matrix
+     allocate(kl_set(2*3*N))
+     call get_option(trim(option_path)//'/kl_set_for_A_matrix', kl_set)
+
+     ! get diffusion
+     D => extract_tensor_field(state, trim(weight(1)%ptr%name)//'Diffusivity',stat)
+     if (stat == 0) then
+        have_D = .true.
+     end if
+
+     ! check for growth term
+     if (have_option(trim(option_path)//'/population_balance_source_terms/growth')) then
+        have_growth = .TRUE.
+        if (have_option(trim(option_path)//'/population_balance_source_terms/growth/power_law_growth')) then
+           growth_type = 'power_law_growth';
+           call get_option(trim(option_path)//'/population_balance_source_terms/growth/power_law_growth', growth_r)
+        end if
+     else
+        have_growth = .FALSE.
+     end if
+
+     ! check for internal dispersion term
+     if (have_option(trim(option_path)//'/population_balance_source_terms/internal_dispersion')) then
+        have_internal_dispersion = .TRUE.
+        call get_option(trim(option_path)//'/population_balance_source_terms/internal_dispersion', internal_dispersion_coeff)
+     else
+        have_internal_dispersion = .FALSE.
+     end if
+
+     ! check for aggregation term
+     if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation')) then
+        have_aggregation = .TRUE.
+        if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/constant_aggregation')) then
+           aggregation_freq_type = 'constant_aggregation'
+           call get_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/constant_aggregation', aggregation_freq_const)
+        else if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/hydrodynamic_aggregation')) then
+           aggregation_freq_type = 'hydrodynamic_aggregation'
+        else if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/sum_aggregation')) then
+           aggregation_freq_type = 'sum_aggregation'
+           call get_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/sum_aggregation', aggregation_freq_const)
+        else if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/laakkonen_2007_aggregation')) then
+           aggregation_freq_type = 'laakkonen_2007_aggregation'
+           call get_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/laakkonen_2007_aggregation/C5', C5, default = 0.88)
+           if (.not. have_option("/population_balance_continuous_phase_name")) then
+              FLAbort("Enable the option population_balance_continuous_phase_name and provide a name for the continuous phase&
+                       as it is needed for extracting the turbulence dissipation needed in laakkonen_2007_aggregation kernel")
+           end if
+           turbulent_dissipation => extract_scalar_field(states(cont_state), "TurbulentDissipation", stat=stat)
+           if (stat/=0) then
+              FLAbort("I can't find the Turbulent Dissipation field of continuous phase for population balance aggregation term calculations.")
+           end if
+           if (have_option(trim(states(cont_state)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
+              viscosity_continuous => extract_tensor_field(states(cont_state), "BackgroundViscosity", stat=stat)
+              if (stat/=0) then
+                 FLAbort("I can't find the Background Viscosity field in k-epsilon for continuous phase for population balance aggregation term calculations.")
+              end if
+           else
+              viscosity_continuous => extract_tensor_field(states(cont_state), "Viscosity", stat=stat)
+              if (stat/=0) then
+                 FLAbort("I can't find the Viscosity field for continuous phase for population balance aggregation term calculations.")
+              end if
+           end if
+        end if
+     else
+        have_aggregation = .FALSE.
+     end if
+
+     ! check for breakage term
+     if (have_option(trim(option_path)//'/population_balance_source_terms/breakage')) then
+        have_breakage = .TRUE.
+        if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/constant_breakage')) then
+           breakage_freq_type = 'constant_breakage'
+           call get_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/constant_breakage', breakage_freq_const)
+        else if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/power_law_breakage')) then
+           breakage_freq_type = 'power_law_breakage'
+           call get_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/power_law_breakage/coefficient', breakage_freq_const)
+           call get_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/power_law_breakage/degree', breakage_freq_degree)
+        else if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/laakkonen_breakage')) then
+           breakage_freq_type = 'laakkonen_frequency'
+           if (aggregation_freq_type /= 'laakkonen_2007_aggregation') then
+              if (.not. have_option("/population_balance_continuous_phase_name")) then
+                 FLAbort("Enable the option population_balance_continuous_phase_name and provide a name for the continuous phase &
+                          as it is needed for extracting the turbulence dissipation needed in laakkonen_frequency kernel")
+              end if
+              turbulent_dissipation => extract_scalar_field(states(cont_state), "TurbulentDissipation", stat=stat)
+              if (stat/=0) then
+                 FLAbort("I can't find the Turbulent Dissipation field of continuous phase for population balance breakage term calculations.")
+              end if
+              if (have_option(trim(states(cont_state)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
+                 viscosity_continuous => extract_tensor_field(states(cont_state), "BackgroundViscosity", stat=stat)
+                 if (stat/=0) then
+                    FLAbort("I can't find the Background Viscosity field in k-epsilon for continuous phase for population balance aggregation term calculations.")
+                 end if
+              else
+                 viscosity_continuous => extract_tensor_field(states(cont_state), "Viscosity", stat=stat)
+                 if (stat/=0) then
+                    FLAbort("I can't find the Viscosity field for continuous phase for population balance aggregation term calculations.")
+                 end if
+              end if
+           end if
+        end if
+
+        if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/distribution_function/symmetric_fragmentation')) then
+           breakage_dist_type = 'symmetric_fragmentation'
+        else if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/distribution_function/mcCoy_madras_2003')) then
+           breakage_dist_type = 'mcCoy_madras_2003'
+        else if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/distribution_function/laakkonen_2007')) then
+           breakage_dist_type = 'laakkonen_2007'
+        end if
+
+     else
+        have_breakage = .FALSE.
+     end if
+
+     ! get ill-conditioned matrix settings
+     call get_option(trim(option_path)//'/ill_conditioned_matrices/required_condition_number', cond)
+     if (have_option(trim(option_path)//'/ill_conditioned_matrices/set_source_to_zero')) then
+        singular_option = 'set_source_to_zero';
+     else if (have_option(trim(option_path)//'/ill_conditioned_matrices/perturbate')) then
+        singular_option = 'perturbate';
+        call get_option(trim(option_path)//'/ill_conditioned_matrices/perturbate/perturbation', perturb_val)
+     else if (have_option(trim(option_path)//'/ill_conditioned_matrices/do_nothing')) then
+        singular_option = 'do_nothing';
+     end if
+
+     X => extract_vector_field(state, 'Coordinate')
+
+     ! assembly loop
+     do i = 1, ele_count(r_abscissa1(1))
+        call dqmom_calculate_source_term_ele(r_abscissa1, r_abscissa2, kl_set, r_weight, s_weighted_abscissa1, s_weighted_abscissa2, s_weight, &
+                 &D, have_D, have_growth, growth_type, growth_r, have_internal_dispersion, internal_dispersion_coeff, &
+                 &have_aggregation, aggregation_freq_type, aggregation_freq_const, C5, &
+                 &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, &
+                 &turbulent_dissipation, viscosity_continuous, X, singular_option, perturb_val, cond, i)
+     end do
+
+     ! for non-DG we apply inverse mass globally
+     if(continuity(r_abscissa1(1))>=0) then
+        if(have_option(trim(option_path)//'/adv_diff_source_term_interpolation/use_full_mass_matrix')) then
+           mass_matrix => get_mass_matrix(state, r_abscissa1(1)%mesh)
+           do j = 1, N
+              call zero(dummy_scalar)
+              call petsc_solve(dummy_scalar, mass_matrix, s_weight(j)%ptr, trim(option_path)//'/adv_diff_source_term_interpolation/use_full_mass_matrix')
+              call set(s_weight(j)%ptr, dummy_scalar)
+              call zero(dummy_scalar)
+              call petsc_solve(dummy_scalar, mass_matrix, s_weighted_abscissa1(j)%ptr, trim(option_path)//'/adv_diff_source_term_interpolation/use_full_mass_matrix')
+              call set(s_weighted_abscissa1(j)%ptr, dummy_scalar)
+              call zero(dummy_scalar)
+              call petsc_solve(dummy_scalar, mass_matrix, s_weighted_abscissa2(j)%ptr, trim(option_path)//'/adv_diff_source_term_interpolation/use_full_mass_matrix')
+              call set(s_weighted_abscissa2(j)%ptr, dummy_scalar)
+           end do
+        else if(have_option(trim(option_path)//'/adv_diff_source_term_interpolation/use_mass_lumping')) then
+           lumped_mass => get_lumped_mass(state, r_abscissa1(1)%mesh)
+           do j = 1, N
+              do i = 1, node_count(r_abscissa1(1))
+                 call set(s_weighted_abscissa1(j)%ptr, i, node_val(s_weighted_abscissa1(j)%ptr,i)&
+                      &/node_val(lumped_mass,i))
+                 call set(s_weighted_abscissa2(j)%ptr, i, node_val(s_weighted_abscissa2(j)%ptr,i)&
+                      &/node_val(lumped_mass,i))
+                 call set(s_weight(j)%ptr, i, node_val(s_weight(j)%ptr,i)&
+                      &/node_val(lumped_mass,i))
+              end do
+           end do
+        else
+           FLAbort("Check the .flml file. You must specify an option under 'population_balance/adv_diff_source_term_interpolation'")
+        end if
+     end if
+
 !     ! Checking if the source terms need to be implemented as absorption
 !     if(have_option(trim(option_path)//'/apply_source_as_absorption')) then
 !        do i =1, N
@@ -706,295 +733,315 @@ contains
 !     end if
 !
 !
-!     call deallocate(dummy_scalar)
-!     do i = 1, N
-!        call deallocate(r_abscissa(i))
-!        call deallocate(r_weight(i))
-!     end do
-!     deallocate(abscissa, weight, it_abscissa, it_weight, &
-!          r_abscissa, r_weight, weighted_abscissa, s_weight, s_weighted_abscissa, a_weight, a_weighted_abscissa)
-!
-!   end subroutine dqmom_calculate_source_term_pop
-!
-!   subroutine dqmom_calculate_source_term_ele(abscissa, weight, s_weighted_abscissa, s_weight, &
-!                  &D, have_D, have_growth, growth_type, growth_r, have_internal_dispersion, internal_dispersion_coeff, &
-!                  &have_aggregation, aggregation_freq_type, aggregation_freq_const, C5, &
-!                  &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, &
-!                  &turbulent_dissipation, viscosity_continuous, &
-!                  &X, singular_option, perturb_val, cond, ele)
-!
-!     type(scalar_field), dimension(:), intent(in) :: abscissa, weight
-!     type(scalar_field), intent(in) :: turbulent_dissipation
-!     type(tensor_field), intent(in) :: viscosity_continuous
-!     type(scalar_field_pointer), dimension(:), intent(inout) :: s_weighted_abscissa, s_weight
-!     type(tensor_field), pointer, intent(in) :: D
-!     type(vector_field), pointer, intent(in) :: X
-!     integer, intent(in) :: ele
-!     real, intent(in) :: cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree, perturb_val, C5
-!     logical, intent(in) :: have_D, have_growth, have_internal_dispersion, have_aggregation, have_breakage
-!     character(len=FIELD_NAME_LEN), intent(in) :: growth_type, aggregation_freq_type, breakage_freq_type, breakage_dist_type, singular_option
-!
-!     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)) :: abscissa_val_at_quad
-!     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2, size(abscissa)*2) :: A
-!     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2, size(abscissa)) :: A_3
-!     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)) :: C
-!     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2) :: S_rhs  ! source term (includes growth, breakage and coalescence term)
-!     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2, size(abscissa)) :: moment_daughter_dist_func
-!     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)) :: break_freq
-!     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa), size(abscissa)) :: aggregation_freq   ! at present it is not dependent on space coordinate, but can be dependent and will have to be a scalar field
-!     real, dimension(size(abscissa)*2, 1) :: b
-!     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)) :: abscissa_S_at_quad
-!     real, dimension(ele_ngi(abscissa(1), ele), size(weight)) :: weight_S_at_quad
-!     real, dimension(ele_loc(abscissa(1), ele)) :: abscissa_S_at_nodes
-!     real, dimension(ele_loc(abscissa(1), ele)) :: weight_S_at_nodes
-!     real, dimension(ele_loc(abscissa(1), ele), ele_loc(abscissa(1), ele)) :: invmass
-!     real, dimension(ele_ngi(abscissa(1), ele)) :: detwei, eps_ngi
-!     real, dimension(X%dim, ele_ngi(abscissa(1), ele)) :: grad_D
-!     real, dimension(X%dim, X%dim, ele_ngi(abscissa(1), ele)) :: D_at_quad
-!     type(element_type), pointer :: shape
-!     integer, dimension(:), pointer :: nodes
-!     real, dimension(ele_loc(abscissa(1), ele), ele_ngi(abscissa(1), ele), X%dim) :: dshape
-!     real, dimension(:,:,:), allocatable :: visc_ngi
-!     real, dimension(size(abscissa)*2, size(abscissa)*2) :: svd_tmp1, svd_tmp2
-!     real, dimension(size(abscissa)*2) :: SV
-!     integer :: stat, N, i, j, k
-!
-!     real :: sigma, density_continuous, density_dispersed
-!
-!     N = size(abscissa)
-!
-!     nodes => ele_nodes(abscissa(1), ele)
-!     shape => ele_shape(abscissa(1), ele)
-!
-!     call transform_to_physical(X, ele, shape, dshape=dshape, detwei=detwei)
-!
-!     ! construct A matrices (lhs knowns)
-!     do i = 1, N
-!        abscissa_val_at_quad(:,i) = ele_val_at_quad(abscissa(i), ele)
-!     end do
-!     A = A_matrix(abscissa_val_at_quad)
-!
-!     ! construct A_3 matrix (rhs pt.1)
-!     do i = 1, 2*N
-!        do j = 1, N
-!           A_3(:,i,j) = (i-1)*(i-2)*ele_val_at_quad(abscissa(j), ele)**(i-3)
-!        end do
-!     end do
-!
-!     ! construct C matrix (rhs pt.2)
-!     if (have_D) then
-!        do i = 1, N
-!           D_at_quad = ele_val_at_quad(D, ele)
-!           do j = 1, X%dim
-!              grad_D(j,:) = D_at_quad(j,j,:)
-!           end do
-!           grad_D = ((ele_grad_at_quad(abscissa(i), ele, dshape))**2)*grad_D
-!           C(:,i) = ele_val_at_quad(weight(i), ele)*sum(grad_D,1)
-!        end do
-!     else
-!        C = 0.0
-!     end if
-!
-!     ! initialize dqmom source term to zero
-!     S_rhs = 0.0
-!
-!     ! construct S vector (rhs pt.3) for GROWTH term
-!     if (have_growth) then
-!        if (growth_type=='power_law_growth') then
-!           do i = 1, 2*N
-!              do j = 1, N
-!                 S_rhs(:,i) = S_rhs(:,i) + (i-1)*ele_val_at_quad(weight(j), ele)*(ele_val_at_quad(abscissa(j), ele)**(i-2+growth_r))
-!              end do
-!           end do
-!        end if
-!     end if
-!
-!     ! construct S vector (rhs pt.3) for INTERNAL DISPERSION
-!     if (have_internal_dispersion) then
-!        do i = 1, 2*N
-!           do j = 1, N
-!              S_rhs(:,i) = S_rhs(:,i) + (i-1)*(i-2)*ele_val_at_quad(weight(j), ele)*(abscissa_val_at_quad(:,j)**(i-3))*internal_dispersion_coeff
-!           end do
-!        end do
-!     end if
-!
-!     ! construct S vector for BREAKAGE
-!
-!     if (have_breakage) then
-!        if (breakage_freq_type=='constant_breakage') then
-!           break_freq = breakage_freq_const
-!        else if (breakage_freq_type=='power_law_breakage') then
-!           do i = 1, N
-!              break_freq(:,i) = breakage_freq_const*abscissa_val_at_quad(:,i)**breakage_freq_degree
-!           end do
-!        else if (breakage_freq_type=='laakkonen_frequency') then
-!           density_continuous = 998.2
-!           density_dispersed = 1.205
-!           sigma = 0.072
-!           eps_ngi = ele_val_at_quad(turbulent_dissipation,ele)
-!           ! Assuming isotropic molecular viscosity here
-!           allocate(visc_ngi(ele_ngi(abscissa(1), ele), viscosity_continuous%dim(1), viscosity_continuous%dim(1)))
-!           visc_ngi = ele_val_at_quad(viscosity_continuous,ele)
-!           do i = 1, N
-!              break_freq(:,i) = 6.0*eps_ngi**(1./3) * erfc(sqrt( 0.04*(sigma/density_continuous)*(1./(eps_ngi**(2./3) * abscissa_val_at_quad(:,i)**(5./3))) + 0.01*(visc_ngi(:,1,1)/sqrt(density_continuous*density_dispersed))*(1./(eps_ngi**(1./3)*abscissa_val_at_quad(:,i)**(4./3)))))
-!           end do
-!           deallocate(visc_ngi)
-!        end if
-!
-!        if (breakage_dist_type=='symmetric_fragmentation') then
-!           do i = 1, 2*N
-!              do j = 1, N
-!                 moment_daughter_dist_func(:,i,j) = (2.0**(((3-(i-1))/3.0)))*(abscissa_val_at_quad(:,j)**(i-1))
-!              end do
-!           end do
-!        else if (breakage_dist_type=='mcCoy_madras_2003') then
-!           do i = 1, 2*N
-!              do j = 1, N
-!                 moment_daughter_dist_func(:,i,j) = (6.0/((i-1)+3.0))*(abscissa_val_at_quad(:,j)**(i-1))
-!              end do
-!           end do
-!        else if (breakage_dist_type=='laakkonen_2007') then
-!           do i = 1, 2*N
-!              do j = 1, N
-!                 moment_daughter_dist_func(:,i,j) = 180.0*(abscissa_val_at_quad(:,j)**(i-1))*(1./((i-1)+15) - 2./((i-1)+12) + 1./((i-1)+9))
-!              end do
-!           end do
-!        end if
-!
-!        do i = 1, 2*N
-!           do j = 1, N
-!              ! birth term due to breakage
-!              S_rhs(:,i) = S_rhs(:,i) + break_freq(:,j)*ele_val_at_quad(weight(j), ele)*moment_daughter_dist_func(:,i,j)   ! daughter distribution function already includes the factor for number of particles formed after breakage
-!              ! death term due to breakage
-!              S_rhs(:,i) = S_rhs(:,i) - break_freq(:,j)*ele_val_at_quad(weight(j), ele)*(abscissa_val_at_quad(:,j)**(i-1))
-!           end do
-!        end do
-!     endif
-!
-!
-!     !!! construct S vector for AGGREGATION
-!     if (have_aggregation) then
-!        if (aggregation_freq_type=='constant_aggregation') then
-!           aggregation_freq = aggregation_freq_const
-!        else if (aggregation_freq_type=='hydrodynamic_aggregation') then
-!           do i = 1, N
-!              do j = 1, N
-!                 aggregation_freq(:,i,j) = abscissa_val_at_quad(:,i)**3 + abscissa_val_at_quad(:,j)**3
-!              end do
-!           end do
-!        else if (aggregation_freq_type=='sum_aggregation') then
-!           do i = 1, N
-!              do j = 1, N
-!                 aggregation_freq(:,i,j) = (abscissa_val_at_quad(:,i) + abscissa_val_at_quad(:,j))*aggregation_freq_const
-!              end do
-!           end do
-!        else if (aggregation_freq_type=='laakkonen_2007_aggregation') then
-!           density_continuous = 998.2
-!           sigma = 0.072
-!           eps_ngi = ele_val_at_quad(turbulent_dissipation,ele)
-!           ! Assuming isotropic molecular viscosity here
-!           allocate(visc_ngi(ele_ngi(abscissa(1), ele), viscosity_continuous%dim(1), viscosity_continuous%dim(1)))
-!           visc_ngi = ele_val_at_quad(viscosity_continuous,ele)
-!           do i = 1, N
-!              do j = 1, N
-!                 aggregation_freq(:,i,j) = C5 * eps_ngi**(1./3) * (abscissa_val_at_quad(:,i) + abscissa_val_at_quad(:,j))**2 * (abscissa_val_at_quad(:,i)**(2./3) + abscissa_val_at_quad(:,j)**(2./3))**(1./2) * exp(-6.0E9*((visc_ngi(:,1,1)*density_continuous)/sigma**2)*eps_ngi*((abscissa_val_at_quad(:,i)*abscissa_val_at_quad(:,j))/(abscissa_val_at_quad(:,i)+abscissa_val_at_quad(:,j)))**4)
-!              end do
-!           end do
-!           deallocate(visc_ngi)
-!        end if
-!
-!        do i = 1, 2*N
-!           do j = 1, N
-!              do k = 1, N
-!                 ! birth term due to aggregation
-!                 S_rhs(:,i) = S_rhs(:,i) + 0.5 * aggregation_freq(:,j,k) * ele_val_at_quad(weight(j), ele) * ele_val_at_quad(weight(k), ele) * &
-!                                            ((abs(abscissa_val_at_quad(:,j)**3 + abscissa_val_at_quad(:,k)**3)**(1.0/3.0)) * &
-!                                            sign(1.0,(abscissa_val_at_quad(:,j)**3 + abscissa_val_at_quad(:,k)**3)))**(i-1)
-!                 ! death term due to aggregation
-!                 S_rhs(:,i) = S_rhs(:,i) - aggregation_freq(:,j,k) * ele_val_at_quad(weight(j), ele) * ele_val_at_quad(weight(k), ele) * abscissa_val_at_quad(:,j)**(i-1)
-!              end do
-!           end do
-!        end do
-!     endif
-!
-!     ! check for ill-conditioned matrices
-!     if (singular_option=='set_source_to_zero') then
-!        do i = 1, ele_ngi(abscissa(1), ele)
-!           call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
-!           if (SV(size(SV))/SV(1) < cond) then
-!              ewrite(2,*) 'ill-conditioned matrix found', SV(size(SV))/SV(1)
-!              S_rhs(i,:)=0.0
-!              A(i,:,:) = 0.0
-!              A_3(i,:,:) = 0.0
-!              C(i,:) = 0.0
-!              do j = 1, 2*N
-!                 A(i,j,j) = 1.0
-!              end do
-!           end if
-!        end do
-!     else if (singular_option=='do_nothing') then
-!        do i = 1, ele_ngi(abscissa(1), ele)
-!           call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
-!           if (SV(size(SV))/SV(1) < cond) then
-!              ewrite(2,*) 'ill-conditioned matrix found but doing nothing about it', SV(size(SV))/SV(1)
-!           end if
-!        end do
-!     else if (singular_option=='perturbate') then
-!        do i = 1, ele_ngi(abscissa(1), ele)
-!           call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
-!           if (SV(size(SV))/SV(1) < cond) then
-!              ewrite(2,*) 'ill-conditioned matrix found and perturbating', SV(size(SV))/SV(1)
-!              do j = 1, N
-!                 abscissa_val_at_quad(i,j) = abscissa_val_at_quad(i,j)-perturb_val
-!              end do
-!              A = A_matrix(abscissa_val_at_quad)
-!              call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
-!              ewrite(2,*) 'Condition number after perturbating', SV(size(SV))/SV(1)
-!           end if
-!        end do
-!     end if
-!
-!     ! solve linear system to find source values for weights and weighted-abscissa equations
-!     do i = 1, ele_ngi(abscissa(1), ele)
-!        b(:,1) = matmul(A_3(i,:,:), C(i,:)) + S_rhs(i,:)
-!        call dqmom_solve(A(i,:,:), b, stat)
-!        weight_S_at_quad(i,:) = b(:N,1)
-!        abscissa_S_at_quad(i,:) = b(N+1:,1)
-!     end do
-!
-!     ! In the DG case we apply the inverse mass locally.
-!     invmass = inverse(shape_shape(shape, shape, detwei))
-!
-!     ! integrate and add to source fields
-!     do i = 1, N
-!        weight_S_at_nodes = shape_rhs(shape, detwei* weight_S_at_quad(:,i))
-!        abscissa_S_at_nodes = shape_rhs(shape, detwei* abscissa_S_at_quad(:,i))
-!        if(continuity(abscissa(1))<0) then
-!           weight_S_at_nodes = matmul(weight_S_at_nodes, invmass)
-!           abscissa_S_at_nodes = matmul(abscissa_S_at_nodes, invmass)
-!        end if
-!        call addto(s_weight(i)%ptr, nodes, weight_S_at_nodes)
-!        call addto(s_weighted_abscissa(i)%ptr, nodes, abscissa_S_at_nodes)
-!     end do
-!
-!   end subroutine dqmom_calculate_source_term_ele
-!
-!   function A_matrix(abscissa)
-!
-!     real, dimension(:,:), intent(in) :: abscissa
-!
-!     real, dimension(size(abscissa,1), size(abscissa,2)*2, size(abscissa,2)*2) :: A_matrix
-!     integer :: i, j, N
-!
-!     N = size(abscissa,2)
-!     do i = 1, 2*N
-!        do j = 1, N
-!           A_matrix(:,i,j) = (2-i)*abscissa(:,j)**(i-1)
-!           A_matrix(:,i,j+N) = (i-1)*abscissa(:,j)**(i-2)
-!        end do
-!     end do
-!
-!   end function A_matrix
+     call deallocate(dummy_scalar)
+     do i = 1, N
+        call deallocate(r_abscissa1(i))
+        call deallocate(r_abscissa2(i))
+        call deallocate(r_weight(i))
+     end do
+     deallocate(abscissa1, abscissa2, weight, it_abscissa1, it_abscissa2, it_weight, &
+          r_abscissa1, r_abscissa2, r_weight, weighted_abscissa1, weighted_abscissa2, &
+          s_weight, s_weighted_abscissa1, s_weighted_abscissa2, a_weight, a_weighted_abscissa1, a_weighted_abscissa2, kl_set)
+
+   end subroutine dqmom_calculate_source_term_pop
+
+   subroutine dqmom_calculate_source_term_ele(abscissa1, abscissa2, kl_set, weight, s_weighted_abscissa1, s_weighted_abscissa2, s_weight, &
+                  &D, have_D, have_growth, growth_type, growth_r, have_internal_dispersion, internal_dispersion_coeff, &
+                  &have_aggregation, aggregation_freq_type, aggregation_freq_const, C5, &
+                  &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, &
+                  &turbulent_dissipation, viscosity_continuous, &
+                  &X, singular_option, perturb_val, cond, ele)
+
+    type(scalar_field), dimension(:), intent(in) :: abscissa1, abscissa2, weight
+    type(scalar_field), intent(in) :: turbulent_dissipation
+    type(tensor_field), intent(in) :: viscosity_continuous
+    type(scalar_field_pointer), dimension(:), intent(inout) :: s_weighted_abscissa1, s_weighted_abscissa2, s_weight
+    type(tensor_field), pointer, intent(in) :: D
+    type(vector_field), pointer, intent(in) :: X
+    integer, dimension(:), intent(in) :: kl_set
+    integer, intent(in) :: ele
+    real, intent(in) :: cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree, perturb_val, C5
+    logical, intent(in) :: have_D, have_growth, have_internal_dispersion, have_aggregation, have_breakage
+    character(len=FIELD_NAME_LEN), intent(in) :: growth_type, aggregation_freq_type, breakage_freq_type, breakage_dist_type, singular_option
+
+    real, dimension(ele_ngi(abscissa1(1), ele), size(abscissa1)) :: abscissa1_val_at_quad, abscissa2_val_at_quad
+    real, dimension(ele_ngi(abscissa1(1), ele), size(abscissa1)*3, size(abscissa1)*3) :: A
+    real, dimension(ele_ngi(abscissa1(1), ele), size(abscissa1)*3, size(abscissa1)*3) :: A_3
+    real, dimension(ele_ngi(abscissa1(1), ele), size(abscissa1)*3) :: C
+    real, dimension(ele_ngi(abscissa1(1), ele), size(abscissa1)*2) :: S_rhs  ! source term (includes growth, breakage and coalescence term)
+    real, dimension(ele_ngi(abscissa1(1), ele), size(abscissa1)*2, size(abscissa1)) :: moment_daughter_dist_func
+    real, dimension(ele_ngi(abscissa1(1), ele), size(abscissa1)) :: break_freq
+    real, dimension(ele_ngi(abscissa1(1), ele), size(abscissa1), size(abscissa1)) :: aggregation_freq   ! at present it is not dependent on space coordinate, but can be dependent and will have to be a scalar field
+    real, dimension(size(abscissa1)*2, 1) :: b
+    real, dimension(ele_ngi(abscissa1(1), ele), size(abscissa1)) :: abscissa1_S_at_quad, abscissa2_S_at_quad
+    real, dimension(ele_ngi(abscissa1(1), ele), size(weight)) :: weight_S_at_quad
+    real, dimension(ele_loc(abscissa1(1), ele)) :: abscissa1_S_at_nodes, abscissa2_S_at_nodes
+    real, dimension(ele_loc(abscissa1(1), ele)) :: weight_S_at_nodes
+    real, dimension(ele_loc(abscissa1(1), ele), ele_loc(abscissa1(1), ele)) :: invmass
+    real, dimension(ele_ngi(abscissa1(1), ele)) :: detwei, eps_ngi
+    real, dimension(X%dim, ele_ngi(abscissa1(1), ele)) :: grad_D
+    real, dimension(X%dim, X%dim, ele_ngi(abscissa1(1), ele)) :: D_at_quad
+    type(element_type), pointer :: shape
+    integer, dimension(:), pointer :: nodes
+    real, dimension(ele_loc(abscissa1(1), ele), ele_ngi(abscissa1(1), ele), X%dim) :: dshape
+    real, dimension(:,:,:), allocatable :: visc_ngi
+    real, dimension(size(abscissa1)*2, size(abscissa1)*2) :: svd_tmp1, svd_tmp2
+    real, dimension(size(abscissa1)*2) :: SV
+    integer :: stat, N, i, j, k, l
+
+    real :: sigma, density_continuous, density_dispersed
+
+    N = size(abscissa1)
+
+    nodes => ele_nodes(abscissa1(1), ele)
+    shape => ele_shape(abscissa1(1), ele)
+
+    call transform_to_physical(X, ele, shape, dshape=dshape, detwei=detwei)
+
+    ! construct A matrices (lhs knowns)
+    do i = 1, N
+       abscissa1_val_at_quad(:,i) = ele_val_at_quad(abscissa1(i), ele)
+       abscissa2_val_at_quad(:,i) = ele_val_at_quad(abscissa2(i), ele)
+    end do
+    A = A_matrix(abscissa1_val_at_quad, abscissa2_val_at_quad, kl_set)
+
+     ! construct A_3 matrix (rhs pt.1)
+     do i = 1, 3*N
+        k = kl_set(2*i-1)
+        l = kl_set(2*i)
+        do j = 1, N
+           A_3(:,i,j) = k*(k-1)*abscissa1_val_at_quad(:,j)**(k-2) * abscissa2_val_at_quad(:,j)**l
+           A_3(:,i,j+N) = 2*k*l*abscissa1_val_at_quad(:,j)**(k-1) * abscissa2_val_at_quad(:,j)**(l-1)
+           A_3(:,i,j+2*N) = l*(l-1)*abscissa1_val_at_quad(:,j)**k * abscissa2_val_at_quad(:,j)**(l-2)
+        end do
+     end do
+
+     print*, "Abscissa1 value quad", abscissa1_val_at_quad(1,:)
+     print*, "Abscissa2 value quad", abscissa2_val_at_quad(1,:)
+     do i=1,3*N
+        print*, "A_3 row",i, "is", A_3(1,i,:)
+     end do
+
+
+    !  ! construct C matrix (rhs pt.2)
+    !  if (have_D) then
+    !     do i = 1, N
+    !       D_at_quad = ele_val_at_quad(D, ele)
+    !       do j = 1, X%dim
+    !          grad_D(j,:) = D_at_quad(j,j,:)
+    !       end do
+    !       grad_D = ((ele_grad_at_quad(abscissa(i), ele, dshape))**2)*grad_D
+    !       C(:,i) = ele_val_at_quad(weight(i), ele)*sum(grad_D,1)
+    !    end do
+    ! else
+    !    C = 0.0
+    ! end if
+    !
+    ! ! initialize dqmom source term to zero
+    ! S_rhs = 0.0
+    !
+    ! ! construct S vector (rhs pt.3) for GROWTH term
+    ! if (have_growth) then
+    !    if (growth_type=='power_law_growth') then
+    !       do i = 1, 2*N
+    !          do j = 1, N
+    !             S_rhs(:,i) = S_rhs(:,i) + (i-1)*ele_val_at_quad(weight(j), ele)*(ele_val_at_quad(abscissa(j), ele)**(i-2+growth_r))
+    !          end do
+    !       end do
+    !    end if
+    ! end if
+    !
+    ! ! construct S vector (rhs pt.3) for INTERNAL DISPERSION
+    ! if (have_internal_dispersion) then
+    !    do i = 1, 2*N
+    !       do j = 1, N
+    !          S_rhs(:,i) = S_rhs(:,i) + (i-1)*(i-2)*ele_val_at_quad(weight(j), ele)*(abscissa_val_at_quad(:,j)**(i-3))*internal_dispersion_coeff
+    !       end do
+    !    end do
+    ! end if
+    !
+    ! ! construct S vector for BREAKAGE
+    !
+    ! if (have_breakage) then
+    !    if (breakage_freq_type=='constant_breakage') then
+    !       break_freq = breakage_freq_const
+    !    else if (breakage_freq_type=='power_law_breakage') then
+    !       do i = 1, N
+    !          break_freq(:,i) = breakage_freq_const*abscissa_val_at_quad(:,i)**breakage_freq_degree
+    !       end do
+    !    else if (breakage_freq_type=='laakkonen_frequency') then
+    !       density_continuous = 998.2
+    !       density_dispersed = 1.205
+    !       sigma = 0.072
+    !       eps_ngi = ele_val_at_quad(turbulent_dissipation,ele)
+    !       ! Assuming isotropic molecular viscosity here
+    !       allocate(visc_ngi(ele_ngi(abscissa(1), ele), viscosity_continuous%dim(1), viscosity_continuous%dim(1)))
+    !       visc_ngi = ele_val_at_quad(viscosity_continuous,ele)
+    !       do i = 1, N
+    !          break_freq(:,i) = 6.0*eps_ngi**(1./3) * erfc(sqrt( 0.04*(sigma/density_continuous)*(1./(eps_ngi**(2./3) * abscissa_val_at_quad(:,i)**(5./3))) + 0.01*(visc_ngi(:,1,1)/sqrt(density_continuous*density_dispersed))*(1./(eps_ngi**(1./3)*abscissa_val_at_quad(:,i)**(4./3)))))
+    !       end do
+    !       deallocate(visc_ngi)
+    !    end if
+    !
+    !    if (breakage_dist_type=='symmetric_fragmentation') then
+    !       do i = 1, 2*N
+    !          do j = 1, N
+    !             moment_daughter_dist_func(:,i,j) = (2.0**(((3-(i-1))/3.0)))*(abscissa_val_at_quad(:,j)**(i-1))
+    !          end do
+    !       end do
+    !    else if (breakage_dist_type=='mcCoy_madras_2003') then
+    !       do i = 1, 2*N
+    !          do j = 1, N
+    !             moment_daughter_dist_func(:,i,j) = (6.0/((i-1)+3.0))*(abscissa_val_at_quad(:,j)**(i-1))
+    !          end do
+    !       end do
+    !    else if (breakage_dist_type=='laakkonen_2007') then
+    !       do i = 1, 2*N
+    !          do j = 1, N
+    !             moment_daughter_dist_func(:,i,j) = 180.0*(abscissa_val_at_quad(:,j)**(i-1))*(1./((i-1)+15) - 2./((i-1)+12) + 1./((i-1)+9))
+    !          end do
+    !       end do
+    !    end if
+    !
+    !    do i = 1, 2*N
+    !       do j = 1, N
+    !          ! birth term due to breakage
+    !          S_rhs(:,i) = S_rhs(:,i) + break_freq(:,j)*ele_val_at_quad(weight(j), ele)*moment_daughter_dist_func(:,i,j)   ! daughter distribution function already includes the factor for number of particles formed after breakage
+    !          ! death term due to breakage
+    !          S_rhs(:,i) = S_rhs(:,i) - break_freq(:,j)*ele_val_at_quad(weight(j), ele)*(abscissa_val_at_quad(:,j)**(i-1))
+    !       end do
+    !    end do
+    ! endif
+    !
+    !
+    ! !!! construct S vector for AGGREGATION
+    ! if (have_aggregation) then
+    !    if (aggregation_freq_type=='constant_aggregation') then
+    !       aggregation_freq = aggregation_freq_const
+    !    else if (aggregation_freq_type=='hydrodynamic_aggregation') then
+    !       do i = 1, N
+    !          do j = 1, N
+    !             aggregation_freq(:,i,j) = abscissa_val_at_quad(:,i)**3 + abscissa_val_at_quad(:,j)**3
+    !          end do
+    !       end do
+    !    else if (aggregation_freq_type=='sum_aggregation') then
+    !       do i = 1, N
+    !          do j = 1, N
+    !             aggregation_freq(:,i,j) = (abscissa_val_at_quad(:,i) + abscissa_val_at_quad(:,j))*aggregation_freq_const
+    !          end do
+    !       end do
+    !    else if (aggregation_freq_type=='laakkonen_2007_aggregation') then
+    !       density_continuous = 998.2
+    !       sigma = 0.072
+    !       eps_ngi = ele_val_at_quad(turbulent_dissipation,ele)
+    !       ! Assuming isotropic molecular viscosity here
+    !       allocate(visc_ngi(ele_ngi(abscissa(1), ele), viscosity_continuous%dim(1), viscosity_continuous%dim(1)))
+    !       visc_ngi = ele_val_at_quad(viscosity_continuous,ele)
+    !       do i = 1, N
+    !          do j = 1, N
+    !             aggregation_freq(:,i,j) = C5 * eps_ngi**(1./3) * (abscissa_val_at_quad(:,i) + abscissa_val_at_quad(:,j))**2 * (abscissa_val_at_quad(:,i)**(2./3) + abscissa_val_at_quad(:,j)**(2./3))**(1./2) * exp(-6.0E9*((visc_ngi(:,1,1)*density_continuous)/sigma**2)*eps_ngi*((abscissa_val_at_quad(:,i)*abscissa_val_at_quad(:,j))/(abscissa_val_at_quad(:,i)+abscissa_val_at_quad(:,j)))**4)
+    !          end do
+    !       end do
+    !       deallocate(visc_ngi)
+    !    end if
+    !
+    !    do i = 1, 2*N
+    !       do j = 1, N
+    !          do k = 1, N
+    !             ! birth term due to aggregation
+    !             S_rhs(:,i) = S_rhs(:,i) + 0.5 * aggregation_freq(:,j,k) * ele_val_at_quad(weight(j), ele) * ele_val_at_quad(weight(k), ele) * &
+    !                                        ((abs(abscissa_val_at_quad(:,j)**3 + abscissa_val_at_quad(:,k)**3)**(1.0/3.0)) * &
+    !                                        sign(1.0,(abscissa_val_at_quad(:,j)**3 + abscissa_val_at_quad(:,k)**3)))**(i-1)
+    !             ! death term due to aggregation
+    !             S_rhs(:,i) = S_rhs(:,i) - aggregation_freq(:,j,k) * ele_val_at_quad(weight(j), ele) * ele_val_at_quad(weight(k), ele) * abscissa_val_at_quad(:,j)**(i-1)
+    !          end do
+    !       end do
+    !    end do
+    ! endif
+    !
+    ! ! check for ill-conditioned matrices
+    ! if (singular_option=='set_source_to_zero') then
+    !    do i = 1, ele_ngi(abscissa(1), ele)
+    !       call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
+    !       if (SV(size(SV))/SV(1) < cond) then
+    !          ewrite(2,*) 'ill-conditioned matrix found', SV(size(SV))/SV(1)
+    !          S_rhs(i,:)=0.0
+    !          A(i,:,:) = 0.0
+    !          A_3(i,:,:) = 0.0
+    !          C(i,:) = 0.0
+    !          do j = 1, 2*N
+    !             A(i,j,j) = 1.0
+    !          end do
+    !       end if
+    !    end do
+    ! else if (singular_option=='do_nothing') then
+    !    do i = 1, ele_ngi(abscissa(1), ele)
+    !       call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
+    !       if (SV(size(SV))/SV(1) < cond) then
+    !          ewrite(2,*) 'ill-conditioned matrix found but doing nothing about it', SV(size(SV))/SV(1)
+    !       end if
+    !    end do
+    ! else if (singular_option=='perturbate') then
+    !    do i = 1, ele_ngi(abscissa(1), ele)
+    !       call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
+    !       if (SV(size(SV))/SV(1) < cond) then
+    !          ewrite(2,*) 'ill-conditioned matrix found and perturbating', SV(size(SV))/SV(1)
+    !          do j = 1, N
+    !             abscissa_val_at_quad(i,j) = abscissa_val_at_quad(i,j)-perturb_val
+    !          end do
+    !          A = A_matrix(abscissa_val_at_quad)
+    !          call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
+    !          ewrite(2,*) 'Condition number after perturbating', SV(size(SV))/SV(1)
+    !       end if
+    !    end do
+    ! end if
+    !
+    ! ! solve linear system to find source values for weights and weighted-abscissa equations
+    ! do i = 1, ele_ngi(abscissa(1), ele)
+    !    b(:,1) = matmul(A_3(i,:,:), C(i,:)) + S_rhs(i,:)
+    !    call dqmom_solve(A(i,:,:), b, stat)
+    !    weight_S_at_quad(i,:) = b(:N,1)
+    !    abscissa_S_at_quad(i,:) = b(N+1:,1)
+    ! end do
+    !
+    ! ! In the DG case we apply the inverse mass locally.
+    ! invmass = inverse(shape_shape(shape, shape, detwei))
+    !
+    ! ! integrate and add to source fields
+    ! do i = 1, N
+    !    weight_S_at_nodes = shape_rhs(shape, detwei* weight_S_at_quad(:,i))
+    !    abscissa_S_at_nodes = shape_rhs(shape, detwei* abscissa_S_at_quad(:,i))
+    !    if(continuity(abscissa(1))<0) then
+    !       weight_S_at_nodes = matmul(weight_S_at_nodes, invmass)
+    !       abscissa_S_at_nodes = matmul(abscissa_S_at_nodes, invmass)
+    !    end if
+    !    call addto(s_weight(i)%ptr, nodes, weight_S_at_nodes)
+    !    call addto(s_weighted_abscissa(i)%ptr, nodes, abscissa_S_at_nodes)
+    ! end do
+
+  end subroutine dqmom_calculate_source_term_ele
+
+  function A_matrix(abscissa1, abscissa2, kl_set)
+
+    real, dimension(:,:), intent(in) :: abscissa1, abscissa2
+    integer, dimension(:), intent(in) :: kl_set    ! Ensure that assert size(kl_set)/2 = 3*size(abscissa)
+
+    real, dimension(size(abscissa1,1), size(abscissa1,2)*3, size(abscissa1,2)*3) :: A_matrix
+    integer :: i, j, N, k, l
+
+
+    N = size(abscissa1,2)
+    do i = 1, 3*N
+       k = kl_set(2*i-1)
+       l = kl_set(2*i)
+       do j = 1, N
+          A_matrix(:,i,j) = (1-k-l)*abscissa1(:,j)**k * abscissa2(:,j)**l
+          A_matrix(:,i,j+N) = k*abscissa1(:,j)**(k-1) * abscissa2(:,j)**l
+          A_matrix(:,i,j+2*N) = l*abscissa1(:,j)**k * abscissa2(:,j)**(l-1)
+       end do
+    end do
+
+  end function A_matrix
 !
 !   subroutine dqmom_solve(A, b, stat)
 !     !!< Solve Ax=b for right hand sides b putting the result in b.
