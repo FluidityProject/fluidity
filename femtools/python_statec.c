@@ -1,6 +1,11 @@
 #define ALLOW_IMPORT_ARRAY
 #include "python_statec.h"
 
+#if PY_MAJOR_VERSION >= 3
+#define PyInt_FromLong PyLong_FromLong
+#define PyString_FromString PyUnicode_FromString
+#endif
+
 void python_init_(void){
 #ifdef HAVE_PYTHON
   // Initialize the Python interpreter
@@ -8,10 +13,19 @@ void python_init_(void){
   PyRun_SimpleString("import string");
 
   PyObject* m;
+#if PY_MAJOR_VERSION >= 3
+  static struct PyModuleDef moduledef = {
+    PyModuleDef_HEAD_INIT,
+    "spud_manager",
+    NULL, -1, NULL, NULL, NULL, NULL, NULL,
+  };
+  m = PyModule_Create(&moduledef);
+#else
   m = Py_InitModule("spud_manager", NULL);
+#endif
   assert(m != NULL);
 
-#if PY_MINOR_VERSION > 6
+#if PY_MAJOR_VERSION >= 3 || PY_MINOR_VERSION > 6
   void* manager = spud_get_manager();
   PyObject* manager_capsule = PyCapsule_New(manager, "spud_manager._spud_manager", NULL);
   assert(manager_capsule != NULL);
@@ -189,8 +203,8 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
   PyObject *pft = PyInt_FromLong(*field_type);
   PyDict_SetItemString(pDict,"ft",pft);  
 
-  PyRun_SimpleString("n = string.strip(n)");
-  PyRun_SimpleString("op = string.strip(op)");
+  PyRun_SimpleString("n = n.strip()");
+  PyRun_SimpleString("op = op.strip()");
 
   char *n = fix_string(state,*slen);
   int tlen=150+*slen+*mesh_name_len;
@@ -237,7 +251,7 @@ void python_add_csr_matrix_(int *valSize, double val[], int *col_indSize, int co
   PyObject *pname = PyString_FromString(namefixed);
   PyDict_SetItemString(pDict,"name",pname); 
 
-  PyRun_SimpleString("name = string.strip(name)");
+  PyRun_SimpleString("name = name.strip()");
 
   char *statefixed = fix_string(state,*statelen);
   int tlen=150+*statelen;
@@ -285,8 +299,8 @@ void python_add_vector_(int *num_dim, int *s,
   PyObject *pnd = PyInt_FromLong(*num_dim);
   PyDict_SetItemString(pDict,"nd",pnd);  
 
-  PyRun_SimpleString("n = string.strip(n)");
-  PyRun_SimpleString("op = string.strip(op)");
+  PyRun_SimpleString("n = n.strip()");
+  PyRun_SimpleString("op = op.strip()");
 
   char *n = fix_string(state,*slen);
   int tlen=150+*slen+*mesh_name_len;
@@ -341,8 +355,8 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   PyObject *pnd1 = PyInt_FromLong(num_dim[1]);
   PyDict_SetItemString(pDict,"nd1",pnd1);  
 
-  PyRun_SimpleString("n = string.strip(n)");
-  PyRun_SimpleString("op = string.strip(op)");
+  PyRun_SimpleString("n = n.strip()");
+  PyRun_SimpleString("op = op.strip()");
 
   char *n = fix_string(state,*slen);
   int tlen=150+*slen+*mesh_name_len;
@@ -392,8 +406,8 @@ void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
   PyObject *poptionp = PyString_FromString(opc);
   PyDict_SetItemString(pDict,"op",poptionp);
 
-  PyRun_SimpleString("n = string.strip(n)");
-  PyRun_SimpleString("op = string.strip(op)");
+  PyRun_SimpleString("n = n.strip()");
+  PyRun_SimpleString("op = op.strip()");
 
   char *n = fix_string(state_name,*state_name_len);
   int tlen=150 + *state_name_len;

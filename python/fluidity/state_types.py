@@ -20,8 +20,8 @@ class State:
   def __repr__(self):
     return '(State) %s' % self.name
   def print_fields(self):
-    print "scalar: ",self.scalar_fields,"\nvector:",self.vector_fields,"\ntensor:", \
-    self.tensor_fields,"\ncsr_matrices:", self.csr_matrices
+    print("scalar: ",self.scalar_fields,"\nvector:",self.vector_fields,"\ntensor:", \
+    self.tensor_fields,"\ncsr_matrices:", self.csr_matrices)
 
 class Field:
   def __init__(self,n,ft,op,description):
@@ -379,6 +379,6 @@ def test_shape_dshape(state):
       rhs_f = rhs_f + numpy.matrix(rhs_local[:,i,:]) * f.node_val(el_f[i])
     psi.addto(el_f,rhs_f)
 
-  print psi.val[0]/lumpmass.val
+  print(psi.val[0]/lumpmass.val)
 
   return 0
