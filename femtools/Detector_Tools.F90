@@ -659,12 +659,14 @@ contains
     end if
   end subroutine set_particle_attribute_from_python
 
-  subroutine set_particle_fields_from_python(particle_list, attributes_buffer, state, xfield, dim, positions, lcoords, ele ndete, attributes, func, time)
+  subroutine set_particle_fields_from_python(particle_list, attributes_buffer, state, xfield, dim, positions, lcoords, ele, ndete, attributes, old_att_names, old_attributes, func, time)
     type(detector_linked_list), intent(inout) :: particle_list
     type(state_type), dimension(:), intent(in) :: state
+    real, dimension(:,:), intent(in) :: old_attributes
+    character, dimension(:,:), intent(in) :: old_att_names
     real, dimension(:), intent(inout) :: attributes
-    real, dimension(:), intent(inout) :: old_fields
     real, dimension(:,:), target, intent(in) :: positions
+    integer, dimension(3), intent(in) :: attributes_buffer
     real, dimension(:,:), intent(in) :: lcoords
     integer, dimension(:), intent(in) :: ele
     character(len=*), intent(in) :: func
@@ -673,7 +675,6 @@ contains
     integer, intent(in) :: dim
     character, allocatable, dimension(:,:) :: field_names
     character, allocatable, dimension(:,:) :: old_field_names
-    integer, dimension(3), intent(in) :: attributes_buffer
     real, allocatable, dimension(:,:) :: field_vals
     real, allocatable, dimension(:,:) :: old_field_vals
     type(vector_field), pointer :: xfield
@@ -682,22 +683,18 @@ contains
     real, dimension(0), target :: zero
     character(len=FIELD_NAME_LEN) :: buffer
     type(detector_type), pointer :: particle
-    real, dimension(:,:), target :: positions
-    real, dimension(:,:) :: lcoords
-    integer, dimension(:) :: ele
 
     type(scalar_field), pointer :: sfield
     character(len=FIELD_NAME_LEN) :: name
     integer :: phase, i, j, nfields, nprognostic, nprescribed, ndiagnostic
-    integer :: p, f, stat, num_fields, k, pfields, l
-    logical :: pre_set
-
-    !get positions of particles for function
+    integer :: p, f, stat, num_fields, k, pfields, l, old_nfields, old_nattributes
 
     nprognostic = option_count('/material_phase/scalar_field/prognostic/particles/include_in_particles')
     nprescribed = option_count('/material_phase/scalar_field/prescribed/particles/include_in_particles')
     ndiagnostic = option_count('/material_phase/scalar_field/diagnostic/particles/include_in_particles')
     nfields = ndiagnostic + nprescribed + nprognostic
+    old_nfields = attributes_buffer(3)
+    old_nattributes = attributes_buffer(2)
 
     select case(dim)
     case(1)
@@ -718,8 +715,6 @@ contains
     allocate(field_vals(nfields,ndete))
     allocate(old_field_names(FIELD_NAME_LEN,attributes_buffer(3)))
     allocate(old_field_vals(attributes_buffer(3),ndete))
-    allocate(attribute_array(attributes_buffer(1),nparticles))
-    particle => particle_lists(i)%first
     j=1
     l=1
     do phase=1,size(state)
@@ -735,60 +730,55 @@ contains
                 field_names(k,j)=name(k:k)
              end do
              field_names(k,j)= C_NULL_CHAR
-             do i = 1,ndete      
-                value = eval_field(ele(i), sfield, lcoords(:,i))
-                field_vals(j,i)=value
-                if (have_option(trim(sfield%option_path)//"/prescribed/particles/include_in_particles/store_old_field").or. &
-                     have_option(trim(sfield%option_path)//"/diagnostic/particles/include_in_particles/store_old_field").or. &
-                     have_option(trim(sfield%option_path)//"/prognostic/particles/include_in_particles/store_old_field")) then
+             if (have_option(trim(sfield%option_path)//"/prescribed/particles/include_in_particles/store_old_field").or. &
+                  have_option(trim(sfield%option_path)//"/diagnostic/particles/include_in_particles/store_old_field").or. &
+                  have_option(trim(sfield%option_path)//"/prognostic/particles/include_in_particles/store_old_field")) then
+                old_field_names(1,l) = 'O'
+                old_field_names(2,l) = 'l'
+                old_field_names(3,l) = 'd'
+                do k = 4,len_trim(name)+3
+                   old_field_names(k,l)=name(k-3:k-3)
+                end do
+                old_field_names(k,l)= C_NULL_CHAR
+                do i = 1,ndete      
+                   value = eval_field(ele(i), sfield, lcoords(:,i))
+                   field_vals(j,i)=value
                    old_field_vals(l,i)=value
-                   do k = 1,len_trim(name)
-                      old_field_names(k,l)=name(k:k)
-                   end do
-                   old_field_names(k,j)= C_NULL_CHAR
-                   l=l+1
-                end if
-                particle=>particle%next
-             end do
+                end do
+                l=l+1
+             else
+                do i = 1,ndete      
+                   value = eval_field(ele(i), sfield, lcoords(:,i))
+                   field_vals(j,i)=value
+                end do
+             end if
              j=j+1
           end if
        end do
     end do
-
-    particle => particle_lists(i)%first
-    pre_set= .false.
-    if (attributes_buffer(3).ne.0) then
-       if(.not.allocated(particle%old_fields)) then
-          do i = 1,ndete
-             allocate(particle%old_fields(attributes_buffer(3))
-             particle%old_fields = old_field_vals(:,i)
-             particle=>particle%next
-          end do
-          pre_set = .true.
-       end if
+    particle => particle_list%first
+    if (allocated(particle%old_fields)) then
+       particle => particle_list%first
+       do i = 1,ndete
+          old_field_vals(:,i) = particle%old_fields
+          particle=>particle%next
+       end do
     end if
-    
+
     call set_particles_fields_from_python(func, len(func), dim, ndete, &
-         lvx, lvy, lvz, time, nfields, field_names, field_vals, attributes, stat)
+         lvx, lvy, lvz, time, nfields, field_names, field_vals, old_nfields, old_field_names, &
+         old_field_vals, old_nattributes, old_att_names, old_attributes, attributes, stat)
     if (stat/=0) then
        ewrite(-1, *) "Python error, Python string was:"
        ewrite(-1 , *) trim(func)
        FLExit("Dying")
     end if
-
-    if (attributes_buffer(3).ne.0) then
-       if((.not.pre_set)) then
-          do i = 1,ndete
-             particle%old_fields = old_field_vals(:,i)
-             particle=>particle%next
-          end do
-       end if
-    end if
-
+    
     deallocate(field_names)
     deallocate(field_vals)
     deallocate(old_field_names)
     deallocate(old_field_vals)
+    
   end subroutine set_particle_fields_from_python
 
 end module detector_tools

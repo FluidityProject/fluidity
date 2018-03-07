@@ -4720,7 +4720,11 @@ i.e. excluding the components</a:documentation>
       <choice>
         <element name="include_in_particles">
           <a:documentation>This field is included at each particle location.</a:documentation>
-          <ref name="comment"/>
+          <optional>
+            <element name="store_old_field">
+              <ref name="comment"/>
+            </element>
+          </optional>
         </element>
         <element name="exclude_from_particles">
           <a:documentation>This field is not included at each particle location.</a:documentation>
@@ -4740,7 +4744,11 @@ i.e. excluding the components</a:documentation>
         </element>
         <element name="include_in_particles">
           <a:documentation>This field is included at each particle location.</a:documentation>
-          <ref name="comment"/>
+          <optional>
+            <element name="store_old_field">
+              <ref name="comment"/>
+            </element>
+          </optional>
         </element>
       </choice>
     </element>
@@ -4788,6 +4796,11 @@ where X is a tuple of length geometry dimension.</a:documentation>
 
 where X is a tuple of length geometry dimension.</a:documentation>
         <ref name="python_code"/>
+        <optional>
+          <element name="store_old_attribute">
+            <ref name="comment"/>
+          </element>
+        </optional>
       </element>
       <element name="from_checkpoint_file">
         <a:documentation>File containing the particle positions in binary form</a:documentation>

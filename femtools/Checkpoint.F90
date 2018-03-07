@@ -147,7 +147,8 @@ contains
          .and. .not.present_and_true(ignore_detectors)) then
       call checkpoint_detectors(state, lprefix, postfix = lpostfix, cp_no = cp_no)
     end if
-    if (have_option("/particles")) then
+    if (have_option("/particles") &
+         .and. .not.present_and_true(ignore_detectors)) then
        call checkpoint_particles_loop(state, lprefix, lpostfix, cp_no)
     end if
     if(getrank() == 0) then

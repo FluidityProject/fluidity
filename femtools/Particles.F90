@@ -46,6 +46,7 @@ module particles
   use spud
   use parallel_fields
   use diagnostic_variables, only: field_tag, initialise_constant_diagnostics
+  use iso_c_binding, only: C_NULL_CHAR
 
   implicit none
 
@@ -129,16 +130,18 @@ contains
           attributes_buffer(1)=option_count('/particles/particle_array['//int2str(i-1)//']/attributes/attribute')
        end if
        attributes_buffer(2)=0
-       if (have_option('/particles/particle_array['//int2str(i-1)//']/attributes/attribute/store_old')) then
-          attributes_buffer(2)=option_count('/particles/particle_array['//int2str(i-1)//']/attributes/attribute/store_old')
-       end if
        attributes_buffer(3)=0
-       if (have_option('/particles/particle_array['//int2str(i-1)//']/attributes/attribute/python_fields')) then
-          nprognostic = option_count('/material_phase/scalar_field/prognostic/particles/include_in_particles/store_old_field')
-          nprescribed = option_count('/material_phase/scalar_field/prescribed/particles/include_in_particles/store_old_field')
-          ndiagnostic = option_count('/material_phase/scalar_field/diagnostic/particles/include_in_particles/store_old_field')
-          attributes_buffer(3) = ndiagnostic + nprescribed + nprognostic
-       end if
+       do m = 1,attributes_buffer(1)
+          if (have_option('/particles/particle_array['//int2str(i-1)//']/attributes/attribute['//int2str(m-1)//']/python_fields')) then
+             nprognostic = option_count('/material_phase/scalar_field/prognostic/particles/include_in_particles/store_old_field')
+             nprescribed = option_count('/material_phase/scalar_field/prescribed/particles/include_in_particles/store_old_field')
+             ndiagnostic = option_count('/material_phase/scalar_field/diagnostic/particles/include_in_particles/store_old_field')
+             attributes_buffer(3) = ndiagnostic + nprescribed + nprognostic
+             if (have_option('/particles/particle_array['//int2str(i-1)//']/attributes/attribute['//int2str(m-1)//']/python_fields/store_old_attribute')) then
+                attributes_buffer(2)=attributes_buffer(2)+1
+             end if
+          end if
+       end do
 
        ! Enable particles to drift with the mesh
        if (have_option("/particles/move_with_mesh")) then
@@ -149,7 +152,6 @@ contains
        if (have_option("/particles/write_nan_outside_domain")) then
           particle_lists(i)%write_nan_outside=.true.
        end if
-
        
        !Read particles from options
        if (.not.from_checkpoint) then
@@ -298,11 +300,8 @@ contains
           ! if we don't delete the existing .particles.dat would simply be opened for random access and 
           ! gradually overwritten, mixing particle output from the current with that of a previous run
           call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.particles.'//trim(funcnam)//'.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, particle_lists(i)%mpi_fh, IERROR)
-          ewrite(2,*) "1", IERROR
           call MPI_FILE_CLOSE(particle_lists(i)%mpi_fh, IERROR)
-          ewrite(2,*) "2", IERROR
           call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.particles.'//trim(funcnam)//'.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, particle_lists(i)%mpi_fh, IERROR)
-          ewrite(2,*) "3", IERROR, MPI_SUCCESS
           assert(ierror == MPI_SUCCESS)
        end if
        !Get options for lagrangian particle movement
@@ -316,7 +315,7 @@ contains
        totaldet_global=particle_lists(i)%length
        call allsum(totaldet_global)
        ewrite(2,*) "Found", particle_lists(i)%length, "local and ", totaldet_global, "global particles for particle array ", trim(name)
-
+       
        assert(totaldet_global==particle_lists(i)%total_num_det)
     end do
 
@@ -375,12 +374,14 @@ contains
     detector%type=type
     detector%id_number=id
 
+    ewrite(2,*) "147258", id
+
     if (present(attribute_vals)) then
        allocate(detector%attributes(attributes_buffer(1)))
        detector%attributes = attribute_vals(1,1:attributes_buffer(1))
-       allocate(detector%old_attributes(attributes_buffer(2))
+       allocate(detector%old_attributes(attributes_buffer(2)))
        detector%old_attributes = attribute_vals(2,1:attributes_buffer(2))
-       allocate(detector%old_fields(attributes_buffer(3))
+       allocate(detector%old_fields(attributes_buffer(3)))
        detector%old_fields = attribute_vals(3,1:attributes_buffer(3))
     end if
   end subroutine create_single_particle
@@ -393,7 +394,8 @@ contains
 
     integer, dimension(3) :: attributes_buffer
     integer :: particle_arrays
-    integer :: i
+    integer :: i, m
+    integer :: nprescribed, ndiagnostic, nprognostic
 
     !Check whether there are any particles.
     particle_arrays = option_count("/particles/particle_array")
@@ -406,16 +408,18 @@ contains
           attributes_buffer(1)=option_count('/particles/particle_array['//int2str(i-1)//']/attributes/attribute')
        end if
        attributes_buffer(2)=0
-       if (have_option('/particles/particle_array['//int2str(i-1)//']/attributes/attribute/store_old')) then
-          attributes_buffer(2)=option_count('/particles/particle_array['//int2str(i-1)//']/attributes/attribute/store_old')
-       end if
        attributes_buffer(3)=0
-       if (have_option('/particles/particle_array['//int2str(i-1)//']/attributes/attribute/python_fields')) then
-          nprognostic = option_count('/material_phase/scalar_field/prognostic/particles/include_in_particles/store_old_field')
-          nprescribed = option_count('/material_phase/scalar_field/prescribed/particles/include_in_particles/store_old_field')
-          ndiagnostic = option_count('/material_phase/scalar_field/diagnostic/particles/include_in_particles/store_old_field')
-          attributes_buffer(3) = ndiagnostic + nprescribed + nprognostic
-       end if
+       do m = 1,attributes_buffer(1)
+          if (have_option('/particles/particle_array['//int2str(i-1)//']/attributes/attribute['//int2str(m-1)//']/python_fields')) then
+             nprognostic = option_count('/material_phase/scalar_field/prognostic/particles/include_in_particles/store_old_field')
+             nprescribed = option_count('/material_phase/scalar_field/prescribed/particles/include_in_particles/store_old_field')
+             ndiagnostic = option_count('/material_phase/scalar_field/diagnostic/particles/include_in_particles/store_old_field')
+             attributes_buffer(3) = ndiagnostic + nprescribed + nprognostic
+             if (have_option('/particles/particle_array['//int2str(i-1)//']/attributes/attribute['//int2str(m-1)//']/python_fields/store_old_attribute')) then
+                attributes_buffer(2)=attributes_buffer(2)+1
+             end if
+          end if
+       end do
        call move_lagrangian_detectors(state, particle_lists(i), dt, timestep, attributes_buffer)
     end do
 
@@ -435,6 +439,10 @@ contains
 
     real, allocatable, dimension(:,:) :: positions
     real, allocatable, dimension(:,:) :: attribute_array
+    real, allocatable, dimension(:,:) :: old_attributes
+    character, allocatable, dimension(:,:) :: old_att_names
+    real, allocatable, dimension(:) :: zeros_dum
+    character(len = OPTION_PATH_LEN) :: old_name
 
     real :: constant
     integer :: k, j, nparticles, l, m
@@ -446,22 +454,49 @@ contains
     if (nparticles.eq.0) then
        return
     end if
-
-    ewrite(2,*) "Initialising fist particle%attributes"
     
     !Set parameters to calculate attributes
     
-    allocate(position(dim,nparticles))
+    allocate(positions(dim,nparticles))
     allocate(attribute_array(attributes_buffer(1),nparticles))
     particle => particle_lists(i)%first
     allocate(lcoords(size(particle%local_coords),nparticles))
     allocate(ele(nparticles))
+    allocate(old_attributes(attributes_buffer(2),nparticles))
+    allocate(zeros_dum(attributes_buffer(2)))
+    do k = 1,attributes_buffer(2)
+       zeros_dum(k) = 0
+    end do
     do j = 1,nparticles
        positions(:,j) = particle%position
        lcoords(:,j) = particle%local_coords
-       ele(j) = particle%element  
+       ele(j) = particle%element
+       if (allocated(particle%old_attributes)) then
+          old_attributes(:,j) = particle%old_attributes
+       else
+          old_attributes(:,j) = zeros_dum(:)
+       end if
        particle => particle%next
     end do
+
+    allocate(old_att_names(FIELD_NAME_LEN,attributes_buffer(2)))
+    l=1
+    do k = 1,attributes_buffer(1)
+       if (have_option('/particles/particle_array['// &
+            int2str(i-1)//']/attributes/attribute['//int2str(k-1)//']/python_fields/store_old_attribute')) then
+          call get_option('/particles/particle_array['// &
+               int2str(i-1)//']/attributes/attribute['//int2str(k-1)//']/name', old_name)
+          old_att_names(1,l) = 'O'
+          old_att_names(2,l) = 'l'
+          old_att_names(3,l) = 'd'
+          do j = 4,len_trim(old_name)+3
+             old_att_names(j,l)=old_name(j-3:j-3)
+          end do
+          old_att_names(j,l) = C_NULL_CHAR
+          l=l+1
+       end if
+    end do
+    
     do k = 0, attributes_buffer(1)-1
        if (have_option('/particles/particle_array['// &
             int2str(i-1)//']/attributes/attribute['//int2str(k)//']/constant')) then
@@ -480,12 +515,12 @@ contains
             int2str(i-1)//']/attributes/attribute['//int2str(k)//']/python')) then
           call get_option('/particles/particle_array['// &
                int2str(i-1)//']/attributes/attribute['//int2str(k)//']/python', func)
-          call set_particle_attribute_from_python(attribute_array(k+1,:), position(:,:), nparticles, func, time)
+          call set_particle_attribute_from_python(attribute_array(k+1,:), positions(:,:), nparticles, func, time)
        else if (have_option('/particles/particle_array['// &
             int2str(i-1)//']/attributes/attribute['//int2str(k)//']/python_fields')) then
           call get_option('/particles/particle_array['// &
                int2str(i-1)//']/attributes/attribute['//int2str(k)//']/python_fields', func)
-          call set_particle_fields_from_python(particle_lists(i), attributes_buffer, state, xfield, dim, positions(:,:), lcoords(:,:), ele(:), nparticles, attribute_array(k+1,:), func, time)
+          call set_particle_fields_from_python(particle_lists(i), attributes_buffer, state, xfield, dim, positions(:,:), lcoords(:,:), ele(:), nparticles, attribute_array(k+1,:), old_att_names, old_attributes, func, time)
        else if (have_option('/particles/particle_array['// &
             int2str(i-1)//']/attributes/attribute['//int2str(k)//']/from_checkpoint_file')) then
           particle => particle_lists(i)%first
@@ -497,18 +532,20 @@ contains
     end do
     
     !Set attribute values and old_attribute values
-    m = 1
     particle => particle_lists(i)%first
-    do j = 1,nparticles
-       allocate(particle%attributes(attributes_buffer(1)))
+    do j = 1,nparticles 
+       if (.not.allocated(particle%attributes)) then
+          allocate(particle%attributes(attributes_buffer(1)))
+       end if
        if (.not.allocated(particle%old_attributes)) then
           allocate(particle%old_attributes(attributes_buffer(2)))
        end if
        particle%attributes = attribute_array(:,j)
        if (attributes_buffer(2).ne.0) then
+          m = 1
           do k = 1,attributes_buffer(1)
              if (have_option('/particles/particle_array['// &
-                  int2str(i-1)//']/attributes/attribute['//int2str(k-1)//']/store_old_attribute')) then
+                  int2str(i-1)//']/attributes/attribute['//int2str(k-1)//']/python_fields/store_old_attribute')) then
                 particle%old_attributes(m) = particle%attributes(k)
                 m=m+1
              end if
@@ -516,12 +553,19 @@ contains
        end if
        particle => particle%next
     end do
+
+    if (attributes_buffer(3).ne.0) then
+       call update_particle_fields(state, attributes_buffer, ele, lcoords, nparticles, i)
+    end if
     
-    deallocate(position)
+    deallocate(positions)
     deallocate(lcoords)
     deallocate(ele)
     deallocate(attribute_array)
-       
+    deallocate(old_attributes)
+    deallocate(zeros_dum)
+    deallocate(old_att_names)
+
   end subroutine set_particle_attributes
 
   subroutine update_particle_attributes(state, time)
@@ -531,7 +575,7 @@ contains
     type(vector_field), pointer :: xfield
 
     integer, dimension(3) :: attributes_buffer
-    integer :: i
+    integer :: i, nprescribed, ndiagnostic, nprognostic, m
     integer :: particle_arrays, dim
 
     !Check whether there are any particles.
@@ -552,20 +596,73 @@ contains
           attributes_buffer(1)=option_count('/particles/particle_array['//int2str(i-1)//']/attributes/attribute')
        end if
        attributes_buffer(2)=0
-       if (have_option('/particles/particle_array['//int2str(i-1)//']/attributes/attribute/store_old')) then
-          attributes_buffer(2)=option_count('/particles/particle_array['//int2str(i-1)//']/attributes/attribute/store_old')
-       end if
        attributes_buffer(3)=0
-       if (have_option('/particles/particle_array['//int2str(i-1)//']/attributes/attribute/python_fields')) then
-          nprognostic = option_count('/material_phase/scalar_field/prognostic/particles/include_in_particles/store_old_field')
-          nprescribed = option_count('/material_phase/scalar_field/prescribed/particles/include_in_particles/store_old_field')
-          ndiagnostic = option_count('/material_phase/scalar_field/diagnostic/particles/include_in_particles/store_old_field')
-          attributes_buffer(3) = ndiagnostic + nprescribed + nprognostic
+       do m = 1,attributes_buffer(1)
+          if (have_option('/particles/particle_array['//int2str(i-1)//']/attributes/attribute['//int2str(m-1)//']/python_fields')) then
+             nprognostic = option_count('/material_phase/scalar_field/prognostic/particles/include_in_particles/store_old_field')
+             nprescribed = option_count('/material_phase/scalar_field/prescribed/particles/include_in_particles/store_old_field')
+             ndiagnostic = option_count('/material_phase/scalar_field/diagnostic/particles/include_in_particles/store_old_field')
+             attributes_buffer(3) = ndiagnostic + nprescribed + nprognostic
+             if (have_option('/particles/particle_array['//int2str(i-1)//']/attributes/attribute['//int2str(m-1)//']/python_fields/store_old_attribute')) then
+                attributes_buffer(2)=attributes_buffer(2)+1
+             end if
+          end if
+       end do
+       if (attributes_buffer(1).ne.0) then
+          call set_particle_attributes(state, attributes_buffer, xfield, dim, time, i)
        end if
-       call set_particle_attributes(state, attributes_buffer, xfield, dim, time, i)
     end do
 
   end subroutine update_particle_attributes
+
+  subroutine update_particle_fields(state, attributes_buffer, ele, lcoords, nparticles, i)
+    
+    type(state_type), dimension(:), intent(in) :: state
+    integer, dimension(3), intent(in) :: attributes_buffer
+    real, dimension(:,:), intent(in) :: lcoords
+    integer, dimension(:), intent(in) :: ele
+    integer, intent(in) :: nparticles
+    integer, intent(in) :: i
+
+    character(len = OPTION_PATH_LEN) :: name
+    type(scalar_field), pointer :: sfield
+    real, allocatable, dimension(:,:) :: old_field_vals
+    real :: value
+    type(detector_type), pointer :: particle
+    integer :: phase, f, num_fields, l, j
+
+    allocate(old_field_vals(attributes_buffer(3),nparticles))
+    l=1
+    do phase=1,size(state)
+       num_fields = option_count('/material_phase[' &
+            //int2str(phase-1)//']/scalar_field')
+       do f = 1, num_fields
+          call get_option('material_phase['//int2str(phase-1)//']/scalar_field['//int2str(f-1)//']/name', name)
+          sfield => extract_scalar_field(state(phase),name)  
+          if (have_option(trim(sfield%option_path)//"/prescribed/particles/include_in_particles/store_old_field").or. &
+               have_option(trim(sfield%option_path)//"/diagnostic/particles/include_in_particles/store_old_field").or. &
+               have_option(trim(sfield%option_path)//"/prognostic/particles/include_in_particles/store_old_field")) then
+             do j = 1,nparticles 
+                value = eval_field(ele(j), sfield, lcoords(:,j))
+                old_field_vals(l,j)=value
+             end do
+             l=l+1
+          end if
+       end do
+    end do
+
+    particle => particle_lists(i)%first
+    do j = 1,nparticles
+       if (.not.allocated(particle%old_fields)) then
+          allocate(particle%old_fields(attributes_buffer(3)))
+       end if
+       particle%old_fields=old_field_vals(:,j)
+       particle=>particle%next
+    end do
+
+    deallocate(old_field_vals)
+
+  end subroutine update_particle_fields
 
   subroutine write_particles_loop(state, time, dt)
     !!Subroutine to loop over particle_lists and call write_particles for each list
@@ -581,7 +678,7 @@ contains
     if (particle_arrays==0) return
 
     do i = 1, particle_arrays
-       attributes_dims=option_count('/particles/particle_array['//int2str(i-1)//']/attributes/attribute')
+       attribute_dims=option_count('/particles/particle_array['//int2str(i-1)//']/attributes/attribute')
        call write_particles(state, particle_lists(i), attribute_dims, time, dt)
     end do
     
@@ -784,8 +881,9 @@ contains
     character(len = FIELD_NAME_LEN) :: name
 
     integer, dimension(3) :: attributes_buffer
+    integer :: nprescribed, ndiagnostic, nprognostic
     integer :: particle_arrays
-    integer :: i
+    integer :: i, m
     
     !Check whether there are any particles.
     particle_arrays = option_count("/particles/particle_array")
@@ -803,16 +901,18 @@ contains
           attributes_buffer(1)=option_count('/particles/particle_array['//int2str(i-1)//']/attributes/attribute')
        end if
        attributes_buffer(2)=0
-       if (have_option('/particles/particle_array['//int2str(i-1)//']/attributes/attribute/store_old')) then
-          attributes_buffer(2)=option_count('/particles/particle_array['//int2str(i-1)//']/attributes/attribute/store_old')
-       end if
        attributes_buffer(3)=0
-       if (have_option('/particles/particle_array['//int2str(i-1)//']/attributes/attribute/python_fields')) then
-          nprognostic = option_count('/material_phase/scalar_field/prognostic/particles/include_in_particles/store_old_field')
-          nprescribed = option_count('/material_phase/scalar_field/prescribed/particles/include_in_particles/store_old_field')
-          ndiagnostic = option_count('/material_phase/scalar_field/diagnostic/particles/include_in_particles/store_old_field')
-          attributes_buffer(3) = ndiagnostic + nprescribed + nprognostic
-       end if
+       do m = 1,attributes_buffer(1)
+          if (have_option('/particles/particle_array['//int2str(i-1)//']/attributes/attribute['//int2str(m-1)//']/python_fields')) then
+             nprognostic = option_count('/material_phase/scalar_field/prognostic/particles/include_in_particles/store_old_field')
+             nprescribed = option_count('/material_phase/scalar_field/prescribed/particles/include_in_particles/store_old_field')
+             ndiagnostic = option_count('/material_phase/scalar_field/diagnostic/particles/include_in_particles/store_old_field')
+             attributes_buffer(3) = ndiagnostic + nprescribed + nprognostic
+             if (have_option('/particles/particle_array['//int2str(i-1)//']/attributes/attribute['//int2str(m-1)//']/python_fields/store_old_attribute')) then
+                attributes_buffer(2)=attributes_buffer(2)+1
+             end if
+          end if
+       end do
        call get_option("/particles/particle_array["//int2str(i-1)//"]/name", name)
        call checkpoint_particles(state,prefix,lpostfix,cp_no,particle_lists(i),attributes_buffer,name)
     end do
@@ -887,7 +987,7 @@ contains
       end if
       if (attributes_buffer(2).NE.0) then
          buffer(1+size(node%position)+attributes_buffer(1):size(node%position)+attributes_buffer(1) &
-              +attribute_buffer(2))=node%old_attributes
+              +attributes_buffer(2))=node%old_attributes
       end if
       if (attributes_buffer(3).NE.0) then
          buffer(1+size(node%position)+attributes_buffer(1)+attributes_buffer(2):size(node%position)+attributes_buffer(1) &
@@ -921,7 +1021,6 @@ contains
     character(len = *), intent(in) :: name
 
     type(detector_linked_list), intent(inout) :: particle_list
-    integer
     integer, intent(in) :: attribute_dims
 
     integer :: num_particles, i, stat

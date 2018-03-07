@@ -3659,7 +3659,9 @@ particle_options_enabled_default =
          (
             ## This field is included at each particle location.
             element include_in_particles {
-               comment
+	       element store_old_field {
+	       	       comment
+	       }?
             }|
             ## This field is not included at each particle location.
             element exclude_from_particles {
@@ -3681,7 +3683,9 @@ particle_options_disabled_default =
             }|
             ## This field is included at each particle location.
             element include_in_particles {
-               comment
+               element store_old_field {
+	       	       comment
+	       }?
             }
          )
       }
@@ -3722,7 +3726,10 @@ generic_particle_field =
    ##
    ## where X is a tuple of length geometry dimension.
    element python_fields {
-      python_code
+      python_code,
+      element store_old_attribute {
+      	      comment
+	      }?
    }|
    ## File containing the particle positions in binary form
    element from_checkpoint_file {

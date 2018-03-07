@@ -1072,7 +1072,11 @@ void set_particles_from_python(char *function, int *function_len, int *dim, int 
 void set_particles_fields_from_python(char *function, int *function_len, int *dim, int *ndete,
 				      double x[], double y[], double z[], double *t, int *FIELD_NAME_LEN,
 				      int *nfields, char field_names[*nfields][*FIELD_NAME_LEN],
-				      double field_vals[*nfields][*ndete], double result[], int* stat)
+				      double field_vals[*nfields][*ndete], int *old_nfields,
+				      char old_field_names[*old_nfields][*FIELD_NAME_LEN],
+				      double old_field_vals[*old_nfields][*ndete], int *old_nattributes,
+				      char old_att_names[*old_nattributes][*FIELD_NAME_LEN],
+				      double old_attributes[*old_nattributes][*ndete], double result[], int* stat)
   
 {
 #ifndef HAVE_PYTHON
@@ -1090,6 +1094,8 @@ void set_particles_fields_from_python(char *function, int *function_len, int *di
   PyObject *pMain, *pGlobals, *pLocals, *pFunc, *pCode, *pResult,
     *pArgs, *pPos, *px, *pT, *pField, *pNames;
   double fields_new[(*ndete)*(*nfields)];
+  double fields_old[(*ndete)*(*old_nfields)];
+  double attributes_old[(*ndete)*(*old_nattributes)];
   char *function_c;
   int i, j;
   
@@ -1133,6 +1139,23 @@ void set_particles_fields_from_python(char *function, int *function_len, int *di
       for (i=0; i < *ndete; i++)
     	{
     	  fields_new[i+(j*(*ndete))]=field_vals[j][i];
+    	}
+    }
+
+    for (j = 0; j < *old_nfields; j++)
+    {
+      for (i=0; i < *ndete; i++)
+    	{
+    	  fields_old[i+(j*(*ndete))]=old_field_vals[j][i];
+	  
+    	}
+    }
+
+    for (j = 0; j < *old_nattributes; j++)
+    {
+      for (i=0; i < *ndete; i++)
+    	{
+    	  attributes_old[i+(j*(*ndete))]=old_attributes[j][i];
     	}
     }
 
@@ -1180,6 +1203,18 @@ void set_particles_fields_from_python(char *function, int *function_len, int *di
       {
         pField=PyFloat_FromDouble(fields_new[j+i*(*nfields)]);
         PyDict_SetItemString(pNames, field_names[j], pField);
+      }
+
+      for (j=0; j < *old_nfields; j++)
+      {
+        pField=PyFloat_FromDouble(fields_old[j+i*(*old_nfields)]);
+        PyDict_SetItemString(pNames, old_field_names[j], pField);
+      }
+
+      for (j=0; j < *old_nattributes; j++)
+      {
+        pField=PyFloat_FromDouble(attributes_old[j+i*(*old_nattributes)]);
+        PyDict_SetItemString(pNames, old_att_names[j], pField);
       }
       
       // Check for a Python error in the function call

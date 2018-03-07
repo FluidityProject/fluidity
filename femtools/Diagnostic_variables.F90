@@ -1402,7 +1402,6 @@ contains
     allocate(detector%local_coords(local_coord_count(shape)))
     allocate(detector%attributes(0))
     allocate(detector%old_attributes(0))
-    allocate(detector%fields(0))
     allocate(detector%old_fields(0))
     call insert(detector,detector_list)
 

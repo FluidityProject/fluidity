@@ -233,7 +233,7 @@ contains
 
                    ! Pack the first detector from the bcast_list
                    detector=>detector_bcast_list%first
-                   call pack_detector(detector, send_buff(1:ndata_per_det), xfield%dim, attributes_buffer)
+                   call pack_detector(detector, send_buff(1:ndata_per_det), xfield%dim,attributes_buffer=attributes_buffer)
                    call delete(detector, detector_bcast_list)
 
                    ! Broadcast the detectors you want to send
