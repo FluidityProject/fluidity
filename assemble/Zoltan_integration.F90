@@ -1789,10 +1789,12 @@ module zoltan_integration
 
     integer :: i
     type(state_type), dimension(size(states)) :: interpolate_states
+    type(vector_field) :: base_geometry
     integer(zoltan_int) :: ierr
     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: mesh_names
     type(mesh_type), pointer :: mesh
     integer :: no_meshes
+    logical :: transfer_base_geometry
     
     ewrite(1,*) 'in initialise_transfer'
     
@@ -1800,8 +1802,6 @@ module zoltan_integration
     do i=1,size(states)
        call select_fields_to_interpolate(states(i), interpolate_states(i), no_positions=.true., &
             first_time_step=initialise_fields)
-       ! Remove the current state as we've copied the bits we need
-       call deallocate(states(i))
     end do
     
     ! Interpolate the metric, too
@@ -1812,6 +1812,17 @@ module zoltan_integration
        call insert(interpolate_states(1), metric, "ErrorMetric")
        call deallocate(metric)
     end if
+
+    transfer_base_geometry = has_vector_field(states(1), trim(zoltan_global_new_positions%name)//"BaseGeometry")
+    if (transfer_base_geometry) then
+      base_geometry = extract_vector_field(states(1), trim(zoltan_global_new_positions%name)//"BaseGeometry")
+      call insert(interpolate_states(1), base_geometry, base_geometry%name)
+    end if
+
+    ! deallocate the current states as we've copied the bits we need
+    do i=1,size(states)
+       call deallocate(states(i))
+    end do
     
     allocate( mesh_names(1:mesh_count(interpolate_states(1))) )
     no_meshes = 0
@@ -1879,6 +1890,14 @@ module zoltan_integration
        call insert(interpolate_states(1), new_metric, "ErrorMetric")
     end if
     
+    if (transfer_base_geometry) then
+      call allocate(base_geometry, zoltan_global_new_positions%dim, zoltan_global_new_positions%mesh, &
+        trim(zoltan_global_new_positions%name)//"BaseGeometry")
+      call insert(interpolate_states(1), base_geometry, base_geometry%name)
+      call insert(states(1), base_geometry, base_geometry%name)
+      call deallocate(base_geometry)
+    end if
+
     allocate(zoltan_global_target_states(no_meshes))
     call collect_fields_by_mesh(interpolate_states, mesh_names(1:no_meshes), zoltan_global_target_states)
       

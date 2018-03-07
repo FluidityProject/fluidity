@@ -51,7 +51,7 @@ module spherical_adaptivity
 
   public prepare_spherical_adaptivity, spherical_adaptivity_pop_in, spherical_adaptivity_pop_out
 
-  public check_inverted_elements
+  public check_inverted_elements, transform_metric
 
   contains
 
@@ -64,6 +64,8 @@ module spherical_adaptivity
     type(mesh_type), pointer :: external_mesh
     integer, dimension(:), pointer :: element_map
     integer nlayers
+
+    ewrite(1,*) "Inside prepare_spherical_adaptivity"
 
     if (.not. has_vector_field(states(1), "BaseGeometryMeshHorizontalCoordinate")) then
       external_mesh => get_external_mesh(states)
@@ -276,6 +278,8 @@ module spherical_adaptivity
     integer, dimension(:), allocatable :: eles
     integer i
 
+    ewrite(1,*) "Inside spherical_adaptivity_pop_in"
+
     horizontal_base_geometry => extract_vector_field(reserve_state, "BaseGeometryMeshHorizontalCoordinate")
     call allocate(horizontal_positions, positions%dim-1, positions%mesh, "HorizontalPositions")
     do i = 1, node_count(positions)
@@ -309,6 +313,8 @@ module spherical_adaptivity
     real r_top, r_bottom, r_current, r_new, xyz_j
     integer, dimension(:), allocatable :: eles
     integer i, j
+
+    ewrite(1,*) "Inside spherical_adaptivity_pop_out"
 
     horizontal_base_geometry => extract_vector_field(reserve_state, "BaseGeometryMeshHorizontalCoordinate")
     call allocate(horizontal_positions, positions%dim-1, positions%mesh, "HorizontalPositions")
@@ -369,6 +375,37 @@ module spherical_adaptivity
 
   end subroutine ray_plane_intersection
 
+  subroutine ray_plane_intersection_gradient(xyz_plane, xyz_ray, t, grad_tuv)
+    real, dimension(:,:), intent(in) :: xyz_plane
+    real, dimension(:), intent(in) :: xyz_ray
+    real, intent(in) :: t
+    real, dimension(:, :), intent(out) :: grad_tuv
+
+    real, dimension(size(xyz_ray), size(xyz_ray)) :: m
+    real, dimension(size(xyz_ray)) :: rhs
+    integer i, k
+
+    ! in the previous subroutine we have solved:
+    !     x1_i = t x_i + u (x1-x2)_i + v (x1-x3)_i
+    ! taking the gradient:
+    !      0_ki = grad_k(t) x_i + t I_ki + grad_k(u) (x1-x2)_i + grad_k(v) (x1-x3)_i
+    ! which gives a linear s/o eqns for each k to solve grad_k(t,u,v)
+    ! note that for each k, the lhs is the same, only the rhs, -t I_ki, changes
+
+    m(:,1) = xyz_ray
+    do i=2, size(m,1)
+      m(:,i) = xyz_plane(:,1) - xyz_plane(:,i)
+    end do
+    call invert(m)
+
+    do k=1, size(grad_tuv,1)
+      rhs = 0.
+      rhs(k) = -t
+      grad_tuv(k,:) = matmul(m, rhs)
+    end do
+
+  end subroutine ray_plane_intersection_gradient
+
   subroutine check_inverted_elements(positions)
     type(vector_field), intent(in) :: positions
 
@@ -376,6 +413,8 @@ module spherical_adaptivity
     real vol1, vol2
     integer ele, j, ele2, k
     integer, dimension(:), pointer:: neigh, facets, nodes, nodes2
+
+    ewrite(1, *) "Inside check_inverted_elements"
 
     do ele=1, element_count(positions)
       neigh => ele_neigh(positions, ele)
@@ -402,5 +441,105 @@ module spherical_adaptivity
     end do
 
   end subroutine check_inverted_elements
+
+  subroutine transform_metric(states, positions, metric)
+    type(state_type), dimension(:), intent(in) :: states
+    type(vector_field), intent(inout) :: positions
+    type(tensor_field), intent(inout) :: metric
+
+    type(vector_field), pointer :: horizontal_base_geometry, top_positions, bottom_positions
+    type(vector_field) :: horizontal_positions
+    real, dimension(:, :), allocatable :: loc_coords
+    real, dimension(positions%dim) :: xyz_top, xyz_bottom
+    real, dimension(positions%dim, positions%dim) :: Jac
+    real r_top, r_bottom, r_current, r_new, xyz_j
+    integer, dimension(:), allocatable :: eles
+    integer i, j
+
+    assert(positions%mesh == metric%mesh)
+    horizontal_base_geometry => extract_vector_field(reserve_state, "BaseGeometryMeshHorizontalCoordinate")
+    call allocate(horizontal_positions, positions%dim-1, positions%mesh, "HorizontalPositions")
+    do i = 1, node_count(positions)
+      call set(horizontal_positions, i, map2horizontal_sphere(node_val(positions, i)))
+    end do
+    allocate(eles(1:node_count(positions)), loc_coords(1:positions%dim, 1:node_count(positions)))
+    call picker_inquire(horizontal_base_geometry, horizontal_positions, eles, loc_coords, global=.false.)
+
+    top_positions => extract_vector_field(reserve_state, "BaseGeometryTopPositions")
+    bottom_positions => extract_vector_field(reserve_state, "BaseGeometryBottomPositions")
+    do i = 1, node_count(positions)
+      call ray_plane_interpolate_xyz_radius(ele_val(top_positions, eles(i)), node_val(positions, i), xyz_top, r_top)
+      call ray_plane_interpolate_xyz_radius(ele_val(bottom_positions, eles(i)), node_val(positions, i), xyz_bottom, r_bottom)
+      j = maxloc(abs(xyz_top), dim=1)
+      xyz_j = node_val(positions, j, i)
+      r_current = sqrt(sum(node_val(positions, i)**2))
+      r_new = ((xyz_j-xyz_bottom(j)) * r_top + (xyz_top(j)-xyz_j) * r_bottom)/(xyz_top(j)-xyz_bottom(j))
+      Jac = pop_out_jacobian(node_val(positions, i), r_current, r_new, &
+              ele_val(top_positions, eles(i)), ele_val(bottom_positions, eles(i)), &
+              r_top, r_bottom)
+      call set(metric, i, matmul(transpose(Jac), matmul(node_val(metric, i), Jac)))
+    end do
+
+    call deallocate(horizontal_positions)
+    deallocate(eles, loc_coords)
+
+  end subroutine transform_metric
+
+  function pop_out_jacobian(xyz, r_current, r_new, xyz_top, xyz_bottom, r_top, r_bottom) result (J)
+    real, dimension(:), intent(in) :: xyz
+    real, intent(in) :: r_current, r_new, r_top, r_bottom
+    real, dimension(:,:), intent(in) :: xyz_top, xyz_bottom
+    real, dimension(size(xyz), size(xyz)) :: J
+
+    real, dimension(size(xyz), size(xyz)) :: grad_tuv_t, grad_tuv_b
+    real, dimension(size(xyz)) :: grad_r_new, r_t_nodes, r_b_nodes
+    real t_t, t_b
+    integer i, k
+
+    ! taking the gradient of phi(x) = (x/r_current) * r_new
+
+    ! first grad(x/r_current) * r_new = ( I/r_current - x\otimes x/r_current**3 ) * r_new
+    do i=1, size(xyz)
+      do k=1, size(xyz)
+        J(i,k) = -xyz(i)*xyz(k)/r_current**3
+      end do
+      J(i,i) = J(i,i) + 1./r_current
+    end do
+
+    J = J*r_new
+
+    ! then add (x/r_current) \otimes grad(r_new)
+
+    ! we have (using a linear interpolation along the ray t*x for t_b<t<t_r at t=1)
+    !     r_new = [(t_t-1)*r_b + (1-t_b)*r_t]/(t_t-t_b)
+    ! thus:
+    !     grad r_new = [(grad t_t)*r_b-(grad t_b)*r_t]/(t_t-t_b) - r_new/(t_t-t_b) * grad(t_t-t_b)
+    !                  + [(t_t-1)*grad r_b + (1-t_b)*grad r_t]/(t_t-t_b)
+    !                = [(r_b-r_new)*grad t_t + (t_t-1)*grad r_b + (r_new-r_t)*grad t_b + (1-t_b)*grad r_t]/(t_t-t_b)
+    ! with:
+    !     r_b = (1-u_b-v_b) r_b1 + u_b r_b2 + v_b r_b3
+    !     grad r_b = (r_b2-r_b1)*grad u_b + (r_b3-r_b1)*grad v_b
+    ! (m.m. for r_t)
+
+    t_b = r_bottom/r_current
+    t_t = r_top/r_current
+    call ray_plane_intersection_gradient(xyz_bottom, xyz, t_b, grad_tuv_b)
+    call ray_plane_intersection_gradient(xyz_top, xyz, t_t, grad_tuv_t)
+    r_b_nodes = sqrt(sum(xyz_bottom**2, dim=1))
+    r_t_nodes = sqrt(sum(xyz_top**2, dim=1))
+    grad_r_new = (r_bottom-r_new)*grad_tuv_t(:,1) + (r_new-r_top)*grad_tuv_b(:,1)
+    do i=2, size(xyz)
+      grad_r_new = grad_r_new + (t_t-1.0)*(r_b_nodes(i)-r_b_nodes(1))*grad_tuv_b(:,i) &
+                            & + (1.0-t_b)*(r_t_nodes(i)-r_t_nodes(1))*grad_tuv_t(:,i)
+    end do
+    grad_r_new = grad_r_new/(t_t-t_b)
+
+    do i=1, size(xyz)
+      do k=1, size(xyz)
+        J(i,k) = J(i,k) + xyz(i)/r_current * grad_r_new(k)
+      end do
+    end do
+
+  end function pop_out_jacobian
 
 end module spherical_adaptivity

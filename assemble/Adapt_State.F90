@@ -1136,13 +1136,22 @@ contains
       have_spherical_adaptivity = have_option("/geometry/spherical_earth")
       if (have_spherical_adaptivity) then
         index = index + 1
+        positions_name = old_positions%name
         if (has_vector_field(states(1), trim(positions_name)//"BaseGeometry")) then
           call deallocate(old_positions)
           old_positions = extract_vector_field(states(1), trim(positions_name)//"BaseGeometry")
+          old_positions%name = positions_name
+          call insert(states, old_positions, old_positions%name)
           call incref(old_positions)
         else
           call prepare_spherical_adaptivity(states, old_positions)
-          call spherical_adaptivity_pop_in(states, old_positions)
+        end if
+        if (i==1) then
+          call allocate(full_metric, metric%mesh, "OldMetric")
+          call set(full_metric, metric)
+          call transform_metric(states, old_positions, metric)
+          call insert(states, full_metric, "OldMetric")
+          call insert(states, metric, "TransformedMetric")
         end if
         call vtk_write_state("base_geometry_before", index, old_positions%mesh%name, states)
       end if
@@ -1198,7 +1207,6 @@ contains
       call deallocate(old_positions)
 
       if (have_spherical_adaptivity) then
-        positions_name = new_positions%name
         ! make a copy of the new (still unpopped) positions and store it as the base geometry
         call allocate(old_positions, new_positions%dim, new_positions%mesh, trim(positions_name)//"BaseGeometry")
         call set(old_positions, new_positions)
@@ -1208,6 +1216,7 @@ contains
 
         if (final_adapt_iteration) then
           call spherical_adaptivity_pop_out(states, new_positions)
+          call check_inverted_elements(new_positions)
           call vtk_write_fields("popped_geometry_after", index, new_positions, new_positions%mesh)
         end if
       end if
