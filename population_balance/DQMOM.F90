@@ -768,7 +768,7 @@ contains
     real, dimension(ele_ngi(abscissa1(1), ele), size(abscissa1)*3, size(abscissa1)*3) :: A
     real, dimension(ele_ngi(abscissa1(1), ele), size(abscissa1)*3, size(abscissa1)*3) :: A_3
     real, dimension(ele_ngi(abscissa1(1), ele), size(abscissa1)*3) :: C
-    real, dimension(ele_ngi(abscissa1(1), ele), size(abscissa1)*2) :: S_rhs  ! source term (includes growth, breakage and coalescence term)
+    real, dimension(ele_ngi(abscissa1(1), ele), size(abscissa1)*3) :: S_rhs  ! source term (includes growth, breakage and coalescence term)
     real, dimension(ele_ngi(abscissa1(1), ele), size(abscissa1)*2, size(abscissa1)) :: moment_daughter_dist_func
     real, dimension(ele_ngi(abscissa1(1), ele), size(abscissa1)) :: break_freq
     real, dimension(ele_ngi(abscissa1(1), ele), size(abscissa1), size(abscissa1)) :: aggregation_freq   ! at present it is not dependent on space coordinate, but can be dependent and will have to be a scalar field
@@ -781,13 +781,14 @@ contains
     real, dimension(ele_ngi(abscissa1(1), ele)) :: detwei, eps_ngi
     real, dimension(X%dim, ele_ngi(abscissa1(1), ele)) :: grad_D
     real, dimension(X%dim, X%dim, ele_ngi(abscissa1(1), ele)) :: D_at_quad
+    real, dimension(X%dim, ele_ngi(abscissa1(1), ele)) :: D_at_quad_diagonal
     type(element_type), pointer :: shape
     integer, dimension(:), pointer :: nodes
     real, dimension(ele_loc(abscissa1(1), ele), ele_ngi(abscissa1(1), ele), X%dim) :: dshape
     real, dimension(:,:,:), allocatable :: visc_ngi
     real, dimension(size(abscissa1)*2, size(abscissa1)*2) :: svd_tmp1, svd_tmp2
     real, dimension(size(abscissa1)*2) :: SV
-    integer :: stat, N, i, j, k, l
+    integer :: stat, N, i, j, k, l, m
 
     real :: sigma, density_continuous, density_dispersed
 
@@ -816,30 +817,27 @@ contains
         end do
      end do
 
-     print*, "Abscissa1 value quad", abscissa1_val_at_quad(1,:)
-     print*, "Abscissa2 value quad", abscissa2_val_at_quad(1,:)
-     do i=1,3*N
-        print*, "A_3 row",i, "is", A_3(1,i,:)
-     end do
+     ! construct C matrix (rhs pt.2)
+     if (have_D) then
+        do i = 1, N
+           D_at_quad = ele_val_at_quad(D, ele)
+          do j = 1, X%dim
+             D_at_quad_diagonal(j,:) = D_at_quad(j,j,:)
+          end do
+          grad_D = ((ele_grad_at_quad(abscissa1(i), ele, dshape))**2)*D_at_quad_diagonal
+          C(:,i) = ele_val_at_quad(weight(i), ele)*sum(grad_D,1)
+          grad_D = ((ele_grad_at_quad(abscissa1(i), ele, dshape))*(ele_grad_at_quad(abscissa2(i), ele, dshape)))*D_at_quad_diagonal
+          C(:,i+N) = ele_val_at_quad(weight(i), ele)*sum(grad_D,1)
+          grad_D = ((ele_grad_at_quad(abscissa2(i), ele, dshape))**2)*D_at_quad_diagonal
+          C(:,i+2*N) = ele_val_at_quad(weight(i), ele)*sum(grad_D,1)
+       end do
+    else
+       C = 0.0
+    end if
 
+    ! initialize dqmom source term to zero
+    S_rhs = 0.0
 
-    !  ! construct C matrix (rhs pt.2)
-    !  if (have_D) then
-    !     do i = 1, N
-    !       D_at_quad = ele_val_at_quad(D, ele)
-    !       do j = 1, X%dim
-    !          grad_D(j,:) = D_at_quad(j,j,:)
-    !       end do
-    !       grad_D = ((ele_grad_at_quad(abscissa(i), ele, dshape))**2)*grad_D
-    !       C(:,i) = ele_val_at_quad(weight(i), ele)*sum(grad_D,1)
-    !    end do
-    ! else
-    !    C = 0.0
-    ! end if
-    !
-    ! ! initialize dqmom source term to zero
-    ! S_rhs = 0.0
-    !
     ! ! construct S vector (rhs pt.3) for GROWTH term
     ! if (have_growth) then
     !    if (growth_type=='power_law_growth') then
@@ -914,10 +912,10 @@ contains
     ! endif
     !
     !
-    ! !!! construct S vector for AGGREGATION
-    ! if (have_aggregation) then
-    !    if (aggregation_freq_type=='constant_aggregation') then
-    !       aggregation_freq = aggregation_freq_const
+     !!! construct S vector for AGGREGATION
+     if (have_aggregation) then
+        if (aggregation_freq_type=='constant_aggregation') then
+           aggregation_freq = aggregation_freq_const
     !    else if (aggregation_freq_type=='hydrodynamic_aggregation') then
     !       do i = 1, N
     !          do j = 1, N
@@ -943,22 +941,22 @@ contains
     !          end do
     !       end do
     !       deallocate(visc_ngi)
-    !    end if
-    !
-    !    do i = 1, 2*N
-    !       do j = 1, N
-    !          do k = 1, N
-    !             ! birth term due to aggregation
-    !             S_rhs(:,i) = S_rhs(:,i) + 0.5 * aggregation_freq(:,j,k) * ele_val_at_quad(weight(j), ele) * ele_val_at_quad(weight(k), ele) * &
-    !                                        ((abs(abscissa_val_at_quad(:,j)**3 + abscissa_val_at_quad(:,k)**3)**(1.0/3.0)) * &
-    !                                        sign(1.0,(abscissa_val_at_quad(:,j)**3 + abscissa_val_at_quad(:,k)**3)))**(i-1)
-    !             ! death term due to aggregation
-    !             S_rhs(:,i) = S_rhs(:,i) - aggregation_freq(:,j,k) * ele_val_at_quad(weight(j), ele) * ele_val_at_quad(weight(k), ele) * abscissa_val_at_quad(:,j)**(i-1)
-    !          end do
-    !       end do
-    !    end do
-    ! endif
-    !
+        end if
+
+        do i = 1, 3*N
+           k = kl_set(2*i-1)
+           l = kl_set(2*i)
+           do j = 1, N
+              do m = 1, N
+                 ! birth and death terms due to aggregation (combined)
+                 S_rhs(:,i) = S_rhs(:,i) + 0.5 * aggregation_freq(:,j,m) * ele_val_at_quad(weight(j), ele) * ele_val_at_quad(weight(m), ele)&
+                                            * ((abscissa1_val_at_quad(:,j)+abscissa1_val_at_quad(:,m))**k * (abscissa2_val_at_quad(:,j)+abscissa2_val_at_quad(:,m))**l &
+                                                - 2*abscissa1_val_at_quad(:,j)**k * abscissa2_val_at_quad(:,j)**l)
+              end do
+           end do
+        end do
+     endif
+
     ! ! check for ill-conditioned matrices
     ! if (singular_option=='set_source_to_zero') then
     !    do i = 1, ele_ngi(abscissa(1), ele)
