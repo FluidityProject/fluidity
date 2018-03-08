@@ -45,6 +45,7 @@ module spherical_adaptivity
   use reserve_state_module
   use populate_state_module
   use halos
+  use adapt_integration, only: pain_functional
   implicit none
 
   private
@@ -406,8 +407,9 @@ module spherical_adaptivity
 
   end subroutine ray_plane_intersection_gradient
 
-  subroutine check_inverted_elements(positions)
-    type(vector_field), intent(in) :: positions
+  subroutine check_inverted_elements(positions, base_geometry, metric)
+    type(vector_field), intent(in) :: positions, base_geometry
+    type(tensor_field), intent(in) :: metric
 
     real, dimension(3, 4) :: tet_xyz
     real vol1, vol2
@@ -432,9 +434,11 @@ module spherical_adaptivity
           tet_xyz(:, 4) = node_val(positions, nodes2(k))
           vol2 = tetvol(tet_xyz(1,:), tet_xyz(2,:), tet_xyz(3,:))
           if (vol1*vol2>0.0) then
-            ewrite(0,*) "Element 1:", ele_val(positions, ele)
-            ewrite(0,*) "Element 2:", ele_val(positions, ele2)
-            ewrite(-1,*) "INVERTED ELEMENT!!!"
+            ewrite(2,*) "INVERTED ELEMENT!!!"
+            ewrite(2,*) "Element 1:", ele_val(positions, ele)
+            ewrite(2,*) "Element 2:", ele_val(positions, ele2)
+            ewrite(2,*) "Element 1 functional:", pain_functional(ele, base_geometry, metric)
+            ewrite(2,*) "Element 2 functional:", pain_functional(ele2, base_geometry, metric)
           end if
         end if
       end do

@@ -1212,13 +1212,13 @@ contains
         call set(old_positions, new_positions)
         call insert(states(1), old_positions, old_positions%name)
         call vtk_write_fields("base_geometry_after", index, old_positions, old_positions%mesh, write_region_ids=.true.)
-        call deallocate(old_positions)
 
         if (final_adapt_iteration) then
           call spherical_adaptivity_pop_out(states, new_positions)
-          call check_inverted_elements(new_positions)
+          call check_inverted_elements(new_positions, old_positions, metric)
           call vtk_write_fields("popped_geometry_after", index, new_positions, new_positions%mesh)
         end if
+        call deallocate(old_positions)
       end if
 
 

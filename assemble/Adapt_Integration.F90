@@ -51,6 +51,7 @@ module adapt_integration
   private
   
   public :: adapt_mesh, max_nodes, adapt_integration_check_options, element_quality_pain_p0, mtetin
+  public :: pain_functional
   
   character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity"
   
