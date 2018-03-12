@@ -1,0 +1,119 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testproblem>
+  <name>FLML validation (python version)</name>
+  <owner userid="jrper"/>
+  <tags>flml python_validation</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>true</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="python_versions" language="python">import python_validate
+python_versions = python_validate.check_versions()
+    </variable>
+    <variable name="ignoredOptionsFiles" language="python">ignoredOptionsFiles = []
+try:
+  warningsFile = open("ignored", "r")
+except IOError:
+  warningsFile = None
+if warningsFile is None:
+  ignoredOptionsFiles = []
+else:
+  ignoredOptionsFiles = warningsFile.readlines()
+  for i, filename in enumerate(ignoredOptionsFiles):
+    ignoredOptionsFiles[i] = filename[:-1]</variable>
+    <variable name="warningOnlyOptionsFiles" language="python">warningOnlyOptionsFiles = []
+try:
+  warningsFile = open("warnings", "r")
+except IOError:
+  warningsFile = None
+if warningsFile is None:
+  warningOnlyOptionsFiles = []
+else:
+  warningOnlyOptionsFiles = warningsFile.readlines()
+  for i, filename in enumerate(warningOnlyOptionsFiles):
+    warningOnlyOptionsFiles[i] = filename[:-1]</variable>
+    <variable name="optionErrors" language="python">import glob
+import os
+import sys
+import subprocess
+
+class PythonValidator:
+    def __init__(self, rootDir):
+        self._rootDir = rootDir
+        self.Reset()
+
+        return
+
+    def Reset(self):
+        self._passes = 0
+        self._optionErrors = {}
+
+        return
+
+    def TestFiles(self, testDir, depth):
+        print("Checking xml and flml files:")
+        for filename in self._TestFiles(("xml", "flml", "py"), testDir, depth):
+            passed = True
+            for py_version in ('python2', 'python3'):
+                try:
+                    subprocess.check_output([py_version,
+                                             os.path.abspath('python_validate.py'),
+                                             filename])
+                except subprocess.CalledProcessError as err:
+                    self._optionErrors.setdefault(filename,{})[py_version]=err
+                    passed = False
+            if(passed):
+                print(filename + " : Pass")
+                self._passes += 1
+            else:
+                print(filename + " : Fail %s"%list(self._optionErrors[filename].keys()))
+
+
+        return
+
+    def _TestFiles(self, extensions, testDir, depth):
+        filenames = []
+        baseDir = os.path.join(self._rootDir, testDir)
+        for i in range(depth + 1):
+            for extension in extensions:
+                filenames += glob.glob(os.path.join(baseDir, "*." + extension))
+            baseDir = os.path.join(baseDir, "*")
+
+        return filenames
+
+    def Passes(self):
+        return self._passes
+
+    def OptionErrors(self):
+        return self._optionErrors
+
+validator = PythonValidator(rootDir = os.path.join(os.path.pardir, os.path.pardir))
+
+# Fluidity
+validator.TestFiles(testDir = "tests", depth = 2)
+validator.TestFiles(testDir = "examples", depth = 2)
+
+passes = validator.Passes()
+optionErrors = validator.OptionErrors()
+
+print("Summary of options files with failures:")
+for filename in list(optionErrors.keys()):
+    print(filename)
+print("Passes: " + str(passes))
+print("Failures: " + str(len(optionErrors)))
+</variable>
+  </variables>
+  <warn_tests>
+    <test name="Two python versions" language="python">assert(len(python_versions)==2)
+    </test>
+    <test name="Options files validate" language="python">failures = []
+for filename, types in optionErrors.items():
+  if not filename in ignoredOptionsFiles:
+    failures.append((filename, types))
+print("Summary of options files with failures:")
+for filename, types in failures:
+  print(filename, types.keys())
+print("Failures: " + str(len(failures)))
+assert(len(failures) == 0)</test>
+  </warn_tests>
+</testproblem>
