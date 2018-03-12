@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import vtktools
 
 def nodecount(filename):
@@ -50,4 +51,4 @@ if __name__ == "__main__":
 
   for filename in files:
     fmt = "%" + ("%d" % lenmax) + "s: %" + "s"
-    print fmt % (filename, nodecount(filename))
+    print(fmt % (filename, nodecount(filename)))

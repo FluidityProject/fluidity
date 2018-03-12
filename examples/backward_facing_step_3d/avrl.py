@@ -23,15 +23,15 @@ def moving_average(name):
 #########################################################################
 
 def main():
-  print 'Only run inside numpy_data directory'
+  print('Only run inside numpy_data directory')
   try:
     name = sys.argv[1]
   except:
-    print 'argument is name of numpy data file'
+    print('argument is name of numpy data file')
 
   npy, av = moving_average(name)
-  print npy[:,0]
-  print av
+  print(npy[:,0])
+  print(av)
   numpy.save('av_'+str(name), [av,npy[:,-1]])
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">cdisk</string_value>
@@ -79,8 +79,9 @@
         <value name="whole_mesh">
           <python>
             <string_value lines="20" type="code" language="python">def val(X,t):
-	# Rigid rotation about origin.
-        return (X[1], -X[0])</string_value>
+    # Rigid rotation about origin.
+    return (X[1], -X[0])
+</string_value>
           </python>
         </value>
         <output/>
@@ -163,9 +164,10 @@
     dx= (matrix(X)-matrix((-0.5,0)))
     r=sqrt(dx*dx.T)
     if (r&lt;0.25):
-	return 1.0
+        return 1.0
     else:
-	return 0</string_value>
+        return 0
+</string_value>
             <comment>Produce a radius 0.25 disk centred at -0.5,0</comment>
           </python>
         </initial_condition>
@@ -199,7 +201,8 @@
           <string_value lines="20" type="code" language="python">tracer=state.scalar_fields['Tracer']
 x=state.vector_fields['DiagnosticCoordinate']
 for i in range(field.node_count):
-  field.set(i, tracer.node_val(i)*x.node_val(i))</string_value>
+    field.set(i, tracer.node_val(i)*x.node_val(i))
+</string_value>
         </algorithm>
         <mesh name="VelocityMesh"/>
         <output/>

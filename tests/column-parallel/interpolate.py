@@ -9,9 +9,9 @@ def main():
     x = [0, 1, 2, 3, 4, 5, 6]
     y = [0, 1, 2, 3, 4, 5, 6]
 
-    print interpolate(x, y, 5.5)
+    print(interpolate(x, y, 5.5))
     assert(interpolate(x, y, 5.5) == 5.5)
-    print "Success"
+    print("Success")
 
 def interpolate(x, y, x0):
     """

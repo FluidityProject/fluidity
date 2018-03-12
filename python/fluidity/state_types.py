@@ -7,7 +7,9 @@
 #
 ##########################################
 
-import numpy,sys,copy,operator
+from __future__ import print_function
+
+import numpy,sys,copy,operator,functools
 
 class State:
   def __init__(self,n=""):
@@ -93,7 +95,7 @@ class Field:
 
   def ele_val(self,ele_number):
     # Return the values of field at the nodes of ele_number
-    return numpy.array(map(self.node_val,self.ele_nodes(ele_number)))
+    return numpy.array([self.node_val(_) for _ in self.ele_nodes(ele_number)])
 
   def ele_val_at_quad(self,ele_number):
     # Return the values of field at the quadrature points of ele_number
@@ -286,7 +288,7 @@ class Transform:
     # Set J for the specified quadrature point and calculate its inverse
     self.J[gi] = J
     S = numpy.linalg.svd(J, compute_uv=False)
-    self.det[gi] = abs(reduce(lambda x,y: x*y, [s for s in S if s > 0], 1))
+    self.det[gi] = abs(functools.reduce(lambda x,y: x*y, [s for s in S if s > 0], 1))
     self.detwei[gi] = self.det[gi] * self.element.quadrature.weights[gi]
     self.invJ[gi] = numpy.linalg.pinv(J)
 

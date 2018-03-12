@@ -74,7 +74,8 @@ def build_trees(filenames):
                             module_text=module_text,
                             scan=True)
 
-    for name in data.keys():
+    names = tuple(data.keys())
+    for name in names:
         add_children(data,name)
 
     return data, namelist
@@ -130,11 +131,11 @@ def print_misplaced(data, namelist, silent, args):
 
     for filename in clean_high_filenames:
         if (os.path.basename(filename) in SKIP_LIST
-            or not namelist.has_key(filename)):
+            or filename not in namelist):
             continue
         new_order = insert_sort(namelist[filename][0],child_cmp)
 
-        if data.has_key(namelist[filename][1]):
+        if namelist[filename][1] in data:
             module_text = data[namelist[filename][1]]['module_text']
         else:
             module_text={}
@@ -152,7 +153,7 @@ def print_misplaced(data, namelist, silent, args):
 def add_children(data,name):
     """Add the use statements inherited from the previous generation."""
     for child in data[name]['directly_used_modules']:
-        if data.has_key(child):
+        if child in data:
             if data[child]['scan']:
                 add_children(data,child)
             data[name]['indirectly_used_modules']=data[name]['indirectly_used_modules'].union(data[child]['indirectly_used_modules'])

@@ -24,24 +24,24 @@ class Function():
             return product
 
     def __getitem__(self, i):
-        
+
         try:
             if (len(i)!=self.rank):
-                raise TypeError, "Wrong number of subscripts"
+                raise TypeError("Wrong number of subscripts")
 
             for ii in i:
                 if (not isinstance(ii, slice)) and (not isinstance(ii, index)):
-                    raise TypeError, "Indices must be of type slice or index."
+                    raise TypeError("Indices must be of type slice or index.")
 
             self.indices=list(i)
 
         except AttributeError:
             # In this case there is only one argument.
             if (self.rank!=1):
-                raise TypeError, "Wrong number of subscripts"
+                raise TypeError("Wrong number of subscripts")
 
             if (not isinstance(i, slice)) and (not isinstance(i, index)):
-                raise TypeError, "Indices must be of type slice or index."
+                raise TypeError("Indices must be of type slice or index.")
 
             self.indices=[i]
 
@@ -56,14 +56,14 @@ class Function():
         indices={}
         for i in self.indices:
             if (isinstance(i, index)):
-                if indices.has_key(i.id):
+                if i.id in indices:
                     indices[i.id]=indices[i.id]+1
 
         for i in indices.itervalues():
             if i==2:
                 rank=rank-2
             if i>2:
-                raise TypeError, "Index repeated more than twice"
+                raise TypeError("Index repeated more than twice")
         
 class BasisFunction(Function):     
     pass
@@ -161,7 +161,7 @@ class Integral():
 
             for ii in source.indices:
                 if (isinstance(ii, index)):
-                    if self.sum_indices.has_key(ii.id):
+                    if ii.id in self.sum_indices:
                         self.sum_indices[ii.id]= \
                                             product.sum_indices[ii.id]+1
                     else:
@@ -174,7 +174,7 @@ class Integral():
             self.measure=source
 
         else:
-            raise TypeError, "Unable to form Integral from "+`source`
+            raise TypeError("Unable to form Integral from "+str(source))
         
     def copy(self):
         copy=Integral()
@@ -229,15 +229,13 @@ class Integral():
         if (isinstance(other, Function)):
             if other.test:
                 if product.test:
-                    raise TypeError, \
-                          "An integral must have exactly one test function"
+                    raise TypeError("An integral must have exactly one test function")
                 else:
                     product.test=other
                     
             if other.trial:
                 if product.trial:
-                    raise TypeError, \
-                          "An integral may have at most one trial function"
+                    raise TypeError("An integral may have at most one trial function")
                 else:
                     product.trial=other
 
@@ -245,7 +243,7 @@ class Integral():
 
             for ii in other.indices:
                 if (isinstance(ii, index)):
-                    if product.sum_indices.has_key(ii.id):
+                    if ii.id in product.sum_indices:
                         product.sum_indices[ii.id]= \
                                             product.sum_indices[ii.id]+1
                     else:
@@ -255,8 +253,7 @@ class Integral():
 
         elif (isinstance(other, Measure)):
             if product.measure:
-                raise TypeError, \
-                      "An integral must have exactly one measure"
+                raise TypeError("An integral must have exactly one measure")
 
             product.measure=other
 
@@ -264,7 +261,7 @@ class Integral():
             product.scalars.append(other)
 
         else:
-            raise TypeError,"Cannot multiply "+`self`+" * "+`other`
+            raise TypeError("Cannot multiply "+str(self)+" * "+str(other))
 
         return product
 
@@ -273,8 +270,7 @@ class Form(list):
 
     def __sub__(self, other):
         if not isinstance(other, Form):
-            raise TypeError, \
-                  "Subtraction of forms is only supported between forms"
+            raise TypeError("Subtraction of forms is only supported between forms")
 
         return self+(-other)
         
@@ -329,22 +325,18 @@ class field():
     def __iadd__(self, other):
 
         if x.solve:
-            raise AttributeError,\
-                  "Cannot assemble x by both addition and solve."
+            raise AttributeError("Cannot assemble x by both addition and solve.")
 
 
         if not isinstance(other, Form):
-            raise TypeError, \
-                  "Only know how to add forms to fields."
+            raise TypeError("Only know how to add forms to fields.")
 
         for integral in other:
             if (integral.trial):
-                raise AttributeError,\
-                      "Cannot add a form with a trial function "+\
-                      "to a field."
+                raise AttributeError("Cannot add a form with a trial function "+\
+                                         "to a field.")
             if integral.rank!=field.rank:
-                raise AttributeError,\
-                      "Rank mismatch in field addto"
+                raise AttributeError("Rank mismatch in field addto")
             self.addtos.append(integral)
 
 
@@ -386,12 +378,10 @@ class Matrix():
     def __init__(self, test, trial):
 
         if not isinstance(test, TestFunction):
-            raise TypeError, \
-                  "The test function of matrix must have type TestFunction"
+            raise TypeError("The test function of matrix must have type TestFunction")
 
         if not isinstance(trial, TrialFunction):
-            raise TypeError, \
-                  "The trial function of matrix must have type TrialFunction"
+            raise TypeError("The trial function of matrix must have type TrialFunction")
 
         self.test=test
         self.trial=trial
@@ -401,20 +391,16 @@ class Matrix():
     def __iadd__(self, other):
 
         if not isinstance(other, Form):
-            raise TypeError, \
-                  "Only know how to add forms to matrices."
+            raise TypeError("Only know how to add forms to matrices.")
 
         for integral in other:
             if not (integral.trial):
-                raise AttributeError,\
-                      "Cannot add a form with no trial function "+\
-                      "to a matrix."
+                raise AttributeError("Cannot add a form with no trial function "+\
+                                         "to a matrix.")
             if (integral.test.field.name!=self.test.field.name):
-                raise AttributeError, \
-                          "Test function mismatch."
+                raise AttributeError("Test function mismatch.")
             if (integral.trial.field.name!=self.trial.field.name):
-                raise AttributeError, \
-                          "Test function mismatch."
+                raise AttributeError("Test function mismatch.")
             self.addtos.append(integral)
 
         return self
@@ -424,16 +410,16 @@ def solve(x, A, b):
     fields."""
 
     if not isinstance(A, Matrix):
-        raise TypeError, "A must be a matrix."
+        raise TypeError("A must be a matrix.")
     if not isinstance(b, field):
-        raise TypeError, "b must be a field."
+        raise TypeError("b must be a field.")
     if not isinstance(x, field):
-        raise TypeError, "x must be a field."
+        raise TypeError("x must be a field.")
     
     if x.addtos:
-        raise AttributeError, "Cannot assemble x by both addition and solve."
+        raise AttributeError("Cannot assemble x by both addition and solve.")
     if x.solve:
-        raise AttributeError, "Already have a solution algorithm for x."
+        raise AttributeError("Already have a solution algorithm for x.")
 
     x.solve=(A,b)
     

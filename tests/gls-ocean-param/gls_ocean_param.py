@@ -93,7 +93,7 @@ def calc_mld(files,start,x0=0.0,y0=0.0):
         try:
             os.stat(file)
         except:
-            print "No such file: %s" % file
+            print("No such file: %s" % file)
             sys.exit(1)
 
         # open vtu and derive the field indices of the edge at (x=0,y=0) ordered by depth
@@ -130,7 +130,7 @@ def calc_mld_tke_files(files,start,x0=0.0,y0=0.0):
         try:
             os.stat(file)
         except:
-            print "No such file: %s" % file
+            print("No such file: %s" % file)
             sys.exit(1)
 
         # open vtu and derive the field indices of the edge at (x=0,y=0) ordered by depth

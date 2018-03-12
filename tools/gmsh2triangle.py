@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 from optparse import OptionParser
 import re
 import sys
@@ -39,7 +40,7 @@ if argv[0][-4:]!=".msh":
 
 basename=os.path.basename(argv[0][:-4])
 
-mshfile=file(argv[0], 'r')
+mshfile=open(argv[0], 'r')
 
 # Header section
 assert(mshfile.readline().strip()=="$MeshFormat")
@@ -70,7 +71,7 @@ for i in range(nodecount):
     line = mshfile.readline().split()
     # compare node id assigned by gmsh to consecutive node id (assumed by fluidity)
     if eval(line[0])!=i+1:
-      print line[0], i+1
+      print(line[0], i+1)
       sys.stderr.write("ERROR: Nodes in gmsh .msh file must be numbered consecutively.")
     nodefile_linelist.append( line[1:dim+1] )
 
@@ -105,7 +106,7 @@ for i in range(elementcount):
         # Ignore point elements
         pass
     else:
-        sys.stderr.write("Unknown element type "+`element[1]`+'\n')
+        sys.stderr.write("Unknown element type "+str(element[1])+'\n')
         sys.exit(1)
 
 if len(tets) > 0:
@@ -125,8 +126,8 @@ if len(tets)>0:
     node_order=[1, 2, 3, 4]
     elements=tets
     faces=triangles
-    elefile=file(basename+".ele", "w")
-    facefile=file(basename+".face", "w")
+    elefile=open(basename+".ele", "w")
+    facefile=open(basename+".face", "w")
 
 elif len(triangles)>0:
     dim=2
@@ -134,8 +135,8 @@ elif len(triangles)>0:
     node_order=[1, 2, 3]
     elements=triangles
     faces=edges
-    elefile=file(basename+".ele", "w")
-    facefile=file(basename+".edge", "w")
+    elefile=open(basename+".ele", "w")
+    facefile=open(basename+".edge", "w")
 
 elif len(hexes)>0:
     dim=3
@@ -143,8 +144,8 @@ elif len(hexes)>0:
     node_order=[1, 2, 4, 3, 5, 6, 8, 7]
     elements=hexes
     faces=quads
-    elefile=file(basename+".ele", "w")
-    facefile=file(basename+".face", "w")
+    elefile=open(basename+".ele", "w")
+    facefile=open(basename+".face", "w")
 
 elif len(quads)>0:
     dim=2
@@ -152,15 +153,15 @@ elif len(quads)>0:
     node_order=[1, 2, 4, 3]   # don't really know if this is right
     elements=quads
     faces=edges
-    elefile=file(basename+".ele", "w")
-    facefile=file(basename+".edge", "w")
+    elefile=open(basename+".ele", "w")
+    facefile=open(basename+".edge", "w")
 
 else:
     sys.stderr.write("Unable to determine dimension of problem\n")
     sys.exit(1)
 
-nodefile=file(basename+".node", 'w')
-nodefile.write(`nodecount`+" "+`nodefile_dim`+" 0 0\n")
+nodefile=open(basename+".node", 'w')
+nodefile.write(str(nodecount)+" "+str(nodefile_dim)+" 0 0\n")
 j=0
 for i in range(nodecount):    
   j=j+1
@@ -170,10 +171,10 @@ nodefile.write("# Produced by: "+" ".join(argv)+"\n")
 nodefile.close()
 
 # Output ele file
-elefile.write(`len(elements)`+" "+`loc`+" 1\n")
+elefile.write(str(len(elements))+" "+str(loc)+" 1\n")
 
 for i, element in enumerate(elements):
-    elefile.write(`i+1`+" ")
+    elefile.write(str(i+1)+" ")
     for j in node_order:
       elefile.write(" ".join(element[j-1:j])+" ")
     elefile.write(" ".join(element[-1:]))
@@ -200,16 +201,16 @@ if options.internal_faces:
     for ele in ne_list[face_nodes[0]-1]:
       element=[eval(elements[ele][j-1]) for j in node_order]
       if set(face_nodes) < set(element):
-        facelist.append(face+[`ele+1`])
+        facelist.append(face+[str(ele+1)])
   
-  facefile.write(`len(facelist)`+" 2\n")
+  facefile.write(str(len(facelist))+" 2\n")
   faces=facelist
 
 else:
-  facefile.write(`len(faces)`+" 1\n")
+  facefile.write(str(len(faces))+" 1\n")
 
 for i,face in enumerate(faces):
-    facefile.write(`i+1`+" "+" ".join(face)+"\n")
+    facefile.write(str(i+1)+" "+" ".join(face)+"\n")
 
 facefile.write("# Produced by: "+" ".join(sys.argv)+"\n")
 facefile.close()

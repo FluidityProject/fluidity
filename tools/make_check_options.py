@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 import re
 import glob
-# FIXME: (at some later date)
-# Python 2.5 deprecates sha in favour of hashlib, however we support
-# Python versions pre 2.5 and the sha module isn't scheduled to be
-# removed yet, so just use that for now.
-import sha
-import StringIO
+import hashlib
+from io import StringIO
 
+def safe_decode(x): 
+    return  x.decode('utf8') if type(x) is bytes else x
 
 # File header
 header="""
@@ -23,18 +21,18 @@ outfile='preprocessor/check_options.F90'
 # get sha1 digest of existing generated file.  Can't use 'rw' here
 # because it updates the modtime of the file, which we're trying to
 # avoid doing.
-orig=sha.new()
+orig=hashlib.sha1()
 try:
     f=open(outfile, 'r')
-    orig.update(f.read())
+    orig.update(f.read().encode("utf8"))
 except IOError:
     pass
 else:
     f.close()
 
 # Now read module files to generate potential new data
-output=StringIO.StringIO()
-output.write(header)
+output=StringIO()
+output.write(safe_decode(header))
 
 # List of fortran source files.
 fortran_files=glob.glob("*/*.F")+glob.glob("*/*.F90")
@@ -45,7 +43,7 @@ module_list=[]
 
 for filename in fortran_files:
 
-    fortran=file(filename,"r").read()
+    fortran=open(filename,"r").read()
 
     modules=module_re.findall(fortran)
 
@@ -58,21 +56,21 @@ for filename in fortran_files:
 
 for module in module_list:
 
-    output.write("  use "+module+", only: "+module+"_check_options\n")
+    output.write(safe_decode("  use "+module+", only: "+module+"_check_options\n"))
 
 # Ensure that the subroutine is legal in the trivial case.
-output.write("""
+output.write(safe_decode("""
    continue
-   """)
+   """))
 
 for module in module_list:
 
-    output.write("  call "+module+"_check_options\n")
+    output.write(safe_decode("  call "+module+"_check_options\n"))
 
-output.write(footer)
+output.write(safe_decode(footer))
 
-new=sha.new()
-new.update(output.getvalue())
+new=hashlib.sha1()
+new.update(output.getvalue().encode("utf8"))
 
 # Only write file if sha1sums differ
 if new.digest() != orig.digest():

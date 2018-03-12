@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>gls-Kato_Phillips-mixed_layer_depth-k_epsilon</name>
   <owner userid="jhill1"/>
@@ -50,15 +49,15 @@ assert FinalTimeGenGL &gt; 35900
 assert FinalTimeKWCB &gt; 35900
     </test>
 
-    <test name ="MLD for Gen GL vs analytical" language="python">
+    <test name="MLD for Gen GL vs analytical" language="python">
 from numpy import array, all
 assert (all( abs(array(GenGL_MLD[1]) - array(GenGL_MLD[2]) ) &lt; 2.0))
     </test>   
-    <test name ="MLD for K-W CB vs analytical" language="python">
+    <test name="MLD for K-W CB vs analytical" language="python">
 from numpy import array, all
-print abs(array(KWCB_MLD[1]) - array(KWCB_MLD[2]) )
+print(abs(array(KWCB_MLD[1]) - array(KWCB_MLD[2]) ))
 assert (all( abs(array(KWCB_MLD[1]) - array(KWCB_MLD[2]) ) &lt; 2.0))
-    </test>
+</test>
 
   </pass_tests>
 </testproblem>

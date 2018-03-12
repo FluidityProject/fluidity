@@ -26,21 +26,21 @@ rm -rf fluidity.err-*<comment>Note we use ; and no &amp;&amp; as most of these c
   <variable name="velocity_error_logs" language="python">import glob
 velocity_error_logs=[]
 for logname in glob.glob('velocity_logs/petsc_readnsolve.err-*'):
-  f=file(logname)
+  f=open(logname)
   velocity_error_logs.append(f.read())
   f.close()
 </variable>
 <variable name="pressure_error_logs" language="python">import glob
 pressure_error_logs=[]
 for logname in glob.glob('petsc_readnsolve.err-*'):
-  f=file(logname)
+  f=open(logname)
   pressure_error_logs.append(f.read())
   f.close()
 </variable>
     <variable name="velocity_solve_failed" language="python">from numpy import array
 import re
 
-f=file('velocity_logs/fluidity.log-0')
+f=open('velocity_logs/fluidity.log-0')
 log=f.read()
 f.close()
 
@@ -52,7 +52,7 @@ velocity_solve_failed = reason_fields.compress(reason_numbers&lt;=0)[0]=='DeltaU
     <variable name="pressure_solve_failed" language="python">from numpy import array
 import re
 
-f=file('fluidity.log-0')
+f=open('fluidity.log-0')
 log=f.read()
 f.close()
 
@@ -64,7 +64,7 @@ pressure_solve_failed = reason_fields.compress(reason_numbers&lt;=0)[0]=='Pressu
     <variable name="prns_velocity_solve_success" language="python">from numpy import array
 import re
 
-f=file('velocity_logs/petsc_readnsolve.log-0')
+f=open('velocity_logs/petsc_readnsolve.log-0')
 log=f.read()
 f.close()
 
@@ -75,7 +75,7 @@ prns_velocity_solve_success= reason_number&gt;1
     <variable name="prns_pressure_solve_success" language="python">from numpy import array
 import re
 
-f=file('petsc_readnsolve.log-0')
+f=open('petsc_readnsolve.log-0')
 log=f.read()
 f.close()
 

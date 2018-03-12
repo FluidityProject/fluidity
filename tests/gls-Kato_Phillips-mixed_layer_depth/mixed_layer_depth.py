@@ -36,11 +36,11 @@ fig = figure()
 times = []
 depths = []
 for file in filelist:
-   print file
+   print(file)
    try:
      os.stat(file)
    except:
-     print "No such file: %s" % file
+     print("No such file: %s" % file)
      sys.exit(1)
 
    num = int(file.split(".vtu")[0].split('_')[-1])

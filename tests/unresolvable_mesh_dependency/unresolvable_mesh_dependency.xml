@@ -16,7 +16,7 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
     <variable name="error_present" language="python">
 error_present=False
-for line in file("fluidity.err-0","r"):
+for line in open("fluidity.err-0","r"):
    if line.startswith("Error message: Unresolvable mesh dependencies"):
       error_present=True
     </variable>

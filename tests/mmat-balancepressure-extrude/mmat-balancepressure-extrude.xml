@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Control volume, multi-material surface integral pressure check</name>
   <owner userid="cwilson"/>
@@ -168,7 +167,7 @@ maxdivergence_p1dgp2_rhop1dg_vfracp1cv = max(fluidity_tools.stat_parser("mmat-ba
 import fluidity_tools
 mindivergence_p1dgp2_rhop1dg_vfracp1cv = min(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.stat")['Water']['ControlVolumeDivergence']['min'])
     </variable>    
-    <variable name = "solvers_converged" language = "python">
+    <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
@@ -197,9 +196,9 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
    assert abs(velocity_p0p1cv_gpp2) &lt; 2e-6
     </test>
     <test name="check volume fraction_p0p1cv_gpp2 conserved" language="python">
-print 'mass loss = ', abs(volfracend_p0p1cv_gpp2-volfrac0_p0p1cv_gpp2)
+print('mass loss = ', abs(volfracend_p0p1cv_gpp2-volfrac0_p0p1cv_gpp2))
 assert abs(volfracend_p0p1cv_gpp2-volfrac0_p0p1cv_gpp2) &lt; 1e-9
-    </test>
+</test>
     <test name="check divergence_p0p1cv_gpp2" language="python">
    assert max(abs(maxdivergence_p0p1cv_gpp2), abs(mindivergence_p0p1cv_gpp2)) &lt; 1e-9
     </test>
@@ -225,9 +224,9 @@ assert abs(volfracend_p0p1cv_gpp2-volfrac0_p0p1cv_gpp2) &lt; 1e-9
    assert abs(velocity_p0p1cv_hpp2dg) &lt; 1e-9
     </test>
     <test name="check volume fraction_p0p1cv_hpp2dg conserved" language="python">
-print 'mass loss = ', abs(volfracend_p0p1cv_hpp2dg-volfrac0_p0p1cv_hpp2dg)
+print('mass loss = ', abs(volfracend_p0p1cv_hpp2dg-volfrac0_p0p1cv_hpp2dg))
 assert abs(volfracend_p0p1cv_hpp2dg-volfrac0_p0p1cv_hpp2dg) &lt; 1e-9
-    </test>
+</test>
     <test name="check divergence_p0p1cv_hpp2dg" language="python">
    assert max(abs(maxdivergence_p0p1cv_hpp2dg), abs(mindivergence_p0p1cv_hpp2dg)) &lt; 1e-9
     </test>
@@ -247,9 +246,9 @@ assert abs(volfracend_p0p1cv_hpp2dg-volfrac0_p0p1cv_hpp2dg) &lt; 1e-9
    assert abs(velocity_p0p1_rhop0_vfracp0) &lt; 1e-3
     </test>
     <test name="check volume fraction_p0p1_rhop0_vfracp0 almost conserved" language="python">
-print 'mass loss = ', abs(volfracend_p0p1_rhop0_vfracp0-volfrac0_p0p1_rhop0_vfracp0)
+print('mass loss = ', abs(volfracend_p0p1_rhop0_vfracp0-volfrac0_p0p1_rhop0_vfracp0))
 assert abs(volfracend_p0p1_rhop0_vfracp0-volfrac0_p0p1_rhop0_vfracp0) &lt; 1e-5
-    </test>
+</test>
     <test name="check divergence_p0p1_rhop0_vfracp0" language="python">
    assert max(abs(maxdivergence_p0p1_rhop0_vfracp0), abs(mindivergence_p0p1_rhop0_vfracp0)) &lt; 1e-9
     </test>
@@ -269,13 +268,13 @@ assert abs(volfracend_p0p1_rhop0_vfracp0-volfrac0_p0p1_rhop0_vfracp0) &lt; 1e-5
    assert abs(velocity_p1dgp2_rhop1dg_vfracp1cv) &lt; 1e-3
     </test>
     <test name="check volume fraction_p1dgp2_rhop1dg_vfracp1cv almost conserved" language="python">
-print 'mass loss = ', abs(volfracend_p1dgp2_rhop1dg_vfracp1cv-volfrac0_p1dgp2_rhop1dg_vfracp1cv)
+print('mass loss = ', abs(volfracend_p1dgp2_rhop1dg_vfracp1cv-volfrac0_p1dgp2_rhop1dg_vfracp1cv))
 assert abs(volfracend_p1dgp2_rhop1dg_vfracp1cv-volfrac0_p1dgp2_rhop1dg_vfracp1cv) &lt; 1e-5
-    </test>
+</test>
     <test name="check divergence_p1dgp2_rhop1dg_vfracp1cv" language="python">
    assert max(abs(maxdivergence_p1dgp2_rhop1dg_vfracp1cv), abs(mindivergence_p1dgp2_rhop1dg_vfracp1cv)) &lt; 1e-9
     </test>
-    <test name = "Solvers converged" language = "python">
+    <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
   </pass_tests>

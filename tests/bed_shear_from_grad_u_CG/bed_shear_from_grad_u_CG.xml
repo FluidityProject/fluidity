@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>bed_shear_from_grad_u_CG</name>
   <owner userid="sp911"/>
@@ -17,9 +16,8 @@ data = vtu('bed_shear_from_grad_u_CG_0.vtu')
 
 Shear = data.GetField('BedShearStress')
 SS_max = Shear.max()
-print SS_max
-
-    </variable>  
+print(SS_max)
+</variable>  
   </variables>
   <pass_tests>
     <!-- max shear stress is within 0.001% of 1 -->

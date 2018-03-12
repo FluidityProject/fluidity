@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>tides in the Mediterranean Sea</name>
   <owner userid="ajm02"/>
@@ -135,38 +135,38 @@ O1RMS = numpy.sqrt(numpy.sum(numpy.power(ampdiff,2))/len(ampdiff))
 assert abs(final_time-720000) &gt; -10
     </test>
     <test name="check RMS difference for M2 amp not too big" language="python">
-print M2RMS
+print(M2RMS)
 assert(M2RMS &lt; 5.0)
-    </test>
+</test>
     <test name="check RMS difference for M2 amp not 0" language="python">
-print M2RMS
-assert(M2RMS &gt; 0.1)   
-    </test>
+print(M2RMS)
+assert(M2RMS &gt; 0.1)
+</test>
     <test name="check RMS difference for S2 amp not too big" language="python">
-print S2RMS
+print(S2RMS)
 assert(S2RMS &lt; 3.0)
-    </test>
+</test>
     <test name="check RMS difference for S2 amp not 0" language="python">
-print S2RMS
-assert(S2RMS &gt; 0.1)   
-    </test>
+print(S2RMS)
+assert(S2RMS &gt; 0.1)
+</test>
     <test name="check RMS difference for K1 amp not too big" language="python">
-print K1RMS
+print(K1RMS)
 assert(K1RMS &lt; 2.5)
-    </test>
+</test>
     <test name="check RMS difference for K1 amp not 0" language="python">
-print K1RMS
-assert(K1RMS &gt; 0.1)   
-    </test>   
+print(K1RMS)
+assert(K1RMS &gt; 0.1)
+</test>   
     <test name="check RMS difference for O1 amp not too big" language="python">
-print O1RMS
+print(O1RMS)
 assert(O1RMS &lt; 2.5)
-    </test>
+</test>
     <test name="check RMS difference for O1 amp not 0" language="python">
-print O1RMS
-assert(O1RMS &gt; 0.1)   
-    </test> 
+print(O1RMS)
+assert(O1RMS &gt; 0.1)
+</test> 
  </pass_tests>
  <warn_tests>
  </warn_tests>
-</testproblem>    
+</testproblem>

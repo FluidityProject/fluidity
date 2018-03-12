@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>check_use_statements</name>
   <owner userid="jrper"/>
@@ -16,9 +16,10 @@ out = ous.print_misplaced(tree, namelist, True, [])</variable>
   <pass_tests/>
   <warn_tests>
     <test name="Check_use_statements" language="python">if out=="":
-  assert(True)
+    assert(True)
 else:
-  print out
-  assert(False)</test>
+    print(out)
+    assert(False)
+</test>
   </warn_tests>
 </testproblem>

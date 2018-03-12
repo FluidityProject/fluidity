@@ -609,6 +609,7 @@ def VtuMatchLocationsArbitrary(vtu1, vtu2, tolerance = 1.0e-6):
    
   locations1 = vtu1.GetLocations()
   locations2 = vtu2.GetLocations()
+
   if not locations1.shape == locations2.shape:
     return False   
     

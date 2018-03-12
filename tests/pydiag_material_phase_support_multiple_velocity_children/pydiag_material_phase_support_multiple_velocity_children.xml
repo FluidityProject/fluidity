@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
-
 <testproblem>
   <name>pydiag_material_phase_support_multiple_velocity_children</name>
   <owner userid="btollit"/>
@@ -39,29 +38,29 @@ vel_visc_phase2 = stat("pydiag_material_phase_support_multiple_velocity_children
   </variables>
   <pass_tests>
     <test name="Check vel_abs_phase1 with tolerance 1.0e-10" language="python">
-print "error vel_abs_phase1",abs(vel_abs_phase1 - 12345.0)
+print("error vel_abs_phase1",abs(vel_abs_phase1 - 12345.0))
 assert abs(vel_abs_phase1 - 12345.0) &lt; 1.0e-10
-    </test>
+</test>
     <test name="Check vel_abs_phase2 with tolerance 1.0e-10" language="python">
-print "error vel_abs_phase2",abs(vel_abs_phase2 - 54321.0)
+print("error vel_abs_phase2",abs(vel_abs_phase2 - 54321.0))
 assert abs(vel_abs_phase2 - 54321.0) &lt; 1.0e-10
-    </test>
+</test>
     <test name="Check vel_src_phase1 with tolerance 1.0e-10" language="python">
-print "error vel_src_phase1",abs(vel_src_phase1 - 101.0)
+print("error vel_src_phase1",abs(vel_src_phase1 - 101.0))
 assert abs(vel_src_phase1 - 101.0) &lt; 1.0e-10
-    </test>
+</test>
     <test name="Check vel_src_phase2 with tolerance 1.0e-10" language="python">
-print "error vel_src_phase2",abs(vel_src_phase2 - 202.0)
+print("error vel_src_phase2",abs(vel_src_phase2 - 202.0))
 assert abs(vel_src_phase2 - 202.0) &lt; 1.0e-10
-    </test>
+</test>
     <test name="Check vel_visc_phase1 with tolerance 1.0e-10" language="python">
-print "error vel_visc_phase1",abs(vel_visc_phase1 - 666.0)
+print("error vel_visc_phase1",abs(vel_visc_phase1 - 666.0))
 assert abs(vel_visc_phase1 - 666.0) &lt; 1.0e-10
-    </test>
+</test>
     <test name="Check vel_visc_phase2 with tolerance 1.0e-10" language="python">
-print "error vel_visc_phase2",abs(vel_visc_phase2 - 999.0)
+print("error vel_visc_phase2",abs(vel_visc_phase2 - 999.0))
 assert abs(vel_visc_phase2 - 999.0) &lt; 1.0e-10
-    </test>
+</test>
   </pass_tests>
   <warn_tests>
   </warn_tests>
