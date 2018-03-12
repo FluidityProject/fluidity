@@ -67,7 +67,7 @@ void init_vars(void){
   else{
     if (get_global_debug_level_() > 1) {
       printf("fluidity.state_types imported successfully; location: \n");
-      PyRun_SimpleString("import fluidity.state_types; print fluidity.state_types.__file__");
+      PyRun_SimpleString("import fluidity.state_types; print(fluidity.state_types.__file__)");
     }
   }
   PyRun_SimpleString("states = dict()");
@@ -83,11 +83,12 @@ void python_reset_(void){
 
     // Create a list of items to  be removed
     PyRun_SimpleString("rem = []");
-    PyRun_SimpleString("for i in globals().keys():\n if(not (i in keep)): rem.append(i)");
+    PyRun_SimpleString("keys = tuple(globals().keys())");
+    PyRun_SimpleString("for i in keys:\n if i not in keep: rem.append(i)");
 
     // Delete every item except the ones we want to keep
     PyRun_SimpleString("for i in rem: del globals()[i]");
-    PyRun_SimpleString("del globals()['keep'];del globals()['rem'];del globals()['i']");
+    PyRun_SimpleString("del globals()['keys'];del globals()['keep'];del globals()['rem'];\nif 'i' in globals():del globals()['i']");
 
     // Reinitialize the variables
     init_vars();
