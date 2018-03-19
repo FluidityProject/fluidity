@@ -435,14 +435,35 @@ module spherical_adaptivity
           vol2 = tetvol(tet_xyz(1,:), tet_xyz(2,:), tet_xyz(3,:))
           if (vol1*vol2>0.0) then
             ewrite(2,*) "INVERTED ELEMENT!!!"
-            ewrite(2,*) "Element 1:", ele_val(positions, ele)
-            ewrite(2,*) "Element 2:", ele_val(positions, ele2)
-            ewrite(2,*) "Element 1 functional:", pain_functional(ele, base_geometry, metric)
-            ewrite(2,*) "Element 2 functional:", pain_functional(ele2, base_geometry, metric)
+            ewrite(2,*) "Element 1 ***"
+            call ele_info(ele)
+            ewrite(2,*) "Element 2 ***"
+            call ele_info(ele2)
           end if
         end if
       end do
     end do
+
+    contains
+
+    subroutine ele_info(ele)
+      integer, intent(in) :: ele
+      integer, dimension(:), pointer :: nodes
+      integer :: i
+      real :: f
+
+      ewrite(2, *) "Element number: ", ele
+      ewrite(2, *) "Popped out positions:", ele_val(positions, ele)
+      ewrite(2, *) "Base geometry positions:", ele_val(base_geometry, ele)
+      f = pain_functional(ele, base_geometry, metric, verbose=.true.)
+      ewrite(2,*) "Pain functional:", f
+      ewrite(2,*) "Metric at nodes:"
+      nodes => ele_nodes(metric, ele)
+      do i=1, size(nodes)
+        ewrite(2,*) node_val(metric, nodes(i))
+      end do
+
+    end subroutine ele_info
 
   end subroutine check_inverted_elements
 

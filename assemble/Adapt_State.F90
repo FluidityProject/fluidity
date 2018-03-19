@@ -1215,7 +1215,6 @@ contains
 
         if (final_adapt_iteration) then
           call spherical_adaptivity_pop_out(states, new_positions)
-          call check_inverted_elements(new_positions, old_positions, metric)
           call vtk_write_fields("popped_geometry_after", index, new_positions, new_positions%mesh)
         end if
         call deallocate(old_positions)
@@ -1320,6 +1319,7 @@ contains
       if (have_spherical_adaptivity .and. final_adapt_iteration) then
         ! reinsert the popped out coordinate field
         call insert(states, new_positions, positions_name)
+        call check_inverted_elements(new_positions, old_positions, metric)
       end if
       ! We're done with the new_positions, so we may drop our reference
       call deallocate(new_positions)

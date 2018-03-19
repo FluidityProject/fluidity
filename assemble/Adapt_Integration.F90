@@ -785,12 +785,13 @@ contains
 
   end subroutine verify_positions
   
-  function pain_functional(ele, positions, metric) result(func)
+  function pain_functional(ele, positions, metric, verbose) result(func)
     !!< Evaluate the Pain 2001 functional for the supplied 3d tetrahedron.
     
     integer, intent(in) :: ele
     type(vector_field), intent(in) :: positions
     type(tensor_field), intent(in) :: metric
+    logical, intent(in), optional :: verbose
     
     real :: func
     
@@ -835,6 +836,11 @@ contains
                 & ((1.0 - l(5)) ** 2) + &
                 & ((1.0 - l(6)) ** 2)) + &
          & (((scale_factor / radius) - 1.0) ** 2)
+
+    if (present_and_true(verbose)) then
+      ewrite(2,*) "Edge lengths: ", l
+      ewrite(2,*) "Radisu: ", radius
+    end if
     
   end function pain_functional
   

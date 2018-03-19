@@ -142,7 +142,7 @@ module zoltan_integration
 
     call setup_module_variables(states, final_adapt_iteration, zz, flredecomp)
 
-    call setup_quality_module_variables(metric, minimum_quality) ! this needs to be called after setup_module_variables
+    call setup_quality_module_variables(states, metric, minimum_quality) ! this needs to be called after setup_module_variables
                                         ! (but only on the 2d mesh with 2+1d adaptivity)
     if (present(global_min_quality)) then
        if (.NOT. final_adapt_iteration) then
@@ -460,9 +460,10 @@ module zoltan_integration
 
   end subroutine setup_module_variables
 
-  subroutine setup_quality_module_variables(metric, minimum_quality)
+  subroutine setup_quality_module_variables(states, metric, minimum_quality)
     ! setups the field zoltan_global_element_quality (used to determine edge weights)
     ! and returns minimum_quality (to be used as zoltan iteration termination criterion)
+    type(state_type), dimension(:), intent(in), target :: states
     ! the metric is the metric we base the quality functions on
     type(tensor_field), intent(in), optional :: metric
     ! returns the minimum element quality. When using libadapitivity (instead of mba2d/3d),
@@ -471,17 +472,27 @@ module zoltan_integration
     ! termination criterion
     real, intent(out):: minimum_quality
     
+    type(vector_field) :: positions
     type(mesh_type) :: pwc_mesh
     integer :: node
     integer, dimension(:), pointer :: elements
     logical :: use_pain_functional
+    integer, save :: output_quality_index = 0
+
+    if (has_vector_field(states(1), trim(zoltan_global_zz_positions%name)//"BaseGeometry")) then
+      ewrite(2,*) "Using popped in base geometry to work out element quality"
+      positions = extract_vector_field(states(1), trim(zoltan_global_zz_positions%name)//"BaseGeometry")
+    else
+      positions = zoltan_global_zz_positions
+    end if
+
     
     ! And the element quality measure
     use_pain_functional = present(metric) .and. mesh_dim(zoltan_global_zz_mesh)==3 .and. &
           .not. have_option("/mesh_adaptivity/hr_adaptivity/adaptivity_library/libmba3d")
     if (use_pain_functional) then
        ! with libadaptivity use the Pain functional
-       call element_quality_pain_p0(zoltan_global_zz_positions, metric, zoltan_global_element_quality)
+       call element_quality_pain_p0(positions, metric, zoltan_global_element_quality)
        ! the rest of the zoltan wrappers have been written assuming the lipnikov 
        ! functional where q=0 is bad and q=1 is perfect. With the pain functional, 
        ! q'=0 is perfect and q'=\infty is bad. Therefore map q' -> q=1/(q'+1), so
@@ -490,7 +501,7 @@ module zoltan_integration
        call invert(zoltan_global_element_quality)
     else if (present(metric)) then
        ! with mba2d or mba3d use the lipnikov functional:
-       call element_quality_p0(zoltan_global_zz_positions, metric, zoltan_global_element_quality)
+       call element_quality_p0(positions, metric, zoltan_global_element_quality)
     else
        pwc_mesh = piecewise_constant_mesh(zoltan_global_zz_mesh, "PWCMesh")
        call allocate(zoltan_global_element_quality, pwc_mesh, "ElementQuality", field_type=FIELD_TYPE_CONSTANT)
@@ -521,6 +532,14 @@ module zoltan_integration
        ewrite(1,*) "local minimum achievable quality = ", minimum_quality
        call allmin(minimum_quality)
        ewrite(1,*) "global minimum achievable quality = ", minimum_quality
+    end if
+    if (have_option("/mesh_adaptivity/hr_adaptivity/adaptivity_library/libadaptivity/write_adapted_quality")) then
+      ewrite_minmax(zoltan_global_element_quality)
+      output_quality_index = output_quality_index + 1
+      write(2,*) "Writing zoltan quality pvtu: ", output_quality_index
+      call vtk_write_fields("adapted_zoltan_quality", index = output_quality_index, &
+        & position = positions, model = positions%mesh, &
+        & sfields = (/ zoltan_global_element_quality /), tfields = (/ metric /))
     end if
     
   end subroutine setup_quality_module_variables
