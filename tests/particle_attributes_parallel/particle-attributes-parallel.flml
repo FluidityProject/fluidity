@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">particle_attributes</string_value>
+    <string_value lines="1">particle_attributes_parallel</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -50,6 +50,12 @@
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
+    <checkpointing>
+      <checkpoint_period_in_dumps>
+        <integer_value rank="0">1</integer_value>
+      </checkpoint_period_in_dumps>
+      <checkpoint_at_end/>
+    </checkpointing>
     <stat/>
   </io>
   <particles>
@@ -79,7 +85,15 @@
           <python_fields>
             <string_value lines="20" type="code" language="python">def val(X,t,fields):
   x=X[0]
-  y=x+t+fields["Temperature"]-fields["Salinity"]+fields["Nutrient"]
+  y=x+t+fields["Temperature"]+fields["Salinity"]+fields["Nutrient"]-fields["OldSalinity"]-fields["OldNutrient"]
+  return y</string_value>
+            <store_old_attribute/>
+          </python_fields>
+        </attribute>
+        <attribute name="Chem3">
+          <python_fields>
+            <string_value lines="20" type="code" language="python">def val(X,t,fields):
+  y=fields["OldChem2"]
   return y</string_value>
           </python_fields>
         </attribute>
@@ -99,7 +113,7 @@
         </python>
       </initial_position>
       <attributes>
-        <attribute name="Chem3">
+        <attribute name="Chem4">
           <constant>
             <real_value rank="0">5</real_value>
           </constant>
@@ -196,7 +210,9 @@
           <exclude_from_detectors/>
         </detectors>
         <particles>
-          <include_in_particles/>
+          <include_in_particles>
+            <store_old_field/>
+          </include_in_particles>
         </particles>
       </prescribed>
     </scalar_field>
@@ -214,7 +230,9 @@
           <exclude_from_detectors/>
         </detectors>
         <particles>
-          <include_in_particles/>
+          <include_in_particles>
+            <store_old_field/>
+          </include_in_particles>
         </particles>
       </prescribed>
     </scalar_field>
@@ -232,7 +250,9 @@
           <exclude_from_detectors/>
         </detectors>
         <particles>
-          <include_in_particles/>
+          <include_in_particles>
+            <store_old_field/>
+          </include_in_particles>
         </particles>
       </prescribed>
     </scalar_field>

@@ -1910,17 +1910,24 @@ module zoltan_integration
     integer, allocatable :: ndets_being_sent(:)
     real, allocatable :: send_buff(:,:), recv_buff(:,:)
     logical do_broadcast
-    type(element_type), pointer :: shape  
+    type(element_type), pointer :: shape
 
     ewrite(1,*) "In update_detector_list_element"
 
     send_count=0
+
+    !Loop for detectors or particles with no attributes
 
     do j = 1, size(detector_list_array)
        detector_list => detector_list_array(j)%ptr
        ewrite(2,*) "Length of detector list to be updated: ", detector_list%length
 
        detector => detector_list%first
+       if (associated(detector)) then
+          if (size(detector%attributes)>=1) then
+             cycle
+          end if
+       end if
        do while (associated(detector))
 
           old_local_element_number = detector%element
@@ -2022,11 +2029,159 @@ module zoltan_integration
           end if
        end if
     end do
+    deallocate(ndets_being_sent)
+    deallocate(send_buff)
 
-    deallocate(send_buff)   
     ewrite(1,*) "Exiting update_detector_list_element"
 
   end subroutine update_detector_list_element
+    
+  subroutine update_particle_list_element(detector_list_array)
+    ! Update the detector%element field for every detector left in our list
+    ! and check that we did not miss any in the first send
+    ! broadcast them if we did
+    type(detector_list_ptr), dimension(:), intent(inout) :: detector_list_array
+
+    type(detector_linked_list), pointer :: detector_list => null()
+    type(detector_linked_list) ::  detector_send_list
+    type(detector_type), pointer :: detector => null(), send_detector => null()
+    integer :: i, j, send_count, ierr,k
+    integer :: old_local_element_number, new_local_element_number, old_universal_element_number
+    integer, allocatable :: ndets_being_sent(:)
+    real, allocatable :: send_buff(:,:), recv_buff(:,:)
+    logical do_broadcast
+    integer, dimension(3) :: attributes_buffer
+    integer :: total_attributes
+    type(element_type), pointer :: shape
+
+    ewrite(1,*) "In update_particle_list_element"
+
+    send_count=0
+    !Loop for particles with attributes
+
+    do j = 1, size(detector_list_array)
+       detector_list => detector_list_array(j)%ptr
+       ewrite(2,*) "Length of detector list to be updated: ", detector_list%length
+
+       detector => detector_list%first
+       if (associated(detector)) then
+          if (size(detector%attributes)<1) then
+             cycle
+          end if
+          attributes_buffer(1)=size(detector%attributes)
+          attributes_buffer(2)=size(detector%old_attributes)
+          attributes_buffer(3)=size(detector%old_fields)
+          total_attributes=attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3)
+       end if
+       do while (associated(detector))
+
+          old_local_element_number = detector%element
+
+          if (.not. has_key(zoltan_global_old_local_numbering_to_uen, old_local_element_number)) then
+             ewrite(-1,*) "Zoltan can't find old element number for detector ", detector%id_number
+             FLAbort('Trying to update unknown detector in Zoltan')
+          end if
+          old_universal_element_number = fetch(zoltan_global_old_local_numbering_to_uen, old_local_element_number)
+
+          if(has_key(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)) then
+             ! Update the element number for the detector
+             detector%element = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
+             detector => detector%next
+          else
+             ! We no longer own the element containing this detector, and cannot establish its new
+             ! owner from the halo, because the boundary has moved too far.
+             ! Since we have no way of determining the new owner we are going to broadcast the detector
+             ! to all procs, so move it to the send list and count how many detectors we're sending.
+             ewrite(2,*) "Found non-local detector, initialising broadcast..."
+             send_count = send_count + 1
+          
+             ! Store the old universal element number for unpacking to new local at the receive
+             detector%element = old_universal_element_number
+             detector%list_id=detector_list%id
+
+             ! Remove detector from detector list
+             send_detector => detector
+             detector => detector%next
+             call move(send_detector, detector_list, detector_send_list)
+          end if
+       end do
+       ! Find out how many detectors each process wants to broadcast
+       allocate(ndets_being_sent(getnprocs()))
+       call mpi_allgather(send_count, 1, getPINTEGER(), ndets_being_sent, 1 , getPINTEGER(), MPI_COMM_FEMTOOLS, ierr)
+       assert(ierr == MPI_SUCCESS)
+
+       ! Check whether we have to perform broadcast, if not return
+       do_broadcast=.false.
+       if (any(ndets_being_sent > 0)) then
+          do_broadcast=.true.
+       end if
+       if (.not. do_broadcast) then
+          deallocate(ndets_being_sent)
+          cycle
+       end if
+       ewrite(2,*) "Broadcast required, initialising..."
+       
+       ! Allocate memory for all the detectors you're going to send
+       allocate(send_buff(send_count,zoltan_global_ndata_per_det+total_attributes))
+       
+       detector => detector_send_list%first
+       do i=1,send_count
+          ! Pack the detector information and delete from send_list (delete advances detector to detector%next)
+          call pack_detector(detector, send_buff(i,1:zoltan_global_ndata_per_det+total_attributes), zoltan_global_ndims, attributes_buffer=attributes_buffer)
+          call delete(detector, detector_send_list)
+       end do
+
+       ! Broadcast detectors whose new owner we can't identify
+       do i=1,getnprocs()
+          if (ndets_being_sent(i) > 0) then
+             
+             if (i == getprocno()) then
+                ! Broadcast the detectors you want to send
+                ewrite(2,*) "Broadcasting ", send_count, " detectors"
+                call mpi_bcast(send_buff,send_count*(zoltan_global_ndata_per_det+total_attributes), getPREAL(), i-1, MPI_COMM_FEMTOOLS, ierr)
+                assert(ierr == MPI_SUCCESS)
+             else
+                ! Allocate memory to receive into
+                allocate(recv_buff(ndets_being_sent(i),zoltan_global_ndata_per_det+total_attributes))
+                
+                ! Receive broadcast
+                ewrite(2,*) "Receiving ", ndets_being_sent(i), " detectors from process ", i
+                call mpi_bcast(recv_buff,ndets_being_sent(i)*(zoltan_global_ndata_per_det*total_attributes), getPREAL(), i-1, MPI_COMM_FEMTOOLS, ierr)
+                assert(ierr == MPI_SUCCESS)
+                
+                ! Unpack detector if you own it
+                do k=1,ndets_being_sent(i)
+                   
+                   ! Allocate and unpack the detector
+                   shape=>ele_shape(zoltan_global_new_positions,1)                     
+                   call allocate(detector, zoltan_global_ndims, local_coord_count(shape), attributes_buffer)
+                   call unpack_detector(detector, recv_buff(j, 1:zoltan_global_ndata_per_det+total_attributes), zoltan_global_ndims, attributes_buffer=attributes_buffer)
+                   
+                   if (has_key(zoltan_global_uen_to_new_local_numbering, detector%element)) then 
+                      new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, detector%element)
+                      if (element_owned(zoltan_global_new_positions%mesh, new_local_element_number)) then
+                         detector%element = new_local_element_number
+                         call insert(detector, detector_list_array(detector%list_id)%ptr)
+                         detector => null()
+                      else
+                         call delete(detector)
+                      end if
+                   else
+                      call delete(detector)
+                   end if
+                end do
+                
+                deallocate(recv_buff)
+             end if
+          end if
+       end do
+       deallocate(send_buff)
+       deallocate(ndets_being_sent)
+    end do
+
+    ewrite(1,*) "Exiting update_particle_list_element"
+
+  end subroutine update_particle_list_element
 
   subroutine transfer_fields(zz)
     ! OK! So, here is how this is going to work. We are going to 
@@ -2088,6 +2243,7 @@ module zoltan_integration
     allocate(export_procs(num_export))
 
     ! allocate array for storing the number of detectors in each of the elements to be transferred
+    
     allocate(zoltan_global_ndets_in_ele(num_export))
     zoltan_global_ndets_in_ele(:) = 0
 
@@ -2142,6 +2298,7 @@ module zoltan_integration
     ! update the local detectors and make sure we didn't miss any in the first send
     if (get_num_detector_lists()>0) then
        call update_detector_list_element(detector_list_array)
+       call update_particle_list_element(detector_list_array)
     end if
 
     ! Merge in any detectors we received as part of the transfer to our detector list

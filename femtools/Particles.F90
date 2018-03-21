@@ -374,8 +374,6 @@ contains
     detector%type=type
     detector%id_number=id
 
-    ewrite(2,*) "147258", id
-
     if (present(attribute_vals)) then
        allocate(detector%attributes(attributes_buffer(1)))
        detector%attributes = attribute_vals(1,1:attributes_buffer(1))
@@ -551,6 +549,9 @@ contains
              end if
           end do
        end if
+       if (.not.allocated(particle%old_fields)) then
+          allocate(particle%old_fields(attributes_buffer(3)))
+       end if
        particle => particle%next
     end do
 
@@ -653,9 +654,6 @@ contains
 
     particle => particle_lists(i)%first
     do j = 1,nparticles
-       if (.not.allocated(particle%old_fields)) then
-          allocate(particle%old_fields(attributes_buffer(3)))
-       end if
        particle%old_fields=old_field_vals(:,j)
        particle=>particle%next
     end do
