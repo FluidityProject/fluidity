@@ -18,9 +18,9 @@ if n>1:
     A0 = Ra * n / (((k+3)**2-n**2)*((k+1)**2-n**2))
 
     # pressure: coefficients for n, -n, and k+1
-    G = -(R1**(k + n + 3) - R2**(k + n + 3))*g*(n + 1)/((R1**(n + 1) + R2**(n + 1))*(R1**(n + 1) - R2**(n + 1))*(k + n + 3)*(k - n + 1))
-    H = -(R1**n*R2**(k + 3) - R1**(k + 3)*R2**n)*R1**n*R2**n*g*(n - 1)/((R1*R2**n + R1**n*R2)*(R1*R2**n - R1**n*R2)*(k + n + 1)*(k - n + 3))
-    I = g*(k + 1)/((k + n + 1)*(k - n + 1))
+    G = -4*eta*E*(n+1)
+    H = -4*eta*F*(n-1)
+    K = -g*(k + 1)/((k+1)**2-n**2)
 else:
     raise NotImplemented()
 
@@ -37,7 +37,7 @@ def u_theta(r, theta):
     return dpsi_dr
 
 def p(r, theta):
-    return (G*r**n + H*r**(-n) + I*r**(k+1))*cos(n*theta)
+    return (G*r**n + H*r**(-n) + K*r**(k+1))*cos(n*theta)
 
 def delta_rho(r, theta):
     return r**k * cos(n*theta)
