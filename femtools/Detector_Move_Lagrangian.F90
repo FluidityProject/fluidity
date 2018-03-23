@@ -403,6 +403,7 @@ contains
                 !the arrival point is in this element
                 det0%search_complete = .true.
                 !move on to the next detector
+                det0%local_coords = arrival_local_coords
                 det0 => det0%next
                 exit search_loop
              end if

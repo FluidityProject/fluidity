@@ -797,7 +797,7 @@ Zoltan_callbacks.o ../include/zoltan_callbacks.mod: Zoltan_callbacks.F90 \
    ../include/detector_parallel.mod ../include/detector_tools.mod \
    ../include/element_numbering.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/halos.mod \
+   ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
    ../include/halos_derivation.mod ../include/metric_tools.mod \
    ../include/mpi_interfaces.mod ../include/parallel_tools.mod \
    ../include/sparse_tools.mod ../include/state_module.mod \

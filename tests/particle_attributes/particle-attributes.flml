@@ -78,9 +78,11 @@
         <attribute name="Chem2">
           <python_fields>
             <string_value lines="20" type="code" language="python">def val(X,t,fields):
+  from math import pi, sin
   x=X[0]
-  y=x+t+fields["Temperature"]+fields["Salinity"]+fields["Nutrient"]-fields["OldSalinity"]-fields["OldNutrient"]
-  return y</string_value>
+  y=X[1]
+  z=x+t+fields["Salinity"]+fields["Temperature"]
+  return z</string_value>
             <store_old_attribute/>
           </python_fields>
         </attribute>
@@ -111,6 +113,14 @@
           <constant>
             <real_value rank="0">5</real_value>
           </constant>
+        </attribute>
+        <attribute name="Chem5">
+          <python_fields>
+            <string_value lines="20" type="code" language="python">def val(X,t,fields):
+  x=X[0]
+  y=fields["OldTemperature"]
+  return y</string_value>
+          </python_fields>
         </attribute>
       </attributes>
     </particle_array>
@@ -194,9 +204,13 @@
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">5</real_value>
-          </constant>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+  from math import sin, pi
+  x = X[0]
+  y = X[1]
+  return 2.0-abs(0.5-x)-abs(0.5-y)-sin(t*pi/2.0)/2.0</string_value>
+          </python>
         </value>
         <output/>
         <stat/>
@@ -214,29 +228,12 @@
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">1</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-        <particles>
-          <include_in_particles>
-            <store_old_field/>
-          </include_in_particles>
-        </particles>
-      </prescribed>
-    </scalar_field>
-    <scalar_field name="Nutrient" rank="0">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">2</real_value>
-          </constant>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+  x = X[0]
+  y = X[1]
+  return 2.0-y</string_value>
+          </python>
         </value>
         <output/>
         <stat/>

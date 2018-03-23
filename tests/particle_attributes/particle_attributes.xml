@@ -18,21 +18,19 @@ attributes_error_1 = np.zeros((1,60))
 
 for i in range(60):
     name = 'Chris_' + str(i+1).zfill(2)
-    attributes_error_1[0,i] = 5.0 - s[name]['Chem3'][0][-1]
+    attributes_error_1[0,i] = s[name]['Chem4'][0][-1] - 5.0
 print "max error",abs(attributes_error_1).max()
     </variable>
     <variable name="attributes_error_2" language="python">
-from fluidity_tools import stat_parser
 import numpy as np
+from fluidity_tools import stat_parser
+s = stat_parser("particle_attributes.particles.Chris")
+attributes_error_2 = np.zeros((1,60))
 
-s = stat_parser('particle_attributes.particles.Steve')
-attributes_error_2 = np.zeros((1,100))
-X = np.fromfile('Xvals.txt',sep=' ')
-Y = np.fromfile('Yvals.txt',sep=' ')
-
-for i in range(100):
-    name = 'Steve_' + str(i+1).zfill(3)
-    attributes_error_2[0,i] = s[name]['Chem1'][0][-1] -  (X[i] + 8.0)
+for i in range(60):
+    name = 'Chris_' + str(i+1).zfill(2)
+    OldTemp = 2.0 - abs(0.5-s[name]['position'][0][-2]) - abs(0.5-s[name]['position'][1][-2]) - np.sin(s['ElapsedTime']['value'][-2]*np.pi/2.0)/2.0
+    attributes_error_2[0,i] = s[name]['Chem5'][0][-1] - OldTemp
 print "max error",abs(attributes_error_2).max()
     </variable>
     <variable name="attributes_error_3" language="python">
@@ -46,8 +44,38 @@ Y = np.fromfile('Yvals.txt',sep=' ')
 
 for i in range(100):
     name = 'Steve_' + str(i+1).zfill(3)
-    attributes_error_3[0,i] = s[name]['Chem2'][0][-1] - (X[i] + 8.0 + 5.0 - 1.0 + 2.0)
+    attributes_error_3[0,i] = s[name]['Chem1'][0][-1] -  (s[name]['position'][0][-1] + s['ElapsedTime']['value'][-1])
 print "max error",abs(attributes_error_3).max()
+    </variable>
+    <variable name="attributes_error_4" language="python">
+from fluidity_tools import stat_parser
+import numpy as np
+
+s = stat_parser('particle_attributes.particles.Steve')
+attributes_error_4 = np.zeros((1,100))
+X = np.fromfile('Xvals.txt',sep=' ')
+Y = np.fromfile('Yvals.txt',sep=' ')
+
+for i in range(100):
+    name = 'Steve_' + str(i+1).zfill(3)
+    Temp = 2.0 - abs(0.5-s[name]['position'][0][-1]) - abs(0.5-s[name]['position'][1][-1]) - np.sin(s['ElapsedTime']['value'][-1]*np.pi/2.0)/2.0
+    Salinity = 2.0 - s[name]['position'][1][-1]
+    attributes_error_4[0,i] = s[name]['Chem2'][0][-1] - (s[name]['position'][0][-1] + s['ElapsedTime']['value'][-1] + Salinity + Temp)
+print "max error",abs(attributes_error_4).max()
+    </variable>
+    <variable name="attributes_error_5" language="python">
+from fluidity_tools import stat_parser
+import numpy as np
+
+s = stat_parser('particle_attributes.particles.Steve')
+attributes_error_5 = np.zeros((1,100))
+X = np.fromfile('Xvals.txt',sep=' ')
+Y = np.fromfile('Yvals.txt',sep=' ')
+
+for i in range(100):
+    name = 'Steve_' + str(i+1).zfill(3)
+    attributes_error_5[0,i] = s[name]['Chem3'][0][-1] - s[name]['Chem2'][0][-2]
+print "max error",abs(attributes_error_5).max()
     </variable>
     <variable name="Walltime" language="python">
 from fluidity_tools import stat_parser
@@ -67,6 +95,12 @@ assert abs(attributes_error_2).max() &lt; 1.0e-5
     </test>
     <test name="Correctattribteserror3" language="python">
 assert abs(attributes_error_3).max() &lt; 1.0e-5
+    </test>
+    <test name="Correctattribteserror3" language="python">
+assert abs(attributes_error_4).max() &lt; 1.0e-5
+    </test>
+    <test name="Correctattribteserror3" language="python">
+assert abs(attributes_error_5).max() &lt; 1.0e-5
     </test>
   </pass_tests>
   <warn_tests>

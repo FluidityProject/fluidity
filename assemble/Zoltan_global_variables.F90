@@ -88,7 +88,6 @@ module zoltan_global_variables
   type(state_type), save, dimension(:), allocatable, public :: zoltan_global_source_states, zoltan_global_target_states
   integer, save, dimension(:), allocatable, public :: zoltan_global_ndets_in_ele
   integer, save, public :: zoltan_global_ndata_per_det
-  integer, dimension(:,:), allocatable, public :: zoltan_global_attributes_array
   integer, dimension(:), allocatable, public :: zoltan_global_attributes_per_ele
   type(detector_linked_list), dimension(:), allocatable, target, save, public :: zoltan_global_to_pack_detectors_list
   
