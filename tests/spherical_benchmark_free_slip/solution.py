@@ -2,7 +2,9 @@ import scipy.special
 import numpy
 from math import sqrt, atan2, cos, sin, tan, acos, pi
 
-Ra = 1.
+eta = 1.
+g = 1.
+Ra = g/eta
 # outer and inner radius (these are a1 and a2 in [1])
 R = numpy.array([2.22, 1.22])
 # r', the radius of the anomaly
@@ -19,10 +21,14 @@ m = l
 # solutions from [1] N.M. Ribe, Analytical Approaches to Mantle Dynamics, in Mantle Dynamics, Vol. 7
 
 # coefficients from eqn (110):
-C = 1/2./(2*l+3)/(2*l+1)/rp**(l-1) * ((R[0]/R)**(2*l+3)-(rp/R[1])**(2*l+3)) / (1-(R[0]/R[1])**(2*l+3))
-B = -C * R**(2*l+3)
-D = R**(2*l-1)/2/(4*l**2-1)/rp**(l-3) * ((R[0]/R)**(2*l-1)-(rp/R[1])**(2*l-1)) / (1-(R[0]/R[1])**(2*l-1))
-A = -D / R**(2*l-1)
+C = 1/2. * Ra / (2*l+3)/(2*l+1)/rp**(l-1) * ((R[0]/R)**(2*l+3)-(rp/R[1])**(2*l+3)) / (1-(R[0]/R[1])**(2*l+3))
+B = -C * Ra * R**(2*l+3)
+D = Ra * R**(2*l-1)/2/(4*l**2-1)/rp**(l-3) * ((R[0]/R)**(2*l-1)-(rp/R[1])**(2*l-1)) / (1-(R[0]/R[1])**(2*l-1))
+A = -Ra * D / R**(2*l-1)
+
+# coefficients for pressure solution: p = G r^l + H r^{-l-1}
+G = -2*eta*(l+1)*(2*l+3)*C
+H = -2*eta*l*(2*l-1)*D
 
 def Pl(r):
     # eqn (105) from [1]
@@ -60,6 +66,8 @@ def dYdtheta(m, l, theta, phi):
 def P(r, theta, phi):
     return Pl(r) * Y(m, l, theta, phi)
 
+def pressure(r, theta,phi):
+    return (G*r**l + H*r**(-l-1))*Y(m, l, theta, phi)
 
 def u_theta(r, theta, phi):
     # starting from eqn (44) in [1]:
@@ -97,6 +105,14 @@ def get_cartesian_solution(X, i):
     return ( X[0]/r*ur + X[0]/req*costh*uth - X[1]/req*uph,
              X[1]/r*ur + X[1]/req*costh*uth + X[0]/req*uph,
              X[2]/r*ur - sin(theta)*uth )
+
+def get_pressure_solution(X, i):
+    # i==0: "Upper Mantle" (above anomaly)
+    # i==1: below anomaly
+    r = sqrt(X[0]**2+X[1]**2+X[2]**2)
+    theta = acos(X[2]/r)
+    phi = atan2(X[1], X[0])
+    return float(pressure(r, theta, phi)[i])
 
 def get_spherical_solution(X, i):
     # i==0: "Upper Mantle" (above anomaly)
