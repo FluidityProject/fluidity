@@ -73,6 +73,7 @@ module fluids_module
   use sediment_diagnostics, only: calculate_sediment_flux
   use dqmom
   use diagnostic_fields_wrapper
+  use particles
   use checkpoint
   use goals
   use adaptive_timestepping
@@ -98,7 +99,6 @@ module fluids_module
   use momentum_equation
   use gls
   use iceshelf_meltrate_surf_normal
-  use particles
 #ifdef HAVE_HYPERLIGHT
   use hyperlight
 #endif

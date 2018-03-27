@@ -30,23 +30,23 @@
 module particles
 
   use fldebug
+  use iso_c_binding, only: C_NULL_CHAR
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, &
        & PYTHON_FUNC_LEN, integer_size, real_size
-  use state_module
-  use elements
-  use detector_move_lagrangian
-  use detector_data_types
-  use detector_tools
-  use detector_parallel
-  use fields
-  use parallel_tools
-  use pickers
-  use mpi_interfaces
   use futils, only: int2str, free_unit
+  use elements
+  use mpi_interfaces
+  use parallel_tools
   use spud
   use parallel_fields
+  use fields
+  use state_module
+  use detector_data_types
+  use pickers
+  use detector_tools
+  use detector_parallel
+  use detector_move_lagrangian
   use diagnostic_variables, only: field_tag, initialise_constant_diagnostics
-  use iso_c_binding, only: C_NULL_CHAR
 
   implicit none
 

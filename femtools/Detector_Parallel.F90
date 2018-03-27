@@ -40,8 +40,8 @@ module detector_parallel
   use state_module
   use halos
   use detector_data_types
-  use detector_tools
   use pickers
+  use detector_tools
 
   implicit none
   

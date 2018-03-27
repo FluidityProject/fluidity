@@ -30,18 +30,18 @@
 module detector_tools
   use spud
   use fldebug
+  use iso_c_binding, only: C_NULL_CHAR
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
+  use futils, only: int2str
   use elements, only: local_coord_count
   use detector_data_types
   use embed_python, only: set_detectors_from_python, set_particles_fields_from_python, set_particles_from_python
   use integer_hash_table_module
-  use fields
-  use state_module, only: state_type, extract_scalar_field
-  use futils, only: int2str
-  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
-  use pickers
   use parallel_tools
   use parallel_fields, only: element_owned
-  use iso_c_binding, only: C_NULL_CHAR
+  use fields
+  use state_module, only: state_type, extract_scalar_field
+  use pickers
   
   implicit none
   

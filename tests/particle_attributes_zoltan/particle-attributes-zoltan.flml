@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">particle_attributes_parallel</string_value>
+    <string_value lines="1">particle_attributes_zoltan</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -248,4 +248,29 @@
       </prescribed>
     </scalar_field>
   </material_phase>
+  <mesh_adaptivity>
+    <hr_adaptivity>
+      <period_in_timesteps>
+        <integer_value rank="0">1</integer_value>
+      </period_in_timesteps>
+      <maximum_number_of_nodes>
+        <integer_value rank="0">100000</integer_value>
+      </maximum_number_of_nodes>
+      <enable_gradation/>
+      <tensor_field name="MinimumEdgeLengths">
+        <anisotropic_symmetric>
+          <constant>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.03 0 0 0.03</real_value>
+          </constant>
+        </anisotropic_symmetric>
+      </tensor_field>
+      <tensor_field name="MaximumEdgeLengths">
+        <anisotropic_symmetric>
+          <constant>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.05 0 0 0.05</real_value>
+          </constant>
+        </anisotropic_symmetric>
+      </tensor_field>
+    </hr_adaptivity>
+  </mesh_adaptivity>
 </fluidity_options>

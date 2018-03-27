@@ -43,8 +43,6 @@ module zoltan_detectors
     assert(num_ids == size(ndets_in_ele))
     assert(num_ids == size(to_pack_detector_lists))
 
-    attributes_per_ele(:) = 0
-
     ! loop through all registered detector lists
     call get_registered_detector_lists(detector_list_array)
     do det_list = 1, size(detector_list_array)

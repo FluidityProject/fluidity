@@ -47,7 +47,7 @@ for i in range(100):
     attributes_error_3[0,i] = s[name]['Chem1'][0][-1] -  (s[name]['position'][0][-1] + s['ElapsedTime']['value'][-1])
 print "max error",abs(attributes_error_3).max()
     </variable>
-    <variable name="attributes_error_4" language="python">
+    <variable name="sq_error_4" language="python">
 from fluidity_tools import stat_parser
 import numpy as np
 
@@ -55,13 +55,16 @@ s = stat_parser('particle_attributes.particles.Steve')
 attributes_error_4 = np.zeros((1,100))
 X = np.fromfile('Xvals.txt',sep=' ')
 Y = np.fromfile('Yvals.txt',sep=' ')
+sq_error=0
 
 for i in range(100):
     name = 'Steve_' + str(i+1).zfill(3)
     Temp = 2.0 - abs(0.5-s[name]['position'][0][-1]) - abs(0.5-s[name]['position'][1][-1]) - np.sin(s['ElapsedTime']['value'][-1]*np.pi/2.0)/2.0
     Salinity = 2.0 - s[name]['position'][1][-1]
     attributes_error_4[0,i] = s[name]['Chem2'][0][-1] - (s[name]['position'][0][-1] + s['ElapsedTime']['value'][-1] + Salinity + Temp)
-print "max error",abs(attributes_error_4).max()
+    sq_error = sq_error + attributes_error_4[0,i]**2
+    
+sq_error_4 = sq_error
     </variable>
     <variable name="attributes_error_5" language="python">
 from fluidity_tools import stat_parser
@@ -96,10 +99,10 @@ assert abs(attributes_error_2).max() &lt; 1.0e-5
     <test name="Correctattribteserror3" language="python">
 assert abs(attributes_error_3).max() &lt; 1.0e-5
     </test>
-    <test name="Correctattribteserror3" language="python">
-assert abs(attributes_error_4).max() &lt; 1.0e-5
+    <test name="Correctattribteserror4" language="python">
+assert sq_error_4 &lt; 1.0e-3
     </test>
-    <test name="Correctattribteserror3" language="python">
+    <test name="Correctattribteserror5" language="python">
 assert abs(attributes_error_5).max() &lt; 1.0e-5
     </test>
   </pass_tests>

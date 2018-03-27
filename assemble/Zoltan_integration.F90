@@ -34,8 +34,8 @@ module zoltan_integration
   use c_interfaces
   use detector_data_types
   use boundary_conditions_from_options
-  use detector_tools
   use pickers
+  use detector_tools
   use detector_parallel
   use hadapt_advancing_front
   use fields_halos
@@ -1972,7 +1972,10 @@ module zoltan_integration
     if (any(ndets_being_sent > 0)) then
        do_broadcast=.true.
     end if
-    if (.not. do_broadcast) return
+    if (.not. do_broadcast) then
+       ewrite(1,*) "Exiting update_detector_list_element"
+       return
+    end if
     ewrite(2,*) "Broadcast required, initialising..."
 
     ! Allocate memory for all the detectors you're going to send
@@ -2056,22 +2059,23 @@ module zoltan_integration
 
     ewrite(1,*) "In update_particle_list_element"
 
-    send_count=0
     !Loop for particles with attributes
 
     do j = 1, size(detector_list_array)
+       send_count=0
        detector_list => detector_list_array(j)%ptr
        ewrite(2,*) "Length of detector list to be updated: ", detector_list%length
 
        detector => detector_list%first
        if (associated(detector)) then
           if (size(detector%attributes)<1) then
-             cycle
+             detector => null()
+          else
+             attributes_buffer(1)=size(detector%attributes)
+             attributes_buffer(2)=size(detector%old_attributes)
+             attributes_buffer(3)=size(detector%old_fields)
+             total_attributes=attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3)
           end if
-          attributes_buffer(1)=size(detector%attributes)
-          attributes_buffer(2)=size(detector%old_attributes)
-          attributes_buffer(3)=size(detector%old_fields)
-          total_attributes=attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3)
        end if
        do while (associated(detector))
 
@@ -2109,7 +2113,6 @@ module zoltan_integration
        allocate(ndets_being_sent(getnprocs()))
        call mpi_allgather(send_count, 1, getPINTEGER(), ndets_being_sent, 1 , getPINTEGER(), MPI_COMM_FEMTOOLS, ierr)
        assert(ierr == MPI_SUCCESS)
-
        ! Check whether we have to perform broadcast, if not return
        do_broadcast=.false.
        if (any(ndets_being_sent > 0)) then
@@ -2222,7 +2225,6 @@ module zoltan_integration
     end do
     call allocate(self_sends)
     
-    
     do old_ele=1,ele_count(zoltan_global_zz_positions)
        universal_element_number = halo_universal_number(zoltan_global_zz_ele_halo, old_ele)
        old_local_nodes => ele_nodes(zoltan_global_zz_positions, old_ele)
@@ -2241,7 +2243,6 @@ module zoltan_integration
     num_export = sum(key_count(sends))
     allocate(export_global_ids(num_export))
     allocate(export_procs(num_export))
-
     ! allocate array for storing the number of detectors in each of the elements to be transferred
     
     allocate(zoltan_global_ndets_in_ele(num_export))
@@ -2275,7 +2276,7 @@ module zoltan_integration
 
     ! Get all detector lists
     call get_registered_detector_lists(detector_list_array)
-
+    
     ! Log list lengths
     if (get_num_detector_lists()>0) then
        ewrite(2,*) "Before migrate, we have", get_num_detector_lists(), "detector lists:"
@@ -2286,13 +2287,11 @@ module zoltan_integration
 
     ierr = Zoltan_Migrate(zz, num_import, import_global_ids, import_local_ids, import_procs, &
          & import_to_part, num_export, export_global_ids, export_local_ids, export_procs, export_to_part) 
-    
     assert(ierr == ZOLTAN_OK)
     
     deallocate(export_local_ids)
     deallocate(export_procs)
     deallocate(export_global_ids)
-
     deallocate(zoltan_global_ndets_in_ele)
     
     ! update the local detectors and make sure we didn't miss any in the first send
