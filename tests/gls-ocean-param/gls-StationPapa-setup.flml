@@ -893,7 +893,7 @@ import csv
 
 templ = []
 layerl = []
-reader = csv.reader(= open("temperature.csv"))
+reader = csv.reader(open("temperature.csv"))
 for row in reader:
   layerl.append(abs(float(row[0])))
   templ.append(float(row[1]))
@@ -985,7 +985,7 @@ import numpy
 
 templ = []
 layerl = []
-reader = csv.reader(= open("salinity.csv"))
+reader = csv.reader(open("salinity.csv"))
 for row in reader:
   layerl.append(float(row[0]))
   templ.append(float(row[1]))

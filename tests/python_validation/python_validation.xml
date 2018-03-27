@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <testproblem>
   <name>FLML validation (python version)</name>
   <owner userid="jrper"/>
@@ -8,8 +8,7 @@
   </problem_definition>
   <variables>
     <variable name="python_versions" language="python">import python_validate
-python_versions = python_validate.check_versions()
-    </variable>
+python_versions = python_validate.check_versions()</variable>
     <variable name="ignoredOptionsFiles" language="python">ignoredOptionsFiles = []
 try:
   warningsFile = open("ignored", "r")
@@ -36,6 +35,10 @@ else:
 import os
 import sys
 import subprocess
+import pickle
+import python_validate
+
+versions = python_validate.check_versions()
 
 class PythonValidator:
     def __init__(self, rootDir):
@@ -52,22 +55,32 @@ class PythonValidator:
 
     def TestFiles(self, testDir, depth):
         print("Checking xml and flml files:")
-        for filename in self._TestFiles(("xml", "flml", "py"), testDir, depth):
-            passed = True
-            for py_version in ('python2', 'python3'):
-                try:
-                    subprocess.check_output([py_version,
-                                             os.path.abspath('python_validate.py'),
-                                             filename])
-                except subprocess.CalledProcessError as err:
-                    self._optionErrors.setdefault(filename,{})[py_version]=err
-                    passed = False
-            if(passed):
-                print(filename + " : Pass")
-                self._passes += 1
-            else:
-                print(filename + " : Fail %s"%list(self._optionErrors[filename].keys()))
+        filenames = [os.path.abspath(name) for 
+                    name in self._TestFiles(("xml", "flml", "py"), testDir, depth)]
+        for py_version in versions:
+            try:
+                subprocess.check_output([py_version,
+                                         os.path.abspath('python_validate.py'),
+                                         "-w %s"%(os.getcwd()+'/failures.dat')
+                                        ]+filenames)
+            except subprocess.CalledProcessError as err:
+                # A return code of 100 indicates validation finished but with failures
+                if err.returncode != 100:
+                    print(err.output)
+                    self._optionErrors.setdefault('Validation failed',{})[py_version]=err
+            with open('failures.dat', 'rb') as data:
+                failures = pickle.load(data)
+            for filename in filenames:
+                if filename in failures:
+                    print(filename)
+                    print(failures[filename])
+                    self._optionErrors.setdefault(filename, {})[py_version] = failures[filename]
 
+        for filename in filenames:
+            if filename in self._optionErrors:
+                print(filename + " : Fail %s"%list(self._optionErrors[filename].keys()))
+            else:
+                self._passes += 1
 
         return
 
@@ -100,12 +113,11 @@ print("Summary of options files with failures:")
 for filename in list(optionErrors.keys()):
     print(filename)
 print("Passes: " + str(passes))
-print("Failures: " + str(len(optionErrors)))
-</variable>
+print("Failures: " + str(len(optionErrors)))</variable>
   </variables>
+  <pass_tests/>
   <warn_tests>
-    <test name="Two python versions" language="python">assert(len(python_versions)==2)
-    </test>
+    <test name="Two python versions on machine" language="python">assert(len(python_versions)==2)</test>
     <test name="Options files validate" language="python">failures = []
 for filename, types in optionErrors.items():
   if not filename in ignoredOptionsFiles:
