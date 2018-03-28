@@ -152,7 +152,7 @@
       !  PETSc rhs vector:
       Vec, intent(out) :: b
       !  Solver object:
-      Mat, intent(out) :: ksp
+      KSP, intent(out) :: ksp
       ! Numbering from local to PETSc:
       type(petsc_numbering_type), intent(out) :: petsc_numbering_p
       ! Name of solve, to be printed on log output:
@@ -195,7 +195,6 @@
       type(petsc_csr_matrix), dimension(:), pointer:: prolongators
       integer, dimension(:), pointer:: surface_nodes
 
-      PetscObject:: myPETSC_NULL_OBJECT
       PetscErrorCode ierr
       KSP ksp_schur ! ksp object for the inner solve in the Schur Complement
       Mat G_t_comp ! PETSc compressible divergence matrix
@@ -358,11 +357,14 @@
       if(have_auxiliary_matrix) then
          call MatCreateSchurComplement(inner_M%M,inner_M%M,G,G_t_comp,S,A,ierr)
       else
-         myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-         call MatCreateSchurComplement(inner_M%M,inner_M%M,G,G_t_comp,PETSC_NULL_OBJECT,A,ierr)
-         if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-           FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-         end if
+         ! workaround bug in petsc 3.8: missing CHKFORTRANNULLOBJECT, so PETSC_NULL_MAT isn't translated to C null
+         ! this however seems to do the trick:
+#if PETSC_VERSION_MINOR>=8
+         S%v = 0
+#else
+         S = PETSC_NULL_OBJECT
+#endif
+         call MatCreateSchurComplement(inner_M%M,inner_M%M,G,G_t_comp,S,A,ierr)
       end if
       
       if (have_option(trim(inner_option_path)//"/solver")) then
@@ -406,12 +408,12 @@
       end if
 
 
-      if (inner_M%ksp==PETSC_NULL_OBJECT) then
+      if (inner_M%ksp==PETSC_NULL_KSP) then
         ! use the one that's just been created for us
         call MatSchurComplementGetKSP(A,ksp_schur,ierr)
 
         ! we keep our own reference, so it can be re-used in the velocity correction solve
-        call PetscObjectReference(ksp_schur, ierr)
+        call PetscObjectReferenceWrapper(ksp_schur, ierr)
         inner_M%ksp = ksp_schur
       else
         ! we have a ksp (presumably from the first velocity solve), try to reuse it
