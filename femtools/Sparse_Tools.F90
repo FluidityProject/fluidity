@@ -852,7 +852,7 @@ contains
     nullify(matrix%inactive%ptr)
     ! same story for ksp
     allocate(matrix%ksp)
-    matrix%ksp=PETSC_NULL_OBJECT ! to indicate no ksp cache available
+    matrix%ksp=PETSC_NULL_KSP ! to indicate no ksp cache available
 
     select case (ltype)
     case (CSR_REAL)
@@ -985,7 +985,7 @@ contains
       FLAbort("Attempt made to deallocate a non-allocated or damaged CSR matrix.")
     end if
     
-    if (matrix%ksp/=PETSC_NULL_OBJECT) then
+    if (matrix%ksp/=PETSC_NULL_KSP) then
       call KSPDestroy(matrix%ksp, lstat)
       if (lstat/=0) then
         if (present(stat)) then
@@ -1115,7 +1115,7 @@ contains
     
     ! always allocate to make sure all references see the same %ksp
     allocate(matrix%ksp)
-    matrix%ksp=PETSC_NULL_OBJECT ! to indicate no ksp cache available
+    matrix%ksp=PETSC_NULL_KSP ! to indicate no ksp cache available
 
 
 42  if (present(stat)) then
@@ -1191,7 +1191,7 @@ contains
     if (.not. associated(matrix%ksp)) then
       FLAbort("Attempt made to deallocate a non-allocated or damaged CSR matrix.")
     end if
-    if (matrix%ksp/=PETSC_NULL_OBJECT) then
+    if (matrix%ksp/=PETSC_NULL_KSP) then
       call KSPDestroy(matrix%ksp, lstat)
       if (lstat/=0) then
         if (present(stat)) then
@@ -1491,7 +1491,7 @@ contains
 
     ! always allocate to make sure all references see the same %ksp
     allocate(matrix%ksp)
-    matrix%ksp=PETSC_NULL_OBJECT ! to indicate no ksp cache available
+    matrix%ksp=PETSC_NULL_KSP ! to indicate no ksp cache available
     
     ! Wrapped matrices can have inactive nodes
     allocate( matrix%inactive, stat=lstat )
@@ -1578,7 +1578,7 @@ contains
 
     ! always allocate to make sure all references see the same %ksp
     allocate(matrix%ksp)
-    matrix%ksp=PETSC_NULL_OBJECT ! to indicate no ksp cache available
+    matrix%ksp=PETSC_NULL_KSP ! to indicate no ksp cache available
     
     if (present(stat)) then
        stat=lstat
@@ -2187,12 +2187,12 @@ contains
   
   end function has_inactive
   
-  pure function csr_has_solver_cache(matrix)
+  function csr_has_solver_cache(matrix)
     logical :: csr_has_solver_cache
     type(csr_matrix), intent(in) :: matrix
     
     if (associated(matrix%ksp)) then
-      csr_has_solver_cache = matrix%ksp/=PETSC_NULL_OBJECT
+      csr_has_solver_cache = matrix%ksp/=PETSC_NULL_KSP
     else
       ! this should only be possible for a csr_matrix returned from block()
       csr_has_solver_cache = .false.
@@ -2200,12 +2200,12 @@ contains
     
   end function csr_has_solver_cache
   
-  pure function block_csr_has_solver_cache(matrix)
+  function block_csr_has_solver_cache(matrix)
     logical :: block_csr_has_solver_cache
     type(block_csr_matrix), intent(in) :: matrix
     
     if (associated(matrix%ksp)) then
-      block_csr_has_solver_cache = matrix%ksp/=PETSC_NULL_OBJECT
+      block_csr_has_solver_cache = matrix%ksp/=PETSC_NULL_KSP
     else
       ! don't think this is possible, but hey
       block_csr_has_solver_cache = .false.
@@ -2220,10 +2220,10 @@ contains
     
     if (.not. associated(matrix%ksp)) return
     
-    if (matrix%ksp/=PETSC_NULL_OBJECT) then
+    if (matrix%ksp/=PETSC_NULL_KSP) then
       call KSPDestroy(matrix%ksp, ierr)
     end if
-    matrix%ksp=PETSC_NULL_OBJECT
+    matrix%ksp=PETSC_NULL_KSP
     
   end subroutine csr_destroy_solver_cache
   
@@ -2234,10 +2234,10 @@ contains
     
     if (.not. associated(matrix%ksp)) return
     
-    if (matrix%ksp/=PETSC_NULL_OBJECT) then
+    if (matrix%ksp/=PETSC_NULL_KSP) then
       call KSPDestroy(matrix%ksp, ierr)
     end if
-    matrix%ksp=PETSC_NULL_OBJECT
+    matrix%ksp=PETSC_NULL_KSP
     
   end subroutine block_csr_destroy_solver_cache
     

@@ -4,8 +4,8 @@
   <owner userid="ajm02"/>
   <tags>flml</tags>
   <problem_definition length="vlong" nprocs="48">
-    <command_line>mpiexec flredecomp -i 1 -o 48 -v -l med med_flredecomp &amp;&amp;
-mpiexec fluidity -v2 -l med_flredecomp.flml</command_line>
+    <command_line>mpiexec flredecomp -i 1 -o 48 -l med med_flredecomp &amp;&amp;
+mpiexec fluidity -l med_flredecomp.flml</command_line>
   </problem_definition>
    <variables>
     <variable name="final_time" language="python">

@@ -646,7 +646,6 @@ PROFILING_FLAG
 IO_ADVANCE_BUG
 HAVE_ZOLTAN
 CXXCPP
-HAVE_PETSC33
 X_EXTRA_LIBS
 X_LIBS
 X_PRE_LIBS
@@ -12647,21 +12646,24 @@ PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile_old getincludedirs 2> /dev/null |
 CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
 FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
 
-# Horrible hacks needed for cx1
-# Somehow /apps/intel/ict/mpi/3.1.038/lib64 gets given as /apps/intel/ict/mpi/3.1.038/lib/64
-# maybe the directory got moved after building petsc? Anyhow next time we
-# request a new petsc package on cx1, this hack can be removed - and we
-# can check if the new packages passes the test without any hacks.
-fixedLIBS=`echo $LIBS |sed 's@/apps/intel/ict/mpi/3.1.038/lib/64@/apps/intel/ict/mpi/3.1.038/lib64@g'`
+# first check we have the right petsc version
+if ac_fn_c_compute_int "$LINENO" ""PETSC_VERSION_MAJOR"" "PETSC_VERSION_MAJOR"        "#include \"petscversion.h\""; then :
 
-if test ! "$LIBS" == "$fixedLIBS"; then
-  # more fixes needed:
-  # also -lmpichcxx got mangled to -lmpichxx
-  LIBS=`echo $fixedLIBS |sed 's@mpichxx@mpichcxx@g'`
-  # remove -lPEPCF90, -lpromfei and -lprometheus
-  LIBS=`echo $LIBS |sed 's@-lPEPCF90@@g'`
-  LIBS=`echo $LIBS |sed 's@-lpromfei@@g'`
-  LIBS=`echo $LIBS |sed 's@-lprometheus@@g'`
+else
+  as_fn_error $? "Unknown petsc major version" "$LINENO" 5
+fi
+
+if ac_fn_c_compute_int "$LINENO" ""PETSC_VERSION_MINOR"" "PETSC_VERSION_MINOR"        "#include \"petscversion.h\""; then :
+
+else
+  as_fn_error $? "Unknown petsc minor version" "$LINENO" 5
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: Detected PETSc version \"$PETSC_VERSION_MAJOR\".\"$PETSC_VERSION_MINOR\"" >&5
+$as_echo "$as_me: Detected PETSc version \"$PETSC_VERSION_MAJOR\".\"$PETSC_VERSION_MINOR\"" >&6;}
+# if major<3 or minor<4
+if test "0$PETSC_VERSION_MAJOR" -lt 3 -o "0$PETSC_VERSION_MINOR" -lt 4; then
+  as_fn_error $? "Fluidity needs PETSc version >=3.4" "$LINENO" 5
 fi
 
 ac_ext=${ac_fc_srcext-f}
@@ -12670,8 +12672,11 @@ ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
 # F90 (capital F) to invoke preprocessing
-# it's only 20 years ago now!
 ac_ext=F90
+
+# may need some extra flags for testing that we don't want to use in the end
+SAVE_FCFLAGS="$FCFLAGS"
+
 if test "$enable_petsc_fortran_modules" != "no" ; then
   # now try if the petsc fortran modules work:
   cat > conftest.$ac_ext <<_ACEOF
@@ -12691,18 +12696,18 @@ $as_echo "$as_me: PETSc modules are working." >&6;}
 
 $as_echo "#define HAVE_PETSC_MODULES 1" >>confdefs.h
 
+              FCFLAGS="$FCFLAGS -DHAVE_PETSC_MODULES"
 
 else
 
               { $as_echo "$as_me:${as_lineno-$LINENO}: PETSc modules don't work, using headers instead." >&5
 $as_echo "$as_me: PETSc modules don't work, using headers instead." >&6;}
-              unset HAVE_PETSC_MODULES
 
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-else
-  unset HAVE_PETSC_MODULES
+elif test "0$PETSC_VERSION_MINOR" -ge 8; then
+  as_fn_error $? "PETSc v3.8 and newer requires petsc fortran modules. Do not use the --disable-petsc-fortran-modules option" "$LINENO" 5
 fi
 
 # now try a more realistic program, it's a stripped down
@@ -12716,15 +12721,13 @@ program test_petsc
 implicit none
 #include "petsc_legacy.h"
       double precision  norm
-      PetscInt  i,j,II,JJ,m,n,its
+      PetscInt  i,j,II0,m,n,its
+      PetscInt, dimension(1) ::  II, JJ
       PetscInt  Istart,Iend,ione
       PetscErrorCode ierr
-#if PETSC_VERSION_MINOR>=2
       PetscBool flg
-#else
-      PetscTruth  flg
-#endif
-      PetscScalar v,one,neg_one
+      PetscScalar, dimension(1) :: v
+      PetscScalar one,neg_one
       Vec         x,b,u
       Mat         A
       KSP         ksp
@@ -12735,8 +12738,8 @@ implicit none
       one  = 1.0
       neg_one = -1.0
       ione    = 1
-      call PetscOptionsGetInt(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER,'-m',m,flg,ierr)
-      call PetscOptionsGetInt(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
+      call PetscOptionsGetInt(PETSC_NULL_OPTIONS, PETSC_NULL_CHARACTER,'-m',m,flg,ierr)
+      call PetscOptionsGetInt(PETSC_NULL_OPTIONS, PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
 
       call MatCreate(PETSC_COMM_WORLD,A,ierr)
       call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,m*n,m*n,ierr)
@@ -12744,10 +12747,11 @@ implicit none
 
       call MatGetOwnershipRange(A,Istart,Iend,ierr)
 
-      do 10, II=Istart,Iend-1
+      do 10, II0=Istart,Iend-1
+        II = II0
         v = -1.0
-        i = II/n
-        j = II - i*n
+        i = II0/n
+        j = II0 - i*n
         if (i.gt.0) then
           JJ = II - n
           call MatSetValues(A,ione,II,ione,JJ,v,INSERT_VALUES,ierr)
@@ -12815,6 +12819,7 @@ fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 
+FCFLAGS="$SAVE_FCFLAGS"
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -12822,37 +12827,9 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-# finally check we have the right petsc version
-if ac_fn_c_compute_int "$LINENO" ""PETSC_VERSION_MAJOR"" "PETSC_VERSION_MAJOR"        "#include \"petscversion.h\""; then :
-
-else
-  as_fn_error $? "Unknown petsc major version" "$LINENO" 5
-fi
-
-if ac_fn_c_compute_int "$LINENO" ""PETSC_VERSION_MINOR"" "PETSC_VERSION_MINOR"        "#include \"petscversion.h\""; then :
-
-else
-  as_fn_error $? "Unknown petsc minor version" "$LINENO" 5
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: Detected PETSc version \"$PETSC_VERSION_MAJOR\".\"$PETSC_VERSION_MINOR\"" >&5
-$as_echo "$as_me: Detected PETSc version \"$PETSC_VERSION_MAJOR\".\"$PETSC_VERSION_MINOR\"" >&6;}
-# if major<3 or minor<1
-if test "0$PETSC_VERSION_MAJOR" -lt 3 -o "0$PETSC_VERSION_MINOR" -lt 1; then
-  as_fn_error $? "Fluidity needs PETSc version >=3.1" "$LINENO" 5
-fi
 
 
 $as_echo "#define HAVE_PETSC 1" >>confdefs.h
-
-
-# define HAVE_PETSC33 for use in the Makefiles (including petsc's makefiles
-# would require having PETSC_DIR+PETSC_ARCH set correctly for every make)
-if test "0$PETSC_VERSION_MINOR" -ge 3; then
-  HAVE_PETSC33=yes
-else
-  HAVE_PETSC33=no
-fi
 
 
 
@@ -12924,14 +12901,6 @@ LIBS=$tmpLIBS
 CPPFLAGS=$tmpCPPFLAGS
 
 CPPFLAGS="$CPPFLAGS -DHAVE_PETSC"
-if test "$HAVE_PETSC_MODULES" == "1"; then
-  CPPFLAGS="$CPPFLAGS -DHAVE_PETSC_MODULES"
-fi
-if test "$HAVE_HYPRE" == "1"; then
-  CPPFLAGS="$CPPFLAGS -DHAVE_HYPRE"
-fi
-CPPFLAGS=`echo $CPPFLAGS | sed 's/-petsc-version-/3.4.2.0/' | sed 's/x86_64\/x86_64/x86_64/'`
-FCFLAGS=`echo $FCFLAGS | sed 's/-petsc-version-/3.4.2.0/' | sed 's/x86_64\/x86_64/x86_64/'`
 
 # Metis, ParMetis
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking if we can compile and link without using -lparmetis" >&5
