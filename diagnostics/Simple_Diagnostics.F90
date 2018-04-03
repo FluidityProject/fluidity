@@ -406,7 +406,7 @@ contains
     end if
 
     positions => extract_vector_field(state, "Coordinate")
-    average = field_integral(s_field, positions)
+    average = field_integral(s_field, positions) / mesh_integral(positions)
     call addto(s_field, -average)
 
   end subroutine calculate_subtract_average
