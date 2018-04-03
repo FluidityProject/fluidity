@@ -14,6 +14,10 @@ def function(phi_0, phi_x, phi_y, phi_xy,
 p = function(-1.0, 1.0, 1.0, 1.0,
              1.0, 0.0, 0.0, 1.0, 1.0, 0.0,
              1.0, 1.0, 1.0)
+# ensure the pressure solution has 0 mean:
+pavg = N(integrate(integrate(p, x, 0, pi), y, 0, pi))
+p -= pavg
+
 rho1 = 2.5
 rho2 = 0.5
 u1 = 0.25*cos(x)*cos(y) - x*cos(y)

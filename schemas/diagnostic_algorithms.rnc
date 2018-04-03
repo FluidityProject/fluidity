@@ -1543,7 +1543,45 @@ surface_horizontal_divergence_algorithm =
          }
       }
    )
-      
+
+subtract_average_algorithm =
+   (
+      ## Algorithm that subtracts the average from a scalar field. The integral
+      ## of the resulting diagnostic field is therefore zero.
+      ##
+      ## This is useful for fields that are only defined up to a constant. During
+      ## their solve it is typically best to remove this freedom by using the 
+      ## "remove_null_space" option (which effectively introduces a mesh dependent 
+      ## constraint on the sum of the nodal values). For diagnostic purposes however,
+      ## it may be useful to impose the more natural constraint that the integrated
+      ## average is zero.
+      element algorithm {
+         attribute name { "subtract_average" },
+         attribute material_phase_support { "single" },
+         scalar_source_field
+      }
+   )
+
+subtract_point_value_algorithm =
+   (
+      ## Algorithm that subtracts the scalar field value in a certain point 
+      ## from that same field. The resulting diagnostic field will therefore be zero in that point.
+      ##
+      ## This is useful for fields that are only defined up to a constant. It is similar
+      ## to pinning using a reference node during the solve, except it is only imposed afterwards.
+      ## This can be useful because during the solve it is typically better to pin the 
+      ## arbitrary constant with the "remove_null_space" option instead.
+      element algorithm {
+         attribute name { "subtract_point_value" },
+         attribute material_phase_support { "single" },
+         scalar_source_field,
+         element coordinates {
+            ## coordinates of the point whose value should be subtracted
+            real_dim_vector
+         }
+      }
+   )
+
 
 scalar_diagnostic_algorithms = universal_numbering_diagnostic_algorithm
 scalar_diagnostic_algorithms |= viscous_dissipation_algorithm
@@ -1560,6 +1598,8 @@ scalar_diagnostic_algorithms |= scalar_sum_algorithm
 scalar_diagnostic_algorithms |= scalar_squared_time_averaged_algorithm
 scalar_diagnostic_algorithms |= scalar_potential_algorithm
 scalar_diagnostic_algorithms |= scalar_laplacian_algorithm
+scalar_diagnostic_algorithms |= subtract_point_value_algorithm
+scalar_diagnostic_algorithms |= subtract_average_algorithm
 scalar_diagnostic_algorithms |= scalar_galerkin_projection_algorithm
 scalar_diagnostic_algorithms |= scalar_difference_algorithm
 scalar_diagnostic_algorithms |= scalar_copy_algorithm
