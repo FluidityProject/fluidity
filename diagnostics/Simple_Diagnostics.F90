@@ -431,16 +431,24 @@ contains
     allocate(coords(1:positions%dim), lcoords(1:positions%dim+1))
     call get_option(trim(s_field%option_path)//"/diagnostic/algorithm/coordinates", coords)
     call picker_inquire(positions, coords, ele, lcoords)
-    if (ele<=0) then
+    if (ele>0) then
+      point_value = eval_field(ele, s_field, lcoords)
+    else
+      point_value = 0.0
+    end if
+    deallocate(coords, lcoords)
+
+    if (IsParallel()) then
+      ! picker_inquire with global=.true., is a bit dumb: it negotiates to ensure
+      ! only one processes returns with ele>0 - but then throws away the winning
+      ! process number, so we can't do a bcast - use allsum instead
+      call allsum(point_value)
+      ! more importantly we can't check whether any process has found this location
+    else if (ele<=0) then
       ewrite(0,*) "In subtract_point_value, specified coordinates not found within domain"
-      deallocate(coords, lcoords)
-      return
     end if
 
-    point_value = eval_field(ele, s_field, lcoords)
     call addto(s_field, -point_value)
-
-    deallocate(coords, lcoords)
 
   end subroutine calculate_subtract_point_value
 
