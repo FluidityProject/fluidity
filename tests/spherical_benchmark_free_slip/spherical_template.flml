@@ -483,7 +483,24 @@
     </scalar_field>
     <scalar_field name="PressureError" rank="0">
       <diagnostic>
-        <algorithm name="scalar_difference" source_field_1_name="Pressure" source_field_2_name="AnalyticalPressure" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar"/>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="PressureRemeaned" source_field_2_name="AnalyticalPressure" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="PressureRemeaned" rank="0">
+      <diagnostic>
+        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="Pressure" name="subtract_average"/>
         <mesh name="PressureMesh"/>
         <output/>
         <stat/>
