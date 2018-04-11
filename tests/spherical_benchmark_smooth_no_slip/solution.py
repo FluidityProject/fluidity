@@ -19,10 +19,11 @@ m = l
 # which is the reverse of the "physical" convention we use
 
 # coefficients for Pl(r) = A*r**l + B*r**(-l-1) + C*r**(l+2) + D*r**(-l+1) + E*r**(k+3)
-A = g*R2**(-l + 3)/nu*0.5*(alpha**(k + 3) - alpha**(-l + 1))/((alpha**l - alpha**(-l + 1))*(k + l + 2)*(k - l + 3)*(2*l + 1))
-B = g*R2**(l + 4)/nu*-0.5*(alpha**(k + 4) - alpha**(l + 3))/((alpha**(-l) - alpha**(l + 3))*(k + l + 4)*(k - l + 1)*(2*l + 1))
-C = g*R2**(-l + 1)/nu*0.5*(alpha**(k + 4) - alpha**(-l))/((alpha**(-l) - alpha**(l + 3))*(k + l + 4)*(k - l + 1)*(2*l + 1))
-D = g*R2**(l + 2)/nu*-0.5*(alpha**(k + 3) - alpha**l)/((alpha**l - alpha**(-l + 1))*(k + l + 2)*(k - l + 3)*(2*l + 1))
+Gamma = ((alpha**(l + 1) + alpha**(l - 3))*(2*l + 1)**2 - 2*alpha**(l - 1)*(2*l + 3)*(2*l - 1) - 4*alpha**(3*l) - 4*alpha**(-l - 2))*(k + l + 4)*(k + l + 2)*(k - l + 3)*(k - l + 1)
+A = g*R2**(-l + 3)/nu*((alpha**(k + 2) + alpha**(l - 1))*(k + l + 2)*(2*l + 3) - (alpha**k + alpha**(l + 1))*(k + l + 4)*(2*l + 1) - 2*(alpha**(k + 2*l + 3) + alpha**(-l - 2))*(k - l + 1))/Gamma
+B = g*R2**(l + 4)/nu*((alpha**(k + 2*l + 1) + alpha**(l + 1))*(k - l + 3)*(2*l + 1) - (alpha**(k + 2*l + 3) + alpha**(l - 1))*(k - l + 1)*(2*l - 1) - 2*(alpha**(k + 2) + alpha**(3*l))*(k + l + 2))/Gamma
+C = g*R2**(-l + 1)/nu*(-(alpha**(k + 2) + alpha**(l - 3))*(k + l + 2)*(2*l + 1) + (alpha**k + alpha**(l - 1))*(k + l + 4)*(2*l - 1) + 2*(alpha**(k + 2*l + 1) + alpha**(-l - 2))*(k - l + 3))/Gamma
+D = g*R2**(l + 2)/nu*(-(alpha**(k + 2*l + 1) + alpha**(l - 1))*(k - l + 3)*(2*l + 3) + (alpha**(k + 2*l + 3) + alpha**(l - 3))*(k - l + 1)*(2*l + 1) + 2*(alpha**k + alpha**(3*l))*(k + l + 4))/Gamma
 E = R2**(-k)*g/((k + l + 4)*(k + l + 2)*(k - l + 3)*(k - l + 1)*nu)
 
 
@@ -41,7 +42,8 @@ def dPldr(r):
 # eqn (106):
 assert abs(Pl(R1))<1e-12
 assert abs(Pl(R2))<1e-12
-
+assert abs(dPldr(R1))<1e-12
+assert abs(dPldr(R2))<1e-12
 
 def Y(m, l, theta, phi):
     # everywhere we take the real part of Y, corresponding to the cos(m phi) part of the solution

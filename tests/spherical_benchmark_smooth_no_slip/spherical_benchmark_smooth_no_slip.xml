@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-  <name>spherical_benchmark_smooth_free_slip</name>
+  <name>spherical_benchmark_smooth_no_slip</name>
   <owner userid="skramer"/>
   <problem_definition length="special" nprocs="1">
     <command_line>for i in A B C D; do
