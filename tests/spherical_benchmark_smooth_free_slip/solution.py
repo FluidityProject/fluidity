@@ -94,8 +94,10 @@ def delta_rho(r, theta, phi):
 def get_cartesian_solution(X):
     r = sqrt(X[0]**2+X[1]**2+X[2]**2)
     theta = acos(X[2]/r)
-    if theta<1e-6*pi or theta>pi*(1.-1e-6):
-        return 0., 0., 0.
+    if theta<1e-7*pi or theta>pi*(1.-1e-7):
+        # workaround pole problem by averaging in 4 points near the pole
+        dx = 1e-6*r
+        return tuple(numpy.mean([get_cartesian_solution((x,y,X[2])) for x,y in [[dx,dx],[-dx,dx],[dx,-dx],[-dx,-dx]]],axis=0))
     phi = atan2(X[1], X[0])
     ur = u_r(r,theta, phi)
     uth = u_theta(r,theta, phi)
@@ -111,17 +113,6 @@ def get_pressure_solution(X):
     theta = acos(X[2]/r)
     phi = atan2(X[1], X[0])
     return pressure(r, theta, phi)
-
-def get_spherical_solution(X):
-    r = sqrt(X[0]**2+X[1]**2+X[2]**2)
-    theta = acos(X[2]/r)
-    if theta<1e-6*pi or theta>pi*(1.-1e-6):
-        return 0., 0., 0.
-    phi = atan2(X[1], X[0])
-    ur = u_r(r,theta, phi)
-    uth = u_theta(r,theta, phi)
-    uph = u_phi(r, theta, phi)
-    return ur, uth, uph
 
 def get_delta_rho(X):
     r = sqrt(X[0]**2+X[1]**2+X[2]**2)
