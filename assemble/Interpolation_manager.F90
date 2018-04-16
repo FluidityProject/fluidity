@@ -207,7 +207,17 @@ contains
     ewrite(2, *) "Gathering fields for more general interpolation"
     
     old_pos = extract_vector_field(states_old(1), "Coordinate")
-    new_pos = extract_vector_field(states_new(1), "Coordinate")
+    if (old_pos%mesh%shape%degree/=1) then
+      ! none (*) of the interpolation routines work in higher order geometries (for various good reasons)
+      ! so fall back to the linear description of the geometry
+      ! (*) linear_interpolation actually "works" as the pickers code approximates the inversion to
+      ! local coordinate by using the vertex locations only - so even for that case we might as well
+      ! use a linear coordinate field directly
+      call find_linear_parent_mesh(states_old(1), old_pos%mesh, old_mesh)
+      old_pos = extract_vector_field(states_old(1), trim(old_mesh%name)//"Coordinate")
+    end if
+    ! use the same in states_new
+    new_pos = extract_vector_field(states_new(1), old_pos%name)
     
     ! OK! So we have some work to do.
     ! First, let's organise the fields according to what mesh
