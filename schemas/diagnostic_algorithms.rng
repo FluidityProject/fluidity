@@ -2139,6 +2139,29 @@ arbitrary constant with the "remove_null_space" option instead.</a:documentation
       </element>
     </element>
   </define>
+  <define name="subtract_surface_average_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm that subtracts the surface average from a scalar field. The 
+surface integral of the resulting diagnostic field is therefore zero.
+
+This is useful for fields that are only defined up to a constant. During
+their solve it is typically best to remove this freedom by using the 
+"remove_null_space" option (which effectively introduces a mesh dependent 
+constraint on the sum of the nodal values). For diagnostic purposes however,
+it may be useful to impose a more natural constraint such as the surface 
+integral being zero.</a:documentation>
+      <attribute name="name">
+        <value>subtract_surface_average</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="scalar_source_field"/>
+      <element name="surface_ids">
+        <ref name="integer_vector"/>
+      </element>
+    </element>
+  </define>
   <define name="scalar_diagnostic_algorithms">
     <ref name="universal_numbering_diagnostic_algorithm"/>
   </define>
@@ -2183,6 +2206,9 @@ arbitrary constant with the "remove_null_space" option instead.</a:documentation
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_laplacian_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="subtract_surface_average_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="subtract_point_value_algorithm"/>

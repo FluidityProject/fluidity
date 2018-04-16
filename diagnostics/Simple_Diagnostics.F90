@@ -42,6 +42,7 @@ module simple_diagnostics
   use initialise_fields_module
   use state_fields_module
   use pickers_inquire
+  use surface_integrals
 
   implicit none
 
@@ -57,7 +58,7 @@ module simple_diagnostics
             calculate_time_averaged_scalar, calculate_time_averaged_vector, &
             calculate_time_averaged_scalar_squared, &
             calculate_time_averaged_vector_times_scalar, calculate_period_averaged_scalar, &
-            calculate_subtract_average, calculate_subtract_point_value
+            calculate_subtract_average, calculate_subtract_point_value, calculate_subtract_surface_average
 
   ! for the period_averaged_scalar routine
   real, save :: last_output_time
@@ -451,6 +452,35 @@ contains
     call addto(s_field, -point_value)
 
   end subroutine calculate_subtract_point_value
+
+  subroutine calculate_subtract_surface_average(state, s_field)
+    type(state_type), intent(in) :: state
+    type(scalar_field), intent(inout) :: s_field
+
+    type(vector_field), pointer :: positions
+    type(scalar_field), pointer :: source_field
+    character(len = OPTION_PATH_LEN) :: option_path
+    integer, dimension(:), allocatable:: surface_ids
+    integer, dimension(2) :: shape_option
+    real :: surface_average
+    integer :: stat
+
+    source_field => scalar_source_field(state, s_field)
+    call remap_field(source_field, s_field, stat)
+    if (stat/=0) then
+      FLExit("In subtract_surface_average diagnostic, the source field is on a different mesh and cannot be remapped.")
+    end if
+
+    option_path = trim(s_field%option_path)//"/diagnostic/algorithm"
+    shape_option=option_shape(trim(option_path)//"/surface_ids")
+    allocate(surface_ids(1:shape_option(1)))
+    call get_option(trim(option_path)//"/surface_ids", surface_ids)
+
+    positions => extract_vector_field(state, "Coordinate")
+    surface_average = surface_integral(source_field, positions, surface_ids, normalise=.True.)
+    call addto(s_field, -surface_average)
+
+  end subroutine calculate_subtract_surface_average
 
   subroutine initialise_diagnostic_scalar_from_checkpoint(s_field) 
     type(scalar_field), intent(inout) :: s_field
