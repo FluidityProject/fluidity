@@ -533,14 +533,6 @@ module zoltan_integration
        call allmin(minimum_quality)
        ewrite(1,*) "global minimum achievable quality = ", minimum_quality
     end if
-    if (have_option("/mesh_adaptivity/hr_adaptivity/adaptivity_library/libadaptivity/write_adapted_quality")) then
-      ewrite_minmax(zoltan_global_element_quality)
-      output_quality_index = output_quality_index + 1
-      write(2,*) "Writing zoltan quality pvtu: ", output_quality_index
-      call vtk_write_fields("adapted_zoltan_quality", index = output_quality_index, &
-        & position = positions, model = positions%mesh, &
-        & sfields = (/ zoltan_global_element_quality /), tfields = (/ metric /))
-    end if
     
   end subroutine setup_quality_module_variables
 

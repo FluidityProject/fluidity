@@ -408,6 +408,10 @@ module spherical_adaptivity
   end subroutine ray_plane_intersection_gradient
 
   subroutine check_inverted_elements(positions, base_geometry, metric)
+    ! routine that checks whether elements have been inverted during
+    ! popping out to the spherical geometry after and adapt
+    ! It will print loads of debugging information about any inverted
+    ! element it finds before producing an error message (if any are found).
     type(vector_field), intent(in) :: positions, base_geometry
     type(tensor_field), intent(in) :: metric
 
@@ -415,9 +419,11 @@ module spherical_adaptivity
     real vol1, vol2
     integer ele, j, ele2, k
     integer, dimension(:), pointer:: neigh, facets, nodes, nodes2
+    logical :: any_inverted
 
     ewrite(1, *) "Inside check_inverted_elements"
 
+    any_inverted = .false.
     do ele=1, element_count(positions)
       neigh => ele_neigh(positions, ele)
       facets => ele_faces(positions, ele)
@@ -439,10 +445,18 @@ module spherical_adaptivity
             call ele_info(ele)
             ewrite(2,*) "Element 2 ***"
             call ele_info(ele2)
+            any_inverted = .true.
           end if
         end if
       end do
     end do
+
+    if (any_inverted) then
+      ewrite(0,*) "Inverted elements were found after popping out to the new adapted spherical geometry."
+      ewrite(0,*) "This typically means that either the base geometry (the original input mesh) is too coarse,"
+      ewrite(0,*) "or the aspect ratio bound needs to be lowered."
+      FLExit("Inverted elements in spherical adaptivity.")
+    end if
 
     contains
 
