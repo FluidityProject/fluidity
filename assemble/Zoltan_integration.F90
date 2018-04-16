@@ -1808,13 +1808,12 @@ module zoltan_integration
 
     integer :: i
     type(state_type), dimension(size(states)) :: interpolate_states
-    type(tensor_field) :: local_metric
     type(vector_field) :: base_geometry
     integer(zoltan_int) :: ierr
     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: mesh_names
     type(mesh_type), pointer :: mesh
     integer :: no_meshes
-    logical :: transfer_base_geometry, transfer_old_and_transformed_metric
+    logical :: transfer_base_geometry
     
     ewrite(1,*) 'in initialise_transfer'
     
@@ -1825,13 +1824,7 @@ module zoltan_integration
     end do
     
     ! Interpolate the metric, too
-    transfer_old_and_transformed_metric = has_tensor_field(states(1), "TransformedMetric")
-    if (transfer_old_and_transformed_metric) then
-       local_metric = extract_tensor_field(states(1), "TransformedMetric")
-       call insert(interpolate_states(1), local_metric, "TransformedMetric")
-       local_metric = extract_tensor_field(states(1), "OldMetric")
-       call insert(interpolate_states(1), local_metric, "OldMetric")
-    else if (present(full_metric)) then
+    if (present(full_metric)) then
        call insert(interpolate_states(1), full_metric, "ErrorMetric")
        call deallocate(full_metric)
     else if (present(metric)) then
@@ -1863,10 +1856,6 @@ module zoltan_integration
     call halo_update(interpolate_states, level=1)
     ! Place the fields we've picked out to interpolate onto the correct meshes of zoltan_global_source_states
     call collect_fields_by_mesh(interpolate_states, mesh_names(1:no_meshes), zoltan_global_source_states)
-    do i=1, no_meshes
-      write(0,*) mesh_names(i)
-      call print_state(zoltan_global_source_states(i))
-    end do
     
     ! Finished with interpolate_states for setting up zoltan_global_source_states
     do i=1,size(interpolate_states)
@@ -1899,11 +1888,7 @@ module zoltan_integration
     
     ! Allocate a new metric field on the new positions mesh and zero it
     if (present(metric).or.present(full_metric)) then
-       if (transfer_old_and_transformed_metric) then
-         call allocate(new_metric, zoltan_global_new_positions%mesh, "TransformedMetric")
-       else
-         call allocate(new_metric, zoltan_global_new_positions%mesh, "ErrorMetric")
-       end if
+       call allocate(new_metric, zoltan_global_new_positions%mesh, "ErrorMetric")
        call set(new_metric,spread(spread(666.0, 1, new_metric%dim(1)), 2, new_metric%dim(2)))
     end if
 
@@ -1921,14 +1906,7 @@ module zoltan_integration
 
     ! Metric will be interpolated too, it is 666.0 (for debugging purposes) at this point
     if (present(metric).or.present(full_metric)) then
-       call insert(interpolate_states(1), new_metric, new_metric%name)
-       if (transfer_old_and_transformed_metric) then
-         call insert(states(1), new_metric, new_metric%name)
-         call allocate(local_metric, zoltan_global_new_positions%mesh, "OldMetric")
-         call insert(interpolate_states(1), local_metric, "OldMetric")
-         call insert(states(1), local_metric, "OldMetric")
-         call deallocate(local_metric)
-       end if
+       call insert(interpolate_states(1), new_metric, "ErrorMetric")
     end if
     
     if (transfer_base_geometry) then
@@ -1941,11 +1919,6 @@ module zoltan_integration
 
     allocate(zoltan_global_target_states(no_meshes))
     call collect_fields_by_mesh(interpolate_states, mesh_names(1:no_meshes), zoltan_global_target_states)
-
-    do i=1, no_meshes
-      write(0,*) mesh_names(i)
-      call print_state(zoltan_global_target_states(i))
-    end do
 
     ! Finished with interpolate states for setting up zoltan_global_target_states
     do i=1,size(interpolate_states)
