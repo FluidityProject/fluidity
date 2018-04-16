@@ -1150,9 +1150,12 @@ contains
           call allocate(full_metric, metric%mesh, "OldMetric")
           call set(full_metric, metric)
           call transform_metric(states, old_positions, metric)
-          call insert(states, full_metric, "OldMetric")
-          call insert(states, metric, "TransformedMetric")
+          metric%name = "TransformedMetric"
+        else
+          full_metric = extract_tensor_field(states(1), "OldMetric")
+          call incref(full_metric)
         end if
+        ewrite(2,*) "Metric name = ", trim(metric%name)
         call vtk_write_state("base_geometry_before", index, old_positions%mesh%name, states)
       end if
       call prepare_vertically_structured_adaptivity(states, metric, full_metric, &
@@ -1277,6 +1280,12 @@ contains
       end if
 
       if((.not. final_adapt_iteration) .or. isparallel()) then
+        if (have_spherical_adaptivity) then
+          ! we're done with transformed metric (we recreate it after interpolation)
+          call deallocate(metric)
+          ! it's the original metric we want to interpolate
+          metric = full_metric
+        end if
         ! If there are remaining adapt iterations, or we will be calling
         ! sam_drive or zoltan_drive, insert the old metric into interpolate_states(1) and a
         ! new metric into states(1), for interpolation
@@ -1314,6 +1323,19 @@ contains
         metric = extract_and_remove_metric(states(1), metric_name)
         ! we haven't interpolated in halo2 nodes, so we need to halo update it
         call halo_update(metric)
+        if (have_spherical_adaptivity) then
+          ! we have interpolated the original matrix, which we save as OldMetric
+          call allocate(full_metric, metric%mesh, "OldMetric")
+          call set(full_metric, metric)
+          call insert(states(1), full_metric, "OldMetric")
+          call deallocate(full_metric)
+          ! recreate transformed metric, and stored as TranformedMetric
+          ! both metric fields will be redistributed by zoltan
+          ! but we need metric to be the transformed (as it is used for mesh quality evaluation in zoltan)
+          call transform_metric(states, old_positions, metric)
+          metric%name="TransformedMetric"
+          call insert(states(1), metric, "TransformedMetric")
+        end if
       end if
 
       if (have_spherical_adaptivity .and. final_adapt_iteration) then
