@@ -130,6 +130,19 @@ contains
     all_linear_meshes = .true.
     any_periodic_meshes = .false.
 
+    ! linear_interpolation_state always pulls out Coordinate as the source
+    ! positions field - which is not the right thing for superparametric
+    ! where we want it to use a linear description of the geometry -
+    ! so we fall back on the generic case below where everything is
+    ! sorted by mesh, and the right positions field is inserted
+    ! In principle using the higher order positions should also work
+    ! (pickers_inquire basically only looks at the vertex positions, i.e.
+    ! falls back to a linear description), but when we are using geometric
+    ! transformations in adapt_state (spherical adaptivity), the higher
+    ! order coordinates are not always in sync with the linear positions
+    old_pos = extract_vector_field(states_old(1), "Coordinate")
+    all_linear_meshes = all_linear_meshes .and. old_pos%mesh%shape%degree==1
+
     consistent_linear_state_loop: do state=1,state_cnt
       do field=1,scalar_field_count(states_old(state))
         field_s => extract_scalar_field(states_old(state), field)
