@@ -1345,6 +1345,7 @@
       
       ! Step 2: Set up test function
     
+      test_function = u_shape
       select case(stabilisation_scheme)
         case(STABILISATION_SUPG)
           relu_gi = ele_val_at_quad(nu, ele)
@@ -1369,9 +1370,8 @@
              call supg_test_function(supg_shape, u_shape, du_t, relu_gi, j_mat, &
                   & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
           end if
-          test_function = supg_shape
         case default
-          test_function = u_shape
+          supg_shape = u_shape
       end select
       ! Important note: the test function derivatives have not been modified -
       ! i.e. du_t is currently used everywhere. This is fine for P1, but is not
@@ -1416,7 +1416,7 @@
 
       ! Advection terms
       if(.not. exclude_advection) then
-        call add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug, density, viscosity, nvfrac, du_t, dug_t, dnvfrac_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
+        call add_advection_element_cg(ele, supg_shape, u, oldu_val, nu, ug, density, viscosity, nvfrac, du_t, dug_t, dnvfrac_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
       end if
 
       ! Source terms
