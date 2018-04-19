@@ -130,19 +130,6 @@ contains
     all_linear_meshes = .true.
     any_periodic_meshes = .false.
 
-    ! linear_interpolation_state always pulls out Coordinate as the source
-    ! positions field - which is not the right thing for superparametric
-    ! where we want it to use a linear description of the geometry -
-    ! so we fall back on the generic case below where everything is
-    ! sorted by mesh, and the right positions field is inserted
-    ! In principle using the higher order positions should also work
-    ! (pickers_inquire basically only looks at the vertex positions, i.e.
-    ! falls back to a linear description), but when we are using geometric
-    ! transformations in adapt_state (spherical adaptivity), the higher
-    ! order coordinates are not always in sync with the linear positions
-    old_pos = extract_vector_field(states_old(1), "Coordinate")
-    all_linear_meshes = all_linear_meshes .and. old_pos%mesh%shape%degree==1
-
     consistent_linear_state_loop: do state=1,state_cnt
       do field=1,scalar_field_count(states_old(state))
         field_s => extract_scalar_field(states_old(state), field)
@@ -199,7 +186,8 @@ contains
     end do consistent_linear_state_loop
     
     if(all_consistent_interpolation &
-      .and. all_linear_meshes .and. .not. any_periodic_meshes) then
+      .and. all_linear_meshes .and. .not. any_periodic_meshes .and. &
+      .not. have_option("/geometry/spherical_earth")) then
       ewrite(2, *) "All fields are on linear meshes and use consistent interpolation"
 
       call tictoc_clear(TICTOC_ID_INTERPOLATION)
@@ -219,18 +207,14 @@ contains
     ewrite(2, *) "Not all fields are on linear meshes and use consistent interpolation"
     ewrite(2, *) "Gathering fields for more general interpolation"
     
-    old_pos = extract_vector_field(states_old(1), "Coordinate")
-    if (old_pos%mesh%shape%degree/=1) then
-      ! none (*) of the interpolation routines work in higher order geometries (for various good reasons)
-      ! so fall back to the linear description of the geometry
-      ! (*) linear_interpolation actually "works" as the pickers code approximates the inversion to
-      ! local coordinate by using the vertex locations only - so even for that case we might as well
-      ! use a linear coordinate field directly
-      call find_linear_parent_mesh(states_old(1), old_pos%mesh, old_mesh)
-      old_pos = extract_vector_field(states_old(1), trim(old_mesh%name)//"Coordinate")
+    if (have_option("/geometry/spherical_earth")) then
+      old_pos = extract_vector_field(states_old(1), "SphericalAdaptivityBaseGeometry")
+      new_pos = extract_vector_field(states_new(1), "SphericalAdaptivityBaseGeometry")
+    else
+      old_pos = extract_vector_field(states_old(1), "Coordinate")
+      new_pos = extract_vector_field(states_new(1), "Coordinate")
     end if
     ! use the same in states_new
-    new_pos = extract_vector_field(states_new(1), old_pos%name)
     
     ! OK! So we have some work to do.
     ! First, let's organise the fields according to what mesh
@@ -266,7 +250,8 @@ contains
             cycle
           end if
           if (trim(field_v%mesh%name) == trim(mesh_name)) then
-            if (field_v%name=="Coordinate" .or. field_v%name==trim(mesh_name)//"Coordinate") cycle
+            if (field_v%name=="Coordinate" .or. field_v%name==trim(mesh_name)//"Coordinate" .or. &
+              field_v%name=="SphericalAdaptivityBaseGeometry") cycle
             ! we need to append the state name here to make this safe for
             ! multi-material_phase/state... let's just hope you aren't going
             ! to try to pull this out of state by its name!
@@ -735,6 +720,7 @@ contains
         assert(trim(v_field_new%option_path) == trim(v_field_old%option_path))
 #endif
         if(index(trim(v_field_new%name), "Coordinate") /= 0) cycle
+        if(v_field_new%name=="SphericalAdaptivityBaseGeometry") cycle
         if(.not.aliased(v_field_new).and.test(v_field_new%option_path)) then
           ewrite(2, *) "    Found ", trim(v_field_new%name)
           ! make sure we keep the multi-material_phase/state safe names from state

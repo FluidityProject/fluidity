@@ -479,9 +479,9 @@ module zoltan_integration
     logical :: use_pain_functional
     integer, save :: output_quality_index = 0
 
-    if (has_vector_field(states(1), trim(zoltan_global_zz_positions%name)//"BaseGeometry")) then
+    if (has_vector_field(states(1), "SphericalAdaptivityBaseGeometry")) then
       ewrite(2,*) "Using popped in base geometry to work out element quality"
-      positions = extract_vector_field(states(1), trim(zoltan_global_zz_positions%name)//"BaseGeometry")
+      positions = extract_vector_field(states(1), "SphericalAdaptivityBaseGeometry")
     else
       positions = zoltan_global_zz_positions
     end if
@@ -1824,9 +1824,9 @@ module zoltan_integration
        call deallocate(metric)
     end if
 
-    transfer_base_geometry = has_vector_field(states(1), trim(zoltan_global_new_positions%name)//"BaseGeometry")
+    transfer_base_geometry = have_option('/geometry/spherical_earth') .and. has_vector_field(states(1), "SphericalAdaptivityBaseGeometry")
     if (transfer_base_geometry) then
-      base_geometry = extract_vector_field(states(1), trim(zoltan_global_new_positions%name)//"BaseGeometry")
+      base_geometry = extract_vector_field(states(1), "SphericalAdaptivityBaseGeometry")
       call insert(interpolate_states(1), base_geometry, base_geometry%name)
     end if
 
@@ -1903,7 +1903,7 @@ module zoltan_integration
     
     if (transfer_base_geometry) then
       call allocate(base_geometry, zoltan_global_new_positions%dim, zoltan_global_new_positions%mesh, &
-        trim(zoltan_global_new_positions%name)//"BaseGeometry")
+        "SphericalAdaptivityBaseGeometry")
       call insert(interpolate_states(1), base_geometry, base_geometry%name)
       call insert(states(1), base_geometry, base_geometry%name)
       call deallocate(base_geometry)

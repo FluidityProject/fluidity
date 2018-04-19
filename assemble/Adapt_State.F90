@@ -1137,9 +1137,9 @@ contains
       if (have_spherical_adaptivity) then
         index = index + 1
         positions_name = old_positions%name
-        if (has_vector_field(states(1), trim(positions_name)//"BaseGeometry")) then
+        if (has_vector_field(states(1), "SphericalAdaptivityBaseGeometry")) then
           call deallocate(old_positions)
-          old_positions = extract_vector_field(states(1), trim(positions_name)//"BaseGeometry")
+          old_positions = extract_vector_field(states(1), "SphericalAdaptivityBaseGeometry")
           old_positions%name = positions_name
           call insert(states, old_positions, old_positions%name)
           call incref(old_positions)
@@ -1147,11 +1147,7 @@ contains
           call prepare_spherical_adaptivity(states, old_positions)
         end if
         if (i==1) then
-          call allocate(full_metric, metric%mesh, "OldMetric")
-          call set(full_metric, metric)
           call transform_metric(states, old_positions, metric)
-          call insert(states, full_metric, "OldMetric")
-          call insert(states, metric, "TransformedMetric")
         end if
         call vtk_write_state("base_geometry_before", index, old_positions%mesh%name, states)
       end if
@@ -1166,6 +1162,13 @@ contains
         call select_fields_to_interpolate(states(j), interpolate_states(j), &
           & first_time_step = initialise_fields)
       end do
+
+      if (have_spherical_adaptivity) then
+        positions_name = old_positions%name
+        old_positions%name = "SphericalAdaptivityBaseGeometry"
+        call insert(interpolate_states(1), old_positions, "SphericalAdaptivityBaseGeometry")
+        old_positions%name = positions_name
+      end if
 
       do j = 1, size(states)
         call deallocate(states(j))
@@ -1207,19 +1210,24 @@ contains
       call deallocate(old_positions)
 
       if (have_spherical_adaptivity) then
-        ! make a copy of the new (still unpopped) positions and store it as the base geometry
-        call allocate(old_positions, new_positions%dim, new_positions%mesh, trim(positions_name)//"BaseGeometry")
-        call set(old_positions, new_positions)
+        ! store the new (yet unpopped) positions as the base geometry in state
+        old_positions = new_positions
+        old_positions%name = "SphericalAdaptivityBaseGeometry"
         call insert(states(1), old_positions, old_positions%name)
         call vtk_write_fields("base_geometry_after", index, old_positions, old_positions%mesh, write_region_ids=.true.)
-
         if (final_adapt_iteration) then
+          ! allocate a separate copy to store the popped out positions
+          positions_name = new_positions%name
+          call allocate(new_positions, old_positions%dim, old_positions%mesh, positions_name)
+          call set(new_positions, old_positions)
           call spherical_adaptivity_pop_out(states, new_positions)
           call vtk_write_fields("popped_geometry_after", index, new_positions, new_positions%mesh)
+          ! replace the unpopped positions
+          call insert(states, new_positions, name=new_positions%name)
+          ! unpopped positions are still in states as basegeometry, so we can drop our reference
+          call deallocate(old_positions)
         end if
-        call deallocate(old_positions)
       end if
-
 
       ! Insert meshes from reserve states
       call restore_reserved_meshes(states)
@@ -1269,13 +1277,6 @@ contains
       ! Set their values
       call set_boundary_conditions_values(states)
 
-      if (have_spherical_adaptivity .and. final_adapt_iteration) then
-        ! for interpolation we temporarily "pop back in" to ensure the target domain matches the donor
-        old_positions = extract_vector_field(states, trim(positions_name)//"BaseGeometry")
-        old_positions%name = positions_name
-        call insert(states, old_positions, positions_name)
-      end if
-
       if((.not. final_adapt_iteration) .or. isparallel()) then
         ! If there are remaining adapt iterations, or we will be calling
         ! sam_drive or zoltan_drive, insert the old metric into interpolate_states(1) and a
@@ -1317,8 +1318,8 @@ contains
       end if
 
       if (have_spherical_adaptivity .and. final_adapt_iteration) then
-        ! reinsert the popped out coordinate field
-        call insert(states, new_positions, positions_name)
+        ! now that metric has been interpolated check for inverted elements in
+        ! newly popped out mesh
         call check_inverted_elements(new_positions, old_positions, metric)
       end if
       ! We're done with the new_positions, so we may drop our reference
