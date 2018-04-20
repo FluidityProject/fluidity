@@ -1065,7 +1065,7 @@ contains
 
     real :: global_min_quality, quality_tolerance
     logical :: have_spherical_adaptivity
-    integer :: index=0
+    integer :: spherical_adapt_index=0
 
     ewrite(1, *) "In adapt_state_internal"
 
@@ -1135,7 +1135,6 @@ contains
 
       have_spherical_adaptivity = have_option("/geometry/spherical_earth")
       if (have_spherical_adaptivity) then
-        index = index + 1
         positions_name = old_positions%name
         if (has_vector_field(states(1), "SphericalAdaptivityBaseGeometry")) then
           call deallocate(old_positions)
@@ -1149,7 +1148,10 @@ contains
         if (i==1) then
           call transform_metric(states, old_positions, metric)
         end if
-        call vtk_write_state("base_geometry_before", index, old_positions%mesh%name, states)
+        if (have_option('/mesh_adaptivity/hr_adaptivity/debug/write_spherical_adaptivity_stages')) then
+          spherical_adapt_index = spherical_adapt_index + 1
+          call vtk_write_state("base_geometry_before", spherical_adapt_index, old_positions%mesh%name, states)
+        end if
       end if
       call prepare_vertically_structured_adaptivity(states, metric, full_metric, &
                                                     old_positions, extruded_positions)
@@ -1214,14 +1216,18 @@ contains
         old_positions = new_positions
         old_positions%name = "SphericalAdaptivityBaseGeometry"
         call insert(states(1), old_positions, old_positions%name)
-        call vtk_write_fields("base_geometry_after", index, old_positions, old_positions%mesh, write_region_ids=.true.)
+        if (have_option('/mesh_adaptivity/hr_adaptivity/debug/write_spherical_adaptivity_stages')) then
+          call vtk_write_fields("base_geometry_after", spherical_adapt_index, old_positions, old_positions%mesh, write_region_ids=.true.)
+        end if
         if (final_adapt_iteration) then
           ! allocate a separate copy to store the popped out positions
           positions_name = new_positions%name
           call allocate(new_positions, old_positions%dim, old_positions%mesh, positions_name)
           call set(new_positions, old_positions)
           call spherical_adaptivity_pop_out(states, new_positions)
-          call vtk_write_fields("popped_geometry_after", index, new_positions, new_positions%mesh)
+          if (have_option('/mesh_adaptivity/hr_adaptivity/debug/write_spherical_adaptivity_stages')) then
+            call vtk_write_fields("popped_geometry_after", spherical_adapt_index, new_positions, new_positions%mesh)
+          end if
           ! replace the unpopped positions
           call insert(states, new_positions, name=new_positions%name)
           ! unpopped positions are still in states as basegeometry, so we can drop our reference

@@ -1174,6 +1174,12 @@ hr_adaptivity =
             element write_periodic_adapted_mesh {
                comment
             }?,
+            ## Write the various stages of changing back and forth between
+            ## the base geometry and the popped out spherical geometry
+            ## during spherical adaptivity.
+            element write_spherical_adaptivity_stages {
+               comment
+            }?,
             ## Checkpoint the simulation after every adapt. In parallel, a
             ## checkpoint will be written <b>only</b> after the final adapt
             ## iteration. Checkpoints are postfixed with "adapt_checkpoint".
