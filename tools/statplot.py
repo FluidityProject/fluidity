@@ -1,229 +1,294 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 #
 # James Maddison
+# Thomas Duvernay
 
-"""
-Plot data in a .stat file
-"""
-
-import getopt
-import os
+import argparse
+import numpy
 import sys
 import time
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
-import fluidity.diagnostics.debug as debug
+import matplotlib
+from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo
+from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3
+import matplotlib.pyplot as plt
+import matplotlib.ticker as tck
+
 import fluidity.diagnostics.fluiditytools as fluidity_tools
-import fluidity.diagnostics.gui as gui
-import fluidity.diagnostics.plotting as plotting
 
-def Help():
-  debug.dprint("Usage: statplot [OPTIONS] FILENAME [FILENAME ...]\n" + \
-               "\n" + \
-               "Options:\n" + \
-               "\n" + \
-               "-h  Display this help\n" + \
-               "-v  Verbose mode",  0)
+parser = argparse.ArgumentParser()
+parser.add_argument('statfile', nargs=1)
+args = parser.parse_args(sys.argv[1:])
 
-  return
 
-try:
-  opts, args = getopt.getopt(sys.argv[1:], "hv")
-except getopt.GetoptError:
-  Help()
-  sys.exit(-1)
-  
-if not ("-v", "") in opts:
-  debug.SetDebugLevel(0)
-  
-if ("-h", "") in opts:
-  Help()
-  sys.exit(1)
-  
-if len(args) == 0:
-  debug.FatalError("Filename must be specified")
+class StatplotWindow(Gtk.Window):
+    def __init__(self, statfile):
+        Gtk.Window.__init__(self, title=statfile[-1])
+        self._file = statfile
+        self.connect("key-press-event", self._KeyPressed)
+        self._ReadData(statfile)
+        self._vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.add(self._vBox)
+        self._hBox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self._vBox.pack_end(self._hBox, False, False, 0)
+        self._xCombo = Gtk.ComboBoxText()
+        self._yCombo = Gtk.ComboBoxText()
+        paths = sorted(self._stat.Paths())
+        for path in paths:
+            self._xCombo.append_text(path)
+            self._yCombo.append_text(path)
+        if "ElapsedTime" in paths:
+            ind = paths.index("ElapsedTime")
+            iterX = self._xCombo.get_model().get_iter("%d" % ind)
+            if ind == 0:
+                iterY = self._yCombo.get_model().get_iter(1)
+            else:
+                iterY = self._yCombo.get_model().get_iter_first()
+        else:
+            iterX = self._xCombo.get_model().get_iter_first()
+            iterY = self._yCombo.get_model().get_iter(1)
+        self._xCombo.set_active_iter(iterX)
+        self._yCombo.set_active_iter(iterY)
+        self._hBox.pack_start(self._xCombo, True, True, 0)
+        self._hBox.pack_end(self._yCombo, True, True, 0)
+        self._fig, self._ax = plt.subplots(nrows=1, ncols=1, num=0)
+        self._canvas = FigureCanvasGTK3Cairo(self._fig)
+        self._toolbar = NavigationToolbar2GTK3(self._canvas, None)
+        self._PlotData('line', 'linear', 'linear')
+        self._fBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self._fBox.pack_start(self._canvas, True, True, 0)
+        self._fBox.pack_end(self._toolbar, False, False, 0)
+        self._vBox.pack_start(self._fBox, True, True, 0)
+        self._xCombo.connect("changed", self._ComboChanged)
+        self._yCombo.connect("changed", self._ComboChanged)
+        return
 
-class StatplotWindow(gtk.Window):
-  def __init__(self, filenames):
-    assert(len(filenames) > 0)
-    
-    self._filenames = filenames
-  
-    gtk.Window.__init__(self)
-    self.set_title(self._filenames[-1])
-    self.connect("key-press-event", self._KeyPressed)
-    
-    self._ReadData()
+    def _ReadData(self, statfile):
+        stats = []
+        for i, filename in enumerate(statfile):
+            failcount = 0
+            while failcount < 5:
+                try:
+                    stats.append(fluidity_tools.Stat(filename))
+                    break
+                except TypeError, ValueError:
+                    time.sleep(0.2)
+                    failcount += 1
+            if failcount == 5:
+                raise Exception("Could not open %s" % filename)
+        if len(stats) == 1:
+            self._stat = stats[0]
+        else:
+            self._stat = fluidity_tools.JoinStat(*stats)
 
-    # Containers
-    self._vBox = gtk.VBox()
-    self.add(self._vBox)
-    
-    self._hBox = gtk.HBox()
-    self._vBox.pack_end(self._hBox, expand = False, fill = False)
-    
-    # The plot widget
-    self._xField = None
-    self._yField = None
-    self._xData = None
-    self._yData = None
-    self._plotWidget = None
-    self._plotType = plotting.LinePlot
-    
-    # The combos
-    paths = self._stat.Paths()
-    paths.sort()
-    self._xCombo = gui.ComboBoxFromEntries(paths)
-    self._xCombo.connect("changed", self._XComboChanged)
-    if "ElapsedTime" in paths:
-      iter = self._xCombo.get_model().get_iter((paths.index("ElapsedTime"),))
-    else:
-      iter = self._xCombo.get_model().get_iter_first()
-    if not iter is None:
-      self._xCombo.set_active_iter(iter)
-    self._hBox.pack_start(self._xCombo)
-    
-    self._yCombo = gui.ComboBoxFromEntries(paths)
-    self._yCombo.connect("changed", self._YComboChanged)
-    iter = self._yCombo.get_model().get_iter_first()
-    if not iter is None:
-      iter2 = self._yCombo.get_model().iter_next(iter)
-      if iter2 is None:
-        self._yCombo.set_active_iter(iter)
-      else:
-        self._yCombo.set_active_iter(iter2)
-    self._hBox.pack_end(self._yCombo)
-    
-    self._vBox.show_all()
-    
-    return
-    
-  def _ReadData(self):
-    stats = []
-    for i, filename in enumerate(self._filenames):
-      failcount = 0
-      while failcount < 5:
-        try:
-          stats.append(fluidity_tools.Stat(filename))
-          break
-        except (TypeError, ValueError):
-          # We opened the .stat when it was being written to by fluidity
-          time.sleep(0.2)
-          failcount = failcount + 1
-      if failcount == 5:
-        raise Exception("Could not open %s" % filename)
-    if len(stats) == 1:
-      self._stat = stats[0]
-    else:
-      self._stat = fluidity_tools.JoinStat(*stats)
-      
-    return
-    
-  def _RefreshData(self, keepBounds = False):
-    self._xField = self._xCombo.get_active_text()
-    self._xData = self._stat[self._xField]
-    self._yField = self._yCombo.get_active_text()
-    self._yData = self._stat[self._yField]
-    if keepBounds:
-      axis = self._plotWidget.get_children()[0].figure.get_axes()[0]
-      bounds = (axis.get_xbound(), axis.get_ybound())
-    else:
-      bounds = None
-    self._RefreshPlot(bounds)
-    
-    return
+    def _RefreshData(self, statfile, xData, yData):
+        stats = []
+        for i, filename in enumerate(statfile):
+            failcount = 0
+            while failcount < 5:
+                try:
+                    stats.append(fluidity_tools.Stat(filename))
+                    break
+                except TypeError, ValueError:
+                    time.sleep(0.2)
+                    failcount += 1
+            if failcount == 5:
+                raise Exception("Could not open %s" % filename)
+        if len(stats) == 1:
+            self._stat = stats[0]
+        else:
+            self._stat = fluidity_tools.JoinStat(*stats)
+        paths = sorted(self._stat.Paths())
+        for path in paths:
+            self._xCombo.append_text(path)
+            self._yCombo.append_text(path)
+        if xData in paths and yData in paths:
+            indX = paths.index(xData)
+            indY = paths.index(yData)
+            iterX = self._xCombo.get_model().get_iter("%d" % indX)
+            iterY = self._yCombo.get_model().get_iter("%d" % indY)
+        else:
+            iterX = self._xCombo.get_model().get_iter_first()
+            iterY = self._yCombo.get_model().get_iter(1)
+        self._xCombo.set_active_iter(iterX)
+        self._yCombo.set_active_iter(iterY)
 
-  def _RefreshPlot(self, bounds = None, xscale = None, yscale = None):
-    if not self._xData is None and not self._yData is None:
-      assert(len(self._xData) == len(self._yData))
-      if not self._plotWidget is None:
-        self._vBox.remove(self._plotWidget)
-      
-        axis = self._plotWidget.get_children()[0].figure.get_axes()[0]
-        if xscale is None:
-          xscale = axis.get_xscale()
-        if yscale is None:
-          yscale = axis.get_yscale()
-      else:
-        if xscale is None:
-          xscale = "linear"
-        if yscale is None:
-          yscale = "linear"
-        
-      self._plotWidget = self._plotType(x = self._xData, y = self._yData, xLabel = self._xField, yLabel = self._yField).Widget()
-      axis = self._plotWidget.get_children()[0].figure.get_axes()[0]
-      axis.set_xscale(xscale)
-      axis.set_yscale(yscale)
-      if not bounds is None:
-        axis.set_xbound(bounds[0])
-        axis.set_ybound(bounds[1])
-      
-      self._vBox.pack_start(self._plotWidget)
-      self._plotWidget.show_all()
-    
-    return
-    
-  def SetXField(self, field):
-    self._xField = field
-    self._xData = self._stat[self._xField]
-    
-    self._RefreshPlot()
-    
-    return
-    
-  def SetYField(self, field):
-    self._yField =  field
-    self._yData = self._stat[self._yField]
-    
-    self._RefreshPlot()
-      
-    return
-    
-  def _XComboChanged(self, widget):
-    self.SetXField(self._xCombo.get_active_text())
-      
-    return
-    
-  def _YComboChanged(self, widget):
-    self.SetYField(self._yCombo.get_active_text())
-      
-    return
-    
-  def _KeyPressed(self, widget, event):
-    char = event.string
-    if char == "R":
-      self._ReadData()
-      self._RefreshData(keepBounds = True)
-    elif char == "l":
-      self._plotType = plotting.LinePlot
-      self._RefreshData(keepBounds = True)
-    elif char == "x":
-      scale = self._plotWidget.get_children()[0].figure.get_axes()[0].get_xscale()
-      if scale == "linear":
-        self._RefreshPlot(xscale = "log")
-      else:
-        self._RefreshPlot(xscale = "linear")
-    elif char == "y":
-      scale = self._plotWidget.get_children()[0].figure.get_axes()[0].get_yscale()
-      if scale == "linear":
-        self._RefreshPlot(yscale = "log")
-      else:
-        self._RefreshPlot(yscale = "linear")
-    elif char == "q":
-      self.destroy()
-    elif char == "r":
-      self._ReadData()
-      self._RefreshData()
-    elif char == "s":
-      self._plotType = plotting.ScatterPlot
-      self._RefreshData(keepBounds = True)
-            
-    return
+    def _ComboChanged(self, widget):
+        self._PlotData('line', 'linear', 'linear')
+        return
 
-# The window
-window = StatplotWindow(args)
-window.set_default_size(640, 480)
+    def _PlotData(self, type, xscale, yscale):
+        self._xField = self._xCombo.get_active_text()
+        self._yField = self._yCombo.get_active_text()
+        self._xData = self._stat[self._xField]
+        self._yData = self._stat[self._yField]
+        self._ax.cla()
+        if type == 'line':
+            self._ax.plot(self._xData, self._yData, linewidth=2)
+        elif type == 'marker':
+            self._ax.plot(self._xData, self._yData, linestyle='none',
+                          marker='D', markersize=7, color='blue')
+        self._ax.set_xlim([min(self._xData) - 0.02 * (max(self._xData) -
+                                                      min(self._xData)),
+                           max(self._xData) + 0.02 * (max(self._xData) -
+                                                      min(self._xData))])
+        self._ax.set_ylim([min(self._yData) - 0.02 * (max(self._yData) -
+                                                      min(self._yData)),
+                           max(self._yData) + 0.02 * (max(self._yData) -
+                                                      min(self._yData))])
+        majFor = tck.ScalarFormatter(useMathText=True)
+        majFor.set_scientific(True)
+        majFor.set_powerlimits((0, 0))
+        if xscale == 'linear':
+            self._ax.ticklabel_format(style='sci', axis='x',
+                                      scilimits=(0, 0), useMathText=True)
+            self._ax.xaxis.set_minor_locator(tck.AutoMinorLocator())
+            self._ax.set_xlim([min(self._xData) - 0.02 *
+                               (max(self._xData) - min(self._xData)),
+                               max(self._xData) + 0.02 *
+                               (max(self._xData) - min(self._xData))])
+        elif xscale == 'log':
+            self._ax.set_xscale('log')
+            self._ax.xaxis. \
+                set_minor_locator(tck.LogLocator(subs=numpy.arange(1, 10)))
+            self._ax.set_xlim([10 ** (numpy.log10(min(self._xData)) - 0.02 *
+                                      numpy.log10(max(self._xData) /
+                                                  min(self._xData))),
+                               10 ** (numpy.log10(max(self._xData)) + 0.02 *
+                                      numpy.log10(max(self._xData) /
+                                                  min(self._xData)))])
+        if yscale == 'linear':
+            self._ax.set_ylim([min(self._yData) - 0.02 *
+                              (max(self._yData) - min(self._yData)),
+                              max(self._yData) + 0.02 *
+                              (max(self._yData) - min(self._yData))])
+            self._ax.yaxis.set_major_formatter(majFor)
+            self._ax.yaxis.set_minor_locator(tck.AutoMinorLocator())
+        elif yscale == 'log':
+            self._ax.set_yscale('log')
+            self._ax.yaxis. \
+                set_minor_locator(tck.LogLocator(subs=numpy.arange(1, 10)))
+            self._ax.set_ylim([10 ** (numpy.log10(min(self._yData)) - 0.02 *
+                                      numpy.log10(max(self._yData) /
+                                                  min(self._yData))),
+                               10 ** (numpy.log10(max(self._yData)) + 0.02 *
+                                      numpy.log10(max(self._yData) /
+                                                  min(self._yData)))])
+        self._ax.set_xlabel(self._xField, fontweight='bold', fontsize=20)
+        self._ax.set_ylabel(self._yField, fontweight='bold', fontsize=20)
+        self._ax.tick_params(which='major', length=7, labelsize=16, width=2)
+        self._ax.tick_params(which='minor', length=4, width=2, color='r')
+        self._ax.xaxis.get_offset_text().set(fontsize=13, fontweight='bold')
+        self._ax.yaxis.get_offset_text().set(fontsize=13, fontweight='bold')
+        self._fig.set_tight_layout(True)
+        self._fig.canvas.draw()
+        return
 
-# Fire up the GUI
-gui.DisplayWindow(window)
+    def _KeyPressed(self, widget, event):
+        key = event.string
+        if key == 'r':
+            self._RefreshData(self._file, self._xCombo.get_active_text(),
+                              self._yCombo.get_active_text())
+            self._PlotData('line', self._ax.get_xscale(),
+                           self._ax.get_yscale())
+        elif key == 'q':
+            self.destroy()
+        elif key == "x":
+            if self._ax.get_xscale() == 'linear' and min(self._xData) > 0 \
+                and numpy.log10(abs(self._ax.get_xlim()[1] /
+                                    (self._ax.get_xlim()[0]))) >= 1:
+                self._ax.set_xscale('log')
+                self._ax.xaxis. \
+                    set_minor_locator(tck.LogLocator(subs=numpy.arange(1, 10)))
+                self._ax.set_xlim([10 ** (numpy.log10(min(self._xData)) -
+                                          0.02 *
+                                          numpy.log10(max(self._xData) /
+                                                      min(self._xData))),
+                                   10 ** (numpy.log10(max(self._xData)) +
+                                          0.02 *
+                                          numpy.log10(max(self._xData) /
+                                                      min(self._xData)))])
+            elif self._ax.get_xscale() == 'linear' and min(self._xData) == 0 \
+                and numpy.log10(abs(self._ax.get_xlim()[1] /
+                                    (self._ax.get_xlim()[0] + 1))) >= 1:
+                self._ax.set_xscale('log')
+                self._ax.xaxis. \
+                    set_minor_locator(tck.LogLocator(subs=numpy.arange(1, 10)))
+                self._ax.set_xlim([10 ** (numpy.log10(min(self._xData)) -
+                                          0.02 *
+                                          numpy.log10(max(self._xData) /
+                                                      min(self._xData))),
+                                   10 ** (numpy.log10(max(self._xData)) +
+                                          0.02 *
+                                          numpy.log10(max(self._xData) /
+                                                      min(self._xData)))])
+            elif self._ax.get_xscale() == 'log':
+                self._ax.set_xscale('linear')
+                self._ax.ticklabel_format(style='sci', axis='x',
+                                          scilimits=(0, 0), useMathText=True)
+                self._ax.xaxis.set_minor_locator(tck.AutoMinorLocator())
+                self._ax.set_xlim([min(self._xData) - 0.02 *
+                                   (max(self._xData) - min(self._xData)),
+                                   max(self._xData) + 0.02 *
+                                   (max(self._xData) - min(self._xData))])
+            self._fig.canvas.draw()
+        elif key == "y":
+            if self._ax.get_yscale() == 'linear' and min(self._yData) > 0 \
+                and numpy.log10(abs(self._ax.get_ylim()[1] /
+                                    (self._ax.get_ylim()[0]))) >= 1:
+                self._ax.set_yscale('log')
+                self._ax.yaxis. \
+                    set_minor_locator(tck.LogLocator(subs=numpy.arange(1, 10)))
+                self._ax.set_ylim([10 ** (numpy.log10(min(self._yData)) -
+                                          0.02 *
+                                          numpy.log10(max(self._yData) /
+                                                      min(self._yData))),
+                                   10 ** (numpy.log10(max(self._yData)) +
+                                          0.02 *
+                                          numpy.log10(max(self._yData) /
+                                                      min(self._yData)))])
+            elif self._ax.get_yscale() == 'linear' and min(self._yData) == 0 \
+                and numpy.log10(abs(self._ax.get_ylim()[1] /
+                                    (self._ax.get_ylim()[0] + 1))) >= 1:
+                self._ax.set_yscale('log')
+                self._ax.yaxis. \
+                    set_minor_locator(tck.LogLocator(subs=numpy.arange(1, 10)))
+                self._ax.set_ylim([10 ** (numpy.log10(min(self._yData)) -
+                                          0.02 *
+                                          numpy.log10(max(self._yData) /
+                                                      min(self._yData))),
+                                   10 ** (numpy.log10(max(self._yData)) +
+                                          0.02 *
+                                          numpy.log10(max(self._yData) /
+                                                      min(self._yData)))])
+            elif self._ax.get_yscale() == 'log':
+                self._ax.set_yscale('linear')
+                self._ax.set_ylim([min(self._yData) - 0.02 *
+                                   (max(self._yData) - min(self._yData)),
+                                   max(self._yData) + 0.02 *
+                                   (max(self._yData) - min(self._yData))])
+                majFor = tck.ScalarFormatter(useMathText=True)
+                majFor.set_scientific(True)
+                majFor.set_powerlimits((0, 0))
+                self._ax.yaxis.set_major_formatter(majFor)
+                self._ax.yaxis.set_minor_locator(tck.AutoMinorLocator())
+            self._fig.canvas.draw()
+        elif key == 'l':
+            self._PlotData('line', self._ax.get_xscale(),
+                           self._ax.get_yscale())
+        elif key == 'm':
+            self._PlotData('marker', self._ax.get_xscale(),
+                           self._ax.get_yscale())
+        return
+
+
+window = StatplotWindow(args.statfile)
+window.connect("delete-event", Gtk.main_quit)
+window.set_default_size(1600, 900)
+window.set_position(Gtk.WindowPosition.CENTER)
+window.show_all()
+Gtk.main()
