@@ -58,7 +58,8 @@ class StatplotWindow(Gtk.Window):
         self._fig, self._ax = plt.subplots(nrows=1, ncols=1, num=0)
         self._canvas = FigureCanvasGTK3Cairo(self._fig)
         self._toolbar = NavigationToolbar2GTK3(self._canvas, None)
-        self._PlotData('line', 'linear', 'linear')
+        self._PlotType = 'line'
+        self._PlotData(self._PlotType, 'linear', 'linear')
         self._fBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self._fBox.pack_start(self._canvas, True, True, 0)
         self._fBox.pack_end(self._toolbar, False, False, 0)
@@ -118,7 +119,7 @@ class StatplotWindow(Gtk.Window):
         self._yCombo.set_active_iter(iterY)
 
     def _ComboChanged(self, widget):
-        self._PlotData('line', 'linear', 'linear')
+        self._PlotData(self._PlotType, 'linear', 'linear')
         return
 
     def _PlotData(self, type, xscale, yscale):
@@ -193,7 +194,7 @@ class StatplotWindow(Gtk.Window):
         if key == 'r':
             self._RefreshData(self._file, self._xCombo.get_active_text(),
                               self._yCombo.get_active_text())
-            self._PlotData('line', self._ax.get_xscale(),
+            self._PlotData(self._PlotType, self._ax.get_xscale(),
                            self._ax.get_yscale())
         elif key == 'q':
             self.destroy()
@@ -278,10 +279,12 @@ class StatplotWindow(Gtk.Window):
                 self._ax.yaxis.set_minor_locator(tck.AutoMinorLocator())
             self._fig.canvas.draw()
         elif key == 'l':
-            self._PlotData('line', self._ax.get_xscale(),
+            self._PlotType = 'line'
+            self._PlotData(self._PlotType, self._ax.get_xscale(),
                            self._ax.get_yscale())
         elif key == 'm':
-            self._PlotData('marker', self._ax.get_xscale(),
+            self._PlotType = 'marker'
+            self._PlotData(self._PlotType, self._ax.get_xscale(),
                            self._ax.get_yscale())
         return
 
