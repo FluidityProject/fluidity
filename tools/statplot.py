@@ -248,9 +248,9 @@ class StatplotWindow(Gtk.Window):
                                    (max(self._xData) - min(self._xData))])
             else:
                 warnings.warn('Change to logarithmic scale denied: the ' +
-                              'selected variable for the X axis either has' +
+                              'selected variable for the X axis either has ' +
                               'negative values or a range of variation less' +
-                              'than an order of magnitude.', stacklevel=2)
+                              ' than an order of magnitude.', stacklevel=2)
             self._fig.canvas.draw()
         elif key == "y":
             if self._ax.get_yscale() == 'linear' and min(self._yData) > 0 \
@@ -289,9 +289,9 @@ class StatplotWindow(Gtk.Window):
                 self._ax.yaxis.set_minor_locator(tck.AutoMinorLocator())
             else:
                 warnings.warn('Change to logarithmic scale denied: the ' +
-                              'selected variable for the Y axis either has' +
+                              'selected variable for the Y axis either has ' +
                               'negative values or a range of variation less' +
-                              'than an order of magnitude.', stacklevel=2)
+                              ' than an order of magnitude.', stacklevel=2)
             self._fig.canvas.draw()
         elif key == 'l':
             self._PlotType = 'line'
