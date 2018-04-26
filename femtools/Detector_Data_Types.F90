@@ -76,9 +76,13 @@ module detector_data_types
 
   ! Parameters for lagrangian detector movement
   type rk_gs_parameters
-    ! Runk-Kutta Guided Search parameters
+    !! Runge-Kutta Guided Search parameters
     integer :: n_stages, n_subcycles
+    !! Timestep_weights give the weights of temporal positions
     real, allocatable, dimension(:) :: timestep_weights
+    !! Timestep_nodes give the locations of temporal positions
+    real, allocatable, dimension(:) :: timestep_nodes
+    !! Stage_matrix gives the weights to RK function values
     real, allocatable, dimension(:,:) :: stage_matrix
     real :: search_tolerance
   end type rk_gs_parameters

@@ -2564,6 +2564,13 @@ contains
             call insert(states(p), aux_vfield, trim(aux_vfield%name))
             call deallocate(aux_vfield)
 
+          else if((prescribed).and.(trim(vfield%name)=="Velocity")) then 
+
+            call allocate(aux_vfield, vfield%dim, vfield%mesh, "Old"//trim(vfield%name), field_type = vfield%field_type)
+            call zero(aux_vfield)
+            call insert(states(p), aux_vfield, trim(aux_vfield%name))
+            call deallocate(aux_vfield)
+
           else
 
             aux_vfield = extract_vector_field(states(p), trim(vfield%name))
@@ -2584,6 +2591,13 @@ contains
             call insert(states(p), aux_vfield, trim(aux_vfield%name))
             call deallocate(aux_vfield)
 
+          else if((prescribed).and.((trim(vfield%name)=="Velocity"))) then 
+
+            call allocate(aux_vfield, vfield%dim, vfield%mesh, "Iterated"//trim(vfield%name))
+            call zero(aux_vfield)
+            call insert(states(p), aux_vfield, trim(aux_vfield%name))
+            call deallocate(aux_vfield)
+
           else
 
             aux_vfield = extract_vector_field(states(p), trim(vfield%name))
@@ -2598,7 +2612,7 @@ contains
 
           if(trim(vfield%name)=="Velocity") then
 
-            if(iterations>1) then
+            if(iterations>1 .or. prescribed) then
 
               call allocate(aux_vfield, vfield%dim, vfield%mesh, "Nonlinear"//trim(vfield%name))
               call zero(aux_vfield)

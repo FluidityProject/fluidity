@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <testproblem>
-  <name>lagrangian_detectors</name>
+  <name>lagrangian_detectors_oscillating_rotation</name>
   <owner userid="drhodrid"/>
   <tags>flml parallel zoltan</tags>
   <problem_definition length="short" nprocs="4">
     <command_line>
-mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian-detectors lagrangian-detectors-flredecomp;
-mpiexec ../../bin/fluidity -v3 -l lagrangian-detectors-flredecomp.flml
+mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian-detectors-oscillating-rotation lagrangian-detectors-oscillating-rotation-flredecomp;
+mpiexec ../../bin/fluidity -v3 -l lagrangian-detectors-oscillating-rotation-flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>
@@ -37,6 +37,7 @@ for i in range(100):
     name = 'Steve_' + str(i+1).zfill(3)
     last_locations_error[0,i] = s[name]['position'][0][-1] - X[i]
     last_locations_error[1,i] = s[name]['position'][1][-1] - Y[i]
+print "max error",abs(last_locations_error).max()
     </variable>
   </variables>
   <pass_tests>

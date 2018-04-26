@@ -47,7 +47,6 @@
         </location>
       </static_detector>
       <write_nan_outside_domain/>
-      <binary_output/>
     </detectors>
   </io>
   <timestepping>

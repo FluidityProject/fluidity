@@ -79,7 +79,6 @@
         </from_file>
       </detector_array>
       <fail_outside_domain/>
-      <binary_output/>
     </detectors>
   </io>
   <timestepping>
