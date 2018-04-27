@@ -1836,7 +1836,7 @@ Make sure you've not lumped your mass in the velocity spatial_discretisation if 
                 </attribute>
                 <element name="solver">
                   <a:documentation>Solver options to solve the inner (mass) matrix in the schur complement solve, also used
-to solve the correction solve afterwards. </a:documentation>
+to solve the correction solve afterwards.</a:documentation>
                   <ref name="linear_solver_options_sym"/>
                 </element>
               </element>
