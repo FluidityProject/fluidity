@@ -37,7 +37,7 @@
 
 #include <vtk.h>
 
-#if VTK_MAJOR_VERSION>6
+#if VTK_MAJOR_VERSION>7
 #define VTK_USES_MPI 1
 #endif
 
