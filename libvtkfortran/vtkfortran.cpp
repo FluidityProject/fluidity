@@ -37,7 +37,7 @@
 
 #include <vtk.h>
 
-#if VTK_MAJOR_VERSION>6 || (VTK_MAJOR_VERSION ==6 && VTK_MINOR_VERSION >2)
+#if VTK_MAJOR_VERSION>6
 #define VTK_USES_MPI 1
 #endif
 
