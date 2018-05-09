@@ -1890,7 +1890,7 @@ module zoltan_integration
     ! Tell Zoltan which callback functions to use for the migration
     ierr = Zoltan_Set_Fn(zz, ZOLTAN_OBJ_SIZE_MULTI_FN_TYPE, zoltan_cb_pack_field_sizes); assert(ierr == ZOLTAN_OK)
     ierr = Zoltan_Set_Fn(zz, ZOLTAN_PACK_OBJ_MULTI_FN_TYPE, zoltan_cb_pack_fields);
-    if assert(ierr == ZOLTAN_OK) then
+    if (assert(ierr == ZOLTAN_OK)) then
        ewrite(1,*) "GAN460"
     else
        ewrite(1,*) "Cubicle"
