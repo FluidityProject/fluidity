@@ -1889,7 +1889,12 @@ module zoltan_integration
 
     ! Tell Zoltan which callback functions to use for the migration
     ierr = Zoltan_Set_Fn(zz, ZOLTAN_OBJ_SIZE_MULTI_FN_TYPE, zoltan_cb_pack_field_sizes); assert(ierr == ZOLTAN_OK)
-    ierr = Zoltan_Set_Fn(zz, ZOLTAN_PACK_OBJ_MULTI_FN_TYPE, zoltan_cb_pack_fields); assert(ierr == ZOLTAN_OK)
+    ierr = Zoltan_Set_Fn(zz, ZOLTAN_PACK_OBJ_MULTI_FN_TYPE, zoltan_cb_pack_fields);
+    if assert(ierr == ZOLTAN_OK) then
+       ewrite(1,*) "GAN460"
+    else
+       ewrite(1,*) "Cubicle"
+    end if
     ierr = Zoltan_Set_Fn(zz, ZOLTAN_UNPACK_OBJ_MULTI_FN_TYPE, zoltan_cb_unpack_fields); assert(ierr == ZOLTAN_OK)
     
     ewrite(1,*) 'exiting initialise_transfer'
@@ -2221,7 +2226,6 @@ module zoltan_integration
     ewrite(1,*) 'in transfer_fieldsz'
     
     ewrite(1,*) 'Flag 1'
-    
     do i=1,size(sends)
        call allocate(sends(i))
     end do
