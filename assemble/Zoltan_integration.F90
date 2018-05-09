@@ -2218,7 +2218,9 @@ module zoltan_integration
     type(detector_list_ptr), dimension(:), pointer :: detector_list_array => null()
     type(detector_type), pointer :: detector => null(), add_detector => null()
 
-    ewrite(1,*) 'in transfer_fields'
+    ewrite(1,*) 'in transfer_fieldsz'
+    
+    ewrite(1,*) 'Flag 1'
     
     do i=1,size(sends)
        call allocate(sends(i))
