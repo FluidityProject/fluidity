@@ -287,7 +287,7 @@ unsigned Mesh::num_nodes_halo(const unsigned proc){
 
 void Mesh::find_nodes_per_rank(const unsigned lcnt){
   int init_flag;
-
+  MPI_Initialized(&init_flag);
   if(init_flag){
     nodes_per_rank.resize( NProcs );
     
