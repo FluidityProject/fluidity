@@ -64,7 +64,6 @@ int main(int argc, char **argv)
 #ifdef HAVE_PETSC  
   PetscInitialize(&argc, &argv, NULL, PETSC_NULL);
   // PetscInitializeFortran needs to be called when initialising PETSc from C, but calling it from Fortran
-  // This sets all kinds of objects such as PETSC_NULL_OBJECT, PETSC_COMM_WORLD, etc., etc.
   PetscInitializeFortran();
 #endif
   

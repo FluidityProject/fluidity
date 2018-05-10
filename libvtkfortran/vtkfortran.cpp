@@ -738,8 +738,18 @@ extern "C" {
     // Set to true binary format (not encoded as base 64)
     writer->SetDataModeToAppended();
     writer->EncodeAppendedDataOff();
+#ifdef VTK_USES_MPI
+    // From version 6.3 VTK uses parallel communication to decide
+    // which files have been written
+    if (!writer->GetController()) {
+      vtkMPIController *cont = vtkMPIController::New();
+      cont->SetCommunicator(vtkMPICommunicator::GetWorldCommunicator());
+      writer->SetController(cont);
+    }
+    writer->SetWriteSummaryFile(true);
+#else
     writer->SetWriteSummaryFile((*rank)==0);
-
+#endif
     
     writer->Write();
     writer->Delete();

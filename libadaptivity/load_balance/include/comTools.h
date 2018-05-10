@@ -107,7 +107,7 @@ void allSendRecv(std::vector< std::vector<T> >& inout){
   // Send
   for(size_t p=0;p<NProcs;p++){
     if(send_count[p]){
-      MPI_Isend(&(inout[p][0]), send_count[p], const_mpi_type, p, 1, MPI_COMM_WORLD, &sendRequest[p]);
+      MPI_Isend(&(inout[p][0]), send_count[p], const_mpi_type, p, 1, MPI_COMM_WORLD, &(sendRequest[p]));
     }
   }
   
@@ -118,7 +118,7 @@ void allSendRecv(std::vector< std::vector<T> >& inout){
       recvBuffer[p].resize(recv_count[p]);
       
       // initiate non-blocking receive
-      MPI_Irecv(&(recvBuffer[p][0]), recv_count[p], const_mpi_type, p, 1, MPI_COMM_WORLD, &recvRequest[p]);
+      MPI_Irecv(&(recvBuffer[p][0]), recv_count[p], const_mpi_type, p, 1, MPI_COMM_WORLD, &(recvRequest[p]));
     }
   }
   MPI_Waitall(NProcs, &(sendRequest[0]), MPI_STATUSES_IGNORE); // Wait all sends
@@ -228,8 +228,7 @@ void allSendRecv(const std::vector< std::vector<T> >& sendBuffer,
   // Send
   for(size_t p=0;p<NProcs;p++){
     if(send_count[p]){
-      //sendRequest[p]=MPI_COMM_WORLD.Isend(&(sendBuffer[p][0]), send_count[p], const_mpi_type, p, 1);
-      MPI_Isend(&(sendBuffer[p][0]), send_count[p], const_mpi_type, p, 1,MPI_COMM_WORLD, &sendRequest[p]);
+      MPI_Isend(&(sendBuffer[p][0]), send_count[p], const_mpi_type, p, 1,MPI_COMM_WORLD, &(sendRequest[p]));
     }
   }
 
@@ -240,7 +239,7 @@ void allSendRecv(const std::vector< std::vector<T> >& sendBuffer,
       recvBuffer[p].resize(recv_count[p]);
       
       // initiate non-blocking receive
-      MPI_Irecv(&(recvBuffer[p][0]), recv_count[p], const_mpi_type, p, 1, MPI_COMM_WORLD, &recvRequest[p]);
+      MPI_Irecv(&(recvBuffer[p][0]), recv_count[p], const_mpi_type, p, 1, MPI_COMM_WORLD, &(recvRequest[p]));
     }
   }
 

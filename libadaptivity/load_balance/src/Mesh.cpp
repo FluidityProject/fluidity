@@ -389,8 +389,7 @@ void Mesh::halo_update(const vector< vector<int> >& data_in, vector< vector<int>
       RecvRequest[i] =  MPI_REQUEST_NULL;
     }else{
       data_out[i].resize(cnt);
-      MPI_Irecv(&(data_out[i][0]), cnt, MPI_INT, i, 13, MPI_COMM_WORLD, &RecvRequest[i]);
-      //RecvRequest[i] = recieve
+      MPI_Irecv(&(data_out[i][0]), cnt, MPI_INT, i, 13, MPI_COMM_WORLD, &(RecvRequest[i]));
     }
   }
   
@@ -402,7 +401,7 @@ void Mesh::halo_update(const vector< vector<int> >& data_in, vector< vector<int>
     if((i==MyRank)||(cnt==0)){
       SendRequest[i] =  MPI_REQUEST_NULL;
     }else{    
-      MPI_Isend(&(data_in[i][0]), cnt, MPI_INT, i, 13, MPI_COMM_WORLD, &SendRequest[i]);
+      MPI_Isend(&(data_in[i][0]), cnt, MPI_INT, i, 13, MPI_COMM_WORLD, &(SendRequest[i]));
     }
   }
   
@@ -436,7 +435,7 @@ void Mesh::halo_update(const vector< vector<unsigned> >& data_in, vector< vector
       RecvRequest[i] =  MPI_REQUEST_NULL;
     }else{    
       data_out[i].resize( cnt );
-      MPI_Irecv(&(data_out[i][0]), cnt, MPI_UNSIGNED, i, 13, MPI_COMM_WORLD, &RecvRequest[i]);
+      MPI_Irecv(&(data_out[i][0]), cnt, MPI_UNSIGNED, i, 13, MPI_COMM_WORLD, &(RecvRequest[i]));
     }
   }
   
@@ -448,7 +447,7 @@ void Mesh::halo_update(const vector< vector<unsigned> >& data_in, vector< vector
     if((i==MyRank)||(cnt==0)){
       SendRequest[i] =  MPI_REQUEST_NULL;
     }else{    
-      MPI_Isend(&(data_in[i][0]), cnt, MPI_UNSIGNED, i, 13, MPI_COMM_WORLD, &SendRequest[i]);
+      MPI_Isend(&(data_in[i][0]), cnt, MPI_UNSIGNED, i, 13, MPI_COMM_WORLD, &(SendRequest[i]));
     }
   }
   
@@ -483,7 +482,7 @@ void Mesh::halo_update(const vector< vector<unsigned> >& data_in, const vector<u
       RecvRequest[i] =  MPI_REQUEST_NULL;
     }else{
       data_out[i].resize(cnt);
-      MPI_Irecv(&(data_out[i][0]), cnt, MPI_UNSIGNED, i, 13, MPI_COMM_WORLD, &RecvRequest[i]);
+      MPI_Irecv(&(data_out[i][0]), cnt, MPI_UNSIGNED, i, 13, MPI_COMM_WORLD, &(RecvRequest[i]));
     }
 
   }
@@ -496,7 +495,7 @@ void Mesh::halo_update(const vector< vector<unsigned> >& data_in, const vector<u
     if((i==MyRank)||(cnt==0)){
       SendRequest[i] =  MPI_REQUEST_NULL;
     }else{
-      MPI_Isend(&(data_in[i][0]), cnt, MPI_UNSIGNED, i, 13, MPI_COMM_WORLD, &SendRequest[i]);
+      MPI_Isend(&(data_in[i][0]), cnt, MPI_UNSIGNED, i, 13, MPI_COMM_WORLD, &(SendRequest[i]));
     }
   }
 
@@ -529,7 +528,7 @@ void Mesh::halo_update(const vector< vector<samfloat_t> >& data_in, vector< vect
       RecvRequest[i] =  MPI_REQUEST_NULL;
     }else{    
       data_out[i].resize( cnt );
-      MPI_Irecv(&(data_out[i][0]), cnt, SAMFLOAT, i, 13, MPI_COMM_WORLD, &RecvRequest[i]);
+      MPI_Irecv(&(data_out[i][0]), cnt, SAMFLOAT, i, 13, MPI_COMM_WORLD, &(RecvRequest[i]));
     }
   }
   
@@ -542,7 +541,7 @@ void Mesh::halo_update(const vector< vector<samfloat_t> >& data_in, vector< vect
       SendRequest[i] =  MPI_REQUEST_NULL;
       continue;
     }else{
-      MPI_Isend(&(data_in[i][0]), cnt, SAMFLOAT, i, 13, MPI_COMM_WORLD, &SendRequest[i]);
+      MPI_Isend(&(data_in[i][0]), cnt, SAMFLOAT, i, 13, MPI_COMM_WORLD, &(SendRequest[i]));
     }
   }
 
