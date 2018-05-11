@@ -42,7 +42,6 @@ static int packing_ncalls = 0;
 
 packing::packing(const MI5& intelligance_report, const Mesh& mesh){
   
-  int MyRank, NProcs;
   MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
   MPI_Comm_size(MPI_COMM_WORLD, &NProcs);
   __nnodes = intelligance_report.nnodes();
