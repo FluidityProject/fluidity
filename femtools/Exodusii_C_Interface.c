@@ -8,6 +8,8 @@
 #include "exodusII.h"
 #endif
 
+void FLExit(const char*);
+
 /* Open ExodusII File for reading */
 int c_read_ex_open(const char *path, int mode, int *comp_ws, int *io_ws, float *version)
 {

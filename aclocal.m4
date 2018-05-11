@@ -428,10 +428,10 @@ AC_MSG_NOTICE([Using PETSC_DIR=$PETSC_DIR])
 PETSC_LINK_LIBS=`make -s -f petsc_makefile_old getlinklibs 2> /dev/null || make -s -f petsc_makefile getlinklibs`
 LIBS="$PETSC_LINK_LIBS $LIBS"
 
-# need to add -Iinclude/ to what we get from petsc, so we can use our own petsc_legacy.h wrapper
+# need to add -I$PWD/include/ to what we get from petsc, so we can use our own petsc_legacy.h wrapper
 PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile_old getincludedirs 2> /dev/null || make -s -f petsc_makefile getincludedirs`
-CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
-FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
+CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS -I$PWD/include/"
+FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS -I$PWD/include/"
 
 # first check we have the right petsc version
 AC_COMPUTE_INT(PETSC_VERSION_MAJOR, "PETSC_VERSION_MAJOR", [#include "petscversion.h"], 
