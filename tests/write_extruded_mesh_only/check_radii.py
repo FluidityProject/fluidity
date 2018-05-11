@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-
+from __future__ import print_function
 import numpy, glob, sys, os, vtk, constants
 
 def check_min_max_radii():
@@ -11,17 +10,9 @@ def check_min_max_radii():
   largest_radius_min = constants.inner_radius
 
   for filename in filelist:
-    # Check file exists:
-    try:
-      os.stat(filename)
-    except:
-      print "No such file: %s" % filename
-      sys.exit(1)                 
-
-    print 'Working on file:',filename
+    print('Working on file:', filename)
 
     # Set up reader (note that vtktools does this automatically, but vtktools isn't being used here):
-    reader = None
     if filename[-4:] == ".vtu":
       reader=vtk.vtkXMLUnstructuredGridReader()
     else:
@@ -36,11 +27,10 @@ def check_min_max_radii():
     radius_data = data.GetPointData().GetScalars("Radius")
 
     # Convert radii into a nice numpy array:
-    radius      = numpy.array([radius_data.GetValue(p) for p in xrange(radius_data.GetNumberOfTuples())])
+    radius = numpy.array([radius_data.GetValue(p) for p in xrange(radius_data.GetNumberOfTuples())])
     
     # Check for smallest maximum radius and largest minimum radius on each core:
-    smallest_radius_max = min(smallest_radius_max,numpy.max(radius))
-    largest_radius_min = max(largest_radius_min,numpy.min(radius))
+    smallest_radius_max = min(smallest_radius_max, numpy.max(radius))
+    largest_radius_min = max(largest_radius_min, numpy.min(radius))
 
-  return(smallest_radius_max, largest_radius_min)
-  
+  return smallest_radius_max, largest_radius_min

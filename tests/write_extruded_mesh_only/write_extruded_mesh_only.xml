@@ -6,10 +6,12 @@
   <tags>flml parallel</tags>
 
   <problem_definition length="medium" nprocs="8">
-    <command_line>mpirun -np 2 ../../bin/flredecomp -i 1 -o 2 write-extruded-mesh-only P2-write-extruded-mesh-only &amp;&amp; mpirun -np 8 ../../bin/flredecomp -i 2 -o 8 P2-write-extruded-mesh-only P8-write-extruded-mesh-only &amp;&amp; mpirun -np 8 ../../bin/fluidity -v2 -l P8-write-extruded-mesh-only.flml</command_line>
+    <command_line>mpirun -np 2 ../../bin/flredecomp -i 1 -o 2 write-extruded-mesh-only P2-write-extruded-mesh-only &amp;&amp;
+mpirun -np 8 ../../bin/flredecomp -i 2 -o 8 P2-write-extruded-mesh-only P8-write-extruded-mesh-only &amp;&amp;
+mpirun -np 8 ../../bin/fluidity -v2 -l P8-write-extruded-mesh-only.flml</command_line>
   </problem_definition>
 
-<variables>  
+<variables>
   <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
@@ -30,15 +32,15 @@ smallest_radius_max, largest_radius_min = check_min_max_radii()
 
 <pass_tests>
   <test name="Solvers converged" language="python">
-assert(solvers_converged)
+assert solvers_converged
   </test>
 
   <test name="Smallest Maximum Radius less than 2.22" language="python">
-assert(smallest_radius_max &lt; 2.22)
+asserts smallest_radius_max &lt; 2.22
   </test>
 
   <test name="Largest Minimum Radius greater than 1.22" language="python">
-assert(largest_radius_min &gt; 1.22)
+assert largest_radius_min &gt; 1.22
   </test>
 
 </pass_tests>                                                                                                                                                                                             

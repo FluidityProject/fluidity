@@ -1,5 +1,3 @@
-#!/usr/bin/env python 
-
 import math
 
 # List of constant values for simulations:
