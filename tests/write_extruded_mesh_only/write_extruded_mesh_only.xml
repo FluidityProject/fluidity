@@ -36,7 +36,7 @@ assert solvers_converged
   </test>
 
   <test name="Smallest Maximum Radius less than 2.22" language="python">
-asserts smallest_radius_max &lt; 2.22
+assert smallest_radius_max &lt; 2.22
   </test>
 
   <test name="Largest Minimum Radius greater than 1.22" language="python">
