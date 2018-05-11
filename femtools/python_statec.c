@@ -514,7 +514,7 @@ void python_add_array_double_1d(double *arr, int *size, char *name){
   //  the actual data as a byte array(char*)
 
   // Set the array
-  PyObject *a = PyArray_SimpleNewFromData(1, (npy_intp[]){*size}, PyArray_DOUBLE, (char*)arr);
+  PyObject *a = PyArray_SimpleNewFromData(1, (npy_intp[]){*size}, NPY_DOUBLE, (char*)arr);
   PyDict_SetItemString(pDict,name,a);
   Py_DECREF(a);
 #endif
@@ -528,7 +528,7 @@ void python_add_array_double_2d(double *arr, int *sizex, int *sizey, char *name)
 
   // Set the array
   npy_intp dims[] = {*sizey,*sizex};
-  PyObject *a = PyArray_SimpleNewFromData(2, dims, PyArray_DOUBLE, (char*)arr);
+  PyObject *a = PyArray_SimpleNewFromData(2, dims, NPY_DOUBLE, (char*)arr);
   PyDict_SetItemString(pDict,name,a);
   char c[200];
   snprintf(c, 200, "%s = numpy.transpose(%s,(1,0))",name,name);
@@ -545,7 +545,7 @@ void python_add_array_double_3d(double *arr, int *sizex, int *sizey, int *sizez,
 
   // Set the array
   npy_intp dims[] = {*sizez,*sizey,*sizex};
-  PyObject *a = PyArray_SimpleNewFromData(3, dims, PyArray_DOUBLE, (char*)arr);
+  PyObject *a = PyArray_SimpleNewFromData(3, dims, NPY_DOUBLE, (char*)arr);
   PyDict_SetItemString(pDict,name,a);
   char c[200];
   snprintf(c, 200, "%s = numpy.transpose(%s,(2,1,0))",name,name);
@@ -561,7 +561,7 @@ void python_add_array_integer_1d(int *arr, int *size, char *name){
   PyObject *pDict = PyModule_GetDict(pMain);
 
   // Set the array
-  PyObject *a = PyArray_SimpleNewFromData(1, (npy_intp[]){*size}, PyArray_INT, (char*)arr);
+  PyObject *a = PyArray_SimpleNewFromData(1, (npy_intp[]){*size}, NPY_INT, (char*)arr);
   PyDict_SetItemString(pDict,name,a);
   Py_DECREF(a);
 #endif
@@ -575,7 +575,7 @@ void python_add_array_integer_2d(int *arr, int *sizex, int *sizey, char *name){
 
   // Set the array
   npy_intp dims[] = {*sizey,*sizex};
-  PyObject *a = PyArray_SimpleNewFromData(2, dims, PyArray_INT, (char*)arr);
+  PyObject *a = PyArray_SimpleNewFromData(2, dims, NPY_INT, (char*)arr);
   PyDict_SetItemString(pDict,name,a);
   char c[200];
   snprintf(c, 200, "%s = numpy.transpose(%s,(1,0))",name,name);
@@ -592,7 +592,7 @@ void python_add_array_integer_3d(int *arr, int *sizex, int *sizey, int *sizez, c
 
   // Set the array
   npy_intp dims[] = {*sizez,*sizey,*sizex};
-  PyObject *a = PyArray_SimpleNewFromData(3, dims, PyArray_INT, (char*)arr);
+  PyObject *a = PyArray_SimpleNewFromData(3, dims, NPY_INT, (char*)arr);
   PyDict_SetItemString(pDict,name,a);
   char c[200];
   snprintf(c, 200, "%s = numpy.transpose(%s,(2,1,0))",name,name);

@@ -118,7 +118,11 @@ int main(int argc, char **argv){
   MPI_Init(&argc,&argv);
 
   // Undo some MPI init shenanigans
-  chdir(getenv("PWD"));
+  int cderr = chdir(getenv("PWD"));
+  if (cderr == -1) {
+        cerr << "Unable to switch to directory " << getenv("PWD");
+        abort();
+  }
 #endif
 
 #ifdef HAVE_PETSC
