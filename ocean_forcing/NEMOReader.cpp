@@ -43,9 +43,13 @@ NEMOReader::NEMOReader(){
   MyRank = 0;
   NProcs = 1;
 #ifdef HAVE_MPI
-  if(MPI::Is_initialized()){
-    MyRank = MPI::COMM_WORLD.Get_rank();
-    NProcs = MPI::COMM_WORLD.Get_size();
+
+  int init_flag;
+  MPI_Initialized(&init_flag);
+  if(init_flag){
+    int MyRank, NProcs;
+    MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
+    MPI_Comm_size(MPI_COMM_WORLD, &NProcs);
   }
 #endif
   if(NProcs>1){

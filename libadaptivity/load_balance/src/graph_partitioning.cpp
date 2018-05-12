@@ -106,7 +106,7 @@ std::vector<int> Mesh::decomp(const vector<int>& options){
       break;
     default:
       ERROR("Unknown option " << options[3] << " for node weights passed down into Sam. Giving up!");
-      MPI::COMM_WORLD.Abort( MPI_ERR_OP );
+      MPI_Abort(MPI_COMM_WORLD, MPI_ERR_OP);
       break;
     }
     ECHO("Got node weights.");    
@@ -155,7 +155,7 @@ std::vector<int> Mesh::decomp(const vector<int>& options){
       break;
     default:
       ERROR("Unknown option " << options[4] << " for edge weights passed down into Sam. Giving up!");
-      MPI::COMM_WORLD.Abort( MPI_ERR_OP );
+      MPI_Abort(MPI_COMM_WORLD, MPI_ERR_OP);
     }
     ECHO("Got edge weights.");
   }

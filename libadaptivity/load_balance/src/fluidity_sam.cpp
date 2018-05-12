@@ -218,7 +218,8 @@ extern "C"{
       }
     }
 
-    int MyRank = MPI::COMM_WORLD.Get_rank();
+    int MyRank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
 
     { // Compress volume element-node lists
       int i = 0;

@@ -40,8 +40,9 @@ using namespace std;
 MI5::MI5(int nnodes, int nelems){
   __nnodes = nnodes;
   __nelems = nelems;
-  MyRank   = MPI::COMM_WORLD.Get_rank();
-  NProcs   = MPI::COMM_WORLD.Get_size();
+
+  MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
+  MPI_Comm_size(MPI_COMM_WORLD, &NProcs);
   
   nodeKnowers.resize( __nnodes );
   nodeKnowers_next.resize( __nnodes );

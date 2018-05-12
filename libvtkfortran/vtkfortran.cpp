@@ -784,7 +784,7 @@ extern "C" {
         if((*rank)%nwrites==lrank){
           _vtkpclose_nointerleave(rank, npartitions);
         }
-        MPI::COMM_WORLD.Barrier();
+        MPI_Barrier(MPI_COMM_WORLD);
       }
     }else{
 #endif
