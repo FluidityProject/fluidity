@@ -1004,7 +1004,7 @@ contains
     type(scalar_field):: radius, s_radius
     real, dimension(positions%dim):: xyz
 
-    ewrite(1,*), 'In higher_order_sphere_projection'
+    ewrite(1,*) 'In higher_order_sphere_projection'
     
     call allocate(s_radius, s_positions%mesh, "HigherOrderRadius")
     radius=magnitude(positions)
