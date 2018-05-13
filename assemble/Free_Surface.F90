@@ -195,7 +195,7 @@ contains
     type(scalar_field) :: original_bottomdist, original_bottomdist_remap
 
     if (.not. has_scalar_field(state, "OriginalDistanceToBottom")) then
-       ewrite(2, *), "Inserting OriginalDistanceToBottom field into state."   
+       ewrite(2, *) "Inserting OriginalDistanceToBottom field into state."   
        bottomdist => extract_scalar_field(state, "DistanceToBottom")
        call allocate(original_bottomdist, bottomdist%mesh, "OriginalDistanceToBottom")
        call zero(original_bottomdist)
@@ -204,7 +204,7 @@ contains
        call deallocate(original_bottomdist)
 
        ! We also cache  the OriginalDistanceToBottom on the pressure mesh
-       ewrite(2, *), "Inserting OriginalDistanceToBottomPressureMesh field into state."   
+       ewrite(2, *) "Inserting OriginalDistanceToBottomPressureMesh field into state."   
        p_mesh => extract_pressure_mesh(state)
        call allocate(original_bottomdist_remap, p_mesh, "OriginalDistanceToBottomPressureMesh")
        call remap_field(original_bottomdist, original_bottomdist_remap)
