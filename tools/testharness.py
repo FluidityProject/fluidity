@@ -425,6 +425,11 @@ if __name__ == "__main__":
       os.environ["LD_LIBRARY_PATH"] = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "lib")) + ":" + os.environ["LD_LIBRARY_PATH"]
     except KeyError:
       os.putenv("LD_LIBRARY_PATH", os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "lib")))
+      
+    try:
+      os.environ["OMPI_MCA_rmaps_base_oversubscribe"] = "1"
+    except KeyError:
+      os.putenv("OMPI_MCA_rmaps_base_oversubscribe", "1")
 
     try:
         os.mkdir(os.environ["HOME"] + os.sep + "lock")
