@@ -95,6 +95,7 @@ contains
     allocate(sub_states(1:nstates))
     do istate = 1, nstates
        call nullify(sub_states(istate))
+       sub_states(istate)%option_path = states(istate)%option_path
     end do
 
     ! Form subdomain external mesh from full state:
