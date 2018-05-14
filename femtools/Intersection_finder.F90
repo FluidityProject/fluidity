@@ -174,6 +174,8 @@ contains
 
     ewrite(1, *) "In intersection_finder"
 
+    map_AB%lenght = 0.0 !! workaround for gfortran issue
+
     allocate(lmap_AB(size(map_AB)))
     call libsupermesh_advancing_front_intersection_finder( &
       & positionsA%val, reshape(positionsA%mesh%ndglno, (/positionsA%mesh%shape%loc, ele_count(positionsA)/)), &
@@ -367,6 +369,8 @@ contains
     type(intersections), dimension(:), allocatable :: lmap_AB
 
     ewrite(1, *) "In advancing_front_intersection_finder"
+
+    map_AB%lenght = 0.0 !! workaround for gfortran issue
 
     allocate(lmap_AB(size(map_AB)))
     call libsupermesh_advancing_front_intersection_finder( &
