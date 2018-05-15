@@ -366,10 +366,10 @@ contains
        buff(ndims+1) = detector%element
        buff(ndims+2) = detector%id_number
        buff(ndims+3) = detector%type
-       ewrite(1,*) "data:", size(detector%position)+size(detector%element)+size(detector%id_number)+size(detector%type)
-       ewrite(1,*) "attributes_buffer_1:", size(attributes_buffer(1))
-       ewrite(1,*) "attributes_buffer_2:", size(attributes_buffer(2))
-       ewrite(1,*) "attributes_buffer_3:", size(attributes_buffer(3))
+       ewrite(1,*) "data:", size(detector%position)+3
+       ewrite(1,*) "attributes_buffer_1:", attributes_buffer(1)
+       ewrite(1,*) "attributes_buffer_2:", attributes_buffer(2)
+       ewrite(1,*) "attributes_buffer_3:", attributes_buffer(3)
        ewrite(1,*) "attributes:", size(detector%attributes)
        if (attributes_buffer(1).ne.0) then
           ewrite(1,*) "Flag 2.5"
