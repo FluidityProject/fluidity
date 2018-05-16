@@ -447,6 +447,8 @@ contains
        if (.not. allocated(detector%position)) then
           allocate(detector%position(ndims))
        end if
+       ewrite(1,*) "unpacking_attribures"
+       ewrite(1,*) "attributes_buffer(1):" attributes_buffer(1), "attributes_buffer(2):", attributes_buffer(2), "attributes_buffer(3):", attributes_buffer(3)
        allocate(detector%attributes(attributes_buffer(1)))
        allocate(detector%old_attributes(attributes_buffer(2)))
        allocate(detector%old_fields(attributes_buffer(3)))

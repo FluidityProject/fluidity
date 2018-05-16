@@ -466,8 +466,6 @@ contains
        zeros_dum(k) = 0
     end do
     do j = 1,nparticles
-       ewrite(1,*) "147258"
-       ewrite(1,*) "1:", size(particle%attributes), "2:", size(particle%old_attributes), "3:", size(particle%old_fields)
        positions(:,j) = particle%position
        lcoords(:,j) = particle%local_coords
        ele(j) = particle%element
