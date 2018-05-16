@@ -2789,7 +2789,7 @@ contains
     position_loop: do i = 1, detector_list%length
       ! Output detector coordinates
       ewrite(1,*) "147258"
-      ewrite(1,*) "attributes:", size(detector%attributes), "old_attributes:", size(detector%old_attributes), "old_fields:", size(detector%old_fields)
+      ewrite(1,*) "attributes:", size(node%attributes), "old_attributes:", size(node%old_attributes), "old_fields:", size(node%old_fields)
       
       assert(size(node%position) == dim)  
     
