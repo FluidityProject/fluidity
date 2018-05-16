@@ -371,8 +371,12 @@ contains
        ewrite(1,*) "attributes_buffer_2:", attributes_buffer(2)
        ewrite(1,*) "attributes_buffer_3:", attributes_buffer(3)
        ewrite(1,*) "attributes:", size(detector%attributes)
+       ewrite(1,*) "old_attributes:", size(detector%old_attributes)
+       ewrite(1,*) "old_fields:", size(detector%old_fields)
        if (attributes_buffer(1).ne.0) then
           ewrite(1,*) "Flag 2.5"
+          ewrite(1,*) "start:", ndims+4
+          ewrite(1,*) "end:", ndims+3+attributes_buffer(1)
           buff(ndims+4:ndims+3+attributes_buffer(1)) = detector%attributes
        end if
        ewrite(1,*) "Flag 3"
