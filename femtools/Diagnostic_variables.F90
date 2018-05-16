@@ -2700,7 +2700,7 @@ contains
        end if
        flush(detector_list%output_unit)
 
-    ! If isparallel() or binary output us this
+    ! If isparallel() or binary output use this
     else
        call write_mpi_out(state,detector_list,time,dt)
     end if
@@ -2788,6 +2788,9 @@ contains
     node => detector_list%first
     position_loop: do i = 1, detector_list%length
       ! Output detector coordinates
+      ewrite(1,*) "147258"
+      ewrite(1,*) "attributes:", size(detector%attributes), "old_attributes:", size(detector%old_attributes), "old_fields:", size(detector%old_fields)
+      
       assert(size(node%position) == dim)  
     
       offset = location_to_write + (node%id_number - 1) * dim * realsize
