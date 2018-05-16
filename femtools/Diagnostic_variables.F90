@@ -1413,7 +1413,7 @@ contains
     detector%type=type
     detector%id_number=id
 
-    ewrite(1,*) "ID:", node%id_number, "attributes:", size(node%attributes), "old_attributes:", size(node%old_attributes), "old_fields:", size(node%old_fields)
+    ewrite(1,*) "ID:", detector%id_number, "attributes:", size(detector%attributes), "old_attributes:", size(detector%old_attributes), "old_fields:", size(detector%old_fields)
 
   end subroutine create_single_detector
   
