@@ -2218,9 +2218,8 @@ module zoltan_integration
     type(detector_list_ptr), dimension(:), pointer :: detector_list_array => null()
     type(detector_type), pointer :: detector => null(), add_detector => null()
 
-    ewrite(1,*) 'in transfer_fieldsz'
+    ewrite(1,*) 'in transfer_fields'
     
-    ewrite(1,*) 'Flag 1'
     do i=1,size(sends)
        call allocate(sends(i))
     end do
@@ -2240,8 +2239,6 @@ module zoltan_integration
           end if
        end do
     end do
-    
-    ewrite(1,*) 'Flag 1'
     
     num_export = sum(key_count(sends))
     allocate(export_global_ids(num_export))
@@ -2263,8 +2260,6 @@ module zoltan_integration
        head = head + key_count(sends(i))
     end do
     
-    ewrite(1,*) 'Flag 2'
-    
     allocate(export_local_ids(num_export))
     export_local_ids = 666
     
@@ -2281,8 +2276,6 @@ module zoltan_integration
 
     ! Get all detector lists
     call get_registered_detector_lists(detector_list_array)
-
-    ewrite(1,*) 'Flag 3'
     
     ! Log list lengths
     if (get_num_detector_lists()>0) then
@@ -2295,8 +2288,6 @@ module zoltan_integration
     ierr = Zoltan_Migrate(zz, num_import, import_global_ids, import_local_ids, import_procs, &
          & import_to_part, num_export, export_global_ids, export_local_ids, export_procs, export_to_part) 
     assert(ierr == ZOLTAN_OK)
-
-    ewrite(1,*) 'Flag 4'
     
     deallocate(export_local_ids)
     deallocate(export_procs)
@@ -2308,8 +2299,6 @@ module zoltan_integration
        call update_detector_list_element(detector_list_array)
        call update_particle_list_element(detector_list_array)
     end if
-
-    ewrite(1,*) 'Flag 5'
 
     ! Merge in any detectors we received as part of the transfer to our detector list
     detector => zoltan_global_unpacked_detectors_list%first
@@ -2330,8 +2319,6 @@ module zoltan_integration
        call move(add_detector, zoltan_global_unpacked_detectors_list, detector_list_array(add_detector%list_id)%ptr)
     end do
 
-    ewrite(1,*) 'Flag 6'
-
     assert(zoltan_global_unpacked_detectors_list%length==0)
     ewrite(2,*) "Merged", original_zoltan_global_unpacked_detectors_list_length, "detectors with local detector lists"
 
@@ -2343,8 +2330,6 @@ module zoltan_integration
           ewrite(2,*) "Detector list", j, "has", detector_list_array(j)%ptr%length, "local and ", detector_list_array(j)%ptr%total_num_det, "global detectors"
        end do
     end if
-
-    ewrite(1,*) 'Flag 7'
 
     ierr = Zoltan_LB_Free_Part(import_global_ids, import_local_ids, import_procs, import_to_part)
     assert(ierr == ZOLTAN_OK)
@@ -2362,8 +2347,6 @@ module zoltan_integration
          halo_universal_number(zoltan_global_zz_halo, ele_nodes(zoltan_global_zz_positions, old_local_element_number)), &
          ele_nodes(zoltan_global_new_positions, new_local_element_number))
     end do
-
-    ewrite(1,*) 'Flag 8'
     
     do state_no=1,size(zoltan_global_source_states)
        assert(scalar_field_count(zoltan_global_source_states(state_no)) == scalar_field_count(zoltan_global_target_states(state_no)))
@@ -2419,8 +2402,6 @@ module zoltan_integration
           end do
        end do
     end do
-
-    ewrite(1,*) 'Flag 9'
     
     call deallocate(self_sends)
     call deallocate(sends)

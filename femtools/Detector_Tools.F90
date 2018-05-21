@@ -355,41 +355,25 @@ contains
     integer, intent(in), optional :: nstages
     integer, dimension(3), optional, intent(in) :: attributes_buffer
     
-    ewrite(1,*) "Flag 1"
     assert(size(detector%position)==ndims)
     if (present(attributes_buffer)) then
        assert(size(buff)>=ndims+3+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3))
-       ewrite(1,*) "Flag 2"
        ! Basic fields: ndims+3
-       ewrite(1,*) "buff_size:", size(buff), "position:", size(detector%position)
        buff(1:ndims) = detector%position
        buff(ndims+1) = detector%element
        buff(ndims+2) = detector%id_number
        buff(ndims+3) = detector%type
-       ewrite(1,*) "data:", size(detector%position)+3
-       ewrite(1,*) "attributes_buffer_1:", attributes_buffer(1)
-       ewrite(1,*) "attributes_buffer_2:", attributes_buffer(2)
-       ewrite(1,*) "attributes_buffer_3:", attributes_buffer(3)
-       ewrite(1,*) "attributes:", size(detector%attributes)
-       ewrite(1,*) "old_attributes:", size(detector%old_attributes)
-       ewrite(1,*) "old_fields:", size(detector%old_fields)
        if (attributes_buffer(1).ne.0) then
-          ewrite(1,*) "Flag 2.5"
-          ewrite(1,*) "start:", ndims+4
-          ewrite(1,*) "end:", ndims+3+attributes_buffer(1)
           buff(ndims+4:ndims+3+attributes_buffer(1)) = detector%attributes
        end if
-       ewrite(1,*) "Flag 3"
        if (attributes_buffer(2).ne.0) then
           buff(ndims+4+attributes_buffer(1):ndims+3+attributes_buffer(1)+attributes_buffer(2)) &
                = detector%old_attributes
        end if
-       ewrite(1,*) "Flag 4"
        if (attributes_buffer(3).ne.0) then
           buff(ndims+4+attributes_buffer(1)+attributes_buffer(2):ndims+3+attributes_buffer(1)+ &
                attributes_buffer(2)+attributes_buffer(3)) = detector%old_fields
        end if
-       ewrite(1,*) "Flag 5"
        ! Lagrangian advection fields: (nstages+1)*ndims
        if (present(nstages)) then
           assert(size(buff)==(nstages+2)*ndims+3+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3))
@@ -404,9 +388,7 @@ contains
           assert(size(buff)==ndims+4+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3))
           buff(ndims+4+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3)) = detector%list_id
        end if
-       ewrite(1,*) "Flag 6"
     else
-       ewrite(1,*) "Flag 7"
        assert(size(buff)>=ndims+3)
 
        ! Basic fields: ndims+3
@@ -428,7 +410,6 @@ contains
           buff(ndims+4) = detector%list_id
        end if
     end if
-    ewrite(1,*) "Flag 8"
     
   end subroutine pack_detector
 
@@ -447,8 +428,6 @@ contains
        if (.not. allocated(detector%position)) then
           allocate(detector%position(ndims))
        end if
-       ewrite(1,*) "unpacking_attributes"
-       ewrite(1,*) "attributes_buffer(1):", attributes_buffer(1), "attributes_buffer(2):", attributes_buffer(2), "attributes_buffer(3):", attributes_buffer(3)
        allocate(detector%attributes(attributes_buffer(1)))
        allocate(detector%old_attributes(attributes_buffer(2)))
        allocate(detector%old_fields(attributes_buffer(3)))

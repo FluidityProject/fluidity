@@ -1092,8 +1092,6 @@ contains
              rbuf(rhead)=attributes_buffer(k)
              rhead=rhead+1
           end do
-          ewrite(1,*) "size:", size(rbuf), "rhead:", rhead
-          ewrite(1,*) "zoltan_ndata", zoltan_global_ndata_per_det, "total_attributes", total_attributes
           call pack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1+total_attributes), &
                zoltan_global_ndims, attributes_buffer=attributes_buffer)
           ! keep a pointer to the detector to delete

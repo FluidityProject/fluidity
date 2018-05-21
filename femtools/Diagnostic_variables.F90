@@ -1413,8 +1413,6 @@ contains
     detector%type=type
     detector%id_number=id
 
-    ewrite(1,*) "ID:", detector%id_number, "attributes:", size(detector%attributes), "old_attributes:", size(detector%old_attributes), "old_fields:", size(detector%old_fields)
-
   end subroutine create_single_detector
   
   subroutine initialise_detectors(filename, state)
@@ -1504,7 +1502,6 @@ contains
     ! Read detectors from options
     if (.not.default_stat%from_checkpoint) then
        ewrite(2,*) "Reading detectors from options"
-       ewrite(1,*) "258147"
 
        ! Read all single static detector from options
        do i=1,static_dete
@@ -2793,11 +2790,8 @@ contains
     location_to_write = location_to_write + 2 * realsize
 
     node => detector_list%first
-    ewrite(1,*) "147258"
     position_loop: do i = 1, detector_list%length
       ! Output detector coordinates
-      ewrite(1,*) "ID:", node%id_number, "attributes:", size(node%attributes), "old_attributes:", size(node%old_attributes), "old_fields:", size(node%old_fields)
-      
       assert(size(node%position) == dim)  
     
       offset = location_to_write + (node%id_number - 1) * dim * realsize

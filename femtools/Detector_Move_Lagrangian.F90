@@ -204,7 +204,7 @@ contains
                 !such detectors are removed from the detector list
                 !and added to the send_list_array
                 call move_detectors_guided_search(detector_list,&
-                        vfield,xfield,send_list_array,parameters%search_tolerance, attributes_buffer)
+                        vfield,xfield,send_list_array,parameters%search_tolerance)
 
                 ! Work out whether all send lists are empty, in which case exit.
                 all_send_lists_empty=0
@@ -365,7 +365,7 @@ contains
   end subroutine set_stage
 
 
-  subroutine move_detectors_guided_search(detector_list,vfield,xfield,send_list_array,search_tolerance, attributes_buffer)
+  subroutine move_detectors_guided_search(detector_list,vfield,xfield,send_list_array,search_tolerance)
     !Subroutine to find the element containing the update vector:
     ! - Detectors leaving the computational domain are set to STATIC
     ! - Detectors leaving the processor domain are added to the list 
@@ -379,7 +379,6 @@ contains
     type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
     type(vector_field), pointer, intent(in) :: vfield,xfield
     real, intent(in) :: search_tolerance
-    integer, dimension(3), optional, intent(in) :: attributes_buffer
 
     type(detector_type), pointer :: det0, det_send
     integer :: det_count
