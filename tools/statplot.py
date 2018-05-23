@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # James Maddison
 # Thomas Duvernay
@@ -77,7 +77,7 @@ class StatplotWindow(Gtk.Window):
                 try:
                     stats.append(fluidity_tools.Stat(filename))
                     break
-                except TypeError, ValueError:
+                except (TypeError, ValueError):
                     time.sleep(0.2)
                     failcount += 1
             if failcount == 5:
@@ -95,7 +95,7 @@ class StatplotWindow(Gtk.Window):
                 try:
                     stats.append(fluidity_tools.Stat(filename))
                     break
-                except TypeError, ValueError:
+                except (TypeError, ValueError):
                     time.sleep(0.2)
                     failcount += 1
             if failcount == 5:
