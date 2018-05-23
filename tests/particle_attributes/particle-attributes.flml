@@ -53,77 +53,104 @@
     <stat/>
   </io>
   <particles>
-    <particle_array name="Steve">
-      <number_of_particles>
-        <integer_value rank="0">100</integer_value>
-      </number_of_particles>
-      <initial_position>
-        <python>
-          <string_value lines="20" type="code" language="python">def val(t):
-  from numpy import arange,zeros,reshape,concatenate
-  x = 0.5+0.25*arange(0,100.)/100.
-  y = zeros(100) + 0.5
-  return reshape(concatenate((x,y)),(2,100)).T</string_value>
-        </python>
-      </initial_position>
-      <attributes>
-        <attribute name="Chem1">
+    <particle_group name="Rhodri">
+      <velocity_field name="Velocity"/>
+      <particle_subgroup name="Thomas">
+        <number_of_particles>
+          <integer_value rank="0">60</integer_value>
+        </number_of_particles>
+        <initial_position>
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
-  x=X[0]
-  y=x+t
-  return y</string_value>
-          </python>
-        </attribute>
-        <attribute name="Chem2">
-          <python_fields>
-            <string_value lines="20" type="code" language="python">def val(X,t,fields):
-  from math import pi, sin
-  x=X[0]
-  y=X[1]
-  z=x+t+fields["Salinity"]+fields["Temperature"]
-  return z</string_value>
-            <store_old_attribute/>
-          </python_fields>
-        </attribute>
-        <attribute name="Chem3">
-          <python_fields>
-            <string_value lines="20" type="code" language="python">def val(X,t,fields):
-  y=fields["OldChem2"]
-  return y</string_value>
-          </python_fields>
-        </attribute>
-      </attributes>
-    </particle_array>
-    <particle_array name="Chris">
-      <number_of_particles>
-        <integer_value rank="0">60</integer_value>
-      </number_of_particles>
-      <initial_position>
-        <python>
-          <string_value lines="20" type="code" language="python">def val(t):
+            <string_value type="code" lines="20" language="python">def val(t):
   from numpy import arange,zeros,reshape,concatenate
   x = 0.6+0.25*arange(0,60.)/60.
   y = zeros(60) + 0.5
   return reshape(concatenate((x,y)),(2,60)).T</string_value>
-        </python>
-      </initial_position>
-      <attributes>
-        <attribute name="Chem4">
-          <constant>
-            <real_value rank="0">5</real_value>
-          </constant>
-        </attribute>
-        <attribute name="Chem5">
-          <python_fields>
-            <string_value lines="20" type="code" language="python">def val(X,t,fields):
+          </python>
+        </initial_position>
+        <attributes>
+          <attribute name="Chem1">
+            <constant>
+              <real_value rank="0">5</real_value>
+            </constant>
+          </attribute>
+          <attribute name="Chem2">
+            <python_fields>
+              <string_value type="code" lines="20" language="python">def val(X,t,fields):
   x=X[0]
   y=fields["OldTemperature"]
   return y</string_value>
-          </python_fields>
-        </attribute>
-      </attributes>
-    </particle_array>
+            </python_fields>
+          </attribute>
+        </attributes>
+      </particle_subgroup>
+      <particle_subgroup name="Chris">
+        <number_of_particles>
+          <integer_value rank="0">100</integer_value>
+        </number_of_particles>
+        <initial_position>
+          <python>
+            <string_value type="code" lines="20" language="python">def val(t):
+  from numpy import arange,zeros,reshape,concatenate
+  x = 0.5+0.25*arange(0,100.)/100.
+  y = zeros(100) + 0.5
+  return reshape(concatenate((x,y)),(2,100)).T</string_value>
+          </python>
+        </initial_position>
+        <attributes>
+          <attribute name="Chem3">
+            <python>
+              <string_value type="code" lines="20" language="python">def val(X,t):
+  x=X[0]
+  y=x+t
+  return y</string_value>
+            </python>
+          </attribute>
+          <attribute name="Chem4">
+            <python_fields>
+              <string_value type="code" lines="20" language="python">def val(X,t,fields):
+  x=X[0]
+  z=x+t+fields["Salinity"]+fields["Temperature"]
+  return z</string_value>
+              <store_old_attribute/>
+            </python_fields>
+          </attribute>
+          <attribute name="Chem5">
+            <python_fields>
+              <string_value type="code" lines="20" language="python">def val(X,t,fields):
+  y=fields["OldChem4"]
+  return y</string_value>
+            </python_fields>
+          </attribute>
+        </attributes>
+      </particle_subgroup>
+    </particle_group>
+    <particle_group name="Cian">
+      <velocity_field name="Velocity"/>
+      <particle_subgroup name="Steph">
+        <number_of_particles>
+          <integer_value rank="0">80</integer_value>
+        </number_of_particles>
+        <initial_position>
+          <python>
+            <string_value type="code" lines="20" language="python">def val(t):
+  from numpy import arange,zeros,reshape,concatenate
+  x = 0.2+0.6*arange(0,80.)/80.
+  y = zeros(80) + 0.2
+  return reshape(concatenate((x,y)),(2,80)).T</string_value>
+          </python>
+        </initial_position>
+        <attributes>
+          <attribute name="Chem6">
+            <python_fields>
+              <string_value type="code" lines="20" language="python">def val(X,t,fields):
+  z=fields["Temperature"]-fields["OldTemperature"]
+  return z</string_value>
+            </python_fields>
+          </attribute>
+        </attributes>
+      </particle_subgroup>
+    </particle_group>
     <fail_outside_domain/>
     <lagrangian_timestepping>
       <subcycles>

@@ -329,61 +329,73 @@ start =
 	 element particles {
 	    (
 		  ## Particles with their locations specified via a python function or from a file. Allows particle arrays to be added.
-                  element particle_array {
+                  element particle_group {
                      attribute name { xsd:string },
-                     ## The number of particles prescribed by the python function.
-                     element number_of_particles {
-                        integer
-                     },
-		     (
-		       ##Initial position of particles
-		       element initial_position {
-                          ## Python function prescribing dimensional vector input. Functions should be of the form:
-                          ##
-                          ##  def val(t):
-                          ##     # Function code
-                          ##     return # Return value
-                          ##
-                          ## The return value must have length number_of_particles.
-                          ##
-                          ## *** IMPORTANT NOTE ***
-                          ##
-                          ## The t argument is for future use only - currently particle locations are only set at simulation start.
-                          element python {
-                             python_code
-                          }|
-                          ## File containing the particle positions in binary form
-                          element from_file {
-                             attribute file_name { xsd:string },
-                             ## The format of the input file containing field data.
-                             element format {
-                                element string_value {
-                                   "binary"
-                             	}
-                             }
-                          }|
-                          ## File containing the particle positions in binary form
-                          element from_checkpoint_file {
-                             attribute file_name { xsd:string },
-                             ## The format of the input file containing field data.
-                             element format {
-                                element string_value {
-                                   "binary"
-                              	}
-                             }
-			  }
-                       } 
-                     ),
-		     (
-		       ##Define particle attributes
-		       element attributes {
-		       	  element attribute {
-		             attribute name { xsd:string },
-			     generic_particle_field
-			  }+
-		       }?
-		     )
-                  }+
+		     element velocity_field {
+		     attribute name { xsd:string }
+		     },
+		     element particle_subgroup {
+		        attribute name { xsd:string },
+                     	## The number of particles prescribed by the python function.
+                     	element number_of_particles {
+                           integer
+                     	},
+		        (
+		          ##Initial position of particles
+		          element initial_position {
+                             ## Python function prescribing dimensional vector input. Functions should be of the form:
+                             ##
+                             ##  def val(t):
+                             ##     # Function code
+                             ##     return # Return value
+                             ##
+                             ## The return value must have length number_of_particles.
+                             ##
+                             ## *** IMPORTANT NOTE ***
+                             ##
+                             ## The t argument is for future use only - currently particle locations are only set at simulation start.
+                             element python {
+                                python_code
+                             }|
+                             ## File containing the particle positions in binary form
+                             element from_file {
+                                attribute file_name { xsd:string },
+                                ## The format of the input file containing field data.
+                                element format {
+                                   element string_value {
+                                      "binary"
+                             	   }
+                                }
+                             }|
+                             ## File containing the particle positions in binary form
+                             element from_checkpoint_file {
+                                attribute file_name { xsd:string },
+                                ## The format of the input file containing field data.
+                                element format {
+                                   element string_value {
+                                      "binary"
+                              	   }
+                                }
+			     }
+                          } 
+                        ),
+		        (
+		          ##Define particle attributes
+		          element attributes {
+		       	     element attribute {
+		                attribute name { xsd:string },
+			        generic_particle_field
+			     }+
+		          }?
+		        )
+                     }+,
+		     element spawn_particles {
+		        comment
+		     }?,
+		     element delete_particles {
+		        comment
+		     }?
+	       }+
 	    )*,
 	    (
                ## By default Fluidity will fail if a particle has left the domain.
