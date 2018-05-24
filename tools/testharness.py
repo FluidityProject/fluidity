@@ -59,7 +59,7 @@ class TestHarness:
         self.cwd=os.getcwd()
         self.xml_outfile=xml_outfile
         self.exit_fails=exit_fails
-
+      
         fluidity_command = self.decide_fluidity_command()
 
         if file == "":
@@ -387,6 +387,19 @@ class TestHarness:
       for (subdir, test) in self.tests:
         print os.path.join(subdir, test.filename)
 
+    def archive_failures(self, filename):
+      """ Archive tests with warnings or failures as a gzip compressed tarfile"""
+      if self.failcount+self.warncount == 0:
+        print("No failures.")
+        return
+      import tarfile
+      print os.path.join(self.cwd, filename)
+      with open(os.path.join(self.cwd ,filename), "w") as fobj:
+       with tarfile.open(mode="w:gz", fileobj=fobj) as out:
+        for (subdir, test) in self.tests:
+          if test.pass_status.count('F')+test.pass_status.count('W')>0:
+            print("Adding %s"%subdir)
+            out.add(subdir)
 
 if __name__ == "__main__":
     import optparse
@@ -408,6 +421,7 @@ if __name__ == "__main__":
     parser.add_option("--just-list", action="store_true", dest="justlist")
     parser.add_option("--genpbs", action="store_true", dest="genpbs")
     parser.add_option("-x","--xml-output", dest="xml_outfile", default="", help="filename for xml output")
+    parser.add_option("-a","--archive-failures", dest="archive_failures", default="", help="Archive test directories with failures to gzipped tar file.")
     parser.add_option("--exit-failure-count", action="store_true", dest="exit_fails", help="Return failure count on exit")
     (options, args) = parser.parse_args()
 
@@ -474,3 +488,7 @@ if __name__ == "__main__":
         print "-" * 80
 
       testharness.run()
+
+    if options.archive_failures:
+      print("Archiving to %s"%options.archive_failures)
+      testharness.archive_failures(options.archive_failures)

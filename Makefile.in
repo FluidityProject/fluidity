@@ -88,6 +88,7 @@ endif
 
 # Thread count for make test.
 THREADS=1
+TESTHARNESS_OPTIONS=""
 
 EXCLUDE_TAGS =
 ifneq (@HAVE_ZOLTAN@,yes)
@@ -437,10 +438,10 @@ distclean: clean
 test: serialtest
 
 serialtest: fltools bin/$(FLUIDITY)
-	@cd tests; ../bin/testharness -x test_results.xml -l short $(EXCLUDE_TAGS) -n $(THREADS)
+	@cd tests; ../bin/testharness -x test_results.xml -l short $(EXCLUDE_TAGS) -n $(THREADS) $(TESTHARNESS_OPTIONS)
 
 mediumtest: fltools bin/$(FLUIDITY) manual spudtools
-	@cd tests; ../bin/testharness -x test_results_medium.xml -l medium $(EXCLUDE_TAGS) -n $(THREADS)
+	@cd tests; ../bin/testharness -x test_results_medium.xml -l medium $(EXCLUDE_TAGS) -n $(THREADS) $(TESTHARNESS_OPTIONS)
 
 .PHONY: spudtools
 
