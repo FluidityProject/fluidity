@@ -5,6 +5,7 @@ import os
 import os.path
 import glob
 import time
+import StringIO as io
 
 try:
  import fluidity.regressiontest as regressiontest
@@ -16,7 +17,8 @@ except ImportError:
  import fluidity.regressiontest as regressiontest
 
 import traceback
-import threading
+import multiprocessing
+import Queue
 import xml.parsers.expat
 import string
 
@@ -57,6 +59,7 @@ class TestHarness:
         self.genpbs = genpbs
         self.xml_parser=TestSuite('TestHarness',[])
         self.cwd=os.getcwd()
+        self.iolock = multiprocessing.Lock()
         self.xml_outfile=xml_outfile
         self.exit_fails=exit_fails
       
@@ -67,6 +70,7 @@ class TestHarness:
           print "-" * 80
           print "length: ", length
           print "parallel: ", parallel
+          print "threads: ", options.thread_count
           print "tags to include: ", tags
           print "tags to exclude: ", exclude_tags
           print "-" * 80
@@ -285,13 +289,30 @@ class TestHarness:
         self.log(" ")
         if not self.justtest:
             threadlist=[]
-            self.threadtests=regressiontest.ThreadIterator(self.tests)
+            self.test_exception_ids = multiprocessing.Queue()
+            self.threadtests = multiprocessing.Queue()
+            for _ in range(len(self.tests)):
+              self.threadtests.put(_)
+
+            self.plock = multiprocessing.Lock()
+            self.semaphore = multiprocessing.BoundedSemaphore(value=options.thread_count)
             for i in range(options.thread_count):
-                threadlist.append(threading.Thread(target=self.threadrun)) 
+                threadlist.append(multiprocessing.Process(target=self.threadrun)) 
                 threadlist[-1].start()
             for t in threadlist:
                 '''Wait until all threads finish'''
                 t.join()
+
+            exceptions = []
+            while True:
+                try:
+                    test_id = self.test_exception_ids.get_nowait()
+                    exceptions.append(self.tests[test_id])
+                except Queue.Empty:
+                    break
+            for e in exceptions:
+                self.tests.remove(e)
+                self.completed_tests += [e[1]]
 
             count = len(self.tests)
             while True:
@@ -363,8 +384,27 @@ class TestHarness:
     def threadrun(self):
         '''This is the portion of the loop which actually runs the
         tests. This is split out so that it can be threaded'''
-        
-        for (dir, test) in self.threadtests:
+
+        main_stdout = sys.stdout
+
+        while True:
+            buf = io.StringIO()
+            sys.stdout = buf
+            try:
+              test_id = self.threadtests.get_nowait()
+              (dir, test) = self.tests[test_id]
+            except Queue.Empty:
+                break
+
+            nprocs = min(test.nprocs, options.thread_count)
+            if nprocs > 1:
+                # parallel jobs attempt to acquire multiple semaphores
+                # to avoid deadlock, only one can try at a time, the others wait.
+                self.plock.acquire()
+            for _ in range(nprocs):
+                self.semaphore.acquire()
+            if nprocs > 1:
+                self.plock.release()
             try:
                 runtime=test.run(dir)
                 if self.length=="short" and runtime>30.0:
@@ -378,10 +418,16 @@ class TestHarness:
                 lines = traceback.format_exception( sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2] )
                 for line in lines:
                     self.log(line)
-                self.tests.remove((dir, test))
-                self.teststatus += ['F']
                 test.pass_status = ['F']
-                self.completed_tests += [test]
+                self.test_exception_ids.put(test_id)
+            finally:
+                for _ in range(nprocs):
+                   self.semaphore.release()
+                sys.stdout = main_stdout
+                buf.seek(0)
+                self.iolock.acquire()
+                print buf.read()
+                self.iolock.release()
 
     def list(self):
       for (subdir, test) in self.tests:
