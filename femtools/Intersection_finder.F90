@@ -174,7 +174,8 @@ contains
 
     ewrite(1, *) "In intersection_finder"
 
-    map_AB%lenght = 0.0 !! workaround for gfortran issue
+    ! workaround gfortran issue: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85750
+    map_AB%length = 0.0
 
     allocate(lmap_AB(size(map_AB)))
     call libsupermesh_advancing_front_intersection_finder( &
@@ -196,6 +197,9 @@ contains
     type(ilist), dimension(:), allocatable :: sub_map_AB
     
     ewrite(1, *) "In intersection_finder"
+
+    ! workaround gfortran issue: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85750
+    map_AB%length = 0.0
 
     ! We cannot assume connectedness, so we may have to run the
     ! advancing front more than once (once per connected sub-domain)
@@ -370,7 +374,8 @@ contains
 
     ewrite(1, *) "In advancing_front_intersection_finder"
 
-    map_AB%lenght = 0.0 !! workaround for gfortran issue
+    ! workaround gfortran issue: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85750
+    map_AB%length = 0.0
 
     allocate(lmap_AB(size(map_AB)))
     call libsupermesh_advancing_front_intersection_finder( &
@@ -412,6 +417,9 @@ contains
     type(ilist) :: clues
 
     ewrite(1, *) "In advancing_front_intersection_finder"
+
+    ! workaround gfortran issue: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85750
+    map_AB%length = 0.0
       
     mesh_A => positionsA%mesh
     mesh_B => positionsB%mesh
