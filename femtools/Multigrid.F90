@@ -71,18 +71,6 @@ PetscReal, dimension(:), pointer, save :: surface_values => null()
 private
 public SetupSmoothedAggregation, SetupMultigrid, DestroyMultigrid
   
-  ! see at the bottom of Petsc_Tools.F90
-  ! For some reason "use"ing the interface from the petsc_tools module
-  ! - if made public - doesn't work.
-  interface
-    subroutine myMatGetInfo(A, flag, info, ierr)
-       Mat, intent(in):: A
-       MatInfoType, intent(in):: flag
-       double precision, dimension(:), intent(out):: info
-       PetscErrorCode, intent(out):: ierr
-    end subroutine myMatGetInfo
-  end interface
-
 contains
 
 subroutine SetUpInternalSmoother(surface_node_list_in,matrix,pc, &
@@ -94,7 +82,6 @@ subroutine SetUpInternalSmoother(surface_node_list_in,matrix,pc, &
   PC, intent(inout) :: pc
   logical, intent(in), optional :: no_top_smoothing
   !
-  PetscObject:: myPETSC_NULL_OBJECT
   type(csr_matrix) :: matrix_internal
   integer :: row,i, ierr, nsurface
   integer, dimension(:), pointer :: r_ptr
@@ -155,11 +142,7 @@ subroutine SetUpInternalSmoother(surface_node_list_in,matrix,pc, &
   call pcsetoperators(internal_smoother_pc,Internal_Smoother_Mat, Internal_Smoother_Mat, ierr)
 
   !set up pc to output
-  myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-  call PCShellSetApply(pc,ApplySmoother,PETSC_NULL_OBJECT,ierr)
-  if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-    FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-  end if  
+  call PCShellSetApply(pc,ApplySmoother,ierr)
 
   surface_node_list = surface_node_list - 1
 
@@ -355,7 +338,6 @@ logical, intent(in), optional :: no_top_smoothing
   PetscScalar :: Px2
   Vec:: eigvec, Px
   PetscReal, allocatable, dimension(:):: emin, emax
-  PetscObject:: myPETSC_NULL_OBJECT
   integer, allocatable, dimension(:):: contexts
   integer i, j, ri, nolevels, m, n, top_level
   integer nosmd, nosmu, clustersize, no_external_prolongators
@@ -364,6 +346,13 @@ logical, intent(in), optional :: no_top_smoothing
 
     ! this might be already done, but it doesn't hurt:
     call PCSetType(prec, PCMG, ierr)
+
+    call PCMGGetLevels(prec, nolevels, ierr)
+    if (ierr==0 .and. nolevels>0) then
+      ewrite(2,*) "Assuming mg preconditioner is used with the same matrix and same options as before"
+      ierror = 0
+      return
+    end if
 
     lno_top_smoothing = .false.
     if(present(no_top_smoothing)) then
@@ -407,7 +396,7 @@ logical, intent(in), optional :: no_top_smoothing
          epsilon=epsilon/epsilon_decay
       end if
 
-      if (prolongators(i)==PETSC_NULL_OBJECT) then
+      if (prolongators(i)==PETSC_NULL_MAT) then
         if (IsParallel()) then
           ! in parallel we give up
           ewrite(-1,*) "ERROR: mg preconditioner setup failed"
@@ -423,11 +412,8 @@ logical, intent(in), optional :: no_top_smoothing
         end do
         deallocate(matrices, prolongators, contexts)
         ! Need to set n/o levels (to 1) otherwise PCDestroy will fail:
-        myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-        call PCMGSetLevels(prec, 1, PETSC_NULL_OBJECT, ierr)
-        if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-           FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-        end if
+        ! See note below about PETSC_NULL_KSP argument
+        call PCMGSetLevels(prec, 1, PETSC_NULL_KSP, ierr)
         ierror=1
         return
       end if
@@ -449,11 +435,10 @@ logical, intent(in), optional :: no_top_smoothing
       nolevels=i
     end if
     
-    myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-    call PCMGSetLevels(prec, nolevels, PETSC_NULL_OBJECT, ierr)
-    if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-       FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-    end if
+    ! NOTE: in petsc v3.8 it's unclear what the legal null argument should be for MPI_Comm *comms
+    ! it does not accept any scalar null object (e.g. PETSC_NULL_INTEGER) - luckily there's no
+    ! explicit interface so we can pass this instead which does get correctly translated to a null argument
+    call PCMGSetLevels(prec, nolevels, PETSC_NULL_KSP, ierr)
     
     if (lno_top_smoothing) then
       top_level=nolevels-2
@@ -477,11 +462,8 @@ logical, intent(in), optional :: no_top_smoothing
         call PowerMethod(matrices(ri), eigval, eigvec)
         emax(ri)=eigval
         
-        myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-        call MatCreateVecs(prolongators(ri-1), PETSC_NULL_OBJECT, Px, ierr)
-        if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-           FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-        end if
+        Px = PETSC_NOTANULL_VEC
+        call MatCreateVecs(prolongators(ri-1), PETSC_NULL_VEC, Px, ierr)
         call MatMult(prolongators(ri-1), eigvec, Px, ierr)
         call VecNorm(Px, NORM_2, Px2, ierr)
         emin(ri-1)=eigval/Px2**2.
@@ -552,21 +534,8 @@ logical, intent(in), optional :: no_top_smoothing
       
     end do
     
-    ! Create rhs's for coarsest to one but finest level:
-    ! This shouldn't be necessary, but PETSc messes up leaving
-    !   the vector when destroying the preconditioner. 
-    ! (believed fixed in PETSc 3.0.0)
-    do i=0, nolevels-2
-      ri=nolevels-i
-      ! using PETSC_NULL_OBJECT for rvec leaks a reference
-      call MatCreateVecs(matrices(ri), lvec, rvec, ierr)
-      call PCMGSetRHS(prec, i, lvec, ierr)
-      ! Again, this does not yet destroy rhs immediately:
-      call VecDestroy(lvec, ierr)
-      call VecDestroy(rvec, ierr)
-    end do
-      
     ! residual needs to be set if PCMG is used with KSPRICHARDSON
+    lvec = PETSC_NOTANULL_VEC; rvec = PETSC_NOTANULL_VEC
     call MatCreateVecs(matrices(1), lvec, rvec, ierr)
     call PCMGSetR(prec, nolevels-1, lvec, ierr)
     call VecDestroy(lvec, ierr)
@@ -576,7 +545,7 @@ logical, intent(in), optional :: no_top_smoothing
     call PCMGGetCoarseSolve(prec, ksp_smoother, ierr)
     call KSPGetPC(ksp_smoother, prec_smoother, ierr)
     call MatGetNullSpace(matrix, nullsp, ierr)
-    if (IsParallel() .or. (nullsp/=PETSC_NULL_OBJECT .and. ierr==0)) then
+    if (IsParallel() .or. (ierr==0 .and. .not. IsNullMatNullSpace(nullsp))) then
       ! if parallel or if we have a null space: use smoothing instead of direct solve
       call SetupSORSmoother(ksp_smoother, matrices(nolevels), &
         SOR_LOCAL_SYMMETRIC_SWEEP, 20)
@@ -675,23 +644,23 @@ integer, intent(out):: nosmd, nosmu, clustersize
   PetscBool flag
   PetscErrorCode ierr
 
-    call PetscOptionsGetReal(PETSC_NULL_OBJECT, '', '-mymg_epsilon', epsilon, flag, ierr)
+    call PetscOptionsGetReal(PETSC_NULL_OPTIONS, '', '-mymg_epsilon', epsilon, flag, ierr)
     if (.not. flag) then
       epsilon=MULTIGRID_EPSILON_DEFAULT
     end if
-    call PetscOptionsGetReal(PETSC_NULL_OBJECT, '', '-mymg_epsilon_decay', epsilon_decay, flag, ierr)
+    call PetscOptionsGetReal(PETSC_NULL_OPTIONS, '', '-mymg_epsilon_decay', epsilon_decay, flag, ierr)
     if (.not. flag) then
       epsilon_decay=MULTIGRID_EPSILON_DECAY_DEFAULT
     end if
-    call PetscOptionsGetReal(PETSC_NULL_OBJECT, '', '-mymg_omega', omega, flag, ierr)
+    call PetscOptionsGetReal(PETSC_NULL_OPTIONS, '', '-mymg_omega', omega, flag, ierr)
     if (.not. flag) then
       omega=MULTIGRID_OMEGA_DEFAULT
     end if
-    call PetscOptionsGetInt(PETSC_NULL_OBJECT, '', '-mymg_maxlevels', maxlevels, flag, ierr)
+    call PetscOptionsGetInt(PETSC_NULL_OPTIONS, '', '-mymg_maxlevels', maxlevels, flag, ierr)
     if (.not. flag) then
       maxlevels=MULTIGRID_MAXLEVELS_DEFAULT
     end if
-    call PetscOptionsGetInt(PETSC_NULL_OBJECT, '', '-mymg_coarsesize', coarsesize, flag, ierr)
+    call PetscOptionsGetInt(PETSC_NULL_OPTIONS, '', '-mymg_coarsesize', coarsesize, flag, ierr)
     if (.not. flag) then
       if (IsParallel()) then
         coarsesize=MULTIGRID_COARSESIZE_DEFAULT_PARALLEL
@@ -699,15 +668,15 @@ integer, intent(out):: nosmd, nosmu, clustersize
         coarsesize=MULTIGRID_COARSESIZE_DEFAULT_SERIAL
       end if
     end if
-    call PetscOptionsGetInt(PETSC_NULL_OBJECT, '', '-mymg_nosmd', nosmd, flag, ierr)
+    call PetscOptionsGetInt(PETSC_NULL_OPTIONS, '', '-mymg_nosmd', nosmd, flag, ierr)
     if (.not. flag) then
       nosmd=MULTIGRID_NOSMD_DEFAULT
     end if
-    call PetscOptionsGetInt(PETSC_NULL_OBJECT, '', '-mymg_nosmu', nosmu, flag, ierr)
+    call PetscOptionsGetInt(PETSC_NULL_OPTIONS, '', '-mymg_nosmu', nosmu, flag, ierr)
     if (.not. flag) then
       nosmu=MULTIGRID_NOSMU_DEFAULT
     end if
-    call PetscOptionsGetInt(PETSC_NULL_OBJECT, '', '-mymg_clustersize', clustersize, flag, ierr)
+    call PetscOptionsGetInt(PETSC_NULL_OPTIONS, '', '-mymg_clustersize', clustersize, flag, ierr)
     if (.not. flag) then
       clustersize=MULTIGRID_CLUSTERSIZE_DEFAULT
     end if
@@ -745,20 +714,22 @@ integer, optional, dimension(:), intent(out):: cluster
   double precision, dimension(MAT_INFO_SIZE):: matrixinfo
   integer, dimension(:), allocatable:: findN, N, R
   integer:: nrows, nentries, ncols
-  integer:: jc, ccnt, base
+  integer:: jc, ccnt, base, end_of_range
     
   ! find out basic dimensions of A
   call MatGetLocalSize(A, nrows, ncols, ierr)
   ! use Petsc_Tools's MatGetInfo because of bug in earlier patch levels of petsc 3.0
-  call myMatGetInfo(A, MAT_LOCAL, matrixinfo, ierr)
+  call MatGetInfo(A, MAT_LOCAL, matrixinfo, ierr)
   nentries=matrixinfo(MAT_INFO_NZ_USED)
-  call MatGetOwnerShipRange(A, base, PETSC_NULL_INTEGER, ierr)
+  call MatGetOwnerShipRange(A, base, end_of_range, ierr)
   ! we decrease by 1, so base+i gives 0-based petsc index if i is the local fortran index:
   base=base-1
   
   allocate(findN(1:nrows+1), N(1:nentries), R(1:nrows))
      
   ! rescale the matrix: a_ij -> a_ij/sqrt(aii*ajj)
+  ! ensure we don't pass PETSC_NULL_VEC
+  diag = PETSC_NOTANULL_VEC; sqrt_diag = PETSC_NOTANULL_VEC
   call MatCreateVecs(A, diag, sqrt_diag, ierr)
   call MatGetDiagonal(A, diag, ierr)
   call VecMin(diag, diagminloc, diagmin, ierr)
@@ -786,7 +757,7 @@ integer, optional, dimension(:), intent(out):: cluster
     if (present(cluster)) cluster=ISOLATED
     deallocate(findN, N, R)
     ! we return PETSC_NULL; callers of this function should check for this
-    P=PETSC_NULL_OBJECT
+    P=PETSC_NULL_MAT
     return
   else if (100*ccnt<99*nrows .and. .not. IsParallel()) then
     ! more than 1% isolated nodes, give a warning
@@ -852,13 +823,12 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
   integer, intent(in):: base
   PetscReal, intent(in):: omega
   
-  PetscObject:: myPETSC_NULL_OBJECT
   PetscErrorCode:: ierr
   Vec:: rowsum_vec
   PetscReal, dimension(:), allocatable:: Arowsum
   PetscReal:: aij(1), rowsum
   integer, dimension(:), allocatable:: dnnz, onnz
-  integer:: i, j, k, coarse_base
+  integer:: i, j, k, coarse_base, end_of_range
   
   allocate(dnnz(1:nrows), Arowsum(1:nrows))
   
@@ -887,7 +857,7 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
     call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
       
     ! get base for coarse node/cluster numbering
-    call MatGetOwnerShipRangeColumn(P, coarse_base, PETSC_NULL_INTEGER, ierr)
+    call MatGetOwnerShipRangeColumn(P, coarse_base, end_of_range, ierr)
     ! subtract 1 to convert from 1-based fortran to 0 based petsc
     coarse_base=coarse_base-1
   else
@@ -899,11 +869,8 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
   end if
   call MatSetup(P, ierr)
   
-  myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-  call MatCreateVecs(A, rowsum_vec, PETSC_NULL_OBJECT, ierr)
-  if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-    FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-  end if
+  rowsum_vec = PETSC_NOTANULL_VEC
+  call MatCreateVecs(A, rowsum_vec, PETSC_NULL_VEC, ierr)
   call VecPlaceArray(rowsum_vec, Arowsum, ierr)
   call MatGetRowSum(A, rowsum_vec, ierr)
     
@@ -1105,17 +1072,13 @@ Vec, intent(out):: eigvec
   PetscReal:: rho_k, rho_kp1, norm2
   integer:: i
   PetscRandom:: pr
-  PetscObject:: myPETSC_NULL_OBJECT  
   
+  x_kp1 = PETSC_NOTANULL_VEC; x_k = PETSC_NOTANULL_VEC
   call MatCreateVecs(matrix, x_kp1, x_k, ierr)
   
   ! initial guess
   call PetscRandomCreate(PETSC_COMM_WORLD, pr, ierr)
-  myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-  call VecSetRandom(x_k, PETSC_NULL_OBJECT, ierr)
-  if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-    FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-  end if
+  call VecSetRandom(x_k, pr, ierr)
   call PetscRandomDestroy(pr, ierr)
 
   rho_k=0.0

@@ -61,7 +61,6 @@ COLOURING_DG0, COLOURING_DG1
   use upwind_stabilisation
   use slope_limiters_dg
   use diagnostic_fields, only: calculate_diagnostic_variable
-  use porous_media
   use colouring
   
   implicit none

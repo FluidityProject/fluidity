@@ -57,7 +57,7 @@ int main(int argc, char **argv){
   
 #ifdef HAVE_MPI
   // This must be called before we process any arguments
-  MPI::Init(argc,argv);
+  MPI_Init(&argc,&argv);
 
   // Undo some MPI init shenanigans
   chdir(getenv("PWD"));
@@ -109,7 +109,7 @@ int main(int argc, char **argv){
   }
 
 #ifdef HAVE_MPI
-  MPI::Finalize();
+  MPI_Finalize();
 #endif
   return(0);
 }

@@ -60,7 +60,7 @@
     use field_derivatives
     use coordinates, only: radial_inward_normal_at_quad_face,&
          rotate_diagonal_to_sphere_face, radial_inward_normal_at_quad_ele,&
-	 rotate_diagonal_to_sphere_gi
+         rotate_diagonal_to_sphere_gi
     use boundary_conditions_from_options
     use petsc_solve_state_module, only: petsc_solve
     use coriolis_module, only: coriolis, set_coriolis_parameters
@@ -2597,10 +2597,27 @@
       delta_u2%option_path = trim(delta_p%option_path)//&
                                   &"/prognostic/scheme/use_projection_method"//&
                                   &"/full_schur_complement/inner_matrix[0]"
+      if (.not. have_option(trim(delta_u2%option_path)//"/solver")) then
+        ! inner solver options are optional (for FullMomemtumMatrix), if not
+        ! present use the same as those for the initial velocity solve
+        delta_u2%option_path = u%option_path
+      end if
       
       ! compute delta_u1=grad delta_p
       call mult_t(delta_u1, ct_m, delta_p)
       
+      ! the rows of the gradient matrix (ct_m^T) and columns of ctp_m 
+      ! corresponding to dirichlet bcs have not been zeroed
+      ! This is because lifting the dirichlet bcs from the continuity
+      ! equation into ct_rhs would require maintaining the lifted contributions.
+      ! Typically, we reassemble ct_rhs every nl.it. but keeping ctp_m
+      ! which means that we can't recompute those contributions as the columns 
+      ! are already zeroed. Therefore, here we have to make sure that the dirichlet
+      ! bcs are not being clobbered. u should at this point already adhere to the bcs,
+      ! so we simply have to apply homogeneous bcs for the change delta_u2
+      ! (we also assume that 'mass' already has had dirichlet bcs applied to it)
+      call zero_dirichlet_rows(u, delta_u1)
+
       ! compute M^{-1} delta_u1
       call zero(delta_u2)
       call petsc_solve(delta_u2, mass, delta_u1, state)

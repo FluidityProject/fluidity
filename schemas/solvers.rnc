@@ -113,10 +113,10 @@ kspgmres_options =
          attribute name { "gmres" },
          ## Restart value for gmres iteration
          ## Higher values give better convergence but require more memory.
-         ## Suggested value: 30
+         ## Default value: 30
          element restart {
             integer
-         }
+         }?
       }
    )
    
@@ -535,6 +535,11 @@ null_space_options =
       ## Test whether the null space is actually a null space. To see the result of this
       ## test you need to run fluidity with a verbosity level of at least -v1.
       element test_null_space {
+         empty
+      }?,
+      ## For debugging purposes: write a vtu file containing the null space vector fields
+      ## for each solve.
+      element write_null_space {
          empty
       }?
    )

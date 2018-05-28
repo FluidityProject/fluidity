@@ -22,24 +22,6 @@ module hadapt_extrude
 
   implicit none
 
-  interface
-
-     subroutine set_from_map(filename, x, y, z, depth, ncolumns, surface_height)
-       character (len=*) :: filename
-       real, dimension(:) :: x, y, z, depth
-       integer :: ncolumns
-       real :: surface_height
-     end subroutine set_from_map
-
-     subroutine set_from_map_beta(filename, x, y, depth, ncolumns, surface_height)
-       character (len=*) :: filename
-       real, dimension(:) :: x, y, depth
-       integer :: ncolumns
-       real :: surface_height
-     end subroutine set_from_map_beta
-
-  end interface
-
   private
   
   public :: extrude, compute_z_nodes, hadapt_extrude_check_options, get_extrusion_options, &             

@@ -27,8 +27,6 @@
 #include "fdebug.h"
 
   module Full_Projection
-
- 
     use fldebug
     use global_parameters
     use elements
@@ -37,6 +35,7 @@
     use petsc
 #endif
     use parallel_tools
+    use data_structures
     use sparse_tools
     use fields
     use petsc_tools
@@ -47,13 +46,12 @@
     use halos
     use multigrid
     use solvers
+    use boundary_conditions
     use petsc_solve_state_module
     use boundary_conditions_from_options
 
-
     implicit none
-    ! Module to provide solvers, preconditioners etc... for full_projection Solver.
-    ! Not this is currently tested for Full CMC solves and Stokes flow:
+
 #include "petsc_legacy.h"
     
     private
@@ -63,7 +61,7 @@
   contains
     
 !--------------------------------------------------------------------------------------------------------------------
-    subroutine petsc_solve_full_projection(x,ctp_m,inner_m,ct_m,rhs,pmat,&
+    subroutine petsc_solve_full_projection(x,ctp_m,inner_m,ct_m,rhs,pmat, velocity, &
       state, inner_mesh, auxiliary_matrix)
 !--------------------------------------------------------------------------------------------------------------------
 
@@ -79,6 +77,7 @@
       ! momentum matrix. If preconditioner is set to ScaledPressureMassMatrix, this comes in as the pressure mass matrix,
       ! scaled by the inverse of viscosity.
       type(csr_matrix), intent(inout) :: pmat
+      type(vector_field), intent(in) :: velocity ! used to retrieve strong diricihlet bcs
       ! state, and inner_mesh are used to setup mg preconditioner of inner solve
       type(state_type), intent(in):: state
       type(mesh_type), intent(in):: inner_mesh
@@ -107,7 +106,7 @@
       ewrite(2,*) 'Entering PETSc setup for Full Projection Solve'
       call petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering,name,solver_option_path, &
            lstartfromzero,inner_m,ctp_m,ct_m,x%option_path,pmat, &
-           rhs, state, inner_mesh, auxiliary_matrix)
+           rhs, velocity, state, inner_mesh, auxiliary_matrix)
 
       ewrite(2,*) 'Create RHS and solution Vectors in PETSc Format'
       ! create PETSc vec for rhs using above numbering:
@@ -140,7 +139,7 @@
 !--------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering_p,name,solver_option_path, &
          lstartfromzero,inner_m,div_matrix_comp, div_matrix_incomp,option_path,preconditioner_matrix,rhs, &
-         state, inner_mesh, auxiliary_matrix)
+         velocity, state, inner_mesh, auxiliary_matrix)
          
 !--------------------------------------------------------------------------------------------------------
 
@@ -153,7 +152,7 @@
       !  PETSc rhs vector:
       Vec, intent(out) :: b
       !  Solver object:
-      Mat, intent(out) :: ksp
+      KSP, intent(out) :: ksp
       ! Numbering from local to PETSc:
       type(petsc_numbering_type), intent(out) :: petsc_numbering_p
       ! Name of solve, to be printed on log output:
@@ -178,6 +177,7 @@
       type(csr_matrix), optional, intent(in) :: auxiliary_matrix
       ! Option path:
       character(len=*), intent(in):: option_path
+      type(vector_field), intent(in) :: velocity ! used to retrieve strong diricihlet bcs
       ! state, and inner_mesh are used to setup mg preconditioner of inner solve
       type(state_type), intent(in):: state
       type(mesh_type), intent(in):: inner_mesh
@@ -195,7 +195,6 @@
       type(petsc_csr_matrix), dimension(:), pointer:: prolongators
       integer, dimension(:), pointer:: surface_nodes
 
-      PetscObject:: myPETSC_NULL_OBJECT
       PetscErrorCode ierr
       KSP ksp_schur ! ksp object for the inner solve in the Schur Complement
       Mat G_t_comp ! PETSc compressible divergence matrix
@@ -205,8 +204,9 @@
       Mat pmat ! PETSc preconditioning matrix
       
       character(len=OPTION_PATH_LEN) :: inner_option_path, inner_solver_option_path
-      
-      integer reference_node, stat, i, rotation_stat
+      integer, dimension(:,:), pointer :: save_gnn2unn
+      type(integer_set), dimension(velocity%dim):: boundary_row_set      
+      integer reference_node, i, rotation_stat
       logical parallel, have_auxiliary_matrix, have_preconditioner_matrix
 
       logical :: apply_reference_node, apply_reference_node_from_coordinates, reference_node_owned
@@ -277,6 +277,7 @@
       ! set up numbering used in PETSc objects:
       call allocate(petsc_numbering_u, &
            nnodes=block_size(div_matrix_comp,2), nfields=blocks(div_matrix_comp,2), &
+           group_size=inner_m%row_numbering%group_size, &
            halo=div_matrix_comp%sparsity%column_halo)
       call allocate(petsc_numbering_p, &
            nnodes=block_size(div_matrix_comp,1), nfields=1, &
@@ -290,10 +291,40 @@
            ! 1. is it definitely appropriate for all its other used (the divergence matrix and the pressure vectors)?
            ! 2. can it be made appropriate for the auxiliary matrix at the same time as being appropriate for the current uses?
 
+      ! the rows of the gradient matrix (ct_m^T) and columns of ctp_m 
+      ! corresponding to dirichlet bcs have not been zeroed
+      ! This is because lifting the dirichlet bcs from the continuity
+      ! equation into ct_rhs would require maintaining the lifted contributions.
+      ! Typically, we reassemble ct_rhs every nl.it. but keeping ctp_m
+      ! which means that we can't recompute those contributions as the columns 
+      ! are already zeroed. Thus instead we only zero the corresponding rows and columns
+      ! when copying into the div and grad matrices used in the Schur complement solve.
+      ! The lifting of bc values in the continuity equation is already taken care of, as
+      ! the projec_rhs contains the ctp_m u^* term, where u^* already satisfies the bcs
+      ! and ctp_m does not have the corresponding columns zeroed out.
+
+      ! in order to not copy over these entries we mark out the corresponding entries in petsc_nubering_u out with a -1
+      ! but first we keep a copy of the original
+      allocate(save_gnn2unn(1:size(petsc_numbering_u%gnn2unn,1),1:size(petsc_numbering_u%gnn2unn,2)))
+      save_gnn2unn = petsc_numbering_u%gnn2unn
+      ! find out which velocity indices are associated with strong bcs:
+      call collect_vector_dirichlet_conditions(velocity, boundary_row_set)
+      ! mark these out with -1
+      do i=1, velocity%dim
+        petsc_numbering_u%gnn2unn(set2vector(boundary_row_set(i)), i) = -1
+        call deallocate(boundary_row_set(i))
+      end do
+
       ! Convert Divergence matrix (currently stored as block_csr matrix) to petsc format:   
       ! Create PETSc Div Matrix (comp & incomp) using this numbering:
       G_t_comp=block_csr2petsc(div_matrix_comp, petsc_numbering_p, petsc_numbering_u)
       G_t_incomp=block_csr2petsc(div_matrix_incomp, petsc_numbering_p, petsc_numbering_u)
+
+      ! restore petsc_numbering_u - since we have the only reference to petsc_numbering_u
+      ! (as we've only just allocated it above) we can simply repoint %gnn2unn
+      ! restoring is necessary for things like fieldsplit in setup_ksp_from_options() below
+      deallocate(petsc_numbering_u%gnn2unn)
+      petsc_numbering_u%gnn2unn => save_gnn2unn
 
       ! Scale G_t_comp to fit PETSc sign convention:
       call MatScale(G_t_comp,real(-1.0, kind = PetscScalar_kind),ierr)
@@ -326,62 +357,72 @@
       if(have_auxiliary_matrix) then
          call MatCreateSchurComplement(inner_M%M,inner_M%M,G,G_t_comp,S,A,ierr)
       else
-         myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-         call MatCreateSchurComplement(inner_M%M,inner_M%M,G,G_t_comp,PETSC_NULL_OBJECT,A,ierr)
-         if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-           FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-         end if
+         ! workaround bug in petsc 3.8: missing CHKFORTRANNULLOBJECT, so PETSC_NULL_MAT isn't translated to C null
+         ! this however seems to do the trick:
+#if PETSC_VERSION_MINOR>=8
+         S%v = 0
+#else
+         S = PETSC_NULL_OBJECT
+#endif
+         call MatCreateSchurComplement(inner_M%M,inner_M%M,G,G_t_comp,S,A,ierr)
       end if
       
-      ! Set ksp for M block solver inside the Schur Complement (the inner, inner solve!). 
-      call MatSchurComplementGetKSP(A,ksp_schur,ierr)
-      call petsc_solve_state_setup(inner_solver_option_path, prolongators, surface_nodes, &
-        state, inner_mesh, blocks(div_matrix_comp,2), inner_option_path, matrix_has_solver_cache=.false., &
-        mesh_positions=mesh_positions)
-      rotation_matrix => extract_petsc_csr_matrix(state, "RotationMatrix", stat=rotation_stat)
+      if (have_option(trim(inner_option_path)//"/solver")) then
+        ! for FullMass solver/ is required - and this is the first time we use these options
+        ! for FullMomentum solver/ is optional - if present the specified nullspace options are possibly different
+        ! in both cases we need to setup the null spaces of the inner matrix here
 
-      if (associated(mesh_positions)) then
-        if (rotation_stat==0) then
+        ! this call returns, depending on options, prolongators and mesh_positions needed for setting
+        ! up the ksp and the nullspaces
+        call petsc_solve_state_setup(inner_solver_option_path, prolongators, surface_nodes, &
+          state, inner_mesh, blocks(div_matrix_comp,2), inner_option_path, matrix_has_solver_cache=.false., &
+          mesh_positions=mesh_positions)
+
+        if (associated(prolongators))then
+          FLExit("mg vertical_lumping and higher_order_lumping not supported for inner_matrix solve")
+        end if
+
+        rotation_matrix => extract_petsc_csr_matrix(state, "RotationMatrix", stat=rotation_stat)
+        if (associated(mesh_positions)) then
+          if (rotation_stat==0) then
+            call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
+              positions=mesh_positions, rotation_matrix=rotation_matrix%M, &
+              petsc_numbering=petsc_numbering_u)
+          else
+            call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
+              positions=mesh_positions, petsc_numbering=petsc_numbering_u)
+          end if
+          call deallocate(mesh_positions)
+          deallocate(mesh_positions)
+        elseif (rotation_stat==0) then
           call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
-            positions=mesh_positions, rotation_matrix=rotation_matrix%M, &
-            petsc_numbering=petsc_numbering_u)
+            rotation_matrix=rotation_matrix%M, petsc_numbering=petsc_numbering_u)
         else
           call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
-            positions=mesh_positions, petsc_numbering=petsc_numbering_u)
+            petsc_numbering=petsc_numbering_u)
         end if
-      elseif (rotation_stat==0) then
-        call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
-          rotation_matrix=rotation_matrix%M, petsc_numbering=petsc_numbering_u)
+
       else
-        call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
-          petsc_numbering=petsc_numbering_u)
+        ! for FullMomentum solver/ is optional - if it's not there we reuse the option path of velocity
+        inner_solver_option_path = complete_solver_option_path(velocity%option_path)
       end if
 
-      if (associated(prolongators)) then
-        if (rotation_stat==0) then
-          FLExit("Rotated boundary conditions do not work with mg prolongators")
-        end if
 
-        if (associated(surface_nodes)) then
-          FLExit("Internal smoothing not available for inner solve")
-        end if
-        call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
-          inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
-          prolongators=prolongators)
-        do i=1, size(prolongators)
-          call deallocate(prolongators(i))
-        end do
-        deallocate(prolongators)
+      if (inner_M%ksp==PETSC_NULL_KSP) then
+        ! use the one that's just been created for us
+        call MatSchurComplementGetKSP(A,ksp_schur,ierr)
+
+        ! we keep our own reference, so it can be re-used in the velocity correction solve
+        call PetscObjectReferenceWrapper(ksp_schur, ierr)
+        inner_M%ksp = ksp_schur
       else
-        call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
+        ! we have a ksp (presumably from the first velocity solve), try to reuse it
+        ewrite(2,*) "Reusing the ksp from the initial velocity solve"
+        call MatSchurComplementSetKSP(A, inner_M%ksp, ierr)
+      end if
+
+      call setup_ksp_from_options(inner_M%ksp, inner_M%M, inner_M%M, &
           inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true.)
-      end if
-      
-      if (associated(mesh_positions)) then
-        call deallocate(mesh_positions)
-        deallocate(mesh_positions)
-      end if
-       
       ! leaving out petsc_numbering and mesh, so "iteration_vtus" monitor won't work!
 
       ! Assemble preconditioner matrix in petsc format (if required):
@@ -405,7 +446,7 @@
       parallel=IsParallel()
 
       call attach_null_space_from_options(A, solver_option_path, pmat=pmat, petsc_numbering=petsc_numbering_p)
-      call SetupKSP(ksp,A,pmat,solver_option_path,parallel,petsc_numbering_p, lstartfromzero)
+      call create_ksp_from_options(ksp,A,pmat,solver_option_path,parallel,petsc_numbering_p, lstartfromzero)
       
       ! Destroy the matrices setup for the schur complement computation. While
       ! these matrices are destroyed here, they are still required for the inner solve,

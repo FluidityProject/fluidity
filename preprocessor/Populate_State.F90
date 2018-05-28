@@ -89,13 +89,12 @@ periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
     
   !! A list of locations in which additional scalar/vector/tensor fields
   !! are to be found. These are absolute paths in the schema.
-  character(len=OPTION_PATH_LEN), dimension(8) :: additional_fields_absolute=&
+  character(len=OPTION_PATH_LEN), dimension(7) :: additional_fields_absolute=&
        (/ &
        "/ocean_biology/pznd                                                                                                   ", &
        "/ocean_biology/six_component                                                                                          ", &
        "/ocean_forcing/iceshelf_meltrate/Holland08                                                                            ", &
        "/ocean_forcing/bulk_formulae/output_fluxes_diagnostics                                                                ", &
-       "/porous_media                                                                                                         ", &
        "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
        "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order", &
        "/material_phase[0]/sediment/                                                                                          " &
@@ -103,7 +102,7 @@ periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
        
   !! A list of relative paths under /material_phase[i]
   !! that are searched for additional fields to be added.
-  character(len=OPTION_PATH_LEN), dimension(18) :: additional_fields_relative=&
+  character(len=OPTION_PATH_LEN), dimension(20) :: additional_fields_relative=&
        (/ &
        "/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
        "/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
@@ -122,7 +121,12 @@ periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
        "/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/les_model/debug/   ", &
        "/vector_field::Velocity/prognostic/equation::ShallowWater                                           ", &
        "/vector_field::Velocity/prognostic/equation::ShallowWater/bottom_drag                               ", &
-       "/vector_field::BedShearStress/diagnostic/calculation_method/velocity_gradient                       " &
+       "/vector_field::BedShearStress/diagnostic/calculation_method/velocity_gradient                       ", &
+       "/population_balance[#]/abscissa/                                                                    ", &
+       "/population_balance[#]/weights/                                                                     ", &
+       "/population_balance[#]/weighted_abscissa/                                                           ", &
+       "/population_balance[#]/moments/                                                                     ", &
+       "/population_balance[#]/statistics/                                                                  "  &
        /)
 
   !! Relative paths under a field that are searched for grandchildren
@@ -131,6 +135,22 @@ periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
          grandchild_paths = (/&
          &    "/spatial_discretisation/inner_element" &
          /)
+
+
+  !! Dynamic paths that are searched for fields
+  !! This allows for searching for field within paths that may branch several times
+  !! The index of any particular path should be replaced with #
+  character(len=OPTION_PATH_LEN), dimension(6):: &
+         dynamic_paths = (/&
+         &    "/material_phase[#]/equation_of_state/fluids/linear/        ", &
+         &    "/material_phase[#]/population_balance[#]/abscissa/         ", &
+         &    "/material_phase[#]/population_balance[#]/weights/          ", &
+         &    "/material_phase[#]/population_balance[#]/weighted_abscissa/", &
+         &    "/material_phase[#]/population_balance[#]/moments/          ", &
+         &    "/material_phase[#]/population_balance[#]/statistics/       " &
+         /)
+
+  character(len=OPTION_PATH_LEN), dimension(:), allocatable :: field_locations
 
 contains
 
@@ -1287,29 +1307,6 @@ contains
        call allocate_and_insert_irradiance(states(1))
     end if
 
-    ! insert electrical property fields
-    do i=1,nstates
-      tmp = '/material_phase['//int2str(i-1)//']/electrical_properties/coupling_coefficients/'
-      ! Electrokinetic coupling coefficient scalar field
-      if (have_option(trim(tmp)//'scalar_field::Electrokinetic')) then
-        call allocate_and_insert_scalar_field(trim(tmp)//'scalar_field::Electrokinetic', &
-                                              states(i), &
-                                              field_name='Electrokinetic')
-      end if
-      ! Thermoelectric coupling coefficient scalar field
-      if (have_option(trim(tmp)//'scalar_field::Thermoelectric')) then
-        call allocate_and_insert_scalar_field(trim(tmp)//'scalar_field::Thermoelectric', &
-                                              states(i), &
-                                              field_name='Thermoelectric')
-      end if
-      ! Electrochemical coupling coefficient scalar field
-      if (have_option(trim(tmp)//'scalar_field::Electrochemical')) then
-        call allocate_and_insert_scalar_field(trim(tmp)//'scalar_field::Electrochemical', &
-                                              states(i), &
-                                              field_name='Electrochemical')
-      end if
-    end do
-
     ! Harmonic Analysis History fields
     if (has_scalar_field(states(1),'FreeSurfaceHistory') ) then
       fshistory_sfield => extract_scalar_field(states(1), 'FreeSurfaceHistory')
@@ -1629,37 +1626,6 @@ contains
     ! Deal with subgridscale parameterisations.
     call alias_diffusivity(states)
     
-    ! Porous media fields
-    have_porous_media: if (have_option('/porous_media')) then
-       
-       ! alias the Porosity field
-       sfield=extract_scalar_field(states(1), 'Porosity')
-       sfield%aliased = .true.
-       do i = 1,nstates-1
-          call insert(states(i+1), sfield, 'Porosity')
-       end do
-       
-       ! alias the Permeability field which may be 
-       ! either scalar or vector (if present)
-       
-       sfield=extract_scalar_field(states(1), 'Permeability', stat = stat)
-       if (stat == 0) then       
-          sfield%aliased = .true.
-          do i = 1,nstates-1
-             call insert(states(i+1), sfield, 'Permeability')
-          end do       
-       end if
-       
-       vfield=extract_vector_field(states(1), 'Permeability', stat = stat)
-       if (stat == 0) then       
-          vfield%aliased = .true.
-          do i = 1,nstates-1
-             call insert(states(i+1), vfield, 'Permeability')
-          end do       
-       end if
-    
-    end if have_porous_media
-
   end subroutine alias_fields
 
   subroutine alias_diffusivity(states)
@@ -2601,6 +2567,13 @@ contains
             call insert(states(p), aux_vfield, trim(aux_vfield%name))
             call deallocate(aux_vfield)
 
+          else if((prescribed).and.(trim(vfield%name)=="Velocity")) then 
+
+            call allocate(aux_vfield, vfield%dim, vfield%mesh, "Old"//trim(vfield%name), field_type = vfield%field_type)
+            call zero(aux_vfield)
+            call insert(states(p), aux_vfield, trim(aux_vfield%name))
+            call deallocate(aux_vfield)
+
           else
 
             aux_vfield = extract_vector_field(states(p), trim(vfield%name))
@@ -2621,6 +2594,13 @@ contains
             call insert(states(p), aux_vfield, trim(aux_vfield%name))
             call deallocate(aux_vfield)
 
+          else if((prescribed).and.((trim(vfield%name)=="Velocity"))) then 
+
+            call allocate(aux_vfield, vfield%dim, vfield%mesh, "Iterated"//trim(vfield%name))
+            call zero(aux_vfield)
+            call insert(states(p), aux_vfield, trim(aux_vfield%name))
+            call deallocate(aux_vfield)
+
           else
 
             aux_vfield = extract_vector_field(states(p), trim(vfield%name))
@@ -2635,7 +2615,7 @@ contains
 
           if(trim(vfield%name)=="Velocity") then
 
-            if(iterations>1) then
+            if(iterations>1 .or. prescribed) then
 
               call allocate(aux_vfield, vfield%dim, vfield%mesh, "Nonlinear"//trim(vfield%name))
               call zero(aux_vfield)
@@ -2899,69 +2879,6 @@ contains
     aux_sfield%option_path = ""
     call insert(states, aux_sfield, trim(aux_sfield%name))
     call deallocate(aux_sfield)
-    
-    ! Porous media fields
-    have_porous_media: if (have_option('/porous_media')) then
-       
-       ! alias the OldPorosity field
-       aux_sfield=extract_scalar_field(states(1), 'OldPorosity')
-       aux_sfield%aliased = .true.
-       aux_sfield%option_path = ""
-       do p = 1,size(states)-1
-          call insert(states(p+1), aux_sfield, 'OldPorosity')
-       end do
-       
-       ! alias the OldPermeability field which may be 
-       ! either scalar or vector (if present)
-       
-       aux_sfield=extract_scalar_field(states(1), 'OldPermeability', stat = stat)
-       if (stat == 0) then       
-          aux_sfield%aliased = .true.
-          aux_sfield%option_path = ""
-          do p = 1,size(states)-1
-             call insert(states(p+1), aux_sfield, 'OldPermeability')
-          end do       
-       end if
-       
-       aux_vfield=extract_vector_field(states(1), 'OldPermeability', stat = stat)
-       if (stat == 0) then       
-          aux_vfield%aliased = .true.
-          aux_vfield%option_path = ""
-          do p = 1,size(states)-1
-             call insert(states(p+1), aux_vfield, 'OldPermeability')
-          end do       
-       end if
-
-       ! alias the IteratedPorosity field
-       aux_sfield=extract_scalar_field(states(1), 'IteratedPorosity')
-       aux_sfield%aliased = .true.
-       aux_sfield%option_path = ""
-       do p = 1,size(states)-1
-          call insert(states(p+1), aux_sfield, 'IteratedPorosity')
-       end do
-       
-       ! alias the IteratedPermeability field which may be 
-       ! either scalar or vector (if present)
-       
-       aux_sfield=extract_scalar_field(states(1), 'IteratedPermeability', stat = stat)
-       if (stat == 0) then       
-          aux_sfield%aliased = .true.
-          aux_sfield%option_path = ""
-          do p = 1,size(states)-1
-             call insert(states(p+1), aux_sfield, 'IteratedPermeability')
-          end do       
-       end if
-       
-       aux_vfield=extract_vector_field(states(1), 'IteratedPermeability', stat = stat)
-       if (stat == 0) then       
-          aux_vfield%aliased = .true.
-          aux_vfield%option_path = ""
-          do p = 1,size(states)-1
-             call insert(states(p+1), aux_vfield, 'IteratedPermeability')
-          end do       
-       end if
-    
-    end if have_porous_media
     
   end subroutine allocate_and_insert_auxilliary_fields
 
@@ -3920,32 +3837,6 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
     end do
 
   end subroutine check_stokes_options
-
-  subroutine check_implicit_solids_options
-
-    integer :: nmat, i
-    logical :: have_scon, have_spha, have_oneway, have_twoway
-
-    nmat = option_count("/material_phase")
-
-    do i = 0, nmat-1
-       have_scon = have_option("/material_phase["//int2str(i)//&
-            "]/scalar_field::SolidConcentration")
-       have_spha = have_option("/material_phase["//int2str(i)//&
-            "]/scalar_field::SolidPhase")
-       if((.not.have_scon).or.(.not.have_spha)) then
-          FLExit("An implicit solid needs a SolidConcentration and a SolidPhase.")
-       end if
-    end do
-    
-    have_oneway = have_option("/material_phase/one_way_coupling")
-    have_twoway = have_option("/material_phase/two_way_coupling")
-
-    if((.not.have_oneway).or.(.not.have_twoway)) then
-       FLExit("Implicit_solids should be run with either a one-way coupling or a two-way coupling.")
-    end if
-       
-  end subroutine check_implicit_solids_options
 
   subroutine check_foams_options
     ! Check options for liquid drainage in foam simulations.

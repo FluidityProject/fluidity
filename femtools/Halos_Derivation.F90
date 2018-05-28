@@ -58,7 +58,7 @@ module halos_derivation
   public :: derive_l1_from_l2_halo, derive_element_halo_from_node_halo, &
     & derive_maximal_surface_element_halo, derive_nonperiodic_halos_from_periodic_halos, derive_sub_halo
   public :: invert_comms_sizes, ele_owner, combine_halos, create_combined_numbering_trailing_receives
-  public :: expand_positions_halo
+  public :: expand_positions_halo, generate_surface_mesh_halos
   
   interface derive_l1_from_l2_halo
     module procedure derive_l1_from_l2_halo_mesh
@@ -1558,10 +1558,12 @@ contains
     tag = next_mpi_tag()
     allocate(send_buffer(nprocs), send_request(nprocs))
     allocate(recv_buffer(nprocs))
+    send_request = MPI_REQUEST_NULL
 
     ! loop over all new send nodes and send its adjacent elements
     nelist => extract_nelist(mesh)
     do proc=1, nprocs
+      if (halo_send_count(new_halo, proc)==0) cycle
       call allocate(elements_to_send)
       ! loop over all send nodes 
       do i=1, halo_send_count(new_halo, proc)
@@ -1605,6 +1607,8 @@ contains
     ! loop over the recv buffers to work out the numbering
     ! for new elements and surface elements
     do proc=1, nprocs
+      assert( (halo_send_count(new_halo, proc)==0) .eqv. (halo_receive_count(new_halo, proc)==0) )
+      if (halo_receive_count(new_halo, proc)==0) cycle
       call mpi_probe(proc-1, tag, comm, status, ierr)
       assert(ierr == MPI_SUCCESS)
       
@@ -1628,7 +1632,7 @@ contains
           ! Additionaly, we also skip elements that consist of new nodes only - this is because
           ! such elements can potentially become isolated (i.e. if all adjacent elements have a non-shared
           ! node that is in an even higher level halo)
-          ! Elements consisting of the highest level halo nodes only, are not typically not needed because
+          ! Elements consisting of the highest level halo nodes only, are typically not needed because
           ! even elements adjacent to elements adjacent to such elements will still consist of nodes that are either
           ! in the highest or in the one-but-highest level halo. Thus e.g. if we're regrowing an l2-halo, 
           ! elements adjacent to elements adjacent to an element consisting of l2-halo nodes only, still consists
@@ -1702,6 +1706,7 @@ contains
 
     ! now peel out the new elements from the recv buffers
     do proc=1, nprocs
+      if (halo_receive_count(new_halo, proc)==0) cycle
       recv_size = size(recv_buffer(proc)%ptr)
       do i=1, recv_size/ele_info_size
         ele_uid = recv_buffer(proc)%ptr((i-1)*ele_info_size+1)
@@ -1809,10 +1814,13 @@ contains
     my_rank = getrank(comm)
     allocate(send_buffer(nprocs), recv_buffer(nprocs))
     allocate(send_request(nprocs), recv_request(nprocs))
+    send_request = MPI_REQUEST_NULL
+    recv_request = MPI_REQUEST_NULL
 
     ! record the adjacency count for halo1 send nodes
     ! and allocate send buffers
     do proc=1, nprocs
+      if (halo_send_count(halo, proc)==0) cycle
       send_count = 0
       do i=1, halo_send_count(halo, proc)
         node = halo_send(halo, proc, i)
@@ -1829,6 +1837,7 @@ contains
     ! so we can allocate the recv buffers
     ! and setup the mpi recv call
     do proc=1, nprocs
+      if (halo_receive_count(halo, proc)==0) cycle
       recv_count = 0
       do i=1, halo_receive_count(halo, proc)
         node = halo_receive(halo, proc, i)
@@ -1845,6 +1854,7 @@ contains
     ! now pack the send buffers with uid and owner for each entry 
     ! in the nnlist around all halo1 send nodes, and send them off
     do proc=1, nprocs
+      if (halo_send_count(halo, proc)==0) cycle
       send_count = 0
       do i=1, halo_send_count(halo, proc) 
         node = halo_send(halo, proc, i)
@@ -1860,13 +1870,14 @@ contains
       assert(ierr == MPI_SUCCESS)
     end do
 
-    ! from the bits of nnlist that we've got sent, collect the new halo recv nodes we encounter
+    ! from the bits of nnlist that we've been sent, collect the new halo recv nodes we encounter
     allocate(new_halo_recvs(nprocs))
     do proc=1, nprocs
       call allocate(new_halo_recvs(proc))
     end do
 
     do proc=1, nprocs
+      if (halo_receive_count(halo, proc)==0) cycle
       call MPI_Wait(recv_request(proc), status, ierr)
       assert(ierr==MPI_SUCCESS)
       recv_count = 0
@@ -1894,6 +1905,12 @@ contains
     allocate(statuses(1:MPI_STATUS_SIZE*nprocs))
     call MPI_WaitAll(nprocs, send_request, statuses, ierr)
     assert(ierr==MPI_SUCCESS)
+    do proc=1, nprocs
+      if (halo_send_count(halo, proc)/=0) then
+        deallocate(send_buffer(proc)%ptr)
+      end if
+    end do
+    send_request = MPI_REQUEST_NULL ! reuse send_request as well
 
     ! so we've collected our new halo 2 recv nodes per process
     ! now we need to tell these processes that we want these as recv nodes
@@ -1901,32 +1918,64 @@ contains
     allocate(new_halo_recv_count(nprocs), new_halo_send_count(nprocs))
     do proc=1, nprocs
       new_halo_recv_count(proc) = key_count(new_halo_recvs(proc))
-      deallocate(send_buffer(proc)%ptr)
-      allocate(send_buffer(proc)%ptr(new_halo_recv_count(proc)))
-      send_buffer(proc)%ptr = set2vector(new_halo_recvs(proc))
+      ! this assumes a symmetric communication pattern, where if processor A has
+      ! any recv nodes in the new expanded halo (which includes the old halo) from 
+      ! proc B - then proc B has receive nodes of proc A in the new expanded halo.
+      !  for the case where we're expanding from halo1 to halo2: if proc. A
+      ! has halo1 recv nodes of proc. B, then trivially the node attached to
+      ! it owned by proc. A is a recv node for proc B. If proc A only has halo2
+      ! recv nodes from proc B then such a node is connected to an owned node
+      ! via a inbetween node owned by a third proc. This means the node owned
+      ! by proc A is in the combined recv halo1+halo2 for proc B. NOTE that it
+      ! possible however that this node was already a halo1 node and is therefore
+      ! not a *new* halo2 node. See for instance the following scenario:
+      !
+      !   A - B
+      !   |   |  where the 4 nodes are labeled with their ownership by either
+      !   C - B  proc A and B, or the third owner C
+      !
+      ! therefore we cannot assume that we only get a request for *new* halo2 nodes
+      ! if we request *new* halo2 nodes as well. We might get a request from
+      ! any proc that has halo1 recv nodes owned by us (i.e. halo1 send nodes).
+      !
+      ! To make this more predictable we should therefore always send a request
+      ! (even if empty) to any proc for which we already have halo1 recv nodes
+      if (halo_receive_count(halo, proc)/=0 .or. new_halo_recv_count(proc)/=0) then
+        allocate(send_buffer(proc)%ptr(new_halo_recv_count(proc)))
+        send_buffer(proc)%ptr = set2vector(new_halo_recvs(proc))
+        call MPI_ISend(send_buffer(proc)%ptr, new_halo_recv_count(proc), getpinteger(), &
+          proc-1, tag,  comm, send_request(proc), ierr)
+        assert(ierr == MPI_SUCCESS)
+      end if
       call deallocate(new_halo_recvs(proc))
-      call MPI_ISend(send_buffer(proc)%ptr, new_halo_recv_count(proc), getpinteger(), &
-        proc-1, tag,  comm, send_request(proc), ierr)
-      assert(ierr == MPI_SUCCESS)
     end do
 
     ! the same request from other processes will tell us our new halo 2 send nodes
     do proc=1, nprocs
-      call mpi_probe(proc-1, tag, comm, status, ierr)
-      assert(ierr == MPI_SUCCESS)
-      
-      call mpi_get_count(status, getpinteger(), new_halo_send_count(proc), ierr)
-      allocate(recv_buffer(proc)%ptr(new_halo_send_count(proc)))
+      ! see comments above: we rely on this logic to be symmetric
+      ! and expect a request from any proc for which we have send nodes already or for
+      ! which we have new halo recv nodes
+      if (halo_send_count(halo, proc)/=0 .or. new_halo_recv_count(proc)/=0) then
+        call mpi_probe(proc-1, tag, comm, status, ierr)
+        assert(ierr == MPI_SUCCESS)
+        
+        call mpi_get_count(status, getpinteger(), new_halo_send_count(proc), ierr)
+        allocate(recv_buffer(proc)%ptr(new_halo_send_count(proc)))
 
-      call MPI_Recv(recv_buffer(proc)%ptr, new_halo_send_count(proc), getpinteger(), &
-        proc-1, tag, comm, status, ierr)
-      assert(ierr == MPI_SUCCESS)
+        call MPI_Recv(recv_buffer(proc)%ptr, new_halo_send_count(proc), getpinteger(), &
+          proc-1, tag, comm, status, ierr)
+        assert(ierr == MPI_SUCCESS)
+      else
+        new_halo_send_count(proc) = 0
+      end if
     end do
 
     ! again make sure all sends are dealt with
     call MPI_WaitAll(nprocs, send_request, statuses, ierr)
     assert(ierr==MPI_SUCCESS)
     deallocate(statuses)
+    deallocate(send_request)
+    deallocate(recv_request)
 
     ! the new halo should include the existing halo:
     allocate(old_halo_count(nprocs))
@@ -1943,28 +1992,76 @@ contains
       communicator = comm, data_type = halo%data_type)
     call get_universal_numbering_inverse(halo, uid_to_gid)
     assert(node_count(mesh)==key_count(uid_to_gid)) ! if this fails the old halo has duplicate nodes
-    new_node_count = node_count(mesh)
+    new_node_count = node_count(mesh) ! counter to number new recv nodes
     do proc=1, nprocs
-      allocate(buffer(1:halo_send_count(new_halo, proc)))
-      buffer(1:halo_send_count(halo,proc)) = halo_sends(halo, proc)
-      buffer(halo_send_count(halo,proc)+1:) = fetch(uid_to_gid, recv_buffer(proc)%ptr)
-      call set_halo_sends(new_halo, proc, buffer)
-      deallocate(buffer)
-      
-      allocate(buffer(1:halo_receive_count(new_halo, proc)))
-      new_recv_count = size(buffer)-halo_receive_count(halo, proc)
-      buffer(1:halo_receive_count(halo,proc)) = halo_receives(halo, proc)
-      buffer(halo_receive_count(halo,proc)+1:) = (/ ( i, i=new_node_count+1, new_node_count+new_recv_count)/)
-      call set_halo_receives(new_halo, proc, buffer)
-      deallocate(buffer)
-      deallocate(recv_buffer(proc)%ptr)
-      deallocate(send_buffer(proc)%ptr)
-      new_node_count = new_node_count+new_recv_count
+      if (new_halo_send_count(proc)/=0) then
+        allocate(buffer(1:new_halo_send_count(proc)))
+        buffer(1:halo_send_count(halo,proc)) = halo_sends(halo, proc)
+        buffer(halo_send_count(halo,proc)+1:) = fetch(uid_to_gid, recv_buffer(proc)%ptr)
+        call set_halo_sends(new_halo, proc, buffer)
+        deallocate(buffer)
+        
+        assert(new_halo_recv_count(proc)/=0)
+        allocate(buffer(1:new_halo_recv_count(proc)))
+        new_recv_count = new_halo_recv_count(proc) - halo_receive_count(halo, proc)
+        buffer(1:halo_receive_count(halo,proc)) = halo_receives(halo, proc)
+        buffer(halo_receive_count(halo,proc)+1:) = (/ ( i, i=new_node_count+1, new_node_count+new_recv_count)/)
+        call set_halo_receives(new_halo, proc, buffer)
+        deallocate(buffer)
+        deallocate(recv_buffer(proc)%ptr)
+        deallocate(send_buffer(proc)%ptr)
+        new_node_count = new_node_count + new_recv_count
+      end if
     end do
     call deallocate(uid_to_gid)
+    deallocate(new_halo_recv_count)
+    deallocate(new_halo_send_count)
 
     ewrite(1,*) "Exiting expand_halo"
 
   end function expand_halo
+
+  subroutine generate_surface_mesh_halos(full_mesh, surface_mesh, surface_nodes)
+    type(mesh_type), intent(in):: full_mesh
+    type(mesh_type), intent(inout):: surface_mesh
+    integer, dimension(:), intent(in):: surface_nodes
+
+    integer :: ihalo, nhalos
+
+    ewrite(1, *) "In generate_surface_mesh for mesh: ", trim(surface_mesh%name)
+
+    ! hm, is this only gonna work for p1cg fs+pressure?
+    assert(continuity(surface_mesh) == 0)
+    assert(.not. associated(surface_mesh%halos))
+    assert(.not. associated(surface_mesh%element_halos))
+
+    ! Initialise key MPI information:
+
+    nhalos = halo_count(full_mesh)
+    ewrite(2,*) "Number of surface_mesh halos = ",nhalos
+
+    if(nhalos == 0) return
+
+    ! Allocate subdomain mesh halos:
+    allocate(surface_mesh%halos(nhalos))
+
+    ! Derive subdomain_mesh halos:
+    do ihalo = 1, nhalos
+
+       surface_mesh%halos(ihalo) = derive_sub_halo(full_mesh%halos(ihalo), surface_nodes)
+
+       assert(trailing_receives_consistent(surface_mesh%halos(ihalo)))
+       assert(halo_valid_for_communication(surface_mesh%halos(ihalo)))
+       call create_global_to_universal_numbering(surface_mesh%halos(ihalo))
+       call create_ownership(surface_mesh%halos(ihalo))
+       
+    end do ! ihalo 
+    
+    allocate(surface_mesh%element_halos(nhalos))
+    ! the element order of the surface mesh will not be trailing receive - do we care?
+    call derive_element_halo_from_node_halo(surface_mesh, &
+        & ordering_scheme = HALO_ORDER_GENERAL, create_caches = .true.)
+
+  end subroutine generate_surface_mesh_halos
 
 end module halos_derivation

@@ -37,6 +37,10 @@
 
 #include <vtk.h>
 
+#if VTK_MAJOR_VERSION>6
+#define VTK_USES_MPI 1
+#endif
+
 #include <vector>
 #include <string>
 
@@ -734,7 +738,18 @@ extern "C" {
     // Set to true binary format (not encoded as base 64)
     writer->SetDataModeToAppended();
     writer->EncodeAppendedDataOff();
-
+#ifdef VTK_USES_MPI
+    // From version 6.3 VTK uses parallel communication to decide
+    // which files have been written
+    if (!writer->GetController()) {
+      vtkMPIController *cont = vtkMPIController::New();
+      cont->SetCommunicator(vtkMPICommunicator::GetWorldCommunicator());
+      writer->SetController(cont);
+    }
+    writer->SetWriteSummaryFile(true);
+#else
+    writer->SetWriteSummaryFile((*rank)==0);
+#endif
     
     writer->Write();
     writer->Delete();
@@ -744,8 +759,6 @@ extern "C" {
     dataSet = NULL;
   
     if(is_pvtu){
-      // Ensure all processes are finished writing before we fiddle with the .ptvu
-      MPI::COMM_WORLD.Barrier();
       if((*rank)==0){
         rename(filename.c_str(), fl_vtkFileName.c_str());
         pvtu_fix_path(fl_vtkFileName.c_str(), basename.c_str());
@@ -771,7 +784,7 @@ extern "C" {
         if((*rank)%nwrites==lrank){
           _vtkpclose_nointerleave(rank, npartitions);
         }
-        MPI::COMM_WORLD.Barrier();
+        MPI_Barrier(MPI_COMM_WORLD);
       }
     }else{
 #endif

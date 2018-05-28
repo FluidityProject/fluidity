@@ -54,10 +54,12 @@ Mesh::Mesh(){
   __num_elements_surface  = 0;
 
   dimension = -1;
-  
-  if(MPI::Is_initialized()){
-    MyRank = MPI::COMM_WORLD.Get_rank();
-    NProcs = MPI::COMM_WORLD.Get_size();
+ 
+  int init_flag; 
+  MPI_Initialized(&init_flag);
+  if(init_flag){
+    MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
+    MPI_Comm_size(MPI_COMM_WORLD, &NProcs);
   }else{
     MyRank = 0;
     NProcs = 1;
@@ -284,11 +286,13 @@ unsigned Mesh::num_nodes_halo(const unsigned proc){
 }
 
 void Mesh::find_nodes_per_rank(const unsigned lcnt){
-  if( MPI::Is_initialized() ){
+  int init_flag;
+  MPI_Initialized(&init_flag);
+  if(init_flag){
     nodes_per_rank.resize( NProcs );
     
     for(int i = 0; i<NProcs; i++)
-      MPI::COMM_WORLD.Gather(&lcnt, 1, MPI::INT, &(nodes_per_rank[0]), 1, MPI::INT, i);
+      MPI_Gather(&lcnt, 1, MPI_INT, &(nodes_per_rank[0]), 1, MPI_INT, i, MPI_COMM_WORLD);
     
   }else{ // Not running MPI.
     nodes_per_rank.resize(1);
@@ -377,32 +381,32 @@ void Mesh::halo_update(const vector< vector<int> >& data_in, vector< vector<int>
   }
   
   // setup non-blocking receives
-  vector<MPI::Request> RecvRequest(NProcs);
+  vector<MPI_Request> RecvRequest(NProcs);
   for(int i = 0; i<NProcs; i++){
     int cnt = stride*num_nodes_halo(i);
     
     if((i==MyRank)||(cnt==0)){
-      RecvRequest[i] =  MPI::REQUEST_NULL;
+      RecvRequest[i] =  MPI_REQUEST_NULL;
     }else{
       data_out[i].resize(cnt);
-      RecvRequest[i] = MPI::COMM_WORLD.Irecv(&(data_out[i][0]), cnt, MPI::INT, i, 13);
+      MPI_Irecv(&(data_out[i][0]), cnt, MPI_INT, i, 13, MPI_COMM_WORLD, &(RecvRequest[i]));
     }
   }
   
   // setup non-blocking sends
-  vector<MPI::Request> SendRequest(NProcs);
+  vector<MPI_Request> SendRequest(NProcs);
   for(int i = 0; i<NProcs; i++){
     int cnt = stride*num_nodes_shared(i);
 
     if((i==MyRank)||(cnt==0)){
-      SendRequest[i] =  MPI::REQUEST_NULL;
+      SendRequest[i] =  MPI_REQUEST_NULL;
     }else{    
-      SendRequest[i] = MPI::COMM_WORLD.Isend(&(data_in[i][0]), cnt, MPI::INT, i, 13);
+      MPI_Isend(&(data_in[i][0]), cnt, MPI_INT, i, 13, MPI_COMM_WORLD, &(SendRequest[i]));
     }
   }
   
-  MPI::Request::Waitall(NProcs, &(RecvRequest[0]));
-  MPI::Request::Waitall(NProcs, &(SendRequest[0]));
+  MPI_Waitall(NProcs, &(RecvRequest[0]),MPI_STATUSES_IGNORE);
+  MPI_Waitall(NProcs, &(SendRequest[0]),MPI_STATUSES_IGNORE);
   
 }
 // Updata all halo values stored in data_in
@@ -423,32 +427,32 @@ void Mesh::halo_update(const vector< vector<unsigned> >& data_in, vector< vector
   }
   
   // setup non-blocking receives
-  vector<MPI::Request> RecvRequest(NProcs);
+  vector<MPI_Request> RecvRequest(NProcs);
   for(int i=0;i<NProcs;i++){
     int cnt = stride*num_nodes_halo(i);
 
     if((i==MyRank)||(cnt==0)){
-      RecvRequest[i] =  MPI::REQUEST_NULL;
+      RecvRequest[i] =  MPI_REQUEST_NULL;
     }else{    
       data_out[i].resize( cnt );
-      RecvRequest[i] = MPI::COMM_WORLD.Irecv(&(data_out[i][0]), cnt, MPI::UNSIGNED, i, 13);
+      MPI_Irecv(&(data_out[i][0]), cnt, MPI_UNSIGNED, i, 13, MPI_COMM_WORLD, &(RecvRequest[i]));
     }
   }
   
   // setup non-blocking sends
-  vector<MPI::Request> SendRequest(NProcs);
+  vector<MPI_Request> SendRequest(NProcs);
   for(int i = 0; i<NProcs; i++){
     int cnt = stride*num_nodes_shared(i);
 
     if((i==MyRank)||(cnt==0)){
-      SendRequest[i] =  MPI::REQUEST_NULL;
+      SendRequest[i] =  MPI_REQUEST_NULL;
     }else{    
-      SendRequest[i] = MPI::COMM_WORLD.Isend(&(data_in[i][0]), cnt, MPI::UNSIGNED, i, 13);
+      MPI_Isend(&(data_in[i][0]), cnt, MPI_UNSIGNED, i, 13, MPI_COMM_WORLD, &(SendRequest[i]));
     }
   }
   
-  MPI::Request::Waitall(NProcs, &(RecvRequest[0]));
-  MPI::Request::Waitall(NProcs, &(SendRequest[0]));
+  MPI_Waitall(NProcs, &(RecvRequest[0]), MPI_STATUSES_IGNORE);
+  MPI_Waitall(NProcs, &(SendRequest[0]), MPI_STATUSES_IGNORE);
   
 }
 // Updata all halo values stored in data_in
@@ -470,33 +474,33 @@ void Mesh::halo_update(const vector< vector<unsigned> >& data_in, const vector<u
   }
     
   // setup non-blocking receives
-  vector<MPI::Request> RecvRequest(NProcs);
+  vector<MPI_Request> RecvRequest(NProcs);
   for(int i = 0; i<NProcs; i++){
     int cnt = stride*data_cnt[i];
     
     if((i==MyRank)||(cnt==0)){
-      RecvRequest[i] =  MPI::REQUEST_NULL;
+      RecvRequest[i] =  MPI_REQUEST_NULL;
     }else{
       data_out[i].resize(cnt);
-      RecvRequest[i] = MPI::COMM_WORLD.Irecv(&(data_out[i][0]), cnt, MPI::UNSIGNED, i, 13);
+      MPI_Irecv(&(data_out[i][0]), cnt, MPI_UNSIGNED, i, 13, MPI_COMM_WORLD, &(RecvRequest[i]));
     }
 
   }
   
   // setup non-blocking sends
-  vector<MPI::Request> SendRequest(NProcs);
+  vector<MPI_Request> SendRequest(NProcs);
   for(int i = 0; i<NProcs; i++){
     int cnt = stride*num_nodes_shared(i);
     
     if((i==MyRank)||(cnt==0)){
-      SendRequest[i] =  MPI::REQUEST_NULL;
+      SendRequest[i] =  MPI_REQUEST_NULL;
     }else{
-      SendRequest[i] = MPI::COMM_WORLD.Isend(&(data_in[i][0]), cnt, MPI::UNSIGNED, i, 13);
+      MPI_Isend(&(data_in[i][0]), cnt, MPI_UNSIGNED, i, 13, MPI_COMM_WORLD, &(SendRequest[i]));
     }
   }
-  
-  MPI::Request::Waitall(NProcs, &(RecvRequest[0]));
-  MPI::Request::Waitall(NProcs, &(SendRequest[0]));
+
+  MPI_Waitall(NProcs, &(RecvRequest[0]), MPI_STATUSES_IGNORE);
+  MPI_Waitall(NProcs, &(SendRequest[0]), MPI_STATUSES_IGNORE);  
   
 }
 void Mesh::halo_update(const vector< vector<samfloat_t> >& data_in, vector< vector<samfloat_t> >& data_out){
@@ -516,33 +520,33 @@ void Mesh::halo_update(const vector< vector<samfloat_t> >& data_in, vector< vect
   }
   
   // setup non-blocking receives
-  vector<MPI::Request> RecvRequest(NProcs);
+  vector<MPI_Request> RecvRequest(NProcs);
   for(int i = 0; i<NProcs; i++){
     int cnt = stride*num_nodes_halo(i);
     
     if((cnt==0)||(i==MyRank)){
-      RecvRequest[i] =  MPI::REQUEST_NULL;
+      RecvRequest[i] =  MPI_REQUEST_NULL;
     }else{    
       data_out[i].resize( cnt );
-      RecvRequest[i] = MPI::COMM_WORLD.Irecv(&(data_out[i][0]), cnt, MPI::SAMFLOAT, i, 13);
+      MPI_Irecv(&(data_out[i][0]), cnt, SAMFLOAT, i, 13, MPI_COMM_WORLD, &(RecvRequest[i]));
     }
   }
   
   // setup non-blocking sends
-  vector<MPI::Request> SendRequest(NProcs);
+  vector<MPI_Request> SendRequest(NProcs);
   for(int i = 0; i<NProcs; i++){
     int cnt = stride*num_nodes_shared(i);
     
     if((cnt==0)||(i==MyRank)){
-      SendRequest[i] =  MPI::REQUEST_NULL;
+      SendRequest[i] =  MPI_REQUEST_NULL;
       continue;
     }else{
-      SendRequest[i] = MPI::COMM_WORLD.Isend(&(data_in[i][0]), cnt, MPI::SAMFLOAT, i, 13);
+      MPI_Isend(&(data_in[i][0]), cnt, SAMFLOAT, i, 13, MPI_COMM_WORLD, &(SendRequest[i]));
     }
   }
-  
-  MPI::Request::Waitall(NProcs, &(RecvRequest[0]));
-  MPI::Request::Waitall(NProcs, &(SendRequest[0]));
+
+  MPI_Waitall(NProcs, &(RecvRequest[0]), MPI_STATUSES_IGNORE);
+  MPI_Waitall(NProcs, &(SendRequest[0]), MPI_STATUSES_IGNORE);  
   
 }
 

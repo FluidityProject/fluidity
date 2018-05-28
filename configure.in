@@ -804,7 +804,7 @@ if test "$with_netcdf" != "no" ; then
     fi
   fi
   ACX_lib_automagic(netcdf, nc_create, [AC_DEFINE(HAVE_LIBNETCDF, [1])])
-  ACX_lib_automagic(netcdff, nc_create, [AC_DEFINE(HAVE_LIBNETCDFF, [1])])
+  ACX_lib_fautomagic(netcdff, nccre, [AC_DEFINE(HAVE_LIBNETCDFF, [1])])
 fi
 
 # Exodus-II support
@@ -830,14 +830,6 @@ AC_ARG_ENABLE(petsc-fortran-modules,
 ACX_PETSc([AC_MSG_NOTICE(["PETSc found, enabling scalable solver"])], [AC_MSG_ERROR(["PETSc not found"])])
 ACX_hypre([AC_MSG_NOTICE(["hypre found, enabling hypre preconditioners"])], [AC_MSG_WARN(["hypre not found"])])
 CPPFLAGS="$CPPFLAGS -DHAVE_PETSC"
-if test "$HAVE_PETSC_MODULES" == "1"; then
-  CPPFLAGS="$CPPFLAGS -DHAVE_PETSC_MODULES"
-fi
-if test "$HAVE_HYPRE" == "1"; then
-  CPPFLAGS="$CPPFLAGS -DHAVE_HYPRE"
-fi
-CPPFLAGS=`echo $CPPFLAGS | sed 's/-petsc-version-/3.4.2.0/' | sed 's/x86_64\/x86_64/x86_64/'`
-FCFLAGS=`echo $FCFLAGS | sed 's/-petsc-version-/3.4.2.0/' | sed 's/x86_64\/x86_64/x86_64/'`
 
 # Metis, ParMetis
 AC_MSG_CHECKING([if we can compile and link without using -lparmetis])
@@ -1693,6 +1685,11 @@ cat > include/vtk.h <<EOF
 #include <${vtk_header_relative_path}vtkXMLUnstructuredGridWriter.h>
 #include <${vtk_header_relative_path}vtkZLibDataCompressor.h>
 
+#if VTK_MAJOR_VERSION>6 
+#include <${vtk_header_relative_path}vtkMPIController.h>
+#include <${vtk_header_relative_path}vtkMPICommunicator.h>
+#endif
+
 #ifndef vtkFloatingPointType
 #define vtkFloatingPointType vtkFloatingPointType
 typedef float vtkFloatingPointType;
@@ -1796,6 +1793,7 @@ AC_OUTPUT(Makefile
           bathymetry/Makefile
           ocean_forcing/Makefile ocean_forcing/tests/Makefile
           sediments/Makefile
+          population_balance/Makefile
           hyperlight/Makefile
           femtools/Makefile femtools/tests/Makefile
           forward_interfaces/Makefile

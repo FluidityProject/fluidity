@@ -89,8 +89,10 @@ void usage(int argc, char **argv){
   if (flg) {
     int rank = 0;
 #ifdef HAVE_MPI
-    if(MPI::Is_initialized()){
-      rank = MPI::COMM_WORLD.Get_rank();
+    int init_flag;
+    MPI_Initialized(&init_flag);
+    if(init_flag){
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     }
 #endif
     ostringstream buffer;
@@ -113,7 +115,7 @@ int main(int argc, char **argv){
 
 #ifdef HAVE_MPI
   // This must be called before we process any arguments
-  MPI::Init(argc,argv);
+  MPI_Init(&argc,&argv);
 
   // Undo some MPI init shenanigans
   chdir(getenv("PWD"));
@@ -123,7 +125,6 @@ int main(int argc, char **argv){
   static char help[] = "Use -help to see the help.\n\n";
   PetscErrorCode ierr = PetscInitialize(&argc, &argv, NULL, help);
   // PetscInitializeFortran needs to be called when initialising PETSc from C, but calling it from Fortran
-  // This sets all kinds of objects such as PETSC_NULL_OBJECT, PETSC_COMM_WORLD, etc., etc.
   ierr = PetscInitializeFortran();
   
   usage(argc, argv);
@@ -142,7 +143,7 @@ int main(int argc, char **argv){
 
   PetscFinalize();
 #ifdef HAVE_MPI
-  MPI::Finalize();
+  MPI_Finalize();
 #endif
  
   return 0;

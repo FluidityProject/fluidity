@@ -407,15 +407,18 @@ contains
 
   end subroutine halo_update_array_real_star
   
-  subroutine halo_update_scalar_on_halo(halo, s_field)
+  subroutine halo_update_scalar_on_halo(halo, s_field, verbose)
     !!< Update the supplied scalar field on the suppied halo.
     
     type(halo_type), intent(in) :: halo
     type(scalar_field), intent(inout) :: s_field
+    logical, intent(in), optional :: verbose ! set to .false. to leave out any verbosity 1 or 2 messages
     
     real, dimension(:), allocatable :: buffer
 
-    ewrite(2, *) "Updating halo " // trim(halo%name) // " for field " // trim(s_field%name)
+    if (.not. present_and_false(verbose)) then
+      ewrite(2, *) "Updating halo " // trim(halo%name) // " for field " // trim(s_field%name)
+    end if
     
     select case(s_field%field_type)
       case(FIELD_TYPE_NORMAL)
@@ -423,7 +426,9 @@ contains
         if(s_field%val_stride == 1) then
           call halo_update(halo, s_field%val)
         else
-          ewrite(2,*) "Need to copy into temp. buffer because field has stride", s_field%val_stride
+          if (.not. present_and_false(verbose)) then
+            ewrite(2,*) "Need to copy into temp. buffer because field has stride", s_field%val_stride
+          end if
           ! A stride argument should be passed to halo_update_real_array. For
           ! now just use a buffer.
           allocate(buffer(node_count(s_field)))
@@ -440,15 +445,18 @@ contains
     
   end subroutine halo_update_scalar_on_halo
   
-  subroutine halo_update_vector_on_halo(halo, v_field)
+  subroutine halo_update_vector_on_halo(halo, v_field, verbose)
     !!< Update the supplied vector field on the suppied halo.
     
     type(halo_type), intent(in) :: halo
     type(vector_field), intent(inout) :: v_field
+    logical, intent(in), optional :: verbose ! set to .false. to leave out any verbosity 1 or 2 messages
     
     integer :: i
     
-    ewrite(2, *) "Updating halo " // trim(halo%name) // " for field " // trim(v_field%name)
+    if (.not. present_and_false(verbose)) then
+      ewrite(2, *) "Updating halo " // trim(halo%name) // " for field " // trim(v_field%name)
+    end if
 
     select case(v_field%field_type)
       case(FIELD_TYPE_NORMAL)
@@ -461,15 +469,18 @@ contains
     
   end subroutine halo_update_vector_on_halo
   
-  subroutine halo_update_tensor_on_halo(halo, t_field)
+  subroutine halo_update_tensor_on_halo(halo, t_field, verbose)
     !!< Update the supplied tensor field on the suppied halo.
 
     type(halo_type), intent(in) :: halo
     type(tensor_field), intent(inout) :: t_field
+    logical, intent(in), optional :: verbose ! set to .false. to leave out any verbosity 1 or 2 messages
 
     integer :: i, j
 
-    ewrite(2, *) "Updating halo " // trim(halo%name) // " for field " // trim(t_field%name)
+    if (.not. present_and_false(verbose)) then
+      ewrite(2, *) "Updating halo " // trim(halo%name) // " for field " // trim(t_field%name)
+    end if
 
     select case(t_field%field_type)
       case(FIELD_TYPE_NORMAL)              
@@ -483,12 +494,13 @@ contains
 
   end subroutine halo_update_tensor_on_halo
   
-  subroutine halo_update_scalar(s_field, level)
+  subroutine halo_update_scalar(s_field, level, verbose)
     !!< Update the halos of the supplied field. If level is not supplied, the
     !!< field is updated on its largest halo.
   
     type(scalar_field), intent(inout) :: s_field
     integer, optional, intent(in) :: level
+    logical, intent(in), optional :: verbose ! set to .false. to leave out any verbosity 1 or 2 messages
     
     integer :: llevel, nhalos
     
@@ -501,17 +513,18 @@ contains
     end if
     
     if(nhalos > 0) then
-      call halo_update(s_field%mesh%halos(llevel), s_field)
+      call halo_update(s_field%mesh%halos(llevel), s_field, verbose=verbose)
     end if
     
   end subroutine halo_update_scalar
   
-  subroutine halo_update_vector(v_field, level)
+  subroutine halo_update_vector(v_field, level, verbose)
     !!< Update the halos of the supplied field. If level is not supplied, the
     !!< field is updated on its largest halo.
   
     type(vector_field), intent(inout) :: v_field
     integer, optional, intent(in) :: level
+    logical, intent(in), optional :: verbose ! set to .false. to leave out any verbosity 1 or 2 messages
     
     integer :: llevel, nhalos
     
@@ -524,17 +537,18 @@ contains
     end if
     
     if(nhalos > 0) then
-      call halo_update(v_field%mesh%halos(llevel), v_field)
+      call halo_update(v_field%mesh%halos(llevel), v_field, verbose=verbose)
     end if
     
   end subroutine halo_update_vector
   
-  subroutine halo_update_tensor(t_field, level)
+  subroutine halo_update_tensor(t_field, level, verbose)
     !!< Update the halos of the supplied field. If level is not supplied, the
     !!< field is updated on its largest halo.
   
     type(tensor_field), intent(inout) :: t_field
     integer, optional, intent(in) :: level
+    logical, intent(in), optional :: verbose ! set to .false. to leave out any verbosity 1 or 2 messages
     
     integer :: llevel, nhalos
     
@@ -547,7 +561,7 @@ contains
     end if
     
     if(nhalos > 0) then
-      call halo_update(t_field%mesh%halos(llevel), t_field)
+      call halo_update(t_field%mesh%halos(llevel), t_field, verbose)
     end if
     
   end subroutine halo_update_tensor

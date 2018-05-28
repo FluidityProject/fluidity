@@ -14,6 +14,9 @@ BINPREFIX=$(shell test -x ../../bin/fluidity >/dev/null && echo ${PWD}/../../bin
 TESTBIN=${TESTBINFLUIDITY}${TESTBINFLREDECOMP}
 TESTBINLOCAL=${TESTBINFLUIDITYLOCAL}${TESTBINFLREDECOMPLOCAL}
 
+TESTFLOPTIONSLOCAL=$(shell test -r ../../schemas/fluidity_options.rng >/dev/null ; echo $$? )
+FLOPTIONSPREFIX=$(shell test -r ../../schemas/fluidity_options.rng >/dev/null && echo ${PWD}/../../schemas/)
+
 envcheck:
 # Do we have both fluidity and flredecomp on the existing path?
 ifneq (${TESTBIN},00)
@@ -45,5 +48,11 @@ ifeq (${TESTPYTHON},11)
 	@echo "*** ERROR ***\nFluidity python support, required by this example, was not found on your\nsystem. Please either (a) install the Fluidity binary package if you are on\nUbuntu, or (b) get hold of a Fluidity source tree and set your PYTHONPATH to\nrefer to this, as described in the Fluidity manual."
 	@exit 1
 endif
+# Do we have the fluidity options locally?
+ifneq (${TESTFLOPTIONSLOCAL},0)
+	@echo "*** ERROR ***\nA Fluidity options Relax NG file, required by this example, was not found on your\nsystem. Please either (a) install the Fluidity binary package if you are on\nUbuntu, or (b) get hold of a Fluidity source tree and run this example there."
+	@exit 1
+endif
+ 
 
 .phony: envcheck

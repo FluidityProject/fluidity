@@ -314,80 +314,81 @@ unsigned                     Node::get_size_metric() const{
 }
 
 void Node::pack(char *buffer, int& bsize, int& offset) const{
-  MPI::UNN_T.Pack(&unn, 1, buffer, bsize, offset, MPI::COMM_WORLD);
-  MPI::GNN_T.Pack(&gnn, 1, buffer, bsize, offset, MPI::COMM_WORLD);
-  MPI::UNSIGNED_CHAR.Pack(&flags,  1, buffer, bsize, offset, MPI::COMM_WORLD);
-  MPI::UNSIGNED_SHORT.Pack(owner,  2, buffer, bsize, offset, MPI::COMM_WORLD);
+  MPI_Pack(&unn, 1, UNN_T, buffer, bsize, &offset, MPI_COMM_WORLD);
+  MPI_Pack(&gnn, 1, GNN_T, buffer, bsize, &offset, MPI_COMM_WORLD);
+  MPI_Pack(&flags,  1, MPI_UNSIGNED_CHAR, buffer, bsize, &offset, MPI_COMM_WORLD);
+  MPI_Pack(&owner,  2, MPI_UNSIGNED_SHORT, buffer, bsize, &offset, MPI_COMM_WORLD);
   
   { // Pack ifields.
     unsigned nifields = ifields.size();      
-    MPI::UNSIGNED.Pack(&nifields, 1, buffer, bsize, offset, MPI::COMM_WORLD);
+    MPI_Pack(&nifields, 1, MPI_UNSIGNED, buffer, bsize, &offset, MPI_COMM_WORLD);
     if(nifields>0)
-      MPI::INT.Pack(&(ifields[0]), nifields, buffer, bsize, offset, MPI::COMM_WORLD);
+      MPI_Pack(&(ifields[0]), nifields,MPI_INT, buffer, bsize, &offset, MPI_COMM_WORLD);
+
   }
 
   { // Pack fields.
     unsigned nfields = fields.size();      
-    MPI::UNSIGNED.Pack(&nfields,       1,       buffer, bsize, offset, MPI::COMM_WORLD);
+    MPI_Pack(&nfields, 1, MPI_UNSIGNED, buffer, bsize, &offset, MPI_COMM_WORLD);
     if(nfields>0)
-      MPI::SAMFLOAT.Pack(&(fields[0]), nfields, buffer, bsize, offset, MPI::COMM_WORLD);
+      MPI_Pack(&(fields[0]), nfields, SAMFLOAT, buffer, bsize, &offset, MPI_COMM_WORLD);
   }
   
   { // Pack coordinates.
     unsigned ndim = x.size();
-    MPI::UNSIGNED.Pack(&ndim, 1, buffer, bsize, offset, MPI::COMM_WORLD);
+    MPI_Pack(&ndim, 1, MPI_UNSIGNED, buffer, bsize, &offset, MPI_COMM_WORLD);
     if(ndim>0)
-      MPI::SAMFLOAT.Pack(&(x[0]), ndim, buffer, bsize, offset, MPI::COMM_WORLD);
+      MPI_Pack(&(x[0]), ndim,SAMFLOAT, buffer, bsize, &offset, MPI_COMM_WORLD);
   }
 
   { // Pack metric.
     unsigned len = metric.size();
-    MPI::UNSIGNED.Pack(&len, 1, buffer, bsize, offset, MPI::COMM_WORLD);
+    MPI_Pack(&len, 1, MPI_UNSIGNED, buffer, bsize, &offset, MPI_COMM_WORLD);
     if(len>0)
-      MPI::SAMFLOAT.Pack(&(metric[0]), len, buffer, bsize, offset, MPI::COMM_WORLD);
+      MPI_Pack(&(metric[0]), len, SAMFLOAT, buffer, bsize, &offset, MPI_COMM_WORLD);
   }
 
 }
 
 void Node::unpack(char *buffer, int& bsize, int& offset){
-  MPI::UNN_T.Unpack(buffer, bsize, &unn, 1, offset, MPI::COMM_WORLD);
-  MPI::GNN_T.Unpack(buffer, bsize, &gnn, 1, offset, MPI::COMM_WORLD );
-  MPI::UNSIGNED_CHAR.Unpack(buffer,  bsize, &flags, 1, offset, MPI::COMM_WORLD );
-  MPI::UNSIGNED_SHORT.Unpack(buffer, bsize, owner,  2, offset, MPI::COMM_WORLD );
+  MPI_Unpack(buffer, bsize, &offset, &unn, 1, UNN_T, MPI_COMM_WORLD);
+  MPI_Unpack(buffer, bsize, &offset, &gnn, 1, GNN_T, MPI_COMM_WORLD );
+  MPI_Unpack(buffer, bsize, &offset, &flags, 1, MPI_UNSIGNED, MPI_COMM_WORLD );
+  MPI_Unpack(buffer, bsize, &offset, owner, 2, MPI_UNSIGNED_SHORT, MPI_COMM_WORLD );
   
   { // Unpack ifields.
     unsigned nifields;
-    MPI::UNSIGNED.Unpack(buffer, bsize, &nifields, 1, offset, MPI::COMM_WORLD);
+    MPI_Unpack(buffer, bsize, &offset, &nifields, 1, MPI_UNSIGNED, MPI_COMM_WORLD);
     if(nifields>0){
       ifields.resize(nifields);  
-      MPI::INT.Unpack(buffer, bsize, &(ifields[0]), nifields, offset, MPI::COMM_WORLD);
+      MPI_Unpack(buffer, bsize, &offset, &(ifields[0]), nifields, MPI_INT, MPI_COMM_WORLD);
     }
   }
 
   { // Unpack fields.
     unsigned nfields;
-    MPI::UNSIGNED.Unpack(buffer, bsize, &nfields, 1, offset, MPI::COMM_WORLD);
+    MPI_Unpack(buffer, bsize, &offset, &nfields, 1, MPI_UNSIGNED, MPI_COMM_WORLD);
     if(nfields>0){
       fields.resize( nfields );  
-      MPI::SAMFLOAT.Unpack(buffer, bsize, &(fields[0]), nfields, offset, MPI::COMM_WORLD);
+      MPI_Unpack(buffer, bsize, &offset, &(fields[0]), nfields, SAMFLOAT, MPI_COMM_WORLD);
     }
   }
 
   { // Unpack coordinates.
     unsigned ndim;
-    MPI::UNSIGNED.Unpack(buffer, bsize, &ndim, 1, offset, MPI::COMM_WORLD);
+    MPI_Unpack(buffer, bsize, &offset, &ndim, 1, MPI_UNSIGNED, MPI_COMM_WORLD);
     if(ndim>0){
       x.resize(ndim);
-      MPI::SAMFLOAT.Unpack(buffer, bsize, &(x[0]), ndim, offset, MPI::COMM_WORLD);
+      MPI_Unpack(buffer, bsize, &offset, &(x[0]), ndim, SAMFLOAT, MPI_COMM_WORLD);
     }
   }
 
   { // Unpack metric.
     unsigned len;
-    MPI::UNSIGNED.Unpack(buffer, bsize, &len, 1, offset, MPI::COMM_WORLD);
+    MPI_Unpack(buffer, bsize, &offset, &len, 1, MPI_UNSIGNED, MPI_COMM_WORLD);
     if(len>0){
       metric.resize(len);
-      MPI::SAMFLOAT.Unpack(buffer, bsize, &(metric[0]), len, offset, MPI::COMM_WORLD);
+      MPI_Unpack(buffer, bsize, &offset, &(metric[0]), len, SAMFLOAT, MPI_COMM_WORLD);
     }
   }
      
@@ -395,31 +396,36 @@ void Node::unpack(char *buffer, int& bsize, int& offset){
 
 // Return an estimate of the number of bytes required to pack this guy.
 unsigned Node::pack_size() const{
-  int total=0;
+  int total=0,s1,s2,s3,s4;
   
-  total  = MPI::UNN_T.Pack_size(1, MPI::COMM_WORLD);
-  total += MPI::GNN_T.Pack_size(1, MPI::COMM_WORLD);         
-  total += MPI::UNSIGNED_CHAR.Pack_size(1, MPI::COMM_WORLD); 
-  total += MPI::UNSIGNED_SHORT.Pack_size(2, MPI::COMM_WORLD);
+  MPI_Pack_size(1, UNN_T, MPI_COMM_WORLD, &s1);
+  MPI_Pack_size(1, GNN_T, MPI_COMM_WORLD, &s2);         
+  MPI_Pack_size(1, MPI_UNSIGNED_CHAR, MPI_COMM_WORLD, &s3); 
+  MPI_Pack_size(2, MPI_UNSIGNED_SHORT, MPI_COMM_WORLD, &s4);
+  total = s1 + s2 + s3 + s4;
   {
     unsigned nifields = ifields.size();      
-    total += MPI::UNSIGNED.Pack_size(1, MPI::COMM_WORLD);      
-    total += MPI::INT.Pack_size(nifields, MPI::COMM_WORLD); 
+    MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);      
+    MPI_Pack_size(nifields, MPI_INT, MPI_COMM_WORLD, &s2); 
+    total += (s1 + s2);
   }
   {
     unsigned nfields = fields.size();      
-    total += MPI::UNSIGNED.Pack_size(1, MPI::COMM_WORLD);      
-    total += MPI::SAMFLOAT.Pack_size(nfields, MPI::COMM_WORLD); 
+    total += MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);      
+    total += MPI_Pack_size(nfields, SAMFLOAT, MPI_COMM_WORLD, &s2);
+    total += (s1 + s2); 
   }
   {
     unsigned ndim = x.size();
-    total += MPI::UNSIGNED.Pack_size(1, MPI::COMM_WORLD);      
-    total += MPI::SAMFLOAT.Pack_size(ndim, MPI::COMM_WORLD);       
+    MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);      
+    MPI_Pack_size(ndim, SAMFLOAT, MPI_COMM_WORLD, &s2);       
+    total += (s1 + s2);
   }
   {
     unsigned len = metric.size();
-    total += MPI::UNSIGNED.Pack_size(1, MPI::COMM_WORLD);      
-    total += MPI::SAMFLOAT.Pack_size(len, MPI::COMM_WORLD);     
+    MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);      
+    MPI_Pack_size(len, SAMFLOAT, MPI_COMM_WORLD, &s2);
+    total += (s1 + s2);    
   }
 
   return total;

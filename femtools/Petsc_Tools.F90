@@ -47,26 +47,31 @@ module Petsc_Tools
 
 #include "petsc_legacy.h"
 
+! Some routines, like MatCreateVecs, behave differently if a null vec is passed in, even though
+! the argument is normally intent(out) - when passing an uninitialised petsc object variable
+! it is possible (and not unlikely) that the uninitialised object happens to contain -1 which
+! in petsc v3.8 is recognized as a NULL object. Therefore in petsc v3.8 we have to pass in an
+! object that is known not to be a null vec
+#if PETSC_VERSION_MINOR>=8
+  Vec, parameter, public :: PETSC_NOTANULL_VEC = tVec(1)
+#else
+  ! previously Vec was just an integer (and NULL was checked by comparing its memory address with the one cannonical PETSC_NULL_OBJECT)
+  Vec, parameter, public :: PETSC_NOTANULL_VEC = 1
+#endif
+
   PetscReal, parameter, private :: dummy_petsc_real = 0.0
   integer, parameter, public :: PetscReal_kind = kind(dummy_petsc_real)
   PetscScalar, parameter, private :: dummy_petsc_scalar = 0.0
   integer, parameter, public :: PetscScalar_kind = kind(dummy_petsc_scalar)
   
-  ! see at the bottom of this file
-  interface
-    subroutine myMatGetInfo(A, flag, info, ierr)
-       Mat, intent(in):: A
-       MatInfoType, intent(in):: flag
-       double precision, dimension(:), intent(out):: info
-       PetscErrorCode, intent(out):: ierr
-    end subroutine myMatGetInfo
-  end interface
-
   type petsc_numbering_type
      type(halo_type), pointer :: halo => null()
      integer nprivatenodes
-     ! length of a vector 
+     ! global length of Petsc vector 
      integer universal_length
+     ! block size as seen by petsc
+     integer group_size
+     ! start index of local part of petsc vector
      integer offset
      ! mapping between "global" (fludity numbering inside each local domain)
      ! and "universal" numbering (truly global numbering over all processes
@@ -125,6 +130,8 @@ module Petsc_Tools
 #if PETSC_VERSION_MINOR<7
   public NullPetscViewerAndFormatCreate
 #endif
+  public IsNullMatNullSpace
+
 contains
 
   ! Note about definitions in this module:
@@ -145,7 +152,7 @@ contains
   ! as group to avoid confusion with the above definition.
   
   subroutine allocate_petsc_numbering(petsc_numbering, &
-       nnodes, nfields, halo, ghost_nodes)
+       nnodes, nfields, group_size, halo, ghost_nodes)
     !!< Set ups the 'universal'(what most people call global)
     !!< numbering used in PETSc. In serial this is trivial
     !!< but could still be used for reordering schemes.
@@ -155,13 +162,15 @@ contains
     !! (here nfields counts each scalar component of vector fields, so
     !!  e.g. for nphases velocity fields in 3 dimensions nfields=3*nphases)
     integer, intent(in):: nnodes, nfields
+    !! if present 'group_size' fields are grouped in the petsc numbering, i.e.
+    integer, intent(in), optional:: group_size
     !! for parallel: halo information
     type(halo_type), pointer, optional :: halo
     !! If supplied number these as -1, so they'll be skipped by Petsc
     integer, dimension(:), optional, intent(in):: ghost_nodes 
     integer, dimension(:), allocatable:: ghost_marker
-    integer i, g, f, start, offset
-    integer nuniversalnodes, ngroups, lgroup_size, ierr
+    integer i, g, f, start, offset, fpg
+    integer nuniversalnodes, ngroups, ierr
 
     allocate( petsc_numbering%gnn2unn(1:nnodes, 1:nfields) )
 
@@ -175,7 +184,15 @@ contains
        end if
     end if
 
-    ngroups=nfields
+    if (present(group_size)) then
+      fpg=group_size ! fields per group
+      ngroups=nfields/fpg
+      assert(nfields==fpg*ngroups)
+    else
+      fpg=1
+      ngroups=nfields
+    end if
+    petsc_numbering%group_size=fpg
 
     ! first we set up the petsc numbering for the first entry of each group only:
 
@@ -184,11 +201,13 @@ contains
        ! *** Serial case *or* parallel without halo
 
        ! standard, trivial numbering, starting at 0:
-       start=0 ! start of each field -1
-       do g=1, nfields
-          petsc_numbering%gnn2unn(:, g )= &
-               (/ ( start+i, i=0, nnodes-1 ) /)
-          start=start+nnodes
+       start=0 ! start of each group of fields
+       do g=0, ngroups-1
+          do f=0, fpg-1
+            petsc_numbering%gnn2unn(:, g*fpg+f+1 )= &
+               (/ ( start + fpg*i+f, i=0, nnodes-1 ) /)
+          end do
+          start=start+nnodes*fpg
        end do
 
        if (isParallel()) then
@@ -199,7 +218,7 @@ contains
           call mpi_scan(nnodes, offset, 1, MPI_INTEGER, &
                MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
           offset=offset-nnodes
-          petsc_numbering%gnn2unn=petsc_numbering%gnn2unn+offset
+          petsc_numbering%gnn2unn=petsc_numbering%gnn2unn+offset*nfields
 
        end if
        
@@ -214,10 +233,22 @@ contains
 
        ! *** Parallel case with halo:
 
-       ! get 'universal' numbering
-       call get_universal_numbering(halo, petsc_numbering%gnn2unn)
+       ! the hard work is done inside get_universal_numbering() for the case fpg=1
+       ! for fpg>1 we just ask for a numbering for the groups and pad it out afterwards
+       call get_universal_numbering(halo, petsc_numbering%gnn2unn(:,1:ngroups))
        ! petsc uses base 0
-       petsc_numbering%gnn2unn = petsc_numbering%gnn2unn-1
+       petsc_numbering%gnn2unn(:,1:ngroups) = petsc_numbering%gnn2unn(:,1:ngroups)-1
+
+       if (fpg>1) then
+         ! the universal node number of the first node in each group is
+         ! simply the universal groups times fpg - as we know other processes
+         ! do the same we need no negotiation for the halo nodes
+         petsc_numbering%gnn2unn(:,1:nfields:fpg) = petsc_numbering%gnn2unn(:,1:ngroups)*fpg
+         ! as always the subsequent nodes in a group are number consequently:
+         do f=2, fpg
+           petsc_numbering%gnn2unn(:,f:nfields:fpg) = petsc_numbering%gnn2unn(:,1:nfields:fpg)+(f-1)
+         end do
+       end if
          
        petsc_numbering%nprivatenodes=halo_nowned_nodes(halo)
 
@@ -228,7 +259,7 @@ contains
     if (isParallel()) then
        ! work out the length of global(universal) vector
        call mpi_allreduce(petsc_numbering%nprivatenodes, nuniversalnodes, 1, MPI_INTEGER, &
-           MPI_SUM, MPI_COMM_FEMTOOLS, ierr)       
+           MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
 
        petsc_numbering%universal_length=nuniversalnodes*nfields
     else
@@ -415,11 +446,10 @@ contains
   end subroutine Array2Petsc
   
   subroutine VectorFields2Petsc(fields, petsc_numbering, vec)
-    !!< Assembles contiguous petsc array using the specified numbering from the given fields.
-    !!< Allocates a petsc Vec that should be destroyed with VecDestroy
+    !!< Assembles field into (previously created) petsc Vec using petsc_numbering for the DOFs of the fields combined
     type(vector_field), dimension(:), intent(in):: fields
     type(petsc_numbering_type), intent(in):: petsc_numbering
-    Vec :: vec
+    Vec, intent(inout) :: vec
   
     integer ierr, nnodp, b, nfields, nnodes
     integer i, j
@@ -466,17 +496,17 @@ contains
   end subroutine VectorFields2Petsc
   
   subroutine VectorField2Petsc(field, petsc_numbering, vec)
-    !!< Assembles contiguous petsc array using the specified numbering from the given field.
+    !!< Assembles given field into (previously created) petsc Vec using petsc_numbering
     type(vector_field), intent(in):: field
     type(petsc_numbering_type), intent(in):: petsc_numbering
-    Vec, intent(out) :: vec
+    Vec, intent(inout) :: vec
   
     call VectorFields2Petsc( (/ field /), petsc_numbering, vec)
     
   end subroutine VectorField2Petsc
   
   subroutine ScalarFields2Petsc(fields, petsc_numbering, vec)
-    !!< Assembles contiguous petsc array using the specified numbering from the given fields.
+    !!< Assembles field into (previously created) petsc Vec using petsc_numbering for the DOFs of the fields combined
     type(scalar_field), dimension(:), intent(in):: fields
     type(petsc_numbering_type), intent(in):: petsc_numbering
     Vec, intent(inout) :: vec
@@ -520,8 +550,7 @@ contains
   end subroutine ScalarFields2Petsc
   
   subroutine ScalarField2Petsc(field, petsc_numbering, vec)
-    !!< Assembles petsc array using the specified numbering.
-    !!< Allocates a petsc Vec that should be destroyed with VecDestroy
+    !!< Assembles given field into (previously created) petsc Vec using petsc_numbering
     type(scalar_field), intent(in):: field
     type(petsc_numbering_type), intent(in):: petsc_numbering
     Vec, intent(inout) :: vec
@@ -1180,13 +1209,18 @@ contains
       end do
     end do
       
-    call MatCreateAIJ(MPI_COMM_SELF, nrows, ncols, nrows, ncols, &
-      PETSC_NULL_INTEGER, nnz, 0, PETSC_NULL_INTEGER, M, ierr)
-    call MatSetup(M, ierr)
+    call MatCreate(PETSC_COMM_SELF, M, ierr)
+    call MatSetSizes(M, nrows, ncols, PETSC_DETERMINE, PETSC_DETERMINE, ierr)
+    call MatSetBlockSizes(M, row_numbering%group_size, col_numbering%group_size, ierr)
+    call MatSetType(M, MATAIJ, ierr)
+    ! NOTE: 2nd argument is not used
+    call MatSeqAIJSetPreallocation(M, 0, nnz, ierr)
       
     if (.not. present_and_true(use_inodes)) then
       call MatSetOption(M, MAT_USE_INODES, PETSC_FALSE, ierr)
     end if
+
+    call MatSetup(M, ierr)
 
     deallocate(nnz)
       
@@ -1308,16 +1342,16 @@ contains
     PetscScalar, dimension(:), allocatable:: row_vals
     integer, dimension(:), allocatable:: row_cols, unn2gnn
     integer private_columns
-    integer i, j, k, ui, rows, columns, entries, ncols, offset
+    integer i, j, k, ui, rows, columns, entries, ncols, offset, end_of_range
     logical parallel
     
     ! get the necessary info about the matrix:
-    call myMatGetInfo(matrix, MAT_LOCAL, matrixinfo, ierr)
+    call MatGetInfo(matrix, MAT_LOCAL, matrixinfo, ierr)
     entries=matrixinfo(MAT_INFO_NZ_USED)
     ! note we're no longer using MAT_INFO for getting local n/o rows and cols
     ! as it's bugged in Petsc < 3.0 and obsoloted thereafter:
     call MatGetLocalSize(matrix, rows, columns, ierr)
-    call MatGetOwnershipRange(matrix, offset, PETSC_NULL_INTEGER, ierr)
+    call MatGetOwnershipRange(matrix, offset, end_of_range, ierr)
     parallel=IsParallel()
 
     if (present(column_numbering)) then
@@ -1435,7 +1469,7 @@ contains
     if (.not. IsParallel()) return
     
     call allocate(petsc_numbering, node_count(vfield), vfield%dim, &
-      halo)
+      halo=halo)
     vec=PetscNumberingCreateVec(petsc_numbering)
     ! assemble vfield into petsc Vec, this lets petsc do the adding up
     call field2petsc(vfield, petsc_numbering, vec)
@@ -1531,26 +1565,29 @@ subroutine NullPetscViewerAndFormatCreate(viewer, format, vf, ierr)
 
   assert(viewer==PETSC_VIEWER_STDOUT_WORLD)
   assert(format==PETSC_VIEWER_DEFAULT)
-  vf = PETSC_NULL_OBJECT
+  vf = PETSC_NULL_VIEWER
   ierr = 0
 
 end subroutine NullPetscViewerAndFormatCreate
 #endif
 
+function IsNullMatNullSpace(nullsp)
+  ! This function checks whether `nullsp` is a NULL nullspace
+  ! (the equivalent of (MatNullspace *) null in C)
+  MatNullSpace, intent(in) :: nullsp
+  logical :: IsNullMatNullSpace
+
+#if PETSC_VERSION_MINOR>=8
+    ! MatNullSpace(-1) is what is recognized as null in CHKFORTRANNULLOBJECT
+    ! MatNullSpace(0) is what is returned by MatGetNullspace if no nullspace is present
+    ! (because a wrapper on the output is missing, and there isn't a PETSC_NULL_MATNULLSPACE
+    ! in the first place)
+    IsNullMatNullSpace = nullsp%v==-1 .or. nullsp%v==0
+#else
+    IsNullMatNullSpace = nullsp==PETSC_NULL_OBJECT
+#endif
+
+end function IsNullMatNullSpace
+
 #include "Reference_count_petsc_numbering_type.F90"
 end module Petsc_Tools
-
-! this is a wrapper routine around MatGetInfo as it appears PETSc
-! provides the wrong explicit interface for it. By putting it outside
-! the module (and only including petsc headers and not use petsc modules)
-! this routine calls MatGetInfo with an implicit interface.
-subroutine myMatGetInfo(A, flag, info, ierr)
-Mat, intent(in):: A
-MatInfoType, intent(in):: flag
-double precision, dimension(:), intent(out):: info
-PetscErrorCode, intent(out):: ierr
-
-  call MatGetInfo(A, flag, info, ierr)
-  
-end subroutine myMatGetInfo
-
