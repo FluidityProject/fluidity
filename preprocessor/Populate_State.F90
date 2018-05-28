@@ -102,7 +102,7 @@ periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
        
   !! A list of relative paths under /material_phase[i]
   !! that are searched for additional fields to be added.
-  character(len=OPTION_PATH_LEN), dimension(20) :: additional_fields_relative=&
+  character(len=OPTION_PATH_LEN), dimension(23) :: additional_fields_relative=&
        (/ &
        "/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
        "/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
