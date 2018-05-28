@@ -262,7 +262,8 @@ class TestHarness:
 
         # when calling genpbs, genpbs should take care of inserting the right -n <NPROCS> magic
         if not self.genpbs:
-          s = s.replace('mpiexec ', 'mpiexec -n %(nprocs)d ' % {'nprocs': nprocs})
+          s = s.replace('mpiexec ', '%(launcher)s %(nprocs)d ' % {'launcher': options.launcher,
+                                                                'nprocs': nprocs})
 
         return s
 
@@ -400,6 +401,7 @@ if __name__ == "__main__":
     parser.add_option("-f", "--file", dest="file", help="specific test case to run (by filename)", default="")
     parser.add_option("--from-file", dest="from_file", default=None,
                       help="run tests listed in FROM_FILE (one test per line)")
+    parser.add_option("-m","--mpi-launcher", dest="launcher", default="mpiexec -n", help="launcher command for mpi processes")
     parser.add_option("-n", "--threads", dest="thread_count", type="int",
                       help="number of tests to run at the same time", default=1)
     parser.add_option("-v", "--valgrind", action="store_true", dest="valgrind")
