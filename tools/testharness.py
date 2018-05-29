@@ -290,15 +290,25 @@ class TestHarness:
         if not self.justtest:
             threadlist=[]
             self.test_exception_ids = multiprocessing.Queue()
-            self.threadtests = multiprocessing.Queue()
+            sorted_tests={}
             for _ in range(len(self.tests)):
-              self.threadtests.put(_)
-
-            self.plock = multiprocessing.Lock()
-            self.semaphore = multiprocessing.BoundedSemaphore(value=options.thread_count)
-            for i in range(options.thread_count):
-                threadlist.append(multiprocessing.Process(target=self.threadrun)) 
-                threadlist[-1].start()
+                sorted_tests.setdefault(self.tests[_][1].nprocs,[]).append(_)
+            serial_tests = multiprocessing.Queue()
+            for _ in sorted_tests[1]:
+                serial_tests.put(_)
+            for _ in sorted(list(sorted_tests.keys()), reverse=True):
+               for i in range(len(threadlist),
+                              max(0, options.thread_count-_)):
+                   threadlist.append(multiprocessing.Process(target=self.threadrun, args=[serial_tests])) 
+                   threadlist[-1].start()
+               if _==1:
+                   self.threadrun(serial_tests)
+               else:
+                   tests = sorted_tests[_]
+                   queue = Queue.Queue()
+                   for test in tests:
+                       queue.put(test)
+                   self.threadrun(queue)
             for t in threadlist:
                 '''Wait until all threads finish'''
                 t.join()
@@ -380,8 +390,7 @@ class TestHarness:
             sys.exit(self.failcount)
 
           
-
-    def threadrun(self):
+    def threadrun(self, queue):
         '''This is the portion of the loop which actually runs the
         tests. This is split out so that it can be threaded'''
 
@@ -391,20 +400,15 @@ class TestHarness:
             buf = io.StringIO()
             sys.stdout = buf
             try:
-              test_id = self.threadtests.get_nowait()
-              (dir, test) = self.tests[test_id]
+                test_id = queue.get_nowait()
+                (dir, test) = self.tests[test_id]
             except Queue.Empty:
+                sys.stdout = main_stdout
+                buf.seek(0)
+                with self.iolock:
+                    print buf.read()
                 break
 
-            nprocs = min(test.nprocs, options.thread_count)
-            if nprocs > 1:
-                # parallel jobs attempt to acquire multiple semaphores
-                # to avoid deadlock, only one can try at a time, the others wait.
-                self.plock.acquire()
-            for _ in range(nprocs):
-                self.semaphore.acquire()
-            if nprocs > 1:
-                self.plock.release()
             try:
                 runtime=test.run(dir)
                 if self.length=="short" and runtime>30.0:
@@ -421,13 +425,10 @@ class TestHarness:
                 test.pass_status = ['F']
                 self.test_exception_ids.put(test_id)
             finally:
-                for _ in range(nprocs):
-                   self.semaphore.release()
                 sys.stdout = main_stdout
                 buf.seek(0)
-                self.iolock.acquire()
-                print buf.read()
-                self.iolock.release()
+                with self.iolock:
+                    print buf.read()
 
     def list(self):
       for (subdir, test) in self.tests:
