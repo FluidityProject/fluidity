@@ -5,6 +5,7 @@ import os
 import os.path
 import glob
 import time
+import StringIO as io
 
 try:
  import fluidity.regressiontest as regressiontest
@@ -16,7 +17,8 @@ except ImportError:
  import fluidity.regressiontest as regressiontest
 
 import traceback
-import threading
+import multiprocessing
+import Queue
 import xml.parsers.expat
 import string
 
@@ -57,6 +59,7 @@ class TestHarness:
         self.genpbs = genpbs
         self.xml_parser=TestSuite('TestHarness',[])
         self.cwd=os.getcwd()
+        self.iolock = multiprocessing.Lock()
         self.xml_outfile=xml_outfile
         self.exit_fails=exit_fails
 
@@ -67,6 +70,7 @@ class TestHarness:
           print "-" * 80
           print "length: ", length
           print "parallel: ", parallel
+          print "threads: ", options.thread_count
           print "tags to include: ", tags
           print "tags to exclude: ", exclude_tags
           print "-" * 80
@@ -285,13 +289,40 @@ class TestHarness:
         self.log(" ")
         if not self.justtest:
             threadlist=[]
-            self.threadtests=regressiontest.ThreadIterator(self.tests)
-            for i in range(options.thread_count):
-                threadlist.append(threading.Thread(target=self.threadrun)) 
-                threadlist[-1].start()
+            self.test_exception_ids = multiprocessing.Queue()
+            sorted_tests={}
+            for _ in range(len(self.tests)):
+                sorted_tests.setdefault(self.tests[_][1].nprocs,[]).append(_)
+            serial_tests = multiprocessing.Queue()
+            for _ in sorted_tests.get(1, []):
+                serial_tests.put(_)
+            for _ in sorted(list(sorted_tests.keys()), reverse=True):
+               for i in range(len(threadlist),
+                              max(0, options.thread_count-_)):
+                   threadlist.append(multiprocessing.Process(target=self.threadrun, args=[serial_tests])) 
+                   threadlist[-1].start()
+               if _==1:
+                   self.threadrun(serial_tests)
+               else:
+                   tests = sorted_tests[_]
+                   queue = Queue.Queue()
+                   for test in tests:
+                       queue.put(test)
+                   self.threadrun(queue)
             for t in threadlist:
                 '''Wait until all threads finish'''
                 t.join()
+
+            exceptions = []
+            while True:
+                try:
+                    test_id = self.test_exception_ids.get(timeout=0.1)
+                    exceptions.append(self.tests[test_id])
+                except Queue.Empty:
+                    break
+            for e in exceptions:
+                self.tests.remove(e)
+                self.completed_tests += [e[1]]
 
             count = len(self.tests)
             while True:
@@ -359,12 +390,25 @@ class TestHarness:
             sys.exit(self.failcount)
 
           
-
-    def threadrun(self):
+    def threadrun(self, queue):
         '''This is the portion of the loop which actually runs the
         tests. This is split out so that it can be threaded'''
-        
-        for (dir, test) in self.threadtests:
+
+        main_stdout = sys.stdout
+
+        while True:
+            buf = io.StringIO()
+            sys.stdout = buf
+            try:
+                test_id = queue.get(timeout=0.1)
+                (dir, test) = self.tests[test_id]
+            except Queue.Empty:
+                sys.stdout = main_stdout
+                buf.seek(0)
+                with self.iolock:
+                    print buf.read()
+                break
+
             try:
                 runtime=test.run(dir)
                 if self.length=="short" and runtime>30.0:
@@ -378,10 +422,13 @@ class TestHarness:
                 lines = traceback.format_exception( sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2] )
                 for line in lines:
                     self.log(line)
-                self.tests.remove((dir, test))
-                self.teststatus += ['F']
                 test.pass_status = ['F']
-                self.completed_tests += [test]
+                self.test_exception_ids.put(test_id)
+            finally:
+                sys.stdout = main_stdout
+                buf.seek(0)
+                with self.iolock:
+                    print buf.read()
 
     def list(self):
       for (subdir, test) in self.tests:
@@ -425,11 +472,6 @@ if __name__ == "__main__":
       os.environ["LD_LIBRARY_PATH"] = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "lib")) + ":" + os.environ["LD_LIBRARY_PATH"]
     except KeyError:
       os.putenv("LD_LIBRARY_PATH", os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "lib")))
-      
-    try:
-      os.environ["OMPI_MCA_rmaps_base_oversubscribe"] = "1"
-    except KeyError:
-      os.putenv("OMPI_MCA_rmaps_base_oversubscribe", "1")
 
     try:
         os.mkdir(os.environ["HOME"] + os.sep + "lock")
