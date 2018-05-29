@@ -294,7 +294,7 @@ class TestHarness:
             for _ in range(len(self.tests)):
                 sorted_tests.setdefault(self.tests[_][1].nprocs,[]).append(_)
             serial_tests = multiprocessing.Queue()
-            for _ in sorted_tests[1]:
+            for _ in sorted_tests.get(1, []):
                 serial_tests.put(_)
             for _ in sorted(list(sorted_tests.keys()), reverse=True):
                for i in range(len(threadlist),
@@ -316,7 +316,7 @@ class TestHarness:
             exceptions = []
             while True:
                 try:
-                    test_id = self.test_exception_ids.get_nowait()
+                    test_id = self.test_exception_ids.get(timeout=0.1)
                     exceptions.append(self.tests[test_id])
                 except Queue.Empty:
                     break
