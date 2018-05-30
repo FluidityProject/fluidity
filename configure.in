@@ -636,6 +636,15 @@ FCFLAGS="$FCFLAGS $OPTIMISATION_FLAGS"
 CFLAGS="$CFLAGS $OPTIMISATION_FLAGS"
 CXXFLAGS="$CXXFLAGS $OPTIMISATION_FLAGS"
 
+
+# flags for an issue on bionic
+BIONIC_FLAGS=""
+if test "$USING_GFORTRAN" = "yes"; then
+   BIONIC_FLAGS="-fno-finite-math-only"
+fi
+AC_SUBST(BIONIC_FLAGS)
+
+
 ##########################################
 # Are we using FEMDEM
 ##########################################

@@ -663,6 +663,7 @@ FLPSMILE_PATH
 FEMDEM
 LIB_FEMDEM
 FLFEMDEM_PATH
+BIONIC_FLAGS
 RANLIB
 AR
 MAKE
@@ -10804,6 +10805,15 @@ FFLAGS="$FFLAGS $OPTIMISATION_FLAGS"
 FCFLAGS="$FCFLAGS $OPTIMISATION_FLAGS"
 CFLAGS="$CFLAGS $OPTIMISATION_FLAGS"
 CXXFLAGS="$CXXFLAGS $OPTIMISATION_FLAGS"
+
+
+# flags for an issue on bionic
+BIONIC_FLAGS=""
+if test "$USING_GFORTRAN" = "yes"; then
+   BIONIC_FLAGS="-fno-finite-math-only"
+fi
+
+
 
 ##########################################
 # Are we using FEMDEM

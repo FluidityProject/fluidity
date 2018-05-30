@@ -63,4 +63,8 @@ default: $(LIB)
 clean:
 	rm -f *.o *.d *.mod
 
+Gls_vertical_turbulence_model.o:
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) $(GENFLAGS) @BIONIC_FLAGS@ -c $<
+
 include Makefile.dependencies
