@@ -903,7 +903,7 @@ subroutine gls_diffusivity(state)
         tke_cur = node_val(tke,i)
 
         ! recover dissipation rate from k and psi
-        call set(eps,i, cm0**exp1 * tke_cur**exp2 * node_val(psi,i)**exp3)
+        call set(eps,i, cm0**exp1 * tke_cur**exp2 * max(0.0,node_val(psi,i))**exp3)
 
         ! limit dissipation rate under stable stratification,
         ! see Galperin et al. (1988)

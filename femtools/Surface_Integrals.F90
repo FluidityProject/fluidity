@@ -273,7 +273,7 @@ contains
     call allsum(integral, communicator = halo_communicator(s_field))
     if(present_and_true(normalise)) then
       call allsum(area, communicator = halo_communicator(s_field))
-      integral = integral / area
+      if (area>0.0) integral = integral / area
     end if
     
   end function gradient_normal_surface_integral
