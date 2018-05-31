@@ -20,13 +20,16 @@ pipeline {
             steps { 
                 sh 'make -j' ;
                 sh 'make -j fltools' ;
-                sh 'make manual'
             }
         }
         stage('Testing') {       
             steps { 
                 sh './bin/testharness -f netcdf_read_errors.xml'
                 sh 'cat tests/netcdf_read_errors/valid.err'
+                sh './bin/testharness -f unresolvable_mesh_dependency.xml'
+                sh './bin/testharness -f unresolvable_diagnostic_dependency.xml'
+                sh './bin/testharness -f unresolvable_diagnostic_dependency2.xml'
+                sh 'cat tests/unresolvable*/fluidity.err*'
             }
         }
     }
