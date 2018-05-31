@@ -107,7 +107,8 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   GMSH_Common.o Read_GMSH.o Write_GMSH.o \
   Exodusii_C_Interface.o Exodusii_F_Interface.o Exodusii_Common.o Read_Exodusii.o \
   Mesh_Files.o Vertical_Extrapolation.o \
-  Mesh_Quality.o Mesh_Quality_C.o
+  Mesh_Quality.o Mesh_Quality_C.o \
+  Safe_MinMax.o
 
 
 # objects to be included in libfemtools:
@@ -167,6 +168,10 @@ Conservative_interpolation.o: Conservative_interpolation.F90
 FETools.o: FETools.F90 
 	@echo "        FC $<"
 	$(FC) $(FCFLAGS) $(UNROLL_LOOPS) $(GENFLAGS) -c $< || (rm $(LIB) && false)
+
+Safe_MinMax.o: Safe_MinMax.F90
+	echo "        FC $<"
+	$(FC) $(FCFLAGS)  $(GENFLAGS) -fno-finite-math-only -c $< 
 
 # The refcount template dependencies are not actually needed for
 # Reference_counting.o but they are needed by everything which depends on

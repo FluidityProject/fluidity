@@ -37,6 +37,7 @@ module sparse_tools
   use memory_diagnostics
   use ieee_arithmetic
   use data_structures
+  use Safe_MinMax
 #ifdef HAVE_PETSC_MODULES
   use petsc
 #endif
@@ -5195,7 +5196,7 @@ contains
     character(len=*), intent(in):: matrix_expression
 
     ewrite(2,*) 'Min, max of '//trim(matrix_expression)//' "'// &
-            trim(matrix%name)//'" = ', minval(matrix%val), maxval(matrix%val)
+            trim(matrix%name)//'" = ', minmax(matrix%val)
 
   end subroutine csr_write_minmax
 
@@ -5212,7 +5213,7 @@ contains
         if (associated(matrix%val(i,j)%ptr)) then
           ewrite(2,*) 'Min, max of '//trim(matrix_expression)//' "'// &
             trim(matrix%name)//'%'//int2str(i)//','//int2str(j)// &
-            '" = ', minval(matrix%val(i,j)%ptr), maxval(matrix%val(i,j)%ptr)
+            '" = ', minmax(matrix%val(i,j)%ptr)
         end if
       end do
     end do

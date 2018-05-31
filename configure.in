@@ -263,6 +263,25 @@ if test "x$enable_fpe_trap" = "xyes" ; then
 	CXXFLAGS="$CXXFLAGS -DFPE_TRAP -g"
 fi
 
+AC_LANG_PUSH(Fortran)
+AC_LINK_IFELSE(
+  [AC_LANG_SOURCE([
+      program test_ieee
+       use ieee_arithmetic
+      end program test_ieee
+  ])
+  ],
+  [
+    AC_MSG_NOTICE([Found working ieee_arithmetic module])
+    AC_DEFINE(HAVE_IEEE_ARITHMETIC, [1])
+    HAVE_IEEE_ARITHMETIC=yes
+  ],[
+    AC_MSG_NOTICE([Use dummy ieee_arithmetic module])
+    HAVE_IEEE_ARITHMETIC=no
+  ]
+)
+AC_LANG_RESTORE
+
 # Find a library which will give us blas and lapack routines
 AC_LANG_PUSH([C])
 found_blas="no"

@@ -38,6 +38,7 @@ module fields_base
   use elements
   use shape_functions, only: element_type
   use tensors
+  use Safe_MinMax
   use sparse_tools
   use fields_data_types
   use embed_python
@@ -4161,7 +4162,7 @@ contains
     character(len=*), intent(in):: field_expression
 
     ewrite(2,*) 'Min, max of '//trim(field_expression)//' "'// &
-       trim(sfield%name)//'" = ',minval(sfield%val), maxval(sfield%val)
+       trim(sfield%name)//'" = ', minmax(sfield%val)
 
   end subroutine write_minmax_scalar
    
@@ -4176,7 +4177,7 @@ contains
     do i=1, vfield%dim
       ewrite(2,*) 'Min, max of '//trim(field_expression)//' "'// &
          trim(vfield%name)//'%'//int2str(i)//'" = ', &
-         minval(vfield%val(i,:)), maxval(vfield%val(i,:))
+         minmax(vfield%val(i,:))
     end do
 
   end subroutine write_minmax_vector
@@ -4193,7 +4194,7 @@ contains
       do j=1, tfield%dim(2)
         ewrite(2,*) 'Min, max of '//trim(field_expression)//' "'// &
           trim(tfield%name)//'%'//int2str(i)//','//int2str(j)// &
-          '" = ', minval(tfield%val(i,j,:)), maxval(tfield%val(i,j,:))
+          '" = ', minmax(tfield%val(i,j,:))
       end do
     end do
 

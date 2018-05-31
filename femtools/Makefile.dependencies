@@ -441,9 +441,9 @@ Fields_Base.o ../include/fields_base.mod: Fields_Base.F90 \
    ../include/embed_python.mod ../include/fdebug.h \
    ../include/fields_data_types.mod ../include/fldebug.mod \
    ../include/futils.mod ../include/global_parameters.mod \
-   ../include/reference_counting.mod ../include/shape_functions.mod \
-   ../include/sparse_tools.mod ../include/tensors.mod \
-   ../include/vector_tools.mod
+   ../include/reference_counting.mod ../include/safe_minmax.mod \
+   ../include/shape_functions.mod ../include/sparse_tools.mod \
+   ../include/tensors.mod ../include/vector_tools.mod
 
 ../include/fields_calculations.mod: Fields_Calculations.o
 	@true
@@ -1001,6 +1001,12 @@ Rotated_Boundary_Conditions.o ../include/rotated_boundary_conditions.mod: \
    ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
    ../include/state_module.mod
 
+../include/safe_minmax.mod: Safe_MinMax.o
+	@true
+
+Safe_MinMax.o ../include/safe_minmax.mod: Safe_MinMax.F90 \
+   ../include/fldebug.mod ../include/ieee_arithmetic.mod
+
 ../include/samplenetcdf.mod: SampleNetCDF_fortran.o
 	@true
 
@@ -1073,7 +1079,8 @@ Sparse_Tools.o ../include/sparse_tools.mod: Sparse_Tools.F90 \
    ../include/halo_data_types.mod ../include/halos_allocates.mod \
    ../include/ieee_arithmetic.mod ../include/memory_diagnostics.mod \
    ../include/parallel_tools.mod ../include/petsc_legacy.h \
-   ../include/reference_counting.mod Reference_count_block_csr_matrix.F90 \
+   ../include/reference_counting.mod ../include/safe_minmax.mod \
+   Reference_count_block_csr_matrix.F90 \
    Reference_count_block_dynamic_csr_matrix.F90 Reference_count_csr_matrix.F90 \
    Reference_count_csr_sparsity.F90 Reference_count_dynamic_csr_matrix.F90 \
    Reference_count_interface_block_csr_matrix.F90 \

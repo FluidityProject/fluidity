@@ -1,3 +1,4 @@
+#ifndef HAVE_IEEE_ARITHMETIC
 #include "fdebug.h"
 
 module ieee_arithmetic
@@ -9,8 +10,21 @@ module ieee_arithmetic
   use iso_c_binding
   implicit none
 
-  external :: c99_isnan
-  integer  :: c99_isnan 
+  interface 
+     pure function c99_isnan(x) bind(c)
+       use iso_c_binding
+       real(kind = c_double), intent(in) :: x
+       integer(kind=c_int) :: c99_isnan
+     end function c99_isnan
+  end interface
+
+  interface 
+     pure function c99_isinf(x) bind(c)
+       use iso_c_binding
+       real(kind = c_double), intent(in) :: x
+       integer(kind=c_int) :: c99_isinf
+     end function c99_isinf
+  end interface
 
   interface
     subroutine cget_nan(nan) bind(c)
@@ -27,7 +41,16 @@ module ieee_arithmetic
   
   contains
 
-  function ieee_is_nan(x) result(nan)
+  elemental function ieee_is_finite(x) result(finite)
+    real, intent(in) :: x
+    logical finite
+
+    finite=  (c99_isnan(x) == 0) .and.&
+         (c99_isinf(x) == 0)
+
+  end function ieee_is_finite
+
+  elemental function ieee_is_nan(x) result(nan)
     real, intent(in) :: x
     logical :: nan
 
@@ -55,3 +78,5 @@ module ieee_arithmetic
   end function ieee_get_value_r4
 
 end module ieee_arithmetic
+
+#endif

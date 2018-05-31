@@ -9,9 +9,14 @@
 #define REAL float
 #endif
 
-int F77_FUNC_(c99_isnan,C99_ISNAN)(REAL *x)
+int c99_isnan(REAL *x)
 {
   return isnan(*x);
+}
+
+int c99_isinf(REAL *x)
+{
+  return isinf(*x);
 }
 
 #ifdef DEBUG_NAN
