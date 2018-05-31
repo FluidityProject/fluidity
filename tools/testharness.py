@@ -400,7 +400,7 @@ class TestHarness:
             buf = io.StringIO()
             sys.stdout = buf
             try:
-                test_id = queue.get_nowait()
+                test_id = queue.get(timeout=0.1)
                 (dir, test) = self.tests[test_id]
             except Queue.Empty:
                 sys.stdout = main_stdout
