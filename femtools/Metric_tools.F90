@@ -489,7 +489,7 @@ module metric_tools
       return
     end if
 
-    angle = acos(dot_product(vecA, vecB)/ (norm(vecA) * norm(vecB)))
+    angle = acos(min(1.0, abs(dot_product(vecA, vecB))/ (norm(vecA) * norm(vecB))))
     if (angle > pi / 2.0) angle = pi - angle ! ignore sign, truncate to [0, Pi/2]
     if (is_nan(angle)) angle = 0.0
   end function get_angle

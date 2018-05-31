@@ -910,9 +910,9 @@ contains
       
       real :: psiuo, zet, z, psik, psic, f, c, x
       
-      x=(1.-15.*zet)**.25 
+      x=max(0.0, 1.-15.*zet)**.25 
       psik=2.*log((1.+x)/2.)+log((1.+x*x)/2.)-2.*atan(x)+2.*atan(1.) 
-      x=(1.-10.15*zet)**.3333 
+      x=max(0.0, 1.-10.15*zet)**.3333 
       psic=1.5*log((1.+x+x*x)/3.)-sqrt(3.)*atan((1.+2.*x)/sqrt(3.))+4.*atan(1.)/sqrt(3.) 
       f=zet*zet/(1+zet*zet) 
       psiuo=(1-f)*psik+f*psic                                                
@@ -926,9 +926,9 @@ contains
       
       real psit_30, zet, x, psik, psic, f, c
       
-      x=(1.-(15*zet))**.5 
+      x=max(0.0, 1.-(15*zet))**.5 
       psik=2*log((1+x)/2) 
-      x=(1.-(34.15*zet))**.3333 
+      x=max(0.0, 1.-(34.15*zet))**.3333 
       psic=1.5*log((1.+x+x*x)/3.)-sqrt(3.)*atan((1.+2.*x)/sqrt(3.))+4.*atan(1.)/sqrt(3.) 
       f=zet*zet/(1+zet*zet) 
       psit_30=(1-f)*psik+f*psic   

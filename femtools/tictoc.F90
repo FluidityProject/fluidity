@@ -148,7 +148,12 @@ contains
 
          mean_time = mean_time / nprocs
 
-         tictoc_imbalance = (max_time - mean_time) / mean_time
+         if ( mean_time == 0.0 ) then
+            tictoc_imbalance = huge(1.0)
+         else
+            tictoc_imbalance = (max_time - mean_time) / mean_time
+         end if
+
       end if
 
       call MPI_BCast(tictoc_imbalance, 1, getpreal(), 0, MPI_COMM_FEMTOOLS, ierr)

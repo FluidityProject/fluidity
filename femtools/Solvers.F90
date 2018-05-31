@@ -1260,7 +1260,11 @@ logical, optional, intent(in):: nomatrixdump
     call PetscGetFlops(flops2, ierr)
     ewrite(2,*) trim(name)// ' CPU time spent in solver: ',time2-time1
     ewrite(2,*) trim(name)// ' MFlops counted by Petsc: ',(flops2-flops1)/1e6
-    ewrite(2,*) trim(name)// ' MFlops/sec: ',(flops2-flops1)/((time2-time1)*1e6)
+    if (time1 == time2) then
+       ewrite(2,*) trim(name)// ' MFlops/sec: Infinity'
+    else
+       ewrite(2,*) trim(name)// ' MFlops/sec: ',(flops2-flops1)/((time2-time1)*1e6)
+    end if 
   end if
   
   if(have_option(trim(solver_option_path)//'/diagnostics/dump_matrix')) then
