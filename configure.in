@@ -254,6 +254,15 @@ if test "x$enable_cgal" = "xyes" ; then
   LIBS="$LIBS -lgmp -lmpfr"
 fi
 
+AC_ARG_ENABLE(fpe-trap,
+              [AC_HELP_STRING([--enable-fpe-trap],
+              [enable floating point exception trapping])])
+if test "x$enable_fpe_trap" = "xyes" ; then
+        AC_MSG_NOTICE([Enabling floting point exception trapping.])
+        FCFLAGS="$FCFLAGS -ffpe-trap=invalid,zero,overflow -g"
+	CXXFLAGS="$CXXFLAGS -DFPE_TRAP -g"
+fi
+
 # Find a library which will give us blas and lapack routines
 AC_LANG_PUSH([C])
 found_blas="no"

@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
+#include <xmmintrin.h>
 
 extern "C" {
 #ifdef HAVE_PYTHON
@@ -62,6 +63,10 @@ int main(int argc, char **argv){
   // Undo some MPI init shenanigans
   chdir(getenv("PWD"));
   
+#endif
+
+#ifdef FPE_TRAP
+  _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID);
 #endif
 
   flprofiler.tic("/fluidity");

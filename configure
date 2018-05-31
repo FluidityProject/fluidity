@@ -759,6 +759,7 @@ enable_option_checking
 enable_debugging
 enable_python
 enable_cgal
+enable_fpe_trap
 with_blas
 with_blas_dir
 with_lapack
@@ -1442,6 +1443,7 @@ Optional Features:
   --enable-debugging      turns on debugging flags
   --enable-python         embed python in fluidity for generic functions.
   --enable-cgal           turns on use of the CGAL library
+  --enable-fpe-trap       enable floating point exception trapping
   --enable-openmp         turns on OpenMP support
   --disable-openmp        do not use OpenMP
   --enable-shared         Compile objects with -fPIC to enable the 'make
@@ -6508,6 +6510,18 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
   LIBS="$LIBS -lgmp -lmpfr"
+fi
+
+# Check whether --enable-fpe-trap was given.
+if test "${enable_fpe_trap+set}" = set; then :
+  enableval=$enable_fpe_trap;
+fi
+
+if test "x$enable_fpe_trap" = "xyes" ; then
+        { $as_echo "$as_me:${as_lineno-$LINENO}: Enabling floting point exception trapping." >&5
+$as_echo "$as_me: Enabling floting point exception trapping." >&6;}
+        FCFLAGS="$FCFLAGS -ffpe-trap=invalid,zero,overflow -g"
+	CXXFLAGS="$CXXFLAGS -DFPE_TRAP -g"
 fi
 
 # Find a library which will give us blas and lapack routines
