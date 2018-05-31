@@ -25,9 +25,8 @@ pipeline {
         }
         stage('Testing') {       
             steps { 
-                sh 'make -j 8 unittest' ;
-                sh 'make -j 8 test' ;
-                sh 'make -j 8 mediumtest'
+                sh './bin/testharness -f netcdf_read_errors.xml'
+                sh 'cat tests/netcdf_read_errors/valid.err'
             }
         }
     }
