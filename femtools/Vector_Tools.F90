@@ -187,6 +187,12 @@ contains
       det=A(1,1)*(A(2,2)*A(3,3)-A(3,2)*A(2,3)) &
         -A(2,1)*(A(1,2)*A(3,3)-A(3,2)*A(1,3)) &
         +A(3,1)*(A(1,2)*A(2,3)-A(2,2)*A(1,3))
+
+      if (det == 0.0) then
+         A = huge(1.0)
+         if (present(stat)) stat = 1
+         return
+      end if
         
       a33(1,1)=A(2,2)*A(3,3)-A(3,2)*A(2,3)
       a33(1,2)=A(3,2)*A(1,3)-A(1,2)*A(3,3)
@@ -204,6 +210,11 @@ contains
       
     case (2)
       det=A(1,1)*A(2,2)-A(1,2)*A(2,1)
+      if (det == 0.0) then
+         A = huge(1.0)
+         if (present(stat)) stat = 1
+         return
+      end if
       tmp=A(1,1)
       A(1,1)=A(2,2)
       A(2,2)=tmp
@@ -212,6 +223,11 @@ contains
       A=A/det
       
     case (1)
+      if (A(1,1) == 0.0) then
+         A = huge(1.0)
+         if (present(stat)) stat = 1
+         return
+      end if
       A(1,1)=1.0/A(1,1)
       
     case default ! otherwise use LAPACK
@@ -243,7 +259,12 @@ contains
       det=A(1,1)*(A(2,2)*A(3,3)-A(3,2)*A(2,3)) &
         -A(2,1)*(A(1,2)*A(3,3)-A(3,2)*A(1,3)) &
         +A(3,1)*(A(1,2)*A(2,3)-A(2,2)*A(1,3))
-        
+
+      if (det == 0.0) then
+         inverse = huge(1.0)
+         return
+      end if
+
       inverse(1,1)=A(2,2)*A(3,3)-A(3,2)*A(2,3)
       inverse(1,2)=A(3,2)*A(1,3)-A(1,2)*A(3,3)
       inverse(1,3)=A(1,2)*A(2,3)-A(2,2)*A(1,3)
@@ -260,6 +281,12 @@ contains
       
     case (2)
       det=A(1,1)*A(2,2)-A(1,2)*A(2,1)
+
+      if (det == 0.0) then
+         inverse = huge(1.0)
+         return
+      end if
+
       inverse(1,1)=A(2,2)
       inverse(2,2)=A(1,1)
       inverse(1,2)=-A(1,2)
@@ -267,6 +294,12 @@ contains
       inverse=inverse/det
       
     case (1)
+
+      if (A(1,1) == 0.0) then
+         inverse = huge(1.0)
+         return
+      end if
+
       inverse(1,1)=1.0/A(1,1)
       
     case default
