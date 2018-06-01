@@ -94,7 +94,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">NaN NaN</real_value>
+              <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
             </constant>
           </value>
           <output/>
