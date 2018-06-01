@@ -9,7 +9,7 @@ pipeline {
     }
     environment {
         MPLBACKEND = 'PS'
-        OMPI_MCA_btl="^openib"
+        OMPI_MCA_btl = "^openib"
     }
     stages {
         stage('Configuring') {   
