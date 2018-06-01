@@ -29,6 +29,7 @@
 module fldebug_parameters
   !!< Debug specific global parameters
 
+  use iso_fortran_env, only: ERROR_UNIT, OUTPUT_UNIT
   implicit none
 
   !------------------------------------------------------------------------
@@ -37,6 +38,6 @@ module fldebug_parameters
 
   integer, save :: current_debug_level=1, global_debug_level=1
   !! These defaults are an assumption which may not be true on all platforms.
-  integer, save :: debug_error_unit=0, debug_log_unit=6
+  integer, save :: debug_error_unit=ERROR_UNIT, debug_log_unit=OUTPUT_UNIT
 
 end module fldebug_parameters
