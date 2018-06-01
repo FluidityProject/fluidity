@@ -9,6 +9,7 @@ pipeline {
     }
     environment {
         MPLBACKEND = 'PS'
+        OMPI_MCA_btl="^openib"
     }
     stages {
         stage('Configuring') {   
@@ -22,20 +23,17 @@ pipeline {
                 sh 'make -j fltools' ;
             }
         }
-        stage('Testing') {       
+        stage('Testing') {
             steps { 
                 sh './bin/testharness -f netcdf_read_errors.xml'
                 sh 'cat tests/netcdf_read_errors/valid.err'
                 sh './bin/testharness -f unresolvable_mesh_dependency.xml'
+                sh 'cat tests/unresolvable_mesh_dependency/fluidity.err*'
                 sh './bin/testharness -f unresolvable_diagnostic_dependency.xml'
+                sh 'cat tests/unresolvable_diagnostic_dependency/fluidity.err*'
                 sh './bin/testharness -f unresolvable_diagnostic_dependency2.xml'
-                sh 'cat tests/unresolvable*/fluidity.err*'
+                sh 'cat tests/unresolvable_diagnostic_dependency2/fluidity.err*'
             }
-        }
-    }
-    post {
-        always {
-            junit 'tests/test_result*xml'
         }
     }
 }
