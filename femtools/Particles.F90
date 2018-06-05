@@ -53,7 +53,8 @@ module particles
   private
 
   public :: initialise_particles, move_particles, write_particles_loop, destroy_particles, &
-            update_particle_attributes, checkpoint_particles_loop
+       update_particle_attributes, checkpoint_particles_loop, get_particles, &
+       get_particle_arrays
 
   type(detector_linked_list), allocatable, dimension(:), save :: particle_lists
 
@@ -284,7 +285,7 @@ contains
              ! Next columns contain attributes of particles
              attributeloop: do m=1,j
                 do n=1,attributes_buffer(1)
-                   call get_option ('/particles/particle_group['//int2str(i-1)//']/particle_subgroup[' &
+                   call get_option('/particles/particle_group['//int2str(i-1)//']/particle_subgroup[' &
                         //int2str(k-1)//']/attributes/attribute['//int2str(n-1)//']/name', name)
                    buffer=field_tag(name=particle_lists(list_counter)%detector_names(m), column=column+1,&
                         statistic=name, components=1)
@@ -1142,6 +1143,73 @@ contains
     end do
 
   end subroutine update_particle_options
+
+  subroutine get_particles(p_array, p_allocated)
+    !Send particle arrays to another routine
+
+    type(detector_linked_list), allocatable, dimension(:), intent(out) :: p_array
+    integer, intent(out) :: p_allocated
+
+    integer :: i, particle_groups
+
+    particle_groups = option_count("/particles/particle_group")
+    if (particle_groups==0) then
+       FLAbort("No particle groups exist")
+       return
+    end if
+    
+    if (allocated(particle_lists)) then
+       p_allocated = 1
+       allocate(p_array(size(particle_lists)))
+       do i = 1,size(particle_lists)
+          p_array(i) = particle_lists(i) !!??
+       end do
+    else
+       p_allocated = 0
+    end if
+    
+  end subroutine get_particles
+
+  subroutine get_particle_arrays(lgroup, lattribute, group_arrays, group_attribute)
+    !Read in a particle group and attribute name, send back numbers of particle arrays and particle attribute
+
+    character(len=OPTION_PATH_LEN), intent(in) :: lgroup, lattribute
+    integer, allocatable, dimension(:), intent(out) :: group_arrays
+    integer, intent(out) :: group_attribute
+
+    character(len=OPTION_PATH_LEN) :: group_name, attribute_name
+    integer :: particle_groups, array_counter, particle_subgroups, particle_attributes
+    integer :: i, j, k, l
+
+    particle_groups = option_count("/particles/particle_group")
+    array_counter = 0
+    do i = 1, particle_groups
+       call get_option("/particles/particle_group["//int2str(i-1)//"]/name", group_name)
+       particle_subgroups = option_count("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup")
+       if (trim(group_name)==trim(lgroup)) then
+          particle_attributes = option_count("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup["//int2str(0)//"]/attributes/attribute")
+          do k = 1, particle_attributes
+             call get_option("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup["//int2str(0)// &
+                  "]/attributes/attribute["//int2str(k-1)//"]/name", attribute_name)
+             if (trim(attribute_name)==trim(lattribute)) then
+                group_attribute = k
+                allocate(group_arrays(particle_subgroups))
+                j=1
+                do l = array_counter+1, array_counter+particle_subgroups
+                   group_arrays(j) = l
+                   j=j+1
+                end do
+                return
+             end if
+          end do
+       end if
+       array_counter = array_counter + particle_subgroups
+    end do
+    
+    ewrite(2,*) "Particle group: ", trim(lgroup), ", attribute: ", trim(lattribute), "not found."
+    FLAbort("Given particle parameters not found, exiting")
+    
+  end subroutine get_particle_arrays
 
   subroutine destroy_particles()
     !Deallocate all particle arrays (detector lists)

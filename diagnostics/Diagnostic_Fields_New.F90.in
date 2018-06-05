@@ -36,6 +36,7 @@ module diagnostic_fields_new
   use fields
   use state_module
   use field_options
+  use particle_diagnostics
 
 USE_MODULES
   
@@ -842,6 +843,11 @@ SINGLE_STATE_SCALAR_DIAGNOSTICS
       ! Diagnostic algorithms that require the full states array
 MULTIPLE_STATE_SCALAR_DIAGNOSTICS
 
+      case("from_particles")
+        ! Handled in particle_diagnostics.F90
+
+        call calculate_diagnostics_from_particles(states, state_index, s_field)
+         
       case default
         if(present(stat)) then
           stat = 1

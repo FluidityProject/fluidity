@@ -100,6 +100,19 @@ internal_algorithm =
       element algorithm {
          attribute name { "Internal" },
          attribute material_phase_support { "multiple" }
+      }|
+      element algorithm {
+         attribute name { "from_particles" },
+	 attribute material_phase_support { "multiple" },
+	 element method {
+	    attribute name { "ratio" },
+	    element group {
+	       attribute name { xsd:string },
+	       element attribute {
+	          attribute name { xsd:string }
+	       }
+	    }
+	 }
       }
    )
 legacy_internal_algorithm =
