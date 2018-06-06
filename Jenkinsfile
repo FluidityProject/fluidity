@@ -25,9 +25,9 @@ pipeline {
         }
         stage('Testing') {       
             steps { 
-                sh 'make -j 8 unittest' ;
-                sh 'make -j 8 test' ;
-                sh 'make -j 8 mediumtest'
+                sh 'make unittest' ;
+                sh 'make test' ;
+                sh 'make mediumtest'
             }
         }
     }
