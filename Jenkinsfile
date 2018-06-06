@@ -32,8 +32,15 @@ pipeline {
         }
     }
     post {
-        always {
-            junit 'tests/test_result*xml'
-        }
+         always {
+            try {
+               junit 'tests/test_result*xml'
+           } catch(err) {
+               step([$class: 'JUnitResultArchiver', testResults: 'tests/test_result*.xml'])
+               if (currentBuild.result == 'UNSTABLE')
+                   currentBuild.result = 'FAILURE'
+               throw err
+          }
+       }
     }
 }
