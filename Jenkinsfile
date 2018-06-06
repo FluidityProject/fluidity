@@ -9,6 +9,7 @@ pipeline {
     }
     environment {
         MPLBACKEND = 'PS'
+	OMPI_MCA_btl = '^openib'
     }
     stages {
         stage('Configuring') {   
@@ -25,9 +26,9 @@ pipeline {
         }
         stage('Testing') {       
             steps { 
-                sh 'make -j 8 unittest' ;
-                sh 'make -j 8 test' ;
-                sh 'make -j 8 mediumtest'
+                sh 'make unittest' ;
+                sh 'make THREADS=2 test' ;
+                sh 'make THREADS=2 mediumtest'
             }
         }
     }
