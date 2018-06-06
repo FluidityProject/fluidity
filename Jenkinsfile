@@ -42,6 +42,7 @@ pipeline {
                    currentBuild.result = 'FAILURE'
                throw err
           }
+             archiveArtifacts '*test_failures.tar.gz'
        }
     }
 }
