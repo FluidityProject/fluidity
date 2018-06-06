@@ -9,6 +9,7 @@ pipeline {
     }
     environment {
         MPLBACKEND = 'PS'
+        GFORTRAN_UNBUFFERED_ALL='1'
     }
     stages {
         stage('Configuring') {   
