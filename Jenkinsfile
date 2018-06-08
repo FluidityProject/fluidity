@@ -4,12 +4,12 @@ pipeline {
     agent { 
         docker {
             image "fluidity/baseimages:${PROJECT_NAME}"
-            label 'azure-linux'
+            label 'azure-linux-8core'
         } 
     }
     environment {
         MPLBACKEND = 'PS'
-	OMPI_MCA_btl = '^openib'
+        OMPI_MCA_btl = '^openib'
     }
     stages {
         stage('Configuring') {   
@@ -27,8 +27,8 @@ pipeline {
         stage('Testing') {       
             steps { 
                 sh 'make unittest' ;
-                sh 'make THREADS=2 test' ;
-                sh 'make THREADS=2 mediumtest'
+                sh 'make THREADS=8 test' ;
+                sh 'make THREADS=8 mediumtest'
             }
         }
     }
