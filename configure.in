@@ -1279,14 +1279,18 @@ if test -d libadaptivity ; then
     # fluidity's (except for MPI)
     if test "$enable_dp" = "yes" ; then     
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
-            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" ./configure
+            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" \
+	    CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" \
+            CPPFLAGS="${env_cppflags}" ./configure
         if test "$?" -ne "0"; then
           AC_MSG_ERROR([Configuration of libadaptivity has failed.])
           exit -1
         fi
     else
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
-            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" ./configure --enable-dp=no
+            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" \
+	    CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" \
+	    CPPFLAGS="${env_cppflags}" ./configure --enable-dp=no
         if test "$?" -ne "0"; then
           AC_MSG_ERROR([Configuration of libadaptivity has failed.])
           exit -1
