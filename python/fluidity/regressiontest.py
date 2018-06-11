@@ -203,6 +203,11 @@ class TestProblem:
             except:
               self.log("failure.")
               self.pass_status.append('F')
+              tc=TestCase(self.name,
+                          '%s.%s'%(self.length,
+                                   self.filename[:-4]))
+              tc.add_failure_info("Failure" )
+              self.xml_reports.append(tc)
               return self.pass_status
 
             varsdict[var.name] = tmpdict[var.name]
