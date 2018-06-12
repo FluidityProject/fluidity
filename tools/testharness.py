@@ -5,7 +5,12 @@ import os
 import os.path
 import glob
 import time
-import StringIO as io
+try:
+  #python2 world
+  from StringIO import StringIO
+except ImportError:
+  #python3 world
+  from io import StringIO
 
 try:
  import fluidity.regressiontest as regressiontest
@@ -290,24 +295,31 @@ class TestHarness:
         if not self.justtest:
             threadlist=[]
             self.test_exception_ids = multiprocessing.Queue()
-            sorted_tests={}
-            for _ in range(len(self.tests)):
-                sorted_tests.setdefault(self.tests[_][1].nprocs,[]).append(_)
+            tests_by_nprocs={}
+            for test_id in range(len(self.tests)):
+                # sort tests by number of processes requested
+                tests_by_nprocs.setdefault(self.tests[test_id][1].nprocs,
+                                           []).append(test_id)
             serial_tests = multiprocessing.Queue()
-            for _ in sorted_tests.get(1, []):
-                serial_tests.put(_)
-            for _ in sorted(list(sorted_tests.keys()), reverse=True):
+            for test in tests_by_nprocs.get(1, []):
+                # collect serial tests to pass to worker threads
+                serial_tests.put(test)
+            for nprocs in sorted(list(tests_by_nprocs.keys()), reverse=True):
                for i in range(len(threadlist),
-                              max(0, options.thread_count-_)):
+                              max(0, options.thread_count-nprocs)):
+                   # spin up enough new workers to fully subscribe thread count
                    threadlist.append(multiprocessing.Process(target=self.threadrun, args=[serial_tests])) 
                    threadlist[-1].start()
-               if _==1:
+               if nprocs==1:
+                   # remaining tests are serial. Join the workers
                    self.threadrun(serial_tests)
                else:
-                   tests = sorted_tests[_]
+                   tests = tests_by_nprocs[nprocs]
                    queue = Queue.Queue()
                    for test in tests:
                        queue.put(test)
+
+                   # run the parallel queue on master thread
                    self.threadrun(queue)
             for t in threadlist:
                 '''Wait until all threads finish'''
@@ -392,17 +404,22 @@ class TestHarness:
           
     def threadrun(self, queue):
         '''This is the portion of the loop which actually runs the
-        tests. This is split out so that it can be threaded'''
+        tests. This is split out so that it can be threaded.
+        Each thread runs tests from the queue until it is exhausted.'''
 
+        # We use IO locking to attempt to keep output understandable
+        # That means writing to a buffer to minimise interactions
         main_stdout = sys.stdout
 
         while True:
-            buf = io.StringIO()
+            buf = StringIO()
             sys.stdout = buf
             try:
+                #pull a test number from the queue
                 test_id = queue.get(timeout=0.1)
                 (dir, test) = self.tests[test_id]
             except Queue.Empty:
+                # If the queue is empty, we're done.
                 sys.stdout = main_stdout
                 buf.seek(0)
                 with self.iolock:
