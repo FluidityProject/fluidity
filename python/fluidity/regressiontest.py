@@ -9,7 +9,12 @@ import time
 import glob
 import threading
 import traceback
-import StringIO as io
+try:
+  #python2
+  from StringIO import StringIO
+except ImportError:
+  #python3
+  from io import StringIO
 
 try:
     from junit_xml import TestCase
@@ -207,8 +212,8 @@ class TestProblem:
             self.log("Running failure tests: ")
             for test in self.pass_tests:
                 self.log("Running %s:" % test.name)
-                log = io.StringIO()
-                _ = sys.stdout
+                log = StringIO()
+                original_stdout = sys.stdout
                 sys.stdout = log
                 status = test.run(varsdict)
                 tc=TestCase(test.name,
@@ -226,10 +231,10 @@ class TestProblem:
                     self.pass_status.append('F')
                     tc.add_failure_info(  "Failure", status )
                 self.xml_reports.append(tc)
-                sys.stdout = _
+                sys.stdout = original_stdout
                 log.seek(0)
                 tc.stdout = log.read()
-                print tc.stdout
+                print(tc.stdout)
 
         if len(self.warn_tests) != 0:
             self.log("Running warning tests: ")
