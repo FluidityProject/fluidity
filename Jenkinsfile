@@ -1,9 +1,15 @@
 def PROJECT_NAME=JOB_NAME.split("\\s|/")[2].toLowerCase()
 
+properties([
+  parameters([
+    string(name: 'IMAGE', defaultValue: '${JOB_NAME.split("\\s|/")[2].toLowerCase()}', description: 'The docker image to build with.', )
+   ])
+])
+
 pipeline {
     agent { 
         docker {
-            image "fluidity/baseimages:${PROJECT_NAME}"
+            image "fluidity/baseimages:${params.IMAGE}"
             label 'azure-linux-8core'
         } 
     }
