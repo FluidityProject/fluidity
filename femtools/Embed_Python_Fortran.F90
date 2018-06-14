@@ -429,8 +429,8 @@ contains
     character(len = function_len) :: function
     integer, intent(in) :: dim, ndete
     real(kind = c_float), dimension(ndete), intent(in) :: x
-    real(kind = c_float), dimension(ndete), intent(in) :: y
-    real(kind = c_float), dimension(ndete), intent(in) :: z
+    real(kind = c_float), dimension(:), intent(in) :: y
+    real(kind = c_float), dimension(:), intent(in) :: z
     real(kind = c_float), intent(in) :: t
     real(kind = c_float), dimension(ndete), intent(out) :: result
     integer, intent(out) :: stat
@@ -447,8 +447,8 @@ contains
     character(len = *) :: function
     integer, intent(in) :: dim, nfields, ndete, old_nfields, old_nattributes
     real(kind = c_double), dimension(ndete), intent(in) :: x
-    real(kind = c_double), dimension(ndete), intent(in) :: y
-    real(kind = c_double), dimension(ndete), intent(in) :: z
+    real(kind = c_double), dimension(:), intent(in) :: y
+    real(kind = c_double), dimension(:), intent(in) :: z
     real(kind = c_double), intent(in) :: t
     character(kind = c_char), dimension(FIELD_NAME_LEN,nfields), intent(in) :: field_names
     real(kind = c_double), dimension(nfields,ndete), intent(in) :: field_vals
@@ -460,6 +460,7 @@ contains
     integer, intent(out) :: stat
 
     real(kind = c_double), dimension(ndete) :: lresult
+
     call set_particles_fields_from_python(function, function_len, dim, ndete, &
          & real(x, kind = c_double), real(y, kind = c_double), real(z, kind = c_double), real(t, kind = c_double), &
          & FIELD_NAME_LEN, nfields, field_names, real(field_vals, kind = c_double), old_nfields, old_field_names, real(old_field_vals, kind = c_double), &

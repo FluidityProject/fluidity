@@ -764,7 +764,7 @@ contains
           particle=>particle%next
        end do
     end if
-
+    
     call set_particles_fields_from_python(func, len(func), dim, ndete, &
          lvx, lvy, lvz, time, nfields, field_names, field_vals, old_nfields, old_field_names, &
          old_field_vals, old_nattributes, old_att_names, old_attributes, attributes, stat)
