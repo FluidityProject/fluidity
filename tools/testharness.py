@@ -28,13 +28,18 @@ import xml.parsers.expat
 import string
 
 try:
-  from junit_xml import TestSuite
+  from junit_xml import TestSuite, TestCase
 except ImportError:
   class TestSuite(object):
      def __init__(self, name, test_cases):
          self.test_cases=test_cases
      def to_file(self,*args):
          print "cannot generate xml report without junit_xml module."
+  class TestCase(object):
+        def __init__(self,*args,**kwargs):
+            pass
+        def add_failure_info(self,*args,**kwargs):
+            pass
 
 # make sure we use the correct version of regressiontest
 sys.path.insert(0, os.path.join(os.getcwd(), os.path.dirname(sys.argv[0]), os.pardir, "python"))
@@ -328,11 +333,16 @@ class TestHarness:
             exceptions = []
             while True:
                 try:
-                    test_id = self.test_exception_ids.get(timeout=0.1)
-                    exceptions.append(self.tests[test_id])
+                    test_id, lines = self.test_exception_ids.get(timeout=0.1)
+                    exceptions.append((self.tests[test_id], lines))
                 except Queue.Empty:
                     break
-            for e in exceptions:
+            for e, lines in exceptions:
+                tc=TestCase(e[1].name,
+                            '%s.%s'%(e[1].length,
+                                     e[1].filename[:-4]))
+                tc.add_failure_info("Failure", lines)
+                self.xml_parser.test_cases+= [tc]
                 self.tests.remove(e)
                 self.completed_tests += [e[1]]
 
@@ -440,7 +450,7 @@ class TestHarness:
                 for line in lines:
                     self.log(line)
                 test.pass_status = ['F']
-                self.test_exception_ids.put(test_id)
+                self.test_exception_ids.put((test_id, lines))
             finally:
                 sys.stdout = main_stdout
                 buf.seek(0)
