@@ -43,7 +43,7 @@ module_list=[]
 
 for filename in fortran_files:
 
-    fortran=open(filename,"r").read()
+    fortran=open(filename,"rb").read().decode("utf-8")
 
     modules=module_re.findall(fortran)
 

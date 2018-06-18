@@ -15,10 +15,10 @@ def read_fortran_file(filename):
 
     data=""
 
-    file_handle=open(filename)
+    file_handle=open(filename, 'rb')
     flag = True
     for line in file_handle.readlines():
-        clean_line=" ".join(line.strip().rstrip().split(" "))+'\n'
+        clean_line=" ".join(line.decode('utf-8').strip().rstrip().split(" "))+'\n'
         if clean_line.lower().startswith("interface"):
             flag = False
         if flag:
