@@ -62,7 +62,7 @@ void Usage(){
 
 int main(int argc, char** argv){
 #ifdef HAVE_MPI
-  MPI::Init(argc, argv);
+  MPI_Init(&argc, &argv);
   // Undo some MPI init shenanigans
   chdir(getenv("PWD"));
 #endif
@@ -138,7 +138,7 @@ int main(int argc, char** argv){
 #endif
   
 #ifdef HAVE_MPI
-  MPI::Finalize();
+  MPI_Finalize();
 #endif
   return 0;
 }

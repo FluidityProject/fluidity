@@ -1376,7 +1376,8 @@ contains
 
     shape=>ele_shape(xfield,1)
     assert(xfield%dim+1==local_coord_count(shape))
-
+    detector_list%detector_names(id)=name
+    
     ! Determine element and local_coords from position
     ! In parallel, global=.false. can often work because there will be
     ! a halo of non-owned elements in your process and so you can work out
@@ -1395,7 +1396,6 @@ contains
           FLExit("Trying to initialise detector outside of computational domain")
        end if
     end if
-         
     ! Otherwise, allocate and insert detector
     allocate(detector)
     allocate(detector%position(xfield%dim))
@@ -1522,7 +1522,6 @@ contains
           call get_option(trim(buffer)//"/name", detector_name)
           default_stat%detector_group_names(i)=detector_name
           default_stat%number_det_in_each_group(i)=1.0
-          default_stat%detector_list%detector_names(i)=detector_name
 
           call create_single_detector(default_stat%detector_list, xfield, &
                 detector_location, i, STATIC_DETECTOR, trim(detector_name))
@@ -1539,7 +1538,6 @@ contains
           call get_option(trim(buffer)//"/name", detector_name)
           default_stat%detector_group_names(static_dete+i)=detector_name
           default_stat%number_det_in_each_group(static_dete+i)=1.0
-          default_stat%detector_list%detector_names(static_dete+i)=detector_name
 
           call create_single_detector(default_stat%detector_list, xfield, &
                 detector_location, static_dete+i, LAGRANGIAN_DETECTOR, trim(detector_name))
@@ -1573,8 +1571,7 @@ contains
           
              do j=1,ndete
                 write(detector_name, fmt) trim(funcnam)//"_", j
-                default_stat%detector_list%detector_names(k)=trim(detector_name)
-
+                
                 call create_single_detector(default_stat%detector_list, xfield, &
                        coords(:,j), k, type_det, trim(detector_name))
                 k=k+1           
@@ -1596,7 +1593,6 @@ contains
    
              do j=1,ndete
                 write(detector_name, fmt) trim(funcnam)//"_", j
-                default_stat%detector_list%detector_names(k)=trim(detector_name)
                 read(default_stat%detector_file_unit) detector_location
                 call create_single_detector(default_stat%detector_list, xfield, &
                       detector_location, k, type_det, trim(detector_name))
@@ -1646,7 +1642,7 @@ contains
              if (default_stat%detector_group_names(j)==temp_name) then
                 read(default_stat%detector_checkpoint_unit) detector_location
                 call create_single_detector(default_stat%detector_list, xfield, &
-                      detector_location, i, STATIC_DETECTOR, trim(temp_name))                  
+                      detector_location, i, STATIC_DETECTOR, trim(temp_name))       
              else
                 cycle
              end if
@@ -1691,7 +1687,6 @@ contains
                    read(default_stat%detector_checkpoint_unit) detector_location
                    call create_single_detector(default_stat%detector_list, xfield, &
                           detector_location, k, type_det, trim(detector_name)) 
-                   default_stat%detector_list%detector_names(k)=trim(detector_name)
                    k=k+1           
                 end do
              else                     
@@ -1702,10 +1697,12 @@ contains
 
     end if  ! from_checkpoint
 
-
-    default_stat%detector_list%binary_output = have_option("/io/detectors/binary_output")
-    if (isparallel()) then
-       default_stat%detector_list%binary_output=.true.
+    default_stat%detector_list%binary_output = .true.
+    if (have_option("/io/detectors/ascii_output")) then
+       default_stat%detector_list%binary_output = .false.
+       if(isparallel()) then
+          FLExit("Error: No support for ascii detector output in parallel. Please use binary output by turning off the ascii_output option.")
+       end if
     end if
 
     ! Only the first process should write the header file
@@ -1816,24 +1813,19 @@ contains
 
        ! when using mpi_subroutines to write into the detectors file we need to close the file since 
        ! filename.detectors.dat needs to be open now with MPI_OPEN
-       if ((.not.isparallel()).and.(.not. default_stat%detector_list%binary_output)) then
-
-       else    
+       if (default_stat%detector_list%binary_output) then
           close(default_stat%detector_list%output_unit)
        end if
     end if  
 
-    if ((isparallel()).or.((.not.isparallel()).and.(default_stat%detector_list%binary_output))) then
-
-    ! bit of hack to delete any existing .detectors.dat file
-    ! if we don't delete the existing .detectors.dat would simply be opened for random access and 
-    ! gradually overwritten, mixing detector output from the current with that of a previous run
-    call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, default_stat%detector_list%mpi_fh, IERROR)
-    call MPI_FILE_CLOSE(default_stat%detector_list%mpi_fh, IERROR)
-    
-    call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, default_stat%detector_list%mpi_fh, IERROR)
-    assert(ierror == MPI_SUCCESS)
-
+    if (default_stat%detector_list%binary_output) then
+       ! bit of hack to delete any existing .detectors.dat file
+       ! if we don't delete the existing .detectors.dat would simply be opened for random access and 
+       ! gradually overwritten, mixing detector output from the current with that of a previous run
+       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, default_stat%detector_list%mpi_fh, IERROR)
+       call MPI_FILE_CLOSE(default_stat%detector_list%mpi_fh, IERROR)
+       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, default_stat%detector_list%mpi_fh, IERROR)
+       assert(ierror == MPI_SUCCESS)
     end if 
 
     !Get options for lagrangian detector movement
@@ -2606,30 +2598,23 @@ contains
        return
     end if
 
-    ! This is only for single processor with non-binary output
-    if ((.not.isparallel()).and.(.not. detector_list%binary_output)) then
+    ! If isparallel() or binary output use this
+    if (detector_list%binary_output) then
+       call write_mpi_out(state,detector_list,time,dt)
+    else ! This is only for single processor with non-binary output
 
        if(getprocno() == 1) then
-          if(detector_list%binary_output) then
-             write(detector_list%output_unit) time
-             write(detector_list%output_unit) dt
-          else
-             format_buffer=reals_format(1)
-             write(detector_list%output_unit, format_buffer, advance="no") time
-             write(detector_list%output_unit, format_buffer, advance="no") dt
-          end if
+          format_buffer=reals_format(1)
+          write(detector_list%output_unit, format_buffer, advance="no") time
+          write(detector_list%output_unit, format_buffer, advance="no") dt
        end if
 
        ! Next columns contain the positions of all the detectors.
        detector => detector_list%first
        positionloop: do i=1, detector_list%length
-          if(detector_list%binary_output) then
-             write(detector_list%output_unit) detector%position
-          else
-             format_buffer=reals_format(size(detector%position))
-             write(detector_list%output_unit, format_buffer, advance="no") &
-                  detector%position
-          end if
+          format_buffer=reals_format(size(detector%position))
+          write(detector_list%output_unit, format_buffer, advance="no") &
+               detector%position
 
           detector => detector%next
        end do positionloop
@@ -2652,12 +2637,8 @@ contains
                       value = detector_value(sfield, detector)
                    end if
 
-                   if(detector_list%binary_output) then
-                      write(detector_list%output_unit) value
-                   else
-                      format_buffer=reals_format(1)
-                      write(detector_list%output_unit, format_buffer, advance="no") value
-                   end if
+                   format_buffer=reals_format(1)
+                   write(detector_list%output_unit, format_buffer, advance="no") value
                    detector => detector%next
                 end do
              end do
@@ -2683,12 +2664,8 @@ contains
                       vvalue = detector_value(vfield, detector)
                    end if
 
-                   if(detector_list%binary_output) then
-                      write(detector_list%output_unit) vvalue
-                   else
-                      format_buffer=reals_format(vfield%dim)
-                      write(detector_list%output_unit, format_buffer, advance="no") vvalue
-                   end if
+                   format_buffer=reals_format(vfield%dim)
+                   write(detector_list%output_unit, format_buffer, advance="no") vvalue
                    detector => detector%next
                 end do
                 deallocate(vvalue)

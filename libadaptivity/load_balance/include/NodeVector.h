@@ -79,6 +79,7 @@ class NodeVector: public std::deque<NodeType>{
 
  private:
   int MyRank;
+  int init_flag;
   
   bool complete_unn2gnn;
   bool complete_pcnt;
@@ -90,8 +91,11 @@ class NodeVector: public std::deque<NodeType>{
 template<class NodeType>
 NodeVector<NodeType>::NodeVector(){
 #ifdef HAVE_MPI
-  if( MPI::Is_initialized() ){
-    MyRank = MPI::COMM_WORLD.Get_rank();
+
+  MPI_Initialized(&init_flag);
+
+  if(init_flag){
+    MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
   }else{
     MyRank = 0;
   }
@@ -158,7 +162,7 @@ void NodeVector<NodeType>::push_back(const NodeType& node){
   
   // Update count
   len++;
-  if( MPI::Is_initialized() ){
+  if(init_flag){
     if( ((unsigned)node.get_owner()) == (unsigned)(MyRank) )
       plen++;
   }
@@ -281,7 +285,8 @@ template<class NodeType>
 void NodeVector<NodeType>::refresh_pcnt(){
 #ifdef HAVE_MPI
   plen = 0;
-  if( MPI::Is_initialized() ){
+
+  if(init_flag){
     for(typename NodeVector<NodeType>::iterator it = this->begin(); it != this->end(); ++it){
       if( (*it).get_owner() == (unsigned)(MyRank))
 	plen++;
