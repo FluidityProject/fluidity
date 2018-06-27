@@ -1,48 +1,62 @@
 import numpy
-from math import sqrt, atan2, cos, sin
+from math import sqrt, atan2, cos, sin, pi
 
-eta = 1.
+nu = 1.
 g = 1.
-Ra = g/eta
-R = numpy.array([2.22, 1.22])
-Rr = R[::-1]
-rp = R[1]+0.5
+Rp, Rm = 2.22, 1.22
+rp = Rm + 0.5
 n = 2
 
-if n>1:
-    E = -Ra*rp**(-n)/(8*(n+1)) * \
-            (Rr**(2*n+2)-rp**(2*n+2))/(R[0]**(2*n+2)-R[1]**(2*n+2))
-    F = -Ra*R**(2*n)*rp**(-n)/(8*(n-1)) * \
-            (Rr**2*rp**(2*n)-Rr**(2*n)*rp**2)/(R[0]**2*R[1]**(2*n)-R[0]**(2*n)*R[1]**2)
-    C = -F/R**(2*n-2)
-    D = -E*R**(2*n+2)
-    G = -4*eta*E*(n+1)
-    H = -4*eta*F*(n-1)
-else:
+if n<=1:
     raise NotImplemented()
 
+alpha_pm = numpy.array([Rp/rp, Rm/rp])
+alpha_mp = numpy.array([Rm/rp, Rp/rp])
+alpha, beta = alpha_pm
+pm = numpy.array([1, -1])
+mp = -pm
 
-def u_r(r, theta):
-  dpsi_dtheta = n*cos(n*theta)*(C*r**n+D*r**(-n)+E*r**(n+2)+F*r**(-n+2))
-  return -dpsi_dtheta/r
+# velocity solution: coefficients for n, -n, n+2, and -n+2 power of r
+A_pm = -0.125*(alpha_mp**(2*n - 2) - 1)*g*pm*rp**(-n + 2)/((alpha_mp**(2*n - 2) - alpha_pm**(2*n - 2))*(n - 1)*nu)
+B_pm = -0.125*(alpha_mp**(2*n + 2) - 1)*alpha_pm**(2*n + 2)*g*pm*rp**(n + 2)/((alpha_mp**(2*n + 2) - alpha_pm**(2*n + 2))*(n + 1)*nu)
+C_pm = 0.125*(alpha_mp**(2*n + 2) - 1)*g*pm*rp**(-n)/((alpha_mp**(2*n + 2) - alpha_pm**(2*n + 2))*(n + 1)*nu)
+D_pm = 0.125*(alpha_mp**(2*n - 2) - 1)*alpha_pm**(2*n - 2)*g*pm*rp**n/((alpha_mp**(2*n - 2) - alpha_pm**(2*n - 2))*(n - 1)*nu)
 
-def u_theta(r, theta):
-  dpsi_dr = sin(n*theta)*(C*n*r**(n-1) + D*-n*r**(-n-1) + E*(n+2)*r**(n+1) + F*(-n+2)*r**(-n+1))
-  return dpsi_dr
 
-def p(r, theta):
-    return (G*r**n + H*r**(-n))*cos(n*theta)
+# pressure solution: coefficients for n and -n
+G_pm = -4*nu*C_pm*(n+1)
+H_pm = -4*nu*D_pm*(n-1)
+
+
+def u_r(r, phi):
+    dpsi_dphi = n*cos(n*phi)*(A_pm*r**n+B_pm*r**(-n)+C_pm*r**(n+2)+D_pm*r**(-n+2))
+    return -dpsi_dphi/r
+
+numpy.testing.assert_almost_equal(u_r(Rm, 0.)[1], 0.)
+numpy.testing.assert_almost_equal(u_r(Rp, 0.)[0], 0.)
+numpy.testing.assert_almost_equal(u_r(rp, 0.)[0], u_r(rp, 0.)[1])
+
+def u_phi(r, phi):
+    dpsi_dr = sin(n*phi)*(A_pm*n*r**(n-1) + B_pm*-n*r**(-n-1) + C_pm*(n+2)*r**(n+1) + D_pm*(-n+2)*r**(-n+1))
+    return dpsi_dr
+
+numpy.testing.assert_almost_equal(u_phi(rp, pi/(2*n))[0], u_phi(rp, pi/(2*n))[1])
+
+
+
+def p(r, phi):
+    return (G_pm*r**n + H_pm*r**(-n))*cos(n*phi)
 
 def get_cartesian_solution(X, i):
   # i==0: upper mantle, i==1: lower mantle
   r = sqrt(X[0]**2+X[1]**2)
-  theta = atan2(X[1], X[0])
-  ur = u_r(r,theta)[i]
-  ut = u_theta(r,theta)[i]
+  phi = atan2(X[1], X[0])
+  ur = u_r(r, phi)[i]
+  ut = u_phi(r, phi)[i]
   return [ur*X[0]/r - ut*X[1]/r, ur*X[1]/r + ut*X[0]/r]
 
 def get_cartesian_pressure_solution(X, i):
   # i==0: upper mantle, i==1: lower mantle
   r = sqrt(X[0]**2+X[1]**2)
-  theta = atan2(X[1], X[0])
-  return p(r, theta)[i]
+  phi = atan2(X[1], X[0])
+  return p(r, phi)[i]

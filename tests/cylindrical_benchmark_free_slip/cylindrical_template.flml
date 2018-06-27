@@ -391,19 +391,23 @@
               <x_component>
                 <python>
                   <string_value lines="20" type="code" language="python">def val(X,t):
-  from solution import n, Ra
+  from solution import n
   from math import atan2, sin, cos
   theta = atan2(X[1],X[0])
-  return -Ra*cos(n*theta)*cos(theta)/2.</string_value>
+  # cos(n theta) in the inward radial direction
+  # divided by two as the internal bcs are applied twice (once on either side)
+  return -cos(n*theta)*cos(theta)/2.</string_value>
                 </python>
               </x_component>
               <y_component>
                 <python>
                   <string_value lines="20" type="code" language="python">def val(X,t):
-  from solution import n, Ra
+  from solution import n
   from math import atan2, sin, cos
   theta = atan2(X[1],X[0])
-  return -Ra*cos(n*theta)*sin(theta)/2.</string_value>
+  # cos(n theta) in the inward radial direction
+  # divided by two as the internal bcs are applied twice (once on either side)
+  return -cos(n*theta)*sin(theta)/2.</string_value>
                 </python>
               </y_component>
             </align_bc_with_cartesian>

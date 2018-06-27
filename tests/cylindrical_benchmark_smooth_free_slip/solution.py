@@ -10,12 +10,6 @@ k = 2
 
 if n<=1:
     raise NotImplemented()
-# velocity solution: coefficients for n, -n, n+2, -n+2 and k+3 powers off r
-A = g*R2**(-n + 3)/nu*-0.25*(alpha**2 - alpha**(k + n + 3))/((alpha + alpha**n)*(alpha**n - alpha)*(k + n + 1)*(k - n + 3))
-B = g*R2**(n + 3)/nu*0.25*(alpha**(k + n + 3) - alpha**(2*n + 2))/((alpha**(n + 1) + 1)*(alpha**(n + 1) - 1)*(k + n + 3)*(k - n + 1))
-C = g*R2**(-n + 1)/nu*-0.25*(alpha**(k + n + 3) - 1)/((alpha**(n + 1) + 1)*(alpha**(n + 1) - 1)*(k + n + 3)*(k - n + 1))
-D = g*R2**(n + 1)/nu*-0.25*(alpha**(k + n + 3) - alpha**(2*n))/((alpha + alpha**n)*(alpha**n - alpha)*(k + n + 1)*(k - n + 3))
-E = R2**(-k)*g*n/(((k + 3)**2 - n**2)*((k + 1)**2 - n**2)*nu)
 
 # velocity solution: coefficients for n, -n, n+2, -n+2 and k+3 powers of r
 A = -0.25*(alpha**2 - alpha**(k + n + 3))*R2**(-n + 3)*g/((alpha + alpha**n)*(alpha**n - alpha)*(k + n + 1)*(k - n + 3)*nu)
