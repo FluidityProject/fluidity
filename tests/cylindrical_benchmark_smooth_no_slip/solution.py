@@ -10,14 +10,13 @@ k = 2
 
 if n<=1:
     raise NotImplemented()
-# velocity solution: coefficients for n, -n, n+2, -n+2 and k+3 powers off r
-nom = 2*((alpha**(n + 1) - alpha**(n - 1))**2*n**2 - (alpha**(2*n) - 1)**2)*((k + 3)**2 - n**2)*((k + 1)**2 - n**2)
-A = g*R2**(-n + 3)*n/nu*((alpha**(k + n + 3) + alpha**(2*n))*(k + n + 1)*(n + 1) - (alpha**(k + n + 1) + alpha**(2*n + 2))*(k + n + 3)*n - (alpha**(k + 3*n + 3) + 1)*(k - n + 1))/nom
-B = g*R2**(n + 3)*n/nu*(-(alpha**(k + 3*n + 3) + alpha**(2*n))*(k - n + 1)*(n - 1) + (alpha**(k + 3*n + 1) + alpha**(2*n + 2))*(k - n + 3)*n - (alpha**(k + n + 3) + alpha**(4*n))*(k + n + 1))/nom
-C = g*R2**(-n + 1)*n/nu*((alpha**(k + n + 1) + alpha**(2*n))*(k + n + 3)*(n - 1) - (alpha**(k + n + 3) + alpha**(2*n - 2))*(k + n + 1)*n + (alpha**(k + 3*n + 1) + 1)*(k - n + 3))/nom
-D = g*R2**(n + 1)*n/nu*(-(alpha**(k + 3*n + 1) + alpha**(2*n))*(k - n + 3)*(n + 1) + (alpha**(k + 3*n + 3) + alpha**(2*n - 2))*(k - n + 1)*n + (alpha**(k + n + 1) + alpha**(4*n))*(k + n + 3))/nom
-E = R2**(-k)*g*n/(((k + 3)**2 - n**2)*((k + 1)**2 - n**2)*nu)
 
+# velocity solution: coefficients for n, -n, n+2, -n+2 and k+3 powers of r
+A = 0.5*((alpha**(k + n + 3) + alpha**(2*n))*(k + n + 1)*(n + 1) - (alpha**(k + n + 1) + alpha**(2*n + 2))*(k + n + 3)*n - (alpha**(k + 3*n + 3) + 1)*(k - n + 1))*R2**(-n + 3)*g*n/(((alpha**(n + 1) - alpha**(n - 1))**2*n**2 - (alpha**(2*n) - 1)**2)*((k + 3)**2 - n**2)*((k + 1)**2 - n**2)*nu)
+B = -0.5*((alpha**(k + 3*n + 3) + alpha**(2*n))*(k - n + 1)*(n - 1) - (alpha**(k + 3*n + 1) + alpha**(2*n + 2))*(k - n + 3)*n + (alpha**(k + n + 3) + alpha**(4*n))*(k + n + 1))*R2**(n + 3)*g*n/(((alpha**(n + 1) - alpha**(n - 1))**2*n**2 - (alpha**(2*n) - 1)**2)*((k + 3)**2 - n**2)*((k + 1)**2 - n**2)*nu)
+C = 0.5*((alpha**(k + n + 1) + alpha**(2*n))*(k + n + 3)*(n - 1) - (alpha**(k + n + 3) + alpha**(2*n - 2))*(k + n + 1)*n + (alpha**(k + 3*n + 1) + 1)*(k - n + 3))*R2**(-n + 1)*g*n/(((alpha**(n + 1) - alpha**(n - 1))**2*n**2 - (alpha**(2*n) - 1)**2)*((k + 3)**2 - n**2)*((k + 1)**2 - n**2)*nu)
+D = -0.5*((alpha**(k + 3*n + 1) + alpha**(2*n))*(k - n + 3)*(n + 1) - (alpha**(k + 3*n + 3) + alpha**(2*n - 2))*(k - n + 1)*n - (alpha**(k + n + 1) + alpha**(4*n))*(k + n + 3))*R2**(n + 1)*g*n/(((alpha**(n + 1) - alpha**(n - 1))**2*n**2 - (alpha**(2*n) - 1)**2)*((k + 3)**2 - n**2)*((k + 1)**2 - n**2)*nu)
+E = R2**(-k)*g*n/(((k + 3)**2 - n**2)*((k + 1)**2 - n**2)*nu)
 
 # pressure: coefficients for n, -n, and k+1
 G = -4*nu*C*(n+1)
