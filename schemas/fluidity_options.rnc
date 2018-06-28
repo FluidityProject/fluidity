@@ -388,13 +388,7 @@ start =
 			     }+
 		          }?
 		        )
-                     }+,
-		     element spawn_particles {
-		        comment
-		     }?,
-		     element delete_particles {
-		        comment
-		     }?
+                     }+
 	       }+
 	    )*,
 	    (

@@ -482,16 +482,6 @@ The t argument is for future use only - currently particle locations are only se
                     </optional>
                   </element>
                 </oneOrMore>
-                <optional>
-                  <element name="spawn_particles">
-                    <ref name="comment"/>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="delete_particles">
-                    <ref name="comment"/>
-                  </element>
-                </optional>
               </element>
             </oneOrMore>
           </zeroOrMore>
