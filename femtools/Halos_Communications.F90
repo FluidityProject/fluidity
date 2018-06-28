@@ -408,7 +408,7 @@ contains
   end subroutine halo_update_array_real_star
   
   subroutine halo_update_scalar_on_halo(halo, s_field, verbose)
-    !!< Update the supplied scalar field on the suppied halo.
+    !!< Update the supplied scalar field on the supplied halo.
     
     type(halo_type), intent(in) :: halo
     type(scalar_field), intent(inout) :: s_field
@@ -446,7 +446,7 @@ contains
   end subroutine halo_update_scalar_on_halo
   
   subroutine halo_update_vector_on_halo(halo, v_field, verbose)
-    !!< Update the supplied vector field on the suppied halo.
+    !!< Update the supplied vector field on the supplied halo.
     
     type(halo_type), intent(in) :: halo
     type(vector_field), intent(inout) :: v_field
@@ -470,7 +470,7 @@ contains
   end subroutine halo_update_vector_on_halo
   
   subroutine halo_update_tensor_on_halo(halo, t_field, verbose)
-    !!< Update the supplied tensor field on the suppied halo.
+    !!< Update the supplied tensor field on the supplied halo.
 
     type(halo_type), intent(in) :: halo
     type(tensor_field), intent(inout) :: t_field

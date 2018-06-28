@@ -58,6 +58,17 @@ module particle_diagnostics
     type(scalar_field), intent(inout) :: s_field
 
     character(len= OPTION_PATH_LEN) :: lmethod
+    character(len= OPTION_PATH_LEN) :: name
+    integer :: i
+
+    !ewrite(2,*) "index: ", state_index, "size: ", size(states)
+    ewrite(2,*) "halos", size(states(state_index)%halos) !!!??? Need to import halos?
+    do i = 1,size(states(state_index)%halos)
+       name = trim(states(state_index)%halo_names(i))
+       ewrite(2,*) "halo name: ", name
+    end do
+    
+    !states(state_index)
 
     call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/name", lmethod, default = "ratio")
 
@@ -109,23 +120,35 @@ module particle_diagnostics
        
     else
        call get_option("/geometry/dimension",dim)
-
        call get_particle_arrays(lgroup, lattribute, group_arrays, group_attribute)
 
        allocate(field_nodes(node_count(s_field)))
        allocate(field_nodes_count(node_count(s_field)))
        field_nodes(:) = 0
        field_nodes_count(:) = 0
-       
+       !initialise field as 0
+       s_field%val(:) = 0
+       !ewrite(2,*) "147258"
+       !ewrite(2,*) "Node count", node_count(s_field)!!!
+       !ewrite(2,*) "Element count", element_count(s_field)
+
+      ! do i = 1,element_count(s_field)
+       !   ewrite
+      ! end do
+
+       !ewrite(2,*) "258147"
        do i = 1,size(group_arrays)
           particle => p_array(group_arrays(i))%first
-          
-          allocate(local_crds(size(particle%local_coords)))
+          if (associated(particle)) then
+             allocate(local_crds(size(particle%local_coords)))
+          end if
           do while(associated(particle))
              element = particle%element
              local_crds = particle%local_coords
              nodes => ele_nodes(s_field, element)
              att_value = particle%attributes(group_attribute)
+
+             !ewrite(2,*) "element number", element
 
              call get_particle_node(nodes, local_crds, dim, node_number)
              field_nodes(node_number) = field_nodes(node_number) + att_value
@@ -133,12 +156,19 @@ module particle_diagnostics
              particle => particle%next
              
           end do
-          deallocate(local_crds)
+          if (allocated(local_crds)) then
+             deallocate(local_crds)
+          end if
        end do
        do i = 1,node_count(s_field)
+          !ewrite(2,*) i, field_nodes_count(i)
 
           ratio_val = field_nodes(i)*1.0/field_nodes_count(i)
-          s_field%val(i) = ratio_val
+          if (field_nodes_count(i).eq.0) then
+             s_field%val(i) = 0
+          else
+             s_field%val(i) = ratio_val
+          end if
        end do
        deallocate(field_nodes)
        deallocate(field_nodes_count)
