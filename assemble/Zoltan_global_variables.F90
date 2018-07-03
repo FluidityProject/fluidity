@@ -90,7 +90,7 @@ module zoltan_global_variables
   integer, save, public :: zoltan_global_ndata_per_det
   integer, dimension(:), allocatable, public :: zoltan_global_attributes_per_ele
   type(detector_linked_list), dimension(:), allocatable, target, save, public :: zoltan_global_to_pack_detectors_list
-  
+
   ! Needed for zoltan_cb_pack_fields
   integer, save, public :: zoltan_global_ndims
 

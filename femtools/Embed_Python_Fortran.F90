@@ -202,9 +202,9 @@ module embed_python
       character(kind=c_char):: function
       integer, intent(in) :: dim, nfields, ndete, old_nfields, old_nattributes
       integer, intent(in) :: fld_name_len
-      real(kind = c_double), dimension(nfields), intent(in) :: x
-      real(kind = c_double), dimension(nfields), intent(in) :: y
-      real(kind = c_double), dimension(nfields), intent(in) :: z
+      real(kind = c_double), dimension(ndete), intent(in) :: x
+      real(kind = c_double), dimension(ndete), intent(in) :: y
+      real(kind = c_double), dimension(ndete), intent(in) :: z
       real(kind = c_double), intent(in) :: t
       character(kind = c_char), dimension(FIELD_NAME_LEN,nfields), intent(in) :: field_names
       real(kind = c_double), dimension(nfields,ndete), intent(in) :: field_vals

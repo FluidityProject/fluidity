@@ -30,7 +30,7 @@ module zoltan_detectors
     type(detector_linked_list), dimension(:), intent(inout), target :: to_pack_detector_lists
     integer(zoltan_int), intent(in) :: num_ids 
     integer(zoltan_int), intent(in), dimension(*) :: global_ids
-    integer, intent(out), dimension(:) :: attributes_per_ele
+    integer, intent(out), dimension(:) :: attributes_per_ele !Number of particle attributes per element
     
     integer :: i, j, det_list, new_ele_owner, total_det_to_pack, detector_uen
     integer :: new_local_element_number, k, total_attributes
@@ -49,7 +49,7 @@ module zoltan_detectors
        ! search through all the local detectors in this list
        k=0
        detector => detector_list_array(det_list)%ptr%first
-       !Set up particle parameters
+       !Set up particle attribute parameters
        total_attributes=0
        if (associated(detector)) then
           if (size(detector%attributes)>=1) then
@@ -113,7 +113,7 @@ module zoltan_detectors
           if (.not.found_det_element) detector => detector%next
        end do detector_loop
     end do
-    
+
     ! Sanity checks and logging
     total_det_to_pack=0
     do i=1, num_ids
@@ -124,7 +124,6 @@ module zoltan_detectors
     ewrite(1,*) "Exiting prepare_detectors_for_packing"
     
   end subroutine prepare_detectors_for_packing
-  
 
 #endif
   

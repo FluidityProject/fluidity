@@ -1400,6 +1400,7 @@ contains
     allocate(detector)
     allocate(detector%position(xfield%dim))
     allocate(detector%local_coords(local_coord_count(shape)))
+    ! Allocate detector attribute sizes to be zero
     allocate(detector%attributes(0))
     allocate(detector%old_attributes(0))
     allocate(detector%old_fields(0))
@@ -1899,7 +1900,7 @@ contains
     integer, dimension(2) :: shape_option
     integer :: nodes, elements, surface_elements
     integer :: no_mixing_bins
-    integer, dimension(3):: attributes_buffer
+    integer, dimension(3):: attributes_buffer !array to hold attribute sizes
     real :: fmin, fmax, fnorm2, fintegral, fnorm2_cv, fintegral_cv, surface_integral
     real, dimension(:), allocatable :: f_mix_fraction
     real, dimension(:), pointer :: mixing_bin_bounds
@@ -2161,6 +2162,7 @@ contains
 
     ! Move lagrangian detectors
     if ((timestep/=0).and.l_move_detectors.and.check_any_lagrangian(default_stat%detector_list)) then
+       !Attribute sizes will be 0 for detectors
        attributes_buffer(1)=0
        attributes_buffer(2)=0
        attributes_buffer(3)=0
@@ -2681,9 +2683,6 @@ contains
        end if
        flush(detector_list%output_unit)
 
-    ! If isparallel() or binary output use this
-    else
-       call write_mpi_out(state,detector_list,time,dt)
     end if
 
     totaldet_global=detector_list%length
