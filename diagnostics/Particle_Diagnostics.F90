@@ -62,11 +62,11 @@ module particle_diagnostics
     integer :: i
 
     !ewrite(2,*) "index: ", state_index, "size: ", size(states)
-    ewrite(2,*) "halos", size(states(state_index)%halos) !!!??? Need to import halos?
-    do i = 1,size(states(state_index)%halos)
-       name = trim(states(state_index)%halo_names(i))
-       ewrite(2,*) "halo name: ", name
-    end do
+    !ewrite(2,*) "halos", size(states(state_index)%halos) !!!??? Need to import halos?
+    !do i = 1,size(states(state_index)%halos)
+    !   name = trim(states(state_index)%halo_names(i))
+    !   ewrite(2,*) "halo name: ", name
+    !end do
     
     !states(state_index)
 
@@ -186,37 +186,37 @@ module particle_diagnostics
     integer, intent(in) :: dim
     integer, intent(out) :: node_number
 
-    real :: minval
+    real :: maxval
 
     select case(dim)
        
     case(1)
-       minval = local_crds(1)
-       if (local_crds(2)<minval) then
+       maxval = local_crds(1)
+       if (local_crds(2)>maxval) then
           node_number = nodes(2)
        else
           node_number = nodes(1)
        end if    
     case(2)
-       minval = local_crds(1)
+       maxval = local_crds(1)
        node_number = nodes(1)
-       if (local_crds(2)<minval) then
-          minval = local_crds(2)
+       if (local_crds(2)>maxval) then
+          maxval = local_crds(2)
           node_number = nodes(2)
-          if (local_crds(3)<minval) then
+          if (local_crds(3)>maxval) then
              node_number = nodes(3)
           end if
        end if
     case(3)
-       minval = local_crds(1)
+       maxval = local_crds(1)
        node_number = nodes(1)
-       if (local_crds(2)<minval) then
-          minval = local_crds(2)
+       if (local_crds(2)>maxval) then
+          maxval = local_crds(2)
           node_number = nodes(2)
-          if (local_crds(3)<minval) then
-             minval = local_crds(3)
+          if (local_crds(3)>maxval) then
+             maxval = local_crds(3)
              node_number = nodes(3)
-             if (local_crds(4)<minval) then
+             if (local_crds(4)>maxval) then
                 node_number = nodes(4)
              end if
           end if

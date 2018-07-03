@@ -715,6 +715,8 @@ contains
     allocate(field_vals(nfields,ndete))
     allocate(old_field_names(FIELD_NAME_LEN,attributes_buffer(3)))
     allocate(old_field_vals(attributes_buffer(3),ndete))
+    field_names(:,:) = C_NULL_CHAR
+    old_field_names(:,:) = C_NULL_CHAR
     j=1
     l=1
     do phase=1,size(state)

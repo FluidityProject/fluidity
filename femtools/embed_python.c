@@ -1,4 +1,4 @@
-/*  Copyright (C) 2006 Imperial College London and others.
+s/*  Copyright (C) 2006 Imperial College London and others.
     
 Please see the AUTHORS file in the main source directory for a full list
 of copyright holders.
@@ -1072,11 +1072,10 @@ void set_particles_from_python(char *function, int *function_len, int *dim, int 
 void set_particles_fields_from_python(char *function, int *function_len, int *dim, int *ndete,
 				      double x[], double y[], double z[], double *t, int *FIELD_NAME_LEN,
 				      int *nfields, char field_names[*nfields][*FIELD_NAME_LEN],
-				      double field_vals[*nfields][*ndete], int *old_nfields,
-				      char old_field_names[*old_nfields][*FIELD_NAME_LEN],
-				      double old_field_vals[*old_nfields][*ndete], int *old_nattributes,
+				      double *field_vals, int *old_nfields, char old_field_names[*old_nfields][*FIELD_NAME_LEN],
+				      double *old_field_vals, int *old_nattributes,
 				      char old_att_names[*old_nattributes][*FIELD_NAME_LEN],
-				      double old_attributes[*old_nattributes][*ndete], double result[], int* stat)
+				      double *old_attributes, double result[], int* stat)
   
 {
 #ifndef HAVE_PYTHON
@@ -1093,9 +1092,9 @@ void set_particles_fields_from_python(char *function, int *function_len, int *di
 #else
   PyObject *pMain, *pGlobals, *pLocals, *pFunc, *pCode, *pResult,
     *pArgs, *pPos, *px, *pT, *pField, *pNames;
-  double fields_new[(*ndete)*(*nfields)];
-  double fields_old[(*ndete)*(*old_nfields)];
-  double attributes_old[(*ndete)*(*old_nattributes)];
+  double (*fields_new)[*nfields] = malloc(sizeof(double[*ndete][*nfields]));
+  double (*fields_old)[*old_nfields] = malloc(sizeof(double[*ndete][*old_nfields]));
+  double (*attributes_old)[*old_nattributes] = malloc(sizeof(double[*ndete][*old_nattributes]));
   char *function_c;
   int i, j;
   
@@ -1134,30 +1133,23 @@ void set_particles_fields_from_python(char *function, int *function_len, int *di
     return;
   }
 
-    for (j = 0; j < *nfields; j++)
-    {
-      for (i=0; i < *ndete; i++)
-    	{
-    	  fields_new[i+(j*(*ndete))]=field_vals[j][i];
-    	}
+  for(i = 0; i < *ndete; i++) {
+    for(j = 0; j < *nfields; j++) {
+      fields_new[i][j] = field_vals[i * (*nfields) + j];
     }
+  }
 
-    for (j = 0; j < *old_nfields; j++)
-    {
-      for (i=0; i < *ndete; i++)
-    	{
-    	  fields_old[i+(j*(*ndete))]=old_field_vals[j][i];
-	  
-    	}
+  for(i = 0; i < *ndete; i++) {
+    for(j = 0; j < *old_nfields; j++) {
+      fields_old[i][j] = old_field_vals[i * (*old_nfields) + j];
     }
-
-    for (j = 0; j < *old_nattributes; j++)
-    {
-      for (i=0; i < *ndete; i++)
-    	{
-    	  attributes_old[i+(j*(*ndete))]=old_attributes[j][i];
-    	}
+  }
+  
+  for(i = 0; i < *ndete; i++) {
+    for(j = 0; j < *old_nattributes; j++) {
+      attributes_old[i][j] = old_attributes[i * (*old_nattributes) + j];
     }
+  }
 
   // Field variable dictionary space
   pNames=PyDict_New();
@@ -1168,10 +1160,6 @@ void set_particles_fields_from_python(char *function, int *function_len, int *di
   // Tuple containing the current position vector.
   pPos=PyTuple_New(*dim);
   
-
-  //Tuple containing the current field vector.
-  // pFields=PyTuple_New(*nfields);
-
   // Tuple of arguments to function;
   pArgs=PyTuple_New(3);
   PyTuple_SetItem(pArgs, 2, pNames);
@@ -1197,23 +1185,23 @@ void set_particles_fields_from_python(char *function, int *function_len, int *di
 	}
       }
       
-      //Set values for fields vector.
+      //Set values for fields library.
       
       for (j=0; j < *nfields; j++)
       {
-        pField=PyFloat_FromDouble(fields_new[j+i*(*nfields)]);
+        pField=PyFloat_FromDouble(fields_new[i][j]);
         PyDict_SetItemString(pNames, field_names[j], pField);
       }
 
       for (j=0; j < *old_nfields; j++)
       {
-        pField=PyFloat_FromDouble(fields_old[j+i*(*old_nfields)]);
+        pField=PyFloat_FromDouble(fields_old[i][j]);
         PyDict_SetItemString(pNames, old_field_names[j], pField);
       }
 
       for (j=0; j < *old_nattributes; j++)
       {
-        pField=PyFloat_FromDouble(attributes_old[j+i*(*old_nattributes)]);
+        pField=PyFloat_FromDouble(attributes_old[i][j]);
         PyDict_SetItemString(pNames, old_att_names[j], pField);
       }
       
@@ -1249,6 +1237,11 @@ void set_particles_fields_from_python(char *function, int *function_len, int *di
   Py_DECREF(pArgs);
   Py_DECREF(pLocals);
   Py_DECREF(pCode);
+
+  //Free allocated memory
+  free(fields_new);
+  free(field_old);
+  free(attributes_old);
   
   // Force a garbage collection
   PyGC_Collect();
