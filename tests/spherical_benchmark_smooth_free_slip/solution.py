@@ -19,12 +19,11 @@ m = l
 # which is the reverse of the "physical" convention we use
 
 # coefficients for Pl(r) = A*r**l + B*r**(-l-1) + C*r**(l+2) + D*r**(-l+1) + E*r**(k+3)
-A = g*R2**(-l + 3)/nu*0.5*(alpha**(k + 3) - alpha**(-l + 1))/((alpha**l - alpha**(-l + 1))*(k + l + 2)*(k - l + 3)*(2*l + 1))
-B = g*R2**(l + 4)/nu*-0.5*(alpha**(k + 4) - alpha**(l + 3))/((alpha**(-l) - alpha**(l + 3))*(k + l + 4)*(k - l + 1)*(2*l + 1))
-C = g*R2**(-l + 1)/nu*0.5*(alpha**(k + 4) - alpha**(-l))/((alpha**(-l) - alpha**(l + 3))*(k + l + 4)*(k - l + 1)*(2*l + 1))
-D = g*R2**(l + 2)/nu*-0.5*(alpha**(k + 3) - alpha**l)/((alpha**l - alpha**(-l + 1))*(k + l + 2)*(k - l + 3)*(2*l + 1))
+A = 0.5*R2**(-l + 3)*(alpha**(k + 3) - alpha**(-l + 1))*g/((alpha**l - alpha**(-l + 1))*(k + l + 2)*(k - l + 3)*(2*l + 1)*nu)
+B = -0.5*R2**(l + 4)*(alpha**(k + 4) - alpha**(l + 3))*g/((alpha**(-l) - alpha**(l + 3))*(k + l + 4)*(k - l + 1)*(2*l + 1)*nu)
+C = 0.5*R2**(-l + 1)*(alpha**(k + 4) - alpha**(-l))*g/((alpha**(-l) - alpha**(l + 3))*(k + l + 4)*(k - l + 1)*(2*l + 1)*nu)
+D = -0.5*R2**(l + 2)*(alpha**(k + 3) - alpha**l)*g/((alpha**l - alpha**(-l + 1))*(k + l + 2)*(k - l + 3)*(2*l + 1)*nu)
 E = R2**(-k)*g/((k + l + 4)*(k + l + 2)*(k - l + 3)*(k - l + 1)*nu)
-
 
 # coefficients for pressure solution: p = G r^l + H r^{-l-1} + K r^{k+1}
 G = -2*nu*(l+1)*(2*l+3)*C
