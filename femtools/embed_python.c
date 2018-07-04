@@ -1,4 +1,4 @@
-s/*  Copyright (C) 2006 Imperial College London and others.
+/*  Copyright (C) 2006 Imperial College London and others.
     
 Please see the AUTHORS file in the main source directory for a full list
 of copyright holders.
@@ -1240,7 +1240,7 @@ void set_particles_fields_from_python(char *function, int *function_len, int *di
 
   //Free allocated memory
   free(fields_new);
-  free(field_old);
+  free(fields_old);
   free(attributes_old);
   
   // Force a garbage collection
