@@ -2033,9 +2033,9 @@ module zoltan_integration
           end if
        end if
     end do
+    
     deallocate(ndets_being_sent)
     deallocate(send_buff)
-
     ewrite(1,*) "Exiting update_detector_list_element"
 
   end subroutine update_detector_list_element
@@ -2223,7 +2223,8 @@ module zoltan_integration
        call allocate(sends(i))
     end do
     call allocate(self_sends)
-    
+
+
     do old_ele=1,ele_count(zoltan_global_zz_positions)
        universal_element_number = halo_universal_number(zoltan_global_zz_ele_halo, old_ele)
        old_local_nodes => ele_nodes(zoltan_global_zz_positions, old_ele)
@@ -2242,7 +2243,7 @@ module zoltan_integration
     num_export = sum(key_count(sends))
     allocate(export_global_ids(num_export))
     allocate(export_procs(num_export))
-    
+
     ! allocate array for storing the number of detectors in each of the elements to be transferred
     allocate(zoltan_global_ndets_in_ele(num_export))
     zoltan_global_ndets_in_ele(:) = 0
@@ -2292,7 +2293,7 @@ module zoltan_integration
     deallocate(export_local_ids)
     deallocate(export_procs)
     deallocate(export_global_ids)
-    
+
     deallocate(zoltan_global_ndets_in_ele)
     
     ! update the local detectors and make sure we didn't miss any in the first send

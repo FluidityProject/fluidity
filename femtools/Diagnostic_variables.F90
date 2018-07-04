@@ -2682,7 +2682,6 @@ contains
           write(detector_list%output_unit,'(a)') ""
        end if
        flush(detector_list%output_unit)
-
     end if
 
     totaldet_global=detector_list%length

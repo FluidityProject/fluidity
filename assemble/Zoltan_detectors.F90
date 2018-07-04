@@ -39,13 +39,15 @@ module zoltan_detectors
     type(detector_type), pointer :: detector => null(), detector_to_move => null()
     logical :: found_det_element
     
-    ewrite(1,*) "In prepare_detectors_for_packing"    
+    ewrite(1,*) "In prepare_detectors_for_packing"
+    
     assert(num_ids == size(ndets_in_ele))
     assert(num_ids == size(to_pack_detector_lists))
 
     ! loop through all registered detector lists
     call get_registered_detector_lists(detector_list_array)
     do det_list = 1, size(detector_list_array)
+       
        ! search through all the local detectors in this list
        k=0
        detector => detector_list_array(det_list)%ptr%first
@@ -66,6 +68,7 @@ module zoltan_detectors
              FLAbort("No universal element number for detector found in Zoltan")
           end if
           detector_uen = fetch(zoltan_global_old_local_numbering_to_uen, detector%element)
+          
           ! loop over all the elements we're interested in
           found_det_element=.false.
           element_loop: do j=1, num_ids

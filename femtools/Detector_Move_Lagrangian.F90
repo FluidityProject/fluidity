@@ -213,7 +213,7 @@ contains
              ! Make sure we still have lagrangian detectors
              any_lagrangian=check_any_lagrangian(detector_list)
              if (any_lagrangian) then
-                
+
                 !Detectors leaving the domain from non-owned elements
                 !are entering a domain on another processor rather 
                 !than leaving the physical domain. In this subroutine
