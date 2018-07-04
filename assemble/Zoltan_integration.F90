@@ -2223,8 +2223,8 @@ module zoltan_integration
        call allocate(sends(i))
     end do
     call allocate(self_sends)
-
-
+    
+    
     do old_ele=1,ele_count(zoltan_global_zz_positions)
        universal_element_number = halo_universal_number(zoltan_global_zz_ele_halo, old_ele)
        old_local_nodes => ele_nodes(zoltan_global_zz_positions, old_ele)

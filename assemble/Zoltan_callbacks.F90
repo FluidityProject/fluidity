@@ -989,6 +989,7 @@ contains
        end do
        
     end do
+
     
     do i=1,num_ids    
        ! fields data + number of detectors in element + attribute_info per detector+  detector data + attributes +

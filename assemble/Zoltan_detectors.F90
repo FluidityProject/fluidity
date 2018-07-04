@@ -47,7 +47,7 @@ module zoltan_detectors
     ! loop through all registered detector lists
     call get_registered_detector_lists(detector_list_array)
     do det_list = 1, size(detector_list_array)
-       
+
        ! search through all the local detectors in this list
        k=0
        detector => detector_list_array(det_list)%ptr%first
@@ -68,7 +68,7 @@ module zoltan_detectors
              FLAbort("No universal element number for detector found in Zoltan")
           end if
           detector_uen = fetch(zoltan_global_old_local_numbering_to_uen, detector%element)
-          
+
           ! loop over all the elements we're interested in
           found_det_element=.false.
           element_loop: do j=1, num_ids
