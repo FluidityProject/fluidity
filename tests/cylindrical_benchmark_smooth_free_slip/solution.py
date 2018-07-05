@@ -3,8 +3,9 @@ from math import sqrt, atan2, cos, sin
 
 nu = 1.
 g = 1.
-R1, R2 = 1.22, 2.22
-alpha = R1/R2
+# outer and inner radius R_+ and R_-
+Rm, Rp = 1.22, 2.22
+alpha = Rm/Rp
 n = 2
 k = 2
 
@@ -21,15 +22,17 @@ E = R2**(-k)*g*n/(((k + 3)**2 - n**2)*((k + 1)**2 - n**2)*nu)
 # pressure: coefficients for n, -n, and k+1
 G = -4*nu*C*(n+1)
 H = -4*nu*D*(n-1)
-F = -g*(k + 1)*R2**(-k)/((k+1)**2-n**2)
+F = -g*(k + 1)*Rp**(-k)/((k+1)**2-n**2)
 
 
 def u_r(r, phi):
     dpsi_dphi = n*cos(n*phi)*(A*r**n+B*r**(-n)+C*r**(n+2)+D*r**(-n+2)+E*r**(k+3))
     return -dpsi_dphi/r
 
-numpy.testing.assert_almost_equal(u_r(R1, 0.), 0.)
-numpy.testing.assert_almost_equal(u_r(R2, 0.), 0.)
+# some sanity checks:
+# no-normal flow
+numpy.testing.assert_almost_equal(u_r(Rm, 0.), 0.)
+numpy.testing.assert_almost_equal(u_r(Rp, 0.), 0.)
 
 def u_phi(r, phi):
     dpsi_dr = sin(n*phi)*(A*n*r**(n-1) + B*-n*r**(-n-1) + C*(n+2)*r**(n+1) + D*(-n+2)*r**(-n+1)+E*(k+3)*r**(k+2))
@@ -41,16 +44,16 @@ def p(r, phi):
     return (G*r**n + H*r**(-n) + F*r**(k+1))*cos(n*phi)
 
 def delta_rho(r, phi):
-    return r**k * cos(n*phi) / R2**k
+    return r**k * cos(n*phi) / Rp**k
 
-def get_cartesian_solution(X):
+def velocity_cartesian(X):
     r = sqrt(X[0]**2+X[1]**2)
     phi = atan2(X[1], X[0])
     ur = u_r(r,phi)
     ut = u_phi(r,phi)
     return [ur*X[0]/r - ut*X[1]/r, ur*X[1]/r + ut*X[0]/r]
 
-def get_cartesian_pressure_solution(X):
+def pressure_cartesian(X):
     r = sqrt(X[0]**2+X[1]**2)
     phi = atan2(X[1], X[0])
     return p(r, phi)

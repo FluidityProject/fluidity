@@ -413,7 +413,7 @@
           <python>
             <string_value lines="20" type="code" language="python">def val(X,t):
     import solution
-    return solution.get_pressure_solution(X)</string_value>
+    return solution.pressure_cartesian(X)</string_value>
           </python>
         </value>
         <output/>
@@ -447,7 +447,7 @@
           <python>
             <string_value lines="20" type="code" language="python">def val(X,t):
     import solution
-    return -solution.get_delta_rho(X)</string_value>
+    return -solution.delta_rho_cartesian(X)</string_value>
           </python>
         </value>
         <output/>
@@ -481,7 +481,7 @@
           <python>
             <string_value lines="20" type="code" language="python">def val(X,t):
   import solution
-  return solution.get_cartesian_solution(X)</string_value>
+  return solution.velocity_cartesian(X)</string_value>
           </python>
         </value>
         <output/>
