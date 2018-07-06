@@ -1,12 +1,14 @@
+from __future__ import division
 import scipy.special
 import numpy
 from math import sqrt, atan2, cos, sin, tan, acos, pi
 
-Ra = 1.
-# outer and inner radius (these are a1 and a2 in [1])
-R = numpy.array([2.22, 1.22])
-# r', the radius of the anomaly
-rp = R[1]+0.5
+nu = 1.
+g = 1.
+# outer and inner radius R_+ and R_-
+Rp, Rm = 2.22, 1.22
+# radial height of anomaly: r'
+rp = Rm + 0.5
 l = 2
 m = l
 
@@ -16,45 +18,41 @@ m = l
 # NOTE: scipy uses the "mathematical" definition of phi and theta
 # which is the reverse of the "physical" convention we use
 
-# solutions based on free slip solutions in [1] N.M. Ribe, Analytical Approaches to Mantle Dynamics, in Mantle Dynamics, Vol. 7
-# no slip solution here is arrived at by solving (106-109) in sympy, but with (107) replaced with:
-#   dPl/dr(R_1, r') = dPl/dr(R_2, r') = 0
-# (i.e. zero *first* derivatives)
+alpha_pm = numpy.array([Rp/rp, Rm/rp])
+alpha_mp = numpy.array([Rm/rp, Rp/rp])
+alpha, beta = alpha_pm
+R_pm = alpha_pm*rp
+pm = numpy.array([1, -1])
+mp = -pm
 
-# this horrendous mess, comes out of sympy:
-R1, R2 = R
-A = numpy.array([
-      R1*Ra*rp**(-l + 1)*(-4*R1**(2*l + 1)*R2*l*rp**(2*l + 3) + 2*R1**(2*l + 1)*R2*rp**(2*l + 3) + 4*R1**(2*l + 1)*R2**(2*l + 2)*l**2*rp**2 + 4*R1**(2*l + 1)*R2**(2*l + 2)*l*rp**2 - 3*R1**(2*l + 1)*R2**(2*l + 2)*rp**2 - 4*R1**(2*l + 1)*R2**(2*l + 4)*l**2 + R1**(2*l + 1)*R2**(2*l + 4) + 4*R1**(2*l + 3)*R2*l*rp**(2*l + 1) + 2*R1**(2*l + 3)*R2*rp**(2*l + 1) - 4*R1**(2*l + 3)*R2**(2*l)*l**2*rp**2 - 4*R1**(2*l + 3)*R2**(2*l)*l*rp**2 - R1**(2*l + 3)*R2**(2*l)*rp**2 + 4*R1**(2*l + 3)*R2**(2*l + 2)*l**2 - R1**(2*l + 3)*R2**(2*l + 2) + 4*R2**(2*l + 2)*l*rp**(2*l + 3) - 2*R2**(2*l + 2)*rp**(2*l + 3) - 4*R2**(2*l + 4)*l*rp**(2*l + 1) - 2*R2**(2*l + 4)*rp**(2*l + 1) + 4*R2**(4*l + 3)*rp**2)/(2*(-16*R1*R2**(4*l + 3)*l**2 + 4*R1*R2**(4*l + 3) + 16*R1**(2*l)*R2**(2*l + 4)*l**4 + 16*R1**(2*l)*R2**(2*l + 4)*l**3 - 4*R1**(2*l)*R2**(2*l + 4)*l - R1**(2*l)*R2**(2*l + 4) - 32*R1**(2*l + 2)*R2**(2*l + 2)*l**4 - 32*R1**(2*l + 2)*R2**(2*l + 2)*l**3 + 32*R1**(2*l + 2)*R2**(2*l + 2)*l**2 + 8*R1**(2*l + 2)*R2**(2*l + 2)*l - 6*R1**(2*l + 2)*R2**(2*l + 2) + 16*R1**(2*l + 4)*R2**(2*l)*l**4 + 16*R1**(2*l + 4)*R2**(2*l)*l**3 - 4*R1**(2*l + 4)*R2**(2*l)*l - R1**(2*l + 4)*R2**(2*l) - 16*R1**(4*l + 3)*R2*l**2 + 4*R1**(4*l + 3)*R2)),
-      R2*Ra*rp**(-l + 1)*(4*R1*R2**(2*l + 1)*l*rp**(2*l + 3) - 2*R1*R2**(2*l + 1)*rp**(2*l + 3) - 4*R1*R2**(2*l + 3)*l*rp**(2*l + 1) - 2*R1*R2**(2*l + 3)*rp**(2*l + 1) + 4*R1**(2*l)*R2**(2*l + 3)*l**2*rp**2 + 4*R1**(2*l)*R2**(2*l + 3)*l*rp**2 + R1**(2*l)*R2**(2*l + 3)*rp**2 - 4*R1**(2*l + 2)*R2**(2*l + 1)*l**2*rp**2 - 4*R1**(2*l + 2)*R2**(2*l + 1)*l*rp**2 + 3*R1**(2*l + 2)*R2**(2*l + 1)*rp**2 - 4*R1**(2*l + 2)*R2**(2*l + 3)*l**2 + R1**(2*l + 2)*R2**(2*l + 3) - 4*R1**(2*l + 2)*l*rp**(2*l + 3) + 2*R1**(2*l + 2)*rp**(2*l + 3) + 4*R1**(2*l + 4)*R2**(2*l + 1)*l**2 - R1**(2*l + 4)*R2**(2*l + 1) + 4*R1**(2*l + 4)*l*rp**(2*l + 1) + 2*R1**(2*l + 4)*rp**(2*l + 1) - 4*R1**(4*l + 3)*rp**2)/(2*(-16*R1*R2**(4*l + 3)*l**2 + 4*R1*R2**(4*l + 3) + 16*R1**(2*l)*R2**(2*l + 4)*l**4 + 16*R1**(2*l)*R2**(2*l + 4)*l**3 - 4*R1**(2*l)*R2**(2*l + 4)*l - R1**(2*l)*R2**(2*l + 4) - 32*R1**(2*l + 2)*R2**(2*l + 2)*l**4 - 32*R1**(2*l + 2)*R2**(2*l + 2)*l**3 + 32*R1**(2*l + 2)*R2**(2*l + 2)*l**2 + 8*R1**(2*l + 2)*R2**(2*l + 2)*l - 6*R1**(2*l + 2)*R2**(2*l + 2) + 16*R1**(2*l + 4)*R2**(2*l)*l**4 + 16*R1**(2*l + 4)*R2**(2*l)*l**3 - 4*R1**(2*l + 4)*R2**(2*l)*l - R1**(2*l + 4)*R2**(2*l) - 16*R1**(4*l + 3)*R2*l**2 + 4*R1**(4*l + 3)*R2)),
-    ])
-B = numpy.array([
-      R1**(2*l + 2)*Ra*rp**(-l + 1)*(-4*R1**2*R2**(2*l)*l**2*rp**(2*l + 3) - 4*R1**2*R2**(2*l)*l*rp**(2*l + 3) - R1**2*R2**(2*l)*rp**(2*l + 3) + 4*R1**2*R2**(2*l + 2)*l**2*rp**(2*l + 1) + 8*R1**2*R2**(2*l + 2)*l*rp**(2*l + 1) + 3*R1**2*R2**(2*l + 2)*rp**(2*l + 1) - 4*R1**2*R2**(4*l + 3)*l - 2*R1**2*R2**(4*l + 3) + 4*R1**(2*l + 1)*R2*rp**(2*l + 3) - 4*R1**(2*l + 1)*R2**(2*l + 2)*l*rp**2 - 6*R1**(2*l + 1)*R2**(2*l + 2)*rp**2 + 4*R1**(2*l + 1)*R2**(2*l + 4)*l + 2*R1**(2*l + 1)*R2**(2*l + 4) + 4*R2**(2*l + 2)*l**2*rp**(2*l + 3) + 4*R2**(2*l + 2)*l*rp**(2*l + 3) - 3*R2**(2*l + 2)*rp**(2*l + 3) - 4*R2**(2*l + 4)*l**2*rp**(2*l + 1) - 8*R2**(2*l + 4)*l*rp**(2*l + 1) - 3*R2**(2*l + 4)*rp**(2*l + 1) + 4*R2**(4*l + 3)*l*rp**2 + 6*R2**(4*l + 3)*rp**2)/(2*(-16*R1*R2**(4*l + 3)*l**2 - 32*R1*R2**(4*l + 3)*l - 12*R1*R2**(4*l + 3) + 16*R1**(2*l)*R2**(2*l + 4)*l**4 + 48*R1**(2*l)*R2**(2*l + 4)*l**3 + 48*R1**(2*l)*R2**(2*l + 4)*l**2 + 20*R1**(2*l)*R2**(2*l + 4)*l + 3*R1**(2*l)*R2**(2*l + 4) - 32*R1**(2*l + 2)*R2**(2*l + 2)*l**4 - 96*R1**(2*l + 2)*R2**(2*l + 2)*l**3 - 64*R1**(2*l + 2)*R2**(2*l + 2)*l**2 + 24*R1**(2*l + 2)*R2**(2*l + 2)*l + 18*R1**(2*l + 2)*R2**(2*l + 2) + 16*R1**(2*l + 4)*R2**(2*l)*l**4 + 48*R1**(2*l + 4)*R2**(2*l)*l**3 + 48*R1**(2*l + 4)*R2**(2*l)*l**2 + 20*R1**(2*l + 4)*R2**(2*l)*l + 3*R1**(2*l + 4)*R2**(2*l) - 16*R1**(4*l + 3)*R2*l**2 - 32*R1**(4*l + 3)*R2*l - 12*R1**(4*l + 3)*R2)),
-      R2**(2*l + 2)*Ra*rp**(-l + 1)*(-4*R1*R2**(2*l + 1)*rp**(2*l + 3) + 4*R1**(2*l)*R2**2*l**2*rp**(2*l + 3) + 4*R1**(2*l)*R2**2*l*rp**(2*l + 3) + R1**(2*l)*R2**2*rp**(2*l + 3) - 4*R1**(2*l + 2)*R2**2*l**2*rp**(2*l + 1) - 8*R1**(2*l + 2)*R2**2*l*rp**(2*l + 1) - 3*R1**(2*l + 2)*R2**2*rp**(2*l + 1) + 4*R1**(2*l + 2)*R2**(2*l + 1)*l*rp**2 + 6*R1**(2*l + 2)*R2**(2*l + 1)*rp**2 - 4*R1**(2*l + 2)*l**2*rp**(2*l + 3) - 4*R1**(2*l + 2)*l*rp**(2*l + 3) + 3*R1**(2*l + 2)*rp**(2*l + 3) - 4*R1**(2*l + 4)*R2**(2*l + 1)*l - 2*R1**(2*l + 4)*R2**(2*l + 1) + 4*R1**(2*l + 4)*l**2*rp**(2*l + 1) + 8*R1**(2*l + 4)*l*rp**(2*l + 1) + 3*R1**(2*l + 4)*rp**(2*l + 1) + 4*R1**(4*l + 3)*R2**2*l + 2*R1**(4*l + 3)*R2**2 - 4*R1**(4*l + 3)*l*rp**2 - 6*R1**(4*l + 3)*rp**2)/(2*(-16*R1*R2**(4*l + 3)*l**2 - 32*R1*R2**(4*l + 3)*l - 12*R1*R2**(4*l + 3) + 16*R1**(2*l)*R2**(2*l + 4)*l**4 + 48*R1**(2*l)*R2**(2*l + 4)*l**3 + 48*R1**(2*l)*R2**(2*l + 4)*l**2 + 20*R1**(2*l)*R2**(2*l + 4)*l + 3*R1**(2*l)*R2**(2*l + 4) - 32*R1**(2*l + 2)*R2**(2*l + 2)*l**4 - 96*R1**(2*l + 2)*R2**(2*l + 2)*l**3 - 64*R1**(2*l + 2)*R2**(2*l + 2)*l**2 + 24*R1**(2*l + 2)*R2**(2*l + 2)*l + 18*R1**(2*l + 2)*R2**(2*l + 2) + 16*R1**(2*l + 4)*R2**(2*l)*l**4 + 48*R1**(2*l + 4)*R2**(2*l)*l**3 + 48*R1**(2*l + 4)*R2**(2*l)*l**2 + 20*R1**(2*l + 4)*R2**(2*l)*l + 3*R1**(2*l + 4)*R2**(2*l) - 16*R1**(4*l + 3)*R2*l**2 - 32*R1**(4*l + 3)*R2*l - 12*R1**(4*l + 3)*R2)),
-    ])
-C = numpy.array([
-      Ra*rp**(-l + 1)*(-4*R1*R2**(2*l)*l*rp**(2*l + 3) - 2*R1*R2**(2*l)*rp**(2*l + 3) + 4*R1*R2**(2*l + 2)*l*rp**(2*l + 1) + 6*R1*R2**(2*l + 2)*rp**(2*l + 1) - 4*R1*R2**(4*l + 3) + 4*R1**(2*l)*R2*l*rp**(2*l + 3) + 2*R1**(2*l)*R2*rp**(2*l + 3) - 4*R1**(2*l)*R2**(2*l + 2)*l**2*rp**2 - 8*R1**(2*l)*R2**(2*l + 2)*l*rp**2 - 3*R1**(2*l)*R2**(2*l + 2)*rp**2 + 4*R1**(2*l)*R2**(2*l + 4)*l**2 + 4*R1**(2*l)*R2**(2*l + 4)*l + R1**(2*l)*R2**(2*l + 4) - 4*R1**(2*l + 2)*R2*l*rp**(2*l + 1) - 6*R1**(2*l + 2)*R2*rp**(2*l + 1) + 4*R1**(2*l + 2)*R2**(2*l)*l**2*rp**2 + 8*R1**(2*l + 2)*R2**(2*l)*l*rp**2 + 3*R1**(2*l + 2)*R2**(2*l)*rp**2 - 4*R1**(2*l + 2)*R2**(2*l + 2)*l**2 - 4*R1**(2*l + 2)*R2**(2*l + 2)*l + 3*R1**(2*l + 2)*R2**(2*l + 2))/(-32*R1*R2**(4*l + 3)*l**2 - 64*R1*R2**(4*l + 3)*l - 24*R1*R2**(4*l + 3) + 32*R1**(2*l)*R2**(2*l + 4)*l**4 + 96*R1**(2*l)*R2**(2*l + 4)*l**3 + 96*R1**(2*l)*R2**(2*l + 4)*l**2 + 40*R1**(2*l)*R2**(2*l + 4)*l + 6*R1**(2*l)*R2**(2*l + 4) - 64*R1**(2*l + 2)*R2**(2*l + 2)*l**4 - 192*R1**(2*l + 2)*R2**(2*l + 2)*l**3 - 128*R1**(2*l + 2)*R2**(2*l + 2)*l**2 + 48*R1**(2*l + 2)*R2**(2*l + 2)*l + 36*R1**(2*l + 2)*R2**(2*l + 2) + 32*R1**(2*l + 4)*R2**(2*l)*l**4 + 96*R1**(2*l + 4)*R2**(2*l)*l**3 + 96*R1**(2*l + 4)*R2**(2*l)*l**2 + 40*R1**(2*l + 4)*R2**(2*l)*l + 6*R1**(2*l + 4)*R2**(2*l) - 32*R1**(4*l + 3)*R2*l**2 - 64*R1**(4*l + 3)*R2*l - 24*R1**(4*l + 3)*R2),
-     -Ra*rp**(-l + 1)*(4*R1*R2**(2*l)*l*rp**(2*l + 3) + 2*R1*R2**(2*l)*rp**(2*l + 3) - 4*R1*R2**(2*l + 2)*l*rp**(2*l + 1) - 6*R1*R2**(2*l + 2)*rp**(2*l + 1) - 4*R1**(2*l)*R2*l*rp**(2*l + 3) - 2*R1**(2*l)*R2*rp**(2*l + 3) + 4*R1**(2*l)*R2**(2*l + 2)*l**2*rp**2 + 8*R1**(2*l)*R2**(2*l + 2)*l*rp**2 + 3*R1**(2*l)*R2**(2*l + 2)*rp**2 + 4*R1**(2*l + 2)*R2*l*rp**(2*l + 1) + 6*R1**(2*l + 2)*R2*rp**(2*l + 1) - 4*R1**(2*l + 2)*R2**(2*l)*l**2*rp**2 - 8*R1**(2*l + 2)*R2**(2*l)*l*rp**2 - 3*R1**(2*l + 2)*R2**(2*l)*rp**2 - 4*R1**(2*l + 2)*R2**(2*l + 2)*l**2 - 4*R1**(2*l + 2)*R2**(2*l + 2)*l + 3*R1**(2*l + 2)*R2**(2*l + 2) + 4*R1**(2*l + 4)*R2**(2*l)*l**2 + 4*R1**(2*l + 4)*R2**(2*l)*l + R1**(2*l + 4)*R2**(2*l) - 4*R1**(4*l + 3)*R2)/(-32*R1*R2**(4*l + 3)*l**2 - 64*R1*R2**(4*l + 3)*l - 24*R1*R2**(4*l + 3) + 32*R1**(2*l)*R2**(2*l + 4)*l**4 + 96*R1**(2*l)*R2**(2*l + 4)*l**3 + 96*R1**(2*l)*R2**(2*l + 4)*l**2 + 40*R1**(2*l)*R2**(2*l + 4)*l + 6*R1**(2*l)*R2**(2*l + 4) - 64*R1**(2*l + 2)*R2**(2*l + 2)*l**4 - 192*R1**(2*l + 2)*R2**(2*l + 2)*l**3 - 128*R1**(2*l + 2)*R2**(2*l + 2)*l**2 + 48*R1**(2*l + 2)*R2**(2*l + 2)*l + 36*R1**(2*l + 2)*R2**(2*l + 2) + 32*R1**(2*l + 4)*R2**(2*l)*l**4 + 96*R1**(2*l + 4)*R2**(2*l)*l**3 + 96*R1**(2*l + 4)*R2**(2*l)*l**2 + 40*R1**(2*l + 4)*R2**(2*l)*l + 6*R1**(2*l + 4)*R2**(2*l) - 32*R1**(4*l + 3)*R2*l**2 - 64*R1**(4*l + 3)*R2*l - 24*R1**(4*l + 3)*R2),
-    ])
-D = numpy.array([
-     -R1**(2*l)*Ra*rp**(-l + 1)*(4*R1**2*R2**(2*l)*l**2*rp**(2*l + 3) - R1**2*R2**(2*l)*rp**(2*l + 3) - 4*R1**2*R2**(2*l + 2)*l**2*rp**(2*l + 1) - 4*R1**2*R2**(2*l + 2)*l*rp**(2*l + 1) + 3*R1**2*R2**(2*l + 2)*rp**(2*l + 1) + 4*R1**2*R2**(4*l + 3)*l - 2*R1**2*R2**(4*l + 3) - 4*R1**(2*l + 3)*R2*rp**(2*l + 1) + 4*R1**(2*l + 3)*R2**(2*l)*l*rp**2 + 2*R1**(2*l + 3)*R2**(2*l)*rp**2 - 4*R1**(2*l + 3)*R2**(2*l + 2)*l + 2*R1**(2*l + 3)*R2**(2*l + 2) - 4*R2**(2*l + 2)*l**2*rp**(2*l + 3) + R2**(2*l + 2)*rp**(2*l + 3) + 4*R2**(2*l + 4)*l**2*rp**(2*l + 1) + 4*R2**(2*l + 4)*l*rp**(2*l + 1) + R2**(2*l + 4)*rp**(2*l + 1) - 4*R2**(4*l + 3)*l*rp**2 - 2*R2**(4*l + 3)*rp**2)/(32*R1*R2**(4*l + 3)*l**2 - 8*R1*R2**(4*l + 3) - 32*R1**(2*l)*R2**(2*l + 4)*l**4 - 32*R1**(2*l)*R2**(2*l + 4)*l**3 + 8*R1**(2*l)*R2**(2*l + 4)*l + 2*R1**(2*l)*R2**(2*l + 4) + 64*R1**(2*l + 2)*R2**(2*l + 2)*l**4 + 64*R1**(2*l + 2)*R2**(2*l + 2)*l**3 - 64*R1**(2*l + 2)*R2**(2*l + 2)*l**2 - 16*R1**(2*l + 2)*R2**(2*l + 2)*l + 12*R1**(2*l + 2)*R2**(2*l + 2) - 32*R1**(2*l + 4)*R2**(2*l)*l**4 - 32*R1**(2*l + 4)*R2**(2*l)*l**3 + 8*R1**(2*l + 4)*R2**(2*l)*l + 2*R1**(2*l + 4)*R2**(2*l) + 32*R1**(4*l + 3)*R2*l**2 - 8*R1**(4*l + 3)*R2),
-      R2**(2*l)*Ra*rp**(-l + 1)*(-4*R1*R2**(2*l + 3)*rp**(2*l + 1) + 4*R1**(2*l)*R2**2*l**2*rp**(2*l + 3) - R1**(2*l)*R2**2*rp**(2*l + 3) + 4*R1**(2*l)*R2**(2*l + 3)*l*rp**2 + 2*R1**(2*l)*R2**(2*l + 3)*rp**2 - 4*R1**(2*l + 2)*R2**2*l**2*rp**(2*l + 1) - 4*R1**(2*l + 2)*R2**2*l*rp**(2*l + 1) + 3*R1**(2*l + 2)*R2**2*rp**(2*l + 1) - 4*R1**(2*l + 2)*R2**(2*l + 3)*l + 2*R1**(2*l + 2)*R2**(2*l + 3) - 4*R1**(2*l + 2)*l**2*rp**(2*l + 3) + R1**(2*l + 2)*rp**(2*l + 3) + 4*R1**(2*l + 4)*l**2*rp**(2*l + 1) + 4*R1**(2*l + 4)*l*rp**(2*l + 1) + R1**(2*l + 4)*rp**(2*l + 1) + 4*R1**(4*l + 3)*R2**2*l - 2*R1**(4*l + 3)*R2**2 - 4*R1**(4*l + 3)*l*rp**2 - 2*R1**(4*l + 3)*rp**2)/(32*R1*R2**(4*l + 3)*l**2 - 8*R1*R2**(4*l + 3) - 32*R1**(2*l)*R2**(2*l + 4)*l**4 - 32*R1**(2*l)*R2**(2*l + 4)*l**3 + 8*R1**(2*l)*R2**(2*l + 4)*l + 2*R1**(2*l)*R2**(2*l + 4) + 64*R1**(2*l + 2)*R2**(2*l + 2)*l**4 + 64*R1**(2*l + 2)*R2**(2*l + 2)*l**3 - 64*R1**(2*l + 2)*R2**(2*l + 2)*l**2 - 16*R1**(2*l + 2)*R2**(2*l + 2)*l + 12*R1**(2*l + 2)*R2**(2*l + 2) - 32*R1**(2*l + 4)*R2**(2*l)*l**4 - 32*R1**(2*l + 4)*R2**(2*l)*l**3 + 8*R1**(2*l + 4)*R2**(2*l)*l + 2*R1**(2*l + 4)*R2**(2*l) + 32*R1**(4*l + 3)*R2*l**2 - 8*R1**(4*l + 3)*R2)
-    ])
+# coefficients for Pl(r) = A_pm*r**l + B_pm*r**(-l-1) + C_pm*r**(l+2) + D_pm*r**(-l+1)
+# since the alpha's are length-2 arrays (each entry corresponding to one halve of the domain)
+# so will the coefficients and thus the solution
+A_pm = 0.5*(alpha**2 - beta**2 + (2*l + 1)*mp*(beta/alpha)**(2*mp)/(2*l - 1) + (2*l + 3)*pm/(2*l + 1) + 2*(alpha**(-2*l - 1) - beta**(-2*l - 1))/(2*l + 1) + 2*(alpha**2*beta**(-2*l - 1) - alpha**(-2*l - 1)*beta**2)/(2*l - 1) + 4*pm*(beta/alpha)**((2*l + 1)*pm)/((2*l + 1)*(2*l - 1)))*g*rp**(-l + 2)/(((2*l + 1)**2*(alpha**2/beta**2 + beta**2/alpha**2) - 2*(2*l + 3)*(2*l - 1) - 4*(beta/alpha)**(2*l + 1) - 4*(beta/alpha)**(-2*l - 1))*nu)
+B_pm = 0.5*(alpha**2 - beta**2 + (2*l + 1)*mp*(beta/alpha)**(2*mp)/(2*l + 3) + (2*l - 1)*pm/(2*l + 1) - 2*(alpha**2*beta**(2*l + 1) - alpha**(2*l + 1)*beta**2)/(2*l + 3) - 2*(alpha**(2*l + 1) - beta**(2*l + 1))/(2*l + 1) + 4*pm*(beta/alpha)**((2*l + 1)*mp)/((2*l + 3)*(2*l + 1)))*g*rp**(l + 3)/(((2*l + 1)**2*(alpha**2/beta**2 + beta**2/alpha**2) - 2*(2*l + 3)*(2*l - 1) - 4*(beta/alpha)**(2*l + 1) - 4*(beta/alpha)**(-2*l - 1))*nu)
+C_pm = 0.5*((2*l + 1)*pm*(beta/alpha)**(2*pm)/(2*l + 3) + (2*l - 1)*mp/(2*l + 1) + 2*(alpha**(-2*l - 1) - beta**(-2*l - 1))/(2*l + 1) + 4*mp*(beta/alpha)**((2*l + 1)*pm)/((2*l + 3)*(2*l + 1)) - 2*(alpha**(-2*l - 1)/beta**2 - beta**(-2*l - 1)/alpha**2)/(2*l + 3) - 1/alpha**2 + 1/beta**2)*g*rp**(-l)/(((2*l + 1)**2*(alpha**2/beta**2 + beta**2/alpha**2) - 2*(2*l + 3)*(2*l - 1) - 4*(beta/alpha)**(2*l + 1) - 4*(beta/alpha)**(-2*l - 1))*nu)
+D_pm = 0.5*((2*l + 1)*pm*(beta/alpha)**(2*pm)/(2*l - 1) + (2*l + 3)*mp/(2*l + 1) - 2*(alpha**(2*l + 1) - beta**(2*l + 1))/(2*l + 1) + 4*mp*(beta/alpha)**((2*l + 1)*mp)/((2*l + 1)*(2*l - 1)) + 2*(alpha**(2*l + 1)/beta**2 - beta**(2*l + 1)/alpha**2)/(2*l - 1) - 1/alpha**2 + 1/beta**2)*g*rp**(l + 1)/(((2*l + 1)**2*(alpha**2/beta**2 + beta**2/alpha**2) - 2*(2*l + 3)*(2*l - 1) - 4*(beta/alpha)**(2*l + 1) - 4*(beta/alpha)**(-2*l - 1))*nu)
+
+
+# coefficients for pressure solution: p = G_pm r^l + H_pm r^{-l-1}
+G_pm = -2*nu*(l+1)*(2*l+3)*C_pm
+H_pm = -2*nu*l*(2*l-1)*D_pm
 
 def Pl(r):
-    # eqn (105) from [1]
-    return A*r**l + B*r**(-l-1) + C*r**(l+2) + D*r**(-l+1)
+    return A_pm*r**l + B_pm*r**(-l-1) + C_pm*r**(l+2) + D_pm*r**(-l+1)
 
 def dPldr(r):
-    return l*A*r**(l-1) + (-l-1)*B*r**(-l-2) + (l+2)*C*r**(l+1) + (-l+1)*D*r**-l
+    return l*A_pm*r**(l-1) + (-l-1)*B_pm*r**(-l-2) + (l+2)*C_pm*r**(l+1) + (-l+1)*D_pm*r**-l
 
 # some sanity checks:
-# eqn (108) from [1]:
+# no-normal flow
+assert all(numpy.abs(Pl(R_pm))<1e-12)
+# continuity of velocity at r=rp:
 assert abs(Pl(rp)[0]-Pl(rp)[1])<1e-12
 assert abs(dPldr(rp)[0]-dPldr(rp)[1])<1e-12
-# eqn (106):
-assert all(numpy.abs(Pl(R))<1e-12)
-# no slip also requires:
-assert all(numpy.abs(dPldr(R))<1e-12)
+# no slip:
+assert all(numpy.abs(dPldr(R_pm))<1e-12)
+
 
 def Y(m, l, theta, phi):
     # everywhere we take the real part of Y, corresponding to the cos(m phi) part of the solution
@@ -78,34 +76,34 @@ def dYdtheta(m, l, theta, phi):
 def P(r, theta, phi):
     return Pl(r) * Y(m, l, theta, phi)
 
+def pressure(r, theta,phi):
+    return (G_pm*r**l + H_pm*r**(-l-1))*Y(m, l, theta, phi)
 
 def u_theta(r, theta, phi):
-    # starting from eqn (44) in [1]:
     # u_theta = -1/r d/dtheta d/dr (r P)
     #         = -1/r dP/dtheta - d/dtheta d/dr P
     #         = -(1/r Pl + dPl/dr) dY/dtheta
     return -(Pl(r)/r + dPldr(r)) * dYdtheta(m, l, theta, phi)
 
 def u_phi(r, theta, phi):
-    # starting from eqn (44) in [1]:
     # u_phi = -1/(r sin(theta)) d/dphi d/dr (r P)
     #       = -1/(r sin(theta)) * (dP/dphi + r d/dphi d/dr P)
     #       = -1/sin(theta) * (Pl/r + dPl/dr) * dY/dphi
     return -(Pl(r)/r + dPldr(r)) / sin(theta) * dYdphi(m, l, theta, phi)
 
 def u_r(r, theta, phi):
-    # starting from eqn(44) in [1]:
-    # u_r = 1/r B^2 P = -1/r l(l+1) P
-    # (see above eqn (102) in [1])
+    # u_r = 1/r \Lambda^2 P = -1/r l(l+1) P
     return -l*(l+1)*Pl(r)*Y(m, l, theta, phi)/r
 
-def get_cartesian_solution(X, i):
+def velocity_cartesian(X, i):
     # i==0: "Upper Mantle" (above anomaly)
     # i==1: below anomaly
     r = sqrt(X[0]**2+X[1]**2+X[2]**2)
     theta = acos(X[2]/r)
-    if theta<1e-6*pi or theta>pi*(1.-1e-6):
-        return 0., 0., 0.
+    if theta<1e-7*pi or theta>pi*(1.-1e-7):
+        # workaround pole problem by averaging in 4 points near the pole
+        dx = 1e-6*r
+        return tuple(numpy.mean([velocity_cartesian((x,y,X[2])) for x,y in [[dx,dx],[-dx,dx],[dx,-dx],[-dx,-dx]]],axis=0))
     phi = atan2(X[1], X[0])
     ur = u_r(r,theta, phi)[i]
     uth = u_theta(r,theta, phi)[i]
@@ -116,18 +114,13 @@ def get_cartesian_solution(X, i):
              X[1]/r*ur + X[1]/req*costh*uth + X[0]/req*uph,
              X[2]/r*ur - sin(theta)*uth )
 
-def get_spherical_solution(X, i):
+def pressure_cartesian(X, i):
     # i==0: "Upper Mantle" (above anomaly)
     # i==1: below anomaly
     r = sqrt(X[0]**2+X[1]**2+X[2]**2)
     theta = acos(X[2]/r)
-    if theta<1e-6*pi or theta>pi*(1.-1e-6):
-        return 0., 0., 0.
     phi = atan2(X[1], X[0])
-    ur = u_r(r,theta, phi)[i]
-    uth = u_theta(r,theta, phi)[i]
-    uph = u_phi(r, theta, phi)[i]
-    return ur, uth, uph
+    return pressure(r, theta, phi)[i]
 
 def Y_cartesian(X):
     r = sqrt(X[0]**2+X[1]**2+X[2]**2)

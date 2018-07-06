@@ -1,3 +1,4 @@
+from __future__ import division
 import scipy.special
 import numpy
 from math import sqrt, atan2, cos, sin, tan, acos, pi
@@ -119,3 +120,8 @@ def pressure_cartesian(X, i):
     phi = atan2(X[1], X[0])
     return pressure(r, theta, phi)[i]
 
+def Y_cartesian(X):
+    r = sqrt(X[0]**2+X[1]**2+X[2]**2)
+    theta = acos(X[2]/r)
+    phi = atan2(X[1], X[0])
+    return Y(m, l, theta, phi)
