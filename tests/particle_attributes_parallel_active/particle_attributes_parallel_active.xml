@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>particle_attributes</name>
+  <owner userid="cmath"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="2">
+    <command_line>
+mpiexec ../../bin/flredecomp -i 1 -o 2 particle-attributes-parallel-active particle-attributes-parallel-active-flredecomp;
+mpiexec ../../bin/fluidity -v3 -l particle-attributes-parallel-active-flredecomp.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+  </variables>
+  <pass_tests>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

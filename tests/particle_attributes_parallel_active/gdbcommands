@@ -1,0 +1,4 @@
+set breakpoint pending on
+break _gfortran_runtime_error
+break exit
+run

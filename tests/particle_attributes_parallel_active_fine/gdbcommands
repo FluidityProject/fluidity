@@ -1,0 +1,5 @@
+set breakpoint pending on
+set max-value-size unlimited
+break _gfortran_runtime_error
+break exit
+run
