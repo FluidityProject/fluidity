@@ -19,7 +19,7 @@
           </polynomial_degree>
         </mesh_shape>
         <stat>
-          <exclude_from_stat/>
+          <include_in_stat/>
         </stat>
       </from_mesh>
     </mesh>
@@ -32,7 +32,7 @@
           </polynomial_degree>
         </mesh_shape>
         <stat>
-          <exclude_from_stat/>
+          <include_in_stat/>
         </stat>
       </from_mesh>
     </mesh>
@@ -40,7 +40,7 @@
       <from_mesh>
         <mesh name="ExtrudedMesh"/>
         <stat>
-          <exclude_from_stat/>
+          <include_in_stat/>
         </stat>
       </from_mesh>
     </mesh>
@@ -85,7 +85,7 @@
     </mesh>
     <quadrature>
       <degree>
-        <integer_value rank="0">6</integer_value>
+        <integer_value rank="0">5</integer_value>
       </degree>
     </quadrature>
     <spherical_earth>
@@ -181,28 +181,7 @@
           </poisson_pressure_solution>
           <use_projection_method>
             <full_schur_complement>
-              <inner_matrix name="FullMomentumMatrix">
-                <solver>
-                  <iterative_method name="cg"/>
-                  <preconditioner name="gamg"/>
-                  <relative_error>
-                    <real_value rank="0">1e-7</real_value>
-                  </relative_error>
-                  <absolute_error>
-                    <real_value rank="0">1e-12</real_value>
-                  </absolute_error>
-                  <max_iterations>
-                    <integer_value rank="0">1000</integer_value>
-                  </max_iterations>
-                  <multigrid_near_null_space>
-                    <all_components/>
-                  </multigrid_near_null_space>
-                  <never_ignore_solver_failures/>
-                  <diagnostics>
-                    <monitors/>
-                  </diagnostics>
-                </solver>
-              </inner_matrix>
+              <inner_matrix name="FullMomentumMatrix"/>
               <preconditioner_matrix name="ScaledPressureMassMatrix"/>
             </full_schur_complement>
           </use_projection_method>
@@ -214,7 +193,7 @@
               <iterative_method name="cg"/>
               <preconditioner name="gamg"/>
               <relative_error>
-                <real_value rank="0">1e-7</real_value>
+                <real_value rank="0">1e-12</real_value>
               </relative_error>
               <max_iterations>
                 <integer_value rank="0">1000</integer_value>
@@ -229,9 +208,6 @@
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
-          <absolute_error>
-            <real_value rank="0">1e-12</real_value>
-          </absolute_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
@@ -316,14 +292,12 @@
           <relative_error>
             <real_value rank="0">1e-07</real_value>
           </relative_error>
-          <absolute_error>
-            <real_value rank="0">1e-12</real_value>
-          </absolute_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <multigrid_near_null_space>
             <all_components/>
+            <all_rotations/>
           </multigrid_near_null_space>
           <never_ignore_solver_failures/>
           <diagnostics>
