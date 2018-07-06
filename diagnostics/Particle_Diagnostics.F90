@@ -49,9 +49,7 @@ module particle_diagnostics
 
   subroutine calculate_diagnostics_from_particles(states, state_index, s_field)
 
-    !!! in here need to determine which method is being used (currently only ratio)
-    !!! then need to determine the particle group, subgroup and attribute used for calculation
-    !!! interpolate these attribute values onto nodes for field
+    !!! Subroutine to determine which method is beind used (currently only ratio)
 
     type(state_type), dimension(:), target, intent(inout) :: states
     integer, intent(in) :: state_index
@@ -61,36 +59,24 @@ module particle_diagnostics
     character(len= OPTION_PATH_LEN) :: name
     integer :: i
 
-    !ewrite(2,*) "index: ", state_index, "size: ", size(states)
-    !ewrite(2,*) "halos", size(states(state_index)%halos) !!!??? Need to import halos?
-    !do i = 1,size(states(state_index)%halos)
-    !   name = trim(states(state_index)%halo_names(i))
-    !   ewrite(2,*) "halo name: ", name
-    !end do
-    
-    !states(state_index)
-
     call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/name", lmethod, default = "ratio")
 
     select case(trim(lmethod))
        
       case("ratio")
-        call calculate_particles_from_ratio(states, state_index, s_field)
+        call calculate_ratio_from_particles(states, state_index, s_field)
 
-!!$      case default
-!!$        if(present(stat)) then
-!!$          stat = 1
-!!$          return
-!!$        end if
-!!$        FLAbort("Diagnostic algorithm method " // trim(lmethod) // " not found")
     end select
 
   end subroutine calculate_diagnostics_from_particles
 
-  subroutine calculate_particles_from_ratio(states, state_index, s_field)
+  subroutine calculate_ratio_from_particles(states, state_index, s_field)
 
     !!Calculate s_field using the ratio method from particles
     !!First determine which particle groups/subgroups/attributes are being used
+    !!Then determine the closest node for each particle and store attribute values
+    !!Finally use the ratio method to calculate field values and place on
+    !!Diagnostic scalar field
 
     type(state_type), dimension(:), target, intent(inout) :: states
     integer, intent(in) :: state_index
@@ -100,7 +86,7 @@ module particle_diagnostics
     type(detector_linked_list), allocatable, dimension(:) :: p_array
     type(detector_type), pointer :: particle
     integer :: attribute_number, i, p_allocated
-    integer, allocatable, dimension(:) :: field_nodes, field_nodes_count
+    integer, allocatable, dimension(:) :: node_values, node_part_count
     integer :: element, node_number, dim
     real, allocatable, dimension(:) :: local_crds
     integer, dimension(:), pointer :: nodes
@@ -113,46 +99,50 @@ module particle_diagnostics
     call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/group/name", lgroup)
     call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/group/attribute/name", lattribute)
     ewrite(2,*) "Calculate diagnostic field from particle group: ", trim(lgroup), ", attribute: ", trim(lattribute)
+
+    !Initialize field as 0
+     s_field%val(:) = 0
+
+    !Call subroutine to check if particles are allocated
     call get_particles(p_array, p_allocated)
 
     if (p_allocated.eq.0) then
-       !Particles not yet setup, get initial field values from options tree
+       !Particles not yet setup, Initial field value will be 0
        
     else
-       call get_option("/geometry/dimension",dim)
+       !Particles are initialized, call subroutine to get relevant particle arrays and attributes
        call get_particle_arrays(lgroup, lattribute, group_arrays, group_attribute)
 
-       allocate(field_nodes(node_count(s_field)))
-       allocate(field_nodes_count(node_count(s_field)))
-       field_nodes(:) = 0
-       field_nodes_count(:) = 0
-       !initialise field as 0
-       s_field%val(:) = 0
-       !ewrite(2,*) "147258"
-       !ewrite(2,*) "Node count", node_count(s_field)!!!
-       !ewrite(2,*) "Element count", element_count(s_field)
+       !Allocate arrays to store summed attribute values and particle counts at nodes
+       allocate(node_values(node_count(s_field)))
+       allocate(node_part_count(node_count(s_field)))
+       node_values(:) = 0
+       node_part_count(:) = 0
 
-      ! do i = 1,element_count(s_field)
-       !   ewrite
-      ! end do
-
-       !ewrite(2,*) "258147"
+       !Loop over particle arrays
        do i = 1,size(group_arrays)
           particle => p_array(group_arrays(i))%first
-          if (associated(particle)) then
+          if (associated(particle)) then !Only work on arrays if local_particles exist on this processor
              allocate(local_crds(size(particle%local_coords)))
           end if
           do while(associated(particle))
+             !Get element, local_crds and attribute value of each particle
              element = particle%element
              local_crds = particle%local_coords
-             nodes => ele_nodes(s_field, element)
              att_value = particle%attributes(group_attribute)
 
-             !ewrite(2,*) "element number", element
+             !Find nodes for specified element
+             nodes => ele_nodes(s_field, element)
 
+             call get_option("/geometry/dimension",dim)
+             !Call Subroutine to determine closest node based off particle local_crds
+             !and return node_number for this node
              call get_particle_node(nodes, local_crds, dim, node_number)
-             field_nodes(node_number) = field_nodes(node_number) + att_value
-             field_nodes_count(node_number) = field_nodes_count(node_number) + 1
+             
+             !Store particle attribute value on closest node
+             node_values(node_number) = node_values(node_number) + att_value
+             !Increase particle count for this node by 1
+             node_part_count(node_number) = node_part_count(node_number) + 1
              particle => particle%next
              
           end do
@@ -160,25 +150,26 @@ module particle_diagnostics
              deallocate(local_crds)
           end if
        end do
-       do i = 1,node_count(s_field)
-          !ewrite(2,*) i, field_nodes_count(i)
 
-          ratio_val = field_nodes(i)*1.0/field_nodes_count(i)
-          if (field_nodes_count(i).eq.0) then
+       !Loop over all nodes
+       do i = 1,node_count(s_field)
+          !Determine field value from ratio method
+          ratio_val = node_values(i)*1.0/node_part_count(i)
+          !Store value on field (if node has at least one particle)
+          if (node_part_count(i).eq.0) then
              s_field%val(i) = 0
           else
              s_field%val(i) = ratio_val
           end if
        end do
-       deallocate(field_nodes)
-       deallocate(field_nodes_count)
+       deallocate(node_values)
+       deallocate(node_part_count)
     end if
 
-  end subroutine calculate_particles_from_ratio
+  end subroutine calculate_ratio_from_particles
 
   subroutine get_particle_node(nodes, local_crds, dim, node_number)
-
-    !!Given local_nodes, local coords and dimension
+    !!Given element nodes, particle local_coords and dimension
     !!returns node number of closest node
 
     integer, dimension(:), pointer, intent(in) :: nodes
@@ -188,6 +179,7 @@ module particle_diagnostics
 
     real :: maxval
 
+    !Determine closest node from highest local_crds value
     select case(dim)
        
     case(1)
