@@ -43,7 +43,7 @@ module particle_diagnostics
 
   private
 
-  public :: calculate_diagnostics_from_particles, calculate_particles_from_ratio
+  public :: calculate_diagnostics_from_particles, calculate_ratio_from_particles
 
   contains
 
@@ -86,7 +86,8 @@ module particle_diagnostics
     type(detector_linked_list), allocatable, dimension(:) :: p_array
     type(detector_type), pointer :: particle
     integer :: attribute_number, i, p_allocated
-    integer, allocatable, dimension(:) :: node_values, node_part_count
+    real, allocatable, dimension(:) :: node_values
+    integer, allocatable, dimension(:) :: node_part_count
     integer :: element, node_number, dim
     real, allocatable, dimension(:) :: local_crds
     integer, dimension(:), pointer :: nodes
@@ -154,7 +155,7 @@ module particle_diagnostics
        !Loop over all nodes
        do i = 1,node_count(s_field)
           !Determine field value from ratio method
-          ratio_val = node_values(i)*1.0/node_part_count(i)
+          ratio_val = node_values(i)/node_part_count(i)
           !Store value on field (if node has at least one particle)
           if (node_part_count(i).eq.0) then
              s_field%val(i) = 0
