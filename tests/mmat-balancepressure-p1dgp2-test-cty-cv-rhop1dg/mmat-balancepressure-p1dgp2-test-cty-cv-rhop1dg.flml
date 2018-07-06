@@ -147,6 +147,9 @@ This is however the same as when using the geostrophic or hydrostatic pressure s
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -201,6 +204,9 @@ This is however the same as when using the geostrophic or hydrostatic pressure s
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -219,6 +225,9 @@ This is however the same as when using the geostrophic or hydrostatic pressure s
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -325,6 +334,9 @@ This is however the same as when using the geostrophic or hydrostatic pressure s
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -383,6 +395,9 @@ This is however the same as when using the geostrophic or hydrostatic pressure s
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -401,6 +416,9 @@ This is however the same as when using the geostrophic or hydrostatic pressure s
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -418,6 +436,9 @@ This is however the same as when using the geostrophic or hydrostatic pressure s
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -449,6 +470,9 @@ This is however the same as when using the geostrophic or hydrostatic pressure s
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
