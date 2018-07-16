@@ -108,7 +108,7 @@
     </mesh>
     <quadrature>
       <degree>
-        <integer_value rank="0">6</integer_value>
+        <integer_value rank="0">5</integer_value>
       </degree>
     </quadrature>
     <spherical_earth>
@@ -196,28 +196,7 @@
           </poisson_pressure_solution>
           <use_projection_method>
             <full_schur_complement>
-              <inner_matrix name="FullMomentumMatrix">
-                <solver>
-                  <iterative_method name="cg"/>
-                  <preconditioner name="gamg"/>
-                  <relative_error>
-                    <real_value rank="0">1e-7</real_value>
-                  </relative_error>
-                  <absolute_error>
-                    <real_value rank="0">1e-12</real_value>
-                  </absolute_error>
-                  <max_iterations>
-                    <integer_value rank="0">1000</integer_value>
-                  </max_iterations>
-                  <multigrid_near_null_space>
-                    <all_components/>
-                  </multigrid_near_null_space>
-                  <never_ignore_solver_failures/>
-                  <diagnostics>
-                    <monitors/>
-                  </diagnostics>
-                </solver>
-              </inner_matrix>
+              <inner_matrix name="FullMomentumMatrix"/>
               <preconditioner_matrix name="ScaledPressureMassMatrix"/>
             </full_schur_complement>
           </use_projection_method>
@@ -229,7 +208,7 @@
               <iterative_method name="cg"/>
               <preconditioner name="gamg"/>
               <relative_error>
-                <real_value rank="0">1e-7</real_value>
+                <real_value rank="0">1e-10</real_value>
               </relative_error>
               <max_iterations>
                 <integer_value rank="0">1000</integer_value>
@@ -242,17 +221,12 @@
             </solver>
           </preconditioner>
           <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0e-6</real_value>
           </relative_error>
-          <absolute_error>
-            <real_value rank="0">1e-12</real_value>
-          </absolute_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
-          <remove_null_space>
-            <test_null_space/>
-          </remove_null_space>
+          <remove_null_space/>
           <never_ignore_solver_failures/>
           <diagnostics>
             <monitors>
@@ -329,16 +303,14 @@
           <iterative_method name="cg"/>
           <preconditioner name="gamg"/>
           <relative_error>
-            <real_value rank="0">1e-07</real_value>
+            <real_value rank="0">1e-10</real_value>
           </relative_error>
-          <absolute_error>
-            <real_value rank="0">1e-12</real_value>
-          </absolute_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <multigrid_near_null_space>
             <all_components/>
+            <all_rotations/>
           </multigrid_near_null_space>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -385,24 +357,21 @@
                 <python>
                   <string_value lines="20" type="code" language="python">def val(X,t):
   from solution import Y_cartesian, rp
-  from numpy import norm
-  return -Y_cartesian(X)*X[0]/2./norm(X)</string_value>
+  return -Y_cartesian(X)*X[0]/2./rp</string_value>
                 </python>
               </x_component>
               <y_component>
                 <python>
                   <string_value lines="20" type="code" language="python">def val(X,t):
   from solution import Y_cartesian, rp
-  from numpy import norm
-  return -Y_cartesian(X)*X[1]/2./norm(X)</string_value>
+  return -Y_cartesian(X)*X[1]/2./rp</string_value>
                 </python>
               </y_component>
               <z_component>
                 <python>
                   <string_value lines="20" type="code" language="python">def val(X,t):
   from solution import Y_cartesian, rp
-  from numpy import norm
-  return -Y_cartesian(X)*X[2]/2./norm(X)</string_value>
+  return -Y_cartesian(X)*X[2]/2./rp</string_value>
                 </python>
               </z_component>
             </align_bc_with_cartesian>
@@ -559,4 +528,13 @@
       </diagnostic>
     </vector_field>
   </material_phase>
+  <flredecomp>
+    <final_partitioner>
+      <zoltan>
+        <method>
+          <string_value lines="1">hypergraph</string_value>
+        </method>
+      </zoltan>
+    </final_partitioner>
+  </flredecomp>
 </fluidity_options>
