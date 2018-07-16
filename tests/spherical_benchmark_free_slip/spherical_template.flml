@@ -358,21 +358,21 @@
               <x_component>
                 <python>
                   <string_value lines="20" type="code" language="python">def val(X,t):
-  from solution import Ra, Y_cartesian
+  from solution import Y_cartesian
   return -Y_cartesian(X)*X[0]/2.</string_value>
                 </python>
               </x_component>
               <y_component>
                 <python>
                   <string_value lines="20" type="code" language="python">def val(X,t):
-  from solution import Ra, Y_cartesian
+  from solution import Y_cartesian
   return -Y_cartesian(X)*X[1]/2.</string_value>
                 </python>
               </y_component>
               <z_component>
                 <python>
                   <string_value lines="20" type="code" language="python">def val(X,t):
-  from solution import Ra, Y_cartesian
+  from solution import Y_cartesian
   return -Y_cartesian(X)*X[2]/2.</string_value>
                 </python>
               </z_component>
