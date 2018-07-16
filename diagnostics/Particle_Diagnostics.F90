@@ -142,10 +142,8 @@ module particle_diagnostics
              !Find nodes for specified element
              nodes => ele_nodes(s_field, element)
 
-             call get_option("/geometry/dimension",dim)
-             !Call Subroutine to determine closest node based off particle local_crds
-             !and return node_number for this node
-             call get_particle_node(nodes, local_crds, dim, node_number)
+             ! work out nearest node based on max. local coordinate
+             node_number = nodes(maxloc(local_crds, dim=1))
              
              !Store particle attribute value on closest node
              node_values(node_number) = node_values(node_number) + att_value
@@ -182,54 +180,5 @@ module particle_diagnostics
     end if
 
   end subroutine calculate_ratio_from_particles
-
-  subroutine get_particle_node(nodes, local_crds, dim, node_number)
-    !!Given element nodes, particle local_coords and dimension
-    !!returns node number of closest node
-
-    integer, dimension(:), pointer, intent(in) :: nodes
-    real, dimension(:), intent(in) :: local_crds
-    integer, intent(in) :: dim
-    integer, intent(out) :: node_number
-
-    real :: maxval
-
-    !Determine closest node from highest local_crds value
-    select case(dim)
-       
-    case(1)
-       maxval = local_crds(1)
-       if (local_crds(2)>maxval) then
-          node_number = nodes(2)
-       else
-          node_number = nodes(1)
-       end if    
-    case(2)
-       maxval = local_crds(1)
-       node_number = nodes(1)
-       if (local_crds(2)>maxval) then
-          maxval = local_crds(2)
-          node_number = nodes(2)
-          if (local_crds(3)>maxval) then
-             node_number = nodes(3)
-          end if
-       end if
-    case(3)
-       maxval = local_crds(1)
-       node_number = nodes(1)
-       if (local_crds(2)>maxval) then
-          maxval = local_crds(2)
-          node_number = nodes(2)
-          if (local_crds(3)>maxval) then
-             maxval = local_crds(3)
-             node_number = nodes(3)
-             if (local_crds(4)>maxval) then
-                node_number = nodes(4)
-             end if
-          end if
-       end if
-    end select
-
-  end subroutine get_particle_node
 
 end module particle_diagnostics
