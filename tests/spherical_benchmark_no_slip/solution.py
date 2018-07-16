@@ -103,7 +103,7 @@ def velocity_cartesian(X, i):
     if theta<1e-7*pi or theta>pi*(1.-1e-7):
         # workaround pole problem by averaging in 4 points near the pole
         dx = 1e-6*r
-        return tuple(numpy.mean([velocity_cartesian((x,y,X[2])) for x,y in [[dx,dx],[-dx,dx],[dx,-dx],[-dx,-dx]]],axis=0))
+        return tuple(numpy.mean([velocity_cartesian((x,y,X[2]),i) for x,y in [[dx,dx],[-dx,dx],[dx,-dx],[-dx,-dx]]],axis=0))
     phi = atan2(X[1], X[0])
     ur = u_r(r,theta, phi)[i]
     uth = u_theta(r,theta, phi)[i]
