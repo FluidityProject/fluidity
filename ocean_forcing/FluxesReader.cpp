@@ -438,11 +438,11 @@ int FluxesReader::Read(int time_index){
     
     short fill_value;
     err = nc_get_att_short(ncid, id, "_FillValue", &fill_value);
-    if (err != NC_NOERR) fill_value = std::numeric_limits<double>::quiet_NaN();
+    if (err != NC_NOERR) fill_value = std::numeric_limits<short>::quiet_NaN();
     
     short missing_value;
     err = nc_get_att_short(ncid, id, "missing_value", &missing_value);
-    if (err != NC_NOERR) missing_value = std::numeric_limits<double>::quiet_NaN();
+    if (err != NC_NOERR) missing_value = std::numeric_limits<short>::quiet_NaN();
     
     if(verbose){
       cout<<*ifield<<" scale_factor = "<<scale_factor<<endl

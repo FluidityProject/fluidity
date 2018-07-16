@@ -64,7 +64,11 @@ int main(int argc, char** argv){
 #ifdef HAVE_MPI
   MPI_Init(&argc, &argv);
   // Undo some MPI init shenanigans
-  chdir(getenv("PWD"));
+  int ierr = chdir(getenv("PWD"));
+  if (ierr == -1) {
+        cerr << "Unable to switch to directory " << getenv("PWD");
+        abort();
+  }
 #endif
   PetscInit(argc, argv);
 #ifdef HAVE_PYTHON

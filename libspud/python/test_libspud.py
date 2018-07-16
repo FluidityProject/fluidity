@@ -87,6 +87,13 @@ except libspud.SpudTypeError, e:
 
 libspud.write_options('test_out.flml')
 
+try:
+  libspud.set_option('/test', 4.3)
+except libspud.SpudNewKeyWarning, e:
+  pass
+
+assert libspud.get_option('/test') == 4.3
+
 libspud.set_option('/test',4)
 
 assert libspud.get_option('/test') == 4
