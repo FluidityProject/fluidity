@@ -59,9 +59,6 @@ implicit none
 
 private
 
-! FIXME: option?
-logical:: radial_fs = .true.
-
 public move_mesh_free_surface, add_free_surface_to_cmc_projection, &
   vertical_prolongator_from_free_surface, &
   free_surface_nodes, calculate_diagnostic_free_surface, &
@@ -271,7 +268,7 @@ contains
       real:: g, rho0, delta_rho, alpha, alpha_old, coef, coef_old, d0
       integer, dimension(:), pointer:: surface_element_list, fs_surface_element_list
       integer:: i, j, grav_stat, dens_stat, external_density_stat
-      logical:: include_normals, move_mesh
+      logical:: include_normals, move_mesh, radial_fs
       logical:: addto_cmc, variable_density, any_variable_density, have_density
       logical:: have_wd, have_wd_node_int, have_external_density
       logical:: implicit_prognostic_fs, use_fs_mesh
@@ -333,8 +330,7 @@ contains
       ! if the free surface nodes are actually moved (not necessary
       ! for large scale ocean simulations) - otherwise the free surface is assumed flat
       ! (and on top unless we use a prognostic fs, which may be on the bottom)
-      ! FIXME: bottom fs with radial_fs still needs the correct sign
-      include_normals = move_mesh .or. (implicit_prognostic_fs .and. .not. radial_fs)
+      include_normals = move_mesh .or. implicit_prognostic_fs
       if (include_normals) then
         ewrite(2,*) 'Including inner product of normals in kinematic bc'
         gravity_normal => extract_vector_field(state, "GravityDirection")
@@ -372,6 +368,7 @@ contains
           else
             use_fs_mesh=.false.
           end if
+          radial_fs = have_option(trim(fs_option_path)//"/type[0]/no_normal_stress/radial_normals")
 
           variable_density = have_option(trim(fs_option_path)//"/type[0]/variable_density") &
                             .and. (.not.move_mesh)
@@ -467,7 +464,13 @@ contains
 
       real, dimension(face_ngi(p, sele)):: inv_delta_rho_quad, old_inv_delta_rho_quad
 
-      if(include_normals) then
+      if(radial_fs) then
+        ! we assume the gravity and surface normal are the same (both radial)
+        ! we do however need to include their relative sign
+        call transform_facet_to_physical(positions, sele, detwei_f=detwei,&
+            & normal=normals)
+        detwei=detwei*(-1.0)*sign(1.0, sum(face_val_at_quad(gravity_normal,sele)*normals, dim=1))
+      else if(include_normals) then
         call transform_facet_to_physical(positions, sele, detwei_f=detwei,&
             & normal=normals)
         ! at each gauss point multiply with inner product of gravity and surface normal
@@ -1701,6 +1704,7 @@ contains
     type(integer_hash_table):: sele_to_fs_ele
     character(len=FIELD_NAME_LEN):: bc_type
     character(len=OPTION_PATH_LEN):: bc_option_path
+    logical :: radial_fs
     integer, dimension(:), pointer:: surface_element_list
     integer:: i, j
 
@@ -1725,6 +1729,7 @@ contains
       if (bc_type=="free_surface") then
         if(have_option(trim(bc_option_path)//"/type[0]/no_normal_stress") .and. &
            (.not.have_option(trim(bc_option_path)//"/type[0]/no_normal_stress/explicit"))) then
+          radial_fs = have_option(trim(bc_option_path)//"/type[0]/no_normal_stress/radial_normals")
           do j=1, size(surface_element_list)
             call add_boundary_integral_sele(surface_element_list(j))
           end do
@@ -1740,7 +1745,7 @@ contains
       real, dimension(u%dim, face_loc(p_mesh, sele), face_loc(u, sele)) :: ct_mat_bdy
       real, dimension(u%dim, face_loc(fs, sele), face_loc(u, sele)) :: ht_mat_bdy
       real, dimension(face_ngi(u, sele)) :: detwei_bdy
-      real, dimension(u%dim, face_ngi(u, sele)) :: normal_bdy
+      real, dimension(u%dim, face_ngi(u, sele)) :: normal_bdy, radials_bdy
       integer:: dim
       
       call transform_facet_to_physical(x, sele, &
@@ -1748,11 +1753,13 @@ contains
       ct_mat_bdy = shape_shape_vector(face_shape(p_mesh, sele), face_shape(u, sele), &
            detwei_bdy, normal_bdy)
       if (radial_fs) then
-        ! what is correct? radials on gauss points, or radials on P2 nodes then interpolated
-        normal_bdy = - radial_inward_normal_at_quad_face(X, sele)
-        ht_mat_bdy = shape_shape_vector(face_shape(fs, sele), face_shape(u, sele), &
-             detwei_bdy, normal_bdy)
+        ! use purely radial normals instead
+        radials_bdy = radial_inward_normal_at_quad_face(X, sele)
+        detwei_bdy = detwei_bdy * sign(1.0, sum(radials_bdy*normal_bdy, dim=1))
+        normal_bdy = radials_bdy
       end if
+      ht_mat_bdy = shape_shape_vector(face_shape(fs, sele), face_shape(u, sele), &
+           detwei_bdy, normal_bdy)
       do dim=1, u%dim
         ! we've integrated continuity by parts, but not yet added in the resulting
         ! surface integral - for the non-viscous free surface this is left

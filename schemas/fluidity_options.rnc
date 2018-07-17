@@ -2956,6 +2956,14 @@ velocity_boundary_conditions =
                  ## Requires a prognostic FreeSurface field.
                  element explicit {
                    empty
+                 }?,
+                 ## Force the normals used in the free surface boundary condition to be purely in the
+                 ## radial direction (up or down), instead of using the facet normals. This option is
+                 ## recommended in idealised cylindrical and spherical domains (only) when a surface-aligned
+                 ## strong Dirichlet boundary condition is used to prescribe the tangential velocities. In
+                 ## this case we need the normals to be orthogonal to the prescribed tangential direction.
+                 element radial_normals {
+                   empty
                  }?
               }?,
               ## When selected the density at the surface is calculated using the Density field.  Therefore
