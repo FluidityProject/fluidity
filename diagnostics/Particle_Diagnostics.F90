@@ -33,6 +33,7 @@ module particle_diagnostics
   use global_parameters, only : OPTION_PATH_LEN
   use particles, only : get_particles, get_particle_arrays
   use spud
+  use parallel_tools, only: getnprocs
   use state_module
   use halos
   use fields
@@ -92,6 +93,7 @@ module particle_diagnostics
     integer :: element, node_number, dim
     real, allocatable, dimension(:) :: local_crds
     integer, dimension(:), pointer :: nodes
+    integer :: nprocs
     real :: att_value
     real :: ratio_val
 
@@ -112,7 +114,11 @@ module particle_diagnostics
     ! into the owner in the halo_accumulate calls below
     ! we might be safe to assume we only need to add into halo 1 nodes (as these
     ! are the only ones that make up owned elements), but let's include halo 2 to be sure
-    halo => s_field%mesh%halos(2)
+    ! Only run this if nprocs > 1
+    nprocs = getnprocs()
+    if (nprocs>1) then
+       halo => s_field%mesh%halos(2)
+    end if
 
     if (p_allocated.eq.0) then
        !Particles not yet setup, Initial field value will be 0
@@ -157,9 +163,10 @@ module particle_diagnostics
           end if
        end do
 
-       call halo_accumulate(halo, node_part_count)
-       call halo_accumulate(halo, node_values)
-
+       if (nprocs>1) then
+          call halo_accumulate(halo, node_part_count)
+          call halo_accumulate(halo, node_values)
+       end if
        !Loop over all nodes
        do i = 1,node_count(s_field)
           !Determine field value from ratio method
@@ -176,7 +183,9 @@ module particle_diagnostics
 
        ! all values in owned nodes should now be correct
        ! now we need to make sure the halo is updated accordingly
-       call halo_update(s_field)
+       if (nprocs>1) then
+          call halo_update(s_field)
+       end if
     end if
 
   end subroutine calculate_ratio_from_particles
