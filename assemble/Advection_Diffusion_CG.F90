@@ -49,6 +49,7 @@ module advection_diffusion_cg
   use boundary_conditions
   use field_options
   use sparsity_patterns_meshes
+  use petsc_tools
   use boundary_conditions_from_options
   use petsc_solve_state_module
   use upwind_stabilisation
@@ -122,6 +123,8 @@ module advection_diffusion_cg
   ! Are we running a multiphase flow simulation?
   logical :: multiphase
 
+  integer, save :: petsc_stage_scalar_cg = -1
+
 contains
 
   subroutine solve_field_equation_cg(field_name, state, istate, dt, velocity_name, iterations_taken)
@@ -139,6 +142,7 @@ contains
     type(csr_matrix) :: matrix
     type(scalar_field) :: delta_t, rhs
     type(scalar_field), pointer :: t
+    integer :: stat
     
     ewrite(1, *) "In solve_field_equation_cg"
     
@@ -146,6 +150,9 @@ contains
       & trim(field_name) // " in state " // trim(state(istate)%name)
 
     call initialise_advection_diffusion_cg(field_name, t, delta_t, matrix, rhs, state(istate))
+
+    call petsc_stage_register("Advection_Diffusion_CG", petsc_stage_scalar_cg)
+    call PetscLogStagePush(petsc_stage_scalar_cg, stat)
     
     call profiler_tic(t, "assembly")
     call assemble_advection_diffusion_cg(t, matrix, rhs, state(istate), dt, velocity_name = velocity_name)    
@@ -168,6 +175,8 @@ contains
     
     call finalise_advection_diffusion_cg(delta_t, matrix, rhs)
     call profiler_toc(t, "assembly")
+
+    call PetscLogStagePop(stat)
 
     ewrite(1, *) "Exiting solve_field_equation_cg"
     

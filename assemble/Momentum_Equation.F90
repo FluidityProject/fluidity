@@ -50,6 +50,7 @@
       use dgtools, only: dg_apply_mass
       use state_fields_module
       use field_priority_lists
+      use petsc_tools
       use solvers
       use diagnostic_fields, only: calculate_diagnostic_variable
       use multiphase_module
@@ -137,6 +138,9 @@
       ! Do we have a prognostic free surface (currently only in 
       ! combination with a no_normal_stress free_surface)
       logical :: implicit_prognostic_fs, explicit_prognostic_fs, standard_fs
+
+      integer, save :: petsc_stage_velocity = -1
+      integer, save :: petsc_stage_pressure = -1
 
    contains
 
@@ -272,6 +276,8 @@
 
          ewrite(1,*) 'Entering solve_momentum'
 
+         call petsc_stage_register("Velocity", petsc_stage_velocity)
+         call petsc_stage_register("Pressure", petsc_stage_pressure)
 
          !! Get diagnostics (equations of state, etc) and assemble matrices
 
@@ -370,6 +376,8 @@
 
          call profiler_tic("assembly_loop")
          assembly_loop: do istate = 1, size(state)
+            
+            call PetscLogStagePush(petsc_stage_velocity, stat)
 
             ! Get the velocity u^{n}
             u => extract_vector_field(state(istate), "Velocity", stat)
@@ -399,6 +407,9 @@
 
             !! Get some velocity options:
             call get_velocity_options(state, istate, u)
+
+            call PetscLogStagePop(stat)
+            call PetscLogStagePush(petsc_stage_pressure, stat)
 
             if(.not. have_pressure) then
 
@@ -571,6 +582,9 @@
                theta_pg=1.0
             end if
 
+            call PetscLogStagePop(stat)
+            call PetscLogStagePush(petsc_stage_velocity, stat)
+
             call profiler_tic(u, "assembly")
             ! Allocation of big_m
             if(dg(istate)) then
@@ -690,6 +704,9 @@
 
             call profiler_toc(u, "assembly")
 
+            call PetscLogStagePop(stat)
+            call PetscLogStagePush(petsc_stage_pressure, stat)
+
             call profiler_tic(p, "assembly")
 
             ! Assemble divergence matrix C^T.
@@ -729,6 +746,9 @@
 
             call profiler_toc(p, "assembly")
 
+            call PetscLogStagePop(stat)
+            call PetscLogStagePush(petsc_stage_velocity, stat)
+
             call profiler_tic(u, "assembly")
             if (have_rotated_bcs(u)) then
                ! Rotates big_m, rhs and the velocity field at strong, surface_aligned dirichlet bcs
@@ -748,6 +768,9 @@
             end if
 
             call profiler_toc(u, "assembly")
+
+            call PetscLogStagePop(stat)
+            call PetscLogStagePush(petsc_stage_pressure, stat)
 
             if (associated(ct_m(istate)%ptr)) then
               ewrite_minmax(ct_m(istate)%ptr)
@@ -958,12 +981,15 @@
             call deallocate(dummyscalar)
             deallocate(dummyscalar)
 
+            call PetscLogStagePop(stat)
+
          end do assembly_loop
          call profiler_toc("assembly_loop")  ! End of Step 1 (diagnostics and matrix assembly)
 
 
          !! Obtain pressure guess p^{*} (assemble and solve a Poisson pressure equation for p^{*} if desired)
 
+         call PetscLogStagePush(petsc_stage_pressure, stat)
 
          ! Do we have a prognostic pressure field we can actually solve for?
          if(prognostic_p) then
@@ -1003,6 +1029,9 @@
          end if ! end of prognostic pressure
 
          !! Advance velocity from u^{n} to an intermediate velocity u^{*}
+
+         call PetscLogStagePop(stat)
+         call PetscLogStagePush(petsc_stage_velocity, stat)
 
          call profiler_tic("velocity_solve_loop")
          velocity_solve_loop: do istate = 1, size(state)
@@ -1069,6 +1098,9 @@
          end do velocity_solve_loop
          call profiler_toc("velocity_solve_loop")
 
+         call PetscLogStagePop(stat)
+         call PetscLogStagePush(petsc_stage_pressure, stat)
+
 
          !! Solve for delta_p -- the pressure correction term
          if(prognostic_p) then
@@ -1091,6 +1123,8 @@
             call profiler_toc(p, "assembly")
          end if
          
+         call PetscLogStagePop(stat)
+         call PetscLogStagePush(petsc_stage_velocity, stat)
          
          !! Correct and update velocity fields to u^{n+1} using pressure correction term delta_p
          if(prognostic_p) then
@@ -1209,6 +1243,8 @@
          deallocate(subcycle)
          deallocate(lump_mass)
          deallocate(sphere_absorption)
+
+         call PetscLogStagePop(stat)
 
       end subroutine solve_momentum
 
