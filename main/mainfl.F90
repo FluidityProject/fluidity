@@ -31,6 +31,7 @@ subroutine mainfl() bind(C)
   !!< This program solves the Navier-Stokes, radiation, and/or
   !!< advection-diffusion types of equations
   use fldebug
+  use petsc_logging
   use fluids_module
   !use reduced_fluids_module
   use signals
@@ -57,6 +58,8 @@ subroutine mainfl() bind(C)
   call initialise_signals()
 
   call tictoc_reset()
+
+  call petsc_events_initialise()
 
   !######################################################
   !      Normal Fluidity Model

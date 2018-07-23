@@ -49,7 +49,7 @@ module advection_diffusion_cg
   use boundary_conditions
   use field_options
   use sparsity_patterns_meshes
-  use petsc_tools
+  use petsc_logging
   use boundary_conditions_from_options
   use petsc_solve_state_module
   use upwind_stabilisation
@@ -142,7 +142,6 @@ contains
     type(csr_matrix) :: matrix
     type(scalar_field) :: delta_t, rhs
     type(scalar_field), pointer :: t
-    integer :: stat
     
     ewrite(1, *) "In solve_field_equation_cg"
     
@@ -152,7 +151,7 @@ contains
     call initialise_advection_diffusion_cg(field_name, t, delta_t, matrix, rhs, state(istate))
 
     call petsc_stage_register("Advection_Diffusion_CG", petsc_stage_scalar_cg)
-    call PetscLogStagePush(petsc_stage_scalar_cg, stat)
+    call petsc_stage_begin(petsc_stage_scalar_cg)
     
     call profiler_tic(t, "assembly")
     call assemble_advection_diffusion_cg(t, matrix, rhs, state(istate), dt, velocity_name = velocity_name)    
@@ -176,7 +175,7 @@ contains
     call finalise_advection_diffusion_cg(delta_t, matrix, rhs)
     call profiler_toc(t, "assembly")
 
-    call PetscLogStagePop(stat)
+    call petsc_stage_end()
 
     ewrite(1, *) "Exiting solve_field_equation_cg"
     
@@ -211,6 +210,7 @@ contains
     call allocate(matrix, sparsity, name = advdif_cg_m_name)
     call allocate(rhs, t%mesh, name = advdif_cg_rhs_name)
     call allocate(delta_t, t%mesh, name = trim(field_name)//advdif_cg_delta_t_name)
+    delta_t%option_path = t%option_path
     
     call set_advection_diffusion_cg_initial_guess(delta_t)
     
@@ -577,6 +577,8 @@ contains
 
     call profiler_tic(t, "advection_diffusion_loop")
 
+    call petsc_event_begin(petsc_event_element_assembly)
+
     !$OMP PARALLEL DEFAULT(SHARED) &
     !$OMP PRIVATE(clr, len, nnid, ele, thread_num)
 
@@ -605,6 +607,8 @@ contains
 
     call profiler_toc(t, "advection_diffusion_loop")
 
+    call petsc_event_end(petsc_event_element_assembly)
+
     ! Add the source directly to the rhs if required 
     ! which must be included before dirichlet BC's.
     if (add_src_directly_to_rhs) call addto(rhs, source)
@@ -631,6 +635,7 @@ contains
         call ewrite_bc_counts(2, t_bc_types)
       end if
     
+      call petsc_event_begin(petsc_event_surface_element_assembly)
       do i = 1, surface_element_count(t)
         if(t_bc_types(i)==BC_TYPE_INTERNAL) cycle
         call assemble_advection_diffusion_face_cg(i, t_bc_types(i), t, t_bc, t_bc_2, &
@@ -638,6 +643,7 @@ contains
                                                   positions, velocity, grid_velocity, &
                                                   density, olddensity, nvfrac)
       end do
+      call petsc_event_end(petsc_event_surface_element_assembly)
     
       call deallocate(t_bc)
       call deallocate(t_bc_2)

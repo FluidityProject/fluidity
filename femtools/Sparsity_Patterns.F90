@@ -31,6 +31,7 @@ module sparsity_patterns
   use fldebug
   use linked_lists
   use elements
+  use petsc_logging
   use sparse_tools
   use fields_data_types
   use fields_base
@@ -53,6 +54,8 @@ contains
     character(len=*), intent(in) :: name
     
     integer :: row_count, i
+
+    call petsc_event_begin(petsc_event_make_sparsity)
     
     row_count=node_count(rowmesh)
 
@@ -82,6 +85,8 @@ contains
     
     deallocate(list_matrix)
 
+    call petsc_event_end(petsc_event_make_sparsity)
+
   end function make_sparsity
 
   function make_sparsity_transpose(outsidemesh, insidemesh, name) result (sparsity)
@@ -95,6 +100,8 @@ contains
     type(ilist), dimension(:), pointer :: list_matrix, list_matrix_out
     integer :: row_count, row_count_out, i, j, k
     integer, dimension(:), allocatable :: row
+
+    call petsc_event_begin(petsc_event_make_sparsity_t)
 
     row_count=node_count(insidemesh)
     row_count_out=node_count(outsidemesh)
@@ -145,6 +152,8 @@ contains
     
     deallocate(list_matrix, list_matrix_out)
 
+    call petsc_event_end(petsc_event_make_sparsity_t)
+
   end function make_sparsity_transpose
   
   function make_sparsity_mult(mesh1, mesh2, mesh3, name) result (sparsity)
@@ -157,6 +166,8 @@ contains
     type(ilist), dimension(:), pointer :: list_matrix_1, list_matrix_3, list_matrix_out
     integer :: count_1, count_2, count_3, i, j, k
     integer, dimension(:), allocatable :: row_1, row_3
+
+    call petsc_event_begin(petsc_event_make_sparsity_mult)
 
     count_1=node_count(mesh1)
     count_2=node_count(mesh2)
@@ -207,6 +218,8 @@ contains
     call deallocate(list_matrix_out)    
     deallocate(list_matrix_1, list_matrix_3, list_matrix_out)
 
+    call petsc_event_end(petsc_event_make_sparsity_mult)
+
   end function make_sparsity_mult
 
   function make_sparsity_dg_mass(mesh) result (sparsity)
@@ -221,6 +234,8 @@ contains
     
     integer :: nonzeros, nodes, elements, nloc
     integer :: i,j,k
+
+    call petsc_event_begin(petsc_event_make_sparsity_dg_mass)
 
     nloc=mesh%shape%loc ! Nodes per element
     nodes=node_count(mesh) ! Total nodes
@@ -249,6 +264,8 @@ contains
        call incref(sparsity%column_halo)
     end if
 
+    call petsc_event_end(petsc_event_make_sparsity_dg_mass)
+
   end function make_sparsity_dg_mass
 
   function make_sparsity_compactdgdouble(&
@@ -266,6 +283,8 @@ contains
     character(len=*), intent(in) :: name
     
     integer :: row_count, i
+
+    call petsc_event_begin(petsc_event_make_sparsity_compactdgdouble)
     
     row_count=node_count(mesh)
 
@@ -293,6 +312,8 @@ contains
        sparsity%column_halo=mesh%halos(1)
        call incref(sparsity%column_halo)
     end if
+
+    call petsc_event_end(petsc_event_make_sparsity_compactdgdouble)
 
   end function make_sparsity_compactdgdouble
 

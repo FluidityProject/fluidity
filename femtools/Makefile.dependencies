@@ -579,7 +579,7 @@ Halos_Communications.o ../include/halos_communications.mod: \
    ../include/halos_allocates.mod ../include/halos_base.mod \
    ../include/halos_debug.mod ../include/linked_lists.mod \
    ../include/mpi_interfaces.mod ../include/parallel_tools.mod \
-   ../include/quicksort.mod
+   ../include/petsc_logging.mod ../include/quicksort.mod
 
 ../include/halos_debug.mod: Halos_Debug.o
 	@true
@@ -846,6 +846,12 @@ Parallel_fields.o ../include/parallel_fields.mod: Parallel_fields.F90 \
    ../include/halos_base.mod ../include/halos_communications.mod \
    ../include/halos_numbering.mod ../include/halos_ownership.mod \
    ../include/mpi_interfaces.mod ../include/parallel_tools.mod
+
+../include/petsc_logging.mod: Petsc_Logging.o
+	@true
+
+Petsc_Logging.o ../include/petsc_logging.mod: Petsc_Logging.F90 \
+   ../include/fdebug.h ../include/petsc_legacy.h
 
 ../include/petsc_tools.mod: Petsc_Tools.o
 	@true

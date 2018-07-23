@@ -41,6 +41,7 @@ module halos_communications
   use fields_data_types
   use fields_base
   use linked_lists
+  use petsc_logging
 
   implicit none
   
@@ -195,6 +196,8 @@ contains
     assert(halo_valid_for_communication(halo))
     assert(.not. pending_communication(halo))
 
+    call petsc_event_begin(petsc_event_halo_update)
+
     nprocs = halo_proc_count(halo)
     communicator = halo_communicator(halo)
     
@@ -266,6 +269,8 @@ contains
     end do
     deallocate(send_types)
     deallocate(receive_types)  
+
+    call petsc_event_end(petsc_event_halo_update)
 #else
     if(.not. valid_serial_halo(halo)) then
       FLAbort("Cannot update halos without MPI support")

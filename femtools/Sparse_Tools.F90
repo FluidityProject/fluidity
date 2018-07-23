@@ -31,12 +31,14 @@ module sparse_tools
   use FLDebug
   use Global_Parameters, only: FIELD_NAME_LEN
   use Futils
+  use petsc_logging
   use Reference_Counting
   use Halo_data_types
   use halos_allocates
   use memory_diagnostics
   use ieee_arithmetic
   use data_structures
+  use petsc_logging
 #ifdef HAVE_PETSC_MODULES
   use petsc
 #endif
@@ -2245,6 +2247,8 @@ contains
     !!< Zero the entries of a csr matrix.
     type(csr_matrix), intent(inout) :: matrix
 
+    call petsc_event_begin(petsc_event_csr_zero)
+
     if (associated(matrix%val)) then
        matrix%val=0.0
     end if
@@ -2259,6 +2263,8 @@ contains
     ! this invalidates the solver context
     call destroy_solver_cache(matrix)
 
+    call petsc_event_end(petsc_event_csr_zero)
+
   end subroutine csr_zero
 
   subroutine block_csr_zero(matrix)
@@ -2266,6 +2272,8 @@ contains
     type(block_csr_matrix), intent(inout) :: matrix
 
     integer :: i,j
+
+    call petsc_event_begin(petsc_event_block_csr_zero)
 
     if (associated(matrix%val)) then
        if(matrix%equal_diagonal_blocks) then
@@ -2300,6 +2308,8 @@ contains
 
     ! this invalidates the solver context
     call destroy_solver_cache(matrix)
+
+    call petsc_event_end(petsc_event_block_csr_zero)
     
   end subroutine block_csr_zero
 
@@ -3837,6 +3847,8 @@ contains
     !local variables
     integer :: i, j
 
+    call petsc_event_begin(petsc_event_csr_mult)
+
     assert(size(vector_in)==size(mat,2))
     assert(size(vector_out)==size(mat,1))
 
@@ -3846,6 +3858,8 @@ contains
          vector_out(i) = vector_out(i) + mat%val(j) * vector_in(mat%sparsity%colm(j))
       end do
     end do
+
+    call petsc_event_end(petsc_event_csr_mult)
    
   end subroutine csr_mult
 
@@ -3861,6 +3875,8 @@ contains
     !local variables
     integer :: i, j
 
+    call petsc_event_begin(petsc_event_csr_mult_addto)
+
     assert(size(vector_in)==size(mat,2))
     assert(size(vector_out)==size(mat,1))
 
@@ -3869,6 +3885,8 @@ contains
          vector_out(i) = vector_out(i) + mat%val(j) * vector_in(mat%sparsity%colm(j))
       end do
     end do
+
+    call petsc_event_end(petsc_event_csr_mult_addto)
    
   end subroutine csr_mult_addto
 
@@ -3904,6 +3922,8 @@ contains
     !local variables
     integer :: i, j, k
 
+    call petsc_event_begin(petsc_event_csr_mult_t)
+
     ewrite(2,*) 'size(vector_in) = ', size(vector_in)
     ewrite(2,*) 'size(mat,1) = ', size(mat,1)
     assert(size(vector_in)==size(mat,1))
@@ -3918,6 +3938,8 @@ contains
          vector_out(k) = vector_out(k) + mat%val(j) * vector_in(i)
       end do
     end do
+
+    call petsc_event_end(petsc_event_csr_mult_t)
     
   end subroutine csr_mult_T  
 
@@ -3933,6 +3955,8 @@ contains
     !local variables
     integer :: i, j, k
 
+    call petsc_event_begin(petsc_event_csr_mult_t_addto)
+
     ewrite(2,*) 'size(vector_in) = ', size(vector_in)
     ewrite(2,*) 'size(mat,1) = ', size(mat,1)
     assert(size(vector_in)==size(mat,1))
@@ -3946,6 +3970,8 @@ contains
          vector_out(k) = vector_out(k) + mat%val(j) * vector_in(i)
       end do
     end do
+
+    call petsc_event_end(petsc_event_csr_mult_t_addto)
     
   end subroutine csr_mult_T_addto
 

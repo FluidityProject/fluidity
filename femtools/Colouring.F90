@@ -32,6 +32,7 @@ module colouring
   use global_parameters, only : topology_mesh_name, NUM_COLOURINGS, &
        COLOURING_CG1, COLOURING_DG0, COLOURING_DG2, &
        COLOURING_DG1
+  use petsc_logging
   use sparse_tools
   use fields
   use state_module, only : state_type, extract_mesh
@@ -95,6 +96,7 @@ contains
     integer :: i
     type(scalar_field) :: element_colours
 
+    call petsc_event_begin(petsc_event_mesh_colouring)
     topology => extract_mesh(state, topology_mesh_name)
 
     colouring => topology%colourings(colouring_type)%sets
@@ -148,6 +150,7 @@ contains
     end do
     topology%colourings(colouring_type)%sets => colouring
 #endif
+    call petsc_event_end(petsc_event_mesh_colouring)
 
   end subroutine get_mesh_colouring
 

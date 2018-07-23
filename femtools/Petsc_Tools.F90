@@ -131,7 +131,6 @@ module Petsc_Tools
   public NullPetscViewerAndFormatCreate
 #endif
   public IsNullMatNullSpace
-  public petsc_stage_register
 
 contains
 
@@ -1481,18 +1480,6 @@ contains
     
   end subroutine addup_global_assembly
 
-  subroutine petsc_stage_register(name, stage)
-    character(len=*), intent(in):: name
-    PetscLogStage, intent(inout) ::  stage
-
-    PetscErrorCode:: ierr
-
-      if (stage<0) then
-        call PetscLogStageRegister(name, stage, ierr)
-      end if
-
-  end subroutine petsc_stage_register
-  
   function FindrmFromRowSizes(sizes)
   !!< Auxilary routine to work out findrm from the row sizes
   integer, dimension(:), intent(in):: sizes

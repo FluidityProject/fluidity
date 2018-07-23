@@ -45,6 +45,7 @@
     use metric_tools
     use fields
     use profiler
+    use petsc_logging
     use sparse_tools_petsc
     use state_module
     use boundary_conditions
@@ -723,6 +724,8 @@
     end if
 #endif
 
+    call petsc_event_begin(petsc_event_element_assembly)
+
     !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, len, nnid, ele, thread_num)
 #ifdef _OPENMP
     thread_num = omp_get_thread_num()
@@ -750,6 +753,8 @@
 
     end do colour_loop
     !$OMP END PARALLEL
+
+    call petsc_event_end(petsc_event_element_assembly)
 
       if (have_wd_abs) then
         ! the remapped field is not needed anymore.
@@ -794,6 +799,8 @@
             hb_pressure => dummyscalar
          end if
 
+         call petsc_event_begin(petsc_event_surface_element_assembly)
+
          surface_element_loop: do sele=1, surface_element_count(u)
             
             ! if no_normal flow and no other condition in the tangential directions, or if periodic
@@ -812,6 +819,8 @@
                  assemble_ct_matrix_here, include_pressure_and_continuity_bcs, oldu, nvfrac)
             
          end do surface_element_loop
+
+         call petsc_event_end(petsc_event_surface_element_assembly)
 
          call deallocate(velocity_bc)
          deallocate(velocity_bc_type)
