@@ -39,5 +39,6 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/write_state_module.mod ../include/write_triangle.mod
 
 mainfl.o : mainfl.F90 ../include/fdebug.h ../include/fldebug.mod \
-   ../include/fluids_module.mod ../include/signals.mod ../include/tictoc.mod
+   ../include/fluids_module.mod ../include/petsc_logging.mod \
+   ../include/signals.mod ../include/tictoc.mod
 
