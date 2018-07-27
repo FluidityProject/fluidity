@@ -111,8 +111,10 @@ def main():
 
   logofile = None
   for possible_logofile in [os.path.join(diamond_path, "gui", "diamond.svg"), 
+                            os.path.join(diamond_path, "share", "diamond", "gui", "diamond.svg"),
                             "/usr/share/diamond/gui/diamond.svg",
-                            os.path.join(diamond_path, "gui", "diamond.png"),]:
+                            os.path.join(diamond_path, "gui", "diamond.png"),
+                            os.path.join(diamond_path, "share", "diamond", "gui", "diamond.png"),]:
     try:
       os.stat(possible_logofile)
       if logofile == None:

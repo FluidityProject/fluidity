@@ -128,7 +128,7 @@ contains
     ! If not, they need to be sent to the processor owner before adaptivity happens
     type(state_type), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
-    integer, dimension(3), optional, intent(in) :: attributes_buffer
+    integer, dimension(3), optional, intent(in) :: attributes_buffer !Array to hold attribute sizes
 
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
     type(detector_linked_list) :: detector_bcast_list, lost_detectors_list
@@ -312,7 +312,7 @@ contains
     ! the assumption is here that we only send detectors located in element that we know about
     ! in the largest element halo
     type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
-    integer, dimension(3), optional, intent(in) :: attributes_buffer
+    integer, dimension(3), optional, intent(in) :: attributes_buffer !Array to hold attribute sizes
 
     type(detector_buffer), dimension(:), allocatable :: send_buffer, recv_buffer
     type(detector_type), pointer :: detector, detector_received

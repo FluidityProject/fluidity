@@ -74,7 +74,6 @@
         </python>
       </detector_array>
       <fail_outside_domain/>
-      <binary_output/>
       <lagrangian_timestepping>
         <subcycles>
           <integer_value rank="0">1</integer_value>
@@ -130,6 +129,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
     <scalar_field name="Field" rank="0">
@@ -149,6 +151,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
   </material_phase>

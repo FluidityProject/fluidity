@@ -31,7 +31,7 @@
 std::string mpiErrorMessage(const int err){
   char *msg = new char [MPI_MAX_ERROR_STRING];
   int len;
-  MPI::Get_error_string(err, msg, len);
+  MPI_Error_string(err, msg, &len);
   std::string mesg(msg);
   delete [] msg;
   return mesg;

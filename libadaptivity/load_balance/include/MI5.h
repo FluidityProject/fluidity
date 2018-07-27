@@ -50,8 +50,8 @@ class MI5{
  private:
   unsigned __nnodes;
   unsigned __nelems;
-  unsigned MyRank;
-  unsigned NProcs;
+  int MyRank;
+  int NProcs;
   
   // Given a node number, keep a list of partitions that 
   // already know its particulars.

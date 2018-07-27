@@ -2121,6 +2121,72 @@ a horizontal vector living on the specified surface.</a:documentation>
       </element>
     </element>
   </define>
+  <define name="subtract_average_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm that subtracts the average from a scalar field. The integral
+of the resulting diagnostic field is therefore zero.
+
+This is useful for fields that are only defined up to a constant. During
+their solve it is typically best to remove this freedom by using the 
+"remove_null_space" option (which effectively introduces a mesh dependent 
+constraint on the sum of the nodal values). For diagnostic purposes however,
+it may be useful to impose the more natural constraint that the integrated
+average is zero.</a:documentation>
+      <attribute name="name">
+        <value>subtract_average</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="scalar_source_field"/>
+    </element>
+  </define>
+  <define name="subtract_point_value_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm that subtracts the scalar field value in a certain point 
+from that same field. The resulting diagnostic field will therefore be zero in that point.
+
+This is useful for fields that are only defined up to a constant. It is similar
+to pinning using a reference node during the solve, except it is only imposed afterwards.
+This can be useful because during the solve it is typically better to pin the 
+arbitrary constant with the "remove_null_space" option instead.</a:documentation>
+      <attribute name="name">
+        <value>subtract_point_value</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="scalar_source_field"/>
+      <element name="coordinates">
+        <ref name="real_dim_vector">
+          <a:documentation>coordinates of the point whose value should be subtracted</a:documentation>
+        </ref>
+      </element>
+    </element>
+  </define>
+  <define name="subtract_surface_average_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm that subtracts the surface average from a scalar field. The 
+surface integral of the resulting diagnostic field is therefore zero.
+
+This is useful for fields that are only defined up to a constant. During
+their solve it is typically best to remove this freedom by using the 
+"remove_null_space" option (which effectively introduces a mesh dependent 
+constraint on the sum of the nodal values). For diagnostic purposes however,
+it may be useful to impose a more natural constraint such as the surface 
+integral being zero.</a:documentation>
+      <attribute name="name">
+        <value>subtract_surface_average</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="scalar_source_field"/>
+      <element name="surface_ids">
+        <ref name="integer_vector"/>
+      </element>
+    </element>
+  </define>
   <define name="scalar_diagnostic_algorithms">
     <ref name="universal_numbering_diagnostic_algorithm"/>
   </define>
@@ -2165,6 +2231,15 @@ a horizontal vector living on the specified surface.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_laplacian_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="subtract_surface_average_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="subtract_point_value_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="subtract_average_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_galerkin_projection_algorithm"/>

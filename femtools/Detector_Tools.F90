@@ -104,7 +104,7 @@ contains
   subroutine detector_allocate_from_params(new_detector, ndims, local_coord_count, attributes_buffer)
     type(detector_type),  pointer, intent(out) :: new_detector
     integer, intent(in) :: ndims, local_coord_count
-    integer, dimension(3), optional, intent(in) :: attributes_buffer
+    integer, dimension(3), optional, intent(in) :: attributes_buffer !array to hold size of attributes
       
     assert(.not. associated(new_detector))
       
@@ -129,7 +129,7 @@ contains
     type(detector_type),  pointer, intent(out) :: new_detector
       
     integer :: ndims, local_coord_count
-    integer, dimension(3) :: attributes_buffer
+    integer, dimension(3) :: attributes_buffer !array to hold size of attributes
       
     ndims = size(old_detector%position)
     local_coord_count = size(old_detector%local_coords)
@@ -325,7 +325,7 @@ contains
     logical, intent(in) :: have_update_vector
     integer, intent(in), optional :: nstages
     integer :: detector_buffer_size
-    integer, dimension(3), optional, intent(in) :: attributes_buffer
+    integer, dimension(3), optional, intent(in) :: attributes_buffer !array to hold size of attributes
     if (present(attributes_buffer)) then
        if (have_update_vector) then
           assert(present(nstages))
@@ -353,12 +353,12 @@ contains
     real, dimension(:), intent(out) :: buff
     integer, intent(in) :: ndims
     integer, intent(in), optional :: nstages
-    integer, dimension(3), optional, intent(in) :: attributes_buffer
+    integer, dimension(3), optional, intent(in) :: attributes_buffer !array to hold size of attributes
     
     assert(size(detector%position)==ndims)
+    !Check if this is a particle carrying attributes
     if (present(attributes_buffer)) then
        assert(size(buff)>=ndims+3+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3))
-
        ! Basic fields: ndims+3
        buff(1:ndims) = detector%position
        buff(ndims+1) = detector%element
@@ -422,7 +422,8 @@ contains
     type(integer_hash_table), intent(in), optional :: global_to_local
     type(vector_field), intent(in), optional :: coordinates
     integer, intent(in), optional :: nstages
-    integer, dimension(3), optional, intent(in) :: attributes_buffer
+    integer, dimension(3), optional, intent(in) :: attributes_buffer !array to hold size of attributes
+    !Check if this is a particle carrying attributes
     if (present(attributes_buffer)) then
        assert(size(buff)>=ndims+3+attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3))
 
@@ -660,6 +661,12 @@ contains
   end subroutine set_particle_attribute_from_python
 
   subroutine set_particle_fields_from_python(particle_list, attributes_buffer, state, xfield, dim, positions, lcoords, ele, ndete, attributes, old_att_names, old_attributes, func, time)
+    !!< Given a particle position, time and field values, evaluate the python function
+    !!< specified in the string func at that location. 
+    !! Func may contain any python at all but the following function must
+    !! be defined::
+    !!  def val(X,t, fields)
+    !! where X is position t is the time, and fields are field values. The result must be a float. 
     type(detector_linked_list), intent(inout) :: particle_list
     type(state_type), dimension(:), intent(in) :: state
     real, dimension(:,:), intent(in) :: old_attributes

@@ -51,9 +51,13 @@ int main(int argc, char **argv) {
   val = 0;
   set_pseudo2d_domain_fc(&val);
 #ifdef HAVE_MPI
-  MPI::Init(argc, argv);
+  MPI_Init(&argc, &argv);
   // Undo some MPI init shenanigans
-  chdir(getenv("PWD"));
+  int ierr = chdir(getenv("PWD"));
+  if (ierr == -1) {
+        std::cerr << "Unable to switch to directory " << getenv("PWD");
+        abort();
+  }
 #endif
 #ifdef HAVE_PETSC  
   PetscInitialize(&argc, &argv, NULL, PETSC_NULL);
@@ -62,7 +66,7 @@ int main(int argc, char **argv) {
 #endif
   TESTNAME();
 #ifdef HAVE_MPI
-  MPI::Finalize();
+  MPI_Finalize();
 #endif
 
   return 0;

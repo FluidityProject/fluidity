@@ -28,10 +28,14 @@ int main(int argc, char **argv){
 
 #ifdef HAVE_MPI
   // This must be called before we process any arguments
-  MPI::Init(argc,argv);
+  MPI_Init(&argc, &argv);
 
   // Undo some MPI init shenanigans
-  chdir(getenv("PWD"));
+  int cderr = chdir(getenv("PWD"));
+  if (cderr == -1) {
+        cerr << "Unable to switch to directory " << getenv("PWD");
+        abort();
+  }
 #endif
 
 #ifdef HAVE_PYTHON

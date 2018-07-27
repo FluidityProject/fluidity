@@ -84,7 +84,7 @@ void FLAbort(const char *ErrorStr, const char *FromFile, int LineNumber){
   
   cerr<<"Error is terminal.";
 #ifdef HAVE_MPI
-  MPI::COMM_WORLD.Abort(MPI::ERR_OTHER);
+  MPI_Abort(MPI_COMM_WORLD, MPI_ERR_OTHER);
 #endif
 }
 
@@ -95,7 +95,7 @@ void FLExit(const char *ErrorStr, const char *FromFile, int LineNumber){
 #endif
       <<"Error message: "<<ErrorStr<<endl;
 #ifdef HAVE_MPI
-  MPI::COMM_WORLD.Abort(MPI::ERR_OTHER);
+  MPI_Abort(MPI_COMM_WORLD, MPI_ERR_OTHER);
 #endif
 }
 

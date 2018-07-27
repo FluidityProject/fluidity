@@ -79,6 +79,8 @@ contains
           parameters%n_stages = 1
           allocate(parameters%timestep_weights(parameters%n_stages))
           parameters%timestep_weights = 1.0
+          allocate(parameters%timestep_nodes(parameters%n_stages))
+          parameters%timestep_nodes = 0.0
        end if
 
        ! Parameters for classical Runge-Kutta
@@ -99,6 +101,8 @@ contains
           end do
           allocate(parameters%timestep_weights(parameters%n_stages))
           parameters%timestep_weights = (/ 1./6., 1./3., 1./3., 1./6. /)
+          allocate(parameters%timestep_nodes(parameters%n_stages))
+          parameters%timestep_nodes = (/ 0., 1./2., 1./2., 1. /)
        end if
 
        ! Generic Runge-Kutta options
@@ -139,6 +143,16 @@ contains
              FLExit('Timestep Array wrong size')
           end if
           call get_option(trim(detector_path)//trim(rk_gs_path)//"/timestep_weights",parameters%timestep_weights)
+
+          ! Allocate and set timestep_nodes
+          allocate(parameters%timestep_nodes(parameters%n_stages))
+          parameters%timestep_nodes= 0.
+          do i = 1, parameters%n_stages
+             do j = 1, parameters%n_stages
+                parameters%timestep_nodes(i)=parameters%timestep_nodes(i) + parameters%stage_matrix(i,j)
+             end do
+          end do
+
        end if
 
     else
@@ -155,10 +169,10 @@ contains
     type(detector_linked_list), intent(inout) :: detector_list
     real, intent(in) :: dt
     integer, intent(in) :: timestep
-    integer, dimension(3), optional, intent(in) :: attributes_buffer
+    integer, dimension(3), optional, intent(in) :: attributes_buffer !Array to hold attribute sizes
 
     type(rk_gs_parameters), pointer :: parameters
-    type(vector_field), pointer :: vfield, xfield
+    type(vector_field), pointer :: vfield, vfield_old, xfield
     type(detector_type), pointer :: detector
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
     type(halo_type), pointer :: ele_halo
@@ -173,8 +187,9 @@ contains
     parameters => detector_list%move_parameters
 
     ! Pull some information from state
-    xfield=>extract_vector_field(state(1), "Coordinate")
-    vfield => extract_vector_field(state(1),"Velocity")
+    xfield     => extract_vector_field(state(1),"Coordinate")
+    vfield     => extract_vector_field(state(1),"Velocity")
+    vfield_old => extract_vector_field(state(1),"OldVelocity")    
 
     ! We allocate a sendlist for every processor
     nprocs=getnprocs()
@@ -188,7 +203,7 @@ contains
        RKstages_loop: do stage = 1, parameters%n_stages
 
           ! Compute the update vector
-          call set_stage(detector_list,vfield,xfield,rk_dt,stage)
+          call set_stage(detector_list,vfield,vfield_old,xfield,rk_dt,stage)
 
           ! This loop continues until all detectors have completed their
           ! timestep this is measured by checking if the send and receive
@@ -198,13 +213,14 @@ contains
              ! Make sure we still have lagrangian detectors
              any_lagrangian=check_any_lagrangian(detector_list)
              if (any_lagrangian) then
+
                 !Detectors leaving the domain from non-owned elements
                 !are entering a domain on another processor rather 
                 !than leaving the physical domain. In this subroutine
                 !such detectors are removed from the detector list
                 !and added to the send_list_array
                 call move_detectors_guided_search(detector_list,&
-                        vfield,xfield,send_list_array,parameters%search_tolerance, attributes_buffer)
+                        vfield,xfield,send_list_array,parameters%search_tolerance)
 
                 ! Work out whether all send lists are empty, in which case exit.
                 all_send_lists_empty=0
@@ -314,11 +330,11 @@ contains
     end do
   end subroutine deallocate_rk_guided_search
 
-  subroutine set_stage(detector_list,vfield,xfield,dt0,stage0)
+  subroutine set_stage(detector_list,vfield,vfield_old,xfield,dt0,stage0)
     ! Compute the vector to search for in the next RK stage
     ! If this is the last stage, update detector position
     type(detector_linked_list), intent(inout) :: detector_list
-    type(vector_field), pointer, intent(in) :: vfield, xfield
+    type(vector_field), pointer, intent(in) :: vfield, vfield_old, xfield
     real, intent(in) :: dt0
     integer, intent(in) :: stage0
     
@@ -340,8 +356,8 @@ contains
 
           ! stage vector is computed by evaluating velocity at current position
           stage_local_coords=local_coords(xfield,det0%element,det0%update_vector)
-          det0%k(stage0,:)=eval_field(det0%element, vfield, stage_local_coords)
-
+          det0%k(stage0,:)=parameters%timestep_nodes(stage0)*eval_field(det0%element, vfield, stage_local_coords) + &
+          (1.-parameters%timestep_nodes(stage0))*eval_field(det0%element, vfield_old, stage_local_coords)
           if(stage0<parameters%n_stages) then
              ! update vector maps from current position to place required
              ! for computing next stage vector
@@ -365,7 +381,7 @@ contains
   end subroutine set_stage
 
 
-  subroutine move_detectors_guided_search(detector_list,vfield,xfield,send_list_array,search_tolerance, attributes_buffer)
+  subroutine move_detectors_guided_search(detector_list,vfield,xfield,send_list_array,search_tolerance)
     !Subroutine to find the element containing the update vector:
     ! - Detectors leaving the computational domain are set to STATIC
     ! - Detectors leaving the processor domain are added to the list 
@@ -379,7 +395,6 @@ contains
     type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
     type(vector_field), pointer, intent(in) :: vfield,xfield
     real, intent(in) :: search_tolerance
-    integer, dimension(3), optional, intent(in) :: attributes_buffer
 
     type(detector_type), pointer :: det0, det_send
     integer :: det_count

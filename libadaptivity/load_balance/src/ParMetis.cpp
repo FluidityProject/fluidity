@@ -46,7 +46,8 @@ using namespace csr;
 
 void Graph::RepartRemap(vector<int>& vtxdist, vector<int>& noddom){
   MPI_Comm comm_world = MPI_COMM_WORLD;
-  int nparts = MPI::COMM_WORLD.Get_size();
+  int nparts;
+  MPI_Comm_size(MPI_COMM_WORLD, &nparts);
 
   int *vwgt   = NULL;
   int *adjwgt = NULL;
@@ -91,13 +92,14 @@ void Graph::Repart(vector<int>& vtxdist, vector<int>& noddom, int nparts){
   int options[4];
   int numflag = 0;
   
-  int nprocs = MPI::COMM_WORLD.Get_size();
-  int MyRank = MPI::COMM_WORLD.Get_rank();
+  int MyRank, nprocs;
+  MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
+  MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
 
   vector<int> nnodes(nprocs, 0);
   nnodes[MyRank] = noddom.size();
   
-  MPI::COMM_WORLD.Allgather(&(nnodes[MyRank]), 1, MPI_INT, &(nnodes[0]), 1, MPI_INT);
+  MPI_Allgather(&(nnodes[MyRank]), 1, MPI_INT, &(nnodes[0]), 1, MPI_INT, MPI_COMM_WORLD);
   
   vector<int> ranks;
   for(int i=0;i<nprocs;i++){

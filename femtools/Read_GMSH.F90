@@ -387,7 +387,7 @@ contains
 
     ! Skip newline character when in binary mode
     if( gmshFormat == binaryFormat ) then
-       read(fd), newlineChar
+       read(fd) newlineChar
        call ascii_formatting(fd, filename, "read")
     end if
 
@@ -477,7 +477,7 @@ contains
 
     ! Skip newline character when in binary mode
     if( gmshFormat == binaryFormat ) then
-      read(fd), newlineChar
+      read(fd) newlineChar
       call ascii_formatting(fd, filename, "read")
     end if
 
