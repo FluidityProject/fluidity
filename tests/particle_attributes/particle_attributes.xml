@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <testproblem>
-  <name>particle_attributes</name>
+  <name>Testing of particle attribute parameters in serial</name>
   <owner userid="cmath"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">

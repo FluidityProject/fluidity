@@ -406,7 +406,9 @@ NOTE: Requires -v2</a:documentation>
           <zeroOrMore>
             <oneOrMore>
               <element name="particle_group">
-                <a:documentation>Particles with their locations specified via a python function or from a file. Allows particle arrays to be added.</a:documentation>
+                <a:documentation>Particles groups containing multiple particle arrays or subgroups. The particle group specifies
+which velocity field is used, as well as attributes carried and (eventually) spawning
+and deleting options.</a:documentation>
                 <attribute name="name">
                   <data type="string"/>
                 </attribute>
@@ -417,6 +419,9 @@ NOTE: Requires -v2</a:documentation>
                 </element>
                 <oneOrMore>
                   <element name="particle_subgroup">
+                    <a:documentation>Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
+and carry the same attributes. Subgroups can have different initial positions specified via a python
+function of from a file.</a:documentation>
                     <attribute name="name">
                       <data type="string"/>
                     </attribute>
@@ -4725,7 +4730,7 @@ i.e. excluding the components</a:documentation>
   <define name="prescribed_detector_options">
     <ref name="detector_options_disabled_default"/>
   </define>
-  <!-- Options for whether a field is to be included in particles. -->
+  <!-- Specify whether or not values for this field are interpolated to particle locations. -->
   <define name="particle_options_enabled_default">
     <element name="particles">
       <a:documentation>Specify what is added to particles</a:documentation>
@@ -4734,13 +4739,17 @@ i.e. excluding the components</a:documentation>
           <a:documentation>This field is included at each particle location.</a:documentation>
           <optional>
             <element name="store_old_field">
-              <ref name="comment"/>
+              <ref name="comment">
+                <a:documentation>Store values of field at preivous timestep/non-linear iteration, for use when updating particle attributes.</a:documentation>
+              </ref>
             </element>
           </optional>
         </element>
         <element name="exclude_from_particles">
-          <a:documentation>This field is not included at each particle location.</a:documentation>
-          <ref name="comment"/>
+          <a:documentation>Field value is not interpolated to particle location.</a:documentation>
+          <ref name="comment">
+            <a:documentation>Field values are not stored on particles.</a:documentation>
+          </ref>
         </element>
       </choice>
     </element>

@@ -620,7 +620,7 @@ contains
 
   end subroutine set_particle_constant_from_options
 
-  subroutine set_particle_attribute_from_python(attributes, positions, ndete, func, time)
+  subroutine set_particle_attribute_from_python(attributes, positions, ndete, dim, func, time)
     !!< Given a particle position and time, evaluate the python function
     !!< specified in the string func at that location. 
     real, dimension(:), intent(inout) :: attributes
@@ -631,11 +631,11 @@ contains
     character(len=*), intent(in) :: func
     integer, intent(in) :: ndete
     real, intent(in) :: time
+    integer, intent(in) :: dim
     real, dimension(:,:), target, intent(in) :: positions
     real, dimension(:), pointer :: lvx,lvy,lvz
     real, dimension(0), target :: zero
-    integer :: stat, dim
-    call get_option("/geometry/dimension",dim)
+    integer :: stat
 
     select case(dim)
     case(1)

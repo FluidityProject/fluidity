@@ -328,12 +328,17 @@ start =
 	 ## Particle options
 	 element particles {
 	    (
-		  ## Particles with their locations specified via a python function or from a file. Allows particle arrays to be added.
+		  ## Particles groups containing multiple particle arrays or subgroups. The particle group specifies
+		  ## which velocity field is used, as well as attributes carried and (eventually) spawning
+		  ## and deleting options.
                   element particle_group {
                      attribute name { xsd:string },
 		     element velocity_field {
 		     attribute name { xsd:string }
 		     },
+		     ## Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
+		     ## and carry the same attributes. Subgroups can have different initial positions specified via a python
+		     ## function of from a file.
 		     element particle_subgroup {
 		        attribute name { xsd:string },
                      	## The number of particles prescribed by the python function.
@@ -3657,7 +3662,7 @@ prognostic_detector_options = detector_options_enabled_default
 diagnostic_detector_options = detector_options_enabled_default
 prescribed_detector_options = detector_options_disabled_default
 
-# Options for whether a field is to be included in particles.
+# Specify whether or not values for this field are interpolated to particle locations.
 particle_options_enabled_default = 
    (
       ## Specify what is added to particles
@@ -3666,11 +3671,13 @@ particle_options_enabled_default =
             ## This field is included at each particle location.
             element include_in_particles {
 	       element store_old_field {
-	       	       comment
+	         ## Store values of field at preivous timestep/non-linear iteration, for use when updating particle attributes.
+	       	  comment
 	       }?
             }|
-            ## This field is not included at each particle location.
+            ## Field value is not interpolated to particle location.
             element exclude_from_particles {
+	      ## Field values are not stored on particles.
                comment
             }
          )
@@ -3916,7 +3923,7 @@ scalar_field_choice =
                   prognostic_scalar_stat_options,
                   scalar_convergence_options,
                   prognostic_detector_options,
-		  prognostic_particle_options,
+                  prognostic_particle_options,
                   scalar_steady_state_options,
                   adaptivity_options_prognostic_scalar_field,
                   interpolation_algorithm_scalar

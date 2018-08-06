@@ -86,7 +86,6 @@ contains
     integer :: column, IERROR, totaldet_global
     integer :: nfields, nprescribed, ndiagnostic, nprognostic
 
-
     logical :: from_checkpoint
 
     ewrite(2,*), "In initialise_particles"
@@ -540,7 +539,7 @@ contains
             ']/attributes/attribute['//int2str(n)//']/python')) then
           call get_option('/particles/particle_group['//int2str(i-1)//']/particle_subgroup['//int2str(k-1)// &
             ']/attributes/attribute['//int2str(n)//']/python', func)
-          call set_particle_attribute_from_python(attribute_array(n+1,:), positions(:,:), nparticles, func, time)
+          call set_particle_attribute_from_python(attribute_array(n+1,:), positions(:,:), nparticles, dim, func, time)
        else if (have_option('/particles/particle_group['//int2str(i-1)//']/particle_subgroup['//int2str(k-1)// &
             ']/attributes/attribute['//int2str(n)//']/python_fields')) then
           call get_option('/particles/particle_group['//int2str(i-1)//']/particle_subgroup['//int2str(k-1)// &

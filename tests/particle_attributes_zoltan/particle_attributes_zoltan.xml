@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <testproblem>
-  <name>particle_attributes_zoltan</name>
+  <name>Testing of particle attribute parameters in parallel with zoltan adaptivity enabled</name>
   <owner userid="cmath"/>
   <tags>flml parallel zoltan</tags>
-  <problem_definition length="short" nprocs="4">
+  <problem_definition length="medium" nprocs="4">
     <command_line>    
 mpiexec ../../bin/flredecomp -i 1 -o 4 particle-attributes-zoltan particle-attributes-zoltan-flredecomp;      
 mpiexec ../../bin/fluidity -v3 -l particle-attributes-zoltan-flredecomp.flml

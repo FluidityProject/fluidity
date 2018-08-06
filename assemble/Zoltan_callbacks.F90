@@ -992,7 +992,7 @@ contains
     
     
     do i=1,num_ids    
-       ! fields data + number of detectors in element + attribute_info per detector+  detector data + attributes +
+       ! fields data + number of detectors in element + attribute_info per detector (*3 for 3 attribute types) +  detector data + attributes +
        ! reserve space for sz scalar values and for sending old unns of the linear mesh
        sizes(i) = (sz * real_size) + real_size + (3*real_size*zoltan_global_ndets_in_ele(i)) + (zoltan_global_ndets_in_ele(i) * zoltan_global_ndata_per_det * real_size) &
             + (zoltan_global_attributes_per_ele(i) * real_size) + ele_loc(zoltan_global_zz_mesh, 1) * integer_size
@@ -1096,7 +1096,7 @@ contains
              attributes_buffer(2)=0
              attributes_buffer(3)=0
           end if
-          total_attributes = attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3)
+          total_attributes = sum(attributes_buffer)
           !pack attribute sizes
           do k = 1,3
              rbuf(rhead)=attributes_buffer(k)
