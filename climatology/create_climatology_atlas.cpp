@@ -461,7 +461,8 @@ int main(){
       // cout<<"Reading level "<<k<<endl;
       for(size_t j=0; j<(size_t)jdim0; j++)
   for(size_t i=0; i<(size_t)idim0; i++){
-    fscanf(fp, "%f", &(dat[m][k][j*idim0+i]));
+    int ierr = fscanf(fp, "%f", &(dat[m][k][j*idim0+i]));
+    if (ierr<1) cerr<<"File read error";
   }
     }
     fclose(fp);
@@ -490,7 +491,8 @@ int main(){
       // cout<<"Reading level "<<k<<endl;
       for(size_t j=0; j<(size_t)jdim0; j++)
   for(size_t i=0; i<(size_t)idim0; i++){
-    fscanf(fp, "%f", &(dat[m][k][j*idim0+i]));
+    int ierr = fscanf(fp, "%f", &(dat[m][k][j*idim0+i]));
+    if (ierr<1) cerr<<"File read error";
   }
     }
     fclose(fp);
@@ -528,7 +530,8 @@ int main(){
       for(size_t j=0; j<(size_t)jdim0; j++)
   for(size_t i=0; i<(size_t)idim0; i++){
     float v;
-    fscanf(fp, "%f", &v);
+    int ierr = fscanf(fp, "%f", &v);
+    if (ierr<1) cerr<<"File read error";
     if(k>=24){
       dat[m][k-24][j*idim0+i] = v;
     }
@@ -560,7 +563,8 @@ int main(){
       for(size_t j=0; j<(size_t)jdim0; j++)
   for(size_t i=0; i<(size_t)idim0; i++){
     float v;
-    fscanf(fp, "%f", &v);
+    int ierr = fscanf(fp, "%f", &v);
+    if (ierr<1) cerr<<"File read error";
     if(k>=24){
       dat[m][k-24][j*idim0+i] = v;
     }
