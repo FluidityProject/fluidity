@@ -1031,7 +1031,7 @@ contains
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
     integer :: old_universal_element_number, old_local_element_number, dataSize
-    integer, dimension(3) :: attributes_buffer !buffer containing the size of particle attributes
+    integer, dimension(3) :: attribute_size !buffer containing the size of particle attributes
     integer :: total_attributes !total number of attributes carried by a particle
 
     type(detector_type), pointer :: detector => null(), detector_to_delete => null()    
@@ -1088,23 +1088,23 @@ contains
        do j=1,zoltan_global_ndets_in_ele(i)
           !check attribute sizes
           if (size(detector%attributes)>=1) then
-             attributes_buffer(1)=size(detector%attributes)
-             attributes_buffer(2)=size(detector%old_attributes)
-             attributes_buffer(3)=size(detector%old_fields)
+             attribute_size(1)=size(detector%attributes)
+             attribute_size(2)=size(detector%old_attributes)
+             attribute_size(3)=size(detector%old_fields)
           else
-             attributes_buffer(1)=0
-             attributes_buffer(2)=0
-             attributes_buffer(3)=0
+             attribute_size(1)=0
+             attribute_size(2)=0
+             attribute_size(3)=0
           end if
-          total_attributes = sum(attributes_buffer)
+          total_attributes = sum(attribute_size)
           !pack attribute sizes
           do k = 1,3
-             rbuf(rhead)=attributes_buffer(k)
+             rbuf(rhead)=attribute_size(k)
              rhead=rhead+1
           end do
           !pack the detector
           call pack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1+total_attributes), &
-               zoltan_global_ndims, attributes_buffer=attributes_buffer)
+               zoltan_global_ndims, attribute_size=attribute_size)
           ! keep a pointer to the detector to delete
           detector_to_delete => detector
           ! move on our iterating pointer so it's not left on a deleted node
@@ -1196,7 +1196,7 @@ contains
     type(detector_type), pointer :: detector => null()
     type(element_type), pointer :: shape => null()
 
-    integer, dimension(3) :: attributes_buffer !buffer containing the size of particle attributes
+    integer, dimension(3) :: attribute_size !buffer containing the size of particle attributes
     integer :: total_attributes !total number of attributes carried by a particle
     
     ewrite(1,*) "In zoltan_cb_unpack_fields"
@@ -1271,14 +1271,14 @@ contains
 
              ! determine particle attribute size
              do k = 1,3
-                attributes_buffer(k) = rbuf(rhead)
+                attribute_size(k) = rbuf(rhead)
                 rhead = rhead + 1
              end do
-             total_attributes = attributes_buffer(1)+attributes_buffer(2)+attributes_buffer(3)
+             total_attributes = sum(attribute_size)
              
              ! unpack detector information 
              call unpack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1+total_attributes), zoltan_global_ndims, &
-                    global_to_local=zoltan_global_uen_to_new_local_numbering, coordinates=zoltan_global_new_positions, attributes_buffer=attributes_buffer)
+                    global_to_local=zoltan_global_uen_to_new_local_numbering, coordinates=zoltan_global_new_positions, attribute_size=attribute_size)
 
              ! Make sure the unpacked detector is in this element
              assert(new_local_element_number==detector%element)
