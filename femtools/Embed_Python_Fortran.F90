@@ -423,6 +423,7 @@ contains
 
   end subroutine set_detectors_from_python_sp
 
+  !Subroutine to call c_wrapper function set_particles_from_python
   subroutine set_particles_from_python_sp(function, function_len, dim, &
        & ndete,x, y, z, t, result, stat)
     integer, intent(in) :: function_len
@@ -441,6 +442,7 @@ contains
     result = lresult
   end subroutine set_particles_from_python_sp
 
+  !Subroutine to call c_wrapper function set_particles_fields_from_python
   subroutine set_particles_fields_from_python_sp(function, function_len, dim, &
        & ndete, x, y, z, t, nfields, field_names, field_vals, old_nfields, old_field_names, old_field_vals, old_nattributes, old_att_names, old_attributes, result, stat)
     integer, intent(in) :: function_len
@@ -466,7 +468,7 @@ contains
          & old_nattributes, old_att_names, real(old_attributes, kind = c_double), lresult, stat)
     result = lresult
   end subroutine set_particles_fields_from_python_sp
-   
+
   subroutine set_particle_sfield_from_python_sp(function, function_len,&
     & nparticles,t, result, stat)
     integer, intent(in) :: function_len

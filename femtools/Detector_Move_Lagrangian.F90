@@ -164,12 +164,12 @@ contains
 
   end subroutine read_detector_move_options
 
-  subroutine move_lagrangian_detectors(state, detector_list, dt, timestep, attributes_buffer)
+  subroutine move_lagrangian_detectors(state, detector_list, dt, timestep, attribute_size)
     type(state_type), dimension(:), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     real, intent(in) :: dt
     integer, intent(in) :: timestep
-    integer, dimension(3), optional, intent(in) :: attributes_buffer !Array to hold attribute sizes
+    integer, dimension(3), optional, intent(in) :: attribute_size !Array to hold attribute sizes
 
     type(rk_gs_parameters), pointer :: parameters
     type(vector_field), pointer :: vfield, vfield_old, xfield
@@ -234,7 +234,7 @@ contains
 
                 !This call serialises send_list_array, sends it, 
                 !receives serialised receive_list_array, and unserialises that.
-                call exchange_detectors(state(1),detector_list, send_list_array, attributes_buffer)
+                call exchange_detectors(state(1),detector_list, send_list_array, attribute_size)
              else
                 ! If we run out of lagrangian detectors for some reason, exit the loop
                 exit
@@ -248,7 +248,7 @@ contains
 
     ! Make sure all local detectors are owned and distribute the ones that 
     ! stoppped moving in a halo element
-    call distribute_detectors(state(1), detector_list, attributes_buffer)
+    call distribute_detectors(state(1), detector_list, attribute_size)
 
     ! This needs to be called after distribute_detectors because the exchange  
     ! routine serialises det%k and det%update_vector if it finds the RK-GS option

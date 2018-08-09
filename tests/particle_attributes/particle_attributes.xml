@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <testproblem>
-  <name>particle_attributes</name>
+  <name>Testing of particle attribute parameters in serial</name>
   <owner userid="cmath"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
@@ -124,7 +124,7 @@ assert sq_error_4 &lt; 1.0e-3
     <test name="Correctattribteserror5" language="python">
 assert abs(attributes_error_5).max() &lt; 1.0e-5
     </test>
-    <test name="Correctattribteserror5" language="python">
+    <test name="Correctattribteserror6" language="python">
 assert sq_error_6 &lt; 1.0e-3
     </test>
   </pass_tests>
