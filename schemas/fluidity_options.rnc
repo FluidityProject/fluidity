@@ -3737,7 +3737,13 @@ generic_particle_field =
    ##     # Function code
    ##     return # Return value
    ##
-   ## where X is a tuple of length geometry dimension.
+   ##	where X is a tuple of length geometry dimension.
+   ##
+   ##  E.g. if Temperature field and x position are required
+   ##  def val (X, t, fields):
+   ##    x = X[0]
+   ##    y = x + fields["Temperature"]
+   ##    return y
    element python_fields {
       python_code,
       element store_old_attribute {

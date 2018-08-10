@@ -4815,7 +4815,13 @@ where X is a tuple of length geometry dimension.</a:documentation>
     # Function code
     return # Return value
 
-where X is a tuple of length geometry dimension.</a:documentation>
+	where X is a tuple of length geometry dimension.
+
+ E.g. if Temperature field and x position are required
+ def val (X, t, fields):
+   x = X[0]
+   y = x + fields["Temperature"]
+   return y</a:documentation>
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
