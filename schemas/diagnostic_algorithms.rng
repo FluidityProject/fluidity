@@ -152,21 +152,33 @@ wrappers.</a:documentation>
         <attribute name="material_phase_support">
           <value>multiple</value>
         </attribute>
-        <element name="method">
-          <attribute name="name">
-            <value>ratio</value>
-          </attribute>
-          <element name="group">
+        <choice>
+          <element name="method">
             <attribute name="name">
-              <data type="string"/>
+              <value>ratio</value>
             </attribute>
-            <element name="attribute">
+            <element name="group">
+              <attribute name="name">
+                <data type="string"/>
+              </attribute>
+              <element name="attribute">
+                <attribute name="name">
+                  <data type="string"/>
+                </attribute>
+              </element>
+            </element>
+          </element>
+          <element name="method">
+            <attribute name="name">
+              <value>num_particles</value>
+            </attribute>
+            <element name="group">
               <attribute name="name">
                 <data type="string"/>
               </attribute>
             </element>
           </element>
-        </element>
+        </choice>
       </element>
     </choice>
   </define>
