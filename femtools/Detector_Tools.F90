@@ -667,7 +667,7 @@ contains
     end if
   end subroutine set_particle_attribute_from_python
 
-  subroutine set_particle_fields_from_python(particle_list, state, xfield, dim, positions, lcoords, ele, ndete, attributes, old_att_names, old_attributes, func, time)
+  subroutine set_particle_fields_from_python(particle_list, state, dim, positions, lcoords, ele, ndete, attributes, old_att_names, old_attributes, func, time)
     !!< Given a particle position, time and field values, evaluate the python function
     !!< specified in the string func at that location. 
     !! Func may contain any python at all but the following function must
@@ -690,7 +690,6 @@ contains
     character, allocatable, dimension(:,:) :: old_field_names
     real, allocatable, dimension(:,:) :: field_vals
     real, allocatable, dimension(:,:) :: old_field_vals
-    type(vector_field), pointer :: xfield
     real :: value
     real, dimension(:), pointer :: lvx,lvy,lvz
     real, dimension(0), target :: zero

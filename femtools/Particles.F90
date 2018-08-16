@@ -438,7 +438,7 @@ contains
     ! Allocate a single particle, populate and insert it into the given list
     ! In parallel, first check if the particle would be local and only allocate if it is
     type(detector_linked_list), intent(inout) :: detector_list
-    type(vector_field), pointer :: xfield
+    type(vector_field), pointer, intent(in) :: xfield
     real, dimension(xfield%dim), intent(in) :: position
     integer, intent(in) :: id, type
     character(len=*), intent(in) :: name
@@ -630,7 +630,7 @@ contains
           call set_particle_attribute_from_python(attribute_array(n+1,:), positions(:,:), nparticles, dim, func, time)
        else if (have_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/python_fields')) then
           call get_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/python_fields', func)
-          call set_particle_fields_from_python(p_list, state, xfield, dim, positions(:,:), lcoords(:,:), ele(:), nparticles, attribute_array(n+1,:), old_att_names, old_attributes, func, time)
+          call set_particle_fields_from_python(p_list, state, dim, positions(:,:), lcoords(:,:), ele(:), nparticles, attribute_array(n+1,:), old_att_names, old_attributes, func, time)
        else if (have_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/from_checkpoint_file')) then
           do j = 1,nparticles   
              attribute_array(n+1,j) = particle%attributes(n+1)
@@ -1236,7 +1236,7 @@ contains
        p_allocated = 1
        allocate(p_array(size(particle_lists)))
        do i = 1,size(particle_lists)
-          p_array(i) = particle_lists(i) !!??
+          p_array(i) = particle_lists(i)
        end do
     else
        p_allocated = 0

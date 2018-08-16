@@ -345,6 +345,10 @@ contains
 
     call initialise_diagnostics(filename, state)
     call initialise_particles(filename, state)
+    !!hack
+    call calculate_diagnostic_variables(state)
+    call calculate_diagnostic_variables_new(state)
+    !!
 
     ! Initialise ice_meltrate, read constatns, allocate surface, and calculate melt rate
     if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08")) then
