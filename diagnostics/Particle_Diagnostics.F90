@@ -95,7 +95,7 @@ module particle_diagnostics
     type(detector_linked_list), allocatable, dimension(:,:) :: node_particles
     type(detector_linked_list), allocatable, dimension(:) :: p_array
     type(detector_type), pointer :: particle
-    integer :: attribute_number, i, p_allocated
+    integer :: attribute_number, i, p_allocated, j
     real, allocatable, dimension(:) :: node_values
     real, allocatable, dimension(:) :: node_part_count ! real instead of integer, so we can use halo_accumulate
     integer :: element, node_number, dim
@@ -191,8 +191,12 @@ module particle_diagnostics
           !Count number of particles per node and ensure thresholds are not broken
           if (node_part_count(i)<min_thresh) then
              !make sure this is only called for nodes on this proc
-             do while(node_part_count(i)<min_thresh)
-                call spawn_particles(node_part_count(i), node_values(i), node_particles(:,i), i, p_array, group_arrays, group_attribute, xfield)
+             do j = 1,size(group_arrays)
+                if (node_part_count(i)>0.and.node_particles(j,i)%length>0) then
+                   do while(node_part_count(i)<min_thresh)
+                      call spawn_particles(node_part_count(i), node_values(i), node_particles(:,i), i, p_array, group_arrays, group_attribute, xfield)
+                   end do
+                end if
              end do
           end if
           !if (node_part_count(i)>max_thresh) then
@@ -353,10 +357,12 @@ module particle_diagnostics
     
     do j = 1,size(group_arrays)
        temp_part => p_array(group_arrays(j))%last
-       id = temp_part%id_number
-       name_len = len(int2str(id+1))+1 !id length + '_'
-       tot_len = len(trim(temp_part%name))
-       name = trim(temp_part%name(1:tot_len-name_len))
+       if (associated(temp_part)) then
+          id = temp_part%id_number
+          name_len = len(int2str(id+1))+1 !id length + '_'
+          tot_len = len(trim(temp_part%name))
+          name = trim(temp_part%name(1:tot_len-name_len))
+       end if
        
        temp_part => null()
 
