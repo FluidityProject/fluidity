@@ -77,7 +77,9 @@ module detector_data_types
      logical :: search_complete
      !! Pointers for detector linked lists
      TYPE (detector_type), POINTER :: next=> null()
-     TYPE (detector_type), POINTER :: previous=> null() 
+     TYPE (detector_type), POINTER :: previous=> null()
+     TYPE (detector_type), POINTER :: temp_next => null()
+     TYPE (detector_type), POINTER :: temp_previous => null()
   end type detector_type
 
   ! Parameters for lagrangian detector movement

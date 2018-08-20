@@ -54,7 +54,7 @@ module particles
 
   public :: initialise_particles, move_particles, write_particles_loop, destroy_particles, &
        update_particle_attributes, checkpoint_particles_loop, get_particles, &
-       get_particle_arrays
+       get_particle_arrays, update_list_lengths
 
   type(detector_linked_list), allocatable, dimension(:), save :: particle_lists
 
@@ -532,6 +532,7 @@ contains
        particle_arrays(i) = option_count("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup")
     end do
     ewrite(2,*), "In move_particles"
+    
     list_counter = 1
     do i = 1, particle_groups
        group_path = "/particles/particle_group["//int2str(i-1)//"]"
@@ -909,6 +910,8 @@ contains
 
     detector_list%mpi_write_count = detector_list%mpi_write_count + 1
     ewrite(2, *) "Writing particle output ", detector_list%mpi_write_count
+    ewrite(2,*) "num", detector_list%total_num_det
+    ewrite(2,*) "len", detector_list%length
     
     procno = getprocno()
 
@@ -1307,6 +1310,13 @@ contains
     
   end subroutine get_particle_arrays
 
+  subroutine update_list_lengths(list_num)
+    integer, intent(in) :: list_num
+
+    particle_lists(list_num)%total_num_det = particle_lists(list_num)%total_num_det + 1
+    particle_lists(list_num)%length = particle_lists(list_num)%length + 1
+
+  end subroutine update_list_lengths
   subroutine destroy_particles()
     !Deallocate all particle arrays (detector lists)
     if (allocated(particle_lists)) then

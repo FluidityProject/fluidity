@@ -51,10 +51,15 @@ module detector_tools
             delete, delete_all, pack_detector, unpack_detector, &
             detector_value, set_detector_coords_from_python, &
             detector_buffer_size, set_particle_attribute_from_python, &
-            set_particle_fields_from_python, set_particle_constant_from_options
+            set_particle_fields_from_python, set_particle_constant_from_options, &
+            temp_insert
 
   interface insert
      module procedure insert_into_detector_list
+  end interface
+
+  interface temp_insert
+     module procedure insert_into_temp_detector_list
   end interface
 
   ! Removes detector from a list without deallocating it
@@ -236,6 +241,27 @@ contains
     end if
 
   end subroutine insert_into_detector_list
+
+  subroutine insert_into_temp_detector_list(detector, current_list)
+    ! Inserts detector at the end of a list
+    type(detector_linked_list), intent(inout) :: current_list
+    type(detector_type), pointer :: detector
+
+    if (current_list%length == 0) then
+       current_list%first => detector 
+       current_list%last => detector 
+       current_list%first%temp_previous => null()
+       current_list%last%temp_next => null()
+       current_list%length = 1
+    else
+       detector%temp_previous => current_list%last
+       current_list%last%temp_next => detector
+       current_list%last => detector
+       current_list%last%temp_next => null()
+       current_list%length = current_list%length+1
+    end if
+
+  end subroutine insert_into_temp_detector_list
 
   subroutine remove_detector_from_list(detector, detector_list)
     !! Removes the detector from the list, 
@@ -437,9 +463,11 @@ contains
        if (.not. allocated(detector%position)) then
           allocate(detector%position(ndims))
        end if
-       allocate(detector%attributes(attribute_size(1)))
-       allocate(detector%old_attributes(attribute_size(2)))
-       allocate(detector%old_fields(attribute_size(3)))
+       if (.not. allocated(detector%attributes)) then
+          allocate(detector%attributes(attribute_size(1)))
+          allocate(detector%old_attributes(attribute_size(2)))
+          allocate(detector%old_fields(attribute_size(3)))
+       end if
        ! Basic fields: ndims+3
        detector%position = reshape(buff(1:ndims),(/ndims/))
        detector%element = buff(ndims+1)

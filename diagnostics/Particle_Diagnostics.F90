@@ -32,7 +32,7 @@ module particle_diagnostics
   use fldebug
   use global_parameters, only : OPTION_PATH_LEN
   use futils, only: int2str
-  use particles, only : get_particles, get_particle_arrays
+  use particles, only : get_particles, get_particle_arrays, update_list_lengths, particle_lists
   use spud
   use parallel_tools, only: getnprocs
   use state_module
@@ -40,7 +40,7 @@ module particle_diagnostics
   use fields
   use pickers
   use detector_data_types
-  use detector_tools, only: insert, deallocate
+  use detector_tools, only: temp_insert, insert, allocate
   use field_options
   
   implicit none
@@ -60,8 +60,6 @@ module particle_diagnostics
     type(scalar_field), intent(inout) :: s_field
 
     character(len= OPTION_PATH_LEN) :: lmethod
-    character(len= OPTION_PATH_LEN) :: name
-    integer :: i
 
     call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/name", lmethod, default = "ratio")
 
@@ -71,7 +69,7 @@ module particle_diagnostics
         call calculate_ratio_from_particles(states, state_index, s_field)
        
      case("num_particles")
-        call calculate_numbers_from_particles(states, state_index, s_field)
+        call calculate_numbers_from_particles(s_field)
         
     end select
 
@@ -95,10 +93,10 @@ module particle_diagnostics
     type(detector_linked_list), allocatable, dimension(:,:) :: node_particles
     type(detector_linked_list), allocatable, dimension(:) :: p_array
     type(detector_type), pointer :: particle
-    integer :: attribute_number, i, p_allocated, j
+    integer :: i, p_allocated, j
     real, allocatable, dimension(:) :: node_values
     real, allocatable, dimension(:) :: node_part_count ! real instead of integer, so we can use halo_accumulate
-    integer :: element, node_number, dim
+    integer :: element, node_number
     real, allocatable, dimension(:) :: local_crds
     integer, dimension(:), pointer :: nodes
     integer :: nprocs
@@ -109,6 +107,9 @@ module particle_diagnostics
     integer, allocatable, dimension(:) :: group_arrays
     integer :: min_thresh
     integer :: max_thresh
+
+!!!
+    integer :: dum_counter
 
     call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/group/name", lgroup)
     call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/group/attribute/name", lattribute)
@@ -148,8 +149,8 @@ module particle_diagnostics
        allocate(node_values(node_count(s_field)))
        allocate(node_part_count(node_count(s_field)))
        node_values(:) = 0
-       node_part_count(:) = 0
-
+       node_part_count(:) = 0    
+       
        !Loop over particle arrays
        do i = 1,size(group_arrays)
           particle => p_array(group_arrays(i))%first
@@ -172,7 +173,7 @@ module particle_diagnostics
              node_values(node_number) = node_values(node_number) + att_value
              !Increase particle count for this node by 1
              node_part_count(node_number) = node_part_count(node_number) + 1.0
-             call insert(particle,node_particles(i,node_number))
+             call temp_insert(particle,node_particles(i,node_number))
              particle => particle%next
              
           end do
@@ -185,6 +186,21 @@ module particle_diagnostics
           call halo_accumulate(halo, node_part_count)
           call halo_accumulate(halo, node_values)
        end if
+
+       !!!!TESTING
+       do i = 1,size(group_arrays)
+          particle =>p_array(group_arrays(i))%first
+          dum_counter = 0
+          do while(associated(particle))
+             dum_counter = dum_counter + 1
+             particle => particle%next
+          end do
+          ewrite(2,*) "258147-mid"
+          ewrite(2,*) "array", i
+          ewrite(2,*) "len", p_array(group_arrays(i))%length
+          ewrite(2,*) "num", dum_counter
+       end do
+    
 
        !Loop over all nodes
        do i = 1,node_count(s_field)
@@ -224,11 +240,25 @@ module particle_diagnostics
           call halo_update(s_field)
        end if
     end if
+
+    !!!!TESTING
+    do i = 1,size(group_arrays)
+       particle =>p_array(group_arrays(i))%first
+       dum_counter = 0
+       do while(associated(particle))
+          dum_counter = dum_counter + 1
+          particle => particle%next
+       end do
+       ewrite(2,*) "258147-end"
+       ewrite(2,*) "array", i
+       ewrite(2,*) "len", p_array(group_arrays(i))%length
+       ewrite(2,*) "num", dum_counter
+    end do
     
 
   end subroutine calculate_ratio_from_particles
 
-  subroutine calculate_numbers_from_particles(states, state_index, s_field)
+  subroutine calculate_numbers_from_particles(s_field)
 
     !!Calculate s_field using the ratio method from particles
     !!First determine which particle groups/subgroups/attributes are being used
@@ -236,8 +266,6 @@ module particle_diagnostics
     !!Finally use the ratio method to calculate field values and place on
     !!Diagnostic scalar field
 
-    type(state_type), dimension(:), target, intent(inout) :: states
-    integer, intent(in) :: state_index
     type(scalar_field), intent(inout) :: s_field
     type(halo_type), pointer :: halo
 
@@ -246,7 +274,7 @@ module particle_diagnostics
     type(detector_type), pointer :: particle
     integer :: i, p_allocated
     real, allocatable, dimension(:) :: node_part_count ! real instead of integer, so we can use halo_accumulate
-    integer :: element, node_number, dim
+    integer :: element, node_number
     real, allocatable, dimension(:) :: local_crds
     integer, dimension(:), pointer :: nodes
     integer :: nprocs
@@ -346,14 +374,13 @@ module particle_diagnostics
     type(detector_type), pointer :: temp_part
 
     real, dimension(:), allocatable :: node_coord, node_vector
-    real :: ratio_val, pertubation
-    real :: rand_num
+    real :: pertubation
 
-    real :: val
     character(len=OPTION_PATH_LEN) :: name
     character(len=OPTION_PATH_LEN) :: particle_name
     integer :: id, name_len, tot_len
-    integer :: k, j
+    integer :: j
+    integer, dimension(3) :: attribute_size
     
     do j = 1,size(group_arrays)
        temp_part => p_array(group_arrays(j))%last
@@ -362,40 +389,40 @@ module particle_diagnostics
           name_len = len(int2str(id+1))+1 !id length + '_'
           tot_len = len(trim(temp_part%name))
           name = trim(temp_part%name(1:tot_len-name_len))
+          attribute_size(1) = size(temp_part%attributes)
+          attribute_size(2) = size(temp_part%old_attributes)
+          attribute_size(3) = size(temp_part%old_fields)
+          allocate(node_coord(size(temp_part%position)))
+          allocate(node_vector(size(temp_part%position)))
        end if
-       
-       temp_part => null()
 
        particle => node_particles(j)%first
-
        do while(associated(particle))
           !duplicate particles, pertubating coords towards cv
           !get new lcoords from global coords
           !
           particle_name = trim(name)//int2str(id+1)
-          allocate(temp_part)
-          allocate(temp_part%position(size(particle%position)))
-          allocate(temp_part%local_coords(size(particle%local_coords)))
+          temp_part => null()
+          call allocate(temp_part, size(particle%position), size(particle%local_coords), attribute_size)
+          !allocate(temp_part)
+          !allocate(temp_part%position(size(particle%position)))
+          !allocate(temp_part%local_coords(size(particle%local_coords)))
+          !allocate(temp_part%attributes(size(particle%attributes)))
+          !allocate(temp_part%old_attributes(size(particle%old_attributes)))
+          !allocate(temp_part%old_fields(size(particle%old_fields)))
           temp_part%name = trim(particle_name)
           temp_part%id_number = id+1
+          temp_part%list_id = particle%list_id
 
           !pertubate previous position towards cv by 1/100th of element size
           !global coords of node, node_coords-part_coords and normalize to get vector * 1/100th of mesh width and add to part_coords to get new_coords
-          allocate(node_coord(size(particle%position)))
-          allocate(node_vector(size(particle%position)))
           node_coord=xfield%val(:,node_number)
           node_vector=node_coord-particle%position
-          pertubation = rand()/0.5 !currently will move particle randomly between it's current position and the closest node. Move set distance instead??
+          pertubation = rand()/2 !currently will move particle randomly between it's current position and the closest node. Move set distance instead??
           !can also spawn randomly within control volume (from node position, move randomly in any direction up to distance of 1/2mesh size etc)
           temp_part%position = particle%position + node_vector*pertubation
           call picker_inquire(xfield, temp_part%position, temp_part%element, local_coord=temp_part%local_coords, global=.true.)
-          !temp_part%element =
-          !temp_part%local_coords =
           temp_part%type = LAGRANGIAN_DETECTOR
-
-          allocate(temp_part%attributes(size(particle%attributes)))
-          allocate(temp_part%old_attributes(size(particle%old_attributes)))
-          allocate(temp_part%old_fields(size(particle%old_fields)))
 
           temp_part%attributes(:) = 0
           temp_part%old_attributes(:) = 0
@@ -405,13 +432,28 @@ module particle_diagnostics
           node_values = node_values + temp_part%attributes(group_attribute)
           node_part_count = node_part_count + 1
 
-          call insert(temp_part, p_array(group_arrays(j)))
+          !call insert(temp_part, p_array(group_arrays(j)))
+          temp_part%previous => p_array(group_arrays(j))%last
+          p_array(group_arrays(j))%last%next => temp_part
+          p_array(group_arrays(j))%last => temp_part
+          p_array(group_arrays(j))%last%next => null()
+          !p_array(group_arrays(j))%total_num_det = p_array(group_arrays(j))%total_num_det +1
+          call update_list_lengths(group_arrays(j))
           id = id + 1
-          call deallocate(temp_part)!!?? will this kill the previous particle?
-          particle => particle%next
+          !temp_part => null()
+          !deallocate(temp_part%position)
+          !deallocate(temp_part%local_coords)
+          !deallocate(temp_part%attributes)
+          !deallocate(temp_part%old_attributes)
+          !deallocate(temp_part%old_fields)
+          !deallocate(temp_part)
+          !call deallocate(temp_part)!!?? will this kill the previous particle?
+          !!!Check to make sure detectors aren't removed. May have to deallocate another way
+          particle => particle%temp_next
 
        end do
-          
+       deallocate(node_coord)
+       deallocate(node_vector)
 
        !get elements node is contained in from function  node_neigh_mesh(mesh, node_number) result (node_neigh)
        !or function node_neigh_scalar(field, node_number) result (node_neigh) (in Fields_Base.F90)
