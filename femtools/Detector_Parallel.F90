@@ -440,11 +440,11 @@ contains
           end if
 
           ! If there is a list of detector names, use it, otherwise set ID as name
-          if (allocated(detector_list%detector_names)) then
-             detector_received%name=detector_list%detector_names(detector_received%id_number)
-          else
+          !if (allocated(detector_list%detector_names)) then
+          !   detector_received%name=detector_list%detector_names(detector_received%id_number)
+          !else
              detector_received%name=int2str(detector_received%id_number)
-          end if
+          !end if
 
           call insert(detector_received, detector_list)           
        end do

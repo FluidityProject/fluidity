@@ -2311,11 +2311,11 @@ module zoltan_integration
        detector => detector%next
 
        ! update detector name if names are present on the list, otherwise det%name=id_number
-       if (allocated(detector_list_array(add_detector%list_id)%ptr%detector_names)) then
-          add_detector%name=detector_list_array(add_detector%list_id)%ptr%detector_names(add_detector%id_number)
-       else
-          add_detector%name=int2str(add_detector%id_number)
-       end if
+       !if (allocated(detector_list_array(add_detector%list_id)%ptr%detector_names)) then
+       !   add_detector%name=detector_list_array(add_detector%list_id)%ptr%detector_names(add_detector%id_number)
+       !else
+       add_detector%name=int2str(add_detector%id_number)
+       !end if
 
        ! move detector to the correct list
        call move(add_detector, zoltan_global_unpacked_detectors_list, detector_list_array(add_detector%list_id)%ptr)

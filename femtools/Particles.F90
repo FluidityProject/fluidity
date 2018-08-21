@@ -54,7 +54,7 @@ module particles
 
   public :: initialise_particles, move_particles, write_particles_loop, destroy_particles, &
        update_particle_attributes, checkpoint_particles_loop, get_particles, &
-       get_particle_arrays, update_list_lengths
+       get_particle_arrays, update_list_lengths, particle_lists
 
   type(detector_linked_list), allocatable, dimension(:), save :: particle_lists
 
@@ -910,8 +910,6 @@ contains
 
     detector_list%mpi_write_count = detector_list%mpi_write_count + 1
     ewrite(2, *) "Writing particle output ", detector_list%mpi_write_count
-    ewrite(2,*) "num", detector_list%total_num_det
-    ewrite(2,*) "len", detector_list%length
     
     procno = getprocno()
 
