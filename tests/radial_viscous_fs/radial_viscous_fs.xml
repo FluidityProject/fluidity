@@ -5,7 +5,7 @@
   <tags>flml</tags>
 
   <problem_definition length="medium" nprocs="4">
-    <command_line>flredecomp -i 1 -o 4 radial-viscous-fs P4-radial-viscous-fs; fluidity -v2 -l P4-radial-viscous-fs</command_line>
+    <command_line>mpiexec flredecomp -i 1 -o 4 radial-viscous-fs P4-radial-viscous-fs &amp;&amp; mpiexec fluidity -v2 -l P4-radial-viscous-fs.flml</command_line>
   </problem_definition>
 
 <variables>  
@@ -16,10 +16,10 @@ files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
 </variable>
 
-<variable name="abs_free_surface_height" language="python">
+<variable name="abs_free_surface" language="python">
 from fluidity_tools import stat_parser
 stat=stat_parser('free_surface.stat')
-max_free_surface = abs(stat['Fields']['CellArea'])
+abs_free_surface = max(abs(stat['Mantle']['FreeSurface']['max']),abs(stat['Mantle']['FreeSurface']['min']))
 </variable>
 
 </variables>
@@ -30,8 +30,8 @@ max_free_surface = abs(stat['Fields']['CellArea'])
 assert(solvers_converged)
 </test>
 
-<test name="GAMG solver behaving as expected" language="python">
-assert(DeltaU_iterations_GAMG &lt; 16)
+<test name="Abs(free_surface) less than 5e4" language="python">
+assert(abs_free_surface &lt; 5e4)
 </test>
 
 </pass_tests>

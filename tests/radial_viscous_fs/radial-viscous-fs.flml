@@ -40,7 +40,7 @@
       </from_mesh>
     </mesh>
     <mesh name="InputMesh">
-      <from_file file_name="icosahedral_mesh/Icosahedron">
+      <from_file file_name="mesh/Icosahedron">
         <format name="gmsh"/>
         <stat>
           <include_in_stat/>
