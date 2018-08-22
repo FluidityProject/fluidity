@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<testproblem>
+  <name>radial-viscous-free-surface<comment>This tests that the normals used in the free surface boundary condition are purely in the radial direction.</comment></name>
+  <owner userid="rhodrid"/>
+  <tags>flml</tags>
+
+  <problem_definition length="medium" nprocs="4">
+    <command_line>flredecomp -i 1 -o 4 radial-viscous-fs P4-radial-viscous-fs; fluidity -v2 -l P4-radial-viscous-fs</command_line>
+  </problem_definition>
+
+<variables>  
+
+<variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+</variable>
+
+<variable name="abs_free_surface_height" language="python">
+from fluidity_tools import stat_parser
+stat=stat_parser('free_surface.stat')
+max_free_surface = abs(stat['Fields']['CellArea'])
+</variable>
+
+</variables>
+
+<pass_tests>
+
+<test name="Solvers converged" language="python">
+assert(solvers_converged)
+</test>
+
+<test name="GAMG solver behaving as expected" language="python">
+assert(DeltaU_iterations_GAMG &lt; 16)
+</test>
+
+</pass_tests>
+                                                                                                                                                                              
+<warn_tests>
+</warn_tests>
+
+</testproblem>
+
+
+
+
+
