@@ -417,6 +417,14 @@ and deleting options.</a:documentation>
                     <data type="string"/>
                   </attribute>
                 </element>
+                <optional>
+                  <element name="particle_spawning">
+                    <element name="min_cv_threshhold">
+                      <a:documentation>Minimum number of particles per control volume</a:documentation>
+                      <ref name="integer"/>
+                    </element>
+                  </element>
+                </optional>
                 <oneOrMore>
                   <element name="particle_subgroup">
                     <a:documentation>Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field

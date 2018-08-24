@@ -124,7 +124,8 @@ module particle_diagnostics
     s_field%val(:) = 0
 
     !Set minimum and maximum particle thresholds per control volume
-    min_thresh = 20 !likely change to be set in schema file
+    call get_option("/particles/particle_group::"//trim(lgroup)//"/particle_spawning/min_cv_threshhold", min_thresh)
+    !min_thresh = 20 !likely change to be set in schema file
     max_thresh = 40 !!!
 
     xfield=>extract_vector_field(states(1), "Coordinate")

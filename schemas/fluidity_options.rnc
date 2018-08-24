@@ -336,6 +336,12 @@ start =
 		     element velocity_field {
 		     attribute name { xsd:string }
 		     },
+		     element particle_spawning {
+		     	## Minimum number of particles per control volume
+		        element min_cv_threshhold {
+			   integer
+			}
+		     }?,
 		     ## Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
 		     ## and carry the same attributes. Subgroups can have different initial positions specified via a python
 		     ## function of from a file.
