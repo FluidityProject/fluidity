@@ -311,7 +311,12 @@ contains
     character(len = FIELD_NAME_LEN) :: fmt
     character(len=FIELD_NAME_LEN) :: particle_name
     integer :: particle_checkpoint_unit=0
-    integer :: l, m, str_size
+    integer :: l, m, str_size, list_length
+
+    integer :: num_procs, proc_num
+
+    num_procs = getnprocs()
+    proc_num = getprocno()
 
     ewrite(2,*) "Reading particles from checkpoint"
 
@@ -322,18 +327,19 @@ contains
     call get_option(trim(subgroup_path) // "/initial_position/from_checkpoint_file/file_name",particles_cp_filename)
     
 #ifdef STREAM_IO
-    open(unit = particle_checkpoint_unit, file = trim(particles_cp_filename) //'.attributes.dat', &
+    open(unit = particle_checkpoint_unit, file = trim(particles_cp_filename) // '_' // int2str(proc_num-1) //'.attributes.dat', &
          & action = "read", access = "stream", form = "unformatted")
 #else
     FLAbort("No stream I/O support")
 #endif
     
-    !Read in particle locations from checkpoint file       
+    !Read in particle locations from checkpoint file
+    read(particle_checkpoint_unit) list_length
+    
     allocate(packed_buff(dim+sum(attribute_size)))
     str_size=len_trim(int2str(sub_particles))
     fmt="(a,I"//int2str(str_size)//"."//int2str(str_size)//")"
-    
-    do m=1,sub_particles
+    do m=1,list_length
        write(particle_name, fmt) trim(subname)//"_", m
        read(particle_checkpoint_unit) packed_buff
        particle_location=packed_buff(1:dim)
@@ -342,11 +348,12 @@ contains
           attribute_vals(2,1:attribute_size(2))=packed_buff(dim+1+attribute_size(1):dim+attribute_size(1)+attribute_size(2))
           attribute_vals(3,1:attribute_size(3))=packed_buff(dim+1+attribute_size(1)+attribute_size(2):dim+sum(attribute_size))
        end if
-       call create_single_particle(p_list, xfield, &
+       call create_single_particle_check(p_list, xfield, &
             particle_location, m, LAGRANGIAN_DETECTOR, trim(particle_name),attribute_size,attribute_vals= attribute_vals)
     end do
     deallocate(packed_buff)
     deallocate(attribute_vals)
+    ewrite(2,*) "Finished read_particles_from_checkpoint"
     
   end subroutine read_particles_from_checkpoint
 
@@ -501,6 +508,75 @@ contains
     end if
     
   end subroutine create_single_particle
+
+  subroutine create_single_particle_check(detector_list, xfield, position, id, type, name, attribute_size, attribute_vals)
+    ! Allocate a single particle, populate and insert it into the given list
+    ! In parallel, first check if the particle would be local and only allocate if it is
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(vector_field), pointer, intent(in) :: xfield
+    real, dimension(xfield%dim), intent(in) :: position
+    integer, intent(in) :: id, type
+    character(len=*), intent(in) :: name
+
+    type(detector_type), pointer :: detector
+    type(element_type), pointer :: shape
+    real, dimension(xfield%dim+1) :: lcoords
+    integer :: element
+    real, dimension(:,:), intent(in), optional :: attribute_vals
+    integer, dimension(3), intent(in) :: attribute_size
+
+    real ::  dt
+    
+    shape=>ele_shape(xfield,1)
+    assert(xfield%dim+1==local_coord_count(shape))
+    detector_list%detector_names(id)=name
+    ! Determine element and local_coords from position
+    ! In parallel, global=.false. can often work because there will be
+    ! a halo of non-owned elements in your process and so you can work out
+    ! ownership without communication.  But in general it won't work.
+    call picker_inquire(xfield,position,element,local_coord=lcoords,global=.false.)
+    call get_option("/timestepping/timestep", dt)
+    ! If we're in parallel and don't own the element, skip this particle
+    if (isparallel()) then
+       if (element<0) return
+       if (.not.element_owned(xfield,element)) return
+    else
+       ! In serial make sure the particle is in the domain
+       ! unless we have the write_nan_outside override
+       if (element<0 .and. .not.detector_list%write_nan_outside) then
+          ewrite(-1,*) "Dealing with particle ", id, " named: ", trim(name)
+          FLExit("Trying to initialise particle outside of computational domain")
+       end if
+    end if
+    ! Otherwise, allocate and insert particle
+    allocate(detector)
+    allocate(detector%position(xfield%dim))
+    allocate(detector%local_coords(local_coord_count(shape)))
+    call insert(detector, detector_list)
+    ! Populate particle
+    detector%name=name
+    detector%position=position
+    detector%element=element
+    detector%local_coords=lcoords
+    detector%type=type
+    detector%id_number=id
+
+    allocate(detector%attributes(attribute_size(1)))
+    allocate(detector%old_attributes(attribute_size(2)))
+    allocate(detector%old_fields(attribute_size(3)))
+
+    if (present(attribute_vals)) then
+       detector%attributes = attribute_vals(1,1:attribute_size(1))
+       detector%old_attributes = attribute_vals(2,1:attribute_size(2))
+       detector%old_fields = attribute_vals(3,1:attribute_size(3))
+    else
+       detector%attributes(:) = 0
+       detector%old_attributes(:) = 0
+       detector%old_fields(:) = 0
+    end if
+    
+  end subroutine create_single_particle_check
+
 
   subroutine move_particles(state, dt, timestep)
     !!Routine to loop over particle arrays and call move_lagrangian_detectors
@@ -1084,9 +1160,15 @@ contains
     
     integer, save :: fhdet=0
     integer :: j, IERROR
-    integer :: nints, realsize, dimen, num_particles, number_total_columns
+    integer :: nints, realsize, dimen, num_particles, number_total_columns, intsize
 
-    num_particles = particle_list%total_num_det
+    integer :: num_procs, proc_num
+
+    num_procs = getnprocs()
+    proc_num = getprocno()
+
+    !num_particles = particle_list%total_num_det
+    num_particles = particle_list%length
 
     ! Construct a new particle checkpoint filename
     !!!get name of particle array here to construct the output file
@@ -1099,12 +1181,13 @@ contains
     !!< Writes particle last position into particles file using MPI output 
     ! commands so that when running in parallel all processors can write at the same time information into the file at the right location.
     
-    call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(particles_cp_filename) // '_particles.' // trim(name) // '.attributes.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, fhdet, IERROR)
+    call MPI_FILE_OPEN(MPI_COMM_SELF, trim(particles_cp_filename) // '_particles.' // trim(parallel_filename(name)) // '.attributes.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, fhdet, IERROR)
 
     ewrite(1,*) "after opening the IERROR is:", IERROR
 
     allocate( status(MPI_STATUS_SIZE) )
 
+    call MPI_TYPE_EXTENT(getpinteger(), intsize, ierror)
     call MPI_TYPE_EXTENT(getpreal(), realsize, ierror)
 
     vfield => extract_vector_field(state(1),"Velocity")
@@ -1115,10 +1198,14 @@ contains
 
     node => particle_list%first
 
-    location_to_write=0
+    offset=0*intsize
+
+    call MPI_FILE_WRITE_AT(fhdet,offset,particle_list%length,1,getpinteger(),status,IERROR)
+
+    location_to_write=1*intsize
 
     positionloop_cp: do j=1, particle_list%length
-      offset = location_to_write+(node%id_number-1)*(size(node%position)+sum(attribute_size))*realsize
+      offset = location_to_write+(j-1)*(size(node%position)+sum(attribute_size))*realsize
       ewrite(1,*) "after file set view position IERROR is:", IERROR
 
       allocate(buffer(size(node%position)+sum(attribute_size)))
