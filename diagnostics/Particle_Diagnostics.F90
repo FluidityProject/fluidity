@@ -548,6 +548,7 @@ module particle_diagnostics
           if (rand1>0.5) then
              rand2=rand()
              if (rand2>0.5) then
+                !Remove from particle list
                 if (associated(particle%previous)) then
                    particle%previous%next => particle%next
                 else
@@ -559,7 +560,19 @@ module particle_diagnostics
                    particle_lists(group_arrays(j))%last => particle%previous
                 end if
                 temp_part =>particle%temp_next
+                !Remove from temp list
+                if (associated(particle%temp_previous)) then
+                   particle%temp_previous%temp_next => particle%temp_next
+                else
+                   node_particles(j)%first => particle%temp_next
+                end if
+                if (associated(particle%temp_next)) then
+                   particle%temp_next%temp_previous => particle%temp_previous
+                else
+                   node_particles(j)%last => particle%temp_previous
+                end if
                 remove_particles(j)=remove_particles(j)+1
+                node_particles(j)%length = node_particles(j)%length -1
                 particle_lists(group_arrays(j))%length = particle_lists(group_arrays(j))%length - 1
                 node_values = node_values - particle%attributes(group_attribute)
                 node_part_count = node_part_count - 1
@@ -567,6 +580,7 @@ module particle_diagnostics
              else
                 rand3=rand()
                 if (rand3>0.5) then
+                   !Remove from particle list
                    if (associated(particle%previous)) then
                       particle%previous%next => particle%next
                    else
@@ -578,7 +592,19 @@ module particle_diagnostics
                       particle_lists(group_arrays(j))%last => particle%previous
                    end if
                    temp_part =>particle%temp_next
+                   !Remove from temp list
+                   if (associated(particle%temp_previous)) then
+                      particle%temp_previous%temp_next => particle%temp_next
+                   else
+                      node_particles(j)%first => particle%temp_next
+                   end if
+                   if (associated(particle%temp_next)) then
+                      particle%temp_next%temp_previous => particle%temp_previous
+                   else
+                      node_particles(j)%last => particle%temp_previous
+                   end if
                    remove_particles(j)=remove_particles(j)+1
+                   node_particles(j)%length = node_particles(j)%length -1
                    particle_lists(group_arrays(j))%length = particle_lists(group_arrays(j))%length - 1
                    node_values = node_values - particle%attributes(group_attribute)
                    node_part_count = node_part_count - 1
@@ -590,6 +616,7 @@ module particle_diagnostics
              if (rand2>0.5) then
                 rand3=rand()
                 if (rand3>0.5) then
+                   !Remove from particle list
                    if (associated(particle%previous)) then
                       particle%previous%next => particle%next
                    else
@@ -601,7 +628,19 @@ module particle_diagnostics
                       particle_lists(group_arrays(j))%last => particle%previous
                    end if
                    temp_part =>particle%temp_next
+                   !Remove from temp list
+                   if (associated(particle%temp_previous)) then
+                      particle%temp_previous%temp_next => particle%temp_next
+                   else
+                      node_particles(j)%first => particle%temp_next
+                   end if
+                   if (associated(particle%temp_next)) then
+                      particle%temp_next%temp_previous => particle%temp_previous
+                   else
+                      node_particles(j)%last => particle%temp_previous
+                   end if
                    remove_particles(j)=remove_particles(j)+1
+                   node_particles(j)%length = node_particles(j)%length -1
                    particle_lists(group_arrays(j))%length = particle_lists(group_arrays(j))%length - 1
                    node_values = node_values - particle%attributes(group_attribute)
                    node_part_count = node_part_count - 1
