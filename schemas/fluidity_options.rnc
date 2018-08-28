@@ -340,6 +340,10 @@ start =
 		     	## Minimum number of particles per control volume
 		        element min_cv_threshhold {
 			   integer
+			},
+			## Maximum number of particles per control volume
+		        element max_cv_threshhold {
+			   integer
 			}
 		     }?,
 		     ## Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
