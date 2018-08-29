@@ -212,10 +212,10 @@ module particle_diagnostics
                 end do
              end if
              if (node_part_count(i)>max_thresh) then
-                do while(node_part_count(i)>max_thresh)
-                   call delete_particles(node_part_count(i), node_values(i), node_particles(:,i), group_arrays, group_attribute,remove_particles)
-                   summed_particles=summed_particles-remove_particles
-                end do
+                !do while(node_part_count(i)>max_thresh) need parallel communication for this
+                call delete_particles(node_part_count(i), node_values(i), node_particles(:,i), group_arrays, group_attribute,remove_particles)
+                summed_particles=summed_particles-remove_particles
+                !end do
              end if
 
              !Determine field value from ratio method
