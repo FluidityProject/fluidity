@@ -379,63 +379,63 @@ contains
           FLExit("Error: No support for ascii detector output in parallel. Please use binary output by turning off the ascii_output option.")
        end if
     end if
-    
-          ! Only the first process should write the header file
-    if (getprocno() == 1) then
-       p_list%output_unit=free_unit()
-       open(unit=p_list%output_unit, file=trim(filename)//'.particles.'//trim(subname), action="write")
-       
-       write(p_list%output_unit, '(a)') "<header>"
-       call initialise_constant_diagnostics(p_list%output_unit, &
-            binary_format = p_list%binary_output)
-       
-       ! Initial columns are elapsed time and dt.
-       buffer=field_tag(name="ElapsedTime", column=1, statistic="value")
-       write(p_list%output_unit, '(a)') trim(buffer)
-       buffer=field_tag(name="dt", column=2, statistic="value")
-       write(p_list%output_unit, '(a)') trim(buffer)
-       
-       ! Next columns contain the positions of all the particles
-       column=2
-       positionloop: do m=1,sub_particles
-          buffer=field_tag(name=p_list%detector_names(m), column=column+1,&
-               statistic="position", components=xfield%dim)
-          write(p_list%output_unit, '(a)') trim(buffer)
-          column=column+xfield%dim 
-       end do positionloop
-       
-       ! Next columns contain attributes of particles
-       attributeloop: do m=1,sub_particles
-          do n=1,attribute_size(1)
-             call get_option(trim(subgroup_path) // "/attributes/attribute["//int2str(n-1)//"]/name", attname)
-             buffer=field_tag(name=p_list%detector_names(m), column=column+1,&
-                  statistic=attname, components=1)
-             write(p_list%output_unit, '(a)')trim(buffer)
-             column=column+1
-          end do
-       end do attributeloop
-    end if
-    
-    if (getprocno() == 1) then
-       write(p_list%output_unit, '(a)') "</header>"
-       flush(p_list%output_unit)
-       ! when using mpi_subroutines to write into the particles file we need to close the file since 
-       ! filename.particles.dat needs to be open now with MPI_OPEN
-       if (p_list%binary_output) then
-          close(p_list%output_unit)
-       end if
-    end if
-    
-    
-    if (p_list%binary_output) then
-       ! bit of hack to delete any existing .particles.dat file
-       ! if we don't delete the existing .particles.dat would simply be opened for random access and 
-       ! gradually overwritten, mixing particle output from the current with that of a previous run
-       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.particles.'//trim(subname)//'.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, p_list%mpi_fh, IERROR)
-       call MPI_FILE_CLOSE(p_list%mpi_fh, IERROR)
-       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.particles.'//trim(subname)//'.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, p_list%mpi_fh, IERROR)
-       assert(ierror == MPI_SUCCESS)
-    end if
+!!$    
+!!$          ! Only the first process should write the header file
+!!$    if (getprocno() == 1) then
+!!$       p_list%output_unit=free_unit()
+!!$       open(unit=p_list%output_unit, file=trim(filename)//'.particles.'//trim(subname), action="write")
+!!$       
+!!$       write(p_list%output_unit, '(a)') "<header>"
+!!$       call initialise_constant_diagnostics(p_list%output_unit, &
+!!$            binary_format = p_list%binary_output)
+!!$       
+!!$       ! Initial columns are elapsed time and dt.
+!!$       buffer=field_tag(name="ElapsedTime", column=1, statistic="value")
+!!$       write(p_list%output_unit, '(a)') trim(buffer)
+!!$       buffer=field_tag(name="dt", column=2, statistic="value")
+!!$       write(p_list%output_unit, '(a)') trim(buffer)
+!!$       
+!!$       ! Next columns contain the positions of all the particles
+!!$       column=2
+!!$       positionloop: do m=1,sub_particles
+!!$          buffer=field_tag(name=p_list%detector_names(m), column=column+1,&
+!!$               statistic="position", components=xfield%dim)
+!!$          write(p_list%output_unit, '(a)') trim(buffer)
+!!$          column=column+xfield%dim 
+!!$       end do positionloop
+!!$       
+!!$       ! Next columns contain attributes of particles
+!!$       attributeloop: do m=1,sub_particles
+!!$          do n=1,attribute_size(1)
+!!$             call get_option(trim(subgroup_path) // "/attributes/attribute["//int2str(n-1)//"]/name", attname)
+!!$             buffer=field_tag(name=p_list%detector_names(m), column=column+1,&
+!!$                  statistic=attname, components=1)
+!!$             write(p_list%output_unit, '(a)')trim(buffer)
+!!$             column=column+1
+!!$          end do
+!!$       end do attributeloop
+!!$    end if
+!!$    
+!!$    if (getprocno() == 1) then
+!!$       write(p_list%output_unit, '(a)') "</header>"
+!!$       flush(p_list%output_unit)
+!!$       ! when using mpi_subroutines to write into the particles file we need to close the file since 
+!!$       ! filename.particles.dat needs to be open now with MPI_OPEN
+!!$       if (p_list%binary_output) then
+!!$          close(p_list%output_unit)
+!!$       end if
+!!$    end if
+!!$    
+!!$    
+!!$    if (p_list%binary_output) then
+!!$       ! bit of hack to delete any existing .particles.dat file
+!!$       ! if we don't delete the existing .particles.dat would simply be opened for random access and 
+!!$       ! gradually overwritten, mixing particle output from the current with that of a previous run
+!!$       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.particles.'//trim(subname)//'.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, p_list%mpi_fh, IERROR)
+!!$       call MPI_FILE_CLOSE(p_list%mpi_fh, IERROR)
+!!$       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.particles.'//trim(subname)//'.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, p_list%mpi_fh, IERROR)
+!!$       assert(ierror == MPI_SUCCESS)
+!!$    end if
     !Get options for lagrangian particle movement
     call read_detector_move_options(p_list, "/particles")
 
