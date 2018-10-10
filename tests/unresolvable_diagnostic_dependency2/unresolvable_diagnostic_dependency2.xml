@@ -3,7 +3,7 @@
   <name>Unresolvable diagnostic dependency</name>
   <owner userid="dham"/>
   <tags>flml</tags>
-  <problem_definition length = "short" nprocs = "1">
+  <problem_definition length = "special" nprocs = "1">
     <command_line>make clean-run-debug; fluidity -v2 -l diagnostics.flml</command_line>
   </problem_definition>
   <variables>

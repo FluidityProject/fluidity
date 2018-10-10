@@ -32,7 +32,7 @@ module fefields
 
 contains
   
-  subroutine compute_cv_mass(positions, cv_mass, porosity)
+  subroutine compute_cv_mass(positions, cv_mass)
     
     !!< Compute the cv mass matrix associated with the 
     !!< input scalar fields mesh. This will use pre tabulated
@@ -43,32 +43,16 @@ contains
     !!< the mesh element type must be Lagrangian. This WILL work
     !!< for both continuous and discontinuous meshes. If the element
     !!< order is zero then return the element volume.
-    !!< If porosity is present this is included in the cv mass. This is 
-    !!< only possible if the porosity is element wise (order zero) or 
-    !!< the same order as the cv_mass. For the latter case the porosity 
-    !!< is assumed represented by a control volume expansion and by 
-    !!< a sub control volume expansion if discontinous 
     
     type(vector_field), intent(in) :: positions
     type(scalar_field), intent(inout) :: cv_mass
-    type(scalar_field), intent(in), optional :: porosity
     
     ! local variables
     integer :: ele
     integer :: vertices, polydegree, dim, type, family, loc
     real, dimension(:), pointer :: subcv_ele_volf => null()
-    real, dimension(:), pointer :: subcv_ele_porosity => null()
     
-    if (present(porosity)) then
-       ewrite(1,*) 'In compute_cv_mass with porosity present'
-
-       if (.not. (porosity%mesh%shape%degree == cv_mass%mesh%shape%degree) .and. &
-           .not. (porosity%mesh%shape%degree == 0)) then
-          FLAbort('The porosity must have the same order as cv_mass or be element wise (order zero)')
-       end if 
-    else
-       ewrite(1,*) 'In compute_cv_mass'
-    end if
+    ewrite(1,*) 'In compute_cv_mass'
     
     ! sanity check
     assert(element_count(positions) == element_count(cv_mass))
@@ -159,39 +143,14 @@ contains
        
     end if
             
-    ! Form the CV mass matrix - include porosity if required
-    if (present(porosity)) then
-    
-       allocate(subcv_ele_porosity(loc))
-
-       do ele = 1,element_count(cv_mass)
+    ! Form the CV mass matrix:
+    do ele = 1,element_count(cv_mass)
           
-          if (porosity%mesh%shape%degree == 0) then
-             subcv_ele_porosity(1:1) = ele_val(porosity, ele)
-             if (loc > 1) subcv_ele_porosity(2:) = subcv_ele_porosity(1)
-          else
-             subcv_ele_porosity = ele_val(porosity, ele)
-          end if
+       call addto(cv_mass, &
+            ele_nodes(cv_mass, ele), &
+            subcv_ele_volf * element_volume(positions, ele))
           
-          call addto(cv_mass, &
-                     ele_nodes(cv_mass, ele), &
-                     subcv_ele_volf * element_volume(positions, ele) * subcv_ele_porosity)
-          
-       end do
-
-       deallocate(subcv_ele_porosity)
-    
-    else
-    
-       do ele = 1,element_count(cv_mass)
-          
-          call addto(cv_mass, &
-                     ele_nodes(cv_mass, ele), &
-                     subcv_ele_volf * element_volume(positions, ele))
-          
-       end do
-    
-    end if 
+    end do
     
     deallocate(subcv_ele_volf)
     

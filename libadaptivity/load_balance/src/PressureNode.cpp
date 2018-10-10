@@ -126,45 +126,47 @@ vector<samfloat_t> PressureNode::get_pressure() const{
 }
 
 void PressureNode::pack(char *buffer, int& bsize, int& offset) const{
-  MPI::UNN_T.Pack(&unn,           1, buffer, bsize, offset, MPI::COMM_WORLD);
-  MPI::GNN_T.Pack(&gnn,           1, buffer, bsize, offset, MPI::COMM_WORLD);
-  MPI::UNSIGNED_CHAR.Pack(&flags, 1, buffer, bsize, offset, MPI::COMM_WORLD);
-  MPI::UNSIGNED.Pack(&owner,      1, buffer, bsize, offset, MPI::COMM_WORLD);
+  MPI_Pack(&unn,           1, UNN_T, buffer, bsize, &offset, MPI_COMM_WORLD);
+  MPI_Pack(&gnn,           1, GNN_T, buffer, bsize, &offset, MPI_COMM_WORLD);
+  MPI_Pack(&flags, 1, MPI_UNSIGNED_CHAR, buffer, bsize, &offset, MPI_COMM_WORLD);
+  MPI_Pack(&owner,     1, MPI_UNSIGNED, buffer, bsize, &offset, MPI_COMM_WORLD);
   
   unsigned nDofF = pressure.size();
-  MPI::UNSIGNED.Pack(&nDofF, 1, buffer, bsize, offset, MPI::COMM_WORLD);
+  MPI_Pack(&nDofF, 1, MPI_UNSIGNED, buffer, bsize, &offset, MPI_COMM_WORLD);
   if( nDofF>0 )
-    MPI::SAMFLOAT.Pack(&(pressure[0]), nDofF, buffer, bsize, offset, MPI::COMM_WORLD);
+    MPI_Pack(&(pressure[0]), nDofF, SAMFLOAT, buffer, bsize, &offset, MPI_COMM_WORLD);
 
   return;
 }
 
 void PressureNode::unpack(char *buffer, int& bsize, int& offset){
-  MPI::UNN_T.Unpack(buffer,         bsize, &unn,  1, offset, MPI::COMM_WORLD);
-  MPI::GNN_T.Unpack(buffer,         bsize, &gnn,  1, offset, MPI::COMM_WORLD);
-  MPI::UNSIGNED_CHAR.Unpack(buffer, bsize, &flags,1, offset, MPI::COMM_WORLD);
-  MPI::UNSIGNED.Unpack(buffer,      bsize, &owner,1, offset, MPI::COMM_WORLD);
+  MPI_Unpack(buffer, bsize, &offset, &unn,  1, UNN_T, MPI_COMM_WORLD);
+  MPI_Unpack(buffer, bsize, &offset, &gnn,  1, GNN_T, MPI_COMM_WORLD);
+  MPI_Unpack(buffer, bsize, &offset, &flags,1, MPI_UNSIGNED_CHAR, MPI_COMM_WORLD);
+  MPI_Unpack(buffer, bsize, &offset, &owner,1, MPI_UNSIGNED, MPI_COMM_WORLD);
   
   unsigned nDofF;
-  MPI::UNSIGNED.Unpack(buffer, bsize, &nDofF,1, offset, MPI::COMM_WORLD);
+  MPI_Unpack(buffer, bsize, &offset, &nDofF,1, MPI_UNSIGNED, MPI_COMM_WORLD);
   pressure.resize( nDofF );
   if( nDofF>0 )
-    MPI::SAMFLOAT.Unpack(buffer, bsize, &(pressure[0]), nDofF, offset, MPI::COMM_WORLD);
+    MPI_Unpack(buffer, bsize, &offset, &(pressure[0]), nDofF, SAMFLOAT, MPI_COMM_WORLD);
   
   return;
 }
 
 unsigned PressureNode::pack_size() const{
-  int total=0;
+  int total=0,s1,s2,s3,s4;
   
-  total  = MPI::UNN_T.Pack_size(1, MPI::COMM_WORLD);
-  total += MPI::GNN_T.Pack_size(1, MPI::COMM_WORLD);         
-  total += MPI::UNSIGNED_CHAR.Pack_size(1, MPI::COMM_WORLD); 
-  total += MPI::UNSIGNED.Pack_size(1, MPI::COMM_WORLD);
+  MPI_Pack_size(1, UNN_T, MPI_COMM_WORLD, &s1);
+  MPI_Pack_size(1, GNN_T, MPI_COMM_WORLD, &s2);
+  MPI_Pack_size(1, MPI_UNSIGNED_CHAR, MPI_COMM_WORLD, &s3);
+  MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s4);
+  total = s1 + s2 + s3 + s4;
   {
     unsigned nfields = pressure.size();      
-    total += MPI::UNSIGNED.Pack_size(1, MPI::COMM_WORLD);      
-    total += MPI::SAMFLOAT.Pack_size(nfields, MPI::COMM_WORLD); 
+    total += MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);
+    total += MPI_Pack_size(nfields, SAMFLOAT, MPI_COMM_WORLD, &s2);
+    total += (s1 + s2);
   }
 
   return total;

@@ -65,9 +65,13 @@ void Usage(){
 
 int main(int argc, char** argv){
 #ifdef HAVE_MPI
-  MPI::Init(argc, argv);
+  MPI_Init(&argc, &argv);
   // Undo some MPI init shenanigans
-  chdir(getenv("PWD"));
+  int ierr = chdir(getenv("PWD"));
+  if (ierr == -1) {
+        cerr << "Unable to switch to directory " << getenv("PWD");
+        abort();
+  }
 #endif
 
   // Modified version of fldecomp argument parsing
@@ -98,8 +102,10 @@ int main(int argc, char** argv){
   if(args.count('l')){
     int rank = 0;
 #ifdef HAVE_MPI
-    if(MPI::Is_initialized()){
-      rank = MPI::COMM_WORLD.Get_rank();
+    int init_flag;
+    MPI_Initialized(&init_flag);
+    if(init_flag){
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     }
 #endif
     ostringstream buffer;
@@ -163,7 +169,7 @@ int main(int argc, char** argv){
              input_nprocs, target_nprocs);
 
 #ifdef HAVE_MPI
-  MPI::Finalize();
+  MPI_Finalize();
 #endif
   return 0;
 }

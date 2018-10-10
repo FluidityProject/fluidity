@@ -83,14 +83,6 @@ check_options.o: check_options.F90
 	$(FC) $(FCFLAGS) -c $<
 	mkdir -p ../lib
 
-
-# This gets run last by the fluidity build process.
-register_diagnostics.o: register_diagnostics.F90
-	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
-	mkdir -p ../lib
-
-
 clean:
 	rm -f *.o *.d *.mod
 

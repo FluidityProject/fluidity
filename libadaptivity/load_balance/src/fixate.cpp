@@ -96,7 +96,7 @@ void Mesh::fixate_elements(const unsigned paranoid_element,
 	  ECHO("Two Elements have been found to be equal! See below:");
 	  ECHO(*i);
 	  ECHO(*j);
-	  MPI::COMM_WORLD.Abort(-1);
+	  MPI_Abort(MPI_COMM_WORLD,-1);
 	} 
   }
 #endif

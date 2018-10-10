@@ -74,7 +74,6 @@
         </python>
       </detector_array>
       <fail_outside_domain/>
-      <binary_output/>
       <lagrangian_timestepping>
         <subcycles>
           <integer_value rank="0">1</integer_value>

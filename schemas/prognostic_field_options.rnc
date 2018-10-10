@@ -341,7 +341,6 @@ prognostic_scalar_field =
             }
          )
       }?,
-      porosity_include?,
       prognostic_scalar_output_options,
       prognostic_scalar_stat_options,
       scalar_convergence_options,
@@ -1408,7 +1407,7 @@ prognostic_pressure_field =
                ## considered when selecting the pressure solver options. This cannot be used with the standard p=0 
                ## free surface model (but can be used with the zero normal stress free surface). It will not work with 
                ## wetting and drying models. Also the mesh assoicated with the pressure field must use the lagrangian 
-               ## element type (the default). This will not work with the implicit solids model using two way coupling. 
+               ## element type (the default).
                element test_continuity_with_cv_dual {
                   comment
                }?
@@ -1484,6 +1483,8 @@ prognostic_pressure_field =
                 ## Make sure you've not lumped your mass in the velocity spatial_discretisation if you want to be consistent!
                 element inner_matrix {
                   attribute name { "FullMassMatrix" },
+                  ## Solver options to solve the inner (mass) matrix in the schur complement solve, also used
+                  ## to solve the correction solve afterwards.
                   element solver {
                     linear_solver_options_sym
                   }
@@ -1494,9 +1495,11 @@ prognostic_pressure_field =
                 ## Doesn't really matter if you've lumped your mass or not but why would you if you're doing a full inner solve anyway?
                 element inner_matrix {
                   attribute name { "FullMomentumMatrix" },
+                  ## Solver options to solve the inner (momentum) matrix in the schur complement solve, also used
+                  ## to solve the correction solve afterwards. If not provided uses the solver options under Velocity
                   element solver {
                     linear_solver_options_asym_vector
-                  }
+                  }?
                 }
               ),
               (
@@ -2040,11 +2043,6 @@ scalar_equation_choice =
          element equation {
             attribute name { "InternalEnergy" },
             equation_coefficients
-         }|
-         ## Option to solve for electrical potential from
-         ## electrokinetic, electrochemical or electrothermal sources 
-         element equation { 
-            attribute name { "ElectricalPotential" }
          }|
          ## Equation type for the k-epsilon model fields.
          ## Note: Only works for continuous galerkin or control volume discretisations.

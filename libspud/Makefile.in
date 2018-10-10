@@ -87,6 +87,7 @@ install-spudtools:
 	@INSTALL@ -d $(DESTDIR)@prefix@/bin
 	@INSTALL@ -m755 bin/spud-preprocess $(DESTDIR)@prefix@/bin
 	@INSTALL@ -m755 bin/spud-set $(DESTDIR)@prefix@/bin
+	@INSTALL@ -m755 bin/spud-update-options $(DESTDIR)@prefix@/bin
 	@INSTALL@ -m644 schema/spud_base.rnc $(DESTDIR)@prefix@/share/spud
 	@INSTALL@ -m644 schema/spud_base.rng $(DESTDIR)@prefix@/share/spud
 

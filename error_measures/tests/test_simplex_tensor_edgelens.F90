@@ -43,7 +43,7 @@ subroutine test_simplex_tensor_edgelens
       do iloc=1,ele_loc(positions, ele)
         do jloc=iloc+1,ele_loc(positions, ele)
           edge_length = norm2(t_pos(:, iloc) - t_pos(:, jloc))
-          fail = fail .or. fnequals(edge_length, 1.0, tol = 200.0 * epsilon(0.0))
+          fail = fail .or. fnequals(edge_length, 1.0, tol = 201.0 * epsilon(0.0))
         end do
       end do
 

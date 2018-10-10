@@ -564,6 +564,12 @@ contains
                   call deallocate(surface_mesh)
                   deallocate(surface_mesh)
              end if
+             if (have_option(trim(bc_path_i)//"/type[0]/external_density")) then
+                call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
+                call allocate(scalar_surface_field, surface_mesh, "ExternalDensity")
+                call insert_surface_field(field, i+1, scalar_surface_field)
+                call deallocate(scalar_surface_field)
+             end if
           end if
           
        case ("outflow")
@@ -842,7 +848,9 @@ contains
             call get_option(trim(bc_type_path)//"/from_field/parent_field_name", parent_field_name)
             parent_field => extract_scalar_field(state, parent_field_name, stat)
             if(stat /= 0) then
-               FLExit("Could not extract parent field. Check options file?")
+               ewrite(-1,*) "For boundary conditions specified at " // trim(bc_type_path)
+               ewrite(-1,*) "Could not find scalar parent field " // trim(parent_field_name)
+               FLExit("Could not extract scalar parent field. Check options file?")
             end if
 
             call remap_field_to_surface(parent_field, surface_field, surface_element_list, stat)
@@ -923,16 +931,16 @@ contains
 
     type(mesh_type), pointer:: surface_mesh
     type(scalar_field) :: surface_field_component, smoothed_value_component
-    type(scalar_field), pointer:: scalar_surface_field
+    type(scalar_field), pointer:: scalar_surface_field, scalar_parent_field
     type(vector_field), pointer:: surface_field, surface_field11, smoothed_value
     type(vector_field), pointer:: surface_field2, surface_field21, surface_field22
     type(vector_field) :: bc_position, temp_position, linear_bc_position
     character(len=OPTION_PATH_LEN) bc_path_i, bc_type_path, bc_component_path
-    character(len=FIELD_NAME_LEN) bc_name, bc_type
+    character(len=FIELD_NAME_LEN) bc_name, bc_type, parent_field_name
     logical applies(3), have_smoothing(3)
     real:: time, theta, dt
     integer, dimension(:), pointer:: surface_element_list
-    integer i, j, k, nbcs, smoothing_iterations
+    integer i, j, k, nbcs, smoothing_iterations, stat
 
     ns=1
     nbcs=option_count(trim(bc_path))
@@ -1187,6 +1195,28 @@ contains
               scalar_surface_field => extract_scalar_surface_field(field, bc_name, name="WettingDryingAlpha")
               call zero(scalar_surface_field)
            end if
+           if (have_option(trim(bc_path_i)//"/external_density")) then
+              call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
+                 surface_element_list=surface_element_list)
+              scalar_surface_field => extract_scalar_surface_field(field, bc_name, name="ExternalDensity")
+              if (have_option(trim(bc_path_i)//"/external_density/from_field")) then
+                ! from_field: The parent field contains the boundary values that you want to apply to surface_field.
+                call get_option(trim(bc_path_i)//"/external_density/from_field/parent_field_name", parent_field_name)
+                scalar_parent_field => extract_scalar_field(state, parent_field_name, stat)
+                if(stat /= 0) then
+                  ewrite(-1,*) "For external_density specified under " // trim(bc_path_i)
+                  ewrite(-1,*) "Could not find scalar parent field " // trim(parent_field_name)
+                  FLExit("Could not extract scalar parent field. Check options file?")
+                end if
+                call remap_field_to_surface(scalar_parent_field, scalar_surface_field, surface_element_list, stat)
+              else
+                ! constant or python
+                bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list)
+                call initialise_field(scalar_surface_field, trim(bc_path_i)//"/external_density", &
+                   bc_position, time=time)
+                call deallocate(bc_position)
+              end if
+           end if
 
          case ("no_normal_flow", "outflow")
 
@@ -1239,6 +1269,8 @@ contains
           vector_parent_field => extract_vector_field(state, parent_field_name, stat)
           if(stat /= 0) then
              ! Parent field not found.
+             ewrite(-1,*) "For boundary condition set from_field under " // trim(bc_component_path)
+             ewrite(-1,*) "Could not find scalar or vector parent field " // trim(parent_field_name)
              FLExit("Could not extract parent field. Check options file?")
           else
              ! Apply the j-th component of parent_field to the j-th component

@@ -48,14 +48,14 @@ int main(int argc, char **argv)
   set_global_debug_level_fc(&val);
   set_pseudo2d_domain_fc(&val);
 #ifdef HAVE_MPI
-  MPI::Init(argc, argv);
+  MPI_Init(&argc, &argv);
 #endif
 #ifdef HAVE_PETSC  
   PetscErrorCode ierr = PetscInitialize(&argc, &argv, NULL, PETSC_NULL);
 #endif
   check_options();
 #ifdef HAVE_MPI
-  MPI::Finalize();
+  MPI_Finalize();
 #endif
 
   return 0;
