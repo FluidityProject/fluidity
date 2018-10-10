@@ -8,7 +8,7 @@ add_library_sources(Dgtools.F90 Coordinates.F90 EventCounter.F90
 		     Sparsity_Patterns.F90 Sparsity_Patterns_Meshes.F90 State.F90 Tensors.F90
   Superconvergence.F90 Unittest_tools.F90 Fields_Data_Types.F90 Multigrid.F90	
   ieee_arithmetic_dummy.F90 ieee_arithmetic_C99.c Diagnostic_variables.F90	
-  Diagnostic_Fields.F90 SampleNetCDF_fortran.F90 
+  Diagnostic_Fields.F90 SampleNetCDF_fortran.F90 Mesh_Quality.F90
   AuxilaryOptions.F90 MeshDiagnostics.F90 VTK_interfaces.F90 Surface_Labels.F90	
   ISCopyIndices.cpp Colouring.F90 
   Field_derivatives.F90 Node_boundary.F90 Parallel_fields.F90 
