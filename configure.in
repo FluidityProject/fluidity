@@ -306,6 +306,48 @@ if test "$have_udunits" = "yes"; then
 EOF
 fi
 
+# Judy
+
+AC_SEARCH_LIBS([Judy1Set], [Judy])
+if test "$ac_cv_search_Judy1Set" = "none required" ; then
+  AC_MSG_ERROR("Unexpected error when checking for libJudy")
+elif test "$ac_cv_search_Judy1Set" = "no" ; then
+  AC_MSG_FAILURE("libJudy not found")
+else
+  LIBS="$LIBS $ac_cv_search_Judy1Set"
+fi
+
+AC_CHECK_HEADERS([Judy.h], [AC_DEFINE(HAVE_JUDY_HEADERS, [1])], AC_MSG_FAILURE([Judy headers are required but were not found]))
+
+# spatialindex
+
+AC_LANG_PUSH([C++])
+AC_SEARCH_LIBS([_ZN12SpatialIndex6RegionC1Ev], [spatialindex])
+if test "$ac_cv_search__ZN12SpatialIndex6RegionC1Ev" = "none required" ; then
+  AC_MSG_ERROR("Unexpected error when checking for libspatialindex")
+elif test "$ac_cv_search__ZN12SpatialIndex6RegionC1Ev" = "no" ; then
+  AC_MSG_FAILURE("libspatialindex not found")
+else
+  LIBS="$LIBS $ac_cv_search__ZN12SpatialIndex6RegionC1Ev"
+fi
+AC_LANG_POP([C++])
+
+AC_LANG_PUSH([C++])
+AC_CHECK_HEADERS([spatialindex/SpatialIndex.h], [AC_DEFINE(HAVE_SPATIALINDEX_HEADERS, [1])], AC_MSG_FAILURE([spatialindex headers are required but were not found]))
+AC_LANG_POP([C++])
+
+# spud
+AC_SEARCH_LIBS([spud_get_option], [spud])
+if test "$ac_cv_search_spud_get_option" = "none required" ; then
+  AC_MSG_ERROR("Unexpected error when checking for libspud")
+elif test "$ac_cv_search_spud_get_option" = "no" ; then
+  AC_MSG_FAILURE("libspud not found")
+else
+  LIBS="$LIBS $ac_cv_search_spud_get_option"
+fi
+
+AC_CHECK_HEADERS([spud.h], [AC_DEFINE(HAVE_SPUD_HEADERS, [1])], AC_MSG_FAILURE([spud headers are required but were not found]))
+
 AC_ARG_ENABLE(openmp,
     [AC_HELP_STRING([--enable-openmp],
 	    [turns on OpenMP support])])
@@ -1210,7 +1252,6 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 
 AC_SUBST(FORTRAN_REAL_8)
 AC_SUBST(LINKER)
-AC_SUBST(FLLINKER)
 
 dnl Specific f90 options
 AC_SUBST(USE_CPP)
@@ -1309,169 +1350,7 @@ else
     AC_MSG_ERROR("libadaptivity directory missing!!")
 fi
 
-# Configure libjudy
-
-AC_ARG_WITH([judy],
-	[AC_HELP_STRING([--with-judy=<lib>], [specify Judy library <lib>])])
-
-if test -n "$with_judy"; then
-    AC_MSG_NOTICE([Linking against $with_judy])
-   	case $with_judy in
-	      -l* | */* | *.a | *.so | *.so.* | *.o) acx_judy_lib="$with_judy" ;;
-	      *) acx_judy_lib="-l$with_judy" ;;
-	esac	      
-   	FLIBJUDY="$acx_judy_lib"
-    if test "x$ARCHER" != "x" ; then
-        FLLINKER=$CXX
-    else
-        FLLINKER=$FC
-    fi
-    AC_SUBST(FLLINKER)
-elif test -d libjudy ; then
-    AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
-    AC_MSG_NOTICE([Configuring libjudy])
-    AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
-
-    cd libjudy
-    # NOTE: the output of libjudy's configure is actually overwritten by us at
-    # the end of the current configure. Do we actually need this or
-    # do we keep it as a check that libjudy is happy with the environment?
-    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CC="${saved_CC}" ./configure --prefix=${PWD}/..
-    if test "$?" -ne "0"; then
-      AC_MSG_ERROR([Configuration of libjudy has failed.])
-      exit -1
-    fi
-    cd ..
-    AC_CHECK_SIZEOF(void *)
-    if test "$ac_cv_sizeof_void_p" = 8; then
-        JUDY_CFLAGS="-DJU_64BIT"
-    else
-        JUDY_CFLAGS="-UJU_64BIT"
-    fi
-    # this is a workaround for https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=755099
-    if echo "$CFLAGS" | grep -q -- "-O[[2-3]]"; then
-      if test "x$USING_GFORTRAN" = "xyes" -a "x$GFORTRAN_4_8_OR_NEWER" = "xyes" -a "x$USING_CLANG" = "xno"; then
-        JUDY_CFLAGS="$JUDY_CFLAGS -fno-aggressive-loop-optimizations"
-      fi
-    fi
-    AC_SUBST(JUDY_CFLAGS)
-    LIBJUDY=-ljudy
-    FLIBJUDY="./lib/libjudy.a"
-
-    
-cat >> confdefs.h << EOF
-#define HAVE_JUDY 1
-EOF
-else
-    AC_MSG_ERROR("libjudy directory missing!!")
-fi
-AC_SUBST(FLIBJUDY)
-
-# Configure libspud
-AC_ARG_WITH([libspud-root],
-	[AC_HELP_STRING([--with-libspud-root=<lib>], [specify external libspud installation root directory])])
-
-if test -n "$with_libspud_root"; then
-   	SPUDLIB="${with_libspud_root}/lib/libspud.a"
-	SPUDHEADER="${with_libspud_root}/include/spud.h"
-	CPPFLAGS="$CPPFLAGS -I${with_libspud_root}/include"
-	FCFLAGS="$FCFLAGS -I${with_libspud_root}/include"
-elif test -d libspud ; then
-    AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
-    AC_MSG_NOTICE([Configuring libspud])
-    AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
-
-    # Check if we're on hector xe6
-    if test "x$ARCHER" != "x" ; then
-        AC_MSG_NOTICE([Building on ARCHER; disabling shared libraries])
-        CONFIG_FLAG=--disable-shared
-        SPUD_ONLY="yes"
-        FLLINKER=$CXX
-    else
-        FLLINKER=$FC
-        CONFIG_FLAG=--enable-shared
-    fi
-
-    if test "$enable_profiling" = "yes" ; then
-        CONFIG_FLAG="${CONFIG_FLAG} --enable-profiling"
-    fi
-
-    SPUDLIB="${PWD}/lib/libspud.a"
-    SPUDHEADER="${PWD}/include/spud.h"
-
-    AC_SUBST(SPUD_ONLY)
-
-    cd libspud
-    # We don't really want to use the same FFLAGS and LIBS as fluidity has
-    # worked out, because they contain all sorts of fluidity-specific junk,
-    # so we let libadapt's configure work out everything for itself
-    # * EXCEPT * for the compiler, which we MUST make sure is the same as
-    # fluidity's (except for MPI)
-    echo "${env_fcflags}"
-    echo "${env_fflags}"
-    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" CPPFLAGS="${env_cppflags}" ./configure --prefix=${PWD}/.. ${CONFIG_FLAG}
-    if test "$?" -ne "0"; then
-      AC_MSG_ERROR([Configuration of libspud has failed.])
-      exit -1
-    fi
-    cd ..
-    
-cat >> confdefs.h << EOF
-#define HAVE_SPUD 1
-EOF
-else
-    AC_MSG_ERROR("libspud directory missing!!")
-fi
-AC_SUBST(SPUDLIB)
-AC_SUBST(SPUDHEADER)
-
-#*************SpatialIndex******
-AC_ARG_ENABLE(spatialindex-version, 
-[AC_HELP_STRING([--enable-spatialindex-version],
-[Select required version of spatialindex library: 1.8.0])])
-AC_ARG_WITH([spatialindex-root],
-	[AC_HELP_STRING([--with-spatialindex-root=<dir>],
-        [specify root directory of system spatialindex installation])])
-
-if test "x$enable_spatialindex_version" != "x"
-then
-  SPATIALINDEXDIR="spatialindex-$enable_spatialindex_version"
-else
-  enable_spatialindex_version="1.8.0"
-  SPATIALINDEXDIR="spatialindex-1.8.0"
-fi
-
-if test -n "$with_spatialindex_root"; then
-   LIBSPATIALINDEX="${with_spatialindex_root}/lib/libspatialindex.a"
-   CPPFLAGS="$CPPFLAGS -I${with_spatialindex_root}/include/spatialindex/"
-else
-
-LIBSPATIALINDEX="${PWD}/lib/libspatialindex.a"
-
-AC_SUBST(SPATIALINDEXDIR)
-
-AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
-AC_MSG_NOTICE([Configuring spatialindex])
-AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
-cd $SPATIALINDEXDIR
-if test "$enable_debugging" = "yes" ; then
-   SPATIALINDEX_CONFIGURE_DEBUG_OPTION=--enable-debug=yes
-fi
-if test "$enable_profiling" = "yes" ; then
-   SPATIALINDEX_CONFIGURE_PROF_OPTION=--enable-profiling=yes
-fi
-CC="${CC}" CXX="${CXX}" CFLAGS="${env_cflags}" CXXFLAGS="${env_cxxflags}" CPPFLAGS="-D_GNU_SOURCE" \
-    LIBS="${env_lib}" ./configure --prefix=${PWD}/../ --disable-shared --without-pic \
-    ${SPATIALINDEX_CONFIGURE_DEBUG_OPTION} ${SPATIALINDEX_CONFIGURE_PROF_OPTION} --disable-maintainer-mode
-if test "$?" -ne "0"; then
-  AC_MSG_ERROR([Configuration of spatialindex has failed.])
-  exit -1
-fi
-cd ../
-fi
-AC_SUBST(LIBSPATIALINDEX)
-
-#*************ARPACK*********
+# *************ARPACK*********
 AC_LANG_PUSH([Fortran])
 AC_ARG_WITH(arpack-lib,
 [AC_HELP_STRING([--with-arpack-lib@<:@=<lib>@:>@],
@@ -1815,13 +1694,6 @@ AC_OUTPUT(Makefile
           climatology/Makefile
           libmba2d/Makefile
       	  libmba3d/Makefile
-          libjudy/Makefile
-          libjudy/src/Makefile
-          libjudy/src/JudyCommon/Makefile
-          libjudy/src/Judy1/Makefile
-          libjudy/src/JudyL/Makefile
-          libjudy/src/JudySL/Makefile
-          libjudy/src/JudyHS/Makefile
           libwm/Makefile
           libvtkfortran/Makefile
 	  tests/tools.mk)
