@@ -65,8 +65,7 @@ LINKER  = @LINKER@ @LDFLAGS@ $(CXXFLAGS)
 FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
 
 LIBS    = -L./lib -l$(FLUIDITY) @LIB_FEMDEM@ ./lib/libadaptivity.a \
-           ./lib/libvtkfortran.a @LIBSPATIALINDEX@  @FLIBJUDY@ \
-           @LIBS@ @BLAS_LIBS@
+           ./lib/libvtkfortran.a @LIBS@ @BLAS_LIBS@
 
 OBJS = $(shell find . -mindepth 2 -maxdepth 2 -name '*.c' -o -name '*.cpp' -o -name '*.[fF]' -o -name '*.F90' | grep -v ^./lib | xargs)
 MAKE = @MAKE@ -s
@@ -111,8 +110,7 @@ endif
 default: bin/$(FLUIDITY)
 
 sub_system: $(LIBMBA2D) $(LIBMBA3D) @LIB_FEMDEM@ \
-	lib/libadaptivity.a lib/libvtkfortran.a @LIBSPATIALINDEX@ \
-	@FLIBJUDY@ include/version.h
+	lib/libadaptivity.a lib/libvtkfortran.a include/version.h
 
 lib/libmba2d.a:
 	@echo '    MKDIR lib'; mkdir -p lib
