@@ -403,9 +403,14 @@ configure_file("tools/version-info.in" "bin/version-info")
 execute_process(COMMAND "${CMAKE_BINARY_DIR}/bin/version-info" "${CMAKE_BINARY_DIR}/include/version.h" )
 
 add_custom_target(shorttest  
-  COMMAND "${CMAKE_BINARY_DIR}/bin/testharness -l short"
-  DEPENDS fluidity-bin fltools)
+  COMMAND bin/testharness -l short
+  )
+add_dependencies(shorttest fluidity-bin fltools)
 
 add_custom_target(mediumtest 
-  COMMAND "${CMAKE_BINARY_DIR}/bin/testharness -l medium"
-  DEPENDS fluidity-bin fltools)
+  COMMAND ${CMAKE_BINARY_DIR}/bin/testharness -l medium
+)
+add_dependencies(mediumtest fluidity-bin fltools)
+
+
+
