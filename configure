@@ -9897,13 +9897,13 @@ EOF
 fi
 
 # Judy
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Judy1Set in -lJudy" >&5
-$as_echo_n "checking for Judy1Set in -lJudy... " >&6; }
-if ${ac_cv_lib_Judy_Judy1Set+:} false; then :
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing Judy1Set" >&5
+$as_echo_n "checking for library containing Judy1Set... " >&6; }
+if ${ac_cv_search_Judy1Set+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lJudy  $LIBS"
+  ac_func_search_save_LIBS=$LIBS
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -9938,25 +9938,47 @@ return Judy1Set ();
   return 0;
 }
 _ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_Judy_Judy1Set=yes
-else
-  ac_cv_lib_Judy_Judy1Set=no
+for ac_lib in '' Judy; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_search_Judy1Set=$ac_res
 fi
 rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
+    conftest$ac_exeext
+  if ${ac_cv_search_Judy1Set+:} false; then :
+  break
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_Judy_Judy1Set" >&5
-$as_echo "$ac_cv_lib_Judy_Judy1Set" >&6; }
-if test "x$ac_cv_lib_Judy_Judy1Set" = xyes; then :
-  $as_echo "#define HAVE_LIBJUDY 1" >>confdefs.h
+done
+if ${ac_cv_search_Judy1Set+:} false; then :
 
 else
+  ac_cv_search_Judy1Set=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_Judy1Set" >&5
+$as_echo "$ac_cv_search_Judy1Set" >&6; }
+ac_res=$ac_cv_search_Judy1Set
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+fi
+
+if test "$ac_cv_search_Judy1Set" = "none required" ; then
+  as_fn_error $? "\"Unexpected error when checking for libJudy\"" "$LINENO" 5
+elif test "$ac_cv_search_Judy1Set" = "no" ; then
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "libJudy is required but was not found
+as_fn_error $? "\"libJudy not found\"
 See \`config.log' for more details" "$LINENO" 5; }
+else
+  LIBS="$LIBS $ac_cv_search_Judy1Set"
 fi
 
 for ac_header in Judy.h
@@ -9979,19 +10001,19 @@ done
 
 
 # spatialindex
+
 ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for _ZN12SpatialIndex6RegionC1Ev in -lspatialindex" >&5
-$as_echo_n "checking for _ZN12SpatialIndex6RegionC1Ev in -lspatialindex... " >&6; }
-if ${ac_cv_lib_spatialindex__ZN12SpatialIndex6RegionC1Ev+:} false; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing _ZN12SpatialIndex6RegionC1Ev" >&5
+$as_echo_n "checking for library containing _ZN12SpatialIndex6RegionC1Ev... " >&6; }
+if ${ac_cv_search__ZN12SpatialIndex6RegionC1Ev+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lspatialindex  $LIBS"
+  ac_func_search_save_LIBS=$LIBS
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -10026,27 +10048,48 @@ return _ZN12SpatialIndex6RegionC1Ev ();
   return 0;
 }
 _ACEOF
-if ac_fn_cxx_try_link "$LINENO"; then :
-  ac_cv_lib_spatialindex__ZN12SpatialIndex6RegionC1Ev=yes
-else
-  ac_cv_lib_spatialindex__ZN12SpatialIndex6RegionC1Ev=no
+for ac_lib in '' spatialindex; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_search__ZN12SpatialIndex6RegionC1Ev=$ac_res
 fi
 rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
+    conftest$ac_exeext
+  if ${ac_cv_search__ZN12SpatialIndex6RegionC1Ev+:} false; then :
+  break
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_spatialindex__ZN12SpatialIndex6RegionC1Ev" >&5
-$as_echo "$ac_cv_lib_spatialindex__ZN12SpatialIndex6RegionC1Ev" >&6; }
-if test "x$ac_cv_lib_spatialindex__ZN12SpatialIndex6RegionC1Ev" = xyes; then :
-  $as_echo "#define HAVE_LIBSPATIALINDEX 1" >>confdefs.h
+done
+if ${ac_cv_search__ZN12SpatialIndex6RegionC1Ev+:} false; then :
 
 else
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "libspatialindex is required but was not found
-See \`config.log' for more details" "$LINENO" 5; }
+  ac_cv_search__ZN12SpatialIndex6RegionC1Ev=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search__ZN12SpatialIndex6RegionC1Ev" >&5
+$as_echo "$ac_cv_search__ZN12SpatialIndex6RegionC1Ev" >&6; }
+ac_res=$ac_cv_search__ZN12SpatialIndex6RegionC1Ev
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
 fi
 
+if test "$ac_cv_search__ZN12SpatialIndex6RegionC1Ev" = "none required" ; then
+  as_fn_error $? "\"Unexpected error when checking for libspatialindex\"" "$LINENO" 5
+elif test "$ac_cv_search__ZN12SpatialIndex6RegionC1Ev" = "no" ; then
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "\"libspatialindex not found\"
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  LIBS="$LIBS $ac_cv_search__ZN12SpatialIndex6RegionC1Ev"
+fi
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -10220,13 +10263,12 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 # spud
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for spud_get_option in -lspud" >&5
-$as_echo_n "checking for spud_get_option in -lspud... " >&6; }
-if ${ac_cv_lib_spud_spud_get_option+:} false; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing spud_get_option" >&5
+$as_echo_n "checking for library containing spud_get_option... " >&6; }
+if ${ac_cv_search_spud_get_option+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lspud  $LIBS"
+  ac_func_search_save_LIBS=$LIBS
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -10261,25 +10303,47 @@ return spud_get_option ();
   return 0;
 }
 _ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_spud_spud_get_option=yes
-else
-  ac_cv_lib_spud_spud_get_option=no
+for ac_lib in '' spud; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_search_spud_get_option=$ac_res
 fi
 rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
+    conftest$ac_exeext
+  if ${ac_cv_search_spud_get_option+:} false; then :
+  break
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_spud_spud_get_option" >&5
-$as_echo "$ac_cv_lib_spud_spud_get_option" >&6; }
-if test "x$ac_cv_lib_spud_spud_get_option" = xyes; then :
-  $as_echo "#define HAVE_LIBSPUD 1" >>confdefs.h
+done
+if ${ac_cv_search_spud_get_option+:} false; then :
 
 else
+  ac_cv_search_spud_get_option=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_spud_get_option" >&5
+$as_echo "$ac_cv_search_spud_get_option" >&6; }
+ac_res=$ac_cv_search_spud_get_option
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+fi
+
+if test "$ac_cv_search_spud_get_option" = "none required" ; then
+  as_fn_error $? "\"Unexpected error when checking for libspud\"" "$LINENO" 5
+elif test "$ac_cv_search_spud_get_option" = "no" ; then
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "libspud is required but was not found
+as_fn_error $? "\"libspud not found\"
 See \`config.log' for more details" "$LINENO" 5; }
+else
+  LIBS="$LIBS $ac_cv_search_spud_get_option"
 fi
 
 for ac_header in spud.h

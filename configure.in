@@ -307,12 +307,29 @@ EOF
 fi
 
 # Judy
-AC_CHECK_LIB(Judy, Judy1Set, [AC_DEFINE(HAVE_LIBJUDY, [1])], AC_MSG_FAILURE([libJudy is required but was not found]))
+
+AC_SEARCH_LIBS([Judy1Set], [Judy])
+if test "$ac_cv_search_Judy1Set" = "none required" ; then
+  AC_MSG_ERROR("Unexpected error when checking for libJudy")
+elif test "$ac_cv_search_Judy1Set" = "no" ; then
+  AC_MSG_FAILURE("libJudy not found")
+else
+  LIBS="$LIBS $ac_cv_search_Judy1Set"
+fi
+
 AC_CHECK_HEADERS([Judy.h], [AC_DEFINE(HAVE_JUDY_HEADERS, [1])], AC_MSG_FAILURE([Judy headers are required but were not found]))
 
 # spatialindex
+
 AC_LANG_PUSH([C++])
-AC_CHECK_LIB(spatialindex, _ZN12SpatialIndex6RegionC1Ev, [AC_DEFINE(HAVE_LIBSPATIALINDEX, [1])], AC_MSG_FAILURE([libspatialindex is required but was not found]))
+AC_SEARCH_LIBS([_ZN12SpatialIndex6RegionC1Ev], [spatialindex])
+if test "$ac_cv_search__ZN12SpatialIndex6RegionC1Ev" = "none required" ; then
+  AC_MSG_ERROR("Unexpected error when checking for libspatialindex")
+elif test "$ac_cv_search__ZN12SpatialIndex6RegionC1Ev" = "no" ; then
+  AC_MSG_FAILURE("libspatialindex not found")
+else
+  LIBS="$LIBS $ac_cv_search__ZN12SpatialIndex6RegionC1Ev"
+fi
 AC_LANG_POP([C++])
 
 AC_LANG_PUSH([C++])
@@ -320,7 +337,15 @@ AC_CHECK_HEADERS([spatialindex/SpatialIndex.h], [AC_DEFINE(HAVE_SPATIALINDEX_HEA
 AC_LANG_POP([C++])
 
 # spud
-AC_CHECK_LIB(spud, spud_get_option, [AC_DEFINE(HAVE_LIBSPUD, [1])], AC_MSG_FAILURE([libspud is required but was not found]))
+AC_SEARCH_LIBS([spud_get_option], [spud])
+if test "$ac_cv_search_spud_get_option" = "none required" ; then
+  AC_MSG_ERROR("Unexpected error when checking for libspud")
+elif test "$ac_cv_search_spud_get_option" = "no" ; then
+  AC_MSG_FAILURE("libspud not found")
+else
+  LIBS="$LIBS $ac_cv_search_spud_get_option"
+fi
+
 AC_CHECK_HEADERS([spud.h], [AC_DEFINE(HAVE_SPUD_HEADERS, [1])], AC_MSG_FAILURE([spud headers are required but were not found]))
 
 AC_ARG_ENABLE(openmp,
