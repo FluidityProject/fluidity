@@ -114,10 +114,6 @@ sub_system: $(LIBMBA2D) $(LIBMBA3D) @LIB_FEMDEM@ \
 	lib/libadaptivity.a lib/libvtkfortran.a @LIBSPATIALINDEX@ \
 	@SPUDLIB@ @FLIBJUDY@ include/version.h
 
-@FLIBJUDY@:
-	@echo '    MKDIR lib'; mkdir -p lib
-	echo '    MAKE libjudy'; $(MAKE) -C libjudy > make.log && $(MAKE) -C libjudy install >> make.log
-
 lib/libmba2d.a:
 	@echo '    MKDIR lib'; mkdir -p lib
 	echo '    MAKE libmba2d'; $(MAKE) -C libmba2d
@@ -133,18 +129,6 @@ lib/libadaptivity.a:
 lib/libvtkfortran.a:
 	@echo '    MKDIR lib'; mkdir -p lib
 	echo '    MAKE libvtkfortran'; $(MAKE) -C libvtkfortran 2>make.log 2>&1 && cp libvtkfortran/libvtkfortran.a lib/ && cp libvtkfortran/*.mod include/
-
-@LIBSPATIALINDEX@:
-	@echo '    MKDIR lib'; mkdir -p lib
-	echo '    MAKE libspatialindex'; $(MAKE) -C @SPATIALINDEXDIR@ && $(MAKE) -C @SPATIALINDEXDIR@ install >> make.log 2>&1
-
-@SPUDLIB@:
-	@echo '    MKDIR lib'; mkdir -p lib
-ifeq (@SPUD_ONLY@,yes)
-	echo '    MAKE libspud'; $(MAKE) -C libspud && $(MAKE) -C libspud install-libspud
-else
-	echo '    MAKE libspud'; $(MAKE) -C libspud &&  $(MAKE) -C libspud install-libspud && cd libspud/python && python setup.py build && cd ../.. && cp libspud/python/build/lib*/libspud.so python/
-endif
 
 libfemtools: sub_system
 	@echo '    MKDIR lib'; mkdir -p lib
@@ -358,14 +342,6 @@ endif
 clean: clean-light clean-test python_clean clean-debian
 	@echo "    CLEAN libvtkfortran"
 	@cd libvtkfortran; $(MAKE) clean
-	@echo "    CLEAN libjudy"
-	@cd libjudy; $(MAKE) clean >> make.log 2>&1
-ifeq ($(abspath @SPUDLIB@),$(abspath lib/libspud.a))
-	@echo "    CLEAN libspud"
-	@cd libspud; $(MAKE) clean
-endif
-	@echo "    CLEAN libspatialindex"
-	@cd @SPATIALINDEXDIR@; $(MAKE) clean >> make.log
 	@echo "    CLEAN libmba2d"
 	@cd libmba2d; $(MAKE) clean
 	@echo "    CLEAN libmba3d"
@@ -402,10 +378,7 @@ distclean: clean
 	 test/mvrtree/.deps test/rtree/.deps test/tprtree/.deps         \
          make.log > /dev/null
 	@cd libadaptivity ; make distclean > /dev/null
-	@cd libjudy ; make distclean > /dev/null
 	@cd libvtkfortran ; make distclean > /dev/null
-	@cd libspud ; make distclean > /dev/null ; rm -rf		\
-	 libspud.so.0 libtool diamond/build python/build > /dev/null
 	@cd tools ; make distclean > /dev/null
 	@rm -fr `find ./ -name config.status` `find ./ -name		\
 	 config.log` share include/Judy.h include/Wm4Command.h		\
@@ -424,8 +397,6 @@ distclean: clean
 	 include/Wm4Tetrahedron3.h include/Wm4Triangle2.h		\
 	 include/Wm4Triangle3.h include/Wm4Vector2.h			\
 	 include/Wm4Vector3.h include/confdefs.h include/config.h	\
-	 include/spatialindex include/spud include/spud.h		\
-	 include/spud_enums.h include/tinystr.h include/tinyxml.h	\
 	 include/version.h include/vtk.h				\
 	 preprocessor/check_options.F90 \
 	 preprocessor/register_diagnostics.F90 python/setup.py >	\
@@ -439,14 +410,8 @@ test: serialtest
 serialtest: fltools bin/$(FLUIDITY)
 	@cd tests; ../bin/testharness -x test_results.xml -l short $(EXCLUDE_TAGS) -n $(THREADS)
 
-mediumtest: fltools bin/$(FLUIDITY) manual spudtools
+mediumtest: fltools bin/$(FLUIDITY) manual
 	@cd tests; ../bin/testharness -x test_results_medium.xml -l medium $(EXCLUDE_TAGS) -n $(THREADS)
-
-.PHONY: spudtools
-
-spudtools:
-	@cd libspud ; $(MAKE) install-spudtools
-	@echo "    INSTALL spudtools"
 
 setuputs: 
 	@echo "SETUP tests"
@@ -457,10 +422,6 @@ setuputs:
 	@ln -sf ../../tests/data bin/tests/data
 
 build_unittest: fluidity_library libfemtools setuputs
-ifeq (@SPUDLIB@,./lib/libspud.a)
-	@echo "    UNITTEST libspud"
-	@cd libspud/src/tests; $(MAKE) test-binaries; find bin/* -maxdepth 1 -type f -exec ln -sf ../../libspud/src/tests/{} ../../../bin/tests \;
-endif
 	@echo "    UNITTEST error_measures"
 	@cd error_measures/tests; $(MAKE) unittest
 	@echo "    UNITTEST horizontal_adaptivity"
@@ -479,13 +440,9 @@ unittest: build_unittest
 	@echo "RUN bin/tests"
 	@bin/unittestharness bin/tests
 
-bin/spud-preprocess:
-	@echo "Installing spudtools"
-	@$(MAKE) -C libspud install-spudtools
-
-schema: bin/spud-preprocess
+schema:
 	@echo "Rebuilding schema fluidity_options.rng"
-	@./bin/spud-preprocess schemas/fluidity_options.rnc
+	@spud-preprocess schemas/fluidity_options.rnc
 
 .PHONY: makefiles
 
@@ -540,7 +497,7 @@ endif
 install: default fltools 
 	@mkdir -p $(DESTDIR)$(bindir) $(DESTDIR)$(docdir)/fluidity
 	find bin/ -maxdepth 1 -type f -exec cp '{}' $(DESTDIR)$(bindir) \;
-	rm -f $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval $(DESTDIR)$(bindir)/runut
+	rm -rf $(DESTDIR)$(bindir)/silenteval $(DESTDIR)$(bindir)/runut
 	[ -f manual/fluidity_manual.pdf ] && cp manual/fluidity_manual.pdf $(DESTDIR)$(docdir)/fluidity || true
 	mkdir -p $(DESTDIR)$(datadir)/fluidity
 	cp -R schemas $(DESTDIR)$(datadir)/fluidity/
@@ -552,16 +509,6 @@ install: default fltools
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec $(SED) -i "s/\.\.\/\.\.\/bin\///" '{}' \;
 	cd $(DESTDIR)$(docdir)/fluidity ; tar -czvf $(DESTDIR)$(docdir)/fluidity/examples.tar.gz examples/
 	rm -rf $(DESTDIR)$(docdir)/fluidity/examples/
-
-install-diamond: 
-	cd libspud; ./configure --prefix=@prefix@; cd ../..
-	cd libspud; $(MAKE) clean; cd ../..
-	cd libspud; $(MAKE) install-diamond; cd ../..
-	cd libspud; $(MAKE) install-dxdiff; cd ../..
-	cd libspud; $(MAKE) install-spudtools; cd ../..
-	cd libspud; ./configure --prefix=$(PWD); cd ../..
-
-install-user-schemata:
 	mkdir -p $(HOME)/.diamond/schemata/
 	echo "Fluidity Markup Language" > $(HOME)/.diamond/schemata/flml
 	echo "$(PWD)/schemas/fluidity_options.rng" >> $(HOME)/.diamond/schemata/flml
