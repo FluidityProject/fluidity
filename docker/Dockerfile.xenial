@@ -18,10 +18,7 @@ RUN apt-get update
 RUN apt-get -y dist-upgrade
 
 # Install Fluidity development environment
-RUN apt-get -y install fluidity-dev python-spud libsupermesh-dev python3-dev libjudy-dev libspatialindex-dev libspud-dev 
-
-# Install junit parsing for Jenkins
-RUN apt-get -y install python-junit.xml
+RUN apt-get -y install fluidity-base
 
 # Add a Fluidity user who will be the default user for this container
 ENV PETSC_DIR /usr/lib/petscdir/3.6.3

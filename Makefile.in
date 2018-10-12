@@ -399,9 +399,7 @@ distclean: clean
 	@find ./ \( -name make.log \) -exec rm -f {} \; > /dev/null
 	@rm -f Makefile > /dev/null
 
-test: serialtest
-
-serialtest: fltools bin/$(FLUIDITY)
+shorttest: fltools bin/$(FLUIDITY)
 	@cd tests; ../bin/testharness -x test_results.xml -l short $(EXCLUDE_TAGS) -n $(THREADS)
 
 mediumtest: fltools bin/$(FLUIDITY) manual
