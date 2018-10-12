@@ -62,8 +62,6 @@ CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I./include
 
 LINKER  = @LINKER@ @LDFLAGS@ $(CXXFLAGS)
 
-FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
-
 LIBS    = -L./lib -l$(FLUIDITY) @LIB_FEMDEM@ ./lib/libadaptivity.a \
            ./lib/libvtkfortran.a @LIBS@ @BLAS_LIBS@
 

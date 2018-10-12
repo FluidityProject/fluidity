@@ -632,7 +632,6 @@ BUILD_LIBADAPT
 HAVE_LIBSUPERMESH
 DEFINE_MPI
 USE_CPP
-FLLINKER
 LINKER
 FORTRAN_REAL_8
 PROFILING_FLAG
@@ -14341,7 +14340,6 @@ fi
 # These tests were just giving too much trouble. Need to investigate further.
 #AC_C_CONST
 #AC_C_INLINE
-
 
 
 

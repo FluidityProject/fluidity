@@ -1252,7 +1252,6 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 
 AC_SUBST(FORTRAN_REAL_8)
 AC_SUBST(LINKER)
-AC_SUBST(FLLINKER)
 
 dnl Specific f90 options
 AC_SUBST(USE_CPP)
