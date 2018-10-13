@@ -299,6 +299,7 @@ if test "x$enable_vtk" != "xno" ; then
             AC_CHECK_LIB(vtkIOParallel, main)
             AC_CHECK_LIB(vtkIOCore, main)
             AC_CHECK_LIB(vtkCommonDataModel, main)
+            AC_CHECK_LIB(vtkFiltersVerdict, main)
         fi
     fi
 fi

@@ -1475,6 +1475,7 @@ if test "$enable_vtk" != "no" ; then
             AC_CHECK_LIB(vtkFiltering, main)
             AC_CHECK_LIB(vtkGraphics, main)
             AC_CHECK_LIB(vtkIO, main)
+            AC_CHECK_LIB(vtkIO, main)
             
             # check at the usual places:
             for i in $(ls -d /usr/include/vtk*) $VTK_INCLUDE; do
@@ -1522,6 +1523,7 @@ if test "$enable_vtk" != "no" ; then
             AC_CHECK_LIB(vtkCommonExecutionModel, main)
             AC_CHECK_LIB(vtkIOLegacy, main)
             AC_CHECK_LIB(vtkFiltersGeneral, main)
+            AC_CHECK_LIB(vtkFiltersVerdict, main)
         fi
     fi
 fi

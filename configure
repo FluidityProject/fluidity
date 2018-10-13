@@ -15280,6 +15280,61 @@ _ACEOF
 
 fi
 
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIO" >&5
+$as_echo_n "checking for main in -lvtkIO... " >&6; }
+if ${ac_cv_lib_vtkIO_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkIO  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkIO_main=yes
+else
+  ac_cv_lib_vtkIO_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkIO_main" >&5
+$as_echo "$ac_cv_lib_vtkIO_main" >&6; }
+if test "x$ac_cv_lib_vtkIO_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKIO 1
+_ACEOF
+
+  LIBS="-lvtkIO $LIBS"
+
+fi
+
 
             # check at the usual places:
             for i in $(ls -d /usr/include/vtk*) $VTK_INCLUDE; do
@@ -15876,6 +15931,61 @@ if test "x$ac_cv_lib_vtkFiltersGeneral_main" = xyes; then :
 _ACEOF
 
   LIBS="-lvtkFiltersGeneral $LIBS"
+
+fi
+
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkFiltersVerdict" >&5
+$as_echo_n "checking for main in -lvtkFiltersVerdict... " >&6; }
+if ${ac_cv_lib_vtkFiltersVerdict_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkFiltersVerdict  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_vtkFiltersVerdict_main=yes
+else
+  ac_cv_lib_vtkFiltersVerdict_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_vtkFiltersVerdict_main" >&5
+$as_echo "$ac_cv_lib_vtkFiltersVerdict_main" >&6; }
+if test "x$ac_cv_lib_vtkFiltersVerdict_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBVTKFILTERSVERDICT 1
+_ACEOF
+
+  LIBS="-lvtkFiltersVerdict $LIBS"
 
 fi
 
