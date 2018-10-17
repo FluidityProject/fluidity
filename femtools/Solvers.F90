@@ -1860,7 +1860,7 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
     PC:: subpc
     MatNullSpace:: nullsp
     PCType:: pctype, hypretype
-#if (PETSC_VERSION_MAJOR<=3 && PETSC_VERSION_MINOR<=8)
+#if (PETSC_VERSION_MAJOR<=3 && PETSC_VERSION_MINOR<=8) || (PETSC_VERSION_MAJOR>=4)
     MatSolverPackage:: matsolverpackage
 #else
     MatSolverType:: matsolvertype
@@ -1977,7 +1977,7 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
        call PCSetType(pc, pctype, ierr)
 
        if (pctype==PCLU) then
-#if (PETSC_VERSION_MAJOR<=3 && PETSC_VERSION_MINOR<=8)
+#if (PETSC_VERSION_MAJOR<=3 && PETSC_VERSION_MINOR<=8) || (PETSC_VERSION_MAJOR>=4)
           call get_option(trim(option_path)//'/factorization_package/name', matsolverpackage)
           call PCFactorSetMatSolverPackage(pc, matsolverpackage, ierr)
 #else
