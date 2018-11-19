@@ -72,7 +72,7 @@ contains
 
     integer, dimension(3) :: attribute_size
     integer :: sub_particles
-    integer :: i, m, k
+    integer :: i, k
     integer :: dim, particle_groups, total_arrays, list_counter
     integer, dimension(:), allocatable :: particle_arrays
     integer :: totaldet_global
@@ -133,15 +133,11 @@ contains
           if (have_option(trim(subgroup_path) // "/attributes/attribute")) then
              attribute_size(1)=option_count(trim(subgroup_path) // "/attributes/attribute")
           end if
-          
-          do m = 1,attribute_size(1)
-             if (have_option(trim(subgroup_path) // "/attributes/attribute["//int2str(m-1)//"]/python_fields")) then
-                attribute_size(3) = ndiagnostic + nprescribed + nprognostic
-                if (have_option(trim(subgroup_path) // "/attributes/attribute["//int2str(m-1)//"]/python_fields/store_old_attribute")) then
-                   attribute_size(2)=attribute_size(2)+1
-                end if
-             end if
-          end do
+
+          if (option_count(trim(subgroup_path) // "/attributes/attribute/python_fields").gt.0) then
+             attribute_size(3) = ndiagnostic+nprescribed+nprognostic
+             attribute_size(2) = option_count(trim(subgroup_path) //"/attributes/attribute/python_fields/store_old_attribute")
+          end if
           
           ! Enable particles to drift with the mesh
           if (have_option("/particles/move_with_mesh")) then

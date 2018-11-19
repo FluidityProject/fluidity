@@ -3662,40 +3662,19 @@ prognostic_detector_options = detector_options_enabled_default
 diagnostic_detector_options = detector_options_enabled_default
 prescribed_detector_options = detector_options_disabled_default
 
-# Specify whether or not values for this field are interpolated to particle locations.
-particle_options_enabled_default = 
-   (
-      ## Specify what is added to particles
-      element particles {
-         (
-            ## This field is included at each particle location.
-            element include_in_particles {
-	       element store_old_field {
-	         ## Store values of field at preivous timestep/non-linear iteration, for use when updating particle attributes.
-	       	  comment
-	       }?
-            }|
-            ## Field value is not interpolated to particle location.
-            element exclude_from_particles {
-	      ## Field values are not stored on particles.
-               comment
-            }
-         )
-      }
-   )
-
-# Options for whether a field is to be included in particles.
+# Specify whether or not values for this field are interpolated to particle locations..
 particle_options_disabled_default = 
    (
       ## Specify what is added to particles
       element particles {
          (
-            ## This field is not included at each particle location.
+            ## Field value is not interpolated to particle locations.
             element exclude_from_particles {
                comment
             }|
-            ## This field is included at each particle location.
+            ## Field value is interpolated to each particle location.
             element include_in_particles {
+	       ## Store values of field at previous timestep/non-linear iteration, for use when updating particle attributes.
                element store_old_field {
 	       	       comment
 	       }?
@@ -3746,6 +3725,7 @@ generic_particle_field =
    ##    return y
    element python_fields {
       python_code,
+      ## Store attribute values from previous timestep on particles.
       element store_old_attribute {
       	      comment
 	      }?

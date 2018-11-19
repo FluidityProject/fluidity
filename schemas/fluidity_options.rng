@@ -4730,43 +4730,20 @@ i.e. excluding the components</a:documentation>
   <define name="prescribed_detector_options">
     <ref name="detector_options_disabled_default"/>
   </define>
-  <!-- Specify whether or not values for this field are interpolated to particle locations. -->
-  <define name="particle_options_enabled_default">
-    <element name="particles">
-      <a:documentation>Specify what is added to particles</a:documentation>
-      <choice>
-        <element name="include_in_particles">
-          <a:documentation>This field is included at each particle location.</a:documentation>
-          <optional>
-            <element name="store_old_field">
-              <ref name="comment">
-                <a:documentation>Store values of field at preivous timestep/non-linear iteration, for use when updating particle attributes.</a:documentation>
-              </ref>
-            </element>
-          </optional>
-        </element>
-        <element name="exclude_from_particles">
-          <a:documentation>Field value is not interpolated to particle location.</a:documentation>
-          <ref name="comment">
-            <a:documentation>Field values are not stored on particles.</a:documentation>
-          </ref>
-        </element>
-      </choice>
-    </element>
-  </define>
-  <!-- Options for whether a field is to be included in particles. -->
+  <!-- Specify whether or not values for this field are interpolated to particle locations.. -->
   <define name="particle_options_disabled_default">
     <element name="particles">
       <a:documentation>Specify what is added to particles</a:documentation>
       <choice>
         <element name="exclude_from_particles">
-          <a:documentation>This field is not included at each particle location.</a:documentation>
+          <a:documentation>Field value is not interpolated to particle locations.</a:documentation>
           <ref name="comment"/>
         </element>
         <element name="include_in_particles">
-          <a:documentation>This field is included at each particle location.</a:documentation>
+          <a:documentation>Field value is interpolated to each particle location.</a:documentation>
           <optional>
             <element name="store_old_field">
+              <a:documentation>Store values of field at previous timestep/non-linear iteration, for use when updating particle attributes.</a:documentation>
               <ref name="comment"/>
             </element>
           </optional>
@@ -4825,6 +4802,7 @@ where X is a tuple of length geometry dimension.</a:documentation>
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
+            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
