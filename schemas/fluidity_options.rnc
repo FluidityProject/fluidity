@@ -2734,7 +2734,8 @@ diagnostic_scalar_field =
       scalar_steady_state_options,
       adaptivity_options_scalar_field,
       recalculation_options?,
-      interpolation_algorithm_scalar?
+      interpolation_algorithm_scalar?,
+      initialise_after_particles?
    )
    
 # Default child of diagnostic scalar field without adaptivity options
@@ -7078,6 +7079,15 @@ recalculation_options =
         empty
       }
    )
+
+initialise_after_particles =
+   (
+     ## Initiliase this scalar field after particle attributes and
+     ## particle based fields have been initialised.
+     element init_after_particles {
+       empty
+       }
+    )
 
 discrete_properties_algorithm_scalar =
    (

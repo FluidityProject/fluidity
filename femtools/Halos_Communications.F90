@@ -74,7 +74,7 @@ module halos_communications
   end interface halo_verifies
 
   interface halo_accumulate
-    module procedure halo_accumulate_array_real
+    module procedure halo_accumulate_array_real!, halo_accumulate_scalar
   end interface halo_accumulate
 
 contains
@@ -664,6 +664,102 @@ contains
     call halo_accumulate_array_real_star(halo, array, 1)
 
   end subroutine halo_accumulate_array_real
+
+!!$  subroutine halo_accumulate_scalar_star(halo, real_data)
+!!$    !!< For nodes that are seen by one or more other processors (recv nodes on these processes)
+!!$    !!< add the contributions they have stored for these recv nodes to the correpsonding entry
+!!$    !!< of the corresponding send node on the owner of the node. Note, that this is a reverse
+!!$    !!< communication pattern, where contributions from recv nodes are send to send nodes
+!!$    type(halo_type), intent(in) :: halo
+!!$    real, intent(inout) :: real_data
+!!$    integer :: block_size
+!!$
+!!$#ifdef HAVE_MPI
+!!$    integer :: communicator, ierr, nprocs, nrecvs, nsends
+!!$    type(real_vector), dimension(:), allocatable :: send_buffer, recv_buffer
+!!$    integer, dimension(:), allocatable :: requests, statuses
+!!$    integer tag
+!!$    integer i, j, k
+!!$
+!!$    block_size = 1
+!!$    assert(halo_valid_for_communication(halo))
+!!$    assert(.not. pending_communication(halo))
+!!$
+!!$    nprocs = halo_proc_count(halo)
+!!$    communicator = halo_communicator(halo)
+!!$    allocate(requests(1:2*nprocs), statuses(1:2*nprocs*MPI_STATUS_SIZE))
+!!$    allocate(recv_buffer(1:nprocs), send_buffer(1:nprocs))
+!!$
+!!$    tag = next_mpi_tag()
+!!$
+!!$    do i = 1, nprocs
+!!$      nrecvs = halo_receive_count(halo, i) !number of receive nodes in the supplied halo for the given process
+!!$      if (nrecvs > 0) then
+!!$        allocate(send_buffer(i)%ptr(1:nrecvs*block_size))
+!!$        do j=1, nrecvs
+!!$          k = halo_receive(halo, i, j) !kth receive node on the supplied halo
+!!$          send_buffer(i)%ptr((j-1)*block_size+1:j*block_size) = real_data((k-1)*block_size+1:k*block_size)!!!!
+!!$        end do
+!!$        call mpi_isend(send_buffer(i)%ptr, nrecvs*block_size, getpreal(), i-1, tag, communicator, requests(i), ierr)
+!!$        assert(ierr == MPI_SUCCESS)
+!!$      else
+!!$        requests(i) = MPI_REQUEST_NULL
+!!$      end if
+!!$
+!!$      nsends = halo_send_count(halo, i)
+!!$      if (nsends > 0) then
+!!$        allocate(recv_buffer(i)%ptr(1:nsends*block_size))
+!!$        call mpi_irecv(recv_buffer(i)%ptr, nsends*block_size, getpreal(), i-1, tag, communicator, requests(nprocs+i), ierr)
+!!$        assert(ierr == MPI_SUCCESS)
+!!$      else
+!!$        requests(nprocs+i) = MPI_REQUEST_NULL
+!!$      end if
+!!$    end do
+!!$
+!!$    call mpi_waitall(2*nprocs, requests, statuses, ierr)
+!!$    assert(ierr == MPI_SUCCESS)
+!!$    deallocate(requests, statuses)
+!!$
+!!$    do i=1, nprocs
+!!$      nsends = halo_send_count(halo, i)
+!!$      if (nsends > 0) then
+!!$        do j=1, nsends
+!!$          k = halo_send(halo, i, j)
+!!$          real_data((k-1)*block_size+1:k*block_size) = real_data((k-1)*block_size+1:k*block_size) + &
+!!$              recv_buffer(i)%ptr((j-1)*block_size+1:j*block_size)!!!
+!!$        end do
+!!$        deallocate(recv_buffer(i)%ptr)
+!!$      end if
+!!$
+!!$      nrecvs = halo_receive_count(halo, i)
+!!$      if (nrecvs > 0) then
+!!$        deallocate(send_buffer(i)%ptr)
+!!$      end if
+!!$    end do
+!!$
+!!$    deallocate(send_buffer, recv_buffer)
+!!$
+!!$#else
+!!$    if(.not. valid_serial_halo(halo)) then
+!!$      FLAbort("Cannot update halos without MPI support")
+!!$    end if
+!!$#endif
+!!$
+!!$  end subroutine halo_accumulate_scalar_star
+!!$
+!!$  subroutine halo_accumulate_scalar(halo, scalar)
+!!$    !!< For nodes that are seen by one or more other processors (recv nodes on these processes)
+!!$    !!< add the contributions they have stored for these recv nodes to the correpsonding entry
+!!$    !!< of the corresponding send node on the owner of the node. Note, that this is a reverse
+!!$    !!< communication pattern, where contributions from recv nodes are send to send nodes
+!!$    type(halo_type), intent(in) :: halo
+!!$    real, intent(inout) :: scalar
+!!$
+!!$    !assert(size(array,1) >= max_halo_node(halo))
+!!$
+!!$    call halo_accumulate_scalar_star(halo, scalar)
+!!$
+!!$  end subroutine halo_accumulate_scalar
   
   subroutine halo_max_array_real(halo, real_data)
     type(halo_type), intent(in) :: halo
