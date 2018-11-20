@@ -39,7 +39,7 @@ subroutine test_matmul_t
 
     D = matmul(A, transpose(B))
 
-    if (any(C /= D)) fail = .true.
+    if (any(abs(C-D)>2.0*epsilon(0.0))) fail = .true.
 
     call report_test("[matmul_t " // trim(buf) // "]", fail, .false., "The output of matmul_t and matmul should be identical.")
   end do
