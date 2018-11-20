@@ -301,7 +301,7 @@
     <vector_field name="Velocity" rank="1">
       <prognostic>
         <mesh name="VelocityMesh"/>
-        <equation name="LinearMomentum"/>
+        <equation name="Boussinesq"/>
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
