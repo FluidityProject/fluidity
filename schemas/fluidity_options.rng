@@ -8880,8 +8880,8 @@ This is cheaper especially if you are enforcing discrete properties on the field
   </define>
   <define name="initialise_after_particles">
     <element name="init_after_particles">
-      <a:documentation>Initiliase this scalar field after particle attributes and
-particle based fields have been initialised.</a:documentation>
+      <a:documentation>Initiliase this scalar field after particle attributes have
+been initialised.</a:documentation>
       <empty/>
     </element>
   </define>

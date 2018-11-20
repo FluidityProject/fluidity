@@ -53,7 +53,8 @@ module particles
   private
 
   public :: initialise_particle_positions, move_particles, write_particles_loop, destroy_particles, &
-       checkpoint_particles_loop, get_particles, get_particle_arrays, update_list_lengths, particle_lists
+       checkpoint_particles_loop, get_particles, get_particle_arrays, update_list_lengths, particle_lists, &
+       set_particle_attributes, initialise_constant_particle_attributes
 
   type(detector_linked_list), allocatable, dimension(:), save :: particle_lists
 
@@ -157,7 +158,7 @@ contains
           if (.not.from_checkpoint) then
              
              if (.not.have_option(trim(subgroup_path)//"/initial_position/from_file")) then
-                call read_particles_from_options(sub_particles, subname, current_time, state, attribute_size, xfield, dim, subgroup_path, particle_lists(list_counter))
+                call read_particles_from_options(sub_particles, subname, current_time, attribute_size, xfield, dim, subgroup_path, particle_lists(list_counter))
              else
                 call read_particles_from_file(sub_particles, subname, attribute_size, xfield, dim, subgroup_path, particle_lists(list_counter))
              end if
@@ -194,82 +195,81 @@ contains
     
   end subroutine initialise_particle_positions
 
-  subroutine initialise_particle_diagnostics(state)
+!!$  subroutine initialise_particle_diagnostics(state)
+!!$
+!!$    type(state_type), dimension(:), intent(inout) :: state
+!!$
+!!$    character(len = OPTION_PATH_LEN) :: group_path, subgroup_path
+!!$    type(vector_field), pointer :: xfield
+!!$    type(scalar_field), pointer :: s_field
+!!$    real :: current_time
+!!$    integer :: i, k
+!!$    integer :: dim, particle_groups, list_counter, particle_materials
+!!$    integer, dimension(:), allocatable :: particle_arrays
+!!$
+!!$    type(detector_type), pointer :: particle
+!!$
+!!$    particle_groups = option_count("/particles/particle_group")
+!!$
+!!$    if (particle_groups==0) return
+!!$
+!!$    !Set up particle_lists
+!!$    allocate(particle_arrays(particle_groups))
+!!$    particle_arrays(:) = 0
+!!$    do i = 1,particle_groups
+!!$       particle_arrays(i) = option_count("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup")
+!!$    end do
+!!$
+!!$    !Allocate parameters
+!!$    xfield=>extract_vector_field(state(1), "Coordinate")
+!!$    call get_option("/geometry/dimension",dim)
+!!$    call get_option("/timestepping/current_time", current_time)
+!!$
+!!$    !Initialise particle attributes
+!!$    list_counter=1
+!!$    do i = 1,particle_groups
+!!$       group_path = "/particles/particle_group["//int2str(i-1)//"]"
+!!$       do k = 1,particle_arrays(i)
+!!$          particle => particle_lists(list_counter)%first
+!!$          subgroup_path = trim(group_path) // "/particle_subgroup["//int2str(k-1)//"]"
+!!$          
+!!$          if (size(particle%attributes).ne.0) then
+!!$             call set_particle_attributes(state, dim, current_time, subgroup_path, particle_lists(list_counter))
+!!$          end if
+!!$          list_counter = list_counter + 1
+!!$       end do
+!!$    end do
+!!$
+!!$    !Initialise fields dependent on particles
+!!$    do i = 1,size(state)
+!!$       do k = 1,scalar_field_count(state(i))
+!!$          s_field => extract_scalar_field(state(i),k)     
+!!$          if (have_option(trim(s_field%option_path)//"/diagnostic/algorithm::from_particles")) then
+!!$             call calculate_diagnostics_from_particles(state, i, s_field)
+!!$          end if
+!!$       end do
+!!$    end do
+!!$    k = size(state)
+!!$
+!!$    !Initialise MaterialVolumeFraction field (if from_particles)
+!!$    particle_materials = option_count("material_phase/scalar_field::MaterialVolumeFraction/diagnostic/algorithm::from_particles")
+!!$    if (particle_materials.gt.0) then
+!!$       s_field => extract_scalar_field(state(k), "MaterialVolumeFraction")
+!!$       call calculate_sum_material_volume_fractions(state, s_field)
+!!$       call scale(s_field, -1.0)
+!!$       call addto(s_field, 1.0)
+!!$    end if
+!!$
+!!$    !Initialise fields with init_after_particles
+!!$
+!!$    
+!!$    
+!!$    
+!!$  end subroutine initialise_particle_diagnostics
 
-    type(state_type), dimension(:), intent(inout) :: state
-
-    character(len = OPTION_PATH_LEN) :: group_path, subgroup_path
-    type(vector_field), pointer :: xfield
-    type(scalar_field), pointer :: s_field
-    real :: current_time
-    integer :: i, k
-    integer :: dim, particle_groups, list_counter, particle_materials
-    integer, dimension(:), allocatable :: particle_arrays
-
-    type(detector_type), pointer :: particle
-
-    particle_groups = option_count("/particles/particle_group")
-
-    if (particle_groups==0) return
-
-    !Set up particle_lists
-    allocate(particle_arrays(particle_groups))
-    particle_arrays(:) = 0
-    do i = 1,particle_groups
-       particle_arrays(i) = option_count("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup")
-    end do
-
-    !Allocate parameters
-    xfield=>extract_vector_field(state(1), "Coordinate")
-    call get_option("/geometry/dimension",dim)
-    call get_option("/timestepping/current_time", current_time)
-
-    !Initialise particle attributes
-    list_counter=1
-    do i = 1,particle_groups
-       group_path = "/particles/particle_group["//int2str(i-1)//"]"
-       do k = 1,particle_arrays(i)
-          particle => particle_lists(list_counter)%first
-          subgroup_path = trim(group_path) // "/particle_subgroup["//int2str(k-1)//"]"
-          
-          if (size(particle%attributes).ne.0) then
-             call set_particle_attributes(state, dim, current_time, subgroup_path, particle_lists(list_counter))
-          end if
-          list_counter = list_counter + 1
-       end do
-    end do
-
-    !Initialise fields dependent on particles
-    do i = 1,size(state)
-       do k = 1,scalar_field_count(state(i))
-          s_field => extract_scalar_field(state(i),k)     
-          if (have_option(trim(s_field%option_path)//"/diagnostic/algorithm::from_particles")) then
-             call calculate_diagnostics_from_particles(state, i, s_field)
-          end if
-       end do
-    end do
-    k = size(state)
-
-    !Initialise MaterialVolumeFraction field (if from_particles)
-    particle_materials = option_count("material_phase/scalar_field::MaterialVolumeFraction/diagnostic/algorithm::from_particles")
-    if (particle_materials.gt.0) then
-       s_field => extract_scalar_field(state(k), "MaterialVolumeFraction")
-       call calculate_sum_material_volume_fractions(state, s_field)
-       call scale(s_field, -1.0)
-       call addto(s_field, 1.0)
-    end if
-
-    !Initialise fields with init_after_particles
-
-    
-    
-    
-  end subroutine initialise_particle_diagnostics
-
-  subroutine read_particles_from_options(sub_particles, subname, current_time, state, attribute_size, xfield, dim, subgroup_path, p_list)
+  subroutine read_particles_from_options(sub_particles, subname, current_time, attribute_size, xfield, dim, subgroup_path, p_list)
     ! Reading particles from a python function
 
-    type(state_type), dimension(:), intent(in) :: state
     type(vector_field), pointer, intent(in) :: xfield
     type(detector_linked_list), intent(inout) :: p_list
     character(len=OPTION_PATH_LEN), intent(in) :: subgroup_path
@@ -297,9 +297,6 @@ contains
        call create_single_particle(p_list, xfield, coords(:,l), &
             l, LAGRANGIAN_DETECTOR, trim(particle_name), attribute_size)
     end do
-    !if (attribute_size(1).ne.0) then
-    !   call set_particle_attributes(state, dim, current_time, subgroup_path, p_list)
-    !end if
     
     deallocate(coords)
 
@@ -704,6 +701,47 @@ contains
     end do
 
   end subroutine move_particles
+
+  subroutine initialise_constant_particle_attributes(state, subgroup_path, p_list)
+    !!Routine to initialise constant attributes for MVF field
+    type(state_type), dimension(:), intent(in) :: state
+    character(len=OPTION_PATH_LEN), intent(in) :: subgroup_path
+    type(detector_linked_list), intent(in) :: p_list
+
+    type(detector_type), pointer :: particle
+    
+    real, allocatable, dimension(:,:) :: attribute_array
+    real :: constant
+    integer :: j, nparticles, n
+
+    !Check if this processor contains particles
+    nparticles = p_list%length
+
+    if (nparticles.eq.0) then
+       return
+    end if
+    
+    particle => p_list%first
+    allocate(attribute_array(size(particle%attributes),nparticles))
+    attribute_array(:,:) = 0
+    
+    do n = 0,size(particle%attributes)-1
+       if (have_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/constant')) then
+          call get_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/constant', constant)
+          call set_particle_constant_from_options(attribute_array(n+1,:), nparticles, constant)
+       end if
+    end do
+    
+    !Set attribute values and old_attribute values
+    particle => p_list%first
+    do j = 1,nparticles
+       particle%attributes = attribute_array(:,j)
+       particle => particle%next
+    end do
+    
+    deallocate(attribute_array)
+    
+  end subroutine initialise_constant_particle_attributes
 
   subroutine set_particle_attributes(state, dim, time, subgroup_path, p_list)
     !!Routine to set particle attributes

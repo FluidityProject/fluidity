@@ -74,7 +74,8 @@ module fluids_module
   use dqmom
   use diagnostic_fields_wrapper
   use particles
-  use particle_diagnostics, only: initialise_particle_diagnostics, update_particle_diagnostics
+  use particle_diagnostics, only: initialise_particle_diagnostics, update_particle_diagnostics, &
+       & initialise_constant_particle_diagnostics
   use checkpoint
   use goals
   use adaptive_timestepping
@@ -334,8 +335,11 @@ contains
     ! Initialise multimaterial fields:
     call initialise_diagnostic_material_properties(state)
 
-    !Initialise position of particles:
+    !Initialise positions of particles:
     call initialise_particle_positions(filename, state)
+
+    !Initialise multimaterial fields based on particles:
+    call initialise_constant_particle_diagnostics(state)
     
     ! Calculate diagnostic variables:
     call calculate_diagnostic_variables(state)

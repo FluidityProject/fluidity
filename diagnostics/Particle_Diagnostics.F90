@@ -33,7 +33,7 @@ module particle_diagnostics
   use global_parameters, only : OPTION_PATH_LEN
   use futils, only: int2str
   use particles, only : get_particles, get_particle_arrays, update_list_lengths, &
-       & set_particle_attributes
+       & set_particle_attributes, initialise_constant_particle_attributes
   use spud
   use parallel_tools, only: getnprocs, allsum
   use state_module
@@ -47,6 +47,7 @@ module particle_diagnostics
   use detector_tools, only: temp_insert, insert, allocate, deallocate
   use field_options
   use multimaterial_module, only: calculate_sum_material_volume_fractions
+  use diagnostic_fields_new, only: calculate_dependencies, calculate_diagnostic_variable 
   
   implicit none
 
@@ -54,9 +55,69 @@ module particle_diagnostics
 
   public :: initialise_particle_diagnostics, update_particle_diagnostics, &
        & calculate_diagnostics_from_particles, calculate_ratio_from_particles, &
-       & calculate_numbers_from_particles
+       & calculate_numbers_from_particles, initialise_constant_particle_diagnostics
 
   contains
+
+  subroutine initialise_constant_particle_diagnostics(state)
+    !subroutine to initialise constant particle attributes and
+    !multimaterial fields if 'from_particles'
+
+    use particles, only: particle_lists
+    type(state_type), dimension(:), intent(inout) :: state
+
+    character(len = OPTION_PATH_LEN) :: group_path, subgroup_path
+    type(scalar_field), pointer :: s_field
+    integer :: i, k
+    integer :: particle_groups, list_counter, particle_materials
+    integer, dimension(:), allocatable :: particle_arrays
+
+    type(detector_type), pointer :: particle
+
+    particle_groups = option_count("/particles/particle_group")
+
+    if (particle_groups==0) return
+
+    !Set up particle_lists
+    allocate(particle_arrays(particle_groups))
+    particle_arrays(:) = 0
+    do i = 1,particle_groups
+       particle_arrays(i) = option_count("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup")
+    end do
+
+    !Initialise constant particle attributes
+    list_counter=1
+    do i = 1,particle_groups
+       group_path = "/particles/particle_group["//int2str(i-1)//"]"
+       do k = 1,particle_arrays(i)
+          particle => particle_lists(list_counter)%first
+          subgroup_path = trim(group_path) // "/particle_subgroup["//int2str(k-1)//"]"
+          if (option_count(trim(subgroup_path) // "/attributes/attribute/constant").gt.0) then
+             call initialise_constant_particle_attributes(state, subgroup_path, particle_lists(list_counter))
+          end if
+          list_counter = list_counter + 1
+       end do
+    end do
+
+    particle_materials = option_count("material_phase/scalar_field::MaterialVolumeFraction/diagnostic/algorithm::from_particles")
+    if (particle_materials.gt.0) then
+       !Initialise MultialVolumeFraction fields dependent on particles
+       do i = 1,size(state)
+          s_field => extract_scalar_field(state(i), "MaterialVolumeFraction")     
+          if (have_option(trim(s_field%option_path)//"/diagnostic/algorithm::from_particles")) then
+             call calculate_diagnostics_from_particles(state, i, s_field)
+          end if
+       end do
+       k = size(state)
+       
+       !Initialise internal MaterialVolumeFraction field
+       s_field => extract_scalar_field(state(k), "MaterialVolumeFraction")
+       call calculate_sum_material_volume_fractions(state, s_field)
+       call scale(s_field, -1.0)
+       call addto(s_field, 1.0)
+    end if
+    
+  end subroutine initialise_constant_particle_diagnostics
 
   subroutine initialise_particle_diagnostics(state)
     !subroutine to initialise particle attributes, diagnostic fields
@@ -66,12 +127,12 @@ module particle_diagnostics
     type(state_type), dimension(:), intent(inout) :: state
     type(state_type), dimension(size(state)) :: calculated_states
 
-    character(len = OPTION_PATH_LEN) :: group_path, subgroup_path
+    character(len = OPTION_PATH_LEN) :: group_path, subgroup_path, name
     type(vector_field), pointer :: xfield
     type(scalar_field), pointer :: s_field
     real :: current_time
     integer :: i, k
-    integer :: dim, particle_groups, list_counter, particle_materials
+    integer :: dim, particle_groups, list_counter
     integer, dimension(:), allocatable :: particle_arrays
 
     type(detector_type), pointer :: particle
@@ -112,20 +173,13 @@ module particle_diagnostics
        do k = 1,scalar_field_count(state(i))
           s_field => extract_scalar_field(state(i),k)     
           if (have_option(trim(s_field%option_path)//"/diagnostic/algorithm::from_particles")) then
+             call get_option(trim(s_field%option_path)//"/name", name)
+             if (name=="MaterialVolumeFraction") cycle
              call calculate_diagnostics_from_particles(state, i, s_field)
           end if
        end do
     end do
     k = size(state)
-
-    !Initialise MaterialVolumeFraction field (if from_particles)
-    particle_materials = option_count("material_phase/scalar_field::MaterialVolumeFraction/diagnostic/algorithm::from_particles")
-    if (particle_materials.gt.0) then
-       s_field => extract_scalar_field(state(k), "MaterialVolumeFraction")
-       call calculate_sum_material_volume_fractions(state, s_field)
-       call scale(s_field, -1.0)
-       call addto(s_field, 1.0)
-    end if
 
     !Initialise fields with init_after_particles
     do i = 1,size(state)
@@ -208,7 +262,7 @@ module particle_diagnostics
     end do
     k = size(state)
 
-    !Update MaterialVolumeFraction field (if from_particles)
+    !Update internal MaterialVolumeFraction field
     particle_materials = option_count("material_phase/scalar_field::MaterialVolumeFraction/diagnostic/algorithm::from_particles")
     if (particle_materials.gt.0) then
        s_field => extract_scalar_field(state(k), "MaterialVolumeFraction")
@@ -511,7 +565,7 @@ module particle_diagnostics
 
 
     call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/group/name", lgroup)
-    ewrite(2,*) "Calculate diagnostic field from particle group: ", trim(lgroup)
+    ewrite(2,*) "Calculate number of particles from particle group: ", trim(lgroup)
 
     !Initialize field as 0
     s_field%val(:) = 0

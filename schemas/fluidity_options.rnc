@@ -7082,8 +7082,8 @@ recalculation_options =
 
 initialise_after_particles =
    (
-     ## Initiliase this scalar field after particle attributes and
-     ## particle based fields have been initialised.
+     ## Initiliase this scalar field after particle attributes have
+     ## been initialised.
      element init_after_particles {
        empty
        }

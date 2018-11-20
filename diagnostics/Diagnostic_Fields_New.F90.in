@@ -45,7 +45,7 @@ USE_MODULES
   
   public :: check_diagnostic_dependencies, calculate_diagnostic_variables, &
     & calculate_diagnostic_variable, calculate_diagnostic_variable_dep, &
-    & diagnostic_fields_new_check_options
+    & diagnostic_fields_new_check_options, calculate_dependencies
       
   interface calculate_dependencies
     module procedure calculate_dependencies_scalar, &
@@ -302,7 +302,7 @@ contains
     do i = 1, size(states)
       do j = 1, scalar_field_count(states(i))
         s_field => extract_scalar_field(states(i), j)
-        
+         
         ! Only calculate non-aliased diagnostic fields
         if(aliased(s_field) .or. .not. have_option(trim(s_field%option_path) // "/diagnostic")) cycle
         ! Check whether this field should be calculated
@@ -310,8 +310,9 @@ contains
         ! and whether this field has already been calculated (as a dependency)
         if(has_scalar_field(calculated_states(i), trim(s_field%name))) cycle
         !Check if field should be initialised after particles
-        if(init_after_particles==.true. .and. have_option(trim(s_field%option_path) // "/diagnostic/init_after_particles")) cycle 
-       
+        if(present(init_after_particles) .and. have_option(trim(s_field%option_path) // "/diagnostic/init_after_particles")) cycle
+        if(have_option(trim(s_field%option_path) // "/diagnostic/algorithm::from_particles")) cycle
+        
         ! Calculate dependencies
         call calculate_dependencies(states, i, s_field, &
           & dep_states_mask = calculated_states, exclude_nonrecalculated = exclude_nonrecalculated)
