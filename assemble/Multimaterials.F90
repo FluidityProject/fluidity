@@ -235,7 +235,7 @@ contains
        if(have_option(trim(state(i)%option_path)//"/scalar_field::MaterialVolumeFraction/diagnostic/algorithm::Internal")) then
           diagnostic_count = diagnostic_count + 1
           ! Record the index of the state containing the diagnostic MaterialVolumeFraction field
-          diagnostic_state_index = i
+          diagnostic_state_index = i 
        end if
     end do
 
@@ -245,23 +245,23 @@ contains
     end if
 
     if(diagnostic_count==1) then
-      !Extract the diagnostic volume fraction
-       materialvolumefraction => extract_scalar_field(state(diagnostic_state_index), 'MaterialVolumeFraction')
-       
-       call allocate(sumvolumefractions, materialvolumefraction%mesh, 'Sum of volume fractions')
-       call zero(sumvolumefractions)
-       
-       do i = 1,size(state)
-          sfield=>extract_scalar_field(state(i),'MaterialVolumeFraction',stat)
-          diagnostic=(have_option(trim(sfield%option_path)//'/diagnostic/algorithm::Internal'))
-          if ( (stat==0).and.(.not. aliased(sfield)).and.(.not.diagnostic)) then
-             call addto(sumvolumefractions, sfield)
-          end if
-       end do
-       call set(materialvolumefraction, 1.0)
-       call addto(materialvolumefraction, sumvolumefractions, -1.0)
-
-       call deallocate(sumvolumefractions)
+      ! Extract the diagnostic volume fraction
+      materialvolumefraction => extract_scalar_field(state(diagnostic_state_index), 'MaterialVolumeFraction')
+      
+      call allocate(sumvolumefractions, materialvolumefraction%mesh, 'Sum of volume fractions')
+      call zero(sumvolumefractions)
+      
+      do i = 1,size(state)
+        sfield=>extract_scalar_field(state(i),'MaterialVolumeFraction',stat)
+        diagnostic=(have_option(trim(sfield%option_path)//'/diagnostic/algorithm::Internal'))
+        if ( (stat==0).and.(.not. aliased(sfield)).and.(.not.diagnostic)) then
+          call addto(sumvolumefractions, sfield)
+        end if
+      end do
+      
+      call set(materialvolumefraction, 1.0)
+      call addto(materialvolumefraction, sumvolumefractions, -1.0)
+      call deallocate(sumvolumefractions)
     end if
 
   end subroutine calculate_diagnostic_material_volume_fraction
@@ -813,6 +813,7 @@ contains
     if(.not.diagnostic) return
 
     call zero(sumvolumefractions)
+
     do i = 1,size(state)
       sfield=>extract_scalar_field(state(i),'MaterialVolumeFraction',stat)
       if(stat==0) then

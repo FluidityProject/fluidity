@@ -39,7 +39,7 @@ module zoltan_detectors
     type(detector_type), pointer :: detector => null(), detector_to_move => null()
     logical :: found_det_element
     
-    ewrite(1,*) "In prepare_detectors_for_packing"
+    ewrite(1,*) "In prepare_detectors_for_packing"    
     
     assert(num_ids == size(ndets_in_ele))
     assert(num_ids == size(to_pack_detector_lists))

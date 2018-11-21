@@ -1910,14 +1910,13 @@ module zoltan_integration
     integer, allocatable :: ndets_being_sent(:)
     real, allocatable :: send_buff(:,:), recv_buff(:,:)
     logical do_broadcast
-    type(element_type), pointer :: shape
+    type(element_type), pointer :: shape  
 
     ewrite(1,*) "In update_detector_list_element"
 
     send_count=0
 
     !Loop for detectors or particles with no attributes
-
     do j = 1, size(detector_list_array)
        detector_list => detector_list_array(j)%ptr
        ewrite(2,*) "Length of detector list to be updated: ", detector_list%length
@@ -2286,7 +2285,7 @@ module zoltan_integration
     end if
 
     ierr = Zoltan_Migrate(zz, num_import, import_global_ids, import_local_ids, import_procs, &
-         & import_to_part, num_export, export_global_ids, export_local_ids, export_procs, export_to_part)
+         & import_to_part, num_export, export_global_ids, export_local_ids, export_procs, export_to_part) 
     
     assert(ierr == ZOLTAN_OK)
     
@@ -2310,12 +2309,7 @@ module zoltan_integration
        add_detector => detector
        detector => detector%next
 
-       ! update detector name if names are present on the list, otherwise det%name=id_number
-       !if (allocated(detector_list_array(add_detector%list_id)%ptr%detector_names)) then
-       !   add_detector%name=detector_list_array(add_detector%list_id)%ptr%detector_names(add_detector%id_number)
-       !else
        add_detector%name=int2str(add_detector%id_number)
-       !end if
 
        ! move detector to the correct list
        call move(add_detector, zoltan_global_unpacked_detectors_list, detector_list_array(add_detector%list_id)%ptr)

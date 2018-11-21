@@ -846,6 +846,17 @@ Zoltan_integration.o ../include/zoltan_integration.mod: Zoltan_integration.F90 \
    ../include/zoltan_callbacks.mod ../include/zoltan_detectors.mod \
    ../include/zoltan_global_variables.mod
 
+../include/multimaterial_module.mod: check.o
+	@true
+
+check.o ../include/multimaterial_module.mod: check.F90 \
+   ../include/cv_upwind_values.mod ../include/diagnostic_fields_matrices.mod \
+   ../include/equation_of_state.mod ../include/fdebug.h \
+   ../include/fefields.mod ../include/field_options.mod \
+   ../include/field_priority_lists.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/state_module.mod
+
 ../include/qmesh_module.mod: qmesh.o
 	@true
 

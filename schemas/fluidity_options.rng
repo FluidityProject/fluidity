@@ -419,6 +419,7 @@ and deleting options.</a:documentation>
                 </element>
                 <optional>
                   <element name="particle_spawning">
+                    <a:documentation>Options for spawning and deleting particles. Defined per particle_group.</a:documentation>
                     <element name="min_cv_threshhold">
                       <a:documentation>Minimum number of particles per control volume</a:documentation>
                       <ref name="integer"/>

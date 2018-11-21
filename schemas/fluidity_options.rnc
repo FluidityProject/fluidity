@@ -336,6 +336,7 @@ start =
 		     element velocity_field {
 		     attribute name { xsd:string }
 		     },
+		     ## Options for spawning and deleting particles. Defined per particle_group.
 		     element particle_spawning {
 		     	## Minimum number of particles per control volume
 		        element min_cv_threshhold {
@@ -2723,6 +2724,7 @@ lagrangian_timestepping =
          )
       }
    )
+
 # Default child of diagnostic scalar field
 diagnostic_scalar_field =
    (

@@ -146,6 +146,8 @@ wrappers.</a:documentation>
         </attribute>
       </element>
       <element name="algorithm">
+        <a:documentation>This diagnostic is derived from particle attributes, it is calculated
+within the Particle_Diagnostics.F90 routine.</a:documentation>
         <attribute name="name">
           <value>from_particles</value>
         </attribute>
@@ -154,6 +156,7 @@ wrappers.</a:documentation>
         </attribute>
         <choice>
           <element name="method">
+            <a:documentation>Diagnostic field will be set from the particle 'ratio' method.</a:documentation>
             <attribute name="name">
               <value>ratio</value>
             </attribute>
@@ -169,6 +172,8 @@ wrappers.</a:documentation>
             </element>
           </element>
           <element name="method">
+            <a:documentation>Diagnostic field will be set from the number of particles
+present per control volume.</a:documentation>
             <attribute name="name">
               <value>num_particles</value>
             </attribute>

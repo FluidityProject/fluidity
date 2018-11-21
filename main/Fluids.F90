@@ -354,7 +354,7 @@ contains
        call calculate_biology_terms(state(1))
     end if
 
-    call initialise_diagnostics(filename, state) 
+    call initialise_diagnostics(filename, state)
 
     ! Initialise ice_meltrate, read constatns, allocate surface, and calculate melt rate
     if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08")) then
@@ -736,7 +736,7 @@ contains
 !       ! Calculate the meltrate
 !       if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
 !          call melt_surf_calc(state(1))
-       !       end if
+!       end if
 
        !Call move and write particles
        call move_particles(state, dt, timestep)
@@ -749,7 +749,6 @@ contains
           
        ! Call the modern and significantly less satanic version of study
        call write_diagnostics(state, current_time, dt, timestep)
-
        ! Work out the domain volume by integrating the water depth function over the surface if using wetting and drying
        if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
           ewrite(1, *) "Domain volume (\int_{fs} (\eta.-b)n.n_z)): ", calculate_volume_by_surface_integral(state(1))
@@ -804,9 +803,6 @@ contains
              call run_diagnostics(state)
  
           end if
-          ! Diagnostic fields
-          call calculate_diagnostic_variables(state)
-          call calculate_diagnostic_variables_new(state)
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
           if(do_adapt_state_prescribed(current_time)) then
 

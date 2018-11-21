@@ -208,7 +208,7 @@ contains
           ! This loop continues until all detectors have completed their
           ! timestep this is measured by checking if the send and receive
           ! lists are empty in all processors
-          detector_timestepping_loop: do
+          detector_timestepping_loop: do  
 
              ! Make sure we still have lagrangian detectors
              any_lagrangian=check_any_lagrangian(detector_list)
@@ -271,7 +271,7 @@ contains
       
     checkint = 0
     det0 => detector_list0%first
-    do i = 1, detector_list0%length
+    do i = 1, detector_list0%length         
        if (det0%type==LAGRANGIAN_DETECTOR) then
           checkint = 1
           exit
