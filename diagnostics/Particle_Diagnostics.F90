@@ -41,6 +41,7 @@ module particle_diagnostics
   use elements, only: eval_shape
   use fields_base, only: ele_val, ele_loc
   use fields_calculations, only: dot_product
+  use parallel_fields, only: node_owned
   use fields
   use pickers
   use detector_data_types
@@ -163,7 +164,8 @@ module particle_diagnostics
        do k = 1,particle_arrays(i)
           particle => particle_lists(list_counter)%first
           subgroup_path = trim(group_path) // "/particle_subgroup["//int2str(k-1)//"]"
-          if (size(particle%attributes).ne.0) then
+          if (option_count(trim(subgroup_path) // "/attributes/attribute/python").gt.0 .or. &
+              & option_count(trim(subgroup_path) // "/attributes/attribute/python_fields").gt.0) then
              call set_particle_attributes(state, dim, current_time, subgroup_path, particle_lists(list_counter))
           end if
           list_counter = list_counter + 1
@@ -278,7 +280,6 @@ module particle_diagnostics
   subroutine calculate_diagnostics_from_particles(states, state_index, s_field)
 
     !!! Subroutine to determine which method is being used
-    use particles, only: particle_lists
     type(state_type), dimension(:), target, intent(inout) :: states
     integer, intent(in) :: state_index
     type(scalar_field), intent(inout) :: s_field
@@ -317,7 +318,7 @@ module particle_diagnostics
     type(vector_field), pointer :: xfield
     type(detector_linked_list), allocatable, dimension(:,:) :: node_particles
     type(detector_type), pointer :: particle
-    integer :: i, j
+    integer :: i
     real, allocatable, dimension(:) :: node_values
     real, allocatable, dimension(:) :: node_part_count ! real instead of integer, so we can use halo_accumulate
     integer :: element, node_number
@@ -444,7 +445,6 @@ module particle_diagnostics
     integer, intent(in) :: group_attribute
     integer, intent(in) :: nprocs
     type(vector_field), pointer :: xfield
-    type(detector_type), pointer :: particle
     integer :: i, j
 
     integer, allocatable, dimension(:) :: summed_particles, add_particles, remove_particles
@@ -481,10 +481,11 @@ module particle_diagnostics
                 call spawn_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, xfield, add_particles, i)
                 summed_particles=summed_particles+add_particles
              end if
-             !else if (node_part_count(i)==0) then!need to add something here for parallel (only if node owned?) check in more detail...
-             !   call spawn_zero_particles(temp_part_count(:), temp_values(:), node_particles(:,:), group_arrays, group_attribute, xfield, add_particles, i, min_thresh)
-             !   summed_particles=summed_particles+add_particles
-             !end if
+          else if (node_part_count(i)==0) then!need to add something here for parallel (only if node owned?) check in more detail...
+             if (node_owned(s_field, i)) then
+                call spawn_zero_particles(temp_part_count(:), temp_values(:), node_particles(:,:), group_arrays, group_attribute, xfield, add_particles, i, min_thresh)
+                summed_particles=summed_particles+add_particles
+             end if
           end if
        end if
     end do
@@ -657,8 +658,7 @@ module particle_diagnostics
     type(detector_type), pointer :: particle
     type(detector_type), pointer :: temp_part
 
-    real, dimension(:), allocatable :: node_coord, node_vector
-    real :: pertubation
+    real, dimension(:), allocatable :: node_coord
     real :: rand_lcoord
 
     character(len=OPTION_PATH_LEN) :: name
