@@ -46,7 +46,10 @@ module vtk_interfaces
   use parallel_fields
   use fields
   use state_module
+#ifdef HAVE_VTK
   use vtkfortran
+#endif
+  use vtkwriter
   
   implicit none
 
@@ -93,13 +96,15 @@ module vtk_interfaces
        integer nfields, nproperties, ndimensions, maxnamelen
      end subroutine vtk_get_sizes
   end interface
-  
+
+#ifdef HAVE_VTK  
   interface vtkwriteghostlevels
      subroutine vtkwriteghostlevels(ghost_levels)
        implicit none
        integer ghost_levels(*)
      end subroutine vtkwriteghostlevels
-  end interface
+  end interface vtkwriteghostlevels
+#endif  
 
 contains
     
@@ -474,75 +479,67 @@ contains
            &, ENLIST, ELtype, ELsize)
 
     !----------------------------------------------------------------------
-    ! Output scalar fields
+    ! Set active fields
+    !----------------------------------------------------------------------
+
+    if (present(sfields)) then
+      ! set first field to be active:
+      if (size(sfields)>0) call vtksetactivescalars( sfields(1)%name )
+    end if
+    if (present(vfields)) then
+      ! set first field to be active:
+      do i=1,size(vfields)
+         if(trim(vfields(i)%name)=="Coordinate") then
+             cycle
+         end if
+         call vtksetactivevectors( vfields(i)%name )
+         exit
+      end do
+    end if
+    if (present(tfields)) then
+      ! set first field to be active:
+      if (size(tfields)>0) call vtksetactivetensors( tfields(1)%name )
+    end if
+
+    !----------------------------------------------------------------------
+    ! Output scalar point fields
     !----------------------------------------------------------------------    
     
     if (present(sfields)) then
        do i=1,size(sfields)
-          if(mesh_dim(sfields(i))/=mesh_dim(l_model)) cycle
-          
-          if (sfields(i)%mesh%shape%degree /= 0) then
+          if(mesh_dim(sfields(i))/=mesh_dim(l_model)) cycle          
+          if (sfields(i)%mesh%shape%degree == 0) cycle
 
-            call remap_field(from_field=sfields(i), to_field=l_model, stat=lstat)
-            ! if this is being called from something other than the main output routines
-            ! then these tests can be disabled by passing in the optional stat argument
-            ! to vtk_write_fields
-            if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-              if(present(stat)) then
+          call remap_field(from_field=sfields(i), to_field=l_model, stat=lstat)
+          ! if this is being called from something other than the main output routines
+          ! then these tests can be disabled by passing in the optional stat argument
+          ! to vtk_write_fields
+          if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+             if(present(stat)) then
                 stat = lstat
-              else
+             else
                 FLAbort("Just remapped from a discontinuous to a continuous field!")
-              end if
-            else if(lstat==REMAP_ERR_UNPERIODIC_PERIODIC) then
-              if(present(stat)) then
+             end if
+          else if(lstat==REMAP_ERR_UNPERIODIC_PERIODIC) then
+             if(present(stat)) then
                 stat = lstat
-              else
+             else
                 FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
-              end if
-            else if ((lstat/=0).and. &
-                     (lstat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
-                     (lstat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
-              if(present(stat)) then
+             end if
+          else if ((lstat/=0).and. &
+               (lstat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
+               (lstat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
+             if(present(stat)) then
                 stat = lstat
-              else
+             else
                 FLAbort("Unknown error when remapping field.")
-              end if
-            end if
-            ! we've just allowed remapping from a higher order to a lower order continuous field
-            
-            call vtkwritesn(l_model%val, trim(sfields(i)%name))
-
-          else
-
-            if(sfields(i)%field_type==FIELD_TYPE_CONSTANT) then
-              allocate(tempval(element_count(l_model),1))
-
-              tempval = sfields(i)%val(1)
-              call vtkwritesc(tempval(:,1), trim(sfields(i)%name))
-
-              deallocate(tempval)
-            else
-              call vtkwritesc(sfields(i)%val, trim(sfields(i)%name))
-            end if
-
+             end if
           end if
+          ! we've just allowed remapping from a higher order to a lower order continuous field
+            
+          call vtkwritesn(l_model%val, trim(sfields(i)%name))
           
        end do
-       
-      ! set first field to be active:
-      if (size(sfields)>0) call vtksetactivescalars( sfields(1)%name )
-    end if
-
-
-     !----------------------------------------------------------------------
-     ! Output the region ids
-     !----------------------------------------------------------------------
-
-     ! You could possibly check for preserving the mesh regions here.
-     if (present_and_true(write_region_ids)) then
-       if (associated(model_mesh%region_ids)) then
-         call vtkwritesc(model_mesh%region_ids, "RegionIds")
-       end if
      end if
 
      !----------------------------------------------------------------------
@@ -554,19 +551,6 @@ contains
          call vtkwritesn(model_mesh%columns, "Columns")
        end if
      end if
-
-    !----------------------------------------------------------------------
-    ! Output ghost levels
-    !----------------------------------------------------------------------
-    if(element_halo_count(model_mesh) > 0) then
-       allocate(ghost_levels(element_count(model_mesh)))
-       ghost_levels = 0
-       do i=1, element_count(model_mesh)
-         if(.not. element_owned(model, i)) ghost_levels(i) = 1
-       end do
-       
-       call vtkWriteGhostLevels(ghost_levels)
-    end if
 
     
     !----------------------------------------------------------------------
@@ -580,78 +564,46 @@ contains
           end if
           if(mesh_dim(vfields(i))/=mesh_dim(v_model(vfields(i)%dim))) cycle
 
-          if(vfields(i)%mesh%shape%degree /= 0) then
+          if(vfields(i)%mesh%shape%degree == 0) cycle
 
-            call remap_field(from_field=vfields(i), to_field=v_model(vfields(i)%dim), stat=lstat)
-            ! if this is being called from something other than the main output routines
-            ! then these tests can be disabled by passing in the optional stat argument
-            ! to vtk_write_fields
-            if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-              if(present(stat)) then
+          call remap_field(from_field=vfields(i), to_field=v_model(vfields(i)%dim), stat=lstat)
+          ! if this is being called from something other than the main output routines
+          ! then these tests can be disabled by passing in the optional stat argument
+          ! to vtk_write_fields
+          if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+             if(present(stat)) then
                 stat = lstat
-              else
+             else
                 FLAbort("Just remapped from a discontinuous to a continuous field!")
-              end if
-            else if(lstat==REMAP_ERR_UNPERIODIC_PERIODIC) then
-              if(present(stat)) then
+             end if
+          else if(lstat==REMAP_ERR_UNPERIODIC_PERIODIC) then
+             if(present(stat)) then
                 stat = lstat
-              else
+             else
                 FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
-              end if
-            else if ((lstat/=0).and. &
-                     (lstat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
-                     (lstat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
-              if(present(stat)) then
+             end if
+          else if ((lstat/=0).and. &
+               (lstat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
+               (lstat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
+             if(present(stat)) then
                 stat = lstat
-              else
+             else
                 FLAbort("Unknown error when remapping field.")
-              end if
-            end if
-            ! we've just allowed remapping from a higher order to a lower order continuous field
+             end if
+          end if
+          ! we've just allowed remapping from a higher order to a lower order continuous field
           
-            do k=1, vfields(i)%dim
-              v_field_buffer(:,k)=v_model(vfields(i)%dim)%val(k,:)
-            end do
-            do k=vfields(i)%dim+1, 3
-              v_field_buffer(:,k)=0.0
-            end do
-            call vtkwritevn(&
-                v_field_buffer(:,X_), v_field_buffer(:,Y_), &
-                v_field_buffer(:,Z_), &
+          do k=1, vfields(i)%dim
+             v_field_buffer(:,k)=v_model(vfields(i)%dim)%val(k,:)
+          end do
+          do k=vfields(i)%dim+1, 3
+             v_field_buffer(:,k)=0.0
+          end do
+          call vtkwritevn(&
+               v_field_buffer(:,X_), v_field_buffer(:,Y_), &
+               v_field_buffer(:,Z_), &
                 trim(vfields(i)%name))
 
-          else
-
-            allocate(tempval(element_count(model_mesh),3))
-
-            tempval = 0.0
-            if(vfields(i)%field_type==FIELD_TYPE_CONSTANT) then
-              do j = 1, vfields(i)%dim
-                tempval(:,j) = vfields(i)%val(j,1)
-              end do
-            else
-              do j = 1, vfields(i)%dim
-                tempval(:,j) = vfields(i)%val(j,:)
-              end do
-            end if
-
-            call vtkwritevc(&
-                tempval(:,X_), tempval(:,Y_), &
-                tempval(:,Z_), trim(vfields(i)%name))
-
-            deallocate(tempval)
-
-          end if
-
-       end do
-
-      ! set first field to be active:
-      do i=1,size(vfields)
-         if(trim(vfields(i)%name)=="Coordinate") then
-             cycle
-         end if
-         call vtksetactivevectors( vfields(i)%name )
-         exit
       end do
     end if
 
@@ -669,95 +621,187 @@ contains
           
           if(tfields(i)%dim(1)/=t_model%dim(1)) cycle
           
-          if(tfields(i)%mesh%shape%degree /= 0) then
+          if(tfields(i)%mesh%shape%degree == 0) cycle
 
-            call remap_field(from_field=tfields(i), to_field=t_model, stat=lstat)
-            ! if this is being called from something other than the main output routines
-            ! then these tests can be disabled by passing in the optional stat argument
-            ! to vtk_write_fields
-            if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-              if(present(stat)) then
+          call remap_field(from_field=tfields(i), to_field=t_model, stat=lstat)
+          ! if this is being called from something other than the main output routines
+          ! then these tests can be disabled by passing in the optional stat argument
+          ! to vtk_write_fields
+          if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+             if(present(stat)) then
                 stat = lstat
-              else
+             else
                 FLAbort("Just remapped from a discontinuous to a continuous field!")
-              end if
-            else if(lstat==REMAP_ERR_UNPERIODIC_PERIODIC) then
-              if(present(stat)) then
+             end if
+          else if(lstat==REMAP_ERR_UNPERIODIC_PERIODIC) then
+             if(present(stat)) then
                 stat = lstat
-              else
+             else
                 FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
-              end if
-            else if ((lstat/=0).and. &
-                     (lstat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
-                     (lstat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
-              if(present(stat)) then
+             end if
+          else if ((lstat/=0).and. &
+               (lstat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
+               (lstat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
+             if(present(stat)) then
                 stat = lstat
-              else
+             else
                 FLAbort("Unknown error when remapping field.")
-              end if
-            end if
-            ! we've just allowed remapping from a higher order to a lower order continuous field
+             end if
+          end if
+          ! we've just allowed remapping from a higher order to a lower order continuous field
             
-            allocate(tensor_values(node_count(t_model), 3, 3))
-            tensor_values=0.0
-            do j=1,dim
-              do k=1,dim
+          allocate(tensor_values(node_count(t_model), 3, 3))
+          tensor_values=0.0
+          do j=1,dim
+             do k=1,dim
                 tensor_values(:, j, k) = t_model%val(j, k, :)
-              end do
-            end do
+             end do
+          end do
   
-            call vtkwritetn(tensor_values(:, 1, 1), &
-                            tensor_values(:, 1, 2), &
-                            tensor_values(:, 1, 3), &
-                            tensor_values(:, 2, 1), &
-                            tensor_values(:, 2, 2), &
-                            tensor_values(:, 2, 3), &
-                            tensor_values(:, 3, 1), &
-                            tensor_values(:, 3, 2), &
-                            tensor_values(:, 3, 3), &
-                            trim(tfields(i)%name))
-            deallocate(tensor_values)
+          call vtkwritetn(tensor_values(:, 1, 1), &
+               tensor_values(:, 1, 2), &
+               tensor_values(:, 1, 3), &
+               tensor_values(:, 2, 1), &
+               tensor_values(:, 2, 2), &
+               tensor_values(:, 2, 3), &
+               tensor_values(:, 3, 1), &
+               tensor_values(:, 3, 2), &
+               tensor_values(:, 3, 3), &
+               trim(tfields(i)%name))
+          deallocate(tensor_values)
 
-        else
+       end do      
+   end if
 
-            allocate(tensor_values(element_count(t_model), 3, 3))
-            tensor_values=0.0
-            if(tfields(i)%field_type==FIELD_TYPE_CONSTANT) then
-              do j=1,dim
-                do k=1,dim
-                  tensor_values(:, j, k) = tfields(i)%val(j, k, 1)
-                end do
-              end do
-            else
-              do j=1,dim
-                do k=1,dim
-                  tensor_values(:, j, k) = tfields(i)%val(j, k, :)
-                end do
-              end do
-            end if
+    !----------------------------------------------------------------------
+    ! Output scalar cell fields
+    !----------------------------------------------------------------------    
+    
 
-            call vtkwritetc(tensor_values(:, 1, 1), &
-                            tensor_values(:, 1, 2), &
-                            tensor_values(:, 1, 3), &
-                            tensor_values(:, 2, 1), &
-                            tensor_values(:, 2, 2), &
-                            tensor_values(:, 2, 3), &
-                            tensor_values(:, 3, 1), &
-                            tensor_values(:, 3, 2), &
-                            tensor_values(:, 3, 3), &
-                            trim(tfields(i)%name))
+    if (present(sfields)) then
+       do i=1,size(sfields)
+          if(mesh_dim(sfields(i))/=mesh_dim(l_model)) cycle          
+          if (sfields(i)%mesh%shape%degree /= 0) cycle
+          if(sfields(i)%field_type==FIELD_TYPE_CONSTANT) then
+             allocate(tempval(element_count(l_model),1))
 
-            deallocate(tensor_values)
+             tempval = sfields(i)%val(1)
+             call vtkwritesc(tempval(:,1), trim(sfields(i)%name))
 
-        end if
-
+             deallocate(tempval)
+          else
+             call vtkwritesc(sfields(i)%val, trim(sfields(i)%name))
+          end if          
        end do
-       
-      ! set first field to be active:
-      if (size(tfields)>0) call vtksetactivetensors( tfields(1)%name )
-      
     end if
 
+     !----------------------------------------------------------------------
+     ! Output the region ids
+     !----------------------------------------------------------------------
+
+     ! You could possibly check for preserving the mesh regions here.
+     if (present_and_true(write_region_ids)) then
+       if (associated(model_mesh%region_ids)) then
+         call vtkwritesc(model_mesh%region_ids, "RegionIds")
+       end if
+     end if
+
+
+    !----------------------------------------------------------------------
+    ! Output ghost levels
+    !----------------------------------------------------------------------
+    if(element_halo_count(model_mesh) > 0) then
+       allocate(ghost_levels(element_count(model_mesh)))
+       ghost_levels = 0
+       do i=1, element_count(model_mesh)
+         if(.not. element_owned(model, i)) ghost_levels(i) = 1
+       end do
+       
+       call vtkWriteGhostLevels(ghost_levels)
+    end if
+
+    !----------------------------------------------------------------------
+    ! Output vector cell fields
+    !----------------------------------------------------------------------    
+    
+    if (present(vfields)) then
+       do i=1,size(vfields)
+          if(trim(vfields(i)%name)=="Coordinate") then
+             cycle
+          end if
+          if(mesh_dim(vfields(i))/=mesh_dim(v_model(vfields(i)%dim))) cycle
+
+          if(vfields(i)%mesh%shape%degree /= 0) cycle
+
+          allocate(tempval(element_count(model_mesh),3))
+
+          tempval = 0.0
+          if(vfields(i)%field_type==FIELD_TYPE_CONSTANT) then
+             do j = 1, vfields(i)%dim
+                tempval(:,j) = vfields(i)%val(j,1)
+             end do
+          else
+             do j = 1, vfields(i)%dim
+                tempval(:,j) = vfields(i)%val(j,:)
+             end do
+          end if
+
+          call vtkwritevc(&
+               tempval(:,X_), tempval(:,Y_), &
+               tempval(:,Z_), trim(vfields(i)%name))
+
+          deallocate(tempval)
+
+       end do
+
+    end if
+
+
+    !----------------------------------------------------------------------
+    ! Output tensor cell fields
+    !----------------------------------------------------------------------    
+    
+    if (present(tfields)) then
+
+       do i=1,size(tfields)
+          dim = tfields(i)%dim(1)
+          ! Can't output non-square tensors.
+          if(tfields(i)%dim(1)/=tfields(i)%dim(2)) cycle
+          
+          if(tfields(i)%dim(1)/=t_model%dim(1)) cycle
+          
+          if(tfields(i)%mesh%shape%degree /= 0) cycle
+          
+          allocate(tensor_values(element_count(t_model), 3, 3))
+          tensor_values=0.0
+          if(tfields(i)%field_type==FIELD_TYPE_CONSTANT) then
+             do j=1,dim
+                do k=1,dim
+                   tensor_values(:, j, k) = tfields(i)%val(j, k, 1)
+                end do
+             end do
+          else
+             do j=1,dim
+                do k=1,dim
+                   tensor_values(:, j, k) = tfields(i)%val(j, k, :)
+                end do
+             end do
+          end if
+
+          call vtkwritetc(tensor_values(:, 1, 1), &
+               tensor_values(:, 1, 2), &
+               tensor_values(:, 1, 3), &
+               tensor_values(:, 2, 1), &
+               tensor_values(:, 2, 2), &
+               tensor_values(:, 2, 3), &
+               tensor_values(:, 3, 1), &
+               tensor_values(:, 3, 2), &
+               tensor_values(:, 3, 3), &
+               trim(tfields(i)%name))
+
+       end do
+      
+    end if
 
     !----------------------------------------------------------------------
     ! Close the file

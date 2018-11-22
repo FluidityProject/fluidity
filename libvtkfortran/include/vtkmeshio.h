@@ -48,6 +48,8 @@ struct _Field_Info
     char         *name; // a pointer to a seperately allocated string buffer
 };
 
+extern "C" {
+
 int readVTKFile(const char * const filename,
                 int *NumNodes, int *NumElms,
                 int *NumFields, int *NumProps,
@@ -65,8 +67,6 @@ int writeVTKFile(const char * const filename,
                  REAL *X, REAL *Y, REAL *Z,
                  int *ENLBas, int *ENList,
                  REAL *Fields, REAL *Properties );
-
-extern "C" {
 
 int fgetvtksizes_fc(char *filename, int *namelen,
                   int *NNOD, int *NELM, int *SZENLS,

@@ -25,6 +25,8 @@
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 //    USA
 
+#ifdef HAVE_VTK
+
 #include "vtkCell.h"
 #include "vtkDataArray.h"
 #include "vtkPoints.h"
@@ -99,3 +101,6 @@ void mesh_quality_c(int* dim, int* n_nodes, int* n_elements, int* connectivity_l
 }
 
 }
+
+
+#endif HAVE_VTK

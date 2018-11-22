@@ -627,6 +627,7 @@ MBA3D
 MBA2D
 MODINC_FLAG
 ARFLAGS
+LIBVTKFORTRAN
 LIBSPATIALINDEX
 SPATIALINDEXDIR
 SPUDHEADER
@@ -776,12 +777,12 @@ enable_sam
 enable_dp
 enable_profiling
 enable_libsupermesh
+enable_vtk
 with_judy
 with_libspud_root
 enable_spatialindex_version
 with_spatialindex_root
 with_arpack_lib
-enable_vtk
 enable_2d_adaptivity
 enable_mba3d
 enable_memory_stats
@@ -1458,10 +1459,10 @@ Optional Features:
   --enable-dp=flag        compile with 64 bit floating point numbers (default)
   --enable-profiling      enable gprof profiling
   --enable-libsupermesh   enable use of the libsupermesh library
+  --enable-vtk            Only use to disable vtk
   --enable-spatialindex-version
                           Select required version of spatialindex library:
                           1.8.0
-  --enable-vtk            Only use to disable vtk
   --enable-2d-adaptivity  Link against 2D adaptivity library (GPL license)
   --enable-mba3d          Enabled libmba3d 3D adaptivity library
   --enable-memory-stats   Enable memory statistics
@@ -14197,6 +14198,16 @@ fi
 
 
 # Configure adaptivity
+# Check whether --enable-vtk was given.
+if test "${enable_vtk+set}" = set; then :
+  enableval=$enable_vtk;
+fi
+
+# various synonyms accepted for disabling VTK
+if test "$with_vtk" = no ; then enable_vtk=no; fi
+if test "$with_VTK" = no ; then enable_vtk=no; fi
+if test "$enable_VTK" = no ; then enable_vtk=no; fi
+
 if test -d libadaptivity ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
@@ -14215,7 +14226,7 @@ $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
             FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" \
 	    CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" \
-            CPPFLAGS="${env_cppflags}" ./configure
+            CPPFLAGS="${env_cppflags}" ./configure --enable-vtk=$enable_vtk
         if test "$?" -ne "0"; then
           as_fn_error $? "Configuration of libadaptivity has failed." "$LINENO" 5
           exit -1
@@ -14224,7 +14235,7 @@ $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
             FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" \
 	    CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" \
-	    CPPFLAGS="${env_cppflags}" ./configure --enable-dp=no
+	    CPPFLAGS="${env_cppflags}" ./configure --enable-vtk=$enable_vtk
         if test "$?" -ne "0"; then
           as_fn_error $? "Configuration of libadaptivity has failed." "$LINENO" 5
           exit -1
@@ -14604,15 +14615,6 @@ ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 fi
 
 vtk_header_relative_path=""
-# Check whether --enable-vtk was given.
-if test "${enable_vtk+set}" = set; then :
-  enableval=$enable_vtk;
-fi
-
-# various synonyms accepted for disabling VTK
-if test "$with_vtk" = no ; then enable_vtk=no; fi
-if test "$with_VTK" = no ; then enable_vtk=no; fi
-if test "$enable_VTK" = no ; then enable_vtk=no; fi
 if test "$enable_vtk" != "no" ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: Checking for VTK automagic." >&5
 $as_echo "$as_me: Checking for VTK automagic." >&6;}
@@ -15798,7 +15800,12 @@ fi
 
         fi
     fi
+    LIBVTKFORTRAN="lib/libvtkfortran.a"
+else
+LIBVTKFORTRAN=""
+LIBS= "$LIBS -lxml2"
 fi
+
 cat > include/vtk.h <<EOF
 #ifndef VTK_H
 #define VTK_H

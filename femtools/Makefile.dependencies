@@ -1255,6 +1255,13 @@ Unittest_tools.o ../include/unittest_tools.mod: Unittest_tools.F90 \
    ../include/reference_counting.mod ../include/sparse_tools.mod \
    ../include/vector_tools.mod
 
+../include/vtkwriter.mod: VTKWriter.o
+	@true
+
+VTKWriter.o ../include/vtkwriter.mod: VTKWriter.F90 \
+   ../include/global_parameters.mod ../include/parallel_tools.mod \
+   ../include/xmlwriter.mod
+
 ../include/vtk_interfaces.mod: VTK_interfaces.o
 	@true
 
@@ -1265,7 +1272,7 @@ VTK_interfaces.o ../include/vtk_interfaces.mod: VTK_interfaces.F90 \
    ../include/global_parameters.mod ../include/mpi_interfaces.mod \
    ../include/parallel_fields.mod ../include/parallel_tools.mod \
    ../include/quadrature.mod ../include/sparse_tools.mod \
-   ../include/state_module.mod ../include/vtkfortran.mod
+   ../include/state_module.mod ../include/vtkwriter.mod
 
 ../include/vector_tools.mod: Vector_Tools.o
 	@true
@@ -1325,6 +1332,11 @@ Write_Triangle.o ../include/write_triangle.mod: Write_Triangle.F90 \
    ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
    ../include/parallel_tools.mod ../include/state_module.mod
 
+../include/fxmltools.mod: fxmltools.o
+	@true
+
+fxmltools.o ../include/fxmltools.mod: fxmltools.F90
+
 ../include/ieee_arithmetic.mod: ieee_arithmetic_dummy.o
 	@true
 
@@ -1361,4 +1373,9 @@ testvectortools.o : testvectortools.F90 ../include/fdebug.h \
 tictoc.o ../include/tictoc.mod: tictoc.F90 ../include/fdebug.h \
    ../include/fldebug.mod ../include/mpi_interfaces.mod \
    ../include/parallel_tools.mod ../include/timers.mod
+
+../include/xmlwriter.mod: xmlwriter.o
+	@true
+
+xmlwriter.o ../include/xmlwriter.mod: xmlwriter.F90 ../include/fxmltools.mod
 

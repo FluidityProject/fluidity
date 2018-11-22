@@ -95,10 +95,14 @@ contains
        FLAbort("Trying to get mesh quality for a mesh which isn't linear simplicial. This isn't currently supported.")
     endif
 
+#ifdef HAVE_VTK
     call mesh_quality_c(positions%dim, node_count(positions), ele_count(positions),&
          size(positions%mesh%ndglno), quality_measure,&
          positions%val, positions%mesh%ndglno,&
          s_field%val)
+#else
+    FLAbort("Need VTK to use mesh quality diagnostic")
+#endif
 
   end subroutine get_mesh_quality
 
