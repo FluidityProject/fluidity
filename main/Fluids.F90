@@ -75,7 +75,8 @@ module fluids_module
   use diagnostic_fields_wrapper
   use particles
   use particle_diagnostics, only: initialise_particle_diagnostics, update_particle_diagnostics, &
-       & initialise_constant_particle_diagnostics
+       & initialise_constant_particle_diagnostics, initialise_particle_diagnostic_fields, &
+       & initialise_particle_material_fields
   use checkpoint
   use goals
   use adaptive_timestepping
@@ -801,6 +802,8 @@ contains
 
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
+             !!update MVF field from particles here?
+             !!update all fields based on particles?
  
           end if
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
@@ -810,13 +813,14 @@ contains
 
              if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
-
+             
              call adapt_state_prescribed(state, current_time)
              call update_state_post_adapt(state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
-
+             
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
-
+             !!update MVF field from particles here?
+             !!update all fields based on particles?
           end if
 
        not_to_move_det_yet=.false.
@@ -985,9 +989,16 @@ contains
       call CalculateTopBottomDistance(state(1))
     end if
 
+    !Diagnostic MVF fields based on particles
+    call initialise_particle_material_fields(state)
+ 
     ! Diagnostic fields
     call calculate_diagnostic_variables(state)
-    call calculate_diagnostic_variables_new(state)
+    call calculate_diagnostic_variables_new(state, init_after_particles = .true.)
+
+    !Diagnostic fields based on particles
+    call initialise_particle_diagnostic_fields(state)
+    
     ! This is mostly to ensure that the photosynthetic radiation
     ! has a non-zero value before the next adapt.
     if(have_option("/ocean_biology")) call calculate_biology_terms(state(1))

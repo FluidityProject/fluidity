@@ -56,7 +56,8 @@ module particle_diagnostics
 
   public :: initialise_particle_diagnostics, update_particle_diagnostics, &
        & calculate_diagnostics_from_particles, calculate_ratio_from_particles, &
-       & calculate_numbers_from_particles, initialise_constant_particle_diagnostics
+       & calculate_numbers_from_particles, initialise_constant_particle_diagnostics, &
+       & initialise_particle_diagnostic_fields, initialise_particle_material_fields
 
   contains
 
@@ -276,6 +277,89 @@ module particle_diagnostics
     end if
     
   end subroutine update_particle_diagnostics
+
+  subroutine initialise_particle_material_fields(state)
+    !subroutine to initialise multimaterial fields from
+    !particles after mesh adapt  
+
+    type(state_type), dimension(:), intent(inout) :: state
+
+    type(scalar_field), pointer :: s_field
+    integer :: i, k
+    integer :: particle_groups, particle_materials
+
+    !Check if there are particles
+    particle_groups = option_count("/particles/particle_group")
+
+    if (particle_groups==0) return
+
+    !Check if MVF field is generated from particles
+    particle_materials = option_count("material_phase/scalar_field::MaterialVolumeFraction/diagnostic/algorithm::from_particles")
+    if (particle_materials.gt.0) then
+       !Initialise MultialVolumeFraction fields dependent on particles
+       do i = 1,size(state)
+          s_field => extract_scalar_field(state(i), "MaterialVolumeFraction")     
+          if (have_option(trim(s_field%option_path)//"/diagnostic/algorithm::from_particles")) then
+             call calculate_diagnostics_from_particles(state, i, s_field)
+          end if
+       end do
+       k = size(state)
+       
+       !Initialise internal MaterialVolumeFraction field 
+       s_field => extract_scalar_field(state(k), "MaterialVolumeFraction")
+       call calculate_sum_material_volume_fractions(state, s_field)
+       call scale(s_field, -1.0)
+       call addto(s_field, 1.0)
+    end if
+    
+  end subroutine initialise_particle_material_fields
+
+  subroutine initialise_particle_diagnostic_fields(state)
+    !subroutine to initialise diagnostic fields dependent on 
+    !particles after mesh adapt
+    type(state_type), dimension(:), intent(inout) :: state
+    type(state_type), dimension(size(state)) :: calculated_states
+
+    character(len = OPTION_PATH_LEN) :: name
+    type(scalar_field), pointer :: s_field
+    integer :: i, k, particle_groups
+    
+    !Check if there are particles
+    particle_groups = option_count("/particles/particle_group")
+
+    if (particle_groups==0) return
+
+    !Initialise diagnostic fields generated from particles
+    do i = 1,size(state)
+       do k = 1,scalar_field_count(state(i))
+          s_field => extract_scalar_field(state(i),k)     
+          if (have_option(trim(s_field%option_path)//"/diagnostic/algorithm::from_particles")) then
+             call get_option(trim(s_field%option_path)//"/name", name)
+             if (name=="MaterialVolumeFraction") cycle
+             call calculate_diagnostics_from_particles(state, i, s_field)
+          end if
+       end do
+    end do
+    k = size(state)
+
+    !Initialise diagnostic fields with init_after_particles
+    do i = 1,size(state)
+       do k = 1,scalar_field_count(state(i))
+          s_field => extract_scalar_field(state(i),k)     
+          if (have_option(trim(s_field%option_path)//"/diagnostic/init_after_particles")) then
+             ! Calculate dependencies
+             call calculate_dependencies(state, i, s_field, &
+          & dep_states_mask = calculated_states, exclude_nonrecalculated = .false.)
+             ! Calculate the diagnostic
+             ewrite(2, *) "Calculating diagnostic field: "//trim(state(i)%name)//"::"//trim(s_field%name)
+             call calculate_diagnostic_variable(state, i, s_field)
+             ! Mark the field as calculated
+             call insert(calculated_states(i), s_field, s_field%name)
+          end if
+       end do
+    end do
+
+  end subroutine initialise_particle_diagnostic_fields
     
   subroutine calculate_diagnostics_from_particles(states, state_index, s_field)
 
@@ -779,7 +863,6 @@ module particle_diagnostics
     integer, dimension(3) :: attribute_size
     
     add_particles(:) = 0
-    ewrite(2,*) "147258, Using spawn_zero_particles"
 
     !Get ele numbers of adjacent elements
     ele_nums => node_neigh(xfield, node_num)
