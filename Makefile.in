@@ -101,6 +101,9 @@ endif
 ifneq (@HAVE_EXODUSII@,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e exodusii
 endif
+ifneq (@HAVE_VTK@,yes)
+	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e vtk
+endif
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
 

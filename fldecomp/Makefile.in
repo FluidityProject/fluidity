@@ -42,7 +42,7 @@ LINKER  = @LINKER@ @LDFLAGS@
 
 LIB_FLUIDITY = ../lib/libfluidity.a
 LIBS    = -L../lib $(LIB_FLUIDITY)  @LIB_FEMDEM@ \
-	../lib/libadaptivity.a ../lib/libvtkfortran.a \
+	../lib/libadaptivity.a @LIBVTKFORTRAN@ \
 	@LIBSPATIALINDEX@ @SPUDLIB@ @LIBS@ @BLAS_LIBS@
 
 OBJS = fldmain.o fldgmsh.o fldtriangle.o partition.o

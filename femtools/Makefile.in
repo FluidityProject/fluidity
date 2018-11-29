@@ -108,7 +108,9 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Exodusii_C_Interface.o Exodusii_F_Interface.o Exodusii_Common.o Read_Exodusii.o \
   Mesh_Files.o Vertical_Extrapolation.o \
   Mesh_Quality.o Mesh_Quality_C.o \
-  VTKWriter.o fxmltools.o xmlwriter.o xmlreader.o vtkwriter_c.o
+  VTKWriter.o fxmltools.o xmlwriter.o xmlreader.o\
+  VTKReader.o xmlreader.o xmltree.o
+
 
 
 # objects to be included in libfemtools:

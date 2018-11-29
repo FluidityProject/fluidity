@@ -993,11 +993,11 @@ module xmlwriter
 
     integer function xmlTextWriterWriteBase64_f(writer, data, start, len) result(fout)
       type(xmlTextWriter) :: writer
-      character(len=*) :: data
+      character(kind=c_char) :: data(:)
       integer :: start
       integer :: len
 
-      fout=xmlTextWriterWriteBase64_c(writer%ptr,c_wrap(data),start,len)
+      fout=xmlTextWriterWriteBase64_c(writer%ptr,data,start,len)
     end function xmlTextWriterWriteBase64_f
 
 
@@ -1007,7 +1007,7 @@ module xmlwriter
       integer :: start
       integer :: len
 
-      fout=xmlTextWriterWriteBinHex_c(writer%ptr,c_wrap(data),start,len)
+      fout=xmlTextWriterWriteBinHex_c(writer%ptr,data,start,len)
     end function xmlTextWriterWriteBinHex_f
 
 

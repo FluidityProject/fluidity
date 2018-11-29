@@ -15,7 +15,8 @@ module vtkwriter
   type(xmlTextWriter) :: writer, pwriter
 
   real, dimension(:,:), pointer :: points
-  integer, dimension(:), pointer :: connectivity, offsets, types
+  integer, dimension(:), pointer :: connectivity, offsets
+  integer(c_int8_t), dimension(:), pointer :: types
 
   integer :: mode=0
   logical, parameter :: compress =.true.
@@ -23,6 +24,7 @@ module vtkwriter
        active_vectors='',&
        active_tensors='',&
        lfilename=''
+  character(len=4) :: lextension
   
   integer, public, parameter :: VTK_VERTEX=1, VTK_LINE=3, VTK_TRIANGLE=5, VTK_QUAD=9, &
        VTK_TETRA=10, VTK_HEXAHEDRON=12, VTK_QUADRATIC_EDGE=21, &
@@ -48,7 +50,7 @@ contains
 
   logical function ishead()
 
-    ishead = isparallel() .and. (getrank()==0)
+    ishead = isparallel() .and. (getrank()==0) .and. lextension=="pvtu"
 
   end function ishead
 
@@ -61,11 +63,17 @@ contains
       mode = 0
 
       if (isparallel()) then
-         lfilename = filename(1:len_trim(filename)-5)
-         call system("mkdir -p "//lfilename)
-         writer=xmlNewTextWriterFilename(trim(lfilename)//'/'&
-              //trim(lfilename)//'_'//int2str(getrank())//'.vtu', 0)
-         if (getrank()==0) pwriter=xmlNewTextWriterFilename(trim(filename),0)
+         lfilename = filename(1:index(filename, '.')-1)
+         lextension = filename(index(filename, '.')+1:)
+         select case(trim(lextension))
+         case("pvtu")
+            call system("mkdir -p "//lfilename)
+            writer=xmlNewTextWriterFilename(trim(lfilename)//'/'&
+                 //trim(lfilename)//'_'//int2str(getrank())//'.vtu', 0)
+            if (getrank()==0) pwriter=xmlNewTextWriterFilename(trim(filename),0)
+         case("vtu")
+            writer = xmlNewTextWriterFilename(filename, 0)
+         end select
       else
          writer = xmlNewTextWriterFilename(filename, 0)
       end if
@@ -73,7 +81,7 @@ contains
       err = xmlTextWriterStartDocument(writer, "1.0", "utf-8", "no")
       err = xmlTextWriterStartElement(writer, "VTKFile")
       err = xmlTextWriterWriteAttribute(writer, "type", "UnstructuredGrid")
-      err = xmlTextWriterWriteAttribute(writer, "version", "2.0")
+      err = xmlTextWriterWriteAttribute(writer, "version", "0.1")
       if (bigend) then
          err = xmlTextWriterWriteAttribute(writer, "byte_order", "BigEndian")
       else
@@ -88,7 +96,7 @@ contains
          err = xmlTextWriterStartDocument(pwriter, "1.0", "utf-8", "no")
          err = xmlTextWriterStartElement(pwriter, "VTKFile")
          err = xmlTextWriterWriteAttribute(pwriter, "type", "PUnstructuredGrid")
-         err = xmlTextWriterWriteAttribute(pwriter, "version", "2.0")
+         err = xmlTextWriterWriteAttribute(pwriter, "version", "0.1")
          if (bigend) then
             err = xmlTextWriterWriteAttribute(pwriter, "byte_order", "BigEndian")
          else
@@ -139,8 +147,11 @@ contains
       
       if (ncells>0) then
          offsets(1) = elsize(1)
+         connectivity(1:offsets(1)) = elperm(ENList(1:elsize(1)), ELType(1))
          do i=2, ncells
             offsets(i) = offsets(i-1) + elsize(i)
+            connectivity(offsets(i-1)+1:offsets(i)) = &
+                 elperm(ENList(offsets(i-1)+1:offsets(i)), ELType(i))
          end do
       end if
 
@@ -151,6 +162,33 @@ contains
            "NumberOfPoints", int2str(npoints))
       err = xmlTextWriterWriteAttribute(writer, &
            "NumberOfCells", int2str(ncells))
+
+    contains
+
+      function elperm(fl_order, vtktype)
+        integer, dimension(:), intent(in) :: fl_order
+        integer, intent(in) :: vtktype
+        integer, dimension(size(fl_order)) :: elperm
+
+        select case(vtktype)
+        case(VTK_QUAD)
+           elperm(1) = fl_order(1)-1
+           elperm(2) = fl_order(2)-1
+           elperm(3) = fl_order(4)-1
+           elperm(4) = fl_order(3)-1
+        case(VTK_HEXAHEDRON)
+           elperm(1) = fl_order(1)-1
+           elperm(2) = fl_order(2)-1
+           elperm(3) = fl_order(4)-1
+           elperm(4) = fl_order(3)-1
+           elperm(5) = fl_order(5)-1
+           elperm(6) = fl_order(6)-1
+           elperm(7) = fl_order(8)-1
+           elperm(8) = fl_order(7)-1
+        case default
+           elperm = fl_order -1
+        end select
+      end function elperm
       
     end subroutine vtkwritemesh
 
@@ -228,12 +266,12 @@ contains
          mode=2
       end if
 
-      call add_binary_data(writer, name, "Int8", c_loc(val), &
+      call add_binary_data(writer, name, "UInt8", c_loc(val), &
            1, size(val), compress)
 
       if (ishead()) then
          err = xmlTextWriterStartElement(pwriter, "PDataArray")
-         err = xmlTextWriterWriteAttribute(pwriter, "type", "Int8")
+         err = xmlTextWriterWriteAttribute(pwriter, "type", "UInt8")
          err = xmlTextWriterWriteAttribute(pwriter, "Name", name)
          err = xmlTextWriterWriteAttribute(pwriter, "NumberOfComponents", "")
          err = xmlTextWriterEndElement(pwriter)
@@ -344,7 +382,6 @@ contains
 
       if (mode<1) then
          err = xmlTextWriterStartElement(writer, "PointData")
-                  err = xmlTextWriterStartElement(writer, "PointData")
          if (len_trim(active_scalars)>0) &
               err = xmlTextWriterWriteAttribute(writer, "Scalars", &
               trim(active_scalars))
@@ -545,7 +582,7 @@ contains
 
       if (mode >0) err = xmlTextWriterEndElement(pwriter)
 
-      if (getrank()==0) then
+      if (getrank()==0 .and. nparts>1) then
          do i=1, nparts
             err = xmlTextWriterStartElement(pwriter, "Piece")
             err = xmlTextWriterWriteAttribute(pwriter, "Source", &
@@ -556,10 +593,12 @@ contains
       end if
 
       call vtkclose()
-      
-      err = xmlTextWriterEndElement(pwriter)
-      err = xmlTextWriterEndDocument(pwriter)
-      call xmlFreeTextWriter(pwriter)
+
+      if (nparts>1) then
+         err = xmlTextWriterEndElement(pwriter)
+         err = xmlTextWriterEndDocument(pwriter)
+         call xmlFreeTextWriter(pwriter)
+      end if
       
     end subroutine vtkpclose
 
@@ -590,7 +629,6 @@ contains
               //asbytes(data, bytesize), bytesize+4)
       end if
       err = xmlTextWriterEndElement(writer)
-
     end subroutine add_binary_data
 
     pure function zlib_size(bytesize, blocksize)
@@ -606,8 +644,8 @@ contains
          end function compressBound
       end interface
 
-      zlib_size = int((bytesize/blocksize)*compressBound(int(blocksize, kind=8)) &
-           + compressBound(int(mod(bytesize, blocksize), kind=8 )))
+      zlib_size = int((bytesize/blocksize+2)*compressBound(int(blocksize, kind=c_long)))
+
 
     end function zlib_size
 
@@ -617,10 +655,11 @@ contains
       integer :: n, k
 
       integer, parameter :: blocksize = 32768, level=-1
-      character(kind=c_char, len=zlib_size(n, blocksize)), target :: dest
+      character(kind=c_char), pointer :: dest(:)
       integer(c_int) ::  cerr
-      integer(c_long) :: sourceLen, destLen(n/blocksize+1)
+      integer(c_long) :: sourceLen, dlen, slen, destlen(n/blocksize+1)
       integer :: err
+      integer, dimension(:), pointer :: metadata
       character, dimension(:), pointer :: cdata
 
       interface
@@ -629,40 +668,59 @@ contains
            integer(c_long) :: destLen
            integer(c_long), value :: sourceLen
            integer(c_int), value :: level 
-           character(kind=c_char) :: dest
+           character(kind=c_char) :: dest(*)
            type(c_ptr), value :: source
            integer(c_int) :: compress2
          end function compress2
       end interface
 
       call c_f_pointer(data, cdata, [n])
-      
-      do k=1, n/blocksize+1
-         sourceLen = min(blocksize, n-blocksize*(k-1))
-         destlen(k) = len(dest)-sum(destlen(1:k-1))
-         cerr = compress2(dest(sum(destlen(1:k-1))+1:len(dest)), destlen(k), &
-              c_loc(cdata(1+blocksize*(k-1))), sourceLen, level)
-      end do
-      
-      call write_base64(writer, asbytes([int(n/blocksize+1)]) &
-           //asbytes([blocksize]) &
-           //asbytes([int(sourceLen)]) &
-           //asbytes(int(destlen)), 3*4+4*size(destlen))
-      call write_base64(writer, dest, int(sum(destlen)))
 
+      slen = n
+      k = 0
+      err = n/blocksize
+      if (n-err*blocksize>0) err = err+1
+      allocate(dest(zlib_size(n, blocksize)))
+      destlen=0
+      
+      do while(slen>0)
+         sourceLen = min(blocksize, slen)
+         destlen(k+1) = size(dest)-sum(destlen(1:k))
+         cerr = compress2(dest(sum(destlen(1:k))+1:size(dest)), destlen(k+1), &
+              c_loc(cdata(1+blocksize*k)), sourceLen, level)
+         slen = slen-blocksize
+         k = k+1
+      end do
+
+      allocate(metadata(3+k))
+      
+      metadata(1) = k
+      metadata(2) = blocksize
+      metadata(3) = sourcelen
+      metadata(4:3+k) = destlen(1:k)
+      
+      call write_base64(writer, asbytes(c_loc(metadata),4*size(metadata)), 4*size(metadata))
+      call write_base64(writer, dest, int(sum(destlen)))
+      deallocate(metadata, dest)
+      
     end subroutine write_compressed_data
 
     subroutine write_base64(writer, data, length)
       type(xmlTextWriter) :: writer
-      character(len=*) :: data
+      character(kind=c_char) :: data(:)
       integer :: length
-      integer :: i, blocksize=24, err
+      integer :: i, blocksize=24, err, j
 
-      do i=0, length/blocksize-1
-         err = xmlTextWriterWriteBase64(writer, data, blocksize*i, blocksize)
+      j = length
+      i=0
+      do while(j .ge. blocksize)
+         err = xmlTextWriterWriteBase64(writer, data(blocksize*i+1:), 0, blocksize)
+         i = i+1
+         j = j-blocksize
       end do
 
-      err = xmlTextWriterWriteBase64(writer, data, blocksize*i, length-blocksize*i)
+      if (j>0) &
+           err = xmlTextWriterWriteBase64(writer, data(blocksize*i+1:), 0, j)
 
     end subroutine write_base64
 
@@ -696,8 +754,8 @@ contains
       call add_binary_data(writer, "offsets", "Int32", c_loc(offsets),&
            1, 4*size(offsets), compress)
       
-      call add_binary_data(writer, "types", "Int32", c_loc(types),&
-           1, 4*size(types), compress)
+      call add_binary_data(writer, "types", "UInt8", c_loc(types),&
+           1, size(types), compress)
 
       err = xmlTextWriterEndElement(writer)
 
@@ -706,7 +764,7 @@ contains
     subroutine vtkwriteghostlevels(ghost_levels)
       integer, dimension(:) :: ghost_levels
 
-      call vtkwritesc(int(ghost_levels, c_int8_t), "vtkGhostType")
+      call vtkwritesc(int(ghost_levels, c_int8_t), "vtkGhostLevels")
 
     end subroutine vtkwriteghostlevels
 

@@ -50,6 +50,7 @@ module vtk_interfaces
   use vtkfortran
 #endif
   use vtkwriter
+  use vtkreader
   
   implicit none
 
@@ -58,6 +59,8 @@ module vtk_interfaces
   public :: vtk_write_state, vtk_write_fields, vtk_read_state, &
     vtk_write_surface_mesh, vtk_write_internal_face_mesh, &
     vtk_get_sizes, vtk_read_file
+
+#ifdef HAVE_VTK  
   
   interface 
        subroutine vtk_read_file(&
@@ -97,7 +100,6 @@ module vtk_interfaces
      end subroutine vtk_get_sizes
   end interface
 
-#ifdef HAVE_VTK  
   interface vtkwriteghostlevels
      subroutine vtkwriteghostlevels(ghost_levels)
        implicit none
@@ -798,6 +800,8 @@ contains
                tensor_values(:, 3, 2), &
                tensor_values(:, 3, 3), &
                trim(tfields(i)%name))
+
+          deallocate(tensor_values)
 
        end do
       

@@ -3,7 +3,7 @@
 <testproblem>
   <name>vb_parallel</name>
   <owner userid="colin"/>
-  <tags>flml parallel</tags>
+  <tags>flml parallel vtk</tags>
   <problem_definition length="short" nprocs="2">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l blob blob_flredecomp &amp;&amp;
 mpiexec ../../bin/fluidity blob_flredecomp.flml; ../../bin/pvtu2vtu blob 1</command_line>

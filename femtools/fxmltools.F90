@@ -2,7 +2,17 @@ module fxmltools
 
   use iso_c_binding
 
+  use xmldatatypes, only: b64state
+
   implicit none
+
+  interface strlen
+     integer function strlen(cstring) bind(c)
+       use iso_c_binding
+       implicit none
+       type(c_ptr), value :: cstring
+     end function strlen
+  end interface strlen
 
   interface c_wrap
      module procedure c_wrap_char_array, c_wrap_string
@@ -15,7 +25,46 @@ module fxmltools
           c_ptr_asbytes
   end interface asbytes
 
+  interface
+     subroutine base64_init_decodestate(state_in) bind(c)
+       use iso_c_binding
+       use xmldatatypes
+       type(b64state) :: state_in
+     end subroutine base64_init_decodestate
+  end interface
+
   contains
+
+    subroutine strcopy(fstr, cstr)
+      character(c_char), dimension(:), pointer, intent(out) :: fstr
+      type(c_ptr), intent(in) :: cstr
+
+      call c_f_pointer(cstr, fstr, [strlen(cstr)])
+    end subroutine strcopy
+
+    subroutine strcopy_and_free(fstr, cstr)
+      character, dimension(:), allocatable, intent(out) :: fstr
+      type(c_ptr), intent(in) :: cstr
+
+      character(c_char), dimension(:), pointer :: fpstr
+      integer :: i
+
+      interface
+         subroutine free(ptr) bind(c)
+           use iso_c_binding
+           implicit none
+           type(c_ptr), value :: ptr
+         end subroutine free
+      end interface
+
+      allocate(fstr(strlen(cstr)))
+      call strcopy(fpstr, cstr)
+      do i=1, size(fstr)
+         fstr(i) = fpstr(i)
+      end do
+      call free(cstr)
+    
+    end subroutine strcopy_and_free
 
     function c_wrap_char_array(string) result(c_wrap)
       character, intent(in) :: string(:)
@@ -41,37 +90,38 @@ module fxmltools
 
     function ints_asbytes(i) result(bytes)
       integer(c_int), intent(in), dimension(:) :: i
-      character(kind=c_char, len=4*size(i)) :: bytes
-      bytes = transfer(i, bytes)
+      character(kind=c_char) :: bytes(4*size(i))
+      bytes = transfer(i, 'c', 4*size(i))
     end function ints_asbytes
 
     function longs_asbytes(i) result(bytes)
-      integer(c_long), intent(in), dimension(:) :: i
-      character(kind=c_char, len=8*size(i)) :: bytes
-      bytes = transfer(i, bytes)
+      integer(c_long), intent(in), dimension(:), target :: i
+      
+      character(kind=c_char) :: bytes(8*size(i))
+      bytes = transfer(i, 'c', 8*size(i))
     end function longs_asbytes
 
     function floats_asbytes(a) result(bytes)
       real(c_float), intent(in), dimension(:) :: a
-      character(kind=c_char, len=4*size(a)) :: bytes
-      bytes = transfer(a, bytes)
+      character(kind=c_char) :: bytes(4*size(a))
+      bytes = transfer(a, bytes, 4*size(a))
     end function floats_asbytes
 
     function doubles_asbytes(a) result(bytes)
       real(c_double), intent(in), dimension(:) :: a
-      character(kind=c_char, len=8*size(a)) :: bytes
-      bytes = transfer(a, bytes)
+      character(kind=c_char) :: bytes(8*size(a))
+      bytes = transfer(a, bytes, 8*size(a))
     end function doubles_asbytes
 
     function vecfloats_asbytes(a) result(bytes)
       real(c_float), intent(in), dimension(:,:) :: a
-      character(kind=c_char, len=4*size(a)) :: bytes
+      character(kind=c_char) :: bytes(4*size(a))
       bytes = asbytes(reshape(a,[size(a)]))
     end function vecfloats_asbytes
 
     function vecdoubles_asbytes(a) result(bytes)
       real(c_double), intent(in), dimension(:,:) :: a
-      character(kind=c_char, len=8*size(a)) :: bytes
+      character(kind=c_char) :: bytes(8*size(a))
       bytes = asbytes(reshape(a,[size(a)]))
     end function vecdoubles_asbytes
 
@@ -79,7 +129,7 @@ module fxmltools
       type(c_ptr), intent(in):: a
       integer(c_int), intent(in) :: bytesize
       integer(c_int) :: tmp
-      character(kind=c_char, len=bytesize), target :: bytes
+      character(kind=c_char), target :: bytes(bytesize)
 
       interface
          subroutine memcpy(dest, src, n) bind(c)
@@ -187,5 +237,38 @@ module fxmltools
       if (n>0) write(intarray2str(k+1:k+lens(n)), "(i0)") i(n)
 
     end function intarray2str
+
+    integer function chararray2int(c) result(out)
+
+      character(kind=c_char), dimension(:) :: c
+      integer :: i, tmp
+
+      out = 0
+      do i=1, size(c)
+         read(c(i), *) tmp
+         out = 10*out+tmp
+      end do
+    end function chararray2int
+
+    integer(c_int) function base64_decode_block(code_in, plaintext_out, state_in) result(ret)
+      character(kind=c_char), intent(in), dimension(:), pointer :: code_in
+      character(kind=c_char), dimension(:), target  :: plaintext_out
+      type(b64state) :: state_in
+
+      interface
+         integer(c_int) function base64_decode_block_c(code_in, length_in, &
+              plaintext_out, state_in) bind(c, name="base64_decode_block")
+           use iso_c_binding
+           use xmldatatypes
+           type(c_ptr), value :: code_in, plaintext_out
+           integer(c_int), value :: length_in
+           type(b64state) :: state_in
+         end function base64_decode_block_c
+      end interface
+
+      ret = base64_decode_block_c(c_loc(code_in), size(code_in), &
+           c_loc(plaintext_out), state_in) 
+
+    end function base64_decode_block
 
 end module fxmltools

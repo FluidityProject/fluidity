@@ -1255,6 +1255,12 @@ Unittest_tools.o ../include/unittest_tools.mod: Unittest_tools.F90 \
    ../include/reference_counting.mod ../include/sparse_tools.mod \
    ../include/vector_tools.mod
 
+../include/vtkreader.mod: VTKReader.o
+	@true
+
+VTKReader.o ../include/vtkreader.mod: VTKReader.F90 ../include/fxmltools.mod \
+   ../include/xmlreader.mod ../include/xmltree.mod
+
 ../include/vtkwriter.mod: VTKWriter.o
 	@true
 
@@ -1272,7 +1278,8 @@ VTK_interfaces.o ../include/vtk_interfaces.mod: VTK_interfaces.F90 \
    ../include/global_parameters.mod ../include/mpi_interfaces.mod \
    ../include/parallel_fields.mod ../include/parallel_tools.mod \
    ../include/quadrature.mod ../include/sparse_tools.mod \
-   ../include/state_module.mod ../include/vtkwriter.mod
+   ../include/state_module.mod ../include/vtkreader.mod \
+   ../include/vtkwriter.mod
 
 ../include/vector_tools.mod: Vector_Tools.o
 	@true
@@ -1335,7 +1342,8 @@ Write_Triangle.o ../include/write_triangle.mod: Write_Triangle.F90 \
 ../include/fxmltools.mod: fxmltools.o
 	@true
 
-fxmltools.o ../include/fxmltools.mod: fxmltools.F90
+fxmltools.o ../include/fxmltools.mod: fxmltools.F90 \
+   ../include/xmldatatypes.mod
 
 ../include/ieee_arithmetic.mod: ieee_arithmetic_dummy.o
 	@true
@@ -1373,6 +1381,23 @@ testvectortools.o : testvectortools.F90 ../include/fdebug.h \
 tictoc.o ../include/tictoc.mod: tictoc.F90 ../include/fdebug.h \
    ../include/fldebug.mod ../include/mpi_interfaces.mod \
    ../include/parallel_tools.mod ../include/timers.mod
+
+../include/xmldatatypes.mod: xmldatatypes.o
+	@true
+
+xmldatatypes.o ../include/xmldatatypes.mod: xmldatatypes.F90
+
+../include/xmlreader.mod: xmlreader.o
+	@true
+
+xmlreader.o ../include/xmlreader.mod: xmlreader.F90 ../include/fxmltools.mod \
+   ../include/xmldatatypes.mod
+
+../include/xmltree.mod: xmltree.o
+	@true
+
+xmltree.o ../include/xmltree.mod: xmltree.F90 ../include/fxmltools.mod \
+   ../include/xmldatatypes.mod
 
 ../include/xmlwriter.mod: xmlwriter.o
 	@true

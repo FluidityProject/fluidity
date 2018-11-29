@@ -2,7 +2,7 @@
 <testproblem>
   <name>mesh_quality</name>
   <owner userid="jrper"/>
-  <tags>flml</tags>
+  <tags>flml vtk</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l mesh_quality.flml</command_line>
   </problem_definition>

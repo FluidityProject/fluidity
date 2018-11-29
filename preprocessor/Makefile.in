@@ -47,7 +47,7 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib$(FLUIDITY).a
 
-LIBS    = -L../lib ../lib/libvtkfortran.a -l$(FLUIDITY) @LIBS@ @BLAS_LIBS@
+LIBS    = -L../lib @LIBVTKFORTRAN@ -l$(FLUIDITY) @LIBS@ @BLAS_LIBS@
 
 LINKER  = @LINKER@ @LDFLAGS@ @CPPFLAGS@ 
 

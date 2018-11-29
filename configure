@@ -15800,10 +15800,11 @@ fi
 
         fi
     fi
-    LIBVTKFORTRAN="lib/libvtkfortran.a"
+    LIBVTKFORTRAN="$PWD/lib/libvtkfortran.a"
 else
 LIBVTKFORTRAN=""
-LIBS= "$LIBS -lxml2"
+LIBS="$LIBS -lxml2 -lz -lb64"
+FLIBS="$FLIBS -lxml2 -lz -lb64"
 fi
 
 cat > include/vtk.h <<EOF
