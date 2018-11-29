@@ -114,8 +114,9 @@ Particle_Diagnostics.o ../include/particle_diagnostics.mod: \
    ../include/fields.mod ../include/fields_base.mod \
    ../include/fields_calculations.mod ../include/fldebug.mod \
    ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
-   ../include/multimaterial_module.mod ../include/parallel_tools.mod \
-   ../include/particles.mod ../include/pickers.mod ../include/state_module.mod
+   ../include/multimaterial_module.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/particles.mod \
+   ../include/pickers.mod ../include/state_module.mod
 
 ../include/python_diagnostics.mod: Python_Diagnostics.o
 	@true
