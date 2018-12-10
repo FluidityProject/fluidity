@@ -37,7 +37,8 @@ module surface_diagnostics
   use field_options
   use diagnostic_source_fields
   use sediment, only: surface_horizontal_divergence
-  use surface_integrals
+  use surface_integrals, only: surface_weighted_normal, &
+       surface_gradient_normal
   
   implicit none
   
@@ -46,7 +47,6 @@ module surface_diagnostics
   public :: calculate_grad_normal, &
             calculate_weighted_normal, &
             calculate_surface_horizontal_divergence
-  
   
 contains
   
