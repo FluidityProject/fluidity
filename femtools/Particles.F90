@@ -185,7 +185,6 @@ contains
           totaldet_global=particle_lists(list_counter)%length
           call allsum(totaldet_global)
           ewrite(2,*) "Found", particle_lists(list_counter)%length, "local and ", totaldet_global, "global particles for particle array ", trim(subname)
-          
           assert(totaldet_global==particle_lists(list_counter)%total_num_det)
           list_counter = list_counter + 1
        end do
@@ -345,7 +344,7 @@ contains
           attribute_vals(3,1:attribute_size(3))=packed_buff(dim+1+attribute_size(1)+attribute_size(2):dim+sum(attribute_size))
        end if
        call create_single_particle_check(p_list, xfield, &
-            particle_location, m, LAGRANGIAN_DETECTOR, trim(particle_name),attribute_size,attribute_vals= attribute_vals)
+            particle_location, m, LAGRANGIAN_DETECTOR, trim(particle_name),attribute_size,attribute_vals=attribute_vals)
     end do
     deallocate(packed_buff)
     deallocate(attribute_vals)
@@ -535,7 +534,7 @@ contains
     ! If we're in parallel and don't own the element, skip this particle
     if (isparallel()) then
        if (element<0) return
-       if (.not.element_owned(xfield,element)) return
+      ! if (.not.element_owned(xfield,element)) return
     else
        ! In serial make sure the particle is in the domain
        ! unless we have the write_nan_outside override

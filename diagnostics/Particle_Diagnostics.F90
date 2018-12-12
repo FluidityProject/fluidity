@@ -533,8 +533,7 @@ module particle_diagnostics
 
     integer, allocatable, dimension(:) :: summed_particles, add_particles, remove_particles
     real, dimension(:), allocatable :: temp_values, temp_part_count
-    integer :: min_thresh
-    integer :: max_thresh
+    integer :: min_thresh, max_thresh, total_particles
     
     xfield=>extract_vector_field(states(1), "Coordinate")
 
@@ -560,7 +559,7 @@ module particle_diagnostics
        if (node_part_count(i)<min_thresh) then
           if (node_part_count(i)>0) then
              if (node_part_count(i)<min_thresh/2) then
-                call multi_spawn_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, xfield, add_particles, summed_particles, i, 3)
+                call multi_spawn_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, xfield, summed_particles, i, 3)
              else 
                 call spawn_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, xfield, add_particles, i)
                 summed_particles=summed_particles+add_particles
@@ -599,6 +598,13 @@ module particle_diagnostics
     do j=1,size(group_arrays)
        call allsum(summed_particles(j))
        particle_lists(group_arrays(j))%total_num_det=particle_lists(group_arrays(j))%total_num_det+summed_particles(j)
+    end do
+
+    !Sanity check
+    do j=1,size(group_arrays)
+       total_particles = particle_lists(group_arrays(j))%length
+       call allsum(total_particles)
+       assert(total_particles==particle_lists(group_arrays(j))%total_num_det)
     end do
     
     deallocate(add_particles)
@@ -704,7 +710,7 @@ module particle_diagnostics
 
   end subroutine calculate_numbers_from_particles
 
-  subroutine multi_spawn_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, add_particles, summed_particles, node_num, mult)
+  subroutine multi_spawn_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, summed_particles, node_num, mult)
     type(detector_linked_list), intent(inout), dimension(:) :: node_particles
     real, intent(inout) :: node_values
     real, intent(inout) :: node_part_count
@@ -712,11 +718,13 @@ module particle_diagnostics
     integer, intent(in) :: group_attribute
     integer, intent(in) :: node_num
     type(vector_field), pointer, intent(in) :: xfield
-    integer, dimension(:), intent(inout) :: add_particles
     integer, dimension(:), intent(inout) :: summed_particles
     integer, intent(in) :: mult
 
     integer :: i
+    integer, allocatable, dimension(:) :: add_particles
+
+    allocate(add_particles(size(group_arrays)))
 
     do i = 1,mult
        call spawn_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, add_particles, node_num)
