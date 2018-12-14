@@ -48,7 +48,7 @@ module particle_diagnostics
   use detector_tools, only: temp_insert, insert, allocate, deallocate
   use field_options
   use multimaterial_module, only: calculate_sum_material_volume_fractions
-  use diagnostic_fields_new, only: calculate_dependencies, calculate_diagnostic_variable 
+ ! use diagnostic_fields_new, only: calculate_dependencies, calculate_diagnostic_variable 
   
   implicit none
 
@@ -186,22 +186,22 @@ module particle_diagnostics
     end do
     k = size(state)
 
-    !Initialise diagnostic fields with init_after_particles
-    do i = 1,size(state)
-       do k = 1,scalar_field_count(state(i))
-          s_field => extract_scalar_field(state(i),k)     
-          if (have_option(trim(s_field%option_path)//"/diagnostic/init_after_particles")) then
-             ! Calculate dependencies
-             call calculate_dependencies(state, i, s_field, &
-          & dep_states_mask = calculated_states, exclude_nonrecalculated = .false.)
-             ! Calculate the diagnostic
-             ewrite(2, *) "Calculating diagnostic field: "//trim(state(i)%name)//"::"//trim(s_field%name)
-             call calculate_diagnostic_variable(state, i, s_field)
-             ! Mark the field as calculated
-             call insert(calculated_states(i), s_field, s_field%name)
-          end if
-       end do
-    end do
+!!$    !Initialise diagnostic fields with init_after_particles
+!!$    do i = 1,size(state)
+!!$       do k = 1,scalar_field_count(state(i))
+!!$          s_field => extract_scalar_field(state(i),k)     
+!!$          if (have_option(trim(s_field%option_path)//"/diagnostic/init_after_particles")) then
+!!$             ! Calculate dependencies
+!!$             call calculate_dependencies(state, i, s_field, &
+!!$          & dep_states_mask = calculated_states, exclude_nonrecalculated = .false.)
+!!$             ! Calculate the diagnostic
+!!$             ewrite(2, *) "Calculating diagnostic field: "//trim(state(i)%name)//"::"//trim(s_field%name)
+!!$             call calculate_diagnostic_variable(state, i, s_field)
+!!$             ! Mark the field as calculated
+!!$             call insert(calculated_states(i), s_field, s_field%name)
+!!$          end if
+!!$       end do
+!!$    end do
 
   end subroutine initialise_particle_diagnostics
 
@@ -342,22 +342,22 @@ module particle_diagnostics
     end do
     k = size(state)
 
-    !Initialise diagnostic fields with init_after_particles
-    do i = 1,size(state)
-       do k = 1,scalar_field_count(state(i))
-          s_field => extract_scalar_field(state(i),k)     
-          if (have_option(trim(s_field%option_path)//"/diagnostic/init_after_particles")) then
-             ! Calculate dependencies
-             call calculate_dependencies(state, i, s_field, &
-          & dep_states_mask = calculated_states, exclude_nonrecalculated = .false.)
-             ! Calculate the diagnostic
-             ewrite(2, *) "Calculating diagnostic field: "//trim(state(i)%name)//"::"//trim(s_field%name)
-             call calculate_diagnostic_variable(state, i, s_field)
-             ! Mark the field as calculated
-             call insert(calculated_states(i), s_field, s_field%name)
-          end if
-       end do
-    end do
+!!$    !Initialise diagnostic fields with init_after_particles
+!!$    do i = 1,size(state)
+!!$       do k = 1,scalar_field_count(state(i))
+!!$          s_field => extract_scalar_field(state(i),k)     
+!!$          if (have_option(trim(s_field%option_path)//"/diagnostic/init_after_particles")) then
+!!$             ! Calculate dependencies
+!!$             call calculate_dependencies(state, i, s_field, &
+!!$          & dep_states_mask = calculated_states, exclude_nonrecalculated = .false.)
+!!$             ! Calculate the diagnostic
+!!$             ewrite(2, *) "Calculating diagnostic field: "//trim(state(i)%name)//"::"//trim(s_field%name)
+!!$             call calculate_diagnostic_variable(state, i, s_field)
+!!$             ! Mark the field as calculated
+!!$             call insert(calculated_states(i), s_field, s_field%name)
+!!$          end if
+!!$       end do
+!!$    end do
 
   end subroutine initialise_particle_diagnostic_fields
     
