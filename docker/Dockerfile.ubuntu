@@ -1,0 +1,33 @@
+# DockerFile for a Fludity development container
+
+# Use a Trusty base image
+FROM ubuntu:xenial
+
+# This DockerFile is looked after by
+MAINTAINER Tim Greaves
+
+# Add the Fluidity repository
+RUN echo "deb http://ppa.launchpad.net/fluidity-core/ppa/ubuntu xenial main" > /etc/apt/sources.list.d/fluidity-core-ppa-xenial.list
+
+# Import the Launchpad PPA public key
+RUN gpg --keyserver keyserver.ubuntu.com --recv 0D45605A33BAC3BE
+RUN gpg --export --armor 33BAC3BE | apt-key add -
+
+# Update the system
+RUN apt-get update
+RUN apt-get -y dist-upgrade
+
+# Install Fluidity development environment
+RUN apt-get -y install fluidity-dev libsupermesh-dev python3-dev
+
+# Install junit parsing for Jenkins
+RUN apt-get -y install python-junit.xml
+
+# Add a Fluidity user who will be the default user for this container
+ENV PETSC_DIR /usr/lib/petscdir/3.6.3
+ENV LD_LIBRARY_PATH /usr/lib/petscdir/3.6.3/linux-gnu-c-opt/lib
+
+# Make sure the user has a userid matching the host system
+# -- pass this as an argument at build time
+ARG userid=1000
+RUN adduser --disabled-password --gecos "" -u $userid fluidity

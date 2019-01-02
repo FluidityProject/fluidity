@@ -274,7 +274,7 @@ contains
     end if
 
     allocate(matrix%ksp)
-    matrix%ksp = PETSC_NULL_OBJECT
+    matrix%ksp = PETSC_NULL_KSP
     
     nullify(matrix%refcount) ! Hack for gfortran component initialisation
     !                         bug.
@@ -486,7 +486,7 @@ contains
     end if
 
     allocate(matrix%ksp)
-    matrix%ksp = PETSC_NULL_OBJECT
+    matrix%ksp = PETSC_NULL_KSP
     
     nullify(matrix%refcount) ! Hack for gfortran component initialisation
     !                         bug.
@@ -563,7 +563,7 @@ contains
     end if
 
     allocate(matrix%ksp)
-    matrix%ksp = PETSC_NULL_OBJECT
+    matrix%ksp = PETSC_NULL_KSP
 
     nullify(matrix%refcount) ! Hack for gfortran component initialisation
     !                         bug.
@@ -605,7 +605,7 @@ contains
       FLAbort("Attempt made to deallocate a non-allocated or damaged petsc_csr_matrix.")
     end if
 
-    if (matrix%ksp/=PETSC_NULL_OBJECT) then
+    if (matrix%ksp/=PETSC_NULL_KSP) then
       call KSPDestroy(matrix%ksp, lstat)
       if (lstat/=0) then
         if (present(stat)) then
@@ -741,7 +741,7 @@ contains
     PetscErrorCode:: ierr
 
     ! get the necessary info about the matrix:
-    call myMatGetInfo(matrix%M, MAT_LOCAL, matrixinfo, ierr)
+    call MatGetInfo(matrix%M, MAT_LOCAL, matrixinfo, ierr)
     entries=matrixinfo(MAT_INFO_NZ_USED)
 
   end function petsc_csr_entries
@@ -1004,7 +1004,7 @@ contains
     c%name=trim(a%name)//"_"//trim(p%name)//"_ptap"
 
     allocate(c%ksp)
-    c%ksp = PETSC_NULL_OBJECT
+    c%ksp = PETSC_NULL_KSP
     
     ! the new c get its own reference:
     nullify(c%refcount) ! Hack for gfortran component initialisation
@@ -1196,8 +1196,8 @@ contains
 
     else
 
-      xvec = PETSC_NULL_OBJECT
-      bvec = PETSC_NULL_OBJECT
+      xvec = PETSC_NULL_VEC
+      bvec = PETSC_NULL_VEC
       if (fix_scaling) then
         diag = PetscNumberingCreateVec(A%row_numbering)
       end if

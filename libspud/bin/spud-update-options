@@ -1,0 +1,116 @@
+#!/usr/bin/env python
+
+import glob
+import os
+import sys
+import argparse
+import string
+
+import diamond.debug as debug
+import diamond.schema as schema
+
+def schemaerr():
+  debug.deprint("Have you registered it in /usr/share/diamond/schemata, /etc/diamond/schemata, $HOME/.diamond/schemata", 0)
+  debug.deprint("or a schemata directory beneath a location listed in the environment variable $DIAMOND_CONFIG_PATH?", 0)
+  debug.deprint("To register a schema, place a file in one of those directories, and let its name be the suffix of your language.", 0)
+  debug.deprint("The file should consist of:", 0)
+  debug.deprint(" A Verbal Description Of The Language Purpose", 0)
+  debug.deprint(" alias1=/path/to/schema1/file.rng", 0)
+  debug.deprint(" alias2=/path/to/schema2/file.rng", 0)
+  sys.exit(1)
+
+parser = argparse.ArgumentParser( \
+                       description="""Updates option files.""")
+parser.add_argument('file', action='store', metavar='file', type=str, nargs='+',
+                    help='specify a filename or expression')
+parser.add_argument('-a', '--alias', action='store', dest='alias', required=False, default=None, 
+                    type=str,
+                    help='schema alias that should be used (will be ignored if -s is set)')
+parser.add_argument('-s', '--schema', action='store', dest='schema', required=False, default=None, 
+                    type=str,
+                    help='schema that should be used')
+parser.add_argument('-r', '--recursive', metavar='depth', action='store', type=int, dest='recurse', nargs='?', default=None, 
+                    required=False, const=-1,
+                    help='recursively search the directory tree for files (if no depth is specified full recursion will be used)')
+parser.add_argument('-v', '--verbose', action='store_const', dest='verbose', const=True, default=False, 
+                    required=False,
+                    help='verbose output')
+args = parser.parse_args()
+
+if not args.verbose: 
+  debug.SetDebugLevel(0)
+
+filenames = []
+exts = set()
+for f in args.file:
+  
+  if args.recurse is None:
+    for filename in glob.glob(f):
+      filenames.append(os.path.join(os.curdir, filename))
+      exts.add(filename.split('.')[-1])
+  else:
+    
+    if os.path.isabs(f):
+      dirname = os.path.dirname(f)
+    else:
+      dirname = os.curdir
+    dirname = os.path.normpath(dirname)
+  
+    for root, dirnames, files in os.walk(dirname, topdown=True):
+      depth = string.count(root, os.path.sep)
+      for filename in glob.glob1(os.path.join(root, os.path.dirname(f)), os.path.split(f)[-1]):
+        filenames.append(os.path.join(os.path.join(root, os.path.dirname(f)), filename))
+        exts.add(filename.split('.')[-1])
+      if depth == args.recurse:
+        dirnames[:] = []
+
+import diamond.config as config   
+# only import config after the debug level has been set
+extdict = {}
+if args.schema is not None:
+  for e in exts: extdict[e] = args.schema
+else:
+  if len(config.schemata) == 0:
+    debug.deprint("Could not find a schema file.", 0)
+    schemaerr()
+  for e in exts: 
+    try:
+      extdict[e] = config.schemata[e][1][args.alias]
+    except:
+      debug.deprint("Could not find schema matching suffix %s." % e, 0)
+      schemaerr()
+
+# cache parsed schema files
+schemadict = {}
+for k,v in extdict.items():
+  schemadict[k] = schema.Schema(v)
+
+invalidFiles = []
+updated = 0
+for filename in filenames:
+  debug.dprint("Processing " + str(filename), 1)
+  
+  ext = filename.split(".")[-1]
+  sch = schemadict[ext]
+ 
+  # Read the file and check that either the file is valid, or diamond.schema
+  # can make the file valid by adding in the missing elements
+  optionsTree = sch.read(filename)
+  lost_eles, added_eles, lost_attrs, added_attrs = sch.read_errors()
+  if len(lost_eles) + len(lost_attrs) > 0 or not optionsTree.valid:
+    debug.deprint(str(filename) + ": Invalid", 0)
+    debug.deprint(str(filename) + " errors: " + str((lost_eles, added_eles, lost_attrs, added_attrs)), 1)
+    invalidFiles.append(filename)
+    continue
+  
+  # Write out the updated options file
+  optionsTree.write(filename)
+  debug.dprint(str(filename) + ": Updated", 0)
+  updated += 1
+
+debug.dprint("Summary:", 0)
+debug.dprint("Invalid options files:", 0)
+for filename in invalidFiles:
+  debug.dprint(filename, 0)
+debug.dprint("Invalid: " + str(len(invalidFiles)), 0)
+debug.dprint("Updated: " + str(updated), 0)

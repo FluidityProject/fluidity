@@ -296,8 +296,8 @@ start =
                      empty
                   }
                ),
-               ## Enable to write detector output in binary format
-               element binary_output {
+               ## Enable to write detector output in ascii format. This output format will not work in parallel, if not enabled format defaults to binary.
+               element ascii_output {
                   comment
                }?,
                ## Enable to let detectors move with the domain if mesh_movement is enabled.
@@ -2980,7 +2980,7 @@ velocity_boundary_conditions =
               ## using the specified density, i.e. instead of applying p=0 (resp.
               ## normal_stress=0) we apply p=p_external (resp. normal_stress=p_external) where p_external is determined by dp_external/dz=external_density*g
               element external_density {
-                 real
+                 input_choice_real_plus_field
               }?,
               ## This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far. 
               ## Note: Once activated, the stabilisation term will occur in all free surface areas in the domain. 

@@ -361,8 +361,8 @@ The t argument is for future use only - currently detector locations are only se
               </element>
             </choice>
             <optional>
-              <element name="binary_output">
-                <a:documentation>Enable to write detector output in binary format</a:documentation>
+              <element name="ascii_output">
+                <a:documentation>Enable to write detector output in ascii format. This output format will not work in parallel, if not enabled format defaults to binary.</a:documentation>
                 <ref name="comment"/>
               </element>
             </optional>
@@ -3955,7 +3955,7 @@ this requires a Density field!</a:documentation>
               <a:documentation>When selected a hydrostatic pressure distribution on the outside is assumed
 using the specified density, i.e. instead of applying p=0 (resp.
 normal_stress=0) we apply p=p_external (resp. normal_stress=p_external) where p_external is determined by dp_external/dz=external_density*g</a:documentation>
-              <ref name="real"/>
+              <ref name="input_choice_real_plus_field"/>
             </element>
           </optional>
           <optional>

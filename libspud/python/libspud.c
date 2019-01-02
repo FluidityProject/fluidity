@@ -22,44 +22,44 @@ error_checking(int outcome, char *functionname)
     char errormessage [MAXLENGTH];
 
     if (outcome == SPUD_KEY_ERROR){
-        snprintf(errormessage, MAXLENGTH, "Error: The specified option is not present \
-                        in the dictionary in %s", functionname);
+        snprintf(errormessage, MAXLENGTH, "Error: The specified option is not present "
+                        "in the dictionary in %s", functionname);
         PyErr_SetString(SpudKeyError, errormessage);
         return NULL;
     }
     if (outcome == SPUD_TYPE_ERROR){
-        snprintf(errormessage, MAXLENGTH, "Error: The specified option has a different \
-                        type from that of the option argument provided in %s", functionname);
+        snprintf(errormessage, MAXLENGTH, "Error: The specified option has a different "
+                        "type from that of the option argument provided in (%s).", functionname);
         PyErr_SetString(SpudTypeError, errormessage);
         return NULL;
     }
     if (outcome == SPUD_NEW_KEY_WARNING){
-        snprintf(errormessage, MAXLENGTH, "Warning: The option being inserted is not ]  \
-                        already in the dictionary %s", functionname);
+        snprintf(errormessage, MAXLENGTH, "Warning: The option being inserted is not "
+                        "already in the dictionary (%s).", functionname);
         PyErr_SetString(SpudNewKeyWarning, errormessage);
         return NULL;
     }
     if (outcome == SPUD_FILE_ERROR){
-        snprintf(errormessage, MAXLENGTH, "Error: The specified options file cannot be  \
-                        read or written to as the routine requires in %s", functionname);
+        snprintf(errormessage, MAXLENGTH, "Error: The specified options file cannot be "
+                        "read or written to as the routine requires in (%s).", functionname);
         PyErr_SetString(SpudFileError, errormessage);
         return NULL;
     }
     if (outcome == SPUD_RANK_ERROR){
-        snprintf(errormessage, MAXLENGTH, "Error: The specified option has a different rank from \
-                      that of the option argument provided %s", functionname);
+        snprintf(errormessage, MAXLENGTH, "Error: The specified option has a different rank from "
+                      "that of the option argument provided (%s).", functionname);
         PyErr_SetString(SpudRankError, errormessage);
         return NULL;
     }
     if (outcome == SPUD_SHAPE_ERROR){
-        snprintf(errormessage, MAXLENGTH, "Error: The specified option has a different shape from \
-                      that of the option argument provided in %s", functionname);
+        snprintf(errormessage, MAXLENGTH, "Error: The specified option has a different shape from "
+                      "that of the option argument provided in (%s).", functionname);
         PyErr_SetString(SpudShapeError, errormessage);
         return NULL;
     }
     if (outcome == SPUD_ATTR_SET_FAILED_WARNING){
-        snprintf(errormessage, MAXLENGTH, "Warning: The option being set as an attribute can not be \
-                      set as an attribute in %s", functionname);
+        snprintf(errormessage, MAXLENGTH, "Warning: The option being set as an attribute can not be "
+                      "set as an attribute in (%s).", functionname);
         PyErr_SetString(SpudAttrSetFailedWarning, errormessage);
         return NULL;
     }
@@ -655,8 +655,7 @@ set_option_aux_scalar(PyObject *pyscalar, const char *key, int key_len, int type
     int outcomeSetOption = SPUD_NO_ERROR;
 
     if (type == SPUD_DOUBLE){ //scalar is double
-        double val;
-        PyArg_Parse(pyscalar, "d", &val);
+        double val = PyFloat_AS_DOUBLE(pyscalar);
         outcomeSetOption = spud_set_option(key, key_len, &val, type, rank, shape);
     }
     else if (type == SPUD_INT){
@@ -767,7 +766,12 @@ libspud_set_option(PyObject *self, PyObject *args)
         }
     }
 
-    Py_RETURN_NONE;
+    if (PyErr_Occurred()){
+      return NULL;
+    }
+    else {
+      Py_RETURN_NONE;
+    }
 }
 
 static PyObject*
@@ -836,7 +840,7 @@ initlibspud(void)
     SpudNewKeyWarning = PyErr_NewException("SpudNewKey.warning", NULL, NULL);
     SpudKeyError = PyErr_NewException("SpudKey.error", NULL, NULL);
     SpudTypeError = PyErr_NewException("SpudType.error", NULL, NULL);
-    SpudFileError = PyErr_NewException("SpudFile.warning", NULL, NULL);
+    SpudFileError = PyErr_NewException("SpudFile.error", NULL, NULL);
     SpudAttrSetFailedWarning = PyErr_NewException("SpudAttrSetFailed.warning", NULL, NULL);
     SpudShapeError = PyErr_NewException("SpudShape.error", NULL, NULL);
     SpudRankError = PyErr_NewException("SpudRank.error", NULL, NULL);

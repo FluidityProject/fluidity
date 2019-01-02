@@ -33,6 +33,9 @@ v = integral(-diff(u,x),y)  # divergence free
 
 nu = 1.0/(1.0 - (s1 + s2)/0.65)**1.625 # concentration dependent viscosity
 
+# fix nullspace in pressure by imposing zero average on bottom boundary:
+p -= integral(p.subs({y:0}), (x, 0, pi))/pi
+
 s1_R = 0.33
 s2_R = 0.66
 rho = s1_R*s1 + s2_R*s2 
