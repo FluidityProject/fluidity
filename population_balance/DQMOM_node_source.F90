@@ -900,7 +900,7 @@ contains
           end do
           do i = 1, N
             do j = 1, N
-               aggregation_freq(1,i,j) = ((Kf* (Ppb- Pc) * (1+(W/abscissa_val_(1,i))**2) *N_film(1,i)*N_film(1,j))/(F_denominator(1,1) * W**2))
+               aggregation_freq(1,i,j) = ((Kf* (Ppb- Pc) * (1+(W/abscissa_val(1,i))**2) *N_film(1,i)*N_film(1,j))/(F_denominator(1,1) * W**2))
             end do
           end do
        end if
