@@ -13,7 +13,6 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
-import matplotlib
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo
 from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3
 import matplotlib.pyplot as plt
@@ -133,11 +132,17 @@ class StatplotWindow(Gtk.Window):
         self._xData = self._stat[self._xField]
         self._yData = self._stat[self._yField]
         self._ax.cla()
+        if numpy.unique(self._xData).size == 1 \
+                and numpy.unique(self._yData).size == 1:
+            type = 'marker'
         if type == 'line':
-            self._ax.plot(self._xData, self._yData, linewidth=2)
+            self._ax.plot(self._xData, self._yData, linewidth=2,
+                          color='xkcd:ocean blue')
         elif type == 'marker':
             self._ax.plot(self._xData, self._yData, linestyle='none',
-                          marker='D', markersize=7, color='blue')
+                          marker='D', markersize=7,
+                          markerfacecolor='xkcd:ocean blue',
+                          markeredgecolor='xkcd:black')
         majFor = tck.ScalarFormatter(useMathText=True)
         majFor.set_scientific(True)
         majFor.set_powerlimits((0, 0))
@@ -153,8 +158,12 @@ class StatplotWindow(Gtk.Window):
                                    (max(self._xData) - min(self._xData))])
         elif xscale == 'log':
             self._ax.set_xscale('log')
-            self._ax.xaxis. \
-                set_minor_locator(tck.LogLocator(subs=numpy.arange(1, 10)))
+            self._ax.xaxis.set_minor_locator(
+                tck.LogLocator(subs=numpy.arange(2, 10)))
+            logFmt = tck.LogFormatterSciNotation(base=10,
+                                                 labelOnlyBase=False,
+                                                 minor_thresholds=(4, 1))
+            self._ax.xaxis.set_minor_formatter(logFmt)
             if min(self._xData) > 0:
                 self._ax.set_xlim([10 ** (numpy.log10(min(self._xData)) -
                                           0.02 *
@@ -168,6 +177,20 @@ class StatplotWindow(Gtk.Window):
                 self._ax.set_xlim([0, 10 ** (numpy.log10(max(self._xData)) +
                                              0.02 *
                                              numpy.log10(max(self._xData)))])
+        elif xscale == 'symlog':
+            xMin = min(abs(self._xData[self._xData != 0]))
+            xMax = max(abs(self._xData))
+            xRange = numpy.log10(xMax / xMin)
+            self._ax.set_xscale('symlog', basex=10, subsx=numpy.arange(2, 10),
+                                linthreshx=xMin * 10 ** (xRange / 2))
+            symLogLoc = tck.SymmetricalLogLocator(
+                subs=numpy.arange(2, 10), linthresh=xMin * 10 ** (xRange / 2),
+                base=10)
+            self._ax.xaxis.set_minor_locator(symLogLoc)
+            logFmt = tck.LogFormatterSciNotation(
+                base=10, labelOnlyBase=False, minor_thresholds=(4, 1),
+                linthresh=xMin * 10 ** (xRange / 2))
+            self._ax.xaxis.set_minor_formatter(logFmt)
         if yscale == 'linear':
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', 'Attempting')
@@ -180,7 +203,11 @@ class StatplotWindow(Gtk.Window):
         elif yscale == 'log':
             self._ax.set_yscale('log')
             self._ax.yaxis. \
-                set_minor_locator(tck.LogLocator(subs=numpy.arange(1, 10)))
+                set_minor_locator(tck.LogLocator(subs=numpy.arange(2, 10)))
+            logFmt = tck.LogFormatterSciNotation(base=10,
+                                                 labelOnlyBase=False,
+                                                 minor_thresholds=(4, 1))
+            self._ax.yaxis.set_minor_formatter(logFmt)
             if min(self._yData) > 0:
                 self._ax.set_ylim([10 ** (numpy.log10(min(self._yData)) -
                                           0.02 *
@@ -194,12 +221,29 @@ class StatplotWindow(Gtk.Window):
                 self._ax.set_ylim([0, 10 ** (numpy.log10(max(self._yData)) +
                                              0.02 *
                                              numpy.log10(max(self._yData)))])
+        elif yscale == 'symlog':
+            yMin = min(abs(self._yData[self._yData != 0]))
+            yMax = max(abs(self._yData))
+            yRange = numpy.log10(yMax / yMin)
+            self._ax.set_yscale('symlog', basey=10, subsy=numpy.arange(2, 10),
+                                linthreshy=yMin * 10 ** (yRange / 2))
+            symLogLoc = tck.SymmetricalLogLocator(
+                subs=numpy.arange(2, 10), linthresh=yMin * 10 ** (yRange / 2),
+                base=10)
+            self._ax.yaxis.set_minor_locator(symLogLoc)
+            logFmt = tck.LogFormatterSciNotation(
+                base=10, labelOnlyBase=False, minor_thresholds=(4, 1),
+                linthresh=yMin * 10 ** (yRange / 2))
+            self._ax.yaxis.set_minor_formatter(logFmt)
         self._ax.set_xlabel(self._xField, fontweight='bold', fontsize=20)
         self._ax.set_ylabel(self._yField, fontweight='bold', fontsize=20)
         self._ax.tick_params(which='major', length=7, labelsize=16, width=2)
-        self._ax.tick_params(which='minor', length=4, width=2, color='r')
-        self._ax.xaxis.get_offset_text().set(fontsize=13, fontweight='bold')
-        self._ax.yaxis.get_offset_text().set(fontsize=13, fontweight='bold')
+        self._ax.tick_params(which='minor', length=4, labelsize=10, width=2,
+                             colors='xkcd:scarlet', labelrotation=45)
+        self._ax.xaxis.get_offset_text().set(fontsize=13, fontweight='bold',
+                                             color='xkcd:black')
+        self._ax.yaxis.get_offset_text().set(fontsize=13, fontweight='bold',
+                                             color='xkcd:black')
         self._fig.set_tight_layout(True)
         self._fig.canvas.draw()
         return
@@ -214,69 +258,118 @@ class StatplotWindow(Gtk.Window):
         elif key == 'q':
             self.destroy()
         elif key == "x":
-            if self._ax.get_xscale() == 'linear' and min(self._xData) > 0 \
-                and numpy.log10(abs(self._ax.get_xlim()[1] /
-                                    self._ax.get_xlim()[0])) >= 1:
-                self._ax.set_xscale('log')
-                self._ax.xaxis. \
-                    set_minor_locator(tck.LogLocator(subs=numpy.arange(1, 10)))
-                self._ax.set_xlim([10 ** (numpy.log10(min(self._xData)) -
-                                          0.02 *
-                                          numpy.log10(max(self._xData) /
-                                                      min(self._xData))),
-                                   10 ** (numpy.log10(max(self._xData)) +
-                                          0.02 *
-                                          numpy.log10(max(self._xData) /
-                                                      min(self._xData)))])
-            elif self._ax.get_xscale() == 'linear' and min(self._xData) == 0 \
-                and max(self._xData) > 0 \
-                    and numpy.log10(self._ax.get_xlim()[1]) >= 1:
-                self._ax.set_xscale('log')
-                self._ax.xaxis. \
-                    set_minor_locator(tck.LogLocator(subs=numpy.arange(1, 10)))
-                self._ax.set_xlim([0, 10 ** (numpy.log10(max(self._xData)) +
-                                             0.02 *
-                                             numpy.log10(max(self._xData)))])
-            elif self._ax.get_xscale() == 'log':
+            if self._ax.get_xscale() == 'linear' \
+                    and self._xData[self._xData != 0].size == 0:
+                warnings.warn('Change to logarithmic scale denied: the '
+                              + 'selected variable for the Y axis is a '
+                              + 'constant', stacklevel=2)
+            elif self._ax.get_xscale() == 'linear':
+                xMin = min(abs(self._xData[self._xData != 0]))
+                xMax = max(abs(self._xData))
+                xRange = numpy.log10(xMax / xMin)
+                if xMin != xMax and min(self._xData) < 0:
+                    self._ax.set_xscale('symlog', basex=10,
+                                        linthreshx=xMin * 10 ** (xRange / 2),
+                                        subsx=numpy.arange(2, 10))
+                    symLogLoc = tck. \
+                        SymmetricalLogLocator(subs=numpy.arange(2, 10),
+                                              linthresh=xMin
+                                              * 10 ** (xRange / 2), base=10)
+                    self._ax.xaxis.set_minor_locator(symLogLoc)
+                    logFmt = tck.LogFormatterSciNotation(
+                        base=10, labelOnlyBase=False, minor_thresholds=(4, 1),
+                        linthresh=xMin * 10 ** (xRange / 2))
+                    self._ax.xaxis.set_minor_formatter(logFmt)
+                    # Thomas Duvernay, 06/01/19
+                    # There seems to be a bug with the labelling of the 0 tick
+                    # when a 'symlog' is used as an axis scale. It looks like
+                    # it is considered as a minor tick.
+                elif xMin != xMax:
+                    self._ax.set_xscale('log')
+                    self._ax.xaxis.set_minor_locator(
+                            tck.LogLocator(subs=numpy.arange(2, 10)))
+                    logFmt = tck.LogFormatterSciNotation(
+                        base=10, labelOnlyBase=False, minor_thresholds=(4, 1))
+                    self._ax.xaxis.set_minor_formatter(logFmt)
+                    if min(self._xData) > 0:
+                        self._ax.set_xlim(
+                            [10 ** (numpy.log10(min(self._xData)) - 0.02
+                                    * numpy.log10(max(self._xData)
+                                                  / min(self._xData))),
+                             10 ** (numpy.log10(max(self._xData)) + 0.02
+                                    * numpy.log10(max(self._xData)
+                                                  / min(self._xData)))])
+                    else:
+                        self._ax.set_xlim(
+                            [0, 10 ** (numpy.log10(max(self._xData)) + 0.02
+                                       * numpy.log10(max(self._xData)))])
+                else:
+                    warnings.warn('Change to logarithmic scale denied: the '
+                                  + 'selected variable for the X axis is a '
+                                  + 'constant', stacklevel=2)
+            elif self._ax.get_xscale() in ['log', 'symlog']:
                 self._ax.set_xscale('linear')
-                self._ax.ticklabel_format(style='sci', axis='x',
-                                          scilimits=(0, 0), useMathText=True)
-                self._ax.xaxis.set_minor_locator(tck.AutoMinorLocator())
                 self._ax.set_xlim([min(self._xData) - 0.02 *
                                    (max(self._xData) - min(self._xData)),
                                    max(self._xData) + 0.02 *
                                    (max(self._xData) - min(self._xData))])
-            else:
-                warnings.warn('Change to logarithmic scale denied: the ' +
-                              'selected variable for the X axis either has ' +
-                              'negative values or a range of variation less' +
-                              ' than an order of magnitude.', stacklevel=2)
+                majFor = tck.ScalarFormatter(useMathText=True)
+                majFor.set_scientific(True)
+                majFor.set_powerlimits((0, 0))
+                self._ax.xaxis.set_major_formatter(majFor)
+                self._ax.xaxis.set_minor_locator(tck.AutoMinorLocator())
             self._fig.canvas.draw()
         elif key == "y":
-            if self._ax.get_yscale() == 'linear' and min(self._yData) > 0 \
-                and numpy.log10(abs(self._ax.get_ylim()[1] /
-                                    self._ax.get_ylim()[0])) >= 1:
-                self._ax.set_yscale('log')
-                self._ax.yaxis. \
-                    set_minor_locator(tck.LogLocator(subs=numpy.arange(1, 10)))
-                self._ax.set_ylim([10 ** (numpy.log10(min(self._yData)) -
-                                          0.02 *
-                                          numpy.log10(max(self._yData) /
-                                                      min(self._yData))),
-                                   10 ** (numpy.log10(max(self._yData)) +
-                                          0.02 *
-                                          numpy.log10(max(self._yData) /
-                                                      min(self._yData)))])
-            elif self._ax.get_yscale() == 'linear' and min(self._yData) == 0 \
-                and max(self._yData) > 0 \
-                    and numpy.log10(self._ax.get_ylim()[1]) >= 1:
-                self._ax.set_yscale('log')
-                self._ax.yaxis. \
-                    set_minor_locator(tck.LogLocator(subs=numpy.arange(1, 10)))
-                self._ax.set_ylim([0, 10 ** (numpy.log10(max(self._yData)) +
-                                             0.02 *
-                                             numpy.log10(max(self._yData)))])
-            elif self._ax.get_yscale() == 'log':
+            if self._ax.get_yscale() == 'linear' \
+                    and self._yData[self._yData != 0].size == 0:
+                warnings.warn('Change to logarithmic scale denied: the '
+                              + 'selected variable for the Y axis is a '
+                              + 'constant', stacklevel=2)
+            elif self._ax.get_yscale() == 'linear':
+                yMin = min(abs(self._yData[self._yData != 0]))
+                yMax = max(abs(self._yData))
+                yRange = numpy.log10(yMax / yMin)
+                if yMin != yMax and min(self._yData) < 0:
+                    self._ax.set_yscale('symlog', basey=10,
+                                        linthreshy=yMin * 10 ** (yRange / 2),
+                                        subsy=numpy.arange(2, 10))
+                    symLogLoc = tck. \
+                        SymmetricalLogLocator(subs=numpy.arange(2, 10),
+                                              linthresh=yMin
+                                              * 10 ** (yRange / 2), base=10)
+                    self._ax.yaxis.set_minor_locator(symLogLoc)
+                    logFmt = tck.LogFormatterSciNotation(
+                        base=10, labelOnlyBase=False, minor_thresholds=(4, 1),
+                        linthresh=yMin * 10 ** (yRange / 2))
+                    self._ax.yaxis.set_minor_formatter(logFmt)
+                    # Thomas Duvernay, 06/01/19
+                    # There seems to be a bug with the labelling of the 0 tick
+                    # when a 'symlog' is used as an axis scale. It looks like
+                    # it is considered as a minor tick.
+                elif yMin != yMax > 1:
+                    self._ax.set_yscale('log')
+                    self._ax.yaxis.set_minor_locator(
+                            tck.LogLocator(subs=numpy.arange(2, 10)))
+                    logFmt = tck.LogFormatterSciNotation(
+                        base=10, labelOnlyBase=False, minor_thresholds=(4, 1))
+                    self._ax.yaxis.set_minor_formatter(logFmt)
+                    if min(self._yData) > 0:
+                        self._ax.set_ylim(
+                            [10 ** (numpy.log10(min(self._yData)) - 0.02
+                                    * numpy.log10(max(self._yData)
+                                                  / min(self._yData))),
+                             10 ** (numpy.log10(max(self._yData)) + 0.02
+                                    * numpy.log10(max(self._yData)
+                                                  / min(self._yData)))])
+                    else:
+                        self._ax.set_ylim(
+                            [0, 10 ** (numpy.log10(max(self._yData)) + 0.02
+                                       * numpy.log10(max(self._yData)))])
+                else:
+                    warnings.warn('Change to logarithmic scale denied: the '
+                                  + 'selected variable for the Y axis is a '
+                                  + 'constant', stacklevel=2)
+            elif self._ax.get_yscale() in ['log', 'symlog']:
                 self._ax.set_yscale('linear')
                 self._ax.set_ylim([min(self._yData) - 0.02 *
                                    (max(self._yData) - min(self._yData)),
@@ -287,11 +380,6 @@ class StatplotWindow(Gtk.Window):
                 majFor.set_powerlimits((0, 0))
                 self._ax.yaxis.set_major_formatter(majFor)
                 self._ax.yaxis.set_minor_locator(tck.AutoMinorLocator())
-            else:
-                warnings.warn('Change to logarithmic scale denied: the ' +
-                              'selected variable for the Y axis either has ' +
-                              'negative values or a range of variation less' +
-                              ' than an order of magnitude.', stacklevel=2)
             self._fig.canvas.draw()
         elif key == 'l':
             self._PlotType = 'line'
