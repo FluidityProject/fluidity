@@ -232,7 +232,7 @@ class StatplotWindow(Gtk.Window):
                 base=10)
             self._ax.yaxis.set_minor_locator(symLogLoc)
             logFmt = tck.LogFormatterSciNotation(
-                base=10, labelOnlyBase=False, minor_thresholds=(4, 1),
+                base=10, labelOnlyBase=False, minor_thresholds=(2, 1),
                 linthresh=yMin * 10 ** (yRange / 2))
             self._ax.yaxis.set_minor_formatter(logFmt)
         self._ax.set_xlabel(self._xField, fontweight='bold', fontsize=20)
@@ -262,7 +262,13 @@ class StatplotWindow(Gtk.Window):
                     and self._xData[self._xData != 0].size == 0:
                 warnings.warn('Change to logarithmic scale denied: the '
                               + 'selected variable for the Y axis is a '
-                              + 'constant', stacklevel=2)
+                              + 'constant.', stacklevel=2)
+            elif self._ax.get_xscale() == 'linear' \
+                    and max(abs(self._xData)) / min(abs(self._xData)) < 2:
+                warnings.warn('Change to logarithmic scale denied: the '
+                              + 'selected variable for the X axis has a range '
+                              + 'of variation smaller than a factor two.',
+                              stacklevel=2)
             elif self._ax.get_xscale() == 'linear':
                 xMin = min(abs(self._xData[self._xData != 0]))
                 xMax = max(abs(self._xData))
@@ -306,7 +312,7 @@ class StatplotWindow(Gtk.Window):
                 else:
                     warnings.warn('Change to logarithmic scale denied: the '
                                   + 'selected variable for the X axis is a '
-                                  + 'constant', stacklevel=2)
+                                  + 'constant.', stacklevel=2)
             elif self._ax.get_xscale() in ['log', 'symlog']:
                 self._ax.set_xscale('linear')
                 self._ax.set_xlim([min(self._xData) - 0.02 *
@@ -324,7 +330,13 @@ class StatplotWindow(Gtk.Window):
                     and self._yData[self._yData != 0].size == 0:
                 warnings.warn('Change to logarithmic scale denied: the '
                               + 'selected variable for the Y axis is a '
-                              + 'constant', stacklevel=2)
+                              + 'constant.', stacklevel=2)
+            elif self._ax.get_yscale() == 'linear' \
+                    and max(abs(self._yData)) / min(abs(self._yData)) < 2:
+                warnings.warn('Change to logarithmic scale denied: the '
+                              + 'selected variable for the Y axis has a range '
+                              + 'of variation smaller than a factor two.',
+                              stacklevel=2)
             elif self._ax.get_yscale() == 'linear':
                 yMin = min(abs(self._yData[self._yData != 0]))
                 yMax = max(abs(self._yData))
@@ -333,13 +345,12 @@ class StatplotWindow(Gtk.Window):
                     self._ax.set_yscale('symlog', basey=10,
                                         linthreshy=yMin * 10 ** (yRange / 2),
                                         subsy=numpy.arange(2, 10))
-                    symLogLoc = tck. \
-                        SymmetricalLogLocator(subs=numpy.arange(2, 10),
-                                              linthresh=yMin
-                                              * 10 ** (yRange / 2), base=10)
+                    symLogLoc = tck.SymmetricalLogLocator(
+                        subs=numpy.arange(2, 10),
+                        linthresh=yMin * 10 ** (yRange / 2), base=10)
                     self._ax.yaxis.set_minor_locator(symLogLoc)
                     logFmt = tck.LogFormatterSciNotation(
-                        base=10, labelOnlyBase=False, minor_thresholds=(4, 1),
+                        base=10, labelOnlyBase=False, minor_thresholds=(2, 1),
                         linthresh=yMin * 10 ** (yRange / 2))
                     self._ax.yaxis.set_minor_formatter(logFmt)
                     # Thomas Duvernay, 06/01/19
@@ -368,7 +379,7 @@ class StatplotWindow(Gtk.Window):
                 else:
                     warnings.warn('Change to logarithmic scale denied: the '
                                   + 'selected variable for the Y axis is a '
-                                  + 'constant', stacklevel=2)
+                                  + 'constant.', stacklevel=2)
             elif self._ax.get_yscale() in ['log', 'symlog']:
                 self._ax.set_yscale('linear')
                 self._ax.set_ylim([min(self._yData) - 0.02 *
