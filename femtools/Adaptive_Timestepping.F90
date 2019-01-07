@@ -39,13 +39,15 @@ module adaptive_timestepping
   use field_options
   use signal_vars, only : SIG_INT
   use diagnostic_fields
+  use parallel_tools, only: allmin
    
   implicit none
   
   private
   
   public :: adaptive_timestepping_check_options, &
-    & calc_cflnumber_field_based_dt, cflnumber_field_based_dt
+       & calc_cflnumber_field_based_dt, cflnumber_field_based_dt,&
+       & calc_mesh_dt
   
 contains
 
@@ -189,6 +191,86 @@ contains
     ewrite(2, *) "cflnumber_field_based_dt returning: ", dt
     
   end function cflnumber_field_based_dt
+
+  subroutine calc_mesh_dt(state, dt)
+    type(state_type), dimension(:), intent(inout) :: state
+    real, intent(inout) :: dt
+    
+    type(vector_field), pointer :: velocity_field, X
+
+    integer :: ele
+    real :: ldt, vol, dvol
+
+    real, allocatable :: x_ele(:,:), u_ele(:,:)
+    
+    velocity_field => extract_vector_field(state(1), "GridVelocity")
+    X => extract_vector_field(state(1), "Coordinate")
+    allocate(x_ele(X%dim, ele_loc(X,1)),&
+         u_ele(X%dim, ele_loc(X,1)))
+
+    ldt = huge(1.0)
+    
+    do ele=1, element_count(X)
+       x_ele = ele_val(X, ele)
+       u_ele = ele_val(velocity_field, ele)
+
+       vol = volume(x_ele)
+       dvol = volume_change(x_ele, u_ele)
+       dvol = -vol/max(1.0e-16, dvol)
+       if (dvol<0) dvol = huge(1.0)
+       
+       ldt = min(ldt, dvol)
+    end do
+
+    call allmin(ldt)
+
+    print*, 'dt, ldt', dt, ldt
+    dt = min(dt, 0.1*ldt)
+   
+
+  contains
+
+    real function volume(pnts)
+      real pnts(:,:)
+      
+      volume = trip_prod(pnts(:,1), pnts(:,2),pnts(:,3))&
+           -trip_prod(pnts(:,1),pnts(:,2), pnts(:,4))&
+           -trip_prod(pnts(:,1),pnts(:,4),pnts(:,3))&
+           -trip_prod(pnts(:,4),pnts(:,2),pnts(:,3))
+
+    end function volume
+    
+    real function volume_change(pnts, vels)
+      real :: pnts(:,:), vels(:,:)
+
+      volume_change = trip_prod(vels(:,1), pnts(:,2), pnts(:,3))&
+           -trip_prod(vels(:,1), pnts(:,2), pnts(:,4))&
+           -trip_prod(vels(:,1), pnts(:,4), pnts(:,3))&
+           +trip_prod(pnts(:,1), vels(:,2), pnts(:,3))&
+           -trip_prod(pnts(:,1), vels(:,2), pnts(:,4))&
+           -trip_prod(pnts(:,4), vels(:,2), pnts(:,3))&
+           +trip_prod(pnts(:,1), pnts(:,2), vels(:,3))&
+           -trip_prod(pnts(:,1), pnts(:,4), vels(:,3))&
+           -trip_prod(pnts(:,4), pnts(:,2), vels(:,3))&
+           -trip_prod(pnts(:,1), pnts(:,2), vels(:,4))&
+           -trip_prod(pnts(:,1), vels(:,4), pnts(:,3))&
+           -trip_prod(vels(:,4), pnts(:,2), pnts(:,3))
+           
+    end function volume_change
+    
+    real function trip_prod(a,b,c)
+      real :: a(3)
+      real :: b(3)
+      real :: c(3)
+
+      trip_prod = a(1)*b(2)*c(3)+a(2)*b(3)*c(1)+a(3)*b(1)*c(2)&
+           -a(1)*b(3)*c(2)-a(3)*b(2)*c(1)-a(2)*b(1)*c(3)
+
+    end function trip_prod
+
+  
+
+  end subroutine calc_mesh_dt
 
   subroutine adaptive_timestepping_check_options
     !!< Checks new style adaptive timestepping related options

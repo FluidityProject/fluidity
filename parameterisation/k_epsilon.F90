@@ -461,18 +461,22 @@ subroutine keps_calculate_rhs(state)
 
               if (i==1) then
 !                 u_tau_val = max( sqrt(node_val(field1,wnode))*0.09**0.25, mag_u_val/yPlus )
-                 u_tau_val =  get_friction_velocity(u_sele,&
-                      vmean(pack(face_val(bg_visc, sele), .true.)),&
-                      model, y=y, tke=face_val(field1, sele))
-                 Pk_val    = (u_tau_val**3)/(model%kappa*y)
+!                 u_tau_val =  get_friction_velocity(u_sele,&
+!                      vmean(pack(face_val(bg_visc, sele), .true.)),&
+!                      model, y=y, tke=face_val(field1, sele))
+!                 Pk_val    = (u_tau_val**3)/(model%kappa*y)
+                 !                 call set(src_abs_terms(1), face_global_nodes(field1, sele), max(Pk_val, face_val(src_abs_terms(1), sele)))
+                 call set(src_abs_terms(1), face_global_nodes(field1, sele), 0.0)
+                 call set(src_abs_terms(2), face_global_nodes(field1, sele), 0.0)
               elseif (i==2) then
                  u_tau_val =  get_friction_velocity(u_sele,&
                       vmean(pack(face_val(bg_visc, sele), .true.)),&
                       model, y=y, tke=face_val(field2, sele))
-                 Pk_val = model%c_eps_1*vmean(pack(face_val(field1, sele),.true.))&
-                      *model%C_mu*u_tau_val/(model%kappa*y)
+                 Pk_val = (model%c_eps_2-model%c_eps_1)*sqrt(model%c_mu)*(u_tau_val)/(model%kappa*y)
+                 call set(src_abs_terms(1), face_global_nodes(field1, sele), 0.0)
+                 call set(src_abs_terms(2), face_global_nodes(field1, sele), Pk_val)
               end if 
-              call set(src_abs_terms(1), face_global_nodes(field1, sele), max(Pk_val, face_val(src_abs_terms(1), sele)))
+
 !if (i==2) then
 !ewrite(1,*) 'AMIN: Are we here yet?', Abs_val, node_val(field1,wnode), node_val(field2,wnode), c_eps_2, c_eps_1
 !end if
@@ -613,7 +617,7 @@ subroutine assemble_rhs_cv_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, densi
   ! this doesn't change the field values of k and epsilon
 
   ! Compute Reynolds stress
-  if(.not.(u%mesh%shape == k%mesh%shape).and.continuity(u)>0) then
+  if(.not.(u%mesh%shape == k%mesh%shape)) then
      shape_u => ele_shape(u, ele)
      allocate(dshape_u(ele_loc(u, ele), ele_ngi(u, ele), X%dim))
      call transform_to_physical( X, ele, shape_u, dshape=dshape_u )
@@ -645,12 +649,12 @@ subroutine assemble_rhs_cv_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, densi
   if(field_id==1) then
      rhs_addto(1,:) = ele_val(scalar_eddy_visc, ele)*rhs(1)&
           *sum(detwei)/ele_loc(k,ele)
-     rhs_addto(2,:) = ele_val(density, ele)*gamma_cv*sum(detwei)/ele_loc(k,ele)
+     rhs_addto(2,:) = gamma_cv*sum(detwei)/ele_loc(k,ele)
   else
      rhs_addto(1,:) = ele_val(scalar_eddy_visc, ele)*gamma_cv*rhs(1)&
           *model%c_eps_1*ele_val(f_1,ele)&
           *sum(detwei)/ele_loc(k,ele)
-     rhs_addto(2,:) = ele_val(density, ele)*model%c_eps_2*ele_val(f_2,ele)&
+     rhs_addto(2,:) = model%c_eps_2*ele_val(f_2,ele)&
           *gamma_cv*sum(detwei)/ele_loc(k,ele)
   end if
   
@@ -1089,9 +1093,9 @@ subroutine keps_eddyvisc(state, advdif)
               do jjj=1, size(faceglobalnodes)
 !ewrite(1,*) 'AMIN: Before:', sele, jjj, faceglobalnodes(jjj), node_val(scalar_eddy_visc,faceglobalnodes(jjj))
                    nut_val = model%kappa*u_tau_val*y
-                   if (nut_val> model%l_max*sqrt(max(fields_min,node_val(fieldk,faceglobalnodes(jjj))))) &
+                   if (nut_val> model%l_max*sqrt(max(0.0,node_val(fieldk,faceglobalnodes(jjj))))) &
                         nut_val = &
-                        node_val(density,faceglobalnodes(jjj))*model%l_max*sqrt(max(fields_min,node_val(fieldk,faceglobalnodes(jjj))))
+                      model%l_max*sqrt(max(0.0,node_val(fieldk,faceglobalnodes(jjj))))
 
                     nut_val   = max(model%ev_min*node_val(bg_visc,1,1,faceglobalnodes(jjj)), nut_val)
                    call set(scalar_eddy_visc, faceglobalnodes(jjj), nut_val) !AMIN
@@ -1251,10 +1255,11 @@ subroutine keps_eddyvisc(state, advdif)
          call addto(ev_rhs, nodes_ev, rhs_addto)    
       else
          
-         where(model%C_mu*max(fields_min,ele_val(kk,ele))**(1.5)<model%l_max*ele_val(eps,ele))
-            rhs_addto = ele_val(density,ele)*model%C_mu*(max(fields_min,ele_val(kk, ele))**2)/max(fields_min, ele_val(eps,ele))
+
+         where(model%C_mu*max(0.0,ele_val(kk,ele))**(1.5)<model%l_max*ele_val(eps,ele))
+            rhs_addto = model%C_mu*ele_val(kk, ele)**2/max(fields_min, ele_val(eps,ele))
          elsewhere
-            rhs_addto=ele_val(density,ele)*model%l_max*sqrt(max(fields_min,ele_val(kk,ele)))
+            rhs_addto=model%l_max*sqrt(max(0.0,ele_val(kk,ele)))
          end where
          where(rhs_addto<ev_min)
             rhs_addto=ev_min
@@ -1733,9 +1738,9 @@ function get_friction_velocity( U , nu, keps_model_in, y, yplus, tke) result (u_
 
   end if
   
-  !if ( present(tke)) then
-     !u_tau = max(u_tau, sqrt(sqrt(keps_model%C_mu)*vmean(tke)))
-  !end if
+  if ( present(tke)) then
+     u_tau = max(u_tau, sqrt(sqrt(keps_model%C_mu)*u_tau))
+  end if
   
   contains 
 

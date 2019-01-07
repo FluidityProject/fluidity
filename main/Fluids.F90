@@ -929,6 +929,7 @@ contains
 
 
        if(have_option("/timestepping/adaptive_timestep")) call calc_cflnumber_field_based_dt(state, dt)
+       if(have_option("/timestepping/adaptive_timestep/include_grid_velocity")) call calc_mesh_dt(state, dt)
 
        ! Update the options dictionary for the new timestep and current_time.
        call set_option("/timestepping/timestep", dt)
