@@ -20,8 +20,15 @@ import matplotlib.ticker as tck
 
 import fluidity.diagnostics.fluiditytools as fluidity_tools
 
-parser = argparse.ArgumentParser()
-parser.add_argument('statfile', nargs=1)
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    description='GUI for Fluidity .stat outputs\n\nWhen the window is '
+    + 'displayed, press the following keys for additional options:\n'
+    + '- x, y -> Alternate the scale of the X, Y axis between linear and '
+    + 'logarithmic.\n- l -> Alternate the representation of the data between '
+    + 'a solid line and markers.\n- r -> Update the .stat file. Only relevant '
+    + 'for simulations that are still running.\n- q -> Exit the GUI.')
+parser.add_argument('statfile', nargs=1, help='path to the .stat file')
 args = parser.parse_args(sys.argv[1:])
 
 
@@ -393,11 +400,7 @@ class StatplotWindow(Gtk.Window):
                 self._ax.yaxis.set_minor_locator(tck.AutoMinorLocator())
             self._fig.canvas.draw()
         elif key == 'l':
-            self._PlotType = 'line'
-            self._PlotData(self._PlotType, self._ax.get_xscale(),
-                           self._ax.get_yscale())
-        elif key == 'm':
-            self._PlotType = 'marker'
+            self._PlotType = 'line' if self._PlotType == 'marker' else 'marker'
             self._PlotData(self._PlotType, self._ax.get_xscale(),
                            self._ax.get_yscale())
         return
