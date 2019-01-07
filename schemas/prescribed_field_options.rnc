@@ -38,7 +38,12 @@ prescribed_values_scalar_field =
             region_ids?,
             input_choice_real_plus_file
          }
-      )+
+      )+,
+      element initialise_via_projection { 
+         element solver {
+	    linear_solver_options_sym
+        }
+     }?  
    )
 
 # Default child of prescribed vector field

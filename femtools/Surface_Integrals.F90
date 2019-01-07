@@ -31,18 +31,27 @@ module surface_integrals
 
   use fldebug
   use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
-  use vector_tools, only : cross_product
-  use spud
   use futils
+  use vector_tools, only : cross_product
   use quadrature
   use element_numbering, only: FAMILY_SIMPLEX
   use elements
+  use spud
   use parallel_tools
+  use sparse_tools
   use parallel_fields
   use transform_elements
+  use fetools
   use fields
   use state_module
   use field_options
+  use halos_registration
+  use fefields
+  use solvers
+  use sparsity_patterns
+  use sparsity_patterns_meshes
+  use field_derivatives
+  !use smoothing_module
 
   implicit none
   
@@ -50,7 +59,8 @@ module surface_integrals
   
   public :: calculate_surface_integral, gradient_normal_surface_integral, &
     & normal_surface_integral, surface_integral, surface_gradient_normal, &
-    & surface_normal_distance_sele
+    & surface_normal_distance_sele, surface_weighted_normal, &
+    wall_stress
   public :: diagnostic_body_drag, diagnostic_body_torque
   
   interface integrate_over_surface_element
@@ -374,6 +384,195 @@ contains
     end function include_face
     
   end subroutine surface_gradient_normal
+
+  subroutine surface_weighted_normal(state,source, positions, output, surface_ids,fixed_surface_ids,solver_option_path)
+    !!< Return a field containing:
+    !!<   /
+    !!<   | grad source dot dn
+    !!<   /
+    !!< The output field is P0 over the surface. Here, output is a volume field,
+    !!< hence there will be errors at edges.
+  
+    type(state_type),   intent(inout) :: state
+    type(scalar_field), intent(in) :: source
+    type(vector_field), intent(in) :: positions
+    type(vector_field), intent(inout) :: output
+    integer, dimension(:), optional, intent(in) :: surface_ids,&
+         fixed_surface_ids
+    character(len=*), intent(in), optional:: solver_option_path
+    
+    integer :: i
+    real, dimension(mesh_dim(positions),face_loc(output,1)) :: vec_face_integral
+    real, dimension(face_loc(output,1)) :: face_integral
+    real, dimension(face_loc(output,1),face_loc(output,1)) :: loc_mat
+    type(scalar_field) :: rhs, suboutput
+    type(vector_field) :: subpositions, vec_rhs
+    type(csr_matrix) :: mass, mat
+    type(csr_sparsity) :: temp_mass_sparsity
+
+    type(vector_field) :: basis
+    type(mesh_type) :: surface_mesh
+    integer, dimension(:), pointer:: surface_nodes, get_surface_elements
+    
+    if(.not. output%mesh == positions%mesh) then
+      FLAbort("Surface weighted normal must be defined on the coordinate mesh.")
+    end if
+    
+    call zero(output)
+
+    call create_surface_mesh(surface_mesh, surface_nodes, output%mesh,&
+         surface_ids=surface_ids, get_surface_elements=get_surface_elements,&
+         name=trim(output%mesh%name)//"SurfaceMesh")
+
+    if(isparallel()) then
+       call generate_surface_halos(output%mesh,surface_mesh,surface_nodes)
+    end if
+
+    call allocate(basis,mesh_dim(output),surface_mesh,name='Basis')
+    call zero(basis)
+    call allocate(rhs,surface_mesh,name='RHS')
+    call zero(rhs)
+    call allocate(vec_rhs,mesh_dim(output),surface_mesh,name='VectorRHS')
+    call zero(vec_rhs)
+    call allocate(suboutput,surface_mesh,name='Suboutput')
+    call zero(suboutput)
+    call allocate(subpositions,mesh_dim(output),surface_mesh,&
+         name='Subcoordinate')
+    subpositions%val=node_val(positions,surface_nodes)
+
+    temp_mass_sparsity = make_sparsity(surface_mesh, surface_mesh, "SufMeshSparsity")
+
+
+    call allocate(mat,temp_mass_sparsity, name='MassWithNormals')
+    call zero(mat)
+
+    call allocate(mass,temp_mass_sparsity, name='Submass')
+    call compute_mass(subpositions,surface_mesh,mass)
+
+    do i = 1, element_count(surface_mesh)
+       call continuous_normal_integral_face(get_surface_elements(i),&
+            positions, vec_face_integral,face_shape(output,i))
+       call addto(vec_rhs, ele_nodes(surface_mesh,i),vec_face_integral)
+    end do
+   
+    call petsc_solve(basis,mass,vec_rhs,option_path=solver_option_path)
+    
+    do i = 1, element_count(surface_mesh)
+       call weighted_normal_surface_integral_face(source,&
+            ele_val_at_quad(basis,i), get_surface_elements(i),&
+            positions, face_integral,loc_mat,face_shape(output,i))
+       call addto(rhs, ele_nodes(surface_mesh,i),face_integral)
+       call addto(mat, ele_nodes(surface_mesh,i),&
+            ele_nodes(surface_mesh,i),loc_mat)
+    end do
+
+    call petsc_solve(suboutput,mat,rhs,option_path=solver_option_path)
+    call set(output,surface_nodes,&
+         spread(suboutput%val,1,mesh_dim(output))*basis%val)
+    call deallocate(rhs)
+    call deallocate(vec_rhs)
+    call deallocate(suboutput)
+    call deallocate(subpositions)
+    call deallocate(basis)
+    
+    call deallocate(mass)
+    call deallocate(mat)
+    call deallocate(temp_mass_sparsity)
+    call deallocate(surface_mesh)
+    
+    deallocate(surface_nodes,get_surface_elements)
+
+    if (present(fixed_surface_ids)) then
+       if (size(fixed_surface_ids)>0) return
+
+       do i=1,surface_element_count(output)
+
+          if (.not. any(fixed_surface_ids==surface_element_id(output, i))) cycle
+
+          call correct_fixed_normals(output,positions,i)
+
+       end do
+
+       call halo_update(output)
+
+    end if
+    
+  end subroutine surface_weighted_normal
+
+  subroutine correct_fixed_normals(output,positions,face)
+
+     type(vector_field), intent(inout) :: output
+     type(vector_field), intent(in) :: positions
+     integer, intent(in) :: face
+
+     real, dimension(face_ngi(positions, face)) :: detwei
+     real, dimension(mesh_dim(positions), face_ngi(positions, face)) :: normal
+
+     real, dimension(mesh_dim(positions), face_loc(output, face)) :: out_loc
+     integer :: loc
+    
+     call transform_facet_to_physical( &
+         positions, face, detwei_f = detwei, normal = normal)
+
+     out_loc=face_val(output,face)
+     
+     do loc=1,face_loc(output,face)
+        out_loc(:,loc)=out_loc(:,loc)-dot_product(normal(:,1),out_loc(:,loc))&
+             *normal(:,1)
+     end do
+
+     call set(output,face_global_nodes(output,face),out_loc)
+    
+  end subroutine correct_fixed_normals
+
+  subroutine continuous_normal_integral_face(face,&
+           positions, integral,face_shape)
+    integer, intent(in) :: face
+    type(vector_field), intent(in) :: positions
+    type(element_type), intent(in) :: face_shape
+
+    real, dimension(mesh_dim(positions),face_shape%loc), intent(out) :: integral
+
+    integer :: i, j
+    real, dimension(face_ngi(positions, face)) :: detwei
+    real, dimension(mesh_dim(positions), face_ngi(positions, face)) :: normal
+
+    call transform_facet_to_physical( &
+         positions, face, detwei_f = detwei, normal = normal)
+
+    integral=shape_vector_rhs(face_shape,normal,detwei)
+
+  end subroutine continuous_normal_integral_face
+
+  subroutine weighted_normal_surface_integral_face(s_field, continuous_normal,&
+       face, positions, integral, loc_mat, face_shape)
+    type(scalar_field), intent(in) :: s_field
+    integer, intent(in) :: face
+    real, dimension(mesh_dim(s_field), face_ngi(s_field, face)),&
+          intent(in) ::  continuous_normal
+    type(vector_field), intent(in) :: positions
+    type(element_type), intent(in) :: face_shape
+
+    real, dimension(face_shape%loc), intent(out) :: integral
+    real, dimension(face_shape%loc,face_shape%loc), intent(out) :: loc_mat
+    
+    integer :: i, j
+    real, dimension(face_ngi(s_field, face)) :: detwei, s_face_quad
+    real, dimension(mesh_dim(s_field), face_ngi(s_field, face)) ::  normal
+    
+    assert(face_ngi(s_field, face) == face_ngi(positions, face))
+    assert(mesh_dim(s_field) == positions%dim)
+    
+    call transform_facet_to_physical( &
+         positions, face, detwei_f = detwei, normal = normal)
+   
+    ! Calculate grad s_field at the surface element quadrature points
+    s_face_quad = face_val_at_quad(s_field, face)
+    integral=shape_rhs(face_shape,s_face_quad*detwei)
+    loc_mat=shape_shape(face_shape,face_shape,&
+         sum(continuous_normal*normal,1)*detwei)
+    
+  end subroutine weighted_normal_surface_integral_face
   
   function surface_normal_distance_sele(positions, sele, ele) result(h)
     ! calculate wall-normal element size
@@ -490,7 +689,7 @@ contains
 
   subroutine diagnostic_body_drag(state, force, surface_integral_name, pressure_force, viscous_force)
     type(state_type), intent(in) :: state
-    real, dimension(:) :: force
+    real, dimension(:), intent(out) :: force
     character(len = FIELD_NAME_LEN), intent(in) :: surface_integral_name
     real, dimension(size(force)), optional, intent(out) :: pressure_force
     real, dimension(size(force)), optional, intent(out) :: viscous_force
@@ -653,11 +852,10 @@ contains
     ewrite(1,*) 'Computing body torques for label "'//trim(surface_integral_name)//'"'
 
     velocity => extract_vector_field(state, "Velocity")
-    option_path = velocity%option_path          
-    shape_option = option_shape(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/surface_ids')
     allocate( surface_ids(shape_option(1)), &
          axis(mesh_dim(velocity)), point(mesh_dim(velocity)))
-
+    option_path = velocity%option_path          
+    shape_option = option_shape(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/surface_ids')
 
     call get_option(trim(option_path)//'/prognostic/stat/compute_body_torque_on_surfaces::'//trim(surface_integral_name)//'/surface_ids', surface_ids)
     ewrite(2,*) 'Calculating torques on surfaces with these IDs: ', surface_ids
@@ -1000,5 +1198,106 @@ contains
     ewrite(2, format_buffer) trim(integral_name) // " = ", integral
     
   end function calculate_surface_integral_vector
+
+  subroutine wall_stress(state,velocity, positions, output,&
+       surface_ids,solver_option_path)
+      type(state_type),   intent(inout) :: state
+      type(vector_field), intent(in) :: velocity
+      type(vector_field), intent(in) :: positions
+      type(scalar_field), intent(inout) :: output
+      integer, dimension(:), optional, intent(in) :: surface_ids
+      character(len=*), intent(in), optional:: solver_option_path
+
+      integer :: i
+      real, dimension(face_loc(output,1)) :: face_integral
+      type(csr_matrix) :: mass
+      type(csr_sparsity), pointer :: temp_mass_sparsity
+      
+      type(mesh_type) :: surface_mesh
+      integer, dimension(:), pointer:: surface_nodes, get_surface_elements
+
+      type(vector_field) :: subpositions
+      type(scalar_field) :: rhs, suboutput
+
+      type(tensor_field) :: grad_vel
+
+      call allocate(grad_vel,mesh=velocity%mesh,name="VelocityGradient")
+
+      call grad(velocity,positions,grad_vel)
+
+      call create_surface_mesh(surface_mesh, surface_nodes, output%mesh,&
+         surface_ids=surface_ids, get_surface_elements=get_surface_elements,&
+         name=trim(output%mesh%name)//"SurfaceMesh")
+
+      if(isparallel()) then
+         call generate_surface_halos(output%mesh,surface_mesh,surface_nodes)
+      end if
+
+      call allocate(rhs,surface_mesh,name='RHS')
+      call zero(rhs)
+      call allocate(suboutput,surface_mesh,name='Suboutput')
+      call allocate(subpositions,mesh_dim(output),surface_mesh,&
+           name='Subcoordinate')
+      subpositions%val=node_val(positions,surface_nodes)
+
+    do i = 1, element_count(surface_mesh)
+      call wall_stress_surface_integral_face(grad_vel, get_surface_elements(i),&
+           positions, face_integral,face_shape(output,i))
+      call addto(rhs, ele_nodes(surface_mesh,i),face_integral)
+    end do
+
+    temp_mass_sparsity => get_csr_sparsity_firstorder(state,&
+         surface_mesh, surface_mesh)
+
+    call allocate(mass,temp_mass_sparsity, name='Submass')
+    call compute_mass(subpositions,surface_mesh,mass)
+
+    call petsc_solve(suboutput,mass,rhs,option_path=solver_option_path)
+    call set(output,surface_nodes,suboutput%val)
+    call deallocate(rhs)
+    call deallocate(suboutput)
+    call deallocate(subpositions)
+    call deallocate(grad_vel)
+
+    call deallocate(mass)
+    call deallocate(surface_mesh)
+
+    deallocate(surface_nodes,get_surface_elements)
+    
+  end subroutine wall_stress
+
+  subroutine wall_stress_surface_integral_face(t_field, face, positions, integral, face_shape)
+    type(tensor_field), intent(in) :: t_field
+    integer, intent(in) :: face
+    type(vector_field), intent(in) :: positions
+    type(element_type), intent(in) :: face_shape
+
+    real, dimension(face_shape%loc), intent(out) :: integral
+    
+    integer :: i, j
+    real, dimension(face_ngi(t_field, face)) :: detwei,weight
+    real, dimension(t_field%dim(1),t_field%dim(2),&
+         face_ngi(t_field, face)) :: t_face_quad
+    real, dimension(mesh_dim(t_field), face_ngi(t_field, face)) ::  normal, dudn
+    
+    assert(face_ngi(t_field, face) == face_ngi(positions, face))
+    assert(mesh_dim(t_field) == positions%dim)
+    
+    call transform_facet_to_physical( &
+         positions, face, detwei_f = detwei, normal = normal)
+   
+    ! Calculate grad s_field at the surface element quadrature points
+    t_face_quad = face_val_at_quad(t_field, face)
+    forall (i=1:t_field%dim(1),j=1:face_ngi(t_field,face))
+       dudn(i,j)=dot_product(t_face_quad(:,i,j),normal(:,j))
+    end forall
+
+    forall (j=1:face_ngi(t_field,face))
+       dudn(:,j)=dudn(:,j)-normal(:,j)*dot_product(dudn(:,j),normal(:,j))
+    end forall
+
+    integral=shape_rhs(face_shape,sqrt(sum(dudn**2,1))*detwei)
+    
+  end subroutine wall_stress_surface_integral_face
 
 end module surface_integrals

@@ -51,8 +51,8 @@ module halos_registration
   
   private
   
-  public :: read_halos, write_halos, verify_halos
-  public :: extract_raw_halo_data, form_halo_from_raw_data
+  public :: read_halos, write_halos, generate_substate_halos, verify_halos
+  public :: extract_raw_halo_data, form_halo_from_raw_data, generate_surface_halos
   
   interface
     subroutine chalo_reader_reset()
@@ -243,6 +243,110 @@ contains
     end if
     
   end subroutine verify_halos
+
+  subroutine generate_substate_halos(external_mesh,subdomain_mesh,node_list,inverse_node_list)
+
+    type(mesh_type), intent(in) :: external_mesh
+    type(mesh_type), intent(inout) :: subdomain_mesh
+    integer, dimension(:) :: node_list, inverse_node_list 
+
+    integer :: nhalos, communicator, nprocs, procno, ihalo, inode, iproc, nowned_nodes
+
+    ewrite(1, *) "In generate_substate_halos"
+
+    assert(continuity(subdomain_mesh) == 0)
+    assert(.not. associated(subdomain_mesh%halos))
+    assert(.not. associated(subdomain_mesh%element_halos))
+
+    ! Initialise key MPI information:
+
+    nhalos = halo_count(external_mesh)
+    ewrite(2,*) "Number of subdomain_mesh halos = ",nhalos
+
+    if(nhalos == 0) return
+
+    communicator = halo_communicator(external_mesh%halos(nhalos))
+    nprocs = getnprocs(communicator = communicator)
+    ewrite(2,*) 'Number of processes = ', nprocs
+    procno = getprocno(communicator = communicator)
+    ewrite(2,*) 'Processor ID/number = ', procno
+
+    ! Allocate subdomain mesh halos:
+    allocate(subdomain_mesh%halos(nhalos))
+
+    ! Derive subdomain_mesh halos:
+    do ihalo = 1, nhalos
+
+       subdomain_mesh%halos(ihalo) = derive_sub_halo(external_mesh%halos(ihalo),node_list)
+       
+       assert(trailing_receives_consistent(subdomain_mesh%halos(ihalo)))
+      
+       if(.not. serial_storage_halo(external_mesh%halos(ihalo))) then
+          assert(halo_valid_for_communication(subdomain_mesh%halos(ihalo)))
+          call create_global_to_universal_numbering(subdomain_mesh%halos(ihalo))
+          call create_ownership(subdomain_mesh%halos(ihalo))
+       end if
+       
+    end do ! ihalo 
+    
+    if(all(serial_storage_halo(subdomain_mesh%halos))) then
+      allocate(subdomain_mesh%element_halos(0))
+    else
+      allocate(subdomain_mesh%element_halos(nhalos))
+      call derive_element_halo_from_node_halo(subdomain_mesh, &
+        & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
+    end if
+
+  end subroutine generate_substate_halos
+
+  subroutine generate_surface_halos(full_mesh,surface_mesh,node_list)
+
+    type(mesh_type), intent(in) :: full_mesh
+    type(mesh_type), intent(inout) :: surface_mesh
+    integer, dimension(:) :: node_list
+
+    integer :: nhalos, communicator, nprocs, procno, ihalo, inode, iproc, nowned_nodes
+
+    !!! This routine does the parts of the call above that make sense for an object of lower dimensionallist
+
+    ewrite(1, *) "In generate_surface_halos"
+
+    assert(continuity(full_mesh) == 0)
+    assert(.not. associated(surface_mesh%halos))
+    assert(.not. associated(surface_mesh%element_halos))
+
+    ! Initialise key MPI information:
+
+    nhalos = halo_count(full_mesh)
+    ewrite(2,*) "Number of subdomain_mesh halos = ",nhalos
+
+    if(nhalos == 0) return
+
+    communicator = halo_communicator(full_mesh%halos(nhalos))
+    nprocs = getnprocs(communicator = communicator)
+    ewrite(2,*) 'Number of processes = ', nprocs
+    procno = getprocno(communicator = communicator)
+    ewrite(2,*) 'Processor ID/number = ', procno
+
+    ! Allocate surface mesh halos:
+    allocate(surface_mesh%halos(nhalos))
+
+    ! Derive surface mesh node halos:
+    do ihalo = 1, nhalos
+
+       surface_mesh%halos(ihalo) = derive_sub_halo(full_mesh%halos(ihalo),node_list)
+       
+       assert(trailing_receives_consistent(surface_mesh%halos(ihalo)))
+      
+       if(.not. serial_storage_halo(full_mesh%halos(ihalo))) then
+          assert(halo_valid_for_communication(surface_mesh%halos(ihalo)))
+          call create_global_to_universal_numbering(surface_mesh%halos(ihalo))
+          call create_ownership(surface_mesh%halos(ihalo))
+       end if
+       
+    end do ! ihalo 
+
+  end subroutine generate_surface_halos
 
   subroutine write_halos(filename, mesh, number_of_partitions)
     character(len = *), intent(in) :: filename

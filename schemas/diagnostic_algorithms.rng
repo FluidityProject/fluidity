@@ -612,6 +612,33 @@ The length scale is alpha*local element size (a tensor).
       <ref name="vector_source_field"/>
     </element>
   </define>
+  <define name="horizontal_filter_scalar_algorithm">
+    <element name="algorithm">
+      <a:documentation> 
+Horizontal smoothing of a field
+ 
+This repeatedly applies a Helmholtz filter to the field</a:documentation>
+      <attribute name="name">
+        <value>horizontal_filter_scalar</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="scalar_source_field"/>
+      <element name="alpha">
+        <a:documentation>Scaling factor : filter is 1-\nabla_h \cdot \alpha^2 \nabla_h</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="number_of_iterations">
+        <a:documentation>Number of iterations of the filter</a:documentation>
+        <ref name="integer"/>
+      </element>
+      <element name="solver">
+        <a:documentation>Linear solver options.</a:documentation>
+        <ref name="linear_solver_options_sym"/>
+      </element>
+    </element>
+  </define>
   <!-- Binary operators -->
   <define name="scalar_sum_algorithm">
     <element name="algorithm">
@@ -1094,6 +1121,108 @@ diagnostic. If disabled, computes over the whole surface.</a:documentation>
           <ref name="integer_vector"/>
         </element>
       </optional>
+    </element>
+  </define>
+  <define name="weighted_normal_algorithm">
+    <element name="algorithm">
+      <a:documentation> 
+Galerkin projection of source field x normal
+ 
+
+The output is only on the specified surfaces.</a:documentation>
+      <attribute name="name">
+        <value>weighted_normal</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="scalar_source_field"/>
+      <optional>
+        <element name="surface_ids">
+          <a:documentation>Surface IDs defining the surface over which to compute the
+diagnostic. If disabled, computes over the whole surface.</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="fixed_surface_ids">
+          <a:documentation>Surface IDs defining surfaces which must not have their normals
+assigned to change.</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+      </optional>
+      <element name="solver">
+        <a:documentation>Linear solver options.</a:documentation>
+        <ref name="linear_solver_options_sym"/>
+      </element>
+    </element>
+  </define>
+  <define name="wear_rate_algorithm">
+    <element name="algorithm">
+      <a:documentation> 
+Galerkin projection of source field x normal
+ 
+
+The output is only on the specified surfaces.</a:documentation>
+      <attribute name="name">
+        <value>wear_rate</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <element name="wear_model">
+        <attribute name="name">
+          <value>WallStress</value>
+        </attribute>
+      </element>
+      <element name="coefficient">
+        <ref name="real"/>
+      </element>
+      <optional>
+        <element name="surface_ids">
+          <a:documentation>Surface IDs defining the surface over which to compute the
+diagnostic. If disabled, computes over the whole surface.</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+      </optional>
+      <element name="solver">
+        <a:documentation>Linear solver options.</a:documentation>
+        <ref name="linear_solver_options_sym"/>
+      </element>
+    </element>
+  </define>
+  <define name="wear_rate_vector_algorithm">
+    <element name="algorithm">
+      <a:documentation> 
+Galerkin projection of source field x normal
+ 
+
+The output is only on the specified surfaces.</a:documentation>
+      <attribute name="name">
+        <value>wear_rate_vector</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <element name="wear_model">
+        <attribute name="name">
+          <value>WallStress</value>
+        </attribute>
+      </element>
+      <element name="coefficient">
+        <ref name="real"/>
+      </element>
+      <optional>
+        <element name="surface_ids">
+          <a:documentation>Surface IDs defining the surface over which to compute the
+diagnostic. If disabled, computes over the whole surface.</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+      </optional>
+      <element name="solver">
+        <a:documentation>Linear solver options.</a:documentation>
+        <ref name="linear_solver_options_sym"/>
+      </element>
     </element>
   </define>
   <!-- Momentum diagnostics -->
@@ -2240,6 +2369,9 @@ a horizontal vector living on the specified surface.</a:documentation>
     <ref name="universal_numbering_diagnostic_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="wear_rate_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="viscous_dissipation_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
@@ -2324,6 +2456,9 @@ a horizontal vector living on the specified surface.</a:documentation>
     <ref name="l2norm_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="horizontal_filter_scalar_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="helmholtz_smoothed_scalar_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
@@ -2369,6 +2504,12 @@ a horizontal vector living on the specified surface.</a:documentation>
     <ref name="internal_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms">
+    <ref name="weighted_normal_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="wear_rate_vector_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="vector_time_averaged_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">

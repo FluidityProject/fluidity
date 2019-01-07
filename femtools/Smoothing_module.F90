@@ -19,6 +19,7 @@ module smoothing_module
   public :: smooth_scalar, smooth_vector, smooth_tensor
   public :: anisotropic_smooth_scalar, anisotropic_smooth_vector, anisotropic_smooth_tensor
   public :: length_scale_scalar, length_scale_tensor
+  public  :: horizontal_smooth_scalar
 
 contains
 
@@ -642,5 +643,88 @@ contains
     end do
 
   end function length_scale_tensor
+
+  subroutine horizontal_smooth_scalar(field_in,positions,field_out,alpha,path)
+
+    !smoothing length
+    real, intent(in)                  :: alpha
+    !input field
+    type(scalar_field), intent(inout) :: field_in
+    !coordinates
+    type(vector_field), pointer, intent(in) :: positions
+    !output field, should have same mesh as input field
+    type(scalar_field), intent(inout) :: field_out
+    character(len=*), intent(in)      :: path
+    
+    !local variables
+    type(csr_matrix) :: M
+    type(csr_sparsity) :: M_sparsity
+    type(scalar_field) :: rhsfield
+    integer :: ele
+
+    !allocate smoothing matrix, RHS
+    M_sparsity=make_sparsity(field_in%mesh, field_in%mesh, name='HelmholtzScalarSparsity')
+    call allocate(M, M_sparsity, name="HelmholtzScalarSmoothingMatrix")
+    call allocate(rhsfield, field_in%mesh, "HelmholtzScalarSmoothingRHS")
+    call zero(M); call zero(rhsfield); call zero(field_out)
+
+    ! Assemble M element by element.
+    do ele=1, element_count(field_in)
+       call assemble_horizontal_smooth_scalar(M, rhsfield, positions, field_in, alpha, ele)
+    end do
+
+    call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
+
+    call deallocate(rhsfield); call deallocate(M); call deallocate(M_sparsity)
+
+  end subroutine horizontal_smooth_scalar
+
+  subroutine assemble_horizontal_smooth_scalar(M, rhsfield, positions, field_in, alpha, ele)
+    type(csr_matrix), intent(inout) :: M
+    type(scalar_field), intent(inout) :: rhsfield
+    type(vector_field), intent(in) :: positions
+    type(scalar_field), intent(in) :: field_in
+    real, intent(in) :: alpha
+    integer, intent(in) :: ele
+    real, dimension(ele_ngi(positions,ele))                                      :: field_in_quad
+    real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele))           :: mesh_tensor_quad
+    real, dimension(ele_loc(field_in,ele), ele_ngi(field_in,ele), positions%dim) :: dshape_field_in
+    real, dimension(ele_ngi(positions,ele))                                      :: detwei
+    integer, dimension(:), pointer                                               :: ele_field_in
+    type(element_type), pointer                                                  :: shape_field_in
+    real, dimension(ele_loc(field_in, ele), ele_loc(field_in, ele))              :: field_in_mat
+    real, dimension(ele_loc(field_in, ele))                                      :: lrhsfield
+    integer :: dim
+
+    ele_field_in=>ele_nodes(field_in, ele)
+    shape_field_in=>ele_shape(field_in, ele)
+    field_in_quad = ele_val_at_quad(field_in, ele)
+
+    ! Transform derivatives and weights into physical space.
+    call transform_to_physical(positions, ele, shape_field_in, dshape&
+         &=dshape_field_in, detwei=detwei)
+
+    ! mesh size tensor=(edge lengths)**2
+    ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
+    ! factor 1/24 derives from 2nd moment of filter (see Pope 2000, Geurts&Holm 2002)
+    mesh_tensor_quad = 0.0
+    do dim=1,size(mesh_tensor_quad,1)-1
+       mesh_tensor_quad(dim,dim,:)=alpha**2
+    end do
+
+    !ewrite(2,*) 'dsd: ', dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, dshape_field_in, detwei)
+    !ewrite(2,*) 'srhs: ', shape_shape(shape_field_in,shape_field_in, detwei)
+    ! Local assembly
+    field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, dshape_field_in, detwei) &
+         & + shape_shape(shape_field_in,shape_field_in, detwei)
+    lrhsfield=shape_rhs(shape_field_in, field_in_quad*detwei)
+
+    ! Global assembly
+    call addto(M, ele_field_in, ele_field_in, field_in_mat)
+
+    call addto(rhsfield, ele_field_in, lrhsfield)
+
+  end subroutine assemble_horizontal_smooth_scalar
+
 
 end module smoothing_module

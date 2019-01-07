@@ -52,15 +52,27 @@ module SurfaceLabels
   private
   public :: FindGeometryConstraints, &
        get_coplanar_ids, reset_coplanar_ids, &
-       minimum_distance_to_line_segment
+       minimum_distance_to_line_segment, set_trust_coplanar_ids
   public :: connected_surfaces_count, surface_connectivity, &
-    & get_connected_surface_eles
+    & get_connected_surface_eles, trust_coplanar_ids
        
   ! The magic numbers corresponds to what's used in libadapt
   real, parameter:: COPLANAR_MAGIC_NUMBER=0.999999
   
+  ! Logical variable: If set to false then the get_coplanr_ids routine
+  ! will always update the coplanar_ids
+
+  logical :: trust_coplanar_ids=.true.
+  
 
 contains
+
+  subroutine set_trust_coplanar_ids(trust)
+    logical, intent(in) :: trust
+
+     trust_coplanar_ids=trust
+     
+   end subroutine set_trust_coplanar_ids
 
   subroutine FindGeometryConstraints(positions, gconstraint)
     type(vector_field), target, intent(in):: positions
@@ -305,7 +317,9 @@ contains
     else
        ! we assume they have been calculated already:
        coplanar_ids => mesh%faces%coplanar_ids
-       return
+       call alland(trust_coplanar_ids)
+       if (trust_coplanar_ids) return
+       call set_trust_coplanar_ids(.true.)
     end if
 
     if(stotel == 0) then

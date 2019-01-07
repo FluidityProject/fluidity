@@ -54,6 +54,13 @@ In this case each value requires a distinct name for the options dictionary.</a:
         </element>
       </choice>
     </oneOrMore>
+    <optional>
+      <element name="initialise_via_projection">
+        <element name="solver">
+          <ref name="linear_solver_options_sym"/>
+        </element>
+      </element>
+    </optional>
   </define>
   <!--
     Default child of prescribed vector field

@@ -450,6 +450,26 @@ lumped_mass_smoothed_vector_algorithm =
          vector_source_field
       }
    )
+horizontal_filter_scalar_algorithm =
+   (
+      ##  
+      ## Horizontal smoothing of a field
+      ##  
+      ## This repeatedly applies a Helmholtz filter to the field
+      element algorithm {
+         attribute name { "horizontal_filter_scalar" },
+         attribute material_phase_support { "single" },
+         scalar_source_field,
+	 ## Scaling factor : filter is 1-\nabla_h \cdot \alpha^2 \nabla_h
+	 element alpha { real },
+	 ## Number of iterations of the filter
+	 element number_of_iterations { integer },
+         ## Linear solver options.
+         element solver {
+            linear_solver_options_sym
+         }
+      }
+   )
 # Binary operators
 scalar_sum_algorithm =
    (
@@ -801,6 +821,83 @@ grad_normal_algorithm =
          element surface_ids {
             integer_vector
          }?
+      }
+   )
+weighted_normal_algorithm =
+   (
+      ##  
+      ## Galerkin projection of source field x normal
+      ##  
+      ##
+      ## The output is only on the specified surfaces.
+      element algorithm {
+         attribute name { "weighted_normal" },
+         attribute material_phase_support { "single" },
+         scalar_source_field,
+         ## Surface IDs defining the surface over which to compute the
+         ## diagnostic. If disabled, computes over the whole surface.
+         element surface_ids {
+            integer_vector
+         }?,
+	 ## Surface IDs defining surfaces which must not have their normals
+	 ## assigned to change.
+	 element fixed_surface_ids {
+            integer_vector
+         }?,
+         ## Linear solver options.
+         element solver {
+            linear_solver_options_sym
+         }
+      }
+   )
+wear_rate_algorithm =
+   (
+      ##  
+      ## Galerkin projection of source field x normal
+      ##  
+      ##
+      ## The output is only on the specified surfaces.
+      element algorithm {
+         attribute name { "wear_rate" },
+         attribute material_phase_support { "single" },
+         element wear_model {
+	    attribute name{ "WallStress"}
+	 },
+	 element coefficient{ real },
+         ## Surface IDs defining the surface over which to compute the
+         ## diagnostic. If disabled, computes over the whole surface.
+         element surface_ids {
+            integer_vector
+         }?,
+         ## Linear solver options.
+         element solver {
+            linear_solver_options_sym
+         }
+      }
+   )
+wear_rate_vector_algorithm =
+   (
+      ##  
+      ## Galerkin projection of source field x normal
+      ##  
+      ##
+      ## The output is only on the specified surfaces.
+      element algorithm {
+         attribute name { "wear_rate_vector" },
+         attribute material_phase_support { "single" },
+         element wear_model {
+	    attribute name{ "WallStress"}
+	 },
+	 element coefficient{ real },
+         ## Surface IDs defining the surface over which to compute the
+         ## diagnostic. If disabled, computes over the whole surface.
+         element surface_ids {
+            integer_vector
+         }?,
+         ## Linear solver options.
+         element solver {
+            linear_solver_options_sym
+         }
       }
    )
 # Momentum diagnostics
@@ -1643,6 +1740,7 @@ surface_horizontal_divergence_algorithm =
       
 
 scalar_diagnostic_algorithms = universal_numbering_diagnostic_algorithm
+scalar_diagnostic_algorithms |= wear_rate_algorithm
 scalar_diagnostic_algorithms |= viscous_dissipation_algorithm
 scalar_diagnostic_algorithms |= universal_column_id_algorithm
 scalar_diagnostic_algorithms |= tidal_harmonic_algorithm
@@ -1671,6 +1769,7 @@ scalar_diagnostic_algorithms |= node_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= mesh_quality_algorithm
 scalar_diagnostic_algorithms |= lumped_mass_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= l2norm_algorithm
+scalar_diagnostic_algorithms |= horizontal_filter_scalar_algorithm
 scalar_diagnostic_algorithms |= helmholtz_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= helmholtz_anisotropic_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= grad_normal_algorithm
@@ -1687,7 +1786,9 @@ scalar_diagnostic_algorithms |= control_volume_mass_matrix
 scalar_diagnostic_algorithms |= scalar_python_diagnostic_algorithm
 scalar_diagnostic_algorithms |= internal_algorithm
 
-vector_diagnostic_algorithms = vector_time_averaged_algorithm
+vector_diagnostic_algorithms = weighted_normal_algorithm
+vector_diagnostic_algorithms |= wear_rate_vector_algorithm
+vector_diagnostic_algorithms |= vector_time_averaged_algorithm
 vector_diagnostic_algorithms |= vector_temporalmax_algorithm
 vector_diagnostic_algorithms |= vector_sum_algorithm
 vector_diagnostic_algorithms |= vector_scalar_time_averaged_algorithm
