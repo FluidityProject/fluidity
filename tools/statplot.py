@@ -42,15 +42,17 @@ class StatplotWindow(Gtk.Window):
         self.add(self._vBox)
         self._hBox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self._vBox.pack_end(self._hBox, False, False, 0)
-        self._xCombo = Gtk.ComboBoxText()
-        self._yCombo = Gtk.ComboBoxText()
+        self._xCombo = Gtk.ComboBoxText.new()
+        self._xCombo.set_wrap_width(3)
+        self._yCombo = Gtk.ComboBoxText.new()
+        self._yCombo.set_wrap_width(3)
         paths = sorted(self._stat.Paths())
         for path in paths:
             self._xCombo.append_text(path)
             self._yCombo.append_text(path)
         if "ElapsedTime" in paths:
             ind = paths.index("ElapsedTime")
-            iterX = self._xCombo.get_model().get_iter("%d" % ind)
+            iterX = self._xCombo.get_model().get_iter(ind)
             if ind == 0:
                 iterY = self._yCombo.get_model().get_iter(1)
             else:
@@ -94,22 +96,11 @@ class StatplotWindow(Gtk.Window):
             self._stat = fluidity_tools.JoinStat(*stats)
 
     def _RefreshData(self, statfile, xData, yData):
-        stats = []
-        for i, filename in enumerate(statfile):
-            failcount = 0
-            while failcount < 5:
-                try:
-                    stats.append(fluidity_tools.Stat(filename))
-                    break
-                except (TypeError, ValueError):
-                    time.sleep(0.2)
-                    failcount += 1
-            if failcount == 5:
-                raise Exception("Could not open %s" % filename)
-        if len(stats) == 1:
-            self._stat = stats[0]
-        else:
-            self._stat = fluidity_tools.JoinStat(*stats)
+        self._xCombo.disconnect_by_func(self._ComboChangedX)
+        self._yCombo.disconnect_by_func(self._ComboChangedY)
+        self._xCombo.remove_all()
+        self._yCombo.remove_all()
+        self._ReadData(statfile)
         paths = sorted(self._stat.Paths())
         for path in paths:
             self._xCombo.append_text(path)
@@ -117,13 +108,15 @@ class StatplotWindow(Gtk.Window):
         if xData in paths and yData in paths:
             indX = paths.index(xData)
             indY = paths.index(yData)
-            iterX = self._xCombo.get_model().get_iter("%d" % indX)
-            iterY = self._yCombo.get_model().get_iter("%d" % indY)
+            iterX = self._xCombo.get_model().get_iter(indX)
+            iterY = self._yCombo.get_model().get_iter(indY)
         else:
             iterX = self._xCombo.get_model().get_iter_first()
             iterY = self._yCombo.get_model().get_iter(1)
         self._xCombo.set_active_iter(iterX)
         self._yCombo.set_active_iter(iterY)
+        self._xCombo.connect("changed", self._ComboChangedX)
+        self._yCombo.connect("changed", self._ComboChangedY)
 
     def _ComboChangedX(self, widget):
         self._PlotData(self._PlotType, 'linear', self._ax.get_yscale())
@@ -136,8 +129,11 @@ class StatplotWindow(Gtk.Window):
     def _PlotData(self, type, xscale, yscale):
         self._xField = self._xCombo.get_active_text()
         self._yField = self._yCombo.get_active_text()
-        self._xData = self._stat[self._xField]
-        self._yData = self._stat[self._yField]
+        try:
+            self._xData = self._stat[self._xField]
+            self._yData = self._stat[self._yField]
+        except AttributeError:
+            pass
         self._ax.cla()
         if numpy.unique(self._xData).size == 1 \
                 and numpy.unique(self._yData).size == 1:
