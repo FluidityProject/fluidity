@@ -32,25 +32,4 @@ pipeline {
             }
         }
     }
-    post {
-        aborted {
-            slackSend(color: '#DEADED',
-	              message: "Build aborted - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)")
-        }
-	success {
-	    slackSend (color: 'good',
-	     message: "Build completed successfully - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)")
-        }
-	unstable {
-	    slackSend(color: 'warning',
-	              message: "Build completed with test failures - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)")
-            script {
-                currentBuild.result = "FAILURE"
-            }
-        }
-	failure {
-	    slackSend(color: 'danger',
-	              message: "Build failed - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)")
-        }
-    }
 }
