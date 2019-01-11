@@ -1,10 +1,8 @@
-def PROJECT_NAME=JOB_NAME.split("\\s|/")[2].toLowerCase()
-
 pipeline {
     agent { 
         docker {
-            image "fluidity/baseimages:${PROJECT_NAME}"
-            label 'azure-linux-8core'
+            image "fluidity/baseimages:xenial"
+            label 'dockerhost'
         } 
     }
     environment {
