@@ -12,7 +12,6 @@ pipeline {
     stages {
         stage('Configuring') {   
             steps { 
-                slackSend "Build started - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
                 sh './configure --enable-2d-adaptivity' 
             }
         }    
