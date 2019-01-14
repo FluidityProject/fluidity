@@ -896,7 +896,7 @@ contains
     ! if (present(gammaS)) gammaS = sqrt(Cd)/(12.5*(700.0**(2.0/3.0))-9.0)
 
     ! Use suggested values for gammaT, gammaS from Jenkins, Nicholls, Corr, 2010
-    if (present(gammaT)) gammaT = 1.10e-3
+    if (present(gammaT)) gammaT = 1.10e-2
     if (present(gammaS)) gammaS = 3.10e-4
 
 
