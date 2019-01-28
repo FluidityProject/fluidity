@@ -1154,6 +1154,16 @@ contains
       ! current objects before the adapt so we can later on check they have all
       ! been deallocated
       call tag_references()
+      
+      if (get_num_detector_lists()>0) then
+        ! Check detector elements exist on this processor, pack to other processor if not
+        call get_registered_detector_lists(detector_list_array)
+         
+        do j = 1, size(detector_list_array)
+           call l2_halo_detectors(detector_list_array(j)%ptr, old_positions, states(1))
+        end do
+
+      end if
 
       ! Generate a new mesh field based on the current mesh field and the input
       ! metric
@@ -1201,7 +1211,6 @@ contains
 
       if (get_num_detector_lists()>0) then
         ! Update detector element and local_coords for every detector in all lists
-        call get_registered_detector_lists(detector_list_array)
         do j = 1, size(detector_list_array)
            call search_for_detectors(detector_list_array(j)%ptr, new_positions)
         end do
