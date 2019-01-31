@@ -40,9 +40,7 @@ CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include
 
 LINKER = @LINKER@ @LDFLAGS@
 
-FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
-
-LIBS = -L../lib ./lib/libadaptivity.a @LIBSPATIALINDEX@ @SPUDLIB@ ./lib/libvtkfortran.a @FLIBJUDY@ @LIBS@ @BLAS_LIBS@ @LIB_FEMDEM@
+LIBS = -L../lib ./lib/libadaptivity.a ./lib/libvtkfortran.a @LIBS@ @BLAS_LIBS@ @LIB_FEMDEM@
 FLIBS = -L../lib @FLIBS@
 
 # These objects are needed in each program as they provide the code related to
@@ -145,10 +143,10 @@ $(TRIANGLE_TEST_MESH): triangle_test_mesh.o
 	$(LINKER) -o $(TRIANGLE_TEST_MESH) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
 
 $(TEST_LAPLACIAN): test_laplacian.o
-	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(VISUALISE_ELEMENTS): visualise_elements.o
-	$(FLLINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+	$(LINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(VERTICAL_INTEGRATION): Vertical_Integration.o Vertical_Integration_main.o lib/
 	$(LINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
@@ -173,7 +171,7 @@ $(VTKPROJECTION): vtkprojection.cpp lib/
 	$(LINKER) $(CXXFLAGS) -I../include -o $(VTKPROJECTION) vtkprojection.cpp -L../lib/ -l$(FLUIDITY) $(LIBS)
 
 $(PERIODISE): periodise.o lib/
-	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(FLDIAGNOSTICS): fldiagnostics.o fldiagnostics_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
