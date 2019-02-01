@@ -725,6 +725,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -836,6 +837,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -1088,6 +1090,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1225,7 +1236,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1378,6 +1389,7 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
+  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -9976,8 +9988,6 @@ elif test "$ac_cv_search_Judy1Set" = "no" ; then
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "\"libJudy not found\"
 See \`config.log' for more details" "$LINENO" 5; }
-else
-  LIBS="$LIBS $ac_cv_search_Judy1Set"
 fi
 
 for ac_header in Judy.h
@@ -10086,8 +10096,6 @@ elif test "$ac_cv_search__ZN12SpatialIndex6RegionC1Ev" = "no" ; then
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "\"libspatialindex not found\"
 See \`config.log' for more details" "$LINENO" 5; }
-else
-  LIBS="$LIBS $ac_cv_search__ZN12SpatialIndex6RegionC1Ev"
 fi
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -10262,6 +10270,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 # spud
+OLDLIBS=$LIBS
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing spud_get_option" >&5
 $as_echo_n "checking for library containing spud_get_option... " >&6; }
 if ${ac_cv_search_spud_get_option+:} false; then :
@@ -10342,7 +10351,7 @@ $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "\"libspud not found\"
 See \`config.log' for more details" "$LINENO" 5; }
 else
-  LIBS="$LIBS $ac_cv_search_spud_get_option"
+  LIBS="$OLDLIBS -Wl,-Bstatic $ac_cv_search_spud_get_option -Wl,-Bdynamic"
 fi
 
 for ac_header in spud.h
