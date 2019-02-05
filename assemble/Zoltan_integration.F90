@@ -2050,7 +2050,7 @@ module zoltan_integration
     integer :: old_local_element_number, new_local_element_number, old_universal_element_number
     integer, allocatable :: ndets_being_sent(:)
     real, allocatable :: send_buff(:,:), recv_buff(:,:)
-    logical do_broadcast
+    logical do_broadcast, sent
     integer, dimension(3) :: attribute_size
     integer :: total_attributes
     type(element_type), pointer :: shape
@@ -2072,7 +2072,6 @@ module zoltan_integration
              attribute_size(1)=size(detector%attributes)
              attribute_size(2)=size(detector%old_attributes)
              attribute_size(3)=size(detector%old_fields)
-             total_attributes=sum(attribute_size)
           end if
        end if
        do while (associated(detector))
@@ -2111,6 +2110,7 @@ module zoltan_integration
        allocate(ndets_being_sent(getnprocs()))
        call mpi_allgather(send_count, 1, getPINTEGER(), ndets_being_sent, 1 , getPINTEGER(), MPI_COMM_FEMTOOLS, ierr)
        assert(ierr == MPI_SUCCESS)
+
        ! Check whether we have to perform broadcast, if not return
        do_broadcast=.false.
        if (any(ndets_being_sent > 0)) then
@@ -2120,6 +2120,17 @@ module zoltan_integration
           deallocate(ndets_being_sent)
           cycle
        end if
+       i=1
+       sent=.false.
+       do while (sent.eqv..false.)
+          if (ndets_being_sent(i)>0) then
+             call mpi_bcast(attribute_size, 3, getPINTEGER(), i-1, MPI_COMM_FEMTOOLS, ierr)
+             assert(ierr == MPI_SUCCESS)
+             total_attributes=sum(attribute_size)
+             sent=.true.
+          end if
+          i=i+1
+       end do
        ewrite(2,*) "Broadcast required, initialising..."
        
        ! Allocate memory for all the particles you're going to send
