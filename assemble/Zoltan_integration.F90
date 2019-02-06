@@ -2050,7 +2050,7 @@ module zoltan_integration
     integer :: old_local_element_number, new_local_element_number, old_universal_element_number
     integer, allocatable :: ndets_being_sent(:)
     real, allocatable :: send_buff(:,:), recv_buff(:,:)
-    logical do_broadcast, sent
+    logical :: do_broadcast, sent
     integer, dimension(3) :: attribute_size
     integer :: total_attributes
     type(element_type), pointer :: shape
