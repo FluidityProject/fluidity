@@ -503,16 +503,32 @@ The t argument is for future use only - currently particle locations are only se
               </element>
             </oneOrMore>
           </zeroOrMore>
-          <choice>
-            <element name="fail_outside_domain">
-              <a:documentation>By default Fluidity will fail if a particle has left the domain.</a:documentation>
-              <empty/>
-            </element>
-            <element name="write_nan_outside_domain">
-              <a:documentation>Enable to write NaN values to particle output if a particle has left the domain.</a:documentation>
-              <empty/>
-            </element>
-          </choice>
+          <element name="spawning_outside_domain">
+            <a:documentation>Options for particles spawning outside the computational domain.</a:documentation>
+            <choice>
+              <element name="fail_outside_domain">
+                <a:documentation>By default Fluidity will fail if a particle spawns outside the domain.</a:documentation>
+                <empty/>
+              </element>
+              <element name="write_nan_outside_domain">
+                <a:documentation>Enable to write NaN values to particle output if a particle spawns outside the domain.</a:documentation>
+                <empty/>
+              </element>
+            </choice>
+          </element>
+          <element name="moving_outside_domain">
+            <a:documentation>Options for particles being advected outside the computational domain.</a:documentation>
+            <choice>
+              <element name="make_static">
+                <a:documentation>By default Fluidity will make particles static if they move outside the domain.</a:documentation>
+                <empty/>
+              </element>
+              <element name="delete">
+                <a:documentation>Enable particles to be deleted upon moving outside the domain.</a:documentation>
+                <empty/>
+              </element>
+            </choice>
+          </element>
           <optional>
             <element name="ascii_output">
               <a:documentation>Enable to write particle output in ascii format</a:documentation>

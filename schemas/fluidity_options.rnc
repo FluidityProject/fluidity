@@ -407,16 +407,28 @@ start =
                      }+
 	       }+
 	    )*,
-	    (
-               ## By default Fluidity will fail if a particle has left the domain.
+	    ## Options for particles spawning outside the computational domain.
+	    element spawning_outside_domain {
+               ## By default Fluidity will fail if a particle spawns outside the domain.
                element fail_outside_domain {
                   empty
                }|
-               ## Enable to write NaN values to particle output if a particle has left the domain.
+               ## Enable to write NaN values to particle output if a particle spawns outside the domain.
                element write_nan_outside_domain {
                   empty
                }
-            ),
+	    },
+	    ## Options for particles being advected outside the computational domain.
+	    element moving_outside_domain {
+               ## By default Fluidity will make particles static if they move outside the domain.
+               element make_static {
+                  empty
+               }|
+               ## Enable particles to be deleted upon moving outside the domain.
+               element delete {
+                  empty
+               }
+	    },
 	    ## Enable to write particle output in ascii format
             element ascii_output {
                comment
