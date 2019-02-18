@@ -407,7 +407,7 @@ NOTE: Requires -v2</a:documentation>
             <oneOrMore>
               <element name="particle_group">
                 <a:documentation>Particles groups containing multiple particle arrays or subgroups. The particle group specifies
-which velocity field is used, as well as attributes carried and (eventually) spawning
+which velocity field is used, as well as attributes carried and spawning
 and deleting options.</a:documentation>
                 <attribute name="name">
                   <data type="string"/>
@@ -428,6 +428,23 @@ and deleting options.</a:documentation>
                       <a:documentation>Maximum number of particles per control volume</a:documentation>
                       <ref name="integer"/>
                     </element>
+                    <oneOrMore>
+                      <element name="particles_to_spawn">
+                        <a:documentation>Set which particles are spawned based off subgroup or attribute carried.</a:documentation>
+                        <choice>
+                          <element name="subgroup">
+                            <attribute name="name">
+                              <data type="string"/>
+                            </attribute>
+                          </element>
+                          <element name="attribute">
+                            <attribute name="name">
+                              <data type="string"/>
+                            </attribute>
+                          </element>
+                        </choice>
+                      </element>
+                    </oneOrMore>
                   </element>
                 </optional>
                 <oneOrMore>

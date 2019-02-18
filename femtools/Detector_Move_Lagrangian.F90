@@ -462,6 +462,7 @@ contains
                          detector_list%last => det0%previous
                       end if
                       detector_list%length = detector_list%length -1
+                      detector_list%total_num_det = detector_list%total_num_det -1
                       det_next => det0%next
                       call deallocate(det0)
                       det0 => det_next

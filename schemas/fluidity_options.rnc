@@ -329,7 +329,7 @@ start =
 	 element particles {
 	    (
 		  ## Particles groups containing multiple particle arrays or subgroups. The particle group specifies
-		  ## which velocity field is used, as well as attributes carried and (eventually) spawning
+		  ## which velocity field is used, as well as attributes carried and spawning
 		  ## and deleting options.
                   element particle_group {
                      attribute name { xsd:string },
@@ -345,7 +345,16 @@ start =
 			## Maximum number of particles per control volume
 		        element max_cv_threshhold {
 			   integer
-			}
+			},
+			## Set which particles are spawned based off subgroup or attribute carried.
+			element particles_to_spawn {
+			   element subgroup {
+			      attribute name { xsd:string }
+			   }|
+			   element attribute {
+			      attribute name { xsd:string }
+			   }
+			}+
 		     }?,
 		     ## Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
 		     ## and carry the same attributes. Subgroups can have different initial positions specified via a python
