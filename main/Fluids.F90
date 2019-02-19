@@ -76,7 +76,7 @@ module fluids_module
   use particles
   use particle_diagnostics, only: initialise_particle_diagnostics, update_particle_diagnostics, &
        & initialise_constant_particle_diagnostics, initialise_particle_diagnostic_fields, &
-       & initialise_particle_material_fields
+       & initialise_particle_material_fields, particle_cv_check
   use checkpoint
   use goals
   use adaptive_timestepping
@@ -340,6 +340,7 @@ contains
     call initialise_particle_positions(filename, state)
 
     !Initialise multimaterial fields based on particles:
+    call particle_cv_check(state)
     call initialise_constant_particle_diagnostics(state)
     
     ! Calculate diagnostic variables:
@@ -741,6 +742,7 @@ contains
 
        !Call move and write particles
        call move_particles(state, dt, timestep)
+       call particle_cv_check(state)
        call update_particle_diagnostics(state, current_time)
        !call write_particles_loop(state, current_time, dt) !Currently removed for efficiency
        
@@ -990,6 +992,7 @@ contains
     end if
 
     !Diagnostic MVF fields based on particles
+    call particle_cv_check(state)
     call initialise_particle_material_fields(state)
  
     ! Diagnostic fields

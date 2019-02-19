@@ -401,10 +401,11 @@ contains
     logical :: owned
     real, dimension(mesh_dim(vfield)+1) :: arrival_local_coords
     integer, dimension(:), pointer :: neigh_list
-    integer :: neigh, proc_local_number
+    integer :: neigh, proc_local_number, deleted_detectors
     logical :: make_static, make_delete
 
     make_delete=have_option("/particles/moving_outside_domain/delete")
+    deleted_detectors=0
     
     !Loop over all the detectors
     det0 => detector_list%first
@@ -462,7 +463,8 @@ contains
                          detector_list%last => det0%previous
                       end if
                       detector_list%length = detector_list%length -1
-                      detector_list%total_num_det = detector_list%total_num_det -1
+                      deleted_detectors=deleted_detectors+1
+                      !detector_list%total_num_det = detector_list%total_num_det -1
                       det_next => det0%next
                       call deallocate(det0)
                       det0 => det_next
@@ -494,6 +496,9 @@ contains
           det0 => det0%next
        end if
     end do
+    call allsum(deleted_detectors)
+    detector_list%total_num_det = detector_list%total_num_det-deleted_detectors
+    
   end subroutine move_detectors_guided_search
 
 end module detector_move_lagrangian

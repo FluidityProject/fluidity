@@ -338,21 +338,31 @@ start =
 		     },
 		     ## Options for spawning and deleting particles. Defined per particle_group.
 		     element particle_spawning {
-		     	## Minimum number of particles per control volume
-		        element min_cv_threshhold {
-			   integer
-			},
-			## Maximum number of particles per control volume
-		        element max_cv_threshhold {
-			   integer
-			},
-			## Set which particles are spawned based off subgroup or attribute carried.
-			element particles_to_spawn {
-			   element subgroup {
-			      attribute name { xsd:string }
-			   }|
-			   element attribute {
-			      attribute name { xsd:string }
+			## Set spawning parameters, such as the number of particles per cv, and which field particles will be spawned to.
+			element spawning_parameters {
+			   ## Minimum number of particles per control volume.
+		           element min_cv_threshhold {
+			      integer
+			   },
+			   ## Maximum number of particles per control volume.
+		           element max_cv_threshhold {
+			      integer
+		 	   },
+		           ## Set which material phase and field the particles will be spawned to.
+			   element material_phase {
+			      attribute name { xsd:string },
+			      element field {
+			         attribute name { xsd:string }
+		              }
+			   },
+			   ## Set which particles will spawn, based off particle subgroup or attribute carried.
+			   element particles_to_spawn {
+			      element subgroup {
+			         attribute name { xsd:string }
+			      }|
+			      element attribute {
+			         attribute name { xsd:string }
+			      }
 			   }
 			}+
 		     }?,

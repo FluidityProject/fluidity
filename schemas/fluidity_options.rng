@@ -420,29 +420,43 @@ and deleting options.</a:documentation>
                 <optional>
                   <element name="particle_spawning">
                     <a:documentation>Options for spawning and deleting particles. Defined per particle_group.</a:documentation>
-                    <element name="min_cv_threshhold">
-                      <a:documentation>Minimum number of particles per control volume</a:documentation>
-                      <ref name="integer"/>
-                    </element>
-                    <element name="max_cv_threshhold">
-                      <a:documentation>Maximum number of particles per control volume</a:documentation>
-                      <ref name="integer"/>
-                    </element>
                     <oneOrMore>
-                      <element name="particles_to_spawn">
-                        <a:documentation>Set which particles are spawned based off subgroup or attribute carried.</a:documentation>
-                        <choice>
-                          <element name="subgroup">
+                      <element name="spawning_parameters">
+                        <a:documentation>Set spawning parameters, such as the number of particles per cv, and which field particles will be spawned to.</a:documentation>
+                        <element name="min_cv_threshhold">
+                          <a:documentation>Minimum number of particles per control volume.</a:documentation>
+                          <ref name="integer"/>
+                        </element>
+                        <element name="max_cv_threshhold">
+                          <a:documentation>Maximum number of particles per control volume.</a:documentation>
+                          <ref name="integer"/>
+                        </element>
+                        <element name="material_phase">
+                          <a:documentation>Set which material phase and field the particles will be spawned to.</a:documentation>
+                          <attribute name="name">
+                            <data type="string"/>
+                          </attribute>
+                          <element name="field">
                             <attribute name="name">
                               <data type="string"/>
                             </attribute>
                           </element>
-                          <element name="attribute">
-                            <attribute name="name">
-                              <data type="string"/>
-                            </attribute>
-                          </element>
-                        </choice>
+                        </element>
+                        <element name="particles_to_spawn">
+                          <a:documentation>Set which particles will spawn, based off particle subgroup or attribute carried.</a:documentation>
+                          <choice>
+                            <element name="subgroup">
+                              <attribute name="name">
+                                <data type="string"/>
+                              </attribute>
+                            </element>
+                            <element name="attribute">
+                              <attribute name="name">
+                                <data type="string"/>
+                              </attribute>
+                            </element>
+                          </choice>
+                        </element>
                       </element>
                     </oneOrMore>
                   </element>

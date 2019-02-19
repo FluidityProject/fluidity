@@ -13,8 +13,7 @@
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
-!    version 2.1 of the License.
-!
+!    version 2.1 of the License!
 !    This library is distributed in the hope that it will be useful,
 !    but WITHOUT ANY WARRANTY; without even the implied warranty of
 !    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
@@ -30,10 +29,11 @@
 module particle_diagnostics
 
   use fldebug
-  use global_parameters, only : OPTION_PATH_LEN
+  use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
   use futils, only: int2str
-  use particles, only : get_particles, get_particle_arrays, update_list_lengths, &
-       & set_particle_attributes, initialise_constant_particle_attributes
+  use particles, only : get_particle_arrays, update_list_lengths, &
+       & set_particle_attributes, initialise_constant_particle_attributes, &
+       & particle_lists
   use spud
   use parallel_tools, only: getnprocs, allsum
   use state_module
@@ -57,7 +57,8 @@ module particle_diagnostics
   public :: initialise_particle_diagnostics, update_particle_diagnostics, &
        & calculate_diagnostics_from_particles, calculate_ratio_from_particles, &
        & calculate_numbers_from_particles, initialise_constant_particle_diagnostics, &
-       & initialise_particle_diagnostic_fields, initialise_particle_material_fields
+       & initialise_particle_diagnostic_fields, initialise_particle_material_fields, &
+       & particle_cv_check
 
   contains
 
@@ -186,22 +187,22 @@ module particle_diagnostics
     end do
     k = size(state)
 
-!!$    !Initialise diagnostic fields with init_after_particles
-!!$    do i = 1,size(state)
-!!$       do k = 1,scalar_field_count(state(i))
-!!$          s_field => extract_scalar_field(state(i),k)     
-!!$          if (have_option(trim(s_field%option_path)//"/diagnostic/init_after_particles")) then
-!!$             ! Calculate dependencies
-!!$             call calculate_dependencies(state, i, s_field, &
-!!$          & dep_states_mask = calculated_states, exclude_nonrecalculated = .false.)
-!!$             ! Calculate the diagnostic
-!!$             ewrite(2, *) "Calculating diagnostic field: "//trim(state(i)%name)//"::"//trim(s_field%name)
-!!$             call calculate_diagnostic_variable(state, i, s_field)
-!!$             ! Mark the field as calculated
-!!$             call insert(calculated_states(i), s_field, s_field%name)
-!!$          end if
-!!$       end do
-!!$    end do
+!!$!!!$    !Initialise diagnostic fields with init_after_particles
+!!$!!!$    do i = 1,size(state)
+!!$!!!$       do k = 1,scalar_field_count(state(i))
+!!$!!!$          s_field => extract_scalar_field(state(i),k)     
+!!$!!!$          if (have_option(trim(s_field%option_path)//"/diagnostic/init_after_particles")) then
+!!$!!!$             ! Calculate dependencies
+!!$!!!$             call calculate_dependencies(state, i, s_field, &
+!!$!!!$          & dep_states_mask = calculated_states, exclude_nonrecalculated = .false.)
+!!$!!!$             ! Calculate the diagnostic
+!!$!!!$             ewrite(2, *) "Calculating diagnostic field: "//trim(state(i)%name)//"::"//trim(s_field%name)
+!!$!!!$             call calculate_diagnostic_variable(state, i, s_field)
+!!$!!!$             ! Mark the field as calculated
+!!$!!!$             call insert(calculated_states(i), s_field, s_field%name)
+!!$!!!$          end if
+!!$!!!$       end do
+!!$!!!$    end do
 
   end subroutine initialise_particle_diagnostics
 
@@ -219,7 +220,6 @@ module particle_diagnostics
     integer :: i, k
     integer :: dim, particle_groups, list_counter, particle_materials
     integer, dimension(:), allocatable :: particle_arrays
-
     !Check whether there are any particles.
     particle_groups = option_count("/particles/particle_group")
     
@@ -342,25 +342,25 @@ module particle_diagnostics
     end do
     k = size(state)
 
-!!$    !Initialise diagnostic fields with init_after_particles
-!!$    do i = 1,size(state)
-!!$       do k = 1,scalar_field_count(state(i))
-!!$          s_field => extract_scalar_field(state(i),k)     
-!!$          if (have_option(trim(s_field%option_path)//"/diagnostic/init_after_particles")) then
-!!$             ! Calculate dependencies
-!!$             call calculate_dependencies(state, i, s_field, &
-!!$          & dep_states_mask = calculated_states, exclude_nonrecalculated = .false.)
-!!$             ! Calculate the diagnostic
-!!$             ewrite(2, *) "Calculating diagnostic field: "//trim(state(i)%name)//"::"//trim(s_field%name)
-!!$             call calculate_diagnostic_variable(state, i, s_field)
-!!$             ! Mark the field as calculated
-!!$             call insert(calculated_states(i), s_field, s_field%name)
-!!$          end if
-!!$       end do
-!!$    end do
+!!!$    !Initialise diagnostic fields with init_after_particles
+!!!$    do i = 1,size(state)
+!!!$       do k = 1,scalar_field_count(state(i))
+!!!$          s_field => extract_scalar_field(state(i),k)     
+!!!$          if (have_option(trim(s_field%option_path)//"/diagnostic/init_after_particles")) then
+!!!$             ! Calculate dependencies
+!!!$             call calculate_dependencies(state, i, s_field, &
+!!!$          & dep_states_mask = calculated_states, exclude_nonrecalculated = .false.)
+!!!$             ! Calculate the diagnostic
+!!!$             ewrite(2, *) "Calculating diagnostic field: "//trim(state(i)%name)//"::"//trim(s_field%name)
+!!!$             call calculate_diagnostic_variable(state, i, s_field)
+!!!$             ! Mark the field as calculated
+!!!$             call insert(calculated_states(i), s_field, s_field%name)
+!!!$          end if
+!!!$       end do
+!!!$    end do
 
   end subroutine initialise_particle_diagnostic_fields
-    
+!!$    
   subroutine calculate_diagnostics_from_particles(states, state_index, s_field)
 
     !!! Subroutine to determine which method is being used
@@ -377,7 +377,7 @@ module particle_diagnostics
     case("ratio")
         call calculate_ratio_from_particles(states, state_index, s_field)
        
-     case("num_particles")
+     case("num_particles") !!!!need to edit this to give the option of attribute or subgroup
         call calculate_numbers_from_particles(s_field)
         
     end select
@@ -415,8 +415,8 @@ module particle_diagnostics
     integer :: group_attribute
     integer, allocatable, dimension(:) :: group_arrays
     
-    call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/group/name", lgroup)
-    call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/group/attribute/name", lattribute)
+    call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/particle_group/name", lgroup)
+    call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/particle_group/particle_attribute/name", lattribute)
     ewrite(2,*) "Calculate diagnostic field from particle group: ", trim(lgroup), ", attribute: ", trim(lattribute)
 
     !Initialize field as 0
@@ -482,11 +482,6 @@ module particle_diagnostics
           call halo_accumulate(halo, node_part_count)
           call halo_accumulate(halo, node_values)
        end if
-
-       !Spawn and Delete particles if enabled
-       if (state_index==1.and.have_option("/particles/particle_group::"//trim(lgroup)//"/particle_spawning")) then
-          call particle_cv_check(states, s_field, node_values, node_part_count, node_particles, group_arrays, lgroup, group_attribute, halo, nprocs)
-       end if
        
        do i = 1,node_count(s_field)
           !Determine field value from ratio method
@@ -514,108 +509,7 @@ module particle_diagnostics
 
   end subroutine calculate_ratio_from_particles
 
-  subroutine particle_cv_check(states, s_field, node_values, node_part_count, node_particles, group_arrays, lgroup, group_attribute, halo, nprocs)
-    !Routine to check particle numbers fall within CV thresholds
-    !Spawns or deletes particles if numbers exceed or fall below CV thresholds
-
-    use particles, only: particle_lists
-    type(state_type), dimension(:), target, intent(in) :: states
-    type(scalar_field), intent(in) :: s_field
-    type(halo_type), pointer, intent(inout) :: halo
-    character(len=OPTION_PATH_LEN), intent(in) :: lgroup
-    type(detector_linked_list), dimension(:,:), intent(inout) :: node_particles
-    real, dimension(:), intent(inout) :: node_values, node_part_count
-    integer, dimension(:), intent(inout) :: group_arrays
-    integer, intent(in) :: group_attribute
-    integer, intent(in) :: nprocs
-    type(vector_field), pointer :: xfield
-    integer :: i, j
-
-    integer, allocatable, dimension(:) :: summed_particles, add_particles, remove_particles
-    real, dimension(:), allocatable :: temp_values, temp_part_count
-    integer :: min_thresh, max_thresh, total_particles
-    
-    xfield=>extract_vector_field(states(1), "Coordinate")
-
-    !Set minimum and maximum particle thresholds per control volume
-    if (have_option("/particles/particle_group::"//trim(lgroup)//"/particle_spawning")) then
-       call get_option("/particles/particle_group::"//trim(lgroup)//"/particle_spawning/min_cv_threshhold", min_thresh)
-       call get_option("/particles/particle_group::"//trim(lgroup)//"/particle_spawning/max_cv_threshhold", max_thresh)
-    end if
-
-    allocate(summed_particles(size(group_arrays)))
-    allocate(add_particles(size(group_arrays)))
-    allocate(remove_particles(size(group_arrays)))
-    allocate(temp_part_count(size(node_part_count)))
-    allocate(temp_values(size(node_values)))
-
-    summed_particles(:) = 0
-    temp_part_count(:) = 0
-    temp_values(:) = 0
-
-    !Loop over all nodes
-    do i = 1,node_count(s_field)
-       !Count number of particles per node and ensure thresholds are not broken
-       if (node_part_count(i)<min_thresh) then
-          if (node_part_count(i)>0) then
-             if (node_part_count(i)<min_thresh/2) then
-                call multi_spawn_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, xfield, summed_particles, i, 3)
-             else 
-                call spawn_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, xfield, add_particles, i)
-                summed_particles=summed_particles+add_particles
-             end if
-          else if (node_part_count(i)==0) then!need to add something here for parallel (only if node owned?) check in more detail...
-             if (node_owned(s_field, i)) then
-                call spawn_zero_particles(temp_part_count(:), temp_values(:), node_particles(:,:), group_arrays, group_attribute, xfield, add_particles, i, min_thresh)
-                summed_particles=summed_particles+add_particles
-             end if
-          end if
-       end if
-    end do
-    if (nprocs>1) then
-       call halo_accumulate(halo, temp_part_count)
-       call halo_accumulate(halo, temp_values)
-    end if
-
-    node_part_count(:) = node_part_count(:) + temp_part_count(:)
-    node_values(:) = node_values(:) + temp_values(:)
-    temp_part_count(:) = 0
-    temp_values(:) = 0
-
-    do i = 1,node_count(s_field)
-       if (node_part_count(i)>max_thresh) then
-          call delete_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, remove_particles)
-          summed_particles=summed_particles-remove_particles
-       end if
-    end do
-    if (nprocs>1) then
-       call halo_accumulate(halo, temp_part_count)
-       call halo_accumulate(halo, temp_values)
-    end if
-    node_part_count(:) = node_part_count(:) + temp_part_count(:)
-    node_values(:) = node_values(:) + temp_values(:)
-    
-    do j=1,size(group_arrays)
-       call allsum(summed_particles(j))
-       particle_lists(group_arrays(j))%total_num_det=particle_lists(group_arrays(j))%total_num_det+summed_particles(j)
-    end do
-
-    !Sanity check
-    do j=1,size(group_arrays)
-       total_particles = particle_lists(group_arrays(j))%length
-       call allsum(total_particles)
-       assert(total_particles==particle_lists(group_arrays(j))%total_num_det)
-    end do
-    
-    deallocate(add_particles)
-    deallocate(remove_particles)
-    deallocate(summed_particles)
-    deallocate(temp_part_count)
-    deallocate(temp_values)
-    
-  end subroutine particle_cv_check
-
-  subroutine calculate_numbers_from_particles(s_field)
+    subroutine calculate_numbers_from_particles(s_field) 
 
     !!Calculate s_field using the ratio method from particles
     !!First determine which particle groups/subgroups/attributes are being used
@@ -627,7 +521,7 @@ module particle_diagnostics
     type(scalar_field), intent(inout) :: s_field
     type(halo_type), pointer :: halo
 
-    character(len=OPTION_PATH_LEN) :: lgroup
+    character(len=OPTION_PATH_LEN) :: lgroup, lsubgroup, lattribute
     type(detector_type), pointer :: particle
     integer :: i
     real, allocatable, dimension(:) :: node_part_count ! real instead of integer, so we can use halo_accumulate
@@ -639,9 +533,21 @@ module particle_diagnostics
     integer :: group_attribute
     integer, allocatable, dimension(:) :: group_arrays
 
+    logical :: have_subgroup, have_attribute
 
-    call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/group/name", lgroup)
-    ewrite(2,*) "Calculate number of particles from particle group: ", trim(lgroup)
+    have_subgroup=.false.
+    have_attribute=.false.
+
+    call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/particle_group/name", lgroup)
+    if (have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/particle_group/particle_subgroup")) then
+       call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/particle_group/particle_subgroup/name", lsubgroup)
+       ewrite(2,*) "Calculate number of particles from particle group: ", trim(lgroup), " subgroup: ", trim(lsubgroup)
+       have_subgroup=.true.
+    else if (have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/particle_group/particle_attribute")) then
+       call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/particle_group/particle_attribute/name", lattribute)
+       ewrite(2,*) "Calculate number of particles from particle group: ", trim(lgroup), " attribute: ", trim(lattribute)
+       have_attribute=.true.
+    end if
 
     !Initialize field as 0
     s_field%val(:) = 0
@@ -658,7 +564,11 @@ module particle_diagnostics
 
     if (allocated(particle_lists)) then
        !Particles are initialized, call subroutine to get relevant particle arrays and attributes
-       call get_particle_arrays(lgroup, group_arrays, group_attribute)
+       if (have_subgroup) then
+          call get_particle_arrays(lgroup, group_arrays, group_attribute, lsubgroup=lsubgroup)
+       else if (have_attribute) then
+          call get_particle_arrays(lgroup, group_arrays, group_attribute, lattribute=lattribute)
+       end if
 
        !Allocate arrays to store summed attribute values and particle counts at nodes
        allocate(node_part_count(node_count(s_field)))
@@ -709,6 +619,353 @@ module particle_diagnostics
     end if
 
   end subroutine calculate_numbers_from_particles
+
+  subroutine particle_cv_check(states)
+    !Routine to check particle numbers fall within CV thresholds
+    !Spawns or deletes particles if numbers exceed or fall below CV thresholds
+    
+    type(state_type), dimension(:), target, intent(in) :: states
+    
+    type(scalar_field), pointer :: s_field
+    integer, allocatable, dimension(:) :: group_arrays
+    integer :: group_attribute
+    integer :: i, j, particle_groups, k, spawn_groups, l
+    character(len=FIELD_NAME_LEN) :: mat_phase, field_name
+    character(len=FIELD_NAME_LEN) :: sname, mname
+    character(len=OPTION_PATH_LEN) :: particle_group, particle_subgroup, particle_attribute
+    
+    logical :: have_subgroup, have_attribute
+    integer :: min_thresh, max_thresh
+
+    ewrite(2,*) "In particle_cv_check"
+
+    !Check if there are particles
+    particle_groups = option_count('/particles/particle_group')
+
+    if (particle_groups==0) return
+
+    do k = 1, particle_groups
+       if (have_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning")) then
+          have_subgroup= .false.
+          have_attribute= .false.
+          
+          !Find the number of subgroups/attributes being spawned
+          spawn_groups = option_count("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters")
+          
+          do l = 1, spawn_groups
+             !Set minimum and maximum particle thresholds per control volume
+             call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/min_cv_threshhold", min_thresh)
+             call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/max_cv_threshhold", max_thresh)
+             
+             !Get the field particles will be spawned to
+             call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/material_phase/name", mat_phase)
+             call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/material_phase/field/name", field_name)
+             
+             if (have_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/particles_to_spawn/subgroup")) then
+                have_subgroup=.true.
+                call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/particles_to_spawn/subgroup/name", particle_subgroup)
+             end if
+
+             if (have_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/particles_to_spawn/attribute")) then
+                have_attribute=.true.
+                call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/particles_to_spawn/attribute/name", particle_attribute)
+             end if
+
+             field_loop: do i = 1,size(states)
+                call get_option("material_phase/name", mname)
+                if (trim(mname)==trim(mat_phase)) then
+                   do j = 1,scalar_field_count(states(i))!!!!!Only scalar fields?
+                      s_field => extract_scalar_field(states(i),j)
+                      call get_option(trim(s_field%option_path)//"/name", sname)
+                      if (trim(sname)==trim(field_name)) then
+                         exit field_loop
+                      end if
+                   end do
+                end if
+             end do field_loop
+
+             !Need to get particle arrays
+             call get_option("/particles/particle_group["//int2str(k-1)//"]/name", particle_group)
+             if (have_subgroup) then
+                call get_particle_arrays(particle_group, group_arrays, group_attribute, lsubgroup=particle_subgroup)
+                call spawn_delete_subgroup(states, s_field, group_arrays, max_thresh, min_thresh)
+             else if (have_attribute) then
+                call get_particle_arrays(particle_group, group_arrays, group_attribute, lattribute=particle_attribute)
+                call spawn_delete_attribute(states, s_field, group_arrays, group_attribute, max_thresh, min_thresh)
+             end if
+          end do
+       end if
+    end do
+    
+  end subroutine particle_cv_check
+
+  subroutine spawn_delete_attribute(states, s_field, group_arrays, group_attribute, max_thresh, min_thresh)
+   ! use particles, only: particle_lists
+    
+    type(state_type), dimension(:), target, intent(in) :: states
+    
+    type(scalar_field), intent(in) :: s_field
+    integer, intent(in) :: min_thresh, max_thresh
+    integer, dimension(:), intent(in) :: group_arrays
+    integer, intent(in) :: group_attribute
+    type(halo_type), pointer :: halo
+    type(detector_linked_list), allocatable, dimension(:,:) :: node_particles
+    real, allocatable, dimension(:) :: node_values, node_part_count
+    real, allocatable, dimension(:) :: local_crds
+    type(detector_type), pointer :: particle
+    integer :: element, node_number
+    integer, dimension(:), pointer :: nodes
+    integer :: nprocs
+    real :: att_value
+    type(vector_field), pointer :: xfield
+    integer :: i, j
+
+    integer, allocatable, dimension(:) :: summed_particles, add_particles, remove_particles
+    real, dimension(:), allocatable :: temp_values, temp_part_count
+    integer ::  total_particles
+
+    xfield=>extract_vector_field(states(1), "Coordinate")
+    nprocs = getnprocs()
+    if (nprocs>1) then
+       halo => s_field%mesh%halos(2)
+    end if
+
+    allocate(node_particles(size(group_arrays),node_count(s_field)))
+    allocate(node_values(node_count(s_field)))
+    allocate(node_part_count(node_count(s_field)))
+    node_values(:) = 0
+    node_part_count(:) = 0
+
+    !Loop over particle arrays
+    do i = 1,size(group_arrays)
+       particle => particle_lists(group_arrays(i))%first
+       if (associated(particle)) then !Only work on arrays if local_particles exist on this processor
+          allocate(local_crds(size(particle%local_coords)))
+       end if
+       do while(associated(particle))
+          !Get element, local_crds and attribute value of each particle
+          element = particle%element
+          local_crds = particle%local_coords
+          att_value = particle%attributes(group_attribute)
+          
+          !Find nodes for specified element
+          nodes => ele_nodes(s_field, element)
+          
+          ! work out nearest node based on max. local coordinate
+          node_number = nodes(maxloc(local_crds, dim=1))
+          
+          !Store particle attribute value on closest node
+          node_values(node_number) = node_values(node_number) + att_value
+          !Increase particle count for this node by 1
+          node_part_count(node_number) = node_part_count(node_number) + 1.0
+          call temp_insert(particle,node_particles(i,node_number))
+          particle => particle%next
+          
+       end do
+       if (allocated(local_crds)) then
+          deallocate(local_crds)
+       end if
+    end do
+    
+    if (nprocs>1) then
+       call halo_accumulate(halo, node_part_count)
+       call halo_accumulate(halo, node_values)
+    end if
+
+    allocate(summed_particles(size(group_arrays)))
+    allocate(add_particles(size(group_arrays)))
+    allocate(remove_particles(size(group_arrays)))
+    allocate(temp_part_count(size(node_part_count)))
+    allocate(temp_values(size(node_values)))
+
+    summed_particles(:) = 0
+    temp_part_count(:) = 0
+    temp_values(:) = 0
+
+    !Loop over all nodes
+    do i = 1,node_count(s_field)
+       !Count number of particles per node and ensure thresholds are not broken
+       if (node_part_count(i)<min_thresh) then
+          if (node_part_count(i)>0) then
+             if (node_part_count(i)<min_thresh/2) then
+                call multi_spawn_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, xfield, summed_particles, i, 3)
+             else 
+                call spawn_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, xfield, add_particles, i)
+                summed_particles=summed_particles+add_particles
+             end if
+          else if (node_part_count(i)==0) then
+             if (node_owned(s_field, i)) then
+                call spawn_zero_particles(temp_part_count(:), temp_values(:), node_particles(:,:), group_arrays, group_attribute, xfield, add_particles, i, min_thresh)
+                summed_particles=summed_particles+add_particles
+             end if
+          end if
+       end if
+    end do
+    if (nprocs>1) then
+       call halo_accumulate(halo, temp_part_count)
+       call halo_accumulate(halo, temp_values)
+    end if
+
+    node_part_count(:) = node_part_count(:) + temp_part_count(:)
+    node_values(:) = node_values(:) + temp_values(:)
+    temp_part_count(:) = 0
+    temp_values(:) = 0
+
+    do i = 1,node_count(s_field)
+       if (node_part_count(i)>max_thresh) then
+          call delete_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, remove_particles)
+          summed_particles=summed_particles-remove_particles
+       end if
+    end do
+    if (nprocs>1) then
+       call halo_accumulate(halo, temp_part_count)
+       call halo_accumulate(halo, temp_values)
+    end if
+    node_part_count(:) = node_part_count(:) + temp_part_count(:)
+    node_values(:) = node_values(:) + temp_values(:)
+    
+    do j=1,size(group_arrays)
+       call allsum(summed_particles(j))
+       particle_lists(group_arrays(j))%total_num_det=particle_lists(group_arrays(j))%total_num_det+summed_particles(j)
+    end do
+
+    !Sanity check
+    do j=1,size(group_arrays)
+       total_particles = particle_lists(group_arrays(j))%length
+       call allsum(total_particles)
+       assert(total_particles==particle_lists(group_arrays(j))%total_num_det)
+    end do
+
+    deallocate(node_values)
+    deallocate(node_part_count)
+    deallocate(node_particles)
+    deallocate(add_particles)
+    deallocate(remove_particles)
+    deallocate(summed_particles)
+    deallocate(temp_part_count)
+    deallocate(temp_values)
+
+
+  end subroutine spawn_delete_attribute
+
+  subroutine spawn_delete_subgroup(states, s_field, group_arrays, max_thresh, min_thresh)
+    !use particles, only: particle_lists
+    type(state_type), dimension(:), target, intent(in) :: states
+    
+    type(scalar_field), intent(in) :: s_field
+    integer, intent(in) :: min_thresh, max_thresh
+    integer, dimension(1), intent(in) :: group_arrays
+    type(halo_type), pointer :: halo
+    type(detector_linked_list), allocatable, dimension(:) :: node_particles
+    real, allocatable, dimension(:) :: node_part_count
+    real, allocatable, dimension(:) :: local_crds
+    type(detector_type), pointer :: particle
+    integer :: element, node_number
+    integer, dimension(:), pointer :: nodes
+    integer :: nprocs
+    type(vector_field), pointer :: xfield
+    integer :: i, j
+
+    integer :: summed_particles, add_particles, remove_particles
+    real, dimension(:), allocatable :: temp_part_count
+    integer ::  total_particles
+
+    xfield=>extract_vector_field(states(1), "Coordinate")
+    nprocs = getnprocs()
+    if (nprocs>1) then
+       halo => s_field%mesh%halos(2)
+    end if
+
+    allocate(node_particles(node_count(s_field)))
+    allocate(node_part_count(node_count(s_field)))
+    node_part_count(:) = 0
+
+    !Loop over particle arrays
+    particle => particle_lists(group_arrays(1))%first
+    if (associated(particle)) then !Only work on arrays if local_particles exist on this processor
+       allocate(local_crds(size(particle%local_coords)))
+    end if
+    do while(associated(particle))
+       !Get element, local_crds and attribute value of each particle
+       element = particle%element
+       local_crds = particle%local_coords
+       
+       !Find nodes for specified element
+       nodes => ele_nodes(s_field, element)
+       
+       ! work out nearest node based on max. local coordinate
+       node_number = nodes(maxloc(local_crds, dim=1))
+       
+       !Increase particle count for this node by 1
+       node_part_count(node_number) = node_part_count(node_number) + 1.0
+       call temp_insert(particle,node_particles(node_number))
+       particle => particle%next
+       
+    end do
+    if (allocated(local_crds)) then
+       deallocate(local_crds)
+    end if
+    
+    if (nprocs>1) then
+       call halo_accumulate(halo, node_part_count)
+    end if
+
+    allocate(temp_part_count(size(node_part_count)))
+
+    summed_particles= 0
+    temp_part_count(:) = 0
+
+    !Loop over all nodes
+    do i = 1,node_count(s_field)
+       !Count number of particles per node and ensure thresholds are not broken
+       if (node_part_count(i)<min_thresh) then
+          if (node_part_count(i)>0) then
+             if (node_part_count(i)<min_thresh/2) then
+                call multi_spawn_particles_subgroup(temp_part_count(i), node_particles(i), group_arrays, xfield, summed_particles, i, 3)
+             else 
+                call spawn_particles_subgroup(temp_part_count(i), node_particles(i), group_arrays, xfield, add_particles, i)
+                summed_particles=summed_particles+add_particles
+             end if
+          else if (node_part_count(i)==0) then
+             if (node_owned(s_field, i)) then
+                call spawn_zero_particles_subgroup(temp_part_count(:), node_particles(:), group_arrays, xfield, add_particles, i, min_thresh)
+                summed_particles=summed_particles+add_particles
+             end if
+          end if
+       end if
+    end do
+    if (nprocs>1) then
+       call halo_accumulate(halo, temp_part_count)
+    end if
+
+    node_part_count(:) = node_part_count(:) + temp_part_count(:)
+    temp_part_count(:) = 0
+
+    do i = 1,node_count(s_field)
+       if (node_part_count(i)>max_thresh) then
+          call delete_particles_subgroup(temp_part_count(i), node_particles(i), group_arrays, remove_particles)
+          summed_particles=summed_particles-remove_particles
+       end if
+    end do
+    if (nprocs>1) then
+       call halo_accumulate(halo, temp_part_count)
+    end if
+    node_part_count(:) = node_part_count(:) + temp_part_count(:)
+    
+    call allsum(summed_particles)
+    particle_lists(group_arrays(1))%total_num_det=particle_lists(group_arrays(1))%total_num_det+summed_particles
+
+    !Sanity check
+    total_particles = particle_lists(group_arrays(1))%length
+    call allsum(total_particles)
+    assert(total_particles==particle_lists(group_arrays(1))%total_num_det)
+
+    deallocate(node_part_count)
+    deallocate(node_particles)
+    deallocate(temp_part_count)
+
+  end subroutine spawn_delete_subgroup
+
 
   subroutine multi_spawn_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, summed_particles, node_num, mult)
     type(detector_linked_list), intent(inout), dimension(:) :: node_particles
@@ -839,7 +1096,7 @@ module particle_diagnostics
 
   subroutine spawn_zero_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, add_particles, node_num, min_thresh)
     !Subroutine to spawn particles in a control volume with 0 'parent' particles in CV
-
+!!!!!!!!!can be more than two groups
     use particles, only: particle_lists
     type(detector_linked_list), intent(inout), dimension(:,:) :: node_particles
     real, intent(inout), dimension(:) :: node_values
@@ -1139,4 +1396,360 @@ module particle_diagnostics
     
   end subroutine delete_particles
 
+  subroutine multi_spawn_particles_subgroup(node_part_count,  node_particles, group_arrays, xfield, summed_particles, node_num, mult)
+    type(detector_linked_list), intent(inout) :: node_particles
+    real, intent(inout) :: node_part_count
+    integer, intent(in), dimension(1) :: group_arrays
+    integer, intent(in) :: node_num
+    type(vector_field), pointer, intent(in) :: xfield
+    integer, intent(inout) :: summed_particles
+    integer, intent(in) :: mult
+
+    integer :: i
+    integer :: add_particles
+
+    do i = 1,mult
+       call spawn_particles_subgroup(node_part_count, node_particles, group_arrays, xfield, add_particles, node_num)
+       summed_particles=summed_particles+add_particles
+    end do
+
+  end subroutine multi_spawn_particles_subgroup
+
+  subroutine spawn_particles_subgroup(node_part_count, node_particles, group_arrays, xfield, add_particles, node_num)
+    !Subroutine to calculate the number of particles in each control volume, and spawn additional
+    !particles within a control volume if a minimum number of particles is not met
+
+    use particles, only: particle_lists
+    type(detector_linked_list), intent(inout) :: node_particles
+    real, intent(inout) :: node_part_count
+    integer, intent(in), dimension(1) :: group_arrays
+    integer, intent(in) :: node_num
+    type(vector_field), pointer, intent(in) :: xfield
+    integer, intent(inout) :: add_particles
+    
+    type(detector_type), pointer :: particle
+    type(detector_type), pointer :: temp_part
+
+    real, dimension(:), allocatable :: node_coord
+    real :: rand_lcoord
+
+    character(len=OPTION_PATH_LEN) :: name
+    character(len=OPTION_PATH_LEN) :: particle_name
+    integer, dimension(:), pointer :: ele_nums
+    integer, allocatable, dimension(:) :: node_numbers
+    integer :: ele_spawn
+    integer :: id, name_len, tot_len
+    integer :: j, i
+    integer, dimension(3) :: attribute_size
+
+    add_particles = 0
+    
+    temp_part => particle_lists(group_arrays(1))%last
+    if (associated(temp_part)) then
+       id = temp_part%id_number
+       name_len = len(int2str(id+1))+1 !id length + '_'
+       tot_len = len(trim(temp_part%name))
+       name = trim(temp_part%name(1:tot_len-name_len))
+       attribute_size(1) = size(temp_part%attributes)
+       attribute_size(2) = size(temp_part%old_attributes)
+       attribute_size(3) = size(temp_part%old_fields)
+       allocate(node_coord(size(temp_part%local_coords)))
+       allocate(node_numbers(xfield%dim+1))
+    end if
+    
+    particle => node_particles%first
+    do while(associated(particle))
+       !duplicate particles, spawn in random element adjacent
+       !to CV ensuring particle falls within CV
+       particle_name = trim(name)//int2str(id+1)
+       temp_part => null()
+       call allocate(temp_part, size(particle%position), size(particle%local_coords), attribute_size)
+       
+       temp_part%name = trim(particle_name)
+       temp_part%id_number = id+1
+       temp_part%list_id = particle%list_id
+       
+       !Get ele numbers of adjacent elements
+       ele_nums => node_neigh(xfield, node_num)
+       
+       !randomly select adjacent element to node
+       ele_spawn=floor(rand()*size(ele_nums)+1)
+       temp_part%element = ele_nums(ele_spawn)
+       node_numbers(:) = ele_nodes(xfield, ele_nums(ele_spawn))
+       !randomly select local coords within the element, ensuring coords are within cv
+       do i = 1,xfield%dim+1
+          if (node_num==node_numbers(i)) then
+             rand_lcoord=rand()/(1/0.45)+0.55!lcoords for cv range from 0.55<x<1
+             node_coord(:)=(1-rand_lcoord)/(xfield%dim)
+             node_coord(i)=rand_lcoord            
+             temp_part%local_coords=node_coord
+          end if
+       end do
+       
+       call local_to_global(xfield, temp_part%local_coords, temp_part%element, temp_part%position)
+       temp_part%type = LAGRANGIAN_DETECTOR
+       temp_part%attributes(:) = 0
+       temp_part%old_attributes(:) = 0
+       temp_part%old_fields(:) = 0
+       
+       node_part_count = node_part_count + 1
+       
+       temp_part%previous => particle_lists(group_arrays(1))%last
+       particle_lists(group_arrays(1))%last%next => temp_part
+       particle_lists(group_arrays(1))%last => temp_part
+       particle_lists(group_arrays(1))%last%next => null()
+       particle_lists(group_arrays(1))%length = particle_lists(group_arrays(1))%length + 1
+       add_particles = add_particles + 1
+       id = id + 1
+       
+       particle => particle%temp_next
+       
+    end do
+    if (allocated(node_coord)) then
+       deallocate(node_coord)
+       deallocate(node_numbers)
+    end if
+
+  end subroutine spawn_particles_subgroup
+
+  subroutine spawn_zero_particles_subgroup(node_part_count, node_particles, group_arrays, xfield, add_particles, node_num, min_thresh)
+    !Subroutine to spawn particles in a control volume with 0 'parent' particles in CV
+    use particles, only: particle_lists
+    type(detector_linked_list), intent(inout), dimension(:) :: node_particles
+    real, intent(inout), dimension(:) :: node_part_count
+    integer, intent(in), dimension(1) :: group_arrays
+    type(vector_field), pointer, intent(in) :: xfield
+    integer, intent(inout) :: add_particles
+    integer, intent(in) :: node_num
+    integer, intent(in) :: min_thresh
+    integer, dimension(:), pointer :: ele_nums
+    integer, allocatable, dimension(:,:) :: node_numbers
+    integer :: part_counter
+    real :: part_total
+    real :: rng_spawn
+    logical :: spawned
+    integer :: prev_parts, ele_spawn
+    
+    type(detector_type), pointer :: particle
+    type(detector_type), pointer :: temp_part
+
+    real, dimension(:), allocatable :: node_coord
+    real :: rand_lcoord
+
+    character(len=OPTION_PATH_LEN) :: name
+    character(len=OPTION_PATH_LEN) :: particle_name
+    integer :: id, name_len, tot_len
+    integer :: i, j, k
+    integer, dimension(3) :: attribute_size
+    
+    add_particles = 0
+
+    !Get ele numbers of adjacent elements
+    ele_nums => node_neigh(xfield, node_num)
+
+    allocate(node_numbers(size(ele_nums),xfield%dim+1))
+    part_counter = 0
+
+    !Get node numbers for each adjacent element
+    do j = 1,size(ele_nums)
+       node_numbers(j,:) = ele_nodes(xfield,ele_nums(j))
+    end do
+
+    !Count the total number of particles in each surrounding CV
+    do j = 1,size(ele_nums)
+       do k=1,xfield%dim+1
+          part_counter = part_counter + node_particles(node_numbers(j,k))%length
+       end do
+    end do
+
+    if (part_counter==0) then
+       ewrite(2,*) "There are no particles present in adjacent CV's"
+       return
+    end if
+
+    !If adjacent CV's contain particles, spawn particles in current CV
+    do i = 1,min_thresh !spawn particles until min_thresh is met
+       particle => particle_lists(group_arrays(1))%last
+       id = particle%id_number
+       name_len = len(int2str(id+1))+1 !id length + '_'
+       tot_len = len(trim(particle%name))
+       name = trim(particle%name(1:tot_len-name_len))
+       attribute_size(1) = size(particle%attributes)
+       attribute_size(2) = size(particle%old_attributes)
+       attribute_size(3) = size(particle%old_fields)
+       allocate(node_coord(size(particle%local_coords)))
+
+       particle_name = trim(name)//int2str(id+1)
+       temp_part => null()
+       call allocate(temp_part, size(particle%position), size(particle%local_coords), attribute_size)
+       temp_part%name = trim(particle_name)
+       temp_part%id_number = id+1
+       temp_part%list_id = particle%list_id
+             
+       !randomly select adjacent element to node
+       ele_spawn=floor(rand()*size(ele_nums)+1)
+       temp_part%element = ele_nums(ele_spawn)
+       !randomly select local coords within the element, ensuring coords are within cv
+       do j = 1,xfield%dim+1
+          if (node_num==node_numbers(ele_spawn,j)) then
+             rand_lcoord=rand()/(1/0.45)+0.55!lcoords for cv range from 0.55<x<1
+             node_coord(:)=(1-rand_lcoord)/(xfield%dim)
+             node_coord(j)=rand_lcoord            
+             temp_part%local_coords= node_coord
+          end if
+       end do
+ 
+       call local_to_global(xfield, temp_part%local_coords, temp_part%element, temp_part%position)
+       temp_part%type = LAGRANGIAN_DETECTOR
+       temp_part%attributes(:) = 0
+       temp_part%old_attributes(:) = 0
+       temp_part%old_fields(:) = 0
+       node_part_count(node_num) = node_part_count(node_num) + 1
+             
+       temp_part%previous => particle_lists(group_arrays(1))%last
+       particle_lists(group_arrays(1))%last%next => temp_part
+       particle_lists(group_arrays(1))%last => temp_part
+       particle_lists(group_arrays(1))%last%next => null()
+       particle_lists(group_arrays(1))%length = particle_lists(group_arrays(1))%length + 1
+       add_particles = add_particles + 1
+       particle => null()
+       
+       if (allocated(node_coord)) then
+          deallocate(node_coord)
+       end if
+    end do
+
+  end subroutine spawn_zero_particles_subgroup
+
+  subroutine delete_particles_subgroup(node_part_count, node_particles, group_arrays, remove_particles)
+    !Subroutine to calculate the number of particles in each control volume, and delete
+    !particles within a control volume if a maximum number of particles is exceeded
+
+    use particles, only: particle_lists
+    type(detector_linked_list), intent(inout) :: node_particles
+    real, intent(inout) :: node_part_count
+    integer, intent(in), dimension(1) :: group_arrays
+    integer, intent(inout) :: remove_particles
+    
+    type(detector_type), pointer :: particle
+    type(detector_type), pointer :: temp_part
+
+    real :: rand1, rand2, rand3
+
+    remove_particles = 0
+    
+    particle =>node_particles%first
+    do while(associated(particle))
+       rand1=rand()
+       if (rand1>0.5) then
+          rand2=rand()
+          if (rand2>0.5) then
+             !Remove from particle list
+             if (associated(particle%previous)) then
+                particle%previous%next => particle%next
+             else
+                particle_lists(group_arrays(1))%first => particle%next
+             end if
+             if (associated(particle%next)) then
+                particle%next%previous => particle%previous
+             else
+                particle_lists(group_arrays(1))%last => particle%previous
+             end if
+             temp_part =>particle%temp_next
+             !Remove from temp list
+             if (associated(particle%temp_previous)) then
+                particle%temp_previous%temp_next => particle%temp_next
+             else
+                node_particles%first => particle%temp_next
+             end if
+             if (associated(particle%temp_next)) then
+                particle%temp_next%temp_previous => particle%temp_previous
+             else
+                node_particles%last => particle%temp_previous
+             end if
+             remove_particles=remove_particles+1
+             node_particles%length = node_particles%length -1
+             particle_lists(group_arrays(1))%length = particle_lists(group_arrays(1))%length - 1
+             node_part_count = node_part_count - 1
+             call deallocate(particle)
+          else
+             rand3=rand()
+             if (rand3>0.5) then
+                !Remove from particle list
+                if (associated(particle%previous)) then
+                   particle%previous%next => particle%next
+                else
+                   particle_lists(group_arrays(1))%first => particle%next
+                end if
+                if (associated(particle%next)) then
+                   particle%next%previous => particle%previous
+                else
+                   particle_lists(group_arrays(1))%last => particle%previous
+                end if
+                temp_part =>particle%temp_next
+                !Remove from temp list
+                if (associated(particle%temp_previous)) then
+                   particle%temp_previous%temp_next => particle%temp_next
+                else
+                   node_particles%first => particle%temp_next
+                end if
+                if (associated(particle%temp_next)) then
+                   particle%temp_next%temp_previous => particle%temp_previous
+                else
+                   node_particles%last => particle%temp_previous
+                end if
+                remove_particles=remove_particles+1
+                node_particles%length = node_particles%length -1
+                particle_lists(group_arrays(1))%length = particle_lists(group_arrays(1))%length - 1
+                
+                node_part_count = node_part_count - 1
+                call deallocate(particle)
+             end if
+          end if
+       else
+          rand2=rand()
+          if (rand2>0.5) then
+             rand3=rand()
+             if (rand3>0.5) then
+                !Remove from particle list
+                if (associated(particle%previous)) then
+                   particle%previous%next => particle%next
+                else
+                   particle_lists(group_arrays(1))%first => particle%next
+                end if
+                if (associated(particle%next)) then
+                   particle%next%previous => particle%previous
+                else
+                   particle_lists(group_arrays(1))%last => particle%previous
+                end if
+                temp_part =>particle%temp_next
+                !Remove from temp list
+                if (associated(particle%temp_previous)) then
+                   particle%temp_previous%temp_next => particle%temp_next
+                else
+                   node_particles%first => particle%temp_next
+                end if
+                if (associated(particle%temp_next)) then
+                   particle%temp_next%temp_previous => particle%temp_previous
+                else
+                   node_particles%last => particle%temp_previous
+                end if
+                remove_particles=remove_particles+1
+                node_particles%length = node_particles%length -1
+                particle_lists(group_arrays(1))%length = particle_lists(group_arrays(1))%length - 1
+                node_part_count = node_part_count - 1
+                call deallocate(particle)
+             end if
+          end if
+       end if
+       if (associated(particle)) then
+          particle => particle%temp_next
+       else
+          particle =>temp_part
+          temp_part => null()
+       end if
+    end do
+ 
+  end subroutine delete_particles_subgroup
+  
 end module particle_diagnostics

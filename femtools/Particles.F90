@@ -1316,15 +1316,16 @@ contains
     
   end subroutine get_particles
 
-  subroutine get_particle_arrays(lgroup, group_arrays, group_attribute, lattribute)
+  subroutine get_particle_arrays(lgroup, group_arrays, group_attribute, lattribute, lsubgroup)
     !Read in a particle group and attribute name, send back numbers of particle arrays and particle attribute
 
     character(len=OPTION_PATH_LEN), intent(in) :: lgroup
     character(len=OPTION_PATH_LEN), optional, intent(in) :: lattribute
+    character(len=OPTION_PATH_LEN), optional, intent(in) :: lsubgroup
     integer, allocatable, dimension(:), intent(out) :: group_arrays
     integer, intent(out) :: group_attribute
 
-    character(len=OPTION_PATH_LEN) :: group_name, attribute_name
+    character(len=OPTION_PATH_LEN) :: group_name, attribute_name, subgroup_name
     integer :: particle_groups, array_counter, particle_subgroups, particle_attributes
     integer :: i, j, k, l
 
@@ -1354,28 +1355,31 @@ contains
           end if
           array_counter = array_counter + particle_subgroups
        end do
-    else
+       ewrite(2,*) "Particle group: ", trim(lgroup), ", attribute: ", trim(lattribute), "not found."
+       FLAbort("Given particle parameters not found, exiting")
+    else if (present(lsubgroup)) then
        particle_groups = option_count("/particles/particle_group")
        array_counter = 0
        do i = 1, particle_groups
           call get_option("/particles/particle_group["//int2str(i-1)//"]/name", group_name)
           particle_subgroups = option_count("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup")
           if (trim(group_name)==trim(lgroup)) then
-             allocate(group_arrays(particle_subgroups))
-             j=1
-             do l = array_counter+1, array_counter+particle_subgroups
-                group_arrays(j) = l
-                j=j+1
+             do l = 1,particle_subgroups
+                call get_option("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup["//int2str(l-1)//"]/name", subgroup_name)
+                if (trim(subgroup_name)==trim(lsubgroup)) then
+                   allocate(group_arrays(1))
+                   array_counter = array_counter + l
+                   group_arrays(1)=array_counter
+                end if
              end do
              group_attribute = 0
              return
           end if
           array_counter = array_counter + particle_subgroups
        end do
+       ewrite(2,*) "Particle group: ", trim(lgroup), ", subgroup: ", trim(lsubgroup), "not found."
+       FLAbort("Given particle parameters not found, exiting")
     end if
-       
-    ewrite(2,*) "Particle group: ", trim(lgroup), ", attribute: ", trim(lattribute), "not found."
-    FLAbort("Given particle parameters not found, exiting")
     
   end subroutine get_particle_arrays
 

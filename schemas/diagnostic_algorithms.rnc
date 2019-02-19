@@ -110,9 +110,9 @@ internal_algorithm =
 	   ## Diagnostic field will be set from the particle 'ratio' method.
 	   element method {
 	      attribute name { "ratio" },
-	      element group {
+	      element particle_group {
 	         attribute name { xsd:string },
-	         element attribute {
+	         element particle_attribute {
 	            attribute name { xsd:string }
 	         }
 	      }
@@ -121,9 +121,17 @@ internal_algorithm =
 	   ## present per control volume.
 	   element method {
 	      attribute name { "num_particles" },
-	      element group {
-	         attribute name { xsd:string }
-	      }
+	      element particle_group {
+	      	 attribute name { xsd:string },
+		 (
+	             element particle_subgroup {
+	                attribute name { xsd:string }
+	             }|
+	             element particle_attribute {
+	      	        attribute name { xsd:string }
+		     }
+		 )
+              }
 	   }
 	 )
       }
