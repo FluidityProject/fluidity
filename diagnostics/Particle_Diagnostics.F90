@@ -13,7 +13,8 @@
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
-!    version 2.1 of the License!
+!    version 2.1 of the License.
+!
 !    This library is distributed in the hope that it will be useful,
 !    but WITHOUT ANY WARRANTY; without even the implied warranty of
 !    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
@@ -32,8 +33,7 @@ module particle_diagnostics
   use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
   use futils, only: int2str
   use particles, only : get_particle_arrays, update_list_lengths, &
-       & set_particle_attributes, initialise_constant_particle_attributes, &
-       & particle_lists
+       & set_particle_attributes, initialise_constant_particle_attributes
   use spud
   use parallel_tools, only: getnprocs, allsum
   use state_module
@@ -139,7 +139,6 @@ module particle_diagnostics
     integer :: i, k
     integer :: dim, particle_groups, list_counter
     integer, dimension(:), allocatable :: particle_arrays
-
     type(detector_type), pointer :: particle
     
     !Check if there are particles
@@ -187,22 +186,22 @@ module particle_diagnostics
     end do
     k = size(state)
 
-!!$!!!$    !Initialise diagnostic fields with init_after_particles
-!!$!!!$    do i = 1,size(state)
-!!$!!!$       do k = 1,scalar_field_count(state(i))
-!!$!!!$          s_field => extract_scalar_field(state(i),k)     
-!!$!!!$          if (have_option(trim(s_field%option_path)//"/diagnostic/init_after_particles")) then
-!!$!!!$             ! Calculate dependencies
-!!$!!!$             call calculate_dependencies(state, i, s_field, &
-!!$!!!$          & dep_states_mask = calculated_states, exclude_nonrecalculated = .false.)
-!!$!!!$             ! Calculate the diagnostic
-!!$!!!$             ewrite(2, *) "Calculating diagnostic field: "//trim(state(i)%name)//"::"//trim(s_field%name)
-!!$!!!$             call calculate_diagnostic_variable(state, i, s_field)
-!!$!!!$             ! Mark the field as calculated
-!!$!!!$             call insert(calculated_states(i), s_field, s_field%name)
-!!$!!!$          end if
-!!$!!!$       end do
-!!$!!!$    end do
+!!$    !Initialise diagnostic fields with init_after_particles
+!!$    do i = 1,size(state)
+!!$       do k = 1,scalar_field_count(state(i))
+!!$          s_field => extract_scalar_field(state(i),k)     
+!!$          if (have_option(trim(s_field%option_path)//"/diagnostic/init_after_particles")) then
+!!$             ! Calculate dependencies
+!!$             call calculate_dependencies(state, i, s_field, &
+!!$          & dep_states_mask = calculated_states, exclude_nonrecalculated = .false.)
+!!$             ! Calculate the diagnostic
+!!$             ewrite(2, *) "Calculating diagnostic field: "//trim(state(i)%name)//"::"//trim(s_field%name)
+!!$             call calculate_diagnostic_variable(state, i, s_field)
+!!$             ! Mark the field as calculated
+!!$             call insert(calculated_states(i), s_field, s_field%name)
+!!$          end if
+!!$       end do
+!!$    end do
 
   end subroutine initialise_particle_diagnostics
 
@@ -220,6 +219,7 @@ module particle_diagnostics
     integer :: i, k
     integer :: dim, particle_groups, list_counter, particle_materials
     integer, dimension(:), allocatable :: particle_arrays
+
     !Check whether there are any particles.
     particle_groups = option_count("/particles/particle_group")
     
@@ -342,25 +342,25 @@ module particle_diagnostics
     end do
     k = size(state)
 
-!!!$    !Initialise diagnostic fields with init_after_particles
-!!!$    do i = 1,size(state)
-!!!$       do k = 1,scalar_field_count(state(i))
-!!!$          s_field => extract_scalar_field(state(i),k)     
-!!!$          if (have_option(trim(s_field%option_path)//"/diagnostic/init_after_particles")) then
-!!!$             ! Calculate dependencies
-!!!$             call calculate_dependencies(state, i, s_field, &
-!!!$          & dep_states_mask = calculated_states, exclude_nonrecalculated = .false.)
-!!!$             ! Calculate the diagnostic
-!!!$             ewrite(2, *) "Calculating diagnostic field: "//trim(state(i)%name)//"::"//trim(s_field%name)
-!!!$             call calculate_diagnostic_variable(state, i, s_field)
-!!!$             ! Mark the field as calculated
-!!!$             call insert(calculated_states(i), s_field, s_field%name)
-!!!$          end if
-!!!$       end do
-!!!$    end do
+!!$    !Initialise diagnostic fields with init_after_particles
+!!$    do i = 1,size(state)
+!!$       do k = 1,scalar_field_count(state(i))
+!!$          s_field => extract_scalar_field(state(i),k)     
+!!$          if (have_option(trim(s_field%option_path)//"/diagnostic/init_after_particles")) then
+!!$             ! Calculate dependencies
+!!$             call calculate_dependencies(state, i, s_field, &
+!!$          & dep_states_mask = calculated_states, exclude_nonrecalculated = .false.)
+!!$             ! Calculate the diagnostic
+!!$             ewrite(2, *) "Calculating diagnostic field: "//trim(state(i)%name)//"::"//trim(s_field%name)
+!!$             call calculate_diagnostic_variable(state, i, s_field)
+!!$             ! Mark the field as calculated
+!!$             call insert(calculated_states(i), s_field, s_field%name)
+!!$          end if
+!!$       end do
+!!$    end do
 
   end subroutine initialise_particle_diagnostic_fields
-!!$    
+    
   subroutine calculate_diagnostics_from_particles(states, state_index, s_field)
 
     !!! Subroutine to determine which method is being used
@@ -377,7 +377,7 @@ module particle_diagnostics
     case("ratio")
         call calculate_ratio_from_particles(states, state_index, s_field)
        
-     case("num_particles") !!!!need to edit this to give the option of attribute or subgroup
+    case("num_particles")
         call calculate_numbers_from_particles(s_field)
         
     end select
@@ -509,7 +509,7 @@ module particle_diagnostics
 
   end subroutine calculate_ratio_from_particles
 
-    subroutine calculate_numbers_from_particles(s_field) 
+  subroutine calculate_numbers_from_particles(s_field)
 
     !!Calculate s_field using the ratio method from particles
     !!First determine which particle groups/subgroups/attributes are being used
@@ -700,7 +700,7 @@ module particle_diagnostics
   end subroutine particle_cv_check
 
   subroutine spawn_delete_attribute(states, s_field, group_arrays, group_attribute, max_thresh, min_thresh)
-   ! use particles, only: particle_lists
+    use particles, only: particle_lists
     
     type(state_type), dimension(:), target, intent(in) :: states
     
@@ -849,22 +849,8 @@ module particle_diagnostics
   end subroutine spawn_delete_attribute
 
   subroutine spawn_delete_subgroup(states, s_field, group_arrays, max_thresh, min_thresh)
-    !use particles, only: particle_lists
+    use particles, only: particle_lists
     type(state_type), dimension(:), target, intent(in) :: states
-    
-    type(scalar_field), intent(in) :: s_field
-    integer, intent(in) :: min_thresh, max_thresh
-    integer, dimension(1), intent(in) :: group_arrays
-    type(halo_type), pointer :: halo
-    type(detector_linked_list), allocatable, dimension(:) :: node_particles
-    real, allocatable, dimension(:) :: node_part_count
-    real, allocatable, dimension(:) :: local_crds
-    type(detector_type), pointer :: particle
-    integer :: element, node_number
-    integer, dimension(:), pointer :: nodes
-    integer :: nprocs
-    type(vector_field), pointer :: xfield
-    integer :: i, j
 
     integer :: summed_particles, add_particles, remove_particles
     real, dimension(:), allocatable :: temp_part_count
@@ -1008,7 +994,7 @@ module particle_diagnostics
     type(detector_type), pointer :: temp_part
 
     real, dimension(:), allocatable :: node_coord
-    real :: rand_lcoord
+    real :: rand_lcoord, rand_lcoord_2, rand_lcoord_3
 
     character(len=OPTION_PATH_LEN) :: name
     character(len=OPTION_PATH_LEN) :: particle_name
@@ -1019,11 +1005,29 @@ module particle_diagnostics
     integer :: j, i
     integer, dimension(3) :: attribute_size
 
-    add_particles(:) = 0
+    logical :: Spawn_High, Spawn_Low
+    real :: max_lcoord
+
     
+    Spawn_High = .false.
+    Spawn_Low = .false.
+
+    add_particles(:) = 0
+    if ((node_values/node_part_count)>0.8) then
+       Spawn_High = .true.
+    else if ((node_values/node_part_count)<0.2) then
+       Spawn_Low = .true.
+    end if
     do j = 1,size(group_arrays)
        temp_part => particle_lists(group_arrays(j))%last
        if (associated(temp_part)) then
+          if (Spawn_High.eqv..true.) then
+             if (temp_part%attributes(group_attribute)==0) cycle
+          end if
+          if (Spawn_Low.eqv..true.) then
+             if (temp_part%attributes(group_attribute)==1) cycle
+          end if
+             
           id = temp_part%id_number
           name_len = len(int2str(id+1))+1 !id length + '_'
           tot_len = len(trim(temp_part%name))
@@ -1032,13 +1036,11 @@ module particle_diagnostics
           attribute_size(2) = size(temp_part%old_attributes)
           attribute_size(3) = size(temp_part%old_fields)
           allocate(node_coord(size(temp_part%local_coords)))
-          allocate(node_numbers(xfield%dim+1))
+          allocate(node_numbers(xfield%dim+1))!!! can be more nodes per ele?
        end if
 
        particle => node_particles(j)%first
        do while(associated(particle))
-          !duplicate particles, spawn in random element adjacent
-          !to CV ensuring particle falls within CV
           particle_name = trim(name)//int2str(id+1)
           temp_part => null()
           call allocate(temp_part, size(particle%position), size(particle%local_coords), attribute_size)
@@ -1046,25 +1048,70 @@ module particle_diagnostics
           temp_part%name = trim(particle_name)
           temp_part%id_number = id+1
           temp_part%list_id = particle%list_id
+          temp_part%element=particle%element
+          max_lcoord=maxval(particle%local_coords)
 
-          !Get ele numbers of adjacent elements
-          ele_nums => node_neigh(xfield, node_num)
-          
-          !randomly select adjacent element to node
-          ele_spawn=floor(rand()*size(ele_nums)+1)
-          temp_part%element = ele_nums(ele_spawn)
-          node_numbers(:) = ele_nodes(xfield, ele_nums(ele_spawn))
-          !randomly select local coords within the element, ensuring coords are within cv
-          do i = 1,xfield%dim+1
+          node_numbers(:) = ele_nodes(xfield, temp_part%element)!!!
+          !randomly select local coords within radius around parent particle
+	  !ensuring new particle falls within cv
+          rand_lcoord=(rand()-0.5)*0.1!can spawn within 0.05 lcoord range of parent particle
+          max_lcoord=max_lcoord-rand_lcoord
+          if (max_lcoord<0.55) then
+             max_lcoord=0.55 !Minimum it can be is 0.55
+          end if
+          do i = 1,xfield%dim+1!!!
              if (node_num==node_numbers(i)) then
-                rand_lcoord=rand()/(1/0.45)+0.55!lcoords for cv range from 0.55<x<1
-                node_coord(:)=(1-rand_lcoord)/(xfield%dim)
-                node_coord(i)=rand_lcoord            
-                temp_part%local_coords=node_coord
+                select case(xfield%dim+1)!!!
+                case(2)
+                   node_coord(:)=1-max_lcoord
+                   node_coord(i)=max_lcoord
+                case(3)
+                   rand_lcoord_2=(1-max_lcoord)*rand()
+                   select case(i)
+                   case(1)
+                      node_coord(1)=max_lcoord !Will fall in this nodes CV
+                      node_coord(2)=rand_lcoord_2
+                      node_coord(3)=1-max_lcoord-rand_lcoord_2
+                   case(2)
+                      node_coord(1)=rand_lcoord_2
+                      node_coord(2)=max_lcoord!Will fall in this nodes CV
+                      node_coord(3)=1-max_lcoord-rand_lcoord_2
+                   case(3)
+                      node_coord(1)=rand_lcoord_2
+                      node_coord(2)=1-max_lcoord-rand_lcoord_2
+                      node_coord(3)=max_lcoord!Will fall in this nodes CV
+                   end select
+                case(4)
+                   rand_lcoord_2=(1-max_lcoord)*rand()
+                   rand_lcoord_3=(1-max_lcoord-rand_lcoord_2)*rand()
+                   select case(i)
+                   case(1)
+                      node_coord(1)=max_lcoord !Will fall in this nodes CV
+                      node_coord(2)=rand_lcoord_2
+                      node_coord(3)=rand_lcoord_3
+                      node_coord(4)=1-max_lcoord-rand_lcoord_2-rand_lcoord_3
+                   case(2)
+                      node_coord(1)=rand_lcoord_2
+                      node_coord(2)=max_lcoord !Will fall in this nodes CV
+                      node_coord(3)=rand_lcoord_3
+                      node_coord(4)=1-max_lcoord-rand_lcoord_2-rand_lcoord_3
+                   case(3)
+                      node_coord(1)=rand_lcoord_2
+                      node_coord(2)=rand_lcoord_3
+                      node_coord(3)=max_lcoord !Will fall in this nodes CV
+                      node_coord(4)=1-max_lcoord-rand_lcoord_2-rand_lcoord_3
+                   case(4)
+                      node_coord(1)=rand_lcoord_2
+                      node_coord(2)=rand_lcoord_3
+                      node_coord(3)=1-max_lcoord-rand_lcoord_2-rand_lcoord_3
+                      node_coord(4)=max_lcoord !Will fall in this nodes CV
+                   end select
+                end select      
+                temp_part%local_coords= node_coord
              end if
           end do
-          
-          call local_to_global(xfield, temp_part%local_coords, temp_part%element, temp_part%position)
+
+          call local_to_global(xfield, temp_part%local_coords, temp_part%element, temp_part%position)!!!
           temp_part%type = LAGRANGIAN_DETECTOR
           temp_part%attributes(:) = 0
           temp_part%old_attributes(:) = 0
@@ -1096,7 +1143,6 @@ module particle_diagnostics
 
   subroutine spawn_zero_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, add_particles, node_num, min_thresh)
     !Subroutine to spawn particles in a control volume with 0 'parent' particles in CV
-!!!!!!!!!can be more than two groups
     use particles, only: particle_lists
     type(detector_linked_list), intent(inout), dimension(:,:) :: node_particles
     real, intent(inout), dimension(:) :: node_values
@@ -1112,20 +1158,23 @@ module particle_diagnostics
     integer, allocatable, dimension(:) :: part_counter
     real :: part_total
     real :: rng_spawn
-    logical :: spawned
+    logical :: spawned, Spawn_High
     integer :: prev_parts, ele_spawn
     
     type(detector_type), pointer :: particle
     type(detector_type), pointer :: temp_part
 
     real, dimension(:), allocatable :: node_coord
-    real :: rand_lcoord
+    real :: rand_lcoord, rand_lcoord_2, rand_lcoord_3
 
     character(len=OPTION_PATH_LEN) :: name
     character(len=OPTION_PATH_LEN) :: particle_name
     integer :: id, name_len, tot_len
-    integer :: i, j, k
+    integer :: i, j, k, spawn_num
     integer, dimension(3) :: attribute_size
+    real, dimension(:,:), allocatable :: test_ele
+    real, dimension(:), allocatable :: max_dum
+    integer, dimension(:), allocatable :: max_ele
     
     add_particles(:) = 0
 
@@ -1134,6 +1183,9 @@ module particle_diagnostics
 
     allocate(node_numbers(size(ele_nums),xfield%dim+1))
     allocate(part_counter(size(group_arrays)))
+    allocate(test_ele(size(ele_nums),size(group_arrays)))
+    allocate(max_ele(size(group_arrays)))
+    allocate(max_dum(size(group_arrays)))
     part_counter(:) = 0
 
     !Get node numbers for each adjacent element
@@ -1142,10 +1194,11 @@ module particle_diagnostics
     end do
 
     !Count the total number of particles in each surrounding CV
-    do i = 1,size(group_arrays)
-       do j = 1,size(ele_nums)
+    do j = 1,size(ele_nums)
+       do i = 1,size(group_arrays)
           do k=1,xfield%dim+1
              part_counter(i) = part_counter(i) + node_particles(i,node_numbers(j,k))%length
+             test_ele(j,i) = test_ele(j,i) + node_particles(i,node_numbers(j,k))%length
           end do
        end do
     end do
@@ -1155,6 +1208,26 @@ module particle_diagnostics
        ewrite(2,*) "There are no particles present in adjacent CV's"
        return
     end if
+    !Get element with highest/lowest ratio values. spawn 1's and 0's in these elements (ensuring in current CV)
+    max_dum(:) = 0
+    max_ele(:) = 1
+    do j=1,size(ele_nums)
+       do i=1,size(group_arrays)
+          if((test_ele(j,i))/(sum(test_ele(j,:)))>maxdum(i)) then
+             maxdum(i)=(test_ele(j,i))/(sum(test_ele(j,:))
+             max_ele(i)=j
+          end if
+       end do
+    end do
+
+    Spawn_High=.false.
+    spawn_num=0
+    do i=1,size(group_arrays)
+       if ((part_counter(i)*1.0)/(sum(part_counter(:))*1.0)>=0.8) then
+          Spawn_High=.true.
+          spawn_num=i
+       end if
+    end do
 
     !If adjacent CV's contain particles, spawn particles in current CV
     !with weighted values depending on the number and group of
@@ -1172,6 +1245,9 @@ module particle_diagnostics
           end do
           !Check if random spawn conditions are met
           if (rng_spawn<=part_counter(k)/(part_total-prev_parts)) then
+             if (Spawn_High.eqv..true.) then
+                k=spawn_num
+             end if
              !Spawn particle from this group
              particle => particle_lists(group_arrays(k))%last
              id = particle%id_number
@@ -1190,15 +1266,63 @@ module particle_diagnostics
              temp_part%id_number = id+1
              temp_part%list_id = particle%list_id
              
-             !randomly select adjacent element to node
-             ele_spawn=floor(rand()*size(ele_nums)+1)
-             temp_part%element = ele_nums(ele_spawn)
+             !randomly select adjacent element to node if only spawning one group
+             if (Spawn_High.eqv..true.) then
+                ele_spawn=floor(rand()*size(ele_nums)+1)
+             else !else select element with maximum ratio of current group
+                ele_spawn=max_ele(k)
+             end if
+             temp_part%element = ele_nums(ele_spawn) !ele_nums(ele_spawn)
              !randomly select local coords within the element, ensuring coords are within cv
              do j = 1,xfield%dim+1
                 if (node_num==node_numbers(ele_spawn,j)) then
                    rand_lcoord=rand()/(1/0.45)+0.55!lcoords for cv range from 0.55<x<1
-                   node_coord(:)=(1-rand_lcoord)/(xfield%dim)
-                   node_coord(j)=rand_lcoord            
+                   select case(xfield%dim+1)
+                   case(2)
+                      node_coord(:)=1-rand_lcoord
+                      node_coord(j)=rand_lcoord
+                   case(3)
+                      rand_lcoord_2=(1-rand_lcoord)*rand()
+                      select case(j)
+                      case(1)
+                         node_coord(1)=rand_lcoord !Will fall in this nodes CV
+                         node_coord(2)=rand_lcoord_2
+                         node_coord(3)=1-rand_lcoord-rand_lcoord_2
+                      case(2)
+                         node_coord(1)=rand_lcoord_2
+                         node_coord(2)=rand_lcoord!Will fall in this nodes CV
+                         node_coord(3)=1-rand_lcoord-rand_lcoord_2
+                      case(3)
+                         node_coord(1)=rand_lcoord_2
+                         node_coord(2)=1-rand_lcoord-rand_lcoord_2
+                         node_coord(3)=rand_lcoord!Will fall in this nodes CV
+                      end select
+                   case(4)
+                      rand_lcoord_2=(1-rand_lcoord)*rand()
+                      rand_lcoord_3=(1-rand_lcoord-rand_lcoord_2)*rand()
+                      select case(j)
+                      case(1)
+                         node_coord(1)=rand_lcoord !Will fall in this nodes CV
+                         node_coord(2)=rand_lcoord_2
+                         node_coord(3)=rand_lcoord_3
+                         node_coord(4)=1-rand_lcoord-rand_lcoord_2-rand_lcoord_3
+                      case(2)
+                         node_coord(1)=rand_lcoord_2
+                         node_coord(2)=rand_lcoord !Will fall in this nodes CV
+                         node_coord(3)=rand_lcoord_3
+                         node_coord(4)=1-rand_lcoord-rand_lcoord_2-rand_lcoord_3
+                      case(3)
+                         node_coord(1)=rand_lcoord_2
+                         node_coord(2)=rand_lcoord_3
+                         node_coord(3)=rand_lcoord !Will fall in this nodes CV
+                         node_coord(4)=1-rand_lcoord-rand_lcoord_2-rand_lcoord_3
+                      case(4)
+                         node_coord(1)=rand_lcoord_2
+                         node_coord(2)=rand_lcoord_3
+                         node_coord(3)=1-rand_lcoord-rand_lcoord_2-rand_lcoord_3
+                         node_coord(4)=rand_lcoord !Will fall in this nodes CV
+                      end select
+                   end select        
                    temp_part%local_coords= node_coord
                 end if
              end do
@@ -1231,6 +1355,12 @@ module particle_diagnostics
        end do
     end do
 
+    deallocate(node_numbers)
+    deallocate(part_counter)
+    deallocate(test_ele)
+    deallocate(max_ele)
+    deallocate(max_dum)
+
   end subroutine spawn_zero_particles
 
   subroutine local_to_global(coordinates, l_coords, ele_number, global_coord)
@@ -1254,7 +1384,7 @@ module particle_diagnostics
     do i=1,size(global_coord)
        global_coord(i) = dot_product(l_shape,coord_ele(i,:)) ! should give global coordinates
     enddo
-
+    
   end subroutine local_to_global
 
   subroutine delete_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, remove_particles)

@@ -348,7 +348,7 @@ start =
 		           element max_cv_threshhold {
 			      integer
 		 	   },
-		           ## Set which material phase and field the particles will be spawned to.
+		           ## Set which field mesh which will be used for spawning.
 			   element material_phase {
 			      attribute name { xsd:string },
 			      element field {

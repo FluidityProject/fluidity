@@ -432,7 +432,7 @@ and deleting options.</a:documentation>
                           <ref name="integer"/>
                         </element>
                         <element name="material_phase">
-                          <a:documentation>Set which material phase and field the particles will be spawned to.</a:documentation>
+                          <a:documentation>Set which field mesh which will be used for spawning.</a:documentation>
                           <attribute name="name">
                             <data type="string"/>
                           </attribute>
