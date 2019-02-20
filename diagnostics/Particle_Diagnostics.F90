@@ -851,6 +851,21 @@ module particle_diagnostics
   subroutine spawn_delete_subgroup(states, s_field, group_arrays, max_thresh, min_thresh)
     use particles, only: particle_lists
     type(state_type), dimension(:), target, intent(in) :: states
+    
+    type(scalar_field), intent(in) :: s_field
+    integer, intent(in) :: min_thresh, max_thresh
+    integer, dimension(:), intent(in) :: group_arrays
+    
+    type(halo_type), pointer :: halo
+    type(detector_linked_list), allocatable, dimension(:) :: node_particles
+    real, allocatable, dimension(:) :: node_part_count
+    real, allocatable, dimension(:) :: local_crds
+    type(detector_type), pointer :: particle
+    integer :: element, node_number
+    integer, dimension(:), pointer :: nodes
+    integer :: nprocs
+    type(vector_field), pointer :: xfield
+    integer :: i
 
     integer :: summed_particles, add_particles, remove_particles
     real, dimension(:), allocatable :: temp_part_count
@@ -998,9 +1013,7 @@ module particle_diagnostics
 
     character(len=OPTION_PATH_LEN) :: name
     character(len=OPTION_PATH_LEN) :: particle_name
-    integer, dimension(:), pointer :: ele_nums
     integer, allocatable, dimension(:) :: node_numbers
-    integer :: ele_spawn
     integer :: id, name_len, tot_len
     integer :: j, i
     integer, dimension(3) :: attribute_size
@@ -1213,8 +1226,8 @@ module particle_diagnostics
     max_ele(:) = 1
     do j=1,size(ele_nums)
        do i=1,size(group_arrays)
-          if((test_ele(j,i))/(sum(test_ele(j,:)))>maxdum(i)) then
-             maxdum(i)=(test_ele(j,i))/(sum(test_ele(j,:))
+          if((test_ele(j,i))/(sum(test_ele(j,:)))>max_dum(i)) then
+             max_dum(i)=(test_ele(j,i))/(sum(test_ele(j,:)))
              max_ele(i)=j
           end if
        end do
@@ -1569,7 +1582,7 @@ module particle_diagnostics
     integer, allocatable, dimension(:) :: node_numbers
     integer :: ele_spawn
     integer :: id, name_len, tot_len
-    integer :: j, i
+    integer :: i
     integer, dimension(3) :: attribute_size
 
     add_particles = 0
@@ -1655,10 +1668,7 @@ module particle_diagnostics
     integer, dimension(:), pointer :: ele_nums
     integer, allocatable, dimension(:,:) :: node_numbers
     integer :: part_counter
-    real :: part_total
-    real :: rng_spawn
-    logical :: spawned
-    integer :: prev_parts, ele_spawn
+    integer :: ele_spawn
     
     type(detector_type), pointer :: particle
     type(detector_type), pointer :: temp_part
