@@ -348,7 +348,7 @@ start =
 		           element max_cv_threshhold {
 			      integer
 		 	   },
-		           ## Set which field mesh which will be used for spawning.
+		           ## Set the field mesh which will be used for spawning.
 			   element material_phase {
 			      attribute name { xsd:string },
 			      element field {

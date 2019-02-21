@@ -148,15 +148,11 @@ contains
     else
        xfield => extract_vector_field(state,"Coordinate")
     end if
-    ewrite(2,*) "flag 1"
     ! We allocate a point-to-point sendlist for every processor
     nprocs=getnprocs()
     allocate(send_list_array(nprocs))
     bcast_count=0
-
-    ewrite(2,*) "flag 2"
     detector => detector_list%first
-    ewrite(2,*) "flag 3"
     do while (associated(detector))
 
        if (detector%element>0) then
@@ -182,7 +178,6 @@ contains
           call move(bcast_detector, detector_list, detector_bcast_list)
        end if
     end do
-    ewrite(2,*) "flag 4"
 
     ! Exchange detectors if there are any detectors to exchange 
     ! via the point-to-point sendlists
@@ -192,7 +187,6 @@ contains
           all_send_lists_empty=1
        end if
     end do
-    ewrite(2,*) "flag 5"
     call allmax(all_send_lists_empty)
     if (all_send_lists_empty/=0) then
        if (present(positions)) then
@@ -201,27 +195,23 @@ contains
           call exchange_detectors(state,detector_list,send_list_array, attribute_size)
        end if
     end if
-    ewrite(2,*) "flag 6"
 
     ! Make sure send lists are empty and deallocate them
     do k=1, nprocs
        assert(send_list_array(k)%length==0)
     end do
     deallocate(send_list_array)
-    ewrite(2,*) "flag 7"
     ! Sanity check
     detector => detector_list%first
     do while (associated(detector))
        assert(element_owner(xfield%mesh,detector%element)==getprocno())
        detector=>detector%next
     end do
-    ewrite(2,*) "flag 8"
 
     ! Find out how many unknown detectors each process wants to broadcast
     allocate(ndets_being_bcast(getnprocs()))
     call mpi_allgather(bcast_count, 1, getPINTEGER(), ndets_being_bcast, 1 , getPINTEGER(), MPI_COMM_FEMTOOLS, ierr)
     assert(ierr == MPI_SUCCESS)
-    ewrite(2,*) "flag 9"
     ! If there are no unknow detectors exit
     if (all(ndets_being_bcast == 0)) then
        return
