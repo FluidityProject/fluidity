@@ -400,17 +400,15 @@ module particle_diagnostics
 
     character(len=OPTION_PATH_LEN) :: lgroup, lattribute
     type(vector_field), pointer :: xfield
-    type(detector_linked_list), allocatable, dimension(:,:) :: node_particles
     type(detector_type), pointer :: particle
-    integer :: i
+    integer :: i, j
     real, allocatable, dimension(:) :: node_values
-    real, allocatable, dimension(:) :: node_part_count ! real instead of integer, so we can use halo_accumulate
+    real, allocatable, dimension(:) :: node_part_count
     integer :: element, node_number
     real, allocatable, dimension(:) :: local_crds
     integer, dimension(:), pointer :: nodes
     integer :: nprocs
-    real :: att_value
-    real :: ratio_val
+    real :: att_value, ratio_val
 
     integer :: group_attribute
     integer, allocatable, dimension(:) :: group_arrays
@@ -441,48 +439,80 @@ module particle_diagnostics
        call get_particle_arrays(lgroup, group_arrays, group_attribute, lattribute=lattribute)
 
        !Allocate arrays to store summed attribute values and particle counts at nodes
-       allocate(node_particles(size(group_arrays),node_count(s_field)))
        allocate(node_values(node_count(s_field)))
        allocate(node_part_count(node_count(s_field)))
        node_values(:) = 0
        node_part_count(:) = 0
-       
-       !Loop over particle arrays
-       do i = 1,size(group_arrays)
-          particle => particle_lists(group_arrays(i))%first
-          if (associated(particle)) then !Only work on arrays if local_particles exist on this processor
-             allocate(local_crds(size(particle%local_coords)))
-          end if
-          do while(associated(particle))
-             !Get element, local_crds and attribute value of each particle
-             element = particle%element
-             local_crds = particle%local_coords
-             att_value = particle%attributes(group_attribute)
 
-             !Find nodes for specified element
-             nodes => ele_nodes(s_field, element)
+       if (have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/shape_function/bilinear_function")) then
 
-             ! work out nearest node based on max. local coordinate
-             node_number = nodes(maxloc(local_crds, dim=1))
-             
-             !Store particle attribute value on closest node
-             node_values(node_number) = node_values(node_number) + att_value
-             !Increase particle count for this node by 1
-             node_part_count(node_number) = node_part_count(node_number) + 1.0
-             call temp_insert(particle,node_particles(i,node_number))
-             particle => particle%next
-             
+          !Loop over particle arrays
+          do i = 1,size(group_arrays)
+             particle => particle_lists(group_arrays(i))%first
+             if (associated(particle)) then !Only work on arrays if local_particles exist on this processor
+                allocate(local_crds(size(particle%local_coords)))
+             end if
+             do while(associated(particle))
+                !Get element, local_crds and attribute value of each particle
+                element = particle%element
+                local_crds = particle%local_coords
+                att_value = particle%attributes(group_attribute)
+                
+                !Find nodes for specified element
+                nodes => ele_nodes(s_field, element)
+
+                !Distribute particle values across nodes of element by weighted distance function
+                do j = 1, size(nodes)
+                   node_number = nodes(j)
+                   node_values(node_number) = node_values(node_number) + att_value*local_crds(j)
+                   node_part_count(node_number) = node_part_count(node_number) + 1.0*local_crds(j)
+                end do
+                particle => particle%next
+                
+             end do
+             if (allocated(local_crds)) then
+                deallocate(local_crds)
+             end if
           end do
-          if (allocated(local_crds)) then
-             deallocate(local_crds)
-          end if
-       end do
 
+       else if (have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/shape_function/cv_function")) then
+       
+          !Loop over particle arrays
+          do i = 1,size(group_arrays)
+             particle => particle_lists(group_arrays(i))%first
+             if (associated(particle)) then !Only work on arrays if local_particles exist on this processor
+                allocate(local_crds(size(particle%local_coords)))
+             end if
+             do while(associated(particle))
+                !Get element, local_crds and attribute value of each particle
+                element = particle%element
+                local_crds = particle%local_coords
+                att_value = particle%attributes(group_attribute)
+                
+                !Find nodes for specified element
+                nodes => ele_nodes(s_field, element)
+                
+                ! work out nearest node based on max. local coordinate
+                node_number = nodes(maxloc(local_crds, dim=1))
+                
+                !Store particle attribute value on closest node
+                node_values(node_number) = node_values(node_number) + att_value
+                !Increase particle count for this node by 1
+                node_part_count(node_number) = node_part_count(node_number) + 1.0
+                particle => particle%next
+                
+             end do
+             if (allocated(local_crds)) then
+                deallocate(local_crds)
+             end if
+          end do
+       end if
+          
        if (nprocs>1) then
           call halo_accumulate(halo, node_part_count)
           call halo_accumulate(halo, node_values)
        end if
-       
+          
        do i = 1,node_count(s_field)
           !Determine field value from ratio method
           ratio_val = node_values(i)/node_part_count(i)
@@ -496,7 +526,6 @@ module particle_diagnostics
        
        deallocate(node_values)
        deallocate(node_part_count)
-       deallocate(node_particles)
 
        ! all values in owned nodes should now be correct
        ! now we need to make sure the halo is updated accordingly
@@ -789,7 +818,7 @@ module particle_diagnostics
           if (node_part_count(i)>0) then
              if (node_part_count(i)<min_thresh/2) then
                 call multi_spawn_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, xfield, summed_particles, i, 3)
-             else 
+             else
                 call spawn_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, xfield, add_particles, i)
                 summed_particles=summed_particles+add_particles
              end if
@@ -1049,7 +1078,7 @@ module particle_diagnostics
           attribute_size(2) = size(temp_part%old_attributes)
           attribute_size(3) = size(temp_part%old_fields)
           allocate(node_coord(size(temp_part%local_coords)))
-          allocate(node_numbers(xfield%dim+1))!!! can be more nodes per ele?
+          allocate(node_numbers(xfield%dim+1))
        end if
 
        particle => node_particles(j)%first
@@ -1064,7 +1093,7 @@ module particle_diagnostics
           temp_part%element=particle%element
           max_lcoord=maxval(particle%local_coords)
 
-          node_numbers(:) = ele_nodes(xfield, temp_part%element)!!!
+          node_numbers(:) = ele_nodes(xfield, temp_part%element)
           !randomly select local coords within radius around parent particle
 	  !ensuring new particle falls within cv
           rand_lcoord=(rand()-0.5)*0.1!can spawn within 0.05 lcoord range of parent particle
@@ -1072,9 +1101,9 @@ module particle_diagnostics
           if (max_lcoord<0.55) then
              max_lcoord=0.55 !Minimum it can be is 0.55
           end if
-          do i = 1,xfield%dim+1!!!
+          do i = 1,xfield%dim+1
              if (node_num==node_numbers(i)) then
-                select case(xfield%dim+1)!!!
+                select case(xfield%dim+1)
                 case(2)
                    node_coord(:)=1-max_lcoord
                    node_coord(i)=max_lcoord
@@ -1119,12 +1148,12 @@ module particle_diagnostics
                       node_coord(3)=1-max_lcoord-rand_lcoord_2-rand_lcoord_3
                       node_coord(4)=max_lcoord !Will fall in this nodes CV
                    end select
-                end select      
+                end select
                 temp_part%local_coords= node_coord
              end if
           end do
 
-          call local_to_global(xfield, temp_part%local_coords, temp_part%element, temp_part%position)!!!
+          call local_to_global(xfield, temp_part%local_coords, temp_part%element, temp_part%position)
           temp_part%type = LAGRANGIAN_DETECTOR
           temp_part%attributes(:) = 0
           temp_part%old_attributes(:) = 0
@@ -1397,7 +1426,7 @@ module particle_diagnostics
     do i=1,size(global_coord)
        global_coord(i) = dot_product(l_shape,coord_ele(i,:)) ! should give global coordinates
     enddo
-    
+
   end subroutine local_to_global
 
   subroutine delete_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, remove_particles)

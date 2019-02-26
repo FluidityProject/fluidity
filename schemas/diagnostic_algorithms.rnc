@@ -115,7 +115,18 @@ internal_algorithm =
 	         element particle_attribute {
 	            attribute name { xsd:string }
 	         }
-	      }
+	      },
+	      ### Shape function used to interpolate particle values onto nodes.
+	      element shape_function {
+	      	 ### Weighted distribution of particle values between all nodes of the current particle element.
+	         element bilinear_function {
+		    empty
+		 }|
+		 ### Transfers particle values only to the closest node.
+		 element cv_function {
+		    empty
+		 }
+              }
 	   }|
 	   ## Diagnostic field will be set from the number of particles
 	   ## present per control volume.

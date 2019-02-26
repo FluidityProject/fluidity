@@ -170,6 +170,19 @@ within the Particle_Diagnostics.F90 routine.</a:documentation>
                 </attribute>
               </element>
             </element>
+            <element name="shape_function">
+              <a:documentation>Shape function used to interpolate particle values onto nodes.</a:documentation>
+              <choice>
+                <element name="bilinear_function">
+                  <a:documentation>Weighted distribution of particle values between all nodes of the current particle element.</a:documentation>
+                  <empty/>
+                </element>
+                <element name="cv_function">
+                  <a:documentation>Transfers particle values only to the closest node.</a:documentation>
+                  <empty/>
+                </element>
+              </choice>
+            </element>
           </element>
           <element name="method">
             <a:documentation>Diagnostic field will be set from the number of particles
