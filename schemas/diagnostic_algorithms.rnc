@@ -116,14 +116,14 @@ internal_algorithm =
 	            attribute name { xsd:string }
 	         }
 	      },
-	      ### Shape function used to interpolate particle values onto nodes.
-	      element shape_function {
+	      ### Function used to interpolate particle values onto nodes.
+	      element interpolation {
 	      	 ### Weighted distribution of particle values between all nodes of the current particle element.
-	         element bilinear_function {
+	         element weighted_distance {
 		    empty
 		 }|
 		 ### Transfers particle values only to the closest node.
-		 element cv_function {
+		 element nearest_neighbour {
 		    empty
 		 }
               }

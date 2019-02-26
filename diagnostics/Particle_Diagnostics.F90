@@ -444,7 +444,7 @@ module particle_diagnostics
        node_values(:) = 0
        node_part_count(:) = 0
 
-       if (have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/shape_function/bilinear_function")) then
+       if (have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/interpolation/weighted_distance")) then
 
           !Loop over particle arrays
           do i = 1,size(group_arrays)
@@ -475,7 +475,7 @@ module particle_diagnostics
              end if
           end do
 
-       else if (have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/shape_function/cv_function")) then
+       else if (have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/interpolation/nearest_neighbour")) then
        
           !Loop over particle arrays
           do i = 1,size(group_arrays)

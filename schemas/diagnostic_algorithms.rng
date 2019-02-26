@@ -170,14 +170,14 @@ within the Particle_Diagnostics.F90 routine.</a:documentation>
                 </attribute>
               </element>
             </element>
-            <element name="shape_function">
-              <a:documentation>Shape function used to interpolate particle values onto nodes.</a:documentation>
+            <element name="interpolation">
+              <a:documentation>Function used to interpolate particle values onto nodes.</a:documentation>
               <choice>
-                <element name="bilinear_function">
+                <element name="weighted_distance">
                   <a:documentation>Weighted distribution of particle values between all nodes of the current particle element.</a:documentation>
                   <empty/>
                 </element>
-                <element name="cv_function">
+                <element name="nearest_neighbour">
                   <a:documentation>Transfers particle values only to the closest node.</a:documentation>
                   <empty/>
                 </element>
