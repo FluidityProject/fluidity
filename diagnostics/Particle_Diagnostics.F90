@@ -1101,6 +1101,9 @@ module particle_diagnostics
           if (max_lcoord<0.55) then
              max_lcoord=0.55 !Minimum it can be is 0.55
           end if
+          if (max_lcoord>0.999) then
+             max_lcoord=0.999
+          end if
           do i = 1,xfield%dim+1
              if (node_num==node_numbers(i)) then
                 select case(xfield%dim+1)

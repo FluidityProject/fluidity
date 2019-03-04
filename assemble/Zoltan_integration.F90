@@ -2173,7 +2173,6 @@ module zoltan_integration
                       new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, detector%element)
                       if (element_owned(zoltan_global_new_positions%mesh, new_local_element_number)) then
                          detector%element = new_local_element_number
-                         ewrite(2,*) "error in zoltan_integration picker inquire"
                          call picker_inquire(zoltan_global_new_positions, detector%position, detector%element, detector%local_coords, global=.false.)
                          call insert(detector, detector_list_array(detector%list_id)%ptr)
                          detector => null()
