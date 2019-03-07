@@ -102,14 +102,19 @@ module particle_diagnostics
           list_counter = list_counter + 1
        end do
     end do
-
+    
     !Check if MVF field is generated from particles
+    ewrite(2,*) "checking MVF field"
     particle_materials = option_count("material_phase/scalar_field::MaterialVolumeFraction/diagnostic/algorithm::from_particles")
     if (particle_materials.gt.0) then
+       ewrite(2,*) "have MVF field"
        !Initialise MultialVolumeFraction fields dependent on particles
        do i = 1,size(state)
-          s_field => extract_scalar_field(state(i), "MaterialVolumeFraction")     
+          ewrite(2,*) "checking state: ", i
+          s_field => extract_scalar_field(state(i), "MaterialVolumeFraction")
+          ewrite(2,*) "extracted field"
           if (have_option(trim(s_field%option_path)//"/diagnostic/algorithm::from_particles")) then
+             ewrite(2,*) "has from_particles"
              call calculate_diagnostics_from_particles(state, i, s_field)
           end if
        end do
@@ -185,23 +190,6 @@ module particle_diagnostics
        end do
     end do
     k = size(state)
-
-!!$    !Initialise diagnostic fields with init_after_particles
-!!$    do i = 1,size(state)
-!!$       do k = 1,scalar_field_count(state(i))
-!!$          s_field => extract_scalar_field(state(i),k)     
-!!$          if (have_option(trim(s_field%option_path)//"/diagnostic/init_after_particles")) then
-!!$             ! Calculate dependencies
-!!$             call calculate_dependencies(state, i, s_field, &
-!!$          & dep_states_mask = calculated_states, exclude_nonrecalculated = .false.)
-!!$             ! Calculate the diagnostic
-!!$             ewrite(2, *) "Calculating diagnostic field: "//trim(state(i)%name)//"::"//trim(s_field%name)
-!!$             call calculate_diagnostic_variable(state, i, s_field)
-!!$             ! Mark the field as calculated
-!!$             call insert(calculated_states(i), s_field, s_field%name)
-!!$          end if
-!!$       end do
-!!$    end do
 
   end subroutine initialise_particle_diagnostics
 
@@ -341,23 +329,6 @@ module particle_diagnostics
        end do
     end do
     k = size(state)
-
-!!$    !Initialise diagnostic fields with init_after_particles
-!!$    do i = 1,size(state)
-!!$       do k = 1,scalar_field_count(state(i))
-!!$          s_field => extract_scalar_field(state(i),k)     
-!!$          if (have_option(trim(s_field%option_path)//"/diagnostic/init_after_particles")) then
-!!$             ! Calculate dependencies
-!!$             call calculate_dependencies(state, i, s_field, &
-!!$          & dep_states_mask = calculated_states, exclude_nonrecalculated = .false.)
-!!$             ! Calculate the diagnostic
-!!$             ewrite(2, *) "Calculating diagnostic field: "//trim(state(i)%name)//"::"//trim(s_field%name)
-!!$             call calculate_diagnostic_variable(state, i, s_field)
-!!$             ! Mark the field as calculated
-!!$             call insert(calculated_states(i), s_field, s_field%name)
-!!$          end if
-!!$       end do
-!!$    end do
 
   end subroutine initialise_particle_diagnostic_fields
     
@@ -1096,7 +1067,7 @@ module particle_diagnostics
           node_numbers(:) = ele_nodes(xfield, temp_part%element)
           !randomly select local coords within radius around parent particle
 	  !ensuring new particle falls within cv
-          rand_lcoord=(rand()-0.5)*0.1!can spawn within 0.05 lcoord range of parent particle
+          rand_lcoord=(rand()-0.5)*0.01!can spawn within 0.005 lcoord range of parent particle
           max_lcoord=max_lcoord-rand_lcoord
           if (max_lcoord<0.55) then
              max_lcoord=0.55 !Minimum it can be is 0.55

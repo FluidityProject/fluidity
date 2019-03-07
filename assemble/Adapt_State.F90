@@ -62,6 +62,7 @@ module adapt_state_module
   use adaptive_timestepping
   use detector_parallel
   use diagnostic_variables
+  use particle_diagnostics, only: initialise_constant_particle_diagnostics, initialise_particle_diagnostics
   use checkpoint
   use edge_length_module
   use boundary_conditions_from_options
@@ -987,8 +988,14 @@ contains
       call copy_to_stored_values(states,"Iterated")
       call relax_to_nonlinear(states)
 
+      !Set multimaterial fields based on particles:
+      call initialise_constant_particle_diagnostics(states)
+
       call calculate_diagnostic_variables(states)
       call calculate_diagnostic_variables_new(states)
+
+      !Set particle attributes and dependent fields
+      call initialise_particle_diagnostics(states)
 
       call enforce_discrete_properties(states)
       if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then

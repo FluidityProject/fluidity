@@ -231,6 +231,9 @@ contains
          & default=1)
     call get_option("/timestepping/nonlinear_iterations/tolerance", &
          & nonlinear_iteration_tolerance, default=0.0)
+
+    !Initialise positions of particles before adapt_at_first_timestep
+    call initialise_particle_positions(filename, state)
     
     if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
 
@@ -336,16 +339,15 @@ contains
     ! Initialise multimaterial fields:
     call initialise_diagnostic_material_properties(state)
 
-    !Initialise positions of particles:
-    call initialise_particle_positions(filename, state)
+    !Spawn particles to specified meshes
+    call particle_cv_check(state)
 
     !Initialise multimaterial fields based on particles:
-    call particle_cv_check(state)
     call initialise_constant_particle_diagnostics(state)
     
     ! Calculate diagnostic variables:
     call calculate_diagnostic_variables(state)
-    call calculate_diagnostic_variables_new(state, init_after_particles = .true.)
+    call calculate_diagnostic_variables_new(state)
 
     !Initialise particle attributes and dependent fields
     call initialise_particle_diagnostics(state)
@@ -997,7 +999,7 @@ contains
  
     ! Diagnostic fields
     call calculate_diagnostic_variables(state)
-    call calculate_diagnostic_variables_new(state, init_after_particles = .true.)
+    call calculate_diagnostic_variables_new(state)
 
     !Diagnostic fields based on particles
     call initialise_particle_diagnostic_fields(state)
