@@ -432,7 +432,7 @@ and deleting options.</a:documentation>
                           <ref name="integer"/>
                         </element>
                         <element name="radius">
-                          <a:documentation>Radius particle can spawn around parent in local coordinates (suggested value 0.05).</a:documentation>
+                          <a:documentation>Radius particle can spawn around parent in local coordinates (suggested value 0.005).</a:documentation>
                           <ref name="real"/>
                         </element>
                         <element name="material_phase">
