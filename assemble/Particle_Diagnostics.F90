@@ -102,19 +102,14 @@ module particle_diagnostics
           list_counter = list_counter + 1
        end do
     end do
-    
+
     !Check if MVF field is generated from particles
-    ewrite(2,*) "checking MVF field"
     particle_materials = option_count("material_phase/scalar_field::MaterialVolumeFraction/diagnostic/algorithm::from_particles")
     if (particle_materials.gt.0) then
-       ewrite(2,*) "have MVF field"
        !Initialise MultialVolumeFraction fields dependent on particles
        do i = 1,size(state)
-          ewrite(2,*) "checking state: ", i
           s_field => extract_scalar_field(state(i), "MaterialVolumeFraction")
-          ewrite(2,*) "extracted field"
           if (have_option(trim(s_field%option_path)//"/diagnostic/algorithm::from_particles")) then
-             ewrite(2,*) "has from_particles"
              call calculate_diagnostics_from_particles(state, i, s_field)
           end if
        end do
@@ -636,6 +631,7 @@ module particle_diagnostics
     
     logical :: have_subgroup, have_attribute
     integer :: min_thresh, max_thresh
+    real :: radius
 
     ewrite(2,*) "In particle_cv_check"
 
@@ -656,6 +652,9 @@ module particle_diagnostics
              !Set minimum and maximum particle thresholds per control volume
              call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/min_cv_threshhold", min_thresh)
              call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/max_cv_threshhold", max_thresh)
+
+             !Set radius particles can spawn around parent particle in local coords
+             call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/radius", radius)
              
              !Get the field particles will be spawned to
              call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/material_phase/name", mat_phase)
@@ -691,7 +690,7 @@ module particle_diagnostics
                 call spawn_delete_subgroup(states, s_field, group_arrays, max_thresh, min_thresh)
              else if (have_attribute) then
                 call get_particle_arrays(particle_group, group_arrays, group_attribute, lattribute=particle_attribute)
-                call spawn_delete_attribute(states, s_field, group_arrays, group_attribute, max_thresh, min_thresh)
+                call spawn_delete_attribute(states, s_field, group_arrays, group_attribute, max_thresh, min_thresh, radius)
              end if
           end do
        end if
@@ -699,7 +698,7 @@ module particle_diagnostics
     
   end subroutine particle_cv_check
 
-  subroutine spawn_delete_attribute(states, s_field, group_arrays, group_attribute, max_thresh, min_thresh)
+  subroutine spawn_delete_attribute(states, s_field, group_arrays, group_attribute, max_thresh, min_thresh, radius)
     use particles, only: particle_lists
     
     type(state_type), dimension(:), target, intent(in) :: states
@@ -708,6 +707,7 @@ module particle_diagnostics
     integer, intent(in) :: min_thresh, max_thresh
     integer, dimension(:), intent(in) :: group_arrays
     integer, intent(in) :: group_attribute
+    real, intent(in) :: radius
     type(halo_type), pointer :: halo
     type(detector_linked_list), allocatable, dimension(:,:) :: node_particles
     real, allocatable, dimension(:) :: node_values, node_part_count
@@ -788,9 +788,9 @@ module particle_diagnostics
        if (node_part_count(i)<min_thresh) then
           if (node_part_count(i)>0) then
              if (node_part_count(i)<min_thresh/2) then
-                call multi_spawn_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, xfield, summed_particles, i, 3)
+                call multi_spawn_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, xfield, summed_particles, i, 3, radius)
              else
-                call spawn_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, xfield, add_particles, i)
+                call spawn_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, xfield, add_particles, i, radius)
                 summed_particles=summed_particles+add_particles
              end if
           else if (node_part_count(i)==0) then
@@ -968,7 +968,7 @@ module particle_diagnostics
   end subroutine spawn_delete_subgroup
 
 
-  subroutine multi_spawn_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, summed_particles, node_num, mult)
+  subroutine multi_spawn_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, summed_particles, node_num, mult, radius)
     type(detector_linked_list), intent(inout), dimension(:) :: node_particles
     real, intent(inout) :: node_values
     real, intent(inout) :: node_part_count
@@ -978,6 +978,7 @@ module particle_diagnostics
     type(vector_field), pointer, intent(in) :: xfield
     integer, dimension(:), intent(inout) :: summed_particles
     integer, intent(in) :: mult
+    real, intent(in) :: radius
 
     integer :: i
     integer, allocatable, dimension(:) :: add_particles
@@ -985,13 +986,13 @@ module particle_diagnostics
     allocate(add_particles(size(group_arrays)))
 
     do i = 1,mult
-       call spawn_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, add_particles, node_num)
+       call spawn_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, add_particles, node_num, radius)
        summed_particles=summed_particles+add_particles
     end do
 
   end subroutine multi_spawn_particles
 
-  subroutine spawn_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, add_particles, node_num)
+  subroutine spawn_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, add_particles, node_num, radius)
     !Subroutine to calculate the number of particles in each control volume, and spawn additional
     !particles within a control volume if a minimum number of particles is not met
 
@@ -1004,6 +1005,7 @@ module particle_diagnostics
     integer, intent(in) :: node_num
     type(vector_field), pointer, intent(in) :: xfield
     integer, dimension(:), intent(inout) :: add_particles
+    real, intent(in) :: radius
     
     type(detector_type), pointer :: particle
     type(detector_type), pointer :: temp_part
@@ -1067,7 +1069,7 @@ module particle_diagnostics
           node_numbers(:) = ele_nodes(xfield, temp_part%element)
           !randomly select local coords within radius around parent particle
 	  !ensuring new particle falls within cv
-          rand_lcoord=(rand()-0.5)*0.01!can spawn within 0.005 lcoord range of parent particle
+          rand_lcoord=(rand()-0.5)*2*radius
           max_lcoord=max_lcoord-rand_lcoord
           if (max_lcoord<0.55) then
              max_lcoord=0.55 !Minimum it can be is 0.55

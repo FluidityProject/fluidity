@@ -348,6 +348,10 @@ start =
 		           element max_cv_threshhold {
 			      integer
 		 	   },
+			   ## Radius particle can spawn around parent in local coordinates (suggested value 0.05).
+			   element radius {
+			      real
+			   },
 		           ## Set the field mesh which will be used for spawning.
 			   element material_phase {
 			      attribute name { xsd:string },

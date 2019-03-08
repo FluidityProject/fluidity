@@ -431,6 +431,10 @@ and deleting options.</a:documentation>
                           <a:documentation>Maximum number of particles per control volume.</a:documentation>
                           <ref name="integer"/>
                         </element>
+                        <element name="radius">
+                          <a:documentation>Radius particle can spawn around parent in local coordinates (suggested value 0.05).</a:documentation>
+                          <ref name="real"/>
+                        </element>
                         <element name="material_phase">
                           <a:documentation>Set the field mesh which will be used for spawning.</a:documentation>
                           <attribute name="name">
