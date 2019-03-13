@@ -428,7 +428,7 @@ and deleting options.</a:documentation>
                           <ref name="integer"/>
                         </element>
                         <element name="max_cv_threshhold">
-                          <a:documentation>Maximum number of particles per control volume.</a:documentation>
+                          <a:documentation>Maximum number of particles per control volume (recommended to be at least four times the minimum threshold).</a:documentation>
                           <ref name="integer"/>
                         </element>
                         <element name="radius">
@@ -453,11 +453,21 @@ and deleting options.</a:documentation>
                               <attribute name="name">
                                 <data type="string"/>
                               </attribute>
+                              <optional>
+                                <element name="copy_parent_attributes">
+                                  <empty/>
+                                </element>
+                              </optional>
                             </element>
                             <element name="attribute">
                               <attribute name="name">
                                 <data type="string"/>
                               </attribute>
+                              <optional>
+                                <element name="copy_parent_attributes">
+                                  <empty/>
+                                </element>
+                              </optional>
                             </element>
                           </choice>
                         </element>

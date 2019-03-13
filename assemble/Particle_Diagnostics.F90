@@ -629,7 +629,7 @@ module particle_diagnostics
     character(len=FIELD_NAME_LEN) :: sname, mname
     character(len=OPTION_PATH_LEN) :: particle_group, particle_subgroup, particle_attribute
     
-    logical :: have_subgroup, have_attribute
+    logical :: have_subgroup, have_attribute, copy_parent
     integer :: min_thresh, max_thresh
     real :: radius
 
@@ -663,12 +663,15 @@ module particle_diagnostics
              if (have_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/particles_to_spawn/subgroup")) then
                 have_subgroup=.true.
                 call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/particles_to_spawn/subgroup/name", particle_subgroup)
+                copy_parent = have_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/particles_to_spawn/subgroup/copy_parent_attributes")
              end if
 
              if (have_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/particles_to_spawn/attribute")) then
                 have_attribute=.true.
                 call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/particles_to_spawn/attribute/name", particle_attribute)
+                copy_parent = have_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/particles_to_spawn/attribute/copy_parent_attributes")
              end if
+
 
              field_loop: do i = 1,size(states)
                 call get_option("material_phase/name", mname)
@@ -687,10 +690,10 @@ module particle_diagnostics
              call get_option("/particles/particle_group["//int2str(k-1)//"]/name", particle_group)
              if (have_subgroup) then
                 call get_particle_arrays(particle_group, group_arrays, group_attribute, lsubgroup=particle_subgroup)
-                call spawn_delete_subgroup(states, s_field, group_arrays, max_thresh, min_thresh)
+                call spawn_delete_subgroup(states, s_field, group_arrays, max_thresh, min_thresh, copy_parent)
              else if (have_attribute) then
                 call get_particle_arrays(particle_group, group_arrays, group_attribute, lattribute=particle_attribute)
-                call spawn_delete_attribute(states, s_field, group_arrays, group_attribute, max_thresh, min_thresh, radius)
+                call spawn_delete_attribute(states, s_field, group_arrays, group_attribute, max_thresh, min_thresh, radius, copy_parent)
              end if
           end do
        end if
@@ -698,7 +701,7 @@ module particle_diagnostics
     
   end subroutine particle_cv_check
 
-  subroutine spawn_delete_attribute(states, s_field, group_arrays, group_attribute, max_thresh, min_thresh, radius)
+  subroutine spawn_delete_attribute(states, s_field, group_arrays, group_attribute, max_thresh, min_thresh, radius, copy_parent)
     use particles, only: particle_lists
     
     type(state_type), dimension(:), target, intent(in) :: states
@@ -708,6 +711,7 @@ module particle_diagnostics
     integer, dimension(:), intent(in) :: group_arrays
     integer, intent(in) :: group_attribute
     real, intent(in) :: radius
+    logical, intent(in) :: copy_parent
     type(halo_type), pointer :: halo
     type(detector_linked_list), allocatable, dimension(:,:) :: node_particles
     real, allocatable, dimension(:) :: node_values, node_part_count
@@ -788,9 +792,9 @@ module particle_diagnostics
        if (node_part_count(i)<min_thresh) then
           if (node_part_count(i)>0) then
              if (node_part_count(i)<min_thresh/2) then
-                call multi_spawn_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, xfield, summed_particles, i, 3, radius)
+                call multi_spawn_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, xfield, summed_particles, i, 3, radius, copy_parent)
              else
-                call spawn_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, xfield, add_particles, i, radius)
+                call spawn_particles(temp_part_count(i), temp_values(i), node_particles(:,i), group_arrays, group_attribute, xfield, add_particles, i, radius, copy_parent)
                 summed_particles=summed_particles+add_particles
              end if
           else if (node_part_count(i)==0) then
@@ -848,13 +852,14 @@ module particle_diagnostics
 
   end subroutine spawn_delete_attribute
 
-  subroutine spawn_delete_subgroup(states, s_field, group_arrays, max_thresh, min_thresh)
+  subroutine spawn_delete_subgroup(states, s_field, group_arrays, max_thresh, min_thresh, copy_parent)
     use particles, only: particle_lists
     type(state_type), dimension(:), target, intent(in) :: states
     
     type(scalar_field), intent(in) :: s_field
     integer, intent(in) :: min_thresh, max_thresh
     integer, dimension(:), intent(in) :: group_arrays
+    logical, intent(in) :: copy_parent
     
     type(halo_type), pointer :: halo
     type(detector_linked_list), allocatable, dimension(:) :: node_particles
@@ -922,9 +927,9 @@ module particle_diagnostics
        if (node_part_count(i)<min_thresh) then
           if (node_part_count(i)>0) then
              if (node_part_count(i)<min_thresh/2) then
-                call multi_spawn_particles_subgroup(temp_part_count(i), node_particles(i), group_arrays, xfield, summed_particles, i, 3)
+                call multi_spawn_particles_subgroup(temp_part_count(i), node_particles(i), group_arrays, xfield, summed_particles, i, 3, copy_parent)
              else 
-                call spawn_particles_subgroup(temp_part_count(i), node_particles(i), group_arrays, xfield, add_particles, i)
+                call spawn_particles_subgroup(temp_part_count(i), node_particles(i), group_arrays, xfield, add_particles, i, copy_parent)
                 summed_particles=summed_particles+add_particles
              end if
           else if (node_part_count(i)==0) then
@@ -968,7 +973,7 @@ module particle_diagnostics
   end subroutine spawn_delete_subgroup
 
 
-  subroutine multi_spawn_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, summed_particles, node_num, mult, radius)
+  subroutine multi_spawn_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, summed_particles, node_num, mult, radius, copy_parent)
     type(detector_linked_list), intent(inout), dimension(:) :: node_particles
     real, intent(inout) :: node_values
     real, intent(inout) :: node_part_count
@@ -979,6 +984,7 @@ module particle_diagnostics
     integer, dimension(:), intent(inout) :: summed_particles
     integer, intent(in) :: mult
     real, intent(in) :: radius
+    logical, intent(in) :: copy_parent
 
     integer :: i
     integer, allocatable, dimension(:) :: add_particles
@@ -986,13 +992,13 @@ module particle_diagnostics
     allocate(add_particles(size(group_arrays)))
 
     do i = 1,mult
-       call spawn_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, add_particles, node_num, radius)
+       call spawn_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, add_particles, node_num, radius, copy_parent)
        summed_particles=summed_particles+add_particles
     end do
 
   end subroutine multi_spawn_particles
 
-  subroutine spawn_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, add_particles, node_num, radius)
+  subroutine spawn_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, add_particles, node_num, radius, copy_parent)
     !Subroutine to calculate the number of particles in each control volume, and spawn additional
     !particles within a control volume if a minimum number of particles is not met
 
@@ -1006,6 +1012,7 @@ module particle_diagnostics
     type(vector_field), pointer, intent(in) :: xfield
     integer, dimension(:), intent(inout) :: add_particles
     real, intent(in) :: radius
+    logical, intent(in) :: copy_parent
     
     type(detector_type), pointer :: particle
     type(detector_type), pointer :: temp_part
@@ -1131,10 +1138,16 @@ module particle_diagnostics
 
           call local_to_global(xfield, temp_part%local_coords, temp_part%element, temp_part%position)
           temp_part%type = LAGRANGIAN_DETECTOR
-          temp_part%attributes(:) = 0
-          temp_part%old_attributes(:) = 0
-          temp_part%old_fields(:) = 0
-          temp_part%attributes(group_attribute) = particle%attributes(group_attribute)
+          if (copy_parent) then
+             temp_part%attributes(:) = particle%attributes(:)
+             temp_part%old_attributes(:) = particle%old_attributes(:)
+             temp_part%old_fields(:) = particle%old_fields(:)
+          else
+             temp_part%attributes(:) = 0
+             temp_part%old_attributes(:) = 0
+             temp_part%old_fields(:) = 0
+             temp_part%attributes(group_attribute) = particle%attributes(group_attribute)
+          end if
 
           node_values = node_values + temp_part%attributes(group_attribute)
           node_part_count = node_part_count + 1
@@ -1544,7 +1557,7 @@ module particle_diagnostics
     
   end subroutine delete_particles
 
-  subroutine multi_spawn_particles_subgroup(node_part_count,  node_particles, group_arrays, xfield, summed_particles, node_num, mult)
+  subroutine multi_spawn_particles_subgroup(node_part_count,  node_particles, group_arrays, xfield, summed_particles, node_num, mult, copy_parent)
     type(detector_linked_list), intent(inout) :: node_particles
     real, intent(inout) :: node_part_count
     integer, intent(in), dimension(1) :: group_arrays
@@ -1552,18 +1565,19 @@ module particle_diagnostics
     type(vector_field), pointer, intent(in) :: xfield
     integer, intent(inout) :: summed_particles
     integer, intent(in) :: mult
+    logical, intent(in) :: copy_parent
 
     integer :: i
     integer :: add_particles
 
     do i = 1,mult
-       call spawn_particles_subgroup(node_part_count, node_particles, group_arrays, xfield, add_particles, node_num)
+       call spawn_particles_subgroup(node_part_count, node_particles, group_arrays, xfield, add_particles, node_num, copy_parent)
        summed_particles=summed_particles+add_particles
     end do
 
   end subroutine multi_spawn_particles_subgroup
 
-  subroutine spawn_particles_subgroup(node_part_count, node_particles, group_arrays, xfield, add_particles, node_num)
+  subroutine spawn_particles_subgroup(node_part_count, node_particles, group_arrays, xfield, add_particles, node_num, copy_parent)
     !Subroutine to calculate the number of particles in each control volume, and spawn additional
     !particles within a control volume if a minimum number of particles is not met
 
@@ -1573,6 +1587,7 @@ module particle_diagnostics
     integer, intent(in), dimension(1) :: group_arrays
     integer, intent(in) :: node_num
     type(vector_field), pointer, intent(in) :: xfield
+    logical, intent(in) :: copy_parent
     integer, intent(inout) :: add_particles
     
     type(detector_type), pointer :: particle
@@ -1636,9 +1651,15 @@ module particle_diagnostics
        
        call local_to_global(xfield, temp_part%local_coords, temp_part%element, temp_part%position)
        temp_part%type = LAGRANGIAN_DETECTOR
-       temp_part%attributes(:) = 0
-       temp_part%old_attributes(:) = 0
-       temp_part%old_fields(:) = 0
+       if (copy_parent) then
+          temp_part%attributes(:) = particle%attributes(:)
+          temp_part%old_attributes(:) = particle%old_attributes(:)
+          temp_part%old_fields(:) = particle%old_fields(:)
+       else
+          temp_part%attributes(:) = 0
+          temp_part%old_attributes(:) = 0
+          temp_part%old_fields(:) = 0
+       end if
        
        node_part_count = node_part_count + 1
        

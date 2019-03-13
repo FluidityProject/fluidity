@@ -344,7 +344,7 @@ start =
 		           element min_cv_threshhold {
 			      integer
 			   },
-			   ## Maximum number of particles per control volume.
+			   ## Maximum number of particles per control volume (recommended to be at least four times the minimum threshold).
 		           element max_cv_threshhold {
 			      integer
 		 	   },
@@ -362,10 +362,16 @@ start =
 			   ## Set which particles will spawn, based off particle subgroup or attribute carried.
 			   element particles_to_spawn {
 			      element subgroup {
-			         attribute name { xsd:string }
+			         attribute name { xsd:string },
+				 element copy_parent_attributes{
+			            empty
+		              	 }?
 			      }|
 			      element attribute {
-			         attribute name { xsd:string }
+			         attribute name { xsd:string },
+				 element copy_parent_attributes{
+			            empty
+				 }?
 			      }
 			   }
 			}+
