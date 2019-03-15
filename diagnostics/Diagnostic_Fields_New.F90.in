@@ -284,12 +284,11 @@ contains
     
   end subroutine check_diagnostic_dependencies
 
-  subroutine calculate_diagnostic_variables(states, exclude_nonrecalculated, init_after_particles)
+  subroutine calculate_diagnostic_variables(states, exclude_nonrecalculated)
     !!< Calculate diagnostic fields
   
     type(state_type), dimension(:), intent(inout) :: states
     logical, intent(in), optional :: exclude_nonrecalculated
-    logical, intent(in), optional :: init_after_particles
     
     integer :: i, j
     type(scalar_field), pointer :: s_field
@@ -309,8 +308,7 @@ contains
         if(.not. recalculate_diagnostic_variable(s_field, exclude_nonrecalculated = exclude_nonrecalculated)) cycle
         ! and whether this field has already been calculated (as a dependency)
         if(has_scalar_field(calculated_states(i), trim(s_field%name))) cycle
-        !Check if field should be initialised after particles
-        if(present(init_after_particles) .and. have_option(trim(s_field%option_path) // "/diagnostic/init_after_particles")) cycle
+        ! Check if the field should be calculated from particles instead
         if(have_option(trim(s_field%option_path) // "/diagnostic/algorithm::from_particles")) cycle
         
         ! Calculate dependencies

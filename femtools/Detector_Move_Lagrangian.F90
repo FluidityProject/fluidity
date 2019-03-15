@@ -464,7 +464,6 @@ contains
                       end if
                       detector_list%length = detector_list%length -1
                       deleted_detectors=deleted_detectors+1
-                      !detector_list%total_num_det = detector_list%total_num_det -1
                       det_next => det0%next
                       call deallocate(det0)
                       det0 => det_next

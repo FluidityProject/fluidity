@@ -40,8 +40,8 @@ module detector_parallel
   use state_module
   use halos
   use detector_data_types
-  use pickers
   use detector_tools
+  use pickers
 
   implicit none
   
@@ -455,11 +455,7 @@ contains
           end if
 
           ! If there is a list of detector names, use it, otherwise set ID as name
-          !if (allocated(detector_list%detector_names)) then
-          !   detector_received%name=detector_list%detector_names(detector_received%id_number)
-          !else
-             detector_received%name=int2str(detector_received%id_number)
-          !end if
+          detector_received%name=int2str(detector_received%id_number)!Temporary change to fix particle spawning issues in parallel
 
           call insert(detector_received, detector_list)           
        end do
@@ -523,7 +519,7 @@ contains
 
   subroutine l2_halo_detectors(detector_list, positions, state)
     !Routine to check if detectors exist within l2 halos
-    !pack and send detectors to other processor if they are
+    !pack and send detectors to other processor if they do
 
     type(state_type), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list

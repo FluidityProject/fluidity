@@ -374,6 +374,8 @@ contains
           FLExit("Error: No support for ascii detector output in parallel. Please use binary output by turning off the ascii_output option.")
        end if
     end if
+    !!!!!Currently disabled until particle IO is revamped. Routine is still called to access read_detector_move_options
+    
 !!$    
 !!$          ! Only the first process should write the header file
 !!$    if (getprocno() == 1) then
@@ -1317,7 +1319,7 @@ contains
   end subroutine get_particles
 
   subroutine get_particle_arrays(lgroup, group_arrays, group_attribute, lattribute, lsubgroup)
-    !Read in a particle group and attribute name, send back numbers of particle arrays and particle attribute
+    !Read in a particle group and attribute name or particle subgroup, send back numbers of particle arrays and particle attribute
 
     character(len=OPTION_PATH_LEN), intent(in) :: lgroup
     character(len=OPTION_PATH_LEN), optional, intent(in) :: lattribute

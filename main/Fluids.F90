@@ -342,7 +342,7 @@ contains
     !Spawn particles to specified meshes
     call particle_cv_check(state)
 
-    !Initialise multimaterial fields based on particles:
+    !Initialise MVF fields based on particles:
     call initialise_constant_particle_diagnostics(state)
     
     ! Calculate diagnostic variables:
@@ -746,7 +746,7 @@ contains
        call move_particles(state, dt, timestep)
        call particle_cv_check(state)
        call update_particle_diagnostics(state, current_time)
-       !call write_particles_loop(state, current_time, dt) !Currently removed for efficiency
+       !call write_particles_loop(state, current_time, dt) !Currently removed until particle IO is revamped
        
        ! calculate and write diagnostics before the timestep gets changed
        call calculate_diagnostic_variables(State, exclude_nonrecalculated=.true.)
@@ -806,8 +806,6 @@ contains
 
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
-             !!update MVF field from particles here?
-             !!update all fields based on particles?
  
           end if
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
@@ -823,8 +821,6 @@ contains
              
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
-             !!update MVF field from particles here?
-             !!update all fields based on particles?
           end if
 
        not_to_move_det_yet=.false.

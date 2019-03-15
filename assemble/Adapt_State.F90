@@ -988,7 +988,7 @@ contains
       call copy_to_stored_values(states,"Iterated")
       call relax_to_nonlinear(states)
 
-      !Set multimaterial fields based on particles:
+      !Set constant particle attributes and MVF fields based on particles
       call initialise_constant_particle_diagnostics(states)
 
       call calculate_diagnostic_variables(states)
@@ -1161,11 +1161,11 @@ contains
       ! current objects before the adapt so we can later on check they have all
       ! been deallocated
       call tag_references()
-      
+
+      !Check if particle lists are initialised
       if (get_num_detector_lists()>0) then
-        ! Check detector elements exist on this processor, pack to other processor if not
         call get_registered_detector_lists(detector_list_array)
-         
+        ! Check if particle elements exist on this processor, pack to other processor if not
         do j = 1, size(detector_list_array)
            call l2_halo_detectors(detector_list_array(j)%ptr, old_positions, states(1))
         end do

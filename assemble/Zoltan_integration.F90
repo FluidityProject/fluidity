@@ -34,8 +34,8 @@ module zoltan_integration
   use c_interfaces
   use detector_data_types
   use boundary_conditions_from_options
-  use pickers
   use detector_tools
+  use pickers
   use detector_parallel
   use hadapt_advancing_front
   use fields_halos
@@ -2321,7 +2321,7 @@ module zoltan_integration
        add_detector => detector
        detector => detector%next
 
-       add_detector%name=int2str(add_detector%id_number)
+       add_detector%name=int2str(add_detector%id_number)!Temporary change to fix particle spawning issues in parallel
 
        ! move detector to the correct list
        call move(add_detector, zoltan_global_unpacked_detectors_list, detector_list_array(add_detector%list_id)%ptr)

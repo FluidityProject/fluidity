@@ -3963,7 +3963,7 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
     end do
     
     diagnostic_vfrac_count = option_count(&
-                &'/material_phase/scalar_field::PhaseVolumeFraction/diagnostic/algorithm::Internal')
+                &'/material_phase/scalar_field::PhaseVolumeFraction/diagnostic')
     if(diagnostic_vfrac_count > 1) then
       ewrite(-1,*) diagnostic_vfrac_count, 'diagnostic PhaseVolumeFractions.'
       FLExit("Only 1 diagnostic PhaseVolumeFraction is allowed")

@@ -226,7 +226,7 @@ contains
     type(scalar_field), pointer :: sfield
     logical :: diagnostic
 
-    ! How many diagnostic MaterialVolumeFraction fields do we have in state?
+    ! How many diagnostic internal MaterialVolumeFraction fields do we have in state?
     ! Note that state contains all the submaterials of the current phase, including the phase itself.
     ! Therefore, if the only material is the phase itself, diagnostic_count should be 0. Otherwise,
     ! it should be 1.

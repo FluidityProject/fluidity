@@ -48,7 +48,6 @@ module particle_diagnostics
   use detector_tools, only: temp_insert, insert, allocate, deallocate
   use field_options
   use multimaterial_module, only: calculate_sum_material_volume_fractions
- ! use diagnostic_fields_new, only: calculate_dependencies, calculate_diagnostic_variable 
   
   implicit none
 
@@ -64,7 +63,7 @@ module particle_diagnostics
 
   subroutine initialise_constant_particle_diagnostics(state)
     !subroutine to initialise constant particle attributes and
-    !multimaterial fields if 'from_particles'
+    !MVF fields if 'from_particles'
 
     use particles, only: particle_lists
     type(state_type), dimension(:), intent(inout) :: state
@@ -703,7 +702,7 @@ module particle_diagnostics
 
   subroutine spawn_delete_attribute(states, s_field, group_arrays, group_attribute, max_thresh, min_thresh, radius, copy_parent)
     use particles, only: particle_lists
-    
+    !Spawn and delete particles based on a common attribute they carry
     type(state_type), dimension(:), target, intent(in) :: states
     
     type(scalar_field), intent(in) :: s_field
@@ -854,6 +853,8 @@ module particle_diagnostics
 
   subroutine spawn_delete_subgroup(states, s_field, group_arrays, max_thresh, min_thresh, copy_parent)
     use particles, only: particle_lists
+    !Spawn and delete particles belonging to a specific particle_subgroup
+    
     type(state_type), dimension(:), target, intent(in) :: states
     
     type(scalar_field), intent(in) :: s_field
@@ -1030,7 +1031,8 @@ module particle_diagnostics
     logical :: Spawn_High, Spawn_Low
     real :: max_lcoord
 
-    
+    !Check if particle node values of above or below a threshold, only spawn from
+    !group containing those node values if they are
     Spawn_High = .false.
     Spawn_Low = .false.
 
@@ -1040,6 +1042,8 @@ module particle_diagnostics
     else if ((node_values/node_part_count)<0.2) then
        Spawn_Low = .true.
     end if
+
+    !Loop over particle groups for spawning
     do j = 1,size(group_arrays)
        temp_part => particle_lists(group_arrays(j))%last
        if (associated(temp_part)) then
@@ -1061,6 +1065,7 @@ module particle_diagnostics
           allocate(node_numbers(xfield%dim+1))
        end if
 
+       !Duplicate parent particles
        particle => node_particles(j)%first
        do while(associated(particle))
           particle_name = trim(name)//int2str(id+1)
@@ -1079,10 +1084,10 @@ module particle_diagnostics
           rand_lcoord=(rand()-0.5)*2*radius
           max_lcoord=max_lcoord-rand_lcoord
           if (max_lcoord<0.55) then
-             max_lcoord=0.55 !Minimum it can be is 0.55
+             max_lcoord=0.55 !Ensures minimum lcoord is 0.55
           end if
           if (max_lcoord>0.999) then
-             max_lcoord=0.999
+             max_lcoord=0.999 !Ensures maximum lcoord is 0.999
           end if
           do i = 1,xfield%dim+1
              if (node_num==node_numbers(i)) then
@@ -1136,8 +1141,10 @@ module particle_diagnostics
              end if
           end do
 
+          !Convert local particle coordinates to global coordinates
           call local_to_global(xfield, temp_part%local_coords, temp_part%element, temp_part%position)
           temp_part%type = LAGRANGIAN_DETECTOR
+          !Check if particles are copying all parent attributes
           if (copy_parent) then
              temp_part%attributes(:) = particle%attributes(:)
              temp_part%old_attributes(:) = particle%old_attributes(:)
@@ -1149,6 +1156,7 @@ module particle_diagnostics
              temp_part%attributes(group_attribute) = particle%attributes(group_attribute)
           end if
 
+          !add spawned particle parameters to previous values
           node_values = node_values + temp_part%attributes(group_attribute)
           node_part_count = node_part_count + 1
 
@@ -1251,6 +1259,8 @@ module particle_diagnostics
        end do
     end do
 
+    !Check if one group of particles makes up 80% of particles in surrounding CV's
+    !only spawn particles from this group if true
     Spawn_High=.false.
     spawn_num=0
     do i=1,size(group_arrays)
@@ -1357,16 +1367,20 @@ module particle_diagnostics
                    temp_part%local_coords= node_coord
                 end if
              end do
- 
+
+             !Convert newly spawned particle's local coords to global coords
              call local_to_global(xfield, temp_part%local_coords, temp_part%element, temp_part%position)
              temp_part%type = LAGRANGIAN_DETECTOR
              temp_part%attributes(:) = 0
              temp_part%old_attributes(:) = 0
              temp_part%old_fields(:) = 0
              temp_part%attributes(group_attribute) = particle%attributes(group_attribute)
+
+             !add newly spawned particle parameters to previous values
              node_values(node_num) = node_values(node_num) + temp_part%attributes(group_attribute)
              node_part_count(node_num) = node_part_count(node_num) + 1
-             
+
+             !add particle to relevant particle list
              temp_part%previous => particle_lists(group_arrays(k))%last
              particle_lists(group_arrays(k))%last%next => temp_part
              particle_lists(group_arrays(k))%last => temp_part
@@ -1437,7 +1451,9 @@ module particle_diagnostics
     real :: rand1, rand2, rand3
 
     remove_particles(:) = 0
-    
+
+    !loop over all particles in each particle group, perform 3 coin flips, if 2 of 3 flips are 'heads'
+    !then delete the particle
     do j = 1,size(group_arrays)
        particle =>node_particles(j)%first
        do while(associated(particle))
@@ -1648,9 +1664,13 @@ module particle_diagnostics
              temp_part%local_coords=node_coord
           end if
        end do
-       
+
+       !Convert newly spawned particles local coords to global coords
        call local_to_global(xfield, temp_part%local_coords, temp_part%element, temp_part%position)
+       
        temp_part%type = LAGRANGIAN_DETECTOR
+
+       !check if all attributes will be copied from parent particle
        if (copy_parent) then
           temp_part%attributes(:) = particle%attributes(:)
           temp_part%old_attributes(:) = particle%old_attributes(:)
