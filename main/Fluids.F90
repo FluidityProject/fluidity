@@ -821,6 +821,7 @@ contains
 
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
+
           end if
 
        not_to_move_det_yet=.false.
