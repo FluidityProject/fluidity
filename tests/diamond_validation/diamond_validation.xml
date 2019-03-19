@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <testproblem>
   <name>FLML validation (Diamond version)</name>
   <owner userid="pef"/>
@@ -46,15 +46,15 @@ class DiamondValidator:
     def __init__(self, rootDir):
         self._rootDir = rootDir
         self.Reset()
-
+    
         return
-
+    
     def Reset(self):
         self._passes = 0
         self._optionErrors = {}
-
+    
         return
-
+    
     def TestXmlFiles(self, testDir, depth):
         debug.dprint("Checking xml files:", 0)
         for filename in self._TestFiles("xml", testDir, depth):
@@ -65,12 +65,12 @@ class DiamondValidator:
             except xml.parsers.expat.ExpatError:
                 debug.dprint(filename + " : Fail", 0)
                 self._optionErrors[filename] = xml.parsers.expat.ExpatError
-
+    
         return
-
+    
     def ValidateOptionsFiles(self, schemafile, testDir, depth, extension = None, xmlRootNode = None):
         debug.dprint("Validating options file against schema: " + schemafile, 0)
-
+  
         schemafile = os.path.join(self._rootDir, schemafile)
         sch = schema.Schema(schemafile)
 
@@ -85,7 +85,7 @@ class DiamondValidator:
                 else:
                     debug.dprint(filename + " : Fail", 0)
                     self._optionErrors[filename] = (lost_eles, added_eles, lost_attrs, added_attrs)
-
+          
         if not xmlRootNode is None:
             debug.dprint("Testing xml files with root node: " + xmlRootNode, 0)
             for filename in self._TestFiles("xml", testDir, depth):
@@ -104,21 +104,26 @@ class DiamondValidator:
                 else:
                     debug.dprint(filename + " : Fail", 0)
                     self._optionErrors[filename] = (lost_eles, added_eles, lost_attrs, added_attrs)
-
+    
         return
-
+    
     def _TestFiles(self, extension, testDir, depth):
         filenames = []
         baseDir = os.path.join(self._rootDir, testDir)
         for i in range(depth + 1):
             filenames += glob.glob(os.path.join(baseDir, "*." + extension))
             baseDir = os.path.join(baseDir, "*")
-
+        for name in ['../../tests/test_results.xml','../../tests/test_results_medium.xml']:
+	    try:
+	        filenames.remove(name)
+	    except:
+	        pass
+   
         return filenames
-
+    
     def Passes(self):
         return self._passes
-
+    
     def OptionErrors(self):
         return self._optionErrors
 
@@ -137,10 +142,10 @@ validator.ValidateOptionsFiles(schemafile = os.path.join("schemas", "fluidity_op
 #validator.TestXmlFiles(testDir = os.path.join("qg_strat", "test"), depth = 1)
 #validator.ValidateOptionsFiles(schemafile = os.path.join("schemas", "test_options.rng"), testDir = testDir = os.path.join("qg_strat", "test"), depth = 1, xmlRootNode = "testproblem")
 #validator.ValidateOptionsFiles(schemafile = os.path.join("qg_strat", "qg_strat_options.rng"), testDir = os.path.join("qg_strat", "test"), depth = 1, extension = "qgml")
-
+    
 passes = validator.Passes()
 optionErrors = validator.OptionErrors()
-
+    
 print("Summary of options files with failures:")
 for filename in list(optionErrors.keys()):
     print(filename)
