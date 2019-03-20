@@ -103,7 +103,7 @@ subroutine calculate_free_surface_history(state, s_field)
     real :: spin_up_time, current_time, timestep
     real, dimension(:), allocatable :: saved_snapshots_times
 
-    ewrite(3,*),'in free_surface_history_diagnostics'
+    ewrite(3,*) 'in free_surface_history_diagnostics'
 
     fs_field => extract_scalar_field(state,"FreeSurface",stat)
     call halo_update(fs_field)
@@ -158,13 +158,13 @@ subroutine calculate_free_surface_history(state, s_field)
    ! Note this is after the options check above as we add options to the tree if
    ! they aren't there and they are needed in tidal_harmonics diagnostics
    if(current_time+timestep<spin_up_time) then
-       ewrite(4,*), "Still spinning up."
+       ewrite(4,*) "Still spinning up."
        return
    endif
    
    ! check if we want to save the current timestep at all
    if (mod(timestep_counter,stride)/=0) then
-       ewrite(4,*), "Ignoring this timestep"
+       ewrite(4,*) "Ignoring this timestep"
        return
    end if
 
@@ -181,7 +181,7 @@ subroutine calculate_free_surface_history(state, s_field)
   saved_snapshots_times(new_snapshot_index)=current_time+timestep
   call set_option(trim(base_path) // "saved_snapshots_times", saved_snapshots_times, stat)
   assert(any(stat == (/SPUD_NO_ERROR, SPUD_NEW_KEY_WARNING/)))
-  ewrite(4,*), 'Filling history level: ', min(timestep_counter/stride+1,levels), '/', levels
+  ewrite(4,*) 'Filling history level: ', min(timestep_counter/stride+1,levels), '/', levels
  
   ! lets copy a snapshot of freesurface to s_field(new_snapshot_index)
   hist_fs_field => extract_scalar_field(state,'harmonic'//int2str(new_snapshot_index))
@@ -220,7 +220,7 @@ subroutine calculate_tidal_harmonics(state, s_field)
 
    ! Only if Harmonics weren't already calculated in this timestep
    if (last_update/=timestep) then 
-      ewrite(3,*), "In tidal_harmonics"
+      ewrite(3,*) "In tidal_harmonics"
       allocate(harmonic_fields(get_number_of_harmonic_fields(state)))
       allocate(sigma(nLevels_))
 
@@ -229,9 +229,9 @@ subroutine calculate_tidal_harmonics(state, s_field)
       if (.not. ignoretimestep) then
          ! Initialize the harmonic fields and frequencies if not already done.
          call getHarmonicFields(state, harmonic_fields, nohfs, sigma, M)
-         ewrite(4,*), 'Frequencies to analyse:'
+         ewrite(4,*) 'Frequencies to analyse:'
          do i=1,M
-            ewrite(4,*), sigma(i)
+            ewrite(4,*) sigma(i)
          end do
          ! Calculate harmonics and update (all!) harmonic fields
          call update_harmonic_fields(state, saved_snapshots_times, size(saved_snapshots_times), current_snapshot_index, sigma, M, harmonic_fields, nohfs)
@@ -268,12 +268,12 @@ subroutine getFreeSurfaceHistoryData(state, ignoretimestep, saved_snapshots_time
    call get_option(trim(free_surface_history_path) // "levels", levels)
 
    if( mod(timestep_counter,stride)/=0) then
-        ewrite(4,*),'Do nothing in this timestep.'
+        ewrite(4,*) 'Do nothing in this timestep.'
         ignoretimestep=.true.
         return
    end if
    if(timestep_counter/stride+1 .lt. levels) then
-        ewrite(4,*), 'Do nothing until levels are filled up.'
+        ewrite(4,*) 'Do nothing until levels are filled up.'
         ignoretimestep=.true.
         return
    end if
@@ -350,8 +350,8 @@ subroutine getHarmonicFields(state, harmonic_fields, nohfs, sigma, M)
            end if
        end if
     end do s_field_loop
-    ewrite(4,*), 'Found ',  nohfs, ' constituents to analyse.' 
-    ewrite(4,*), 'Found ', M, ' frequencies to analyse.'
+    ewrite(4,*) 'Found ',  nohfs, ' constituents to analyse.' 
+    ewrite(4,*) 'Found ', M, ' frequencies to analyse.'
 
    if ( M .le. 0 ) then
       FLExit("Internal error in calculate_tidal_harmonics(). No harmonic constituents were found in option tree.")

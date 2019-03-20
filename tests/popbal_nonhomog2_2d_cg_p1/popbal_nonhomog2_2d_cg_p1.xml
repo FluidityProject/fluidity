@@ -14,25 +14,25 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
 s = stat_parser("popbal_nonhomog2_2d.stat")
 timestep=0.005
 t=5.0
-index_time_for_norm=((1.0/timestep)*t)-1
+index_time_for_norm=int((1.0/timestep)*t)-1
 moment3_L2error_t_5s = s["fluid"]["ScalarAbsoluteDifference"]["l2norm"][index_time_for_norm]</variable>
     <variable name="moment3_L2error_t_20s" language="python">from fluidity_tools import stat_parser
 s = stat_parser("popbal_nonhomog2_2d.stat")
 timestep=0.005
 t=20.0
-index_time_for_norm=((1.0/timestep)*t)-1
+index_time_for_norm=int((1.0/timestep)*t)-1
 moment3_L2error_t_20s = s["fluid"]["ScalarAbsoluteDifference"]["l2norm"][index_time_for_norm]</variable>
     <variable name="moment3_maxerror_t_5s" language="python">from fluidity_tools import stat_parser
 s = stat_parser("popbal_nonhomog2_2d.stat")
 timestep=0.005
 t=5.0
-index_time_for_norm=((1.0/timestep)*t)-1
+index_time_for_norm=int((1.0/timestep)*t)-1
 moment3_maxerror_t_5s = s["fluid"]["ScalarAbsoluteDifference"]["max"][index_time_for_norm]</variable>
     <variable name="moment3_maxerror_t_20s" language="python">from fluidity_tools import stat_parser
 s = stat_parser("popbal_nonhomog2_2d.stat")
 timestep=0.005
 t=20.0
-index_time_for_norm=((1.0/timestep)*t)-1
+index_time_for_norm=int((1.0/timestep)*t)-1
 moment3_maxerror_t_20s = s["fluid"]["ScalarAbsoluteDifference"]["max"][index_time_for_norm]</variable>
   </variables>
   <pass_tests>

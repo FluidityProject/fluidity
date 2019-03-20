@@ -613,13 +613,13 @@ contains
 
         column = column + 1
         buffer = field_tag(name = mesh%name, column = column, statistic = "nodes")
-        write(default_stat%diag_unit, "(a)"), trim(buffer)
+        write(default_stat%diag_unit, "(a)") trim(buffer)
         column = column + 1
         buffer = field_tag(name = mesh%name, column = column, statistic = "elements")
-        write(default_stat%diag_unit, "(a)"), trim(buffer)
+        write(default_stat%diag_unit, "(a)") trim(buffer)
         column = column + 1
         buffer = field_tag(name = mesh%name, column = column, statistic = "surface_elements")
-        write(default_stat%diag_unit, "(a)"), trim(buffer)
+        write(default_stat%diag_unit, "(a)") trim(buffer)
       end do
 
 #ifdef HAVE_MEMORY_STATS

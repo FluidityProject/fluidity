@@ -195,7 +195,7 @@ contains
     type(scalar_field) :: original_bottomdist, original_bottomdist_remap
 
     if (.not. has_scalar_field(state, "OriginalDistanceToBottom")) then
-       ewrite(2, *), "Inserting OriginalDistanceToBottom field into state."   
+       ewrite(2, *) "Inserting OriginalDistanceToBottom field into state."   
        bottomdist => extract_scalar_field(state, "DistanceToBottom")
        call allocate(original_bottomdist, bottomdist%mesh, "OriginalDistanceToBottom")
        call zero(original_bottomdist)
@@ -204,7 +204,7 @@ contains
        call deallocate(original_bottomdist)
 
        ! We also cache  the OriginalDistanceToBottom on the pressure mesh
-       ewrite(2, *), "Inserting OriginalDistanceToBottomPressureMesh field into state."   
+       ewrite(2, *) "Inserting OriginalDistanceToBottomPressureMesh field into state."   
        p_mesh => extract_pressure_mesh(state)
        call allocate(original_bottomdist_remap, p_mesh, "OriginalDistanceToBottomPressureMesh")
        call remap_field(original_bottomdist, original_bottomdist_remap)
@@ -368,8 +368,10 @@ contains
             use_fs_mesh=.false.
           end if
 
-          variable_density = have_option(trim(fs_option_path)//"/type[0]/variable_density") &
-                            .and. (.not.move_mesh)
+          variable_density = have_option(trim(fs_option_path)//"/type[0]/variable_density")
+          if (variable_density .and. move_mesh) then
+            FLExit("Free surface with variable density and mesh movement not implemented")
+          end if
           if (variable_density .and. (.not. have_density)) then
             FLExit("Variable density free surface requires a Density field.")
           end if
@@ -407,6 +409,10 @@ contains
             delta_rho = rho0 - node_val(external_density, 1)
           else
             delta_rho = rho0
+          end if
+          if (move_mesh .and. delta_rho/=1.0) then
+            ! Someone needs to go through the maths to see where we should divide by delta_rho
+            FLExit("Free surface with a density difference that is not 1.0 and mesh movement not supported")
           end if
 
           alpha=1.0/g/dt                        ! delta_rho included in alpha and coeff within element loop

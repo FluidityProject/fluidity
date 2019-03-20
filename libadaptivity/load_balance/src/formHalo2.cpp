@@ -167,7 +167,8 @@ void Mesh::formHalo2(){
     unsigned max_node_size      = max_nodepack_size();
     unsigned max_pnode_size     = max_pressurepack_size();
     unsigned max_element_size   = max_elementpack_size();
-    unsigned space_for_unsigned = MPI::UNSIGNED.Pack_size(1, MPI::COMM_WORLD);
+    int space_for_unsigned;
+    MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &space_for_unsigned);
     
     for(int i=0; i<NProcs; i++){
       unsigned nbytes = space_for_unsigned          +
@@ -196,8 +197,8 @@ void Mesh::formHalo2(){
     
     // Elements
     unsigned cnt = halo2Elements[i].size();
-    MPI::UNSIGNED.Pack(&cnt, 1, buff, len, offsets[i], MPI::COMM_WORLD);
-    
+    MPI_Pack(&cnt, 1, MPI_UNSIGNED, buff, len, &offsets[i], MPI_COMM_WORLD);
+
     ECHO("Packing "<<cnt<<" halo2 elements for "<<i<<".");
     for(unsigned j=0; j<cnt; j++){
 
@@ -205,15 +206,14 @@ void Mesh::formHalo2(){
       unsigned danger = 0;
       if( dangerElements.find( halo2Elements[i][j] ) != dangerElements.end() )
 	danger = 1;
-      MPI::UNSIGNED.Pack(&danger, 1, buff, len, offsets[i], MPI::COMM_WORLD);
+      MPI_Pack(&danger, 1, MPI_UNSIGNED, buff, len, &offsets[i], MPI_COMM_WORLD);
 
       // Pack element
       element_list[ halo2Elements[i][j] ].pack(buff, len, offsets[i]);
     }
     // Nodes
     cnt = sendhalo2nodes[i].size();
-    MPI::UNSIGNED.Pack(&cnt, 1, buff, len, offsets[i], MPI::COMM_WORLD);
-
+    MPI_Pack(&cnt, 1, MPI_UNSIGNED, buff, len, &offsets[i], MPI_COMM_WORLD);
     ECHO("Packing "<<cnt<<" halo2 nodes for "<<i<<".");    
     for(set<unsigned>::const_iterator it=sendhalo2nodes[i].begin(); it!=sendhalo2nodes[i].end(); ++it){
       const Node& node = node_list.unn( *it );
@@ -222,7 +222,7 @@ void Mesh::formHalo2(){
     
     // Pressure nodes
     cnt = sendhalo2pnodes[i].size();
-    MPI::UNSIGNED.Pack(&cnt, 1, buff, len, offsets[i], MPI::COMM_WORLD);
+    MPI_Pack(&cnt, 1, MPI_UNSIGNED, buff, len, &offsets[i], MPI_COMM_WORLD);
     ECHO("Packing "<<cnt<<" halo2 pressure nodes for "<<i<<".");
 
     for(set<unsigned>::const_iterator it=sendhalo2pnodes[i].begin(); it!=sendhalo2pnodes[i].end(); ++it){
@@ -273,7 +273,7 @@ void Mesh::formHalo2(){
       char *buffer = &(SendRecvBuffer[p][0]);
       { // elements
 	unsigned cnt;
-	MPI::UNSIGNED.Unpack(buffer, nbytes, &cnt, 1, offsets[p], MPI::COMM_WORLD);
+    MPI_Unpack(buffer, nbytes, &offsets[p], &cnt, 1, MPI_UNSIGNED, MPI_COMM_WORLD);
 	
 	ECHO("Unpacking "<<cnt<<" elements from "<<p<<".");
 	
@@ -284,7 +284,7 @@ void Mesh::formHalo2(){
 	  
 	  // Unpack danger flag.
 	  unsigned danger;
-	  MPI::UNSIGNED.Unpack(buffer, nbytes, &danger, 1, offsets[p], MPI::COMM_WORLD);
+      MPI_Unpack(buffer, nbytes, &offsets[p], &danger, 1, MPI_UNSIGNED, MPI_COMM_WORLD);
 	  CHECK(danger);
 	  
 	  // Unpack element...      
@@ -302,7 +302,7 @@ void Mesh::formHalo2(){
       
       { // nodes
 	unsigned cnt;
-	MPI::UNSIGNED.Unpack(buffer, nbytes, &cnt, 1, offsets[p], MPI::COMM_WORLD);
+    MPI_Unpack(buffer, nbytes, &offsets[p], &cnt, 1, MPI_UNSIGNED, MPI_COMM_WORLD);
 	ECHO("Unpacking "<<cnt<<" nodes from "<<p<<".");
 	
 	for(unsigned j=0; j<cnt; j++){
@@ -323,7 +323,7 @@ void Mesh::formHalo2(){
       
       { // pressure nodes
 	unsigned cnt;
-	MPI::UNSIGNED.Unpack(buffer, nbytes, &cnt, 1, offsets[p], MPI::COMM_WORLD);
+    MPI_Unpack(buffer, nbytes, &offsets[p], &cnt, 1, MPI_UNSIGNED, MPI_COMM_WORLD);
 	ECHO("Unpacking "<<cnt<<" pressure nodes from "<<p<<".");
 	
 	for(unsigned j=0; j<cnt; j++){
