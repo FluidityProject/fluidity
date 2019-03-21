@@ -56,7 +56,7 @@ module particles
        checkpoint_particles_loop, get_particles, get_particle_arrays, update_list_lengths, particle_lists, &
        set_particle_attributes, initialise_constant_particle_attributes
 
-  type(detector_linked_list), allocatable, dimension(:), save :: particle_lists
+  type(detector_linked_list), allocatable, dimension(:), target, save :: particle_lists
 
 contains
 
@@ -281,6 +281,7 @@ contains
        call create_single_particle(p_list, xfield, &
             particle_location, l, LAGRANGIAN_DETECTOR, trim(particle_name),attribute_size,attribute_vals= attribute_vals)
     end do
+    deallocate(particle_location)
     deallocate(packed_buff)
     deallocate(attribute_vals)
     
@@ -628,6 +629,7 @@ contains
           list_counter = list_counter + 1
        end do
     end do
+    deallocate(particle_arrays)
 
   end subroutine move_particles
 
@@ -866,6 +868,8 @@ contains
           list_counter = list_counter + 1
        end do
     end do
+
+    deallocate(particle_arrays)
     
 
   end subroutine write_particles_loop
@@ -1118,6 +1122,8 @@ contains
           list_counter = list_counter + 1
        end do
     end do
+
+    deallocate(particle_arrays)
 
   end subroutine checkpoint_particles_loop
 
@@ -1393,8 +1399,14 @@ contains
 
   end subroutine update_list_lengths
   subroutine destroy_particles()
+    type(detector_linked_list), pointer :: del_particle_lists
+    integer :: i
     !Deallocate all particle arrays (detector lists)
     if (allocated(particle_lists)) then
+       do i=1,size(particle_lists)
+          del_particle_lists => particle_lists(i)
+          call deallocate(del_particle_lists)
+       end do
        deallocate(particle_lists)
     end if
     

@@ -45,7 +45,7 @@ module particle_diagnostics
   use fields
   use pickers
   use detector_data_types
-  use detector_tools, only: temp_insert, insert, allocate, deallocate
+  use detector_tools, only: temp_insert, insert, allocate, deallocate, temp_deallocate
   use field_options
   use multimaterial_module, only: calculate_sum_material_volume_fractions
   
@@ -120,6 +120,8 @@ module particle_diagnostics
        call scale(s_field, -1.0)
        call addto(s_field, 1.0)
     end if
+
+    deallocate(particle_arrays)
     
   end subroutine initialise_constant_particle_diagnostics
 
@@ -184,6 +186,8 @@ module particle_diagnostics
        end do
     end do
     k = size(state)
+
+    deallocate(particle_arrays)
 
   end subroutine initialise_particle_diagnostics
 
@@ -257,6 +261,8 @@ module particle_diagnostics
        call scale(s_field, -1.0)
        call addto(s_field, 1.0)
     end if
+
+    deallocate(particle_arrays)
     
   end subroutine update_particle_diagnostics
 
@@ -386,8 +392,6 @@ module particle_diagnostics
     s_field%val(:) = 0
 
     xfield=>extract_vector_field(states(1), "Coordinate")
-
-    !Call subroutine to check if particles are allocated
 
     ! contribution of local particles to non-owned nodes are summed
     ! into the owner in the halo_accumulate calls below
@@ -535,11 +539,11 @@ module particle_diagnostics
     call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/particle_group/name", lgroup)
     if (have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/particle_group/particle_subgroup")) then
        call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/particle_group/particle_subgroup/name", lsubgroup)
-       ewrite(2,*) "Calculate number of particles from particle group: ", trim(lgroup), " subgroup: ", trim(lsubgroup)
+       ewrite(2,*) "Calculating number of particles from particle group: ", trim(lgroup), " subgroup: ", trim(lsubgroup)
        have_subgroup=.true.
     else if (have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/particle_group/particle_attribute")) then
        call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/method/particle_group/particle_attribute/name", lattribute)
-       ewrite(2,*) "Calculate number of particles from particle group: ", trim(lgroup), " attribute: ", trim(lattribute)
+       ewrite(2,*) "Calculating number of particles from particle group: ", trim(lgroup), " attribute: ", trim(lattribute)
        have_attribute=.true.
     end if
 
@@ -712,7 +716,8 @@ module particle_diagnostics
     real, intent(in) :: radius
     logical, intent(in) :: copy_parent
     type(halo_type), pointer :: halo
-    type(detector_linked_list), allocatable, dimension(:,:) :: node_particles
+    type(detector_linked_list), allocatable, target, dimension(:,:) :: node_particles
+    type(detector_linked_list), pointer :: del_node_particles
     real, allocatable, dimension(:) :: node_values, node_part_count
     real, allocatable, dimension(:) :: local_crds
     type(detector_type), pointer :: particle
@@ -841,12 +846,19 @@ module particle_diagnostics
 
     deallocate(node_values)
     deallocate(node_part_count)
-    deallocate(node_particles)
     deallocate(add_particles)
     deallocate(remove_particles)
     deallocate(summed_particles)
     deallocate(temp_part_count)
     deallocate(temp_values)
+
+    do i=1,node_count(s_field)
+       do j=1,size(group_arrays)
+          del_node_particles => node_particles(j,i)
+          call temp_deallocate(del_node_particles)
+       end do
+    end do
+    deallocate(node_particles)
 
 
   end subroutine spawn_delete_attribute
@@ -863,7 +875,8 @@ module particle_diagnostics
     logical, intent(in) :: copy_parent
     
     type(halo_type), pointer :: halo
-    type(detector_linked_list), allocatable, dimension(:) :: node_particles
+    type(detector_linked_list), allocatable, target, dimension(:) :: node_particles
+    type(detector_linked_list), pointer :: del_node_particles
     real, allocatable, dimension(:) :: node_part_count
     real, allocatable, dimension(:) :: local_crds
     type(detector_type), pointer :: particle
@@ -968,8 +981,13 @@ module particle_diagnostics
     assert(total_particles==particle_lists(group_arrays(1))%total_num_det)
 
     deallocate(node_part_count)
-    deallocate(node_particles)
     deallocate(temp_part_count)
+
+    do i=1,node_count(s_field)
+          del_node_particles => node_particles(i)
+          call temp_deallocate(del_node_particles)
+    end do
+    deallocate(node_particles)
 
   end subroutine spawn_delete_subgroup
 
@@ -996,6 +1014,8 @@ module particle_diagnostics
        call spawn_particles(node_part_count, node_values, node_particles, group_arrays, group_attribute, xfield, add_particles, node_num, radius, copy_parent)
        summed_particles=summed_particles+add_particles
     end do
+
+    deallocate(add_particles)
 
   end subroutine multi_spawn_particles
 
@@ -1803,6 +1823,7 @@ module particle_diagnostics
        if (allocated(node_coord)) then
           deallocate(node_coord)
        end if
+       deallocate(node_numbers)
     end do
 
   end subroutine spawn_zero_particles_subgroup

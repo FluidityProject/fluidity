@@ -52,7 +52,7 @@ module detector_tools
             detector_value, set_detector_coords_from_python, &
             detector_buffer_size, set_particle_attribute_from_python, &
             set_particle_fields_from_python, set_particle_constant_from_options, &
-            temp_insert
+            temp_insert, temp_deallocate, temp_delete, temp_delete_all, temp_remove
 
   interface insert
      module procedure insert_into_detector_list
@@ -67,14 +67,29 @@ module detector_tools
      module procedure remove_detector_from_list
   end interface
 
+  ! Removes detector from a temp list without deallocating it
+  interface temp_remove
+     module procedure remove_detector_from_temp_list
+  end interface
+
   ! Removes detector from a list and deallocates it
   interface delete
      module procedure delete_detector
   end interface
 
+  ! Removes detector from a temp list
+  interface temp_delete
+     module procedure delete_temp_detector
+  end interface
+
   ! Deletes all detectors from a given list
   interface delete_all
      module procedure delete_all_detectors
+  end interface
+
+  ! Deletes all detectors from a given temp list
+  interface temp_delete_all
+     module procedure delete_all_temp_detectors
   end interface
 
   ! Move detector from one list to another
@@ -97,6 +112,10 @@ module detector_tools
 
   interface deallocate
      module procedure detector_deallocate, detector_list_deallocate
+  end interface
+
+  interface temp_deallocate
+     module procedure detector_list_temp_deallocate
   end interface
 
   ! Evaluate field at the location of the detector.
@@ -149,7 +168,7 @@ contains
     
   subroutine detector_deallocate(detector)
     type(detector_type), pointer :: detector
-      
+
     if(associated(detector)) then
        if(allocated(detector%local_coords)) then
           deallocate(detector%local_coords)
@@ -205,6 +224,38 @@ contains
     end if
 
   end subroutine detector_list_deallocate
+
+  subroutine detector_list_temp_deallocate(detector_list)
+    type(detector_linked_list), pointer :: detector_list
+
+    type(rk_gs_parameters), pointer :: parameters
+    ! Delete detectors
+    if (detector_list%length > 0) then
+       call temp_delete_all(detector_list)
+    end if
+    ! Deallocate list information
+    if (allocated(detector_list%detector_names)) then
+       deallocate(detector_list%detector_names)
+    end if
+    if (allocated(detector_list%sfield_list)) then
+       deallocate(detector_list%sfield_list)
+    end if
+    if (allocated(detector_list%vfield_list)) then
+       deallocate(detector_list%vfield_list)
+    end if
+
+    ! Deallocate move_parameters
+    parameters => detector_list%move_parameters
+    if (associated(parameters)) then
+       if (allocated(parameters%timestep_weights)) then
+          deallocate(parameters%timestep_weights)
+       end if
+       if (allocated(parameters%stage_matrix)) then
+          deallocate(parameters%stage_matrix)
+       end if
+    end if
+
+  end subroutine detector_list_temp_deallocate
     
   subroutine detector_copy(new_detector, old_detector)
     ! Copies all the information from the old detector to
@@ -285,10 +336,35 @@ contains
           detector_list%last => detector%previous
        end if
     end if
+    detector_list%length = detector_list%length-1
+    
+  end subroutine remove_detector_from_list
 
+  subroutine remove_detector_from_temp_list(detector, detector_list)
+    !! Removes the detector from the list,
+    !! but does not deallocated it
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(detector_type), pointer :: detector
+
+    if (detector_list%length==1) then
+       detector_list%first => null()
+       detector_list%last => null()
+    else
+       if (associated(detector%temp_previous)) then
+          detector%temp_previous%temp_next => detector%temp_next
+       else
+          detector_list%first => detector%temp_next
+       end if
+
+       if (associated(detector%next)) then
+          detector%temp_next%temp_previous => detector%temp_previous
+       else
+          detector_list%last => detector%temp_previous
+       end if
+    end if
     detector_list%length = detector_list%length-1
 
-  end subroutine remove_detector_from_list
+  end subroutine remove_detector_from_temp_list
 
   subroutine delete_detector(detector, detector_list)
     ! Removes and deallocates the given detector 
@@ -308,6 +384,19 @@ contains
     end if
       
   end subroutine delete_detector
+
+  subroutine delete_temp_detector(detector, detector_list)
+    ! Removes and deallocates the given detector
+    ! and outputs the next detector in the list as detector
+    type(detector_type), pointer :: detector
+    type(detector_linked_list), intent(inout), optional :: detector_list
+    
+    type(detector_type), pointer :: temp_detector
+    temp_detector => detector
+    detector => detector%temp_next
+    call temp_remove(temp_detector, detector_list)
+    
+  end subroutine delete_temp_detector
 
   subroutine move_detector(detector, from_list, to_list)
     ! Move detector from one list to the other
@@ -344,6 +433,18 @@ contains
     end do
 
   end subroutine delete_all_detectors
+
+  subroutine delete_all_temp_detectors(detector_list)
+    ! Remove and deallocate all detectors in a list
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(detector_type), pointer :: detector
+
+    detector => detector_list%first
+    do while (associated(detector))
+       call temp_delete(detector,detector_list)
+    end do
+
+  end subroutine delete_all_temp_detectors
 
   function detector_buffer_size(ndims, have_update_vector, nstages, attribute_size)
     ! Returns the number of reals we need to pack a detector
