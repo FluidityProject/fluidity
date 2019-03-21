@@ -26,6 +26,7 @@
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
 
+from __future__ import print_function
 import vtk
 import sys
 import getopt
@@ -37,7 +38,7 @@ verbose = False
 
 def probe(pd, filename):
     if(verbose):
-        print "Opening ", filename
+        print("Opening ", filename)
 
     reader = vtk.vtkXMLUnstructuredGridReader()
     reader.SetFileName(filename)
@@ -45,7 +46,7 @@ def probe(pd, filename):
     ugrid.Update()
     
     if(verbose):
-        print "Probing"
+        print("Probing")
 
     probe = vtk.vtkProbeFilter()
     if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
@@ -59,7 +60,7 @@ def probe(pd, filename):
     return probe.GetOutput()
 
 def usage():
-    print "mean_flow <options> [vtu basename] [first dump id] [last dump id]\n\
+    print("mean_flow <options> [vtu basename] [first dump id] [last dump id]\n\
  options:\n\
  -h, --help\n\
    prints this message\n\
@@ -68,7 +69,7 @@ def usage():
  -i, --intervals i/j/k\n\
    number of sampling planes in each direction\
  -v, --verbose\n\
-   verbose output\n"
+   verbose output\n")
 
 def parse_args(argv):
     global bbox, intervals, verbose
@@ -88,7 +89,7 @@ def parse_args(argv):
         elif o in ("-b", "--bbox"):
             bbox = a.split("/")
             if len(bbox) != 6:
-                print "ERROR: something wrong with bbox"
+                print("ERROR: something wrong with bbox")
                 usage()
                 sys.exit()
             for i in range(len(bbox)):
@@ -96,7 +97,7 @@ def parse_args(argv):
         elif o in ("-i", "--intervals"):
             intervals = a.split("/")
             if len(intervals) != 3:
-                print "ERROR: something wrong with intervals"
+                print("ERROR: something wrong with intervals")
                 usage()
                 sys.exit()
             for i in range(len(intervals)):
@@ -113,7 +114,7 @@ def parse_args(argv):
 
 def create_probe(filename):
     if(verbose):
-        print "Creating probe from ", filename
+        print("Creating probe from ", filename)
 
     pd = vtk.vtkStructuredPoints()
 
@@ -151,30 +152,30 @@ def write_sp(pd):
 def sum_vti(vti0, vti1):
     narrays = vti0.GetPointData().GetNumberOfArrays()
     for i in range(narrays):
-	array0 = vti0.GetPointData().GetArray(i)
-     	name = array0.GetName()
-       	array1 = vti1.GetPointData().GetArray(name)
+        array0 = vti0.GetPointData().GetArray(i)
+        name = array0.GetName()
+        array1 = vti1.GetPointData().GetArray(name)
 
- 	ncomponents = array0.GetNumberOfComponents()
-	ntuples = array0.GetNumberOfTuples()
-	assert ntuples == array1.GetNumberOfTuples()
+        ncomponents = array0.GetNumberOfComponents()
+        ntuples = array0.GetNumberOfTuples()
+        assert ntuples == array1.GetNumberOfTuples()
 
-	if ncomponents == 1:
-	    for n in range(ntuples):
-	    	sum = array0.GetTuple1(n) + array1.GetTuple1(n)
-		array0.SetTuple1(n, sum)
-	elif ncomponents == 3:
-	    for n in range(ntuples):
-		tuple0 = array0.GetTuple3(n)
-		tuple1 = array1.GetTuple3(n)
+        if ncomponents == 1:
+            for n in range(ntuples):
+                sum = array0.GetTuple1(n) + array1.GetTuple1(n)
+                array0.SetTuple1(n, sum)
+        elif ncomponents == 3:
+            for n in range(ntuples):
+                tuple0 = array0.GetTuple3(n)
+                tuple1 = array1.GetTuple3(n)
                 array0.SetTuple3(n, tuple0[0]+tuple1[0], tuple0[1]+tuple1[1],
-                                    tuple0[2]+tuple1[2])
-	else:
-	    print "ERROR: Buy someone who knows python a beer"
+                                 tuple0[2]+tuple1[2])
+        else:
+            print("ERROR: Buy someone who knows python a beer")
 
 def divide_vti(vti, scalar):
     if verbose:
-	print "Rescaling by ", scalar
+        print("Rescaling by ", scalar)
 
     scalar = float(scalar)
     narrays = vti.GetPointData().GetNumberOfArrays()
@@ -192,7 +193,7 @@ def divide_vti(vti, scalar):
                 array.SetTuple3(n, tuple[0]/scalar, tuple[1]/scalar,
                                    tuple[2]/scalar)
         else:
-            print "ERROR: Buy someone who knows python a beer"
+            print("ERROR: Buy someone who knows python a beer")
 
 def main(argv):
     args = parse_args(argv)
@@ -204,10 +205,10 @@ def main(argv):
     d1 = int(args[3])
     for i in range(d0+1, d1+1, 1):
         filename = args[1]+"_"+str(i)+".vtu"
-	if verbose:
-	    print "Processing ", filename
+        if verbose:
+            print("Processing ", filename)
         solution1 = probe(pd, filename)
-	sum_vti(solution0, solution1)
+        sum_vti(solution0, solution1)
 
     ndumps = d1 - d0 + 1
     divide_vti(solution0, ndumps)

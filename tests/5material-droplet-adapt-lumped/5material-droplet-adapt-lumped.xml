@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Control volume, multi-material flow test</name>
   <owner userid="cwilson"/>
@@ -138,25 +137,25 @@ assert endtimestep &gt; 0.001
 assert abs(nodes0-nodes) &gt; 0
     </test>
     <test name="check water volume fraction was conserved" language="python">
-print 'conservation error = ', abs(vfracintwater0-vfracintwater)
+print('conservation error = ', abs(vfracintwater0-vfracintwater))
 assert abs(vfracintwater0-vfracintwater) &lt; 10*max(maxdivergence, mindivergence)
-    </test>
+</test>
     <test name="check droplet volume fraction was conserved" language="python">
-print 'conservation error = ', abs(vfracintdrop0-vfracintdrop)
+print('conservation error = ', abs(vfracintdrop0-vfracintdrop))
 assert abs(vfracintdrop0-vfracintdrop) &lt; 10*max(maxdivergence, mindivergence)
-    </test>
+</test>
     <test name="check water2 volume fraction was conserved" language="python">
-print 'conservation error = ', abs(vfracintwater20-vfracintwater2)
+print('conservation error = ', abs(vfracintwater20-vfracintwater2))
 assert abs(vfracintwater20-vfracintwater2) &lt; 10*max(maxdivergence, mindivergence)
-    </test>
+</test>
     <test name="check droplet2 volume fraction was conserved" language="python">
-print 'conservation error = ', abs(vfracintdrop20-vfracintdrop2)
+print('conservation error = ', abs(vfracintdrop20-vfracintdrop2))
 assert abs(vfracintdrop20-vfracintdrop2) &lt; 10*max(maxdivergence, mindivergence)
-    </test>
+</test>
     <test name="check that reasonable tolerance is being used to test conservation" language="python">
-print 'divergence tolerance = ', max(maxdivergence, mindivergence)
+print('divergence tolerance = ', max(maxdivergence, mindivergence))
 assert max(maxdivergence, mindivergence) &lt; 1.E-7
-    </test>
+</test>
     <test name="check minimum water volume fraction is 0.0" language="python">
 assert abs(mnvfracwater) &lt; 1e-10
     </test>

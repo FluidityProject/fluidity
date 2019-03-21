@@ -10,6 +10,7 @@
 stat to csv convertor for Fluidity output stat files.
 """
 
+from __future__ import print_function
 import getopt
 import os
 import sys
@@ -21,7 +22,7 @@ def Help():
   """
   Print program usage information.
   """
-  print "Usage: stat2csv [OPTIONS] ... STAT\n" + \
+  print("Usage: stat2csv [OPTIONS] ... STAT\n" + \
         "\n" + \
         "Converts a Fluidity .stat file to a .csv file." + \
         "\n" + \
@@ -30,7 +31,7 @@ def Help():
         "-c        Do not output data labels\n" + \
         "-d DELIM The delimiter to use between output columns (default = \",\")\n" + \
         "-o        Output file\n" + \
-        "-s        Output to stdout instead of output file"
+        "-s        Output to stdout instead of output file")
   sys.stdout.flush()
   
   return

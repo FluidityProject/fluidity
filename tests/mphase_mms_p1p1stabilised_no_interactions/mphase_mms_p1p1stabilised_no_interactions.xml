@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
 
   <name>mphase_mms_p1p1stabilised_no_interactions</name>
@@ -16,158 +15,158 @@
 from fluidity_tools import stat_parser as stat
 from math import log
 
-print "Calculating errors for Fluid1 Velocity in A-B convergence test"
+print("Calculating errors for Fluid1 Velocity in A-B convergence test")
 a_error_x = stat("MMS_A.stat")["Fluid1"]["VectorAbsoluteDifference%1"]["l2norm"][-1]
 a_error_y = stat("MMS_A.stat")["Fluid1"]["VectorAbsoluteDifference%2"]["l2norm"][-1]
 b_error_x = stat("MMS_B.stat")["Fluid1"]["VectorAbsoluteDifference%1"]["l2norm"][-1]
 b_error_y = stat("MMS_B.stat")["Fluid1"]["VectorAbsoluteDifference%2"]["l2norm"][-1]
 
-print a_error_x
-print a_error_y
-print b_error_x
-print b_error_y
+print(a_error_x)
+print(a_error_y)
+print(b_error_x)
+print(b_error_y)
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
 ab_ratio_f1 = [log(ab_ratio_x, 2), log(ab_ratio_y, 2)]
 
-print "Calculating errors for Fluid2 Velocity in A-B convergence test"
+print("Calculating errors for Fluid2 Velocity in A-B convergence test")
 a_error_x = stat("MMS_A.stat")["Fluid2"]["VectorAbsoluteDifference%1"]["l2norm"][-1]
 a_error_y = stat("MMS_A.stat")["Fluid2"]["VectorAbsoluteDifference%2"]["l2norm"][-1]
 b_error_x = stat("MMS_B.stat")["Fluid2"]["VectorAbsoluteDifference%1"]["l2norm"][-1]
 b_error_y = stat("MMS_B.stat")["Fluid2"]["VectorAbsoluteDifference%2"]["l2norm"][-1]
 
-print a_error_x
-print a_error_y
-print b_error_x
-print b_error_y
+print(a_error_x)
+print(a_error_y)
+print(b_error_x)
+print(b_error_y)
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
 ab_ratio_f2 = [log(ab_ratio_x, 2), log(ab_ratio_y, 2)]
 
 ab_convergence_vel = [ab_ratio_f1, ab_ratio_f2]
-    </variable>
+</variable>
     
     <variable name="ab_convergence_p" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
 
-print "Calculating errors for common Pressure in A-B convergence test"
+print("Calculating errors for common Pressure in A-B convergence test")
 a_error = stat("MMS_A.stat")["Fluid1"]["ScalarAbsoluteDifference"]["l2norm"][-1]
 b_error = stat("MMS_B.stat")["Fluid1"]["ScalarAbsoluteDifference"]["l2norm"][-1]
 
-print a_error
-print b_error
+print(a_error)
+print(b_error)
 
 ab_ratio = a_error / b_error
 ab_convergence_p = log(ab_ratio, 2)
-    </variable>
+</variable>
     
     <variable name="bc_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
 
-print "Calculating errors for Fluid1 Velocity in B-C convergence test"
+print("Calculating errors for Fluid1 Velocity in B-C convergence test")
 b_error_x = stat("MMS_B.stat")["Fluid1"]["VectorAbsoluteDifference%1"]["l2norm"][-1]
 b_error_y = stat("MMS_B.stat")["Fluid1"]["VectorAbsoluteDifference%2"]["l2norm"][-1]
 c_error_x = stat("MMS_C.stat")["Fluid1"]["VectorAbsoluteDifference%1"]["l2norm"][-1]
 c_error_y = stat("MMS_C.stat")["Fluid1"]["VectorAbsoluteDifference%2"]["l2norm"][-1]
 
-print b_error_x
-print b_error_y
-print c_error_x
-print c_error_y
+print(b_error_x)
+print(b_error_y)
+print(c_error_x)
+print(c_error_y)
 
 bc_ratio_x = b_error_x / c_error_x
 bc_ratio_y = b_error_y / c_error_y
 bc_ratio_f1 = [log(bc_ratio_x, 2), log(bc_ratio_y, 2)]
 
-print "Calculating errors for Fluid2 Velocity in B-C convergence test"
+print("Calculating errors for Fluid2 Velocity in B-C convergence test")
 b_error_x = stat("MMS_B.stat")["Fluid2"]["VectorAbsoluteDifference%1"]["l2norm"][-1]
 b_error_y = stat("MMS_B.stat")["Fluid2"]["VectorAbsoluteDifference%2"]["l2norm"][-1]
 c_error_x = stat("MMS_C.stat")["Fluid2"]["VectorAbsoluteDifference%1"]["l2norm"][-1]
 c_error_y = stat("MMS_C.stat")["Fluid2"]["VectorAbsoluteDifference%2"]["l2norm"][-1]
 
-print b_error_x
-print b_error_y
-print c_error_x
-print c_error_y
+print(b_error_x)
+print(b_error_y)
+print(c_error_x)
+print(c_error_y)
 
 bc_ratio_x = b_error_x / c_error_x
 bc_ratio_y = b_error_y / c_error_y
 bc_ratio_f2 = [log(bc_ratio_x, 2), log(bc_ratio_y, 2)]
 
 bc_convergence_vel = [bc_ratio_f1, bc_ratio_f2]
-    </variable>
+</variable>
     
     <variable name="bc_convergence_p" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
 
-print "Calculating errors for common Pressure in B-C convergence test"
+print("Calculating errors for common Pressure in B-C convergence test")
 b_error = stat("MMS_B.stat")["Fluid1"]["ScalarAbsoluteDifference"]["l2norm"][-1]
 c_error = stat("MMS_C.stat")["Fluid1"]["ScalarAbsoluteDifference"]["l2norm"][-1]
 
-print b_error
-print c_error
+print(b_error)
+print(c_error)
 
 bc_ratio = b_error / c_error
 bc_convergence_p = log(bc_ratio, 2)
-    </variable>
+</variable>
     
        
     <variable name="cd_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
 
-print "Calculating errors for Fluid1 Velocity in C-D convergence test"
+print("Calculating errors for Fluid1 Velocity in C-D convergence test")
 c_error_x = stat("MMS_C.stat")["Fluid1"]["VectorAbsoluteDifference%1"]["l2norm"][-1]
 c_error_y = stat("MMS_C.stat")["Fluid1"]["VectorAbsoluteDifference%2"]["l2norm"][-1]
 d_error_x = stat("MMS_D.stat")["Fluid1"]["VectorAbsoluteDifference%1"]["l2norm"][-1]
 d_error_y = stat("MMS_D.stat")["Fluid1"]["VectorAbsoluteDifference%2"]["l2norm"][-1]
 
-print c_error_x
-print c_error_y
-print d_error_x
-print d_error_y
+print(c_error_x)
+print(c_error_y)
+print(d_error_x)
+print(d_error_y)
 
 cd_ratio_x = c_error_x / d_error_x
 cd_ratio_y = c_error_y / d_error_y
 cd_ratio_f1 = [log(cd_ratio_x, 2), log(cd_ratio_y, 2)]
 
-print "Calculating errors for Fluid2 Velocity in C-D convergence test"
+print("Calculating errors for Fluid2 Velocity in C-D convergence test")
 c_error_x = stat("MMS_C.stat")["Fluid2"]["VectorAbsoluteDifference%1"]["l2norm"][-1]
 c_error_y = stat("MMS_C.stat")["Fluid2"]["VectorAbsoluteDifference%2"]["l2norm"][-1]
 d_error_x = stat("MMS_D.stat")["Fluid2"]["VectorAbsoluteDifference%1"]["l2norm"][-1]
 d_error_y = stat("MMS_D.stat")["Fluid2"]["VectorAbsoluteDifference%2"]["l2norm"][-1]
 
-print c_error_x
-print c_error_y
-print d_error_x
-print d_error_y
+print(c_error_x)
+print(c_error_y)
+print(d_error_x)
+print(d_error_y)
 
 cd_ratio_x = c_error_x / d_error_x
 cd_ratio_y = c_error_y / d_error_y
 cd_ratio_f2 = [log(cd_ratio_x, 2), log(cd_ratio_y, 2)]
 
 cd_convergence_vel = [cd_ratio_f1, cd_ratio_f2]
-    </variable>
+</variable>
     
     <variable name="cd_convergence_p" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
 
-print "Calculating errors for common Pressure in C-D convergence test"
+print("Calculating errors for common Pressure in C-D convergence test")
 c_error = stat("MMS_C.stat")["Fluid1"]["ScalarAbsoluteDifference"]["l2norm"][-1]
 d_error = stat("MMS_D.stat")["Fluid1"]["ScalarAbsoluteDifference"]["l2norm"][-1]
 
-print c_error
-print d_error
+print(c_error)
+print(d_error)
 
 cd_ratio = c_error / d_error
 cd_convergence_p = log(cd_ratio, 2)
-    </variable>
+</variable>
 
     <variable name="solvers_converged" language="python">
 import os
@@ -177,57 +176,57 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
   </variables>
   
   <pass_tests>
-    <test name="ab_convergence_vel_x for Fluid1: L2 order > 1.7" language="python">
+    <test name="ab_convergence_vel_x for Fluid1: L2 order &gt; 1.7" language="python">
 assert(ab_convergence_vel[0][0] &gt; 1.7)
     </test>
-    <test name="ab_convergence_vel_y for Fluid1: L2 order > 1.7" language="python">
+    <test name="ab_convergence_vel_y for Fluid1: L2 order &gt; 1.7" language="python">
 assert(ab_convergence_vel[0][1] &gt; 1.7)
     </test>
     
-    <test name="ab_convergence_vel_x for Fluid2: L2 order > 1.7" language="python">
+    <test name="ab_convergence_vel_x for Fluid2: L2 order &gt; 1.7" language="python">
 assert(ab_convergence_vel[1][0] &gt; 1.7)
     </test>
-    <test name="ab_convergence_vel_y for Fluid2: L2 order > 1.7" language="python">
+    <test name="ab_convergence_vel_y for Fluid2: L2 order &gt; 1.7" language="python">
 assert(ab_convergence_vel[1][1] &gt; 1.7)
     </test>
     
-    <test name="ab_convergence_p: L2 order > 1.7" language="python">
+    <test name="ab_convergence_p: L2 order &gt; 1.7" language="python">
 assert(ab_convergence_p &gt; 1.7)
     </test>
     
-    <test name="bc_convergence_vel_x for Fluid1: L2 order > 2.0" language="python">
+    <test name="bc_convergence_vel_x for Fluid1: L2 order &gt; 2.0" language="python">
 assert(bc_convergence_vel[0][0] &gt; 2.0)
     </test>
-    <test name="bc_convergence_vel_y for Fluid1: L2 order > 1.7" language="python">
+    <test name="bc_convergence_vel_y for Fluid1: L2 order &gt; 1.7" language="python">
 assert(bc_convergence_vel[0][1] &gt; 1.7)
     </test>
     
-    <test name="bc_convergence_vel_x for Fluid2: L2 order > 2.0" language="python">
+    <test name="bc_convergence_vel_x for Fluid2: L2 order &gt; 2.0" language="python">
 assert(bc_convergence_vel[1][0] &gt; 2.0)
     </test>
-    <test name="bc_convergence_vel_y for Fluid2: L2 order > 1.7" language="python">
+    <test name="bc_convergence_vel_y for Fluid2: L2 order &gt; 1.7" language="python">
 assert(bc_convergence_vel[1][1] &gt; 1.7)
     </test>
     
-    <test name="bc_convergence_p: L2 order > 1.7" language="python">
+    <test name="bc_convergence_p: L2 order &gt; 1.7" language="python">
 assert(bc_convergence_p &gt; 1.7)
     </test>
     
-    <test name="cd_convergence_vel_x for Fluid1: L2 order > 1.7" language="python">
+    <test name="cd_convergence_vel_x for Fluid1: L2 order &gt; 1.7" language="python">
 assert(cd_convergence_vel[0][0] &gt; 1.7)
     </test>
-    <test name="cd_convergence_vel_y for Fluid1: L2 order > 1.7" language="python">
+    <test name="cd_convergence_vel_y for Fluid1: L2 order &gt; 1.7" language="python">
 assert(cd_convergence_vel[0][1] &gt; 1.7)
     </test>
     
-    <test name="cd_convergence_vel_x for Fluid2: L2 order > 1.7" language="python">
+    <test name="cd_convergence_vel_x for Fluid2: L2 order &gt; 1.7" language="python">
 assert(cd_convergence_vel[1][0] &gt; 1.7)
     </test>
-    <test name="cd_convergence_vel_y for Fluid2: L2 order > 1.7" language="python">
+    <test name="cd_convergence_vel_y for Fluid2: L2 order &gt; 1.7" language="python">
 assert(cd_convergence_vel[1][1] &gt; 1.7)
     </test>
     
-    <test name="cd_convergence_p: L2 order > 1.1" language="python">
+    <test name="cd_convergence_p: L2 order &gt; 1.1" language="python">
 assert(cd_convergence_p &gt; 1.1)
     </test>
     
@@ -241,4 +240,3 @@ assert(solvers_converged)
   </warn_tests>
   
 </testproblem>
-

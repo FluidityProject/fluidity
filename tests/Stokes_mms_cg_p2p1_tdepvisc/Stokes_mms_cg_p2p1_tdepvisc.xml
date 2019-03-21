@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>p2p1 stokes spatial convergence test</name>
   <owner userid="cwilson"/>
@@ -34,22 +34,22 @@ b_error_inf_x = stat("MMS_B.stat")["NS"]["VectorAbsoluteDifference%1"]["max"][-1
 a_error_inf_y = stat("MMS_A.stat")["NS"]["VectorAbsoluteDifference%2"]["max"][-1]
 b_error_inf_y = stat("MMS_B.stat")["NS"]["VectorAbsoluteDifference%2"]["max"][-1]
 
-print a_error_x
-print b_error_x
-print a_error_y
-print b_error_y
+print(a_error_x)
+print(b_error_x)
+print(a_error_y)
+print(b_error_y)
 
-print a_error_inf_x
-print b_error_inf_x
-print a_error_inf_y
-print b_error_inf_y
+print(a_error_inf_x)
+print(b_error_inf_x)
+print(a_error_inf_y)
+print(b_error_inf_y)
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
 ab_ratio_inf_x = a_error_inf_x / b_error_inf_x
 ab_ratio_inf_y = a_error_inf_y / b_error_inf_y
 ab_convergence_vel = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_ratio_y, 2), log(ab_ratio_inf_y, 2)]]
-    </variable>
+</variable>
     <variable name="ab_convergence_p" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -60,16 +60,16 @@ b_error = stat("MMS_B.stat")["NS"]["ScalarAbsoluteDifference"]["l2norm"][-1]
 a_error_inf = stat("MMS_A.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
 b_error_inf = stat("MMS_B.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
 
-print a_error
-print b_error
+print(a_error)
+print(b_error)
 
-print a_error_inf
-print b_error_inf
+print(a_error_inf)
+print(b_error_inf)
 
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
 ab_convergence_p = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
-    </variable>
+</variable>
     <variable name="ab_convergence_t" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -80,16 +80,16 @@ b_error = stat("MMS_B.stat")["NS"]["TemperatureAbsoluteDifference"]["l2norm"][-1
 a_error_inf = stat("MMS_A.stat")["NS"]["TemperatureAbsoluteDifference"]["max"][-1]
 b_error_inf = stat("MMS_B.stat")["NS"]["TemperatureAbsoluteDifference"]["max"][-1]
 
-print a_error
-print b_error
+print(a_error)
+print(b_error)
 
-print a_error_inf
-print b_error_inf
+print(a_error_inf)
+print(b_error_inf)
 
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
 ab_convergence_t = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
-    </variable>
+</variable>
     <variable name="bc_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -104,22 +104,22 @@ c_error_inf_x = stat("MMS_C.stat")["NS"]["VectorAbsoluteDifference%1"]["max"][-1
 b_error_inf_y = stat("MMS_B.stat")["NS"]["VectorAbsoluteDifference%2"]["max"][-1]
 c_error_inf_y = stat("MMS_C.stat")["NS"]["VectorAbsoluteDifference%2"]["max"][-1]
 
-print b_error_x
-print c_error_x
-print b_error_y
-print c_error_y
+print(b_error_x)
+print(c_error_x)
+print(b_error_y)
+print(c_error_y)
 
-print b_error_inf_x
-print c_error_inf_x
-print b_error_inf_y
-print c_error_inf_y
+print(b_error_inf_x)
+print(c_error_inf_x)
+print(b_error_inf_y)
+print(c_error_inf_y)
 
 bc_ratio_x = b_error_x / c_error_x
 bc_ratio_y = b_error_y / c_error_y
 bc_ratio_inf_x = b_error_inf_x / c_error_inf_x
 bc_ratio_inf_y = b_error_inf_y / c_error_inf_y
 bc_convergence_vel = [[log(bc_ratio_x, 2), log(bc_ratio_inf_x, 2)], [log(bc_ratio_y, 2), log(bc_ratio_inf_y, 2)]]
-    </variable>
+</variable>
     <variable name="bc_convergence_p" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -130,16 +130,16 @@ c_error = stat("MMS_C.stat")["NS"]["ScalarAbsoluteDifference"]["l2norm"][-1]
 b_error_inf = stat("MMS_B.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
 c_error_inf = stat("MMS_C.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
 
-print b_error
-print c_error
+print(b_error)
+print(c_error)
 
-print b_error_inf
-print c_error_inf
+print(b_error_inf)
+print(c_error_inf)
 
 bc_ratio = b_error / c_error
 bc_ratio_inf = b_error_inf / c_error_inf
 bc_convergence_p = [log(bc_ratio, 2), log(bc_ratio_inf, 2)]
-    </variable>
+</variable>
     <variable name="bc_convergence_t" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -150,16 +150,16 @@ c_error = stat("MMS_C.stat")["NS"]["TemperatureAbsoluteDifference"]["l2norm"][-1
 b_error_inf = stat("MMS_B.stat")["NS"]["TemperatureAbsoluteDifference"]["max"][-1]
 c_error_inf = stat("MMS_C.stat")["NS"]["TemperatureAbsoluteDifference"]["max"][-1]
 
-print b_error
-print c_error
+print(b_error)
+print(c_error)
 
-print b_error_inf
-print c_error_inf
+print(b_error_inf)
+print(c_error_inf)
 
 bc_ratio = b_error / c_error
 bc_ratio_inf = b_error_inf / c_error_inf
 bc_convergence_t = [log(bc_ratio, 2), log(bc_ratio_inf, 2)]
-    </variable>
+</variable>
     <variable name="cd_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -174,22 +174,22 @@ d_error_inf_x = stat("MMS_D.stat")["NS"]["VectorAbsoluteDifference%1"]["max"][-1
 c_error_inf_y = stat("MMS_C.stat")["NS"]["VectorAbsoluteDifference%2"]["max"][-1]
 d_error_inf_y = stat("MMS_D.stat")["NS"]["VectorAbsoluteDifference%2"]["max"][-1]
 
-print c_error_x
-print d_error_x
-print c_error_y
-print d_error_y
+print(c_error_x)
+print(d_error_x)
+print(c_error_y)
+print(d_error_y)
 
-print c_error_inf_x
-print d_error_inf_x
-print c_error_inf_y
-print d_error_inf_y
+print(c_error_inf_x)
+print(d_error_inf_x)
+print(c_error_inf_y)
+print(d_error_inf_y)
 
 cd_ratio_x = c_error_x / d_error_x
 cd_ratio_y = c_error_y / d_error_y
 cd_ratio_inf_x = c_error_inf_x / d_error_inf_x
 cd_ratio_inf_y = c_error_inf_y / d_error_inf_y
 cd_convergence_vel = [[log(cd_ratio_x, 2), log(cd_ratio_inf_x, 2)], [log(cd_ratio_y, 2), log(cd_ratio_inf_y, 2)]]
-    </variable>
+</variable>
     <variable name="cd_convergence_p" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -200,16 +200,16 @@ d_error = stat("MMS_D.stat")["NS"]["ScalarAbsoluteDifference"]["l2norm"][-1]
 c_error_inf = stat("MMS_C.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
 d_error_inf = stat("MMS_D.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
 
-print c_error
-print d_error
+print(c_error)
+print(d_error)
 
-print c_error_inf
-print d_error_inf
+print(c_error_inf)
+print(d_error_inf)
 
 cd_ratio = c_error / d_error
 cd_ratio_inf = c_error_inf / d_error_inf
 cd_convergence_p = [log(cd_ratio, 2), log(cd_ratio_inf, 2)]
-    </variable>
+</variable>
     <variable name="cd_convergence_t" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -220,16 +220,16 @@ d_error = stat("MMS_D.stat")["NS"]["TemperatureAbsoluteDifference"]["l2norm"][-1
 c_error_inf = stat("MMS_C.stat")["NS"]["TemperatureAbsoluteDifference"]["max"][-1]
 d_error_inf = stat("MMS_D.stat")["NS"]["TemperatureAbsoluteDifference"]["max"][-1]
 
-print c_error
-print d_error
+print(c_error)
+print(d_error)
 
-print c_error_inf
-print d_error_inf
+print(c_error_inf)
+print(d_error_inf)
 
 cd_ratio = c_error / d_error
 cd_ratio_inf = c_error_inf / d_error_inf
 cd_convergence_t = [log(cd_ratio, 2), log(cd_ratio_inf, 2)]
-    </variable>
+</variable>
    <variable name="a_finish_time" language="python">
 from fluidity_tools import stat_parser as stat
 a_finish_time = stat("MMS_A.stat")["ElapsedTime"]["value"][-1]
@@ -323,40 +323,40 @@ d_final_change_p = max(abs(vtu.GetScalarField("Pressure")-vtu.GetScalarField("Ol
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>
-    <test name="ab_convergence_vel_x: L2 order > 2.3" language="python">
+    <test name="ab_convergence_vel_x: L2 order &gt; 2.3" language="python">
 assert(ab_convergence_vel[0][0] &gt; 2.3)
     </test>
-    <test name="ab_convergence_vel_y: L2 order > 2.3" language="python">
+    <test name="ab_convergence_vel_y: L2 order &gt; 2.3" language="python">
 assert(ab_convergence_vel[1][0] &gt; 2.3)
     </test>
-    <test name="ab_convergence_p: L2 order > 2.5" language="python">
+    <test name="ab_convergence_p: L2 order &gt; 2.5" language="python">
 assert(ab_convergence_p[0] &gt; 2.5)
     </test>
-    <test name="ab_convergence_t: L2 order > 2.0" language="python">
+    <test name="ab_convergence_t: L2 order &gt; 2.0" language="python">
 assert(ab_convergence_t[0] &gt; 2.0)
     </test>
-    <test name="bc_convergence_vel_x: L2 order > 2.2" language="python">
+    <test name="bc_convergence_vel_x: L2 order &gt; 2.2" language="python">
 assert(bc_convergence_vel[0][0] &gt; 2.2)
     </test>
-    <test name="bc_convergence_vel_y: L2 order > 2.2" language="python">
+    <test name="bc_convergence_vel_y: L2 order &gt; 2.2" language="python">
 assert(bc_convergence_vel[1][0] &gt; 2.2)
     </test>
-    <test name="bc_convergence_p: L2 order > 3.0" language="python">
+    <test name="bc_convergence_p: L2 order &gt; 3.0" language="python">
 assert(bc_convergence_p[0] &gt; 3.0)
     </test>
-    <test name="bc_convergence_t: L2 order > 2.5" language="python">
+    <test name="bc_convergence_t: L2 order &gt; 2.5" language="python">
 assert(bc_convergence_t[0] &gt; 2.5)
     </test>
-    <test name="cd_convergence_vel_x: L2 order > 3.0" language="python">
+    <test name="cd_convergence_vel_x: L2 order &gt; 3.0" language="python">
 assert(cd_convergence_vel[0][0] &gt; 3.0)
     </test>
-    <test name="cd_convergence_vel_y: L2 order > 3.0" language="python">
+    <test name="cd_convergence_vel_y: L2 order &gt; 3.0" language="python">
 assert(cd_convergence_vel[1][0] &gt; 3.0)
     </test>
-    <test name="cd_convergence_p: L2 order > 2.5" language="python">
+    <test name="cd_convergence_p: L2 order &gt; 2.5" language="python">
 assert(cd_convergence_p[0] &gt; 2.5)
     </test>
-    <test name="cd_convergence_t: L2 order > 3.0" language="python">
+    <test name="cd_convergence_t: L2 order &gt; 3.0" language="python">
 assert(cd_convergence_t[0] &gt; 3.0)
     </test>
     <test name="checking A finished in less than 15" language="python">
@@ -411,4 +411,3 @@ assert(d_final_change_p &lt; 1.E-3)
   <warn_tests>
   </warn_tests>
 </testproblem>
-

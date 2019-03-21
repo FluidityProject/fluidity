@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import os
 import sys
 import tempfile
@@ -11,7 +12,7 @@ import fluidity.diagnostics.fluiditytools as fluiditytools
 import fluidity.diagnostics.vtutools as vtktools
 
 if not len(sys.argv) == 2:
-  print "Usage: genpvtu basename"
+  print("Usage: genpvtu basename")
   sys.exit(1)
 basename = sys.argv[1]
 debug.dprint("vtu basename: " + basename)

@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">3material-twoblobs</string_value>
@@ -148,14 +148,15 @@
         <initial_condition name="WholeMesh">
           <python>
             <string_value lines="20" type="code" language="python">def val(X, t):
-	if ((X[1]&gt;=0.2) and (X[1]&lt;0.25)):
-		return 0.7
-	elif (((X[1]&gt;=-0.25) and (X[1]&lt;-0.2))):
-                return 0.3
-	elif ((X[1]&lt;-0.05)):
-		return 1.0
-        else:
-                return 0.0</string_value>
+    if ((X[1]&gt;=0.2) and (X[1]&lt;0.25)):
+        return 0.7
+    elif (((X[1]&gt;=-0.25) and (X[1]&lt;-0.2))):
+        return 0.3
+    elif ((X[1]&lt;-0.05)):
+        return 1.0
+    else:
+        return 0.0
+</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="inlet">
@@ -275,12 +276,13 @@
         <initial_condition name="WholeMesh">
           <python>
             <string_value lines="20" type="code" language="python">def val(X, t):
-        if((X[1]&lt;-0.05) or (X[1]&gt;=0.25)):
-                return 0.0
-	elif (((X[1]&gt;=-0.05) and (X[1] &lt; 0.0)) or ((X[1]&gt;=0.2) and (X[1]&lt;0.25))):
-                return 0.15
-        else:
-                return 1.0</string_value>
+    if((X[1]&lt;-0.05) or (X[1]&gt;=0.25)):
+        return 0.0
+    elif (((X[1]&gt;=-0.05) and (X[1] &lt; 0.0)) or ((X[1]&gt;=0.2) and (X[1]&lt;0.25))):
+        return 0.15
+    else:
+        return 1.0
+</string_value>
             <comment>def val(X, t):
 	if ((X[1]&gt;=0.2) and (X[1]&lt;0.25)):
 		return 0.7

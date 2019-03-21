@@ -72,10 +72,10 @@ mesh = meshes.Mesh(3)
 ###
 ### Add node coordinates
 for i in range(nodes):
-  zlayer=i/(Nx*Ny)
+  zlayer=int(i/(Nx*Ny))
   j=i-zlayer*(Nx*Ny)
-  ylayer=j/Nx
-  xlayer=j-ylayer*Nx
+  ylayer=int(j/Nx)
+  xlayer=int(j-ylayer*Nx)
   x=Ox+xlayer*dx
   y=Oy+ylayer*dy
   z=Oz+zlayer*dz

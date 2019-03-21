@@ -107,7 +107,7 @@ class StatplotWindow(gtk.Window):
         try:
           stats.append(fluidity_tools.Stat(filename))
           break
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
           # We opened the .stat when it was being written to by fluidity
           time.sleep(0.2)
           failcount = failcount + 1

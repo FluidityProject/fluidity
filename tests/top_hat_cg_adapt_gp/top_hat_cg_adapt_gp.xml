@@ -1,67 +1,67 @@
-<?xml version = "1.0" encoding = "UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Advected top hat (CG with adaptivity, Galerkin projected)</name>
   <owner userid="dham"/>
   <tags>flml</tags>
-  <problem_definition length = "short" nprocs = "1">
+  <problem_definition length="short" nprocs="1">
     <command_line>make clean-run; fluidity -v2 -l top_hat_cg.flml</command_line>
   </problem_definition>
   <variables>
-    <variable name = "times" language = "python">
+    <variable name="times" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("top_hat_cg.stat")
 times = s["ElapsedTime"]["value"]
     </variable>
-    <variable name = "solvers_converged" language = "python">
+    <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
     </variable>
-    <variable name = "min_ts" language = "python">
+    <variable name="min_ts" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("top_hat_cg.stat")
 min_ts = s["Fluid"]["Tracer"]["min"]
     </variable>
-    <variable name = "max_ts" language = "python">
+    <variable name="max_ts" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("top_hat_cg.stat")
 max_ts = s["Fluid"]["Tracer"]["max"]
     </variable>
-    <variable name = "t_integrals" language = "python">
+    <variable name="t_integrals" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("top_hat_cg.stat")
 t_integrals = s["Fluid"]["Tracer"]["integral"]
     </variable>
-    <variable name = "initial_vtu" language = "python">
+    <variable name="initial_vtu" language="python">
 import vtktools
 initial_vtu = vtktools.vtu("top_hat_cg_0.vtu")
     </variable>
-    <variable name = "final_vtu" language = "python">
+    <variable name="final_vtu" language="python">
 import fluidity.diagnostics.fluiditytools as fluidity_tools
 import fluidity.diagnostics.vtutools as vtktools
 final_vtu = vtktools.vtu(fluidity_tools.FindFinalVtu("top_hat_cg"))
     </variable>
   </variables>
   <pass_tests>
-    <test name = "Simulation completed" language = "python">
+    <test name="Simulation completed" language="python">
 assert(times[-1] &gt; 80.0)
     </test>
-    <test name = "Solvers converged" language = "python">
+    <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
-    <test name = "Bounded (15%)" language = "python">
+    <test name="Bounded (15%)" language="python">
 min_t = min(min_ts)
 max_t = max(max_ts)
-print "Min T = ", min_t
-print "Max T = ", max_t
+print("Min T = ", min_t)
+print("Max T = ", max_t)
 assert(min_t &gt; -0.15)
 assert(max_t &lt; 1.15)
-    </test>
-    <test name = "Conservative" language = "python">
+</test>
+    <test name="Conservative" language="python">
 import fluidity_tools
 fluidity_tools.compare_variables(t_integrals[1:], [t_integrals[0] for i in range(len(t_integrals) - 1)], 5.0e-8)
     </test>
-    <test name = "Advected velocity" language = "python">
+    <test name="Advected velocity" language="python">
 import fluidity_tools
 
 initialCoords = initial_vtu.GetLocations()
@@ -72,26 +72,26 @@ finalT = final_vtu.GetScalarField("Tracer")
 initialX = 0.0
 divisor = 0.0
 for i, coord in enumerate(initialCoords[:-1]):
-  initialX += initialT[i] * coord[0]
-  divisor += initialT[i]
+    initialX += initialT[i] * coord[0]
+    divisor += initialT[i]
 initialX /= divisor
-print "Initial mean x = ", initialX
+print("Initial mean x = ", initialX)
 
 finalX = 0.0
 divisor = 0.0
 for i, coord in enumerate(finalCoords[:-1]):
-  finalX += finalT[i] * coord[0]
-  divisor += finalT[i]
+    finalX += finalT[i] * coord[0]
+    divisor += finalT[i]
 finalX /= divisor
-print "Final mean x = ", finalX
+print("Final mean x = ", finalX)
 
 vel = (finalX - initialX) / (times[-1] - times[0])
 vel = float(vel)
-print "Mean velocity = ", vel
+print("Mean velocity = ", vel)
 
 fluidity_tools.compare_variable(vel, (1.0 / 40.0) * 0.125, 0.03)
-    </test>
-    <test name = "Standard deviation" language = "python">
+</test>
+    <test name="Standard deviation" language="python">
 import math
 
 import fluidity_tools
@@ -104,35 +104,35 @@ finalT = final_vtu.GetScalarField("Tracer")
 initialX = 0.0
 initialTSum = 0.0
 for i, coord in enumerate(initialCoords[:-1]):
-  initialX += initialT[i] * coord[0]
-  initialTSum += initialT[i]
+    initialX += initialT[i] * coord[0]
+    initialTSum += initialT[i]
 initialX /= initialTSum
-print "Initial mean x = ", initialX
+print("Initial mean x = ", initialX)
 
 finalX = 0.0
 finalTSum = 0.0
 for i, coord in enumerate(finalCoords[:-1]):
-  finalX += finalT[i] * coord[0]
-  finalTSum += finalT[i]
+    finalX += finalT[i] * coord[0]
+    finalTSum += finalT[i]
 finalX /= finalTSum
-print "Final mean x = ", finalX
+print("Final mean x = ", finalX)
 
 initialSigmaX = 0.0
 for i, coord in enumerate(initialCoords[:-1]):
-  initialSigmaX += initialT[i] * math.pow((coord[0] - initialX), 2.0)
+    initialSigmaX += initialT[i] * math.pow((coord[0] - initialX), 2.0)
 initialSigmaX /= initialTSum
 initialSigmaX = math.pow(initialSigmaX, 0.5)
-print "Initial standard deviation = ", initialSigmaX
+print("Initial standard deviation = ", initialSigmaX)
 
 finalSigmaX = 0.0
 for i, coord in enumerate(finalCoords[:-1]):
-  finalSigmaX += finalT[i] * math.pow((coord[0] - finalX), 2.0)
+    finalSigmaX += finalT[i] * math.pow((coord[0] - finalX), 2.0)
 finalSigmaX /= finalTSum
 finalSigmaX = math.pow(finalSigmaX, 0.5)
-print "Final standard deviation = ", finalSigmaX
+print("Final standard deviation = ", finalSigmaX)
 
 fluidity_tools.compare_variable(initialSigmaX, finalSigmaX, 0.08)
-    </test>
+</test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

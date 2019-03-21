@@ -123,11 +123,11 @@ if $FC -v 2>&1 | grep 'gcc version'; then
   USING_GFORTRAN="yes"
   GFORTRAN_VERSION=$($FC -v 2>&1 | grep 'gcc version' | awk '{print $3}')
   # test really is so retarded that it can't lexicographically compare strings
-  if test "$(python -c "print \"$GFORTRAN_VERSION\" >= \"4.5\"")" = "True"; then
+  if test "$(python -c "print(\"$GFORTRAN_VERSION\" >= \"4.5\")")" = "True"; then
     GFORTRAN_4_5_OR_NEWER="yes"
     AC_SUBST(GFORTRAN_4_5_OR_NEWER)
   fi
-  if test "$(python -c "print \"$GFORTRAN_VERSION\" >= \"4.8\"")" = "True"; then
+  if test "$(python -c "print(\"$GFORTRAN_VERSION\" >= \"4.8\")")" = "True"; then
     GFORTRAN_4_8_OR_NEWER="yes"
   fi
 else
@@ -233,7 +233,7 @@ then
     fi
     
     # Additionally check for numpy
-    NUMPY=$($PYTHON -c 'import numpy; print numpy.get_include()' 2>/dev/null)
+    NUMPY=$($PYTHON -c 'import numpy; print(numpy.get_include())' 2>/dev/null)
     if ! test -z "$NUMPY"; then	
 	echo "Numpy is " $NUMPY	
 	CXXFLAGS="$CXXFLAGS -DHAVE_NUMPY -I$NUMPY"

@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>balzano1_2plus1</name>
   <owner userid="sf1409"/>
@@ -27,35 +27,38 @@ freesurface=s["water"]["FreeSurface"]</variable>
   <pass_tests>
     <test name="Solvers converged" language="python">assert(solvers_converged)</test>
     <test name="endtime" language="python">assert(ElapsedTime[-1]==360000.0)</test>
-    <test name="wetting_drying_alpha" language="python">print "Checking if domain is dry for X&lt;2374 at last timestep...",
+    <test name="wetting_drying_alpha" language="python">print("Checking if domain is dry for X&lt;2374 at last timestep...",)
 for det in range(1,170):
-  det_str="det_%(#)04d" %{"#": det}
-  assert(wetting_drying_alpha[det_str][-1]&gt;1e-16)
-print "okay."
-print "Checking if right half of domain is wet at last timestep..."
+    det_str="det_%(#)04d" %{"#": det}
+    assert(wetting_drying_alpha[det_str][-1]&gt;1e-16)
+print("okay.")
+print("Checking if right half of domain is wet at last timestep...")
 for det in range(500,1002):
-  det_str="det_%(#)04d" %{"#": det}
-  assert(wetting_drying_alpha[det_str][-1]==0.0)
-print "okay."<comment>this test checks if the wetting and drying alpa is correct at the last timestep. It should be 0 for detectors located left of X=5520 (det_01...det_4) and 1 for detectors right of that postition (det_06...det_11).
+    det_str="det_%(#)04d" %{"#": det}
+    assert(wetting_drying_alpha[det_str][-1]==0.0)
+print("okay.")
+<comment>this test checks if the wetting and drying alpa is correct at the last timestep. It should be 0 for detectors located left of X=5520 (det_01...det_4) and 1 for detectors right of that postition (det_06...det_11).
 
 In Balzano3 domain should be dry for X&lt;0.86 * 2760 = 2373.6 at the last timestep</comment></test>
-    <test name="Velocity" language="python">print "Checking if velocity is tiny at last timestep...",
+    <test name="Velocity" language="python">print("Checking if velocity is tiny at last timestep...",)
 for det in range(1,1002):
-  det_str="det_%(#)04d" %{"#": det}
-  magnitude=0.0
-  for dim in range(0,3):
-    magnitude=magnitude+velocity[det_str][dim][-1]**2
-  magnitude=magnitude**0.5
-  assert(magnitude&lt;=0.1)
-print "okay."</test>
-    <test name="waterlevel_in_pond" language="python">print "Checking waterlevel in pond..."
+    det_str="det_%(#)04d" %{"#": det}
+    magnitude=0.0
+    for dim in range(0,3):
+        magnitude=magnitude+velocity[det_str][dim][-1]**2
+    magnitude=magnitude**0.5
+    assert(magnitude&lt;=0.1)
+print("okay.")
+</test>
+    <test name="waterlevel_in_pond" language="python">print("Checking waterlevel in pond...")
 det=int(3600.0/13800.0*1002)
 det_str="det_%(#)04d" %{"#": det}
 pondfs=freesurface[det_str][-1]
 threshold=-1.1
-print "Should be ideally -0.87. It's ", pondfs, " &gt;(!) ", threshold, "."
+print("Should be ideally -0.87. It's ", pondfs, " &gt;(!) ", threshold, ".")
 assert(pondfs&gt;=threshold)
-print "okay."<comment>pondsf should be ideally -4800/2760+60/23=0.8696
+print("okay.")
+<comment>pondsf should be ideally -4800/2760+60/23=0.8696
 larger means that water is lost during time.</comment></test>
   </pass_tests>
 </testproblem>

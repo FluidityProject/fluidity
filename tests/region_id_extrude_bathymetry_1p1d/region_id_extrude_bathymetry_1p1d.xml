@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>region_id_extrude_bathymetry_1p1d</name>
   <owner userid="cwilson"/>
@@ -15,26 +15,28 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
 files = glob.glob1(".","*.err-?")
 err_n_lines = {}
 for file in files:
-  fileHandle = open(file)
-  log = fileHandle.read()
-  logSplit = log.split("\n")
-  print file + ":"
-  for line in logSplit[-10:]:
-    print line
-  err_n_lines[file] = len(logSplit)
-  fileHandle.close()</variable>
+    fileHandle = open(file)
+    log = fileHandle.read()
+    logSplit = log.split("\n")
+    print(file + ":")
+    for line in logSplit[-10:]:
+        print(line)
+    err_n_lines[file] = len(logSplit)
+    fileHandle.close()
+</variable>
     <variable name="log_n_lines" language="python">import glob
 files = glob.glob1(".","*.log-?")
 log_n_lines = {}
 for file in files:
-  fileHandle = open(file)
-  log = fileHandle.read()
-  logSplit = log.split("\n")
-  print file + ":"
-  for line in logSplit[-10:]:
-    print line
-  log_n_lines[file] = len(logSplit)
-  fileHandle.close()</variable>
+    fileHandle = open(file)
+    log = fileHandle.read()
+    logSplit = log.split("\n")
+    print(file + ":")
+    for line in logSplit[-10:]:
+        print(line)
+    log_n_lines[file] = len(logSplit)
+    fileHandle.close()
+</variable>
     <variable name="domain_area" language="python">from fluidity_tools import stat_parser as stat
 domain_area = stat("landslide_benchmark.stat")["Water"]["ConstantField"]["integral"]</variable>
     <variable name="no_nodes" language="python">from fluidity_tools import stat_parser as stat

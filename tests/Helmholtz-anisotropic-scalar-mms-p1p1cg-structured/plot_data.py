@@ -190,17 +190,17 @@ def main():
 
   logfile1 = 'output_'+str(name1)+'.log'
   logfile2 = 'output_'+str(name2)+'.log'
-  print 'reading convergence data from', logfile1, logfile2
+  print('reading convergence data from', logfile1, logfile2)
   plot_convergence(name1,logfile1,name2,logfile2)
 
   logfile1 = 'commerror_'+str(name1)+'.log'
   logfile2 = 'commerror_'+str(name2)+'.log'
-  print 'reading commutation error data from', logfile1, logfile2
+  print('reading commutation error data from', logfile1, logfile2)
   plot_commerror(name1,logfile1,name2,logfile2)
 
   logfile1 = 'commconv_'+str(name1)+'.log'
   logfile2 = 'commconv_'+str(name2)+'.log'
-  print 'reading commutation error convergence data from', logfile1, logfile2
+  print('reading commutation error convergence data from', logfile1, logfile2)
   plot_commconv(name1,logfile1,name2,logfile2)
 
 if __name__ == "__main__":

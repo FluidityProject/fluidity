@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import vtktools
 import sys
 import math
@@ -24,9 +26,9 @@ def mirror(x):
 
 
 def usage():
-        print 'Usage:'
-        print 'plotfs_detec.py --file=detector_filename --save=filename'
-        print '--save=... saves the plots as images instead of plotting them on the screen.'
+        print('Usage:')
+        print('plotfs_detec.py --file=detector_filename --save=filename')
+        print('--save=... saves the plots as images instead of plotting them on the screen.')
 
 
 # should be copied from the diamond extrude function. X is 2 dimensional
@@ -58,32 +60,32 @@ def main(argv=None):
                 elif opt == '--save':
                         save=arg
         if filename=='':
-                print 'No filename specified. You have to give the detectors filename.'
+                print('No filename specified. You have to give the detectors filename.')
                 usage()   
                 sys.exit(2) 
 
         
         ####################### Print time plot  ###########################
-        print 'Generating time plot'
+        print('Generating time plot')
       
         s = stat_parser(filename)
 
         timesteps=s["ElapsedTime"]["value"]
         timestep=timesteps[1]-timesteps[0]
-        print "Found ", len(timesteps), " timesteps with dt=", timestep
+        print("Found ", len(timesteps), " timesteps with dt=", timestep)
         if timestep_ana==0.0:
                 timestep_ana=timestep
 
 
         fs=s["water"]["FreeSurface"]
-        print "Found ", len(fs), " detectors. We assume they are equidistant distributed over the domain (", 0, "-", 13800, ")."
+        print("Found ", len(fs), " detectors. We assume they are equidistant distributed over the domain (", 0, "-", 13800, ").")
 
 
         # Get and plot results
         plt.ion() # swith on interactive mode
         plt.rcParams['font.size'] = 22
         fig2 = figure(figsize=(8, 6.2))
-	fig2.subplots_adjust(left=0.15, bottom=0.15)
+        fig2.subplots_adjust(left=0.15, bottom=0.15)
         ax2 = fig2.add_subplot(111)
 
         plot_start=580  # in timesteps

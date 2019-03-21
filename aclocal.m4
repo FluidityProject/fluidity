@@ -833,9 +833,8 @@ EOD`
 		else
 			# old way: use libpython from python_configdir
 			ac_python_libdir=`$PYTHON -c \
-			  "from distutils.sysconfig import get_python_lib as f; \
-			  import os; \
-			  print (os.path.join(f(plat_specific=1, standard_lib=1), 'config'));"`
+			  "from distutils.sysconfig import get_config_var; \
+			  print (get_config_var('LIBPL'));"`
 			PYTHON_LDFLAGS="-L$ac_python_libdir -lpython$ac_python_version"
 		fi
 
@@ -878,8 +877,8 @@ EOD`
 	AC_MSG_CHECKING(python extra linking flags)
 	if test -z "$PYTHON_EXTRA_LDFLAGS"; then
 		PYTHON_EXTRA_LDFLAGS=`$PYTHON -c "import distutils.sysconfig; \
-			conf = distutils.sysconfig.get_config_var; \
-			print (conf('LINKFORSHARED'))"`
+		conf = distutils.sysconfig.get_config_var; \
+		print ('' if conf('PYTHONFRAMEWORK') else conf('LINKFORSHARED'))"`
 	fi
 	AC_MSG_RESULT([$PYTHON_EXTRA_LDFLAGS])
 	AC_SUBST(PYTHON_EXTRA_LDFLAGS)

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from fluidity_tools import stat_parser
 import sys
 import csv
@@ -23,7 +25,7 @@ def get_measurement(mea_filename, t):
       gauges.append(h1*(t-t2)/(t1-t2)+h2*(t-t1)/(t2-t1))
     return gauges
 
-  print "Warning: simulation time t=", t, " is outside the available data (", data[0][0], ", ", data[-1][0], "). Using last available waterheigth..."
+  print("Warning: simulation time t=", t, " is outside the available data (", data[0][0], ", ", data[-1][0], "). Using last available waterheigth...")
   return [data[-1][1], data[-1][2], data[-1][2]]
 
 
@@ -34,10 +36,10 @@ def gage_error_integral(detector_filename):
   s = stat_parser(detector_filename)
   timesteps=s["ElapsedTime"]["value"]
   timestep=timesteps[1]-timesteps[0]
-  print "Found ", len(timesteps), " timesteps with dt=", timestep, " starting at t0=", timesteps[0]-timestep
+  print("Found ", len(timesteps), " timesteps with dt=", timestep, " starting at t0=", timesteps[0]-timestep)
   
   fs=s["water"]["FreeSurface"]
-  print "Found ", len(fs), " free surface detectors."
+  print("Found ", len(fs), " free surface detectors.")
 
   error_integral=[0.0, 0.0, 0.0]
 

@@ -140,6 +140,9 @@ class Sorter:
   
   def GetValue(self):
     return self._value
+
+  def __lt__(self, val):
+    return self._key<val._key
     
   def __cmp__(self, val):
     if self._key > val:
