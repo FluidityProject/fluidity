@@ -81,12 +81,12 @@ class TestHarness:
 
         if file == "":
           print("Test criteria:")
-          print(("-" * 80))
-          print(("length: ", length))
-          print(("parallel: ", parallel))
-          print(("tags to include: ", tags))
-          print(("tags to exclude: ", exclude_tags))
-          print(("-" * 80))
+          print("-" * 80)
+          print("length: ", length)
+          print("parallel: ", parallel)
+          print("tags to include: ", tags)
+          print("tags to exclude: ", exclude_tags)
+          print("-" * 80)
           print()
 
         # step 1. form a list of all the xml files to be considered.
