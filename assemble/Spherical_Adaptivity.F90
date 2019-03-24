@@ -28,15 +28,20 @@
 #include "fdebug.h"
 
 module spherical_adaptivity
+  use iso_c_binding
   use spud
   use fldebug
-  use global_parameters, only : OPTION_PATH_LEN
+  use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN, no_active_processes
+  use vector_tools
   use mpi_interfaces
   use futils, only: int2str
   use parallel_tools
+  use quadrature
+  use elements
   use fields
   use parallel_fields
   use state_module
+  use mesh_files
   use vtk_interfaces
   use vertical_extrapolation_module
   use field_options
@@ -54,65 +59,132 @@ module spherical_adaptivity
 
   public check_inverted_elements, transform_metric
 
+  integer, private :: MPI_TYPE_LOC_PHYS_COORDS, MPI_TYPE_LOC_PHYS_COORDS_LEN
+
   contains
 
   subroutine prepare_spherical_adaptivity(states, current_positions)
     type(state_type), dimension(:), intent(inout) :: states
     type(vector_field), intent(inout) :: current_positions ! FIXME: intent(in)
 
-    type(vector_field), pointer :: external_positions
-    type(vector_field) :: horizontal_positions, top_positions, bottom_positions
-    type(mesh_type), pointer :: external_mesh
+    type(vector_field) :: base_geometry_horizontal_positions, top_positions, bottom_positions, external_base_geometry
     integer, dimension(:), pointer :: element_map
     integer nlayers
 
     ewrite(1,*) "Inside prepare_spherical_adaptivity"
 
     if (.not. has_vector_field(states(1), "BaseGeometryMeshHorizontalCoordinate")) then
-      external_mesh => get_external_mesh(states)
-      external_positions => get_external_coordinate_field(states(1), external_mesh)
-      assert(external_positions%mesh==external_mesh)
+      external_base_geometry = read_base_geometry()
 
-      call create_horizontal_positions_sphere(external_positions, &
-          horizontal_positions, element_map, "BaseGeometryMesh")
-      top_positions = construct_base_geometry_surface_positions(horizontal_positions, &
-          external_mesh, element_map, current_positions, &
-          trim(current_positions%mesh%option_path) // '/from_mesh/extrude/layer[0]/regions', &
-          'top', 'BaseGeometryTopPositions')
+      call create_horizontal_positions_sphere(external_base_geometry, &
+          base_geometry_horizontal_positions, element_map, "BaseGeometryMesh")
+      top_positions = construct_base_geometry_surface_positions(base_geometry_horizontal_positions, &
+          external_base_geometry%mesh, element_map, current_positions, &
+          "/geometry/spherical_earth/base_geometry/top_surface_ids", 'BaseGeometryTopPositions')
       nlayers = option_count(trim(current_positions%mesh%option_path) // '/from_mesh/extrude/layer')
-      bottom_positions = construct_base_geometry_surface_positions(horizontal_positions, &
-          external_mesh, element_map, current_positions, &
-          trim(current_positions%mesh%option_path) // '/from_mesh/extrude/layer[' // int2str(nlayers-1) // ']/regions', &
-          'bottom', 'BaseGeometryBottomPositions')
+      bottom_positions = construct_base_geometry_surface_positions(base_geometry_horizontal_positions, &
+          external_base_geometry%mesh, element_map, current_positions, &
+          "/geometry/spherical_earth/base_geometry/bottom_surface_ids", 'BaseGeometryBottomPositions')
 
-      if (isparallel()) then
-        call base_geometry_allgather(external_mesh, element_map, horizontal_positions, top_positions, bottom_positions)
-      end if
-
-      !call insert(reserve_state, horizontal_positions%mesh, horizontal_positions%mesh%name)
-      call insert(reserve_state, horizontal_positions, horizontal_positions%name)
+      call insert(reserve_state, base_geometry_horizontal_positions, base_geometry_horizontal_positions%name)
       call insert(reserve_state, top_positions, top_positions%name)
       call insert(reserve_state, bottom_positions, bottom_positions%name)
 
-      call insert(states, horizontal_positions, horizontal_positions%name)
+      call insert(states, base_geometry_horizontal_positions, base_geometry_horizontal_positions%name)
       call insert(states, top_positions, top_positions%name)
       call insert(states, bottom_positions, bottom_positions%name)
 
-      call deallocate(horizontal_positions)
+      call deallocate(base_geometry_horizontal_positions)
       call deallocate(top_positions)
       call deallocate(bottom_positions)
-      ! we can throw away element_map, as we only care about looking up top/bottom_positions
-      ! which is on the same mesh as horizontal_positions - so that we never have to map back to
-      ! the element numbering of external_mesh
+      ! we can throw away element_map and external_base_geometry, as we only care about looking up top/bottom_positions
+      ! which is on the same mesh as base_geometry_horizontal_positions
       deallocate(element_map)
+      call deallocate(external_base_geometry)
     end if
 
   end subroutine prepare_spherical_adaptivity
 
-  subroutine base_geometry_allgather(external_mesh, element_map, horizontal_positions, top_positions, bottom_positions)
+  function read_base_geometry() result (position)
+    type(vector_field) :: position
+
+    character(len=OPTION_PATH_LEN) :: option_path, mesh_file_name
+    character(len=FIELD_NAME_LEN) :: mesh_file_format
+    integer :: quad_degree
+    type(mesh_type) :: mesh
+    type(element_type) :: shape
+    type(quadrature_type) :: quad
+    integer, dimension(:, :), allocatable :: ndglno
+    integer :: dim, rank, ele, nelements, nnodes, stat
+    integer :: quad_family, save_no_active_processes
+
+    option_path = '/geometry/spherical_earth/base_geometry'
+    if (.not. have_option(option_path)) then
+      FLExit("Missing option /geometry/spherical_earth/base_geometry needed for spherical adaptivity.")
+    end if
+    call get_option(trim(option_path) // "/file_name", mesh_file_name)
+    call get_option(trim(option_path) // "/format[0]/name", mesh_file_format)
+
+    call get_option("/geometry/dimension", dim)
+    call get_option("/geometry/quadrature/degree", quad_degree)
+    quad_family = get_quad_family()
+
+    rank = getrank()
+    save_no_active_processes = no_active_processes
+    no_active_processes = 1
+    if (rank==0) then
+      position = read_mesh_files(trim(mesh_file_name), &
+          quad_degree=quad_degree, &
+          quad_family=quad_family, &
+          format=mesh_file_format)
+      position%name = "ExternalBaseGeometryMeshCoordinate"
+      position%mesh%name = "ExternalBaseGeometryMesh"
+
+      if (.not. (position%dim == dim .or. mesh_dim(position) == dim-1)) then
+        FLExit("Wrong dimension for base_geometry mesh.")
+      end if
+      if (associated(position%mesh%columns) .or. position%mesh%faces%has_discontinuous_internal_boundaries) then
+        FLExit("Base geometry mesh is not supposed to have column ids or internal boundaries")
+      end if
+
+      nelements = element_count(position)
+      nnodes = node_count(position)
+      call MPI_bcast(nelements, 1, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
+      call MPI_bcast(position%mesh%ndglno, dim*nelements, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
+      call MPI_bcast(position%val, dim*nnodes, getpreal(), 0, MPI_COMM_FEMTOOLS, stat)
+
+    else
+
+      quad = make_quadrature(dim, dim-1, degree=quad_degree, family=quad_family)
+      shape = make_element_shape(dim, dim-1, 1, quad)
+
+      call MPI_bcast(nelements, 1, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
+      allocate(ndglno(1:dim, nelements))
+      call MPI_bcast(ndglno, dim*nelements, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
+      nnodes = maxval(ndglno)
+      call allocate(mesh, nodes=nnodes, elements=nelements, shape=shape, name="ExternalBaseGeometryMesh")
+      call allocate(position, dim, mesh,  "ExternalBaseGeometryMeshCoordinate")
+      do ele=1, nelements
+        call set_ele_nodes(mesh, ele, ndglno(:, ele))
+      end do
+      call add_faces(position%mesh)
+
+      call MPI_bcast(position%val, dim*nnodes, getpreal(), 0, MPI_COMM_FEMTOOLS, stat)
+
+      ! Reference counting cleanups.
+      call deallocate(mesh)
+      call deallocate(quad)
+      call deallocate(shape)
+
+    end if
+    no_active_processes = save_no_active_processes
+
+  end function read_base_geometry
+
+  subroutine base_geometry_allgather(external_mesh, element_map, base_geometry_horizontal_positions, top_positions, bottom_positions)
     type(mesh_type), intent(in) :: external_mesh
     integer, dimension(:), intent(in) :: element_map
-    type(vector_field), intent(inout) :: horizontal_positions, top_positions, bottom_positions
+    type(vector_field), intent(inout) :: base_geometry_horizontal_positions, top_positions, bottom_positions
 
     type(mesh_type) :: universal_mesh
     integer, dimension(:), allocatable :: owned_per_proc, displacements
@@ -122,12 +194,12 @@ module spherical_adaptivity
 
     assert(associated(external_mesh%element_halos))
     assert(external_mesh%element_halos(1)%ordering_scheme==HALO_ORDER_TRAILING_RECEIVES)
-    do i=1, element_count(horizontal_positions)
+    do i=1, element_count(base_geometry_horizontal_positions)
       if (.not. element_owned(external_mesh, element_map(i))) exit
     end do
     owned_elements = max(i-1, 0)
     dim = top_positions%dim
-    assert(all(horizontal_positions%mesh%ndglno(1:owned_elements*dim)==(/ (i, i=1, owned_elements*dim) /)))
+    assert(all(base_geometry_horizontal_positions%mesh%ndglno(1:owned_elements*dim)==(/ (i, i=1, owned_elements*dim) /)))
 
     communicator = halo_communicator(external_mesh%element_halos(1))
     rank = getrank(communicator)
@@ -150,13 +222,13 @@ module spherical_adaptivity
 
     ! setup trivial universal DG mesh
     call allocate(universal_mesh, universal_elements*dim, universal_elements, &
-      horizontal_positions%mesh%shape, horizontal_positions%mesh%name)
+      base_geometry_horizontal_positions%mesh%shape, base_geometry_horizontal_positions%mesh%name)
     universal_mesh%continuity = -1
     do i=1, element_count(universal_mesh)
       call set_ele_nodes(universal_mesh, i, (/ (j, j=(i-1)*dim+1, i*dim) /))
     end do
 
-    call allgather_positions(horizontal_positions, universal_mesh, owned_elements*dim, owned_per_proc, displacements, communicator)
+    call allgather_positions(base_geometry_horizontal_positions, universal_mesh, owned_elements*dim, owned_per_proc, displacements, communicator)
     call allgather_positions(top_positions, universal_mesh, owned_elements*dim, owned_per_proc, displacements, communicator)
     call allgather_positions(bottom_positions, universal_mesh, owned_elements*dim, owned_per_proc, displacements, communicator)
 
@@ -186,78 +258,137 @@ module spherical_adaptivity
 
   end subroutine allgather_positions
 
-  function construct_base_geometry_surface_positions(external_horizontal_positions, external_mesh, element_map, positions, &
-    layer_regions_option_path, surface_name, positions_name) result (base_geometry_surface_positions)
-    type(vector_field), intent(inout) :: external_horizontal_positions
-    type(mesh_type), intent(in) :: external_mesh
+  subroutine max_first_argument(invec, inoutvec, len, type)
+    ! subroutine used as mpi reduction operator which
+    ! reduces an array of type MPI_TYPE_LOC_PHYS_COORDS
+    ! where each entry exists of MPI_TYPE_LOC_PHYS_COORDS_LEN reals (nreals below)
+    ! the reduction takes the maximum value of the first real, and the other nreals-1
+    ! reals are taken from the same entry whose first real has the maximum value
+    real, dimension(*) :: invec, inoutvec
+    integer :: len, type
+
+    integer :: size, ierr, i
+    integer :: nreals
+
+    assert(type==MPI_TYPE_LOC_PHYS_COORDS)
+    nreals = MPI_TYPE_LOC_PHYS_COORDS_LEN
+    call mpi_type_size(type, size, ierr)
+    assert(c_sizeof(1.0)*nreals==size)
+
+    do i=1, len
+      if (invec((i-1)*nreals+1)>inoutvec((i-1)*nreals+1)) then
+        inoutvec((i-1)*nreals+1:i*nreals) = invec((i-1)*nreals+1:i*nreals)
+      end if
+    end do
+
+  end subroutine max_first_argument
+
+  function construct_base_geometry_surface_positions(base_geometry_horizontal_positions, external_base_mesh, element_map, positions, &
+    surface_ids_option_path, positions_name) result (base_geometry_surface_positions)
+    type(vector_field), intent(inout) :: base_geometry_horizontal_positions
+    type(mesh_type), intent(in) :: external_base_mesh
     integer, dimension(:), intent(in) :: element_map
     type(vector_field), intent(inout) :: positions ! FIXME: should be intent(in)
-    character(len=*), intent(in) :: layer_regions_option_path
-    character(len=*), intent(in) :: surface_name, positions_name
+    character(len=*), intent(in) :: surface_ids_option_path, positions_name
     type(vector_field) :: base_geometry_surface_positions
 
     type(vector_field) :: surface_positions, surface_horizontal_positions, external_surface_positions
     type(mesh_type), pointer :: surface_mesh
     real, dimension(:,:), allocatable :: loc_coords
-    real, dimension(:), allocatable :: max_loc_coords
+    real, dimension(:,:), allocatable :: max_loc_phys_coords, max_loc_phys_coords_global
     integer, dimension(:), pointer :: surface_element_list, nodes
     integer, dimension(:), allocatable :: eles, surface_ids
-    integer i, j
+    integer shape_option(2)
+    integer mpi_max_loc_phys_coords_op
+    integer i, j, ierr
 
-    allocate(surface_ids(option_count(layer_regions_option_path)))
-    do i=1, size(surface_ids)
-      call get_option(trim(layer_regions_option_path) // '[' // int2str(i-1) // ']/' // &
-        trim(surface_name)//'_surface_id', surface_ids(i))
-    end do
+    shape_option = option_shape(surface_ids_option_path)
+    allocate(surface_ids(1:shape_option(1)))
+    call get_option(surface_ids_option_path, surface_ids)
+
+    ! Step 1: create surface_positions and surface_horizontal_positions on the (local) surface_mesh
+    ! defined by surface_ids
 
     ! FIXME: adding a temp. bc. only to create a surface mesh from boundary ids
-    call add_boundary_condition(positions, name=surface_name, type='temporary', boundary_ids=surface_ids)
+    call add_boundary_condition(positions, name="TemporarySurface", type='temporary', boundary_ids=surface_ids)
     deallocate(surface_ids)
 
-    call get_boundary_condition(positions, name=surface_name, surface_mesh=surface_mesh, &
+    call get_boundary_condition(positions, name="TemporarySurface", surface_mesh=surface_mesh, &
      surface_element_list=surface_element_list)
 
     call allocate(surface_positions, positions%dim, surface_mesh, "TempSurfacePositions")
     call remap_field_to_surface(positions, surface_positions, surface_element_list)
-
-    call remove_boundary_condition(positions, name=surface_name)
 
     call allocate(surface_horizontal_positions, positions%dim-1, surface_mesh, "TempSurfaceHorizontalPositions")
     do i=1, node_count(surface_positions)
       call set(surface_horizontal_positions, i, map2horizontal_sphere(node_val(surface_positions, i)))
     end do
 
+    call remove_boundary_condition(positions, name="TemporarySurface")
+
+    ! Step 2: search for nodes of the local surface_mesh in the base_geometry mesh (using horizontal coordinates)
+    ! The physical (3D) coordinates of those surface mesh nodes that have the same horizontal coordinate
+    ! as a node in the base geometry mesh will be used to set the physical (3D) coordinates of the base geometry node
     allocate(eles(1:node_count(surface_positions)), loc_coords(1:positions%dim, 1:node_count(surface_positions)))
-    call picker_inquire(external_horizontal_positions, surface_horizontal_positions, &
+    call picker_inquire(base_geometry_horizontal_positions, surface_horizontal_positions, &
       eles, loc_coords, global=.false.)
     call deallocate(surface_horizontal_positions)
 
-    ! first we calculate the top or bottom positions on the external mesh
-    call allocate(external_surface_positions, positions%dim, external_mesh, "TempExternalSurfacePositions")
-    allocate(max_loc_coords(1:node_count(external_mesh)))
-    max_loc_coords = 0.
+    ! Step 3: for each node of the external_base_mesh, copy the physical coordinates (in surface_positions)
+    ! of the node in the surface_mesh that has the maximum local coordinate wrt to the external_base_mesh node
+    !
+    ! the maximum local coordinate of each node in surface_mesh with respect to nodes in external_base_mesh
+    ! a surface_mesh node that coincides (in horizontal coordinates) with a node in external_base_mesh
+    ! will have a local coordinate of 1.0
+
+    ! max_loc_coords(1,:) will contain this maximum local coordinate, and max_loc_coords(2:,:)
+    ! the corresponding physical coordinate from surface_positions
+    allocate(max_loc_phys_coords(1+positions%dim, 1:node_count(external_base_mesh)))
+    max_loc_phys_coords = 0.
     do i=1, size(eles)
-      nodes => ele_nodes(external_mesh, element_map(eles(i)))
+      nodes => ele_nodes(external_base_mesh, element_map(eles(i)))
       do j=1, size(nodes)
-        if (loc_coords(j, i)>max_loc_coords(nodes(j))) then
-         max_loc_coords(nodes(j)) = loc_coords(j, i)
-         call set(external_surface_positions, nodes(j), node_val(surface_positions, i))
+        if (loc_coords(j, i)>max_loc_phys_coords(1, nodes(j))) then
+         max_loc_phys_coords(1, nodes(j)) = loc_coords(j, i)
+         max_loc_phys_coords(2:, nodes(j)) = node_val(surface_positions, i)
        end if
      end do
     end do
     call deallocate(surface_positions)
 
-    do i=1, size(max_loc_coords)
-     if (max_loc_coords(i)-1.<-1e-8) then
-       ewrite(-1, *) "Node in base geometry "  //  trim(external_mesh%name) // &
-         " not present in " // trim(surface_name) // "-surface of mesh " // trim(positions%mesh%name)
+    ! Step 4: now take the maximum of max_loc_coords(1, :) over all processes, and copy the corresponding physical coordinate
+
+    ! define a mpi type storing one entry max_loc_coords(:,i)
+    call mpi_type_contiguous(1+positions%dim, getpreal(), MPI_TYPE_LOC_PHYS_COORDS, ierr)
+    call mpi_type_commit(MPI_TYPE_LOC_PHYS_COORDS, ierr)
+    MPI_TYPE_LOC_PHYS_COORDS_LEN = 1+positions%dim
+    ! define the reduction operator that takes the maximum local coordinates and copies the physical coordinates
+    call mpi_op_create(max_first_argument, 1, mpi_max_loc_phys_coords_op, ierr)
+    ! applies this reduction over all processes and store the result in max_loc_phys_coords_global
+    allocate(max_loc_phys_coords_global(1+positions%dim, 1:node_count(external_base_mesh)))
+    call mpi_allreduce(max_loc_phys_coords, max_loc_phys_coords_global, size(max_loc_phys_coords, 2), &
+      MPI_TYPE_LOC_PHYS_COORDS, mpi_max_loc_phys_coords_op, MPI_COMM_FEMTOOLS, ierr)
+    call mpi_type_free(MPI_TYPE_LOC_PHYS_COORDS, ierr)
+    call mpi_op_free(mpi_max_loc_phys_coords_op, ierr)
+
+    ! Step 5: if any max_local_coords_global(1,:)/=1 it means the corresponding node in the external_base_mesh does not
+    ! have a node with the same horizontal coordinates in the surface_mesh
+    do i=1, size(max_loc_phys_coords_global, 2)
+     if (max_loc_phys_coords_global(1, i)-1.<-1e-8) then
+       ewrite(-1, *) "Constructing " // positions_name
+       ewrite(-1, *) "Node in base geometry "  //  trim(external_base_mesh%name) // &
+         " not present in top or bottom surface of mesh " // trim(positions%mesh%name)
        FLExit("Base geometry mesh not consistent with spherically adapted mesh")
      end if
     end do
-    deallocate(max_loc_coords, eles, loc_coords)
 
-    ! then we map it onto the external_horizontal_positions%mesh
-    call allocate(base_geometry_surface_positions, positions%dim, external_horizontal_positions%mesh, &
+    ! Step 6: copy the result to a vector field on the external_base_mesh
+    call allocate(external_surface_positions, positions%dim, external_base_mesh, "TempExternalSurfacePositions")
+    call set_all(external_surface_positions, max_loc_phys_coords_global(2:,:))
+    deallocate(max_loc_phys_coords, max_loc_phys_coords_global, eles, loc_coords)
+
+    ! Step 7: then we map it onto the base_geometry_horizontal_positions%mesh (which contains discontinuties)
+    call allocate(base_geometry_surface_positions, positions%dim, base_geometry_horizontal_positions%mesh, &
         positions_name)
     do i=1, element_count(base_geometry_surface_positions)
       call set(base_geometry_surface_positions, ele_nodes(base_geometry_surface_positions, i), &
@@ -415,13 +546,18 @@ module spherical_adaptivity
     type(vector_field), intent(in) :: positions, base_geometry
     type(tensor_field), intent(in) :: metric
 
-    real, dimension(3, 4) :: tet_xyz
+    real, dimension(positions%dim, positions%dim+1) :: tet_xyz
     real vol1, vol2
-    integer ele, j, ele2, k
+    integer ele, j, ele2, k, dim
     integer, dimension(:), pointer:: neigh, facets, nodes, nodes2
     logical :: any_inverted
 
     ewrite(1, *) "Inside check_inverted_elements"
+
+    dim = positions%dim
+    if (dim<2 .or. dim>3 .or. ele_loc(positions, 1)/=dim+1) then
+      FLAbort("This routine should only be used for linear meshes in 2d or 3d")
+    endif
 
     any_inverted = .false.
     do ele=1, element_count(positions)
@@ -430,15 +566,24 @@ module spherical_adaptivity
       nodes => ele_nodes(positions, ele)
       do j=1, size(neigh)
         if (neigh(j)>0) then
-          tet_xyz(:, 1:3) = face_val(positions, facets(j))
-          tet_xyz(:, 4) = node_val(positions, nodes(j))
-          vol1 = tetvol(tet_xyz(1,:), tet_xyz(2,:), tet_xyz(3,:))
+          tet_xyz(:, 1:dim) = face_val(positions, facets(j))
+          tet_xyz(:, dim+1) = node_val(positions, nodes(j))
+          if (dim==3) then
+            vol1 = tetvol(tet_xyz(1,:), tet_xyz(2,:), tet_xyz(3,:))
+          else
+            vol1 = cross_product2(tet_xyz(:,2)-tet_xyz(:,1), tet_xyz(:,3)-tet_xyz(:,1))
+          end if
 
           ele2 = neigh(j)
           nodes2 => ele_nodes(positions, ele2)
           k = local_face_number(positions, face_neigh(positions, facets(j)))
-          tet_xyz(:, 4) = node_val(positions, nodes2(k))
-          vol2 = tetvol(tet_xyz(1,:), tet_xyz(2,:), tet_xyz(3,:))
+          tet_xyz(:, positions%dim+1) = node_val(positions, nodes2(k))
+          if (dim==3) then
+            vol1 = tetvol(tet_xyz(1,:), tet_xyz(2,:), tet_xyz(3,:))
+          else
+            vol1 = cross_product2(tet_xyz(:,2)-tet_xyz(:,1), tet_xyz(:,3)-tet_xyz(:,1))
+          end if
+
           if (vol1*vol2>0.0) then
             ewrite(2,*) "INVERTED ELEMENT!!!"
             ewrite(2,*) "Element 1 ***"

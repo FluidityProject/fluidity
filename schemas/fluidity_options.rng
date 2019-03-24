@@ -3405,6 +3405,68 @@ derivative on the gauss points.</a:documentation>
               <empty/>
             </element>
           </optional>
+          <optional>
+            <element name="base_geometry">
+              <a:documentation>When using adaptivity in a spherical (or cylindrical in 2D) domain. This is the geometry
+that is used for the coarsest possible representation of the sphere (circle). It should be
+a dim-1 embedded sphere (circle) of arbitrary radius, where for each vertex in this base_geometry
+there is a vertex in both the top and bottom surface mesh of the `dim` computational mesh that lies
+exactly below or above it in the radial direction. These top and bottom surface vertices will remain
+fixed during adaptivity. It is assumed that the triangles in the base_geometry are also represented
+in the top and bottom surfaces of the computational mesh. Before each adapt nodes on the surface within
+a triangle are moved radially (popped in) such that all nodes in a base_geometry triangle are coplanar,
+i.e. the base geometry triangle is represented by a flat triangle in the top and bottom surface mesh.
+During the adapt new nodes may be added to the triangle. After the adapt the (nodes of the) triangle is
+popped back out again to obtain the most accurate representation of the sphere.
+
+The recommended way to obtain a base geometry that is consistent with the computational mesh. Is to start
+the computational mesh from an extruded mesh setup, where the dim-1 input mesh is chosen the same as the
+base_geometry mesh. This should be chosen as the coarsest representation of the top and bottom spheres that
+are allowed during the run. Using adaptivity_at_first_timestep the computational can be made finer as
+desired.
+
+NOTE: the mesh file specified here will not be decomposed. It will therefore always refer to a serial
+representation of the mesh, which will be read in by process 0 and distributed to the other cores.</a:documentation>
+              <choice>
+                <element name="format">
+                  <a:documentation>GMSH mesh format</a:documentation>
+                  <attribute name="name">
+                    <value>gmsh</value>
+                  </attribute>
+                  <ref name="comment"/>
+                </element>
+                <element name="format">
+                  <a:documentation>Read the mesh from a vtu. Note that the mesh will have no
+surface or region IDs.</a:documentation>
+                  <attribute name="name">
+                    <value>vtu</value>
+                  </attribute>
+                  <ref name="comment"/>
+                </element>
+                <element name="format">
+                  <a:documentation>ExodusII mesh format.
+
+&lt;b&gt;Note: Only works for serial mesh files and
+Checkpoints are dumped in the GMSH file format.&lt;/b&gt;</a:documentation>
+                  <attribute name="name">
+                    <value>exodusii</value>
+                  </attribute>
+                  <ref name="comment"/>
+                </element>
+              </choice>
+              <attribute name="file_name">
+                <data type="string"/>
+              </attribute>
+              <element name="top_surface_ids">
+                <a:documentation>Specify the surface ids that make up the top of the domain.</a:documentation>
+                <ref name="integer_vector"/>
+              </element>
+              <element name="bottom_surface_ids">
+                <a:documentation>Specify the surface ids that make up the bottom of the domain.</a:documentation>
+                <ref name="integer_vector"/>
+              </element>
+            </element>
+          </optional>
         </element>
       </optional>
       <optional>

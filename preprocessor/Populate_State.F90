@@ -78,7 +78,7 @@ periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
        allocate_and_insert_auxilliary_fields, &
        initialise_field, allocate_metric_limits, &
        make_mesh_periodic_from_options, make_mesh_unperiodic_from_options, &
-       compute_domain_statistics
+       compute_domain_statistics, get_quad_family
 
   interface allocate_field_as_constant
     

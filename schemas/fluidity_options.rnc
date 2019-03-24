@@ -2513,6 +2513,58 @@ geometry =
             ## derivative on the gauss points.
             element analytical_mapping {
                empty
+            }?,
+            ## When using adaptivity in a spherical (or cylindrical in 2D) domain. This is the geometry
+            ## that is used for the coarsest possible representation of the sphere (circle). It should be
+            ## a dim-1 embedded sphere (circle) of arbitrary radius, where for each vertex in this base_geometry
+            ## there is a vertex in both the top and bottom surface mesh of the `dim` computational mesh that lies
+            ## exactly below or above it in the radial direction. These top and bottom surface vertices will remain
+            ## fixed during adaptivity. It is assumed that the triangles in the base_geometry are also represented
+            ## in the top and bottom surfaces of the computational mesh. Before each adapt nodes on the surface within
+            ## a triangle are moved radially (popped in) such that all nodes in a base_geometry triangle are coplanar,
+            ## i.e. the base geometry triangle is represented by a flat triangle in the top and bottom surface mesh.
+            ## During the adapt new nodes may be added to the triangle. After the adapt the (nodes of the) triangle is
+            ## popped back out again to obtain the most accurate representation of the sphere.
+            ##
+            ## The recommended way to obtain a base geometry that is consistent with the computational mesh. Is to start
+            ## the computational mesh from an extruded mesh setup, where the dim-1 input mesh is chosen the same as the
+            ## base_geometry mesh. This should be chosen as the coarsest representation of the top and bottom spheres that
+            ## are allowed during the run. Using adaptivity_at_first_timestep the computational can be made finer as
+            ## desired.
+            ##
+            ## NOTE: the mesh file specified here will not be decomposed. It will therefore always refer to a serial
+            ## representation of the mesh, which will be read in by process 0 and distributed to the other cores.
+            element base_geometry {
+               (
+                  ## GMSH mesh format
+                  element format {
+                     attribute name { "gmsh" },
+                     comment
+                  }|
+                  ## Read the mesh from a vtu. Note that the mesh will have no
+                  ## surface or region IDs.
+                  element format {
+                    attribute name { "vtu" },
+                    comment
+                  }|
+                  ## ExodusII mesh format.
+                  ##
+                  ##<b>Note: Only works for serial mesh files and
+                  ## Checkpoints are dumped in the GMSH file format.</b>
+                  element format {
+                     attribute name { "exodusii" },
+                     comment
+                  }
+               ),
+               attribute file_name { xsd:string },
+               ## Specify the surface ids that make up the top of the domain.
+               element top_surface_ids {
+                  integer_vector
+               },
+               ## Specify the surface ids that make up the bottom of the domain.
+               element bottom_surface_ids {
+                  integer_vector
+               }
             }?
          }?,
          ## Options specifying the top surface and bottom of the domain
