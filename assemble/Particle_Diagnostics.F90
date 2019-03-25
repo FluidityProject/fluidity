@@ -1823,8 +1823,8 @@ module particle_diagnostics
        if (allocated(node_coord)) then
           deallocate(node_coord)
        end if
-       deallocate(node_numbers)
     end do
+    deallocate(node_numbers)
 
   end subroutine spawn_zero_particles_subgroup
 
