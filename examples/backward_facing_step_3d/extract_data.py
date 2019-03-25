@@ -7,9 +7,9 @@ import vtktools
 import numpy
 
 pwd=os.getenv('PWD')
-print pwd
+print(pwd)
 mydir=pwd.split('backward_facing_step_3d')[0]+'backward_facing_step_3d'
-print mydir
+print(mydir)
 
 def restresseslemoin(off):
   # off is the plot offset
@@ -110,7 +110,7 @@ def ercoftacvelocityprofiles():
 def ercoftacrestressprofiles():
 
   datafile = open(str(mydir)+'/Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC181-table.dat', 'r')
-  print "reading in data from file: BFS-SEM-ERCOFTAC181-table.dat"
+  print("reading in data from file: BFS-SEM-ERCOFTAC181-table.dat")
   # ignore header line
   for line in range(1):
     datafile.readline()

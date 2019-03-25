@@ -16,11 +16,11 @@ x0 = 40.0
 
 
 for file in filelist:
-   print file
+   print(file)
    try:
      os.stat(file)
    except:
-     print "No such file: %s" % file
+     print("No such file: %s" % file)
      sys.exit(1)
 
    num = int(file.split(".vtu")[0].split('_')[-1])
@@ -82,7 +82,7 @@ for file in filelist:
    ax = fig.add_subplot(224)
    ax.plot(diff,zzz,'b--')
    ax.plot(visc,zzz,'b')
-   print max(diff), max(visc)
+   print(max(diff), max(visc))
    ax.xaxis.set_major_locator(MaxNLocator(5))
    xlabel('Vertical Diffusivity (--) and Viscosity (-)')
    ylabel('Depth')

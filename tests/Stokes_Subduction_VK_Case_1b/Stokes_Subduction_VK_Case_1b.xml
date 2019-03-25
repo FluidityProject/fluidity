@@ -36,7 +36,7 @@ for n in range(36):
      T = s["Fluid"]["Temperature"]["TSlab_" + (str(n + 1)).zfill(2)]-273.
      sum = sum + T*T
 
-TL2 = map(math.sqrt, sum/36)
+TL2 = [math.sqrt(s) for s in sum/36]
 TL2SLAB = TL2[-1]<comment>Computes the L2 Temperature norm in 36 equidistant points along the slab, close to the wedge corner.</comment>
 </variable>
 
@@ -54,7 +54,7 @@ for n in range(78):
      T = s["Fluid"]["Temperature"]["TWedge_" + (str(n + 1)).zfill(2)]-273.
      sum = sum + T*T
 
-TL2 = map(math.sqrt, sum/78)
+TL2 = [math.sqrt(_) for _ in sum/78]
 TL2WEDGE = TL2[-1]<comment>Computes the L2 Temperature norm for 78 points in the wedge corner.</comment>
 </variable>
 

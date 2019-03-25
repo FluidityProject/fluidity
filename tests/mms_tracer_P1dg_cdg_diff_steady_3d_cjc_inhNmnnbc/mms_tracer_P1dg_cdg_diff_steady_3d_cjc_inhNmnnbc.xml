@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>channel-flow-dg</name>
   <owner userid="avdis01"/>
@@ -17,13 +17,13 @@ layers = numpy.array([5,10,20,30])
 dxs=1.0/layers
 error=[]
 for layer in layers:
-        s=stat_parser("cdg-"+`layer`+".stat")
-        error.append((s["Stuff"]['AbsoluteDifference']['l2norm'][-1]))
+    s=stat_parser("cdg-"+repr(layer)+".stat")
+    error.append((s["Stuff"]['AbsoluteDifference']['l2norm'][-1]))
 
 error=numpy.array(error)
 convergence=numpy.log(error[:-1]/error[1:])/numpy.log((1.0*layers[1:])/(1.0*layers[:-1]))
-print error
-    </variable>
+print(error)
+</variable>
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">

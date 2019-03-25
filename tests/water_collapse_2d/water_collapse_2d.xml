@@ -67,14 +67,14 @@ def get_last_dump():
   for i in range(len(filelist)):
     nums.append([i, int(filelist[i].split(".vtu")[0].split("_")[-1])])
   nums.sort(key=operator.itemgetter(1))
-  print filelist[nums[-1][0]]
+  print(filelist[nums[-1][0]])
   return filelist[nums[-1][0]]
 
 def get_head_pos(file):
   try:
     os.stat(file)
   except:
-    print "No such file: %s" % file
+    print("No such file: %s" % file)
     sys.exit(1)
   reader = vtk.vtkXMLUnstructuredGridReader();
   reader.SetFileName(file)
@@ -108,14 +108,14 @@ def get_last_dump():
   for i in range(len(filelist)):
     nums.append([i, int(filelist[i].split(".vtu")[0].split("_")[-1])])
   nums.sort(key=operator.itemgetter(1))
-  print filelist[nums[-1][0]]
+  print(filelist[nums[-1][0]])
   return filelist[nums[-1][0]]
 
 def get_head_pos(file):
   try:
     os.stat(file)
   except:
-    print "No such file: %s" % file
+    print("No such file: %s" % file)
     sys.exit(1)
   reader = vtk.vtkXMLUnstructuredGridReader();
   reader.SetFileName(file)
@@ -149,14 +149,14 @@ def get_last_dump():
   for i in range(len(filelist)):
     nums.append([i, int(filelist[i].split(".vtu")[0].split("_")[-1])])
   nums.sort(key=operator.itemgetter(1))
-  print filelist[nums[-1][0]]
+  print(filelist[nums[-1][0]])
   return filelist[nums[-1][0]]
 
 def get_head_pos(file):
   try:
     os.stat(file)
   except:
-    print "No such file: %s" % file
+    print("No such file: %s" % file)
     sys.exit(1)
   reader = vtk.vtkXMLUnstructuredGridReader();
   reader.SetFileName(file)
@@ -186,11 +186,11 @@ insidecolumn= min(stat("water_collapse.detectors")["Dense"]["MaterialVolumeFract
       assert(solvers_converged)
     </test>
     <test name="check water was conserved" language="python">
-print 'mass loss = ', abs(vfracintend-vfracintstart)
+print('mass loss = ', abs(vfracintend-vfracintstart))
 assert abs(vfracintend-vfracintstart) &lt; max(maxdivergence, mindivergence)
     </test>
     <test name="check that reasonable tolerance is being used to test conservation" language="python">
-print 'divergence tolerance = ', max(maxdivergence, mindivergence)
+print('divergence tolerance = ', max(maxdivergence, mindivergence))
 assert max(maxdivergence, mindivergence) &lt; 1.E-5
     </test>
     <test name="check max volume fraction bound" language="python">
@@ -200,35 +200,35 @@ assert abs(maxvfrac-1.0) &lt; 1.E-10
 assert abs(minvfrac) &lt; 1.E-10
     </test>
     <test name="check water column has travelled max x" language="python">
-print mid_contour_bounds[1], '&lt;', -0.1
+print(mid_contour_bounds[1], '&lt;', -0.1)
 assert mid_contour_bounds[1] &lt; -0.1
     </test>
     <test name="check water column has travelled min x" language="python">
-print mid_contour_bounds[1], '&gt;', -0.12
+print(mid_contour_bounds[1], '&gt;', -0.12)
 assert mid_contour_bounds[1] &gt; -0.12
     </test>
     <test name="check water column has travelled max y" language="python">
-print mid_contour_bounds[3], '&lt;', 0.0
+print(mid_contour_bounds[3], '&lt;', 0.0)
 assert mid_contour_bounds[3] &lt; 0.0
     </test>
     <test name="check water column has travelled min y" language="python">
-print mid_contour_bounds[3], '&gt;', -0.1
+print(mid_contour_bounds[3], '&gt;', -0.1)
 assert mid_contour_bounds[3] &gt; -0.1
     </test>
     <test name="check contours are tight lower x" language="python">
-print abs(mid_contour_bounds[1]-lower_contour_bounds[1])
+print(abs(mid_contour_bounds[1]-lower_contour_bounds[1]))
 assert abs(mid_contour_bounds[1]-lower_contour_bounds[1]) &lt; 0.02
     </test>
     <test name="check contours are tight upper x" language="python">
-print abs(mid_contour_bounds[1]-upper_contour_bounds[1])
+print(abs(mid_contour_bounds[1]-upper_contour_bounds[1]))
 assert abs(mid_contour_bounds[1]-upper_contour_bounds[1]) &lt; 0.02
     </test>
     <test name="check contours are tight lower y" language="python">
-print abs(mid_contour_bounds[3]-lower_contour_bounds[3])
+print(abs(mid_contour_bounds[3]-lower_contour_bounds[3]))
 assert abs(mid_contour_bounds[3]-lower_contour_bounds[3]) &lt; 0.02
     </test>
     <test name="check contours are tight upper y" language="python">
-print abs(mid_contour_bounds[3]-upper_contour_bounds[3])
+print(abs(mid_contour_bounds[3]-upper_contour_bounds[3]))
 assert abs(mid_contour_bounds[3]-upper_contour_bounds[3]) &lt; 0.02
     </test>
     <test name="check no. nodes has increased" language="python">

@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>region_id check</name>
   <owner userid="cwilson"/>
@@ -87,11 +86,11 @@ coly=array([[0.25]])
 colz=array([[0.005]])
 coordinates=concatenate((colx,coly,colz),1)
 vtufile=vtktools.vtu('region_id_0.vtu')
-print 1
+print(1)
 lwmatvis=vtktools.vtu.ProbeData(vtufile,coordinates,'Water::MaterialViscosity')
-print 2
+print(2)
 lwmatvisxx=lwmatvis[0,0,0]
-    </variable>
+</variable>
     <variable name="uwmatvisxx" language="python">
 import vtktools
 from numpy import concatenate, arange, newaxis, ones, array

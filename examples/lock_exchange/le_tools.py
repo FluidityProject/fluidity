@@ -243,7 +243,7 @@ def Getmixingbinboundsfromflml(flmlname):
   xpath = '/fluidity_options/material_phase[@name='+material_phase_name+']/scalar_field[@name="Temperature"]/prognostic/stat/include_mixing_stats[@name="cv_normalised"]/mixing_bin_bounds/python'
   python_func = Getflmlvalue(flmlname, xpath)
   func_dictionary = {}
-  exec python_func in func_dictionary
+  exec(python_func,func_dictionary)
   bounds = func_dictionary['val'](0)
   func_dictionary = {}
   

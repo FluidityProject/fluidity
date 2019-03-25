@@ -1,71 +1,71 @@
-<?xml version = "1.0" encoding = "UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>SU stabilisation test</name>
   <owner userid="dham"/>
   <tags>flml</tags>
-  <problem_definition length = "short" nprocs = "1">
-    <command_line>make clean-run; rm -f su.log explicit_pe.log; fluidity -v2 top_hat_cg_su.flml > su.log; fluidity -v2 top_hat_cg_explicit_pe.flml > explicit_pe.log</command_line>
+  <problem_definition length="short" nprocs="1">
+    <command_line>make clean-run; rm -f su.log explicit_pe.log; fluidity -v2 top_hat_cg_su.flml &gt; su.log; fluidity -v2 top_hat_cg_explicit_pe.flml &gt; explicit_pe.log</command_line>
   </problem_definition>
   <variables>
-    <variable name = "times" language = "python">
+    <variable name="times" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("top_hat_cg_su.stat")
 times = s["ElapsedTime"]["value"]
     </variable>
-    <variable name = "solvers_converged" language = "python">
+    <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
     </variable>
-    <variable name = "min_ts" language = "python">
+    <variable name="min_ts" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("top_hat_cg_su.stat")
 min_ts = s["Fluid"]["Tracer"]["min"]
     </variable>
-    <variable name = "max_ts" language = "python">
+    <variable name="max_ts" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("top_hat_cg_su.stat")
 max_ts = s["Fluid"]["Tracer"]["max"]
     </variable>
-    <variable name = "t_integrals" language = "python">
+    <variable name="t_integrals" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("top_hat_cg_su.stat")
 t_integrals = s["Fluid"]["Tracer"]["integral"]
     </variable>
-    <variable name = "initial_vtu" language = "python">
+    <variable name="initial_vtu" language="python">
 import vtktools
 initial_vtu = vtktools.vtu("top_hat_cg_su_0.vtu")
     </variable>
-    <variable name = "final_vtu" language = "python">
+    <variable name="final_vtu" language="python">
 import vtktools
 final_vtu = vtktools.vtu("top_hat_cg_su_80.vtu")
     </variable>
-    <variable name = "final_vtu_explicit_pe" language = "python">
+    <variable name="final_vtu_explicit_pe" language="python">
 import vtktools
 final_vtu_explicit_pe = vtktools.vtu("top_hat_cg_explicit_pe_80.vtu")
     </variable>
   </variables>
   <pass_tests>
-    <test name = "Simulation completed" language = "python">
+    <test name="Simulation completed" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(times[-1], 80.0, 1.0e-6)
     </test>
-    <test name = "Solvers converged" language = "python">
+    <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
-    <test name = "Bounded (5%)" language = "python">
+    <test name="Bounded (5%)" language="python">
 min_t = min(min_ts)
 max_t = max(max_ts)
-print "Min T = ", min_t
-print "Max T = ", max_t
+print("Min T = ", min_t)
+print("Max T = ", max_t)
 assert(min_t &gt;= -0.05)
 assert(max_t &lt;= 1.05)
-    </test>
-    <test name = "Conservative" language = "python">
+</test>
+    <test name="Conservative" language="python">
 import fluidity_tools
 fluidity_tools.compare_variables(t_integrals, [0.25 for i in range(len(t_integrals))], 1.0e-10)
     </test>
-    <test name = "Advected velocity" language = "python">
+    <test name="Advected velocity" language="python">
 import fluidity_tools
 
 coords = final_vtu.GetLocations()
@@ -74,21 +74,21 @@ finalT = final_vtu.GetScalarField("Tracer")
 
 initialX = 0.0
 for i, coord in enumerate(coords):
-  initialX += initialT[i] * coord[0] / (40.0 * t_integrals[0])
-print "Initial mean x = ", initialX
+    initialX += initialT[i] * coord[0] / (40.0 * t_integrals[0])
+print("Initial mean x = ", initialX)
 
 finalX = 0.0
 for i, coord in enumerate(coords):
-  finalX += finalT[i] * coord[0] / (40.0 * t_integrals[-1])
-print "Final mean x = ", finalX
+    finalX += finalT[i] * coord[0] / (40.0 * t_integrals[-1])
+print("Final mean x = ", finalX)
 
 vel = (finalX - initialX) / (times[-1] - times[0])
 vel = float(vel)
-print "Mean velocity = ", vel
+print("Mean velocity = ", vel)
 
 fluidity_tools.compare_variable(vel, (1.0 / 40.0) * 0.125, 0.02)
-    </test>
-    <test name = "Standard deviation" language = "python">
+</test>
+    <test name="Standard deviation" language="python">
 import math
 
 import fluidity_tools
@@ -99,35 +99,35 @@ finalT = final_vtu.GetScalarField("Tracer")
 
 initialX = 0.0
 for i, coord in enumerate(coords):
-  initialX += initialT[i] * coord[0] / (40.0 * t_integrals[0])
-print "Initial mean x = ", initialX
+    initialX += initialT[i] * coord[0] / (40.0 * t_integrals[0])
+print("Initial mean x = ", initialX)
 
 finalX = 0.0
 for i, coord in enumerate(coords):
-  finalX += finalT[i] * coord[0] / (40.0 * t_integrals[-1])
-print "Final mean x = ", finalX
+    finalX += finalT[i] * coord[0] / (40.0 * t_integrals[-1])
+print("Final mean x = ", finalX)
 
 initialSigmaX = 0.0
 for i, coord in enumerate(coords):
-  initialSigmaX += initialT[i] * math.pow((coord[0] - initialX), 2.0) / (40.0 * t_integrals[0])
+    initialSigmaX += initialT[i] * math.pow((coord[0] - initialX), 2.0) / (40.0 * t_integrals[0])
 initialSigmaX = math.pow(initialSigmaX, 0.5)
-print "Initial standard deviation = ", initialSigmaX
+print("Initial standard deviation = ", initialSigmaX)
 
 finalSigmaX = 0.0
 for i, coord in enumerate(coords):
-  finalSigmaX += finalT[i] * math.pow((coord[0] - finalX), 2.0) / (40.0 * t_integrals[-1])
+    finalSigmaX += finalT[i] * math.pow((coord[0] - finalX), 2.0) / (40.0 * t_integrals[-1])
 finalSigmaX = math.pow(finalSigmaX, 0.5)
-print "Final standard deviation = ", finalSigmaX
+print("Final standard deviation = ", finalSigmaX)
 
 fluidity_tools.compare_variable(initialSigmaX, finalSigmaX, 0.5)
-    </test>
-    <test name = "Matches Pe = 1 solution" language = "python">
+</test>
+    <test name="Matches Pe = 1 solution" language="python">
 diff = final_vtu.GetScalarField("Tracer") - final_vtu_explicit_pe.GetScalarField("Tracer")
-print abs(diff)
+print(abs(diff))
 diff = max(abs(diff))
-print diff
+print(diff)
 assert(diff &lt; 5.0e-6)
-    </test>
+</test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

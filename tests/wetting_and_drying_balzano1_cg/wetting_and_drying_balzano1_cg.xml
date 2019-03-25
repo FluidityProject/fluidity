@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>balzano1_2plus1</name>
   <owner userid="sf1409"/>
@@ -25,25 +25,27 @@ ElapsedTime=s["ElapsedTime"]["value"]</variable>
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>
-    <test name="endtime" language="python">assert(ElapsedTime[-1]>=99600.0)</test>
-    <test name="wetting_drying_alpha" language="python">print "Checking if left third of domain is dry at last timestep...",
+    <test name="endtime" language="python">assert(ElapsedTime[-1]&gt;=99600.0)</test>
+    <test name="wetting_drying_alpha" language="python">print("Checking if left third of domain is dry at last timestep...",)
 for det in range(1,332):
-  det_str="det_%(#)04d" %{"#": det}
-  assert(wetting_drying_alpha[det_str][-1]&gt;0.0)
-print "okay."
-print "Checking if right half of domain is wet at last timestep..."
+    det_str="det_%(#)04d" %{"#": det}
+    assert(wetting_drying_alpha[det_str][-1]&gt;0.0)
+print("okay.")
+print("Checking if right half of domain is wet at last timestep...")
 for det in range(500,1002):
-  det_str="det_%(#)04d" %{"#": det}
-  assert(wetting_drying_alpha[det_str][-1]==0.0)
-print "okay."<comment>this test checks if the wetting and drying alpa is correct at the last timestep. It should be 0 for detectors located left of X=5520 (det_01...det_4) and 1 for detectors right of that postition (det_06...det_11).</comment></test>
-    <test name="Velocity" language="python">print "Checking if left third of domain is velocity free at last timestep...",
+    det_str="det_%(#)04d" %{"#": det}
+    assert(wetting_drying_alpha[det_str][-1]==0.0)
+print("okay.")
+<comment>this test checks if the wetting and drying alpa is correct at the last timestep. It should be 0 for detectors located left of X=5520 (det_01...det_4) and 1 for detectors right of that postition (det_06...det_11).</comment></test>
+    <test name="Velocity" language="python">print("Checking if left third of domain is velocity free at last timestep...",)
 for det in range(1,332):
-  det_str="det_%(#)04d" %{"#": det}
-  magnitude=0.0
-  for dim in range(0,3):
-    magnitude=magnitude+velocity[det_str][dim][-1]**2
-  magnitude=magnitude**0.5
-  assert(magnitude&lt;=0.005)
-print "okay."</test>
+    det_str="det_%(#)04d" %{"#": det}
+    magnitude=0.0
+    for dim in range(0,3):
+        magnitude=magnitude+velocity[det_str][dim][-1]**2
+    magnitude=magnitude**0.5
+    assert(magnitude&lt;=0.005)
+print("okay.")
+</test>
   </pass_tests>
 </testproblem>

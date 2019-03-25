@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import os
 import os.path
 import glob
@@ -13,7 +14,7 @@ class UnitTest:
 
     def log(self, msg):
         if self.verbose and msg != '':
-            print "    %s: %s" % (self.exe.split('/')[-1], msg)
+            print("    %s: %s" % (self.exe.split('/')[-1], msg))
 
     def run(self):
         os.chdir(self.dir)
@@ -68,7 +69,7 @@ class UnitTestHarness:
             (P, W, F) = test.parse()
 
             if (P, W, F) == (0, 0, 0):
-              print "    WARNING: no output from test"
+              print("    WARNING: no output from test")
               warncount += 1
               warntests.append(test.exe)
 
@@ -79,25 +80,25 @@ class UnitTestHarness:
               failtests.append(test.exe)
               
             if not exitStatus == 0:
-              print "    ERROR: non-zero exit code from test"
+              print("    ERROR: non-zero exit code from test")
               failcount += 1
               if not test.exe in failtests:
-	        failtests.append(test.exe)
+                  failtests.append(test.exe)
 
             passcount += P
             warncount += W
             failcount += F
 
-        print "RESULTS"
-        print "    Passes:   %d" % passcount
+        print("RESULTS")
+        print("    Passes:   %d" % passcount)
         if len(warntests) == 0:
-            print "    Warnings: %d" % warncount
+            print("    Warnings: %d" % warncount)
         else:
-            print "    Warnings: %d; tests = %s" % (warncount, warntests)
+            print("    Warnings: %d; tests = %s" % (warncount, warntests))
         if len(failtests) == 0:
-            print "    Failures: %d" % failcount
+            print("    Failures: %d" % failcount)
         else:
-            print "    Failures: %d; tests = %s" % (failcount, failtests)
+            print("    Failures: %d; tests = %s" % (failcount, failtests))
 
 if __name__ == "__main__":
     import sys

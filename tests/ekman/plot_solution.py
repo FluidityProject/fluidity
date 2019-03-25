@@ -16,11 +16,11 @@ v10=10
 f=1.03124e-4
 # derived quantities:
 BigTau=rho_air/rho_water*C_s*sqrt(u10**2+v10**2)*v10
-print 'BigTau:', BigTau
+print('BigTau:', BigTau)
 D=pi*sqrt(2*nu_V/f)
-print 'D:', D
+print('D:', D)
 u0=BigTau*D/sqrt(2.0)/pi/nu_V
-print 'u0:', u0
+print('u0:', u0)
 
 # only look at point (x,y)=(0.0, 0.0)
 ind=find( (abs(xyz[:,0]-50)<1.0) & (abs(xyz[:,1]-50)<1.0) )

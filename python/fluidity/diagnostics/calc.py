@@ -18,6 +18,8 @@
 Some mathematical routines
 """
 
+from __future__ import print_function
+
 import copy
 import math
 import unittest
@@ -588,7 +590,7 @@ def InterpolatedSSA(v, t, N_T, n, J = 1, t0 = None, t1 = None):
   
   lt = [t0 + i * dt for i in range(N_T)]
   lv = LinearlyInterpolateField(v, t, lt)
-  print lv, lt
+  print(lv, lt)
     
   return SSA(lv, n, J = J)
     

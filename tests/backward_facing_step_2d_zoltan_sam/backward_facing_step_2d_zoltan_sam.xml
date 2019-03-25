@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <!-- test zoltan output to ensure it's comparable to Sams -->
 <testproblem>
   <name>Two-dimensional backward facing step.</name>
@@ -54,19 +53,19 @@ FinalNodeCountSam = fluidity_tools.stat_parser("backward_facing_step_2d_sam.stat
 -->
       <test name="Final time within 10.0%" language="python">
 Err = (abs(FinalTime-FinalTimeSam) / FinalTimeSam) *100
-print Err
+print(Err)
 assert (Err &lt; 10.0)
-    </test>    
+</test>    
     <test name="Max velocity within 10%" language="python">
 Err = (abs(MaximumVelocity-MaximumVelocitySam) / MaximumVelocitySam) *100
-print Err
+print(Err)
 assert (Err &lt; 10.)
-    </test>
+</test>
     <test name="Node count within 12%" language="python">
 nodeCountErr = (abs(FinalNodeCount-FinalNodeCountSam) / FinalNodeCountSam) *100
-print nodeCountErr, FinalNodeCount, FinalNodeCountSam
+print(nodeCountErr, FinalNodeCount, FinalNodeCountSam)
 assert ( nodeCountErr &lt; 12)
-    </test>
+</test>
 
   </pass_tests>
   <warn_tests>

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import sys
 import os
 import copy
@@ -24,7 +25,6 @@ except ImportError:
             pass
         def add_failure_info(self,*args,**kwargs):
             pass
-
 
 class TestProblem:
     """A test records input information as well as tests for the output."""
@@ -91,7 +91,7 @@ class TestProblem:
 
     def log(self, str):
         if self.verbose == True:
-            print self.filename[:-4] + ": " + str
+            print(self.filename[:-4] + ": " + str)
 
     def random_string(self):
         letters = "abcdefghijklmnopqrstuvwxyz"
@@ -146,7 +146,7 @@ class TestProblem:
           os.stat(dir+"/Makefile")
           self.log("Calling 'make input':")
           ret = os.system("cd "+dir+"; make input")
-          assert ret == 0
+          assert(ret == 0)
         except OSError:
           self.log("No Makefile, not calling make")
 
@@ -285,7 +285,7 @@ class Test(TestOrVariable):
     def run_python(self, varsdict):
         tmpdict = copy.copy(varsdict)
         try:
-          exec self.code in tmpdict
+          exec(self.code, tmpdict)
           return True
         except AssertionError:
           # in case of an AssertionError, we assume the test has just failed
@@ -300,27 +300,28 @@ class Variable(TestOrVariable):
     def run_bash(self, varsdict):
         cmd = "bash -c \"%s\"" % self.code
         fd = os.popen(cmd, "r")
-        exec self.name + "=" + fd.read() in varsdict
+        exec(self.name + "=" + fd.read(), varsdict)
         if self.name not in varsdict.keys():
             raise Exception
 
     def run_python(self, varsdict):
         try:
-            exec self.code in varsdict
+            print(self.code)
+            exec(self.code, varsdict)
         except:
-            print "Variable computation raised an exception"
-            print "-" * 80
+            print("Variable computation raised an exception")
+            print("-" * 80)
             for (lineno, line) in enumerate(self.code.split('\n')):
-              print "%3d  %s" % (lineno+1, line)
-            print "-" * 80
+              print("%3d  %s" % (lineno+1, line))
+            print("-" * 80)
             traceback.print_exc()
-            print "-" * 80
+            print("-" * 80)
             raise Exception
 
         if self.name not in varsdict.keys():
-            print "self.name == ", self.name
-            print "varsdict.keys() == ", varsdict.keys()
-            print "self.name not found: does the variable define the right name?"
+            print("self.name == ", self.name)
+            print("varsdict.keys() == ", varsdict.keys())
+            print("self.name not found: does the variable define the right name?")
             raise Exception
 
 class ThreadIterator(list):
@@ -333,6 +334,9 @@ class ThreadIterator(list):
 
     def __iter__(self):
         return self
+
+    def __next__(self):
+        return self.next()
 
     def next(self):
 
@@ -351,4 +355,4 @@ if __name__ == "__main__":
     prob.run()
     while not prob.is_finished():
         time.sleep(60)
-    print prob.test()
+    print(prob.test())

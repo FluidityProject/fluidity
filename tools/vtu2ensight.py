@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import sys
 import argparse
 import glob
@@ -120,8 +121,8 @@ def main(args):
     verbose = args.verbose
     static = args.static
     basename = args.basename
-    dumpno = args.dumpno
-    lastdump = args.lastdump
+    dumpno = int(args.dumpno)
+    lastdump = int(args.lastdump)
     if (dumpno>=0 or lastdump): static = True
     # get list of vtu/pvtu files:
     vtus = getvtulist(basename, dumpno, lastdump)
@@ -133,7 +134,7 @@ def main(args):
     # write data for each vtu-file:
     for i in range(len(vtus)):
         if (verbose):
-            print "processing vtu file: "+vtus[i]
+            print("processing vtu file: "+vtus[i])
         # get vtk object:
         reader = getvtk(vtus[i])
         # add block id (required by the ensight format):
@@ -150,9 +151,9 @@ if __name__ == "__main__":
     args = parse_args(sys.argv)
     try:
         main(args)
-        print "EnSight output files have been written successfully."
+        print("EnSight output files have been written successfully.")
     except IOError:
-        print "Error: Could not find any output files with a basename \""+args.basename+"\"."
+        print("Error: Could not find any output files with a basename \""+args.basename+"\".")
     except:
         raise Exception("Something went wrong. Aborting operation.")
 

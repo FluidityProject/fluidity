@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>turbine_flux_penalty_2d</name>
   <owner userid="sf1409"/>
@@ -39,18 +39,19 @@ assert(all(ElapsedTime_Turbine-ElapsedTime_Onedomain==0.0))</test>
 maxerr=-1.0
 maxerrkey=""
 tol=1e-4
-for key in DetectorArray_Turbine.iterkeys():
-  for i in range(0,len(DetectorArray_Onedomain[key])):
-    err=abs(DetectorArray_Turbine[key]-DetectorArray_Onedomain[key])[i]
-    if max(err)&gt;maxerr:
-       maxerr=max(err)
-       maxerrkey=key
-print "Maximal absolute error at position", 
-print Detectors_Turbine[maxerrkey]["position"][0][0], 
-print "x",
-print Detectors_Turbine[maxerrkey]["position"][1][0],
-print ": ", maxerr
-assert(maxerr&lt;tol)<comment>This calculates the absolute error over all timesteps.</comment></test>
+for key in DetectorArray_Turbine.keys():
+    for i in range(0,len(DetectorArray_Onedomain[key])):
+        err=abs(DetectorArray_Turbine[key]-DetectorArray_Onedomain[key])[i]
+        if max(err)&gt;maxerr:
+            maxerr=max(err)
+            maxerrkey=key
+print("Maximal absolute error at position",)
+print(Detectors_Turbine[maxerrkey]["position"][0][0],)
+print("x",)
+print(Detectors_Turbine[maxerrkey]["position"][1][0],)
+print(": ", maxerr)
+assert(maxerr&lt;tol)
+<comment>This calculates the absolute error over all timesteps.</comment></test>
     <test name="DetectorPosition_Comparison" language="python">for key in Detectors_Turbine.iterkeys():
   if "det_" in key:
       for i in range(0,len(Detectors_Turbine[key]["position"])):
@@ -62,18 +63,19 @@ maxerrkey=""
 tol=0.02
 lind=len(Detectors_Onedomain["dt"]["value"])-1
 
-for key in DetectorArray_Turbine.iterkeys():
-  for i in range(0,len(DetectorArray_Onedomain[key])):
-    err=abs(DetectorArray_Turbine[key]-DetectorArray_Onedomain[key])[i][lind]/DetectorArray_Onedomain[key][i][lind]
-    if err&gt;maxerr:
-       maxerr=err
-       maxerrkey=key
-print "Maximal relative error at position ", 
-print Detectors_Turbine[maxerrkey]["position"][0][lind], 
-print "x",
-print Detectors_Turbine[maxerrkey]["position"][1][lind],
-print ": ", maxerr,
-print " (Detector ", maxerrkey, ")"
-assert(maxerr&lt;tol)<comment>This tests the relative error at the last timestep!</comment></test>
+for key in DetectorArray_Turbine.keys():
+    for i in range(0,len(DetectorArray_Onedomain[key])):
+        err=abs(DetectorArray_Turbine[key]-DetectorArray_Onedomain[key])[i][lind]/DetectorArray_Onedomain[key][i][lind]
+        if err&gt;maxerr:
+            maxerr=err
+            maxerrkey=key
+print("Maximal relative error at position ",)
+print(Detectors_Turbine[maxerrkey]["position"][0][lind],)
+print("x",)
+print(Detectors_Turbine[maxerrkey]["position"][1][lind],)
+print(": ", maxerr,)
+print(" (Detector ", maxerrkey, ")")
+assert(maxerr&lt;tol)
+<comment>This tests the relative error at the last timestep!</comment></test>
   </pass_tests>
 </testproblem>

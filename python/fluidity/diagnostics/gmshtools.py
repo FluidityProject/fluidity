@@ -126,16 +126,16 @@ def ReadMsh(filename):
   """
       
   def ReadNonCommentLine(fileHandle):
-    line = fileHandle.readline()
+    line = fileHandle.readline().decode("utf8")
     while len(line) > 0:
       line = line.strip()
       if len(line) > 0:
         return line
-      line = fileHandle.readline()
+      line = fileHandle.readline().decode("utf8")
       
     return line
   
-  fileHandle = open(filename, "r")
+  fileHandle = open(filename, "rb")
 
   basename = filename.split(".")[0]
   hasHalo = filehandling.FileExists(basename + ".halo")
@@ -369,22 +369,22 @@ def WriteMsh(mesh, filename, binary = True):
     fileHandle = open(filename, "wb")
     
     # Write the MeshFormat section    
-    fileHandle.write("$MeshFormat\n")
+    fileHandle.write("$MeshFormat\n".encode("utf8"))
     version = 2.1
     fileType = 1
     dataSize = ctypes.sizeof(ctypes.c_double)
-    fileHandle.write(utils.FormLine([version, fileType, dataSize]))
+    fileHandle.write(utils.FormLine([version, fileType, dataSize]).encode("utf8"))
     
     iArr = array.array("i", [1])
     iArr.tofile(fileHandle)
-    fileHandle.write("\n")
+    fileHandle.write("\n".encode("utf8"))
     
-    fileHandle.write("$EndMeshFormat\n")
+    fileHandle.write("$EndMeshFormat\n".encode("utf8"))
     
     # Write the Nodes section
     
-    fileHandle.write("$Nodes\n")
-    fileHandle.write(utils.FormLine([mesh.NodeCoordsCount()]))
+    fileHandle.write("$Nodes\n".encode("utf8"))
+    fileHandle.write(utils.FormLine([mesh.NodeCoordsCount()]).encode("utf8"))
     
     for i, nodeCoord in enumerate(mesh.GetNodeCoords()):
       nodeCoord = list(nodeCoord)
@@ -396,14 +396,14 @@ def WriteMsh(mesh, filename, binary = True):
       rArr = array.array("d", nodeCoord)
       iArr.tofile(fileHandle)
       rArr.tofile(fileHandle) 
-    fileHandle.write("\n")     
+    fileHandle.write("\n".encode("utf8"))     
     
-    fileHandle.write("$EndNodes\n")
+    fileHandle.write("$EndNodes\n".encode("utf8"))
     
     # Write the Elements section
         
-    fileHandle.write("$Elements\n")
-    fileHandle.write(utils.FormLine([mesh.SurfaceElementCount() + mesh.VolumeElementCount()]))
+    fileHandle.write("$Elements\n".encode("utf8"))
+    fileHandle.write(utils.FormLine([mesh.SurfaceElementCount() + mesh.VolumeElementCount()]).encode("utf8"))
     
     eleSort = {}
     for ele in mesh.GetSurfaceElements() + mesh.GetVolumeElements():
@@ -426,9 +426,9 @@ def WriteMsh(mesh, filename, binary = True):
         iArr.tofile(fileHandle)
         index += 1
     assert(index == mesh.SurfaceElementCount() + mesh.VolumeElementCount() + 1)
-    fileHandle.write("\n")
+    fileHandle.write("\n".encode("utf8"))
     
-    fileHandle.write("$EndElements\n")
+    fileHandle.write("$EndElements\n".encode("utf8"))
   else:
     # ASCII format
     

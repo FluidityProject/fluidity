@@ -21,7 +21,7 @@ final_time = s["ElapsedTime"]["value"][-1]
     </variable>
     <variable name="warning_present" language="python">
 warning_present = False
-for line in file("fluidity.err-0", "r"):
+for line in open("fluidity.err-0", "r"):
    if line.startswith(" Warning: You have a field called DistanceToTop"):
       warning_present = True
       break

@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+
+from __future__ import print_function
+
 import vtktools
 import math
 from numpy import array 
@@ -69,7 +72,8 @@ pts=vtktools.arr([
 [29.8667, 31.2000, 0.00],
 [32.3167, 31.2667, 0.00],
 #[33.3167, 35.3333, 0.00],
-#[33.9500, 35.1167, 0.00]])
+#[33.9500, 35.1167, 0.00]
+])
 
 M2amp = u.ProbeData(pts, "M2amp")
 (ilen, jlen) = M2amp.shape
@@ -152,7 +156,7 @@ ampdiff=ampcm-M2_tideGauge_amp
 ampdiff2=ampdiff**2
 a = sum(sum(ampdiff2))/62
 RMS=sqrt(a)
-print "RMS difference of M2 Amp (cm):",RMS
+print("RMS difference of M2 Amp (cm):",RMS)
 
 S2_tide_guage_data_amp =  array([
 [10.7],
@@ -225,7 +229,7 @@ S2ampdiff=S2ampcm-S2_tide_guage_data_amp
 S2ampdiff2=S2ampdiff**2
 S2a = sum(sum(S2ampdiff2))/62
 S2RMS=sqrt(S2a)
-print "RMS difference of S2 Amp (cm):",S2RMS
+print("RMS difference of S2 Amp (cm):",S2RMS)
 
 K1_tide_guage_data_amp=  array([
 [2],
@@ -298,7 +302,7 @@ K1ampdiff=K1ampcm-K1_tide_guage_data_amp
 K1ampdiff2=K1ampdiff**2
 K1a = sum(sum(K1ampdiff2))/62
 K1RMS=sqrt(K1a)
-print "RMS difference of K1 Amp (cm):",K1RMS
+print("RMS difference of K1 Amp (cm):",K1RMS)
 
 O1_tide_guage_data_amp=  array([
 [0.9],
@@ -371,7 +375,7 @@ O1ampdiff=O1ampcm-O1_tide_guage_data_amp
 O1ampdiff2=O1ampdiff**2
 O1a = sum(sum(O1ampdiff2))/62
 O1RMS=sqrt(O1a)
-print "RMS difference of O1 Amp (cm):",O1RMS
+print("RMS difference of O1 Amp (cm):",O1RMS)
 
 import fluidity_tools
 from matplotlib import pylab

@@ -33,7 +33,7 @@ def MLD(filelist):
      try:
        os.stat(file)
      except:
-       print "No such file: %s" % file
+       print("No such file: %s" % file)
        sys.exit(1)
      
      u=vtktools.vtu(file)

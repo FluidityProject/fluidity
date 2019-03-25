@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+
+from __future__ import print_function
+
 import matplotlib as m
 import matplotlib.pyplot as plt
 from matplotlib.mlab import griddata
@@ -36,7 +39,7 @@ scatterColorMap = m.colors.LinearSegmentedColormap('my_colormap', cdict, 1024)
 
 """ Main Function """
 if not len(sys.argv)>=2:
-        print "Usage: plotbathymetry.py Bathymetry.grd [Title]"        
+        print("Usage: plotbathymetry.py Bathymetry.grd [Title]"        )
         exit()
 if len(sys.argv)==3:
         title=sys.argv[2]
@@ -47,16 +50,16 @@ else:
 s = os.popen("file " + sys.argv[1] + "| grep NetCDF | wc -l").read()
 tempfile=sys.argv[1]
 if s=="1\n":
-        print "Found NetCDF file. Start grd2xyz"
+        print("Found NetCDF file. Start grd2xyz")
         tempfile="/tmp/tempXYZ_"+str(random.randint(0,100))+".dat"
         os.popen("grd2xyz -V -S " + sys.argv[1] + " >> " + tempfile)
         sys.argv[1]=tempfile
 
-print "Load file " + tempfile + "\n"
+print("Load file " + tempfile + "\n")
 inp = open(sys.argv[1])
 arr = [[],[],[]]
 nr_of_lines = file_len(tempfile)
-print str(nr_of_lines) +  " Datapoints found."
+print(str(nr_of_lines) +  " Datapoints found.")
 
 
 # read line into array
@@ -65,7 +68,7 @@ if decreaseDataSet==0 or nr_of_lines<decreaseDataSet:
         step=1
 else:
         step=nr_of_lines/decreaseDataSet
-        print "Decrease dataset to " + str(decreaseDataSet) + " points."
+        print("Decrease dataset to " + str(decreaseDataSet) + " points.")
 
 for line in inp.readlines():
         if counter%step==0:
@@ -76,9 +79,9 @@ for line in inp.readlines():
                 arr[2].append(min(maxZValue,float(dat[2])))
         counter=counter+1
 
-print "Extension in X-direction: From " + str(min(arr[0])) + " to " + str(max(arr[0]))
-print "Extension in Y-direction: From " + str(min(arr[1])) + " to " + str(max(arr[1]))
-print "Extension in Z-direction: From " + str(min(arr[2])) + " to " + str(max(arr[2]))
+print("Extension in X-direction: From " + str(min(arr[0])) + " to " + str(max(arr[0])))
+print("Extension in Y-direction: From " + str(min(arr[1])) + " to " + str(max(arr[1])))
+print("Extension in Z-direction: From " + str(min(arr[2])) + " to " + str(max(arr[2])))
 
 #Define Grid:
 xi=np.linspace(min(arr[0]),max(arr[0]),xres)

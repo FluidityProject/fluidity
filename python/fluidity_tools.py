@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import array
-import exceptions
 import os
 import math
 import fileinput
@@ -25,7 +26,7 @@ def parse_s(str):
     fields_per_line = 12 # how many variables printed out per line
     no_lines = 1 # how many lines correspond to each timestep
     if os.stat(str)[6] == 0:
-      raise Exception, "Error: %s must not be empty!" % str
+      raise Exception("Error: %s must not be empty!" % str)
 
     f = open(str, "r")
     for line in f:
@@ -77,7 +78,7 @@ def parse_s(str):
     while i < len(lines):
         line = ""
         if actual_line_pattern[i] < expected_line_pattern[i]:
-          print "Warning: .s file is not formatted as advertised. Skipping line %s." % i
+          print("Warning: .s file is not formatted as advertised. Skipping line %s." % i)
           i = i + 1
           continue
 
@@ -102,7 +103,7 @@ def parse_s(str):
 if __name__ == "__main__":
     import sys
     var = parse_s(sys.argv[1])
-    print `var`
+    print(str(var))
 
 def compare_variables(reference, current, error, zerotol=1.0e-14):
     """This takes in an array for a particular variable
@@ -124,8 +125,8 @@ def compare_variables(reference, current, error, zerotol=1.0e-14):
            relerrs.append(abs(current[i])) # not really a relative error but however
 
     maxerr = max(relerrs)
-    print "Asserting max relative error is smaller than", error
-    print "max relative error: %s; index: %s" % (maxerr, relerrs.index(maxerr))
+    print("Asserting max relative error is smaller than", error)
+    print("max relative error: %s; index: %s" % (maxerr, relerrs.index(maxerr)))
     assert maxerr < error
 
 def compare_variable(reference, current, error, zerotol=1.0e-14):
@@ -136,13 +137,13 @@ def compare_variable(reference, current, error, zerotol=1.0e-14):
     diff = abs(reference - current)
     if abs(reference) > zerotol: # decide if reference is "0.0" or not
        relerr = (diff / abs(reference))
-       print "Asserting relative error is smaller than", error
-       print "relative error: " + `relerr`
-       assert relerr < error
+       print("Asserting relative error is smaller than", error)
+       print("relative error: " + str(relerr))
+       assert(relerr < error)
     else:
-       print "Asserting absolute error is smaller than", error
-       print "absolute error: "+ `diff`
-       assert diff < error
+       print("Asserting absolute error is smaller than", error)
+       print("absolute error: "+ str(diff))
+       assert(diff < error)
 
 
 def tsunami_hit(fieldname, sfile, tol=0.00025):
@@ -244,7 +245,7 @@ class stat_creator(dict):
 
   def add_constant(self, constant):
     if self.initialised:
-      print "Constant can only be added before the the first write() call"
+      print("Constant can only be added before the the first write() call")
       return
     self.constants.update(constant)
 
@@ -277,7 +278,7 @@ class stat_creator(dict):
           stat_element.setAttribute("name", stat[1])
           stat_element.setAttribute("statistic", stat[2])
         else:
-          print "Element ", stat, " must have length 2 or 3"
+          print("Element ", stat, " must have length 2 or 3")
           exit()
         header.appendChild(stat_element)
         self.header.append(stat)
@@ -294,9 +295,9 @@ class stat_creator(dict):
     f = open (self.filename, "a")
     # Check that the dictionary and the header are consistent 
     if set(self) != set(self.header):
-      print "Error: Columns may not change after initialisation of the stat file."
-      print "Columns you are trying to write: ", self
-      print "Columns in the header: ", self.header
+      print("Error: Columns may not change after initialisation of the stat file.")
+      print("Columns you are trying to write: ", self)
+      print("Columns in the header: ", self.header)
       exit()
     output = ""
     for stat in self.header:
@@ -323,7 +324,7 @@ for example:
     
       assert(subsample > 0)
 
-      statfile=file(filename, "r")
+      statfile=open(filename, "r")
       header_re=re.compile(r"</header>")
       xml="" # xml header.
 
@@ -380,8 +381,8 @@ for example:
        
         nOutput = (os.path.getsize(filename + ".dat") / (nColumns * real_size)) / subsample
         
-        columns = numpy.empty((nColumns, nOutput))
-        statDatFile = file(filename + ".dat", "rb")   
+        columns = numpy.empty((nColumns, int(nOutput)))
+        statDatFile = open(filename + ".dat", "rb")   
         index = 0     
         while True:
           values = array.array(realFormat)
@@ -406,10 +407,11 @@ for example:
         columns = [[] for i in range(nColumns)]
         lineNo = 0
         for line in statfile:
-          entries = map(float, line.split())
+          entries = [float(_) for _ in line.split()]
           # Ignore non-sampled lines
           if len(entries) == len(columns) and (lineNo % subsample) == 0:
-            map(list.append, columns, entries)
+            for c,e in zip(columns, entries):
+              c.append(e)
           elif len(entries) != len(columns):
             raise Exception("Incomplete line %d: expected %d, but got %d columns" % (lineNo, len(columns), len(entries)))
           lineNo = lineNo + 1
@@ -423,13 +425,13 @@ for example:
         components=field.getAttribute("components")
 
         if material_phase:
-          if not self.has_key(material_phase):
+          if material_phase not in self:
             self[material_phase]={}
           current_dict=self[material_phase]
         else:
           current_dict=self
 
-        if not current_dict.has_key(name):
+        if name not in current_dict:
           current_dict[name]={}
 
         if components:
@@ -455,8 +457,8 @@ def test_steady(vals, error, test_count = 1):
     if difference > max_difference:
       max_difference = difference
       index = i
-  print "max difference: %s; index %s" % (max_difference, index)
-  assert max_difference < error
+  print("max difference: %s; index %s" % (max_difference, index))
+  assert(max_difference < error)
 
   return
 
@@ -485,5 +487,5 @@ def petsc_memory_stats(log):
 if __name__ == "__main__":
     import sys
     var = parse_s(sys.argv[1])
-    print `var`
+    print(str(var))
   

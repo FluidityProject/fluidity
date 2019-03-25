@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
-
 <testproblem>
   <name>1 material column under gravity using CG pressure with continuity tested with the CV dual</name>
   <owner userid="btollit"/>
@@ -62,7 +61,7 @@ minpressure_p2p1_2d = fluidity_tools.stat_parser("gravity-col-press_cg_test_cty_
 import fluidity_tools
 velocity_p2p1_2d = fluidity_tools.stat_parser("gravity-col-press_cg_test_cty_cv_p2p1_2d.stat")['Material1']['Velocity%magnitude']['max'][-1]
     </variable>    
-    <variable name = "solvers_converged" language = "python">
+    <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
@@ -70,50 +69,50 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
    </variables>
     <pass_tests>  
     <test name="check maximum pressure_p0p1_2d is 10.0 with tolerance 1.0e-10" language="python">
-print 'max pressure error: ',abs(pressure_p0p1_2d-1e+1)
+print('max pressure error: ',abs(pressure_p0p1_2d-1e+1))
 assert abs(pressure_p0p1_2d-1e+1) &lt; 1.0e-10
-    </test>    
+</test>    
     <test name="check pressure_p0p1_2d range is 10.0 with tolerance 1.0e-10" language="python">
-print 'pressure range error: ',abs(pressure_p0p1_2d-minpressure_p0p1_2d-1e+1)
+print('pressure range error: ',abs(pressure_p0p1_2d-minpressure_p0p1_2d-1e+1))
 assert abs(pressure_p0p1_2d-minpressure_p0p1_2d-1e+1) &lt; 1.0e-10
-    </test>    
+</test>    
     <test name="check maximum speed_p0p1_2d is zero with tolerance 1.0e-10" language="python">
 assert abs(velocity_p0p1_2d) &lt; 1.0e-10
     </test>
     <test name="check maximum pressure_p1dgp2_2d is 10.0 with tolerance 1.0e-10" language="python">
-print 'max pressure error: ',abs(pressure_p1dgp2_2d-1e+1)
+print('max pressure error: ',abs(pressure_p1dgp2_2d-1e+1))
 assert abs(pressure_p1dgp2_2d-1e+1) &lt; 1.0e-10
-    </test>    
+</test>    
     <test name="check pressure_p1dgp2_2d range is 10.0 with tolerance 1.0e-10" language="python">
-print 'pressure range error: ',abs(pressure_p1dgp2_2d-minpressure_p1dgp2_2d-1e+1)
+print('pressure range error: ',abs(pressure_p1dgp2_2d-minpressure_p1dgp2_2d-1e+1))
 assert abs(pressure_p1dgp2_2d-minpressure_p1dgp2_2d-1e+1) &lt; 1.0e-10
-    </test>    
+</test>    
     <test name="check maximum speed_p1dgp2_2d is zero with tolerance 1.0e-10" language="python">
 assert abs(velocity_p1dgp2_2d) &lt; 1.0e-10
     </test>
     <test name="check maximum pressure_p2lumpedp1_2d is 10.0 with tolerance 1.0e-10" language="python">
-print 'max pressure error: ',abs(pressure_p2lumpedp1_2d-1e+1)
+print('max pressure error: ',abs(pressure_p2lumpedp1_2d-1e+1))
 assert abs(pressure_p2lumpedp1_2d-1e+1) &lt; 1.0e-10
-    </test>    
+</test>    
     <test name="check pressure_p2lumpedp1_2d range is 10.0 with tolerance 1.0e-10" language="python">
-print 'pressure range error: ',abs(pressure_p2lumpedp1_2d-minpressure_p2lumpedp1_2d-1e+1)
+print('pressure range error: ',abs(pressure_p2lumpedp1_2d-minpressure_p2lumpedp1_2d-1e+1))
 assert abs(pressure_p2lumpedp1_2d-minpressure_p2lumpedp1_2d-1e+1) &lt; 1.0e-10
-    </test>    
+</test>    
     <test name="check maximum speed_p2lumpedp1_2d is zero with tolerance 1.0e-10" language="python">
 assert abs(velocity_p2lumpedp1_2d) &lt; 1.0e-10
     </test>
     <test name="check maximum pressure_p2p1_2d is 10.0 with tolerance 1.0e-10" language="python">
-print 'max pressure error: ',abs(pressure_p2p1_2d-1e+1)
+print('max pressure error: ',abs(pressure_p2p1_2d-1e+1))
 assert abs(pressure_p2p1_2d-1e+1) &lt; 1.0e-10
-    </test>    
+</test>    
     <test name="check pressure_p2p1_2d range is 10.0 with tolerance 1.0e-10" language="python">
-print 'pressure range error: ',abs(pressure_p2p1_2d-minpressure_p2p1_2d-1e+1)
+print('pressure range error: ',abs(pressure_p2p1_2d-minpressure_p2p1_2d-1e+1))
 assert abs(pressure_p2p1_2d-minpressure_p2p1_2d-1e+1) &lt; 1.0e-10
-    </test>    
+</test>    
     <test name="check maximum speed_p2p1_2d is zero with tolerance 1.0e-10" language="python">
 assert abs(velocity_p2p1_2d) &lt; 1.0e-10
     </test>
-    <test name = "Solvers converged" language = "python">
+    <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
   </pass_tests>

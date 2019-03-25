@@ -1090,7 +1090,7 @@ def VtuBoundingBox(vtu):
   """
   
   vtuBounds = vtu.ugrid.GetBounds()
-  lbound, ubound = [vtuBounds[2 * i] for i in range(len(vtuBounds) / 2)], [vtuBounds[2 * i + 1] for i in range(len(vtuBounds) / 2)]
+  lbound, ubound = [vtuBounds[2 * i] for i in range(int(len(vtuBounds) / 2))], [vtuBounds[2 * i + 1] for i in range(int(len(vtuBounds) / 2))]
   if len(lbound) > 0 and lbound[0] > ubound[0]:
     if optimise.DebuggingEnabled():
       for i in range(1, len(lbound)):

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>test energy stats and compare parallel and serial</name>
   <owner userid="skramer"/>
@@ -17,10 +17,10 @@ import glob
 
 times = []
 for statfile in glob.glob('*.stat'):
-  stat = stat_parser(statfile)
-  times.append(stat["ElapsedTime"]["value"][-1])
-  print statfile, 'end_time: ', times[-1]
-    </variable>
+    stat = stat_parser(statfile)
+    times.append(stat["ElapsedTime"]["value"][-1])
+    print(statfile, 'end_time: ', times[-1])
+</variable>
     <variable name="errors" language="python">
 import vtk
 import glob
@@ -39,7 +39,7 @@ from fluidity_tools import stat_parser
 
 def not_comment(x):
 # function to filter stream for use in Getflmlvalue
-  return not 'comment' in x.tag
+    return not 'comment' in x.tag
 
 ################################################################################################
 
@@ -50,46 +50,46 @@ def Getflmlvalue(flml_name, xpath):
 # to remove comments.
 
 # The spud file to modify
-  filename = flml_name
+    filename = flml_name
 
 # The path to the node in the tree - xpath
 
 # Open it up
-  tree = etree.parse(open(filename))
+    tree = etree.parse(open(filename))
 
-  node = tree.xpath(xpath)[0]
+    node = tree.xpath(xpath)[0]
 
-  child = filter(not_comment, node.getchildren())[0]
+    child = filter(not_comment, node.getchildren())[0]
 
-  return child.text
+    return child.text
 
 ################################################################################################
 
 def IntegrateTrapezoidal(x,y):
-  # first find out if have any sign changes and if so where they are
-  # if have sign change add in point with y = 0 so can integrate
-  # to this point and will not be adding/subtracting areas
-  index = [0]
-  i = 0
-  while len(y)-1>i:
-    if math.copysign(1.0,y[i]) != math.copysign(1.0,y[i+1]): 
-      index.append(i+1)
-      m = (y[i+1]-y[i])/(x[i+1]-x[i])
-      xzero = x[i]-(y[i]/m)
-      y.insert(i+1,0)
-      x.insert(i+1,xzero)
-      i = i+1
-    i = i+1
-  index.append(len(y)-1)
+    # first find out if have any sign changes and if so where they are
+    # if have sign change add in point with y = 0 so can integrate
+    # to this point and will not be adding/subtracting areas
+    index = [0]
+    i = 0
+    while len(y)-1&gt;i:
+        if math.copysign(1.0,y[i]) != math.copysign(1.0,y[i+1]):
+            index.append(i+1)
+            m = (y[i+1]-y[i])/(x[i+1]-x[i])
+            xzero = x[i]-(y[i]/m)
+            y.insert(i+1,0)
+            x.insert(i+1,xzero)
+            i = i+1
+        i = i+1
+    index.append(len(y)-1)
 
-  integral = 0.0
-  for i in range(len(index)-1):
-    integral = integral + abs(scipy.integrate.trapz(y[index[i]:index[i+1]+1], x=x[index[i]:index[i+1]+1]))
-        
-  return integral
-  
+    integral = 0.0
+    for i in range(len(index)-1):
+        integral = integral + abs(scipy.integrate.trapz(y[index[i]:index[i+1]+1], x=x[index[i]:index[i+1]+1]))
+
+    return integral
+
 ################################################################################################
-  
+
 
 # extract values from flml
 
@@ -124,106 +124,106 @@ H = 0.1; L = 0.8
 
 energy_stats = []
 for statfile in ['lock_exchange_2d.stat', 'lock_exchange_2d_parallel.stat']:
-  stat = stat_parser(statfile)
+    stat = stat_parser(statfile)
 
 # Time
-  time = stat["ElapsedTime"]["value"]
+    time = stat["ElapsedTime"]["value"]
 
 # Potential energy
-  PE = stat["fluid"]["GravitationalPotentialEnergyDensity"]["integral"]
-  PE_t = scipy.diff(PE)/dt
+    PE = stat["fluid"]["GravitationalPotentialEnergyDensity"]["integral"]
+    PE_t = scipy.diff(PE)/dt
 
 # Background potential energy
 # Minimum potential energy available through an adiabatic restratification of the fluid
-  try: BPE = stat["fluid"]["BackgroundPotentialEnergyDensity"]["integral"]
-  except: BPE = []
-  
+    try: BPE = stat["fluid"]["BackgroundPotentialEnergyDensity"]["integral"]
+    except: BPE = []
+
 # Background Potential Energy from mixing bins
 # c.f. Tseng and Ferziger, Physics of Fluids, 2001
 
 # first get bin bounds (just copied python from flml)
-  n = 100
-  dx = 1.0/(1.0*n)
-  bounds = [-1E10]
-  for i in range(n+1): bounds.append(-0.5+(i*dx))
-  bounds = bounds[1:]
-  BPE_mixing_stats = []
-  for i in range(len(stat["ElapsedTime"]["value"])):
-    # get amount in each bin for this time
-    bins = [stat["fluid"]["Temperature"]["mixing_bins%normalised_cv"][j][i] for j in range(0,len(bounds)+1)]
-    bins[-2] = bins[-2]+bins[-1] # add final bin in to second to final bin so bins[-2] is volume with -0.49\leqT\leq0.5 not just -0.49\leqT\lt0.5
-    bins[1] = bins[0]+bins[1] # add bottom two bins so bins[1] is volume with T\lt0.01 in case have some fluid with T so that if falls in bottom bin 
-                              # need to check effects of doing this/not doing this more robustly but for now this will suffice
-    
-    # rejig bins otherwise the indicies will get very confusing
-    bins = bins[1:-1]
-                           
-    # calculation of z_r :  
-    # as bins normalised sum(bins) = 1,
-    # let db = [bounds[j+1]-bounds[j] for j in range(len(bounds[:-1]))] 
-    # now, sum([bins[j]*db[j] for j in range(len(bins))]) = Abins
-    # require a pdf such that sum([pdf[j]*db[j] for all j in range(len(bins))]) = 1
-    # therefore can take pdf[j] = bins[j]/Abins - think about the area in a histogram, basically translating to probability space)
-    
-    Abins = sum([bins[j]*(bounds[j+1]-bounds[j]) for j in range(len(bins))])
+    n = 100
+    dx = 1.0/(1.0*n)
+    bounds = [-1E10]
+    for i in range(n+1): bounds.append(-0.5+(i*dx))
+    bounds = bounds[1:]
+    BPE_mixing_stats = []
+    for i in range(len(stat["ElapsedTime"]["value"])):
+        # get amount in each bin for this time
+        bins = [stat["fluid"]["Temperature"]["mixing_bins%normalised_cv"][j][i] for j in range(0,len(bounds)+1)]
+        bins[-2] = bins[-2]+bins[-1] # add final bin in to second to final bin so bins[-2] is volume with -0.49\leqT\leq0.5 not just -0.49\leqT\lt0.5
+        bins[1] = bins[0]+bins[1] # add bottom two bins so bins[1] is volume with T\lt0.01 in case have some fluid with T so that if falls in bottom bin
+                                  # need to check effects of doing this/not doing this more robustly but for now this will suffice
 
-    z_r = [H*sum([(bins[j]/Abins)*(bounds[j+1]-bounds[j]) for j in range(k)]) for k in range(len(bounds))]
+        # rejig bins otherwise the indicies will get very confusing
+        bins = bins[1:-1]
 
-    # note here have temperature bounds so sum from min to chosen temp, 
-    # if have density need to sum from chosen density to max so would need something like:
-    # z_r = [H*sum(([bins[j]/Abins)*(bounds[j+1]-bounds[j]) for j in range(k,len(bins))]) for k in range(len(bounds))]
-    
-    # calculation of BPE
-    integral_T = rho_0*alpha*IntegrateTrapezoidal(z_r,[bounds[j]*z_r[j] for j in range(len(z_r))])
-    integral_bckgd = rho_0*(1+(alpha*T_0))*IntegrateTrapezoidal(z_r,z_r)
-    integral = integral_bckgd - integral_T
-    BPE_mixing_stats.append(g*L*integral)
- 
-# Potential energy diffused through boundaries 
-  PEflux = stat["fluid"]["GravitationalPotentialEnergyDensity"]["surface_integral%PEFlux"]*kappa
-  PEout = scipy.integrate.cumtrapz(PEflux,time)
+        # calculation of z_r :
+        # as bins normalised sum(bins) = 1,
+        # let db = [bounds[j+1]-bounds[j] for j in range(len(bounds[:-1]))]
+        # now, sum([bins[j]*db[j] for j in range(len(bins))]) = Abins
+        # require a pdf such that sum([pdf[j]*db[j] for all j in range(len(bins))]) = 1
+        # therefore can take pdf[j] = bins[j]/Abins - think about the area in a histogram, basically translating to probability space)
+
+        Abins = sum([bins[j]*(bounds[j+1]-bounds[j]) for j in range(len(bins))])
+
+        z_r = [H*sum([(bins[j]/Abins)*(bounds[j+1]-bounds[j]) for j in range(k)]) for k in range(len(bounds))]
+
+        # note here have temperature bounds so sum from min to chosen temp,
+        # if have density need to sum from chosen density to max so would need something like:
+        # z_r = [H*sum(([bins[j]/Abins)*(bounds[j+1]-bounds[j]) for j in range(k,len(bins))]) for k in range(len(bounds))]
+
+        # calculation of BPE
+        integral_T = rho_0*alpha*IntegrateTrapezoidal(z_r,[bounds[j]*z_r[j] for j in range(len(z_r))])
+        integral_bckgd = rho_0*(1+(alpha*T_0))*IntegrateTrapezoidal(z_r,z_r)
+        integral = integral_bckgd - integral_T
+        BPE_mixing_stats.append(g*L*integral)
+
+# Potential energy diffused through boundaries
+    PEflux = stat["fluid"]["GravitationalPotentialEnergyDensity"]["surface_integral%PEFlux"]*kappa
+    PEout = scipy.integrate.cumtrapz(PEflux,time)
 
 # Potential change through diffusion within the domain
-  DD = stat["fluid"]["DiffusiveDissipation"]["integral"]*2.0*kappa
-  DDtot = scipy.integrate.cumtrapz(DD,time)
+    DD = stat["fluid"]["DiffusiveDissipation"]["integral"]*2.0*kappa
+    DDtot = scipy.integrate.cumtrapz(DD,time)
 
-# Kinetic energy - taken from KineticEnergyDensity (non-Boussinesq) 
+# Kinetic energy - taken from KineticEnergyDensity (non-Boussinesq)
 # and Velocity (Boussinesq) for illustration
-  KE_1 = stat["fluid"]["KineticEnergyDensity"]["integral"]
-  KE_1_t = scipy.diff(KE_1)/dt
+    KE_1 = stat["fluid"]["KineticEnergyDensity"]["integral"]
+    KE_1_t = scipy.diff(KE_1)/dt
 
-  KE_2 = (stat["fluid"]["Velocity%magnitude"]["l2norm"]**2.0)*0.5*rho_0
-  KE_2_t = scipy.diff(KE_2)/dt
+    KE_2 = (stat["fluid"]["Velocity%magnitude"]["l2norm"]**2.0)*0.5*rho_0
+    KE_2_t = scipy.diff(KE_2)/dt
 
-  KE = KE_1
-  KE_t = KE_1_t
+    KE = KE_1
+    KE_t = KE_1_t
 
 # Diffusive transport of kinetic energy out of domain
-  DT = stat["fluid"]["KineticEnergyDensity"]["surface_integral%DiffusiveTransport"]*nu
-  DTtot = scipy.integrate.cumtrapz(DT,time)
+    DT = stat["fluid"]["KineticEnergyDensity"]["surface_integral%DiffusiveTransport"]*nu
+    DTtot = scipy.integrate.cumtrapz(DT,time)
 
 # Kinetic energy lost through viscous dissipation
-  VD = stat["fluid"]["ViscousDiss"]["integral"]*rho_0*-1.0
-  VDtot = scipy.integrate.cumtrapz(VD,time)
+    VD = stat["fluid"]["ViscousDiss"]["integral"]*rho_0*-1.0
+    VDtot = scipy.integrate.cumtrapz(VD,time)
 
 # total energy change
 # subtract off initial values of KE and PE
-# as in time integration of PEout, DDtot, DTtot, VDtot 
+# as in time integration of PEout, DDtot, DTtot, VDtot
 # have not added value at t = 0
 # so then start with totalE = 0
 
-  totalE = (KE[1:]-KE[0]) + (PE[1:]-PE[0]) - (PEout + DDtot + DTtot + VDtot)
+    totalE = (KE[1:]-KE[0]) + (PE[1:]-PE[0]) - (PEout + DDtot + DTtot + VDtot)
 
 # total energy 'rate' change
 
-  E_t = PE_t + KE_t - (PEflux + DD + DT + VD)[:-1]
+    E_t = PE_t + KE_t - (PEflux + DD + DT + VD)[:-1]
 
-  energy_stats.append([PE, PEflux, DD, KE, DT, VD, E_t, totalE, BPE_mixing_stats, BPE])
+    energy_stats.append([PE, PEflux, DD, KE, DT, VD, E_t, totalE, BPE_mixing_stats, BPE])
 
-print 'E total difference serial first timestep, last time step: ', energy_stats[0][-2][0], energy_stats[0][-2][-1]
-print 'dE/dt difference serial first timestep, last time step: ', energy_stats[0][-3][0], energy_stats[0][-3][-1] 
-print 'E total difference parallel first timestep, last time step: ', energy_stats[1][-2][0], energy_stats[1][-2][-1]
-print 'dE/dt difference parallel first timestep, last time step: ', energy_stats[1][-3][0], energy_stats[1][-3][-1]   
+print('E total difference serial first timestep, last time step: ', energy_stats[0][-2][0], energy_stats[0][-2][-1])
+print('dE/dt difference serial first timestep, last time step: ', energy_stats[0][-3][0], energy_stats[0][-3][-1])
+print('E total difference parallel first timestep, last time step: ', energy_stats[1][-2][0], energy_stats[1][-2][-1])
+print('dE/dt difference parallel first timestep, last time step: ', energy_stats[1][-3][0], energy_stats[1][-3][-1])
 
 #########################################################
 #########################################################
@@ -239,7 +239,7 @@ print 'dE/dt difference parallel first timestep, last time step: ', energy_stats
 # cannot test BPE for parallel as Isopycnal Coordinate not parallelised and
 # therefore BackgroundPotentialEnergyDensity invalid in parallel
 
-# for lock-exchange 
+# for lock-exchange
 # PE = 0.25*g*L*H^2*(rho_1+rho_2)
 # BPE = 0.125*g*L*H^2*(rho_1+3*rho_2) where
 # g is magnitude of gravity
@@ -255,13 +255,13 @@ rho = [rho_0*(1-(alpha*(T - T_0))) for T in [-0.5,0.5]]
 PE = 0.25*g*L*(H**2)*(rho[0]+rho[1])
 BPE = 0.125*g*L*(H**2)*(rho[0]+(3*rho[1]))
 
-print 'PE: ', PE
-print 'PE stat serial, difference: ', energy_stats[0][0][0], ', ', abs(PE-energy_stats[0][0][0])
-print 'PE stat parallel, difference: ', energy_stats[1][0][0], ', ', abs(PE-energy_stats[1][0][0])
-print 'BPE: ', BPE
-print 'BPE from mixing stats serial, difference: ', energy_stats[0][-2][0], ', ', abs(BPE-energy_stats[0][-2][0])
-print 'BPE from mixing stats parallel, difference: ', energy_stats[1][-2][0], ', ', abs(BPE-energy_stats[1][-2][0])
-print 'BPE stat serial, difference: ', energy_stats[0][-1][0], ', ', abs(BPE-energy_stats[0][-1][0])
+print('PE: ', PE)
+print('PE stat serial, difference: ', energy_stats[0][0][0], ', ', abs(PE-energy_stats[0][0][0]))
+print('PE stat parallel, difference: ', energy_stats[1][0][0], ', ', abs(PE-energy_stats[1][0][0]))
+print('BPE: ', BPE)
+print('BPE from mixing stats serial, difference: ', energy_stats[0][-2][0], ', ', abs(BPE-energy_stats[0][-2][0]))
+print('BPE from mixing stats parallel, difference: ', energy_stats[1][-2][0], ', ', abs(BPE-energy_stats[1][-2][0]))
+print('BPE stat serial, difference: ', energy_stats[0][-1][0], ', ', abs(BPE-energy_stats[0][-1][0]))
 
 PE_error_1 = [[abs(PE-energy_stats[0][0][0]), abs(BPE-energy_stats[0][-2][0]), abs(BPE-energy_stats[0][-1][0])]]
 PE_error_1.append([abs(PE-energy_stats[1][0][0]), abs(BPE-energy_stats[0][-2][0])])
@@ -279,54 +279,53 @@ PE_error_1.append([abs(PE-energy_stats[1][0][0]), abs(BPE-energy_stats[0][-2][0]
 names = ['PotentialEnergyDensity', 'PotentialEnergyDensitySurfaceFlux', 'DiffusiveDissipation', 'KineticEnergy', 'KineticEnergySurfaceFlux', 'ViscousDiss', 'dE/dt', 'total Energy', 'BPE from mixing stats']
 serial_parallel_error = [[abs(energy_stats[0][i][0] - energy_stats[1][i][0]) for i in range(len(energy_stats[0])-1)]]
 serial_parallel_error.append([abs(energy_stats[0][i][-1] - energy_stats[1][i][-1]) for i in range(len(energy_stats[0])-1)])
-for i in range(len(energy_stats[0])-1): 
-  print names[i]+' serial-parallel error start, end: ', serial_parallel_error[0][i], ', ', serial_parallel_error[1][i]
-  
+for i in range(len(energy_stats[0])-1):
+    print(names[i]+' serial-parallel error start, end: ', serial_parallel_error[0][i], ', ', serial_parallel_error[1][i])
+
 #########################################################
 #########################################################
 #########################################################
 
 # mixing stats error
 
-# compare BPE from mixing stats (serial) and BPE direct calculation in stats 
+# compare BPE from mixing stats (serial) and BPE direct calculation in stats
 # (compare serial and parallel values so don't need to make that comparison too)
 ms_error = [abs(energy_stats[0][-2][i]-energy_stats[0][-1][i]) for i in range(len(energy_stats[0][-1]))]
-print 'difference between BPE from mixing stats (serial) and BPE direct calculation in stats'
-print ms_error
+print('difference between BPE from mixing stats (serial) and BPE direct calculation in stats')
+print(ms_error)
 
 #########################################################
 #########################################################
 #########################################################
 
 errors = [energy_stats, serial_parallel_error, PE_error_1, ms_error]
-
-    </variable>
+</variable>
   </variables>
   <pass_tests>
     <test name="check serial and parallel have both reached same time and therefore are comparing at same time" language="python">
       assert (times[0]-times[1]) &lt; 1.E-8
     </test>
     <test name="check difference in total E and E_t in serial at first time step" language="python">
-      for err in errors[0][0][-4][0], errors[0][0][-3][0]: print err; assert abs(err) &lt; 1.E-6
-    </test>
+    for err in errors[0][0][-4][0], errors[0][0][-3][0]: print(err); assert abs(err) &lt; 1.E-6
+</test>
     <test name="check difference in total E in parallel at first and last time step" language="python">
-      for err in errors[0][1][-4][-1], errors[0][1][-3][-1]: print err; assert abs(err) &lt; 1.E-6
-    </test>
+    for err in errors[0][1][-4][-1], errors[0][1][-3][-1]: print(err); assert abs(err) &lt; 1.E-6
+</test>
     <test name="check difference between parallel and serial at first time step" language="python">
-      for err in errors[1][0][:6]: print err; assert err &lt; 1.E-6
-    </test>
+    for err in errors[1][0][:6]: print(err); assert err &lt; 1.E-6
+</test>
     <test name="check difference between parallel and serial at end of run" language="python">
-      for err in errors[1][1][:6]: print err; assert err &lt; 1.E-6
-    </test>  
+    for err in errors[1][1][:6]: print(err); assert err &lt; 1.E-6
+</test>  
     <test name="check error to PE/BPE in serial at first time step" language="python">
-      for err in errors[2][0]: print err; assert err &lt; 1.E-5 # needs to be a bit looser for BPE from mixing stats
-    </test>
+    for err in errors[2][0]: print(err); assert err &lt; 1.E-5 # needs to be a bit looser for BPE from mixing stats
+</test>
     <test name="check error to PE/BPE in parallel at first time step" language="python">
-      for err in errors[2][1]: print err; assert err &lt; 1.E-5 # needs to be a bit looser for BPE from mixing stats
-    </test>
+    for err in errors[2][1]: print(err); assert err &lt; 1.E-5 # needs to be a bit looser for BPE from mixing stats
+</test>
     <test name="check difference between BPE from mixing stats (serial) and BPE direct calculation in stats (over time) " language="python">
-      for err in errors[3]: print err; assert err &lt; 1.E-5
-    </test>
+    for err in errors[3]: print(err); assert err &lt; 1.E-5
+</test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

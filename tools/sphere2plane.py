@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __import__ import print_function
 from pylab import *
 import argparse
 import vtktools
@@ -23,12 +24,12 @@ deg2rad = 180/pi
 if args.inverse:
     raise Exception('Inverse operation not coded yet.')
 
-print 'Performing spherical to planar'
+print('Performing spherical to planar')
 for vtu in range(size(args.input_vtu)):
     vtu_name = args.input_vtu[vtu]
     output_filename = args.output_prefix+vtu_name
     vtu_object = vtktools.vtu(vtu_name)
-    print "Done importing ", vtu_name
+    print("Done importing ", vtu_name)
 
     pos = vtu_object.GetLocations()
     radius = sqrt(sum(pos**2, axis=1))
@@ -36,7 +37,7 @@ for vtu in range(size(args.input_vtu)):
       rearth = radius.max()
     else:
       rearth = args.earth_radius
-    print "Earth radius = ", rearth
+    print("Earth radius = ", rearth)
 
     theta = arccos(pos[:,2]/radius)
     theta = pi/2.0 - theta
@@ -50,4 +51,4 @@ for vtu in range(size(args.input_vtu)):
         output_filename = output_filename[:-4]+'vtu'
 
     vtu_object.Write(filename=output_filename)
-    print 'Projected vtu written to', output_filename
+    print('Projected vtu written to', output_filename)

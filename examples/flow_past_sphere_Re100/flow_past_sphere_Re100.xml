@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
-
 <!-- Drag calculation in 3D flow past sphere at Reynolds number 100 -->
 <testproblem>
   <name>flow_past_sphere_Re100</name>
@@ -14,21 +13,21 @@ mpiexec fluidity -v1 -l flow_past_sphere_Re100_flredecomp.flml</command_line>
     <variable name="time_average_xforce" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("flow_past_sphere_Re100.stat")
-print s["0"]["Velocity"]["force_sphere%1"][-20:]
+print(s["0"]["Velocity"]["force_sphere%1"][-20:])
 time_average_xforce = sum(s["0"]["Velocity"]["force_sphere%1"][-20:])/20
-print time_average_xforce
-    </variable>
+print(time_average_xforce)
+</variable>
     <variable name="exact_xforce" language="python">
 from math import pi
 def drag(Re):
 # Correlation to lab data from Brown and Lawler (2003)
-   Cd = (24.0/Re)*(1.0 + 0.15*(Re**0.681)) + 0.407/(1.0 + (8710.0/Re))  
-   return Cd     
+    Cd = (24.0/Re)*(1.0 + 0.15*(Re**0.681)) + 0.407/(1.0 + (8710.0/Re))
+    return Cd
 
 Re = 100
 exact_xforce = drag(Re)*(0.5*1.0*1.0*pi/4.0)
-print exact_xforce 
-    </variable>
+print(exact_xforce)
+</variable>
   </variables>
   <pass_tests>
     <test name="relative drag force difference (2%)." language="python">

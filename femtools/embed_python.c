@@ -26,11 +26,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 USA
 */
 
+
+
 #include "confdefs.h"
 #include "string.h"
 
 #ifdef HAVE_PYTHON
 #include "Python.h"
+#if PY_MAJOR_VERSION >= 3
+#define PyInt_FromLong PyLong_FromLong
+#define PyInt_AsLong PyLong_AsLong
+#define PyString_Size PyUnicode_GET_SIZE
+#define PyString_AsString PyUnicode_AsUTF8
+#endif
 #endif
 #ifdef HAVE_NUMPY
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION

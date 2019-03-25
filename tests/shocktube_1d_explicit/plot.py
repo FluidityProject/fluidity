@@ -12,7 +12,7 @@ for folder in folders:
   xyz=vt.GetLocations()
   x=xyz[:,0]
   xyz0=vt.GetVectorField('DiagnosticCoordinate')
-  print xyz0.shape
+  print(xyz0.shape)
   x0=xyz0[:,0]
 
   p=vt.GetScalarField('Pressure')
