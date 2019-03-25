@@ -38,18 +38,18 @@ module spherical_adaptivity
   use parallel_tools
   use quadrature
   use elements
-  use fields
   use parallel_fields
+  use fields
   use state_module
   use mesh_files
   use vtk_interfaces
-  use vertical_extrapolation_module
-  use field_options
   use boundary_conditions
   use pickers
+  use vertical_extrapolation_module
+  use field_options
   use reserve_state_module
-  use populate_state_module
   use halos
+  use populate_state_module
   use adapt_integration, only: pain_functional
   implicit none
 
