@@ -413,13 +413,14 @@ and deleting options.</a:documentation>
                   <data type="string"/>
                 </attribute>
                 <element name="velocity_field">
+                  <a:documentation>Velocity field utilized for particle advection.</a:documentation>
                   <attribute name="name">
                     <data type="string"/>
                   </attribute>
                 </element>
                 <optional>
                   <element name="particle_spawning">
-                    <a:documentation>Options for spawning and deleting particles. Defined per particle_group.</a:documentation>
+                    <a:documentation>Options for spawning and deleting particles based on the minimum and maximum limits of particles per control volume. Defined per particle_group.</a:documentation>
                     <oneOrMore>
                       <element name="spawning_parameters">
                         <a:documentation>Set spawning parameters, such as the number of particles per cv, and which field particles will be spawned to.</a:documentation>
@@ -432,39 +433,38 @@ and deleting options.</a:documentation>
                           <ref name="integer"/>
                         </element>
                         <element name="radius">
-                          <a:documentation>Radius particle can spawn around parent in local coordinates (suggested value 0.005).</a:documentation>
+                          <a:documentation>Radius particle can spawn around parent in local coordinates.</a:documentation>
                           <ref name="real"/>
                         </element>
-                        <element name="material_phase">
+                        <element name="field">
                           <a:documentation>Set the field mesh which will be used for spawning.</a:documentation>
                           <attribute name="name">
                             <data type="string"/>
                           </attribute>
-                          <element name="field">
-                            <attribute name="name">
-                              <data type="string"/>
-                            </attribute>
-                          </element>
                         </element>
                         <element name="particles_to_spawn">
-                          <a:documentation>Set which particles will spawn, based off particle subgroup or attribute carried.</a:documentation>
+                          <a:documentation>Set which particles will spawn, based off particle subgroup or attributes carried.</a:documentation>
                           <choice>
                             <element name="subgroup">
+                              <a:documentation>Name of particle_subgroup that will be spawned.</a:documentation>
                               <attribute name="name">
                                 <data type="string"/>
                               </attribute>
                               <optional>
                                 <element name="copy_parent_attributes">
+                                  <a:documentation>Option to copy all parent particle attributes upon spawning.</a:documentation>
                                   <empty/>
                                 </element>
                               </optional>
                             </element>
                             <element name="attribute">
+                              <a:documentation>Name of attribute which will cause particles to be spawned.</a:documentation>
                               <attribute name="name">
                                 <data type="string"/>
                               </attribute>
                               <optional>
                                 <element name="copy_parent_attributes">
+                                  <a:documentation>Option to copy all parent particle attributes upon spawning.</a:documentation>
                                   <empty/>
                                 </element>
                               </optional>
@@ -532,9 +532,10 @@ The t argument is for future use only - currently particle locations are only se
                     </element>
                     <optional>
                       <element name="attributes">
-                        <a:documentation>Define particle attributes</a:documentation>
+                        <a:documentation>Define particle attributes.</a:documentation>
                         <oneOrMore>
                           <element name="attribute">
+                            <a:documentation>Define particle attribute.</a:documentation>
                             <attribute name="name">
                               <data type="string"/>
                             </attribute>
@@ -548,19 +549,6 @@ The t argument is for future use only - currently particle locations are only se
               </element>
             </oneOrMore>
           </zeroOrMore>
-          <element name="spawning_outside_domain">
-            <a:documentation>Options for particles spawning outside the computational domain.</a:documentation>
-            <choice>
-              <element name="fail_outside_domain">
-                <a:documentation>By default Fluidity will fail if a particle spawns outside the domain.</a:documentation>
-                <empty/>
-              </element>
-              <element name="write_nan_outside_domain">
-                <a:documentation>Enable to write NaN values to particle output if a particle spawns outside the domain.</a:documentation>
-                <empty/>
-              </element>
-            </choice>
-          </element>
           <element name="moving_outside_domain">
             <a:documentation>Options for particles being advected outside the computational domain.</a:documentation>
             <choice>
@@ -586,7 +574,9 @@ The t argument is for future use only - currently particle locations are only se
               <empty/>
             </element>
           </optional>
-          <ref name="lagrangian_timestepping"/>
+          <ref name="lagrangian_timestepping">
+            <a:documentation>Lagrangian timestepping options for particle advection.</a:documentation>
+          </ref>
         </element>
       </optional>
       <element name="timestepping">

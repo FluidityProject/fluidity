@@ -628,7 +628,7 @@ module particle_diagnostics
     integer, allocatable, dimension(:) :: group_arrays
     integer :: group_attribute
     integer :: i, j, particle_groups, k, spawn_groups, l
-    character(len=FIELD_NAME_LEN) :: mat_phase, field_name
+    character(len=FIELD_NAME_LEN) :: field_name
     character(len=FIELD_NAME_LEN) :: sname, mname
     character(len=OPTION_PATH_LEN) :: particle_group, particle_subgroup, particle_attribute
     
@@ -660,8 +660,7 @@ module particle_diagnostics
              call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/radius", radius)
              
              !Get the field particles will be spawned to
-             call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/material_phase/name", mat_phase)
-             call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/material_phase/field/name", field_name)
+             call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/field/name", field_name)
              
              if (have_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawning_parameters["//int2str(l-1)//"]/particles_to_spawn/subgroup")) then
                 have_subgroup=.true.
@@ -676,16 +675,11 @@ module particle_diagnostics
              end if
 
 
-             field_loop: do i = 1,size(states)
-                call get_option("material_phase/name", mname)
-                if (trim(mname)==trim(mat_phase)) then
-                   do j = 1,scalar_field_count(states(i))!!!!!Only scalar fields?
-                      s_field => extract_scalar_field(states(i),j)
-                      call get_option(trim(s_field%option_path)//"/name", sname)
-                      if (trim(sname)==trim(field_name)) then
-                         exit field_loop
-                      end if
-                   end do
+             field_loop: do j = 1,scalar_field_count(states(1))!!!!!Only scalar fields?
+                s_field => extract_scalar_field(states(1),j)
+                call get_option(trim(s_field%option_path)//"/name", sname)
+                if (trim(sname)==trim(field_name)) then
+                   exit field_loop
                 end if
              end do field_loop
 

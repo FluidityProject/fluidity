@@ -333,10 +333,11 @@ start =
 		  ## and deleting options.
                   element particle_group {
                      attribute name { xsd:string },
+		     ## Velocity field utilized for particle advection.
 		     element velocity_field {
 		     attribute name { xsd:string }
 		     },
-		     ## Options for spawning and deleting particles. Defined per particle_group.
+		     ## Options for spawning and deleting particles based on the minimum and maximum limits of particles per control volume. Defined per particle_group.
 		     element particle_spawning {
 			## Set spawning parameters, such as the number of particles per cv, and which field particles will be spawned to.
 			element spawning_parameters {
@@ -348,27 +349,28 @@ start =
 		           element max_cv_threshhold {
 			      integer
 		 	   },
-			   ## Radius particle can spawn around parent in local coordinates (suggested value 0.005).
+			   ## Radius particle can spawn around parent in local coordinates.
 			   element radius {
 			      real
 			   },
 		           ## Set the field mesh which will be used for spawning.
-			   element material_phase {
-			      attribute name { xsd:string },
-			      element field {
-			         attribute name { xsd:string }
-		              }
+			   element field {
+			      attribute name { xsd:string }
 			   },
-			   ## Set which particles will spawn, based off particle subgroup or attribute carried.
+			   ## Set which particles will spawn, based off particle subgroup or attributes carried.
 			   element particles_to_spawn {
+			      ## Name of particle_subgroup that will be spawned.
 			      element subgroup {
 			         attribute name { xsd:string },
+				 ## Option to copy all parent particle attributes upon spawning.
 				 element copy_parent_attributes{
 			            empty
 		              	 }?
 			      }|
+			      ## Name of attribute which will cause particles to be spawned.
 			      element attribute {
 			         attribute name { xsd:string },
+				 ## Option to copy all parent particle attributes upon spawning.
 				 element copy_parent_attributes{
 			            empty
 				 }?
@@ -425,8 +427,9 @@ start =
                           } 
                         ),
 		        (
-		          ##Define particle attributes
+		          ##Define particle attributes.
 		          element attributes {
+			     ##Define particle attribute.
 		       	     element attribute {
 		                attribute name { xsd:string },
 			        generic_particle_field
@@ -436,17 +439,6 @@ start =
                      }+
 	       }+
 	    )*,
-	    ## Options for particles spawning outside the computational domain.
-	    element spawning_outside_domain {
-               ## By default Fluidity will fail if a particle spawns outside the domain.
-               element fail_outside_domain {
-                  empty
-               }|
-               ## Enable to write NaN values to particle output if a particle spawns outside the domain.
-               element write_nan_outside_domain {
-                  empty
-               }
-	    },
 	    ## Options for particles being advected outside the computational domain.
 	    element moving_outside_domain {
                ## By default Fluidity will make particles static if they move outside the domain.
@@ -466,6 +458,7 @@ start =
             element move_with_mesh {
                empty
             }?,
+	    ## Lagrangian timestepping options for particle advection.
             lagrangian_timestepping
          }?,
          ## Options dealing with time discretisation

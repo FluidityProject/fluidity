@@ -149,11 +149,6 @@ contains
              particle_lists(list_counter)%move_with_mesh=.true.
           end if
           
-          ! Set flag for NaN particle output
-          if (have_option("/particles/write_nan_outside_domain")) then
-             particle_lists(list_counter)%write_nan_outside=.true.
-          end if
-          
           !Read particles from options
           if (.not.from_checkpoint) then
              
@@ -472,8 +467,7 @@ contains
        if (.not.element_owned(xfield,element)) return
     else
        ! In serial make sure the particle is in the domain
-       ! unless we have the write_nan_outside override
-       if (element<0 .and. .not.detector_list%write_nan_outside) then
+       if (element<0) then
           ewrite(-1,*) "Dealing with particle ", id, " named: ", trim(name)
           FLExit("Trying to initialise particle outside of computational domain")
        end if
