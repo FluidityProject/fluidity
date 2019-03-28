@@ -736,7 +736,7 @@ contains
 
        !Call move and write particles
        call move_particles(state, dt, timestep)
-       call update_particle_attributes(state, current_time)
+       call update_particle_attributes_and_fields(state, current_time)
        call write_particles_loop(state, current_time, dt)
        ! Work out the domain volume by integrating the water depth function over the surface if using wetting and drying
        if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then

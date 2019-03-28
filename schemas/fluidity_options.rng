@@ -458,18 +458,6 @@ The t argument is for future use only - currently particle locations are only se
                             </element>
                           </element>
                         </element>
-                        <element name="from_checkpoint_file">
-                          <a:documentation>File containing the particle positions in binary form</a:documentation>
-                          <attribute name="file_name">
-                            <data type="string"/>
-                          </attribute>
-                          <element name="format">
-                            <a:documentation>The format of the input file containing field data.</a:documentation>
-                            <element name="string_value">
-                              <value>binary</value>
-                            </element>
-                          </element>
-                        </element>
                       </choice>
                     </element>
                     <optional>

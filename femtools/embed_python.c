@@ -1069,8 +1069,8 @@ void set_particles_from_python(char *function, int *function_len, int *dim, int 
 #endif
 }
 
-//#define set_particles_fields_from_python F77_FUNC(set_particles_fields_from_python, SET_PARTICLES_FIELDS_FROM_PYTHON)
-void set_particles_fields_from_python(char *function, int *function_len, int *dim, int *ndete,
+//#define set_particles_from_python_fields F77_FUNC(set_particles_from_python_fields, SET_PARTICLES_FROM_PYTHON_FIELDS)
+void set_particles_from_python_fields(char *function, int *function_len, int *dim, int *ndete,
 				      double x[], double y[], double z[], double *t, int *FIELD_NAME_LEN,
 				      int *nfields, char field_names[*nfields][*FIELD_NAME_LEN],
 				      double *field_vals, int *old_nfields, char old_field_names[*old_nfields][*FIELD_NAME_LEN],

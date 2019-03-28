@@ -369,16 +369,6 @@ start =
                                 element format {
                                    element string_value {
                                       "binary"
-                             	   }
-                                }
-                             }|
-                             ## File containing the particle positions in binary form
-                             element from_checkpoint_file {
-                                attribute file_name { xsd:string },
-                                ## The format of the input file containing field data.
-                                element format {
-                                   element string_value {
-                                      "binary"
                               	   }
                                 }
 			     }
