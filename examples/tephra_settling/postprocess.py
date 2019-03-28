@@ -25,7 +25,7 @@ if("tephra_settling.stat" in dir_list):
 
    pylab.savefig('tephra_velocity.pdf')
    
-   print "Data plotted and saved in tephra_velocity.pdf"
+   print("Data plotted and saved in tephra_velocity.pdf")
 else:
-   print "No .stat file found - cannot plot data."
+   print("No .stat file found - cannot plot data.")
    

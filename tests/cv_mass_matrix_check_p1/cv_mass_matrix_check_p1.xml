@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
-
 <testproblem>
   <name>cv_mass_matrix_check_p1</name>
   <owner userid="btollit"/>
@@ -103,91 +102,91 @@ sum_fe_lumped_mass_3d = stat("cv_mass_matrix_check_p1_3d.stat")["fluid"]["SumFEL
   </variables>
   <pass_tests>
     <test name="check that the sum of the CV mass matrix is the element volume for 1d to tolerance 1.0e-10 " language="python">
-print "Difference of element volume to integral CV mass for 1d: ",abs(element_volume_1d - sum_cv_mass_1d)
+print("Difference of element volume to integral CV mass for 1d: ",abs(element_volume_1d - sum_cv_mass_1d))
 assert abs(element_volume_1d - sum_cv_mass_1d) &lt; 1e-10
-    </test>
+</test>
     <test name="check that the sum of the FE lumped mass matrix is the element volume for 1d to tolerance 1.0e-10 " language="python">
-print "Difference of element volume to integral FE lumped mass for 1d: ",abs(element_volume_1d - sum_fe_lumped_mass_1d)
+print("Difference of element volume to integral FE lumped mass for 1d: ",abs(element_volume_1d - sum_fe_lumped_mass_1d))
 assert abs(element_volume_1d - sum_fe_lumped_mass_1d) &lt; 1e-10
-    </test>
+</test>
     <test name="check that the max of the CV mass matrix is the element volume divided by 2 for 1d to tolerance 1.0e-10 " language="python">
-print "Difference of element volume divided by 2 to max CV mass for 1d: ",abs((element_volume_1d/2.0) - max_cv_mass_1d)
+print("Difference of element volume divided by 2 to max CV mass for 1d: ",abs((element_volume_1d/2.0) - max_cv_mass_1d))
 assert abs((element_volume_1d/2.0) - max_cv_mass_1d) &lt; 1e-10
-    </test>
+</test>
     <test name="check that the max of the FE lumped mass matrix is the element volume divided by 2 for 1d to tolerance 1.0e-10 " language="python">
-print "Difference of element volume divided by 2 to max FE lumped mass for 1d: ",abs((element_volume_1d/2.0) - max_fe_lumped_mass_1d)
+print("Difference of element volume divided by 2 to max FE lumped mass for 1d: ",abs((element_volume_1d/2.0) - max_fe_lumped_mass_1d))
 assert abs((element_volume_1d/2.0) - max_fe_lumped_mass_1d) &lt; 1e-10
-    </test>
+</test>
     <test name="check that the max of the CV mass matrix is equal to the min of the CV mass matrix for 1d to tolerance 1.0e-10 " language="python">
-print "Difference of max CV mass matrix to min CV mass matrix for 1d: ",abs(max_cv_mass_1d - min_cv_mass_1d)
+print("Difference of max CV mass matrix to min CV mass matrix for 1d: ",abs(max_cv_mass_1d - min_cv_mass_1d))
 assert abs(max_cv_mass_1d - min_cv_mass_1d) &lt; 1e-10
-    </test>
+</test>
     <test name="check that the max of the FE lumped mass matrix is equal to the min of the FE lumped mass matrix for 1d to tolerance 1.0e-10 " language="python">
-print "Difference of max FE lumped mass matrix to min FE lumped mass matrix for 1d: ",abs(max_fe_lumped_mass_1d - min_fe_lumped_mass_1d)
+print("Difference of max FE lumped mass matrix to min FE lumped mass matrix for 1d: ",abs(max_fe_lumped_mass_1d - min_fe_lumped_mass_1d))
 assert abs(max_fe_lumped_mass_1d - min_fe_lumped_mass_1d) &lt; 1e-10
-    </test>
+</test>
     <test name="check that the max of the CV mass matrix is equal to the max of the FE lumped mass matrix for 1d to tolerance 1.0e-10 " language="python">
-print "Difference of max CV mass matrix to max FE lumped mass matrix for 1d: ",abs(max_cv_mass_1d - max_fe_lumped_mass_1d)
+print("Difference of max CV mass matrix to max FE lumped mass matrix for 1d: ",abs(max_cv_mass_1d - max_fe_lumped_mass_1d))
 assert abs(max_cv_mass_1d - max_fe_lumped_mass_1d) &lt; 1e-10
-    </test>
+</test>
 
     <test name="check that the sum of the CV mass matrix is the element volume for 2d to tolerance 1.0e-10 " language="python">
-print "Difference of element volume to integral CV mass for 2d: ",abs(element_volume_2d - sum_cv_mass_2d)
+print("Difference of element volume to integral CV mass for 2d: ",abs(element_volume_2d - sum_cv_mass_2d))
 assert abs(element_volume_2d - sum_cv_mass_2d) &lt; 1e-10
-    </test>
+</test>
     <test name="check that the sum of the FE lumped mass matrix is the element volume for 2d to tolerance 1.0e-10 " language="python">
-print "Difference of element volume to integral FE lumped mass for 2d: ",abs(element_volume_2d - sum_fe_lumped_mass_2d)
+print("Difference of element volume to integral FE lumped mass for 2d: ",abs(element_volume_2d - sum_fe_lumped_mass_2d))
 assert abs(element_volume_2d - sum_fe_lumped_mass_2d) &lt; 1e-10
-    </test>
+</test>
     <test name="check that the max of the CV mass matrix is the element volume divided by 3 for 2d to tolerance 1.0e-10 " language="python">
-print "Difference of element volume divided by 3 to max CV mass for 2d: ",abs((element_volume_2d/3.0) - max_cv_mass_2d)
+print("Difference of element volume divided by 3 to max CV mass for 2d: ",abs((element_volume_2d/3.0) - max_cv_mass_2d))
 assert abs((element_volume_2d/3.0) - max_cv_mass_2d) &lt; 1e-10
-    </test>
+</test>
     <test name="check that the max of the FE lumped mass matrix is the element volume divided by 3 for 2d to tolerance 1.0e-10 " language="python">
-print "Difference of element volume divided by 3 to max FE lumped mass for 2d: ",abs((element_volume_2d/3.0) - max_fe_lumped_mass_2d)
+print("Difference of element volume divided by 3 to max FE lumped mass for 2d: ",abs((element_volume_2d/3.0) - max_fe_lumped_mass_2d))
 assert abs((element_volume_2d/3.0) - max_fe_lumped_mass_2d) &lt; 1e-10
-    </test>
+</test>
     <test name="check that the max of the CV mass matrix is equal to the min of the CV mass matrix for 2d to tolerance 1.0e-10 " language="python">
-print "Difference of max CV mass matrix to min CV mass matrix for 2d: ",abs(max_cv_mass_2d - min_cv_mass_2d)
+print("Difference of max CV mass matrix to min CV mass matrix for 2d: ",abs(max_cv_mass_2d - min_cv_mass_2d))
 assert abs(max_cv_mass_2d - min_cv_mass_2d) &lt; 1e-10
-    </test>
+</test>
     <test name="check that the max of the FE lumped mass matrix is equal to the min of the FE lumped mass matrix for 2d to tolerance 1.0e-10 " language="python">
-print "Difference of max FE lumped mass matrix to min FE lumped mass matrix for 2d: ",abs(max_fe_lumped_mass_2d - min_fe_lumped_mass_2d)
+print("Difference of max FE lumped mass matrix to min FE lumped mass matrix for 2d: ",abs(max_fe_lumped_mass_2d - min_fe_lumped_mass_2d))
 assert abs(max_fe_lumped_mass_2d - min_fe_lumped_mass_2d) &lt; 1e-10
-    </test>
+</test>
     <test name="check that the max of the CV mass matrix is equal to the max of the FE lumped mass matrix for 2d to tolerance 1.0e-10 " language="python">
-print "Difference of max CV mass matrix to max FE lumped mass matrix for 2d: ",abs(max_cv_mass_2d - max_fe_lumped_mass_2d)
+print("Difference of max CV mass matrix to max FE lumped mass matrix for 2d: ",abs(max_cv_mass_2d - max_fe_lumped_mass_2d))
 assert abs(max_cv_mass_2d - max_fe_lumped_mass_2d) &lt; 1e-10
-    </test>
+</test>
 
     <test name="check that the sum of the CV mass matrix is the element volume for 3d to tolerance 1.0e-10 " language="python">
-print "Difference of element volume to integral CV mass for 3d: ",abs(element_volume_3d - sum_cv_mass_3d)
+print("Difference of element volume to integral CV mass for 3d: ",abs(element_volume_3d - sum_cv_mass_3d))
 assert abs(element_volume_3d - sum_cv_mass_3d) &lt; 1e-10
-    </test>
+</test>
     <test name="check that the sum of the FE lumped mass matrix is the element volume for 3d to tolerance 1.0e-10 " language="python">
-print "Difference of element volume to integral FE lumped mass for 3d: ",abs(element_volume_3d - sum_fe_lumped_mass_3d)
+print("Difference of element volume to integral FE lumped mass for 3d: ",abs(element_volume_3d - sum_fe_lumped_mass_3d))
 assert abs(element_volume_3d - sum_fe_lumped_mass_3d) &lt; 1e-10
-    </test>
+</test>
     <test name="check that the max of the CV mass matrix is the element volume divided by 4 for 3d to tolerance 1.0e-10 " language="python">
-print "Difference of element volume divided by 4 to max CV mass for 3d: ",abs((element_volume_3d/4.0) - max_cv_mass_3d)
+print("Difference of element volume divided by 4 to max CV mass for 3d: ",abs((element_volume_3d/4.0) - max_cv_mass_3d))
 assert abs((element_volume_3d/4.0) - max_cv_mass_3d) &lt; 1e-10
-    </test>
+</test>
     <test name="check that the max of the FE lumped mass matrix is the element volume divided by 4 for 3d to tolerance 1.0e-10 " language="python">
-print "Difference of element volume divided by 4 to max FE lumped mass for 3d: ",abs((element_volume_3d/4.0) - max_fe_lumped_mass_3d)
+print("Difference of element volume divided by 4 to max FE lumped mass for 3d: ",abs((element_volume_3d/4.0) - max_fe_lumped_mass_3d))
 assert abs((element_volume_3d/4.0) - max_fe_lumped_mass_3d) &lt; 1e-10
-    </test>
+</test>
     <test name="check that the max of the CV mass matrix is equal to the min of the CV mass matrix for 3d to tolerance 1.0e-10 " language="python">
-print "Difference of max CV mass matrix to min CV mass matrix for 3d: ",abs(max_cv_mass_3d - min_cv_mass_3d)
+print("Difference of max CV mass matrix to min CV mass matrix for 3d: ",abs(max_cv_mass_3d - min_cv_mass_3d))
 assert abs(max_cv_mass_3d - min_cv_mass_3d) &lt; 1e-10
-    </test>
+</test>
     <test name="check that the max of the FE lumped mass matrix is equal to the min of the FE lumped mass matrix for 3d to tolerance 1.0e-10 " language="python">
-print "Difference of max FE lumped mass matrix to min FE lumped mass matrix for 3d: ",abs(max_fe_lumped_mass_3d - min_fe_lumped_mass_3d)
+print("Difference of max FE lumped mass matrix to min FE lumped mass matrix for 3d: ",abs(max_fe_lumped_mass_3d - min_fe_lumped_mass_3d))
 assert abs(max_fe_lumped_mass_3d - min_fe_lumped_mass_3d) &lt; 1e-10
-    </test>
+</test>
     <test name="check that the max of the CV mass matrix is equal to the max of the FE lumped mass matrix for 3d to tolerance 1.0e-10 " language="python">
-print "Difference of max CV mass matrix to max FE lumped mass matrix for 3d: ",abs(max_cv_mass_3d - max_fe_lumped_mass_3d)
+print("Difference of max CV mass matrix to max FE lumped mass matrix for 3d: ",abs(max_cv_mass_3d - max_fe_lumped_mass_3d))
 assert abs(max_cv_mass_3d - max_fe_lumped_mass_3d) &lt; 1e-10
-    </test>
+</test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

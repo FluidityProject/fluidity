@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>p0p1cv with weak velBC navier stokes spatial convergence test using a rotated domain such as to have non cartesian aligned BC</name>
   <owner userid="btollit"/>
@@ -25,22 +25,22 @@ b_error_inf_x = stat("MMS_B.stat")["NS"]["VectorAbsoluteDifference%1"]["max"][-1
 a_error_inf_y = stat("MMS_A.stat")["NS"]["VectorAbsoluteDifference%2"]["max"][-1]
 b_error_inf_y = stat("MMS_B.stat")["NS"]["VectorAbsoluteDifference%2"]["max"][-1]
 
-print a_error_x
-print b_error_x
-print a_error_y
-print b_error_y
+print(a_error_x)
+print(b_error_x)
+print(a_error_y)
+print(b_error_y)
 
-print a_error_inf_x
-print b_error_inf_x
-print a_error_inf_y
-print b_error_inf_y
+print(a_error_inf_x)
+print(b_error_inf_x)
+print(a_error_inf_y)
+print(b_error_inf_y)
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
 ab_ratio_inf_x = a_error_inf_x / b_error_inf_x
 ab_ratio_inf_y = a_error_inf_y / b_error_inf_y
 ab_convergence_vel = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_ratio_y, 2), log(ab_ratio_inf_y, 2)]]
-    </variable>
+</variable>
     <variable name="ab_convergence_p" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -51,16 +51,16 @@ b_error = stat("MMS_B.stat")["NS"]["ScalarAbsoluteDifference"]["l2norm"][-1]
 a_error_inf = stat("MMS_A.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
 b_error_inf = stat("MMS_B.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
 
-print a_error
-print b_error
+print(a_error)
+print(b_error)
 
-print a_error_inf
-print b_error_inf
+print(a_error_inf)
+print(b_error_inf)
 
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
 ab_convergence_p = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
-    </variable>
+</variable>
     <variable name="bc_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -75,22 +75,22 @@ c_error_inf_x = stat("MMS_C.stat")["NS"]["VectorAbsoluteDifference%1"]["max"][-1
 b_error_inf_y = stat("MMS_B.stat")["NS"]["VectorAbsoluteDifference%2"]["max"][-1]
 c_error_inf_y = stat("MMS_C.stat")["NS"]["VectorAbsoluteDifference%2"]["max"][-1]
 
-print b_error_x
-print c_error_x
-print b_error_y
-print c_error_y
+print(b_error_x)
+print(c_error_x)
+print(b_error_y)
+print(c_error_y)
 
-print b_error_inf_x
-print c_error_inf_x
-print b_error_inf_y
-print c_error_inf_y
+print(b_error_inf_x)
+print(c_error_inf_x)
+print(b_error_inf_y)
+print(c_error_inf_y)
 
 bc_ratio_x = b_error_x / c_error_x
 bc_ratio_y = b_error_y / c_error_y
 bc_ratio_inf_x = b_error_inf_x / c_error_inf_x
 bc_ratio_inf_y = b_error_inf_y / c_error_inf_y
 bc_convergence_vel = [[log(bc_ratio_x, 2), log(bc_ratio_inf_x, 2)], [log(bc_ratio_y, 2), log(bc_ratio_inf_y, 2)]]
-    </variable>
+</variable>
     <variable name="bc_convergence_p" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -101,16 +101,16 @@ c_error = stat("MMS_C.stat")["NS"]["ScalarAbsoluteDifference"]["l2norm"][-1]
 b_error_inf = stat("MMS_B.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
 c_error_inf = stat("MMS_C.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
 
-print b_error
-print c_error
+print(b_error)
+print(c_error)
 
-print b_error_inf
-print c_error_inf
+print(b_error_inf)
+print(c_error_inf)
 
 bc_ratio = b_error / c_error
 bc_ratio_inf = b_error_inf / c_error_inf
 bc_convergence_p = [log(bc_ratio, 2), log(bc_ratio_inf, 2)]
-    </variable>
+</variable>
    <variable name="a_finish_time" language="python">
 from fluidity_tools import stat_parser as stat
 a_finish_time = stat("MMS_A.stat")["ElapsedTime"]["value"][-1]
@@ -237,4 +237,3 @@ assert(c_final_change_p &lt; 1.0e-05)
   <warn_tests>
   </warn_tests>
 </testproblem>
-

@@ -93,83 +93,82 @@ D_1_y = (v + s1_us)*s1
 D_2_x = (u + s2_us)*s2
 D_2_y = (v + s2_us)*s2
   
-print 'from math import sin, cos, tanh, pi, e, sqrt'
-print ''
-print 'def u(X):'
-print '    return', str(u).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print ''
-print 'def v(X):'
-print '    return', str(v).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print ''  
-print 'def p(X):'
-print '    return', str(p).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print ''  
-print 'def s1(X):'
-print '    return', str(s1).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print ''  
-print 'def s2(X):'
-print '    return', str(s2).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print ''
-print 'def s1_d(X):'
-print '    return', str(s1_d).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print ''  
-print 'def s2_d(X):'
-print '    return', str(s2_d).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print ''
-print 'def rho(X):'
-print '    return', str(rho).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print ''
-print 'def nu(X):'
-print '    return', str(nu).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print ''
-print 'def mu(X):'
-print '    return', str(mu).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print ''
-print 'def sigma(X):'
-print '    return', str(sigma).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print ''
-print 'def tau_b(X):'
-print '    return', str(tau_b).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print ''
-print 'def E_1(X):'
-print '    if X[1] < 1e-6:'
-print '        return', str(E_1).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print '    else:'
-print '        return 0.0'
-print ''
-print 'def E_2(X):'
-print '    if X[1] < 1e-6:'
-print '        return', str(E_2).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print '    else:'
-print '        return 0.0'
-print ''
-print 'def D_1(X):'
-print '    if X[1] < 1e-6:'
-print '        return', str(-D_1_y).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print '    else:'
-print '        return 0.0'
-print ''
-print 'def D_2(X):'
-print '    if X[1] < 1e-6:'
-print '        return', str(-D_2_y).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print '    else:'
-print '        return 0.0'
-print ''
-print 'def forcing_u(X):'
-print '    return', str(Su).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print ''
-print 'def forcing_v(X):'
-print '    return', str(Sv).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print ''
-print 'def forcing_s1(X):'
-print '    return', str(Ss1).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print ''
-print 'def forcing_s2(X):'
-print '    return', str(Ss2).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print ''
-print 'def velocity(X):'
-print '    return [u(X), v(X)]'
-print ''
-print 'def forcing_velocity(X):'
-print '    return [forcing_u(X), forcing_v(X)]'
-
+print('from math import sin, cos, tanh, pi, e, sqrt')
+print('')
+print('def u(X):')
+print('    return', str(u).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print('')
+print('def v(X):')
+print('    return', str(v).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print(''  )
+print('def p(X):')
+print('    return', str(p).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print(''  )
+print('def s1(X):')
+print('    return', str(s1).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print(''  )
+print('def s2(X):')
+print('    return', str(s2).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print('')
+print('def s1_d(X):')
+print('    return', str(s1_d).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print(''  )
+print('def s2_d(X):')
+print('    return', str(s2_d).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print('')
+print('def rho(X):')
+print('    return', str(rho).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print('')
+print('def nu(X):')
+print('    return', str(nu).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print('')
+print('def mu(X):')
+print('    return', str(mu).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print('')
+print('def sigma(X):')
+print('    return', str(sigma).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print('')
+print('def tau_b(X):')
+print('    return', str(tau_b).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print('')
+print('def E_1(X):')
+print('    if X[1] < 1e-6:')
+print('        return', str(E_1).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print('    else:')
+print('        return 0.0')
+print('')
+print('def E_2(X):')
+print('    if X[1] < 1e-6:')
+print('        return', str(E_2).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print('    else:')
+print('        return 0.0')
+print('')
+print('def D_1(X):')
+print('    if X[1] < 1e-6:')
+print('        return', str(-D_1_y).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print('    else:')
+print('        return 0.0')
+print('')
+print('def D_2(X):')
+print('    if X[1] < 1e-6:')
+print('        return', str(-D_2_y).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print('    else:')
+print('        return 0.0')
+print('')
+print('def forcing_u(X):')
+print('    return', str(Su).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print('')
+print('def forcing_v(X):')
+print('    return', str(Sv).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print('')
+print('def forcing_s1(X):')
+print('    return', str(Ss1).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print('')
+print('def forcing_s2(X):')
+print('    return', str(Ss2).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]'))
+print('')
+print('def velocity(X):')
+print('    return [u(X), v(X)]')
+print('')
+print('def forcing_velocity(X):')
+print('    return [forcing_u(X), forcing_v(X)]')

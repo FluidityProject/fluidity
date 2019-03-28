@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>test_pressure_solve_small</name>
   <owner userid="colin"/>
@@ -12,14 +11,14 @@
     <variable name="withadd" language="python">
 from scipy import *
 withadd = fromfile('with_vl_and_is.dat',sep=' ')
-withadd = reshape(withadd,(size(withadd)/3,3))
+withadd = reshape(withadd,(int(size(withadd)/3),3))
 withadd[:,2] = withadd[:,2] - withadd[0,2]
 withadd = withadd [1:,:]
     </variable>
     <variable name="withwrap" language="python">
 from scipy import *
 withwrap = fromfile('with_vl_and_is_wrap_sor.dat',sep=' ')
-withwrap = reshape(withwrap,(size(withwrap)/3,3))
+withwrap = reshape(withwrap,(int(size(withwrap)/3),3))
 withwrap[:,2] = withwrap[:,2] - withwrap[0,2]
 withwrap = withwrap[1:,:]
     </variable>
@@ -27,51 +26,51 @@ withwrap = withwrap[1:,:]
 from scipy import *
 withoutadd = fromfile('with_vl_without_is.dat',sep=' ')
 #withoutlump = fromfile('without_vl.dat',sep=' ')
-withoutadd = reshape(withoutadd,(size(withoutadd)/3,3))
+withoutadd = reshape(withoutadd,(int(size(withoutadd)/3),3))
 withoutadd[:,2] = withoutadd[:,2] - withoutadd[0,2]
 withoutadd = withoutadd [1:,:]
     </variable>
     <variable name="withoutlump" language="python">
 from scipy import *
 withoutlump = fromfile('without_vl.dat',sep=' ')
-withoutlump = reshape(withoutlump,(size(withoutlump)/3,3))
+withoutlump = reshape(withoutlump,(int(size(withoutlump)/3),3))
 withoutlump[:,2] = withoutlump[:,2] - withoutlump[0,2]
 withoutlump = withoutlump [1:,:]
     </variable>
   </variables>
   <pass_tests>
     <test name="with vertical lumping and internal smoother check error" language="python">
-print withadd[12,1],2.0e-9
+print(withadd[12,1],2.0e-9)
 assert withadd[12,1] &lt; 2.0e-9
-    </test>
+</test>
     <test name="with vertical lumping and internal smoother check flops" language="python">
-print withadd[12,2], 2.0e6
+print(withadd[12,2], 2.0e6)
 assert withadd[12,2] &lt; 2.0e6
-    </test>
+</test>
     <test name="with vertical lumping and internal smoother and wrapped SOR check error" language="python">
-print withwrap[12,1],2.0e-9
+print(withwrap[12,1],2.0e-9)
 assert withwrap[12,1] &lt; 2.0e-9
-    </test>
+</test>
     <test name="with vertical lumping and internal smoother and wrapped SOR check flops" language="python">
-print withwrap[12,2], 2.0e6
+print(withwrap[12,2], 2.0e6)
 assert withwrap[12,2] &lt; 2.0e6
-    </test>
+</test>
     <test name="with vertical lumping without internal smoother check error" language="python">
-print withoutadd[11,1], 5.0e-9
+print(withoutadd[11,1], 5.0e-9)
 assert withoutadd[11,1] &lt; 5.0e-9
-    </test>
+</test>
     <test name="with vertical lumping without internal smoother check flops" language="python">
-print withoutadd[11,2], 5e5
+print(withoutadd[11,2], 5e5)
 assert withoutadd[11,2] &lt; 5e5
-    </test>
+</test>
     <test name="without vertical lumping check error" language="python">
-print withoutlump[6,1], 5.0e-9
+print(withoutlump[6,1], 5.0e-9)
 assert withoutlump[6,1] &lt; 5.0e-9
-    </test>
+</test>
     <test name="without vertical lumping check flops" language="python">
-print withoutlump[6,2], 2.0e5
+print(withoutlump[6,2], 2.0e5)
 assert withoutlump[6,2] &lt; 2.0e5
-    </test>
+</test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

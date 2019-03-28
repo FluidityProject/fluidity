@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Tetrahedral mixing bin test</name>
   <owner userid="piggt01"/>
@@ -24,17 +24,19 @@ stat = fluidity_tools.stat_parser("tet_mixing_bin_test_serial.stat")</variable>
 
 integrals = stat["Fluid"]["Phi0"]["mixing_bins%Bins"][:, -1]
 
-print integrals
+print(integrals)
 assert((integrals &gt; -1.0e-12).all())
-fluidity_tools.compare_variable(integrals.sum(), 1.0, 1.0e-12)</test>
+fluidity_tools.compare_variable(integrals.sum(), 1.0, 1.0e-12)
+</test>
     <test name="Phi1Integrals" language="python">import fluidity_tools
 
 integrals = stat["Fluid"]["Phi1"]["mixing_bins%Bins"][:, -1]
 
-print integrals
+print(integrals)
 assert((integrals &gt; -1.0e-12).all())
 fluidity_tools.compare_variable(integrals.sum(), 1.0, 1.0e-12)
 fluidity_tools.compare_variable(integrals[1], 0.5, 1.0e-12)
-fluidity_tools.compare_variable(integrals[2], 0.5, 1.0e-12)</test>
+fluidity_tools.compare_variable(integrals[2], 0.5, 1.0e-12)
+</test>
   </pass_tests>
 </testproblem>

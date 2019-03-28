@@ -102,57 +102,57 @@ def check_pznd_parameters(parameters):
 
     valid=True
 
-    if not parameters.has_key("alpha"):
+    if "alpha" not in parameters:
         stderr.write("PZND parameter alpha missing.\n")
         stderr.write("alpha is this initial slope of the P-I curve.\n\n")
         valid = False
 
-    if not parameters.has_key("beta"):
+    if "beta" not in parameters:
         stderr.write("PZND parameter beta missing.\n")
         stderr.write("beta is the assimilation efficiency of zooplankton.\n\n")
         valid = False
 
-    if not parameters.has_key("gamma"):
+    if "gamma" not in parameters:
         stderr.write("PZND parameter gamma missing.\n")
         stderr.write("gamma is the zooplankton excretion parameter.\n\n")
         valid = False
 
-    if not parameters.has_key("g"):
+    if "g" not in parameters:
         stderr.write("PZND parameter g missing.\n")
         stderr.write("g is the zooplankton maximum growth rate.\n\n")
         valid = False
 
-    if not parameters.has_key("k_N"):
+    if "k_N" not in parameters:
         stderr.write("PZND parameter k_N missing.\n")
         stderr.write("k_N is the half-saturation constant for nutrient.\n\n")
         valid = False
 
-    if not parameters.has_key("k"):
+    if "k" not in parameters:
         stderr.write("PZND parameter k missing.\n")
         stderr.write("k is the zooplankton grazing parameter.\n\n")
         valid = False
 
-    if not parameters.has_key("mu_P"):
+    if "mu_P" not in parameters:
         stderr.write("PZND parameter mu_P missing.\n")
         stderr.write("mu_P is the phytoplankton mortality rate.\n\n")
         valid = False
 
-    if not parameters.has_key("mu_Z"):
+    if "mu_Z" not in parameters:
         stderr.write("PZND parameter mu_Z missing.\n")
         stderr.write("mu_Z is the zooplankton mortality rate.\n\n")
         valid = False
 
-    if not parameters.has_key("mu_D"):
+    if "mu_D" not in parameters:
         stderr.write("PZND parameter mu_D missing.\n")
         stderr.write("mu_D is the detritus remineralisation rate.\n\n")
         valid = False
 
-    if not parameters.has_key("p_P"):
+    if "p_P" not in parameters:
         stderr.write("PZND parameter p_P missing.\n")
         stderr.write("p_P is the relative grazing preference of zooplankton for phytoplankton.\n\n")
         valid = False
 
-    if not parameters.has_key("v"):
+    if "v" not in parameters:
         stderr.write("PZND parameter v missing.\n")
         stderr.write("v is the maximum phytoplankton growth rate.\n\n")
         valid = False
@@ -192,19 +192,19 @@ def check_lotka_volterra_parameters(parameters):
 
     valid=True
 
-    if not parameters.has_key("alpha"):
+    if "alpha" not in parameters:
         stderr.write("Lotka Voltera parameter alpha missing.\n")
         valid = False
 
-    if not parameters.has_key("beta"):
+    if "beta" not in parameters:
         stderr.write("Lotka Voltera parameter beta missing.\n")
         valid = False
 
-    if not parameters.has_key("gamma"):
+    if "gamma" not in parameters:
         stderr.write("Lotka Voltera parameter gamma missing.\n")
         valid = False
 
-    if not parameters.has_key("delta"):
+    if "delta" not in parameters:
         stderr.write("Lotka Voltera parameter delta missing.\n")
         valid = False
 
@@ -376,111 +376,111 @@ def check_six_component_parameters(parameters):
 
     valid=True
 
-    if not parameters.has_key("alpha_c"):
+    if "alpha_c" not in parameters:
         stderr.write("PCZNDA parameter alpha_c missing.\n")
         stderr.write("alpha is the chlorophyll-specific inital slope of P-I curve.\n\n")
         valid = False
 
-    if not parameters.has_key("beta_p"):
+    if "beta_p" not in parameters:
         stderr.write("PCZNDA parameter beta_p missing.\n")
         stderr.write("beta is the assimilation efficiency of zooplankton for plankton.\n\n")
         valid = False
 
-    if not parameters.has_key("beta_d"):
+    if "beta_d" not in parameters:
         stderr.write("PCZNDA parameter beta_d missing.\n")
         stderr.write("beta is the assimilation efficiency of zooplankton for detritus.\n\n")
         valid = False
 
-    if not parameters.has_key("delta"):
+    if "delta" not in parameters:
         stderr.write("PCZNDA parameter delta missing.\n")
         stderr.write("delta is the zooplankton excretion parameter.\n\n")
         valid = False
 
-    if not parameters.has_key("gamma"):
+    if "gamma" not in parameters:
         stderr.write("PCZNDA parameter gamma missing.\n")
         stderr.write("gamma is the zooplankton excretion parameter.\n\n")
         valid = False
 
-    if not parameters.has_key("epsilon"):
+    if "epsilon" not in parameters:
         stderr.write("PCZNDA parameter epsilon missing.\n")
         stderr.write("epsilon is the grazing parameter relating the rate of prey item to prey density.\n\n")
         valid = False
 
-    if not parameters.has_key("g"):
+    if "g" not in parameters:
         stderr.write("PCZNDA parameter g missing.\n")
         stderr.write("g is the zooplankton maximum growth rate.\n\n")
         valid = False
 
-    if not parameters.has_key("k_A"):
+    if "k_A" not in parameters:
         stderr.write("PCZNDA parameter k_A missing.\n")
         stderr.write("k_A is the half-saturation constant for ammonium.\n\n")
         valid = False
 
-    if not parameters.has_key("k_p"):
+    if "k_p" not in parameters:
         stderr.write("PCZNDA parameter k_p missing.\n")
         stderr.write("k_ is something to do with mortatility rate of phytoplankton")
 
-    if not parameters.has_key("k_z"):
+    if "k_z" not in parameters:
         stderr.write("PCZNDA parameter k_z missing.\n")
         stderr.write("k_z is something to do with te mortality rate of zooplankton\n\n")
         valid = False
 
-    if not parameters.has_key("k_N"):
+    if "k_N" not in parameters:
         stderr.write("PCZNDA parameter k_N missing.\n")
         stderr.write("k_N is the half-saturation constant for nutrient.\n\n")
         valid = False
 
-    if not parameters.has_key("mu_P"):
+    if "mu_P" not in parameters:
         stderr.write("PCZNDA parameter mu_P missing.\n")
         stderr.write("mu_P is the phytoplankton mortality rate.\n\n")
         valid = False
 
-    if not parameters.has_key("mu_Z"):
+    if "mu_Z" not in parameters:
         stderr.write("PCZNDA parameter mu_Z missing.\n")
         stderr.write("mu_Z is the zooplankton mortality rate.\n\n")
         valid = False
 
-    if not parameters.has_key("mu_D"):
+    if "mu_D" not in parameters:
         stderr.write("PCZNDA parameter mu_D missing.\n")
         stderr.write("mu_D is the detritus remineralisation rate.\n\n")
         valid = False
 
-    if not parameters.has_key("psi"):
+    if "psi" not in parameters:
         stderr.write("PCZNDA parameter psi missing.\n")
         stderr.write("psi is the strength of ammonium inibition of nitrate uptake\n\n")
         valid = False
 
-    if not parameters.has_key("p_P"):
+    if "p_P" not in parameters:
         stderr.write("PCZNDA parameter p_P missing.\n")
         stderr.write("p_P is the relative grazing preference of zooplankton for phytoplankton.\n\n")
         valid = False
 
-    if not parameters.has_key("v"):
+    if "v" not in parameters:
         stderr.write("PCZNDA parameter v missing.\n")
         stderr.write("v is the maximum phytoplankton growth rate.\n\n")
         valid = False
 
-    if not parameters.has_key("theta_m"):
+    if "theta_m" not in parameters:
         stderr.write("PCZNDA parameter theta_m missing.\n")
         stderr.write("theta_m is the maximum Chlorophyll to C ratio.\n\n")
         valid = False
 
-    if not parameters.has_key("zeta"):
+    if "zeta" not in parameters:
         stderr.write("PCZNDA parameter zeta missing.\n")
         stderr.write("zeta is the conversion factor from gC to mmolN on C:N ratio of 6.5\n\n")
         valid = False
 
-    if not parameters.has_key("lambda_bio"):
+    if "lambda_bio" not in parameters:
         stderr.write("PCZNDA parameter lambda_bio missing.\n")
         stderr.write("lambda_bio is rate which plankton turn to detritus below photic zone\n\n")
         valid = False
 
-    if not parameters.has_key("lambda_A"):
+    if "lambda_A" not in parameters:
         stderr.write("PCZNDA parameter lambda_A missing.\n")
         stderr.write("lambda_A nitrification rate below photic zone\n\n")
         valid = False
 
-    if not parameters.has_key("photic_zone_limit"):
+    if "photic_zone_limit" not in parameters:
         stderr.write("PCZNDA parameter photic_zone_limit missing.\n")
         stderr.write("photic_zone_limit defines the base of the photic zone in W/m2\n\n")
         valid = False

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 __author__ = "Patrick Farrell"
 __license__ = "LGPL"
 __credits__ = ["Patrick Farrell", "David Ham"]
@@ -41,7 +43,7 @@ if __name__ == "__main__":
       du.set(i, 0.01125*pi**2*sin(3.0/20*(x + 10)*pi)
   '''
 
-  print parse(code)
+  print(parse(code))
 
 def make_adj_variables(d):
   """ d is a dict like
@@ -54,7 +56,7 @@ def make_adj_variables(d):
   for key in d:
     for timestep in d[key]:
       if timestep < 0:
-        print "Warning: dependencies function returned a variable with timestep %d." % timestep
+        print("Warning: dependencies function returned a variable with timestep %d." % timestep)
       else:
         newd = {}
         newd['name'] = key

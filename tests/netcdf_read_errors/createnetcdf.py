@@ -30,7 +30,7 @@ def create(missingdata = False, missingdimension = False, missingvariable = Fals
     filename = 'valid.nc'
     description = '.'
 
-  print "Creating " + filename + description
+  print("Creating " + filename + description)
 
   f = netcdf_file(filename, 'w')
   f.description = 'Example free surface height' + description
@@ -59,7 +59,7 @@ def create(missingdata = False, missingdimension = False, missingvariable = Fals
   else:
     zdimlabel = 'height'
 
-  print xdimlabel, ydimlabel, zdimlabel
+  print(xdimlabel, ydimlabel, zdimlabel)
 
   # dimensions
   f.createDimension(xdimlabel, len(x))

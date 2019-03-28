@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>biology_conservation_adapt</name>
   <owner userid="jhill1"/>
@@ -63,12 +62,12 @@ nutrients2=d["water"]["Nutrient"]["integral"][-1]
       <test name="Total in water column conserved" language="python">
 before = nutrients1 + detritus1 + phytoplankton1 + zooplankton1
 after = nutrients2 + detritus2 + phytoplankton2 + zooplankton2
-print before, after, before-after
+print(before, after, before-after)
 # relative error of less than 0.01% for 2100m of water column
 # over 1 month of simulation whilst adapting the mesh.
 # Should be OK.
 assert (abs(before - after)/before &lt; 0.0001)
-    </test>
+</test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

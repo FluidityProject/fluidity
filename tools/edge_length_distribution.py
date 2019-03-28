@@ -2,6 +2,7 @@
 # get a plot of distribution of edge lengths
 # courtesy of the very smart Mr P Farrell
 
+from __future__ import print_function
 from optparse import OptionParser
 import vtktools
 import glob
@@ -163,13 +164,13 @@ if options.plot_only == True:
   try:
     time_log = open("edge_length_distribution_plots/time.log","r")
   except IOError:
-    print "\n No file 'edge_length_distribution_plots/time.log' \n Try running WITHOUT option --plotonly"
+    print("\n No file 'edge_length_distribution_plots/time.log' \n Try running WITHOUT option --plotonly")
     sys.exit(1)
 
   try:
     edge_lengths_log = open("edge_length_distribution_plots/edge_lengths.log","r")
   except IOError:
-    print "\n No file 'edge_length_distribution_plots/edge_lengths.log' \n Try running WITHOUT option --plotonly"
+    print("\n No file 'edge_length_distribution_plots/edge_lengths.log' \n Try running WITHOUT option --plotonly")
     sys.exit(1)
  
   time = []
@@ -177,7 +178,7 @@ if options.plot_only == True:
   for line in time_log:
     time.append(float(line.split("\n")[0]))
   for line in edge_lengths_log: 
-    exec "l = %s" % line 
+    exec("l = %s" % line)
     edge_lengths_all.append(l)
 
 else:
@@ -191,12 +192,12 @@ else:
     for fieldname in data.GetFieldNames():
       if(fieldname.endswith("Time")):
         if(found_time):
-          print "Found two Time fields."
+          print("Found two Time fields.")
           sys.exit(1)
         found_time = True
         time.append(data.GetScalarField(fieldname)[0])
     if(not found_time):
-      print "Couldn't find a Time field."
+      print("Couldn't find a Time field.")
       sys.exit(1)
     edge_lengths_all.append(GetEdgeLengths(data))
 

@@ -6,7 +6,7 @@
     <command_line>true<comment>Do nothing. The test is all in the regexp searches below.</comment></command_line>
   </problem_definition>
   <variables>
-    <variable name="logfile" language="python">logfile=file("../../manual/fluidity_manual.log","r").read()</variable>
+    <variable name="logfile" language="python">logfile=open("../../manual/fluidity_manual.log","r").read()</variable>
   </variables>
   <pass_tests/>
   <warn_tests>

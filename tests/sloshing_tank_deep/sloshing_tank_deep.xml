@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <!-- Calculate wave speed in sloshing deep water tank
   -->
 <testproblem>
@@ -23,13 +22,13 @@ t = s['ElapsedTime']['value']
 fs = s['water']['FreeSurface']['left_boundary_bottom']
 l1 = fs.shape[0]
 for i in range(l1-1,-1,-1):
-  if (fs[i]>fs[i-1]):
-    break
+    if (fs[i]&gt;fs[i-1]):
+        break
 time = t[i+1]
-print "Time found for 10th peak in free surface: %s" % time
+print("Time found for 10th peak in free surface: %s" % time)
 wave_speed = 10.0/time
-print "This implies a free surface speed of: %s" % wave_speed
-    </variable>
+print("This implies a free surface speed of: %s" % wave_speed)
+</variable>
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">

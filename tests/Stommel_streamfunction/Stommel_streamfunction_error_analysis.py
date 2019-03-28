@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 from numpy import sqrt,pi,exp,sin,array,size,abs,max,amax,dot,zeros,reshape,transpose,arange
 from pylab import *
 import sys
@@ -40,7 +42,7 @@ def function_trivol(X,Y):
 
 
 n = nodecount.nodecount(sys.argv[1])
-print n
+print(n)
 
 
 ug=vtktools.vtu(sys.argv[1])
@@ -62,8 +64,8 @@ ML=zeros(size(x), float)
 for ele in range(NE):
    ndglno=ug.GetCellPoints(ele)
    trivol=function_trivol(x[ndglno],y[ndglno])
-       for nod in ndglno:
-                ML[nod] = ML[nod] + trivol/3
+   for nod in ndglno:
+      ML[nod] = ML[nod] + trivol/3
 
 
 #psi = function_psi(x,y)
@@ -74,7 +76,7 @@ snorm2 = sqrt(abs(norm2))
 ##print norm1
 ##print snorm2
 ##print amax(err)
-print n,norm1, snorm2, amax(err)
+print(n,norm1, snorm2, amax(err))
 ug.AddScalarField('Analytical Solution', psi)
 ug.AddScalarField('Error (difference)', err)
 ug.Write('error.vtu')
@@ -101,12 +103,12 @@ psifinemesh = function_psi(xx,yy)
 errfinemesh = abs(psifinemesh - tempfinemesh)
 normfinemesh = amax(amax(errfinemesh))
 norm2finemesh = sqrt(sum(sum(errfinemesh**2)))
-print normfinemesh,norm2finemesh
+print(normfinemesh,norm2finemesh)
 
 #tt = transpose(tempfinemesh)
 #ee = transpose(errfinemesh)
 
-#f = file("tmp.dat","w")
+#f = open("tmp.dat","w")
 #for i in range(N*N):
 #   print >> f,"%12.8f %12.8f %12.8f"%(xx[i],yy[i],ee[i])
 #

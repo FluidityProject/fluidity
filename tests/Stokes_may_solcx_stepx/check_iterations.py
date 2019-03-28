@@ -8,7 +8,7 @@ def check_velocity_iterations(filename):
   # that solver behavior is as expected with fieldsplit preconditioner. 
 
   # Read fluidity log file:
-  f=file(filename)
+  f=open(filename)
   log=f.read()
   f.close()
 

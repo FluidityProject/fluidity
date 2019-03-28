@@ -9,7 +9,7 @@ def read_chl_h42(filename):
   try:
     os.stat(filename)
   except:
-    print "No such file: " + str(filename)
+    print("No such file: " + str(filename))
     sys.exit(1)
   f = open(filename, 'r')
   for i in range(0,10):

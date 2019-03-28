@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>tophat</name>
   <owner userid="skramer"/>
@@ -52,28 +52,31 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     <test name="CG simulation completed" language="python">assert(cg_times[-1] &gt; 80.0)</test>
     <test name="CG Bounded (15%)" language="python">min_t = min(cg_min_ts)
 max_t = max(cg_max_ts)
-print "Min T = ", min_t
-print "Max T = ", max_t
+print("Min T = ", min_t)
+print("Max T = ", max_t)
 assert(min_t &gt; -0.15)
-assert(max_t &lt; 1.15)</test>
+assert(max_t &lt; 1.15)
+</test>
     <test name="CG Conservative" language="python">import fluidity_tools
 fluidity_tools.compare_variables(cg_t_integrals[1:], [cg_t_integrals[0] for i in range(len(cg_t_integrals) - 1)], 2.0e-4)</test>
     <test name="DG simulation completed" language="python">assert(dg_times[-1] &gt; 80.0)</test>
     <test name="DG Bounded (10%)" language="python">min_t = min(dg_min_ts)
 max_t = max(dg_max_ts)
-print "Min T = ", min_t
-print "Max T = ", max_t
+print("Min T = ", min_t)
+print("Max T = ", max_t)
 assert(min_t &gt; -0.1)
-assert(max_t &lt; 1.1)</test>
+assert(max_t &lt; 1.1)
+</test>
     <test name="DG Conservative" language="python">import fluidity_tools
 fluidity_tools.compare_variables(dg_t_integrals[1:], [dg_t_integrals[0] for i in range(len(dg_t_integrals) - 1)], 2.0e-9)</test>
     <test name="CV simulation completed" language="python">assert(cv_times[-1] &gt; 80.0)</test>
     <test name="CV Bounded (1%)" language="python">min_t = min(cv_min_ts)
 max_t = max(cv_max_ts)
-print "Min T = ", min_t
-print "Max T = ", max_t
+print("Min T = ", min_t)
+print("Max T = ", max_t)
 assert(min_t &gt; -0.01)
-assert(max_t &lt; 1.01)</test>
+assert(max_t &lt; 1.01)
+</test>
     <test name="CV Conservative" language="python">import fluidity_tools
 fluidity_tools.compare_variables(cv_t_integrals[1:], [cv_t_integrals[0] for i in range(len(cv_t_integrals) - 1)], 1.0e-8)</test>
     <test name="Solvers converged" language="python">assert(solvers_converged)</test>

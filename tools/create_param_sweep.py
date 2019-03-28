@@ -15,6 +15,7 @@
 #      3
 #      directory_listing.csv
 
+from __future__ import print_function
 import shutil
 import sys
 import string
@@ -73,15 +74,15 @@ def main():
 
     # check template dir exists
     if (not os.path.exists(template_dir)):
-        print "Your template directory does not exist or you don't have permissions to read it"
+        print("Your template directory does not exist or you don't have permissions to read it")
         sys.exit(-1)
 
     # check it contains an FLML
     if (len(glob.glob(os.path.join(template_dir,'*.flml'))) == 0):
-        print "Your template directory does not contain an FLML file. Can't do much without it."
+        print("Your template directory does not contain an FLML file. Can't do much without it.")
         sys.exit(-1)
     elif (len(glob.glob(template_dir+'*.flml')) > 1):
-        print "Warning: your template directory contains >1 FLML. We'll be using: "+ glob.glob(template_dir/+'*.flml')[0]
+        print("Warning: your template directory contains >1 FLML. We'll be using: "+ glob.glob(template_dir/+'*.flml')[0])
     # get the name of the template dir, discarding the path
     direc = template_dir.rsplit('/')[0]
     
@@ -94,13 +95,13 @@ def main():
     if (not os.path.exists(output_dir)):
         os.mkdir(output_dir)
         if (verbose):
-            print "Warning: Creating output directory: "+output_dir
+            print("Warning: Creating output directory: "+output_dir)
 
     # if the template dir is not already there, copy it in
     if (not os.path.exists(os.path.join(output_dir,direc))):
         shutil.copytree(template_dir,os.path.join(output_dir,direc))
         if (verbose):
-            print "Copying template directory, into output folder"
+            print("Copying template directory, into output folder")
 
     # reset template_dir variable to point to the new one instead
     template_dir = os.path.join(output_dir,direc)
@@ -109,7 +110,7 @@ def main():
     if (not os.path.exists(os.path.join(output_dir,"runs"))):
         os.mkdir(os.path.join(output_dir,"runs"))
         if (verbose):
-            print "Creating runs folder"
+            print("Creating runs folder")
 
     # third arg is the param space file
     # Plain text file with the following format:
@@ -119,7 +120,7 @@ def main():
 
     # read in the param space file
     if (verbose):
-        print "Reading in parameter space"
+        print("Reading in parameter space")
     param_space, paths, names = read_param_space(param_space_file)
 
     # generate all the combinations
@@ -129,7 +130,7 @@ def main():
     gen_flmls(params, template_dir, output_dir, paths, names, verbose)
 
     if (verbose):
-        print "Done generating files"
+        print("Done generating files")
 
     return 0
 
@@ -186,7 +187,7 @@ def gen_flmls(params, template_dir, output_dir, paths, names, verbose):
     dir_num = 1
     for p_set in params:
         if (verbose):
-            print "Processing "+str(dir_num)
+            print("Processing "+str(dir_num))
 
         # copy contents from template folder to directory number
         dirname = os.path.join(output_dir,'runs',str(dir_num))

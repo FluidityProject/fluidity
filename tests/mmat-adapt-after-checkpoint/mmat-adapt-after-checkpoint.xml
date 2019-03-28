@@ -1,9 +1,9 @@
-<?xml version = "1.0" encoding = "UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Multimaterial adaptivity and interpolation test. Tests adapt_at_first_timestep after checkpoint.</name>
   <owner userid="skramer"/>
   <tags>flml 2dadapt</tags>
-  <problem_definition length ="medium" nprocs = "1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v1 -l mmat-interpolation.flml &amp;&amp; ./change_options.py &amp;&amp; fluidity -v1 -l mmat-interpolation_2_checkpoint.flml </command_line>
   </problem_definition>
   <variables>
@@ -210,21 +210,21 @@ lambdaminend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"
       assert(solvers_converged)
     </test>
     <test name="check material1 was conserved" language="python">
-print 'mass loss = ', abs(material1integralstart-material1integralend)
+print('mass loss = ', abs(material1integralstart-material1integralend))
 assert abs(material1integralstart-material1integralend) &lt; max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend), 1.E-10)
-    </test>
+</test>
     <test name="check material2 was conserved" language="python">
-print 'mass loss = ', abs(material2integralstart-material2integralend)
+print('mass loss = ', abs(material2integralstart-material2integralend))
 assert abs(material2integralstart-material2integralend) &lt; max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend), 1.e-10)
-    </test>
+</test>
     <test name="check material3 was conserved" language="python">
-print 'mass loss = ', abs(material3integralstart-material3integralend)
+print('mass loss = ', abs(material3integralstart-material3integralend))
 assert abs(material3integralstart-material3integralend) &lt; max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend), 1.E-10)
-    </test>
+</test>
     <test name="check that reasonable tolerance is being used to test conservation" language="python">
-print 'divergence tolerance = ', max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend))
-assert max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend)) &lt; 4.E-8    
-    </test>
+print('divergence tolerance = ', max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend)))
+assert max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend)) &lt; 4.E-8
+</test>
     <test name="check material1 max bound was conserved" language="python">
 assert abs(material1maxstart-material1maxend) &lt; 1.E-10
     </test>
@@ -256,21 +256,21 @@ assert abs(cflmaxstart-0.1) &lt; 1.E-10
 assert abs(cflmaxend-0.1) &lt; 1.E-10
     </test>
     <test name="check checkpointed material1 was conserved" language="python">
-print 'mass loss = ', abs(material1integralstart_checkpoint-material1integralend_checkpoint)
+print('mass loss = ', abs(material1integralstart_checkpoint-material1integralend_checkpoint))
 assert abs(material1integralstart_checkpoint-material1integralend_checkpoint) &lt; max(abs(divergencemaxstart_checkpoint), abs(divergencemaxend_checkpoint), abs(divergenceminstart_checkpoint), abs(divergenceminend_checkpoint), 1.E-10)
-    </test>
+</test>
     <test name="check checkpointed material2 was conserved" language="python">
-print 'mass loss = ', abs(material2integralstart_checkpoint-material2integralend_checkpoint)
+print('mass loss = ', abs(material2integralstart_checkpoint-material2integralend_checkpoint))
 assert abs(material2integralstart_checkpoint-material2integralend_checkpoint) &lt; max(abs(divergencemaxstart_checkpoint), abs(divergencemaxend_checkpoint), abs(divergenceminstart_checkpoint), abs(divergenceminend_checkpoint), 1.E-10)
-    </test>
+</test>
     <test name="check checkpointed material3 was conserved" language="python">
-print 'mass loss = ', abs(material3integralstart_checkpoint-material3integralend_checkpoint)
+print('mass loss = ', abs(material3integralstart_checkpoint-material3integralend_checkpoint))
 assert abs(material3integralstart_checkpoint-material3integralend_checkpoint) &lt; max(abs(divergencemaxstart_checkpoint), abs(divergencemaxend_checkpoint), abs(divergenceminstart_checkpoint), abs(divergenceminend_checkpoint), 1.E-10)
-    </test>
+</test>
     <test name="check that reasonable tolerance is being used to test checkpointed conservation" language="python">
-print 'divergence tolerance = ', max(abs(divergencemaxstart_checkpoint), abs(divergencemaxend_checkpoint), abs(divergenceminstart_checkpoint), abs(divergenceminend_checkpoint))
-assert max(abs(divergencemaxstart_checkpoint), abs(divergencemaxend_checkpoint), abs(divergenceminstart_checkpoint), abs(divergenceminend_checkpoint)) &lt; 1.E-8    
-    </test>
+print('divergence tolerance = ', max(abs(divergencemaxstart_checkpoint), abs(divergencemaxend_checkpoint), abs(divergenceminstart_checkpoint), abs(divergenceminend_checkpoint)))
+assert max(abs(divergencemaxstart_checkpoint), abs(divergencemaxend_checkpoint), abs(divergenceminstart_checkpoint), abs(divergenceminend_checkpoint)) &lt; 1.E-8
+</test>
     <test name="check checkpointed material1 max bound was conserved" language="python">
 assert abs(material1maxstart_checkpoint-material1maxend_checkpoint) &lt; 1.E-10
     </test>
@@ -302,17 +302,17 @@ assert abs(cflmaxstart_checkpoint-0.1) &lt; 1.E-10
 assert abs(cflmaxend_checkpoint-0.1) &lt; 1.E-10
     </test>
     <test name="check material1 was conserved during pickup" language="python">
-print 'mass loss = ', abs(material1integralstart_checkpoint-material1integralend)
+print('mass loss = ', abs(material1integralstart_checkpoint-material1integralend))
 assert abs(material1integralstart_checkpoint-material1integralend) &lt; max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend), 1.E-10)
-    </test>
+</test>
     <test name="check material2 was conserved during pickup" language="python">
-print 'mass loss = ', abs(material2integralstart_checkpoint-material2integralend)
+print('mass loss = ', abs(material2integralstart_checkpoint-material2integralend))
 assert abs(material2integralstart_checkpoint-material2integralend) &lt; max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend), 1.E-10)
-    </test>
+</test>
     <test name="check material3 was conserved during pickup" language="python">
-print 'mass loss = ', abs(material3integralstart_checkpoint-material3integralend)
+print('mass loss = ', abs(material3integralstart_checkpoint-material3integralend))
 assert abs(material3integralstart_checkpoint-material3integralend) &lt; max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend), 1.E-10)
-    </test>
+</test>
   </pass_tests>
   <warn_tests>
     <test name="check initial max lambda was updated" language="python">

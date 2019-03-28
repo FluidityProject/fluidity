@@ -186,17 +186,17 @@ def main():
   name2 = 'structured'
   logfile1 = 'commerror_'+str(name1)+'.log'
   logfile2 = 'commerror_'+str(name2)+'.log'
-  print 'reading error data from', logfile1, logfile2
+  print('reading error data from', logfile1, logfile2)
   plot_error(name1,logfile1,name2,logfile2)
 
   logfile1 = 'errorconv_'+str(name1)+'.log'
   logfile2 = 'errorconv_'+str(name2)+'.log'
-  print 'reading convergence data from', logfile1, logfile2
+  print('reading convergence data from', logfile1, logfile2)
   plot_convergence(name1,logfile1,name2,logfile2)
 
   logfile1 = 'commconv_'+str(name1)+'.log'
   logfile2 = 'commconv_'+str(name2)+'.log'
-  print 'reading convergence data from', logfile1, logfile2
+  print('reading convergence data from', logfile1, logfile2)
   plot_commconv(name1,logfile1,name2,logfile2)
 
 if __name__ == "__main__":

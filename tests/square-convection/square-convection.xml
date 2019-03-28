@@ -1,33 +1,33 @@
-<?xml version = "1.0" encoding = "UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Square convection (Adaptive CG-test version)</name>
   <owner userid="rhodrid"/>
   <tags>flml 2dadapt</tags>
-  <problem_definition length = "medium" nprocs = "1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>make clean-run-debug; make clean-checkpoint; fluidity -v2 -l square-convection.flml; cd checkpoint; make; fluidity -v2 -l square-convection_50_checkpoint.flml; cd ..</command_line>
   </problem_definition>
   <variables>
-    <variable name = "times" language = "python">
+    <variable name="times" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("square-convection.stat")
 times = s["ElapsedTime"]["value"]
     </variable>
-    <variable name = "timesteps" language = "python">
+    <variable name="timesteps" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("square-convection.stat")
 timesteps = len(s["ElapsedTime"]["value"])
     </variable>
-    <variable name = "max_cfl_numbers" language = "python">
+    <variable name="max_cfl_numbers" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("square-convection.stat")
 max_cfl_numbers = s["Fluid"]["CFLNumber"]["max"]
     </variable>
-    <variable name = "solvers_converged" language = "python">
+    <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
     </variable>
-    <variable name = "final_mid_line_u" language = "python">
+    <variable name="final_mid_line_u" language="python">
 import fluidity.diagnostics.utils as utils
 import fluidity.diagnostics.vtutools as vtktools
 
@@ -43,7 +43,7 @@ z, u = utils.KeyedSort(z, u, returnSortedKeys = True)
 
 final_mid_line_u = [(z[i], u[i]) for i in range(len(z))]
     </variable>
-    <variable name = "final_mid_line_w" language = "python">
+    <variable name="final_mid_line_w" language="python">
 import fluidity.diagnostics.utils as utils
 import fluidity.diagnostics.vtutools as vtktools
 
@@ -59,23 +59,23 @@ x, w = utils.KeyedSort(x, w, returnSortedKeys = True)
 
 final_mid_line_w = [(x[i], w[i]) for i in range(len(x))]
     </variable>
-    <variable name = "psi_mid" language = "python">
+    <variable name="psi_mid" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("square-convection.detectors")
 psi_mid = s["Fluid"]["StreamFunction"]["MidPoint"]
     </variable>
-    <variable name = "left_boundary_average_nus" language = "python">
+    <variable name="left_boundary_average_nus" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("square-convection.stat")
 left_boundary_average_nus = s["Fluid"]["Temperature"]["surface_integral%LeftH"]
     </variable>
-    <variable name = "left_boundary_mid_height_nus" language = "python">
+    <variable name="left_boundary_mid_height_nus" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("square-convection.detectors")
 left_boundary_mid_height_nus = s["Fluid"]["TemperatureGradient"]["LeftBoundaryMidHeight"][0]
 left_boundary_mid_height_nus = [-val for val in left_boundary_mid_height_nus]
     </variable>
-    <variable name = "final_left_boundary_nus" language = "python">
+    <variable name="final_left_boundary_nus" language="python">
 import vtktools
 vtu = vtktools.vtu("square-convection_51.vtu")
 coords = vtu.GetLocations()
@@ -85,7 +85,7 @@ for i, coord in enumerate(coords):
   if coord[0] &lt; 1.0e-6:
     final_left_boundary_nus.append((coord[1], -gradT[i][0]))
     </variable>
-    <variable name = "final_checkpoint_test" language = "python">
+    <variable name="final_checkpoint_test" language="python">
 import os
 final_checkpoint_test = {}
 final_checkpoint_test["square-convection_CoordinateMesh_51_checkpoint.msh"] = True
@@ -96,28 +96,28 @@ for key in final_checkpoint_test.keys():
   except:
     final_checkpoint_test[key] = False
     </variable>
-    <variable name = "picked_up_start_time" language = "python">
+    <variable name="picked_up_start_time" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("checkpoint/square-convection-picked-up.stat")
 picked_up_start_time = s["ElapsedTime"]["value"][0] - s["dt"]["value"][0]
     </variable>
-    <variable name = "picked_up_timesteps" language = "python">
+    <variable name="picked_up_timesteps" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("checkpoint/square-convection-picked-up.stat")
 picked_up_timesteps = len(s["ElapsedTime"]["value"])
     </variable>
-    <variable name = "picked_up_solvers_converged" language = "python">
+    <variable name="picked_up_solvers_converged" language="python">
 import os
 files = os.listdir("./checkpoint")
 picked_up_solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
     </variable>
-    <variable name = "pickup_initial_vtudiff" language = "python">
+    <variable name="pickup_initial_vtudiff" language="python">
 import vtktools
 vtu1 = vtktools.vtu("square-convection_50.vtu")
 vtu2 = vtktools.vtu("checkpoint/square-convection-picked-up_CoordinateMesh_0_checkpoint.vtu")
 pickup_initial_vtudiff = vtktools.VtuDiff(vtu1, vtu2)
     </variable>
-    <variable name = "pickup_final_vtudiff" language = "python">
+    <variable name="pickup_final_vtudiff" language="python">
 import vtktools
 vtu1 = vtktools.vtu("square-convection_51.vtu")
 vtu2 = vtktools.vtu("checkpoint/square-convection-picked-up_1.vtu")
@@ -126,20 +126,20 @@ pickup_final_vtudiff = vtktools.VtuDiff(vtu1, vtu2)
   </variables>
   <pass_tests>
 <!--Crash tests-->
-    <test name = "Simulation completed" language = "python">
+    <test name="Simulation completed" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(times[-1], 0.5, 1.0e-6)
     </test>
-    <test name = "Solvers converged" language = "python">
+    <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
-    <test name = "CFL number" language = "python">
-print max(max_cfl_numbers)
+    <test name="CFL number" language="python">
+print(max(max_cfl_numbers))
 assert(max(max_cfl_numbers) &lt;= 4.0 * 1.2)
-    </test>
+</test>
 <!--Benchmark tests. Testing against benchmark values from:
   G. de Vahl Davis and I. P. Jones, Natural Convection In A Square Cavity: A Comparison Exercise, Int. J. for Num. Meth. in Fluids, vol. 3, 227-248 (1983)-->
-    <test name = "Mid-line umax benchmark" language = "python">
+    <test name="Mid-line umax benchmark" language="python">
 import fluidity_tools
 max = final_mid_line_u[0]
 for z, u in final_mid_line_u[1:]:
@@ -148,7 +148,7 @@ for z, u in final_mid_line_u[1:]:
 fluidity_tools.compare_variable(max[0], 0.813, 0.01)
 fluidity_tools.compare_variable(max[1], 3.649, 0.002)
     </test>
-    <test name = "Mid-line wmax benchmark" language = "python">
+    <test name="Mid-line wmax benchmark" language="python">
 import fluidity_tools
 max = final_mid_line_w[0]
 for x, w in final_mid_line_w[1:]:
@@ -157,81 +157,81 @@ for x, w in final_mid_line_w[1:]:
 fluidity_tools.compare_variable(max[0], 0.178, 0.08)
 fluidity_tools.compare_variable(max[1], 3.697, 0.002)
     </test>
-    <test name = "Mid-point streamfunction converged" language = "python">
+    <test name="Mid-point streamfunction converged" language="python">
 import fluidity_tools
 fluidity_tools.test_steady(psi_mid, 1.0e-3, test_count = 10)
     </test>
-    <test name = "Mid-point streamfunction benchmark" language = "python">
+    <test name="Mid-point streamfunction benchmark" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(abs(psi_mid[-1]), 1.174, 0.002)
     </test>
-    <test name = "Left boundary average Nu converged" language = "python">
+    <test name="Left boundary average Nu converged" language="python">
 import fluidity_tools
 fluidity_tools.test_steady(left_boundary_average_nus, 1.0e-3, test_count = 10)
     </test>
-    <test name = "Left boundary average Nu benchmark" language = "python">
+    <test name="Left boundary average Nu benchmark" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(left_boundary_average_nus[-1], 1.118, 0.003)
     </test>
-    <test name = "Left boundary mid-height Nu converged" language = "python">
+    <test name="Left boundary mid-height Nu converged" language="python">
 import fluidity_tools
 fluidity_tools.test_steady(left_boundary_mid_height_nus, 1.0e-3, test_count = 10)
     </test>
-    <test name = "Left boundary mid-height Nu benchmark" language = "python">
+    <test name="Left boundary mid-height Nu benchmark" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(left_boundary_mid_height_nus[-1], 1.118, 0.03)
     </test>
-    <test name = "Final left boundary Nu extrema benchmarks" language = "python">
+    <test name="Final left boundary Nu extrema benchmarks" language="python">
 import fluidity_tools
 min = final_left_boundary_nus[0]
 max = final_left_boundary_nus[0]
 for z, nu in final_left_boundary_nus[1:]:
-  if nu &lt; min[1]:
-    min = (z, nu)
-  if nu &gt; max[1]:
-    max = (z, nu)
-print "Min Nu = " + str(min[1]) + " at z = " + str(min[0])
-print "Max Nu = " + str(max[1]) + " at z = " + str(max[0])
+    if nu &lt; min[1]:
+        min = (z, nu)
+    if nu &gt; max[1]:
+        max = (z, nu)
+print("Min Nu = " + str(min[1]) + " at z = " + str(min[0]))
+print("Max Nu = " + str(max[1]) + " at z = " + str(max[0]))
 fluidity_tools.compare_variable(min[0], 1.0, 0.1)
 fluidity_tools.compare_variable(min[1], 0.692, 0.03)
 assert(abs(max[0] - 0.092) &lt; 0.1)
 fluidity_tools.compare_variable(max[1], 1.505, 0.01)
-    </test>
+</test>
 <!--Checkpoint and recovery tests-->
-    <test name = "Final checkpoint created" language = "python">
+    <test name="Final checkpoint created" language="python">
 for key in final_checkpoint_test.keys():
   assert(final_checkpoint_test[key])
     </test>
-    <test name = "Picked up simulation started from correct time" language = "python">
+    <test name="Picked up simulation started from correct time" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(picked_up_start_time, times[-2], 1.0e-5)
     </test>
-    <test name = "Picked up simulation completed" language = "python">
+    <test name="Picked up simulation completed" language="python">
 assert(picked_up_timesteps == 1)
     </test>
-    <test name = "Picked up solvers converged" language = "python">
+    <test name="Picked up solvers converged" language="python">
 assert(picked_up_solvers_converged)
     </test>
-    <test name = "Picked up fields" language = "python">
+    <test name="Picked up fields" language="python">
 import fluidity_tools
-assert(len(pickup_initial_vtudiff.GetFieldNames()) > 0)
+assert(len(pickup_initial_vtudiff.GetFieldNames()) &gt; 0)
 for fieldName in pickup_initial_vtudiff.GetFieldNames():
-  print "Testing: " + fieldName
-  field = pickup_initial_vtudiff.GetField(fieldName)
-  maxAbsVal = max(abs(field.max()), abs(field.min()))
-  print "Max abs val = " + str(maxAbsVal)
-  assert(maxAbsVal &lt; 1.0e-6)
-    </test>
-    <test name = "Picked up fields correct after additional timestep" language = "python">
+    print("Testing: " + fieldName)
+    field = pickup_initial_vtudiff.GetField(fieldName)
+    maxAbsVal = max(abs(field.max()), abs(field.min()))
+    print("Max abs val = " + str(maxAbsVal))
+    assert(maxAbsVal &lt; 1.0e-6)
+</test>
+    <test name="Picked up fields correct after additional timestep" language="python">
 import fluidity_tools
-assert(len(pickup_final_vtudiff.GetFieldNames()) > 0)
+assert(len(pickup_final_vtudiff.GetFieldNames()) &gt; 0)
 for fieldName in pickup_final_vtudiff.GetFieldNames():
-  print "Testing: " + fieldName
-  field = pickup_final_vtudiff.GetField(fieldName)
-  maxAbsVal = max(abs(field.max()), abs(field.min()))
-  print "Max abs val = " + str(maxAbsVal)
-  assert(maxAbsVal &lt; 1.0e-6)
-    </test>
+    print("Testing: " + fieldName)
+    field = pickup_final_vtudiff.GetField(fieldName)
+    maxAbsVal = max(abs(field.max()), abs(field.min()))
+    print("Max abs val = " + str(maxAbsVal))
+    assert(maxAbsVal &lt; 1.0e-6)
+</test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

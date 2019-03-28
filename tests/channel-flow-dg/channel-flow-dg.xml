@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>channel-flow-dg</name>
   <owner userid="dham"/>
@@ -16,12 +16,13 @@ from fluidity_tools import stat_parser
 layers=numpy.array([ 4, 8, 16])
 error=[]
 for layer in layers:
-        s=stat_parser("channel-flow-dg-"+`layer`+".stat")
-        error.append((s["Water"]['AnalyticUVelocitySolutionError']['l2norm'][-1],
-        s["Water"]['AnalyticPressureSolutionError']['l2norm'][-1]))
+    s=stat_parser("channel-flow-dg-"+repr(layer)+".stat")
+    error.append((s["Water"]['AnalyticUVelocitySolutionError']['l2norm'][-1],
+    s["Water"]['AnalyticPressureSolutionError']['l2norm'][-1]))
 
 error=numpy.array(error)
-convergence=numpy.log(error[:-1,:]/error[1:,:])/numpy.log(numpy.matrix(layers[1:]/layers[:-1]).T*numpy.matrix([1,1]))</variable>
+convergence=numpy.log(error[:-1,:]/error[1:,:])/numpy.log(numpy.matrix(layers[1:]/layers[:-1]).T*numpy.matrix([1,1]))
+</variable>
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">

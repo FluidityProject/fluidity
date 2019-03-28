@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import glob
 import sys
 import numpy
@@ -9,7 +11,7 @@ def inflow_data(plane):
   # Ignore file header
   ignore=3
   ercoftac = open('x.'+str(plane), 'r')
-  print "reading in data from file: x."+str(plane)
+  print("reading in data from file: x."+str(plane))
   for line in range(ignore):
     ercoftac.readline()
   

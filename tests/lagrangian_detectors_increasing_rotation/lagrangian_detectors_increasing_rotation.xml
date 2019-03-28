@@ -55,7 +55,7 @@ for i in range(100):
     name = 'Steve_' + str(i+1).zfill(3)
     last_locations_error[0,i] = s[name]['position'][0][-1] - X[i]
     last_locations_error[1,i] = s[name]['position'][1][-1] - Y[i]
-print "max error",abs(last_locations_error).max()
+print("max error",abs(last_locations_error).max())
     </variable>
   </variables>
   <pass_tests>

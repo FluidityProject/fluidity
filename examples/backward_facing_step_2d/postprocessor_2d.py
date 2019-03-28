@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import glob
 import sys
 import os
@@ -69,18 +71,18 @@ def sort_nicely(l):
 # Reattachment length:
 def reattachment_length(filelist):
 
-  print "Calculating reattachment point locations using change of x-velocity sign\n"
+  print("Calculating reattachment point locations using change of x-velocity sign\n")
 
   nums=[]; results=[]; files = []
   ##### check for no files
   if (len(filelist) == 0):
-    print "No files!"
+    print("No files!")
     sys.exit(1)
   for file in filelist:
     try:
       os.stat(file)
     except:
-      print "No such file: %s" % file
+      print("No such file: %s" % file)
       sys.exit(1)
     files.append(file)
   sort_nicely(files)
@@ -90,7 +92,7 @@ def reattachment_length(filelist):
     datafile = vtktools.vtu(file)
     ##### Get time for plot:
     t = min(datafile.GetScalarField("Time"))
-    print file, ', elapsed time = ', t
+    print(file, ', elapsed time = ', t)
 
     ##### points near bottom surface, 0 < x < 20
     pts=[]; no_pts = 82; offset = 0.01
@@ -113,13 +115,13 @@ def reattachment_length(filelist):
       if((u[i] / u[i+1]) < 0. and u[i+1] > 0. and not numpy.isinf(u[i] / u[i+1])):
         ##### interpolate between nodes. Correct for origin not at step.
         p = pts[i][0] + (pts[i+1][0]-pts[i][0]) * (0.0-u[i]) / (u[i+1]-u[i]) -5.0
-        print 'p ', p
+        print('p ', p)
         ##### Ignore spurious corner points
         if(p>2):
           points = p
           ##### We have our first point on this plane so...
           break
-    print "reattachment point found at: ", points
+    print("reattachment point found at: ", points)
 
     ##### Append actual reattachment point and time:
     results.append([points,t])
@@ -131,7 +133,7 @@ def reattachment_length(filelist):
 # Velocity profiles:
 def meanvelo(file,x,y):
 
-  print "\nRunning velocity profile script on files at times...\n"
+  print("\nRunning velocity profile script on files at times...\n")
 
   ##### create array of points. Correct for origin not at step.
   pts=[]
@@ -153,7 +155,7 @@ def meanvelo(file,x,y):
     u[i,:] = u[i,:]/umax
   profiles[:,:] = u
 
-  print "\n...Finished writing data files.\n"
+  print("\n...Finished writing data files.\n")
   return profiles
 
 #########################################################################
@@ -187,65 +189,65 @@ def plot_meanvelo(type,profiles,xarray,yarray):
 
   # get profiles from Ilinca's experimental/numerical data
   datafile = open('../Ilinca-data/Ilinca-U-expt-1.33.dat', 'r')
-  print "reading in data from file: Ilinca-U-expt-1.33.dat"
+  print("reading in data from file: Ilinca-U-expt-1.33.dat")
   y1=[];U1=[]
   for line in datafile:
     U1.append(float(line.split()[0]))
     y1.append(float(line.split()[1]))
   datafile = open('../Ilinca-data/Ilinca-U-num-1.33.dat', 'r')
-  print "reading in data from file: Ilinca-U-num-1.33.dat"
+  print("reading in data from file: Ilinca-U-num-1.33.dat")
   yn1=[];Un1=[]
   for line in datafile:
     Un1.append(float(line.split()[0]))
     yn1.append(float(line.split()[1]))
 
   datafile = open('../Ilinca-data/Ilinca-U-expt-2.66.dat', 'r')
-  print "reading in data from file: Ilinca-U-expt-2.66.dat"
+  print("reading in data from file: Ilinca-U-expt-2.66.dat")
   y3=[];U3=[]
   for line in datafile:
     U3.append(float(line.split()[0]))
     y3.append(float(line.split()[1]))
   datafile = open('../Ilinca-data/Ilinca-U-num-2.66.dat', 'r')
-  print "reading in data from file: Ilinca-U-num-2.66.dat"
+  print("reading in data from file: Ilinca-U-num-2.66.dat")
   yn3=[];Un3=[]
   for line in datafile:
     Un3.append(float(line.split()[0]))
     yn3.append(float(line.split()[1]))
 
   datafile = open('../Ilinca-data/Ilinca-U-expt-5.33.dat', 'r')
-  print "reading in data from file: Ilinca-U-expt-5.33.dat"
+  print("reading in data from file: Ilinca-U-expt-5.33.dat")
   y5=[];U5=[]
   for line in datafile:
     U5.append(float(line.split()[0]))
     y5.append(float(line.split()[1]))
   datafile = open('../Ilinca-data/Ilinca-U-num-5.33.dat', 'r')
-  print "reading in data from file: Ilinca-U-num-5.33.dat"
+  print("reading in data from file: Ilinca-U-num-5.33.dat")
   yn5=[];Un5=[]
   for line in datafile:
     Un5.append(float(line.split()[0]))
     yn5.append(float(line.split()[1]))
 
   datafile = open('../Ilinca-data/Ilinca-U-expt-8.0.dat', 'r')
-  print "reading in data from file: Ilinca-U-expt-8.0.dat"
+  print("reading in data from file: Ilinca-U-expt-8.0.dat")
   y8=[];U8=[]
   for line in datafile:
     U8.append(float(line.split()[0]))
     y8.append(float(line.split()[1]))
   datafile = open('../Ilinca-data/Ilinca-U-num-8.0.dat', 'r')
-  print "reading in data from file: Ilinca-U-num-8.0.dat"
+  print("reading in data from file: Ilinca-U-num-8.0.dat")
   yn8=[];Un8=[]
   for line in datafile:
     Un8.append(float(line.split()[0]))
     yn8.append(float(line.split()[1]))
 
   datafile = open('../Ilinca-data/Ilinca-U-expt-16.0.dat', 'r')
-  print "reading in data from file: Ilinca-U-expt-16.0.dat"
+  print("reading in data from file: Ilinca-U-expt-16.0.dat")
   y16=[];U16=[]
   for line in datafile:
     U16.append(float(line.split()[0]))
     y16.append(float(line.split()[1]))
   datafile = open('../Ilinca-data/Ilinca-U-num-16.0.dat', 'r')
-  print "reading in data from file: Ilinca-U-num-16.0.dat"
+  print("reading in data from file: Ilinca-U-num-16.0.dat")
   yn16=[];Un16=[]
   for line in datafile:
     Un16.append(float(line.split()[0]))
@@ -349,7 +351,7 @@ def main():
     plot_meanvelo(type,profiles,xarray,yarray)
     pylab.show()
 
-    print "\nAll done.\n"
+    print("\nAll done.\n")
 
 
 if __name__ == "__main__":
