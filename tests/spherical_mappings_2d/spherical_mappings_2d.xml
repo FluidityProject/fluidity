@@ -261,7 +261,7 @@ assert all(abs(super_gradient_inner_surfaceintegrals-2*R1*pi/nsegments)/(2*R1*pi
 </test>
     <test name="super_gradient_outer_surfaceintegrals" language="python">from math import pi
 print(abs(super_gradient_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments))
-assert all(abs(super_gradient_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments) &lt; 0.003)
+assert all(abs(super_gradient_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments) &lt; 0.05)
 </test>
     <test name="super_inner_surfaceintegrals_equal" language="python">print(abs(super_inner_surfaceintegrals[1:]-super_inner_surfaceintegrals[0]))
 assert all(abs(super_inner_surfaceintegrals[1:]-super_inner_surfaceintegrals[0]) &lt; 1.e-6)

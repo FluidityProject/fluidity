@@ -54,7 +54,7 @@
             </bottom_depth>
             <sizing_function>
               <constant>
-                <real_value rank="0">2</real_value>
+                <real_value rank="0">1.4</real_value>
               </constant>
             </sizing_function>
             <top_surface_id>
@@ -75,7 +75,7 @@
             </bottom_depth>
             <sizing_function>
               <constant>
-                <real_value rank="0">2</real_value>
+                <real_value rank="0">1.4</real_value>
               </constant>
             </sizing_function>
             <top_surface_id>
@@ -96,7 +96,7 @@
             </bottom_depth>
             <sizing_function>
               <constant>
-                <real_value rank="0">2</real_value>
+                <real_value rank="0">1.4</real_value>
               </constant>
             </sizing_function>
             <top_surface_id>
@@ -117,7 +117,7 @@
             </bottom_depth>
             <sizing_function>
               <constant>
-                <real_value rank="0">2</real_value>
+                <real_value rank="0">1.4</real_value>
               </constant>
             </sizing_function>
             <top_surface_id>
@@ -138,7 +138,7 @@
             </bottom_depth>
             <sizing_function>
               <constant>
-                <real_value rank="0">2</real_value>
+                <real_value rank="0">1.4</real_value>
               </constant>
             </sizing_function>
             <top_surface_id>
@@ -159,7 +159,7 @@
             </bottom_depth>
             <sizing_function>
               <constant>
-                <real_value rank="0">2</real_value>
+                <real_value rank="0">1.4</real_value>
               </constant>
             </sizing_function>
             <top_surface_id>
@@ -180,7 +180,7 @@
             </bottom_depth>
             <sizing_function>
               <constant>
-                <real_value rank="0">2</real_value>
+                <real_value rank="0">1.4</real_value>
               </constant>
             </sizing_function>
             <top_surface_id>
@@ -201,7 +201,7 @@
             </bottom_depth>
             <sizing_function>
               <constant>
-                <real_value rank="0">2</real_value>
+                <real_value rank="0">1.4</real_value>
               </constant>
             </sizing_function>
             <top_surface_id>
