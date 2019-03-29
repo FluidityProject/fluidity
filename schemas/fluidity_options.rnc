@@ -325,65 +325,70 @@ start =
                }?
             }?
          },
-	 ## Particle options
+	 ## Particle options. Particles, like Lagrangian detectors, move with a specified velocity field.
+	 ## In addition, particles can carry attributes, being properties of the particles. These attributes
+	 ## can be constant, or based on a python expression that depends on other attribute values, at the end
+	 ## of the previous timestep, or field values interpolated at the particle location. Planned future
+	 ## functionality includes the ability to spawn and delete particles to ensure sufficient particles are
+	 ## present in every region, and the ability to interpolate from particles back to the (Eulerian) mesh.
 	 element particles {
 	    (
-		  ## Particles groups containing multiple particle arrays or subgroups. The particle group specifies
-		  ## which velocity field is used, as well as attributes carried and (eventually) spawning
-		  ## and deleting options.
-                  element particle_group {
-                     attribute name { xsd:string },
-		     element velocity_field {
-		     attribute name { xsd:string }
-		     },
-		     ## Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
-		     ## and carry the same attributes. Subgroups can have different initial positions specified via a python
-		     ## function of from a file.
-		     element particle_subgroup {
-		        attribute name { xsd:string },
-                     	## The number of particles prescribed by the python function.
-                     	element number_of_particles {
-                           integer
-                     	},
-		        (
-		          ##Initial position of particles
-		          element initial_position {
-                             ## Python function prescribing dimensional vector input. Functions should be of the form:
-                             ##
-                             ##  def val(t):
-                             ##     # Function code
-                             ##     return # Return value
-                             ##
-                             ## The return value must have length number_of_particles.
-                             ##
-                             ## *** IMPORTANT NOTE ***
-                             ##
-                             ## The t argument is for future use only - currently particle locations are only set at simulation start.
-                             element python {
-                                python_code
-                             }|
-                             ## File containing the particle positions in binary form
-                             element from_file {
-                                attribute file_name { xsd:string },
-                                ## The format of the input file containing field data.
-                                element format {
-                                   element string_value {
-                                      "binary"
-                              	   }
-                                }
-			     }
-                          } 
-                        ),
-		        (
-		          ##Define particle attributes
-		          element attributes {
-		       	     element attribute {
-		                attribute name { xsd:string },
-			        generic_particle_field
-			     }+
-		          }?
-		        )
-                     }+
+	       ## Particles groups containing multiple particle arrays or subgroups. The particle group specifies
+	       ## which velocity field is used, as well as attributes carried and (eventually) spawning
+	       ## and deleting options.
+               element particle_group {
+                  attribute name { xsd:string },
+		  element velocity_field {
+		  attribute name { xsd:string }
+		  },
+		  ## Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
+		  ## and carry the same attributes. Subgroups can have different initial positions specified via a python
+		  ## function of from a file.
+		  element particle_subgroup {
+		     attribute name { xsd:string },
+                     ## The number of particles prescribed by the python function.
+                     element number_of_particles {
+                        integer
+                     },
+		     (
+		        ##Initial position of particles
+		        element initial_position {
+                           ## Python function prescribing dimensional vector input. Functions should be of the form:
+                           ##
+                           ##  def val(t):
+                           ##     # Function code
+                           ##     return # Return value
+                           ##
+                           ## The return value must have length number_of_particles.
+                           ##
+                           ## *** IMPORTANT NOTE ***
+                           ##
+                           ## The t argument is for future use only - currently particle locations are only set at simulation start.
+                           element python {
+                              python_code
+                           }|
+                           ## File containing the particle positions in binary form
+                           element from_file {
+                              attribute file_name { xsd:string },
+                              ## The format of the input file containing field data.
+                              element format {
+                                 element string_value {
+                                    "binary"
+                              	 }
+                              }
+			   }
+                        } 
+                     ),
+		     (
+		       ##Define particle attributes
+		       element attributes {
+		       	  element attribute {
+		             attribute name { xsd:string },
+			     generic_particle_attribute_choice
+			  }+
+		       }?
+		     )
+                  }+
 	       }+
 	    )*,
 	    (
@@ -2750,7 +2755,6 @@ diagnostic_vector_field =
       diagnostic_vector_stat_options,
       vector_convergence_options,      
       diagnostic_detector_options,
-      diagnostic_particle_options,
       vector_steady_state_options,      
       adaptivity_options_vector_field,
       recalculation_options?,
@@ -3684,52 +3688,52 @@ generic_aliased_field =
       attribute field_name { xsd:string }
    )
 
-generic_particle_field =
+generic_particle_attribute_choice =
    (
-   ## Constant value
-   element constant {
-      real
-   }|
-   ## Python function prescribing real input. Functions should be of the form:
-   ##
-   ##  def val(X, t):
-   ##     # Function code
-   ##     return # Return value
-   ##
-   ## where X is a tuple of length geometry dimension.
-   element python {
-      python_code
-   }|
-   ## Python function prescribing real input. Functions should be of the form:
-   ##
-   ##  def val (X, t, fields):
-   ##     # Function code
-   ##     return # Return value
-   ##
-   ##	where X is a tuple of length geometry dimension.
-   ##
-   ##  E.g. if Temperature field and x position are required
-   ##  def val (X, t, fields):
-   ##    x = X[0]
-   ##    y = x + fields["Temperature"]
-   ##    return y
-   element python_fields {
-      python_code,
-      ## Store attribute values from previous timestep on particles.
-      element store_old_attribute {
-      	      comment
-	      }?
-   }|
-   ## File containing the particle positions in binary form
-   element from_checkpoint_file {
-      attribute file_name { xsd:string },
-       ## The format of the input file containing field data.
-       element format {
-          element string_value {
-              "binary"
-          }
-       }
-   }
+      ## Constant value
+      element constant {
+         real
+      }|
+      ## Python function prescribing real input. Functions should be of the form:
+      ##
+      ##  def val(X, t):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ## where X is a tuple of length geometry dimension.
+      element python {
+      	 python_code
+      }|
+      ## Python function prescribing real input. Functions should be of the form:
+      ##
+      ##  def val (X, t, fields):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ##	where X is a tuple of length geometry dimension.
+      ##
+      ##  E.g. if Temperature field and x position are required
+      ##  def val (X, t, fields):
+      ##    x = X[0]
+      ##    y = x + fields["Temperature"]
+      ##    return y
+      element python_fields {
+      	 python_code,
+      	 ## Store attribute values from previous timestep on particles.
+         element store_old_attribute {
+      	    comment
+	 }?
+      }|
+      ## File containing the particle positions in binary form
+      element from_checkpoint_file {
+         attribute file_name { xsd:string },
+       	 ## The format of the input file containing field data.
+         element format {
+            element string_value {
+               "binary"
+            }
+         }
+      }
    )
 
 # This is the choice of additional scalar field to be solved for

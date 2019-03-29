@@ -402,7 +402,12 @@ NOTE: Requires -v2</a:documentation>
       </element>
       <optional>
         <element name="particles">
-          <a:documentation>Particle options</a:documentation>
+          <a:documentation>Particle options. Particles, like Lagrangian detectors, move with a specified velocity field.
+In addition, particles can carry attributes, being properties of the particles. These attributes
+can be constant, or based on a python expression that depends on other attribute values, at the end
+of the previous timestep, or field values interpolated at the particle location. Planned future
+functionality includes the ability to spawn and delete particles to ensure sufficient particles are
+present in every region, and the ability to interpolate from particles back to the (Eulerian) mesh.</a:documentation>
           <zeroOrMore>
             <oneOrMore>
               <element name="particle_group">
@@ -468,7 +473,7 @@ The t argument is for future use only - currently particle locations are only se
                             <attribute name="name">
                               <data type="string"/>
                             </attribute>
-                            <ref name="generic_particle_field"/>
+                            <ref name="generic_particle_attribute_choice"/>
                           </element>
                         </oneOrMore>
                       </element>
@@ -3673,7 +3678,6 @@ guided search particle tracking</a:documentation>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="vector_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
-    <ref name="diagnostic_particle_options"/>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_vector_field"/>
     <optional>
@@ -4757,7 +4761,7 @@ i.e. excluding the components</a:documentation>
       <data type="string"/>
     </attribute>
   </define>
-  <define name="generic_particle_field">
+  <define name="generic_particle_attribute_choice">
     <choice>
       <element name="constant">
         <a:documentation>Constant value</a:documentation>
