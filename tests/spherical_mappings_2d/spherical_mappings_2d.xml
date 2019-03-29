@@ -138,35 +138,38 @@ import numpy
 stat = stat_parser("super_analytic.stat")
 super_analytic_gradient_outer_surfaceintegrals = numpy.array([stat["State"]["RadiusP1"]["surface_integral%"+repr(i)][-1] for i in range(9,17)])
 </variable>
+<variable name="R1" language="python">R1=1.2</variable>
+<variable name="R2" language="python">R2=2.7</variable>
+<variable name="nsegments" language="python">nsegments=8</variable>
   </variables>
   <pass_tests>
     <test name="linear_integral" language="python">from math import pi
-print(abs(linear_integral-5.85*pi)/(5.85*pi))
-assert abs(linear_integral-5.85*pi)/(5.85*pi) &lt; 0.1
+print(abs(linear_integral-(R2**2-R1**2)*pi)/((R2**2-R1**2)*pi))
+assert abs(linear_integral-(R2**2-R1**2)*pi)/((R2**2-R1**2)*pi) &lt; 0.1
 </test>
     <test name="linear_inner_surfaceintegrals" language="python">from math import pi
-print(abs(linear_inner_surfaceintegrals-0.3*pi)/(0.3*pi))
-assert all(abs(linear_inner_surfaceintegrals-0.3*pi)/(0.3*pi) &lt; 0.03)
+print(abs(linear_inner_surfaceintegrals-2*R1*pi/nsegments)/(2*R1*pi/nsegments))
+assert all(abs(linear_inner_surfaceintegrals-2*R1*pi/nsegments)/(2*R1*pi/nsegments) &lt; 0.03)
 </test>
     <test name="linear_outer_surfaceintegrals" language="python">from math import pi
-print(abs(linear_outer_surfaceintegrals-0.675*pi)/(0.675*pi))
-assert all(abs(linear_outer_surfaceintegrals-0.675*pi)/(0.675*pi) &lt; 0.03)
+print(abs(linear_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments))
+assert all(abs(linear_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments) &lt; 0.03)
 </test>
     <test name="linear_radius_inner_surfaceintegrals" language="python">from math import pi
-print(abs(linear_radius_inner_surfaceintegrals-0.36*pi)/(0.36*pi))
-assert all(abs(linear_radius_inner_surfaceintegrals-0.36*pi)/(0.36*pi) &lt; 0.08)
+print(abs(linear_radius_inner_surfaceintegrals-2*R1**2*pi/nsegments)/(2*R1**2*pi/nsegments))
+assert all(abs(linear_radius_inner_surfaceintegrals-2*R1**2*pi/nsegments)/(2*R1**2*pi/nsegments) &lt; 0.08)
 </test>
     <test name="linear_radius_outer_surfaceintegrals" language="python">from math import pi
-print(abs(linear_radius_outer_surfaceintegrals-1.8225*pi)/(1.8225*pi))
-assert all(abs(linear_radius_outer_surfaceintegrals-1.8225*pi)/(1.8225*pi) &lt; 0.08)
+print(abs(linear_radius_outer_surfaceintegrals-2*R2**2*pi/nsegments)/(2*R2**2*pi/nsegments))
+assert all(abs(linear_radius_outer_surfaceintegrals-2*R2**2*pi/nsegments)/(2*R2**2*pi/nsegments) &lt; 0.08)
 </test>
     <test name="linear_gradient_inner_surfaceintegrals" language="python">from math import pi
-print(abs(linear_gradient_inner_surfaceintegrals-0.3*pi)/(0.3*pi))
-assert all(abs(linear_gradient_inner_surfaceintegrals-0.3*pi)/(0.3*pi) &lt; 0.06)
+print(abs(linear_gradient_inner_surfaceintegrals-2*R1*pi/nsegments)/(2*R1*pi/nsegments))
+assert all(abs(linear_gradient_inner_surfaceintegrals-2*R1*pi/nsegments)/(2*R1*pi/nsegments) &lt; 0.06)
 </test>
     <test name="linear_gradient_outer_surfaceintegrals" language="python">from math import pi
-print(abs(linear_gradient_outer_surfaceintegrals-0.675*pi)/(0.675*pi))
-assert all(abs(linear_gradient_outer_surfaceintegrals-0.675*pi)/(0.675*pi) &lt; 0.06)
+print(abs(linear_gradient_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments))
+assert all(abs(linear_gradient_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments) &lt; 0.06)
 </test>
     <test name="linear_inner_surfaceintegrals_equal" language="python">print(abs(linear_inner_surfaceintegrals[1:]-linear_inner_surfaceintegrals[0]))
 assert all(abs(linear_inner_surfaceintegrals[1:]-linear_inner_surfaceintegrals[0]) &lt; 1.e-6)
@@ -187,32 +190,32 @@ assert all(abs(linear_gradient_inner_surfaceintegrals[1:]-linear_gradient_inner_
 assert all(abs(linear_gradient_outer_surfaceintegrals[1:]-linear_gradient_outer_surfaceintegrals[0]) &lt; 1.e-6)
 </test>
     <test name="analytic_integral" language="python">from math import pi
-print(abs(analytic_integral-5.85*pi)/(5.85*pi))
-assert abs(analytic_integral-5.85*pi)/(5.85*pi) &lt; 1.e-4
+print(abs(analytic_integral-(R2**2-R1**2)*pi)/((R2**2-R1**2)*pi))
+assert abs(analytic_integral-(R2**2-R1**2)*pi)/((R2**2-R1**2)*pi) &lt; 1.e-4
 </test>
     <test name="analytic_inner_surfaceintegrals" language="python">from math import pi
-print(abs(analytic_inner_surfaceintegrals-0.3*pi)/(0.3*pi))
-assert all(abs(analytic_inner_surfaceintegrals-0.3*pi)/(0.3*pi) &lt; 1.e-6)
+print(abs(analytic_inner_surfaceintegrals-2*R1*pi/nsegments)/(2*R1*pi/nsegments))
+assert all(abs(analytic_inner_surfaceintegrals-2*R1*pi/nsegments)/(2*R1*pi/nsegments) &lt; 1.e-6)
 </test>
     <test name="analytic_outer_surfaceintegrals" language="python">from math import pi
-print(abs(analytic_outer_surfaceintegrals-0.675*pi)/(0.675*pi))
-assert all(abs(analytic_outer_surfaceintegrals-0.675*pi)/(0.675*pi) &lt; 1.e-6)
+print(abs(analytic_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments))
+assert all(abs(analytic_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments) &lt; 1.e-6)
 </test>
     <test name="analytic_radius_inner_surfaceintegrals" language="python">from math import pi
-print(abs(analytic_radius_inner_surfaceintegrals-0.36*pi)/(0.36*pi))
-assert all(abs(analytic_radius_inner_surfaceintegrals-0.36*pi)/(0.36*pi) &lt; 0.06)
+print(abs(analytic_radius_inner_surfaceintegrals-2*R1**2*pi/nsegments)/(2*R1**2*pi/nsegments))
+assert all(abs(analytic_radius_inner_surfaceintegrals-2*R1**2*pi/nsegments)/(2*R1**2*pi/nsegments) &lt; 0.06)
 </test>
     <test name="analytic_radius_outer_surfaceintegrals" language="python">from math import pi
-print(abs(analytic_radius_outer_surfaceintegrals-1.8225*pi)/(1.8225*pi))
-assert all(abs(analytic_radius_outer_surfaceintegrals-1.8225*pi)/(1.8225*pi) &lt; 0.06)
+print(abs(analytic_radius_outer_surfaceintegrals-2*R2**2*pi/nsegments)/(2*R2**2*pi/nsegments))
+assert all(abs(analytic_radius_outer_surfaceintegrals-2*R2**2*pi/nsegments)/(2*R2**2*pi/nsegments) &lt; 0.06)
 </test>
     <test name="analytic_gradient_inner_surfaceintegrals" language="python">from math import pi
-print(abs(analytic_gradient_inner_surfaceintegrals-0.3*pi)/(0.3*pi))
-assert all(abs(analytic_gradient_inner_surfaceintegrals-0.3*pi)/(0.3*pi) &lt; 1.e-6)
+print(abs(analytic_gradient_inner_surfaceintegrals-2*R1*pi/nsegments)/(2*R1*pi/nsegments))
+assert all(abs(analytic_gradient_inner_surfaceintegrals-2*R1*pi/nsegments)/(2*R1*pi/nsegments) &lt; 1.e-6)
 </test>
     <test name="analytic_gradient_outer_surfaceintegrals" language="python">from math import pi
-print(abs(analytic_gradient_outer_surfaceintegrals-0.675*pi)/(0.675*pi))
-assert all(abs(analytic_gradient_outer_surfaceintegrals-0.675*pi)/(0.675*pi) &lt; 1.e-6)
+print(abs(analytic_gradient_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments))
+assert all(abs(analytic_gradient_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments) &lt; 1.e-6)
 </test>
     <test name="analytic_inner_surfaceintegrals_equal" language="python">print(abs(analytic_inner_surfaceintegrals[1:]-analytic_inner_surfaceintegrals[0]))
 assert all(abs(analytic_inner_surfaceintegrals[1:]-analytic_inner_surfaceintegrals[0]) &lt; 1.e-6)
@@ -233,32 +236,32 @@ assert all(abs(analytic_gradient_inner_surfaceintegrals[1:]-analytic_gradient_in
 assert all(abs(analytic_gradient_outer_surfaceintegrals[1:]-analytic_gradient_outer_surfaceintegrals[0]) &lt; 1.e-6)
 </test>
     <test name="super_integral" language="python">from math import pi
-print(abs(super_integral-5.85*pi)/(5.85*pi))
-assert abs(super_integral-5.85*pi)/(5.85*pi) &lt; 0.001
+print(abs(super_integral-(R2**2-R1**2)*pi)/((R2**2-R1**2)*pi))
+assert abs(super_integral-(R2**2-R1**2)*pi)/((R2**2-R1**2)*pi) &lt; 0.001
 </test>
     <test name="super_inner_surfaceintegrals" language="python">from math import pi
-print(abs(super_inner_surfaceintegrals-0.3*pi)/(0.3*pi))
-assert all(abs(super_inner_surfaceintegrals-0.3*pi)/(0.3*pi) &lt; 0.001)
+print(abs(super_inner_surfaceintegrals-2*R1*pi/nsegments)/(2*R1*pi/nsegments))
+assert all(abs(super_inner_surfaceintegrals-2*R1*pi/nsegments)/(2*R1*pi/nsegments) &lt; 0.001)
 </test>
     <test name="super_outer_surfaceintegrals" language="python">from math import pi
-print(abs(super_outer_surfaceintegrals-0.675*pi)/(0.675*pi))
-assert all(abs(super_outer_surfaceintegrals-0.675*pi)/(0.675*pi) &lt; 0.001)
+print(abs(super_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments))
+assert all(abs(super_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments) &lt; 0.001)
 </test>
     <test name="super_radius_inner_surfaceintegrals" language="python">from math import pi
-print(abs(super_radius_inner_surfaceintegrals-0.36*pi)/(0.36*pi))
-assert all(abs(super_radius_inner_surfaceintegrals-0.36*pi)/(0.36*pi) &lt; 0.001)
+print(abs(super_radius_inner_surfaceintegrals-2*R1**2*pi/nsegments)/(2*R1**2*pi/nsegments))
+assert all(abs(super_radius_inner_surfaceintegrals-2*R1**2*pi/nsegments)/(2*R1**2*pi/nsegments) &lt; 0.001)
 </test>
     <test name="super_radius_outer_surfaceintegrals" language="python">from math import pi
-print(abs(super_radius_outer_surfaceintegrals-1.8225*pi)/(1.8225*pi))
-assert all(abs(super_radius_outer_surfaceintegrals-1.8225*pi)/(1.8225*pi) &lt; 0.001)
+print(abs(super_radius_outer_surfaceintegrals-2*R2**2*pi/nsegments)/(2*R2**2*pi/nsegments))
+assert all(abs(super_radius_outer_surfaceintegrals-2*R2**2*pi/nsegments)/(2*R2**2*pi/nsegments) &lt; 0.001)
 </test>
     <test name="super_gradient_inner_surfaceintegrals" language="python">from math import pi
-print(abs(super_gradient_inner_surfaceintegrals-0.3*pi)/(0.3*pi))
-assert all(abs(super_gradient_inner_surfaceintegrals-0.3*pi)/(0.3*pi) &lt; 0.07)
+print(abs(super_gradient_inner_surfaceintegrals-2*R1*pi/nsegments)/(2*R1*pi/nsegments))
+assert all(abs(super_gradient_inner_surfaceintegrals-2*R1*pi/nsegments)/(2*R1*pi/nsegments) &lt; 0.07)
 </test>
     <test name="super_gradient_outer_surfaceintegrals" language="python">from math import pi
-print(abs(super_gradient_outer_surfaceintegrals-0.675*pi)/(0.675*pi))
-assert all(abs(super_gradient_outer_surfaceintegrals-0.675*pi)/(0.675*pi) &lt; 0.003)
+print(abs(super_gradient_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments))
+assert all(abs(super_gradient_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments) &lt; 0.003)
 </test>
     <test name="super_inner_surfaceintegrals_equal" language="python">print(abs(super_inner_surfaceintegrals[1:]-super_inner_surfaceintegrals[0]))
 assert all(abs(super_inner_surfaceintegrals[1:]-super_inner_surfaceintegrals[0]) &lt; 1.e-6)
@@ -279,32 +282,32 @@ assert all(abs(super_gradient_inner_surfaceintegrals[1:]-super_gradient_inner_su
 assert all(abs(super_gradient_outer_surfaceintegrals[1:]-super_gradient_outer_surfaceintegrals[0]) &lt; 1.e-6)
 </test>
     <test name="super_analytic_integral" language="python">from math import pi
-print(abs(super_analytic_integral-5.85*pi)/(5.85*pi))
-assert abs(super_analytic_integral-5.85*pi)/(5.85*pi) &lt; 1.e-4
+print(abs(super_analytic_integral-(R2**2-R1**2)*pi)/((R2**2-R1**2)*pi))
+assert abs(super_analytic_integral-(R2**2-R1**2)*pi)/((R2**2-R1**2)*pi) &lt; 1.e-4
 </test>
     <test name="super_analytic_inner_surfaceintegrals" language="python">from math import pi
-print(abs(super_analytic_inner_surfaceintegrals-0.3*pi)/(0.3*pi))
-assert all(abs(super_analytic_inner_surfaceintegrals-0.3*pi)/(0.3*pi) &lt; 1.e-8)
+print(abs(super_analytic_inner_surfaceintegrals-2*R1*pi/nsegments)/(2*R1*pi/nsegments))
+assert all(abs(super_analytic_inner_surfaceintegrals-2*R1*pi/nsegments)/(2*R1*pi/nsegments) &lt; 1.e-8)
 </test>
     <test name="super_analytic_outer_surfaceintegrals" language="python">from math import pi
-print(abs(super_analytic_outer_surfaceintegrals-0.675*pi)/(0.675*pi))
-assert all(abs(super_analytic_outer_surfaceintegrals-0.675*pi)/(0.675*pi) &lt; 1.e-8)
+print(abs(super_analytic_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments))
+assert all(abs(super_analytic_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments) &lt; 1.e-8)
 </test>
     <test name="super_analytic_radius_inner_surfaceintegrals" language="python">from math import pi
-print(abs(super_analytic_radius_inner_surfaceintegrals-0.36*pi)/(0.36*pi))
-assert all(abs(super_analytic_radius_inner_surfaceintegrals-0.36*pi)/(0.36*pi) &lt; 1.e-8)
+print(abs(super_analytic_radius_inner_surfaceintegrals-2*R1**2*pi/nsegments)/(2*R1**2*pi/nsegments))
+assert all(abs(super_analytic_radius_inner_surfaceintegrals-2*R1**2*pi/nsegments)/(2*R1**2*pi/nsegments) &lt; 1.e-8)
 </test>
     <test name="super_analytic_radius_outer_surfaceintegrals" language="python">from math import pi
-print(abs(super_analytic_radius_outer_surfaceintegrals-1.8225*pi)/(1.8225*pi))
-assert all(abs(super_analytic_radius_outer_surfaceintegrals-1.8225*pi)/(1.8225*pi) &lt; 1.e-8)
+print(abs(super_analytic_radius_outer_surfaceintegrals-2*R2**2*pi/nsegments)/(2*R2**2*pi/nsegments))
+assert all(abs(super_analytic_radius_outer_surfaceintegrals-2*R2**2*pi/nsegments)/(2*R2**2*pi/nsegments) &lt; 1.e-8)
 </test>
     <test name="super_analytic_gradient_inner_surfaceintegrals" language="python">from math import pi
-print(abs(super_analytic_gradient_inner_surfaceintegrals-0.3*pi)/(0.3*pi))
-assert all(abs(super_analytic_gradient_inner_surfaceintegrals-0.3*pi)/(0.3*pi) &lt; 1.e-8)
+print(abs(super_analytic_gradient_inner_surfaceintegrals-2*R1*pi/nsegments)/(2*R1*pi/nsegments))
+assert all(abs(super_analytic_gradient_inner_surfaceintegrals-2*R1*pi/nsegments)/(2*R1*pi/nsegments) &lt; 1.e-8)
 </test>
     <test name="super_analytic_gradient_outer_surfaceintegrals" language="python">from math import pi
-print(abs(super_analytic_gradient_outer_surfaceintegrals-0.675*pi)/(0.675*pi))
-assert all(abs(super_analytic_gradient_outer_surfaceintegrals-0.675*pi)/(0.675*pi) &lt; 1.e-8)
+print(abs(super_analytic_gradient_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments))
+assert all(abs(super_analytic_gradient_outer_surfaceintegrals-2*R2*pi/nsegments)/(2*R2*pi/nsegments) &lt; 1.e-8)
 </test>
     <test name="super_analytic_inner_surfaceintegrals_equal" language="python">print(abs(super_analytic_inner_surfaceintegrals[1:]-super_analytic_inner_surfaceintegrals[0]))
 assert all(abs(super_analytic_inner_surfaceintegrals[1:]-super_analytic_inner_surfaceintegrals[0]) &lt; 1.e-6)
