@@ -3662,7 +3662,6 @@ guided search particle tracking</a:documentation>
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="diagnostic_detector_options"/>
-    <ref name="diagnostic_particle_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <element name="spin_up_time">
       <ref name="real"/>
@@ -3710,7 +3709,6 @@ bed shear stress. Valid for non parameterised velocity boundaries.</a:documentat
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="diagnostic_detector_options"/>
-    <ref name="diagnostic_particle_options"/>
     <ref name="adaptivity_options_vector_field"/>
   </define>
   <!--
@@ -3815,7 +3813,6 @@ formulations</a:documentation>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="vector_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
-    <ref name="diagnostic_particle_options"/>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_vector_field"/>
     <optional>
@@ -3831,7 +3828,6 @@ formulations</a:documentation>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="vector_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
-    <ref name="diagnostic_particle_options"/>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_vector_field"/>
     <optional>
@@ -3844,7 +3840,6 @@ formulations</a:documentation>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
-    <ref name="diagnostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <optional>
@@ -3860,7 +3855,6 @@ formulations</a:documentation>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
-    <ref name="diagnostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <optional>
@@ -8818,7 +8812,6 @@ If not selected boundary conditions are applied strongly.</a:documentation>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="prognostic_detector_options"/>
-    <ref name="prognostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <optional>

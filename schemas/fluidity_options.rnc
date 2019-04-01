@@ -2737,7 +2737,6 @@ diagnostic_scalar_field_tidal_range =
       diagnostic_output_options,
       diagnostic_scalar_stat_options,
       diagnostic_detector_options,
-      diagnostic_particle_options,
       adaptivity_options_scalar_field,
       (
           element spin_up_time {
@@ -2785,7 +2784,6 @@ diagnostic_vector_field_bed_shear_stress =
       diagnostic_output_options,
       diagnostic_vector_stat_options,
       diagnostic_detector_options,
-      diagnostic_particle_options,
       adaptivity_options_vector_field
    )
 
@@ -2872,7 +2870,6 @@ diagnostic_cv_gradient_vector_field =
       diagnostic_vector_stat_options,
       vector_convergence_options,
       diagnostic_detector_options,
-      diagnostic_particle_options,
       vector_steady_state_options,
       adaptivity_options_vector_field,
       recalculation_options?
@@ -2888,7 +2885,6 @@ diagnostic_gradient_vector_field =
       diagnostic_vector_stat_options,
       vector_convergence_options,
       diagnostic_detector_options,
-      diagnostic_particle_options,
       vector_steady_state_options,
       adaptivity_options_vector_field,
       recalculation_options?
@@ -2901,7 +2897,6 @@ diagnostic_cv_divergence_scalar_field =
       diagnostic_scalar_stat_options,
       scalar_convergence_options,
       diagnostic_detector_options,
-      diagnostic_particle_options,
       scalar_steady_state_options,
       adaptivity_options_scalar_field,
       recalculation_options?
@@ -2917,7 +2912,6 @@ diagnostic_fe_divergence_scalar_field =
       diagnostic_scalar_stat_options,
       scalar_convergence_options,
       diagnostic_detector_options,
-      diagnostic_particle_options,
       scalar_steady_state_options,
       adaptivity_options_scalar_field,
       recalculation_options?
@@ -7027,7 +7021,6 @@ prognostic_photosynthetic_radiation =
       prognostic_scalar_stat_options,
       scalar_convergence_options,
       prognostic_detector_options,
-      prognostic_particle_options,
       scalar_steady_state_options,
       adaptivity_options_scalar_field,
       ## Set the priority of this field

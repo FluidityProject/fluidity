@@ -1711,7 +1711,6 @@ K2 = sqrt(sqrt(3)-pi/2)*surface_tension/(6*drag_coefficient*viscosity)</a:docume
     <ref name="prognostic_velocity_stat_options"/>
     <ref name="vector_convergence_options"/>
     <ref name="prognostic_detector_options"/>
-    <ref name="prognostic_particle_options"/>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_prognostic_vector_field"/>
     <ref name="interpolation_algorithm_vector"/>
@@ -2103,7 +2102,6 @@ this only makes sense when excluding coriolis.</a:documentation>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="prognostic_detector_options"/>
-    <ref name="prognostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_prognostic_scalar_field"/>
     <ref name="interpolation_algorithm_scalar_full"/>
@@ -2148,7 +2146,6 @@ This is normally be a homogeneous bc on the top surface.</a:documentation>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="prognostic_detector_options"/>
-    <ref name="prognostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_prognostic_scalar_field"/>
     <ref name="interpolation_algorithm_scalar_full"/>
@@ -2205,7 +2202,6 @@ Only required for continuous_galerkin spatial_discretisations!</a:documentation>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="prognostic_detector_options"/>
-    <ref name="prognostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_prognostic_scalar_field"/>
     <ref name="interpolation_algorithm_scalar_full"/>
@@ -2223,7 +2219,6 @@ Only required for continuous_galerkin spatial_discretisations!</a:documentation>
     <ref name="prognostic_velocity_stat_options"/>
     <ref name="vector_convergence_options"/>
     <ref name="prognostic_detector_options"/>
-    <ref name="prognostic_particle_options"/>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_prognostic_vector_field"/>
     <ref name="interpolation_algorithm_vector_full"/>
@@ -2332,7 +2327,6 @@ Only applicable to control volume spatial discretisations.</a:documentation>
     <ref name="prognostic_scalar_output_options"/>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="prognostic_detector_options"/>
-    <ref name="prognostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_prognostic_scalar_field"/>
     <ref name="interpolation_algorithm_scalar_full"/>
@@ -2362,7 +2356,6 @@ Only applicable to control volume spatial discretisations.</a:documentation>
     <ref name="prognostic_scalar_output_options"/>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="prognostic_detector_options"/>
-    <ref name="prognostic_particle_options"/>
     <ref name="adaptivity_options_prognostic_scalar_field"/>
     <ref name="interpolation_algorithm_scalar_full"/>
     <optional>
@@ -2452,7 +2445,6 @@ Note: Path should not go through periodic boundary</a:documentation>
     <ref name="prognostic_scalar_output_options"/>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="prognostic_detector_options"/>
-    <ref name="prognostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_prognostic_scalar_field"/>
     <ref name="interpolation_algorithm_scalar_full"/>
