@@ -69,7 +69,6 @@ module spherical_adaptivity
 
     type(vector_field) :: base_geometry_horizontal_positions, top_positions, bottom_positions, external_base_geometry
     integer, dimension(:), pointer :: element_map
-    integer nlayers
 
     ewrite(1,*) "Inside prepare_spherical_adaptivity"
 
@@ -81,7 +80,6 @@ module spherical_adaptivity
       top_positions = construct_base_geometry_surface_positions(base_geometry_horizontal_positions, &
           external_base_geometry%mesh, element_map, current_positions, &
           "/geometry/spherical_earth/base_geometry/top_surface_ids", 'BaseGeometryTopPositions')
-      nlayers = option_count(trim(current_positions%mesh%option_path) // '/from_mesh/extrude/layer')
       bottom_positions = construct_base_geometry_surface_positions(base_geometry_horizontal_positions, &
           external_base_geometry%mesh, element_map, current_positions, &
           "/geometry/spherical_earth/base_geometry/bottom_surface_ids", 'BaseGeometryBottomPositions')
