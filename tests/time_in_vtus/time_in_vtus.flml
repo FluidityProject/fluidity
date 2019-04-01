@@ -137,9 +137,6 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
-          <particles>
-            <exclude_from_particles/>
-          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -167,9 +164,6 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
       </prescribed>
     </vector_field>
   </material_phase>

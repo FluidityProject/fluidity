@@ -146,9 +146,6 @@ will get cut off by final_timestep</comment>
         <detectors>
           <exclude_from_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <galerkin_projection>
           <discontinuous/>
         </galerkin_projection>
@@ -326,9 +323,6 @@ will get cut off by final_timestep</comment>
         <detectors>
           <include_in_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

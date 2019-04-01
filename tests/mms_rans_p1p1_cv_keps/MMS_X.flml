@@ -120,9 +120,6 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
-          <particles>
-            <exclude_from_particles/>
-          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -951,9 +948,6 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
-            <particles>
-              <exclude_from_particles/>
-            </particles>
           </prescribed>
         </vector_field>
         <output/>
@@ -972,9 +966,6 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -2269,9 +2260,6 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
       </prescribed>
     </vector_field>
     <vector_field name="VelocityProjection" rank="1">
@@ -2303,9 +2291,6 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -2327,9 +2312,6 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">3material-twoblobs</string_value>
@@ -112,9 +112,6 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
       </prescribed>
     </vector_field>
     <scalar_field name="MaterialVolumeFraction" rank="0">
@@ -161,8 +158,7 @@
     elif ((X[1]&lt;-0.05)):
         return 1.0
     else:
-        return 0.0
-</string_value>
+        return 0.0</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="inlet">
@@ -296,8 +292,7 @@
     elif (((X[1]&gt;=-0.05) and (X[1] &lt; 0.0)) or ((X[1]&gt;=0.2) and (X[1]&lt;0.25))):
         return 0.15
     else:
-        return 1.0
-</string_value>
+        return 1.0</string_value>
             <comment>def val(X, t):
 	if ((X[1]&gt;=0.2) and (X[1]&lt;0.25)):
 		return 0.7

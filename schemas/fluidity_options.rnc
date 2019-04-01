@@ -2708,6 +2708,7 @@ lagrangian_timestepping =
          )
       }
    )
+
 # Default child of diagnostic scalar field
 diagnostic_scalar_field =
    (
@@ -4346,9 +4347,7 @@ scalar_field_choice =
          #               }|
          #               element aliased {
          #                  generic_aliased_field
-         #               }|
-	 #		 element particles {
-	 #		 }
+         #               }
          #            )
          #        }
          

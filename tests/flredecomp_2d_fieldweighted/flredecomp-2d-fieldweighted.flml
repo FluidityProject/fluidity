@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">flredecomp_field_weighted_partition_test</string_value>
@@ -70,8 +70,7 @@
     output = []
     for i in range(36):
         output.append(start + (float(i)/35) * end)
-    return output
-</string_value>
+    return output</string_value>
         </python>
       </detector_array>
       <detector_array name="TWedge">
@@ -86,8 +85,7 @@
         for j in range(12):
             if i &gt;= j:
                 output1.append([54000 + (float(i)/20) * 120000, -54000 + (float(j)/20) * (-120000)])
-    return output1
-</string_value>
+    return output1</string_value>
         </python>
       </detector_array>
       <fail_outside_domain/>
@@ -275,8 +273,7 @@
         Vx = -( VTHETA*sin(THETA) - VR*cos(THETA) )
         Vy = - (VTHETA*cos(THETA) + VR*sin(THETA) )
 
-    return [Vx, Vy]
-</string_value>
+    return [Vx, Vy]</string_value>
           </python>
         </initial_condition>
         <prescribed_region name="Crust">
@@ -296,8 +293,7 @@
     from math import sqrt
     vx = sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
     vy = -sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
-    return [vx,vy]
-</string_value>
+    return [vx,vy]</string_value>
           </python>
         </prescribed_region>
         <boundary_conditions name="Crust">
@@ -330,8 +326,7 @@
                   <string_value lines="20" type="code" language="python">def val(X, t):
     from math import sqrt
     vx = sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
-    return vx
-</string_value>
+    return vx</string_value>
                 </python>
               </x_component>
               <y_component>
@@ -339,8 +334,7 @@
                   <string_value lines="20" type="code" language="python">def val(X, t):
     from math import sqrt
     vy = -sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
-    return vy
-</string_value>
+    return vy</string_value>
                 </python>
               </y_component>
             </align_bc_with_cartesian>
@@ -384,9 +378,6 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

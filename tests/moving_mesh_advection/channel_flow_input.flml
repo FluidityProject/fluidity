@@ -91,9 +91,6 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
       </prescribed>
     </vector_field>
     <scalar_field name="TracerCV" rank="0">
@@ -1539,9 +1536,6 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
-          <particles>
-            <exclude_from_particles/>
-          </particles>
         </prescribed>
       </vector_field>
     </mesh_movement>

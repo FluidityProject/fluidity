@@ -5547,9 +5547,7 @@ Required multiphase problem types</a:documentation>
                       }|
                       element aliased {
                          generic_aliased_field
-                      }|
-        		 element particles {
-        		 }
+                      }
                    )
                }
       -->
