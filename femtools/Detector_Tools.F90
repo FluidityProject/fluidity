@@ -185,6 +185,16 @@ contains
        if(allocated(detector%attributes)) then
           deallocate(detector%attributes)
        end if
+       if(allocated(detector%old_attributes)) then
+          deallocate(detector%old_attributes)
+       end if
+       if(allocated(detector%old_fields)) then
+          deallocate(detector%old_fields)
+       end if
+       detector%next => null()
+       detector%previous => null()
+       detector%temp_next => null()
+       detector%temp_previous => null()
        deallocate(detector)
     end if
     detector => null()
