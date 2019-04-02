@@ -4778,7 +4778,7 @@ where X is a tuple of length geometry dimension.</a:documentation>
     # Function code
     return # Return value
 
-	where X is a tuple of length geometry dimension.
+ where X is a tuple of length geometry dimension.
 
  E.g. if Temperature field and x position are required
  def val (X, t, fields):
