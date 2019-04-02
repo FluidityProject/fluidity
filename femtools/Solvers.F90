@@ -1860,7 +1860,7 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
     PC:: subpc
     MatNullSpace:: nullsp
     PCType:: pctype, hypretype
-    MatSolverPackage:: matsolverpackage
+    MatSolverType:: matsolvertype
     PetscErrorCode:: ierr
     
     call get_option(trim(option_path)//'/name', pctype)
@@ -1973,8 +1973,8 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
        call PCSetType(pc, pctype, ierr)
 
        if (pctype==PCLU) then
-          call get_option(trim(option_path)//'/factorization_package/name', matsolverpackage)
-          call PCFactorSetMatSolverPackage(pc, matsolverpackage, ierr)
+          call get_option(trim(option_path)//'/factorization_package/name', matsolvertype)
+          call PCFactorSetMatSolverType(pc, matsolvertype, ierr)
        end if
 
       if (pctype==PCGAMG) then
