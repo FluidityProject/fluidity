@@ -400,6 +400,114 @@ NOTE: Requires -v2</a:documentation>
           </element>
         </optional>
       </element>
+      <optional>
+        <element name="particles">
+          <a:documentation>Particle options. Particles, like Lagrangian detectors, move with a specified velocity field.
+In addition, particles can carry attributes, being properties of the particles. These attributes
+can be constant, or based on a python expression that depends on other attribute values, at the end
+of the previous timestep, or field values interpolated at the particle location. Planned future
+functionality includes the ability to spawn and delete particles to ensure sufficient particles are
+present in every region, and the ability to interpolate from particles back to the (Eulerian) mesh.</a:documentation>
+          <zeroOrMore>
+            <oneOrMore>
+              <element name="particle_group">
+                <a:documentation>Particles groups containing multiple particle arrays or subgroups. The particle group specifies
+which velocity field is used, as well as attributes carried and (eventually) spawning
+and deleting options.</a:documentation>
+                <attribute name="name">
+                  <data type="string"/>
+                </attribute>
+                <element name="velocity_field">
+                  <attribute name="name">
+                    <data type="string"/>
+                  </attribute>
+                </element>
+                <oneOrMore>
+                  <element name="particle_subgroup">
+                    <a:documentation>Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
+and carry the same attributes. Subgroups can have different initial positions specified via a python
+function of from a file.</a:documentation>
+                    <attribute name="name">
+                      <data type="string"/>
+                    </attribute>
+                    <element name="number_of_particles">
+                      <a:documentation>The number of particles prescribed by the python function.</a:documentation>
+                      <ref name="integer"/>
+                    </element>
+                    <element name="initial_position">
+                      <a:documentation>Initial position of particles</a:documentation>
+                      <choice>
+                        <element name="python">
+                          <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+
+The return value must have length number_of_particles.
+
+*** IMPORTANT NOTE ***
+
+The t argument is for future use only - currently particle locations are only set at simulation start.</a:documentation>
+                          <ref name="python_code"/>
+                        </element>
+                        <element name="from_file">
+                          <a:documentation>File containing the particle positions in binary form</a:documentation>
+                          <attribute name="file_name">
+                            <data type="string"/>
+                          </attribute>
+                          <element name="format">
+                            <a:documentation>The format of the input file containing field data.</a:documentation>
+                            <element name="string_value">
+                              <value>binary</value>
+                            </element>
+                          </element>
+                        </element>
+                      </choice>
+                    </element>
+                    <optional>
+                      <element name="attributes">
+                        <a:documentation>Define particle attributes</a:documentation>
+                        <oneOrMore>
+                          <element name="attribute">
+                            <attribute name="name">
+                              <data type="string"/>
+                            </attribute>
+                            <ref name="generic_particle_attribute_choice"/>
+                          </element>
+                        </oneOrMore>
+                      </element>
+                    </optional>
+                  </element>
+                </oneOrMore>
+              </element>
+            </oneOrMore>
+          </zeroOrMore>
+          <choice>
+            <element name="fail_outside_domain">
+              <a:documentation>By default Fluidity will fail if a particle has left the domain.</a:documentation>
+              <empty/>
+            </element>
+            <element name="write_nan_outside_domain">
+              <a:documentation>Enable to write NaN values to particle output if a particle has left the domain.</a:documentation>
+              <empty/>
+            </element>
+          </choice>
+          <optional>
+            <element name="ascii_output">
+              <a:documentation>Enable to write particle output in ascii format</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="move_with_mesh">
+              <a:documentation>Enable to let particles move with the domain if mesh_movement is enabled.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <ref name="lagrangian_timestepping"/>
+        </element>
+      </optional>
       <element name="timestepping">
         <a:documentation>Options dealing with time discretisation</a:documentation>
         <element name="current_time">
@@ -3256,6 +3364,7 @@ want this.</a:documentation>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="prognostic_detector_options"/>
+    <ref name="prognostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_prognostic_scalar_field"/>
     <ref name="interpolation_algorithm_scalar"/>
@@ -3531,6 +3640,7 @@ guided search particle tracking</a:documentation>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <optional>
@@ -3545,6 +3655,7 @@ guided search particle tracking</a:documentation>
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
   </define>
   <!-- Default child of diagnostic scalar field -->
   <define name="diagnostic_scalar_field_tidal_range">
@@ -4605,6 +4716,37 @@ i.e. excluding the components</a:documentation>
   <define name="prescribed_detector_options">
     <ref name="detector_options_disabled_default"/>
   </define>
+  <!-- Specify whether or not values for this field are interpolated to particle locations.. -->
+  <define name="particle_options_disabled_default">
+    <element name="particles">
+      <a:documentation>Specify what is added to particles</a:documentation>
+      <choice>
+        <element name="exclude_from_particles">
+          <a:documentation>Field value is not interpolated to particle locations.</a:documentation>
+          <ref name="comment"/>
+        </element>
+        <element name="include_in_particles">
+          <a:documentation>Field value is interpolated to each particle location.</a:documentation>
+          <optional>
+            <element name="store_old_field">
+              <a:documentation>Store values of field at previous timestep/non-linear iteration, for use when updating particle attributes.</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <!-- Particle defaults off for prognostic, diagnostic and prescribed fields -->
+  <define name="prognostic_particle_options">
+    <ref name="particle_options_disabled_default"/>
+  </define>
+  <define name="diagnostic_particle_options">
+    <ref name="particle_options_disabled_default"/>
+  </define>
+  <define name="prescribed_particle_options">
+    <ref name="particle_options_disabled_default"/>
+  </define>
   <define name="generic_aliased_field">
     <attribute name="material_phase_name">
       <data type="string"/>
@@ -4612,6 +4754,58 @@ i.e. excluding the components</a:documentation>
     <attribute name="field_name">
       <data type="string"/>
     </attribute>
+  </define>
+  <define name="generic_particle_attribute_choice">
+    <choice>
+      <element name="constant">
+        <a:documentation>Constant value</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="python">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val(X, t):
+    # Function code
+    return # Return value
+
+where X is a tuple of length geometry dimension.</a:documentation>
+        <ref name="python_code"/>
+      </element>
+      <element name="python_fields">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val (X, t, fields):
+    # Function code
+    return # Return value
+
+ where X is a tuple of length geometry dimension.
+
+ E.g. if Temperature field and x position are required
+ def val (X, t, fields):
+   x = X[0]
+   y = x + fields["Temperature"]
+   return y</a:documentation>
+        <ref name="python_code"/>
+        <optional>
+          <element name="store_old_attribute">
+            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <ref name="comment"/>
+          </element>
+        </optional>
+      </element>
+      <element name="from_checkpoint_file">
+        <a:documentation>File containing the particle positions in binary form</a:documentation>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+        <element name="format">
+          <a:documentation>The format of the input file containing field data.</a:documentation>
+          <element name="string_value">
+            <value>binary</value>
+          </element>
+        </element>
+      </element>
+    </choice>
   </define>
   <!-- This is the choice of additional scalar field to be solved for -->
   <define name="scalar_field_choice">
@@ -4813,6 +5007,7 @@ requires a distinct name for the options dictionary.</a:documentation>
             <ref name="prognostic_scalar_stat_options"/>
             <ref name="scalar_convergence_options"/>
             <ref name="prognostic_detector_options"/>
+            <ref name="prognostic_particle_options"/>
             <ref name="scalar_steady_state_options"/>
             <ref name="adaptivity_options_prognostic_scalar_field"/>
             <ref name="interpolation_algorithm_scalar"/>

@@ -26,6 +26,7 @@
     <ref name="prescribed_output_options"/>
     <ref name="prescribed_scalar_stat_options"/>
     <ref name="prescribed_detector_options"/>
+    <ref name="prescribed_particle_options"/>
   </define>
   <define name="prescribed_values_scalar_field">
     <oneOrMore>

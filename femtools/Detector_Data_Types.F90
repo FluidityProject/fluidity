@@ -67,6 +67,12 @@ module detector_data_types
      real, dimension(:,:), allocatable :: k
      !! RK update destination vector (size dim)
      real, dimension(:), allocatable :: update_vector
+     !! Attributes carried by particles.
+     real, dimension(:), allocatable :: attributes
+     !! Attributes carried by particles at the previous timestep.
+     real, dimension(:), allocatable :: old_attributes
+     !! Interpolated field values at the particle position at the previous timestep.
+     real, dimension(:), allocatable :: old_fields
      !! Have we completed the search?
      logical :: search_complete
      !! Pointers for detector linked lists
