@@ -188,10 +188,10 @@ module embed_python
      end subroutine set_particles_from_python
   end interface set_particles_from_python
 
-    interface set_particles_fields_from_python
-       module procedure set_particles_fields_from_python_sp
+    interface set_particles_from_python_fields
+       module procedure set_particles_from_python_fields_sp
      
-     subroutine set_particles_fields_from_python(function, function_len, dim,&
+     subroutine set_particles_from_python_fields(function, function_len, dim,&
           & ndete, x, y, z, t, fld_name_len, nfields, field_names, field_vals, old_nfields, old_field_names, &
           & old_field_vals, old_nattributes, old_att_names, old_attributes, result, stat) bind(c)
       !! Interface to c wrapper function.
@@ -214,8 +214,8 @@ module embed_python
       real(kind = c_double), dimension(old_nattributes,ndete), intent(in) :: old_attributes
       real(kind = c_double), dimension(ndete), intent(out) :: result
       integer, intent(out) :: stat
-     end subroutine set_particles_fields_from_python
-  end interface set_particles_fields_from_python
+     end subroutine set_particles_from_python_fields
+  end interface set_particles_from_python_fields
     
   interface real_from_python
     module procedure real_from_python_sp, real_from_python_interface
@@ -305,7 +305,7 @@ module embed_python
     & set_particle_sfield_from_python, set_particle_vfield_from_python, &
     & set_detectors_from_python, real_from_python, real_vector_from_python, &
     & integer_from_python, string_from_python, integer_vector_from_python, &
-    & set_particles_fields_from_python, set_particles_from_python
+    & set_particles_from_python_fields, set_particles_from_python
 
 contains
 
@@ -442,8 +442,8 @@ contains
     result = lresult
   end subroutine set_particles_from_python_sp
 
-  !Subroutine to call c_wrapper function set_particles_fields_from_python
-  subroutine set_particles_fields_from_python_sp(function, function_len, dim, &
+  !Subroutine to call c_wrapper function set_particles_from_python_fields
+  subroutine set_particles_from_python_fields_sp(function, function_len, dim, &
        & ndete, x, y, z, t, nfields, field_names, field_vals, old_nfields, old_field_names, old_field_vals, old_nattributes, old_att_names, old_attributes, result, stat)
     integer, intent(in) :: function_len
     character(len = *) :: function
@@ -462,12 +462,12 @@ contains
     integer, intent(out) :: stat
 
     real(kind = c_double), dimension(ndete) :: lresult
-    call set_particles_fields_from_python(function, function_len, dim, ndete, &
+    call set_particles_from_python_fields(function, function_len, dim, ndete, &
          & real(x, kind = c_double), real(y, kind = c_double), real(z, kind = c_double), real(t, kind = c_double), &
          & FIELD_NAME_LEN, nfields, field_names, real(field_vals, kind = c_double), old_nfields, old_field_names, real(old_field_vals, kind = c_double), &
          & old_nattributes, old_att_names, real(old_attributes, kind = c_double), lresult, stat)
     result = lresult
-  end subroutine set_particles_fields_from_python_sp
+  end subroutine set_particles_from_python_fields_sp
 
   subroutine set_particle_sfield_from_python_sp(function, function_len,&
     & nparticles,t, result, stat)

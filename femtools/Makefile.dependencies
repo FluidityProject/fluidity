@@ -248,11 +248,12 @@ Detector_Parallel.o ../include/detector_parallel.mod: Detector_Parallel.F90 \
 
 Detector_Tools.o ../include/detector_tools.mod: Detector_Tools.F90 \
    ../include/detector_data_types.mod ../include/elements.mod \
-   ../include/embed_python.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/fldebug.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/integer_hash_table_module.mod \
-   ../include/parallel_fields.mod ../include/parallel_tools.mod \
-   ../include/pickers.mod ../include/state_module.mod
+   ../include/embed_python.mod ../include/fdebug.h \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/integer_hash_table_module.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/pickers.mod \
+   ../include/state_module.mod
 
 ../include/dgtools.mod: Dgtools.o
 	@true
@@ -857,11 +858,11 @@ Particles.o ../include/particles.mod: Particles.F90 \
    ../include/detector_data_types.mod ../include/detector_move_lagrangian.mod \
    ../include/detector_parallel.mod ../include/detector_tools.mod \
    ../include/diagnostic_variables.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/futils.mod ../include/global_parameters.mod \
-   ../include/mpi_interfaces.mod ../include/parallel_fields.mod \
-   ../include/parallel_tools.mod ../include/pickers.mod \
-   ../include/state_module.mod
+   ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/mpi_interfaces.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/pickers.mod ../include/state_module.mod
 
 ../include/petsc_tools.mod: Petsc_Tools.o
 	@true

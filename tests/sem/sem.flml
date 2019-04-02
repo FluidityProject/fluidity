@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">sem</string_value>
@@ -247,8 +247,7 @@
     for i in range(len(z)-1):
         if (znod&gt;=z[i] and znod&lt;=z[i+1]) :
             vel=u[i]+(znod-z[i])*((u[i+1]-u[i])/(z[i+1]-z[i]))
-    return vel
-</string_value>
+    return vel</string_value>
                     </python>
                   </turbulence_lengthscale>
                   <mean_profile>
@@ -265,8 +264,7 @@
     for i in range(len(z)-1):
         if (znod&gt;=z[i] and znod&lt;=z[i+1]) :
             vel=u[i]+(znod-z[i])*((u[i+1]-u[i])/(z[i+1]-z[i]))
-    return vel
-</string_value>
+    return vel</string_value>
                     </python>
                   </mean_profile>
                   <Re_stresses_profile>
@@ -282,8 +280,7 @@
     for i in range(len(z)-1):
         if (znod&gt;=z[i] and znod&lt;=z[i+1]) :
             vel=u[i]+(znod-z[i])*((u[i+1]-u[i])/(z[i+1]-z[i]))
-    return vel/2.0
-</string_value>
+    return vel/2.0</string_value>
                     </python>
                   </Re_stresses_profile>
                 </synthetic_eddy_method>
@@ -308,8 +305,7 @@
     for i in range(len(z)-1):
         if (znod&gt;=z[i] and znod&lt;=z[i+1]) :
             vel=u[i]+(znod-z[i])*((u[i+1]-u[i])/(z[i+1]-z[i]))
-    return vel
-</string_value>
+    return vel</string_value>
                     </python>
                   </turbulence_lengthscale>
                   <mean_profile>
@@ -329,8 +325,7 @@
     for i in range(len(z)-1):
         if (znod&gt;=z[i] and znod&lt;=z[i+1]) :
             vel=u[i]+(znod-z[i])*((u[i+1]-u[i])/(z[i+1]-z[i]))
-    return vel
-</string_value>
+    return vel</string_value>
                     </python>
                   </Re_stresses_profile>
                 </synthetic_eddy_method>
@@ -355,8 +350,7 @@
     for i in range(len(z)-1):
         if (znod&gt;=z[i] and znod&lt;=z[i+1]) :
             vel=u[i]+(znod-z[i])*((u[i+1]-u[i])/(z[i+1]-z[i]))
-    return vel
-</string_value>
+    return vel</string_value>
                     </python>
                   </turbulence_lengthscale>
                   <mean_profile>
@@ -376,8 +370,7 @@
     for i in range(len(z)-1):
         if (znod&gt;=z[i] and znod&lt;=z[i+1]) :
             vel=u[i]+(znod-z[i])*((u[i+1]-u[i])/(z[i+1]-z[i]))
-    return vel
-</string_value>
+    return vel</string_value>
                     </python>
                   </Re_stresses_profile>
                 </synthetic_eddy_method>
@@ -463,9 +456,6 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

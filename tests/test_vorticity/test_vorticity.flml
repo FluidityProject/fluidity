@@ -110,9 +110,6 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
       </prescribed>
     </vector_field>
     <vector_field name="P1" rank="1">
@@ -147,9 +144,6 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -171,9 +165,6 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -193,9 +184,6 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -233,9 +221,6 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -255,9 +240,6 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>

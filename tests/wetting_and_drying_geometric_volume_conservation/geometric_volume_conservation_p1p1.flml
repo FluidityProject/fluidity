@@ -170,9 +170,6 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
           <detectors>
             <exclude_from_detectors/>
           </detectors>
-          <particles>
-            <exclude_from_particles/>
-          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -372,9 +369,6 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         <detectors>
           <include_in_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -447,9 +441,6 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
           <detectors>
             <include_in_detectors/>
           </detectors>
-          <particles>
-            <exclude_from_particles/>
-          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>

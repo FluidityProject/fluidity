@@ -33,7 +33,7 @@ module zoltan_detectors
     integer, intent(out), dimension(:) :: attributes_per_ele !Number of particle attributes per element
     
     integer :: i, j, det_list, new_ele_owner, total_det_to_pack, detector_uen
-    integer :: new_local_element_number, k, total_attributes
+    integer :: new_local_element_number, total_attributes
     
     type(detector_list_ptr), dimension(:), pointer :: detector_list_array => null()
     type(detector_type), pointer :: detector => null(), detector_to_move => null()
@@ -49,7 +49,6 @@ module zoltan_detectors
     do det_list = 1, size(detector_list_array)
 
        ! search through all the local detectors in this list
-       k=0
        detector => detector_list_array(det_list)%ptr%first
        !Set up particle attribute parameters
        total_attributes=0

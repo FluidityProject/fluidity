@@ -356,9 +356,6 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y))  +  p_y - 2*nu_v_yy 
             <detectors>
               <exclude_from_detectors/>
             </detectors>
-            <particles>
-              <exclude_from_particles/>
-            </particles>
           </prescribed>
         </vector_field>
         <output>
@@ -379,9 +376,6 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y))  +  p_y - 2*nu_v_yy 
         <detectors>
           <include_in_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -476,9 +470,6 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y))  +  p_y - 2*nu_v_yy 
         <detectors>
           <include_in_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -693,9 +684,6 @@ S = mass*T_t + adv*(u*T_x + v*T_y + beta*(T*(u_x + v_y))) - nu*(T_xx + T_yy)</co
         <detectors>
           <exclude_from_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
       </prescribed>
     </vector_field>
     <vector_field name="VectorAbsoluteDifference" rank="1">
@@ -712,9 +700,6 @@ S = mass*T_t + adv*(u*T_x + v*T_y + beta*(T*(u_x + v_y))) - nu*(T_xx + T_yy)</co
         <detectors>
           <include_in_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

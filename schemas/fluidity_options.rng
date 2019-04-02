@@ -402,12 +402,17 @@ NOTE: Requires -v2</a:documentation>
       </element>
       <optional>
         <element name="particles">
-          <a:documentation>Particle options</a:documentation>
+          <a:documentation>Particle options. Particles, like Lagrangian detectors, move with a specified velocity field.
+In addition, particles can carry attributes, being properties of the particles. These attributes
+can be constant, or based on a python expression that depends on other attribute values, at the end
+of the previous timestep, or field values interpolated at the particle location. Planned future
+functionality includes the ability to spawn and delete particles to ensure sufficient particles are
+present in every region, and the ability to interpolate from particles back to the (Eulerian) mesh.</a:documentation>
           <zeroOrMore>
             <oneOrMore>
               <element name="particle_group">
                 <a:documentation>Particles groups containing multiple particle arrays or subgroups. The particle group specifies
-which velocity field is used, as well as attributes carried and spawning
+which velocity field is used, as well as attributes carried and (eventually) spawning
 and deleting options.</a:documentation>
                 <attribute name="name">
                   <data type="string"/>
@@ -420,7 +425,10 @@ and deleting options.</a:documentation>
                 </element>
                 <optional>
                   <element name="particle_spawning">
-                    <a:documentation>Options for spawning and deleting particles based on the minimum and maximum limits of particles per control volume. Defined per particle_group.</a:documentation>
+                    <a:documentation>Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
+and carry the same attributes. Subgroups can have different initial positions specified via a python
+function of from a file.
+Options for spawning and deleting particles based on the minimum and maximum limits of particles per control volume. Defined per particle_group.</a:documentation>
                     <oneOrMore>
                       <element name="spawning_parameters">
                         <a:documentation>Set spawning parameters, such as the number of particles per cv, and which field particles will be spawned to.</a:documentation>
@@ -516,18 +524,6 @@ The t argument is for future use only - currently particle locations are only se
                             </element>
                           </element>
                         </element>
-                        <element name="from_checkpoint_file">
-                          <a:documentation>File containing the particle positions in binary form</a:documentation>
-                          <attribute name="file_name">
-                            <data type="string"/>
-                          </attribute>
-                          <element name="format">
-                            <a:documentation>The format of the input file containing field data.</a:documentation>
-                            <element name="string_value">
-                              <value>binary</value>
-                            </element>
-                          </element>
-                        </element>
                       </choice>
                     </element>
                     <optional>
@@ -535,11 +531,10 @@ The t argument is for future use only - currently particle locations are only se
                         <a:documentation>Define particle attributes.</a:documentation>
                         <oneOrMore>
                           <element name="attribute">
-                            <a:documentation>Define particle attribute.</a:documentation>
                             <attribute name="name">
                               <data type="string"/>
                             </attribute>
-                            <ref name="generic_particle_field"/>
+                            <ref name="generic_particle_attribute_choice"/>
                           </element>
                         </oneOrMore>
                       </element>
@@ -3736,7 +3731,6 @@ guided search particle tracking</a:documentation>
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="diagnostic_detector_options"/>
-    <ref name="diagnostic_particle_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <element name="spin_up_time">
       <ref name="real"/>
@@ -3752,7 +3746,6 @@ guided search particle tracking</a:documentation>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="vector_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
-    <ref name="diagnostic_particle_options"/>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_vector_field"/>
     <optional>
@@ -3785,7 +3778,6 @@ bed shear stress. Valid for non parameterised velocity boundaries.</a:documentat
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="diagnostic_detector_options"/>
-    <ref name="diagnostic_particle_options"/>
     <ref name="adaptivity_options_vector_field"/>
   </define>
   <!--
@@ -3890,7 +3882,6 @@ formulations</a:documentation>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="vector_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
-    <ref name="diagnostic_particle_options"/>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_vector_field"/>
     <optional>
@@ -3906,7 +3897,6 @@ formulations</a:documentation>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="vector_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
-    <ref name="diagnostic_particle_options"/>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_vector_field"/>
     <optional>
@@ -3919,7 +3909,6 @@ formulations</a:documentation>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
-    <ref name="diagnostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <optional>
@@ -3935,7 +3924,6 @@ formulations</a:documentation>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
-    <ref name="diagnostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <optional>
@@ -4797,43 +4785,20 @@ i.e. excluding the components</a:documentation>
   <define name="prescribed_detector_options">
     <ref name="detector_options_disabled_default"/>
   </define>
-  <!-- Specify whether or not values for this field are interpolated to particle locations. -->
-  <define name="particle_options_enabled_default">
-    <element name="particles">
-      <a:documentation>Specify what is added to particles</a:documentation>
-      <choice>
-        <element name="include_in_particles">
-          <a:documentation>This field is included at each particle location.</a:documentation>
-          <optional>
-            <element name="store_old_field">
-              <ref name="comment">
-                <a:documentation>Store values of field at preivous timestep/non-linear iteration, for use when updating particle attributes.</a:documentation>
-              </ref>
-            </element>
-          </optional>
-        </element>
-        <element name="exclude_from_particles">
-          <a:documentation>Field value is not interpolated to particle location.</a:documentation>
-          <ref name="comment">
-            <a:documentation>Field values are not stored on particles.</a:documentation>
-          </ref>
-        </element>
-      </choice>
-    </element>
-  </define>
-  <!-- Options for whether a field is to be included in particles. -->
+  <!-- Specify whether or not values for this field are interpolated to particle locations.. -->
   <define name="particle_options_disabled_default">
     <element name="particles">
       <a:documentation>Specify what is added to particles</a:documentation>
       <choice>
         <element name="exclude_from_particles">
-          <a:documentation>This field is not included at each particle location.</a:documentation>
+          <a:documentation>Field value is not interpolated to particle locations.</a:documentation>
           <ref name="comment"/>
         </element>
         <element name="include_in_particles">
-          <a:documentation>This field is included at each particle location.</a:documentation>
+          <a:documentation>Field value is interpolated to each particle location.</a:documentation>
           <optional>
             <element name="store_old_field">
+              <a:documentation>Store values of field at previous timestep/non-linear iteration, for use when updating particle attributes.</a:documentation>
               <ref name="comment"/>
             </element>
           </optional>
@@ -4859,7 +4824,7 @@ i.e. excluding the components</a:documentation>
       <data type="string"/>
     </attribute>
   </define>
-  <define name="generic_particle_field">
+  <define name="generic_particle_attribute_choice">
     <choice>
       <element name="constant">
         <a:documentation>Constant value</a:documentation>
@@ -4882,10 +4847,17 @@ where X is a tuple of length geometry dimension.</a:documentation>
     # Function code
     return # Return value
 
-where X is a tuple of length geometry dimension.</a:documentation>
+ where X is a tuple of length geometry dimension.
+
+ E.g. if Temperature field and x position are required
+ def val (X, t, fields):
+   x = X[0]
+   y = x + fields["Temperature"]
+   return y</a:documentation>
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
+            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
@@ -5644,9 +5616,7 @@ Required multiphase problem types</a:documentation>
                       }|
                       element aliased {
                          generic_aliased_field
-                      }|
-        		 element particles {
-        		 }
+                      }
                    )
                }
       -->
@@ -8909,7 +8879,6 @@ If not selected boundary conditions are applied strongly.</a:documentation>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="prognostic_detector_options"/>
-    <ref name="prognostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <optional>

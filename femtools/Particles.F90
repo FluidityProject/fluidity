@@ -41,6 +41,7 @@ module particles
   use parallel_fields
   use fields
   use state_module
+  use field_options
   use detector_data_types
   use pickers
   use detector_tools
@@ -53,10 +54,11 @@ module particles
   private
 
   public :: initialise_particle_positions, move_particles, write_particles_loop, destroy_particles, &
-       checkpoint_particles_loop, get_particles, get_particle_arrays, update_list_lengths, particle_lists, &
-       set_particle_attributes, initialise_constant_particle_attributes
+            update_particle_attributes_and_fields, checkpoint_particles_loop, get_particles, &
+	    get_particle_arrays, update_list_lengths, particle_lists, initialise_constant_particle_attributes, &
+            update_particle_subgroup_attributes_and_fields
 
-  type(detector_linked_list), allocatable, dimension(:), target, save :: particle_lists
+  type(detector_linked_list), allocatable, dimension(:), target, save :: particle_lists !!Particle lists with dimension equal to the number of particle subgroups
 
 contains
 
@@ -73,13 +75,14 @@ contains
 
     integer, dimension(3) :: attribute_size
     integer :: sub_particles
-    integer :: i, m, k
+    integer :: i, k
     integer :: dim, particle_groups, total_arrays, list_counter
     integer, dimension(:), allocatable :: particle_arrays
     integer :: totaldet_global
-    integer :: nprescribed, ndiagnostic, nprognostic
+    integer :: n_oldfields, phase, f
+    type(scalar_field), pointer :: sfield
 
-    logical :: from_checkpoint
+    logical :: from_file
 
     ewrite(2,*), "In initialise_particles"
 
@@ -90,7 +93,6 @@ contains
 
     !Set up particle_lists
     allocate(particle_arrays(particle_groups))
-    particle_arrays(:) = 0
     total_arrays = 0
     do i = 1,particle_groups
        particle_arrays(i) = option_count("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup")
@@ -106,9 +108,17 @@ contains
     list_counter=1
 
     !Number of old_fields stored on particles
-    nprognostic = option_count('/material_phase/scalar_field/prognostic/particles/include_in_particles/store_old_field')
-    nprescribed = option_count('/material_phase/scalar_field/prescribed/particles/include_in_particles/store_old_field')
-    ndiagnostic = option_count('/material_phase/scalar_field/diagnostic/particles/include_in_particles/store_old_field')
+    n_oldfields = 0
+    do phase = 1,size(state)
+       do f = 1, size(state(phase)%scalar_names)
+          sfield => extract_scalar_field(state(phase),state(phase)%scalar_names(f))
+          if (sfield%option_path=="".or.aliased(sfield)) then
+             cycle
+          else if (have_option(trim(complete_field_path(sfield%option_path)) // "/particles/include_in_particles/store_old_field")) then
+             n_oldfields = n_oldfields+1
+          end if
+       end do
+    end do
     
     do i = 1,particle_groups
        !Set group_path
@@ -117,11 +127,11 @@ contains
           !subgroup_path
           subgroup_path = trim(group_path) // "/particle_subgroup["//int2str(k-1)//"]"
           ! If the option
-          ! "from_checkpoint_file" exists, it means we are continuing the simulation
+          ! "from_file" exists, it means we are continuing the simulation
           ! after checkpointing and the reading of the particle positions must be
           ! done from a file
 
-          from_checkpoint=have_option(trim(subgroup_path)//"/initial_position/from_checkpoint_file")
+          from_file=have_option(trim(subgroup_path)//"/initial_position/from_file")
           call get_option(trim(subgroup_path)//"/number_of_particles", sub_particles) !number of particles in subgroup
           call get_option(trim(subgroup_path)//"/name", subname) !Name of particle subgroup
           particle_lists(list_counter)%total_num_det=sub_particles
@@ -134,15 +144,11 @@ contains
           if (have_option(trim(subgroup_path) // "/attributes/attribute")) then
              attribute_size(1)=option_count(trim(subgroup_path) // "/attributes/attribute")
           end if
-          
-          do m = 1,attribute_size(1)
-             if (have_option(trim(subgroup_path) // "/attributes/attribute["//int2str(m-1)//"]/python_fields")) then
-                attribute_size(3) = ndiagnostic + nprescribed + nprognostic
-                if (have_option(trim(subgroup_path) // "/attributes/attribute["//int2str(m-1)//"]/python_fields/store_old_attribute")) then
-                   attribute_size(2)=attribute_size(2)+1
-                end if
-             end if
-          end do
+
+          if (option_count(trim(subgroup_path) // "/attributes/attribute/python_fields")>0) then
+             attribute_size(3) = n_oldfields
+             attribute_size(2) = option_count(trim(subgroup_path) //"/attributes/attribute/python_fields/store_old_attribute")
+          end if
           
           ! Enable particles to drift with the mesh
           if (have_option("/particles/move_with_mesh")) then
@@ -150,22 +156,19 @@ contains
           end if
           
           !Read particles from options
-          if (.not.from_checkpoint) then
+          if (.not.from_file) then
              
-             if (.not.have_option(trim(subgroup_path)//"/initial_position/from_file")) then
-                call read_particles_from_options(sub_particles, subname, current_time, attribute_size, xfield, dim, subgroup_path, particle_lists(list_counter))
-             else
-                call read_particles_from_file(sub_particles, subname, attribute_size, xfield, dim, subgroup_path, particle_lists(list_counter))
-             end if
+             call read_particles_from_python(sub_particles, subname, current_time, attribute_size, xfield, dim, subgroup_path, particle_lists(list_counter))
              
-          else !Read particles from checkpoint
+          else !Read particles from file
              
-             call read_particles_from_checkpoint(sub_particles, subname, attribute_size, xfield, dim, subgroup_path, particle_lists(list_counter))
+             call read_particles_from_file(sub_particles, subname, attribute_size, xfield, dim, subgroup_path, particle_lists(list_counter))
              
           end if !Read particles
 
           call set_particle_output_file(sub_particles, subname, filename, attribute_size, xfield, subgroup_path, particle_lists(list_counter))
-          
+          !Get options for lagrangian particle movement
+          call read_detector_move_options(particle_lists(list_counter), "/particles")
           list_counter = list_counter + 1
        end do
     end do
@@ -189,7 +192,7 @@ contains
     
   end subroutine initialise_particle_positions
 
-  subroutine read_particles_from_options(sub_particles, subname, current_time, attribute_size, xfield, dim, subgroup_path, p_list)
+  subroutine read_particles_from_python(sub_particles, subname, current_time, attribute_size, xfield, dim, subgroup_path, p_list)
     ! Reading particles from a python function
 
     type(vector_field), pointer, intent(in) :: xfield
@@ -213,7 +216,7 @@ contains
 
     str_size=len_trim(int2str(sub_particles))
     fmt="(a,I"//int2str(str_size)//"."//int2str(str_size)//")"
-    
+
     do l=1,sub_particles
        write(particle_name, fmt) trim(subname)//"_", l
        call create_single_particle(p_list, xfield, coords(:,l), &
@@ -222,68 +225,12 @@ contains
     
     deallocate(coords)
 
-  end subroutine read_particles_from_options
+  end subroutine read_particles_from_python
 
   subroutine read_particles_from_file(sub_particles, subname, attribute_size, xfield, dim, subgroup_path, p_list)
     ! Reading from a binary file where the user has placed the particle information
 
-    type(vector_field), pointer, intent(in) :: xfield
-    type(detector_linked_list), intent(inout) :: p_list
-    character(len=OPTION_PATH_LEN), intent(in) :: subgroup_path
-    character(len=FIELD_NAME_LEN), intent(in) :: subname
-    integer, intent(in) :: sub_particles, dim
-    integer, dimension(3), intent(in) :: attribute_size
-
-    real, allocatable, dimension(:,:) :: attribute_vals !array to hold particle attribute values for initialisation
-    real, allocatable, dimension(:) :: packed_buff !array to hold particle attributes if from file
-    real, allocatable, dimension(:) :: particle_location !array to hold particle coordinates if from file
-
-    character(len = OPTION_PATH_LEN) :: particle_file_filename
-    character(len = FIELD_NAME_LEN) :: fmt
-    character(len=FIELD_NAME_LEN) :: particle_name
-    integer :: particle_file_unit=0
-    integer :: l, str_size
-    
-    ewrite(2,*) "Reading particles from file"
-
-    allocate(particle_location(dim))
-    allocate(attribute_vals(3,maxval(attribute_size)))
-    
-    particle_file_unit=free_unit()
-    call get_option(trim(subgroup_path)//"/initial_position/from_file/file_name",particle_file_filename)
-    
-#ifdef STREAM_IO
-    open(unit = particle_file_unit, file = trim(particle_file_filename), &
-         & action = "read", access = "stream", form = "unformatted")
-#else
-    FLAbort("No stream I/O support")
-#endif
-    
-    !Read in particle locations from file       
-    allocate(packed_buff(dim+sum(attribute_size)))
-    str_size=len_trim(int2str(sub_particles))
-    fmt="(a,I"//int2str(str_size)//"."//int2str(str_size)//")"
-    
-    do l=1,sub_particles
-       write(particle_name, fmt) trim(subname)//"_", l
-       read(particle_file_unit) packed_buff
-       particle_location=packed_buff(1:dim)
-       if (attribute_size(1).NE.0) then
-          attribute_vals(1,1:attribute_size(1))=packed_buff(dim+1:dim+attribute_size(1))
-          attribute_vals(2,1:attribute_size(2))=packed_buff(dim+1+attribute_size(1):dim+attribute_size(1)+attribute_size(2))
-          attribute_vals(3,1:attribute_size(3))=packed_buff(dim+1+attribute_size(1)+attribute_size(2):dim+sum(attribute_size))
-       end if
-       call create_single_particle(p_list, xfield, &
-            particle_location, l, LAGRANGIAN_DETECTOR, trim(particle_name),attribute_size,attribute_vals= attribute_vals)
-    end do
-    deallocate(particle_location)
-    deallocate(packed_buff)
-    deallocate(attribute_vals)
-    
-  end subroutine read_particles_from_file
-
-  subroutine read_particles_from_checkpoint(sub_particles, subname, attribute_size, xfield, dim, subgroup_path, p_list)
-    ! If reading from checkpoint file:
+    ! If reading from file:
     ! Particles checkpoint file names end in _par, with.groups appended for the header file
     ! and .attributes.dat appended for the binary data file that holds the positions and attributes
 
@@ -309,22 +256,22 @@ contains
     num_procs = getnprocs()
     proc_num = getprocno()
 
-    ewrite(2,*) "Reading particles from checkpoint"
+    ewrite(2,*) "Reading particles from file"
 
     allocate(particle_location(dim))
     allocate(attribute_vals(3,maxval(attribute_size)))
     
     particle_checkpoint_unit=free_unit()
-    call get_option(trim(subgroup_path) // "/initial_position/from_checkpoint_file/file_name",particles_cp_filename)
+    call get_option(trim(subgroup_path) // "/initial_position/from_file/file_name",particles_cp_filename)
     
 #ifdef STREAM_IO
     open(unit = particle_checkpoint_unit, file = trim(particles_cp_filename) // '_' // int2str(proc_num-1) //'.attributes.dat', &
          & action = "read", access = "stream", form = "unformatted")
 #else
-    FLAbort("No stream I/O support")
+    FLExit("No stream I/O support required for particle checkpoints")
 #endif
     
-    !Read in particle locations from checkpoint file
+    !Read in particle locations from file    
     read(particle_checkpoint_unit) list_length
     
     allocate(packed_buff(dim+sum(attribute_size)))
@@ -334,7 +281,7 @@ contains
        write(particle_name, fmt) trim(subname)//"_", m
        read(particle_checkpoint_unit) packed_buff
        particle_location=packed_buff(1:dim)
-       if (attribute_size(1).NE.0) then
+       if (attribute_size(1)/=0) then
           attribute_vals(1,1:attribute_size(1))=packed_buff(dim+1:dim+attribute_size(1))
           attribute_vals(2,1:attribute_size(2))=packed_buff(dim+1+attribute_size(1):dim+attribute_size(1)+attribute_size(2))
           attribute_vals(3,1:attribute_size(3))=packed_buff(dim+1+attribute_size(1)+attribute_size(2):dim+sum(attribute_size))
@@ -346,10 +293,10 @@ contains
     deallocate(attribute_vals)
     ewrite(2,*) "Finished read_particles_from_checkpoint"
     
-  end subroutine read_particles_from_checkpoint
+  end subroutine read_particles_from_file
 
   subroutine set_particle_output_file(sub_particles, subname, filename, attribute_size, xfield, subgroup_path, p_list)
-    !Set type of output file
+    !Sets up the particle output file type and output file.
 
     type(vector_field), pointer, intent(in) :: xfield
     type(detector_linked_list), intent(inout) :: p_list
@@ -361,7 +308,7 @@ contains
 
     character(len=FIELD_NAME_LEN) :: attname
     character(len = OPTION_PATH_LEN) :: buffer
-    integer :: column, IERROR, m, n
+    integer :: column, ierror, m, n
     
     p_list%binary_output = .true.
     if (have_option("/particles/ascii_output")) then
@@ -429,8 +376,6 @@ contains
 !!$       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.particles.'//trim(subname)//'.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, p_list%mpi_fh, IERROR)
 !!$       assert(ierror == MPI_SUCCESS)
 !!$    end if
-    !Get options for lagrangian particle movement
-    call read_detector_move_options(p_list, "/particles")
 
   end subroutine set_particle_output_file
 
@@ -451,14 +396,11 @@ contains
     integer, dimension(3), intent(in) :: attribute_size
 
     real ::  dt
-    
+
     shape=>ele_shape(xfield,1)
     assert(xfield%dim+1==local_coord_count(shape))
     detector_list%detector_names(id)=name
     ! Determine element and local_coords from position
-    ! In parallel, global=.false. can often work because there will be
-    ! a halo of non-owned elements in your process and so you can work out
-    ! ownership without communication.  But in general it won't work.
     call picker_inquire(xfield,position,element,local_coord=lcoords,global=.true.)
     call get_option("/timestepping/timestep", dt)
     ! If we're in parallel and don't own the element, skip this particle
@@ -653,7 +595,7 @@ contains
     do n = 0,size(particle%attributes)-1
        if (have_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/constant')) then
           call get_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/constant', constant)
-          call set_particle_constant_from_options(attribute_array(n+1,:), nparticles, constant)
+          attribute_array(n+1,:) = constant
        end if
     end do
     
@@ -668,15 +610,16 @@ contains
     
   end subroutine initialise_constant_particle_attributes
 
-  subroutine set_particle_attributes(state, dim, time, subgroup_path, p_list)
-    !!Routine to set particle attributes
+  subroutine update_particle_subgroup_attributes_and_fields(state, time, subgroup_path, p_list)
+    !!Routine to set particle attributes 
     type(state_type), dimension(:), intent(in) :: state
     real, intent(in) :: time
     character(len=OPTION_PATH_LEN), intent(in) :: subgroup_path
-    character(len=PYTHON_FUNC_LEN) :: func
-    integer, intent(in) :: dim
     type(detector_linked_list), intent(in) :: p_list
+    
+    character(len=PYTHON_FUNC_LEN) :: func
 
+    character(len=FIELD_NAME_LEN), allocatable, dimension(:) :: field_name
     type(detector_type), pointer :: particle
 
     real, allocatable, dimension(:,:) :: positions
@@ -687,24 +630,27 @@ contains
 
     real :: constant
     integer :: j, nparticles, l, m, n
+    integer, allocatable, dimension(:) :: store_old_att
     real, allocatable, dimension(:,:) :: lcoords
     integer, allocatable, dimension(:) :: ele
 
     !Check if this processor contains particles
     nparticles = p_list%length
 
-    if (nparticles.eq.0) then
+    if (nparticles==0) then
        return
     end if
-    
+
     !Set parameters to calculate attributes
     particle => p_list%first
-    allocate(positions(dim,nparticles))
+    allocate(positions(size(particle%position),nparticles))
     allocate(attribute_array(size(particle%attributes),nparticles))
     allocate(lcoords(size(particle%local_coords),nparticles))
     allocate(ele(nparticles))
     allocate(old_attributes(size(particle%old_attributes),nparticles))
     allocate(old_att_names(FIELD_NAME_LEN,size(particle%old_attributes)))
+
+    particle => p_list%first
     do j = 1,nparticles
        positions(:,j) = particle%position
        lcoords(:,j) = particle%local_coords
@@ -713,8 +659,8 @@ contains
        particle => particle%next
     end do
 
-    particle => p_list%first
     l=1
+    particle => p_list%first
     do n = 1,size(particle%attributes)
        if (have_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n-1)//']/python_fields/store_old_attribute')) then
           call get_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n-1)//']/name', old_name)
@@ -728,38 +674,45 @@ contains
           l=l+1
        end if
     end do
-    
+
     do n = 0,size(particle%attributes)-1
        if (have_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/constant')) then
           call get_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/constant', constant)
-          call set_particle_constant_from_options(attribute_array(n+1,:), nparticles, constant)
+          attribute_array(n+1,:) = constant
        else if (have_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/python')) then
           call get_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/python', func)
-          call set_particle_attribute_from_python(attribute_array(n+1,:), positions(:,:), nparticles, dim, func, time)
+          call set_particle_attribute_from_python(attribute_array(n+1,:), positions(:,:), nparticles, func, time)
        else if (have_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/python_fields')) then
           call get_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/python_fields', func)
-          call set_particle_fields_from_python(p_list, state, dim, positions(:,:), lcoords(:,:), ele(:), nparticles, attribute_array(n+1,:), old_att_names, old_attributes, func, time)
+          call set_particle_attribute_from_python_fields(p_list, state, positions(:,:), lcoords(:,:), ele(:), nparticles, &
+               & attribute_array(n+1,:), old_att_names, old_attributes, func, time)
        else if (have_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/from_checkpoint_file')) then
-          do j = 1,nparticles   
-             attribute_array(n+1,j) = particle%attributes(n+1)
-             particle => particle%next
-          end do
+          particle => p_list%first
+          attribute_array(n+1,:) = particle%attributes(n+1)
        end if
     end do
     
     !Set attribute values and old_attribute values
     particle => p_list%first
-    if (size(particle%old_attributes).eq.0) then
+    if (size(particle%old_attributes)==0) then
        do j = 1,nparticles
           particle%attributes = attribute_array(:,j)
           particle => particle%next
        end do
     else
+       allocate(store_old_att(size(particle%attributes)))
+       do n=1, size(particle%attributes)
+          if (have_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n-1)//']/python_fields/store_old_attribute')) then
+             store_old_att(n)=1
+          else
+             store_old_att(n)=0
+          end if
+       end do
        do j = 1,nparticles
           particle%attributes = attribute_array(:,j)
           m=1
           do n = 1,size(particle%attributes)
-             if (have_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n-1)//']/python_fields/store_old_attribute')) then
+             if (store_old_att(n)==1) then
                 particle%old_attributes(m) = particle%attributes(n)
                 m=m+1
              end if
@@ -767,12 +720,12 @@ contains
           particle => particle%next
        end do
     end if
-    
+
     particle => p_list%first
-    if (size(particle%old_fields).ne.0) then
-       call update_stored_particle_fields(state, ele, lcoords, nparticles, p_list)
+    if (size(particle%old_fields)/=0) then
+       call update_particle_subgroup_fields(state, ele, lcoords, p_list)
     end if
-    
+
     deallocate(positions)
     deallocate(lcoords)
     deallocate(ele)
@@ -780,14 +733,61 @@ contains
     deallocate(old_attributes)
     deallocate(old_att_names)
 
-  end subroutine set_particle_attributes
+  end subroutine update_particle_subgroup_attributes_and_fields
 
-  subroutine update_stored_particle_fields(state, ele, lcoords, nparticles, p_list)
+  subroutine update_particle_attributes_and_fields(state, time)
+    !!Routine to loop over particle arrays and update particle attributes
+    type(state_type), dimension(:), intent(in) :: state
+    real, intent(in) :: time
+    type(vector_field), pointer :: xfield
+    type(detector_type), pointer :: particle
+    character(len = OPTION_PATH_LEN) :: group_path, subgroup_path
+
+    integer :: i, k
+    integer :: particle_groups, list_counter
+    integer, dimension(:), allocatable :: particle_arrays
+
+    !Check whether there are any particles.
+
+    particle_groups = option_count("/particles/particle_group")
+    if (particle_groups==0) return
+
+    !Set up particle_lists
+    allocate(particle_arrays(particle_groups))
+    particle_arrays(:) = 0
+    do i = 1,particle_groups
+       particle_arrays(i) = option_count("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup")
+    end do
+
+    ewrite(2,*), "In update_particle_attributes_and_fields"
+
+    !Allocate parameters
+    xfield=>extract_vector_field(state(1), "Coordinate")
+    list_counter = 1
+
+    !Update particle attributes by array
+    do i = 1,particle_groups
+       group_path = "/particles/particle_group["//int2str(i-1)//"]"
+       do k = 1, particle_arrays(i)
+          subgroup_path = trim(group_path) // "/particle_subgroup["//int2str(k-1)//"]"
+          if (particle_lists(list_counter)%length==0) then
+             list_counter = list_counter + 1
+             cycle
+          end if
+          particle => particle_lists(list_counter)%first
+          if (size(particle%attributes)/=0) then
+             call update_particle_subgroup_attributes_and_fields(state, time, subgroup_path, particle_lists(list_counter))
+          end if
+          list_counter = list_counter + 1
+       end do
+    end do
+  end subroutine update_particle_attributes_and_fields
+
+  subroutine update_particle_subgroup_fields(state, ele, lcoords, p_list)
     
     type(state_type), dimension(:), intent(in) :: state
     real, dimension(:,:), intent(in) :: lcoords
     integer, dimension(:), intent(in) :: ele
-    integer, intent(in) :: nparticles
     type(detector_linked_list), intent(in) :: p_list
 
     character(len = OPTION_PATH_LEN) :: name
@@ -795,21 +795,18 @@ contains
     real, allocatable, dimension(:,:) :: old_field_vals
     real :: value
     type(detector_type), pointer :: particle
-    integer :: phase, f, num_fields, l, j
+    integer :: phase, f, l, j
 
     particle => p_list%first
-    allocate(old_field_vals(size(particle%old_fields),nparticles))
+    allocate(old_field_vals(size(particle%old_fields),size(lcoords(1,:))))
     l=1
     do phase=1,size(state)
-       num_fields = option_count('/material_phase[' &
-            //int2str(phase-1)//']/scalar_field')
-       do f = 1, num_fields
-          call get_option('material_phase['//int2str(phase-1)//']/scalar_field['//int2str(f-1)//']/name', name)
-          sfield => extract_scalar_field(state(phase),name)  
-          if (have_option(trim(sfield%option_path)//"/prescribed/particles/include_in_particles/store_old_field").or. &
-               have_option(trim(sfield%option_path)//"/diagnostic/particles/include_in_particles/store_old_field").or. &
-               have_option(trim(sfield%option_path)//"/prognostic/particles/include_in_particles/store_old_field")) then
-             do j = 1,nparticles 
+       do f = 1, size(state(phase)%scalar_names)
+          sfield => extract_scalar_field(state(phase),state(phase)%scalar_names(f))
+          if (sfield%option_path=="".or.aliased(sfield)) then
+             cycle
+          else if (have_option(trim(complete_field_path(sfield%option_path)) // "/particles/include_in_particles/store_old_field")) then
+             do j = 1,size(lcoords(1,:))
                 value = eval_field(ele(j), sfield, lcoords(:,j))
                 old_field_vals(l,j)=value
              end do
@@ -818,14 +815,15 @@ contains
        end do
     end do
 
-    do j = 1,nparticles
+    particle => p_list%first
+    do j = 1,size(lcoords(1,:))
        particle%old_fields=old_field_vals(:,j)
        particle=>particle%next
     end do
 
     deallocate(old_field_vals)
 
-  end subroutine update_stored_particle_fields
+  end subroutine update_particle_subgroup_fields
 
   subroutine write_particles_loop(state, time, dt)
     !!Subroutine to loop over particle_lists and call write_particles for each list
@@ -858,7 +856,7 @@ contains
        do k = 1, particle_arrays(i)
           subgroup_path = trim(group_path) // "/particle_subgroup["//int2str(k-1)//"]"
           attribute_dims=option_count(trim(subgroup_path) // '/attributes/attribute')
-          call write_particles(state, particle_lists(list_counter), attribute_dims, time, dt)
+          call write_particles_subgroup(state, particle_lists(list_counter), attribute_dims, time, dt)
           list_counter = list_counter + 1
        end do
     end do
@@ -868,15 +866,15 @@ contains
 
   end subroutine write_particles_loop
 
-  subroutine write_particles(state, detector_list, attribute_dims, time, dt)
+  subroutine write_particles_subgroup(state, detector_list, attribute_dims, time, dt)
     !!< Write values of particles to the previously opened particles file.
     type(state_type), dimension(:), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     real, intent(in) :: time, dt
+    integer, intent(in) :: attribute_dims !dimensions of particles attribute information carried (attributes at current timestep, field values and attribute values at previous timestep)
 
     character(len=10) :: format_buffer
     integer :: i, check_no_det, totaldet_global
-    integer, intent(in) :: attribute_dims
     type(detector_type), pointer :: detector
 
     ewrite(1,*) "In write_particles"
@@ -914,7 +912,7 @@ contains
        ! Next columns contain the attributes of particles
        detector => detector_list%first
        attributeloop: do i=1,detector_list%length
-          if (attribute_dims.ne.0) then
+          if (attribute_dims/=0) then
              format_buffer=reals_format(attribute_dims)
              write(detector_list%output_unit, format_buffer, advance="no") &
                   detector%attributes
@@ -948,7 +946,7 @@ contains
       
     end function reals_format
     
-  end subroutine write_particles
+  end subroutine write_particles_subgroup
 
   subroutine write_mpi_out_particles(state, detector_list, attribute_dims, time, dt)
     !!< Writes particle information (position, attributes, etc.) into particle file using MPI output 
@@ -1014,7 +1012,7 @@ contains
     assert(.not. associated(node))
     location_to_write = location_to_write + detector_list%total_num_det * dim * realsize
 
-    if (attribute_dims.ne.0) then
+    if (attribute_dims/=0) then
        node => detector_list%first
        attribute_loop: do i = 1, detector_list%length
           assert(size(node%attributes) == attribute_dims)
@@ -1030,37 +1028,18 @@ contains
     call mpi_file_sync(detector_list%mpi_fh, ierror)
     assert(ierror == MPI_SUCCESS)
 
-!    ! The following was used when debugging to check some of the data written
-!    ! into the file
-!    ! Left here in case someone would like to use the mpi_file_read_at for
-!    ! debugging or checking
-!   
-!    number_total_columns = 2 + total_num_det * dim
-!    allocate(buffer(number_total_columns))
-!
-!    call mpi_file_read_at(fh, 0, buffer, size(buffer), getpreal(), status, ierror)
-!    call mpi_get_count(status, getpreal(), count,  ierror)
-!    assert(ierror == MPI_SUCCESS)
-!
-!    call mpi_barrier(MPI_COMM_FEMTOOLS, ierror)
-!    assert(ierror == MPI_SUCCESS)
-!    
-!    deallocate(buffer)
-!    ewrite(2, "(a,i0,a)") "Read ", count, " reals"
-
     ewrite(2, *) "Exiting write_mpi_out"
    
   end subroutine write_mpi_out_particles
 
   subroutine checkpoint_particles_loop(state,prefix,postfix,cp_no)
     !!Subroutine to loop over particle_lists and call checkpoint_particles for each list
-    integer, parameter :: PREFIX_LEN = OPTION_PATH_LEN
     type(state_type), dimension(:), intent(in) :: state
     character(len = *), intent(in) :: prefix
-    !! Default value "checkpoint"
     character(len = *), intent(in) :: postfix
-    integer, optional, intent(in) :: cp_no
-    character(len = PREFIX_LEN) :: lpostfix
+    integer, optional, intent(in) :: cp_no !Checkpoint number of the simulation
+    
+    character(len = OPTION_PATH_LEN) :: lpostfix
     character(len=OPTION_PATH_LEN) :: group_path, subgroup_path, subgroup_path_name, name
 
     integer, dimension(3) :: attribute_size
@@ -1112,7 +1091,7 @@ contains
              end if
           end do
           call get_option(trim(subgroup_path) // "/name", name)
-          call checkpoint_particles(state,prefix,lpostfix,cp_no,particle_lists(list_counter),attribute_size,name, subgroup_path_name)
+          call checkpoint_particles_subgroup(state,prefix,lpostfix,cp_no,particle_lists(list_counter),attribute_size,name, subgroup_path_name)
           list_counter = list_counter + 1
        end do
     end do
@@ -1121,14 +1100,13 @@ contains
 
   end subroutine checkpoint_particles_loop
 
-  subroutine checkpoint_particles(state,prefix,lpostfix,cp_no,particle_list,attribute_size,name, subgroup_path_name)
+  subroutine checkpoint_particles_subgroup(state,prefix,lpostfix,cp_no,particle_list,attribute_size,name, subgroup_path_name)
     !!<Checkpoint Particles
 
     type(state_type), dimension(:), intent(in) :: state
     character(len = *), intent(in) :: prefix
-    !! Default value "checkpoint"
     character(len = *), intent(in) :: lpostfix
-    integer, optional, intent(in) :: cp_no
+    integer, optional, intent(in) :: cp_no !Checkpoint number of the simulation
     character(len = *), intent(in) :: name
     character(len=OPTION_PATH_LEN), intent(in) :: subgroup_path_name
 
@@ -1145,7 +1123,7 @@ contains
     real, dimension(:), allocatable :: buffer
     
     integer, save :: fhdet=0
-    integer :: j, IERROR
+    integer :: j, ierror
     integer :: nints, realsize, dimen, num_particles, number_total_columns, intsize
 
     integer :: num_procs, proc_num
@@ -1162,14 +1140,12 @@ contains
     if(present(cp_no)) particles_cp_filename = trim(particles_cp_filename) // "_" // int2str(cp_no)
     particles_cp_filename = trim(particles_cp_filename) // "_" // trim(lpostfix)
 
-!!!!! Writing of position particles before checkpointing in serial  !!!!!
-
     !!< Writes particle last position into particles file using MPI output 
     ! commands so that when running in parallel all processors can write at the same time information into the file at the right location.
     
-    call MPI_FILE_OPEN(MPI_COMM_SELF, trim(particles_cp_filename) // '_particles.' // trim(parallel_filename(name)) // '.attributes.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, fhdet, IERROR)
+    call MPI_FILE_OPEN(MPI_COMM_SELF, trim(particles_cp_filename) // '_particles.' // trim(parallel_filename(name)) // '.attributes.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, fhdet, ierror)
 
-    ewrite(1,*) "after opening the IERROR is:", IERROR
+    ewrite(1,*) "after opening the ierror is:", ierror
 
     allocate( status(MPI_STATUS_SIZE) )
 
@@ -1192,43 +1168,44 @@ contains
 
     positionloop_cp: do j=1, particle_list%length
       offset = location_to_write+(j-1)*(size(node%position)+sum(attribute_size))*realsize
-      ewrite(1,*) "after file set view position IERROR is:", IERROR
+      ewrite(1,*) "after file set view position ierror is:", ierror
 
       allocate(buffer(size(node%position)+sum(attribute_size)))
       buffer(1:size(node%position))=node%position
-      if (attribute_size(1).NE.0) then
+      if (attribute_size(1)/=0) then
          buffer(1+size(node%position):size(node%position)+attribute_size(1))=node%attributes
       end if
-      if (attribute_size(2).NE.0) then
+      if (attribute_size(2)/=0) then
          buffer(1+size(node%position)+attribute_size(1):size(node%position)+attribute_size(1) &
               +attribute_size(2))=node%old_attributes
       end if
-      if (attribute_size(3).NE.0) then
+      if (attribute_size(3)/=0) then
          buffer(1+size(node%position)+attribute_size(1)+attribute_size(2):size(node%position)+attribute_size(1) &
               +attribute_size(2)+attribute_size(3))=node%old_fields
       end if
       nints=size(node%position)+sum(attribute_size)
       
-      call MPI_FILE_WRITE_AT(fhdet,offset,buffer,nints,getpreal(),status,IERROR)
+      call MPI_FILE_WRITE_AT(fhdet,offset,buffer,nints,getpreal(),status,ierror)
 
-      ewrite(1,*) "after sync position IERROR is:", IERROR
+      ewrite(1,*) "after sync position ierror is:", ierror
       deallocate(buffer)
       node => node%next
     end do positionloop_cp
 
-    call update_particle_options(trim(particles_cp_filename) // "_particles", "binary", particle_list, name, attribute_size(1), subgroup_path_name)
+    call update_particle_subgroup_options(trim(particles_cp_filename) // "_particles", "binary", particle_list, name, attribute_size(1), subgroup_path_name)
     
     if (fhdet/=0) then
-       call MPI_FILE_CLOSE(fhdet, IERROR)
-       if (IERROR/=0) then
+       call MPI_FILE_CLOSE(fhdet, ierror)
+       if (ierror/=0) then
           ewrite(0,*) "Warning: failed to close .particles checkpoint file open with mpi_file_open"
        end if
     end if
     
-  end subroutine checkpoint_particles
+  end subroutine checkpoint_particles_subgroup
 
-  subroutine update_particle_options(filename, format, particle_list, name, attribute_dims, subgroup_path_name)
-    !!< Updates the initial options of the detectors (options tree in diamond)
+  subroutine update_particle_subgroup_options(filename, format, particle_list, name, attribute_dims, subgroup_path_name)
+    !! Updates the initial options of particles in the schema file for reinitialization after checkpointing.
+    !! Updates schema options for the initial number of particles and their initial positions. 
 
     character(len = *), intent(in) :: filename
     character(len = *), intent(in) :: format
@@ -1256,18 +1233,15 @@ contains
     call set_option(trim(subgroup_path_name) // trim(temp_string) // "/number_of_particles/", &
          & num_particles, stat = stat)
     
-    ewrite(1,*) 'In update_particles_options'
-    ewrite(1,*) num_particles
-    
     assert(any(stat == (/SPUD_NO_ERROR, SPUD_NEW_KEY_WARNING/)))
     
-    call set_option_attribute(trim(subgroup_path_name) // trim(temp_string) // "/initial_position/from_checkpoint_file/file_name", trim(filename)// "." // trim(temp_string), stat)
+    call set_option_attribute(trim(subgroup_path_name) // trim(temp_string) // "/initial_position/from_file/file_name", trim(filename)// "." // trim(temp_string), stat)
     
     if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
        FLAbort("Failed to set particles options filename when checkpointing particles with option path " // "/particles/particle_array::" // trim(temp_string))
     end if
     
-    call set_option(trim(subgroup_path_name) // trim(temp_string) // "/initial_position/from_checkpoint_file/format/", trim(format), stat)
+    call set_option(trim(subgroup_path_name) // trim(temp_string) // "/initial_position/from_file/format/", trim(format), stat)
     
     if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
        FLAbort("Failed to set particles options format when checkpointing particles with option path " // "/particles/particle_group")
@@ -1290,7 +1264,7 @@ contains
        end if
     end do
     
-  end subroutine update_particle_options
+  end subroutine update_particle_subgroup_options
 
   subroutine get_particles(p_array, p_allocated)
     !Send particle arrays to another routine

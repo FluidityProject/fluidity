@@ -33,7 +33,7 @@ module particle_diagnostics
   use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
   use futils, only: int2str
   use particles, only : get_particle_arrays, update_list_lengths, &
-       & set_particle_attributes, initialise_constant_particle_attributes
+       & update_particle_subgroup_attributes_and_fields, initialise_constant_particle_attributes
   use spud
   use parallel_tools, only: getnprocs, allsum
   use state_module
@@ -131,8 +131,8 @@ module particle_diagnostics
     !particles are initialised
     use particles, only: particle_lists
     type(state_type), dimension(:), intent(inout) :: state
+    
     type(state_type), dimension(size(state)) :: calculated_states
-
     character(len = OPTION_PATH_LEN) :: group_path, subgroup_path, name
     type(vector_field), pointer :: xfield
     type(scalar_field), pointer :: s_field
@@ -141,6 +141,7 @@ module particle_diagnostics
     integer :: dim, particle_groups, list_counter
     integer, dimension(:), allocatable :: particle_arrays
     type(detector_type), pointer :: particle
+    logical :: from_file
     
     !Check if there are particles
     particle_groups = option_count("/particles/particle_group")
@@ -166,9 +167,14 @@ module particle_diagnostics
        do k = 1,particle_arrays(i)
           particle => particle_lists(list_counter)%first
           subgroup_path = trim(group_path) // "/particle_subgroup["//int2str(k-1)//"]"
+          !Only initialise particle attributes if not loaded from a file
+          from_file=have_option(trim(subgroup_path)//"/initial_position/from_file")
+          if (from_file) then
+             cycle
+          end if
           if (option_count(trim(subgroup_path) // "/attributes/attribute/python").gt.0 .or. &
               & option_count(trim(subgroup_path) // "/attributes/attribute/python_fields").gt.0) then
-             call set_particle_attributes(state, dim, current_time, subgroup_path, particle_lists(list_counter))
+             call update_particle_subgroup_attributes_and_fields(state, current_time, subgroup_path, particle_lists(list_counter))
           end if
           list_counter = list_counter + 1
        end do
@@ -236,7 +242,7 @@ module particle_diagnostics
           end if
           particle => particle_lists(list_counter)%first
           if (size(particle%attributes).ne.0) then
-             call set_particle_attributes(state, dim, time, subgroup_path, particle_lists(list_counter))
+             call update_particle_subgroup_attributes_and_fields(state, time, subgroup_path, particle_lists(list_counter))
           end if
           list_counter = list_counter + 1
        end do

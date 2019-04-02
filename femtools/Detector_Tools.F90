@@ -34,13 +34,14 @@ module detector_tools
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
   use futils, only: int2str
   use elements, only: local_coord_count
-  use detector_data_types
-  use embed_python, only: set_detectors_from_python, set_particles_fields_from_python, set_particles_from_python
+  use embed_python, only: set_detectors_from_python, set_particles_from_python_fields, set_particles_from_python
   use integer_hash_table_module
   use parallel_tools
   use parallel_fields, only: element_owned
   use fields
-  use state_module, only: state_type, extract_scalar_field
+  use state_module, only: state_type, extract_scalar_field, aliased
+  use field_options
+  use detector_data_types
   use pickers
   
   implicit none
@@ -51,8 +52,8 @@ module detector_tools
             delete, delete_all, pack_detector, unpack_detector, &
             detector_value, set_detector_coords_from_python, &
             detector_buffer_size, set_particle_attribute_from_python, &
-            set_particle_fields_from_python, set_particle_constant_from_options, &
-            temp_insert, temp_deallocate, temp_delete, temp_delete_all, temp_remove
+            set_particle_attribute_from_python_fields, temp_insert, &
+            temp_deallocate, temp_delete, temp_delete_all, temp_remove
 
   interface insert
      module procedure insert_into_detector_list
@@ -493,7 +494,7 @@ contains
     integer, dimension(3), optional, intent(in) :: attribute_size !array to hold size of attributes
     integer :: det_params
     assert(size(detector%position)==ndims)
-    !Set size of basic detector fields
+    !Set size of basic detector fields, being detector element, id_number and type
     det_params = 3
     !Check if this is a particle carrying attributes
     if (present(attribute_size)) then
@@ -564,12 +565,11 @@ contains
     integer, dimension(3), optional, intent(in) :: attribute_size !array to hold size of attributes
 
     integer :: det_params
-    !Set size of basic detector fields
+    !Set size of basic detector fields, being detector element, id_number and type
     det_params = 3
     
     !Check if this is a particle carrying attributes
     if (present(attribute_size)) then
-       assert(size(buff)>=ndims+det_params+sum(attribute_size))
 
        if (.not. allocated(detector%position)) then
           allocate(detector%position(ndims))
@@ -580,20 +580,20 @@ contains
           allocate(detector%old_fields(attribute_size(3)))
        end if
        ! Basic fields: ndims+3
-       detector%position = reshape(buff(1:ndims),(/ndims/))
+       detector%position = buff(1:ndims)
        detector%element = buff(ndims+1)
        detector%id_number = buff(ndims+2)
        detector%type = buff(ndims+3)
-       if (attribute_size(1).ne.0) then  
-          detector%attributes = reshape(buff(ndims+det_params+1:ndims+det_params+attribute_size(1)),(/attribute_size(1)/))
+       if (attribute_size(1)/=0) then  
+          detector%attributes = buff(ndims+det_params+1:ndims+det_params+attribute_size(1))
        end if
-       if (attribute_size(2).ne.0) then  
-          detector%old_attributes = reshape(buff(ndims+det_params+1+attribute_size(1):ndims+det_params+attribute_size(1) &
-               +attribute_size(2)),(/attribute_size(2)/))
+       if (attribute_size(2)/=0) then  
+          detector%old_attributes = buff(ndims+det_params+1+attribute_size(1):ndims+det_params+attribute_size(1) &
+               +attribute_size(2))
        end if
-       if (attribute_size(3).ne.0) then  
-          detector%old_fields = reshape(buff(ndims+det_params+1+attribute_size(1)+attribute_size(2):ndims+det_params+ &
-               sum(attribute_size)),(/attribute_size(3)/))
+       if (attribute_size(3)/=0) then  
+          detector%old_fields = buff(ndims+det_params+1+attribute_size(1)+attribute_size(2):ndims+det_params+ &
+               sum(attribute_size))
        end if
        
        ! Reconstruct element number if global-to-local mapping is given
@@ -612,14 +612,14 @@ contains
        
        ! Lagrangian advection fields: (nstages+1)*ndims
        if (present(nstages)) then
-          assert(size(buff)==(nstages+2)*ndims+det_params++sum(attribute_size))
+          assert(size(buff)==(nstages+2)*ndims+det_params+sum(attribute_size))
           
           ! update_vector, dimension(ndim)
           if (.not. allocated(detector%update_vector)) then
              allocate(detector%update_vector(ndims))
           end if
-          detector%update_vector = reshape(buff(ndims+det_params+1+sum(attribute_size) &
-               :2*ndims+det_params+sum(attribute_size)),(/ndims/))
+          detector%update_vector = buff(ndims+det_params+1+sum(attribute_size) &
+               :2*ndims+det_params+sum(attribute_size))
           
           ! k, dimension(nstages:ndim)
           if (.not. allocated(detector%k)) then
@@ -637,14 +637,13 @@ contains
           detector%search_complete=.true.
        end if
     else
-       assert(size(buff)>=ndims+det_params)
 
        if (.not. allocated(detector%position)) then
           allocate(detector%position(ndims))
        end if
        
        ! Basic fields: ndims+3
-       detector%position = reshape(buff(1:ndims),(/ndims/))
+       detector%position = buff(1:ndims)
        detector%element = buff(ndims+1)
        detector%id_number = buff(ndims+2)
        detector%type = buff(ndims+3)
@@ -671,7 +670,7 @@ contains
           if (.not. allocated(detector%update_vector)) then
              allocate(detector%update_vector(ndims))
           end if
-          detector%update_vector = reshape(buff(ndims+det_params+1:2*ndims+det_params),(/ndims/))
+          detector%update_vector = buff(ndims+det_params+1:2*ndims+det_params)
           
           ! k, dimension(nstages:ndim)
           if (.not. allocated(detector%k)) then
@@ -752,38 +751,23 @@ contains
 
   end subroutine set_detector_coords_from_python
 
-  subroutine set_particle_constant_from_options(attributes, ndete, constant)
-    !!< Given a constant value, set full array of attributes from this value
-    real, dimension(:), intent(inout) :: attributes
-    integer, intent(in) :: ndete
-    real, intent(in) :: constant
-
-    integer :: i
-
-    do i = 1,ndete
-       attributes(i) = constant
-    end do
-
-  end subroutine set_particle_constant_from_options
-
-  subroutine set_particle_attribute_from_python(attributes, positions, ndete, dim, func, time)
-    !!< Given a particle position and time, evaluate the python function
+  subroutine set_particle_attribute_from_python(attributes, positions, nparts, func, time)
+    !!< Given the particle position and time, evaluate the specified python function for a group of particles
     !!< specified in the string func at that location. 
     real, dimension(:), intent(inout) :: attributes
     !! Func may contain any python at all but the following function must
     !! be defined::
     !!  def val(X,t)
     !! where X is position and t is the time. The result must be a float. 
-    character(len=*), intent(in) :: func
-    integer, intent(in) :: ndete
-    real, intent(in) :: time
-    integer, intent(in) :: dim
-    real, dimension(:,:), target, intent(in) :: positions
+    character(len=*), intent(in) :: func !function for attributes to be set from
+    integer, intent(in) :: nparts !number of particles
+    real, intent(in) :: time !current simulation time
+    real, dimension(:,:), target, intent(in) :: positions !current particle positions
     real, dimension(:), pointer :: lvx,lvy,lvz
     real, dimension(0), target :: zero
     integer :: stat
 
-    select case(dim)
+    select case(size(positions(:,1)))
     case(1)
       lvx=>positions(1,:)
       lvy=>zero
@@ -797,8 +781,8 @@ contains
       lvy=>positions(2,:)
       lvz=>positions(3,:)
     end select
-    call set_particles_from_python(func, len(func), dim, &
-         ndete, lvx, lvy, lvz, time, attributes, stat)
+    call set_particles_from_python(func, len(func), size(positions(:,1)), &
+         nparts, lvx, lvy, lvz, time, attributes, stat)
     if (stat/=0) then
       ewrite(-1, *) "Python error, Python string was:"
       ewrite(-1 , *) trim(func)
@@ -806,25 +790,26 @@ contains
     end if
   end subroutine set_particle_attribute_from_python
 
-  subroutine set_particle_fields_from_python(particle_list, state, dim, positions, lcoords, ele, ndete, attributes, old_att_names, old_attributes, func, time)
+  subroutine set_particle_attribute_from_python_fields(particle_list, state, positions, lcoords, ele, nparts, attributes, old_att_names, old_attributes, func, time)
     !!< Given a particle position, time and field values, evaluate the python function
     !!< specified in the string func at that location. 
     !! Func may contain any python at all but the following function must
     !! be defined::
     !!  def val(X,t, fields)
-    !! where X is position t is the time, and fields are field values. The result must be a float. 
+    !! where X is position t is the time, and fields is a dictionary where fields["FieldName"] and fields["OldFieldName" store
+    !! the interpolated value of "FieldName" at the particle position at the current and previous time levels, and fields["OldAttributeName"] stores the attribute
+    !! value at the previous time level. The result must be a float. 
     type(detector_linked_list), intent(in) :: particle_list
     type(state_type), dimension(:), intent(in) :: state
-    real, dimension(:,:), intent(in) :: old_attributes
-    character, dimension(:,:), intent(in) :: old_att_names
-    real, dimension(:), intent(inout) :: attributes
-    real, dimension(:,:), target, intent(in) :: positions
-    real, dimension(:,:), intent(in) :: lcoords
-    integer, dimension(:), intent(in) :: ele
-    character(len=*), intent(in) :: func
-    integer, intent(in) :: ndete
+    real, dimension(:,:), intent(in) :: old_attributes !Attribute values from the previous timestep
+    character, dimension(:,:), intent(in) :: old_att_names !Names of attributes stored from the previous timestep
+    real, dimension(:), intent(inout) :: attributes !Attribute values to be set
+    real, dimension(:,:), target, intent(in) :: positions !positions of particles
+    real, dimension(:,:), intent(in) :: lcoords !local coordinates of the particle position
+    integer, dimension(:), intent(in) :: ele !elements particles are found in
+    character(len=*), intent(in) :: func !function for attributes to be set from
+    integer, intent(in) :: nparts !number of particles
     real, intent(in) :: time
-    integer, intent(in) :: dim
     character, allocatable, dimension(:,:) :: field_names
     character, allocatable, dimension(:,:) :: old_field_names
     real, allocatable, dimension(:,:) :: field_vals
@@ -837,14 +822,22 @@ contains
 
     type(scalar_field), pointer :: sfield
     character(len=FIELD_NAME_LEN) :: name
-    integer :: phase, i, j, nfields, nprognostic, nprescribed, ndiagnostic
-    integer :: p, f, stat, num_fields, k, pfields, l, old_nfields, old_nattributes
-    
-    nprognostic = option_count('/material_phase/scalar_field/prognostic/particles/include_in_particles')
-    nprescribed = option_count('/material_phase/scalar_field/prescribed/particles/include_in_particles')
-    ndiagnostic = option_count('/material_phase/scalar_field/diagnostic/particles/include_in_particles')
+    integer :: phase, i, j, nfields
+    integer :: p, f, stat, k, pfields, l, old_nfields, old_nattributes
 
-    select case(dim)
+    nfields=0
+    do phase=1,size(state)
+       do i=1, size(state(phase)%scalar_names)
+          sfield => extract_scalar_field(state(phase),state(phase)%scalar_names(i))
+          if (sfield%option_path=="".or.aliased(sfield)) then
+             cycle
+          else if (have_option(trim(complete_field_path(sfield%option_path)) // "/particles/include_in_particles")) then
+             nfields=nfields+1
+          end if
+       end do
+    end do
+
+    select case(size(positions(:,1)))
     case(1)
       lvx=>positions(1,:)
       lvy=>zero
@@ -861,32 +854,27 @@ contains
 
     particle => particle_list%first
     
-    nfields = ndiagnostic + nprescribed + nprognostic
     old_nfields = size(particle%old_fields)
     old_nattributes = size(particle%old_attributes)
 
     allocate(field_names(FIELD_NAME_LEN,nfields))
-    allocate(field_vals(nfields,ndete))
+    allocate(field_vals(nfields,nparts))
     allocate(old_field_names(FIELD_NAME_LEN,size(particle%old_fields)))
-    allocate(old_field_vals(size(particle%old_fields),ndete))
+    allocate(old_field_vals(size(particle%old_fields),nparts))
     j=1
     l=1
     do phase=1,size(state)
-       num_fields = option_count('/material_phase[' &
-            //int2str(phase-1)//']/scalar_field')
-       do f = 1, num_fields
-          call get_option('material_phase['//int2str(phase-1)//']/scalar_field['//int2str(f-1)//']/name', name)
-          sfield => extract_scalar_field(state(phase),name)
-          if (have_option(trim(sfield%option_path)//"/prescribed/particles/include_in_particles").or. &
-               have_option(trim(sfield%option_path)//"/diagnostic/particles/include_in_particles").or. &
-               have_option(trim(sfield%option_path)//"/prognostic/particles/include_in_particles")) then
+       do f = 1, size(state(phase)%scalar_names)
+          sfield => extract_scalar_field(state(phase),state(phase)%scalar_names(f))
+          if (sfield%option_path=="".or.aliased(sfield)) then
+             cycle
+          else if (have_option(trim(complete_field_path(sfield%option_path)) // "/particles/include_in_particles")) then
+             name=trim(state(phase)%scalar_names(f))
              do k = 1,len_trim(name)
                 field_names(k,j)=name(k:k)
              end do
              field_names(k,j)= C_NULL_CHAR
-             if (have_option(trim(sfield%option_path)//"/prescribed/particles/include_in_particles/store_old_field").or. &
-                  have_option(trim(sfield%option_path)//"/diagnostic/particles/include_in_particles/store_old_field").or. &
-                  have_option(trim(sfield%option_path)//"/prognostic/particles/include_in_particles/store_old_field")) then
+             if (have_option(trim(complete_field_path(sfield%option_path)) // "/particles/include_in_particles/store_old_field")) then
                 old_field_names(1,l) = 'O'
                 old_field_names(2,l) = 'l'
                 old_field_names(3,l) = 'd'
@@ -894,14 +882,14 @@ contains
                    old_field_names(k,l)=name(k-3:k-3)
                 end do
                 old_field_names(k,l)= C_NULL_CHAR
-                do i = 1,ndete      
+                do i = 1,nparts    
                    value = eval_field(ele(i), sfield, lcoords(:,i))
                    field_vals(j,i)=value
                    old_field_vals(l,i)=value
                 end do
                 l=l+1
              else
-                do i = 1,ndete      
+                do i = 1,nparts
                    value = eval_field(ele(i), sfield, lcoords(:,i))
                    field_vals(j,i)=value
                 end do
@@ -913,13 +901,13 @@ contains
     particle => particle_list%first
     if (allocated(particle%old_fields)) then
        particle => particle_list%first
-       do i = 1,ndete
+       do i = 1,nparts
           old_field_vals(:,i) = particle%old_fields
           particle=>particle%next
        end do
     end if
     
-    call set_particles_fields_from_python(func, len(func), dim, ndete, &
+    call set_particles_from_python_fields(func, len(func), size(positions(:,1)), nparts, &
          lvx, lvy, lvz, time, nfields, field_names, field_vals, old_nfields, old_field_names, &
          old_field_vals, old_nattributes, old_att_names, old_attributes, attributes, stat)
     if (stat/=0) then
@@ -933,6 +921,6 @@ contains
     deallocate(old_field_names)
     deallocate(old_field_vals)
     
-  end subroutine set_particle_fields_from_python
+  end subroutine set_particle_attribute_from_python_fields
 
 end module detector_tools

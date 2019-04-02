@@ -85,7 +85,6 @@ In this case each value requires a distinct name for the options dictionary.</a:
     <ref name="prescribed_output_options"/>
     <ref name="prescribed_vector_stat_options"/>
     <ref name="prescribed_detector_options"/>
-    <ref name="prescribed_particle_options"/>
   </define>
   <define name="prescribed_values_vector_field">
     <oneOrMore>

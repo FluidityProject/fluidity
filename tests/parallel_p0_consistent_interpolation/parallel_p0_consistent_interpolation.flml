@@ -80,9 +80,6 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <adaptivity_options>
           <absolute_measure>
             <vector_field name="InterpolationErrorBound" rank="1">
@@ -101,9 +98,6 @@
                 <detectors>
                   <exclude_from_detectors/>
                 </detectors>
-                <particles>
-                  <exclude_from_particles/>
-                </particles>
               </prescribed>
             </vector_field>
           </absolute_measure>
@@ -126,9 +120,6 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
