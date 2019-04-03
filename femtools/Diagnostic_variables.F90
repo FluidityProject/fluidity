@@ -1955,6 +1955,7 @@ contains
        scalar_field_loop: do i=1, size(default_stat%sfield_list(phase)%ptr)
           ! Output statistics for each scalar field
           sfield=>extract_scalar_field(state(phase), default_stat%sfield_list(phase)%ptr(i))
+          if (len_trim(sfield%option_path) == 0) cycle
 
           xfield=get_diagnostic_coordinate_field(state(phase), sfield%mesh)
 
@@ -2038,9 +2039,8 @@ contains
          ! Output statistics for each vector field
          vfield => extract_vector_field(state(phase), &
            & default_stat%vfield_list(phase)%ptr(i))
-          
-         ! FIXME:
-         if (.not. has_mesh(state(phase), vfield%mesh%name)) cycle
+         if (len_trim(vfield%option_path) == 0) cycle
+
          xfield=get_diagnostic_coordinate_field(state(phase), vfield%mesh)
 
          ! Standard scalar field stats for vector field magnitude
@@ -2086,7 +2086,7 @@ contains
            if(getprocno() == 1) then
              write(default_stat%diag_unit, trim(format4), advance="no") fmin, fmax, fnorm2,&
                    & fintegral
-           end if            
+           end if
          end if
 
          ! momentum conservation error calculation
@@ -2102,6 +2102,7 @@ contains
          ! Output statistics for each tensor field
          tfield => extract_tensor_field(state(phase), &
            & default_stat%tfield_list(phase)%ptr(i))
+         if (len_trim(tfield%option_path) == 0) cycle
           
          xfield=get_diagnostic_coordinate_field(state(phase), tfield%mesh)
 

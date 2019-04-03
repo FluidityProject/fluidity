@@ -87,6 +87,9 @@ module spherical_adaptivity
       call insert(reserve_state, base_geometry_horizontal_positions, base_geometry_horizontal_positions%name)
       call insert(reserve_state, top_positions, top_positions%name)
       call insert(reserve_state, bottom_positions, bottom_positions%name)
+      ! also need to insert the mesh separately, as this avoid printing of left-over ("tagged") references
+      ! during adaptivity
+      call insert(reserve_state, base_geometry_horizontal_positions%mesh, base_geometry_horizontal_positions%mesh%name)
 
       call insert(states, base_geometry_horizontal_positions, base_geometry_horizontal_positions%name)
       call insert(states, top_positions, top_positions%name)
