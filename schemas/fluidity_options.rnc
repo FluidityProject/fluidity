@@ -342,51 +342,39 @@ start =
                   element velocity_field {
                      attribute name { xsd:string }
                   },
-                  ## Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
-                  ## and carry the same attributes. Subgroups can have different initial positions specified via a python
-                  ## function of from a file.
 		  ## Options for spawning and deleting particles based on the minimum and maximum limits of particles per control volume. Defined per particle_group.
 		  element particle_spawning {
-		     ## Set spawning parameters, such as the number of particles per cv, and which field particles will be spawned to.
-		     element spawning_parameters {
-		        ## Minimum number of particles per control volume.
-		        element min_cv_threshhold {
-			   integer
-			},
-			## Maximum number of particles per control volume (recommended to be at least four times the minimum threshold).
-		        element max_cv_threshhold {
-			   integer
-		 	},
-			## Radius particle can spawn around parent in local coordinates.
-			element radius {
+		     ## Set the mesh which will be used for particle spawning.
+	             mesh_choice,
+		     ## Minimum number of particles per control volume.
+		     element min_cv_threshhold {
+			integer
+	             },
+	             ## Maximum number of particles per control volume (recommended to be at least four times the minimum threshold).
+		     element max_cv_threshhold {
+			integer
+		     },
+		     ## Options for setting where particles will be spawned within the control volume
+		     element spawn_location {
+	                ## Particles will spawn within a radius of the parent particle (ensuring they remain within the current element and control volume).
+			## Value is in local coordinates (recommended value 0.05).
+	                element radius {
 			   real
-			},
-		        ## Set the field mesh which will be used for spawning.
-			element field {
-			   attribute name { xsd:string }
-			},
-			## Set which particles will spawn, based off particle subgroup or attributes carried.
-			element particles_to_spawn {
-			   ## Name of particle_subgroup that will be spawned.
-			   element subgroup {
-			      attribute name { xsd:string },
-		              ## Option to copy all parent particle attributes upon spawning.
-			      element copy_parent_attributes{
-			         empty
-		              }?
-			   }|
-			   ## Name of attribute which will cause particles to be spawned.
-			   element attribute {
-			      attribute name { xsd:string },
-		              ## Option to copy all parent particle attributes upon spawning.
-		              element copy_parent_attributes{
-			         empty
-		              }?
-			   }
+	                }|
+			## Particles will spawn randomly within the control volume.
+			element random {
+			   empty
 			}
-		     }+
+	             },
+		     ## Option to set spawning caps for specific particle subgroups if one is dominant in a control volume.
+		     element subgroup_spawning_caps {
+		        ## Percentage of single subgroup required to be present for only that subgroup to spawn within a specific control volume.
+		        element percentage {
+			   real
+		        }
+		     }?
                   }?,
-		  ##Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
+		  ##Particle subgroup arrays specified within a particle group. All subgroups utilize the same velocity field
 		  ##and carry the same attributes. Subgroups can have different initial positions specified via a python
 		  ##function of from a file.
                   element particle_subgroup {
@@ -438,11 +426,7 @@ start =
             )*,
             ## Options for particles being advected outside the computational domain.
 	    element moving_outside_domain {
-               ## By default Fluidity will make particles static if they move outside the domain.
-               element make_static {
-                  empty
-               }|
-               ## Enable particles to be deleted upon moving outside the domain.
+               ## By default Fluidity will delete particles if they move outside the domain.
                element delete {
                   empty
                }

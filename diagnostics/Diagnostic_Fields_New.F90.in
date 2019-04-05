@@ -310,6 +310,7 @@ contains
         if(has_scalar_field(calculated_states(i), trim(s_field%name))) cycle
         ! Check if the field should be calculated from particles instead
         if(have_option(trim(s_field%option_path) // "/diagnostic/algorithm::from_particles")) cycle
+        if(have_option(trim(s_field%option_path) // "/diagnostic/algorithm::number_of_particles")) cycle
         
         ! Calculate dependencies
         call calculate_dependencies(states, i, s_field, &
@@ -845,7 +846,10 @@ SINGLE_STATE_SCALAR_DIAGNOSTICS
 MULTIPLE_STATE_SCALAR_DIAGNOSTICS
 
       case("from_particles")
-        ! Not handled here
+         ! Not handled here
+
+      case("number_of_particles")
+         ! Not handled here
          
       case default
         if(present(stat)) then

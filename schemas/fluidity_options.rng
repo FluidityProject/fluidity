@@ -425,67 +425,46 @@ and deleting options.</a:documentation>
                 </element>
                 <optional>
                   <element name="particle_spawning">
-                    <a:documentation>Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
-and carry the same attributes. Subgroups can have different initial positions specified via a python
-function of from a file.
-Options for spawning and deleting particles based on the minimum and maximum limits of particles per control volume. Defined per particle_group.</a:documentation>
-                    <oneOrMore>
-                      <element name="spawning_parameters">
-                        <a:documentation>Set spawning parameters, such as the number of particles per cv, and which field particles will be spawned to.</a:documentation>
-                        <element name="min_cv_threshhold">
-                          <a:documentation>Minimum number of particles per control volume.</a:documentation>
-                          <ref name="integer"/>
-                        </element>
-                        <element name="max_cv_threshhold">
-                          <a:documentation>Maximum number of particles per control volume (recommended to be at least four times the minimum threshold).</a:documentation>
-                          <ref name="integer"/>
-                        </element>
+                    <a:documentation>Options for spawning and deleting particles based on the minimum and maximum limits of particles per control volume. Defined per particle_group.</a:documentation>
+                    <ref name="mesh_choice">
+                      <a:documentation>Set the mesh which will be used for particle spawning.</a:documentation>
+                    </ref>
+                    <element name="min_cv_threshhold">
+                      <a:documentation>Minimum number of particles per control volume.</a:documentation>
+                      <ref name="integer"/>
+                    </element>
+                    <element name="max_cv_threshhold">
+                      <a:documentation>Maximum number of particles per control volume (recommended to be at least four times the minimum threshold).</a:documentation>
+                      <ref name="integer"/>
+                    </element>
+                    <element name="spawn_location">
+                      <a:documentation>Options for setting where particles will be spawned within the control volume</a:documentation>
+                      <choice>
                         <element name="radius">
-                          <a:documentation>Radius particle can spawn around parent in local coordinates.</a:documentation>
+                          <a:documentation>Particles will spawn within a radius of the parent particle (ensuring they remain within the current element and control volume).
+Value is in local coordinates (recommended value 0.05).</a:documentation>
                           <ref name="real"/>
                         </element>
-                        <element name="field">
-                          <a:documentation>Set the field mesh which will be used for spawning.</a:documentation>
-                          <attribute name="name">
-                            <data type="string"/>
-                          </attribute>
+                        <element name="random">
+                          <a:documentation>Particles will spawn randomly within the control volume.</a:documentation>
+                          <empty/>
                         </element>
-                        <element name="particles_to_spawn">
-                          <a:documentation>Set which particles will spawn, based off particle subgroup or attributes carried.</a:documentation>
-                          <choice>
-                            <element name="subgroup">
-                              <a:documentation>Name of particle_subgroup that will be spawned.</a:documentation>
-                              <attribute name="name">
-                                <data type="string"/>
-                              </attribute>
-                              <optional>
-                                <element name="copy_parent_attributes">
-                                  <a:documentation>Option to copy all parent particle attributes upon spawning.</a:documentation>
-                                  <empty/>
-                                </element>
-                              </optional>
-                            </element>
-                            <element name="attribute">
-                              <a:documentation>Name of attribute which will cause particles to be spawned.</a:documentation>
-                              <attribute name="name">
-                                <data type="string"/>
-                              </attribute>
-                              <optional>
-                                <element name="copy_parent_attributes">
-                                  <a:documentation>Option to copy all parent particle attributes upon spawning.</a:documentation>
-                                  <empty/>
-                                </element>
-                              </optional>
-                            </element>
-                          </choice>
+                      </choice>
+                    </element>
+                    <optional>
+                      <element name="subgroup_spawning_caps">
+                        <a:documentation>Option to set spawning caps for specific particle subgroups if one is dominant in a control volume.</a:documentation>
+                        <element name="percentage">
+                          <a:documentation>Percentage of single subgroup required to be present for only that subgroup to spawn within a specific control volume.</a:documentation>
+                          <ref name="real"/>
                         </element>
                       </element>
-                    </oneOrMore>
+                    </optional>
                   </element>
                 </optional>
                 <oneOrMore>
                   <element name="particle_subgroup">
-                    <a:documentation>Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
+                    <a:documentation>Particle subgroup arrays specified within a particle group. All subgroups utilize the same velocity field
 and carry the same attributes. Subgroups can have different initial positions specified via a python
 function of from a file.</a:documentation>
                     <attribute name="name">
@@ -546,16 +525,10 @@ The t argument is for future use only - currently particle locations are only se
           </zeroOrMore>
           <element name="moving_outside_domain">
             <a:documentation>Options for particles being advected outside the computational domain.</a:documentation>
-            <choice>
-              <element name="make_static">
-                <a:documentation>By default Fluidity will make particles static if they move outside the domain.</a:documentation>
-                <empty/>
-              </element>
-              <element name="delete">
-                <a:documentation>Enable particles to be deleted upon moving outside the domain.</a:documentation>
-                <empty/>
-              </element>
-            </choice>
+            <element name="delete">
+              <a:documentation>By default Fluidity will delete particles if they move outside the domain.</a:documentation>
+              <empty/>
+            </element>
           </element>
           <optional>
             <element name="ascii_output">

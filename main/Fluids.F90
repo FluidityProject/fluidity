@@ -75,8 +75,8 @@ module fluids_module
   use diagnostic_fields_wrapper
   use particles
   use particle_diagnostics, only: initialise_particle_diagnostics, update_particle_diagnostics, &
-       & initialise_constant_particle_diagnostics, initialise_particle_diagnostic_fields, &
-       & initialise_particle_material_fields, particle_cv_check
+       & initialise_constant_particle_diagnostics, initialise_particle_diagnostic_fields_post_adapt, &
+       & particle_cv_check
   use checkpoint
   use goals
   use adaptive_timestepping
@@ -990,16 +990,13 @@ contains
       call CalculateTopBottomDistance(state(1))
     end if
 
-    !Diagnostic MVF fields based on particles
+    !Diagnostic fields based on particles
     call particle_cv_check(state)
-    call initialise_particle_material_fields(state)
+    call initialise_particle_diagnostic_fields_post_adapt(state)
  
     ! Diagnostic fields
     call calculate_diagnostic_variables(state)
     call calculate_diagnostic_variables_new(state)
-
-    !Diagnostic fields based on particles
-    call initialise_particle_diagnostic_fields(state)
     
     ! This is mostly to ensure that the photosynthetic radiation
     ! has a non-zero value before the next adapt.

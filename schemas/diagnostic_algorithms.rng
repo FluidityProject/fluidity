@@ -147,68 +147,51 @@ wrappers.</a:documentation>
       </element>
       <element name="algorithm">
         <a:documentation>This diagnostic is derived from particle attributes, it is calculated
-within the Particle_Diagnostics.F90 routine.</a:documentation>
+within the Particle_Diagnostics.F90 routine, and set via the ratio method.</a:documentation>
         <attribute name="name">
           <value>from_particles</value>
         </attribute>
         <attribute name="material_phase_support">
           <value>multiple</value>
         </attribute>
-        <choice>
-          <element name="method">
-            <a:documentation>Diagnostic field will be set from the particle 'ratio' method.</a:documentation>
+        <group>
+          <element name="particle_group">
             <attribute name="name">
-              <value>ratio</value>
+              <data type="string"/>
             </attribute>
-            <element name="particle_group">
+            <element name="particle_attribute">
               <attribute name="name">
                 <data type="string"/>
               </attribute>
-              <element name="particle_attribute">
-                <attribute name="name">
-                  <data type="string"/>
-                </attribute>
+            </element>
+          </element>
+          <element name="interpolation">
+            <a:documentation>Function used to interpolate particle values onto nodes.</a:documentation>
+            <choice>
+              <element name="weighted_distance">
+                <a:documentation>Weighted distribution of particle values between all nodes of the current particle element.</a:documentation>
+                <empty/>
               </element>
-            </element>
-            <element name="interpolation">
-              <a:documentation>Function used to interpolate particle values onto nodes.</a:documentation>
-              <choice>
-                <element name="weighted_distance">
-                  <a:documentation>Weighted distribution of particle values between all nodes of the current particle element.</a:documentation>
-                  <empty/>
-                </element>
-                <element name="nearest_neighbour">
-                  <a:documentation>Transfers particle values only to the closest node.</a:documentation>
-                  <empty/>
-                </element>
-              </choice>
-            </element>
+              <element name="nearest_neighbour">
+                <a:documentation>Transfers particle values only to the closest node.</a:documentation>
+                <empty/>
+              </element>
+            </choice>
           </element>
-          <element name="method">
-            <a:documentation>Diagnostic field will be set from the number of particles
-present per control volume.</a:documentation>
-            <attribute name="name">
-              <value>num_particles</value>
-            </attribute>
-            <element name="particle_group">
-              <attribute name="name">
-                <data type="string"/>
-              </attribute>
-              <choice>
-                <element name="particle_subgroup">
-                  <attribute name="name">
-                    <data type="string"/>
-                  </attribute>
-                </element>
-                <element name="particle_attribute">
-                  <attribute name="name">
-                    <data type="string"/>
-                  </attribute>
-                </element>
-              </choice>
-            </element>
-          </element>
-        </choice>
+        </group>
+      </element>
+      <element name="algorithm">
+        <attribute name="name">
+          <value>number_of_particles</value>
+        </attribute>
+        <attribute name="material_phase_support">
+          <value>multiple</value>
+        </attribute>
+        <element name="particle_group">
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+        </element>
       </element>
     </choice>
   </define>

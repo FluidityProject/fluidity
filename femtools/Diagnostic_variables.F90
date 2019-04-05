@@ -76,6 +76,7 @@ module diagnostic_variables
   use detector_data_types
   use pickers
   use mixing_statistics
+  use particles, only: get_particle_arrays
   use detector_tools
   use detector_parallel
   use detector_move_lagrangian
@@ -503,11 +504,13 @@ contains
     integer :: column, i, j, k, s, phase, stat
     integer, dimension(2) :: shape_option
     integer :: no_mixing_bins
+    integer :: particle_groups, particle_subgroups
     real, dimension(:), pointer :: mixing_bin_bounds
     real :: current_time
     character(len = 254) :: buffer, material_phase_name, prefix
     character(len = FIELD_NAME_LEN) :: surface_integral_name, mixing_stats_name
     character(len = OPTION_PATH_LEN) :: func
+    character(len = OPTION_PATH_LEN) :: group_name, subgroup_name
     type(scalar_field) :: vfield_comp, tfield_comp
     type(mesh_type), pointer :: mesh
     type(scalar_field), pointer :: sfield
@@ -889,6 +892,25 @@ contains
         end do  
         iterator => iterator%next
       end do
+      
+      !Now particle groups and subgroups
+      particle_groups = option_count("/particles/particle_group")
+      if (particle_groups/=0) then
+         do i = 1,particle_groups
+            call get_option("/particles/particle_group["//int2str(i-1)//"]/name", group_name)
+            column = column + 1
+            buffer=field_tag(name=trim(group_name), column=column, statistic="total_particles")
+            write(default_stat%diag_unit, '(a)') trim(buffer)
+            particle_subgroups = option_count("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup")
+            do j = 1, particle_subgroups
+               call get_option("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup["//int2str(j-1)//"]/name", subgroup_name)
+               column = column + 1
+               buffer=field_tag(name=trim(group_name)//"::"//trim(subgroup_name), column=column, statistic="total_particles")
+               write(default_stat%diag_unit, '(a)') trim(buffer)
+            end do
+         end do
+      end if
+               
 
       write(default_stat%diag_unit, '(a)') "</header>"
       flush(default_stat%diag_unit)
@@ -1889,6 +1911,8 @@ contains
   
   subroutine write_diagnostics(state, time, dt, timestep, not_to_move_det_yet)
     !!< Write the diagnostics to the previously opened diagnostics file.
+
+    use particles, only: particle_lists
     type(state_type), dimension(:), intent(inout) :: state
     real, intent(in) :: time, dt
     integer, intent(in) :: timestep
@@ -1896,11 +1920,14 @@ contains
 
     character(len = 2 + real_format_len(padding = 1) + 1) :: format, format2, format3, format4
     character(len = OPTION_PATH_LEN) :: func
+    character(len = OPTION_PATH_LEN) :: group_name
     integer :: i, j, k, phase, stat
     integer, dimension(2) :: shape_option
     integer :: nodes, elements, surface_elements
     integer :: no_mixing_bins
     integer, dimension(3):: attribute_size !array to hold attribute sizes
+    integer, dimension(:), allocatable :: particle_arrays, subgroup_tot
+    integer :: particle_groups, group_sum
     real :: fmin, fmax, fnorm2, fintegral, fnorm2_cv, fintegral_cv, surface_integral
     real, dimension(:), allocatable :: f_mix_fraction
     real, dimension(:), pointer :: mixing_bin_bounds
@@ -2153,6 +2180,29 @@ contains
       iterator => iterator%next
     end do
 
+    ! Write output for the total number of particles in the simulation (per particle group and subgroup).
+    if(getprocno() == 1) then
+       particle_groups = option_count("/particles/particle_group")
+       if (particle_groups/=0) then
+          do i = 1,particle_groups
+             group_sum = 0
+             call get_option("/particles/particle_group["//int2str(i-1)//"]/name", group_name)
+             call get_particle_arrays(group_name,particle_arrays)
+             allocate(subgroup_tot(size(particle_arrays)))
+             do j = 1, size(particle_arrays)
+                subgroup_tot(j) = particle_lists(particle_arrays(j))%total_num_det
+                group_sum = group_sum + subgroup_tot(j)
+             end do
+             write(default_stat%diag_unit, trim(format), advance = "no") group_sum*1.0
+             do j = 1,size(particle_arrays)
+                write(default_stat%diag_unit, trim(format), advance = "no") subgroup_tot(j)*1.0
+             end do
+             deallocate(subgroup_tot)
+             deallocate(particle_arrays)
+          end do
+       end if
+    end if
+
     ! Output end of line
     ! Only the first process should write statistics information
     if(getprocno() == 1) then
@@ -2169,7 +2219,7 @@ contains
        call move_lagrangian_detectors(state, default_stat%detector_list, dt, timestep, attribute_size)
     end if
 
-    ! Now output any detectors.    
+    ! Now output any detectors.
     call write_detectors(state, default_stat%detector_list, time, dt)
 
     call profiler_toc("I/O")

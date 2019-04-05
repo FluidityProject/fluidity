@@ -102,51 +102,40 @@ internal_algorithm =
          attribute material_phase_support { "multiple" }
       }|
       ## This diagnostic is derived from particle attributes, it is calculated
-      ## within the Particle_Diagnostics.F90 routine.
+      ## within the Particle_Diagnostics.F90 routine, and set via the ratio method.
       element algorithm {
          attribute name { "from_particles" },
 	 attribute material_phase_support { "multiple" },
 	 (
-	   ## Diagnostic field will be set from the particle 'ratio' method.
-	   element method {
-	      attribute name { "ratio" },
-	      element particle_group {
-	         attribute name { xsd:string },
-	         element particle_attribute {
-	            attribute name { xsd:string }
-	         }
-	      },
-	      ### Function used to interpolate particle values onto nodes.
-	      element interpolation {
-	      	 ### Weighted distribution of particle values between all nodes of the current particle element.
-	         element weighted_distance {
-		    empty
-		 }|
-		 ### Transfers particle values only to the closest node.
-		 element nearest_neighbour {
-		    empty
-		 }
-              }
-	   }|
-	   ## Diagnostic field will be set from the number of particles
-	   ## present per control volume.
-	   element method {
-	      attribute name { "num_particles" },
-	      element particle_group {
-	      	 attribute name { xsd:string },
-		 (
-	             element particle_subgroup {
-	                attribute name { xsd:string }
-	             }|
-	             element particle_attribute {
-	      	        attribute name { xsd:string }
-		     }
-		 )
-              }
-	   }
+            element particle_group {
+	       attribute name { xsd:string },
+	       element particle_attribute {
+	          attribute name { xsd:string }
+	       }
+	    },
+	    ## Function used to interpolate particle values onto nodes.
+	    element interpolation {
+	       ## Weighted distribution of particle values between all nodes of the current particle element.
+	       element weighted_distance {
+		  empty
+	       }|
+	       ## Transfers particle values only to the closest node.
+	       element nearest_neighbour {
+	          empty
+	       }
+            }
+	 )
+      }|
+      element algorithm {
+         attribute name { "number_of_particles" },
+	 attribute material_phase_support { "multiple" },
+	 (
+	    element particle_group {
+	       attribute name { xsd:string }
+	    }
 	 )
       }
-   )
+   )	         
 legacy_internal_algorithm =
    (
       ## This diagnostic is deprecated - i.e. it has been replaced by an
