@@ -75,3 +75,7 @@
 #if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<8)
 #define MatCreateSubMatrix MatGetSubMatrix
 #endif
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<9)
+#define MatSolverType MatSolverPackage
+#define PCFactorSetMatSolverType PCFactorSetMatSolverPackage
+#endif
