@@ -691,11 +691,12 @@ module vtkreader
     end subroutine read_appended_idata_array
 
     subroutine read_data_array(reader, name, data, ncomps, &
-         dlen, compressed, appended, offset)
+         dlen, compressed, appended, offset, dtype)
       type(xmlTextReader) :: reader
       character(kind=c_char), dimension(:), pointer :: name
       real, pointer, dimension(:,:) :: data
       integer, optional :: dlen, offset
+      character(len=7), optional :: dtype
       logical :: lret, compressed, appended
       integer :: ncomps, ntuples, ret, i, j
       real(c_float), dimension(:), allocatable :: fdata
@@ -726,6 +727,10 @@ module vtkreader
          tmp => xmlTextReaderConstValue(reader)
          offset = chararray2int(tmp)
          appended=.true.
+         if (present(dtype)) then
+            ret = xmlTextReaderMoveToAttribute(reader, "type")
+            dtype = str(xmlTextReaderConstValue(reader))
+         end if
          return
       else
          offset = -1
@@ -796,7 +801,9 @@ module vtkreader
       character(kind=c_char), dimension(:), pointer :: tmp
       integer(c_long) :: destLen, sourcelen
 
-           
+
+
+      print*, dformat
       cdata => cdata(offset+1:size(cdata))
       allocate(data(ntuples, dlen))
 
@@ -813,10 +820,10 @@ module vtkreader
       else
          if (dformat == "Float32") then
             data = reshape(transfer(read_uncompressed_base64_data(cdata, 4*size(data)), &
-                    real(1.0, kind=c_double), size(data)), shape(data))
+                    real(1.0, kind=c_float), size(data)), shape(data))
          else
             data = reshape(transfer(read_uncompressed_base64_data(cdata, 8*size(data)), &
-                    real(1.0, kind=c_int), size(data)), shape(data))
+                    real(1.0, kind=c_double), size(data)), shape(data))
          end if
       end if
       
@@ -1004,6 +1011,7 @@ module vtkreader
        integer :: field_offsets(nfields), &
             prop_offsets(nproperties), pnts_offset,&
             connectivity_offset
+       character(len=7) :: field_dtypes(nfields), prop_dtypes(nproperties)
        integer, dimension(:,:), pointer :: itmp
 
     reader = open_vtk_xml_file(trim(filename))
@@ -1018,7 +1026,7 @@ module vtkreader
           do i=1, nfields
              call read_data_array(reader, name, rdata, &
                   field_components(i), nnod, compressed, appended, &
-                  field_offsets(i))
+                  field_offsets(i), field_dtypes(i))
              if (associated(rdata)) then
                 do j=1, field_components(i)
                    fields(:,counter+j) = rdata(j,:)
@@ -1033,7 +1041,7 @@ module vtkreader
           do i=1, nproperties
              call read_data_array(reader, name, rdata, &
                   prop_components(i), nelm, compressed, appended, &
-                  prop_offsets(i))
+                  prop_offsets(i), prop_dtypes(i))
              if (associated(rdata)) then
                 do j=1, prop_components(i)
                    properties(:,counter+j) = rdata(j,:)
@@ -1073,7 +1081,7 @@ module vtkreader
              ldata=> cdata
              call read_appended_data_array(reader, name, rdata, ldata,&
                   compressed, field_offsets(i), nnod, &
-                  field_components(i),  "Float64")
+                  field_components(i), field_dtypes(i))
              do j=1, field_components(i)
                 fields(:,counter+j) = rdata(j,:)
              end do
@@ -1087,7 +1095,7 @@ module vtkreader
              rdata => properties(counter:counter+prop_components(i)-1,:)
              call read_appended_data_array(reader, name, rdata, ldata, &
                   compressed, prop_offsets(i), nelm, &
-                  prop_components(i), "Float64")
+                  prop_components(i), prop_dtypes(i))
              do j=1, field_components(i)
                 properties(:,counter+j) = rdata(j,:)
              end do
