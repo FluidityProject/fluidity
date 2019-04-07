@@ -1400,7 +1400,11 @@ contains
     allocate(detector)
     allocate(detector%position(xfield%dim))
     allocate(detector%local_coords(local_coord_count(shape)))
-    call insert(detector,default_stat%detector_list)
+    ! Allocate detector attribute sizes to be zero
+    allocate(detector%attributes(0))
+    allocate(detector%old_attributes(0))
+    allocate(detector%old_fields(0))
+    call insert(detector,detector_list)
 
     ! Populate detector
     detector%name=name
@@ -1896,6 +1900,7 @@ contains
     integer, dimension(2) :: shape_option
     integer :: nodes, elements, surface_elements
     integer :: no_mixing_bins
+    integer, dimension(3):: attribute_size !array to hold attribute sizes
     real :: fmin, fmax, fnorm2, fintegral, fnorm2_cv, fintegral_cv, surface_integral
     real, dimension(:), allocatable :: f_mix_fraction
     real, dimension(:), pointer :: mixing_bin_bounds
@@ -2157,7 +2162,11 @@ contains
 
     ! Move lagrangian detectors
     if ((timestep/=0).and.l_move_detectors.and.check_any_lagrangian(default_stat%detector_list)) then
-       call move_lagrangian_detectors(state, default_stat%detector_list, dt, timestep)
+       !Attribute sizes will be 0 for detectors
+       attribute_size(1)=0
+       attribute_size(2)=0
+       attribute_size(3)=0
+       call move_lagrangian_detectors(state, default_stat%detector_list, dt, timestep, attribute_size)
     end if
 
     ! Now output any detectors.    

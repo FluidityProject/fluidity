@@ -9,12 +9,12 @@ meshes = [['A','B'], ['B','C']]#, ['C','D']]
 
 convergence = np.ones(2) * 1e10
 
-print ''
-print 'ORDER OF CONVERGENCE'
-print '-------------------------------------------'
+print('')
+print('ORDER OF CONVERGENCE')
+print('-------------------------------------------')
 
-print 'VelocityError:'
-print '-------------------------------------------'
+print('VelocityError:')
+print('-------------------------------------------')
 
 for i, mesh in enumerate(meshes):
 
@@ -26,14 +26,14 @@ for i, mesh in enumerate(meshes):
     ratio_x = a_error_x / b_error_x
     ratio_y = a_error_y / b_error_y
 
-    print mesh[0] + '->' + mesh[1] + ': ', [log(ratio_x, 2), log(ratio_y, 2)]
+    print(mesh[0] + '->' + mesh[1] + ': ', [log(ratio_x, 2), log(ratio_y, 2)])
 
     convergence[0] = min(log(ratio_x, 2), log(ratio_y, 2), convergence[0])
 
-print '-------------------------------------------'
+print('-------------------------------------------')
 
-print 'EddyViscosityError:'
-print '-------------------------------------------'
+print('EddyViscosityError:')
+print('-------------------------------------------')
 
 for i, mesh in enumerate(meshes):
 
@@ -42,8 +42,8 @@ for i, mesh in enumerate(meshes):
 
     ratio = a_error / b_error
 
-    print mesh[0] + '->' + mesh[1] + ': ', log(ratio, 2)
+    print(mesh[0] + '->' + mesh[1] + ': ', log(ratio, 2))
 
     convergence[1] = min(log(ratio, 2), convergence[0])
 
-print '-------------------------------------------'
+print('-------------------------------------------')

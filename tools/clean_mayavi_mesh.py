@@ -65,12 +65,12 @@ def set_linestyle(ps):
 
 def process_file(inname, outname, options):
 
-    ps=file(inname,'r').readlines()
+    ps=open(inname,'r').readlines()
 
     set_bounding_box(ps,options.margin)
     set_linestyle(ps)
 
-    file(outname,"w").writelines(ps)
+    open(outname,"w").writelines(ps)
 
 
 if __name__=='__main__':

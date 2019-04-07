@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 import math
 import glob
@@ -114,11 +116,11 @@ def erturk_u(NN):
   vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
   filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
   file = filelist[-1]
-  print file
+  print(file)
   try:
     os.stat(file)
   except:
-    print "No such file: %s" % file
+    print("No such file: %s" % file)
     sys.exit(1)
 
   u=vtktools.vtu(file)
@@ -155,7 +157,7 @@ def erturk_u(NN):
       norm = norm + diff*diff
   
   norm = math.sqrt(norm/ilen)
-  print "erturk_u_norm:", norm
+  print("erturk_u_norm:", norm)
 
   return norm
 
@@ -166,11 +168,11 @@ def erturk_v(NN):
   vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
   filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
   file = filelist[-1]
-  print file
+  print(file)
   try:
     os.stat(file)
   except:
-    print "No such file: %s" % file
+    print("No such file: %s" % file)
     sys.exit(1)
 
   u=vtktools.vtu(file)
@@ -207,7 +209,7 @@ def erturk_v(NN):
       norm = norm + diff*diff
   
   norm = math.sqrt(norm/ilen)
-  print "erturk_v_norm:", norm
+  print("erturk_v_norm:", norm)
 
   return norm
 
@@ -217,11 +219,11 @@ def botella_u(NN):
   vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
   filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
   file = filelist[-1]
-  print file
+  print(file)
   try:
     os.stat(file)
   except:
-    print "No such file: %s" % file
+    print("No such file: %s" % file)
     sys.exit(1)
 
   u=vtktools.vtu(file)
@@ -252,7 +254,7 @@ def botella_u(NN):
       norm = norm + diff*diff
 
   norm = math.sqrt(norm/ilen)
-  print "botella_u_norm:", norm
+  print("botella_u_norm:", norm)
 
   return norm
 
@@ -262,11 +264,11 @@ def botella_v(NN):
   vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
   filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
   file = filelist[-1]
-  print file
+  print(file)
   try:
     os.stat(file)
   except:
-    print "No such file: %s" % file
+    print("No such file: %s" % file)
     sys.exit(1)
 
   u=vtktools.vtu(file)
@@ -298,7 +300,7 @@ def botella_v(NN):
       norm = norm + diff*diff
 
   norm = math.sqrt(norm/ilen)
-  print "botella_v_norm:", norm
+  print("botella_v_norm:", norm)
 
   return norm
 
@@ -308,11 +310,11 @@ def botella_p1(NN):
   vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
   filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
   file = filelist[-1]
-  print file
+  print(file)
   try:
     os.stat(file)
   except:
-    print "No such file: %s" % file
+    print("No such file: %s" % file)
     sys.exit(1)
 
   u=vtktools.vtu(file)
@@ -348,7 +350,7 @@ def botella_p1(NN):
       norm = norm + diff*diff
 
   norm = math.sqrt(norm/ilen)
-  print "botella_p1_norm:", norm
+  print("botella_p1_norm:", norm)
 
   return norm
 
@@ -358,11 +360,11 @@ def botella_p2(NN):
   vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
   filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
   file = filelist[-1]
-  print file
+  print(file)
   try:
     os.stat(file)
   except:
-    print "No such file: %s" % file
+    print("No such file: %s" % file)
     sys.exit(1)
 
   u=vtktools.vtu(file)
@@ -398,7 +400,7 @@ def botella_p2(NN):
       norm = norm + diff*diff
 
   norm = math.sqrt(norm/ilen)
-  print "botella_p2_norm:", norm
+  print("botella_p2_norm:", norm)
 
   return norm
 
@@ -408,14 +410,14 @@ def bruneau_ke(NN):
   vel_l2_norm = stat_parser('driven_cavity-%d/driven_cavity.stat'%NN)['Fluid']['Velocity%magnitude']['l2norm'][-1]
   kinetic_energy = 0.5*vel_l2_norm**2
   kinetic_energy_error = abs( kinetic_energy - 0.044503 )
-  print "botella_ke_error:", kinetic_energy_error
+  print("botella_ke_error:", kinetic_energy_error)
   return kinetic_energy_error
 
 def bruneau_sf(NN):
 #Bruneau and Saad 2006. Table 2. 
   streamfunction_min = stat_parser('driven_cavity-%d/driven_cavity.stat'%NN)['Fluid']['MultiplyConnectedStreamFunction']['min'][-1]
   streamfunction_min_error = abs( streamfunction_min - -0.11892 )
-  print "streamfunction_min_error:", streamfunction_min_error
+  print("streamfunction_min_error:", streamfunction_min_error)
   return streamfunction_min_error
 
 

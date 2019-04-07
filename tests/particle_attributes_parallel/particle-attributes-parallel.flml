@@ -1,0 +1,272 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">particle_attributes_parallel</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">fluids</string_value>
+  </problem_type>
+  <geometry>
+    <dimension>
+      <integer_value rank="0">2</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="square">
+        <format name="gmsh"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">1</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree>
+        <integer_value rank="0">3</integer_value>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period_in_timesteps>
+      <constant>
+        <integer_value rank="0">400</integer_value>
+      </constant>
+    </dump_period_in_timesteps>
+    <output_mesh name="VelocityMesh"/>
+    <stat/>
+  </io>
+  <particles>
+    <particle_group name="Rhodri">
+      <velocity_field name="Velocity"/>
+      <particle_subgroup name="Thomas">
+        <number_of_particles>
+          <integer_value rank="0">60</integer_value>
+        </number_of_particles>
+        <initial_position>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(t):
+  from numpy import arange,zeros,reshape,concatenate
+  x = 0.6+0.25*arange(0,60.)/60.
+  y = zeros(60) + 0.5
+  return reshape(concatenate((x,y)),(2,60)).T</string_value>
+          </python>
+        </initial_position>
+        <attributes>
+          <attribute name="Chem1">
+            <constant>
+              <real_value rank="0">5</real_value>
+            </constant>
+          </attribute>
+          <attribute name="Chem2">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+  x=X[0]
+  y=fields["OldTemperature"]
+  return y</string_value>
+            </python_fields>
+          </attribute>
+        </attributes>
+      </particle_subgroup>
+      <particle_subgroup name="Chris">
+        <number_of_particles>
+          <integer_value rank="0">100</integer_value>
+        </number_of_particles>
+        <initial_position>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(t):
+  from numpy import arange,zeros,reshape,concatenate
+  x = 0.5+0.25*arange(0,100.)/100.
+  y = zeros(100) + 0.5
+  return reshape(concatenate((x,y)),(2,100)).T</string_value>
+          </python>
+        </initial_position>
+        <attributes>
+          <attribute name="Chem3">
+            <python>
+              <string_value lines="20" type="code" language="python">def val(X,t):
+  x=X[0]
+  y=x+t
+  return y</string_value>
+            </python>
+          </attribute>
+          <attribute name="Chem4">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+  x=X[0]
+  z=x+t+fields["Salinity"]+fields["Temperature"]
+  return z</string_value>
+              <store_old_attribute/>
+            </python_fields>
+          </attribute>
+          <attribute name="Chem5">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+  y=fields["OldChem4"]
+  return y</string_value>
+            </python_fields>
+          </attribute>
+        </attributes>
+      </particle_subgroup>
+    </particle_group>
+    <particle_group name="Cian">
+      <velocity_field name="Velocity"/>
+      <particle_subgroup name="Steph">
+        <number_of_particles>
+          <integer_value rank="0">80</integer_value>
+        </number_of_particles>
+        <initial_position>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(t):
+  from numpy import arange,zeros,reshape,concatenate
+  x = 0.2+0.6*arange(0,80.)/80.
+  y = zeros(80) + 0.2
+  return reshape(concatenate((x,y)),(2,80)).T</string_value>
+          </python>
+        </initial_position>
+        <attributes>
+          <attribute name="Chem6">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+  z=fields["Temperature"]-fields["OldTemperature"]
+  return z</string_value>
+            </python_fields>
+          </attribute>
+        </attributes>
+      </particle_subgroup>
+    </particle_group>
+    <fail_outside_domain/>
+    <lagrangian_timestepping>
+      <subcycles>
+        <integer_value rank="0">1</integer_value>
+      </subcycles>
+      <search_tolerance>
+        <real_value rank="0">1.0e-10</real_value>
+      </search_tolerance>
+      <rk4_guided_search/>
+    </lagrangian_timestepping>
+  </particles>
+  <timestepping>
+    <current_time>
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep>
+      <real_value rank="0">0.01</real_value>
+    </timestep>
+    <finish_time>
+      <real_value rank="0">8</real_value>
+    </finish_time>
+    <final_timestep>
+      <integer_value rank="0">800</integer_value>
+    </final_timestep>
+  </timestepping>
+  <physical_parameters>
+    <gravity>
+      <magnitude>
+        <real_value rank="0">1</real_value>
+      </magnitude>
+      <vector_field name="GravityDirection" rank="1">
+        <prescribed>
+          <mesh name="CoordinateMesh"/>
+          <value name="WholeMesh">
+            <constant>
+              <real_value shape="2" dim1="dim" rank="1">0.0 -1.0</real_value>
+            </constant>
+          </value>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <detectors>
+            <exclude_from_detectors/>
+          </detectors>
+        </prescribed>
+      </vector_field>
+    </gravity>
+  </physical_parameters>
+  <material_phase name="BoussinesqFluid">
+    <vector_field name="Velocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+  x = X[0]
+  y = X[1]
+  return [-(y-0.5)/2.0,(x-0.5)/2.0]</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+    <scalar_field name="Temperature" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+  from math import sin, pi
+  x = X[0]
+  y = X[1]
+  return 2.0-abs(0.5-x)-abs(0.5-y)-sin(t*pi/2.0)/2.0</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <particles>
+          <include_in_particles>
+            <store_old_field/>
+          </include_in_particles>
+        </particles>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="Salinity" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+  x = X[0]
+  y = X[1]
+  return 2.0-y</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <particles>
+          <include_in_particles>
+            <store_old_field/>
+          </include_in_particles>
+        </particles>
+      </prescribed>
+    </scalar_field>
+  </material_phase>
+</fluidity_options>

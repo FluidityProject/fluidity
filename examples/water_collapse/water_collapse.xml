@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>water collapse example<comment>Runs a 2d, low resolution (for speed) simulation of the water collapse simulation performed by Zhou, Z. Q., Kat, J. O. De, &amp; Buchner, B. 1999. A nonlinear 3-D approach to simulate green water dynamics on deck. In: Report No. 82000-NSH, vol. 7. (see also Park, I. R., Kim, K. S., Kim, J., &amp; Van, S. H. 2009. A volume-of-fluid method for incompressible free surface flows. International Journal for Numerical Methods in Fluids.)
 </comment></name>
@@ -30,10 +30,12 @@ nodesend= stat("water_collapse.stat")["CoordinateMesh"]["nodes"][-1]</variable>
   </variables>
   <pass_tests>
     <test name="finish_time" language="python">assert finishtime &gt; 2.4</test>
-    <test name="water_conservation" language="python">print 'mass loss = ', abs(vfracintend-vfracintstart)/vfracintstart
-assert abs(vfracintend-vfracintstart)/vfracintstart &lt; 1.e-5</test>
-    <test name="divergence" language="python">print 'divergence = ', max(maxdivergence, mindivergence)
-assert max(maxdivergence, mindivergence) &lt; 1.E-5</test>
+    <test name="water_conservation" language="python">print('mass loss = ', abs(vfracintend-vfracintstart)/vfracintstart)
+assert abs(vfracintend-vfracintstart)/vfracintstart &lt; 1.e-5
+</test>
+    <test name="divergence" language="python">print('divergence = ', max(maxdivergence, mindivergence))
+assert max(maxdivergence, mindivergence) &lt; 1.E-5
+</test>
     <test name="max_volume_fraction_bound" language="python">assert abs(maxvfrac-1.0) &lt; 1.E-10</test>
     <test name="min_volume_fraction_bound" language="python">assert abs(minvfrac) &lt; 1.E-10</test>
     <test name="no_nodes" language="python">assert nodesend &gt; nodesstart</test>

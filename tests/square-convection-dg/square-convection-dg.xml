@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Square convection (DG version)</name>
   <owner userid="rhodrid"/>
@@ -114,26 +114,31 @@ for i in range(len(right_boundary_average_nus)):
     <test name="SimulationCompleted" language="python">import fluidity_tools
 fluidity_tools.compare_variable(times[-1], 1.0, 1.0e-6)</test>
     <test name="SolversConverged" language="python">assert(solvers_converged)</test>
-    <test name="CFLNumberConstrained" language="python">print max(max_cfl_numbers)
-assert(max(max_cfl_numbers) &lt;= 5.0)</test>
+    <test name="CFLNumberConstrained" language="python">print(max(max_cfl_numbers))
+assert(max(max_cfl_numbers) &lt;= 5.0)
+</test>
     <test name="UMaxBenchmark" language="python">import fluidity_tools
 num, ref = mid_point_u_maxes[-1], 3.649
-print num, ref
-fluidity_tools.compare_variable(num, ref, 0.001)</test>
+print(num, ref)
+fluidity_tools.compare_variable(num, ref, 0.001)
+</test>
     <test name="WMaxBenchmark" language="python">import fluidity_tools
 num, ref = mid_point_w_maxes[-1], 3.697
-print num, ref
-fluidity_tools.compare_variable(num, ref, 0.002)</test>
+print(num, ref)
+fluidity_tools.compare_variable(num, ref, 0.002)
+</test>
     <test name="MidPointStreamfunctionBenchmark" language="python">import fluidity_tools
 num, ref = abs(last_psi_mid), 1.174
-print num, ref
-fluidity_tools.compare_variable(num, ref, 0.005)</test>
+print(num, ref)
+fluidity_tools.compare_variable(num, ref, 0.005)
+</test>
     <test name="CorrectBoundaryLength" language="python">import fluidity_tools
 fluidity_tools.compare_variables(boundary_length, [4.0 for i in range(len(boundary_length))], 1.0e-6)</test>
     <test name="AverageNuBenchmark" language="python">import fluidity_tools
 num, ref = left_boundary_average_nus[-1], 1.118
-print num, ref
-fluidity_tools.compare_variable(num, ref, 0.002)</test>
+print(num, ref)
+fluidity_tools.compare_variable(num, ref, 0.002)
+</test>
   </pass_tests>
   <warn_tests/>
 </testproblem>

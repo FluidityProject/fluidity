@@ -13,7 +13,7 @@ import diamond.schema as schema
 def Help():
   debug.dprint("Usage: update_options [OPTIONS] ... [FILES]\n" + \
                "\n" + \
-               "Updates flml, bml, swml and adml files. If FILES is not specified, all .flml, .bml, .swml and .adml files in\n" + \
+               "Updates flml, and adml files. If FILES is not specified, all .flml, and .adml files in\n" + \
                "tests/*/., tests/*/*/., longtests/*/., longtests/*/*/. and examples/*/. will be updated. Options:\n" + \
                "\n" + \
                "-h  Display this help\n" + \
@@ -40,8 +40,6 @@ longtestDir = os.path.join(rootDir, "longtests")
 examplesDir = os.path.join(rootDir, "examples")
 
 extdict = {"flml" : "fluidity_options.rng", 
-           "bml"  : "burgers_equation.rng", 
-           "swml" : "shallow_water_options.rng", 
            "adml" : "test_advection_diffusion_options.rng"}
 
 # cache parsed schema files

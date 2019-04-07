@@ -12,7 +12,7 @@ filename_part='shocktube_'
 for time_level in time_levels:
   filename_in = filename_part + str(time_level) + '.vtu'
   filename_out = filename_part + str(format(time_level,"03g")) + '.png'
-  print 'Processing file' , filename_in , '...',
+  print('Processing file' , filename_in , '...',)
 
   vt=vtktools.vtu(filename_in)
   t=vt.GetScalarField('Time')[0]
@@ -58,7 +58,7 @@ for time_level in time_levels:
   plt.ylabel('e')
 
   plt.savefig(filename_out, dpi=100)
-  print 'created file' , filename_out
+  print('created file' , filename_out)
 
   plt.close(fig)
 

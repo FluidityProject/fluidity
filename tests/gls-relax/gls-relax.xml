@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>gls-relax</name>
   <owner userid="jhill1"/>
@@ -99,20 +98,20 @@ for line in open("fluidity.log_relax.0"):
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>
-      <test name ="Relaxed diffusivity is half value of normal" language="python">
+      <test name="Relaxed diffusivity is half value of normal" language="python">
 normalDiffChange = NormalVertDiffEnd-NormalVertDiffStart
 relaxDiffChange = RelaxVertDiffEnd-RelaxVertDiffStart
 PredictedDifference = (normalDiffChange/2.0) - relaxDiffChange
-print PredictedDifference
+print(PredictedDifference)
 assert (  -1e-10 &lt; PredictedDifference &lt; +1e-10 )
-    </test>
-    <test name ="Relaxed Viscosity is half value of normal" language="python">
+</test>
+    <test name="Relaxed Viscosity is half value of normal" language="python">
 normalViscChange = NormalVertViscEnd-NormalVertViscStart
 relaxViscChange = RelaxVertViscEnd-RelaxVertViscStart
 PredictedDifference = (normalViscChange/2.0) - relaxViscChange
-print PredictedDifference
+print(PredictedDifference)
 assert (  -1e-10 &lt; PredictedDifference &lt; +1e-10 )
-    </test>
+</test>
 
   </pass_tests>
 </testproblem>

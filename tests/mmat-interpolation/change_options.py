@@ -6,7 +6,7 @@ file_name = ["mmat-interpolation_2_checkpoint.flml"]
 
 for f in range(len(file_name)):
   try:
-    flml_file = file(file_name[f], "r")
+    flml_file = open(file_name[f], "r")
     flml_options = flml_file.readlines()
     flml_file.close()
   except:
@@ -23,7 +23,7 @@ for f in range(len(file_name)):
       break
   
   try:
-    flml_file = file(file_name[f], "w")
+    flml_file = open(file_name[f], "w")
     flml_file.writelines(flml_options)
     flml_file.close()
   except:

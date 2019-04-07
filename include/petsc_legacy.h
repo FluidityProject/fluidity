@@ -65,6 +65,7 @@
 #define PETSC_NULL_MAT PETSC_NULL_OBJECT
 #define PETSC_NULL_VECSCATTER PETSC_NULL_OBJECT
 #define PETSC_NULL_VIEWER PETSC_NULL_OBJECT
+#define PETSC_NULL_IS PETSC_NULL_OBJECT
 #endif
 #if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<8)
 #define PetscObjectReferenceWrapper(x, ierr) PetscObjectReference(x, ierr)
@@ -73,4 +74,8 @@
 #endif
 #if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<8)
 #define MatCreateSubMatrix MatGetSubMatrix
+#endif
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<9)
+#define MatSolverType MatSolverPackage
+#define PCFactorSetMatSolverType PCFactorSetMatSolverPackage
 #endif

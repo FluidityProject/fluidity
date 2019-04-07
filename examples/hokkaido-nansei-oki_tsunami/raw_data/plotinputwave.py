@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 from fluidity_tools import stat_parser
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import figure, show
@@ -8,7 +10,7 @@ import sys
 import csv
 
 def usage():
-  print "plotinputwave.py -b starttime -e endtime --save=basename"
+  print("plotinputwave.py -b starttime -e endtime --save=basename")
 
 def get_inputelevation(t):
         InputWaveReader = csv.reader(open('InputWave.csv', 'rb'), delimiter='\t')
@@ -25,7 +27,7 @@ def get_inputelevation(t):
                 h2=data[i][1]
                 return h1*(t-t2)/(t1-t2)+h2*(t-t1)/(t2-t1)
         
-        print "Warning: t is outside the available data. Using last available waterheigth..."
+        print("Warning: t is outside the available data. Using last available waterheigth...")
         return data[-1][1]
 
 def main(argv=None):
@@ -35,7 +37,7 @@ def main(argv=None):
   try:
     opts, args = getopt.getopt(sys.argv[1:], "t:e:b:", ['save='])
   except getopt.GetoptError:
-    print "Getopterror :("
+    print("Getopterror :(")
     usage()
     sys.exit(2)
   
@@ -60,15 +62,15 @@ def main(argv=None):
     elif opt=='-e':
         endtime=float(arg)
 
-  print "Generating plot"
+  print("Generating plot")
 
-  print 'Using dt=', dt
+  print('Using dt=', dt)
   
   starttimestep=int(max(0,starttime/dt))
   endtimestep=int(endtime/dt)
 
-  print 'starttimestep=', starttimestep
-  print 'endtimestep=', endtimestep
+  print('starttimestep=', starttimestep)
+  print('endtimestep=', endtimestep)
 
   # fill in measurement data
   input_elevation=[]
@@ -91,7 +93,7 @@ def main(argv=None):
     raw_input("Press Enter to exit")
   else:
     plt.savefig(savename+'.pdf', facecolor='white', edgecolor='black', dpi=100)
-    print 'Saved to '+savename+'.pdf'
+    print('Saved to '+savename+'.pdf')
 
 #  for i in range(timesteps):
 #    gauge1.append(s["water"]["FreeSurface"]["gauge1"])

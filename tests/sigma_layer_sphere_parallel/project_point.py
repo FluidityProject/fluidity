@@ -27,7 +27,7 @@ def main():
     coord = args.coord    
 
     point = project(coord)
-    print str(coord) +"->" +str(point)
+    print(str(coord) +"->" +str(point))
 
 
 def project(location):

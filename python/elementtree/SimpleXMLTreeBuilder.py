@@ -57,6 +57,8 @@
 # how unreliable it is on your Python version).
 ##
 
+from __future__ import print_function
+
 import xmllib, string
 
 import ElementTree
@@ -136,9 +138,9 @@ if __name__ == "__main__":
         status.append("default namespace applied to unqualified attribute")
     # report bugs
     if status:
-        print "xmllib doesn't work properly in this Python version:"
+        print("xmllib doesn't work properly in this Python version:")
         for bug in status:
-            print "-", bug
+            print("-", bug)
     else:
-        print "congratulations; no problems found in xmllib"
+        print("congratulations; no problems found in xmllib")
 

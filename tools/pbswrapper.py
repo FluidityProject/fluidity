@@ -19,7 +19,7 @@ while is_job_running(jobid):
 file = open("compile.log")
 data = file.read()
 for line in data.split('\n'):
-    print line + '\n',
+    print(line + '\n')
 
 if "BUILD COMPLETE" in data:
   sys.exit(0)

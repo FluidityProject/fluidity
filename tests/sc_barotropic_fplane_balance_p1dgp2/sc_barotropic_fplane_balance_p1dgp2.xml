@@ -1,46 +1,46 @@
-<?xml version = "1.0" encoding = "UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Simply connected barotropic f-plane source sink</name>
   <owner userid="piggt01"/>
   <tags>flml</tags>
-  <problem_definition length = "medium" nprocs = "1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>make clean-run-debug;
-fluidity -v2 sc_barotropic_fplane_balance_p1dgp2_0.flml > sc_barotropic_fplane_balance_p1dgp2_0.log;
-fluidity -v2 sc_barotropic_fplane_balance_p1dgp2_1.flml > sc_barotropic_fplane_balance_p1dgp2_1.log</command_line>
+fluidity -v2 sc_barotropic_fplane_balance_p1dgp2_0.flml &gt; sc_barotropic_fplane_balance_p1dgp2_0.log;
+fluidity -v2 sc_barotropic_fplane_balance_p1dgp2_1.flml &gt; sc_barotropic_fplane_balance_p1dgp2_1.log</command_line>
   </problem_definition>
   <variables>
-    <variable name = "p1dgp2_0_times" language = "python">
+    <variable name="p1dgp2_0_times" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("sc_barotropic_fplane_balance_p1dgp2_0.stat")
 p1dgp2_0_times = s["ElapsedTime"]["value"]
     </variable>
-    <variable name = "p1dgp2_1_times" language = "python">
+    <variable name="p1dgp2_1_times" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("sc_barotropic_fplane_balance_p1dgp2_1.stat")
 p1dgp2_1_times = s["ElapsedTime"]["value"]
     </variable>
-    <variable name = "p1dgp2_0_max_cfl_numbers" language = "python">
+    <variable name="p1dgp2_0_max_cfl_numbers" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("sc_barotropic_fplane_balance_p1dgp2_0.stat")
 p1dgp2_0_max_cfl_numbers = s["Fluid"]["CFLNumber"]["max"]
     </variable>
-    <variable name = "p1dgp2_1_max_cfl_numbers" language = "python">
+    <variable name="p1dgp2_1_max_cfl_numbers" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("sc_barotropic_fplane_balance_p1dgp2_1.stat")
 p1dgp2_1_max_cfl_numbers = s["Fluid"]["CFLNumber"]["max"]
     </variable>
-    <variable name = "solvers_converged" language = "python">
+    <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
     </variable>
-    <variable name = "p1dgp2_0" language = "python">
+    <variable name="p1dgp2_0" language="python">
 import fluidity.diagnostics.fluiditytools as fluidity_tools
 import fluidity.diagnostics.vtutools as vtktools
 
 p1dgp2_0 = vtktools.vtu(fluidity_tools.FindFinalVtu("sc_barotropic_fplane_balance_p1dgp2_0"))
     </variable>
-    <variable name = "p1dgp2_1" language = "python">
+    <variable name="p1dgp2_1" language="python">
 import fluidity.diagnostics.fluiditytools as fluidity_tools
 import fluidity.diagnostics.vtutools as vtktools
 
@@ -48,28 +48,28 @@ p1dgp2_1 = vtktools.vtu(fluidity_tools.FindFinalVtu("sc_barotropic_fplane_balanc
     </variable>
   </variables>
   <pass_tests>
-    <test name = "p1dgp2_0 simulation completed" language = "python">
-print p1dgp2_0_times[-1]
+    <test name="p1dgp2_0 simulation completed" language="python">
+print(p1dgp2_0_times[-1])
 assert(p1dgp2_0_times[-1] &lt; 1.0)
-    </test>
-    <test name = "p1dgp2_1 simulation completed" language = "python">
-print p1dgp2_1_times[-1]
+</test>
+    <test name="p1dgp2_1 simulation completed" language="python">
+print(p1dgp2_1_times[-1])
 assert(p1dgp2_1_times[-1] &lt; 1.0)
-    </test>
-    <test name = "Solvers converged" language = "python">
+</test>
+    <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
-    <test name = "p1dgp2_0 CFL number" language = "python">
-print max(p1dgp2_0_max_cfl_numbers)
+    <test name="p1dgp2_0 CFL number" language="python">
+print(max(p1dgp2_0_max_cfl_numbers))
 assert(max(p1dgp2_0_max_cfl_numbers) &lt;= 4.0 * 1.2)
-    </test>
-    <test name = "p1dgp2_1 CFL number" language = "python">
-print max(p1dgp2_1_max_cfl_numbers)
+</test>
+    <test name="p1dgp2_1 CFL number" language="python">
+print(max(p1dgp2_1_max_cfl_numbers))
 assert(max(p1dgp2_1_max_cfl_numbers) &lt;= 4.0 * 1.2)
-    </test>
-    <test name = "Errors" language = "python">
+</test>
+    <test name="Errors" language="python">
 import numpy
-    
+
 import fluidity.diagnostics.calc as calc
 import fluidity.diagnostics.fluiditytools as fluidity_tools
 import fluidity.diagnostics.vtutools as vtktools
@@ -117,16 +117,16 @@ p1dgp2_1_p1dgp2_0_uMaxError = u.max()
 p1dgp2_1_p1dgp2_0_vRmsError = diff.GetFieldRms("YVelocity")
 p1dgp2_1_p1dgp2_0_vMaxError = v.max()
 
-print "p1dgp2_1-p1dgp2_0 vmag l2", p1dgp2_1_p1dgp2_0_vmagRmsError, p1dgp2_1_p1dgp2_0_vmagRmsError / p1dgp2_0_vmagRms
-print "p1dgp2_1-p1dgp2_0 vmag inf", p1dgp2_1_p1dgp2_0_vmagMaxError, p1dgp2_1_p1dgp2_0_vmagMaxError / p1dgp2_0_vmagMax
-print "p1dgp2_1-p1dgp2_0 u l2", p1dgp2_1_p1dgp2_0_uRmsError, p1dgp2_1_p1dgp2_0_uRmsError / p1dgp2_0_uRms
-print "p1dgp2_1-p1dgp2_0 u inf", p1dgp2_1_p1dgp2_0_uMaxError, p1dgp2_1_p1dgp2_0_uMaxError / p1dgp2_0_uMax
-print "p1dgp2_1-p1dgp2_0 v l2", p1dgp2_1_p1dgp2_0_vRmsError, p1dgp2_1_p1dgp2_0_vRmsError / p1dgp2_0_vRms
-print "p1dgp2_1-p1dgp2_0 v inf", p1dgp2_1_p1dgp2_0_vMaxError, p1dgp2_1_p1dgp2_0_vMaxError / p1dgp2_0_vMax
+print("p1dgp2_1-p1dgp2_0 vmag l2", p1dgp2_1_p1dgp2_0_vmagRmsError, p1dgp2_1_p1dgp2_0_vmagRmsError / p1dgp2_0_vmagRms)
+print("p1dgp2_1-p1dgp2_0 vmag inf", p1dgp2_1_p1dgp2_0_vmagMaxError, p1dgp2_1_p1dgp2_0_vmagMaxError / p1dgp2_0_vmagMax)
+print("p1dgp2_1-p1dgp2_0 u l2", p1dgp2_1_p1dgp2_0_uRmsError, p1dgp2_1_p1dgp2_0_uRmsError / p1dgp2_0_uRms)
+print("p1dgp2_1-p1dgp2_0 u inf", p1dgp2_1_p1dgp2_0_uMaxError, p1dgp2_1_p1dgp2_0_uMaxError / p1dgp2_0_uMax)
+print("p1dgp2_1-p1dgp2_0 v l2", p1dgp2_1_p1dgp2_0_vRmsError, p1dgp2_1_p1dgp2_0_vRmsError / p1dgp2_0_vRms)
+print("p1dgp2_1-p1dgp2_0 v inf", p1dgp2_1_p1dgp2_0_vMaxError, p1dgp2_1_p1dgp2_0_vMaxError / p1dgp2_0_vMax)
 
 assert(p1dgp2_1_p1dgp2_0_uRmsError &lt; 0.0001)
 assert(p1dgp2_1_p1dgp2_0_vRmsError &lt; 0.0001)
-    </test>
+</test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

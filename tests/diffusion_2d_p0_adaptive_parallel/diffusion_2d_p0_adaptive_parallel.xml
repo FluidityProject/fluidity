@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>heat_2d_dg</name>
   <owner userid="cwilson"/>
@@ -59,33 +58,33 @@ centre.append(array([-0.25,-0.5]))
 
 pos = []
 for i in range(4):
-  posx = []
-  posx.append([centre[i][0]])
-  posx.append([centre[i][0]-1./6.])
-  posx.append([centre[i][0]+1./6.])
-  posx.append([centre[i][0]+1./6.])
-  posx.append([centre[i][0]-1./6.])
-  posx = array(posx)
-  posy = []
-  posy.append([centre[i][1]])
-  posy.append([centre[i][1]-1./4.])
-  posy.append([centre[i][1]-1./4.])
-  posy.append([centre[i][1]+1./4.])
-  posy.append([centre[i][1]+1./4.])
-  posy = array(posy)
-  posz = zeros((len(posx),1))
-  pos.append(concatenate((posx, posy, posz), 1))
+    posx = []
+    posx.append([centre[i][0]])
+    posx.append([centre[i][0]-1./6.])
+    posx.append([centre[i][0]+1./6.])
+    posx.append([centre[i][0]+1./6.])
+    posx.append([centre[i][0]-1./6.])
+    posx = array(posx)
+    posy = []
+    posy.append([centre[i][1]])
+    posy.append([centre[i][1]-1./4.])
+    posy.append([centre[i][1]-1./4.])
+    posy.append([centre[i][1]+1./4.])
+    posy.append([centre[i][1]+1./4.])
+    posy = array(posy)
+    posz = zeros((len(posx),1))
+    pos.append(concatenate((posx, posy, posz), 1))
 
 files = glob.glob("heat_*.pvtu")
 for f in files:
-  print f
-  pvtu = vtktools.vtu(f)
-  vtu = vtutools.VtuFromPvtu(pvtu)
-  for i in range(4):
-    regionids[i].append(vtu.ProbeData(pos[i], "RegionIDs"))
+    print(f)
+    pvtu = vtktools.vtu(f)
+    vtu = vtutools.VtuFromPvtu(pvtu)
+    for i in range(4):
+        regionids[i].append(vtu.ProbeData(pos[i], "RegionIDs"))
 
 regionids = array(regionids)
-    </variable>
+</variable>
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">

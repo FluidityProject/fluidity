@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import glob
 import sys
 import os
@@ -72,18 +74,18 @@ def sort_nicely(l):
 # Reattachment length:
 def reatt_length(filelist, zarray):
 
-  print "Calculating reattachment point locations using change of x-velocity sign\n"
+  print("Calculating reattachment point locations using change of x-velocity sign\n")
 
   nums=[]; results=[]; files = []
   ##### check for no files
   if (len(filelist) == 0):
-    print "No files!"
+    print("No files!")
     sys.exit(1)
   for file in filelist:
     try:
       os.stat(file)
     except:
-      print "No such file: %s" % file
+      print("No such file: %s" % file)
       sys.exit(1)
     files.append(file)
   sort_nicely(files)
@@ -93,11 +95,11 @@ def reatt_length(filelist, zarray):
     datafile = vtktools.vtu(file)
     ##### Get time for plot:
     t = min(datafile.GetScalarField("Time"))
-    print file, ', elapsed time = ', t
+    print(file, ', elapsed time = ', t)
     if(t<0.):
       continue
     else:
-      print "extracting data..."
+      print("extracting data...")
       ##### points near bottom surface, 0 < x < 25
       x2array=[]; pts=[]; no_pts = 52; offset = 0.01
       x = 0.0
@@ -136,7 +138,7 @@ def reatt_length(filelist, zarray):
       avpt = sum(points) / len(points)
     else:
       avpt = 0.0
-    print 'spanwise averaged reattachment point: ', avpt
+    print('spanwise averaged reattachment point: ', avpt)
     ##### Get time for plot:
     t = min(datafile.GetScalarField("Time"))
     results.append([avpt,t])
@@ -148,10 +150,10 @@ def reatt_length(filelist, zarray):
 # Velocity profiles:
 def velo(filelist,xarray,zarray,yarray):
 
-  print "\nRunning mean velocity profile script on files at times...\n"
+  print("\nRunning mean velocity profile script on files at times...\n")
   ##### check for no files
   if (len(filelist) < 0):
-    print "No files!"
+    print("No files!")
     sys.exit(1)
 
   ##### create array of points
@@ -170,7 +172,7 @@ def velo(filelist,xarray,zarray,yarray):
   datafile = vtktools.vtu(file)
   # Get time
   t = min(datafile.GetScalarField("Time"))
-  print file, ', elapsed time = ', t
+  print(file, ', elapsed time = ', t)
 
   ##### Get x-velocity
   uvw = datafile.ProbeData(pts, "AverageVelocity")
@@ -188,7 +190,7 @@ def velo(filelist,xarray,zarray,yarray):
   usum = usum / len(zarray)
   profiles[:,:] = usum
 
-  print "\n...Finished extracting data.\n"
+  print("\n...Finished extracting data.\n")
   return profiles
 
 #########################################################################
@@ -297,10 +299,10 @@ def main():
     zarray = numpy.array([2.0])
     vprofiles = velo(filelist, xarray, zarray, yarray)
     numpy.save("velo_profiles", vprofiles)
-    print "Generating plot of velocity profiles."
+    print("Generating plot of velocity profiles.")
     plot_velo(vprofiles,xarray,yarray)
 
-    print "\nAll done.\n"
+    print("\nAll done.\n")
 
 if __name__ == "__main__":
     sys.exit(main())

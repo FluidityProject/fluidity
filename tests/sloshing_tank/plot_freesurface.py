@@ -21,8 +21,8 @@ from fluidity_tools import stat_parser as stat
 
 # Usage
 def usage():
-        print "plt_freesurface.py --file=detectorfile"
-        print "All the other options are read from settings.py"
+        print("plt_freesurface.py --file=detectorfile")
+        print("All the other options are read from settings.py")
 
 
 
@@ -55,15 +55,15 @@ def main(argv=None):
                 usage()                     
                 sys.exit(2) 
 
-        print 'Using:\n\ta_0 =', a_0 # initial maximum perturbation
-        print '\tg =', g # gravity
-        print '\teta=', eta # viscosity
-        print '\tL=', L # wavelength
-        print '\ttimestep=', timestep # timestep 
+        print('Using:\n\ta_0 =', a_0 )# initial maximum perturbation
+        print('\tg =', g )# gravity
+        print('\teta=', eta )# viscosity
+        print('\tL=', L )# wavelength
+        print('\ttimestep=', timestep )# timestep 
 
         
         ####################### Print time plot  ###########################
-        print 'Generating time plot'
+        print('Generating time plot')
 
         x_time= stat(filename)["ElapsedTime"]["value"]
         fs_simu= stat(filename)["water"]["FreeSurface"]["left"]

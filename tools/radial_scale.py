@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 from math import sqrt, acos, atan, sin, cos
 import argparse
 import vtktools
@@ -15,7 +16,7 @@ parser.add_argument('-s', dest='scale_factor', default='10',type=float,
 args = parser.parse_args()
 
 scale_factor=args.scale_factor
-print "Scale by a factor of", scale_factor
+print("Scale by a factor of", scale_factor)
 
 R_geoid = 6.37101e+06
 
@@ -23,7 +24,7 @@ for vtu in range(len(args.input_vtu)):
     vtu_name=args.input_vtu[vtu]
     output_filename=args.output_prefix+vtu_name
     vtu_object= vtktools.vtu(vtu_name)
-    print "Done importing ", vtu_name
+    print("Done importing ", vtu_name)
 
     npoints = vtu_object.ugrid.GetNumberOfPoints()
     for i in range(npoints):
@@ -41,4 +42,4 @@ for vtu in range(len(args.input_vtu)):
         output_filename = output_filename[:-4]+'vtu'
 
     vtu_object.Write(filename=output_filename)
-    print 'Scaled vtu written to', output_filename
+    print('Scaled vtu written to', output_filename)

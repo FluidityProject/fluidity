@@ -2,6 +2,7 @@
 
 # James Maddison
 
+from __future__ import print_function
 import getopt
 import sys
 
@@ -28,7 +29,7 @@ def Help():
   Prints program usage information
   """
 
-  print "Usage: vtudiff [OPTIONS] ... INPUT1 INPUT2 OUTPUT [FIRST] [LAST]\n" + \
+  print("Usage: vtudiff [OPTIONS] ... INPUT1 INPUT2 OUTPUT [FIRST] [LAST]\n" + \
         "\n" + \
         "Generates vtus with fields equal to the difference between the corresponding\n" + \
         "fields in two input vtus (INPUT1 - INPUT2). The fields of INPUT2 are projected\n" + \
@@ -40,7 +41,7 @@ def Help():
         "Options:\n" + \
         "\n" + \
         "-s  If supplied together with FIRST and LAST, only INPUT1 is treated as a\n" + \
-        "    project name. Allows a range of vtus to be diffed against a single vtu."
+        "    project name. Allows a range of vtus to be diffed against a single vtu.")
 
   return
 
@@ -120,4 +121,4 @@ for i in range(len(inputFilenames1)):
     Help()
     Error("Unable to write output file \"" + outputFilenames[i] + "\"", False)
 
-  print "Generated vtu diff file \"" + outputFilenames[i] + "\""
+  print("Generated vtu diff file \"" + outputFilenames[i] + "\"")

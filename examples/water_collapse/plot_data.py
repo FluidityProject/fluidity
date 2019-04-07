@@ -17,7 +17,7 @@ def get_water_depths(filelist, xarray, delta):
     try:
       os.stat(f)
     except:
-      print "No such file: %s" % f
+      print("No such file: %s" % f)
       sys.exit(1)
     
     y = numpy.arange(delta/2.0,2.0+delta/2.0,delta)[:,numpy.newaxis]

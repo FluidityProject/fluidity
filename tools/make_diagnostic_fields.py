@@ -3,7 +3,7 @@
 import glob
 import re
 import sys
-import sha
+import hashlib
 
 def Error(msg):
   sys.stderr.write("Diagnostics error: " + str(msg) + "\n")
@@ -20,10 +20,10 @@ outputFilename = baseName + ".F90"
 # get sha1 digest of existing generated file.  Can't use 'rw' here
 # because it updates the modtime of the file, which we're trying to
 # avoid doing.
-orig=sha.new()
+orig=hashlib.sha1()
 try:
     f=open(outputFilename, 'r')
-    orig.update(f.read())
+    orig.update(f.read().encode("utf8"))
 except IOError:
     pass
 else:
@@ -162,8 +162,8 @@ outputCode = outputCode.replace("SINGLE_STATE_TENSOR_DIAGNOSTICS", singleStateTe
 outputCode = outputCode.replace("MULTIPLE_STATE_TENSOR_DIAGNOSTICS", multipleStateTensorDiagnosticsCode)
 
 # Write the output
-new=sha.new()
-new.update(outputCode)
+new=hashlib.sha1()
+new.update(outputCode.encode("utf8"))
 
 # Only write file if sha1sums differ
 if new.digest() != orig.digest():

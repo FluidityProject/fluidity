@@ -6,7 +6,7 @@ basename = "Subduction_Mesh"
 
 def get_num_gmsh_nodes():
     gmshfile = basename+".msh"
-    f        = file(gmshfile,'r')
+    f        = open(gmshfile,'r')
     lines    = f.readlines()
     return int(lines[5])
 

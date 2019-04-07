@@ -14,8 +14,8 @@ def get_options():
         opts, args = getopt.getopt(sys.argv[1:], "f:x:y:",
                                    ["filename", "xscale", "yscale",""])
     except getopt.GetoptError:
-        print "ERROR: Bad arguments!"
-        print usage()
+        print("ERROR: Bad arguments!")
+        print(usage())
         sys.exit(2)
 
     for o, a in opts:
@@ -35,8 +35,8 @@ assert(yscale != None)
 r = fromfile(filename+'.node',sep=' ')
 R = reshape(r[4:-1],((size(r)-5)/3,3))
 
-#print xscale
-#print yscale
+#print(xscale)
+#print(yscale)
 
 Xvals = R[:,1]*xscale
 Yvals = R[:,2]*yscale
