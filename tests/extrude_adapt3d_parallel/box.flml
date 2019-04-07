@@ -34,7 +34,7 @@
           </regions>
         </extrude>
         <stat>
-          <exclude_from_stat/>
+          <include_in_stat/>
         </stat>
       </from_mesh>
     </mesh>
