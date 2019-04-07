@@ -955,6 +955,8 @@ module particle_diagnostics
              deallocate(rand_lcoords)
           else !Particles will spawn randomly in the CV
              !randomly select adjacent element to node
+             !Get ele numbers of adjacent elements
+             ele_nums => node_neigh(xfield, node_num)
              ele_spawn=floor(rand()*size(ele_nums)+1)
              temp_part%element = ele_nums(ele_spawn)
              node_numbers(:) = ele_nodes(xfield, ele_nums(ele_spawn))
