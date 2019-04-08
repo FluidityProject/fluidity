@@ -871,7 +871,7 @@ module particle_diagnostics
     integer, dimension(:), allocatable :: node_numbers
     integer, dimension(:), pointer :: ele_nums
     integer :: id, name_len, tot_len, group_spawn, ele_spawn
-    integer :: j, i, k
+    integer :: j, i, k, l
     integer, dimension(3) :: attribute_size
     logical :: spawn_group, coords_set
     real :: max_lcoord, rand_lcoord
@@ -931,6 +931,8 @@ module particle_diagnostics
              !ensuring new particle falls within cv
              allocate(rand_lcoords(size(node_coord)))
              coords_set=.false.
+             !temporary dummy counter l for troubleshooting
+             l = 0
              do while (coords_set.eqv..false.)
                 rand_lcoord=0
                 do i = 1,size(node_coord)
@@ -944,7 +946,25 @@ module particle_diagnostics
                 rand_lcoords(k) = -rand_lcoord
                 node_coord(:) = particle%local_coords(:) + rand_lcoords(:)
                 coords_set=.true.
-                if ((maxloc(node_coord, 1)/=k).or.node_coord(k)>0.99) then !Not within CV or element, try again
+                l = l + 1
+                if (l>90) then !Temporary catch for troubleshooting
+                   ewrite(2,*) "k ", k
+                   ewrite(2,*) "parent lcoords ", particle%local_coords
+                   ewrite(2,*) "rand array ", rand_lcoords
+                   ewrite(2,*) "new lcoords ", node_coord
+                   if ((maxloc(node_coord, 1)/=k).or.node_coord(k)>1.0) then !Not within CV or element, try again
+                      ewrite(2,*) "fail 1"
+                      coords_set=.false.
+                   end if
+                   if (minval(node_coord)<0.001) then !not within element, try again
+                      ewrite(2,*) "fail 2"
+                      coords_set=.false.
+                   end if
+                end if
+                if (l>100) then !Temporary catch to stop infinite looping 
+                   FLExit("could not initialise local coordinates for particle")
+                end if
+                if ((maxloc(node_coord, 1)/=k).or.node_coord(k)>1.0) then !Not within CV or element, try again
                    coords_set=.false.
                 end if
                 if (minval(node_coord)<0.001) then !not within element, try again
