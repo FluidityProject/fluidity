@@ -68,6 +68,16 @@ value of 1 (no normalisation is done within the code).</a:documentation>
         </element>
       </optional>
       <optional>
+        <element name="write_extruded_mesh_only">
+          <a:documentation>After the decomposition the extruded mesh is changed to a from_file
+mesh. All non-extruded meshes are removed from the output flml, so
+this can no longer be used in combination with vertically_structured_adaptivity
+The decomposition itself will still be based on a columnar decomposition of the
+horizontal mesh. If you want to decompose in all directions, run flredecomp again.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
         <element name="zoltan_debug">
           <a:documentation>Zoltan Debugging
 

@@ -327,11 +327,12 @@ Foam_Flow.o ../include/foam_flow_module.mod: Foam_Flow.F90 \
 	@true
 
 Free_Surface.o ../include/free_surface_module.mod: Free_Surface.F90 \
-   ../include/boundary_conditions.mod ../include/cv_faces.mod \
-   ../include/cv_shape_functions.mod ../include/data_structures.mod \
-   ../include/eventcounter.mod ../include/fdebug.h ../include/fetools.mod \
-   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
-   ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
+   ../include/boundary_conditions.mod ../include/coordinates.mod \
+   ../include/cv_faces.mod ../include/cv_shape_functions.mod \
+   ../include/data_structures.mod ../include/eventcounter.mod \
+   ../include/fdebug.h ../include/fetools.mod ../include/field_options.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/halos.mod \
    ../include/integer_set_module.mod ../include/parallel_fields.mod \
    ../include/parallel_tools.mod ../include/physics_from_options.mod \
    ../include/solvers.mod ../include/sparse_matrices_fields.mod \

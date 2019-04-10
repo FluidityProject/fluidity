@@ -98,7 +98,7 @@ module field_options
      & extract_pressure_mesh, extract_velocity_mesh, &
      & postprocess_periodic_mesh, get_diagnostic_coordinate_field, &
      & get_nodal_coordinate_field, extract_prognostic_pressure, &
-     & extract_prognostic_velocity
+     & extract_prognostic_velocity, remove_non_extruded_mesh_options
 
   integer, parameter, public :: FIELD_EQUATION_UNKNOWN                   = 0, &
                                 FIELD_EQUATION_ADVECTIONDIFFUSION        = 1, &
@@ -1191,6 +1191,97 @@ contains
   
   end subroutine postprocess_periodic_mesh_face
   
+  subroutine remove_non_extruded_mesh_options(state)
+    type(state_type), dimension(:), intent(inout) :: state
+
+    type(mesh_type), pointer :: external_mesh
+    character(len=OPTION_PATH_LEN) :: mesh_path
+    character(len=FIELD_NAME_LEN) :: mesh_name, mesh_format
+    integer :: i, nmeshes, stat
+    logical :: include_in_stat
+
+    
+    nmeshes = option_count("/geometry/mesh")
+    mesh_name = ''
+    do i = 0, nmeshes-1
+       mesh_path="/geometry/mesh["//int2str(i)//"]"
+       if(have_option(trim(mesh_path)//"/from_mesh/extrude")) exit
+    end do
+
+    if (i>=nmeshes) then
+      ! I probably shouldn't be here
+      FLAbort("Cannot find extrusion options")
+    end if
+
+    ! get everything from the external mesh before it's nuked
+    external_mesh => get_external_mesh(state)
+    call get_option(trim(external_mesh%option_path) // "/from_file/format/name", mesh_format)
+    include_in_stat = have_option(trim(external_mesh%option_path)//"/from_file/stat/include_in_stat")
+
+    ! delete option paths of all parent meshes
+    call get_option(trim(mesh_path)//"/from_mesh/mesh/name", mesh_name)
+    call remove_mesh_options_and_parents(state, mesh_name)
+    !! external_mesh is a pointer to the mesh in state, so should have its option_path removed by now
+    assert(external_mesh%option_path=='')
+
+    ! we switch include_in_stat under the new from_file if either the original external mesh
+    ! or the extruded mesh have it - again, we need to check here, before the from_mesh/ options are removed
+    include_in_stat = include_in_stat .or. have_option(trim(mesh_path)//"/from_mesh/stat/include_in_stat")
+    call delete_option(trim(mesh_path)//"/from_mesh")
+
+    ! now setup options under from_file/
+    call add_option(trim(mesh_path)//"/from_file", stat=stat)
+    if (stat /= SPUD_NEW_KEY_WARNING) then
+      FLAbort("Failed to add from_file options. Spud error code is: "//int2str(stat))
+    end if
+    ! shouldn't matter what we set here, as it will be overwritten upon checkpoint:
+    call set_option_attribute(trim(mesh_path)//"/from_file/file_name", '', stat=stat)
+    if (stat /= SPUD_NEW_KEY_WARNING) then
+      FLAbort("Failed to set the mesh format. Spud error code is: "//int2str(stat))
+    end if
+    call set_option_attribute(trim(mesh_path)//"/from_file/format/name", trim(mesh_format), stat=stat)
+    if (stat /= SPUD_NEW_KEY_WARNING) then
+      FLAbort("Failed to set the mesh format. Spud error code is: "//int2str(stat))
+    end if
+
+    if (include_in_stat) then
+      call add_option(trim(mesh_path)//"/from_file/stat/include_in_stat", stat=stat)
+    else
+      call add_option(trim(mesh_path)//"/from_file/stat/exclude_from_stat", stat=stat)
+    end if
+    if (stat /= SPUD_NEW_KEY_WARNING) then
+      FLAbort("Failed to set stat option. Spud error code is: "//int2str(stat))
+    end if
+
+  end subroutine remove_non_extruded_mesh_options
+
+  recursive subroutine remove_mesh_options_and_parents(state, mesh_name)
+    type(state_type), dimension(:), intent(inout) :: state
+    character(len=*), intent(in) :: mesh_name
+
+    type(mesh_type), pointer :: mesh
+    character(len=OPTION_PATH_LEN) :: mesh_path
+    character(len=FIELD_NAME_LEN) :: parent_mesh_name
+    integer :: mesh_stat
+
+    mesh_path="/geometry/mesh::"//trim(mesh_name)
+    if (have_option(trim(mesh_path)//"/from_mesh")) then
+       call get_option(trim(mesh_path)//"/from_mesh/mesh/name", parent_mesh_name)
+       call remove_mesh_options_and_parents(state, parent_mesh_name)
+     end if
+
+     ! reset option path if mesh present in state
+     mesh => extract_mesh(state, mesh_name, stat=mesh_stat)
+     if (mesh_stat==0) then
+       mesh%option_path = ''
+       ! reinsert to ensure all copies have it
+       call insert(state, mesh, mesh_name)
+     end if
+
+     call delete_option(mesh_path)
+
+  end subroutine remove_mesh_options_and_parents
+
   subroutine field_options_check_options
     integer :: nmat, nfield, m, f
     character(len=OPTION_PATH_LEN) :: mat_name, field_name
@@ -1336,5 +1427,6 @@ contains
   end if
 
   end function extract_prognostic_velocity
+
 
 end module field_options

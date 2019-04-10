@@ -56,7 +56,7 @@ module zoltan_integration
   contains
 
   subroutine zoltan_drive(states, final_adapt_iteration, global_min_quality, metric, full_metric, initialise_fields, &
-    ignore_extrusion, flredecomping, input_procs, target_procs)
+    skip_extrusion_after, skip_extruded_mesh_migration, flredecomping, input_procs, target_procs)
 
     type(state_type), dimension(:), intent(inout), target :: states
     logical, intent(in) :: final_adapt_iteration
@@ -71,8 +71,10 @@ module zoltan_integration
     type(tensor_field), intent(inout), optional :: full_metric
     ! if present and true: don't bother redistributing fields that can be reinitialised
     logical, intent(in), optional :: initialise_fields
-    ! if present and true: only redistribute horizontal meshes and fields thereon
-    logical, intent(in), optional :: ignore_extrusion
+    ! if present and true: don't extrude meshes after decomposition
+    logical, intent(in), optional :: skip_extrusion_after
+    ! if present and true: only decompose and migrate the horizontal mesh
+    logical, intent(in), optional :: skip_extruded_mesh_migration
     ! Are we flredecomping? If so, this should be true
     logical, intent(in), optional :: flredecomping
     ! If flredecomping then these values should be provided
@@ -155,7 +157,7 @@ module zoltan_integration
 
     full_mesh => extract_mesh(states(1), trim(topology_mesh_name))
     zoltan_global_migrate_extruded_mesh = (mesh_dim(full_mesh) /= mesh_dim(zoltan_global_zz_mesh)) .and. &
-      .not. present_and_true(ignore_extrusion)
+      .not. present_and_true(skip_extruded_mesh_migration)
 
     if(zoltan_global_migrate_extruded_mesh .AND. zoltan_global_field_weighted_partitions) then
         ewrite(-1,*) "Cannot weight mesh partitions based upon extruded columns"// &
@@ -283,7 +285,7 @@ module zoltan_integration
     ! Get populate_state to allocate the fields and such on this new
     ! mesh.
 
-    call initialise_transfer(zz, states, zoltan_global_new_positions_m1d, metric, full_metric, new_metric, initialise_fields, ignore_extrusion)
+    call initialise_transfer(zz, states, zoltan_global_new_positions_m1d, metric, full_metric, new_metric, initialise_fields, skip_extrusion_after)
 
     ! And now transfer the field data around.
     call transfer_fields(zz)
@@ -1777,15 +1779,15 @@ module zoltan_integration
     
   end subroutine reconstruct_halo
     
-  subroutine initialise_transfer(zz, states, zoltan_global_new_positions_m1d, metric, full_metric, new_metric, initialise_fields, ignore_extrusion)
-    type(zoltan_struct), pointer, intent(in) :: zz    
+  subroutine initialise_transfer(zz, states, zoltan_global_new_positions_m1d, metric, full_metric, new_metric, initialise_fields, skip_extrusion_after)
+    type(zoltan_struct), pointer, intent(in) :: zz
     type(state_type), dimension(:), intent(inout), target :: states
     type(vector_field), intent(inout) :: zoltan_global_new_positions_m1d
     type(tensor_field), intent(inout), optional :: metric
     type(tensor_field), intent(inout), optional :: full_metric
     type(tensor_field), intent(out) :: new_metric
     logical, intent(in), optional :: initialise_fields
-    logical, intent(in), optional :: ignore_extrusion
+    logical, intent(in), optional :: skip_extrusion_after
 
     integer :: i
     type(state_type), dimension(size(states)) :: interpolate_states
@@ -1864,7 +1866,7 @@ module zoltan_integration
 
     ! Setup meshes and fields on states
     call restore_reserved_meshes(states)
-    call insert_derived_meshes(states, skip_extrusion=ignore_extrusion)
+    call insert_derived_meshes(states, skip_extrusion=skip_extrusion_after)
     call allocate_and_insert_fields(states)
     call restore_reserved_fields(states)
     
