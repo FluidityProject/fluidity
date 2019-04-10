@@ -100,8 +100,13 @@ sq_error_6 = sq_error
 from fluidity_tools import stat_parser
 import numpy as np
 
-s = stat_parser('particle_attributes_checkpoint.stat')
-Walltime = s['ElapsedWallTime']["value"][-1]
+s1 = stat_parser('particle_attributes_checkpoint.stat')
+Walltime1 = s1['ElapsedWallTime']["value"][-1]
+
+s2 = stat_parser('particle_attributes_checkpoint.stat')
+Walltime2 = s2['ElapsedWallTime']["value"][-1]
+
+Walltime = Walltime1 + Walltime2
 print ("Total wall time", Walltime)
     </variable>
   </variables>
