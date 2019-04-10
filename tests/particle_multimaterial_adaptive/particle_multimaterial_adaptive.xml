@@ -19,7 +19,7 @@ s = stat_parser("particle_attributes.stat")
 Max_rms = s['Buoyant']['Velocity%magnitude']['l2norm'][:].max()
 Max_rms = Max_rms * np.sqrt(1.0/0.9142)
 Max_rms_error = Max_rms - 0.00309
-print "Max rms error", Max_rms_error
+print ("Max rms error", Max_rms_error)
     </variable>
     <variable name="Walltime" language="python">
 from fluidity_tools import stat_parser
@@ -32,7 +32,7 @@ print ("Total wall time", Walltime)
   </variables>
   <pass_tests>
     <test name="Maxmrmserror" language="python">
-assert abs(Max_rms_error).max() &lt; 5.0e-5
+assert abs(Max_rms_error).max() &lt; 5e-4
     </test>
   </pass_tests>
   <warn_tests>
