@@ -160,6 +160,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -183,6 +186,9 @@
               <detectors>
                 <exclude_from_detectors/>
               </detectors>
+              <particles>
+                <exclude_from_particles/>
+              </particles>
             </prescribed>
           </scalar_field>
           <bottom_drag>
@@ -203,6 +209,9 @@
                 <detectors>
                   <exclude_from_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </prescribed>
             </scalar_field>
           </bottom_drag>
@@ -333,6 +342,9 @@ Therefore, with p=0 at x=L:
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
     <scalar_field name="Error" rank="0">
@@ -349,6 +361,9 @@ Therefore, with p=0 at x=L:
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -366,6 +381,9 @@ Therefore, with p=0 at x=L:
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -383,6 +401,9 @@ Therefore, with p=0 at x=L:
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

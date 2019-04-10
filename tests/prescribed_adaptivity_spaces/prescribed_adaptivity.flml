@@ -247,6 +247,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <galerkin_projection>
           <discontinuous/>
         </galerkin_projection>
@@ -273,6 +276,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <galerkin_projection>
           <discontinuous/>
         </galerkin_projection>
@@ -299,6 +305,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <galerkin_projection>
           <discontinuous/>
         </galerkin_projection>
@@ -325,6 +334,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <galerkin_projection>
           <continuous>
             <solver>
@@ -366,6 +378,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <galerkin_projection>
           <continuous>
             <solver>
@@ -407,6 +422,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <galerkin_projection>
           <continuous>
             <solver>

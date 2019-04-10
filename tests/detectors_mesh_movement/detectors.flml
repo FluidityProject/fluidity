@@ -115,6 +115,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <do_not_recalculate/>
       </prescribed>
     </scalar_field>

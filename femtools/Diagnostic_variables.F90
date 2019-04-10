@@ -527,9 +527,32 @@ contains
     default_stat%initialised=.true.
     
     ! All processes must assemble the mesh and field lists
+
     ! Mesh field list
-    allocate(default_stat%mesh_list(size(state(1)%mesh_names)))
-    default_stat%mesh_list = state(1)%mesh_names
+    ! first we count how many are included
+    j = 0
+    do i=1, mesh_count(state(1))
+      mesh => extract_mesh(state(1), i)
+      if (stat_mesh(mesh)) j = j + 1
+    end do
+    allocate(default_stat%mesh_list(j))
+    ! then copy the names of the ones that are
+    j = 0
+    do i=1, mesh_count(state(1))
+      mesh => extract_mesh(state(1), i)
+      if (stat_mesh(mesh)) then
+        j = j + 1
+        default_stat%mesh_list(j) = mesh%name
+      end if
+    end do
+
+    ! NOTE that mesh_list only contains the included meshes
+    ! whereas mesh_sfield_list, etc. contains all current fields and inclusion
+    ! is checked on every write
+    ! this is to deal with the fact that in the case of extrude_adapt the horizontal
+    ! mesh may disappear, we then need to remember what columns are associated with
+    ! meshes without knowing the options under the disappeared meshes
+
     ! Scalar field list
     allocate (default_stat%sfield_list(size(state)))
     do phase=1, size(state)
@@ -538,7 +561,7 @@ contains
           default_stat%sfield_list(phase)%ptr=state(phase)%scalar_names
        else
           allocate(default_stat%sfield_list(phase)%ptr(0))
-       end if
+      end if
     end do
     ! Vector field list
     allocate (default_stat%vfield_list(size(state)))
@@ -548,7 +571,7 @@ contains
           default_stat%vfield_list(phase)%ptr = state(phase)%vector_names
        else
           allocate(default_stat%vfield_list(phase)%ptr(0))
-       end if
+      end if
     end do
     ! Tensor field list
     allocate (default_stat%tfield_list(size(state)))
@@ -558,7 +581,7 @@ contains
           default_stat%tfield_list(phase)%ptr = state(phase)%tensor_names
        else
           allocate(default_stat%tfield_list(phase)%ptr(0))
-       end if
+      end if
     end do
 
     ! Only the first process should write statistics information (and hence
@@ -588,18 +611,15 @@ contains
         ! Headers for output statistics for each mesh
         mesh => extract_mesh(state(1), default_stat%mesh_list(i))
 
-        
-        if(stat_mesh(mesh)) then
-          column = column + 1
-          buffer = field_tag(name = mesh%name, column = column, statistic = "nodes")
-          write(default_stat%diag_unit, "(a)") trim(buffer)
-          column = column + 1
-          buffer = field_tag(name = mesh%name, column = column, statistic = "elements")
-          write(default_stat%diag_unit, "(a)") trim(buffer)
-          column = column + 1
-          buffer = field_tag(name = mesh%name, column = column, statistic = "surface_elements")
-          write(default_stat%diag_unit, "(a)") trim(buffer)
-        end if
+        column = column + 1
+        buffer = field_tag(name = mesh%name, column = column, statistic = "nodes")
+        write(default_stat%diag_unit, "(a)") trim(buffer)
+        column = column + 1
+        buffer = field_tag(name = mesh%name, column = column, statistic = "elements")
+        write(default_stat%diag_unit, "(a)") trim(buffer)
+        column = column + 1
+        buffer = field_tag(name = mesh%name, column = column, statistic = "surface_elements")
+        write(default_stat%diag_unit, "(a)") trim(buffer)
       end do
 
 #ifdef HAVE_MEMORY_STATS
@@ -1400,7 +1420,11 @@ contains
     allocate(detector)
     allocate(detector%position(xfield%dim))
     allocate(detector%local_coords(local_coord_count(shape)))
-    call insert(detector,default_stat%detector_list)
+    ! Allocate detector attribute sizes to be zero
+    allocate(detector%attributes(0))
+    allocate(detector%old_attributes(0))
+    allocate(detector%old_fields(0))
+    call insert(detector,detector_list)
 
     ! Populate detector
     detector%name=name
@@ -1896,6 +1920,7 @@ contains
     integer, dimension(2) :: shape_option
     integer :: nodes, elements, surface_elements
     integer :: no_mixing_bins
+    integer, dimension(3):: attribute_size !array to hold attribute sizes
     real :: fmin, fmax, fnorm2, fintegral, fnorm2_cv, fintegral_cv, surface_integral
     real, dimension(:), allocatable :: f_mix_fraction
     real, dimension(:), pointer :: mixing_bin_bounds
@@ -1934,13 +1959,16 @@ contains
 
     do i = 1, size(default_stat%mesh_list)
       ! Output statistics for each mesh
-      mesh => extract_mesh(state(1), default_stat%mesh_list(i))
-
-      if(stat_mesh(mesh)) then
+      mesh => extract_mesh(state(1), default_stat%mesh_list(i), stat=stat)
+      if (stat/=0) then
+        ! with extrude then adapt, the horizontal mesh may disappear!
+        nodes=0; elements=0; surface_elements=0
+      else
         call mesh_stats(mesh, nodes, elements, surface_elements)
-        if(getprocno() == 1) then
-          write(default_stat%diag_unit, "(a,i0,a,i0,a,i0)", advance = "no") " ", nodes, " ", elements, " ", surface_elements
-        end if
+      end if
+
+      if(getprocno() == 1) then
+        write(default_stat%diag_unit, "(a,i0,a,i0,a,i0)", advance = "no") " ", nodes, " ", elements, " ", surface_elements
       end if
     end do
 
@@ -2160,7 +2188,11 @@ contains
 
     ! Move lagrangian detectors
     if ((timestep/=0).and.l_move_detectors.and.check_any_lagrangian(default_stat%detector_list)) then
-       call move_lagrangian_detectors(state, default_stat%detector_list, dt, timestep)
+       !Attribute sizes will be 0 for detectors
+       attribute_size(1)=0
+       attribute_size(2)=0
+       attribute_size(3)=0
+       call move_lagrangian_detectors(state, default_stat%detector_list, dt, timestep, attribute_size)
     end if
 
     ! Now output any detectors.    

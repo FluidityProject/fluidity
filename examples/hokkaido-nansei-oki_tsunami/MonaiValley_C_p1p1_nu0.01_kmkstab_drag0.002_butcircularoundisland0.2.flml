@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">MonaiValley_C_p1p1_nu0.01_kmkstab_drag0.002_butcircularoundisland0.2</string_value>
@@ -91,6 +91,9 @@
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>
@@ -108,6 +111,9 @@
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>
@@ -282,8 +288,7 @@ def val(X,t):
     surface_heigth = 0.2
     #return -0.135*g*min(1,t)
     print("Set pressure dirichlet to: ", -surface_heigth*g + inputwave.val(X, t)*g + d0*g)
-    return -surface_heigth*g + inputwave.val(X, t)*g + d0*g
-</string_value>
+    return -surface_heigth*g + inputwave.val(X, t)*g + d0*g</string_value>
               <comment>def val(X,t):
  g=9.81
  return -0.135*g*min(1,t)</comment>
@@ -298,6 +303,9 @@ def val(X,t):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -316,6 +324,9 @@ def val(X,t):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -469,6 +480,9 @@ def val(X,t):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -486,6 +500,9 @@ def val(X,t):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -503,6 +520,9 @@ def val(X,t):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

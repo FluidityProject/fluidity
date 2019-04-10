@@ -275,6 +275,9 @@ This is tested by checking some surface integrals (to check that they don't disa
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -312,6 +315,9 @@ This is tested by checking some surface integrals (to check that they don't disa
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
     <scalar_field name="BottomOnly" rank="0">
@@ -338,6 +344,9 @@ This is tested by checking some surface integrals (to check that they don't disa
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
     <scalar_field name="Error" rank="0">
@@ -360,6 +369,9 @@ field.val[:] = bo.val[:]*(asb.val[:]-s.val[:])</string_value>
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

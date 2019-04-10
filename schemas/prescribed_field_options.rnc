@@ -16,7 +16,8 @@ prescribed_scalar_field_no_adapt =
       prescribed_values_scalar_field,
       prescribed_output_options,
       prescribed_scalar_stat_options,
-      prescribed_detector_options
+      prescribed_detector_options,
+      prescribed_particle_options
    )
    
 prescribed_values_scalar_field =
