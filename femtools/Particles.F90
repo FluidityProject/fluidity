@@ -165,7 +165,7 @@ contains
              
           end if !Read particles
 
-          call set_particle_output_file(sub_particles, subname, filename, attribute_size, xfield, subgroup_path, particle_lists(list_counter))
+          !call set_particle_output_file(sub_particles, subname, filename, attribute_size, xfield, subgroup_path, particle_lists(list_counter))
           !Get options for lagrangian particle movement
           call read_detector_move_options(particle_lists(list_counter), "/particles")
           list_counter = list_counter + 1
@@ -316,7 +316,7 @@ contains
           FLExit("Error: No support for ascii detector output in parallel. Please use binary output by turning off the ascii_output option.")
        end if
     end if
-    !!!!!Currently disabled until particle IO is revamped. Routine is still called to access read_detector_move_options
+    !!!!!Currently disabled until particle IO is revamped.
     
 !!$    
 !!$          ! Only the first process should write the header file
@@ -1302,8 +1302,12 @@ contains
     character(len=OPTION_PATH_LEN) :: group_name, attribute_name, subgroup_name
     integer :: particle_groups, array_counter, particle_subgroups, particle_attributes
     integer :: i, j, k, l
+
+    logical :: found_attribute
     
     particle_groups = option_count("/particles/particle_group")
+
+    found_attribute = .false.
     array_counter = 0
     do i = 1, particle_groups
        call get_option("/particles/particle_group["//int2str(i-1)//"]/name", group_name)
@@ -1316,9 +1320,13 @@ contains
                 call get_option("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup["//int2str(0)// &
                      "]/attributes/attribute["//int2str(k-1)//"]/name", attribute_name)
                 if (trim(attribute_name)==trim(lattribute)) then
+                   found_attribute = .true.
                    group_attribute = k
                 end if
              end do
+             if (found_attribute.eqv..false.) then
+                FLExit("Could not find particle attribute "//trim(lattribute)//" in particle group "//trim(lgroup))
+             end if
           end if
           j=1
           do l = array_counter+1, array_counter+particle_subgroups
@@ -1329,6 +1337,9 @@ contains
        end if
        array_counter = array_counter + particle_subgroups
     end do
+    
+    FLExit("Could not find particle group "//trim(lgroup))
+    
     
   end subroutine get_particle_arrays
 

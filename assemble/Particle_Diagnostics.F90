@@ -75,6 +75,8 @@ module particle_diagnostics
 
     type(detector_type), pointer :: particle
 
+    ewrite(2,*) "In initialise_constant_particle_diagnostics"
+
     !Check if there are particles
     particle_groups = option_count("/particles/particle_group")
 
@@ -151,7 +153,8 @@ module particle_diagnostics
     integer, dimension(:), allocatable :: particle_arrays
     type(detector_type), pointer :: particle
     logical :: from_file
-    
+
+    ewrite(2,*) "In initialise_particle_diagnostics"
     !Check if there are particles
     particle_groups = option_count("/particles/particle_group")
 
@@ -262,6 +265,16 @@ module particle_diagnostics
        do k = 1,scalar_field_count(state(i))
           s_field => extract_scalar_field(state(i),k)     
           if (have_option(trim(s_field%option_path)//"/diagnostic/algorithm::from_particles")) then
+             call calculate_diagnostics_from_particles(state, i, s_field)
+          end if
+       end do
+    end do
+
+    !Update diagnostic fields with algorithm "number_of_particles"
+    do i = 1,size(state)
+       do k = 1,scalar_field_count(state(i))
+          s_field => extract_scalar_field(state(i),k)     
+          if (have_option(trim(s_field%option_path)//"/diagnostic/algorithm::number_of_particles")) then
              call calculate_diagnostics_from_particles(state, i, s_field)
           end if
        end do
@@ -634,10 +647,8 @@ module particle_diagnostics
     particle_groups = option_count('/particles/particle_group')
 
     if (particle_groups==0) return
-
     do k = 1, particle_groups
        if (have_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning")) then
-
           !Get the mesh particles will be spawned to
           call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/mesh/name", mesh_name)
           mesh => extract_mesh(states(1), trim(mesh_name))
