@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <testproblem>
-  <name>Testing of particle based multimaterial fields in parallel with an adaptive mesh</name>
+  <name>Testing of particle based multimaterial fields in parallel with an adaptive mesh for a small resolution Rayleigh Taylor overturn case. Vrms velocity is tested against the maximum value from van Keken.</name>
   <owner userid="cmath"/>
   <tags>flml parallel zoltan</tags>
   <problem_definition length="medium" nprocs="4">

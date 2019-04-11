@@ -1175,7 +1175,7 @@ module particle_diagnostics
     integer :: i
     
     if (max_lcoord<0.51) then
-       max_lcoord=0.51 !Ensures minimum lcoord is 0.55
+       max_lcoord=0.51 !Ensures minimum lcoord is 0.51
     end if
     if (max_lcoord>0.999) then
        max_lcoord=0.999 !Ensures maximum lcoord is 0.999

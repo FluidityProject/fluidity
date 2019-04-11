@@ -540,7 +540,6 @@ contains
        particle_arrays(i) = option_count("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup")
     end do
     ewrite(2,*), "In move_particles"
-    
     list_counter = 1
     do i = 1, particle_groups
        group_path = "/particles/particle_group["//int2str(i-1)//"]"
@@ -617,7 +616,6 @@ contains
     type(detector_linked_list), intent(in) :: p_list
     
     character(len=PYTHON_FUNC_LEN) :: func
-
     character(len=FIELD_NAME_LEN), allocatable, dimension(:) :: field_name
     type(detector_type), pointer :: particle
 
@@ -861,7 +859,6 @@ contains
     end do
 
     deallocate(particle_arrays)
-    
 
   end subroutine write_particles_loop
 

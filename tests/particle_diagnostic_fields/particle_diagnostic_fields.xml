@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <testproblem>
-  <name>Testing of particle diagnostic fields in serial</name>
+  <name>Testing of particle diagnostic fields in serial, particles check changes in the temperature field and their position relative to the last timestep. Variables are tested against diagnostics from a successful run.</name>
   <owner userid="cmath"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
