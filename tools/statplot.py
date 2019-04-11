@@ -28,7 +28,7 @@ parser = argparse.ArgumentParser(
     + 'between linear, log and symlog).\n- l -> Change the representation of '
     + 'the data (solid line or markers).\n- r -> Reload the .stat file. Only '
     + 'relevant for simulations that are still running.\n- q -> Exit the GUI.')
-parser.add_argument('statfile', nargs=1, help='path to the .stat file')
+parser.add_argument('statfile', nargs='+', help='path to the .stat file')
 args = parser.parse_args(sys.argv[1:])
 
 
