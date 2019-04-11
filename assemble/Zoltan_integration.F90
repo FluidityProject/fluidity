@@ -1919,8 +1919,8 @@ module zoltan_integration
     send_count=0
 
     !Loop for detectors or particles with no attributes
-    do j = 1, size(detector_list_array)
 
+    do j = 1, size(detector_list_array)
        detector_list => detector_list_array(j)%ptr
        ewrite(2,*) "Length of detector list to be updated: ", detector_list%length
 

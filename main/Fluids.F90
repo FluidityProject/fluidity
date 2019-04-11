@@ -997,7 +997,6 @@ contains
     ! Diagnostic fields
     call calculate_diagnostic_variables(state)
     call calculate_diagnostic_variables_new(state)
-    
     ! This is mostly to ensure that the photosynthetic radiation
     ! has a non-zero value before the next adapt.
     if(have_option("/ocean_biology")) call calculate_biology_terms(state(1))
