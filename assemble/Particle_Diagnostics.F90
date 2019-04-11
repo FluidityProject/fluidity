@@ -32,21 +32,21 @@ module particle_diagnostics
   use fldebug
   use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
   use futils, only: int2str
-  use particles, only : get_particle_arrays, update_list_lengths, &
-       & update_particle_subgroup_attributes_and_fields, initialise_constant_particle_attributes
   use spud
   use parallel_tools, only: getnprocs, allsum
-  use state_module
-  use halos
   use elements, only: eval_shape
   use fields_base, only: ele_val, ele_loc
-  use fields_calculations, only: dot_product
   use parallel_fields, only: node_owned
+  use fields_calculations, only: dot_product
   use fields
-  use pickers
+  use state_module
+  use halos
   use detector_data_types
-  use detector_tools, only: temp_insert, insert, allocate, deallocate, temp_deallocate
+  use pickers
   use field_options
+  use detector_tools, only: temp_insert, insert, allocate, deallocate, temp_deallocate
+  use particles, only : get_particle_arrays, update_list_lengths, &
+& update_particle_subgroup_attributes_and_fields, initialise_constant_particle_attributes
   use multimaterial_module, only: calculate_sum_material_volume_fractions
   
   implicit none

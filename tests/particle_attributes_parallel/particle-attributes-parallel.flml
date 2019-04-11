@@ -151,7 +151,9 @@
         </attributes>
       </particle_subgroup>
     </particle_group>
-    <fail_outside_domain/>
+    <moving_outside_domain>
+      <delete/>
+    </moving_outside_domain>
     <lagrangian_timestepping>
       <subcycles>
         <integer_value rank="0">1</integer_value>

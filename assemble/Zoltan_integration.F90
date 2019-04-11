@@ -7,7 +7,7 @@ module zoltan_integration
   use spud
   use fldebug
   use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name,&
-      FIELD_NAME_LEN
+FIELD_NAME_LEN
   use futils, only: int2str, present_and_true
   use quadrature
   use element_numbering, only: ele_local_num
@@ -34,8 +34,8 @@ module zoltan_integration
   use c_interfaces
   use detector_data_types
   use boundary_conditions_from_options
-  use detector_tools
   use pickers
+  use detector_tools
   use detector_parallel
   use hadapt_advancing_front
   use fields_halos
