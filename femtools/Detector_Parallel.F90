@@ -152,6 +152,7 @@ contains
     nprocs=getnprocs()
     allocate(send_list_array(nprocs))
     bcast_count=0
+
     detector => detector_list%first
     do while (associated(detector))
 
@@ -201,6 +202,7 @@ contains
        assert(send_list_array(k)%length==0)
     end do
     deallocate(send_list_array)
+
     ! Sanity check
     detector => detector_list%first
     do while (associated(detector))
@@ -212,13 +214,14 @@ contains
     allocate(ndets_being_bcast(getnprocs()))
     call mpi_allgather(bcast_count, 1, getPINTEGER(), ndets_being_bcast, 1 , getPINTEGER(), MPI_COMM_FEMTOOLS, ierr)
     assert(ierr == MPI_SUCCESS)
-    ! If there are no unknow detectors exit
+
+    ! If there are no unknown detectors exit
     if (all(ndets_being_bcast == 0)) then
        return
     else
        ewrite(2,*) "Broadcast required, initialising..."
 
-       ! If there are unknow detectors we need to broadcast.
+       ! If there are unknown detectors we need to broadcast.
        ! Since we can not be sure whether any processor will accept a detector
        ! we broadcast one at a time so we can make sure somebody accepted it. 
        ! If there are no takers we keep the detector with element -1, 

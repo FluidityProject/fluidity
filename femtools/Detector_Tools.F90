@@ -169,7 +169,7 @@ contains
     
   subroutine detector_deallocate(detector)
     type(detector_type), pointer :: detector
-
+      
     if(associated(detector)) then
        if(allocated(detector%local_coords)) then
           deallocate(detector%local_coords)

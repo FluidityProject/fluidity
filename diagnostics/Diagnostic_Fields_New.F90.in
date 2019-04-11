@@ -45,7 +45,7 @@ USE_MODULES
   
   public :: check_diagnostic_dependencies, calculate_diagnostic_variables, &
     & calculate_diagnostic_variable, calculate_diagnostic_variable_dep, &
-    & diagnostic_fields_new_check_options, calculate_dependencies
+    & diagnostic_fields_new_check_options
       
   interface calculate_dependencies
     module procedure calculate_dependencies_scalar, &

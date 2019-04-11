@@ -7,7 +7,7 @@ module zoltan_integration
   use spud
   use fldebug
   use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name,&
-FIELD_NAME_LEN
+      FIELD_NAME_LEN
   use futils, only: int2str, present_and_true
   use quadrature
   use element_numbering, only: ele_local_num
@@ -1912,7 +1912,7 @@ FIELD_NAME_LEN
     integer, allocatable :: ndets_being_sent(:)
     real, allocatable :: send_buff(:,:), recv_buff(:,:)
     logical do_broadcast
-    type(element_type), pointer :: shape  
+    type(element_type), pointer :: shape
 
     ewrite(1,*) "In update_detector_list_element"
 
@@ -1920,6 +1920,7 @@ FIELD_NAME_LEN
 
     !Loop for detectors or particles with no attributes
     do j = 1, size(detector_list_array)
+
        detector_list => detector_list_array(j)%ptr
        ewrite(2,*) "Length of detector list to be updated: ", detector_list%length
 
@@ -2299,7 +2300,7 @@ FIELD_NAME_LEN
     end if
 
     ierr = Zoltan_Migrate(zz, num_import, import_global_ids, import_local_ids, import_procs, &
-         & import_to_part, num_export, export_global_ids, export_local_ids, export_procs, export_to_part) 
+         & import_to_part, num_export, export_global_ids, export_local_ids, export_procs, export_to_part)
     
     assert(ierr == ZOLTAN_OK)
     

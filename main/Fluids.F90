@@ -33,10 +33,10 @@ module fluids_module
   use auxilaryoptions
   use spud
   use global_parameters, only: current_time, dt, timestep, OPTION_PATH_LEN, &
-& simulation_start_time, &
-& simulation_start_cpu_time, &
-& simulation_start_wall_time, &
-& topology_mesh_name, FIELD_NAME_LEN
+       simulation_start_time, &
+       simulation_start_cpu_time, &
+       simulation_start_wall_time, &
+       topology_mesh_name, FIELD_NAME_LEN
   use futils, only: int2str
   use reference_counting, only: print_references
   use parallel_tools
@@ -75,8 +75,8 @@ module fluids_module
   use dqmom
   use diagnostic_fields_wrapper
   use particle_diagnostics, only: initialise_particle_diagnostics, update_particle_diagnostics, &
-& initialise_constant_particle_diagnostics, initialise_particle_diagnostic_fields_post_adapt, &
-& particle_cv_check
+       initialise_constant_particle_diagnostics, initialise_particle_diagnostic_fields_post_adapt, &
+       particle_cv_check
   use checkpoint
   use goals
   use adaptive_timestepping
@@ -87,8 +87,8 @@ module fluids_module
   use adapt_state_prescribed_module
   use populate_sub_state_module
   use diagnostic_fields_new, only : &
-& calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
-& check_diagnostic_dependencies
+       & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
+       & check_diagnostic_dependencies
   use diagnostic_children
   use advection_diffusion_cg
   use advection_diffusion_dg

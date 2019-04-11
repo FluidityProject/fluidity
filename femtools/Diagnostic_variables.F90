@@ -30,7 +30,7 @@
 module diagnostic_variables
   !!< A module to calculate and output diagnostics. This replaces the .s file.
   use iso_c_binding, only: c_long
-  use fldebug
+  use fldebug 
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, &
 & PYTHON_FUNC_LEN, integer_size, real_size
   use quadrature
@@ -2242,7 +2242,7 @@ contains
        call move_lagrangian_detectors(state, default_stat%detector_list, dt, timestep, attribute_size)
     end if
 
-    ! Now output any detectors.
+    ! Now output any detectors.    
     call write_detectors(state, default_stat%detector_list, time, dt)
 
     call profiler_toc("I/O")
