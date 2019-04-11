@@ -2,21 +2,21 @@
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
+from gi.repository import Gtk  # noqa: E402
 
-import argparse
-import fluidity.diagnostics.fluiditytools as fluidity_tools
+import argparse  # noqa: E402
+import fluidity.diagnostics.fluiditytools as fluidity_tools  # noqa: E402
 from matplotlib.backends.backend_gtk3agg import (
-    FigureCanvasGTK3Agg as FigureCanvas)
+    FigureCanvasGTK3Agg as FigureCanvas)  # noqa: E402
 from matplotlib.backends.backend_gtk3 import (
-    NavigationToolbar2GTK3 as NavigationToolbar)
-import matplotlib.pyplot as plt
-from matplotlib import rc
-import matplotlib.ticker as tck
-import numpy
-import sys
-import time
-import warnings
+    NavigationToolbar2GTK3 as NavigationToolbar)  # noqa: E402
+import matplotlib.pyplot as plt  # noqa: E402
+from matplotlib import rc  # noqa: E402
+import matplotlib.ticker as tck  # noqa: E402
+import numpy  # noqa: E402
+import sys  # noqa: E402
+import time  # noqa: E402
+import warnings  # noqa: E402
 
 rc('text', usetex=False)
 
