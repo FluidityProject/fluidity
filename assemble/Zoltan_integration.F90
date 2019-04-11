@@ -2113,7 +2113,6 @@ module zoltan_integration
        allocate(ndets_being_sent(getnprocs()))
        call mpi_allgather(send_count, 1, getPINTEGER(), ndets_being_sent, 1 , getPINTEGER(), MPI_COMM_FEMTOOLS, ierr)
        assert(ierr == MPI_SUCCESS)
-
        ! Check whether we have to perform broadcast, if not return
        do_broadcast=.false.
        if (any(ndets_being_sent > 0)) then
