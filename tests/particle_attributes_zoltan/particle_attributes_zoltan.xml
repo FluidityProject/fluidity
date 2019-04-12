@@ -13,85 +13,132 @@ mpiexec ../../bin/fluidity -v3 -l particle-attributes-zoltan-flredecomp.flml
   <variables>
     <variable name="attributes_error_1" language="python">
 import numpy as np
-from fluidity_tools import stat_parser
-s = stat_parser("particle_attributes_zoltan.particles.Thomas")
-attributes_error = np.zeros((1,60))
+from H5hutpy import *
+f = H5OpenFile("particle_attributes_zoltan.particles.Thomas.h5", H5_O_RDONLY, H5_PROP_DEFAULT)
+nsteps = H5GetNumSteps(f)
 
-for i in range(60):
-    name = 'Thomas_' + str(i+1).zfill(2)
-    attributes_error[0,i] = s[name]['Chem1'][0][-1] - 5.0
+H5SetStep(f, nsteps-1)
+att_chem1 = np.empty(60, dtype='float64')
+H5PartReadDataFloat64(f, 'Chem1', att_chem1)
+attributes_error = att_chem1 - 5.0
 attributes_error_1=abs(attributes_error).max()
+
 print ("max error",attributes_error_1)
     </variable>
     <variable name="attributes_error_2" language="python">
 import numpy as np
-from fluidity_tools import stat_parser
-s = stat_parser("particle_attributes_zoltan.particles.Thomas")
-attributes_error = np.zeros((1,60))
+from H5hutpy import *
+f = H5OpenFile("particle_attributes_zoltan.particles.Thomas.h5", H5_O_RDONLY, H5_PROP_DEFAULT)
+nsteps = H5GetNumSteps(f)
+
+H5SetStep(f, nsteps-2)
+pos = np.empty((2,60), dtype='float64')
+att_chem2 = np.empty(60, dtype='float64')
+H5PartReadDataFloat64(f, 'x', pos[0,:])
+H5PartReadDataFloat64(f, 'y', pos[1,:])
+elapsed_time = np.empty(1)
+H5ReadStepAttribFloat64(f, 'time', elapsed_time)
+
+H5SetStep(f, nsteps-1)
+H5PartReadDataFloat64(f, 'Chem2', att_chem2)
+attributes_error = np.zeros(60)
 
 for i in range(60):
-    name = 'Thomas_' + str(i+1).zfill(2)
-    OldTemp = 2.0 - abs(0.5-s[name]['position'][0][-2]) - abs(0.5-s[name]['position'][1][-2]) - np.sin(s['ElapsedTime']['value'][-2]*np.pi/2.0)/2.0
-    attributes_error[0,i] = s[name]['Chem2'][0][-1] - OldTemp
+    OldTemp = 2.0 - abs(0.5-pos[0,i]) - abs(0.5-pos[1,i]) - np.sin(elapsed_time*np.pi/2.0)/2.0
+    attributes_error[i] = att_chem2[i] - OldTemp
+
 attributes_error_2=abs(attributes_error).max()
 print ("max error",attributes_error_2)
     </variable>
     <variable name="attributes_error_3" language="python">
-from fluidity_tools import stat_parser
 import numpy as np
+from H5hutpy import *
+f = H5OpenFile("particle_attributes_zoltan.particles.Chris.h5", H5_O_RDONLY, H5_PROP_DEFAULT)
+nsteps = H5GetNumSteps(f)
 
-s = stat_parser('particle_attributes_zoltan.particles.Chris')
-attributes_error = np.zeros((1,100))
+H5SetStep(f, nsteps-1)
+xpos = np.empty(100, dtype='float64')
+att_chem3 = np.empty(100, dtype='float64')
+H5PartReadDataFloat64(f, 'x', xpos)
+H5PartReadDataFloat64(f, 'Chem3', att_chem3)
+elapsed_time = np.empty(1)
+H5ReadStepAttribFloat64(f, 'time', elapsed_time)
 
-for i in range(100):
-    name = 'Chris_' + str(i+1).zfill(3)
-    attributes_error[0,i] = s[name]['Chem3'][0][-1] -  (s[name]['position'][0][-1] + s['ElapsedTime']['value'][-1])
+attributes_error = att_chem3 - (xpos + elapsed_time)
 attributes_error_3=abs(attributes_error).max()
 print ("max error",abs(attributes_error_3).max())
     </variable>
     <variable name="sq_error_4" language="python">
-from fluidity_tools import stat_parser
 import numpy as np
+from H5hutpy import *
+f = H5OpenFile("particle_attributes_zoltan.particles.Chris.h5", H5_O_RDONLY, H5_PROP_DEFAULT)
+nsteps = H5GetNumSteps(f)
 
-s = stat_parser('particle_attributes_zoltan.particles.Chris')
+H5SetStep(f, nsteps-1)
+pos = np.empty((2, 100), dtype='float64')
+att_chem4 = np.empty(100, dtype='float64')
+H5PartReadDataFloat64(f, 'x', pos[0,:])
+H5PartReadDataFloat64(f, 'y', pos[1,:])
+H5PartReadDataFloat64(f, 'Chem4', att_chem4)
+elapsed_time = np.empty(1)
+H5ReadStepAttribFloat64(f, 'time', elapsed_time)
+
 attributes_error_4 = np.zeros((1,100))
 sq_error=0
 
 for i in range(100):
-    name = 'Chris_' + str(i+1).zfill(3)
-    Temp = 2.0 - abs(0.5-s[name]['position'][0][-1]) - abs(0.5-s[name]['position'][1][-1]) - np.sin(s['ElapsedTime']['value'][-1]*np.pi/2.0)/2.0
-    Salinity = 2.0 - s[name]['position'][1][-1]
-    attributes_error_4[0,i] = s[name]['Chem4'][0][-1] - (s[name]['position'][0][-1] + s['ElapsedTime']['value'][-1] + Salinity + Temp)
+    Temp = 2.0 - abs(0.5-pos[0,i]) - abs(0.5-pos[1,i]) - np.sin(elapsed_time*np.pi/2.0)/2.0
+    Salinity = 2.0 - pos[1,i]
+    attributes_error_4[0,i] = att_chem4[i] - (pos[0,i] + elapsed_time + Salinity + Temp)
     sq_error = sq_error + attributes_error_4[0,i]**2
     
 sq_error_4 = sq_error
     </variable>
     <variable name="attributes_error_5" language="python">
-from fluidity_tools import stat_parser
 import numpy as np
+from H5hutpy import *
+f = H5OpenFile("particle_attributes_zoltan.particles.Chris.h5", H5_O_RDONLY, H5_PROP_DEFAULT)
+nsteps = H5GetNumSteps(f)
 
-s = stat_parser('particle_attributes_zoltan.particles.Chris')
-attributes_error = np.zeros((1,100))
+att_chem4 = np.empty(100, dtype='float64')
+att_chem5 = np.empty(100, dtype='float64')
+H5SetStep(f, nsteps-1)
+H5PartReadDataFloat64(f, 'Chem5', att_chem5)
+H5SetStep(f, nsteps-2)
+H5PartReadDataFloat64(f, 'Chem4', att_chem4)
 
-for i in range(100):
-    name = 'Chris_' + str(i+1).zfill(3)
-    attributes_error[0,i] = s[name]['Chem5'][0][-1] - s[name]['Chem4'][0][-2]
+attributes_error = att_chem5 - att_chem4
 attributes_error_5=abs(attributes_error).max()
 print ("max error",attributes_error_5)
     </variable>
     <variable name="sq_error_6" language="python">
-from fluidity_tools import stat_parser
 import numpy as np
+from H5hutpy import *
+f = H5OpenFile("particle_attributes_zoltan.particles.Steph.h5", H5_O_RDONLY, H5_PROP_DEFAULT)
+nsteps = H5GetNumSteps(f)
 
-s = stat_parser('particle_attributes_zoltan.particles.Steph')
+pos = np.empty((2, 80), dtype='float64')
+old_pos = np.empty((2, 80), dtype='float64')
+att_chem6 = np.empty(80, dtype='float64')
+H5SetStep(f, nsteps-1)
+H5PartReadDataFloat64(f, 'x', pos[0,:])
+H5PartReadDataFloat64(f, 'y', pos[1,:])
+H5PartReadDataFloat64(f, 'Chem6', att_chem6)
+newtime = np.empty(1)
+H5ReadStepAttribFloat64(f, 'time', newtime)
+H5SetStep(f, nsteps-2)
+H5PartReadDataFloat64(f, 'x', old_pos[0,:])
+H5PartReadDataFloat64(f, 'y', old_pos[1,:])
+oldtime = np.empty(1)
+H5ReadStepAttribFloat64(f, 'time', oldtime)
+
 attributes_error_6 = np.zeros((1,80))
 sq_error = 0
 
 for i in range(80):
-    name = 'Steph_' + str(i+1).zfill(2)
-    Temp = 2.0 - abs(0.5-s[name]['position'][0][-1]) - abs(0.5-s[name]['position'][1][-1]) - np.sin(s['ElapsedTime']['value'][-1]*np.pi/2.0)/2.0
-    OldTemp = 2.0 - abs(0.5-s[name]['position'][0][-2]) - abs(0.5-s[name]['position'][1][-2]) - np.sin(s['ElapsedTime']['value'][-2]*np.pi/2.0)/2.0
-    attributes_error_6[0,i] = s[name]['Chem6'][0][-1] - (Temp - OldTemp)
+    Temp = 2.0 - abs(0.5-pos[0,i]) - abs(0.5-pos[1,i]) - np.sin(newtime*np.pi/2.0)/2.0
+    OldTemp = 2.0 - abs(0.5-old_pos[0,i]) - abs(0.5-old_pos[1,i]) - np.sin(oldtime*np.pi/2.0)/2.0
+    attributes_error_6[0,i] = att_chem6[i] - (Temp - OldTemp)
     sq_error = sq_error + attributes_error_6[0,i]**2
     
 sq_error_6 = sq_error
@@ -106,22 +153,22 @@ print ("Total wall time", Walltime)
     </variable>
   </variables>
   <pass_tests>
-    <test name="Correctattribteserror1" language="python">
+    <test name="Maxattribteserror1" language="python">
 assert abs(attributes_error_1).max() &lt; 1.0e-5
     </test>
-    <test name="Correctattribteserror2" language="python">
+    <test name="Maxattribteserror2" language="python">
 assert abs(attributes_error_2).max() &lt; 1.0e-5
     </test>
-    <test name="Correctattribteserror3" language="python">
+    <test name="Maxattribteserror3" language="python">
 assert abs(attributes_error_3).max() &lt; 1.0e-5
     </test>
-    <test name="Correctattribteserror4" language="python">
+    <test name="Squaredattribteserror4" language="python">
 assert sq_error_4 &lt; 1.0e-3
     </test>
-    <test name="Correctattribteserror5" language="python">
+    <test name="Maxattribteserror5" language="python">
 assert abs(attributes_error_5).max() &lt; 1.0e-5
     </test>
-    <test name="Correctattribteserror5" language="python">
+    <test name="Squaredattribteserror6" language="python">
 assert sq_error_6 &lt; 1.0e-3
     </test>
   </pass_tests>
