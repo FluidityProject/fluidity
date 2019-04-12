@@ -90,9 +90,13 @@ for i in range(len(vtuFiles)):
   data = cutVtu.GetPointData().GetScalars("Velocity")
   w = [data.GetTuple3(i)[1] for i in range(data.GetNumberOfTuples())]
   mid_point_w_maxes.append(max(w))</variable>
-    <variable name="last_psi_mid" language="python">import fluidity_tools
-s = fluidity_tools.stat_parser("square-convection.detectors")
-last_psi_mid = s["BoussinesqFluid"]["StreamFunction"]["MidPoint_1"][-1]</variable>
+    <variable name="last_psi_mid" language="python">
+import h5py
+f = h5py.File('square-convection.detectors.h5part', 'r')
+mp = f.attrs['MidPoint%ids'][0] - 1
+n = len(f)-1
+last_psi_mid = f[f'/Step#{n}/BoussinesqFluid%StreamFunction'][mp]
+    </variable>
     <variable name="boundary_length" language="python">import fluidity_tools
 s = fluidity_tools.stat_parser("square-convection.stat")
 boundary_length = s["BoussinesqFluid"]["ValueSurfaceIntTest"]["surface_integral%ValueWholeMesh"]</variable>

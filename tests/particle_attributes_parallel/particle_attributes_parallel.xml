@@ -5,95 +5,119 @@
   <owner userid="cmath"/>
   <tags>flml parallel</tags>
   <problem_definition length="medium" nprocs="4">
-    <command_line>    
-mpiexec ../../bin/flredecomp -i 1 -o 4 particle-attributes-parallel particle-attributes-parallel-flredecomp;      
+    <command_line>
+mpiexec ../../bin/flredecomp -i 1 -o 4 particle-attributes-parallel particle-attributes-parallel-flredecomp;
 mpiexec ../../bin/fluidity -v3 -l particle-attributes-parallel-flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>
     <variable name="attributes_error_1" language="python">
 import numpy as np
-from fluidity_tools import stat_parser
-s = stat_parser("particle_attributes_parallel.particles.Thomas")
-attributes_error = np.zeros((1,60))
+import h5py
 
-for i in range(60):
-    name = 'Thomas_' + str(i+1).zfill(2)
-    attributes_error[0,i] = s[name]['Chem1'][0][-1] - 5.0
+f = h5py.File('particle_attributes_parallel.particles.Thomas.h5part', 'r')
+n = len(f)-1
+att_chem1 = f[f'/Step#{n}/Chem1'][:]
+attributes_error = att_chem1 - 5.0
 attributes_error_1=abs(attributes_error).max()
+
 print ("max error",attributes_error_1)
     </variable>
     <variable name="attributes_error_2" language="python">
 import numpy as np
-from fluidity_tools import stat_parser
-s = stat_parser("particle_attributes_parallel.particles.Thomas")
-attributes_error = np.zeros((1,60))
+import h5py
 
+f = h5py.File('particle_attributes_parallel.particles.Thomas.h5part', 'r')
+n = len(f)-2
+idx = np.argsort(f[f'/Step#{n}/id'])
+pos = np.vstack((f[f'/Step#{n}/x'], f[f'/Step#{n}/y']))[:,idx]
+elapsed_time = f[f'/Step#{n}'].attrs['time'].item()
+n = len(f)-1
+idx = np.argsort(f[f'/Step#{n}/id'])
+att_chem2 = f[f'/Step#{n}/Chem2'][:][idx]
+
+attributes_error = np.zeros(60)
 for i in range(60):
-    name = 'Thomas_' + str(i+1).zfill(2)
-    OldTemp = 2.0 - abs(0.5-s[name]['position'][0][-2]) - abs(0.5-s[name]['position'][1][-2]) - np.sin(s['ElapsedTime']['value'][-2]*np.pi/2.0)/2.0
-    attributes_error[0,i] = s[name]['Chem2'][0][-1] - OldTemp
+    OldTemp = 2.0 - abs(0.5-pos[0,i]) - abs(0.5-pos[1,i]) - np.sin(elapsed_time*np.pi/2.0)/2.0
+    attributes_error[i] = att_chem2[i] - OldTemp
+
 attributes_error_2=abs(attributes_error).max()
 print ("max error",attributes_error_2)
     </variable>
     <variable name="attributes_error_3" language="python">
-from fluidity_tools import stat_parser
 import numpy as np
+import h5py
 
-s = stat_parser('particle_attributes_parallel.particles.Chris')
-attributes_error = np.zeros((1,100))
+f = h5py.File('particle_attributes_parallel.particles.Chris.h5part', 'r')
+n = len(f)-1
+xpos = f[f'/Step#{n}/x'][:]
+att_chem3 = f[f'/Step#{n}/Chem3'][:]
+elapsed_time = f[f'/Step#{n}'].attrs['time'].item()
 
-for i in range(100):
-    name = 'Chris_' + str(i+1).zfill(3)
-    attributes_error[0,i] = s[name]['Chem3'][0][-1] -  (s[name]['position'][0][-1] + s['ElapsedTime']['value'][-1])
+attributes_error = att_chem3 - (xpos + elapsed_time)
 attributes_error_3=abs(attributes_error).max()
 print ("max error",abs(attributes_error_3).max())
     </variable>
     <variable name="sq_error_4" language="python">
-from fluidity_tools import stat_parser
 import numpy as np
+import h5py
 
-s = stat_parser('particle_attributes_parallel.particles.Chris')
+f = h5py.File('particle_attributes_parallel.particles.Chris.h5part', 'r')
+n = len(f)-1
+pos = np.vstack((f[f'/Step#{n}/x'], f[f'/Step#{n}/y']))
+att_chem4 = f[f'/Step#{n}/Chem4'][:]
+elapsed_time = f[f'/Step#{n}'].attrs['time'].item()
+
 attributes_error_4 = np.zeros((1,100))
 sq_error=0
 
 for i in range(100):
-    name = 'Chris_' + str(i+1).zfill(3)
-    Temp = 2.0 - abs(0.5-s[name]['position'][0][-1]) - abs(0.5-s[name]['position'][1][-1]) - np.sin(s['ElapsedTime']['value'][-1]*np.pi/2.0)/2.0
-    Salinity = 2.0 - s[name]['position'][1][-1]
-    attributes_error_4[0,i] = s[name]['Chem4'][0][-1] - (s[name]['position'][0][-1] + s['ElapsedTime']['value'][-1] + Salinity + Temp)
+    Temp = 2.0 - abs(0.5-pos[0,i]) - abs(0.5-pos[1,i]) - np.sin(elapsed_time*np.pi/2.0)/2.0
+    Salinity = 2.0 - pos[1,i]
+    attributes_error_4[0,i] = att_chem4[i] - (pos[0,i] + elapsed_time + Salinity + Temp)
     sq_error = sq_error + attributes_error_4[0,i]**2
-    
 sq_error_4 = sq_error
     </variable>
     <variable name="attributes_error_5" language="python">
-from fluidity_tools import stat_parser
 import numpy as np
+import h5py
 
-s = stat_parser('particle_attributes_parallel.particles.Chris')
-attributes_error= np.zeros((1,100))
+f = h5py.File('particle_attributes_parallel.particles.Chris.h5part', 'r')
+n = len(f)-1
+idx = np.argsort(f[f'/Step#{n}/id'])
+att_chem5 = f[f'/Step#{n}/Chem5'][:][idx]
+n = len(f)-2
+idx = np.argsort(f[f'/Step#{n}/id'])
+att_chem4 = f[f'/Step#{n}/Chem4'][:][idx]
 
-for i in range(100):
-    name = 'Chris_' + str(i+1).zfill(3)
-    attributes_error[0,i] = s[name]['Chem5'][0][-1] - s[name]['Chem4'][0][-2]
+attributes_error = att_chem5 - att_chem4
 attributes_error_5=abs(attributes_error).max()
 print ("max error",attributes_error_5)
     </variable>
     <variable name="sq_error_6" language="python">
-from fluidity_tools import stat_parser
 import numpy as np
+import h5py
 
-s = stat_parser('particle_attributes_parallel.particles.Steph')
+f = h5py.File('particle_attributes_parallel.particles.Steph.h5part', 'r')
+n = len(f)-1
+idx = np.argsort(f[f'/Step#{n}/id'])
+pos = np.vstack((f[f'/Step#{n}/x'], f[f'/Step#{n}/y']))[:,idx]
+att_chem6 = f[f'/Step#{n}/Chem6'][:][idx]
+newtime = f[f'/Step#{n}'].attrs['time'].item()
+n = len(f)-2
+idx = np.argsort(f[f'/Step#{n}/id'])
+old_pos = np.vstack((f[f'/Step#{n}/x'], f[f'/Step#{n}/y']))[:,idx]
+oldtime = f[f'/Step#{n}'].attrs['time'].item()
+
 attributes_error_6 = np.zeros((1,80))
 sq_error = 0
 
 for i in range(80):
-    name = 'Steph_' + str(i+1).zfill(2)
-    Temp = 2.0 - abs(0.5-s[name]['position'][0][-1]) - abs(0.5-s[name]['position'][1][-1]) - np.sin(s['ElapsedTime']['value'][-1]*np.pi/2.0)/2.0
-    OldTemp = 2.0 - abs(0.5-s[name]['position'][0][-2]) - abs(0.5-s[name]['position'][1][-2]) - np.sin(s['ElapsedTime']['value'][-2]*np.pi/2.0)/2.0
-    attributes_error_6[0,i] = s[name]['Chem6'][0][-1] - (Temp - OldTemp)
+    Temp = 2.0 - abs(0.5-pos[0,i]) - abs(0.5-pos[1,i]) - np.sin(newtime*np.pi/2.0)/2.0
+    OldTemp = 2.0 - abs(0.5-old_pos[0,i]) - abs(0.5-old_pos[1,i]) - np.sin(oldtime*np.pi/2.0)/2.0
+    attributes_error_6[0,i] = att_chem6[i] - (Temp - OldTemp)
     sq_error = sq_error + attributes_error_6[0,i]**2
-    
+
 sq_error_6 = sq_error
     </variable>
     <variable name="Walltime" language="python">
@@ -128,5 +152,3 @@ assert sq_error_6 &lt; 1.0e-3
   <warn_tests>
   </warn_tests>
 </testproblem>
-
-   

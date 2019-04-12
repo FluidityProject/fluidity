@@ -15,16 +15,16 @@ files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
     <variable name="wave_speed" language="python">
-import fluidity_tools
-import numpy
-s = fluidity_tools.stat_parser("sloshing_tank_deep.detectors")
-t = s['ElapsedTime']['value']
-fs = s['water']['FreeSurface']['left_boundary_bottom']
-l1 = fs.shape[0]
-for i in range(l1-1,-1,-1):
-    if (fs[i]&gt;fs[i-1]):
-        break
-time = t[i+1]
+import h5py
+import numpy as np
+
+f = h5py.File('sloshing_tank_deep.detectors.h5part', 'r')
+l1 = len(f)
+fs = np.fromiter((f[f'/Step#{i}/water%FreeSurface'][0] for i in range(l1)), np.float)
+for i in range(l1-1, -1, -1):
+  if fs[i] &gt; fs[i-1]:
+    break
+time = f[f'/Step#{i+1}'].attrs['time'].item()
 print("Time found for 10th peak in free surface: %s" % time)
 wave_speed = 10.0/time
 print("This implies a free surface speed of: %s" % wave_speed)

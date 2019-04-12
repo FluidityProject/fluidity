@@ -54,7 +54,7 @@
     <detectors>
       <static_detector name="Temperature6060">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">60000. -60000.</real_value>
+          <real_value rank="1" dim1="dim" shape="2">60000. -60000.</real_value>
         </location>
       </static_detector>
       <detector_array name="TSlab">
@@ -63,7 +63,7 @@
         </number_of_detectors>
         <static/>
         <python>
-          <string_value lines="20" type="code" language="python">def val(t):
+          <string_value type="code" language="python" lines="20">def val(t):
     import numpy
     start = numpy.array([0, 0])
     end = numpy.array([210000, -210000])
@@ -79,7 +79,7 @@
         </number_of_detectors>
         <static/>
         <python>
-          <string_value lines="20" type="code" language="python">def val(t):
+          <string_value type="code" language="python" lines="20">def val(t):
     output1 = []
     for i in range(12):
         for j in range(12):
@@ -120,7 +120,7 @@
     </steady_state>
   </timestepping>
   <material_phase name="Fluid">
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <spatial_discretisation>
@@ -188,7 +188,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -238,10 +238,10 @@
         </solver>
         <initial_condition name="Batchelor">
           <region_ids>
-            <integer_value shape="1" rank="1">27</integer_value>
+            <integer_value rank="1" shape="1">27</integer_value>
           </region_ids>
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
 
     from math import sqrt, atan, cos, sin, pi
 
@@ -278,18 +278,18 @@
         </initial_condition>
         <prescribed_region name="Crust">
           <region_ids>
-            <integer_value shape="1" rank="1">24</integer_value>
+            <integer_value rank="1" shape="1">24</integer_value>
           </region_ids>
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0. 0.</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0. 0.</real_value>
           </constant>
         </prescribed_region>
         <prescribed_region name="Slab">
           <region_ids>
-            <integer_value shape="1" rank="1">30</integer_value>
+            <integer_value rank="1" shape="1">30</integer_value>
           </region_ids>
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
     from math import sqrt
     vx = sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
     vy = -sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
@@ -298,7 +298,7 @@
         </prescribed_region>
         <boundary_conditions name="Crust">
           <surface_ids>
-            <integer_value shape="1" rank="1">32</integer_value>
+            <integer_value rank="1" shape="1">32</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -317,13 +317,13 @@
         </boundary_conditions>
         <boundary_conditions name="Slab">
           <surface_ids>
-            <integer_value shape="1" rank="1">31</integer_value>
+            <integer_value rank="1" shape="1">31</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
     from math import sqrt
     vx = sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
     return vx</string_value>
@@ -331,7 +331,7 @@
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
     from math import sqrt
     vy = -sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
     return vy</string_value>
@@ -355,14 +355,14 @@
         <output/>
         <stat>
           <include_in_stat/>
-          <surface_integral type="normal" name="Outflow">
+          <surface_integral name="Outflow" type="normal">
             <surface_ids>
-              <integer_value shape="2" rank="1">13 16</integer_value>
+              <integer_value rank="1" shape="2">13 16</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="normal" name="All">
+          <surface_integral name="All" type="normal">
             <surface_ids>
-              <integer_value shape="3" rank="1">12 13 16</integer_value>
+              <integer_value rank="1" shape="3">12 13 16</integer_value>
             </surface_ids>
           </surface_integral>
           <previous_time_step>
@@ -387,12 +387,12 @@
   </material_phase>
   <flredecomp>
     <field_weighted_partitions>
-      <scalar_field name="FieldWeightedPartitionValues" rank="0">
+      <scalar_field rank="0" name="FieldWeightedPartitionValues">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="Prognostic_Regions">
             <region_ids>
-              <integer_value shape="1" rank="1">27</integer_value>
+              <integer_value rank="1" shape="1">27</integer_value>
             </region_ids>
             <constant>
               <real_value rank="0">1.</real_value>
@@ -400,7 +400,7 @@
           </value>
           <value name="Prescribed_Regions">
             <region_ids>
-              <integer_value shape="2" rank="1">24 30</integer_value>
+              <integer_value rank="1" shape="2">24 30</integer_value>
             </region_ids>
             <constant>
               <real_value rank="0">0.005</real_value>

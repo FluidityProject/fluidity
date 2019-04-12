@@ -177,8 +177,10 @@ def get_head_pos(file):
 upper_contour_bounds= get_head_pos(get_last_dump())
     </variable>
     <variable name="insidecolumn" language="python">
-from fluidity_tools import stat_parser as stat
-insidecolumn= min(stat("water_collapse.detectors")["Dense"]["MaterialVolumeFraction"]["WaterColumn"])
+import h5py
+import numpy as np
+f = h5py.File('water_collapse.detectors.h5part', 'r')
+insidecolumn = np.fromiter((f[f'/Step#{i}/Dense%MaterialVolumeFraction'][0] for i in range(len(f))), np.float).min()
     </variable>
   </variables>    
   <pass_tests> 

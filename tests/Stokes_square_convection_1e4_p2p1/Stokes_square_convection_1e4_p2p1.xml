@@ -37,13 +37,23 @@ rms_vel= stat("stokes-1e4-p2p1.stat")["Fluid"]["Velocity%magnitude"]["l2norm"][-
 </variable>
 
 <variable name="q_one" language="python">
-from fluidity_tools import stat_parser as stat
-q_one = (-1.)*(stat("stokes-1e4-p2p1.detectors")["Fluid"]["TemperatureGradient"]["TopLeftCorner"][1,:][-1])
+import h5py
+import numpy as np
+
+f = h5py.File('stokes-1e4-p2p1.detectors.h5part', 'r')
+n = len(f)-1
+topleft =  f.attrs['TopLeftCorner%ids'][0]-1
+q_one = -f[f'/Step#{n}/Fluid%TemperatureGradient%y'][topleft]
 </variable>
 
 <variable name="q_two" language="python">
-from fluidity_tools import stat_parser as stat
-q_two = (-1.)*(stat("stokes-1e4-p2p1.detectors")["Fluid"]["TemperatureGradient"]["TopRightCorner"][1,:][-1])
+import h5py
+import numpy as np
+
+f = h5py.File('stokes-1e4-p2p1.detectors.h5part', 'r')
+n = len(f)-1
+topright =  f.attrs['TopRightCorner%ids'][0]-1
+q_two = -f[f'/Step#{n}/Fluid%TemperatureGradient%y'][topright]
 </variable>
 
 </variables>
