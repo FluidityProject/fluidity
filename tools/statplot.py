@@ -1,8 +1,9 @@
 #!/usr/bin/env python2
 
 import gi
+gi.require_version('Gdk', '3.0')
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk  # noqa: E402
+from gi.repository import Gdk, Gtk  # noqa: E402
 
 import argparse  # noqa: E402
 import fluidity.diagnostics.fluiditytools as fluidity_tools  # noqa: E402
@@ -27,7 +28,8 @@ parser = argparse.ArgumentParser(
     + '- x, y -> Change the scale of the x, y axis (automatically chooses '
     + 'between linear, log and symlog).\n- l -> Change the representation of '
     + 'the data (solid line or markers).\n- r -> Reload the .stat file. Only '
-    + 'relevant for simulations that are still running.\n- q -> Exit the GUI.')
+    + 'relevant for simulations that are still running.\n- Esc -> Release '
+    + 'focus on text boxes.\n- q -> Exit the GUI.')
 parser.add_argument('statfile', nargs='+', help='path to the .stat file')
 args = parser.parse_args(sys.argv[1:])
 
@@ -52,14 +54,19 @@ class StatplotWindow(Gtk.Window):
         self.xCombo.set_wrap_width(3)
         self.yCombo = Gtk.ComboBoxText.new_with_entry()
         self.yCombo.set_wrap_width(3)
-        self.PopulateCombo()
+        self.PopulateCombo('load')
+        self.IniCompl(self.xCombo)
+        self.IniCompl(self.yCombo)
         self.xCombo.connect('changed', self.ComboChangedX)
+        self.xCombo.connect('key-release-event', self.ReleaseFocus)
         self.yCombo.connect('changed', self.ComboChangedY)
+        self.yCombo.connect('key-release-event', self.ReleaseFocus)
         hbox.pack_start(self.xCombo, True, True, 0)
         hbox.pack_start(self.yCombo, True, True, 0)
         self.fig, self.ax = plt.subplots(nrows=1, ncols=1, num=0,
                                          figsize=(14, 7))
         self.canvas = FigureCanvas(self.fig)
+        self.canvas.set_can_focus(True)
         self.vbox.pack_start(self.canvas, True, True, 0)
         self.PlotType = 'line'
         self.PlotData('create', self.PlotType, 'linear', 'linear')
@@ -67,10 +74,26 @@ class StatplotWindow(Gtk.Window):
         self.vbox.pack_start(self.toolbar, False, False, 0)
 
     def ComboChangedX(self, widget):
-        self.PlotData('update', self.PlotType, 'linear', self.ax.get_yscale())
+        complOptions = self.PopulateCompletion(self.xCombo.get_active_text())
+        dynModel = Gtk.ListStore.new([str])
+        for option in complOptions:
+            dynModel.append([option])
+        self.xCombo.get_child().get_completion().set_model(dynModel)
+        if self.xCombo.get_active_text() in sorted(self.entries.Paths()):
+            self.PlotData('update', self.PlotType, 'linear',
+                          self.ax.get_yscale())
+            self.canvas.grab_focus()
 
     def ComboChangedY(self, widget):
-        self.PlotData('update', self.PlotType, self.ax.get_xscale(), 'linear')
+        complOptions = self.PopulateCompletion(self.yCombo.get_active_text())
+        dynModel = Gtk.ListStore.new([str])
+        for option in complOptions:
+            dynModel.append([option])
+        self.yCombo.get_child().get_completion().set_model(dynModel)
+        if self.yCombo.get_active_text() in sorted(self.entries.Paths()):
+            self.PlotData('update', self.PlotType, self.ax.get_xscale(),
+                          'linear')
+            self.canvas.grab_focus()
 
     def FormatAxis(self, ax2fmt, scale):
         if ax2fmt == 'x':
@@ -131,6 +154,14 @@ class StatplotWindow(Gtk.Window):
         self.ax.yaxis.get_offset_text().set(fontsize=13, fontweight='bold',
                                             color='xkcd:black')
         self.fig.set_tight_layout(True)
+
+    def IniCompl(self, comboBox):
+        completion = Gtk.EntryCompletion.new()
+        completion.set_text_column(0)
+        completion.set_inline_completion(True)
+        completion.set_inline_selection(True)
+        completion.set_model(comboBox.get_model())
+        comboBox.get_child().set_completion(completion)
 
     def KeyPressed(self, widget, event):
         key = event.string
@@ -213,18 +244,26 @@ class StatplotWindow(Gtk.Window):
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
 
-    def PopulateCombo(self):
+    def PopulateCombo(self, action, prevIterX=None, prevIterY=None):
         for entry in sorted(self.entries.Paths()):
             self.xCombo.append_text(entry)
             self.yCombo.append_text(entry)
-        if 'ElapsedTime' in self.entries.Paths():
-            iterX = self.xCombo.get_model(). \
-                get_iter(sorted(self.entries.Paths()).index('ElapsedTime'))
-            self.xCombo.set_active_iter(iterX)
-            self.yCombo.set_active(0)
-        else:
-            self.xCombo.set_active(0)
-            self.yCombo.set_active(1)
+        if action == 'load':
+            if 'ElapsedTime' in self.entries.Paths():
+                iterX = self.xCombo.get_model(). \
+                    get_iter(sorted(self.entries.Paths()).index('ElapsedTime'))
+                self.xCombo.set_active_iter(iterX)
+                self.yCombo.set_active(0)
+            else:
+                self.xCombo.set_active(0)
+                self.yCombo.set_active(1)
+        elif action == 'reload':
+            self.xCombo.set_active_iter(prevIterX)
+            self.yCombo.set_active_iter(prevIterY)
+
+    def PopulateCompletion(self, text):
+        return [item for item in sorted(self.entries.Paths())
+                if item.startswith(text)]
 
     def ReadData(self, statfile):
         stats = []
@@ -250,9 +289,14 @@ class StatplotWindow(Gtk.Window):
         self.xCombo.remove_all()
         self.yCombo.remove_all()
         self.entries = self.ReadData(statfile)
-        self.PopulateCombo()
+        self.PopulateCombo('reload', prevIterX=self.xCombo.get_active_iter(),
+                           prevIterY=self.yCombo.get_active_iter())
         self.xCombo.connect('changed', self.ComboChangedX)
         self.yCombo.connect('changed', self.ComboChangedY)
+
+    def ReleaseFocus(self, widget, event):
+        if event.keyval == Gdk.KEY_Escape:
+            self.canvas.grab_focus()
 
 
 window = StatplotWindow(args.statfile)
