@@ -638,7 +638,7 @@ module particle_diagnostics
     character(len=OPTION_PATH_LEN) :: particle_group
     
     logical :: have_attribute_caps, have_radius
-    integer :: min_thresh, max_thresh, mult
+    integer :: min_thresh, max_thresh
     real :: radius, cap_percent
 
     ewrite(2,*) "In particle_cv_check"
@@ -858,7 +858,7 @@ module particle_diagnostics
     power_set=.false.
     j=0
     do while (power_set.eqv..false.)
-       if (mult>2**j) then
+       if (mult>=2**j) then
           j=j+1
        else
           power=j-1
@@ -1291,7 +1291,7 @@ module particle_diagnostics
     power_set=.false.
     j=0
     do while (power_set.eqv..false.)
-       if (mult>2**j) then
+       if (mult>=2**j) then
           j=j+1
        else
           power=j-1
