@@ -1184,7 +1184,7 @@ module particle_diagnostics
     remove_particles(:) = 0
     
     do while(node_part_count(node_num)>max_thresh)
-       call delete_particles(node_part_count, node_particles(:,node_num), group_arrays, remove_particles)
+       call delete_particles(node_part_count(node_num), node_particles(:,node_num), group_arrays, remove_particles)
        add_particles(:) = add_particles(:) - remove_particles(:)
     end do
     
