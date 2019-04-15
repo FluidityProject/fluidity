@@ -777,7 +777,7 @@ module particle_diagnostics
              end if
           else if (node_part_count(i)==0) then
              if (node_owned(mesh, i)) then
-                call spawn_zero_particles(temp_part_count(:), node_particles(:,:), group_arrays, xfield, add_particles, i, cap_percent)
+                call spawn_zero_particles(temp_part_count(:), node_particles(:,:), group_arrays, xfield, add_particles, i, cap_percent, max_thresh)
                 summed_particles=summed_particles+add_particles
              end if
           end if
@@ -1039,12 +1039,11 @@ module particle_diagnostics
           deallocate(node_coord)
           deallocate(node_numbers)
        end if
-       
     end do
 
   end subroutine spawn_particles
 
-  subroutine spawn_zero_particles(node_part_count, node_particles, group_arrays, xfield, add_particles, node_num, cap_percent)
+  subroutine spawn_zero_particles(node_part_count, node_particles, group_arrays, xfield, add_particles, node_num, cap_percent, max_thresh)
     !Subroutine to spawn particles in a control volume with 0 'parent' particles in CV
     use particles, only: particle_lists
     type(detector_linked_list), intent(inout), dimension(:,:) :: node_particles
@@ -1054,6 +1053,7 @@ module particle_diagnostics
     integer, dimension(:), intent(inout) :: add_particles
     integer, intent(in) :: node_num
     real, optional, intent(in) :: cap_percent
+    integer, intent(in) :: max_thresh
     
     integer, dimension(:), pointer :: ele_nums
     integer, allocatable, dimension(:,:) :: node_numbers
@@ -1072,6 +1072,7 @@ module particle_diagnostics
     integer :: id, name_len, tot_len
     integer :: i, j, k, group_spawn
     integer, dimension(3) :: attribute_size
+    integer, dimension(:), allocatable :: remove_particles
     
     add_particles(:) = 0
 
@@ -1137,6 +1138,7 @@ module particle_diagnostics
        do i = 1,size(ele_nums)
           do k = 1,xfield%dim+1
              particle => node_particles(j, node_numbers(i,k))%first
+             if (node_numbers(i,k)==node_num) cycle !prevent from duplicating particles spawned in this routine
              do while(associated(particle))
                 particle_name = trim(name)//int2str(id+1)
                 temp_part => null()
@@ -1166,6 +1168,10 @@ module particle_diagnostics
                 particle_lists(group_arrays(j))%last => temp_part
                 particle_lists(group_arrays(j))%last%next => null()
                 particle_lists(group_arrays(j))%length = particle_lists(group_arrays(j))%length + 1
+
+                !add particle to temp particle list
+                call temp_insert(temp_part,node_particles(j,node_num))
+                
                 add_particles(j) = add_particles(j) + 1
                 id = id + 1
                 particle => particle%temp_next
@@ -1173,7 +1179,16 @@ module particle_diagnostics
           end do
        end do
     end do
+
+    allocate(remove_particles(size(group_arrays)))
+    remove_particles(:) = 0
     
+    do while(node_part_count(node_num)>max_thresh)
+       call delete_particles(node_part_count, node_particles(:,node_num), group_arrays, remove_particles)
+       add_particles(:) = add_particles(:) - remove_particles(:)
+    end do
+    
+    deallocate(remove_particles)
     deallocate(node_coord)
     deallocate(node_numbers)
     deallocate(part_counter)
