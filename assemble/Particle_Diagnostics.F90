@@ -638,7 +638,7 @@ module particle_diagnostics
     character(len=OPTION_PATH_LEN) :: particle_group
     
     logical :: have_attribute_caps, have_radius
-    integer :: min_thresh, max_thresh
+    integer :: min_thresh, max_thresh, mult
     real :: radius, cap_percent
 
     ewrite(2,*) "In particle_cv_check"
@@ -707,7 +707,7 @@ module particle_diagnostics
     integer, dimension(:), pointer :: nodes
     integer :: nprocs
     type(vector_field), pointer :: xfield
-    integer :: i, j
+    integer :: i, j, mult
 
     integer, allocatable, dimension(:) :: summed_particles, add_particles, remove_particles
     real, dimension(:), allocatable :: temp_part_count
@@ -769,7 +769,8 @@ module particle_diagnostics
        if (node_part_count(i)<min_thresh) then
           if (node_part_count(i)>0) then
              if (node_part_count(i)<min_thresh/2) then
-                call multi_spawn_particles(temp_part_count(i), node_particles(:,i), group_arrays, xfield, summed_particles, i, 3, have_radius, radius, cap_percent)
+                mult = nint(min_thresh/node_part_count(i)*1.0)
+                call multi_spawn_particles(temp_part_count(i), node_particles(:,i), group_arrays, xfield, summed_particles, i, mult, have_radius, radius, cap_percent)
              else
                 call spawn_particles(temp_part_count(i), node_particles(:,i), group_arrays, xfield, add_particles, i, have_radius, radius, cap_percent)
                 summed_particles=summed_particles+add_particles
@@ -791,8 +792,13 @@ module particle_diagnostics
 
     do i = 1,node_count(mesh)
        if (node_part_count(i)>max_thresh) then
-          call delete_particles(temp_part_count(i), node_particles(:,i), group_arrays, remove_particles)
-          summed_particles=summed_particles-remove_particles
+          if (node_part_count(i)>2*max_thresh) then
+             mult = nint(node_part_count(i)*1.0/max_thresh)
+             call multi_delete_particles(mult, temp_part_count(i), node_particles(:,i), group_arrays, summed_particles)
+          else
+             call delete_particles(temp_part_count(i), node_particles(:,i), group_arrays, remove_particles)
+             summed_particles=summed_particles-remove_particles
+          end if
        end if
     end do
     if (nprocs>1) then
@@ -843,12 +849,24 @@ module particle_diagnostics
     real, intent(in) :: radius
     real, optional, intent(in) :: cap_percent
 
-    integer :: i
+    integer :: i, power, j
     integer, allocatable, dimension(:) :: add_particles
+    logical :: power_set
 
     allocate(add_particles(size(group_arrays)))
 
-    do i = 1,mult
+    power_set=.false.
+    j=0
+    do while (power_set.eqv..false.)
+       if (mult>2**j) then
+          j=j+1
+       else
+          power=j-1
+          power_set=.true.
+       end if
+    end do
+
+    do i = 1,power
        call spawn_particles(node_part_count, node_particles, group_arrays, xfield, add_particles, node_num, have_radius, radius, cap_percent)
        summed_particles=summed_particles+add_particles
     end do
@@ -1256,6 +1274,39 @@ module particle_diagnostics
     enddo
 
   end subroutine local_to_global
+
+  subroutine multi_delete_particles(mult, node_part_count, node_particles, group_arrays, summed_particles)
+    integer, intent(in) :: mult
+    type(detector_linked_list), intent(inout), dimension(:) :: node_particles
+    real, intent(inout) :: node_part_count
+    integer, intent(in), dimension(:) :: group_arrays
+    integer, dimension(:), intent(inout) :: summed_particles
+
+    integer :: i, power, j
+    integer, allocatable, dimension(:) :: remove_particles
+    logical :: power_set
+
+    allocate(remove_particles(size(group_arrays)))
+
+    power_set=.false.
+    j=0
+    do while (power_set.eqv..false.)
+       if (mult>2**j) then
+          j=j+1
+       else
+          power=j-1
+          power_set=.true.
+       end if
+    end do
+    
+    do i = 1,power
+       call delete_particles(node_part_count, node_particles, group_arrays, remove_particles)
+       summed_particles=summed_particles-remove_particles
+    end do
+
+    deallocate(remove_particles)
+
+  end subroutine multi_delete_particles
 
   subroutine delete_particles(node_part_count, node_particles, group_arrays, remove_particles)
     !Subroutine to calculate the number of particles in each control volume, and delete
