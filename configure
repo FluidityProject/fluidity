@@ -14448,6 +14448,26 @@ cd ../
 fi
 
 
+#************H5hut***********
+if test -d h5hut; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
+$as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: Configuring h5hut" >&5
+$as_echo "$as_me: Configuring h5hut" >&6;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
+$as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
+
+    cd h5hut
+    mkdir -p build
+    cd build
+    cmake -DCMAKE_C_COMPILER="${CC}" -DCMAKE_Fortran_COMPILER="${FC}" -DCMAKE_INSTALL_PREFIX=${PWD}/../.. -DUSE_PYTHON=ON ..
+    if test "$?" -ne "0"; then
+       as_fn_error $? "Configuration of h5hut has failed." "$LINENO" 5
+       exit -1
+    fi
+    cd ../..
+fi
+
 #*************ARPACK*********
 ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
