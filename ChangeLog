@@ -1,0 +1,15 @@
+2018-09-14  Gsell Achim  <achi.gsell@psi.ch>
+
+	* C-API
+	- H5PartSetNumPoints() renamed to H5PartSetNumItems()
+	- H5PartGetNumPoints() renamed to H5PartGetNumItems()
+	- Dataset names longer then 64 bytes are handled as error.
+	- Same for step/iteration names.
+	* core API
+	- we use the term 'iteration' instead of 'step'
+	- we use the term 'item' instead of 'point'
+	- re-factor function and variable names
+	- in printing messages/debug output fixed
+	- do not flush (sync to disk) after writing a dataset by default,
+	  can be controlled by a property
+
