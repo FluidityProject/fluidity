@@ -1,0 +1,170 @@
+Proposal for a more general file format used by H5Part/H5Block
+
+                                                 Authors: Achim Gsell
+                                                 Status:  Draft
+
+1. Introduction
+
+H5X is the file format used by H5Part and H5Block.  H5X is designed on
+top of HDF5: A H5X file is a very special HDF5 file.
+
+	+--------------------+
+	|   Application      |
+	+--------------------+
+	| H5Part/H5Block API |
+	+--------------------+
+	|      H5X API       |
+	+--------------------+
+	|     HDF5 API       |
+	+--------------------+
+	|  Filesystem of OS  |
+	+--------------------+
+
+
+2. H5X file format specification
+
+2.1 The root group
+
+2.1.1 File attributes
+
+Attributes of the HDF5 root group are called "file attributes". There
+are no restrictions on file attribute names.  Names with "__" as prefix and
+postfix are intended for internal use. Supported values for file attributes
+are scalars and arrays of 64bit integer and 64bit floating point number as
+well as string values. Arrays of strings are not supported.
+
+2.1.1.1 Predefined file attributes
+
+__stepname__ (optional)
+	See below.
+
+__stepnumwidth__ (optional)
+	See below.
+
+2.1.2 Members of the root group
+
+Members of the root group are special formated HDF5 groups called
+"step groups".  The name of a step group is "<name>#<number>". 
+Whereby <name> is either defined by the optional file attribute
+__stepname__ or set to "Step" by default. <number> is an 
+unsigned integer less than 2^63. 
+
+/
++- Step#0
++- Step#1
+...
++- Step#n
++- StepProperties [NEW]
++- Mesh [NEW]
+
+The optional file attribute __stepnumwidth__ defines the minimum width
+of <number> in the name of the step group. The number is padded with
+'0'. The minimum width defaults to zero, so that no paddings occurs. 
+Example: With __stepnumwidth__ := 5 the name of the step group with
+number 42 is "Step#00042", with __stepnumwidth__ := 0 the name is
+"Step#42". 
+
+Step groups may be unsorted in the HDF5 file und needn't be number
+consecutively. 
+
+2.1.3 Other members of the root group
+
+Other sub-groups of the root group are allowed, but the group names are restricted
+to names not matching "Step#.*".
+
+2.2    Format of a step group
+
+2.2.1  Step attributes
+
+Step attributes are HDF5 attributes asigned to a step group.  There
+are no restrictions on step attribute names. As with file attributes names
+enclosed in "__" are intended for internal use. Supported values are the same
+as for file attributes:
+	* 64bit integer value
+	* arrays of 64bit integer values
+	* 64bit floating point number
+	* array of 64bit floating point number
+	* strings
+Note that array of strings are not supported! 
+
+2.2.2  Predefined step attributes
+
+No predefined step attributes exists.
+
+
+2.2.3  Members of a step group
+
+Members of a step group are HDF5 datasets and optional one HDF5 group
+with the name "Block". HDF5 datasets in a step group are called "step
+datasets". The optional block group is called "block data". 
+
+Mesh?!
+
+2.2.4  Step datasets
+
+Step datasets are arrays of rank 1.  The dataset size must be the same
+for all datasets inside a step.  The size of the dataset may vary
+from step to step.  Array values are 64bit integer or 64bit floating
+point numbers. No limitations (other than given by HDF5) are given on
+step dataset names.
+
+
+2.2.5  Block Data
+
+The block data group is a container for an arbitrary number of field
+data. A field is a data structure to store arrays of rank m with
+n-dimensional vector values. Fields are represented within HDF5
+groups. The HDF5 group name is the unique identifier for a field in
+the current step.
+
+2.2.5.1 m-rank fields with n-dimensional-vector values
+
+Values are stored per dimension in separate datasets. Thus we have n
+datasets for a field with n-dimensional vector values.  Each dataset
+corresponse to one dimension. The datasets are numbered from '0' to
+'n-1'. Arrays are stored in column major order (Fortran indexing
+scheme).
+
+/				# HDF5 root group
+...
++- Step#<i>			# HDF5 group
+   |
+   +- Block			# HDF5 group
+      |
+      +- <field name>		# HDF5 group
+         |
+         +- 0			# HDF5 dataset, first dim of vector
+	 +- 1			# HDF5 dataset, second dim of vector
+         ...
+        +- n-1			# HDF5 dataset, last dim of vector
+...
+
+2.2.5.2 m-rank fields with scalar values
+
+Fields with scalar values are stored as special case of fields with
+n-dimensional vector values with n := 1.
+
+/				# HDF5 root group
+...
++- Step#<i>			# HDF5 group
+   |
+   +- Block			# HDF5 group
+      |
+      +- <field name>		# HDF5 group
+         |
+         +- 0			# HDF5 dataset, scalar value
+...
+
+
+2.3    Step properties [NEW]
+
+Why? Much faster than step attributes if you need to access consecutive values
+
+Group of root group with name "StepProperties"
+
+Members are datasets
+
+Supported values are the same as for step attributes
+
+Mapping of value to step via object index of step group
+
