@@ -65,7 +65,9 @@ for filename in fluid_vtus:
     data = vtk.vtu(filename)
     # Only process the first node in the mesh, as the time is constant over the whole mesh:
     n0 = data.ugrid.GetCell(0).GetPointId(0)
-    t = data.ugrid.GetPointData().GetArray("Time").GetTuple(n0)
+    ai = [i for i, n in enumerate(data.GetFieldNames()) if n.endswith("::Time") or n == "Time"][0]
+    tname = data.ugrid.GetPointData().GetArrayName(ai)
+    t = data.ugrid.GetPointData().GetArray(tname).GetTuple(n0)
     time.append(t[0])
 
 # Generate fluid pvd file:
