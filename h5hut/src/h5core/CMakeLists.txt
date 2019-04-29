@@ -18,6 +18,9 @@ add_library(H5hut
   private/h5t_ref_elements.c)
 target_link_libraries(H5hut ${HDF5_LIBRARIES})
 
+# ensure we can see HDF5 headers
+target_include_directories(H5hut PUBLIC ${HDF5_INCLUDE_DIRS})
+
 # look for headers under current directory
 target_include_directories(H5hut PRIVATE ".")
 
