@@ -329,7 +329,7 @@ contains
     character(len=FIELD_NAME_LEN), intent(in) :: subname
 
     integer :: file_id
-    p_list%h5_id = h5_openfile(trim(filename) // '.particles.' // trim(subname) // '.h5', H5_O_WRONLY, H5_PROP_DEFAULT)
+    p_list%h5_id = h5_openfile(trim(filename) // '.particles.' // trim(subname) // '.h5part', H5_O_WRONLY, H5_PROP_DEFAULT)
 
     ! optionally set any file attributes here?
 
@@ -860,7 +860,7 @@ contains
     particles_cp_filename = trim(prefix)
     if(present(cp_no)) particles_cp_filename = trim(particles_cp_filename) // "_" // int2str(cp_no)
     particles_cp_filename = trim(particles_cp_filename) // "_" // trim(lpostfix)
-    particles_cp_filename = trim(particles_cp_filename) // "_particles." // trim(name) // ".h5"
+    particles_cp_filename = trim(particles_cp_filename) // "_particles." // trim(name) // ".h5part"
 
     ! open output file
     h5_id = h5_openfile(trim(particles_cp_filename), H5_O_WRONLY, H5_PROP_DEFAULT)
