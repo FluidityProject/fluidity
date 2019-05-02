@@ -14,7 +14,7 @@
     <variable name="attributes_error_1" language="python">
 import numpy as np
 from H5hutpy import *
-f = H5OpenFile("particle_attributes_checkpoint.particles.Thomas.h5", H5_O_RDONLY, H5_PROP_DEFAULT)
+f = H5OpenFile("particle_attributes_checkpoint.particles.Thomas.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
 nsteps = H5GetNumSteps(f)
 H5SetStep(f, nsteps-1)
 att_chem1 = np.empty(60, dtype='float64')
@@ -27,7 +27,7 @@ print ("max error",attributes_error_1)
     <variable name="attributes_error_2" language="python">
 import numpy as np
 from H5hutpy import *
-f = H5OpenFile("particle_attributes_checkpoint.particles.Thomas.h5", H5_O_RDONLY, H5_PROP_DEFAULT)
+f = H5OpenFile("particle_attributes_checkpoint.particles.Thomas.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
 nsteps = H5GetNumSteps(f)
 
 H5SetStep(f, nsteps-2)
@@ -52,7 +52,7 @@ print ("max error",attributes_error_2)
     <variable name="attributes_error_3" language="python">
 import numpy as np
 from H5hutpy import *
-f = H5OpenFile("particle_attributes_checkpoint.particles.Chris.h5", H5_O_RDONLY, H5_PROP_DEFAULT)
+f = H5OpenFile("particle_attributes_checkpoint.particles.Chris.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
 nsteps = H5GetNumSteps(f)
 
 H5SetStep(f, nsteps-1)
@@ -70,7 +70,7 @@ print ("max error",abs(attributes_error_3).max())
     <variable name="sq_error_4" language="python">
 import numpy as np
 from H5hutpy import *
-f = H5OpenFile("particle_attributes_checkpoint.particles.Chris.h5", H5_O_RDONLY, H5_PROP_DEFAULT)
+f = H5OpenFile("particle_attributes_checkpoint.particles.Chris.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
 nsteps = H5GetNumSteps(f)
 
 H5SetStep(f, nsteps-1)
@@ -96,7 +96,7 @@ sq_error_4 = sq_error
     <variable name="attributes_error_5" language="python">
 import numpy as np
 from H5hutpy import *
-f = H5OpenFile("particle_attributes_checkpoint.particles.Chris.h5", H5_O_RDONLY, H5_PROP_DEFAULT)
+f = H5OpenFile("particle_attributes_checkpoint.particles.Chris.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
 nsteps = H5GetNumSteps(f)
 
 att_chem4 = np.empty(100, dtype='float64')
@@ -113,7 +113,7 @@ print ("max error",attributes_error_5)
     <variable name="sq_error_6" language="python">
 import numpy as np
 from H5hutpy import *
-f = H5OpenFile("particle_attributes_checkpoint.particles.Steph.h5", H5_O_RDONLY, H5_PROP_DEFAULT)
+f = H5OpenFile("particle_attributes_checkpoint.particles.Steph.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
 nsteps = H5GetNumSteps(f)
 
 pos = np.empty((2, 80), dtype='float64')
