@@ -85,6 +85,14 @@
   x=X[0]
   y=fields["OldTemperature"]
   return y</string_value>
+              <store_old_attribute/>
+            </python_fields>
+          </attribute>
+          <attribute name="Chem3">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+  y=fields["OldChem2"]
+  return y</string_value>
             </python_fields>
           </attribute>
         </attributes>
@@ -103,7 +111,7 @@
           </python>
         </initial_position>
         <attributes>
-          <attribute name="Chem3">
+          <attribute name="Chem1">
             <python>
               <string_value lines="20" type="code" language="python">def val(X,t):
   x=X[0]
@@ -111,7 +119,7 @@
   return y</string_value>
             </python>
           </attribute>
-          <attribute name="Chem4">
+          <attribute name="Chem2">
             <python_fields>
               <string_value lines="20" type="code" language="python">def val(X,t,fields):
   x=X[0]
@@ -120,10 +128,10 @@
               <store_old_attribute/>
             </python_fields>
           </attribute>
-          <attribute name="Chem5">
+          <attribute name="Chem3">
             <python_fields>
               <string_value lines="20" type="code" language="python">def val(X,t,fields):
-  y=fields["OldChem4"]
+  y=fields["OldChem2"]
   return y</string_value>
             </python_fields>
           </attribute>
@@ -146,11 +154,45 @@
           </python>
         </initial_position>
         <attributes>
-          <attribute name="Chem6">
+          <attribute name="Chem4">
             <python_fields>
               <string_value lines="20" type="code" language="python">def val(X,t,fields):
   z=fields["Temperature"]-fields["OldTemperature"]
   return z</string_value>
+            </python_fields>
+          </attribute>
+        </attributes>
+      </particle_subgroup>
+    </particle_group>
+    <particle_group name="Angus">
+      <velocity_field name="Velocity"/>
+      <particle_subgroup name="BMW">
+        <number_of_particles>
+          <integer_value rank="0">100</integer_value>
+        </number_of_particles>
+        <initial_position>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(t):
+  from numpy import arange,zeros,reshape,concatenate
+  x = 0.5+0.25*arange(0,100.)/100.
+  y = zeros(100) + 0.5
+  return reshape(concatenate((x,y)),(2,100)).T</string_value>
+          </python>
+        </initial_position>
+        <attributes>
+          <attribute name="Time">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+  time = t
+  return time</string_value>
+              <store_old_attribute/>
+            </python_fields>
+          </attribute>
+          <attribute name="dt">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+  dt = t - fields["OldTime"]
+  return dt</string_value>
             </python_fields>
           </attribute>
         </attributes>
