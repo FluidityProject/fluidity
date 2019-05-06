@@ -28,7 +28,12 @@ add_library(H5hutf
 
 target_include_directories(H5hutf PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 # only links against libraries if we build as shared?
-target_link_libraries(H5hutf H5hut)
+target_link_libraries(H5hutf PRIVATE H5hut)
+
+if (USE_PARALLEL)
+  target_link_libraries(H5hutf PRIVATE MPI::MPI_Fortran)
+  target_include_directories(H5hutf PUBLIC ${MPI_Fortran_INCLUDE_DIRS})
+endif (USE_PARALLEL)
 
 # make sure we create the interface file
 add_dependencies(H5hutf H5hutf_interface)

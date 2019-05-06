@@ -16,7 +16,12 @@ add_library(H5hut
   private/h5t_io_trim.c private/h5t_io_tetm.c
   private/h5t_store_trim.c private/h5t_store_tetm.c
   private/h5t_ref_elements.c)
-target_link_libraries(H5hut ${HDF5_LIBRARIES})
+target_link_libraries(H5hut PRIVATE ${HDF5_LIBRARIES})
+
+if (USE_PARALLEL)
+  target_link_libraries(H5hut PRIVATE MPI::MPI_C)
+  target_include_directories(H5hut PUBLIC ${MPI_C_INCLUDE_DIRS})
+endif (USE_PARALLEL)
 
 # ensure we can see HDF5 headers
 target_include_directories(H5hut PUBLIC ${HDF5_INCLUDE_DIRS})
