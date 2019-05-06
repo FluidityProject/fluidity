@@ -14460,7 +14460,8 @@ $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
     cd h5hut
     mkdir -p build
     cd build
-    cmake -DCMAKE_C_COMPILER="${CC}" -DCMAKE_Fortran_COMPILER="${FC}" -DCMAKE_INSTALL_PREFIX=${PWD}/../.. -DUSE_PYTHON=ON ..
+    cmake -DCMAKE_C_COMPILER="${CC}" -DCMAKE_Fortran_COMPILER="${FC}" -DCMAKE_INSTALL_PREFIX=${PWD}/../.. \
+        -DUSE_PYTHON=ON -DUSE_PARALLEL=ON ..
     if test "$?" -ne "0"; then
        as_fn_error $? "Configuration of h5hut has failed." "$LINENO" 5
        exit -1
