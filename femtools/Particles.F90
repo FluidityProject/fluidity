@@ -731,7 +731,7 @@ contains
     ! set up arrays to hold all node data (this won't work with large numbers of particles)
     vfield => extract_vector_field(state, "Coordinate")
     dim = vfield%dim
-    allocate(positions(detector_list%length, dim))
+    allocate(positions(detector_list%length, 3))
     allocate(attrib_data(detector_list%length, attribute_dims))
 
     node => detector_list%first
@@ -739,7 +739,7 @@ contains
       assert(size(node%position) == dim)
       assert(size(node%attributes) == attribute_dims)
 
-      positions(i,:) = node%position(:)
+      positions(i,1:dim) = node%position(:)
       attrib_data(i,:) = node%attributes(:)
 
       node => node%next
@@ -750,8 +750,12 @@ contains
          h5_ierror = h5pt_writedata_r8(detector_list%h5_id, "x", positions(:,1))
     if (dim >= 2) &
          h5_ierror = h5pt_writedata_r8(detector_list%h5_id, "y", positions(:,2))
-    if (dim >= 3) &
-         h5_ierror = h5pt_writedata_r8(detector_list%h5_id, "z", positions(:,3))
+    if (dim >= 3) then
+      h5_ierror = h5pt_writedata_r8(detector_list%h5_id, "z", positions(:,3))
+    else
+      positions(:,3) = 0.
+      h5_ierror = h5pt_writedata_r8(detector_list%h5_id, "z", positions(:,3))
+    end if
 
     ! write out attributes
     attribute_loop: do i = 1, attribute_dims
