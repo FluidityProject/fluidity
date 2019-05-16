@@ -244,8 +244,9 @@ contains
     real, allocatable, dimension(:,:) :: attribute_vals !array to hold particle attribute values for initialisation
     real, allocatable, dimension(:) :: positions !array to hold particle coordinates if from checkpoint file
 
-    integer :: h5_ierror, m, i, j, str_size, old_attrib, old_field
-    integer(kind=8) :: h5_id
+    integer :: h5_ierror, m, i, j, str_size, old_attrib, old_field, commsize, ierr, rank
+    integer(kind=8) :: h5_id, h5_prop, view_start, view_end
+    integer(kind=8), dimension(:), allocatable :: npoints
     character(len=OPTION_PATH_LEN) :: particles_cp_filename
     character(len=FIELD_NAME_LEN) :: attname, particle_name, fmt
     type(scalar_field), pointer :: sfield
@@ -260,14 +261,31 @@ contains
 
     call get_option(trim(subgroup_path) // "/initial_position/from_file/file_name", particles_cp_filename)
 
-    h5_id = h5_openfile(trim(particles_cp_filename), H5_O_RDONLY, H5_PROP_DEFAULT)
+    h5_prop = h5_createprop_file()
+    ! because we're reading separate particle counts per core
+    ! we can't use collective IO
+    h5_ierror = h5_setprop_file_mpio_independent(h5_prop, MPI_COMM_FEMTOOLS)
+    assert(h5_ierror == H5_SUCCESS)
+
+    h5_id = h5_openfile(trim(particles_cp_filename), H5_O_RDONLY, h5_prop)
+    h5_ierror = h5_closeprop(h5_prop)
     h5_ierror = h5_setstep(h5_id, int(1, 8))
 
-    do m = 1, sub_particles
+    call mpi_comm_size(MPI_COMM_FEMTOOLS, commsize, ierr)
+    call mpi_comm_rank(MPI_COMM_FEMTOOLS, rank, ierr)
+    allocate(npoints(commsize))
+    h5_ierror = h5_readfileattrib_i8(h5_id, "npoints", npoints)
+    h5_ierror = h5pt_setnpoints(h5_id, npoints(rank+1))
+
+    ! figure out our offset into the file
+    h5_ierror = h5pt_getview(h5_id, view_start, view_end)
+
+    do m = 1, npoints(rank+1)
       write(particle_name, fmt) trim(subname)//"_", m
 
-      ! set view for this particle
-      h5_ierror = h5pt_setview(h5_id, int(m, 8), int(m, 8))
+      ! set view to read this particle
+      h5_ierror = h5pt_setview(h5_id, int(view_start + m - 1, 8), int(view_start + m - 1, 8))
+
       if (dim >= 1) &
            h5_ierror = h5pt_readdata_r8(h5_id, "x", positions(1))
       if (dim >= 2) &
@@ -308,13 +326,17 @@ contains
       end if
       assert(old_field == attribute_size(3))
 
+      ! don't use a global check for this particle
       call create_single_particle(p_list, xfield, &
            positions, m, LAGRANGIAN_DETECTOR, trim(particle_name), &
-           attribute_size, attribute_vals=attribute_vals)
-     end do
+           attribute_size, attribute_vals=attribute_vals, global=.false.)
+    end do
+
+    h5_ierror = h5_closefile(h5_id)
 
      deallocate(attribute_vals)
      deallocate(positions)
+     deallocate(npoints)
   end subroutine read_particles_from_file
 
   subroutine set_particle_output_file(sub_particles, subname, filename, attribute_size, xfield, subgroup_path, p_list)
@@ -335,7 +357,7 @@ contains
 
   end subroutine set_particle_output_file
 
-  subroutine create_single_particle(detector_list, xfield, position, id, type, name, attribute_size, attribute_vals)
+  subroutine create_single_particle(detector_list, xfield, position, id, type, name, attribute_size, attribute_vals, global)
     ! Allocate a single particle, populate and insert it into the given list
     ! In parallel, first check if the particle would be local and only allocate if it is
     type(detector_linked_list), intent(inout) :: detector_list
@@ -350,14 +372,18 @@ contains
     integer :: element
     real, dimension(:,:), intent(in), optional :: attribute_vals
     integer, dimension(3), intent(in) :: attribute_size
+    logical, intent(in), optional :: global
 
     real ::  dt
+    logical :: picker_global = .true.
+
+    if (present(global)) picker_global = global
 
     shape=>ele_shape(xfield,1)
     assert(xfield%dim+1==local_coord_count(shape))
     detector_list%detector_names(id)=name
     ! Determine element and local_coords from position
-    call picker_inquire(xfield,position,element,local_coord=lcoords,global=.true.)
+    call picker_inquire(xfield,position,element,local_coord=lcoords,global=picker_global)
     call get_option("/timestepping/timestep", dt)
     ! If we're in parallel and don't own the element, skip this particle
     if (isparallel()) then
@@ -853,12 +879,18 @@ contains
 
     character(len=OPTION_PATH_LEN) :: particles_cp_filename
     character(len=FIELD_NAME_LEN) :: attname
-    integer :: h5_ierror, i, j, dim, old_attrib, old_field
+    integer :: h5_ierror, i, j, dim, old_attrib, old_field, commsize, ierr
     integer(kind=8) :: h5_id
+    integer(kind=8), dimension(:), allocatable :: npoints
     real, dimension(:,:), allocatable :: positions, attrib_data, old_attrib_data, old_field_data
     type(vector_field), pointer :: vfield
     type(scalar_field), pointer :: sfield
     type(detector_type), pointer :: node
+
+    call mpi_comm_size(MPI_COMM_FEMTOOLS, commsize, ierr)
+    allocate(npoints(commsize))
+    call mpi_allgather([int(particle_list%length, 8)], 1, MPI_INTEGER8, &
+         npoints, 1, MPI_INTEGER8, MPI_COMM_FEMTOOLS, ierr)
 
     ! construct a new particle checkpoint filename
     particles_cp_filename = trim(prefix)
@@ -868,6 +900,7 @@ contains
 
     ! open output file
     h5_id = h5_openfile(trim(particles_cp_filename), H5_O_WRONLY, H5_PROP_DEFAULT)
+    h5_ierror = h5_writefileattrib_i8(h5_id, "npoints", npoints, int(commsize, 8))
     h5_ierror = h5_setstep(h5_id, int(1, 8))
     h5_ierror = h5pt_setnpoints(h5_id, int(particle_list%length, 8))
 
@@ -944,6 +977,7 @@ contains
     deallocate(old_attrib_data)
     deallocate(attrib_data)
     deallocate(positions)
+    deallocate(npoints)
 
     h5_ierror = h5_closefile(h5_id)
 
