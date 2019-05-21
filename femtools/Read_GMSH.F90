@@ -31,9 +31,12 @@ module read_gmsh
   ! This module reads GMSH files and results in a vector field of
   ! positions.
 
+  use iso_c_binding
   use fldebug
   use global_parameters, only : OPTION_PATH_LEN
   use futils
+  use data_structures
+  use linked_lists
   use quadrature
   use elements
   use spud
@@ -53,6 +56,12 @@ module read_gmsh
   public :: read_gmsh_file
 
   integer, parameter:: GMSH_LINE=1, GMSH_TRIANGLE=2, GMSH_QUAD=3, GMSH_TET=4, GMSH_HEX=5, GMSH_NODE=15
+
+  type version
+
+     integer :: major, minor
+
+  end type version
 
 contains
 
@@ -90,7 +99,11 @@ contains
     logical :: haveBounds, haveElementOwners, haveRegionIDs
     integer :: dim, coordinate_dim, gdim
     integer :: gmshFormat
+    type(version) :: versionNumber
     integer :: n, d, e, f, nodeID
+
+    type(integer_hash_table) :: entityMap(4)
+    integer, allocatable  :: entityTags(:)
 
     type(GMSHnode), pointer :: nodes(:)
     type(GMSHelement), pointer :: elements(:), faces(:)
@@ -111,20 +124,55 @@ contains
          access="stream", form="formatted" )
 
     ! Read in header information, and validate
-    call read_header( fd, lfilename, gmshFormat )
+    call read_header( fd, lfilename, gmshFormat, versionNumber )
+
+    if (versionNumber%major .eq. 4) then
+       do n=1,4
+          call allocate(entityMap(n))
+       end do
+       call read_entities( fd, lfilename, gmshFormat, versionNumber, &
+            entityMap, entityTags )
+    end if
 
     ! Read in the nodes
-    call read_nodes_coords( fd, lfilename, gmshFormat, nodes )
+    if (versionNumber%major .eq. 4) then
+       if( gmshFormat == asciiFormat ) then
+          call read_nodes_coords_version_four_ascii( fd, lfilename, &
+               versionNumber, nodes )
+       else
+          call read_nodes_coords_version_four_binary( fd, lfilename, &
+               versionNumber, nodes )
+       end if
+    else
+       call read_nodes_coords_version_two( fd, lfilename, gmshFormat, nodes )
+    end if
 
     ! Read in elements
-    call read_faces_and_elements( fd, lfilename, gmshFormat, &
+    if (versionNumber%major .eq. 4) then
+       if( gmshFormat == asciiFormat ) then
+          call read_faces_and_elements_v4_ascii( fd, lfilename, &
+               versionNumber, elements, faces, dim, entityMap, entityTags)
+       else
+          call read_faces_and_elements_v4_binary( fd, lfilename, &
+               versionNumber, elements, faces, dim, entityMap, entityTags)
+       end if
+    else
+       call read_faces_and_elements_version_two( fd, lfilename, gmshFormat, &
          elements, faces, dim)
+    end if
 
     call read_node_column_IDs( fd, lfilename, gmshFormat, nodes )
 
     ! According to fluidity/bin/gmsh2triangle, Fluidity doesn't need
     ! anything past $EndElements, so we close the file.
     close( fd )
+
+    if (versionNumber%major .eq. 4) then
+       do n=1,4
+          call deallocate(entityMap(n))
+       end do
+       deallocate(entityTags)
+    end if
 
 
     numNodes = size(nodes)
@@ -290,14 +338,14 @@ contains
   ! Read through the head to decide whether binary or ASCII, and decide
   ! whether this looks like a GMSH mesh file or not.
 
-  subroutine read_header( fd, lfilename, gmshFormat )
+  subroutine read_header( fd, lfilename, gmshFormat, versionNumber )
     integer fd, gmshFormat
 
     character(len=*) :: lfilename
     character(len=longStringLen) :: charBuf
     character :: newlineChar
-    integer gmshFileType, gmshDataSize, one
-    real versionNumber
+    integer gmshFileType, gmshDataSize, one, i
+    type(version) versionNumber
 
 
     ! Error checking ...
@@ -309,9 +357,18 @@ contains
 
     read(fd, *) charBuf, gmshFileType, gmshDataSize
 
-    read(charBuf,*) versionNumber
-    if( versionNumber .lt. 2.0 .or. versionNumber .ge. 3.0 ) then
-       FLExit("Error: GMSH mesh version must be 2.x")
+    do i=1, len_trim(charbuf)
+       if (charbuf(i:i) == '.') charbuf(i:i) = ' '
+    end do
+
+    read(charBuf,*, pad='yes') versionNumber%major, versionNumber%minor
+    if( versionNumber%major .lt. 2 .or. &
+         versionNumber%major == 3 .or. &
+         (versionNumber%major == 4 .and. versionNumber%minor .gt. 1) .or. &
+         versionNumber%major .gt. 4 &
+       ) then
+         
+       FLExit("Error: GMSH mesh version must be 2.x or 4.x")
     end if
 
 
@@ -343,17 +400,139 @@ contains
 
   end subroutine read_header
 
+ ! -----------------------------------------------------------------
+ ! entity to physical tag map
+
+  subroutine read_entities( fd, filename, gmshFormat, versionNumber, &
+       entityMap, entityTags )
+
+    integer, intent(in) :: fd, gmshFormat
+    type(version), intent(in)    :: versionNumber
+    character(len=*), intent(in) :: filename
+
+    type(integer_hash_table) :: entityMap(4)
+    integer, allocatable :: entityTags(:)
+    type(ilist) :: tmpTags
+
+    integer :: i, k, n, numPoints, numDim(3), stat, count
+    integer :: entityTag, numBoundTags, numPhysicalTags, pointBounds
+    integer, allocatable :: tags(:), boundObjects(:)
+    integer(kind=c_long) :: ltmp
+    real :: bounds(6)
+    character :: newlineChar
+    character(len=longStringLen) :: charBuf
+
+    if ( versionNumber%minor == 0 ) then
+       pointBounds=6
+    else
+       pointBounds=3
+    end if
+
+    read(fd, *, iostat=stat) charBuf
+    do while (trim(charBuf) .ne. "$Entities" .and. stat == 0)
+       read(fd, *, iostat=stat ) charBuf
+       if (stat /= 0 ) then
+          FLExit("Error: cannot find '$Entities' in GMSH mesh file")
+       end if
+    end do
+
+    if( gmshFormat == asciiFormat ) then
+       read(fd, * ) numPoints, numDim
+    else
+       call binary_formatting(fd, filename, "read")
+       read(fd)  ltmp
+       numPoints = ltmp
+       do i=1, 3
+          read(fd)  ltmp
+          numDim(i) = ltmp
+       end do
+    end if
+
+    count = 1
+    do i=1, numPoints
+       if( gmshFormat == asciiFormat ) then
+          read(fd, "(a)", end=606) charBuf
+606       read(charBuf, *, iostat=stat ) entityTag, bounds(1:pointBounds), numPhysicalTags
+          allocate(tags(numPhysicalTags))
+          read(charBuf, *, iostat=stat ) entityTag, bounds(1:pointBounds), numPhysicalTags, tags
+       else
+          read(fd) entityTag, bounds(1:pointBounds), ltmp
+          numPhysicalTags=ltmp
+          allocate(tags(numPhysicalTags))
+          read(fd) tags
+       end if
+       call insert(tmpTags, numPhysicalTags)
+       call insert(entityMap(1), entityTag, count)
+       do n = 1, numPhysicalTags
+          call insert(tmpTags, tags(n))
+       end do
+       deallocate(tags)
+       count = count + numPhysicalTags + 1
+    end do
+
+    do k=1,3
+       do i=1, numDim(k)
+          if( gmshFormat == asciiFormat ) then
+             read(fd, "(a)", end=607) charBuf
+607          read(charBuf, *, iostat=stat ) entityTag, bounds, numPhysicalTags
+             allocate(tags(numPhysicalTags))
+             read(charBuf, *, iostat=stat ) entityTag, bounds, numPhysicalTags, tags
+          else
+             read(fd) entityTag, bounds, ltmp
+             numPhysicalTags=ltmp
+             allocate(tags(numPhysicalTags))
+             read(fd) tags
+             read(fd) ltmp
+             numBoundTags = ltmp
+             allocate(boundObjects(numBoundTags))
+             read(fd) boundObjects
+             deallocate(boundObjects)
+          end if
+          call insert(tmpTags, numPhysicalTags)
+          call insert(entityMap(k+1), entityTag, count)
+          do n = 1, numPhysicalTags
+             call insert(tmpTags, tags(n))
+          end do
+          deallocate(tags)
+          count = count + numPhysicalTags + 1
+       end do
+    end do
+
+    ! Skip newline character when in binary mode
+    if( gmshFormat == binaryFormat ) then
+       read(fd) newlineChar
+       call ascii_formatting(fd, filename, "read")
+    end if
+
+    read(fd, *) charBuf
+    if( trim(charBuf) .ne. "$EndEntities" ) then
+       FLExit("Error: can't find '$EndEntities' (is this a GMSH mesh file?)")
+    end if
+
+    allocate(entityTags(count-1))
+    entityTags = list2vector(tmpTags)
+    call deallocate(tmpTags)
+    
+
+#ifdef IO_ADVANCE_BUG
+!   for intel the call to ascii_formatting causes the first read after it to have advance='no'
+!   therefore forcing it to jump to a newline here
+    if(gmshFormat == binaryFormat) read(fd, *) charBuf
+#endif
+
+  end subroutine read_entities
+
 
   ! -----------------------------------------------------------------
   ! read in GMSH mesh nodes' coords into temporary arrays
 
-  subroutine read_nodes_coords( fd, filename, gmshFormat, nodes )
+  subroutine read_nodes_coords_version_two( fd, filename, gmshFormat, nodes )
     integer :: fd, gmshFormat
 
     character(len=*) :: filename
     character(len=longStringLen) :: charBuf
     character :: newlineChar
-    integer :: i, numNodes
+    integer :: i, j, numNodes
     type(GMSHnode), pointer :: nodes(:)
 
 
@@ -402,7 +581,137 @@ contains
     if(gmshFormat == binaryFormat) read(fd, *) charBuf
 #endif
 
-  end subroutine read_nodes_coords
+  end subroutine read_nodes_coords_version_two
+
+  subroutine read_nodes_coords_version_four_ascii( fd, filename, versionNumber, nodes )
+    integer :: fd
+    type(version), intent(in) :: versionNumber
+
+    character(len=*) :: filename
+    character(len=longStringLen) :: charBuf
+    character :: newlineChar
+    integer :: i, j, k,  numEntities, numNodes, numEntityNodes, stat, minN, maxN, meta(3)
+    type(GMSHnode), pointer :: nodes(:)
+
+    read(fd, *) charBuf
+    if( trim(charBuf) .ne. "$Nodes" ) then
+       FLExit("Error: cannot find '$Nodes' in GMSH mesh file")
+    end if
+
+    if (versionNumber%minor .eq. 1) then
+       read(fd, *) numEntities, numNodes, minN, maxN
+    else
+       read(fd, *) numEntities, numNodes
+    end if
+
+    if(numNodes < 2) then
+       FLExit("Error: GMSH number of nodes field < 2")
+    end if
+
+    allocate( nodes(numNodes) )
+
+    ! read in node data
+    k = 0
+    do j=1, numEntities
+       read(fd, *) meta(1), meta(2), meta(3), numEntityNodes
+       if (versionNumber%minor .eq. 1) then
+          do i=k+1, k+numEntityNodes
+             read(fd, * ) nodes(i)%nodeID
+          end do
+          do i=k+1, k+numEntityNodes
+             read(fd, * ) nodes(i)%x
+             ! Set column ID to -1: this will be changed later if $NodeData exists
+             nodes(i)%columnID = -1
+          end do
+       else
+          do i= k+1, k+numEntityNodes
+             read(fd, * ) nodes(i)%nodeID, nodes(i)%x
+             ! Set column ID to -1: this will be changed later if $NodeData exists
+             nodes(i)%columnID = -1
+          end do
+       end if
+       k = k + numEntityNodes
+    end do
+
+    ! Read in end node section
+    read(fd, *) charBuf
+    if( trim(charBuf) .ne. "$EndNodes" ) then
+       FLExit("Error: can't find '$EndNodes' in GMSH file '"//trim(filename)//"'")
+    end if
+
+  end subroutine read_nodes_coords_version_four_ascii
+
+subroutine read_nodes_coords_version_four_binary( fd, filename, versionNumber, nodes )
+    integer :: fd
+    type(version)    :: versionNumber
+
+    character(len=*) :: filename
+    character(len=longStringLen) :: charBuf
+    character :: newlineChar
+    integer(kind=c_long) :: numEntities, numNodes, numEntityNodes, minN, maxN
+    integer :: i, j, k, stat,  meta(3)
+    type(GMSHnode), pointer :: nodes(:)
+    integer(kind=c_long)  :: ltmp
+
+    read(fd, *) charBuf
+    if( trim(charBuf) .ne. "$Nodes" ) then
+       FLExit("Error: cannot find '$Nodes' in GMSH mesh file")
+    end if
+
+    call binary_formatting(fd, filename, "read")
+
+    if (versionNumber%minor .eq. 1) then
+       read(fd) numEntities, numNodes, minN, maxN
+    else
+       read(fd) numEntities, numNodes
+    end if
+
+    if(numNodes < 2) then
+       FLExit("Error: GMSH number of nodes field < 2")
+    end if
+
+    allocate( nodes(numNodes) )
+
+    ! read in node data
+    k = 0
+    do j=1, numEntities
+       read(fd) meta(1), meta(2), meta(3), numEntityNodes
+       if (versionNumber%minor .eq. 1) then
+          do i=k+1, k+numEntityNodes
+             read(fd) ltmp
+             nodes(i)%nodeID = ltmp
+          end do
+          do i=k+1, k+numEntityNodes
+             read(fd) nodes(i)%x
+             ! Set column ID to -1: this will be changed later if $NodeData exists
+             nodes(i)%columnID = -1
+          end do
+       else
+          do i= k+1, k+numEntityNodes
+             read(fd) nodes(i)%nodeID, nodes(i)%x
+             ! Set column ID to -1: this will be changed later if $NodeData exists
+             nodes(i)%columnID = -1
+          end do
+       end if
+       k = k + numEntityNodes
+    end do
+
+    ! Skip newline character when in binary mode
+    read(fd) newlineChar
+    call ascii_formatting(fd, filename, "read")
+
+    ! Read in end node section
+    read(fd, *) charBuf
+    if( trim(charBuf) .ne. "$EndNodes" ) then
+       FLExit("Error: can't find '$EndNodes' in GMSH file '"//trim(filename)//"'")
+    end if
+#ifdef IO_ADVANCE_BUG
+!   for intel the call to ascii_formatting causes the first read after it to have advance='no'
+!   therefore forcing it to jump to a newline here
+    read(fd, *) charBuf
+#endif
+
+  end subroutine read_nodes_coords_version_four_binary
 
 
   ! -----------------------------------------------------------------
@@ -499,7 +808,230 @@ contains
   ! -----------------------------------------------------------------
   ! Read in element header data and establish topological dimension
 
-  subroutine read_faces_and_elements( fd, filename, gmshFormat, &
+  subroutine read_faces_and_elements_v4_ascii( fd, filename, &
+       versionNumber, elements, faces, dim, entityMap, entityTags)
+
+    integer, intent(in) :: fd
+    character(len=*), intent(in) :: filename
+    type(version), intent(in)    :: versionNumber
+    type(GMSHelement), pointer :: elements(:), faces(:)
+    integer, intent(out) :: dim
+
+    type(integer_hash_table) :: entityMap(4)
+    integer, intent(in) :: entityTags(:)
+
+    type(GMSHelement), pointer :: allElements(:)
+
+    integer :: numEntities, numAllElements, minEle, maxEle, numTags
+    character(len=longStringLen) :: charBuf
+    character :: newlineChar
+    integer :: numFaces, faceType, numElements, elementType
+    integer :: e, i, j, k, numLocNodes, tmp1, tmp2, tmp3
+    integer :: entityDim, entityTag, tag_index
+    integer :: numentityelements
+
+    integer, allocatable :: ltags(:)
+
+    read(fd,*) charBuf
+    if( trim(charBuf)/="$Elements" ) then
+       FLExit("Error: cannot find '$Elements' in GMSH mesh file")
+    end if
+
+    if (versionNumber%minor .eq. 1) then
+       read(fd,*) numEntities, numAllElements, minEle, maxEle
+    else
+       read(fd,*) numEntities, numAllElements
+    end if
+
+    ! Sanity check.
+    if(numAllElements<1) then
+       FLExit("Error: number of elements in GMSH file < 1")
+    end if
+
+    allocate( allElements(numAllElements) )
+
+
+    ! Read in GMSH elements, corresponding tags and nodes
+    
+    e = 0
+    
+    do j=1, numEntities
+
+       read(fd, "(a)", end=808) charBuf
+808    if (versionNumber%minor .eq. 1) then
+          read(charBuf, *) entityDim, entityTag, elementType, numEntityElements
+       else
+          read(charBuf, *) entityTag, entityDim, elementType, numEntityElements
+       end if
+
+       tag_index = fetch(entityMap(entityDim+1), entityTag)
+       numTags = entityTags(tag_index)
+
+       allocate(ltags(numTags))
+       do i=1, numTags
+          ltags(i) = entityTags(tag_index+i)
+       end do
+
+       do k=1, numEntityElements
+          e = e + 1
+          ! Read in whole line into a string buffer
+          read(fd, "(a)", end=880) charBuf
+          ! Now read from string buffer for main element info
+880       allElements(e)%type = elementType 
+          allElements(e)%numTags = numTags
+
+          numLocNodes = elementNumNodes(allElements(e)%type)
+          allocate( allElements(e)%nodeIDs(numLocNodes) )
+          allocate( allElements(e)%tags( allElements(e)%numTags) )
+          
+          ! Now read in tags and node IDs
+          read(charBuf, *) allElements(e)%elementID, allElements(e)%nodeIDs
+          allElements(e)%tags(:) = ltags
+
+       end do
+
+       deallocate(ltags)
+
+    end do
+
+    ! Check for $EndElements tag
+    read(fd,*) charBuf
+    if( trim(charBuf) .ne. "$EndElements" ) then
+       FLExit("Error: cannot find '$EndElements' in GMSH mesh file")
+    end if
+
+    call process_gmsh_elements(numAllElements, allElements, elements, faces, dim)
+
+    ! We no longer need this
+    call deallocateElementList( allElements )
+
+  end subroutine read_faces_and_elements_v4_ascii
+
+  subroutine read_faces_and_elements_v4_binary( fd, filename, &
+       versionNumber, elements, faces, dim, entityMap, entityTags)
+
+    integer, intent(in) :: fd
+    character(len=*), intent(in) :: filename
+    type(version), intent(in)    :: versionNumber
+    type(GMSHelement), pointer :: elements(:), faces(:)
+    integer, intent(out) :: dim
+
+    type(integer_hash_table) :: entityMap(4)
+    integer, intent(in) :: entityTags(:)
+
+    type(GMSHelement), pointer :: allElements(:)
+
+    integer(kind=c_long) :: numEntities, numAllElements, minEle, maxEle, numTags
+    character(len=longStringLen) :: charBuf
+    character :: newlineChar
+    integer :: numFaces, faceType, numElements, elementType
+    integer :: e, i, j, k, numLocNodes, tmp1, tmp2, tmp3
+    integer :: entityDim, entityTag, tag_index
+    integer(kind=c_long) ::  ltmp, numentityelements
+
+    integer, allocatable :: ltags(:)
+    integer(kind=c_long), allocatable :: vltmp(:)
+
+    read(fd,*) charBuf
+    if( trim(charBuf)/="$Elements" ) then
+       FLExit("Error: cannot find '$Elements' in GMSH mesh file")
+    end if
+
+    call binary_formatting(fd, filename, "read")
+    if (versionNumber%minor .eq. 1) then
+       read(fd) numEntities, numAllElements, minEle, maxEle
+    else
+       read(fd) numEntities, numAllElements
+    end if
+
+    ! Sanity check.
+    if(numAllElements<1) then
+       FLExit("Error: number of elements in GMSH file < 1")
+    end if
+
+    allocate( allElements(numAllElements) )
+
+
+    ! Read in GMSH elements, corresponding tags and nodes
+
+    e=1
+
+    ! GMSH groups elements by type:
+    ! the code below reads in one type of element in a block, followed
+    ! by other types until all the elements have been read in.
+    do while( e .le. numAllelements )
+       if (versionNumber%minor .eq. 1) then
+          read(fd) entityDim, entityTag, elementType, numEntityElements
+       else
+          read(fd) entityTag, entityDim, elementType, numEntityElements
+       end if
+
+       if( (e-1)+numEntityElements .gt. numAllElements ) then
+          FLExit("GMSH element group contains more than the total")
+       end if
+       
+       tag_index = fetch(entityMap(entityDim+1), entityTag)
+       numTags = entityTags(tag_index)
+       numLocNodes = elementNumNodes(elementType)
+       if (versionNumber%minor .eq. 1) allocate(vltmp(numLocNodes+1))
+
+ 
+       allocate(ltags(numTags))
+       do i=1, numTags
+          ltags(i) = entityTags(tag_index+i)
+       end do
+
+       ! Read in elements in a particular entity block
+       do i=e, (e-1)+numEntityElements
+          allocate( allElements(i)%nodeIDs(numLocNodes) )
+          allocate( allElements(i)%tags( 1 ) )
+          
+          allElements(i)%type = elementType
+          allElements(i)%numTags = numTags
+          allElements(e)%tags(:) = ltags 
+
+          if (versionNumber%minor .eq. 1) then
+             read(fd) vltmp
+             allElements(i)%elementID = vltmp(1)
+             allElements(i)%nodeIDs = vltmp(2:numLocNodes+1)
+          else
+             read(fd) allElements(i)%elementID, allElements(i)%nodeIDs
+          end if
+
+       end do
+
+       if (versionNumber%minor .eq. 1) deallocate(vltmp)
+
+       e = e+numEntityElements        
+
+       deallocate(ltags)
+    end do
+
+
+    ! Skip final newline
+    read(fd) newlineChar
+    call ascii_formatting( fd, filename, "read" )
+
+    ! Check for $EndElements tag
+    read(fd,*) charBuf
+    if( trim(charBuf) .ne. "$EndElements" ) then
+       FLExit("Error: cannot find '$EndElements' in GMSH mesh file")
+    end if
+
+#ifdef IO_ADVANCE_BUG
+!   for intel the call to ascii_formatting causes the first read after it to have advance='no'
+!   therefore forcing it to jump to a newline here
+    read(fd, *) charBuf
+#endif
+
+    call process_gmsh_elements(int(numAllElements), allElements, elements, faces, dim)
+
+    ! We no longer need this
+    call deallocateElementList( allElements )
+
+  end subroutine read_faces_and_elements_v4_binary
+
+  subroutine read_faces_and_elements_version_two( fd, filename, gmshFormat, &
        elements, faces, dim)
 
     integer, intent(in) :: fd, gmshFormat
@@ -512,8 +1044,6 @@ contains
     integer :: numAllElements
     character(len=longStringLen) :: charBuf
     character :: newlineChar
-    integer :: numEdges, numTriangles, numQuads, numTets, numHexes, numVertices
-    integer :: numFaces, faceType, numElements, elementType
     integer :: e, i, numLocNodes, tmp1, tmp2, tmp3
     integer :: groupType, groupElems, groupTags
 
@@ -608,6 +1138,24 @@ contains
     if(gmshFormat == binaryFormat) read(fd, *) charBuf
 #endif
 
+    call process_gmsh_elements(numAllElements, allElements, elements, faces, dim)
+
+    ! We no longer need this
+    call deallocateElementList( allElements )
+
+  end subroutine read_faces_and_elements_version_two
+
+  subroutine process_gmsh_elements(numAllElements, allElements, elements, faces, dim)
+
+    integer, intent(in) :: numAllElements
+    type(GMSHelement), pointer :: allElements(:)
+    type(GMSHelement), pointer :: elements(:), faces(:)
+    integer, intent(out) :: dim
+
+    integer :: numEdges, numTriangles, numQuads, numTets, numHexes, numVertices
+    integer :: numFaces, faceType, numElements, elementType
+    integer :: e
+
     ! Run through final list of elements, reorder nodes etc.
     numEdges = 0
     numTriangles = 0
@@ -699,12 +1247,7 @@ contains
          faces, numFaces, faceType )
 
 
-    ! We no longer need this
-    call deallocateElementList( allElements )
-
-
-
-  end subroutine read_faces_and_elements
+  end subroutine process_gmsh_elements
 
 
 
