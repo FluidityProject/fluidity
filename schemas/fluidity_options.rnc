@@ -369,13 +369,7 @@ start =
                            }|
                            ## File containing the particle positions in binary form
                            element from_file {
-                              attribute file_name { xsd:string },
-                              ## The format of the input file containing field data.
-                              element format {
-                                 element string_value {
-                                    "binary"
-                                 }
-                              }
+                              attribute file_name { xsd:string }
                            }
                         } 
                      ),
@@ -401,10 +395,6 @@ start =
                   empty
                }
             ),
-            ## Enable to write particle output in ascii format
-            element ascii_output {
-               comment
-            }?,
             ## Enable to let particles move with the domain if mesh_movement is enabled.
             element move_with_mesh {
                empty

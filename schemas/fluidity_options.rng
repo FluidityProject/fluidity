@@ -456,12 +456,6 @@ The t argument is for future use only - currently particle locations are only se
                           <attribute name="file_name">
                             <data type="string"/>
                           </attribute>
-                          <element name="format">
-                            <a:documentation>The format of the input file containing field data.</a:documentation>
-                            <element name="string_value">
-                              <value>binary</value>
-                            </element>
-                          </element>
                         </element>
                       </choice>
                     </element>
@@ -493,12 +487,6 @@ The t argument is for future use only - currently particle locations are only se
               <empty/>
             </element>
           </choice>
-          <optional>
-            <element name="ascii_output">
-              <a:documentation>Enable to write particle output in ascii format</a:documentation>
-              <ref name="comment"/>
-            </element>
-          </optional>
           <optional>
             <element name="move_with_mesh">
               <a:documentation>Enable to let particles move with the domain if mesh_movement is enabled.</a:documentation>

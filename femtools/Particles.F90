@@ -971,7 +971,7 @@ contains
     assert(old_field == attribute_size(3))
 
     ! update schema file to read this subgroup from the checkpoint file
-    call update_particle_subgroup_options(trim(particles_cp_filename), "binary", particle_list, name, attribute_size(1), subgroup_path_name)
+    call update_particle_subgroup_options(trim(particles_cp_filename), particle_list, name, attribute_size(1), subgroup_path_name)
 
     deallocate(old_field_data)
     deallocate(old_attrib_data)
@@ -983,12 +983,11 @@ contains
 
   end subroutine checkpoint_particles_subgroup
 
-  subroutine update_particle_subgroup_options(filename, format, particle_list, name, attribute_dims, subgroup_path_name)
+  subroutine update_particle_subgroup_options(filename, particle_list, name, attribute_dims, subgroup_path_name)
     !! Updates the initial options of particles in the schema file for reinitialization after checkpointing.
     !! Updates schema options for the initial number of particles and their initial positions. 
 
     character(len = *), intent(in) :: filename
-    character(len = *), intent(in) :: format
     character(len = *), intent(in) :: name
 
     type(detector_linked_list), intent(inout) :: particle_list
@@ -1021,12 +1020,6 @@ contains
        FLAbort("Failed to set particles options filename when checkpointing particles with option path " // "/particles/particle_array::" // trim(temp_string))
     end if
     
-    call set_option(trim(subgroup_path_name) // trim(temp_string) // "/initial_position/from_file/format/", trim(format), stat)
-    
-    if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
-       FLAbort("Failed to set particles options format when checkpointing particles with option path " // "/particles/particle_group")
-    end if
-    
     do j = 1, attribute_dims     
        particles_c = have_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/attribute["//int2str(j-1)//"]/constant")
        if (particles_c) then
@@ -1035,11 +1028,6 @@ contains
                "]/from_checkpoint_file/file_name", trim(filename) // "." // trim(temp_string), stat)
           if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
              FLAbort("Failed to set scalar field particles filename when checkpointing")
-          end if
-          call set_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/attribute["//int2str(j-1)// &
-               "]/from_checkpoint_file/format/", trim(format), stat)
-          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
-             FLAbort("Failed to set scalar field particles options format when checkpointing")
           end if
        end if
     end do
