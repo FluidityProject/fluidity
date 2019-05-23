@@ -59,7 +59,8 @@ module read_gmsh
 
   type version
 
-     integer :: major, minor
+    integer :: major = 0
+    integer :: minor = 0
 
   end type version
 
@@ -344,7 +345,8 @@ contains
     character(len=*) :: lfilename
     character(len=longStringLen) :: charBuf
     character :: newlineChar
-    integer gmshFileType, gmshDataSize, one, i
+    integer :: gmshFileType, gmshDataSize, one, i
+    logical :: decimalVersion = .false.
     type(version) versionNumber
 
 
@@ -358,10 +360,18 @@ contains
     read(fd, *) charBuf, gmshFileType, gmshDataSize
 
     do i=1, len_trim(charbuf)
-       if (charbuf(i:i) == '.') charbuf(i:i) = ' '
+      if (charbuf(i:i) == '.') then
+        charbuf(i:i) = ' '
+        decimalVersion = .true.
+      end if
     end do
 
-    read(charBuf,*, pad='yes') versionNumber%major, versionNumber%minor
+    if (decimalVersion) then
+      read(charBuf,*, pad='yes') versionNumber%major, versionNumber%minor
+    else
+      read(charBuf,*, pad='yes') versionNumber%major
+    end if
+
     if( versionNumber%major .lt. 2 .or. &
          versionNumber%major == 3 .or. &
          (versionNumber%major == 4 .and. versionNumber%minor .gt. 1) .or. &
