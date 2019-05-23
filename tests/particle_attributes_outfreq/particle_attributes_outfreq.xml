@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>Testing of particle attribute parameters in serial</name>
+  <owner userid="cmath"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>        
+../../bin/fluidity -v3 -l particle-attributes.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="num_steps_full" language="python">
+from H5hutpy import *
+f = H5OpenFile("particle_attributes.particles.Thomas.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
+num_steps_full = H5GetNumSteps(f)
+    </variable>
+    <variable name="num_steps_freq" language="python">
+from H5hutpy import *
+f = H5OpenFile("particle_attributes.particles.Steph.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
+num_steps_freq = H5GetNumSteps(f)
+    </variable>
+    <variable name="timestep_diff_full" language="python">
+import numpy as np
+from H5hutpy import *
+f = H5OpenFile("particle_attributes.particles.Thomas.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
+t0 = np.empty(1, 'int64')
+t1 = np.empty(1, 'int64')
+H5SetStep(f, 0)
+H5ReadStepAttribInt64(f, 'timestep', t0)
+H5SetStep(f, 1)
+H5ReadStepAttribInt64(f, 'timestep', t1)
+timestep_diff_full = t1[0] - t0[0]
+    </variable>
+    <variable name="timestep_diff_freq" language="python">
+import numpy as np
+from H5hutpy import *
+f = H5OpenFile("particle_attributes.particles.Steph.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
+t0 = np.empty(1, 'int64')
+t1 = np.empty(1, 'int64')
+H5SetStep(f, 0)
+H5ReadStepAttribInt64(f, 'timestep', t0)
+H5SetStep(f, 1)
+H5ReadStepAttribInt64(f, 'timestep', t1)
+timestep_diff_freq = t1[0] - t0[0]
+    </variable>
+    <variable name="Walltime" language="python">
+from fluidity_tools import stat_parser
+import numpy as np
+
+s = stat_parser('particle_attributes.stat')
+Walltime = s['ElapsedWallTime']["value"][-1]
+print ("Total wall time", Walltime)
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Numstepsfull" language="python">
+assert num_steps_full == 800
+    </test>
+    <test name="Numstepsfreq" language="python">
+assert num_steps_freq == 41
+    </test>
+    <test name="Stepdifffull" language="python">
+assert timestep_diff_full == 1
+    </test>
+    <test name="Stepdifffreq" language="python">
+assert timestep_diff_freq == 19
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

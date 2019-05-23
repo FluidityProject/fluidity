@@ -341,6 +341,42 @@ start =
                   element velocity_field {
                      attribute name { xsd:string }
                   },
+		  (
+		      ## Period between dumps in time units.
+		      element dump_period {
+			  (
+			      element constant {
+				  real
+			      }|
+			      ## Python function prescribing real input. Functions should be of the form:
+			      ##
+			      ##  def val(t):
+			      ##     # Function code
+			      ##     return # Return value
+			      ##
+			      element python {
+				  python_code
+			      }
+			  )
+		      }|
+		      ## Dump period, in timesteps.
+		      element dump_period_in_timesteps {
+			  (
+			      element constant {
+				  integer
+			      }|
+			      ## Python function prescribing integer input. Functions should be of the form:
+			      ##
+			      ##  def val(t):
+			      ##     # Function code
+			      ##     return # Return value
+			      ##
+			      element python {
+				  python_code
+			      }
+			  )
+		      }
+		  )?,
                   ## Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
                   ## and carry the same attributes. Subgroups can have different initial positions specified via a python
                   ## function of from a file.

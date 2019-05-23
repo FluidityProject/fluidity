@@ -48,6 +48,7 @@ module particles
   use detector_parallel
   use detector_move_lagrangian
   use diagnostic_variables, only: field_tag, initialise_constant_diagnostics
+  use time_period
 
   use H5hut
 
@@ -59,6 +60,7 @@ module particles
             update_particle_attributes_and_fields, checkpoint_particles_loop
 
   type(detector_linked_list), allocatable, dimension(:), save :: particle_lists !!Particle lists with dimension equal to the number of particle subgroups
+  type(time_period_type), allocatable, dimension(:), save :: output_CS !! Contain timing info for group output
 
 contains
 
@@ -89,6 +91,11 @@ contains
     particle_groups = option_count("/particles/particle_group")
 
     if (particle_groups==0) return
+
+    allocate(output_CS(particle_groups))
+    do i = 1, particle_groups
+      call init_output_CS(output_CS(i), "/particles/particle_group["//int2str(i-1)//"]")
+    end do
 
     !Set up particle_lists
     allocate(particle_arrays(particle_groups))
@@ -707,6 +714,7 @@ contains
     integer :: i, k
     integer :: particle_groups, particle_subgroups, list_counter
     character(len=OPTION_PATH_LEN) :: group_path, subgroup_path
+    logical :: output_group
 
     !Check whether there are any particles.
 
@@ -714,15 +722,24 @@ contains
     if (particle_groups==0) return
 
     ewrite(1,*) "In write_particles_loop"
-    
+
     list_counter = 1
     do i = 1, particle_groups
       group_path = "/particles/particle_group["//int2str(i-1)//"]"
       particle_subgroups = option_count(trim(group_path) // "/particle_subgroup")
+
+      output_group = should_output(output_CS(i), time, timestep, group_path)
+      if (output_group) then
+        call update_output_CS(output_CS(i), time)
+      end if
+
       do k = 1, particle_subgroups
-        subgroup_path = trim(group_path) // "/particle_subgroup["//int2str(k-1)//"]"
-        attribute_dims=option_count(trim(subgroup_path) // '/attributes/attribute')
-        call write_particles_subgroup(state, particle_lists(list_counter), attribute_dims, timestep, time, subgroup_path)
+        if (output_group) then
+          subgroup_path = trim(group_path) // "/particle_subgroup["//int2str(k-1)//"]"
+          attribute_dims=option_count(trim(subgroup_path) // '/attributes/attribute')
+          call write_particles_subgroup(state, particle_lists(list_counter), attribute_dims, timestep, time, subgroup_path)
+        end if
+
         list_counter = list_counter + 1
       end do
     end do
@@ -745,12 +762,13 @@ contains
 
     ewrite(1,*) "In write_particles"
 
-    ! create new step
-    h5_ierror = h5_setstep(detector_list%h5_id, int(timestep, 8))
+    ! create new step -- create them sequentially so they're easy to iterate
+    h5_ierror = h5_setstep(detector_list%h5_id, h5_getnsteps(detector_list%h5_id) + 1)
 
-    ! write time as a step attribute
+    ! write time and timestep as step attributes
     h5_ierror = h5_writestepattrib_r8(detector_list%h5_id, "time", [time], int(1, 8))
-    
+    h5_ierror = h5_writestepattrib_i8(detector_list%h5_id, "timestep", [int(timestep, 8)], int(1, 8))
+
     ! set the number of particles this process is going to write
     h5_ierror = h5pt_setnpoints(detector_list%h5_id, int(detector_list%length, 8))
 
@@ -1047,12 +1065,10 @@ contains
       !Deallocate all particle arrays (detector lists)
       deallocate(particle_lists)
     end if
-    
+
+    if (allocated(output_CS)) then
+      deallocate(output_CS)
+    end if
   end subroutine destroy_particles
 
 end module particles
-
-  
-    
-    
-    
