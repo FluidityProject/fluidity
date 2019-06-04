@@ -344,7 +344,7 @@ start =
                   },
 		  ## Options for spawning and deleting particles based on the minimum and maximum limits of particles per control volume. Defined per particle_group.
 		  element particle_spawning {
-		     ## Set the mesh which will be used for particle spawning.
+		     ## Set the mesh which will be used for particle spawning. Currently only works for a P1CV mesh!
 	             mesh_choice,
 		     ## Minimum number of particles per control volume.
 		     element min_cv_threshhold {
@@ -3731,7 +3731,7 @@ generic_particle_attribute_choice =
       }|
       ## Python function prescribing real input. Functions should be of the form:
       ##
-      ##  def val(X, t):
+      ##  def val(X, t, dt):
       ##     # Function code
       ##     return # Return value
       ##
@@ -3741,14 +3741,14 @@ generic_particle_attribute_choice =
       }|
       ## Python function prescribing real input. Functions should be of the form:
       ##
-      ##  def val (X, t, fields):
+      ##  def val (X, t, dt, fields):
       ##     # Function code
       ##     return # Return value
       ##
       ##  where X is a tuple of length geometry dimension.
       ##
       ##  E.g. if Temperature field and x position are required
-      ##  def val (X, t, fields):
+      ##  def val (X, t, dt, fields):
       ##    x = X[0]
       ##    y = x + fields["Temperature"]
       ##    return y

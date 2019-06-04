@@ -608,10 +608,11 @@ contains
     
   end subroutine initialise_constant_particle_attributes
 
-  subroutine update_particle_subgroup_attributes_and_fields(state, time, subgroup_path, p_list)
+  subroutine update_particle_subgroup_attributes_and_fields(state, time, dt, subgroup_path, p_list)
     !!Routine to set particle attributes 
     type(state_type), dimension(:), intent(in) :: state
     real, intent(in) :: time
+    real, intent(in) :: dt
     character(len=OPTION_PATH_LEN), intent(in) :: subgroup_path
     type(detector_linked_list), intent(in) :: p_list
     
@@ -678,11 +679,11 @@ contains
           attribute_array(n+1,:) = constant
        else if (have_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/python')) then
           call get_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/python', func)
-          call set_particle_attribute_from_python(attribute_array(n+1,:), positions(:,:), nparticles, func, time)
+          call set_particle_attribute_from_python(attribute_array(n+1,:), positions(:,:), nparticles, func, time, dt)
        else if (have_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/python_fields')) then
           call get_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/python_fields', func)
           call set_particle_attribute_from_python_fields(p_list, state, positions(:,:), lcoords(:,:), ele(:), nparticles, &
-               & attribute_array(n+1,:), old_att_names, old_attributes, func, time)
+               & attribute_array(n+1,:), old_att_names, old_attributes, func, time, dt)
        else if (have_option(trim(subgroup_path) // '/attributes/attribute['//int2str(n)//']/from_checkpoint_file')) then
           particle => p_list%first
           attribute_array(n+1,:) = particle%attributes(n+1)

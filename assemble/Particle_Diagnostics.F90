@@ -147,7 +147,7 @@ module particle_diagnostics
     character(len = OPTION_PATH_LEN) :: group_path, subgroup_path, name
     type(vector_field), pointer :: xfield
     type(scalar_field), pointer :: s_field
-    real :: current_time
+    real :: current_time, dt
     integer :: i, k
     integer :: dim, particle_groups, list_counter
     integer, dimension(:), allocatable :: particle_arrays
@@ -171,6 +171,7 @@ module particle_diagnostics
     xfield=>extract_vector_field(state(1), "Coordinate")
     call get_option("/geometry/dimension",dim)
     call get_option("/timestepping/current_time", current_time)
+    call get_option("/timestepping/timestep", dt)
 
     !Initialise particle attributes
     list_counter=1
@@ -186,7 +187,7 @@ module particle_diagnostics
           end if
           if (option_count(trim(subgroup_path) // "/attributes/attribute/python").gt.0 .or. &
               & option_count(trim(subgroup_path) // "/attributes/attribute/python_fields").gt.0) then
-             call update_particle_subgroup_attributes_and_fields(state, current_time, subgroup_path, particle_lists(list_counter))
+             call update_particle_subgroup_attributes_and_fields(state, current_time, dt, subgroup_path, particle_lists(list_counter))
           end if
           list_counter = list_counter + 1
        end do
@@ -209,12 +210,13 @@ module particle_diagnostics
 
   end subroutine initialise_particle_diagnostics
 
-  subroutine update_particle_diagnostics(state, time)
+  subroutine update_particle_diagnostics(state, time, dt)
     !!Routine to loop over particle arrays and update particle attributes
     !!and diagnostic fields which depend on particles
     use particles, only: particle_lists
     type(state_type), dimension(:), intent(inout) :: state
     real, intent(in) :: time
+    real, intent(in) :: dt
     type(vector_field), pointer :: xfield
     type(scalar_field), pointer :: s_field
     type(detector_type), pointer :: particle
@@ -254,7 +256,7 @@ module particle_diagnostics
           end if
           particle => particle_lists(list_counter)%first
           if (size(particle%attributes).ne.0) then
-             call update_particle_subgroup_attributes_and_fields(state, time, subgroup_path, particle_lists(list_counter))
+             call update_particle_subgroup_attributes_and_fields(state, time, dt, subgroup_path, particle_lists(list_counter))
           end if
           list_counter = list_counter + 1
        end do
@@ -811,7 +813,6 @@ module particle_diagnostics
        particle_lists(group_arrays(j))%total_num_det=particle_lists(group_arrays(j))%total_num_det+summed_particles(j)
     end do
 
-
     !Sanity check
     do j=1,size(group_arrays)
        total_particles = particle_lists(group_arrays(j))%length
@@ -903,7 +904,7 @@ module particle_diagnostics
     integer :: j, i, k, l
     integer, dimension(3) :: attribute_size
     logical :: spawn_group, coords_set
-    real :: max_lcoord, rand_lcoord
+    real :: max_lcoord, rand_lcoord, sum_coords
     real, dimension(:), allocatable :: rand_lcoords
 
     !Check if particle node values of above or below a threshold, only spawn from
@@ -912,7 +913,7 @@ module particle_diagnostics
     spawn_group = .false.
     if (present(cap_percent)) then
        do i=1,size(group_arrays)
-          if (((node_particles(i)%length*1.0)/sum(node_particles(:)%length)*1.0)>cap_percent) then
+          if ((((node_particles(i)%length*1.0)/sum(node_particles(:)%length)*1.0)*100)>cap_percent) then
              spawn_group = .true.
              group_spawn = i
           end if
@@ -974,30 +975,26 @@ module particle_diagnostics
                 end do
                 rand_lcoords(k) = -rand_lcoord
                 node_coord(:) = particle%local_coords(:) + rand_lcoords(:)
+                if (sum(node_coord)/=1) then
+                   sum_coords=0
+                   do i = 1,size(node_coord)
+                      if (i==k) cycle
+                      sum_coords=sum_coords+node_coord(i)
+                   end do
+                   node_coord(k)=1-sum_coords
+                end if
                 coords_set=.true.
                 l = l + 1
-                if (l>90) then !Temporary catch for troubleshooting
-                   ewrite(2,*) "k ", k
-                   ewrite(2,*) "parent lcoords ", particle%local_coords
-                   ewrite(2,*) "rand array ", rand_lcoords
-                   ewrite(2,*) "new lcoords ", node_coord
-                   if ((maxloc(node_coord, 1)/=k).or.node_coord(k)>1.0) then !Not within CV or element, try again
-                      ewrite(2,*) "fail 1"
-                      coords_set=.false.
-                   end if
-                   if (minval(node_coord)<0.001) then !not within element, try again
-                      ewrite(2,*) "fail 2"
-                      coords_set=.false.
-                   end if
-                end if
-                if (l>100) then !Temporary catch to stop infinite looping 
-                   FLExit("could not initialise local coordinates for particle")
-                end if
                 if ((maxloc(node_coord, 1)/=k).or.node_coord(k)>1.0) then !Not within CV or element, try again
                    coords_set=.false.
                 end if
-                if (minval(node_coord)<0.001) then !not within element, try again
+                if (minval(node_coord)<0.0) then !not within element, try again
                    coords_set=.false.
+                end if
+                if (l>100) then !Catch to stop infinite looping
+                   ewrite(2,*) "loop limit reached, setting spawned coords to parent coords"
+                   node_coord(:) = particle%local_coords(:)
+                   coords_set=.true.
                 end if
              end do
              temp_part%local_coords = node_coord
