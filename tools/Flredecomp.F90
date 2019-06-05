@@ -35,9 +35,10 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   
   use checkpoint
   use fldebug
-  use global_parameters, only: is_active_process, no_active_processes, topology_mesh_name
+  use global_parameters, only: is_active_process, no_active_processes, topology_mesh_name, OPTION_PATH_LEN
   use parallel_tools
   use populate_state_module
+  use particles
   use spud
   use sam_integration
   use fields
@@ -71,6 +72,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   
   character(len=input_basename_len):: input_base
   character(len=output_basename_len):: output_base
+  character(len=OPTION_PATH_LEN) :: filename
   integer :: nprocs
   type(state_type), dimension(:), pointer :: state
   type(vector_field) :: extruded_position
@@ -182,7 +184,11 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
     initial_mesh=.true.)
 
   call set_prescribed_field_values(state, initial_mesh=.true.)
-  
+
+  call get_option("/simulation_name", filename)
+  ! we can't use global pickers, since not all processes are participating
+  call initialise_particles(filename, state, global=.false., output=.false.)
+
   ! !  End populate_state calls
     
   is_active_process = .true.
@@ -216,7 +222,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   ! Output
   assert(associated(state))
   call checkpoint_simulation(state, prefix = output_base, postfix = "", protect_simulation_name = .false., &
-    keep_initial_data=.true., ignore_detectors=.true., number_of_partitions=target_nprocs)
+    keep_initial_data=.true., number_of_partitions=target_nprocs)
 
   do i = 1, size(state)
     call deallocate(state(i))

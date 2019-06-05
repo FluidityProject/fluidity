@@ -149,7 +149,7 @@ contains
     end if
     if (have_option("/particles") &
          .and. .not.present_and_true(ignore_detectors)) then
-       call checkpoint_particles_loop(state, lprefix, lpostfix, cp_no)
+       call checkpoint_particles_loop(state, lprefix, lpostfix, cp_no=cp_no, number_of_partitions=number_of_partitions)
     end if
     if(getrank() == 0) then
       ! Only rank zero should write out the options tree in parallel

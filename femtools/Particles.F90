@@ -32,7 +32,7 @@ module particles
   use fldebug
   use iso_c_binding, only: C_NULL_CHAR
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, &
-       & PYTHON_FUNC_LEN, integer_size, real_size
+       & PYTHON_FUNC_LEN, integer_size, real_size, is_active_process
   use futils, only: int2str, free_unit
   use elements
   use mpi_interfaces
@@ -64,10 +64,12 @@ module particles
 
 contains
 
-  subroutine initialise_particles(filename,state)
+  subroutine initialise_particles(filename, state, global, output)
     !!Initialise particles and set up particle file headers (per particle array)
     character(len = *), intent(in) :: filename
     type(state_type), dimension(:), intent(in) :: state
+    logical, intent(in), optional :: global !! use global/parallel picker queries to determine particle elements
+    logical, intent(in), optional :: output !! set up output files
 
     character(len=FIELD_NAME_LEN) :: subname
     character(len = OPTION_PATH_LEN) :: group_path, subgroup_path
@@ -83,9 +85,12 @@ contains
     integer :: totaldet_global
     integer :: nfields, nprescribed, ndiagnostic, nprognostic
 
-    logical :: from_file
+    logical :: from_file, do_output
 
     ewrite(2,*), "In initialise_particles"
+
+    do_output = .true.
+    if (present(output)) do_output = output
 
     !Check whether there are any particles.
     particle_groups = option_count("/particles/particle_group")
@@ -134,10 +139,10 @@ contains
           call get_option(trim(subgroup_path)//"/name", subname) !Name of particle subgroup
           particle_lists(list_counter)%total_num_det=sub_particles
           allocate(particle_lists(list_counter)%detector_names(sub_particles))
-          !Register this I/O list with a global list of detectors/particles
+          ! Register this I/O list with a global list of detectors/particles
           call register_detector_list(particle_lists(list_counter))
           
-          !Find number of attributes 
+          ! Find number of attributes
           attribute_size(:)=0
           if (have_option(trim(subgroup_path) // "/attributes/attribute")) then
              attribute_size(1)=option_count(trim(subgroup_path) // "/attributes/attribute")
@@ -157,20 +162,22 @@ contains
           if (have_option("/particles/write_nan_outside_domain")) then
              particle_lists(list_counter)%write_nan_outside=.true.
           end if
-          
-          !Read particles from options
-          if (.not.from_file) then
-             
-             call read_particles_from_python(sub_particles, subname, current_time, state, attribute_size, xfield, dim, subgroup_path, particle_lists(list_counter))
-             
-          else !Read particles from file
-             
-             call read_particles_from_file(sub_particles, subname, attribute_size, state, xfield, dim, subgroup_path, particle_lists(list_counter))
-             
-          end if !Read particles
 
-          call set_particle_output_file(sub_particles, subname, filename, attribute_size, xfield, subgroup_path, particle_lists(list_counter))
-          !Get options for lagrangian particle movement
+          if (is_active_process) then
+            ! Read particles from options
+            if (.not.from_file) then
+              call read_particles_from_python(sub_particles, subname, current_time, state, attribute_size, xfield, dim, subgroup_path, particle_lists(list_counter), global)
+            else ! Read particles from file
+              call read_particles_from_file(sub_particles, subname, attribute_size, state, xfield, dim, subgroup_path, particle_lists(list_counter))
+            end if
+          end if
+
+          if (do_output) then
+            ! only output if we need to (i.e. actually running, not flredecomping)
+            call set_particle_output_file(sub_particles, subname, filename, attribute_size, xfield, subgroup_path, particle_lists(list_counter))
+          end if
+
+          ! Get options for lagrangian particle movement
           call read_detector_move_options(particle_lists(list_counter), "/particles")
           list_counter = list_counter + 1
        end do
@@ -179,24 +186,24 @@ contains
     ! And finally some sanity checks
     list_counter=1
     do i = 1,particle_groups
-       group_path = "/particles/particle_group["//int2str(i-1)//"]"
-       do k = 1,particle_arrays(i)
-          subgroup_path = trim(group_path) // "/particle_subgroup["//int2str(k-1)//"]"
-          call get_option(trim(subgroup_path)//"/name",subname)
-          totaldet_global=particle_lists(list_counter)%length
-          call allsum(totaldet_global)
-          ewrite(2,*) "Found", particle_lists(list_counter)%length, "local and ", totaldet_global, "global particles for particle array ", trim(subname)
-          
-          assert(totaldet_global==particle_lists(list_counter)%total_num_det)
-          list_counter = list_counter + 1
-       end do
+      group_path = "/particles/particle_group["//int2str(i-1)//"]"
+      do k = 1,particle_arrays(i)
+        subgroup_path = trim(group_path) // "/particle_subgroup["//int2str(k-1)//"]"
+        call get_option(trim(subgroup_path)//"/name",subname)
+        totaldet_global=particle_lists(list_counter)%length
+        call allsum(totaldet_global)
+        ewrite(2,*) "Found", particle_lists(list_counter)%length, "local and ", totaldet_global, "global particles for particle array ", trim(subname)
+
+        assert(totaldet_global==particle_lists(list_counter)%total_num_det)
+        list_counter = list_counter + 1
+      end do
     end do
 
     deallocate(particle_arrays)
     
   end subroutine initialise_particles
 
-  subroutine read_particles_from_python(sub_particles, subname, current_time, state, attribute_size, xfield, dim, subgroup_path, p_list)
+  subroutine read_particles_from_python(sub_particles, subname, current_time, state, attribute_size, xfield, dim, subgroup_path, p_list, global)
     ! Reading particles from a python function
 
     type(state_type), dimension(:), intent(in) :: state
@@ -207,6 +214,7 @@ contains
     real, intent(in) :: current_time
     integer, intent(in) :: sub_particles, dim
     integer, dimension(3), intent(in) :: attribute_size
+    logical, intent(in), optional :: global
 
     character(len=PYTHON_FUNC_LEN) :: func
     character(len = FIELD_NAME_LEN) :: fmt
@@ -225,7 +233,7 @@ contains
     do l=1,sub_particles
        write(particle_name, fmt) trim(subname)//"_", l
        call create_single_particle(p_list, xfield, coords(:,l), &
-            l, LAGRANGIAN_DETECTOR, trim(particle_name), attribute_size)
+            l, LAGRANGIAN_DETECTOR, trim(particle_name), attribute_size, global=global)
     end do
     if (attribute_size(1)/=0) then
        call update_particle_subgroup_attributes_and_fields(state, xfield, current_time, subgroup_path, p_list)
@@ -811,12 +819,13 @@ contains
     deallocate(positions)
   end subroutine write_particles_subgroup
 
-  subroutine checkpoint_particles_loop(state,prefix,postfix,cp_no)
+  subroutine checkpoint_particles_loop(state, prefix, postfix, cp_no, number_of_partitions)
     !!Subroutine to loop over particle_lists and call checkpoint_particles for each list
     type(state_type), dimension(:), intent(in) :: state
     character(len = *), intent(in) :: prefix
     character(len = *), intent(in) :: postfix
     integer, optional, intent(in) :: cp_no !Checkpoint number of the simulation
+    integer, optional, intent(in) :: number_of_partitions ! only write data for this many processes
     
     character(len = OPTION_PATH_LEN) :: lpostfix
     character(len=OPTION_PATH_LEN) :: group_path, subgroup_path, subgroup_path_name, name
@@ -825,6 +834,21 @@ contains
     integer :: nprescribed, ndiagnostic, nprognostic
     integer, dimension(:), allocatable :: particle_arrays
     integer :: i, m, k, particle_groups, list_counter
+
+    integer :: output_comm, world_group, output_group, ierr
+
+    ! create a new mpi group for active particles only
+    ! otherwise the collectives (and especially file writing) will break
+    if (present(number_of_partitions)) then
+      if (getprocno() > number_of_partitions) return
+
+      call mpi_comm_group(MPI_COMM_FEMTOOLS, world_group, ierr)
+      ewrite(1,*) 'ranks:', [(i, i=0, number_of_partitions-1)]
+      call mpi_group_incl(world_group, number_of_partitions, [(i, i=0, number_of_partitions-1)], output_group, ierr)
+      call mpi_comm_create_group(MPI_COMM_FEMTOOLS, output_group, 0, output_comm, ierr)
+    else
+      output_comm = MPI_COMM_FEMTOOLS
+    end if
 
     !Check whether there are any particles.
 
@@ -875,14 +899,20 @@ contains
              end if
           end do
           call get_option(trim(subgroup_path) // "/name", name)
-          call checkpoint_particles_subgroup(state,prefix,lpostfix,cp_no,particle_lists(list_counter),attribute_size,name,subgroup_path,subgroup_path_name)
+          call checkpoint_particles_subgroup(state, prefix, lpostfix, cp_no, particle_lists(list_counter), &
+               attribute_size, name, subgroup_path, subgroup_path_name, output_comm)
           list_counter = list_counter + 1
        end do
-    end do
+     end do
+
+     if (present(number_of_partitions)) then
+       call mpi_comm_free(output_comm, ierr)
+       call mpi_group_free(output_group, ierr)
+     end if
 
   end subroutine checkpoint_particles_loop
 
-  subroutine checkpoint_particles_subgroup(state,prefix,lpostfix,cp_no,particle_list,attribute_size,name,subgroup_path,subgroup_path_name)
+  subroutine checkpoint_particles_subgroup(state, prefix, lpostfix, cp_no, particle_list, attribute_size, name, subgroup_path, subgroup_path_name, output_comm)
     !!<Checkpoint Particles
 
     type(state_type), dimension(:), intent(in) :: state
@@ -895,20 +925,29 @@ contains
     type(detector_linked_list), intent(inout) :: particle_list
     integer, dimension(3), intent(in) :: attribute_size
 
+    integer, optional, intent(in) :: output_comm !! MPI communicator to use for output/collectives
+
     character(len=OPTION_PATH_LEN) :: particles_cp_filename
     character(len=FIELD_NAME_LEN) :: attname
     integer :: h5_ierror, i, j, dim, old_attrib, old_field, commsize, ierr
-    integer(kind=8) :: h5_id
+    integer(kind=8) :: h5_id, h5_prop
     integer(kind=8), dimension(:), allocatable :: npoints
     real, dimension(:,:), allocatable :: positions, attrib_data, old_attrib_data, old_field_data
     type(vector_field), pointer :: vfield
     type(scalar_field), pointer :: sfield
     type(detector_type), pointer :: node
 
-    call mpi_comm_size(MPI_COMM_FEMTOOLS, commsize, ierr)
+    integer :: comm
+    comm = MPI_COMM_FEMTOOLS
+    if (present(output_comm)) comm = output_comm
+
+    ! we store the number of points per process, so gather them
+    ! this is because h5part attributes must be agreed upon by all,
+    ! so every process needs to know the size for every other process
+    call mpi_comm_size(comm, commsize, ierr)
     allocate(npoints(commsize))
     call mpi_allgather([int(particle_list%length, 8)], 1, MPI_INTEGER8, &
-         npoints, 1, MPI_INTEGER8, MPI_COMM_FEMTOOLS, ierr)
+         npoints, 1, MPI_INTEGER8, comm, ierr)
 
     ! construct a new particle checkpoint filename
     particles_cp_filename = trim(prefix)
@@ -916,10 +955,18 @@ contains
     particles_cp_filename = trim(particles_cp_filename) // "_" // trim(lpostfix)
     particles_cp_filename = trim(particles_cp_filename) // "_particles." // trim(name) // ".h5part"
 
+    ! restrict h5 IO to the specified communicator
+    h5_prop = h5_createprop_file()
+    h5_ierror = h5_setprop_file_mpio_collective(h5_prop, comm)
+
     ! open output file
-    h5_id = h5_openfile(trim(particles_cp_filename), H5_O_WRONLY, H5_PROP_DEFAULT)
+    h5_id = h5_openfile(trim(particles_cp_filename), H5_O_WRONLY, h5_prop)
+    h5_ierror = h5_closeprop(h5_prop)
+    ! write out number of points per process
     h5_ierror = h5_writefileattrib_i8(h5_id, "npoints", npoints, int(commsize, 8))
+    ! write data in the first step
     h5_ierror = h5_setstep(h5_id, int(1, 8))
+    ! the number of points this process is writing
     h5_ierror = h5pt_setnpoints(h5_id, int(particle_list%length, 8))
 
     ! get dimension of particle positions
