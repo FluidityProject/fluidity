@@ -69,7 +69,8 @@ module boundary_conditions_from_options
        find_reference_node_from_coordinates, impose_reference_velocity_node
   public :: populate_scalar_boundary_conditions, &
     & populate_vector_boundary_conditions, initialise_rotated_bcs, &
-    set_scalar_boundary_conditions_values
+    set_scalar_boundary_conditions_values, &
+    set_vector_boundary_conditions_values
 
   interface apply_dirichlet_conditions_inverse_mass
      module procedure apply_dirichlet_conditions_inverse_mass_vector, &

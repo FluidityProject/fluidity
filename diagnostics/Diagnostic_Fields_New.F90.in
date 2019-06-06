@@ -36,6 +36,7 @@ module diagnostic_fields_new
   use fields
   use state_module
   use field_options
+  use  boundary_conditions_from_options, only: set_vector_boundary_conditions_values
 
 USE_MODULES
   
@@ -886,11 +887,17 @@ MULTIPLE_STATE_SCALAR_DIAGNOSTICS
     type(state_type), dimension(:), target, intent(inout) :: states
     integer, intent(in) :: state_index
     type(vector_field), intent(inout) :: v_field
+    type(vector_field), pointer :: position
     integer, optional, intent(out) :: stat
     character(len = *), optional, intent(in) :: algorithm
     character(len = OPTION_PATH_LEN) :: lalgorithm
     
 DIAGNOSTIC_ARGUMENTS
+
+    position => extract_vector_field(states(1), "Coordinate")
+    call set_vector_boundary_conditions_values(state, v_field,&
+             trim(v_field%option_path)//'/diagnostic/algorithm/boundary_conditions', &
+             position)
 
     if(present(stat)) stat = 0
     
