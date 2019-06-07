@@ -64,12 +64,13 @@ module particles
 
 contains
 
-  subroutine initialise_particles(filename, state, global, output)
+  subroutine initialise_particles(filename, state, global, output, number_of_partitions)
     !!Initialise particles and set up particle file headers (per particle array)
     character(len = *), intent(in) :: filename
     type(state_type), dimension(:), intent(in) :: state
     logical, intent(in), optional :: global !! use global/parallel picker queries to determine particle elements
     logical, intent(in), optional :: output !! set up output files
+    integer, intent(in), optional :: number_of_partitions !! number of processes to use for reading
 
     character(len=FIELD_NAME_LEN) :: subname
     character(len = OPTION_PATH_LEN) :: group_path, subgroup_path
@@ -168,7 +169,7 @@ contains
             if (.not.from_file) then
               call read_particles_from_python(sub_particles, subname, current_time, state, attribute_size, xfield, dim, subgroup_path, particle_lists(list_counter), global)
             else ! Read particles from file
-              call read_particles_from_file(sub_particles, subname, attribute_size, state, xfield, dim, subgroup_path, particle_lists(list_counter))
+              call read_particles_from_file(sub_particles, subname, attribute_size, state, xfield, dim, subgroup_path, particle_lists(list_counter), number_of_partitions)
             end if
           end if
 
@@ -243,7 +244,7 @@ contains
 
   end subroutine read_particles_from_python
 
-  subroutine read_particles_from_file(sub_particles, subname, attribute_size, state, xfield, dim, subgroup_path, p_list)
+  subroutine read_particles_from_file(sub_particles, subname, attribute_size, state, xfield, dim, subgroup_path, p_list, number_of_partitions)
     ! If reading from file:
     ! Particles checkpoint file names end in _par, with.groups appended for the header file
     ! and .attributes.dat appended for the binary data file that holds the positions and attributes
@@ -256,6 +257,8 @@ contains
     integer, intent(in) :: sub_particles, dim
     integer, dimension(3), intent(in) :: attribute_size
 
+    integer, intent(in), optional :: number_of_partitions
+
     real, allocatable, dimension(:,:) :: attribute_vals !array to hold particle attribute values for initialisation
     real, allocatable, dimension(:) :: positions !array to hold particle coordinates if from checkpoint file
 
@@ -266,7 +269,21 @@ contains
     character(len=FIELD_NAME_LEN) :: attname, particle_name, fmt
     type(scalar_field), pointer :: sfield
 
+    integer :: input_comm, world_group, input_group
+
     ewrite(2,*) "Reading particles from file"
+
+    ! create new mpi group for active particles only
+    ! non-active processes are already not in this routine,
+    ! so we don't have to worry about them
+    if (present(number_of_partitions)) then
+      call mpi_comm_group(MPI_COMM_FEMTOOLS, world_group, ierr)
+      call mpi_group_incl(world_group, number_of_partitions, [(i, i=0, number_of_partitions-1)], input_group, ierr)
+      call mpi_comm_create_group(MPI_COMM_FEMTOOLS, input_group, 0, input_comm, ierr)
+    else
+      input_comm = MPI_COMM_FEMTOOLS
+    end if
+
 
     allocate(positions(dim))
     allocate(attribute_vals(3,maxval(attribute_size)))
@@ -279,7 +296,7 @@ contains
     h5_prop = h5_createprop_file()
     ! because we're reading separate particle counts per core
     ! we can't use collective IO
-    h5_ierror = h5_setprop_file_mpio_independent(h5_prop, MPI_COMM_FEMTOOLS)
+    h5_ierror = h5_setprop_file_mpio_independent(h5_prop, input_comm)
     assert(h5_ierror == H5_SUCCESS)
 
     h5_id = h5_openfile(trim(particles_cp_filename), H5_O_RDONLY, h5_prop)
@@ -352,6 +369,11 @@ contains
      deallocate(attribute_vals)
      deallocate(positions)
      deallocate(npoints)
+
+     if (present(number_of_partitions)) then
+       call mpi_comm_free(input_comm, ierr)
+       call mpi_group_free(input_group, ierr)
+     end if
   end subroutine read_particles_from_file
 
   subroutine set_particle_output_file(sub_particles, subname, filename, attribute_size, xfield, subgroup_path, p_list)
@@ -843,7 +865,6 @@ contains
       if (getprocno() > number_of_partitions) return
 
       call mpi_comm_group(MPI_COMM_FEMTOOLS, world_group, ierr)
-      ewrite(1,*) 'ranks:', [(i, i=0, number_of_partitions-1)]
       call mpi_group_incl(world_group, number_of_partitions, [(i, i=0, number_of_partitions-1)], output_group, ierr)
       call mpi_comm_create_group(MPI_COMM_FEMTOOLS, output_group, 0, output_comm, ierr)
     else
