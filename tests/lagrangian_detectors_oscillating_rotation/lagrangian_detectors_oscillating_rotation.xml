@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-
 <testproblem>
   <name>lagrangian_detectors_oscillating_rotation</name>
   <owner userid="drhodrid"/>
@@ -12,40 +11,63 @@ mpiexec ../../bin/fluidity -v3 -l lagrangian-detectors-oscillating-rotation-flre
   </problem_definition>
   <variables>
     <variable name="last_single_locations_error" language="python">
+from H5hutpy import *
 import numpy as np
-from fluidity_tools import stat_parser
-s = stat_parser("lagrangian_detectors.detectors")
 last_single_locations_error = np.zeros((2,3))
 X = np.fromfile('Xvals.txt',sep=' ')
 Y = np.fromfile('Yvals.txt',sep=' ')
-last_single_locations_error[0,0] = s['Single_Lagr_1']['position'][0][-1] - X[0]
-last_single_locations_error[1,0] = s['Single_Lagr_1']['position'][1][-1] - Y[0]
-last_single_locations_error[0,1] = s['Single_Lagr_2']['position'][0][-1] - X[50]
-last_single_locations_error[1,1] = s['Single_Lagr_2']['position'][1][-1] - Y[50]
-last_single_locations_error[0,2] = s['Single_Lagr_3']['position'][0][-1] - X[99]
-last_single_locations_error[1,2] = s['Single_Lagr_3']['position'][1][-1] - Y[99]
+
+f = H5OpenFile("lagrangian_detectors.particles.Singl_Lagr_1.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
+nsteps = H5GetNumSteps(f)
+H5SetStep(f, nsteps-1)
+pos = np.empty((2,1), dtype='float64')
+H5PartReadDataFloat64(f, 'x', pos[0,:])
+H5PartReadDataFloat64(f, 'y', pos[1,:])
+last_single_locations_error[0,0] = pos[0,:] - X[0]
+last_single_locations_error[1,0] = pos[1,:] - Y[0]
+
+f = H5OpenFile("lagrangian_detectors.particles.Singl_Lagr_2.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
+nsteps = H5GetNumSteps(f)
+H5SetStep(f, nsteps-1)
+pos = np.empty((2,1), dtype='float64')
+H5PartReadDataFloat64(f, 'x', pos[0,:])
+H5PartReadDataFloat64(f, 'y', pos[1,:])
+last_single_locations_error[0,1] = pos[0,:] - X[50]
+last_single_locations_error[1,1] = pos[1,:] - Y[50]
+
+f = H5OpenFile("lagrangian_detectors.particles.Singl_Lagr_3.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
+nsteps = H5GetNumSteps(f)
+H5SetStep(f, nsteps-1)
+pos = np.empty((2,1), dtype='float64')
+H5PartReadDataFloat64(f, 'x', pos[0,:])
+H5PartReadDataFloat64(f, 'y', pos[1,:])
+last_single_locations_error[0,2] = pos[0,:] - X[99]
+last_single_locations_error[1,2] = pos[1,:] - Y[99]
     </variable>
     <variable name="last_locations_error" language="python">
-from fluidity_tools import stat_parser
-from numpy import zeros,fromfile
+from H5hutpy import *
+import numpy as np
+last_locations_error = np.zeros((2,100))
+X = np.fromfile('Xvals.txt',sep=' ')
+Y = np.fromfile('Yvals.txt',sep=' ')
 
-s = stat_parser('lagrangian_detectors.detectors')
-last_locations_error = zeros((2,100))
-X = fromfile('Xvals.txt',sep=' ')
-Y = fromfile('Yvals.txt',sep=' ')
-for i in range(100):
-    name = 'Steve_' + str(i+1).zfill(3)
-    last_locations_error[0,i] = s[name]['position'][0][-1] - X[i]
-    last_locations_error[1,i] = s[name]['position'][1][-1] - Y[i]
-print("max error",abs(last_locations_error).max())
+f = H5OpenFile("lagrangian_detectors.particles.Steve.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
+nsteps = H5GetNumSteps(f)
+H5SetStep(f, nsteps-1)
+pos = np.empty((2,100), dtype='float64')
+H5PartReadDataFloat64(f, 'x', pos[0,:])
+H5PartReadDataFloat64(f, 'y', pos[1,:])
+print(pos[0,:],pos[1,:])
+last_locations_error[0,:] = pos[0,:] - X[:]
+last_locations_error[1,:] = pos[1,:] - Y[:]
     </variable>
   </variables>
   <pass_tests>
     <test name="CorrectSingleLagrangianDetectors" language="python">
-assert abs(last_single_locations_error).max() &lt; 1.0e-6
+      assert abs(last_single_locations_error).max() &lt; 1.0e-6
     </test>
     <test name="CorrectLagrangianTrajectory" language="python">
-assert abs(last_locations_error).max() &lt; 1.0e-6
+      assert abs(last_locations_error).max() &lt; 1.0e-6
     </test>
   </pass_tests>
   <warn_tests>
