@@ -187,7 +187,8 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
 
   call get_option("/simulation_name", filename)
   ! we can't use global pickers, since not all processes are participating
-  call initialise_particles(filename, state, global=.false., output=.false., number_of_partitions=input_nprocs)
+  call initialise_particles(filename, state, global=.false., &
+       from_flredecomp=.true., number_of_partitions=input_nprocs)
 
   ! !  End populate_state calls
     

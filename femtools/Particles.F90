@@ -64,12 +64,12 @@ module particles
 
 contains
 
-  subroutine initialise_particles(filename, state, global, output, number_of_partitions)
-    !!Initialise particles and set up particle file headers (per particle array)
+  subroutine initialise_particles(filename, state, global, from_flredecomp, number_of_partitions)
+    !! Initialise particles and set up particle file headers (per particle array)
     character(len = *), intent(in) :: filename
     type(state_type), dimension(:), intent(in) :: state
     logical, intent(in), optional :: global !! use global/parallel picker queries to determine particle elements
-    logical, intent(in), optional :: output !! set up output files
+    logical, intent(in), optional :: from_flredecomp !! change behaviour if we're being called by flredecomp
     integer, intent(in), optional :: number_of_partitions !! number of processes to use for reading
 
     character(len=FIELD_NAME_LEN) :: subname
@@ -90,8 +90,9 @@ contains
 
     ewrite(2,*), "In initialise_particles"
 
+    ! If we're not being called from flredecomp, we'll set up particle output files
     do_output = .true.
-    if (present(output)) do_output = output
+    if (present(from_flredecomp)) do_output = .not. from_flredecomp
 
     !Check whether there are any particles.
     particle_groups = option_count("/particles/particle_group")
@@ -130,16 +131,23 @@ contains
        do k = 1, particle_arrays(i)
           !subgroup_path
           subgroup_path = trim(group_path) // "/particle_subgroup["//int2str(k-1)//"]"
-          ! If the option
-          ! "from_file" exists, it means we are continuing the simulation
-          ! after checkpointing and the reading of the particle positions must be
-          ! done from a file
 
-          from_file=have_option(trim(subgroup_path)//"/initial_position/from_file")
-          call get_option(trim(subgroup_path)//"/number_of_particles", sub_particles) !number of particles in subgroup
-          call get_option(trim(subgroup_path)//"/name", subname) !Name of particle subgroup
-          particle_lists(list_counter)%total_num_det=sub_particles
+          ! If the option "from_file" exists, it means we are
+          ! continuing the simulation after checkpointing and the
+          ! reading of the particle positions must be done from a file
+          from_file = have_option(trim(subgroup_path) // "/initial_position/from_file")
+
+          ! But if we're flredecomping, we don't want to handle
+          ! particles with analytically-specified positions (i.e. not
+          ! from a file)
+          if (present(from_flredecomp) .and. .not. from_file) cycle
+
+          ! Set up the particle list structure
+          call get_option(trim(subgroup_path) // "/number_of_particles", sub_particles)
+          call get_option(trim(subgroup_path) // "/name", subname)
+          particle_lists(list_counter)%total_num_det = sub_particles
           allocate(particle_lists(list_counter)%detector_names(sub_particles))
+
           ! Register this I/O list with a global list of detectors/particles
           call register_detector_list(particle_lists(list_counter))
           
@@ -905,6 +913,14 @@ contains
           attribute_size(1)=0
           if (have_option(trim(subgroup_path) // '/attributes/attribute')) then
              attribute_size(1)=option_count(trim(subgroup_path) // '/attributes/attribute')
+
+         ! skip checkpointing this subgroup if we're coming from flredecomp
+         ! and the particles weren't loaded from a file
+         if (present(number_of_partitions) .and. &
+              .not. have_option(trim(subgroup_path) // "/initial_position/from_file")) then
+           cycle
+         end if
+
            end if
 
            ! count number of required old attributes (for fields)
