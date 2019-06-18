@@ -279,7 +279,7 @@ contains
     real, allocatable, dimension(:,:) :: attribute_vals !array to hold particle attribute values for initialisation
     real, allocatable, dimension(:) :: positions !array to hold particle coordinates if from checkpoint file
 
-    integer :: m, i, j, str_size, old_attrib, old_field, commsize, ierr, rank
+    integer :: m, i, j, str_size, old_attrib, old_field, commsize, ierr, rank, id(1)
     integer(kind=8) :: h5_ierror, h5_id, h5_prop, view_start, view_end
     integer(kind=8), dimension(:), allocatable :: npoints
     character(len=OPTION_PATH_LEN) :: particles_cp_filename
@@ -341,6 +341,8 @@ contains
       if (dim >= 3) &
            h5_ierror = h5pt_readdata_r8(h5_id, "z", positions(3))
 
+      h5_ierror = h5pt_readdata_i4(h5_id, "id", id(1))
+
       old_attrib = 0
       ! read out attributes by name
       if (attribute_size(1) /= 0) then
@@ -376,7 +378,7 @@ contains
 
       ! don't use a global check for this particle
       call create_single_particle(p_list, xfield, &
-           positions, m, LAGRANGIAN_DETECTOR, trim(particle_name), &
+           positions, id(1), LAGRANGIAN_DETECTOR, trim(particle_name), &
            attribute_size, attribute_vals=attribute_vals, global=.false.)
     end do
 
@@ -796,6 +798,7 @@ contains
     integer :: dim, i
     integer(kind=8) :: h5_ierror
     real, dimension(:,:), allocatable :: positions, attrib_data
+    integer, dimension(:), allocatable :: node_ids
     type(vector_field), pointer :: vfield
     type(detector_type), pointer :: node
     character(len=FIELD_NAME_LEN) :: attname
@@ -817,6 +820,7 @@ contains
     dim = vfield%dim
     allocate(positions(detector_list%length, 3))
     allocate(attrib_data(detector_list%length, attribute_dims))
+    allocate(node_ids(detector_list%length))
 
     node => detector_list%first
     position_loop: do i = 1, detector_list%length
@@ -825,6 +829,7 @@ contains
 
       positions(i,1:dim) = node%position(:)
       attrib_data(i,:) = node%attributes(:)
+      node_ids(i) = node%id_number
 
       node => node%next
     end do position_loop
@@ -841,12 +846,15 @@ contains
       h5_ierror = h5pt_writedata_r8(detector_list%h5_id, "z", positions(:,3))
     end if
 
+    h5_ierror = h5pt_writedata_i4(detector_list%h5_id, "id", node_ids(:))
+
     ! write out attributes
     attribute_loop: do i = 1, attribute_dims
       call get_option(trim(subgroup_path) // "/attributes/attribute["//int2str(i-1)//"]/name", attname)
       h5_ierror = h5pt_writedata_r8(detector_list%h5_id, trim(attname), attrib_data(:,i))
     end do attribute_loop
 
+    deallocate(node_ids)
     deallocate(attrib_data)
     deallocate(positions)
   end subroutine write_particles_subgroup
@@ -965,6 +973,7 @@ contains
     integer(kind=8) :: h5_id, h5_prop, h5_ierror
     integer(kind=8), dimension(:), allocatable :: npoints
     real, dimension(:,:), allocatable :: positions, attrib_data, old_attrib_data, old_field_data
+    integer, dimension(:), allocatable :: node_ids
     type(vector_field), pointer :: vfield
     type(scalar_field), pointer :: sfield
     type(detector_type), pointer :: node
@@ -1008,6 +1017,7 @@ contains
     ! allocate arrays for node data
     allocate(positions(particle_list%length, dim))
     allocate(attrib_data(particle_list%length, attribute_size(1)))
+    allocate(node_ids(particle_list%length))
     allocate(old_attrib_data(particle_list%length, attribute_size(2)))
     allocate(old_field_data(particle_list%length, attribute_size(3)))
 
@@ -1024,6 +1034,9 @@ contains
       if (attribute_size(3) /= 0) &
            old_field_data(i,:) = node%old_fields(:)
 
+      ! collect node ids
+      node_ids(i) = node%id_number
+
       node => node%next
     end do positionloop_cp
 
@@ -1034,6 +1047,8 @@ contains
          h5_ierror = h5pt_writedata_r8(h5_id, "y", positions(:,2))
     if (dim >= 3) &
          h5_ierror = h5pt_writedata_r8(h5_id, "z", positions(:,3))
+
+    h5_ierror = h5pt_writedata_i4(h5_id, "id", node_ids(:))
 
     old_attrib = 0
 
@@ -1072,6 +1087,7 @@ contains
 
     deallocate(old_field_data)
     deallocate(old_attrib_data)
+    deallocate(node_ids)
     deallocate(attrib_data)
     deallocate(positions)
     deallocate(npoints)

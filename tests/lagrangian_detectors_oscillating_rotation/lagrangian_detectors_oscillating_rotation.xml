@@ -54,9 +54,13 @@ Y = np.fromfile('Yvals.txt',sep=' ')
 f = H5OpenFile("lagrangian_detectors.particles.Steve.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
 nsteps = H5GetNumSteps(f)
 H5SetStep(f, nsteps-1)
+ids = np.empty(100, dtype='int32')
+H5PartReadDataInt32(f, 'id', ids)
 pos = np.empty((2,100), dtype='float64')
 H5PartReadDataFloat64(f, 'x', pos[0,:])
 H5PartReadDataFloat64(f, 'y', pos[1,:])
+idx = np.argsort(ids)
+pos = pos[:,idx]
 print(pos[0,:],pos[1,:])
 last_locations_error[0,:] = pos[0,:] - X[:]
 last_locations_error[1,:] = pos[1,:] - Y[:]
