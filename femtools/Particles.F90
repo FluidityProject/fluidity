@@ -901,7 +901,7 @@ contains
     list_counter = 1
     do i = 1, particle_groups
       group_path = "/particles/particle_group["//int2str(i-1)//"]"
-      particle_subgroups = option_count(trim(group_path) // "/particle_subgroups")
+      particle_subgroups = option_count(trim(group_path) // "/particle_subgroup")
       do k = 1, particle_subgroups
         ! set the path to this subgroup, and the path used in update_particle_options
          subgroup_path = trim(group_path) // "/particle_subgroup["//int2str(k-1)//"]"
