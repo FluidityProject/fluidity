@@ -61,7 +61,6 @@ H5PartReadDataFloat64(f, 'x', pos[0,:])
 H5PartReadDataFloat64(f, 'y', pos[1,:])
 idx = np.argsort(ids)
 pos = pos[:,idx]
-print(pos[0,:],pos[1,:])
 last_locations_error[0,:] = pos[0,:] - X[:]
 last_locations_error[1,:] = pos[1,:] - Y[:]
     </variable>
