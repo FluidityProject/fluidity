@@ -1,7 +1,7 @@
 pipeline {
     agent { 
         docker {
-            image "angusgibson/fluidity:disco"
+            image "angusgibson/fluidity:disco-a03b"
             label 'dockerhost'
         } 
     }
