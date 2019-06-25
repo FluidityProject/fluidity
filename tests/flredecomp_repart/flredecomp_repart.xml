@@ -1,0 +1,31 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<testproblem>
+  <name>flredecomp_repart</name>
+  <owner userid="agibson"/>
+  <problem_definition length = "short" nprocs = "4">
+    <command_line>
+      make clean-run
+      mpiexec -np 2 ../../bin/flredecomp -i 1 -o 2 -v -l test test_flredecomp
+      mpiexec ../../bin/flredecomp -i 2 -o 4 -v -l test_flredecomp test_flredecomp_repart
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "partitions" language = "python">
+import fluidity.diagnostics.gmshtools as gmshtools
+partitions = []
+for i in range(4):
+  partitions.append(gmshtools.ReadMsh("test_flredecomp_repart_CoordinateMesh_" + str(i) + ".msh"))
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name = "Equal sized partitions (owned nodes)" language = "python">
+import fluidity_tools
+nodeCounts = []
+for partition in partitions:
+  nodeCounts.append(partition.GetNOwnedNodes())
+fluidity_tools.compare_variables([float(nodeCount) for nodeCount in nodeCounts[1:]], [float(nodeCounts[0]) for i in range(len(nodeCounts) - 1)], 0.075)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+  <Plugin name="H5PartRandomSample" type="operator" label="H5PartRandomSample" version="1.0" enabled="true" mdspecificcode="false" onlyengine="false" noengine="false" iconFile="icon.xpm">
+    <Attribute name="H5PartRandomSampleAttributes" purpose="Randomly reduce an H5Part point mesh" persistent="true" exportAPI="" exportInclude="">
+      <Field name="factor" label="factor" type="float">
+	1.0
+      </Field>
+    </Attribute>
+  </Plugin>

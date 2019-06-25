@@ -1,0 +1,7 @@
+#!/bin/bash
+#PBS -l size=16
+#PBS -j oe
+
+cd /scratch/agsell/H5Part/test
+yod -np 16 ./H5BlockParTestScalarField -w -g
+

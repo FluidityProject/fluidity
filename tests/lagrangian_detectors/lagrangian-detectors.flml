@@ -51,58 +51,89 @@
     </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
     <stat/>
-    <detectors>
-      <lagrangian_detector name="Single_Lagr_1">
-        <location>
-          <real_value shape="2" dim1="dim" rank="1">0.5 0.5</real_value>
-        </location>
-      </lagrangian_detector>
-      <lagrangian_detector name="Single_Lagr_2">
-        <location>
-          <real_value shape="2" dim1="dim" rank="1">0.625 0.5</real_value>
-        </location>
-      </lagrangian_detector>
-      <lagrangian_detector name="Single_Lagr_3">
-        <location>
-          <real_value shape="2" dim1="dim" rank="1">0.7475 0.5</real_value>
-        </location>
-      </lagrangian_detector>
-      <detector_array name="Steve">
-        <number_of_detectors>
+  </io>
+  <particles>
+    <particle_group name="Particles">
+      <velocity_field name="Velocity"/>
+      <particle_subgroup name="Singl_Lagr_1">
+        <number_of_particles>
+          <integer_value rank="0">1</integer_value>
+        </number_of_particles>
+        <initial_position>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(t):
+  positions = numpy.zeros((1,2))
+  positions[0,0] = 0.5
+  positions[0,1] = 0.5
+  return positions</string_value>
+          </python>
+        </initial_position>
+      </particle_subgroup>
+      <particle_subgroup name="Singl_Lagr_2">
+        <number_of_particles>
+          <integer_value rank="0">1</integer_value>
+        </number_of_particles>
+        <initial_position>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(t):
+  positions = numpy.zeros((1,2))
+  positions[0,0] = 0.625
+  positions[0,1] = 0.5
+  return positions</string_value>
+          </python>
+        </initial_position>
+      </particle_subgroup>
+      <particle_subgroup name="Singl_Lagr_3">
+        <number_of_particles>
+          <integer_value rank="0">1</integer_value>
+        </number_of_particles>
+        <initial_position>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(t):
+  positions = numpy.zeros((1,2))
+  positions[0,0] = 0.7475
+  positions[0,1] = 0.5
+  return positions</string_value>
+          </python>
+        </initial_position>
+      </particle_subgroup>
+      <particle_subgroup name="Steve">
+        <number_of_particles>
           <integer_value rank="0">100</integer_value>
-        </number_of_detectors>
-        <lagrangian/>
-        <python>
-          <string_value lines="20" type="code" language="python">def val(t):
+        </number_of_particles>
+        <initial_position>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(t):
   from numpy import arange,zeros,reshape,concatenate
   x = 0.5+0.25*arange(0,100.)/100.
   y = zeros(100) + 0.5
   return reshape(concatenate((x,y)),(2,100)).T</string_value>
-        </python>
-      </detector_array>
-      <fail_outside_domain/>
-      <lagrangian_timestepping>
-        <subcycles>
-          <integer_value rank="0">1</integer_value>
-        </subcycles>
-        <search_tolerance>
-          <real_value rank="0">1.0e-10</real_value>
-        </search_tolerance>
-        <explicit_runge_kutta_guided_search>
-          <n_stages>
-            <integer_value rank="0">4</integer_value>
-          </n_stages>
-          <stage_weights>
-            <real_value shape="6" rank="1">0.5 0. 0.5 0. 0. 1</real_value>
-          </stage_weights>
-          <timestep_weights>
-            <real_value shape="4" rank="1">0.16666666666666666 0.3333333333333333
+          </python>
+        </initial_position>
+      </particle_subgroup>
+    </particle_group>
+    <fail_outside_domain/>
+    <lagrangian_timestepping>
+      <subcycles>
+        <integer_value rank="0">1</integer_value>
+      </subcycles>
+      <search_tolerance>
+        <real_value rank="0">1.0e-10</real_value>
+      </search_tolerance>
+      <explicit_runge_kutta_guided_search>
+        <n_stages>
+          <integer_value rank="0">4</integer_value>
+        </n_stages>
+        <stage_weights>
+          <real_value shape="6" rank="1">0.5 0. 0.5 0. 0. 1</real_value>
+        </stage_weights>
+        <timestep_weights>
+          <real_value shape="4" rank="1">0.16666666666666666 0.3333333333333333
  0.3333333333333333 0.16666666666666666</real_value>
-          </timestep_weights>
-        </explicit_runge_kutta_guided_search>
-      </lagrangian_timestepping>
-    </detectors>
-  </io>
+        </timestep_weights>
+      </explicit_runge_kutta_guided_search>
+    </lagrangian_timestepping>
+  </particles>
   <timestepping>
     <current_time>
       <real_value rank="0">0.0</real_value>

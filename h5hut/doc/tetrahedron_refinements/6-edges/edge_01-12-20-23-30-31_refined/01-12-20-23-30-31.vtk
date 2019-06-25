@@ -1,0 +1,48 @@
+# vtk DataFile Version 2.0
+VTK LEGACY FILE FORMAT ASCII - tetrahedral sample file for H5FED test
+ASCII
+DATASET UNSTRUCTURED_GRID
+
+POINTS 10 DOUBLE
+0.0 1.0 0.0
+0.0 0.5 0.5
+0.5 0.5 0.0
+0.0 0.5 0.0
+1.0 0.0 0.0
+0.5 0.0 0.5
+0.5 0.0 0.0
+0.0 0.0 1.0
+0.0 0.0 0.5
+0.0 0.0 0.0
+
+CELLS 8 40
+4	0  1  2  3 
+4	4  2  5  6 
+4	7  5  1  8 
+4	3  8  6  9 
+4	2  1  5  3 
+4	3  8  1  5 
+4	6  5  8  3 
+4	2  6  3  5 
+
+CELL_TYPES 8
+10
+10
+10
+10
+10
+10
+10
+10
+
+CELL_DATA 8
+SCALARS cell_attribute_data float 1
+LOOKUP_TABLE default
+0
+1
+2
+3
+4
+5
+6
+7

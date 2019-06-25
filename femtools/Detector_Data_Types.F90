@@ -121,6 +121,7 @@ module detector_data_types
      integer :: output_unit = 0          ! Assumed non-opened as long this is 0
      integer :: mpi_fh = 0               ! MPI filehandle
      integer :: mpi_write_count = 0      ! Offset in MPI file
+     integer(kind=8) :: h5_id ! H5hut output identifier
      integer :: total_num_det = 0        ! Global number of detectors in this list
   end type detector_linked_list
 

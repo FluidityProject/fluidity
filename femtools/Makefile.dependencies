@@ -860,9 +860,10 @@ Particles.o ../include/particles.mod: Particles.F90 \
    ../include/diagnostic_variables.mod ../include/elements.mod \
    ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
    ../include/fldebug.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/mpi_interfaces.mod \
-   ../include/parallel_fields.mod ../include/parallel_tools.mod \
-   ../include/pickers.mod ../include/state_module.mod
+   ../include/global_parameters.mod ../include/h5hut.mod \
+   ../include/mpi_interfaces.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/pickers.mod \
+   ../include/state_module.mod ../include/time_period.mod
 
 ../include/petsc_tools.mod: Petsc_Tools.o
 	@true
@@ -1238,6 +1239,14 @@ Tetrahedron_intersection.o ../include/tetrahedron_intersection_module.mod: \
    ../include/fields_base.mod ../include/fields_data_types.mod \
    ../include/fields_manipulation.mod ../include/fldebug.mod \
    ../include/transform_elements.mod ../include/vector_tools.mod
+
+../include/time_period.mod: Time_Period.o
+	@true
+
+Time_Period.o ../include/time_period.mod: Time_Period.F90 \
+   ../include/embed_python.mod ../include/fdebug.h ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/parallel_tools.mod \
+   ../include/timers.mod
 
 ../include/timers.mod: Timers.o
 	@true

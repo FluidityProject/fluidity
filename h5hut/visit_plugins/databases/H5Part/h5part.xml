@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+  <Plugin name="h5part" type="database" label="h5part" version="1.0" enabled="true" mdspecificcode="false" onlyengine="false" noengine="false" dbtype="MTMD" haswriter="false" hasoptions="false">
+    <CXXFLAGS>
+      -I/usr/local/hdf5/include
+    </CXXFLAGS>
+    <LIBS>
+      -L/d/visusers/cristina/H5Part/H5ecloud/ -lH5Part
+    </LIBS>
+    <Extensions>
+      h5part
+    </Extensions>
+    <Attribute name="" purpose="" persistent="true" exportAPI="" exportInclude="">
+    </Attribute>
+  </Plugin>

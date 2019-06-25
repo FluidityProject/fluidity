@@ -1,0 +1,401 @@
+#### H5PART trunk ############################################################
+
+* h5_file_t is now uintptr_t
+* experimental version of parallel H5Fed
+* new API function for file open using properties (similiar to hdf5 properties)
+
+#### H5PART 1.99.10 ############################################################
+
+* C99 compiler required
+* C API with inline functions
+
+
+#### H5PART 1.99.0 ############################################################
+
+rudimental implementation of a grid manager
+
+Important changes from version 1.6 to 1.99.0
+
+Renamed type:
+    H5PartFile -> h5_file_t
+    h5part_int64_t -> h5_int64_t
+    h5part_float64_t -> h5_float_t
+
+Renamed functions:
+    All function not related to a specific data model have been renamed from
+    H5PartFunction() to H5Function().
+
+    Example:
+       H5PartOpenFile() -> H5OpenFile()
+
+Removed functions:
+    To simplify the API, there is just one function to open a file. It's the
+    same function for serial and parallel code.
+
+#### H5PART 1.6.6 ############################################################
+
+Fixed typo (Write instead of Read) in the h5bl_3d_read_scalar_field* Fortran
+interface.
+
+Added missing type normalization for int32 type.
+
+Rewrite of h5pAttrib tool.
+
+#### H5PART 1.6.5 ############################################################
+
+Fixed several build errors reported by Iuri Prilepov on Ubuntu 11.04.
+
+#### H5PART 1.6.4 ############################################################
+
+Fixed bug where H5PartSetViewIndices was not setting an empty view when the
+number of elements is 0.
+
+Set a threshold on the HDF5 alignment parameter so that small metadata writes
+are not aligned, which causes large gaps in the file.
+
+#### H5PART 1.6.3 ############################################################
+
+New build system uses libtool and can build shared libraries.
+
+Fixed a bug that incorrectly identifies the number of selected points in a view
+when using H5PartSetViewIndices.
+
+Fixed bug in Fortran test reported by several people, as well as several
+incorrect views set in the C test that were causing segfaults.
+
+Fixed name mismatches in the Fortran interface, and an off-by-one indexing
+problem.
+
+#### H5PART 1.6.2 ############################################################
+
+Removed H5PartSetViewEmpty
+--------------------------
+
+An empty view can now be selected with:
+H5PartSetNumParticles(file, 0);
+
+Bug Fixes to Attribute Calls in Fortran API
+-------------------------------------------
+
+Fixed a problem where attribute values were reverting to zero.
+
+#### H5PART 1.6.1 ############################################################
+
+Chunking in the H5Part API
+--------------------------
+
+There is now an H5Part equivalent H5PartSetChunkSize to the existing
+H5BlockDefine3DChunkDims call. Both of these calls enable the chunking
+mechanism in the underlying HDF5 layer. Chunking is used in combination
+with the aligned open calls to pad datasets to alignment multiples
+on disk.
+
+All Steps Available on Write
+----------------------------
+
+Previously, existing steps in a file were only accessible in read-only mode.
+Now, all steps are available in all modes, including write-truncate and
+write-append. Thus, it is now possible to overwrite existing data in write
+mode. To help alert the user to this possibility, a warning is issued every
+time an existing dataset is written to. Warnings can be printed by setting
+the verbosity to H5PART_VERB_WARN or higher.
+
+New Throttling Routine
+----------------------
+
+Previously, a throttle factor of N meant that for P processors, the total
+number of P writes were divided into N batches of P/N writes.
+
+To better accommodate round-robin lustre striping, the new policy is to
+execute P/N batches of N writes. Thus, matching N to the number of stripes
+results in the desirable 1-1 matching of writers to stripes.
+
+Other Fixes
+-----------
+
+* The configure script should correctly detect PGI compilers now.
+* There was a small memory leak in the Fortran file open calls.
+* There was a compile error with HDF5 1.6.x due to a missing assignment.
+
+#### H5PART 1.6 ##############################################################
+
+Updated Documentation
+---------------------
+
+The Fortran API has been added to the doxygen documentation. Most entries have
+a reference to their respective C API call.
+
+Regression Test Suite
+---------------------
+
+The test subdirectory has been reorganized to include a systematic series
+of regression tests of common use cases for the API. The goal is to have both
+complete coverage of the API (every call is exercised) and testing of some
+unlikely or unsuspected values and cases.
+
+Currently, the C test covers the entire H5Part API and the Fortran test is
+still in development.
+
+Benchmark Utilities
+-------------------
+
+Two benchmarking utilities, H5PartBench and H5BlockBench, have been added to
+the tools collection. Both require the parallel library and have functionality
+and syntax similar to the IOR benchmark:
+
+  http://sourceforge.net/projects/ior-sio/
+
+File Mode Flags
+---------------
+
+Previously, the only flags used were H5PART_READ, H5PART_WRITE, and
+H5PART_APPEND, and these were mutually exclusive. Additional flags have been
+added to select the underlying virtual file driver (VFD) that HDF5 uses in
+parallel mode and to accommodate the lustre filesystem:
+
+H5PART_VFD_MPIPOSIX (use the MPI-POSIX driver, which bypasses MPI-IO)
+H5PART_VFD_MPIIO_IND (use MPI-IO in independent mode)
+H5PART_FS_LUSTRE (activate H5P tunings for the lustre stripe size)
+
+These flags can be specified using the typical bitwise OR method, e.g.
+
+  char flag = H5PART_WRITE | H5PART_VFD_MPIPOSIX | H5PART_FS_LUSTRE;
+
+will select write mode with these two additional options.
+
+The parallel library now defaults to using the MPI-IO collective mode driver
+(previously it used independent mode). The collective buffering algorithm in
+the Cray XT4/5 environment has been substantially improved in the last year,
+and defaulting to collective mode allows us to take advantage of these
+improvements automatically.
+
+There are also new open calls H5PartOpenAlign and H5PartOpenParallelAlign that
+take an additional 'alignment' value. This value is passed to HDF5 and used to
+pad out objects so that they align to filesystem boundaries. For instance, it
+would make sense to use the stripe size as the alignment value when writing to
+a lustre filesystem.
+
+Unified 'View' Model
+--------------------
+
+Views are now supported in both read and write mode (previously only supported
+in read mode). It is possible to specify non-sensical views: you could for
+instance specify a read view that is larger than the dataset on disk. Or you
+could create a write view that is larger than the data in memory. In those
+cases, you will encounter an error when you try to perform a read or write
+operation on a dataset.
+
+There are two new methods for selecting views. H5PartSetNumParticlesStrided
+selects a view with $n$ particles per processor, but such that the data in
+memory is expected to have a 'stride' factor. For instance, if you have
+particle data with fields $x$ and $y$ and a single array with entries
+$x1,y1,x2,y2...$, then the stride factor is 2. Striding works for both reads
+and writes and only affects the view of memory: individual fields are still
+stored as individual arrays on disk.
+
+The second new method is H5PartSetViewIndices, which allows for point
+selections of datasets. You can pass a list of indices for the points you
+want to select. This is useful, for instance, when interfacing with FastBit
+to perform queries that select a small subset of non-contiguous particles.
+
+Because views are now supported on write, it is possible to write a dataset
+using multiple 'passes' or to leave some values unwritten.
+
+Also, all views are now *inclusive*, so that a view of (0,9) corresponds
+to the 10 items 0, 1, 2, ... 9.
+
+Internal Handling of Dataspaces
+-------------------------------
+
+H5PartSetNumParticles and H5PartSetNumParticlesStrided now share the same
+HDF5 dataspace state in the H5PartFile struct with the calls that modify
+the view (H5PartSetView etc.). Previously, the memory and disk dataspaces
+were regenerated from the view on every read access, which was unnecessary.
+
+Autogeneration of API Calls
+---------------------------
+
+Python scripts have been added to automatically generate read/write call
+variants for different data types.
+
+Renamed Fortran Include
+-----------------------
+
+The automake system no longer greps the *F90.inc files to generate an include
+called 'H5Part.inc'. Instead, the *F90.inc files have been renamed to *.f90,
+and awk is used to generate an 'H5PartF.h' file (the same naming convention
+as in MPI's 'mpif.h').
+
+The change to *.f90 was necessary to facilitate integration of the Fortran
+API into doxygen. Note that the *.f90 files will not compile, nor can they
+be included directly. Simply use
+
+  include 'H5PartF.h'
+
+in your Fortran code to include all the definitions for Fortran H5Part/H5Block
+calls.
+
+64 Char Limit on Dataset Names
+------------------------------
+
+Previously, a user could overrun internal buffers for dataset names. Now, a
+fixed limit of 64 chars is imposed. Dataset names that are longer than this are
+truncated and a warning is printed. We expect that most users are using
+short canonical names like x, px, id, etc.
+
+Changes to Existing API
+-----------------------
+
+The H5BlockGetFieldInfo and H5BlockGetFieldInfoByName calls now both include
+a parameter for the 'type' of the field.
+
+
+#### H5PART 1.4 ##############################################################
+
+Error Handling
+--------------
+ Now all functions, in which an error could occure, are returning a
+value. This value is either a 64bit integer or a pointer.
+
+ A negative 64bit integer as result indicates an error. Values >= 0
+indicates successfull execution.   This is similiar to the convention
+used in UNIX system calls, but we do not return -1 but the error
+number (which is always negative).
+
+ For functions returning a pointer the NULL-pointer is used to indicate
+an error. You can call the function H5PartGetErrno() to get the error
+number.  For the time being there is no strerror(3) or perror(3)
+equivalent. 
+
+
+API Changes
+-----------
+ There are several changes in the API of H5Part. The biggest change is
+a side-effect of the implementation of strict error handling.  The
+impact to the existing C/C++ code is very small.  But now you *can*
+and *should* implement some kind of error handling.  The simplest
+error handling is to set an error handler which aborts the program as
+soon as an error occured.
+
+ The next "biggest" change is the use of H5Part types instead of "long
+long" and "double". The replacement of "long long" is "h5part_int64_t"
+and for "double" "h5part_float64_t". This change has now effect in
+Fortran.  
+
+ In some functions the argument type changed from "int" to
+"h5part_int64_t". Since on most systems "int" is a 32bit integer,
+calls to these functions must be adapted to the new API. In C/C++ the
+compiler will complain about it. But in Fortran you will *not* get an
+error message.So, you must check your Fortran code carefully.
+
+ Changes in detail (not listed are functions where only the return
+type changed from any to "h5part_int64_t"):
+
+	New API					Changes to old API
+
+	h5part_int64_t				void
+	H5PartSetNumParticles (
+		H5PartFile *f,
+		h5part_int64_t nparticles	long long
+		);
+
+	h5part_int64_t				int
+	H5PartWriteDataFloat64 (
+		H5PartFile *f,
+		char *name, 
+		h5part_float64_t *dta		double
+		);
+
+	h5part_int64_t				int
+	H5PartWriteDataInt64 (
+		H5PartFile *f,
+		char *name,
+		h5part_int64_t *dta		long long
+		);
+
+	h5part_int64_t				void
+	H5PartSetStep (
+		H5PartFile *f,
+		h5part_int64_t step		int
+		);
+
+	h5part_int64_t				void
+	H5PartSetView (
+		H5PartFile *f,
+		h5part_int64_t start,		long long
+		h5part_int64_t end		long long
+		);
+
+	h5part_int64_t				int
+	H5PartGetView (
+		H5PartFile *f,
+		h5part_int64_t *start,		long long
+		h5part_int64_t *end		long long
+		);
+
+	h5part_int64_t				int
+	H5PartReadDataFloat64 (
+		H5PartFile *f,
+		char *name,
+		h5part_float64_t *dta		double
+		);
+
+	h5part_int64_t				int
+	H5PartReadDataInt64 (
+		H5PartFile *f,
+		char *name,
+		h5part_int64_t *dta		long long
+		);
+    
+	h5part_int64_t				void
+	H5PartReadParticleStep (		
+		H5PartFile *f,
+		h5part_int64_t step,		int
+		h5part_float64_t *x,		double
+		h5part_float64_t *y,		double
+		h5part_float64_t *z,		double
+		h5part_float64_t *px,		double
+		h5part_float64_t *py,		double
+		h5part_float64_t *pz,		double
+		h5part_int64_t *id		long long
+		);
+
+New functions:
+
+	h5part_int64_t
+	H5PartSetVerbosityLevel (
+		unsigned int
+		);
+
+	h5part_int64_t
+	H5PartSetErrorHandler ( 
+		h5part_error_handler handler
+		);
+
+	h5part_int64_t
+	H5PartGetErrno (
+		void
+		);
+
+	h5part_int64_t
+	H5PartDefaultErrorHandler (
+		const char *funcname,
+		const h5part_int64_t eno,
+		const char *fmt,
+		...
+		);
+
+	h5part_int64_t
+	H5PartAbortErrorHandler (
+		const char *funcname,
+		const h5part_int64_t eno,
+		const char *fmt,
+		...
+		);
+
+Removed functions:
+
+	int
+	H5PartFileIsValid (
+		H5PartFile *f
+		);

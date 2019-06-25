@@ -1471,6 +1471,24 @@ cd ../
 fi
 AC_SUBST(LIBSPATIALINDEX)
 
+#************H5hut***********
+if test -d h5hut; then
+    AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
+    AC_MSG_NOTICE([Configuring h5hut])
+    AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
+
+    cd h5hut
+    mkdir -p build
+    cd build
+    cmake -DCMAKE_C_COMPILER="${CC}" -DCMAKE_Fortran_COMPILER="${FC}" -DCMAKE_INSTALL_PREFIX=${PWD}/../.. \
+        -DUSE_PYTHON=ON -DUSE_PARALLEL=ON ..
+    if test "$?" -ne "0"; then
+       AC_MSG_ERROR([Configuration of h5hut has failed.])
+       exit -1
+    fi
+    cd ../..
+fi
+
 #*************ARPACK*********
 AC_LANG_PUSH([Fortran])
 AC_ARG_WITH(arpack-lib,
