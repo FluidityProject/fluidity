@@ -21,36 +21,36 @@ import re
 import time
 import sys
 import tempfile
-import cStringIO as StringIO
+import io as StringIO
 
-import pango
-import gobject
-import gtk
-import gtk.glade
+from gi.repository import Gtk as gtk
+from gi.repository import Gdk as gdk
+from gi.repository import GObject as gobject
+from gi.repository import Pango as pango
 
-import choice
-import config
-import datatype
-import debug
-import dialogs
-import mixedtree
-import plist
-import plugins
-import schema
-import scherror
-import tree
+from . import choice
+from . import config
+from . import datatype
+from . import debug
+from . import dialogs
+from . import mixedtree
+from . import plist
+from . import plugins
+from . import schema
+from . import scherror
+from . import tree
 
-import StringIO
-import TextBufferMarkup
+import io
+from . import TextBufferMarkup
 
-import attributewidget
-import commentwidget
-import descriptionwidget
-import databuttonswidget
-import datawidget
-import diffview
-import sliceview
-import useview
+from . import attributewidget
+from . import commentwidget
+from . import descriptionwidget
+from . import databuttonswidget
+from . import datawidget
+from . import diffview
+from . import sliceview
+from . import useview
 
 from lxml import etree
 
@@ -109,16 +109,17 @@ class Diamond:
   def __init__(self, gladefile, schemafile = None, schematron_file = None, logofile = None, input_filename = None, 
       dim_path = "/geometry/dimension", suffix=None):
     self.gladefile = gladefile
-    self.gui = gtk.glade.XML(self.gladefile)
+    self.gui = gtk.Builder()
+    self.gui.add_from_file(self.gladefile)
 
-    self.statusbar = DiamondStatusBar(self.gui.get_widget("statusBar"))
+    self.statusbar = DiamondStatusBar(self.gui.get_object("statusBar"))
     self.find      = DiamondFindDialog(self, gladefile)
-    self.popup = self.gui.get_widget("popupmenu")
+    self.popup = self.gui.get_object("popupmenu")
 
     self.add_custom_widgets()
     
-    self.plugin_buttonbox = self.gui.get_widget("plugin_buttonbox")
-    self.plugin_buttonbox.set_layout(gtk.BUTTONBOX_START)
+    self.plugin_buttonbox = self.gui.get_object("plugin_buttonbox")
+    self.plugin_buttonbox.set_layout(gtk.ButtonBoxStyle.START)
     self.plugin_buttonbox.show()
     self.plugin_buttons = []
 
@@ -149,19 +150,19 @@ class Diamond:
                     "on_group": self.on_group,
                     "on_ungroup": self.on_ungroup}
 
-    self.gui.signal_autoconnect(signals)
+    self.gui.connect_signals(signals)
 
-    self.main_window = self.gui.get_widget("mainWindow")
+    self.main_window = self.gui.get_object("mainWindow")
     self.main_window.connect("delete_event", self.on_delete)
 
     self.logofile = logofile
     if self.logofile is not None:
       for l in self.logofile:
-		  try:
-			gtk.window_set_default_icon_from_file(l)
-			break
-		  except:
-		    pass
+        try:
+          gtk.Window.set_default_icon_from_file(l)
+          break
+        except:
+          pass
 
     self.init_treemodel()
 
@@ -188,11 +189,8 @@ class Diamond:
       self.open_file(schemafile = schemafile, filename = input_filename)
 
     # Hide specific menu items
-    menu = self.gui.get_widget("menu")
+    menu = self.gui.get_object("menu")
     
-    # Disable Find
-    menu.get_children()[1].get_submenu().get_children()[0].set_property("visible", False)
-
     if schematron_file is None:
       # Disable Validate Schematron
       menu.get_children()[3].get_submenu().get_children()[1].set_property("sensitive", False)
@@ -389,14 +387,14 @@ class Diamond:
 
     if not self.saved:
       prompt_response = dialogs.prompt(self.main_window, 
-        "Unsaved data. Do you want to save the current document before continuing?", gtk.MESSAGE_WARNING, True)
+        "Unsaved data. Do you want to save the current document before continuing?", gtk.MessageType.WARNING, True)
  
-      if prompt_response == gtk.RESPONSE_YES:
+      if prompt_response == gtk.ResponseType.YES:
         if self.filename is None:
           return self.on_save_as()
         else:
           return self.on_save()
-      elif prompt_response == gtk.RESPONSE_CANCEL:
+      elif prompt_response == gtk.ResponseType.CANCEL:
         return False
 
     return True
@@ -426,12 +424,15 @@ class Diamond:
     if self.suffix is None:
       for xmlname in config.schemata:
         filter_names_and_patterns[config.schemata[xmlname][0]] = "*." + xmlname
-    elif self.suffix in config.schemata.keys():
+    elif self.suffix in list(config.schemata.keys()):
       filter_names_and_patterns[config.schemata[self.suffix][0]] = "*." + self.suffix
     else:
       filter_names_and_patterns[self.suffix] = "*." + self.suffix
 
-    filename = dialogs.get_filename(title = "Open XML file", action = gtk.FILE_CHOOSER_ACTION_OPEN, filter_names_and_patterns = filter_names_and_patterns, folder_uri = self.file_path)
+    filename = dialogs.get_filename(parent = self.main_window, title = "Open XML file", 
+                                    action = gtk.FileChooserAction.OPEN, 
+                                    filter_names_and_patterns = filter_names_and_patterns, 
+                                    folder_uri = self.file_path)
 
     if filename is not None:
       self.open_file(filename = filename)
@@ -446,7 +447,11 @@ class Diamond:
     if not self.save_continue():
       return
 
-    filename = dialogs.get_filename(title = "Open RELAX NG schema", action = gtk.FILE_CHOOSER_ACTION_OPEN, filter_names_and_patterns = {"RNG files":"*.rng"}, folder_uri = self.schemafile_path)
+    filename = dialogs.get_filename(parent = self.main_window, title = "Open RELAX NG schema", 
+                                    action = gtk.FileChooserAction.OPEN, 
+                                    filter_names_and_patterns = {"RNG files":"*.rng"}, 
+                                    folder_uri = self.schemafile_path)
+
     if filename is not None:
       self.open_file(schemafile = filename)
 
@@ -464,19 +469,19 @@ class Diamond:
       return self.on_save_as(widget)
     else:
       self.statusbar.set_statusbar("Saving ...")
-      self.main_window.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.WATCH))
+      self.main_window.get_window().set_cursor(gdk.Cursor(gdk.CursorType.WATCH))
       try:
         self.tree.write(self.filename)
       except:
         dialogs.error_tb(self.main_window, "Saving to \"" + self.filename + "\" failed")
         self.statusbar.clear_statusbar()
-        self.main_window.window.set_cursor(None)
+        self.main_window.get_window().set_cursor(None)
         return False
 
       self.set_saved(True)
 
       self.statusbar.clear_statusbar()
-      self.main_window.window.set_cursor(None)
+      self.main_window.get_window().set_cursor(None)
       return True
 
     return False
@@ -494,12 +499,15 @@ class Diamond:
     if self.suffix is None:
       for xmlname in config.schemata:
         filter_names_and_patterns[config.schemata[xmlname][0]] = "*." + xmlname
-    elif self.suffix in config.schemata.keys():
+    elif self.suffix in list(config.schemata.keys()):
       filter_names_and_patterns[config.schemata[self.suffix][0]] = "*." + self.suffix
     else:
       filter_names_and_patterns[self.suffix] = "*." + self.suffix
 
-    filename = dialogs.get_filename(title = "Save XML file", action = gtk.FILE_CHOOSER_ACTION_SAVE, filter_names_and_patterns = filter_names_and_patterns, folder_uri = self.file_path)
+    filename = dialogs.get_filename(parent = self.main_window, title = "Save XML file", 
+                                    action = gtk.FileChooserAction.SAVE, 
+                                    filter_names_and_patterns = filter_names_and_patterns, 
+                                    folder_uri = self.file_path)
 
     if filename is not None:
       # Check that the selected file has a file extension. If not, add a .xml extension.
@@ -508,11 +516,11 @@ class Diamond:
 
       # Save the file
       self.statusbar.set_statusbar("Saving ...")
-      self.main_window.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.WATCH))
+      self.main_window.get_window().set_cursor(gdk.Cursor(gdk.CursorType.WATCH))
       self.tree.write(filename)
       self.set_saved(True, filename)
       self.statusbar.clear_statusbar()
-      self.main_window.window.set_cursor(None)
+      self.main_window.get_window().set_cursor(None)
       return True
 
     return False
@@ -553,7 +561,7 @@ class Diamond:
     return
 
   def on_display_properties_toggled(self, widget=None):
-    optionsFrame = self.gui.get_widget("optionsFrame")
+    optionsFrame = self.gui.get_object("optionsFrame")
     optionsFrame.set_property("visible", not optionsFrame.get_property("visible"))
     return
 
@@ -624,7 +632,7 @@ class Diamond:
     if self.logofile is not None:
       for l in self.logofile:
         try:
-          logo = gtk.gdk.pixbuf_new_from_file(l)
+          logo = gdk.pixbuf_new_from_file(l)
           about.set_logo(logo)
           break
         except:
@@ -651,8 +659,8 @@ class Diamond:
     iter = self.treestore.get_iter(path)
     active_tree = self.treestore.get_value(iter, 1)
     name = self.get_spudpath(active_tree)
-    clipboard = gtk.clipboard_get()
-    clipboard.set_text(name)
+    clipboard = gtk.Clipboard.get(gdk.SELECTION_CLIPBOARD)
+    clipboard.set_text(name, -1)
     clipboard.store()
 
   def _get_focus_widget(self, parent):
@@ -660,7 +668,7 @@ class Diamond:
     Gets the widget that is a child of parent with the focus.
     """
     focus = parent.get_focus_child()
-    if focus is None or (focus.flags() & gtk.HAS_FOCUS):
+    if focus is None or focus.has_focus():
       return focus
     else:
       return self._get_focus_widget(focus)
@@ -693,11 +701,11 @@ class Diamond:
       node = self.selected_node    
 
     if node != None and node.active:
-      ios = StringIO.StringIO()
+      ios = io.StringIO()
       node.write(ios)
     
-      clipboard = gtk.clipboard_get()
-      clipboard.set_text(ios.getvalue())
+      clipboard = gtk.Clipboard.get(gdk.SELECTION_CLIPBOARD)
+      clipboard.set_text(ios.getvalue(), -1)
       clipboard.store()
 
       ios.close()
@@ -707,8 +715,8 @@ class Diamond:
     if self._handle_clipboard(widget, "paste"):
       return
 
-    clipboard = gtk.clipboard_get()
-    ios = StringIO.StringIO(clipboard.wait_for_text())
+    clipboard = gtk.Clipboard.get(gdk.SELECTION_CLIPBOARD)
+    ios = io.StringIO(clipboard.wait_for_text())
     
     if self.selected_iter is not None:    
       node = self.treestore.get_value(self.selected_iter, 0)
@@ -719,7 +727,7 @@ class Diamond:
       if expand:
         self.expand_tree(self.selected_iter)
 
-      newnode = self.s.read(ios, node)
+      newnode = self.s.read(io.BytesIO(ios.getvalue().encode()), node)
 
       if newnode is None:
         if expand:
@@ -759,14 +767,14 @@ class Diamond:
     else:
       dialog = gtk.FileChooserDialog(
                                      title = "Diff against",
-                                     action = gtk.FILE_CHOOSER_ACTION_OPEN,
-                                     buttons = (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+                                     action = gtk.FileChooserAction.OPEN,
+                                     buttons = (gtk.STOCK_CANCEL, gtk.ResponseType.CANCEL, gtk.STOCK_OPEN, gtk.ResponseType.OK))
 
       if path:
         dialog.set_current_folder(path)
 
       response = dialog.run()
-      if response != gtk.RESPONSE_OK:
+      if response != gtk.ResponseType.OK:
         dialog.destroy()
         return
 
@@ -791,6 +799,11 @@ class Diamond:
     useview.UseView(self.s, self.suffix)
 
   def on_slice(self, widget = None):
+
+    if self.selected_node is None:
+      self.statusbar.set_statusbar("No element selected.  Cannot slice.")
+      return
+
     if not self.selected_node.is_sliceable():
       self.statusbar.set_statusbar("Cannot slice on this element.")
       return
@@ -813,12 +826,16 @@ class Diamond:
     with the same type as the selected node.
     """
 
-    if self.selected_node == self.tree or not self.selected_iter:
+    if self.selected_node is None or self.selected_iter is None:
+      self.statusbar.set_statusbar("No element selected.  Cannot group.")
+      return
+
+    if self.selected_node == self.tree:
       self.statusbar.set_statusbar("Cannot group on this element.")
       return #Group on the entire tree... ie don't group or nothing selected
 
-    self.gui.get_widget("menuitemUngroup").show()
-    self.gui.get_widget("popupmenuitemUngroup").show()
+    self.gui.get_object("menuitemUngroup").show()
+    self.gui.get_object("popupmenuitemUngroup").show()
 
     self.groupmode = True
     node, tree = self.treestore.get(self.selected_iter, 0, 1)
@@ -857,8 +874,8 @@ class Diamond:
     Restores the treeview to normal.
     """
 
-    self.gui.get_widget("menuitemUngroup").hide()
-    self.gui.get_widget("popupmenuitemUngroup").hide()
+    self.gui.get_object("menuitemUngroup").hide()
+    self.gui.get_object("popupmenuitemUngroup").hide()
 
     self.groupmode = False
     node = self.treestore.get_value(self.selected_iter, 0)
@@ -909,15 +926,13 @@ class Diamond:
     Set up the treestore and treeview.
     """
 
-    self.treeview = optionsTree = self.gui.get_widget("optionsTree")
+    self.treeview = optionsTree = self.gui.get_object("optionsTree")
     self.treeview.connect("key_press_event", self.on_treeview_key_press)
     self.treeview.connect("button_press_event", self.on_treeview_button_press)
     self.treeview.connect("row-activated", self.on_activate_row)
     self.treeview.connect("popup_menu", self.on_treeview_popup)
 
-    self.treeview.set_property("rules-hint", True)
-
-    self.treeview.get_selection().set_mode(gtk.SELECTION_SINGLE)
+    self.treeview.get_selection().set_mode(gtk.SelectionMode.SINGLE)
     self.treeview.get_selection().connect("changed", self.on_select_row)
     self.treeview.get_selection().set_select_function(self.options_tree_select_func)
     self.options_tree_select_func_enabled = True
@@ -932,7 +947,7 @@ class Diamond:
     cellCombo.set_property("editable", True)
     cellCombo.set_property("has-entry", False)
     cellCombo.connect("changed", self.cellcombo_changed)
-    column.pack_start(cellCombo)
+    column.pack_start(cellCombo, True)
     column.set_cell_data_func(cellCombo, self.set_combobox_liststore)
 
     self.choicecell = choiceCell = gtk.CellRendererPixbuf()
@@ -945,7 +960,7 @@ class Diamond:
     self.imgcolumn = imgcolumn = gtk.TreeViewColumn("", cellPicture)
     imgcolumn.set_property("expand", False)
     imgcolumn.set_property("fixed-width", 20)
-    imgcolumn.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
+    imgcolumn.set_property("sizing", gtk.TreeViewColumnSizing.FIXED)
     imgcolumn.set_cell_data_func(cellPicture, self.set_cellpicture_cardinality)
     optionsTree.append_column(imgcolumn)
 
@@ -1134,7 +1149,7 @@ class Diamond:
 
     return
 
-  def set_cellpicture_choice(self, column, cell, treemodel, iter):
+  def set_cellpicture_choice(self, column, cell, treemodel, iter, data=None):
     """
     This hook function sets up the other gtk.CellRendererPixbuf, the one that gives
     the clue to the user whether this is a choice or not.
@@ -1148,7 +1163,7 @@ class Diamond:
 
     return
 
-  def set_cellpicture_cardinality(self, column, cell, treemodel, iter):
+  def set_cellpicture_cardinality(self, column, cell, treemodel, iter, data=None):
     """
     This hook function sets up the gtk.CellRendererPixbuf on the extreme right-hand
     side for each row; this paints a plus or minus or nothing depending on whether
@@ -1244,7 +1259,7 @@ class Diamond:
       response = dialogs.prompt(self.main_window, "Are you sure you want to delete this node?")
 
     # not A or B == A implies B
-    if not confirm or response == gtk.RESPONSE_YES:
+    if not confirm or response == gtk.ResponseType.YES:
       parent_tree.delete_child_by_ref(choice_or_tree)
       self.remove_children(iter)
       self.treestore.remove(iter)
@@ -1279,8 +1294,8 @@ class Diamond:
       new_tree = parent_tree.add_inactive_instance(choice_or_tree)
       liststore = self.create_liststore(new_tree)
       self.expand_treestore(iter)
-      iter = self.treestore.insert_after(
-        None, iter, [new_tree, new_tree.get_current_tree(), liststore])
+      iter = self.treestore.insert_after(self.treestore.iter_parent(iter), iter, 
+                                         [new_tree, new_tree.get_current_tree(), liststore])
       attrid = new_tree.connect("on-set-attr", self.on_set_attr, self.treestore.get_path(iter))
       dataid = new_tree.connect("on-set-data", self.on_set_data, self.treestore.get_path(iter))
       self.signals[new_tree] = (attrid, dataid)
@@ -1289,7 +1304,7 @@ class Diamond:
     parent_tree.recompute_validity()
     return
 
-  def options_tree_select_func(self, info = None):
+  def options_tree_select_func(self, selection, model, path, is_selected, data = None):
     """
     Called when the user selected a new item in the treeview. Prevents changing of
     node and attempts to save data if appropriate.
@@ -1315,13 +1330,13 @@ class Diamond:
     Called when treeview intercepts a key press. Collapse and expand rows.
     """
 
-    if event.keyval == gtk.keysyms.Right:
+    if event.keyval == gdk.KEY_Right:
       self.treeview.expand_row(self.get_selected_row(), open_all = False)
 
-    if event.keyval == gtk.keysyms.Left:
+    if event.keyval == gdk.KEY_Left:
       self.treeview.collapse_row(self.get_selected_row())
 
-    if event.keyval == gtk.keysyms.Delete:
+    if event.keyval == gdk.KEY_Delete:
        self.collapse_tree(self.treestore.get_iter(self.get_selected_row()))
        self.on_select_row()
  
@@ -1367,7 +1382,7 @@ class Diamond:
     return
 
   def show_popup(self, func, button, time):
-    self.popup.popup(None, None, func, button, time)
+    self.popup.popup(None, None, func, None, button, time)
     return
 
   def on_select_row(self, selection=None):
@@ -1469,12 +1484,12 @@ class Diamond:
     self.plugin_buttonbox.add(button)
 
   def plugin_handler(self, widget, plugin):
-    f = StringIO.StringIO()
+    f = io.StringIO()
     self.tree.write(f)
     xml = f.getvalue()
     xml = plugin.execute(xml, self.current_xpath)
     if xml:
-      ios = StringIO.StringIO(xml)
+      ios = io.StringIO(xml)
 
       try:
         tree_read = self.s.read(filename)
@@ -1543,12 +1558,13 @@ class Diamond:
 
     return
 
-  def cellcombo_changed(self, combo, tree_path, combo_iter):
+  def cellcombo_changed(self, combo, tree_path_string, combo_iter):
     """
     This is called when a cellcombo on the left-hand treeview is edited,
     i.e. the user chooses between more than one possible choice.
     """
 
+    tree_path = gtk.TreePath.new_from_string(tree_path_string)
     tree_iter = self.treestore.get_iter(tree_path)
     choice = self.treestore.get_value(tree_iter, 0)
 
@@ -1758,7 +1774,7 @@ class Diamond:
     elif isinstance(choice_or_tree, choice.Choice):
       if self.choice_or_tree_matches(text, choice_or_tree.get_current_tree(), False):
         return True
-      elif recurse and self.find.search_gui.get_widget("searchInactiveChoiceSubtreesCheckButton").get_active():
+      elif recurse and self.find.search_gui.get_object("searchInactiveChoiceSubtreesCheckButton").get_active():
         for opt in choice_or_tree.choices():
           if not search_active_subtrees and opt is choice_or_tree.get_current_tree():
             continue
@@ -1767,10 +1783,10 @@ class Diamond:
           if self.choice_or_tree_matches(text, opt, recurse, True):
             return True
     else:
-      if self.get_painted_tree(choice_or_tree).matches(text, self.find.search_gui.get_widget("caseSensitiveCheckButton").get_active()):
+      if self.get_painted_tree(choice_or_tree).matches(text, self.find.search_gui.get_object("caseSensitiveCheckButton").get_active()):
         return True
       else:
-        if self.find.search_gui.get_widget("caseSensitiveCheckButton").get_active():
+        if self.find.search_gui.get_object("caseSensitiveCheckButton").get_active():
           text_re = re.compile(text)
         else:
           text_re = re.compile(text, re.IGNORECASE)
@@ -1819,7 +1835,7 @@ class Diamond:
     Adds custom python widgets that aren't easily handeled by glade.
     """
     
-    optionsFrame = self.gui.get_widget("optionsFrame")
+    optionsFrame = self.gui.get_object("optionsFrame")
 
     vpane1 = gtk.VPaned()
     vpane2 = gtk.VPaned()
@@ -1833,14 +1849,14 @@ class Diamond:
     vpane1.pack1(self.description, True, False)
 
     self.attributes = attributewidget.AttributeWidget()
-    vbox.pack_start(self.attributes, True, True)
+    vbox.pack_start(self.attributes, True, True, 0)
 
     databuttons = databuttonswidget.DataButtonsWidget()
-    vbox.pack_end(databuttons, False)
+    vbox.pack_end(databuttons, False, True, 0)
     
     self.data = datawidget.DataWidget()
     self.data.set_buttons(databuttons)
-    vbox.pack_end(self.data, True, True)
+    vbox.pack_end(self.data, True, True, 0)
 
     self.comment = commentwidget.CommentWidget()
     vpane2.pack2(self.comment, True, False)
@@ -1861,7 +1877,7 @@ class Diamond:
 
     self.comment.update(self.selected_node)
 
-    self.gui.get_widget("optionsFrame").queue_resize()
+    self.gui.get_object("optionsFrame").queue_resize()
     
     return
 
@@ -1926,7 +1942,7 @@ class DiamondFindDialog:
 
     try:
       # get the iter of the next tree that matches
-      iter = self.search_generator.next()
+      iter = next(self.search_generator)
       path = self.parent.treestore.get_path(iter)
       # scroll down to it, expand it, and select it
       self.parent.treeview.expand_to_path(path)

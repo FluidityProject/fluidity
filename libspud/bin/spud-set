@@ -10,7 +10,7 @@ def not_comment(x):
   return not 'comment' in x.tag
 
 if len(sys.argv) != 4:
-  print "Usage: %s filename xpath new_value" % sys.argv[0]
+  print("Usage: %s filename xpath new_value" % sys.argv[0])
   sys.exit(1)
 
 # The spud file to modify

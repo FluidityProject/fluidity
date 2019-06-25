@@ -15,7 +15,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
 
-import plist
+from . import plist
 
 def print_type(datatype, bracket = True):
   """
@@ -43,7 +43,8 @@ def print_type(datatype, bracket = True):
 
     datatype_string = str(datatype)
 
-    if datatype_string[:7] == "<type '" and datatype_string[len(datatype_string) - 2:] == "'>":
+    if (datatype_string[:8] == "<class '" and datatype_string[len(datatype_string) - 2:] == "'>") or \
+       (datatype_string[:7] == "<type '" and datatype_string[len(datatype_string) - 2:] == "'>"):
       value_type_split = datatype_string.split("'")
       return familiar_type(value_type_split[1])
 
