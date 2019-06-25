@@ -15,18 +15,18 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
 
-import gobject
-import gtk
+from gi.repository import GObject as gobject
+from gi.repository import Gtk as gtk
 
-import attributewidget
-import databuttonswidget
-import datawidget
-import mixedtree
+from . import attributewidget
+from . import databuttonswidget
+from . import datawidget
+from . import mixedtree
 
 class SliceView(gtk.Window):
   
-  __gsignals__ = { "on-store" : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ()),
-                   "update-name"  : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())}
+  __gsignals__ = { "on-store" : (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, ()),
+                   "update-name"  : (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, ())}
 
   def __init__(self, parent):
     gtk.Window.__init__(self)
@@ -40,16 +40,16 @@ class SliceView(gtk.Window):
     self.vbox = gtk.VBox()
 
     scrolledWindow = gtk.ScrolledWindow()
-    scrolledWindow.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+    scrolledWindow.set_policy(gtk.PolicyType.NEVER, gtk.PolicyType.AUTOMATIC)
     scrolledWindow.add_with_viewport(self.vbox)
 
     self.databuttons = databuttonswidget.DataButtonsWidget()
 
     self.statusbar = gtk.Statusbar()
 
-    mainvbox.pack_start(scrolledWindow, True)
-    mainvbox.pack_start(self.databuttons, False)
-    mainvbox.pack_start(self.statusbar, False)
+    mainvbox.pack_start(scrolledWindow, True, True, 0)
+    mainvbox.pack_start(self.databuttons, False, True, 0)
+    mainvbox.pack_start(self.statusbar, False, True, 0)
 
     self.add(mainvbox)
     self.show_all()
@@ -60,7 +60,7 @@ class SliceView(gtk.Window):
       self.destroy()
 
     for n in nodes:
-      self.vbox.pack_start(self.control(n))
+      self.vbox.pack_start(self.control(n), True, True, 0)
 
     maxwidth = 0
     for child in self.vbox.get_children():
@@ -100,9 +100,9 @@ class SliceView(gtk.Window):
     attributes.connect("update-name", self.update_name)
     attributes.update(node)
 
-    hbox.pack_start(label)
-    hbox.pack_start(data)
-    hbox.pack_start(attributes)
+    hbox.pack_start(label, True, True, 0)
+    hbox.pack_start(data, True, True, 0)
+    hbox.pack_start(attributes, True, True, 0)
     
     hbox.show_all()
 

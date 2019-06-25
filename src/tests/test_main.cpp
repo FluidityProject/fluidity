@@ -38,12 +38,12 @@ extern "C"{
 
 int main(int argc, char **argv) {
 #ifdef HAVE_MPI
-  MPI_Init(&argc, &argv);
+  MPI::Init(argc, argv);
   chdir(getenv("PWD"));
 #endif
   TESTNAME();
 #ifdef HAVE_MPI
-  MPI_Finalize();
+  MPI::Finalize();
 #endif
 
   return 0;

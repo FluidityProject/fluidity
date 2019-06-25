@@ -19,14 +19,14 @@ from getopt import getopt
 import sys
 import os
 from lxml import etree
-from diff import diff
+from .diff import diff
  
 def __display_help():
   """
   Prints usage information to standard output.
   """
 
-  print "\n".join(["Usage: dxdiff [OPTIONS] ... [FILE1] [FILE2]",
+  print("\n".join(["Usage: dxdiff [OPTIONS] ... [FILE1] [FILE2]",
                    "", 
                    "An XML aware diff tool. [FILE1] and [FILE2] are the XML files to be compared.",
                    "[FILE1] should be the old file.",
@@ -34,7 +34,7 @@ def __display_help():
                    "Options:", 
                    ""
                    "-h               Display this message", 
-                   ""])
+                   ""]))
 
 def __main():
   """
@@ -65,13 +65,13 @@ def __main():
   try:
     os.stat(file1)
   except OSError:
-    print "Could not find " + file1 + "!"
+    print("Could not find " + file1 + "!")
     sys.exit(1)
 
   try:
     os.stat(file2)
   except OSError:
-    print "Could not find " + file2 + "!"
+    print("Could not find " + file2 + "!")
     sys.exit(1)
 
   xmlold = etree.parse(file1)
@@ -79,7 +79,7 @@ def __main():
 
   editscript = diff(xmlold, xmlnew)
   if ("s", "") not in opts:
-    print editscript
+    print(editscript)
   if output_file is not None:
     editscript.write(output_file)
 

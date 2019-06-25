@@ -15,22 +15,24 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
 
-import gobject
-import gtk
+import sys
+from gi.repository import GObject as gobject
+from gi.repository import Gtk as gtk
+from gi.repository import Pango as pango
 
-import datatype
-import dialogs
+from . import datatype
+from . import dialogs
 
 class AttributeWidget(gtk.Frame):
 
-  __gsignals__ = { "on-store" : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ()),
-                   "update-name"  : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())}
+  __gsignals__ = { "on-store" : (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, ()),
+                   "update-name"  : (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, ())}
 
   def __init__(self):
     gtk.Frame.__init__(self)
 
     scrolledWindow = gtk.ScrolledWindow()
-    scrolledWindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+    scrolledWindow.set_policy(gtk.PolicyType.AUTOMATIC, gtk.PolicyType.AUTOMATIC)
 
     treeview = self.treeview = gtk.TreeView()
 
@@ -38,24 +40,24 @@ class AttributeWidget(gtk.Frame):
     treeview.set_model(model)
     treeview.connect("motion-notify-event", self.treeview_mouse_over)
 
-    key_renderer = gtk.CellRendererText()
+    self.key_renderer = key_renderer = gtk.CellRendererText()
     key_renderer.set_property("editable", False)
 
     column1 = gtk.TreeViewColumn("Name", key_renderer, text = 0)
     column1.set_cell_data_func(key_renderer, self.key_data_func)
     column1.set_property("min-width", 75)
 
-    entry_renderer = gtk.CellRendererText()
+    self.entry_renderer = entry_renderer = gtk.CellRendererText()
     entry_renderer.connect("edited", self.entry_edited)
     entry_renderer.connect("editing-started", self.entry_edit_start)
 
-    combo_renderer = gtk.CellRendererCombo()
+    self.combo_renderer = combo_renderer = gtk.CellRendererCombo()
     combo_renderer.set_property("text-column", 0)
     combo_renderer.connect("edited", self.combo_selected)
     combo_renderer.connect("editing-started", self.combo_edit_start)
 
     column2 = gtk.TreeViewColumn("Value", entry_renderer, text = 1)
-    column2.pack_start(combo_renderer)
+    column2.pack_start(combo_renderer, True)
     column2.set_attributes(combo_renderer, text = 1)
     column2.set_cell_data_func(entry_renderer, self.entry_data_func)
     column2.set_cell_data_func(combo_renderer, self.combo_data_func)
@@ -77,7 +79,7 @@ class AttributeWidget(gtk.Frame):
     label.set_markup("<b>Attributes</b>")
 
     self.set_label_widget(label)
-    self.set_shadow_type(gtk.SHADOW_NONE)
+    self.set_shadow_type(gtk.ShadowType.NONE)
     self.add(scrolledWindow)
 
   def update(self, node):
@@ -91,7 +93,7 @@ class AttributeWidget(gtk.Frame):
     else:
       self.set_property("visible", True)
 
-      for key in node.attrs.keys():
+      for key in list(node.attrs.keys()):
         model = self.treeview.get_model()
         cell_model = gtk.ListStore(gobject.TYPE_STRING)
 
@@ -159,7 +161,7 @@ class AttributeWidget(gtk.Frame):
 
     return
 
-  def key_data_func(self, col, cell_renderer, model, iter):
+  def key_data_func(self, col, cell_renderer, model, iter, data=None):
     """
     Attribute name data function. Sets the cell renderer text colours.
     """
@@ -175,7 +177,7 @@ class AttributeWidget(gtk.Frame):
 
     return
 
-  def entry_data_func(self, col, cell_renderer, model, iter):
+  def entry_data_func(self, col, cell_renderer, model, iter, data=None):
     """
     Attribute text data function. Hides the renderer if a combo box is required,
     and sets colours and editability otherwise.
@@ -200,7 +202,7 @@ class AttributeWidget(gtk.Frame):
 
     return
 
-  def combo_data_func(self, col, cell_renderer, model, iter):
+  def combo_data_func(self, col, cell_renderer, model, iter, data=None):
     """
     Attribute combo box data function. Hides the renderer if a combo box is not
     required, and sets the combo box options otherwise. Adds an entry if required.
@@ -226,7 +228,7 @@ class AttributeWidget(gtk.Frame):
 
     return
 
-  def icon_data_func(self, col, cell_renderer, model, iter):
+  def icon_data_func(self, col, cell_renderer, model, iter, data=None):
     """
     Attribute icon data function. Used to add downward pointing arrows for combo
     attributes, for consistency with the LHS.

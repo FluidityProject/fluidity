@@ -15,12 +15,13 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
 
-import gobject
-import gtk
+from gi.repository import GObject as gobject
+from gi.repository import Gtk as gtk
+from gi.repository import GLib as glib
 import os
 import threading
 
-import schemausage
+from . import schemausage
 
 RELAXNGNS = "http://relaxng.org/ns/structure/1.0"
 RELAXNG = "{" + RELAXNGNS + "}"
@@ -32,11 +33,11 @@ class UseView(gtk.Window):
 
     if folder is None:
       dialog = gtk.FileChooserDialog(title = "Input directory",
-                                   action = gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
-                                   buttons = (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+                                   action = gtk.FileChooserAction.SELECT_FOLDER,
+                                   buttons = (gtk.STOCK_CANCEL, gtk.ResponseType.CANCEL, gtk.STOCK_OPEN, gtk.ResponseType.OK))
 
       response = dialog.run()
-      if response != gtk.RESPONSE_OK:
+      if response != gtk.ResponseType.OK:
         dialog.destroy()
         return
 
@@ -58,16 +59,16 @@ class UseView(gtk.Window):
     vbox = gtk.VBox()
 
     scrolledwindow = gtk.ScrolledWindow()
-    scrolledwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+    scrolledwindow.set_policy(gtk.PolicyType.AUTOMATIC, gtk.PolicyType.AUTOMATIC)
 
     self.treeview = gtk.TreeView()
 
-    self.treeview.get_selection().set_mode(gtk.SELECTION_SINGLE)
+    self.treeview.get_selection().set_mode(gtk.SelectionMode.SINGLE)
 
     # Node column
     celltext = gtk.CellRendererText()
     column = gtk.TreeViewColumn("Node", celltext)
-    column.set_cell_data_func(celltext, self.set_celltext)
+    column.set_cell_data_func(celltext, self.set_celltext, None)
 
     self.treeview.append_column(column)
 
@@ -77,10 +78,10 @@ class UseView(gtk.Window):
     self.treeview.set_enable_search(False)
 
     scrolledwindow.add(self.treeview)
-    vbox.pack_start(scrolledwindow)
+    vbox.pack_start(scrolledwindow, True, True, 0)
 
     self.statusbar = gtk.Statusbar()
-    vbox.pack_end(self.statusbar, expand = False)
+    vbox.pack_end(self.statusbar, False, True, 0)
     self.add(vbox)
 
   def __set_treestore(self, node):
@@ -158,19 +159,19 @@ class UseView(gtk.Window):
     self.mapping = {}
 
     def async_update(self, start, schema, paths, context):
-      gtk.idle_add(self.statusbar.push, context, "Parsing schema")
+      glib.idle_add(self.statusbar.push, context, "Parsing schema")
       self.__set_treestore(start[0])
-      gtk.idle_add(self.statusbar.push, context, "Schema parsed... finding usage")
+      glib.idle_add(self.statusbar.push, context, "Schema parsed... finding usage")
       self.__set_useage(schemausage.find_unusedset(schema, paths))
-      gtk.idle_add(self.statusbar.push, context, "Usage found")
-      self.__floodfill(self.treestore.get_iter_root())
-      gtk.idle_add(self.statusbar.push, context, "")
-      gtk.idle_add(self.treeview.set_model, self.treestore)
+      glib.idle_add(self.statusbar.push, context, "Usage found")
+      self.__floodfill(self.treestore.get_iter_first())
+      glib.idle_add(self.statusbar.push, context, "")
+      glib.idle_add(self.treeview.set_model, self.treestore)
 
     t = threading.Thread(target = async_update, args = (self, start, schema, paths, self.statusbar.get_context_id("update")))
     t.start()
 
-  def set_celltext(self, column, cell, model, iter):
+  def set_celltext(self, column, cell, model, iter, data=None):
     tag, useage = model.get(iter, 0, 1)
     cell.set_property("text", tag)
 

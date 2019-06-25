@@ -54,7 +54,7 @@ assert(libspud.get_option(tensor_path)==[[5.0, 6.0, 2.0],[7.0, 8.0, 1.0]])
 try:
   libspud.add_option('/foo')
   assert False
-except libspud.SpudNewKeyWarning, e:
+except libspud.SpudNewKeyWarning as e:
   pass
 
 assert libspud.option_count('/foo') == 1
@@ -65,7 +65,7 @@ assert libspud.get_option('/problem_type') == "helloworld"
 try:
   libspud.set_option_attribute('/foo/bar', 'foobar')
   assert False
-except libspud.SpudNewKeyWarning, e:
+except libspud.SpudNewKeyWarning as e:
   pass
 
 assert libspud.get_option('/foo/bar') == "foobar"
@@ -76,20 +76,20 @@ assert libspud.option_count('/foo') == 0
 try:
   libspud.get_option('/foo')
   assert False
-except libspud.SpudKeyError, e:
+except libspud.SpudKeyError as e:
   pass
 
 try:
   libspud.get_option('/geometry')
   assert False
-except libspud.SpudTypeError, e:
+except libspud.SpudTypeError as e:
   pass
 
 libspud.write_options('test_out.flml')
 
 try:
   libspud.set_option('/test', 4.3)
-except libspud.SpudNewKeyWarning, e:
+except libspud.SpudNewKeyWarning as e:
   pass
 
 assert libspud.get_option('/test') == 4.3
@@ -117,8 +117,8 @@ assert libspud.get_option('/test') == [2.3,3.3]
 try:
   libspud.set_option('/test')
   assert False
-except libspud.SpudError, e:
+except libspud.SpudError as e:
   pass
   
 
-print "All tests passed!"
+print("All tests passed!")
