@@ -12,10 +12,9 @@ mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian-4th-C lagrangian-4th-C-f
   </problem_definition>
   <variables>
     <variable name="ab_convergence" language="python">
-from fluidity_tools import stat_parser
 import numpy as np 
-from numpy import zeros,fromfile
-from math import sqrt, log
+from numpy import zeros,fromfile,sqrt,sum,log10
+from H5hutpy import *
 
 X=np.zeros(100,float)
 Y=np.zeros(100,float)
@@ -27,39 +26,50 @@ for i in range(0,100):
     X[i]=X_in[i+10]
     Y[i]=Y_in[i+10]
 
-sa = stat_parser('lagrangian_4th_A.detectors')
 last_locations_errora = zeros((2,100))
-lsa = 0
-for i in range(100):
-    emaga = 0
-    name = 'Chris_' + str(i+1).zfill(3)
-    last_locations_errora[0,i] = sa[name]['position'][0][-1] - X[i]
-    last_locations_errora[1,i] = sa[name]['position'][1][-1] - Y[i]
-    emaga = sqrt(last_locations_errora[0,i]**2 + last_locations_errora[1,i]**2)
-    lsa = lsa + emaga**2
+    
+f = H5OpenFile("lagrangian_4th_A.particles.Chris.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
+nsteps = H5GetNumSteps(f)
+H5SetStep(f, nsteps-1)
+ids = np.empty(100, dtype='int32')
+H5PartReadDataInt32(f, 'id', ids)
+pos = np.empty((2,100), dtype='float64')
+H5PartReadDataFloat64(f, 'x', pos[0,:])
+H5PartReadDataFloat64(f, 'y', pos[1,:])
+idx = np.argsort(ids)
+pos = pos[:,idx]
+last_locations_errora[0,:] = pos[0,:] - X[:]
+last_locations_errora[1,:] = pos[1,:] - Y[:]
+
+lsa = sum(sqrt(last_locations_errora[0,:]**2 + last_locations_errora[1,:]**2)**2)
 l2_norm_a=sqrt(lsa)
 
-sb = stat_parser('lagrangian_4th_B.detectors')
 last_locations_errorb = zeros((2,100))
-lsb = 0
-for i in range(100):
-    emagb = 0
-    name = 'Chris_' + str(i+1).zfill(3)
-    last_locations_errorb[0,i] = sb[name]['position'][0][-1] - X[i]
-    last_locations_errorb[1,i] = sb[name]['position'][1][-1] - Y[i]
-    emagb = sqrt(last_locations_errorb[0,i]**2 + last_locations_errorb[1,i]**2)
-    lsb = lsb + emagb**2
+
+f = H5OpenFile("lagrangian_4th_B.particles.Chris.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
+nsteps = H5GetNumSteps(f)
+H5SetStep(f, nsteps-1)
+ids = np.empty(100, dtype='int32')
+H5PartReadDataInt32(f, 'id', ids)
+pos = np.empty((2,100), dtype='float64')
+H5PartReadDataFloat64(f, 'x', pos[0,:])
+H5PartReadDataFloat64(f, 'y', pos[1,:])
+idx = np.argsort(ids)
+pos = pos[:,idx]
+last_locations_errorb[0,:] = pos[0,:] - X[:]
+last_locations_errorb[1,:] = pos[1,:] - Y[:]
+
+lsb = sum(sqrt(last_locations_errorb[0,:]**2 + last_locations_errorb[1,:]**2)**2)
 l2_norm_b=sqrt(lsb)
 
 ab_ratio = l2_norm_a/l2_norm_b
-ab_convergence = log(ab_ratio, 10)
+ab_convergence = log10(ab_ratio)
     </variable>
     
     <variable name="bc_convergence" language="python">
-from fluidity_tools import stat_parser
 import numpy as np 
-from numpy import zeros,fromfile
-from math import sqrt, log
+from numpy import zeros,fromfile,sqrt,sum,log10
+from H5hutpy import *
 
 X=np.zeros(100,float)
 Y=np.zeros(100,float)
@@ -71,32 +81,44 @@ for i in range(0,100):
     X[i]=X_in[i+10]
     Y[i]=Y_in[i+10]
 
-sb = stat_parser('lagrangian_4th_B.detectors')
 last_locations_errorb = zeros((2,100))
-lsb = 0
-for i in range(100):
-    emagb = 0
-    name = 'Chris_' + str(i+1).zfill(3)
-    last_locations_errorb[0,i] = sb[name]['position'][0][-1] - X[i]
-    last_locations_errorb[1,i] = sb[name]['position'][1][-1] - Y[i]
-    emagb = sqrt(last_locations_errorb[0,i]**2 + last_locations_errorb[1,i]**2)
-    lsb = lsb + emagb**2
+    
+f = H5OpenFile("lagrangian_4th_B.particles.Chris.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
+nsteps = H5GetNumSteps(f)
+H5SetStep(f, nsteps-1)
+ids = np.empty(100, dtype='int32')
+H5PartReadDataInt32(f, 'id', ids)
+pos = np.empty((2,100), dtype='float64')
+H5PartReadDataFloat64(f, 'x', pos[0,:])
+H5PartReadDataFloat64(f, 'y', pos[1,:])
+idx = np.argsort(ids)
+pos = pos[:,idx]
+last_locations_errorb[0,:] = pos[0,:] - X[:]
+last_locations_errorb[1,:] = pos[1,:] - Y[:]
+
+lsb = sum(sqrt(last_locations_errorb[0,:]**2 + last_locations_errorb[1,:]**2)**2)
 l2_norm_b=sqrt(lsb)
 
-sc = stat_parser('lagrangian_4th_C.detectors')
 last_locations_errorc = zeros((2,100))
-lsc = 0
-for i in range(100):
-    emagc = 0
-    name = 'Chris_' + str(i+1).zfill(3)
-    last_locations_errorc[0,i] = sc[name]['position'][0][-1] - X[i]
-    last_locations_errorc[1,i] = sc[name]['position'][1][-1] - Y[i]
-    emagc = sqrt(last_locations_errorc[0,i]**2 + last_locations_errorc[1,i]**2)
-    lsc = lsc + emagc**2
+
+f = H5OpenFile("lagrangian_4th_C.particles.Chris.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
+nsteps = H5GetNumSteps(f)
+H5SetStep(f, nsteps-1)
+ids = np.empty(100, dtype='int32')
+H5PartReadDataInt32(f, 'id', ids)
+pos = np.empty((2,100), dtype='float64')
+H5PartReadDataFloat64(f, 'x', pos[0,:])
+H5PartReadDataFloat64(f, 'y', pos[1,:])
+idx = np.argsort(ids)
+pos = pos[:,idx]
+last_locations_errorc[0,:] = pos[0,:] - X[:]
+last_locations_errorc[1,:] = pos[1,:] - Y[:]
+
+lsc = sum(sqrt(last_locations_errorc[0,:]**2 + last_locations_errorc[1,:]**2)**2)
 l2_norm_c=sqrt(lsc)
 
 bc_ratio = l2_norm_b/l2_norm_c
-bc_convergence = log(bc_ratio, 10)
+bc_convergence = log10(bc_ratio)
     </variable>
   </variables>
 
