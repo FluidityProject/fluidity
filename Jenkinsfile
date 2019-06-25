@@ -1,7 +1,7 @@
 pipeline {
     agent { 
         docker {
-            image "fluidity/baseimages:xenial"
+            image "angusgibson/fluidity:disco"
             label 'dockerhost'
         } 
     }
@@ -12,7 +12,7 @@ pipeline {
     stages {
         stage('Configuring') {   
             steps { 
-                sh './configure --enable-2d-adaptivity' 
+                sh 'FCFLAGS=-I/usr/lib/x86_64-linux-gnu/fortran/gfortran-mod-15/zoltan ./configure --enable-2d-adaptivity' 
             }
         }    
         stage('Building') {       
