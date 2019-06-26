@@ -1,7 +1,7 @@
 input: clean preprocess
 
 preprocess:
-	gmsh -2 src/domain.geo -o src/domain.msh
+	gmsh -format msh2 -2 src/domain.geo -o src/domain.msh
 
 run:
 	../../bin/fluidity -v2 -l swe_dam_break_2d.flml

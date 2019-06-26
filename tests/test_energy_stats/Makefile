@@ -8,5 +8,5 @@ clean:
 	rm -rf *flredecomp*
 
 makemesh = echo $(1) ; \
-           gmsh -2 ./src/$(1).geo ; \
+           gmsh -format msh2 -2 ./src/$(1).geo ; \
            cp src/$(1).msh .

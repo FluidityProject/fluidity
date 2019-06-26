@@ -1,5 +1,5 @@
 input: clean
-	gmsh -2 src/channel.geo
+	gmsh -format msh2 -2 src/channel.geo
 	cp src/channel.msh .
 
 clean:

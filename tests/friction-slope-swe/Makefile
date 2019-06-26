@@ -1,5 +1,5 @@
 input: clean
-	gmsh -2 -bin src/channel.geo -o channel.msh
+	gmsh -format msh2 -2 -bin src/channel.geo -o channel.msh
 
 clean:
 	rm -f *.dat *.vtu *.pvtu *.stat *.detectors

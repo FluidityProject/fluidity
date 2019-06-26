@@ -1,6 +1,6 @@
 
 input: clean
-	gmsh -2 src/square.geo -o square.msh
+	gmsh -format msh2 -2 src/square.geo -o square.msh
 
 clean:
 	rm -f  *.ele *.edge *.node *.msh *.vtu *.stat matrixdump* *.node.bak fluidity.*

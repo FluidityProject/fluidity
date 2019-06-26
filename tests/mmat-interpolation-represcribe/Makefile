@@ -1,5 +1,5 @@
 input: clean
-	gmsh -2 src/2d_square.geo
+	gmsh -format msh2 -2 src/2d_square.geo
 	cp src/2d_square.msh .
 
 clean:

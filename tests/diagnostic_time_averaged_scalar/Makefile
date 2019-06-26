@@ -1,5 +1,5 @@
 input: clean
-	gmsh -3 src/cube-1.geo 
+	gmsh -format msh2 -3 src/cube-1.geo 
 	cp src/cube-1.msh .
 
 clean:

@@ -1,7 +1,7 @@
 input: clean preprocess
 
 preprocess:
-	gmsh -2 src/domain.geo -o src/domain.msh
+	gmsh -format msh2 -2 src/domain.geo -o src/domain.msh
 
 run:
 	../../bin/fluidity swe_tidal_flow_regular_bed.flml

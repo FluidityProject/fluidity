@@ -1,7 +1,7 @@
 include ../tools.mk
 
 input: clean
-	gmsh -3 -bin src/standing_wave.geo -o standing_wave.msh
+	gmsh -format msh2 -3 -bin src/standing_wave.geo -o standing_wave.msh
 
 clean:
 	rm -f standing_wave.stat

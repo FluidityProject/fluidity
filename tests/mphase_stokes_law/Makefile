@@ -1,6 +1,6 @@
 preprocess:
 	@echo **********Creating 2D mesh
-	gmsh -2 -o mphase_stokes_law.msh src/mphase_stokes_law.geo
+	gmsh -format msh2 -2 -o mphase_stokes_law.msh src/mphase_stokes_law.geo
 
 run:
 	@echo **********Running simulation

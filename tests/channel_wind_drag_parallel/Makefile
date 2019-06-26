@@ -1,7 +1,7 @@
 PROJECT = channel_parallel
 
 input: clean
-	gmsh -3 -o channel.msh src/channel.geo
+	gmsh -format msh2 -3 -o channel.msh src/channel.geo
 	../../bin/periodise channel_parallel.flml
 
 clean:

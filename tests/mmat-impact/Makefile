@@ -1,5 +1,5 @@
 input: clean
-	gmsh -2 src/mmat-impact.geo
+	gmsh -format msh2 -2 src/mmat-impact.geo
 	cp src/mmat-impact.msh .
 
 clean:

@@ -1,5 +1,5 @@
 input: clean
-	gmsh -2 src/column.geo
+	gmsh -format msh2 -2 src/column.geo
 	cp src/column.msh .
 
 clean:

@@ -5,7 +5,7 @@ input:	$(PROJECT).ele
 $(PROJECT).ele: $(PROJECT).msh
 
 $(PROJECT).msh: src/$(PROJECT).geo
-	gmsh -2 -o $@ $<
+	gmsh -format msh2 -2 -o $@ $<
 
 clean:
 	rm -f $(PROJECT).s $(PROJECT).stat

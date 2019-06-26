@@ -1,5 +1,5 @@
 input:
-	gmsh -2 -o unstructured.msh src/unstructured.geo
+	gmsh -format msh2 -2 -o unstructured.msh src/unstructured.geo
 	cp -r sam_output/* .
 
 clean:

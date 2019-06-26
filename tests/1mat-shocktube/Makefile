@@ -1,5 +1,5 @@
 input: clean
-	gmsh -3 src/mmat-shocktube.geo
+	gmsh -format msh2 -3 src/mmat-shocktube.geo
 	cp src/mmat-shocktube.msh .
 
 clean:

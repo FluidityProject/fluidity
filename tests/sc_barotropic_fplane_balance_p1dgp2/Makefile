@@ -5,7 +5,7 @@ MESH = square
 default: input
 
 input:
-	gmsh -2 src/$(MESH).geo
+	gmsh -format msh2 -2 src/$(MESH).geo
 	cp src/$(MESH).msh .
 
 clean: clean-mesh clean-run-debug

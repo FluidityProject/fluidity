@@ -1,5 +1,5 @@
 input: clean
-	gmsh -2 ./src/KatoPhillips-2D-periodic.geo
+	gmsh -format msh2 -2 ./src/KatoPhillips-2D-periodic.geo
 	cp src/KatoPhillips-2D-periodic.msh .
 
 clean: 

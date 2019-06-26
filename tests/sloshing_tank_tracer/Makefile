@@ -1,5 +1,5 @@
 input: clean
-	gmsh -2 src/sloshing_tank_mesh1.geo
+	gmsh -format msh2 -2 src/sloshing_tank_mesh1.geo
 	cp src/sloshing_tank_mesh1.msh .
 
 clean:

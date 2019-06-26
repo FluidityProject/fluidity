@@ -1,5 +1,5 @@
 input: clean
-	gmsh -2 src/mmat-gravity-col.geo
+	gmsh -format msh2 -2 src/mmat-gravity-col.geo
 	cp src/mmat-gravity-col.msh .
 
 clean:

@@ -1,5 +1,5 @@
 preprocess:
-	@echo **********Converting mesh from gmsh to triangle format
+	@echo **********Converting mesh from gmsh -format msh2 to triangle format
 	cp src/mphase_identical_velocities_dg.msh .
 
 run:

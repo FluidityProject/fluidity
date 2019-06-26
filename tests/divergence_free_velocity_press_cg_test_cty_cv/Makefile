@@ -1,5 +1,5 @@
 input: clean
-	gmsh -3 -bin mesh2.geo
+	gmsh -format msh2 -3 -bin mesh2.geo
 	
 
 clean:

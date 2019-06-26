@@ -1,6 +1,6 @@
 preprocess:
 	@echo **********Creating 2D mesh
-	gmsh -2 -o mphase_divergence_free_velocity.msh src/mphase_divergence_free_velocity.geo
+	gmsh -format msh2 -2 -o mphase_divergence_free_velocity.msh src/mphase_divergence_free_velocity.geo
 
 run:
 	@echo **********Running simulation

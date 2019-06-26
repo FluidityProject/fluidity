@@ -1,5 +1,5 @@
 input: clean
-	gmsh -2 src/region_id.geo
+	gmsh -format msh2 -2 src/region_id.geo
 	cp src/region_id.msh .
 
 clean:

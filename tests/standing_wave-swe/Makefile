@@ -1,7 +1,7 @@
 PROJECT = standing_wave
 
 input: clean
-	gmsh -2 -bin src/standing_wave.geo -o standing_wave.msh
+	gmsh -format msh2 -2 -bin src/standing_wave.geo -o standing_wave.msh
 
 clean:
 	rm -f *.dat *.vtu *.pvtu *.stat *.detectors

@@ -1,7 +1,7 @@
 PROJECT = channel
 
 input: clean
-	gmsh -3 -bin src/channel.geo
+	gmsh -format msh2 -3 -bin src/channel.geo
 	mv src/channel.msh .
 
 clean:

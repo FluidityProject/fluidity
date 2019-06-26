@@ -1,5 +1,5 @@
 input: clean
-	gmsh -2 ./src/box_2d.geo
+	gmsh -format msh2 -2 ./src/box_2d.geo
 	cp src/box_2d.msh .
 
 clean: 

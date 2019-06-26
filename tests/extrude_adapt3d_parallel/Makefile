@@ -1,5 +1,5 @@
 input: clean
-	gmsh -2 src/square.geo -o square.msh
+	gmsh -format msh2 -2 src/square.geo -o square.msh
 
 clean:
 	rm -fr *.msh *.halo *.vtu *.pvtu

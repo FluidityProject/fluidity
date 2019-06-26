@@ -5,7 +5,7 @@ MESH = square-cavity
 default: input
 
 msh: src/$(MESH).geo
-	gmsh -2 src/$(MESH).geo
+	gmsh -format msh2 -2 src/$(MESH).geo
 
 input: msh
 	cp src/$(MESH).msh .

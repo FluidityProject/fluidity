@@ -4,7 +4,7 @@ MESH = cube-unstructured
 default: input
 
 input: src/$(MESH).geo clean
-	gmsh -3 src/$(MESH).geo
+	gmsh -format msh2 -3 src/$(MESH).geo
 	cp src/$(MESH).msh .
 
 clean: clean-mesh clean-run

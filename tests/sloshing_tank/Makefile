@@ -1,5 +1,5 @@
 input: clean
-	cd src; gmsh -3 -bin mesh2.geo
+	cd src; gmsh -format msh2 -3 -bin mesh2.geo
 	
 
 clean:

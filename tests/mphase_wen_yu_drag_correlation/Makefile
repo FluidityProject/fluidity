@@ -1,6 +1,6 @@
 preprocess:
 	@echo **********Creating 2D mesh
-	gmsh -2 -o mphase_wen_yu_drag_correlation.msh src/mphase_wen_yu_drag_correlation.geo
+	gmsh -format msh2 -2 -o mphase_wen_yu_drag_correlation.msh src/mphase_wen_yu_drag_correlation.geo
 
 run:
 	@echo **********Running simulation

@@ -3,7 +3,7 @@ FLMLMODEL = adaptivity_preprocessing
 default: input
 
 input:
-	gmsh -2 src/box.geo -o box.msh
+	gmsh -format msh2 -2 src/box.geo -o box.msh
 
 clean: clean-mesh clean-run-debug
 clean-mesh:

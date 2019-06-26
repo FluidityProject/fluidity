@@ -1,5 +1,5 @@
 input: clean
-	gmsh -3 -o cube.msh src/cube.geo
+	gmsh -format msh2 -3 -o cube.msh src/cube.geo
 
 clean:
 	rm -rf out* cube.msh

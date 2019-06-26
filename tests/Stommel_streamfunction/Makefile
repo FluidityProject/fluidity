@@ -1,6 +1,6 @@
 input:
-	gmsh -2 -o Stommel_gyre.msh src/Stommel_gyre.geo
-	gmsh -2 -o Stommel_gyre_A.msh src/Stommel_gyre_A.geo
+	gmsh -format msh2 -2 -o Stommel_gyre.msh src/Stommel_gyre.geo
+	gmsh -format msh2 -2 -o Stommel_gyre_A.msh src/Stommel_gyre_A.geo
 
 
 clean:

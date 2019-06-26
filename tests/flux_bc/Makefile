@@ -1,7 +1,7 @@
 preprocess:
 	@echo **********Creating meshes
-	gmsh -2 -o flux_bc_2d.msh src/flux_bc_2d.geo
-	gmsh -3 -o flux_bc_3d.msh src/flux_bc_3d.geo
+	gmsh -format msh2 -2 -o flux_bc_2d.msh src/flux_bc_2d.geo
+	gmsh -format msh2 -3 -o flux_bc_3d.msh src/flux_bc_3d.geo
 
 run:
 	@echo **********Running 2D simulation

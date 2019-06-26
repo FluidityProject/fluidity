@@ -12,11 +12,11 @@ clean:
 	rm -f *.msh *.node *.ele *.face *.edge *.vtu *.log *.stat *.log-0 *.err-0 matrixdump*
 
 geos:
-	gmsh -2 src/MMS_A.geo
-	gmsh -2 src/MMS_B.geo
-	gmsh -2 src/MMS_C.geo
-	gmsh -2 src/MMS_D.geo
-	gmsh -2 src/MMS_E.geo
+	gmsh -format msh2 -2 src/MMS_A.geo
+	gmsh -format msh2 -2 src/MMS_B.geo
+	gmsh -format msh2 -2 src/MMS_C.geo
+	gmsh -format msh2 -2 src/MMS_D.geo
+	gmsh -format msh2 -2 src/MMS_E.geo
 
 setfiles:
 	python set_input_files.py
