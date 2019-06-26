@@ -18,7 +18,9 @@ RUN apt-get -y install software-properties-common
 RUN apt-add-repository -y ppa:angusg/fluidity
 
 # add fluidity deps
-RUN apt-get -y install build-essential libhdf5-openmpi-dev petsc-dev libvtk7-dev python3-dev libzoltan-dev swig python3-numpy libnetcdff-dev gmsh cmake
+RUN apt-get -y install build-essential libhdf5-openmpi-dev petsc-dev libvtk7-dev python3-dev \
+                       libzoltan-dev swig python3-numpy libnetcdff-dev gmsh cmake git fig2dev \
+                       texlive texlive-latex-extra texlive-science texlive-pstricks
 
 # make python3 the default
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.7 20
