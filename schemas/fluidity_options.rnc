@@ -1463,6 +1463,347 @@ start =
                      ## ScalarEddyViscosity is still calculated as normal.
                      element zero_reynolds_stress_tensor{ empty }?
                   }?
+               }?,
+               ## Standard k-omega (see Wilcox 1998) or k-omega SST (see Menter 2003) turbulence model.
+               ## Solves 2 additional equations for TurbulentFrequency (omega) and TurbulentKineticEnergy (k),
+               ## in order to close momentum equations.
+               ## Generates an isotropic 'eddy viscosity', added to molecular viscosity field, that
+               ## carries the influence of turbulence onto the velocity field. See the manual for details.
+               element k-omega {
+                  ## k-omega SST (Menter 2003).
+                  ## Select to use k-omega SST model.
+                  element k-omega_SST{empty}?,
+                  ## Turbulent kinetic energy (k).
+                  ## 1. Turn on diffusivity, source and absorption diagnostic fields.
+                  ## 2. Use the same mesh as Velocity.
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "TurbulentKineticEnergy" },
+                     (
+                        element prognostic {
+                           velocity_mesh_choice,
+                           prognostic_scalar_field
+                        }|
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field
+                        }
+                     )
+                  },
+                  ## TurbulentFrequency (omega).
+                  ## 1. Turn on diffusivity, source and absorption diagnostic fields.
+                  ## 2. Use the same mesh as Velocity.
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "TurbulentFrequency" },
+                     (
+                        element prognostic {
+                           velocity_mesh_choice,
+                           prognostic_scalar_field
+                        }|
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field
+                        }
+                     )
+                  },
+                  ## Set the value of the background (laminar) viscosity field here.
+                  ## Make it small to see the influence of the eddy viscosity.
+                  ## IMPORTANT: make velocity/viscosity diagnostic.
+                  element tensor_field {
+                     attribute rank { "2" },
+                     attribute name { "BackgroundViscosity" },
+                     (
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_tensor_field
+                        }|
+                        element diagnostic {
+                           velocity_mesh_choice,
+                           (
+                              sediment_concentration_dependent_viscosity_algorithm|
+                              tensor_python_diagnostic_algorithm
+                           ),
+                           diagnostic_tensor_field
+                        }
+                     )
+                  },
+                  ## Set the value of the background (laminar) diffusivity field here.
+                  ## This is used to calculate scalar field diffusivities.
+                  element tensor_field {
+                     attribute rank { "2" },
+                     attribute name { "BackgroundDiffusivity" },
+                     (
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_tensor_field
+                        }
+                     )
+                  }?,
+                  ## Eddy viscosity (turbulent diffusion of velocity).
+                  ## This is a fictitious isotropic viscosity, added to normal viscosity field, that
+                  ## carries the influence of turbulence onto the velocity field.
+                  element tensor_field {
+                     attribute rank { "2" },
+                     attribute name { "EddyViscosity" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_tensor_field
+                        }
+                     )
+                  },
+                  ## Scalar component of the eddy viscosity tensor.
+                  ## This will appear in the stat file.
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "ScalarEddyViscosity" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
+                        }|
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field
+                        }
+                     )
+                  },
+                  ## Integral length scale of the turbulence (diagnostic).
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "LengthScale" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
+                        }
+                     )
+                  },
+                  ## F_1 blending function for k-omega SST
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "F_1" },
+                     element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                     }
+                  }?,
+                  ## F_2 blending function for k-omega SST
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "F_2" },
+                     element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                     }
+                  }?,
+                  ## Grad k
+                  element vector_field {
+                     attribute rank { "0" },
+                     attribute name { "Grad_k" },
+                     element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                     }
+                  }?,
+                  ## Grad omega
+                  element vector_field {
+                     attribute rank { "0" },
+                     attribute name { "Grad_omg" },
+                     element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                     }
+                  }?,
+                  ## CD_komg
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "CD_komg" },
+                     element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                     }
+                  }?,
+                  ## Describes distance to nearest solid wall.
+                  ## Required for low_Re boundaries.
+                  ## For simple geometries the simplest method of providing this information is to use a python function.
+                  ## For complex geometries where this is not possible precursive Eikonal equation or Poisson equation
+                  ## simulations must be run using Fluidity to determine the values for this field.
+                  ## Details of how this is done can be found in:
+                  ## Tucker, P 2011: "Hybrid Hamilton/Jacobi/Poisson wall distance function model"
+                  ## Elias et al 2007: "Simple finite element-based computation of distance functions in unstructured grids"
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "DistanceToWall" },
+                     element prescribed {
+                        velocity_mesh_choice,
+                        prescribed_scalar_field
+                     }
+                  }?,
+                  ## Alpha.
+                  ## Recommended value (default): 5.0/9.0.
+                  element Alpha {real},
+                  ## Beta.
+                  ## Recommended value (default): 0.075.
+                  element Beta {real},
+                  ## Beta_Star.
+                  ## Recommended value (default): 0.09.
+                  element Beta_Star {real},
+                  ## Sigma.
+                  ## Recommended value (default): 0.5.
+                  element Sigma {real},
+                  ## Sigma_Star.
+                  ## Recommended value (default): 0.5.
+                  element Sigma_Star {real},
+                  ## a_1.[k-omega SST]
+                  ## Recommended value (default): 0.31.
+                  element a_1 {real}?,
+                  ## Beta_1.[k-omega SST]
+                  ## Recommended value (default): 0.075.
+                  element Beta_1 {real}?,
+                  ## Beta_2.[k-omega SST]
+                  ## Recommended value (default): 0.0828.
+                  element Beta_2 {real}?,
+                  ## Gamma_1.[k-omega SST]
+                  ## Recommended value (default): 0.5532.
+                  element Gamma_1 {real}?,
+                  ## Gamma_2.[k-omega SST]
+                  ## Recommended value (default): 0.4403.
+                  element Gamma_2 {real}?,
+                  ## Sigma_k1.[k-omega SST]
+                  ## Recommended value (default): 0.85034.
+                  element Sigma_k1 {real}?,
+                  ## Sigma_k2.[k-omega SST]
+                  ## Recommended value (default): 1.0.
+                  element Sigma_k2 {real}?,
+                  ## Sigma_omg1.[k-omega SST]
+                  ## Recommended value (default): 0.5.
+                  element Sigma_omg1 {real}?,
+                  ## Sigma_omg2.[k-omega SST]
+                  ## Recommended value (default): 0.85616.
+                  element Sigma_omg2 {real}?,
+                  ## Time discretisation of the source terms in the k and epsilon equations and also
+                  ## of the eddy viscosity
+                  element time_discretisation {  
+                     ## Implicit/explicit control (THETA) of source terms and eddy viscosity in
+                     ## the k-epsilon model
+                     ##  = 0.  -- explicit
+                     ##  = 0.5 -- Crank-Nicolson
+                     ##  = 1.  -- implicit
+                     element theta {real},
+                     ## Each term in the k and epsilon equations can be implemented as either a 
+                     ## source or as an absorbtion term. See the manual under 
+                     ## 'Parameterisations/Turbulent flow modelling and simulation/Reynolds Averaged Navier Stokes (RANS) Modelling/Standard k − ε Turbulence Model/Time Discretisation and Coupling' 
+                     ## for more information.
+                     element source_term_implementation { 
+                        element production_term { 'source'|'absorbtion' },
+                        element destruction_term { 'source'|'absorbtion' }
+                     }
+                  },
+                  ## The source terms in the k-epsilon model are calculated before the field is 
+                  ## solved. The process requires inversion of a mass matrix. This element contains
+                  ## options for defining how this is done. For P1 meshes mass lumping can be used,
+                  ## for other discretisations the mass matrix can not be easily inverted and so a 
+                  ## solve must be carried out, with solver options specified.
+                  element mass_terms {  
+                     (
+                        element lump_mass { empty }
+                        |
+                        element use_consistent_mass_matrix { 
+                           element solver {
+                              linear_solver_options_asym_scalar
+                           }
+                        }                     
+                     )
+                  },
+                  ## produce vtu output of individual kk and eps source terms and set prescribed 
+                  ## source terms for k and epsilon fields (for mms tests)
+                  element debugging_options{
+                     ## output fields for each of the source terms in the k-epsilon model
+                     element source_term_output_fields{
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentKineticEnergy_production_term" },
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field                        
+                           }
+                        }?,
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentKineticEnergy_destruction_term" },
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field                        
+                           }
+                        }?,
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentFrequency_production_term" },
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field                        
+                           }
+                        }?,
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentFrequency_destruction_term" },
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field                        
+                           }
+                        }?
+                     },
+                     ## Enable to apply prescribed source terms into the k and epsilon equations.
+                     ## This is useful for MMS tests
+                     element prescribed_source_terms{
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentKineticEnergyPrescribedSource" },
+                           element prescribed {
+                              velocity_mesh_choice,
+                              prescribed_scalar_field                        
+                           }
+                        }?,
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentFrequencyPrescribedSource" },
+                           element prescribed {
+                              velocity_mesh_choice,
+                              prescribed_scalar_field                        
+                           }
+                        }?
+                     },
+                     ## enabling this option disables the production term in the k and epsilon equations
+                     element disable_production_term{ empty }?,
+                     ## enabling this option disables the destruction term in the k and epsilon equation
+                     element disable_destruction_term{ empty }?,
+                     ## enabling this option enables the low-Re number damping functions regardless of whether there is
+                     ## a low-Re boundary condition
+                     element enable_lowRe_damping{ empty }?,
+                     ## Enabling this option disables feedback from the k-epsilon model back into 
+                     ## the rest of the model. Reynolds stress tensor is set to zero by zeroing 
+                     ## EddyViscosity and the added source term, based on k, in the momentum equation.
+                     ## Hence, Viscosity will always stay as the BackgroundViscosity,
+                     ## diffusivities will remain at the relevant BackgroundDiffusivity, and the 
+                     ## momentum equation will be as if there were no turbulence model present. 
+                     ## 
+                     ## ScalarEddyViscosity is still calculated as normal.
+                     element zero_reynolds_stress_tensor{ empty }?
+                  }?
                }?
             }?,
             ## Pressure

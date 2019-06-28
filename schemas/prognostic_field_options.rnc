@@ -2063,6 +2063,12 @@ scalar_equation_choice =
             attribute name { "KEpsilon" },
             equation_coefficients
          }|
+         ## Equation type for the k-omega model fields.
+         ## Note: Only works for continuous galerkin or control volume discretisations.
+         element equation {
+            attribute name { "KOmega" },
+            equation_coefficients
+         }|
          ## Equation type for the sediment bedload fields.
          ## Note: Only works for P1 discretisations.
          element equation {

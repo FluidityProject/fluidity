@@ -37,6 +37,7 @@ module momentum_diagnostic_fields
   use field_priority_lists
   use multiphase_module
   use k_epsilon, only: keps_momentum_diagnostics
+  use k_omega, only: komega_momentum_diagnostics
   use initialise_fields_module
   use multimaterial_module
   use diagnostic_fields_wrapper_new
@@ -193,6 +194,12 @@ contains
     if(have_option(trim(state(istate)%option_path)//&
          "/subgridscale_parameterisations/k-epsilon")) then
        call keps_momentum_diagnostics(state(istate))
+    end if
+
+    ! k-omega momentum diagnostics (reynolds stress tensor)
+    if(have_option(trim(state(istate)%option_path)//&
+         "/subgridscale_parameterisations/k-omega")) then
+       call komega_momentum_diagnostics(state(istate))
     end if
 
     ! clean up

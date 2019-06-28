@@ -2548,6 +2548,14 @@ Note: Only works for continuous galerkin or control volume discretisations.</a:d
         <ref name="equation_coefficients"/>
       </element>
       <element name="equation">
+        <a:documentation>Equation type for the k-omega model fields.
+Note: Only works for continuous galerkin or control volume discretisations.</a:documentation>
+        <attribute name="name">
+          <value>KOmega</value>
+        </attribute>
+        <ref name="equation_coefficients"/>
+      </element>
+      <element name="equation">
         <a:documentation>Equation type for the sediment bedload fields.
 Note: Only works for P1 discretisations.</a:documentation>
         <attribute name="name">

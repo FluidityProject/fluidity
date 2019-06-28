@@ -103,7 +103,11 @@ periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
        
   !! A list of relative paths under /material_phase[i]
   !! that are searched for additional fields to be added.
+<<<<<<< HEAD
   character(len=OPTION_PATH_LEN), dimension(20) :: additional_fields_relative=&
+=======
+  character(len=OPTION_PATH_LEN), dimension(18) :: additional_fields_relative=&
+>>>>>>> k-omega_SST
        (/ &
        "/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
        "/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
@@ -111,6 +115,9 @@ periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
        "/subgridscale_parameterisations/k-epsilon                                                           ", &
        "/subgridscale_parameterisations/k-epsilon/debugging_options/source_term_output_fields               ", &
        "/subgridscale_parameterisations/k-epsilon/debugging_options/prescribed_source_terms                 ", &
+       "/subgridscale_parameterisations/k-omega                                                             ", &
+       "/subgridscale_parameterisations/k-omega/debugging_options/source_term_output_fields                 ", &
+       "/subgridscale_parameterisations/k-omega/debugging_options/prescribed_source_terms                   ", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/fourth_order", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/wale        ", &

@@ -51,3 +51,19 @@ k_epsilon.o ../include/k_epsilon.mod: k_epsilon.F90 \
    ../include/surface_integrals.mod ../include/vector_tools.mod \
    ../include/vtk_interfaces.mod
 
+../include/komega.mod: k_omega.o
+	@true
+
+k_omega.o ../include/komega.mod: k_omega.F90 \
+   ../include/boundary_conditions.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/fetools.mod ../include/field_derivatives.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/parallel_fields.mod ../include/quadrature.mod \
+   ../include/smoothing_module.mod ../include/solvers.mod \
+   ../include/sparse_tools.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/state_fields_module.mod ../include/state_module.mod \
+   ../include/surface_integrals.mod ../include/vector_tools.mod \
+   ../include/vtk_interfaces.mod \
+   ../include/spud.mod
+
