@@ -138,14 +138,14 @@ contains
     ! Read in the nodes
     if (versionNumber%major .eq. 4) then
        if( gmshFormat == asciiFormat ) then
-          call read_nodes_coords_version_four_ascii( fd, lfilename, &
+          call read_nodes_coords_v4_ascii( fd, lfilename, &
                versionNumber, nodes )
        else
-          call read_nodes_coords_version_four_binary( fd, lfilename, &
+          call read_nodes_coords_v4_binary( fd, lfilename, &
                versionNumber, nodes )
        end if
     else
-       call read_nodes_coords_version_two( fd, lfilename, gmshFormat, nodes )
+       call read_nodes_coords_v2( fd, lfilename, gmshFormat, nodes )
     end if
 
     ! Read in elements
@@ -158,7 +158,7 @@ contains
                versionNumber, elements, faces, dim, entityMap, entityTags)
        end if
     else
-       call read_faces_and_elements_version_two( fd, lfilename, gmshFormat, &
+       call read_faces_and_elements_v2( fd, lfilename, gmshFormat, &
          elements, faces, dim)
     end if
 
@@ -536,7 +536,7 @@ contains
   ! -----------------------------------------------------------------
   ! read in GMSH mesh nodes' coords into temporary arrays
 
-  subroutine read_nodes_coords_version_two( fd, filename, gmshFormat, nodes )
+  subroutine read_nodes_coords_v2( fd, filename, gmshFormat, nodes )
     integer :: fd, gmshFormat
 
     character(len=*) :: filename
@@ -591,9 +591,9 @@ contains
     if(gmshFormat == binaryFormat) read(fd, *) charBuf
 #endif
 
-  end subroutine read_nodes_coords_version_two
+  end subroutine read_nodes_coords_v2
 
-  subroutine read_nodes_coords_version_four_ascii( fd, filename, versionNumber, nodes )
+  subroutine read_nodes_coords_v4_ascii( fd, filename, versionNumber, nodes )
     integer :: fd
     type(version), intent(in) :: versionNumber
 
@@ -649,9 +649,9 @@ contains
        FLExit("Error: can't find '$EndNodes' in GMSH file '"//trim(filename)//"'")
     end if
 
-  end subroutine read_nodes_coords_version_four_ascii
+  end subroutine read_nodes_coords_v4_ascii
 
-subroutine read_nodes_coords_version_four_binary( fd, filename, versionNumber, nodes )
+subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
     integer :: fd
     type(version)    :: versionNumber
 
@@ -721,7 +721,7 @@ subroutine read_nodes_coords_version_four_binary( fd, filename, versionNumber, n
     read(fd, *) charBuf
 #endif
 
-  end subroutine read_nodes_coords_version_four_binary
+  end subroutine read_nodes_coords_v4_binary
 
 
   ! -----------------------------------------------------------------
@@ -1022,7 +1022,7 @@ subroutine read_nodes_coords_version_four_binary( fd, filename, versionNumber, n
 
   end subroutine read_faces_and_elements_v4_binary
 
-  subroutine read_faces_and_elements_version_two( fd, filename, gmshFormat, &
+  subroutine read_faces_and_elements_v2( fd, filename, gmshFormat, &
        elements, faces, dim)
 
     integer, intent(in) :: fd, gmshFormat
@@ -1134,7 +1134,7 @@ subroutine read_nodes_coords_version_four_binary( fd, filename, versionNumber, n
     ! We no longer need this
     call deallocateElementList( allElements )
 
-  end subroutine read_faces_and_elements_version_two
+  end subroutine read_faces_and_elements_v2
 
   subroutine process_gmsh_elements(numAllElements, allElements, elements, faces, dim)
 
