@@ -840,8 +840,6 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
     integer :: entityDim, entityTag, tag_index
     integer :: numentityelements
 
-    integer, allocatable :: ltags(:)
-
     read(fd,*) charBuf
     if( trim(charBuf)/="$Elements" ) then
        FLExit("Error: cannot find '$Elements' in GMSH mesh file")
@@ -877,11 +875,6 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
        tag_index = fetch(entityMap(entityDim+1), entityTag)
        numTags = entityTags(tag_index)
 
-       allocate(ltags(numTags))
-       do i=1, numTags
-          ltags(i) = entityTags(tag_index+i)
-       end do
-
        do k=1, numEntityElements
           e = e + 1
           ! Read in whole line into a string buffer
@@ -896,12 +889,9 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
           
           ! Now read in tags and node IDs
           read(charBuf, *) allElements(e)%elementID, allElements(e)%nodeIDs
-          allElements(e)%tags(:) = ltags
+          allElements(e)%tags = entityTags(tag_index+1:tag_index+numTags)
 
        end do
-
-       deallocate(ltags)
-
     end do
 
     ! Check for $EndElements tag
@@ -939,7 +929,6 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
     integer :: entityDim, entityTag, tag_index
     integer(kind=c_long) ::  ltmp, numentityelements
 
-    integer, allocatable :: ltags(:)
     integer(kind=c_long), allocatable :: vltmp(:)
 
     read(fd,*) charBuf
