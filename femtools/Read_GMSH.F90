@@ -961,61 +961,42 @@ subroutine read_nodes_coords_version_four_binary( fd, filename, versionNumber, n
 
     allocate( allElements(numAllElements) )
 
-
     ! Read in GMSH elements, corresponding tags and nodes
-
-    e=1
-
-    ! GMSH groups elements by type:
-    ! the code below reads in one type of element in a block, followed
-    ! by other types until all the elements have been read in.
-    do while( e .le. numAllelements )
+    e = 0
+    do j = 1, numEntities
        if (versionNumber%minor .eq. 1) then
           read(fd) entityDim, entityTag, elementType, numEntityElements
        else
           read(fd) entityTag, entityDim, elementType, numEntityElements
        end if
 
-       if( (e-1)+numEntityElements .gt. numAllElements ) then
-          FLExit("GMSH element group contains more than the total")
-       end if
-       
        tag_index = fetch(entityMap(entityDim+1), entityTag)
        numTags = entityTags(tag_index)
        numLocNodes = elementNumNodes(elementType)
        if (versionNumber%minor .eq. 1) allocate(vltmp(numLocNodes+1))
-
  
-       allocate(ltags(numTags))
-       do i=1, numTags
-          ltags(i) = entityTags(tag_index+i)
-       end do
-
        ! Read in elements in a particular entity block
-       do i=e, (e-1)+numEntityElements
-          allocate( allElements(i)%nodeIDs(numLocNodes) )
-          allocate( allElements(i)%tags( 1 ) )
-          
-          allElements(i)%type = elementType
-          allElements(i)%numTags = numTags
-          allElements(e)%tags(:) = ltags 
+       do k = 1, numEntityElements
+         e = e + 1
 
-          if (versionNumber%minor .eq. 1) then
-             read(fd) vltmp
-             allElements(i)%elementID = vltmp(1)
-             allElements(i)%nodeIDs = vltmp(2:numLocNodes+1)
-          else
-             read(fd) allElements(i)%elementID, allElements(i)%nodeIDs
-          end if
+         allocate(allElements(e)%nodeIDs(numLocNodes))
+         allocate(allElements(e)%tags(numTags))
 
+         allElements(e)%type = elementType
+         allElements(e)%numTags = numTags
+         allElements(e)%tags = entityTags(tag_index+1:tag_index+numTags)
+
+         if (versionNumber%minor .eq. 1) then
+           read(fd) vltmp
+           allElements(e)%elementID = vltmp(1)
+           allElements(e)%nodeIDs = vltmp(2:numLocNodes+1)
+         else
+           read(fd) allElements(e)%elementID, allElements(e)%nodeIDs
+         end if
        end do
 
        if (versionNumber%minor .eq. 1) deallocate(vltmp)
-
-       e = e+numEntityElements        
-
-       deallocate(ltags)
-    end do
+     end do
 
 
     ! Skip final newline
