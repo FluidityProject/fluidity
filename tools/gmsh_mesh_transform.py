@@ -6,6 +6,8 @@ from optparse import OptionParser
 import sys
 import shutil
 import math
+import meshio
+import numpy
 
 
 #####################################################################
@@ -38,7 +40,7 @@ optparser.set_usage(
 
 # make all definitions of the math module available in
 # the transformation expression.
-globals=math.__dict__
+env = math.__dict__
 
 if len(argv) == 4:
     constants      = argv[0]
@@ -49,7 +51,7 @@ if len(argv) == 4:
     constanttextarray = constants.split(',')
     for constanttext in constanttextarray:
       constant = constanttext.split('=')
-      globals[constant[0]] = float(constant[1])
+      env[constant[0]] = float(constant[1])
 
 elif len(argv) == 3:
     region         = argv[0]
@@ -62,36 +64,14 @@ else:
     optparser.print_help()
     sys.exit(1)
 
+mesh = meshio.read(mesh_name)
 
-f=open(mesh_name,'r')
-newf=open(mesh_name+'.tmp','w')
-
-flag = 0
-for line in f:
-  line=line.lstrip().rstrip()
-  if flag == 0:
-    if line.startswith('$Nodes'):
-      flag = 1
-  elif flag == 1:
-    nodes = line
-    flag = 2
-  elif flag == 2:
-    if line.startswith('$EndNodes'):
-      flag = 3
+def remap(coords):
+    local_env = dict(zip(['x', 'y', 'z'], coords), **env)
+    if eval(region, local_env):
+        return eval(transformation, local_env)
     else:
-      cols = line.split(' ')
-      index = int(cols[0])
-      globals['x'] = float(cols[1])
-      globals['y'] = float(cols[2])
-      globals['z'] = float(cols[3])
-      if eval(region, globals):
-        xyz = eval(transformation, globals)
-        line = repr(index)+' '+repr(xyz[0])+' '+repr(xyz[1])+' '+repr(xyz[2])
-  newf.write(line + '\n')
+        return coords
 
-newf.close()
-f.close()
-
-shutil.move(mesh_name, mesh_name+'.bak')
-shutil.move(mesh_name+'.tmp', mesh_name)
-
+mesh.points = numpy.apply_along_axis(remap, 1, mesh.points)
+meshio.write(mesh_name, mesh)

@@ -3,7 +3,8 @@
 from optparse import OptionParser
 import sys
 import math
-import fluidity.diagnostics.gmshtools as gmshtools
+import meshio
+import numpy
 
 #####################################################################
 # Script starts here.
@@ -30,19 +31,11 @@ if len(argv) != 2:
 transformation = argv[0]
 mesh_name = argv[1]
 
-# make all definitions of the math module available in
-# the transformation expression.
-globals = math.__dict__
-
-mesh = gmshtools.ReadMsh(mesh_name+'.msh')
-dim = mesh.GetDim()
-
+mesh = meshio.read(mesh_name + '.msh')
 def remap(coords):
-    globals['x'] = coords[0]
-    globals['y'] = coords[1]
-    if dim == 3:
-        globals['z'] = coords[2]
-    return eval(transformation, globals)
+    dims = ['x', 'y'] if len(coords) == 2 else ['x', 'y', 'z']
+    return eval(transformation, dict(zip(dims, coords), **math.__dict__))
 
-mesh.RemapNodeCoords(remap)
-gmshtools.WriteMsh(mesh, mesh_name+'.msh')
+mesh.points = numpy.apply_along_axis(remap, 1, mesh.points)
+
+meshio.write(mesh_name + '.msh', mesh)
