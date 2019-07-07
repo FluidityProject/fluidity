@@ -11,12 +11,42 @@ import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-    <variable name="detector_locx_0" language="python">from fluidity_tools import stat_parser as stat
-detector_locx_0 = stat("lagrange_tracer.detectors")["DummyArray_1"]["position"][0][-1]</variable>
-    <variable name="detector_locy_0" language="python">from fluidity_tools import stat_parser as stat
-detector_locy_0 = stat("lagrange_tracer.detectors")["DummyArray_1"]["position"][1][-1]</variable>
-    <variable name="detected_field_value" language="python">from fluidity_tools import stat_parser as stat
-detected_field_value = stat("lagrange_tracer.detectors")["Dummy"]["Field"]["DummyArray_1"][-1]</variable>
+    <variable name="detector_locx_0" language="python">
+import numpy as np
+from H5hutpy import *
+
+f = H5OpenFile("lagrange_tracer.particles.SingleParticle.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
+nsteps = H5GetNumSteps(f)
+
+H5SetStep(f, nsteps-1)
+pos = np.empty(1, dtype='float64')
+H5PartReadDataFloat64(f, 'x', pos)
+
+detector_locx_0 = pos</variable>
+    <variable name="detector_locy_0" language="python">
+import numpy as np
+from H5hutpy import *
+
+f = H5OpenFile("lagrange_tracer.particles.SingleParticle.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
+nsteps = H5GetNumSteps(f)
+
+H5SetStep(f, nsteps-1)
+pos = np.empty(1, dtype='float64')
+H5PartReadDataFloat64(f, 'y', pos)
+
+detector_locy_0 = pos</variable>
+    <variable name="detected_field_value" language="python">
+import numpy as np
+from H5hutpy import *
+
+f = H5OpenFile("lagrange_tracer.particles.SingleParticle.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
+nsteps = H5GetNumSteps(f)
+
+H5SetStep(f, nsteps-1)
+pos = np.empty(1, dtype='float64')
+H5PartReadDataFloat64(f, 'field', pos)
+
+detected_field_value = pos</variable>
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">
