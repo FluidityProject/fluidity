@@ -65,7 +65,7 @@ LINKER  = @LINKER@ @LDFLAGS@ $(CXXFLAGS)
 FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
 
 LIBS    = -L./lib -l$(FLUIDITY) @LIB_FEMDEM@ ./lib/libadaptivity.a \
-           ./lib/libH5hutf.a ./lib/libH5hut.a \
+           -lH5hutf -lH5hut -Wl,-rpath -Wl,./lib \
            ./lib/libvtkfortran.a @LIBSPATIALINDEX@  @SPUDLIB@ @FLIBJUDY@ \
            @LIBS@ @BLAS_LIBS@
 
@@ -113,7 +113,7 @@ default: bin/$(FLUIDITY)
 
 sub_system: $(LIBMBA2D) $(LIBMBA3D) @LIB_FEMDEM@ \
 	lib/libadaptivity.a lib/libvtkfortran.a @LIBSPATIALINDEX@ \
-	lib/libH5hut.a \
+	lib/libH5hut.so \
 	@SPUDLIB@ @FLIBJUDY@ include/version.h
 
 @FLIBJUDY@:
@@ -131,7 +131,7 @@ lib/libmba3d.a:
 lib/libadaptivity.a:
 	@echo '    MKDIR lib'; mkdir -p lib
 	@BUILD_LIBADAPT@
-lib/libH5hut.a:
+lib/libH5hut.so:
 	@echo '    MKDIR lib'; mkdir -p lib
 	echo '    MAKE h5hut'; $(MAKE) -C h5hut/build install
 lib/libvtkfortran.a:

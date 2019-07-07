@@ -2,6 +2,8 @@ find_package(SWIG REQUIRED)
 find_package(Python COMPONENTS Development NumPy REQUIRED)
 include(UseSWIG)
 
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+
 # add dependency (not sure if CMake pick this up?)
 set_property(SOURCE H5hut.i PROPERTY DEPENDS numpy.i)
 

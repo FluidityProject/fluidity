@@ -18,20 +18,21 @@
 import os
 import os.path
 import sys
-import cStringIO as StringIO
+import io
 
-import gobject
-import gtk
+from gi.repository import GObject as gobject
+from gi.repository import Gtk as gtk
+from gi.repository import GLib as glib
 import threading
 
 from lxml import etree
 
-import attributewidget
-import databuttonswidget
-import datawidget
-import mixedtree
+from . import attributewidget
+from . import databuttonswidget
+from . import datawidget
+from . import mixedtree
 
-from config import config
+from .config import config
 import dxdiff.diff as xmldiff
 
 class DiffView(gtk.Window):
@@ -56,6 +57,7 @@ class DiffView(gtk.Window):
 
     menubar = gtk.MenuBar()
     edititem = gtk.MenuItem("_Edit")
+    edititem.set_use_underline(True)
     menubar.append(edititem)
 
     agr = gtk.AccelGroup()
@@ -66,24 +68,24 @@ class DiffView(gtk.Window):
     copyitem = gtk.MenuItem("Copy")
     copyitem.connect("activate", self.on_copy)
     key, mod = gtk.accelerator_parse("<Control>C")
-    copyitem.add_accelerator("activate", agr, key, mod, gtk.ACCEL_VISIBLE)
+    copyitem.add_accelerator("activate", agr, key, mod, gtk.AccelFlags.VISIBLE)
     editmenu.append(copyitem)
 
-    mainvbox.pack_start(menubar, expand = False)
+    mainvbox.pack_start(menubar, False, True, 0)
 
     hpane = gtk.HPaned()
     scrolledwindow = gtk.ScrolledWindow()
-    scrolledwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+    scrolledwindow.set_policy(gtk.PolicyType.AUTOMATIC, gtk.PolicyType.AUTOMATIC)
     
     self.treeview = gtk.TreeView()
 
-    self.treeview.get_selection().set_mode(gtk.SELECTION_SINGLE)
+    self.treeview.get_selection().set_mode(gtk.SelectionMode.SINGLE)
     self.treeview.get_selection().connect("changed", self.on_select_row)
 
     # Node column
     celltext = gtk.CellRendererText()
     column = gtk.TreeViewColumn("Node", celltext)
-    column.set_cell_data_func(celltext, self.set_celltext)
+    column.set_cell_data_func(celltext, self.set_celltext, None)
 
     self.treeview.append_column(column)
 
@@ -104,19 +106,19 @@ class DiffView(gtk.Window):
     label = gtk.Label()
     label.set_markup("<b>Attributes</b>")
     frame.set_label_widget(label)
-    frame.set_shadow_type(gtk.SHADOW_NONE)
+    frame.set_shadow_type(gtk.ShadowType.NONE)
 
     self.attribview = gtk.TreeView()
 
     celltext = gtk.CellRendererText()
     keycolumn = gtk.TreeViewColumn("Key", celltext)
-    keycolumn.set_cell_data_func(celltext, self.set_cellkey)
+    keycolumn.set_cell_data_func(celltext, self.set_cellkey, None)
 
     self.attribview.append_column(keycolumn)
 
     celltext = gtk.CellRendererText()
     valuecolumn = gtk.TreeViewColumn("Value", celltext)
-    valuecolumn.set_cell_data_func(celltext, self.set_cellvalue)
+    valuecolumn.set_cell_data_func(celltext, self.set_cellvalue, None)
 
     self.attribview.append_column(valuecolumn)
 
@@ -127,7 +129,7 @@ class DiffView(gtk.Window):
     label = gtk.Label()
     label.set_markup("<b>Data</b>")
     frame.set_label_widget(label)
-    frame.set_shadow_type(gtk.SHADOW_NONE)
+    frame.set_shadow_type(gtk.ShadowType.NONE)
 
     self.dataview = gtk.TextView()
     self.dataview.set_cursor_visible(False)
@@ -138,7 +140,7 @@ class DiffView(gtk.Window):
     vpane.pack2(frame)
 
     hpane.pack2(vpane)
-    mainvbox.pack_start(hpane)
+    mainvbox.pack_start(hpane, True, True, 0)
     self.add(mainvbox)
 
   def on_treeview_button_press(self, treeview, event):
@@ -171,8 +173,8 @@ class DiffView(gtk.Window):
       editscript = xmldiff.diff(tree1, tree2)
       self.__set_treestore(tree1.getroot())
       self.__parse_editscript(editscript)
-      self.__floodfill(self.treestore.get_iter_root())
-      gtk.idle_add(self.treeview.set_model, self.treestore) 
+      self.__floodfill(self.treestore.get_iter_first())
+      glib.idle_add(self.treeview.set_model, self.treestore) 
 
     t = threading.Thread(target = async_diff, args = (self, tree1, tree2))
     t.start()
@@ -180,7 +182,7 @@ class DiffView(gtk.Window):
   def __set_treestore(self, tree, iter = None):
 
     attrib = {}
-    for key, value in tree.attrib.iteritems():
+    for key, value in list(tree.attrib.items()):
       #             (new,   old,   edit)
       attrib[key] = (value, value, None)
 
@@ -230,7 +232,7 @@ class DiffView(gtk.Window):
       edit = "delete"
 
     if edit == "insert" or edit == "delete":
-      for key, (valuenew, valueold, valueedit) in attribs.iteritems():
+      for key, (valuenew, valueold, valueedit) in list(attribs.items()):
         attribs[key] = (valuenew, valueold, edit)
 
       child = self.treestore.iter_children(iter)
@@ -416,7 +418,7 @@ class DiffView(gtk.Window):
 
     attribstore = gtk.TreeStore(gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT)
 
-    for key, (new, old, diff) in attrib.iteritems():
+    for key, (new, old, diff) in list(attrib.items()):
       attribstore.append(None, [key, new, old, diff])
 
     self.attribview.set_model(attribstore)
@@ -461,20 +463,20 @@ class DiffView(gtk.Window):
     elif edit == "subupdate":
       cell.set_property("foreground", config.get("colour", "subupdate"))
 
-  def set_celltext(self, column, cell, model, iter):
+  def set_celltext(self, column, cell, model, iter, data=None):
   
     tag, text, edit = model.get(iter, 0, 2, 4)
 
     cell.set_property("text", tag)
     self.__set_cell_property(cell, edit) 
 
-  def set_cellkey(self, column, cell, model, iter):
+  def set_cellkey(self, column, cell, model, iter, data=None):
     
     key, edit = model.get(iter, 0, 3)
     cell.set_property("text", key)
     self.__set_cell_property(cell, edit) 
 
-  def set_cellvalue(self, column, cell, model, iter):
+  def set_cellvalue(self, column, cell, model, iter, data=None):
  
     new, old, edit = model.get(iter, 1, 2, 3)
     if edit == "delete":
@@ -517,7 +519,7 @@ class DiffView(gtk.Window):
 
     tree = etree.Element(tag)
 
-    for key, (newvalue, oldvalue, edit) in attrib.iteritems():
+    for key, (newvalue, oldvalue, edit) in list(attrib.items()):
       tree.attrib[key] = newvalue
 
     child_iter = self.treestore.iter_children(iter)
@@ -538,7 +540,7 @@ class DiffView(gtk.Window):
 
     tree = etree.ElementTree(self.__get_treestore(row))
 
-    ios = StringIO.StringIO()
+    ios = io.StringIO()
     tree.write(ios, pretty_print = True, xml_declaration = False, encoding = "utf-8")
 
     clipboard = gtk.clipboard_get()

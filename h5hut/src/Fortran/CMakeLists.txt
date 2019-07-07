@@ -21,7 +21,7 @@ set(CMAKE_Fortran_FORMAT FREE)
 include(FortranCInterface)
 FortranCInterface_HEADER(FC.h MACRO_NAMESPACE "FC_")
 
-add_library(H5hutf
+add_library(H5hutf SHARED
   H5.c H5_attribs.c H5_model.c H5Part_model.c H5Part_io.c
   H5Block_model.c H5Block_attribs.c H5Block_io.c
   H5hut.f90)
@@ -39,7 +39,7 @@ endif (USE_PARALLEL)
 add_dependencies(H5hutf H5hutf_interface)
 
 install(TARGETS H5hutf
-  ARCHIVE DESTINATION lib)
+  LIBRARY DESTINATION lib)
 
 install(FILES ${INTERFACE_FILE} "${CMAKE_CURRENT_BINARY_DIR}/h5hut.mod"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
