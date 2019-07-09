@@ -65,7 +65,7 @@ LINKER  = @LINKER@ @LDFLAGS@ $(CXXFLAGS)
 FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
 
 LIBS    = -L./lib -l$(FLUIDITY) @LIB_FEMDEM@ ./lib/libadaptivity.a \
-           -lH5hutf -lH5hut -Wl,-rpath -Wl,./lib \
+           -lH5hutf -lH5hut -Wl,-rpath -Wl,$(shell readlink -f ./lib) \
            ./lib/libvtkfortran.a @LIBSPATIALINDEX@  @SPUDLIB@ @FLIBJUDY@ \
            @LIBS@ @BLAS_LIBS@
 
