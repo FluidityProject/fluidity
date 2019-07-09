@@ -13,27 +13,23 @@ files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
     <variable name="time" language="python">from fluidity_tools import stat_parser
 time = stat_parser("detectors.stat")["ElapsedTime"]["value"]</variable>
-    <variable name="det_midpoint" language="python">from fluidity_tools import stat_parser
-det_midpoint = stat_parser("detectors.detectors")["MidPoint"]['position']</variable>
-    <variable name="det_arr1" language="python">from fluidity_tools import stat_parser
-det_arr1 = stat_parser("detectors.detectors")["DArray_1"]['position']</variable>
-    <variable name="det_arr2" language="python">from fluidity_tools import stat_parser
-det_arr2 = stat_parser("detectors.detectors")["DArray_2"]['position']</variable>
-    <variable name="det_arr3" language="python">from fluidity_tools import stat_parser
-det_arr3 = stat_parser("detectors.detectors")["DArray_3"]['position']</variable>
+    <variable name="detector_steps" language="python">
+import h5py
+detector_steps = len(h5py.File('detectors.detectors.h5part', 'r'))</variable>
+    <variable name="det_positions" language="python">
+import h5py
+import numpy as np
+f = h5py.File('detectors.detectors.h5part', 'r')
+det_positions = np.vstack([f[f'/Step#0/{dim}'] for dim in ('x', 'y')])</variable>
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">assert(solvers_converged)</test>
     <test name="Test finished" language="python">assert abs(time - 1.0) &lt; 1.0e-6</test>
-    <test name="Detector output" language="python">assert abs(len(time) - len(det_midpoint[-1])) &lt; 1.0e-6</test>
-    <test name="Detectors initialised correctly" language="python">assert abs(det_midpoint[0] - 0.5).all() &lt; 1.0e-6
-assert abs(det_midpoint[1] - 0.5).all() &lt; 1.0e-6
-assert abs(det_arr1[0]).all() &lt; 1.0e-6
-assert abs(det_arr1[1] - 1.0).all() &lt; 1.0e-6
-assert abs(det_arr2[0] - 0.5).all() &lt; 1.0e-6
-assert abs(det_arr2[1] - 0.5).all() &lt; 1.0e-6
-assert abs(det_arr3[0] - 1.0).all() &lt; 1.0e-6
-assert abs(det_arr3[1]).all() &lt; 1.0e-6</test>
+    <test name="Detector output" language="python">assert abs(len(time) - detector_steps) &lt; 1.0e-6</test>
+    <test name="Detectors initialised correctly" language="python">assert max(abs(det_positions[:,0] - [0.5, 0.5])) &lt; 1.0e-6
+assert max(abs(det_positions[:,1] - [0.0, 1.0])) &lt; 1.0e-6
+assert max(abs(det_positions[:,2] - [0.5, 0.5])) &lt; 1.0e-6
+assert max(abs(det_positions[:,3] - [1.0, 0.0])) &lt; 1.0e-6</test>
   </pass_tests>
   <warn_tests/>
 </testproblem>

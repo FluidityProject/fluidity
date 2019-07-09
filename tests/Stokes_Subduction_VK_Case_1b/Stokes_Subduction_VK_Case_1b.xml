@@ -9,7 +9,7 @@
     <command_line>fluidity -v2 -l Stokes-Subduction-VK-Case-1b.flml</command_line>
   </problem_definition>
 
-<variables>  
+<variables>
   <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
@@ -17,65 +17,82 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
   </variable>
 
 <variable name="T60" language="python">
-from fluidity_tools import stat_parser as stat
-T60 = (stat("VK_Case_1b.detectors")["Fluid"]["Temperature"]["Temperature6060"][-1])-273.
+import h5py
+import numpy as np
+f = h5py.File('VK_Case_1b.detectors.h5part', 'r')
+n = len(f) - 1
+det_id, = np.where(f[f'/Step#{n}/id'][:] == f.attrs['Temperature6060_ids'][0])
+T60 = f[f'/Step#{n}/Fluid_Temperature'][det_id[0]] - 273.
 </variable>
 
 <variable name="TL2SLAB" language="python">
-import fluidity_tools
-import numpy
+import h5py
+import numpy as np
 import math
 
-from fluidity_tools import stat_parser
-s = stat_parser("VK_Case_1b.detectors")
+f = h5py.File('VK_Case_1b.detectors.h5part', 'r')
+tslab_ids = f.attrs['TSlab_ids']
+s = np.zeros(len(f))
 
-l = len(s['Fluid']['Temperature']['TSlab_01'])
-sum = numpy.zeros(l)
+for i in range(len(f)):
+  ids = np.where(f[f'/Step#{i}/id'][:] == tslab_ids[:,None])[1]
+  s[i] = np.sum((f[f'/Step#{i}/Fluid_Temperature'][:][ids] - 273.)**2)
 
-for n in range(36):
-     T = s["Fluid"]["Temperature"]["TSlab_" + (str(n + 1)).zfill(2)]-273.
-     sum = sum + T*T
-
-TL2 = [math.sqrt(s) for s in sum/36]
+TL2 = [math.sqrt(s) for s in s/36]
 TL2SLAB = TL2[-1]<comment>Computes the L2 Temperature norm in 36 equidistant points along the slab, close to the wedge corner.</comment>
 </variable>
 
-<variable name="TL2WEDGE" language="python">import fluidity_tools
-import numpy
+<variable name="TL2WEDGE" language="python">
+import h5py
+import numpy as np
 import math
 
-from fluidity_tools import stat_parser
-s = stat_parser("VK_Case_1b.detectors")
+f = h5py.File('VK_Case_1b.detectors.h5part', 'r')
+twedge_ids = f.attrs['TWedge_ids']
+s = np.zeros(len(f))
 
-l = len(s['Fluid']['Temperature']['TWedge_01'])
-sum = numpy.zeros(l)
+for i in range(len(f)):
+  ids = np.where(f[f'/Step#{i}/id'][:] == twedge_ids[:,None])[1]
+  s[i] = np.sum((f[f'/Step#{i}/Fluid_Temperature'][:][ids] - 273.)**2)
 
-for n in range(78):
-     T = s["Fluid"]["Temperature"]["TWedge_" + (str(n + 1)).zfill(2)]-273.
-     sum = sum + T*T
-
-TL2 = [math.sqrt(_) for _ in sum/78]
+TL2 = [math.sqrt(s) for s in s/78]
 TL2WEDGE = TL2[-1]<comment>Computes the L2 Temperature norm for 78 points in the wedge corner.</comment>
 </variable>
 
 <variable name="HORIZ_GRADIENT_ONE" language="python">
-from fluidity_tools import stat_parser as stat
-HORIZ_GRADIENT_ONE = stat("VK_Case_1b.detectors")["Fluid"]["FiniteElementGradient"]["Pressure_up"][0][-1]
+import h5py
+import numpy as np
+f = h5py.File('VK_Case_1b.detectors.h5part', 'r')
+n = len(f) - 1
+det_id, = np.where(f[f'/Step#{n}/id'][:] == f.attrs['Pressure_up_ids'][0])
+HORIZ_GRADIENT_ONE = f[f'/Step#{n}/Fluid_FiniteElementGradient_x'][det_id[0]]
 </variable>
 
 <variable name="VERTICAL_GRADIENT_ONE" language="python">
-from fluidity_tools import stat_parser as stat
-VERTICAL_GRADIENT_ONE = -stat("VK_Case_1b.detectors")["Fluid"]["FiniteElementGradient"]["Pressure_up"][1][-1]
+import h5py
+import numpy as np
+f = h5py.File('VK_Case_1b.detectors.h5part', 'r')
+n = len(f) - 1
+det_id, = np.where(f[f'/Step#{n}/id'][:] == f.attrs['Pressure_up_ids'][0])
+VERTICAL_GRADIENT_ONE = -f[f'/Step#{n}/Fluid_FiniteElementGradient_y'][det_id[0]]
 </variable>
 
 <variable name="HORIZ_GRADIENT_TWO" language="python">
-from fluidity_tools import stat_parser as stat
-HORIZ_GRADIENT_TWO = stat("VK_Case_1b.detectors")["Fluid"]["FiniteElementGradient"]["Pressure_down"][0][-1]
+import h5py
+import numpy as np
+f = h5py.File('VK_Case_1b.detectors.h5part', 'r')
+n = len(f) - 1
+det_id, = np.where(f[f'/Step#{n}/id'][:] == f.attrs['Pressure_down_ids'][0])
+HORIZ_GRADIENT_TWO = f[f'/Step#{n}/Fluid_FiniteElementGradient_x'][det_id[0]]
 </variable>
 
 <variable name="VERTICAL_GRADIENT_TWO" language="python">
-from fluidity_tools import stat_parser as stat
-VERTICAL_GRADIENT_TWO = -stat("VK_Case_1b.detectors")["Fluid"]["FiniteElementGradient"]["Pressure_down"][1][-1]
+import h5py
+import numpy as np
+f = h5py.File('VK_Case_1b.detectors.h5part', 'r')
+n = len(f) - 1
+det_id, = np.where(f[f'/Step#{n}/id'][:] == f.attrs['Pressure_down_ids'][0])
+VERTICAL_GRADIENT_TWO = -f[f'/Step#{n}/Fluid_FiniteElementGradient_y'][det_id[0]]
 </variable>
 
 </variables>
@@ -113,7 +130,7 @@ assert(abs(HORIZ_GRADIENT_TWO-29.2) &lt; 0.2)
 assert(abs(VERTICAL_GRADIENT_TWO-27.3) &lt; 0.3)
 </test>
 
-</pass_tests>                                                                                                                                                                                                
+</pass_tests>
 
 <warn_tests>
 </warn_tests>

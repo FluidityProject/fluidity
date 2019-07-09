@@ -11,14 +11,20 @@ import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-    <variable name="velocity_block1" language="python">from fluidity_tools import stat_parser
-s = stat_parser("turbine_3d.detectors")
-velocity_block1=s["Water"]["Velocity"]["right_block1"][0]
-</variable>
-    <variable name="velocity_block2" language="python">from fluidity_tools import stat_parser
-s = stat_parser("turbine_3d.detectors")
-velocity_block2=s["Water"]["Velocity"]["left_block2"][0]
-</variable>
+    <variable name="velocity_block1" language="python">
+import h5py
+import numpy as np
+f = h5py.File('turbine_3d.detectors.h5part', 'r')
+det_id = f.attrs['right_block1_ids'][0]-1
+velocity_block1 = np.array([f[f'/Step#{i}/Water_Velocity_x'][det_id] for i in range(len(f))])
+    </variable>
+    <variable name="velocity_block2" language="python">
+import h5py
+import numpy as np
+f = h5py.File('turbine_3d.detectors.h5part', 'r')
+det_id = f.attrs['left_block2_ids'][0]-1
+velocity_block2 = np.array([f[f'/Step#{i}/Water_Velocity_x'][det_id] for i in range(len(f))])
+    </variable>
     <variable name="area_block1" language="python">from fluidity_tools import stat_parser
 s = stat_parser("turbine_3d.stat")
 fs = s["Water"]["FreeSurface"]["min"]+s["Water"]["FreeSurface"]["max"]

@@ -12,36 +12,54 @@ import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-    <variable name="max_pressure_diff_left" language="python">import fluidity_tools
-det=fluidity_tools.stat_parser('standing_wave.detectors')
-plb=det['water']['Pressure']['LeftBottom']
-plt=det['water']['Pressure']['LeftTop']
+    <variable name="max_pressure_diff_left" language="python">
+import h5py
+import numpy as np
+f = h5py.File('standing_wave.detectors.h5part', 'r')
+lb_id = f.attrs['LeftBottom_ids'][0] - 1
+lt_id = f.attrs['LeftTop_ids'][0] - 1
+plb = np.array([f[f'/Step#{i}/water_Pressure'][lb_id] for i in range(len(f))])
+plt = np.array([f[f'/Step#{i}/water_Pressure'][lt_id] for i in range(len(f))])
 g=10.0
 max_pressure_diff_left=abs(plb-plt).max()/g</variable>
-    <variable name="max_pressure_diff_right" language="python">import fluidity_tools
-det=fluidity_tools.stat_parser('standing_wave.detectors')
-prb=det['water']['Pressure']['RightBottom']
-prt=det['water']['Pressure']['RightTop']
+    <variable name="max_pressure_diff_right" language="python">
+import h5py
+import numpy as np
+f = h5py.File('standing_wave.detectors.h5part', 'r')
+rb_id = f.attrs['RightBottom_ids'][0] - 1
+rt_id = f.attrs['RightTop_ids'][0] - 1
+prb = np.array([f[f'/Step#{i}/water_Pressure'][rb_id] for i in range(len(f))])
+prt = np.array([f[f'/Step#{i}/water_Pressure'][rt_id] for i in range(len(f))])
 g=10.0
 max_pressure_diff_right=abs(prt-prb).max()/g</variable>
-    <variable name="max_pressure_diff_middle" language="python">import fluidity_tools
-det=fluidity_tools.stat_parser('standing_wave.detectors')
-pmb=det['water']['Pressure']['MiddleBottom']
-pmt=det['water']['Pressure']['MiddleTop']
+    <variable name="max_pressure_diff_middle" language="python">
+import h5py
+import numpy as np
+f = h5py.File('standing_wave.detectors.h5part', 'r')
+mb_id = f.attrs['MiddleBottom_ids'][0] - 1
+mt_id = f.attrs['MiddleTop_ids'][0] - 1
+pmb = np.array([f[f'/Step#{i}/water_Pressure'][mb_id] for i in range(len(f))])
+pmt = np.array([f[f'/Step#{i}/water_Pressure'][mt_id] for i in range(len(f))])
 g=10.0
 max_pressure_diff_middle=abs(pmt-pmb).max()/g</variable>
-    <variable name="fs_left" language="python">import fluidity_tools
-det=fluidity_tools.stat_parser('standing_wave.detectors')
-fsl=det['water']['FreeSurface']['LeftTop']
-t=det['ElapsedTime']['value']
+    <variable name="fs_left" language="python">
+import h5py
+import numpy as np
+f = h5py.File('standing_wave.detectors.h5part', 'r')
+lt_id = f.attrs['LeftTop_ids'][0] - 1
+fsl = np.array([f[f'/Step#{i}/water_FreeSurface'][lt_id] for i in range(len(f))])
+t = np.array([f[f'/Step#{i}'].attrs['time'][0] for i in range(len(f))])
 fs_left={}
 fs_left['min']=fsl.min()
 fs_left['min_time']=t[fsl.argmin()]
 fs_left['end_value']=fsl[-1]</variable>
-    <variable name="fs_right" language="python">import fluidity_tools
-det=fluidity_tools.stat_parser('standing_wave.detectors')
-fsr=det['water']['FreeSurface']['RightTop']
-t=det['ElapsedTime']['value']
+    <variable name="fs_right" language="python">
+import h5py
+import numpy as np
+f = h5py.File('standing_wave.detectors.h5part', 'r')
+rt_id = f.attrs['RightTop_ids'][0] - 1
+fsr = np.array([f[f'/Step#{i}/water_FreeSurface'][rt_id] for i in range(len(f))])
+t = np.array([f[f'/Step#{i}'].attrs['time'][0] for i in range(len(f))])
 fs_right={}
 fs_right['max']=fsr.max()
 fs_right['max_time']=t[fsr.argmax()]

@@ -67,12 +67,18 @@ integral_tracer_dg_7 = stat("landslide_benchmark.stat")["Water"]["OtherTracerP1D
 integral_tracer_dg_8 = stat("landslide_benchmark.stat")["Water"]["TracerP1DG"]["surface_integral%8"]</variable>
     <variable name="integral_tracer_dg_9" language="python">from fluidity_tools import stat_parser as stat
 integral_tracer_dg_9 = stat("landslide_benchmark.stat")["Water"]["TracerP1DG"]["surface_integral%9"]</variable>
-    <variable name="region_id_1" language="python">from fluidity_tools import stat_parser as stat
-region_id_1 = stat("landslide_benchmark.detectors")["Water"]["RegionIDs"]["Region1"]</variable>
-    <variable name="region_id_2" language="python">from fluidity_tools import stat_parser as stat
-region_id_2 = stat("landslide_benchmark.detectors")["Water"]["RegionIDs"]["Region2"]</variable>
-    <variable name="region_id_3" language="python">from fluidity_tools import stat_parser as stat
-region_id_3 = stat("landslide_benchmark.detectors")["Water"]["RegionIDs"]["Region3"]</variable>
+    <variable name="region_id_1" language="python">
+import h5py
+f = h5py.File('landslide_benchmark.detectors.h5part', 'r')
+region_id_1 = f['/Step#0/Water_RegionIDs'][0]</variable>
+    <variable name="region_id_2" language="python">
+import h5py
+f = h5py.File('landslide_benchmark.detectors.h5part', 'r')
+region_id_2 = f['/Step#0/Water_RegionIDs'][1]</variable>
+    <variable name="region_id_3" language="python">
+import h5py
+f = h5py.File('landslide_benchmark.detectors.h5part', 'r')
+region_id_3 = f['/Step#0/Water_RegionIDs'][2]</variable>
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">

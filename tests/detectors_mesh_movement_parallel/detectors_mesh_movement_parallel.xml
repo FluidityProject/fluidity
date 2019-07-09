@@ -14,20 +14,32 @@ files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
     <variable name="D1_position" language="python">
-from fluidity_tools import stat_parser
-D1_position = stat_parser("detectors.detectors")['D1']['position']
+import h5py
+import numpy as np
+f = h5py.File('detectors.detectors.h5part', 'r')
+det_id, = np.where(f['/Step#0/id'][:] == f.attrs['D1_ids'])
+D1_position = np.vstack([f[f'/Step#0/{dim}'][det_id[0]] for dim in ('x', 'y')])
     </variable>
     <variable name="D2_position" language="python">
-from fluidity_tools import stat_parser
-D2_position = stat_parser("detectors.detectors")['D2']['position']
+import h5py
+import numpy as np
+f = h5py.File('detectors.detectors.h5part', 'r')
+det_id, = np.where(f['/Step#0/id'][:] == f.attrs['D2_ids'])
+D2_position = np.vstack([f[f'/Step#0/{dim}'][det_id[0]] for dim in ('x', 'y')])
     </variable>
     <variable name="D1_tracer" language="python">
-from fluidity_tools import stat_parser
-D1_tracer = stat_parser("detectors.detectors")['Water']['Tracer']['D1']
+import h5py
+import numpy as np
+f = h5py.File('detectors.detectors.h5part', 'r')
+det_id, = np.where(f['/Step#0/id'][:] == f.attrs['D1_ids'])
+D1_tracer = f['/Step#0/Water_Tracer'][det_id[0]]
     </variable>
     <variable name="D2_tracer" language="python">
-from fluidity_tools import stat_parser
-D2_tracer = stat_parser("detectors.detectors")['Water']['Tracer']['D2']
+import h5py
+import numpy as np
+f = h5py.File('detectors.detectors.h5part', 'r')
+det_id, = np.where(f['/Step#0/id'][:] == f.attrs['D2_ids'])
+D2_tracer = f['/Step#0/Water_Tracer'][det_id[0]]
     </variable>
   </variables>
   <pass_tests>
@@ -42,10 +54,10 @@ assert abs(D2_position[0,:] - 0.25).all() &lt; 1e-12
     </test>
     <test name="tracer at D1" language="python">
 from numpy import isnan
-assert isnan(D1_tracer[-1])
+assert isnan(D1_tracer)
     </test>
     <test name="tracer at D2" language="python">
-assert abs(D2_tracer[-1] + 0.35) &lt; 1e-12
+assert abs(D2_tracer + 0.35) &lt; 1e-12
     </test>
   </pass_tests>
   <warn_tests>

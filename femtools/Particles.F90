@@ -47,7 +47,6 @@ module particles
   use detector_tools
   use detector_parallel
   use detector_move_lagrangian
-  use diagnostic_variables, only: field_tag, initialise_constant_diagnostics
   use time_period
 
   use H5hut

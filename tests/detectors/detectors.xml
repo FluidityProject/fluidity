@@ -15,8 +15,8 @@ files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
     <variable name="detector" language="python">
-from fluidity_tools import stat_parser
-detector = stat_parser("detectors.detectors")
+import h5py
+detector = h5py.File('detectors.detectors.h5part', 'r')
     </variable>
   </variables>
   <pass_tests>
@@ -24,22 +24,28 @@ detector = stat_parser("detectors.detectors")
       assert(solvers_converged)
     </test>
     <test name="tracer at D1" language="python">
-assert abs(detector['Water']['Tracer']['D1'] - 0.0) &lt; 1e-12
+assert abs(detector['/Step#0/Water_Tracer'][0] - 0.0) &lt; 1e-12
     </test>
     <test name="tracer at D2" language="python">
-assert abs(detector['Water']['Tracer']['D2'] - 0.25) &lt; 1e-12
+assert abs(detector['/Step#0/Water_Tracer'][1] - 0.25) &lt; 1e-12
     </test>
     <test name="tracer at D3" language="python">
-assert abs(detector['Water']['Tracer']['D3'] - 0.4) &lt; 1e-12
+assert abs(detector['/Step#0/Water_Tracer'][2] - 0.4) &lt; 1e-12
     </test>
     <test name="velocity at D1" language="python">
-assert max(abs(detector['Water']['Velocity']['D1']-[[0.0],[0.0]]))[0] &lt; 1e-12
+import numpy as np
+vel = np.array([detector[f'/Step#0/Water_Velocity_{dim}'][0] for dim in ('x', 'y')])
+assert max(abs(vel-[0.0, 0.0])) &lt; 1e-12
     </test>
     <test name="velocity at D2" language="python">
-assert max(abs(detector['Water']['Velocity']['D2']-[[0.25],[0.0]]))[0] &lt; 1e-12
+import numpy as np
+vel = np.array([detector[f'/Step#0/Water_Velocity_{dim}'][1] for dim in ('x', 'y')])
+assert max(abs(vel-[0.25, 0.0])) &lt; 1e-12
     </test>
     <test name="velocity at D3" language="python">
-assert max(abs(detector['Water']['Velocity']['D3']-[[0.4],[0.0]]))[0] &lt; 1e-12
+import numpy as np
+vel = np.array([detector[f'/Step#0/Water_Velocity_{dim}'][2] for dim in ('x', 'y')])
+assert max(abs(vel-[0.4, 0.0])) &lt; 1e-12
     </test>
   </pass_tests>
   <warn_tests>
