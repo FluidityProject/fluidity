@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.12)
 project(H5hut)
 
 # build configuration
@@ -21,6 +21,8 @@ endif (USE_PARALLEL AND NOT HDF5_IS_PARALLEL)
 # additionally build with MPI if parallel is requested
 if (USE_PARALLEL)
   find_package(MPI REQUIRED)
+  # deal with bug in Xenial OpenMPI
+  string(STRIP ${MPI_C_LINK_FLAGS} MPI_C_LINK_FLAGS)
 endif (USE_PARALLEL)
 
 # required for building Python library
@@ -37,5 +39,6 @@ endif (USE_FORTRAN)
 
 # python module
 if (USE_PYTHON)
+  cmake_minimum_required(VERSION 3.14)
   add_subdirectory(src/Python)
 endif (USE_PYTHON)

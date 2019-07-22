@@ -23,6 +23,13 @@ RUN apt-get -y install fluidity-dev libsupermesh-dev python3-dev
 # Install junit parsing for Jenkins
 RUN apt-get -y install python-junit.xml
 
+RUN echo "deb http://ppa.launchpad.net/angusg/fluidity/ubuntu xenial main" > /etc/apt/sources.list.d/angusg-fluidity-xenial.list
+RUN gpg --keyserver keyserver.ubuntu.com --recv 51F70336DBDE52BC
+RUN gpg --export --armor 51F70336DBDE52BC | apt-key add -
+
+RUN apt-get update
+RUN apt-get -y install cmake
+
 # Add a Fluidity user who will be the default user for this container
 ENV PETSC_DIR /usr/lib/petscdir/3.6.3
 ENV LD_LIBRARY_PATH /usr/lib/petscdir/3.6.3/linux-gnu-c-opt/lib
