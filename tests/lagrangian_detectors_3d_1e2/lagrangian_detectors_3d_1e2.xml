@@ -10,24 +10,18 @@ mpiexec ../../bin/fluidity -v3 -l lagrangian_detectors_3d_1e2_flredecomp.flml
   </problem_definition>
   <variables>
     <variable name="last_locations_error" language="python">
-from H5hutpy import *
 import numpy as np
+import h5py
+
 last_locations_error = np.zeros((3,100))
 X = np.fromfile('Xvals.txt',sep=' ')
 Y = np.fromfile('Yvals.txt',sep=' ')
 Z = 0.5*np.ones(np.shape(X))
 
-f = H5OpenFile("lagrangian_detectors.particles.Steve.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
-H5SetStep(f, nsteps-1)
-ids = np.empty(100, dtype='int32')
-H5PartReadDataInt32(f, 'id', ids)
-pos = np.empty((3,100), dtype='float64')
-H5PartReadDataFloat64(f, 'x', pos[0,:])
-H5PartReadDataFloat64(f, 'y', pos[1,:])
-H5PartReadDataFloat64(f, 'z', pos[2,:])
-idx = np.argsort(ids)
-pos = pos[:,idx]
+f = h5py.File('lagrangian_detectors.particles.Steve.h5part', 'r')
+n = len(f)-1
+idx = np.argsort(f[f'/Step#{n}/id'])
+pos = np.vstack([f[f'/Step#{n}/{dim}'] for dim in ('x', 'y', 'z')])[:, idx]
 last_locations_error[0,:] = pos[0,:] - X[:]
 last_locations_error[1,:] = pos[1,:] - Y[:]
 last_locations_error[2,:] = pos[2,:] - Z[:]

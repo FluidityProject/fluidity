@@ -5,44 +5,36 @@
   <owner userid="cmath"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>        
+    <command_line>
 ../../bin/fluidity -v3 -l particle-attributes.flml
     </command_line>
   </problem_definition>
   <variables>
     <variable name="num_steps_full" language="python">
-from H5hutpy import *
-f = H5OpenFile("particle_attributes.particles.Thomas.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-num_steps_full = H5GetNumSteps(f)
+import h5py
+f = h5py.File('particle_attributes.particles.Thomas.h5part', 'r')
+num_steps_full = len(f)
     </variable>
     <variable name="num_steps_freq" language="python">
-from H5hutpy import *
-f = H5OpenFile("particle_attributes.particles.Steph.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-num_steps_freq = H5GetNumSteps(f)
+import h5py
+f = h5py.File('particle_attributes.particles.Steph.h5part', 'r')
+num_steps_freq = len(f)
     </variable>
     <variable name="timestep_diff_full" language="python">
 import numpy as np
-from H5hutpy import *
-f = H5OpenFile("particle_attributes.particles.Thomas.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-t0 = np.empty(1, 'int64')
-t1 = np.empty(1, 'int64')
-H5SetStep(f, 0)
-H5ReadStepAttribInt64(f, 'timestep', t0)
-H5SetStep(f, 1)
-H5ReadStepAttribInt64(f, 'timestep', t1)
-timestep_diff_full = t1[0] - t0[0]
+import h5py
+f = h5py.File('particle_attributes.particles.Thomas.h5part', 'r')
+t0 = f['/Step#0'].attrs['timestep'].item()
+t1 = f['/Step#1'].attrs['timestep'].item()
+timestep_diff_full = t1 - t0
     </variable>
     <variable name="timestep_diff_freq" language="python">
 import numpy as np
-from H5hutpy import *
-f = H5OpenFile("particle_attributes.particles.Steph.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-t0 = np.empty(1, 'int64')
-t1 = np.empty(1, 'int64')
-H5SetStep(f, 0)
-H5ReadStepAttribInt64(f, 'timestep', t0)
-H5SetStep(f, 1)
-H5ReadStepAttribInt64(f, 'timestep', t1)
-timestep_diff_freq = t1[0] - t0[0]
+import h5py
+f = h5py.File('particle_attributes.particles.Steph.h5part', 'r')
+t0 = f['/Step#0'].attrs['timestep'].item()
+t1 = f['/Step#1'].attrs['timestep'].item()
+timestep_diff_freq = t1 - t0
     </variable>
     <variable name="Walltime" language="python">
 from fluidity_tools import stat_parser

@@ -11,9 +11,9 @@ mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian-2nd-A lagrangian-2nd-A-f
   </problem_definition>
   <variables>
     <variable name="ab_convergence" language="python">
-import numpy as np 
+import numpy as np
 from numpy import zeros,fromfile,sqrt,sum,log10
-from H5hutpy import *
+import h5py
 
 X=np.zeros(100,float)
 Y=np.zeros(100,float)
@@ -26,37 +26,21 @@ for i in range(0,100):
     Y[i]=Y_in[i+10]
 
 last_locations_errora = zeros((2,100))
-    
-f = H5OpenFile("lagrangian_2nd_A.particles.Chris.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
-H5SetStep(f, nsteps-1)
-ids = np.empty(100, dtype='int32')
-H5PartReadDataInt32(f, 'id', ids)
-pos = np.empty((2,100), dtype='float64')
-H5PartReadDataFloat64(f, 'x', pos[0,:])
-H5PartReadDataFloat64(f, 'y', pos[1,:])
-idx = np.argsort(ids)
-pos = pos[:,idx]
-last_locations_errora[0,:] = pos[0,:] - X[:]
-last_locations_errora[1,:] = pos[1,:] - Y[:]
+f = h5py.File('lagrangian_2nd_A.particles.Chris.h5part', 'r')
+n = len(f)-1
+idx = np.argsort(f[f'/Step#{n}/id'])
+last_locations_errora[0,:] = f[f'/Step#{n}/x'][:][idx] - X[:]
+last_locations_errora[1,:] = f[f'/Step#{n}/y'][:][idx] - Y[:]
 
 lsa = sum(sqrt(last_locations_errora[0,:]**2 + last_locations_errora[1,:]**2)**2)
 l2_norm_a=sqrt(lsa)
 
 last_locations_errorb = zeros((2,100))
-
-f = H5OpenFile("lagrangian_2nd_B.particles.Chris.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
-H5SetStep(f, nsteps-1)
-ids = np.empty(100, dtype='int32')
-H5PartReadDataInt32(f, 'id', ids)
-pos = np.empty((2,100), dtype='float64')
-H5PartReadDataFloat64(f, 'x', pos[0,:])
-H5PartReadDataFloat64(f, 'y', pos[1,:])
-idx = np.argsort(ids)
-pos = pos[:,idx]
-last_locations_errorb[0,:] = pos[0,:] - X[:]
-last_locations_errorb[1,:] = pos[1,:] - Y[:]
+f = h5py.File('lagrangian_2nd_B.particles.Chris.h5part', 'r')
+n = len(f)-1
+idx = np.argsort(f[f'/Step#{n}/id'])
+last_locations_errorb[0,:] = f[f'/Step#{n}/x'][:][idx] - X[:]
+last_locations_errorb[1,:] = f[f'/Step#{n}/y'][:][idx] - Y[:]
 
 lsb = sum(sqrt(last_locations_errorb[0,:]**2 + last_locations_errorb[1,:]**2)**2)
 l2_norm_b=sqrt(lsb)
@@ -64,11 +48,10 @@ l2_norm_b=sqrt(lsb)
 ab_ratio = l2_norm_a/l2_norm_b
 ab_convergence = log10(ab_ratio)
     </variable>
-    
     <variable name="bc_convergence" language="python">
-import numpy as np 
+import numpy as np
 from numpy import zeros,fromfile,sqrt,sum,log10
-from H5hutpy import *
+import h5py
 
 X=np.zeros(100,float)
 Y=np.zeros(100,float)
@@ -81,37 +64,21 @@ for i in range(0,100):
     Y[i]=Y_in[i+10]
 
 last_locations_errorb = zeros((2,100))
-    
-f = H5OpenFile("lagrangian_2nd_B.particles.Chris.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
-H5SetStep(f, nsteps-1)
-ids = np.empty(100, dtype='int32')
-H5PartReadDataInt32(f, 'id', ids)
-pos = np.empty((2,100), dtype='float64')
-H5PartReadDataFloat64(f, 'x', pos[0,:])
-H5PartReadDataFloat64(f, 'y', pos[1,:])
-idx = np.argsort(ids)
-pos = pos[:,idx]
-last_locations_errorb[0,:] = pos[0,:] - X[:]
-last_locations_errorb[1,:] = pos[1,:] - Y[:]
+f = h5py.File('lagrangian_2nd_B.particles.Chris.h5part', 'r')
+n = len(f)-1
+idx = np.argsort(f[f'/Step#{n}/id'])
+last_locations_errorb[0,:] = f[f'/Step#{n}/x'][:][idx] - X[:]
+last_locations_errorb[1,:] = f[f'/Step#{n}/y'][:][idx] - Y[:]
 
 lsb = sum(sqrt(last_locations_errorb[0,:]**2 + last_locations_errorb[1,:]**2)**2)
 l2_norm_b=sqrt(lsb)
 
 last_locations_errorc = zeros((2,100))
-
-f = H5OpenFile("lagrangian_2nd_C.particles.Chris.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
-H5SetStep(f, nsteps-1)
-ids = np.empty(100, dtype='int32')
-H5PartReadDataInt32(f, 'id', ids)
-pos = np.empty((2,100), dtype='float64')
-H5PartReadDataFloat64(f, 'x', pos[0,:])
-H5PartReadDataFloat64(f, 'y', pos[1,:])
-idx = np.argsort(ids)
-pos = pos[:,idx]
-last_locations_errorc[0,:] = pos[0,:] - X[:]
-last_locations_errorc[1,:] = pos[1,:] - Y[:]
+f = h5py.File('lagrangian_2nd_C.particles.Chris.h5part', 'r')
+n = len(f)-1
+idx = np.argsort(f[f'/Step#{n}/id'])
+last_locations_errorc[0,:] = f[f'/Step#{n}/x'][:][idx] - X[:]
+last_locations_errorc[1,:] = f[f'/Step#{n}/y'][:][idx] - Y[:]
 
 lsc = sum(sqrt(last_locations_errorc[0,:]**2 + last_locations_errorc[1,:]**2)**2)
 l2_norm_c=sqrt(lsc)
@@ -119,11 +86,10 @@ l2_norm_c=sqrt(lsc)
 bc_ratio = l2_norm_b/l2_norm_c
 bc_convergence = log10(bc_ratio)
     </variable>
-
     <variable name="cd_convergence" language="python">
-import numpy as np 
+import numpy as np
 from numpy import zeros,fromfile,sqrt,sum,log10
-from H5hutpy import *
+import h5py
 
 X=np.zeros(100,float)
 Y=np.zeros(100,float)
@@ -136,37 +102,21 @@ for i in range(0,100):
     Y[i]=Y_in[i+10]
 
 last_locations_errorc = zeros((2,100))
-
-f = H5OpenFile("lagrangian_2nd_C.particles.Chris.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
-H5SetStep(f, nsteps-1)
-ids = np.empty(100, dtype='int32')
-H5PartReadDataInt32(f, 'id', ids)
-pos = np.empty((2,100), dtype='float64')
-H5PartReadDataFloat64(f, 'x', pos[0,:])
-H5PartReadDataFloat64(f, 'y', pos[1,:])
-idx = np.argsort(ids)
-pos = pos[:,idx]
-last_locations_errorc[0,:] = pos[0,:] - X[:]
-last_locations_errorc[1,:] = pos[1,:] - Y[:]
+f = h5py.File('lagrangian_2nd_C.particles.Chris.h5part', 'r')
+n = len(f)-1
+idx = np.argsort(f[f'/Step#{n}/id'])
+last_locations_errorc[0,:] = f[f'/Step#{n}/x'][:][idx] - X[:]
+last_locations_errorc[1,:] = f[f'/Step#{n}/y'][:][idx] - Y[:]
 
 lsc = sum(sqrt(last_locations_errorc[0,:]**2 + last_locations_errorc[1,:]**2)**2)
 l2_norm_c=sqrt(lsc)
 
 last_locations_errord = zeros((2,100))
-
-f = H5OpenFile("lagrangian_2nd_D.particles.Chris.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
-H5SetStep(f, nsteps-1)
-ids = np.empty(100, dtype='int32')
-H5PartReadDataInt32(f, 'id', ids)
-pos = np.empty((2,100), dtype='float64')
-H5PartReadDataFloat64(f, 'x', pos[0,:])
-H5PartReadDataFloat64(f, 'y', pos[1,:])
-idx = np.argsort(ids)
-pos = pos[:,idx]
-last_locations_errord[0,:] = pos[0,:] - X[:]
-last_locations_errord[1,:] = pos[1,:] - Y[:]
+f = h5py.File('lagrangian_2nd_D.particles.Chris.h5part', 'r')
+n = len(f)-1
+idx = np.argsort(f[f'/Step#{n}/id'])
+last_locations_errord[0,:] = f[f'/Step#{n}/x'][:][idx] - X[:]
+last_locations_errord[1,:] = f[f'/Step#{n}/y'][:][idx] - Y[:]
 
 lsd = sum(sqrt(last_locations_errord[0,:]**2 + last_locations_errord[1,:]**2)**2)
 l2_norm_d=sqrt(lsd)

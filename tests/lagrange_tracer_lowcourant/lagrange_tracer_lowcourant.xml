@@ -11,55 +11,30 @@ import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-    <variable name="detector_locx_0" language="python">
+    <variable name="detector_0" language="python">
 import numpy as np
-from H5hutpy import *
+import h5py
 
-f = H5OpenFile("lagrange_tracer.particles.SingleParticle.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
+f = h5py.File('lagrange_tracer.particles.SingleParticle.h5part', 'r')
+n = len(f)-1
 
-H5SetStep(f, nsteps-1)
-pos = np.empty(1, dtype='float64')
-H5PartReadDataFloat64(f, 'x', pos)
-
-detector_locx_0 = pos</variable>
-    <variable name="detector_locy_0" language="python">
-import numpy as np
-from H5hutpy import *
-
-f = H5OpenFile("lagrange_tracer.particles.SingleParticle.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
-
-H5SetStep(f, nsteps-1)
-pos = np.empty(1, dtype='float64')
-H5PartReadDataFloat64(f, 'y', pos)
-
-detector_locy_0 = pos</variable>
-    <variable name="detected_field_value" language="python">
-import numpy as np
-from H5hutpy import *
-
-f = H5OpenFile("lagrange_tracer.particles.SingleParticle.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
-
-H5SetStep(f, nsteps-1)
-pos = np.empty(1, dtype='float64')
-H5PartReadDataFloat64(f, 'field', pos)
-
-detected_field_value = pos</variable>
+detector_0 = {'x': f[f'/Step#{n}/x'][0],
+              'y': f[f'/Step#{n}/y'][0],
+              'value': f[f'/Step#{n}/field'][0]}
+    </variable>
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>
-    <test name="correct_x" language="python">print("detector should be at "+str(2./3.-0.1/3.)+", actually at "+str(detector_locx_0))
-assert(abs(detector_locx_0-(2./3.-0.1/3.)) &lt; 1.e-9)
+    <test name="correct_x" language="python">print("detector should be at "+str(2./3.-0.1/3.)+", actually at "+str(detector_0['x']))
+assert(abs(detector_0['x']-(2./3.-0.1/3.)) &lt; 1.e-9)
 </test>
-    <test name="correct_y" language="python">print("detector should be at "+str(1./3.+0.1/3.)+", actually at "+str(detector_locy_0))
-assert(abs(detector_locy_0-(1./3.+0.1/3.0)) &lt; 1.e-9)
+    <test name="correct_y" language="python">print("detector should be at "+str(1./3.+0.1/3.)+", actually at "+str(detector_0['y']))
+assert(abs(detector_0['y']-(1./3.+0.1/3.0)) &lt; 1.e-9)
 </test>
-    <test name="correct_field_value" language="python">print("detector value should be "+str(1.0)+", actually "+str(detected_field_value))
-assert(abs(detected_field_value-1.0) &lt; 1.e-9)
+    <test name="correct_field_value" language="python">print("detector value should be "+str(1.0)+", actually "+str(detector_0['value']))
+assert(abs(detector_0['value']-1.0) &lt; 1.e-9)
 </test>
   </pass_tests>
 </testproblem>

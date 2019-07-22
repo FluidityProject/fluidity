@@ -5,7 +5,7 @@
   <owner userid="cmath"/>
   <tags>flml parallel</tags>
   <problem_definition length="medium" nprocs="4">
-    <command_line>    
+    <command_line>
 mpiexec -np 2 ../../bin/flredecomp -i 1 -o 2 particle-attributes-parallel particle-attributes-parallel-flredecomp
 mpiexec ../../bin/flredecomp -i 2 -o 4 particle-attributes-parallel-flredecomp particle-attributes-parallel-repart
 mpiexec ../../bin/fluidity -v3 -l particle-attributes-parallel-repart.flml
@@ -14,13 +14,11 @@ mpiexec ../../bin/fluidity -v3 -l particle-attributes-parallel-repart.flml
   <variables>
     <variable name="attributes_error_1" language="python">
 import numpy as np
-from H5hutpy import *
-f = H5OpenFile("particle_attributes_parallel.particles.Thomas.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
+import h5py
 
-H5SetStep(f, nsteps-1)
-att_chem1 = np.empty(60, dtype='float64')
-H5PartReadDataFloat64(f, 'Chem1', att_chem1)
+f = h5py.File('particle_attributes_parallel.particles.Thomas.h5part', 'r')
+n = len(f)-1
+att_chem1 = f[f'/Step#{n}/Chem1'][:]
 attributes_error = att_chem1 - 5.0
 attributes_error_1=abs(attributes_error).max()
 
@@ -28,22 +26,18 @@ print ("max error",attributes_error_1)
     </variable>
     <variable name="attributes_error_2" language="python">
 import numpy as np
-from H5hutpy import *
-f = H5OpenFile("particle_attributes_parallel.particles.Thomas.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
+import h5py
 
-H5SetStep(f, nsteps-2)
-pos = np.empty((2,60), dtype='float64')
-att_chem2 = np.empty(60, dtype='float64')
-H5PartReadDataFloat64(f, 'x', pos[0,:])
-H5PartReadDataFloat64(f, 'y', pos[1,:])
-elapsed_time = np.empty(1)
-H5ReadStepAttribFloat64(f, 'time', elapsed_time)
+f = h5py.File('particle_attributes_parallel.particles.Thomas.h5part', 'r')
+n = len(f)-2
+idx = np.argsort(f[f'/Step#{n}/id'])
+pos = np.vstack((f[f'/Step#{n}/x'], f[f'/Step#{n}/y']))[:,idx]
+elapsed_time = f[f'/Step#{n}'].attrs['time'].item()
+n = len(f)-1
+idx = np.argsort(f[f'/Step#{n}/id'])
+att_chem2 = f[f'/Step#{n}/Chem2'][:][idx]
 
-H5SetStep(f, nsteps-1)
-H5PartReadDataFloat64(f, 'Chem2', att_chem2)
 attributes_error = np.zeros(60)
-
 for i in range(60):
     OldTemp = 2.0 - abs(0.5-pos[0,i]) - abs(0.5-pos[1,i]) - np.sin(elapsed_time*np.pi/2.0)/2.0
     attributes_error[i] = att_chem2[i] - OldTemp
@@ -53,17 +47,13 @@ print ("max error",attributes_error_2)
     </variable>
     <variable name="attributes_error_3" language="python">
 import numpy as np
-from H5hutpy import *
-f = H5OpenFile("particle_attributes_parallel.particles.Chris.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
+import h5py
 
-H5SetStep(f, nsteps-1)
-xpos = np.empty(100, dtype='float64')
-att_chem3 = np.empty(100, dtype='float64')
-H5PartReadDataFloat64(f, 'x', xpos)
-H5PartReadDataFloat64(f, 'Chem3', att_chem3)
-elapsed_time = np.empty(1)
-H5ReadStepAttribFloat64(f, 'time', elapsed_time)
+f = h5py.File('particle_attributes_parallel.particles.Chris.h5part', 'r')
+n = len(f)-1
+xpos = f[f'/Step#{n}/x'][:]
+att_chem3 = f[f'/Step#{n}/Chem3'][:]
+elapsed_time = f[f'/Step#{n}'].attrs['time'].item()
 
 attributes_error = att_chem3 - (xpos + elapsed_time)
 attributes_error_3=abs(attributes_error).max()
@@ -71,18 +61,13 @@ print ("max error",abs(attributes_error_3).max())
     </variable>
     <variable name="sq_error_4" language="python">
 import numpy as np
-from H5hutpy import *
-f = H5OpenFile("particle_attributes_parallel.particles.Chris.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
+import h5py
 
-H5SetStep(f, nsteps-1)
-pos = np.empty((2, 100), dtype='float64')
-att_chem4 = np.empty(100, dtype='float64')
-H5PartReadDataFloat64(f, 'x', pos[0,:])
-H5PartReadDataFloat64(f, 'y', pos[1,:])
-H5PartReadDataFloat64(f, 'Chem4', att_chem4)
-elapsed_time = np.empty(1)
-H5ReadStepAttribFloat64(f, 'time', elapsed_time)
+f = h5py.File('particle_attributes_parallel.particles.Chris.h5part', 'r')
+n = len(f)-1
+pos = np.vstack((f[f'/Step#{n}/x'], f[f'/Step#{n}/y']))
+att_chem4 = f[f'/Step#{n}/Chem4'][:]
+elapsed_time = f[f'/Step#{n}'].attrs['time'].item()
 
 attributes_error_4 = np.zeros((1,100))
 sq_error=0
@@ -92,21 +77,19 @@ for i in range(100):
     Salinity = 2.0 - pos[1,i]
     attributes_error_4[0,i] = att_chem4[i] - (pos[0,i] + elapsed_time + Salinity + Temp)
     sq_error = sq_error + attributes_error_4[0,i]**2
-    
 sq_error_4 = sq_error
     </variable>
     <variable name="attributes_error_5" language="python">
 import numpy as np
-from H5hutpy import *
-f = H5OpenFile("particle_attributes_parallel.particles.Chris.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
+import h5py
 
-att_chem4 = np.empty(100, dtype='float64')
-att_chem5 = np.empty(100, dtype='float64')
-H5SetStep(f, nsteps-1)
-H5PartReadDataFloat64(f, 'Chem5', att_chem5)
-H5SetStep(f, nsteps-2)
-H5PartReadDataFloat64(f, 'Chem4', att_chem4)
+f = h5py.File('particle_attributes_parallel.particles.Chris.h5part', 'r')
+n = len(f)-1
+idx = np.argsort(f[f'/Step#{n}/id'])
+att_chem5 = f[f'/Step#{n}/Chem5'][:][idx]
+n = len(f)-2
+idx = np.argsort(f[f'/Step#{n}/id'])
+att_chem4 = f[f'/Step#{n}/Chem4'][:][idx]
 
 attributes_error = att_chem5 - att_chem4
 attributes_error_5=abs(attributes_error).max()
@@ -114,24 +97,18 @@ print ("max error",attributes_error_5)
     </variable>
     <variable name="sq_error_6" language="python">
 import numpy as np
-from H5hutpy import *
-f = H5OpenFile("particle_attributes_parallel.particles.Steph.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
+import h5py
 
-pos = np.empty((2, 80), dtype='float64')
-old_pos = np.empty((2, 80), dtype='float64')
-att_chem6 = np.empty(80, dtype='float64')
-H5SetStep(f, nsteps-1)
-H5PartReadDataFloat64(f, 'x', pos[0,:])
-H5PartReadDataFloat64(f, 'y', pos[1,:])
-H5PartReadDataFloat64(f, 'Chem6', att_chem6)
-newtime = np.empty(1)
-H5ReadStepAttribFloat64(f, 'time', newtime)
-H5SetStep(f, nsteps-2)
-H5PartReadDataFloat64(f, 'x', old_pos[0,:])
-H5PartReadDataFloat64(f, 'y', old_pos[1,:])
-oldtime = np.empty(1)
-H5ReadStepAttribFloat64(f, 'time', oldtime)
+f = h5py.File('particle_attributes_parallel.particles.Steph.h5part', 'r')
+n = len(f)-1
+idx = np.argsort(f[f'/Step#{n}/id'])
+pos = np.vstack((f[f'/Step#{n}/x'], f[f'/Step#{n}/y']))[:,idx]
+att_chem6 = f[f'/Step#{n}/Chem6'][:][idx]
+newtime = f[f'/Step#{n}'].attrs['time'].item()
+n = len(f)-2
+idx = np.argsort(f[f'/Step#{n}/id'])
+old_pos = np.vstack((f[f'/Step#{n}/x'], f[f'/Step#{n}/y']))[:,idx]
+oldtime = f[f'/Step#{n}'].attrs['time'].item()
 
 attributes_error_6 = np.zeros((1,80))
 sq_error = 0
@@ -141,7 +118,7 @@ for i in range(80):
     OldTemp = 2.0 - abs(0.5-old_pos[0,i]) - abs(0.5-old_pos[1,i]) - np.sin(oldtime*np.pi/2.0)/2.0
     attributes_error_6[0,i] = att_chem6[i] - (Temp - OldTemp)
     sq_error = sq_error + attributes_error_6[0,i]**2
-    
+
 sq_error_6 = sq_error
     </variable>
     <variable name="Walltime" language="python">

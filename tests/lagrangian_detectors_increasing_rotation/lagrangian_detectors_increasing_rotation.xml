@@ -11,72 +11,32 @@ mpiexec ../../bin/fluidity -v3 -l lagrangian-detectors-increasing-rotation-flred
   </problem_definition>
   <variables>
     <variable name="last_single_locations_error" language="python">
-from H5hutpy import *
+import h5py
 import numpy as np
 last_single_locations_error = np.zeros((2,3))
-X=np.zeros(100,float)
-Y=np.zeros(100,float)
-f = open('Xvals.npy', "r")
-X_in= np.fromfile(f,dtype=np.float)
-f = open('Yvals.npy', "r")
-Y_in= np.fromfile(f,dtype=np.float)
-for i in range(0,100):
-  X[i]=X_in[i+10]
-  Y[i]=Y_in[i+10]
+X = np.fromfile('Xvals.npy', dtype=np.float)
+Y = np.fromfile('Yvals.npy', dtype=np.float)
+vals_idx = [i+10 for i in [0, 50, 99]]
 
-f = H5OpenFile("lagrangian_detectors.particles.Singl_Lagr_1.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
-H5SetStep(f, nsteps-1)
-pos = np.empty((2,1), dtype='float64')
-H5PartReadDataFloat64(f, 'x', pos[0,:])
-H5PartReadDataFloat64(f, 'y', pos[1,:])
-last_single_locations_error[0,0] = pos[0,:] - X[0]
-last_single_locations_error[1,0] = pos[1,:] - Y[0]
-
-f = H5OpenFile("lagrangian_detectors.particles.Singl_Lagr_2.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
-H5SetStep(f, nsteps-1)
-pos = np.empty((2,1), dtype='float64')
-H5PartReadDataFloat64(f, 'x', pos[0,:])
-H5PartReadDataFloat64(f, 'y', pos[1,:])
-last_single_locations_error[0,1] = pos[0,:] - X[50]
-last_single_locations_error[1,1] = pos[1,:] - Y[50]
-
-f = H5OpenFile("lagrangian_detectors.particles.Singl_Lagr_3.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
-H5SetStep(f, nsteps-1)
-pos = np.empty((2,1), dtype='float64')
-H5PartReadDataFloat64(f, 'x', pos[0,:])
-H5PartReadDataFloat64(f, 'y', pos[1,:])
-last_single_locations_error[0,2] = pos[0,:] - X[99]
-last_single_locations_error[1,2] = pos[1,:] - Y[99]
+for i in range(3):
+  f = h5py.File('lagrangian_detectors.particles.Singl_Lagr_{i}.h5part'.format(i=i+1), 'r')
+  n = len(f)-1
+  last_single_locations_error[0,i] = f[f'/Step#{n}/x'][0] - X[vals_idx[i]]
+  last_single_locations_error[0,i] = f[f'/Step#{n}/y'][0] - Y[vals_idx[i]]
     </variable>
     <variable name="last_locations_error" language="python">
-from H5hutpy import *
+import h5py
 import numpy as np
 last_locations_error = np.zeros((2,100))
-X=np.zeros(100,float)
-Y=np.zeros(100,float)
-f = open('Xvals.npy', "r")
-X_in= np.fromfile(f,dtype=np.float)
-f = open('Yvals.npy', "r")
-Y_in= np.fromfile(f,dtype=np.float)
-for i in range(0,100):
-  X[i]=X_in[i+10]
-  Y[i]=Y_in[i+10]
+X = np.fromfile('Xvals.npy', dtype=np.float)
+Y = np.fromfile('Yvals.npy', dtype=np.float)
 
-f = H5OpenFile("lagrangian_detectors.particles.Steve.h5part", H5_O_RDONLY, H5_PROP_DEFAULT)
-nsteps = H5GetNumSteps(f)
-H5SetStep(f, nsteps-1)
-ids = np.empty(100, dtype='int32')
-H5PartReadDataInt32(f, 'id', ids)
-pos = np.empty((2,100), dtype='float64')
-H5PartReadDataFloat64(f, 'x', pos[0,:])
-H5PartReadDataFloat64(f, 'y', pos[1,:])
-idx = np.argsort(ids)
-pos = pos[:,idx]
-last_locations_error[0,:] = pos[0,:] - X[:]
-last_locations_error[1,:] = pos[1,:] - Y[:]
+f = h5py.File('lagrangian_detectors.particles.Steve.h5part', 'r')
+n = len(f)-1
+idx = np.argsort(f[f'/Step#{n}/id'])
+
+last_locations_error[0,:] = f[f'/Step#{n}/x'][:][idx] - X[10:]
+last_locations_error[1,:] = f[f'/Step#{n}/y'][:][idx] - Y[10:]
     </variable>
   </variables>
   <pass_tests>
