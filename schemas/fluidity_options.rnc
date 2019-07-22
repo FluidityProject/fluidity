@@ -211,26 +211,6 @@ start =
                         }
                      )
                   }|
-                  ## A single lagrangian detector
-                  element lagrangian_detector {
-                     attribute name { xsd:string },
-                     (
-                     ## This is the initial location of a detector that moves with the fluid velocity.
-                        element location {
-                           real_dim_vector
-                     }|
-                        ## File containing the detectors positions in binary form
-                        element from_checkpoint_file {
-                           attribute file_name { xsd:string },
-                           ## The format of the input file containing field data.
-                           element format {
-                             element string_value {
-                                 "binary"
-                             }
-                           }
-                        }
-                     )
-                  }|
                   ## Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.
                   element detector_array {
                      attribute name { xsd:string },
@@ -241,10 +221,6 @@ start =
                      (
                         ## Create fixed detectors.
                         element static {
-                           empty
-                        }|
-                        ## Create detectors which move with the fluid velocity.
-                        element lagrangian {
                            empty
                         }
                      ),

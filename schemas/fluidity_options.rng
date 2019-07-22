@@ -264,30 +264,6 @@ checkpoints may be overwritten.</a:documentation>
                     </element>
                   </choice>
                 </element>
-                <element name="lagrangian_detector">
-                  <a:documentation>A single lagrangian detector</a:documentation>
-                  <attribute name="name">
-                    <data type="string"/>
-                  </attribute>
-                  <choice>
-                    <element name="location">
-                      <a:documentation>This is the initial location of a detector that moves with the fluid velocity.</a:documentation>
-                      <ref name="real_dim_vector"/>
-                    </element>
-                    <element name="from_checkpoint_file">
-                      <a:documentation>File containing the detectors positions in binary form</a:documentation>
-                      <attribute name="file_name">
-                        <data type="string"/>
-                      </attribute>
-                      <element name="format">
-                        <a:documentation>The format of the input file containing field data.</a:documentation>
-                        <element name="string_value">
-                          <value>binary</value>
-                        </element>
-                      </element>
-                    </element>
-                  </choice>
-                </element>
                 <element name="detector_array">
                   <a:documentation>Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.</a:documentation>
                   <attribute name="name">
@@ -297,16 +273,10 @@ checkpoints may be overwritten.</a:documentation>
                     <a:documentation>The number of detectors prescribed by the python function.</a:documentation>
                     <ref name="integer"/>
                   </element>
-                  <choice>
-                    <element name="static">
-                      <a:documentation>Create fixed detectors.</a:documentation>
-                      <empty/>
-                    </element>
-                    <element name="lagrangian">
-                      <a:documentation>Create detectors which move with the fluid velocity.</a:documentation>
-                      <empty/>
-                    </element>
-                  </choice>
+                  <element name="static">
+                    <a:documentation>Create fixed detectors.</a:documentation>
+                    <empty/>
+                  </element>
                   <choice>
                     <element name="python">
                       <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
