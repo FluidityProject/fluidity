@@ -8,6 +8,7 @@ pipeline {
     environment {
         MPLBACKEND = 'PS'
         OMPI_MCA_btl = '^openib'
+	PETSC_DIR = '/usr/lib/petscdir/3.6.3'
     }
     stages {
         stage('Configuring') {   
