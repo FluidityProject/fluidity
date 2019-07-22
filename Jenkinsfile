@@ -1,14 +1,13 @@
 pipeline {
     agent { 
         docker {
-            image "angusgibson/fluidity:xenial-latest"
+            image "angusgibson/fluidity:xenial-cmake"
             label 'dockerhost'
         } 
     }
     environment {
         MPLBACKEND = 'PS'
         OMPI_MCA_btl = '^openib'
-	PETSC_DIR = '/usr/lib/petscdir/3.6.3'
     }
     stages {
         stage('Configuring') {   
