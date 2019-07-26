@@ -104,6 +104,12 @@ module spherical_adaptivity
       call deallocate(external_base_geometry)
     end if
 
+    ! We assume the initial positions are "popped out"
+    ! We could for instance start with an input mesh that is finer than the base geometry
+    ! or from a checkpoint. In both cases we assume the input mesh has all its nodes popped out
+    ! (i.e. assuming a constant radius, all surface nodes should be on the sphere)
+    call spherical_adaptivity_pop_in(states, current_positions)
+
   end subroutine prepare_spherical_adaptivity
 
   function read_base_geometry() result (position)

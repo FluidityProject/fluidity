@@ -1150,7 +1150,8 @@ contains
         end if
         if (have_option('/mesh_adaptivity/hr_adaptivity/debug/write_spherical_adaptivity_stages')) then
           spherical_adapt_index = spherical_adapt_index + 1
-          call vtk_write_state("base_geometry_before", spherical_adapt_index, old_positions%mesh%name, states)
+          call vtk_write_fields("base_geometry_before", spherical_adapt_index, &
+              old_positions, old_positions%mesh, write_region_ids=.true.)
         end if
       end if
       call prepare_vertically_structured_adaptivity(states, metric, full_metric, &
