@@ -4085,33 +4085,61 @@ contains
     face_l_vertices = local_vertices(face_shape(mesh, face))  ! e.g. (1, 3, 6)
 
     ! get the element local node numbers of the nodes on the face
-    face_l_nodes => face_local_nodes(mesh, face)  ! e.g. (5, 2, 1, 6, 3, 7)
+    face_l_nodes => face_local_nodes(mesh, face)  ! e.g. (3, 8, 10, 2, 7, 1)
 
     ! work out the element local node numbers of the face vertices
-    element_face_local_vertices = face_l_nodes(face_l_vertices) ! e.g. (5, 1, 7)
+    element_face_local_vertices = face_l_nodes(face_l_vertices) ! e.g. (3, 10, 1)
 
     ! get the vertex numbers of the element (indexes ino the element node numbering)
-    element_l_vertices = local_vertices(mesh%shape)  ! e.g. (1, 5, 7, 10)
+    element_l_vertices = local_vertices(mesh%shape)  ! e.g. (1, 3, 6, 10)
 
-    ! work out which vertices in volume element are vertices in facet
-    ! and set up vertices in correct order on element
-    ! e.g. (l_face_number, 2, 1, 3) = (4, 2, 1, 3)
+    ! now we want to look up the facet vertices (specified in ele node numbers),
+    !  i.e. element_face_local_vertices, in element_l_vertices
+    ! this gives us the vertices of the facet specified as element vertex numbers
+
+    ! first we create a map form element nodes to element vertices
     node2vertex = 0
     do i = 1, size(element_l_vertices)
       node2vertex(element_l_vertices(i)) = i
     end do
+    ! then we map element_face_local_vertices using this map
+
+    ! the first vertex we want however is the vertex opposite the facet
     reordered_element_vertices(1) = l_face_number
+    ! followed by the facet vertices
     do i = 1, size(element_face_local_vertices)
       j = node2vertex(element_face_local_vertices(i))
       assert(j>0)
       reordered_element_vertices(i+1) = j
     end do
+
+    ! Note that we have worked out the correct vertex order, independent of the
+    ! provided element shape (i.e. we have only used mesh and mesh%shape so far)
+    ! Only now do we use the provided element, and ask for a local numbering that is
+    ! consistent with the reordered vertices
     reordered_element_nodes = ele_local_num(reordered_element_vertices, element%numbering)
 
-  end function
+  end function reorder_element_nodes_face
 
   function face_n_s(element, mesh, face) result(n_s)
-    !!< Reorders the element shape function evaluated at the face to match the face node ordering
+    !!< Reorders the element shape functions of element%n_s to match that of element (presumed adjacent to face in mesh)
+    !!<
+    !!< The precomputed element%n_s = N_i(xi_g), where
+    !!<
+    !!<   N_i is the ith shape function of the element behind the facet
+    !!<   xi_g is the (vector of) local coordinates of the g-th gauss point on the facet
+    !!<
+    !!< They have been calculated based on the assumption that xi^1 is the local coordinate that is 0 at the facet and xi^2 to xi^(dim+1)
+    !!< are the local coordinates of the facet. The node numbering i of the element is based on a vertex ordering such that vertex 1 is
+    !!< the vertex opposite the facet, and vertices 2:dim+1 are in the same order as the vertices of the facet.
+    !!<
+    !!< An arbitrary element in the mesh adjacent to a facet will not satisfy these assumptions but will have a different ordering j
+    !!< Let j(i) be the map from the idealised node numbering i to the actual node numbering j, i.e. j(1) is the node opposite the facet,
+    !!< etc. This map is given by reorder_element_nodes_face()
+    !!< Let M_j be a reordering of the basis functions N_i such that M_j(i)=N_j
+    !!< We want to compute T(xi_g) = \sum_j T_j M_j(xi_g) = \sum_i T_j(i) N_i(xi_g)
+    !!< Therefore face_n_s(j,g,k) returns M_j(xi_g) so that we do not have to reorder T_j.  Instead we have applied an inverse
+    !!< reordering on the first index of n_s.
     !!<
     !!< Note that the element supplied does not need to be from the mesh so long as they are topologically/geometrically the same.
     !!< e.g. element can be p2 while mesh can be p1.
@@ -4130,10 +4158,29 @@ contains
       n_s(j,:) = element%n_s(i,:)
     end do
 
-  end function
+  end function face_n_s
 
   function face_dn_s(element, mesh, face) result(dn_s)
-    !!< Reorders the element shape function derivative evaluated at the face to match the face node ordering
+    !!< Reorders the element shape functions (their derivatives) of element%dn_s to match that of element (presumed adjacent to face in mesh)
+    !!<
+    !!< The precomputed element%dn_s = dN_i/dxi^k (xi_g), where
+    !!<
+    !!<   N_i is the ith shape function of the element behind the facet
+    !!<   xi^k is the kth local coordinate of the element
+    !!<   xi_g is the (vector of) local coordinates of the g-th gauss point on the facet
+    !!<
+    !!< They have been calculated based on the assumption that xi_1 is the local coordinate that is 0 at the facet and xi^2 to xi^(dim+1)
+    !!< are the local coordinates of the facet. The xi_g are based on the same local coordinates. The node numbering i of the element
+    !!< is based on a vertex ordering such that vertex 1 is the vertex opposite the facet, and vertices 2:dim+1 are in the same order
+    !!< as the vertices of the facet.
+    !!<
+    !!< An arbitrary element in the mesh adjacent to a facet will not satisfy these assumptions but will have a different ordering j
+    !!< Let j(i) be the map from the idealised node numbering i to the actual node numbering j, i.e. j(1) is the node opposite the facet,
+    !!< etc. This map is given by reorder_element_nodes_face()
+    !!< Let M_j be a reordering of the basis functions N_i such that M_j(i)=N_j
+    !!< We want to compute dT/dxi^k (xi_g) = \sum_j T_j dM_j/dxi^k (xi_g) = \sum_i T_j(i) dN_i/dxi^k (xi_g)
+    !!< Therefore face_dn_s(j,g,k) returns dM_j/dxi^k (xi_g) so that we do not have to reorder T_j.  Instead we have applied an inverse
+    !!< reordering on the first index of dn_s.
     !!<
     !!< Note that the element supplied does not need to be from the mesh so long as they are topologically/geometrically the same.
     !!< e.g. element can be p2 while mesh can be p1.
@@ -4152,7 +4199,7 @@ contains
       dn_s(j,:,:) = element%dn_s(i,:,:)
     end do
 
-  end function
+  end function face_dn_s
 
   subroutine write_minmax_scalar(sfield, field_expression)
     ! the scalar field to print its min and max of
