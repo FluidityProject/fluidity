@@ -15,18 +15,20 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
 
-import gobject
-import gtk
-import pango
+from gi.repository import GObject as gobject
+from gi.repository import Gtk as gtk
+from gi.repository import Gdk as gdk
+from gi.repository import Pango as pango
+from gi.repository import GtkSource as gtksource
 
-import dialogs
-import datatype
-import mixedtree
-import plist
+from . import dialogs
+from . import datatype
+from . import mixedtree
+from . import plist
 
 class DataWidget(gtk.VBox):
 
-  __gsignals__ = { "on-store"  : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())}
+  __gsignals__ = { "on-store"  : (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, ())}
 
   def __init__(self):
     gtk.VBox.__init__(self)
@@ -37,9 +39,9 @@ class DataWidget(gtk.VBox):
     label.set_markup("<b>Data</b>")
     
     frame.set_label_widget(label)
-    frame.set_shadow_type(gtk.SHADOW_NONE)
+    frame.set_shadow_type(gtk.ShadowType.NONE)
 
-    self.pack_start(frame)
+    self.pack_start(frame, True, True, 0)
     self.buttons = None
     return
 
@@ -110,43 +112,39 @@ class DataWidget(gtk.VBox):
 
   def add_scrolled_window(self):
     scrolledWindow = gtk.ScrolledWindow()
-    scrolledWindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+    scrolledWindow.set_policy(gtk.PolicyType.AUTOMATIC, gtk.PolicyType.AUTOMATIC)
     self.frame.add(scrolledWindow)
     scrolledWindow.show()
     return scrolledWindow
 
   def add_text_view(self):
     scrolledWindow = self.add_scrolled_window()
-    self.set_child_packing(self.frame, True, True, 0, gtk.PACK_START)
+    self.set_child_packing(self.frame, True, True, 0, gtk.PackType.START)
     
-    try:
-      import gtksourceview2
-      buf = gtksourceview2.Buffer()
-      lang_manager = gtksourceview2.LanguageManager()
-      buf.set_highlight_matching_brackets(True)
-      if self.node is not None and self.node.is_code():
-        codelanguage = self.node.get_code_language();
-        if codelanguage in lang_manager.get_language_ids():
-          language = lang_manager.get_language(codelanguage)
-        else:
-          language = lang_manager.get_language("python")
-        buf.set_language(language)
-        buf.set_highlight_syntax(True)
-      textview = gtksourceview2.View(buffer=buf)
-      textview.set_auto_indent(True)
-      textview.set_insert_spaces_instead_of_tabs(True)
-      textview.set_tab_width(2)
-      if self.node is not None and self.node.is_code():
-        textview.set_show_line_numbers(True)
-        font_desc = pango.FontDescription("monospace")
-        if font_desc:
-          textview.modify_font(font_desc)
-    except ImportError:
-      textview = gtk.TextView()
+    buf = gtksource.Buffer()
+    lang_manager = gtksource.LanguageManager()
+    buf.set_highlight_matching_brackets(True)
+    if self.node is not None and self.node.is_code():
+      codelanguage = self.node.get_code_language();
+      if codelanguage in lang_manager.get_language_ids():
+        language = lang_manager.get_language(codelanguage)
+      else:
+        language = lang_manager.get_language("python")
+      buf.set_language(language)
+      buf.set_highlight_syntax(True)
+    textview = gtksource.View.new_with_buffer(buf)
+    textview.set_auto_indent(True)
+    textview.set_insert_spaces_instead_of_tabs(True)
+    textview.set_tab_width(2)
+    if self.node is not None and self.node.is_code():
+      textview.set_show_line_numbers(True)
+      font_desc = pango.FontDescription("monospace")
+      if font_desc:
+        textview.modify_font(font_desc)
 
     textview.set_pixels_above_lines(2)
     textview.set_pixels_below_lines(2)
-    textview.set_wrap_mode(gtk.WRAP_WORD)
+    textview.set_wrap_mode(gtk.WrapMode.WORD)
     textview.connect("focus-in-event", self.entry_focus_in)
 
     scrolledWindow.add(textview)
@@ -158,13 +156,13 @@ class DataWidget(gtk.VBox):
     Empty the data frame.
     """
 
-    if self.frame.child is not None:
-      if isinstance(self.data, gtk.TextView):
+    if self.frame.get_child() is not None:
+      if isinstance(self.data, gtk.TextView) or isinstance(self.data, gtksource.View):
         self.data.handler_block_by_func(self.entry_focus_in)
       elif isinstance(self.data, gtk.ComboBox):
         self.data.handler_block_by_func(self.combo_focus_child)
 
-      self.frame.remove(self.frame.child)
+      self.frame.remove(self.frame.get_child())
 
     self.interacted = False
 
@@ -243,9 +241,9 @@ class DataWidget(gtk.VBox):
     dim1, dim2 = self.node.tensor_shape(self.geometry_dim_tree)
     self.data = gtk.Table(dim1, dim2)
     scrolledWindow.add_with_viewport(self.data)
-    scrolledWindow.child.set_property("shadow-type", gtk.SHADOW_NONE)
+    scrolledWindow.get_child().set_property("shadow-type", gtk.ShadowType.NONE)
 
-    self.set_child_packing(self.frame, True, True, 0, gtk.PACK_START)
+    self.set_child_packing(self.frame, True, True, 0, gtk.PackType.START)
 
     self.show_all()
     self.buttons.show()
@@ -265,7 +263,7 @@ class DataWidget(gtk.VBox):
 
           if self.node.data is None:
             entry.set_text(datatype.print_type(self.node.datatype.datatype))
-            entry.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("blue"))
+            entry.modify_text(gtk.StateFlags.NORMAL, gdk.color_parse("blue"))
           else:
             entry.set_text(self.node.data.split(" ")[jindex + iindex * dim2])
 
@@ -284,14 +282,14 @@ class DataWidget(gtk.VBox):
     if isinstance(self.node.datatype[0], tuple):
       self.data = gtk.combo_box_entry_new_text()
     else:
-      self.data = gtk.combo_box_new_text()
+      self.data = gtk.ComboBoxText.new()
 
     self.frame.add(self.data)
     self.data.show()
 
     self.data.connect("set-focus-child", self.combo_focus_child)
 
-    self.set_child_packing(self.frame, False, False, 0, gtk.PACK_START)
+    self.set_child_packing(self.frame, False, False, 0, gtk.PackType.START)
 
     if isinstance(self.node.datatype[0], tuple):
       self.buttons.show()
@@ -304,8 +302,8 @@ class DataWidget(gtk.VBox):
       else:
         self.data.append_text("Select...")
         self.data.set_active(0)
-      self.data.child.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("blue"))
-      self.data.child.modify_text(gtk.STATE_PRELIGHT, gtk.gdk.color_parse("blue"))
+      self.data.get_child().modify_text(gtk.StateFlags.NORMAL, gdk.color_parse("blue"))
+      self.data.get_child().modify_text(gtk.StateFlags.PRELIGHT, gdk.color_parse("blue"))
 
     if isinstance(self.node.datatype[0], tuple):
       options = self.node.datatype[0]
@@ -331,7 +329,7 @@ class DataWidget(gtk.VBox):
     Attempt to store data read from a textview packed in the data frame.
     """
 
-    new_data = self.data.get_buffer().get_text(*self.data.get_buffer().get_bounds())
+    new_data = self.data.get_buffer().get_text(*self.data.get_buffer().get_bounds(), include_hidden_chars=True)
 
     if new_data == "":
       return True
@@ -346,7 +344,7 @@ class DataWidget(gtk.VBox):
       elif value_check != self.node.data:
         self.node.set_data(value_check)
         if (isinstance(self.node, mixedtree.MixedTree)
-           and "shape" in self.node.child.attrs.keys()
+           and "shape" in list(self.node.child.attrs.keys())
            and self.node.child.attrs["shape"][0] is int
            and isinstance(self.node.datatype, plist.List)
            and self.node.datatype.cardinality == "+"):
@@ -469,7 +467,7 @@ class DataWidget(gtk.VBox):
         self.interacted[col + row * dim1] = True
       if self.node.data is None:
         widget.set_text("")
-        widget.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("black"))
+        widget.modify_text(gtk.StateFlags.NORMAL, gdk.color_parse("black"))
 
     return
 
@@ -485,10 +483,10 @@ class DataWidget(gtk.VBox):
         if isinstance(self.node.datatype[0], tuple):
           self.data.child.set_text("")
         else:
-          self.data.remove_text(0)
+          self.data.remove(0)
 
-        self.data.child.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("black"))
-        self.data.child.modify_text(gtk.STATE_PRELIGHT, gtk.gdk.color_parse("black"))
+        self.data.get_child().modify_text(gtk.StateFlags.NORMAL, gdk.color_parse("black"))
+        self.data.get_child().modify_text(gtk.StateFlags.PRELIGHT, gdk.color_parse("black"))
         self.data.handler_unblock_by_func(self.combo_changed)
 
     return

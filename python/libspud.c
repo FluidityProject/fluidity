@@ -5,6 +5,15 @@
 
 #define MAXLENGTH   2048
 
+#if PY_MAJOR_VERSION >= 3
+#define PyInt_Type PyLong_Type
+#define PyInt_Check PyLong_Check
+#define PyString_Type PyUnicode_Type
+#define PyString_AsString PyUnicode_AsUTF8
+#define PyString_Check PyUnicode_Check
+#define PyString_GET_SIZE PyUnicode_GET_SIZE
+#endif
+
 static PyObject *SpudError;
 static PyObject *SpudTypeError;
 static PyObject *SpudKeyError;
@@ -827,6 +836,26 @@ static PyMethodDef libspudMethods[] = {
             /* Sentinel */
 };
 
+#if PY_MAJOR_VERSION >= 3
+
+static struct PyModuleDef moduledef = {
+  PyModuleDef_HEAD_INIT,
+  "libspud",
+  NULL,
+  -1,
+  libspudMethods,
+  NULL, NULL, NULL, NULL,
+};
+
+PyMODINIT_FUNC
+PyInit_libspud(void)
+{
+    PyObject *m;
+
+    m = PyModule_Create(&moduledef);
+    if (m == NULL)
+      return m;
+#else
 PyMODINIT_FUNC
 initlibspud(void)
 {
@@ -835,6 +864,7 @@ initlibspud(void)
     m = Py_InitModule("libspud", libspudMethods);
     if (m == NULL)
         return;
+#endif
 
     SpudError = PyErr_NewException("Spud.error", NULL, NULL);
     SpudNewKeyWarning = PyErr_NewException("SpudNewKey.warning", NULL, NULL);
@@ -864,10 +894,16 @@ initlibspud(void)
     PyModule_AddObject(m, "SpudRankError", SpudRankError);
 
 
-#if PY_MINOR_VERSION > 6
+#if PY_MAJOR_VERSION>=3 || PY_MINOR_VERSION > 6
     manager = PyCapsule_Import("spud_manager._spud_manager", 0);
     if (manager != NULL) spud_set_manager(manager);
     else PyErr_Clear();
+#endif
+
+#if PY_MAJOR_VERSION>=3
+    return m;
+#else
+    return;
 #endif
 
 }

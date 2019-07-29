@@ -15,22 +15,24 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
 
-import gobject
-import gtk
+import sys
+from gi.repository import GObject as gobject
+from gi.repository import Gtk as gtk
+from gi.repository import Pango as pango
 
 class CommentWidget(gtk.Frame):
 
-  __gsignals__ = { "on-store"  : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())}
+  __gsignals__ = { "on-store"  : (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, ())}
 
   def __init__(self):
     gtk.Frame.__init__(self)
     
     scrolledWindow = gtk.ScrolledWindow()
-    scrolledWindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+    scrolledWindow.set_policy(gtk.PolicyType.AUTOMATIC, gtk.PolicyType.AUTOMATIC)
 
     textView = self.textView = gtk.TextView()
     textView.set_editable(False)
-    textView.set_wrap_mode(gtk.WRAP_WORD)
+    textView.set_wrap_mode(gtk.WrapMode.WORD)
     textView.set_cursor_visible(False)
     textView.connect("focus-in-event", self.focus_in)
     textView.connect("focus-out-event", self.focus_out)
@@ -41,7 +43,7 @@ class CommentWidget(gtk.Frame):
     label = gtk.Label()
     label.set_markup("<b>Comment</b>")
 
-    self.set_shadow_type(gtk.SHADOW_NONE)
+    self.set_shadow_type(gtk.ShadowType.NONE)
     self.set_label_widget(label)
     self.add(scrolledWindow)
     
@@ -111,7 +113,7 @@ class CommentWidget(gtk.Frame):
       return
 
     data_buffer_bounds = self.textView.get_buffer().get_bounds()
-    new_comment = self.textView.get_buffer().get_text(data_buffer_bounds[0], data_buffer_bounds[1])
+    new_comment = self.textView.get_buffer().get_text(data_buffer_bounds[0], data_buffer_bounds[1], True)
 
     if new_comment != comment_tree.data:
       if new_comment == "":

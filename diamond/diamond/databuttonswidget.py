@@ -15,16 +15,16 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
 
-import gobject
-import gtk
+from gi.repository import GObject as gobject
+from gi.repository import Gtk as gtk
 
 class DataButtonsWidget(gtk.HBox):
 
-  __gsignals__ = { "revert" : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ()),
-                   "store"  : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())}
+  __gsignals__ = { "revert" : (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, ()),
+                   "store"  : (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, ())}
 
   def __init__(self):
-    gtk.HBox.__gobject_init__(self)
+    gtk.HBox.__init__(self)
     revertButton = gtk.Button()
     revertButton.set_label("Revert data")
     revertButton.connect("clicked", self._revert)
@@ -33,8 +33,8 @@ class DataButtonsWidget(gtk.HBox):
     storeButton.set_label("Store data")
     storeButton.connect("clicked", self._store)
 
-    self.pack_start(revertButton)
-    self.pack_end(storeButton)
+    self.pack_start(revertButton, True, True, 0)
+    self.pack_end(storeButton, True, True, 0)
 
     return
 
