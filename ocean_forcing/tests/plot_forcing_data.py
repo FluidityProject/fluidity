@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import numpy
 from pylab import *
@@ -28,7 +28,7 @@ for file in filelist:
 
 
 for file in files:
-    print "Plotting graphs for ",file
+    print("Plotting graphs for ",file)
 
     # make a graphic filename by stripping off the csv and adding png
 

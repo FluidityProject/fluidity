@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script generates pvd files for time series in paraview
 import vtktools as vtk

@@ -1,6 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-from __future__ import print_function
 from math import sqrt, acos, atan, sin, cos
 import argparse
 import vtktools
