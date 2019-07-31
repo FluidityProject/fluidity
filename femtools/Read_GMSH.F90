@@ -127,7 +127,7 @@ contains
     ! Read in header information, and validate
     call read_header( fd, lfilename, gmshFormat, versionNumber )
 
-    if (versionNumber%major .eq. 4) then
+    if (versionNumber%major == 4) then
        do n=1,4
           call allocate(entityMap(n))
        end do
@@ -136,7 +136,7 @@ contains
     end if
 
     ! Read in the nodes
-    if (versionNumber%major .eq. 4) then
+    if (versionNumber%major == 4) then
        if( gmshFormat == asciiFormat ) then
           call read_nodes_coords_v4_ascii( fd, lfilename, &
                versionNumber, nodes )
@@ -149,7 +149,7 @@ contains
     end if
 
     ! Read in elements
-    if (versionNumber%major .eq. 4) then
+    if (versionNumber%major == 4) then
        if( gmshFormat == asciiFormat ) then
           call read_faces_and_elements_v4_ascii( fd, lfilename, &
                versionNumber, elements, faces, dim, entityMap, entityTags)
@@ -168,7 +168,7 @@ contains
     ! anything past $EndElements, so we close the file.
     close( fd )
 
-    if (versionNumber%major .eq. 4) then
+    if (versionNumber%major == 4) then
        do n=1,4
           call deallocate(entityMap(n))
        end do
@@ -337,18 +337,21 @@ contains
 
   ! -----------------------------------------------------------------
   ! Read through the head to decide whether binary or ASCII, and decide
-  ! whether this looks like a GMSH mesh file or not.
+  ! whether this looks like a GMSH mesh file or not. Also returns
+  ! the version number if it is indeed a GMSH file.
 
   subroutine read_header( fd, lfilename, gmshFormat, versionNumber )
-    integer fd, gmshFormat
+    integer, intent(in) :: fd
+    character(len=*), intent(in) :: lfilename
+    integer, intent(out) :: gmshFormat
+    type(version), intent(out) :: versionNumber
 
-    character(len=*) :: lfilename
     character(len=longStringLen) :: charBuf
     character :: newlineChar
     integer :: gmshFileType, gmshDataSize, one, i
-    logical :: decimalVersion = .false.
-    type(version) versionNumber
+    logical :: decimalVersion
 
+    decimalVersion = .false.
 
     ! Error checking ...
 
@@ -372,12 +375,11 @@ contains
       read(charBuf,*, pad='yes') versionNumber%major
     end if
 
-    if( versionNumber%major .lt. 2 .or. &
+    if( versionNumber%major < 2 .or. &
          versionNumber%major == 3 .or. &
-         (versionNumber%major == 4 .and. versionNumber%minor .gt. 1) .or. &
-         versionNumber%major .gt. 4 &
+         (versionNumber%major == 4 .and. versionNumber%minor > 1) .or. &
+         versionNumber%major > 4 &
        ) then
-         
        FLExit("Error: GMSH mesh version must be 2.x or 4.x")
     end if
 
@@ -411,7 +413,7 @@ contains
   end subroutine read_header
 
  ! -----------------------------------------------------------------
- ! entity to physical tag map
+ ! Read GMSH 4 entities into a physical tag map
 
   subroutine read_entities( fd, filename, gmshFormat, versionNumber, &
        entityMap, entityTags )
@@ -420,8 +422,8 @@ contains
     type(version), intent(in)    :: versionNumber
     character(len=*), intent(in) :: filename
 
-    type(integer_hash_table) :: entityMap(4)
-    integer, allocatable :: entityTags(:)
+    type(integer_hash_table), intent(out) :: entityMap(4)
+    integer, allocatable, intent(out) :: entityTags(:)
     type(ilist) :: tmpTags
 
     integer :: i, k, n, numPoints, numDim(3), stat, count
@@ -439,7 +441,7 @@ contains
     end if
 
     read(fd, *, iostat=stat) charBuf
-    do while (trim(charBuf) .ne. "$Entities" .and. stat == 0)
+    do while (trim(charBuf) /= "$Entities" .and. stat == 0)
        read(fd, *, iostat=stat ) charBuf
        if (stat /= 0 ) then
           FLExit("Error: cannot find '$Entities' in GMSH mesh file")
@@ -515,14 +517,14 @@ contains
     end if
 
     read(fd, *) charBuf
-    if( trim(charBuf) .ne. "$EndEntities" ) then
+    if( trim(charBuf) /= "$EndEntities" ) then
        FLExit("Error: can't find '$EndEntities' (is this a GMSH mesh file?)")
     end if
 
     allocate(entityTags(count-1))
     entityTags = list2vector(tmpTags)
     call deallocate(tmpTags)
-    
+
 
 #ifdef IO_ADVANCE_BUG
 !   for intel the call to ascii_formatting causes the first read after it to have advance='no'
@@ -534,16 +536,16 @@ contains
 
 
   ! -----------------------------------------------------------------
-  ! read in GMSH mesh nodes' coords into temporary arrays
+  ! read in GMSH version 2 mesh nodes' coords into temporary arrays
 
   subroutine read_nodes_coords_v2( fd, filename, gmshFormat, nodes )
-    integer :: fd, gmshFormat
+    integer, intent(in) :: fd, gmshFormat
+    character(len=*), intent(in) :: filename
+    type(GMSHnode), pointer :: nodes(:)
 
-    character(len=*) :: filename
     character(len=longStringLen) :: charBuf
     character :: newlineChar
     integer :: i, j, numNodes
-    type(GMSHnode), pointer :: nodes(:)
 
 
     read(fd, *) charBuf
@@ -593,22 +595,26 @@ contains
 
   end subroutine read_nodes_coords_v2
 
-  subroutine read_nodes_coords_v4_ascii( fd, filename, versionNumber, nodes )
-    integer :: fd
-    type(version), intent(in) :: versionNumber
+  ! -----------------------------------------------------------------
+  ! read in ASCII-formatted GMSH version 4 mesh nodes' coords into
+  ! temporary arrays
 
-    character(len=*) :: filename
+  subroutine read_nodes_coords_v4_ascii( fd, filename, versionNumber, nodes )
+    integer, intent(in) :: fd
+    character(len=*), intent(in) :: filename
+    type(version), intent(in) :: versionNumber
+    type(GMSHnode), pointer :: nodes(:)
+
     character(len=longStringLen) :: charBuf
     character :: newlineChar
     integer :: i, j, k,  numEntities, numNodes, numEntityNodes, stat, minN, maxN, meta(3)
-    type(GMSHnode), pointer :: nodes(:)
 
     read(fd, *) charBuf
-    if( trim(charBuf) .ne. "$Nodes" ) then
+    if( trim(charBuf) /= "$Nodes" ) then
        FLExit("Error: cannot find '$Nodes' in GMSH mesh file")
     end if
 
-    if (versionNumber%minor .eq. 1) then
+    if (versionNumber%minor == 1) then
        read(fd, *) numEntities, numNodes, minN, maxN
     else
        read(fd, *) numEntities, numNodes
@@ -624,7 +630,7 @@ contains
     k = 0
     do j=1, numEntities
        read(fd, *) meta(1), meta(2), meta(3), numEntityNodes
-       if (versionNumber%minor .eq. 1) then
+       if (versionNumber%minor == 1) then
           do i=k+1, k+numEntityNodes
              read(fd, * ) nodes(i)%nodeID
           end do
@@ -645,32 +651,36 @@ contains
 
     ! Read in end node section
     read(fd, *) charBuf
-    if( trim(charBuf) .ne. "$EndNodes" ) then
+    if( trim(charBuf) /= "$EndNodes" ) then
        FLExit("Error: can't find '$EndNodes' in GMSH file '"//trim(filename)//"'")
     end if
 
   end subroutine read_nodes_coords_v4_ascii
 
-subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
-    integer :: fd
-    type(version)    :: versionNumber
+  ! -----------------------------------------------------------------
+  ! read in binary GMSH version 4 mesh nodes' coords into
+  ! temporary arrays
 
-    character(len=*) :: filename
+  subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
+    integer, intent(in) :: fd
+    character(len=*), intent(in) :: filename
+    type(version), intent(in) :: versionNumber
+    type(GMSHnode), pointer :: nodes(:)
+
     character(len=longStringLen) :: charBuf
     character :: newlineChar
     integer(kind=c_long) :: numEntities, numNodes, numEntityNodes, minN, maxN
     integer :: i, j, k, stat,  meta(3)
-    type(GMSHnode), pointer :: nodes(:)
     integer(kind=c_long)  :: ltmp
 
     read(fd, *) charBuf
-    if( trim(charBuf) .ne. "$Nodes" ) then
+    if( trim(charBuf) /= "$Nodes" ) then
        FLExit("Error: cannot find '$Nodes' in GMSH mesh file")
     end if
 
     call binary_formatting(fd, filename, "read")
 
-    if (versionNumber%minor .eq. 1) then
+    if (versionNumber%minor == 1) then
        read(fd) numEntities, numNodes, minN, maxN
     else
        read(fd) numEntities, numNodes
@@ -686,7 +696,7 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
     k = 0
     do j=1, numEntities
        read(fd) meta(1), meta(2), meta(3), numEntityNodes
-       if (versionNumber%minor .eq. 1) then
+       if (versionNumber%minor == 1) then
           do i=k+1, k+numEntityNodes
              read(fd) ltmp
              nodes(i)%nodeID = ltmp
@@ -712,7 +722,7 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
 
     ! Read in end node section
     read(fd, *) charBuf
-    if( trim(charBuf) .ne. "$EndNodes" ) then
+    if( trim(charBuf) /= "$EndNodes" ) then
        FLExit("Error: can't find '$EndNodes' in GMSH file '"//trim(filename)//"'")
     end if
 #ifdef IO_ADVANCE_BUG
@@ -728,8 +738,8 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
   ! read in GMSH mesh nodes' column IDs (if exists)
 
   subroutine read_node_column_IDs( fd, filename, gmshFormat, nodes )
-    integer :: fd, gmshFormat
-    character(len=*) :: filename
+    integer, intent(in) :: fd, gmshFormat
+    character(len=*), intent(in) :: filename
     type(GMSHnode), pointer :: nodes(:)
 
     character(len=longStringLen) :: charBuf
@@ -816,7 +826,8 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
 
 
   ! -----------------------------------------------------------------
-  ! Read in element header data and establish topological dimension
+  ! Read in ASCII-formatted GMSH 4 element header data and
+  ! establish topological dimension
 
   subroutine read_faces_and_elements_v4_ascii( fd, filename, &
        versionNumber, elements, faces, dim, entityMap, entityTags)
@@ -827,7 +838,7 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
     type(GMSHelement), pointer :: elements(:), faces(:)
     integer, intent(out) :: dim
 
-    type(integer_hash_table) :: entityMap(4)
+    type(integer_hash_table), intent(in) :: entityMap(4)
     integer, intent(in) :: entityTags(:)
 
     type(GMSHelement), pointer :: allElements(:)
@@ -841,11 +852,11 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
     integer :: numentityelements
 
     read(fd,*) charBuf
-    if( trim(charBuf)/="$Elements" ) then
+    if( trim(charBuf) /= "$Elements" ) then
        FLExit("Error: cannot find '$Elements' in GMSH mesh file")
     end if
 
-    if (versionNumber%minor .eq. 1) then
+    if (versionNumber%minor == 1) then
        read(fd,*) numEntities, numAllElements, minEle, maxEle
     else
        read(fd,*) numEntities, numAllElements
@@ -860,13 +871,13 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
 
 
     ! Read in GMSH elements, corresponding tags and nodes
-    
+
     e = 0
-    
+
     do j=1, numEntities
 
        read(fd, "(a)", end=808) charBuf
-808    if (versionNumber%minor .eq. 1) then
+808    if (versionNumber%minor == 1) then
           read(charBuf, *) entityDim, entityTag, elementType, numEntityElements
        else
           read(charBuf, *) entityTag, entityDim, elementType, numEntityElements
@@ -880,13 +891,13 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
           ! Read in whole line into a string buffer
           read(fd, "(a)", end=880) charBuf
           ! Now read from string buffer for main element info
-880       allElements(e)%type = elementType 
+880       allElements(e)%type = elementType
           allElements(e)%numTags = numTags
 
           numLocNodes = elementNumNodes(allElements(e)%type)
           allocate( allElements(e)%nodeIDs(numLocNodes) )
           allocate( allElements(e)%tags( allElements(e)%numTags) )
-          
+
           ! Now read in tags and node IDs
           read(charBuf, *) allElements(e)%elementID, allElements(e)%nodeIDs
           allElements(e)%tags = entityTags(tag_index+1:tag_index+numTags)
@@ -896,7 +907,7 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
 
     ! Check for $EndElements tag
     read(fd,*) charBuf
-    if( trim(charBuf) .ne. "$EndElements" ) then
+    if( trim(charBuf) /= "$EndElements" ) then
        FLExit("Error: cannot find '$EndElements' in GMSH mesh file")
     end if
 
@@ -907,16 +918,20 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
 
   end subroutine read_faces_and_elements_v4_ascii
 
+  ! -----------------------------------------------------------------
+  ! Read in binary GMSH 4 element header data and
+  ! establish topological dimension
+
   subroutine read_faces_and_elements_v4_binary( fd, filename, &
        versionNumber, elements, faces, dim, entityMap, entityTags)
 
     integer, intent(in) :: fd
     character(len=*), intent(in) :: filename
-    type(version), intent(in)    :: versionNumber
+    type(version), intent(in) :: versionNumber
     type(GMSHelement), pointer :: elements(:), faces(:)
     integer, intent(out) :: dim
 
-    type(integer_hash_table) :: entityMap(4)
+    type(integer_hash_table), intent(in) :: entityMap(4)
     integer, intent(in) :: entityTags(:)
 
     type(GMSHelement), pointer :: allElements(:)
@@ -937,7 +952,7 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
     end if
 
     call binary_formatting(fd, filename, "read")
-    if (versionNumber%minor .eq. 1) then
+    if (versionNumber%minor == 1) then
        read(fd) numEntities, numAllElements, minEle, maxEle
     else
        read(fd) numEntities, numAllElements
@@ -953,7 +968,7 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
     ! Read in GMSH elements, corresponding tags and nodes
     e = 0
     do j = 1, numEntities
-       if (versionNumber%minor .eq. 1) then
+       if (versionNumber%minor == 1) then
           read(fd) entityDim, entityTag, elementType, numEntityElements
        else
           read(fd) entityTag, entityDim, elementType, numEntityElements
@@ -962,8 +977,8 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
        tag_index = fetch(entityMap(entityDim+1), entityTag)
        numTags = entityTags(tag_index)
        numLocNodes = elementNumNodes(elementType)
-       if (versionNumber%minor .eq. 1) allocate(vltmp(numLocNodes+1))
- 
+       if (versionNumber%minor == 1) allocate(vltmp(numLocNodes+1))
+
        ! Read in elements in a particular entity block
        do k = 1, numEntityElements
          e = e + 1
@@ -975,7 +990,7 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
          allElements(e)%numTags = numTags
          allElements(e)%tags = entityTags(tag_index+1:tag_index+numTags)
 
-         if (versionNumber%minor .eq. 1) then
+         if (versionNumber%minor == 1) then
            read(fd) vltmp
            allElements(e)%elementID = vltmp(1)
            allElements(e)%nodeIDs = vltmp(2:numLocNodes+1)
@@ -984,7 +999,7 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
          end if
        end do
 
-       if (versionNumber%minor .eq. 1) deallocate(vltmp)
+       if (versionNumber%minor == 1) deallocate(vltmp)
      end do
 
 
@@ -994,7 +1009,7 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
 
     ! Check for $EndElements tag
     read(fd,*) charBuf
-    if( trim(charBuf) .ne. "$EndElements" ) then
+    if( trim(charBuf) /= "$EndElements" ) then
        FLExit("Error: cannot find '$EndElements' in GMSH mesh file")
     end if
 
@@ -1010,6 +1025,10 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
     call deallocateElementList( allElements )
 
   end subroutine read_faces_and_elements_v4_binary
+
+  ! -----------------------------------------------------------------
+  ! Read in GMSH 2 element header data and
+  ! establish topological dimension
 
   subroutine read_faces_and_elements_v2( fd, filename, gmshFormat, &
        elements, faces, dim)
@@ -1124,6 +1143,9 @@ subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
     call deallocateElementList( allElements )
 
   end subroutine read_faces_and_elements_v2
+
+  ! -----------------------------------------------------------------
+  ! Process faces and elements according to their types
 
   subroutine process_gmsh_elements(numAllElements, allElements, elements, faces, dim)
 
