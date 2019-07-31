@@ -1,8 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # get a plot of distribution of edge lengths
 # courtesy of the very smart Mr P Farrell
 
-from __future__ import print_function
 from optparse import OptionParser
 import vtktools
 import glob

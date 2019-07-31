@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from numpy import sqrt,pi,exp,sin,array,size,zeros,abs,max,amax
 

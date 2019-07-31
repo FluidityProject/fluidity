@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import fluidity.diagnostics.annulus_mesh as annulus_mesh
 import fluidity.diagnostics.triangletools as triangletools
