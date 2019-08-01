@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 import gi
 gi.require_version('Gdk', '3.0')
@@ -7,12 +7,12 @@ from gi.repository import Gdk, Gtk  # noqa: E402
 
 import argparse  # noqa: E402
 import fluidity.diagnostics.fluiditytools as fluidity_tools  # noqa: E402
+from matplotlib import rc  # noqa: E402
 from matplotlib.backends.backend_gtk3agg import (
     FigureCanvasGTK3Agg as FigureCanvas)  # noqa: E402
 from matplotlib.backends.backend_gtk3 import (
     NavigationToolbar2GTK3 as NavigationToolbar)  # noqa: E402
-import matplotlib.pyplot as plt  # noqa: E402
-from matplotlib import rc  # noqa: E402
+from matplotlib.figure import Figure  # noqa: E402
 import matplotlib.ticker as tck  # noqa: E402
 import numpy  # noqa: E402
 import sys  # noqa: E402
@@ -23,13 +23,16 @@ rc('text', usetex=False)
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
-    description='GUI for Fluidity .stat outputs\n\nWhen the window is '
-    + 'displayed, press the following keys for additional options:\n'
-    + '- x, y -> Change the scale of the x, y axis (automatically chooses '
-    + 'between linear, log and symlog).\n- l -> Change the representation of '
-    + 'the data (solid line or markers).\n- r -> Reload the .stat file. Only '
-    + 'relevant for simulations that are still running.\n- Esc -> Release '
-    + 'focus on text boxes.\n- q -> Exit the GUI.')
+    description='''GUI for Fluidity .stat outputs
+
+When the window is displayed, press the following keys for additional options:
+- x, y -> Change the scale of the x, y axis (automatically chooses between
+          linear, log and symlog).
+- l    -> Change the representation of the data (solid line or markers).
+- r    -> Reload the .stat file. Only relevant for simulations that are still
+          running.
+- Esc  -> Release focus on text boxes.
+- q    -> Exit the GUI.''')
 parser.add_argument('statfile', nargs='+', help='path to the .stat file')
 args = parser.parse_args(sys.argv[1:])
 
@@ -55,16 +58,16 @@ class StatplotWindow(Gtk.Window):
         self.yCombo = Gtk.ComboBoxText.new_with_entry()
         self.yCombo.set_wrap_width(3)
         self.PopulateCombo('load')
-        self.IniCompl(self.xCombo)
-        self.IniCompl(self.yCombo)
-        self.xCombo.connect('changed', self.ComboChangedX)
+        self.InitCompletion(self.xCombo)
+        self.InitCompletion(self.yCombo)
+        self.xCon = self.xCombo.connect('changed', self.ComboChangedX)
         self.xCombo.connect('key-release-event', self.ReleaseFocus)
-        self.yCombo.connect('changed', self.ComboChangedY)
+        self.yCon = self.yCombo.connect('changed', self.ComboChangedY)
         self.yCombo.connect('key-release-event', self.ReleaseFocus)
         hbox.pack_start(self.xCombo, True, True, 0)
         hbox.pack_start(self.yCombo, True, True, 0)
-        self.fig, self.ax = plt.subplots(nrows=1, ncols=1, num=0,
-                                         figsize=(14, 7))
+        self.fig = Figure(figsize=(14, 7))
+        self.ax = self.fig.gca()
         self.canvas = FigureCanvas(self.fig)
         self.canvas.set_can_focus(True)
         self.vbox.pack_start(self.canvas, True, True, 0)
@@ -74,22 +77,12 @@ class StatplotWindow(Gtk.Window):
         self.vbox.pack_start(self.toolbar, False, False, 0)
 
     def ComboChangedX(self, widget):
-        complOptions = self.PopulateCompletion(self.xCombo.get_active_text())
-        dynModel = Gtk.ListStore.new([str])
-        for option in complOptions:
-            dynModel.append([option])
-        self.xCombo.get_child().get_completion().set_model(dynModel)
         if self.xCombo.get_active_text() in sorted(self.entries.Paths()):
             self.PlotData('update', self.PlotType, 'linear',
                           self.ax.get_yscale())
             self.canvas.grab_focus()
 
     def ComboChangedY(self, widget):
-        complOptions = self.PopulateCompletion(self.yCombo.get_active_text())
-        dynModel = Gtk.ListStore.new([str])
-        for option in complOptions:
-            dynModel.append([option])
-        self.yCombo.get_child().get_completion().set_model(dynModel)
         if self.yCombo.get_active_text() in sorted(self.entries.Paths()):
             self.PlotData('update', self.PlotType, self.ax.get_xscale(),
                           'linear')
@@ -97,27 +90,27 @@ class StatplotWindow(Gtk.Window):
 
     def FormatAxis(self, ax2fmt, scale):
         if ax2fmt == 'x':
-            self.ax.set_scale = self.ax.set_xscale
-            self.ax.axis = self.ax.xaxis
+            self.set_scale = self.ax.set_xscale
+            self.axis = self.ax.xaxis
             self.Data = self.xData
         elif ax2fmt == 'y':
-            self.ax.set_scale = self.ax.set_yscale
-            self.ax.axis = self.ax.yaxis
+            self.set_scale = self.ax.set_yscale
+            self.axis = self.ax.yaxis
             self.Data = self.yData
-        self.ax.set_scale(scale)
+        self.set_scale(scale)
         if scale == 'linear':
             self.ax.ticklabel_format(style='sci', axis=ax2fmt,
                                      scilimits=(0, 0), useMathText=True)
-            self.ax.axis.set_minor_locator(tck.AutoMinorLocator())
+            self.axis.set_minor_locator(tck.AutoMinorLocator())
             self.ax.relim()
             self.ax.autoscale(True, ax2fmt, None)
         elif scale == 'log':
-            self.ax.axis.set_minor_locator(
+            self.axis.set_minor_locator(
                 tck.LogLocator(subs=numpy.arange(2, 10)))
             logFmt = tck.LogFormatterSciNotation(base=10,
                                                  labelOnlyBase=False,
                                                  minor_thresholds=(4, 1))
-            self.ax.axis.set_minor_formatter(logFmt)
+            self.axis.set_minor_formatter(logFmt)
             self.ax.relim()
             self.ax.autoscale(True, ax2fmt, None)
         elif scale == 'symlog':
@@ -125,11 +118,11 @@ class StatplotWindow(Gtk.Window):
             axMax = max(abs(self.Data))
             axRange = numpy.log10(axMax / axMin)
             if ax2fmt == 'x':
-                self.ax.set_scale(
+                self.set_scale(
                     'symlog', basex=10, subsx=numpy.arange(2, 10),
                     linthreshx=axMin * 10 ** (axRange / 2))
             elif ax2fmt == 'y':
-                self.ax.set_scale(
+                self.set_scale(
                     'symlog', basey=10, subsy=numpy.arange(2, 10),
                     linthreshy=axMin * 10 ** (axRange / 2))
             # Thomas Duvernay, 06/01/19
@@ -139,11 +132,11 @@ class StatplotWindow(Gtk.Window):
             symLogLoc = tck.SymmetricalLogLocator(
                 subs=numpy.arange(2, 10),
                 linthresh=axMin * 10 ** (axRange / 2), base=10)
-            self.ax.axis.set_minor_locator(symLogLoc)
+            self.axis.set_minor_locator(symLogLoc)
             logFmt = tck.LogFormatterSciNotation(
                 base=10, labelOnlyBase=False, minor_thresholds=(4, 1),
                 linthresh=axMin * 10 ** (axRange / 2))
-            self.ax.axis.set_minor_formatter(logFmt)
+            self.axis.set_minor_formatter(logFmt)
         self.ax.set_xlabel(self.xField, fontweight='bold', fontsize=20)
         self.ax.set_ylabel(self.yField, fontweight='bold', fontsize=20)
         self.ax.tick_params(which='major', length=7, labelsize=16, width=2)
@@ -155,7 +148,7 @@ class StatplotWindow(Gtk.Window):
                                             color='xkcd:black')
         self.fig.set_tight_layout(True)
 
-    def IniCompl(self, comboBox):
+    def InitCompletion(self, comboBox):
         completion = Gtk.EntryCompletion.new()
         completion.set_text_column(0)
         completion.set_inline_completion(True)
@@ -173,25 +166,25 @@ class StatplotWindow(Gtk.Window):
             self.destroy()
         elif key == 'x' or key == 'y':
             if key == 'x':
-                self.ax.get_scale = self.ax.get_xscale
+                self.get_scale = self.ax.get_xscale
                 self.Data = self.xData
             elif key == 'y':
-                self.ax.get_scale = self.ax.get_yscale
+                self.get_scale = self.ax.get_yscale
                 self.Data = self.yData
-            if self.ax.get_scale() == 'linear' \
+            if self.get_scale() == 'linear' \
                     and self.Data[self.Data != 0].size == 0:
                 warnings.warn('Change to logarithmic scale denied: the '
                               + 'selected variable for the ' + key + ' axis '
                               + 'is null.', stacklevel=2)
                 scale = 'linear'
-            elif self.ax.get_scale() == 'linear' \
+            elif self.get_scale() == 'linear' \
                     and max(abs(self.Data)) / min(abs(self.Data)) < 100:
                 warnings.warn('Change to logarithmic scale denied: the '
                               + 'selected variable for the ' + key + ' axis '
                               + 'has a range of variation smaller than two '
                               + 'orders of magnitude.', stacklevel=2)
                 scale = 'linear'
-            elif self.ax.get_scale() == 'linear':
+            elif self.get_scale() == 'linear':
                 axMin = min(abs(self.Data[self.Data != 0]))
                 axMax = max(abs(self.Data))
                 if axMin != axMax and min(self.Data) < 0:
@@ -203,7 +196,7 @@ class StatplotWindow(Gtk.Window):
                                   + 'selected variable for the ' + key + ' '
                                   + 'axis is a constant.', stacklevel=2)
                     scale = 'linear'
-            elif self.ax.get_scale() in ['log', 'symlog']:
+            elif self.get_scale() in ['log', 'symlog']:
                 scale = 'linear'
             self.FormatAxis(key, scale)
             self.fig.canvas.draw()
@@ -261,38 +254,32 @@ class StatplotWindow(Gtk.Window):
             self.xCombo.set_active_iter(prevIterX)
             self.yCombo.set_active_iter(prevIterY)
 
-    def PopulateCompletion(self, text):
-        return [item for item in sorted(self.entries.Paths())
-                if item.startswith(text)]
-
     def ReadData(self, statfile):
         stats = []
         for i, filename in enumerate(statfile):
             failcount = 0
-            while failcount < 5:
+            while failcount < 4:
                 try:
                     stats.append(fluidity_tools.Stat(filename))
                     break
                 except (TypeError, ValueError):
                     time.sleep(0.2)
                     failcount += 1
-            if failcount == 5:
-                raise Exception('Could not open %s' % filename)
+            stats.append(fluidity_tools.Stat(filename))
         if len(stats) == 1:
             return stats[0]
         else:
             return fluidity_tools.JoinStat(*stats)
 
     def RefreshData(self, statfile):
-        self.xCombo.disconnect_by_func(self.ComboChangedX)
-        self.yCombo.disconnect_by_func(self.ComboChangedY)
-        self.xCombo.remove_all()
-        self.yCombo.remove_all()
-        self.entries = self.ReadData(statfile)
-        self.PopulateCombo('reload', prevIterX=self.xCombo.get_active_iter(),
-                           prevIterY=self.yCombo.get_active_iter())
-        self.xCombo.connect('changed', self.ComboChangedX)
-        self.yCombo.connect('changed', self.ComboChangedY)
+        with (self.xCombo.handler_block(self.xCon),
+              self.yCombo.handler_block(self.yCon)):
+            self.xCombo.remove_all()
+            self.yCombo.remove_all()
+            self.entries = self.ReadData(statfile)
+            self.PopulateCombo('reload',
+                               prevIterX=self.xCombo.get_active_iter(),
+                               prevIterY=self.yCombo.get_active_iter())
 
     def ReleaseFocus(self, widget, event):
         if event.keyval == Gdk.KEY_Escape:
@@ -301,5 +288,6 @@ class StatplotWindow(Gtk.Window):
 
 window = StatplotWindow(args.statfile)
 window.connect('delete-event', Gtk.main_quit)
+window.connect('destroy', Gtk.main_quit)
 window.show_all()
 Gtk.main()
