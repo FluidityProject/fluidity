@@ -265,7 +265,8 @@ class StatplotWindow(Gtk.Window):
                 except (TypeError, ValueError):
                     time.sleep(0.2)
                     failcount += 1
-            stats.append(fluidity_tools.Stat(filename))
+            if failcount == 4:
+                stats.append(fluidity_tools.Stat(filename))
         if len(stats) == 1:
             return stats[0]
         else:
