@@ -273,8 +273,8 @@ class StatplotWindow(Gtk.Window):
             return fluidity_tools.JoinStat(*stats)
 
     def RefreshData(self, statfile):
-        with (self.xCombo.handler_block(self.xCon),
-              self.yCombo.handler_block(self.yCon)):
+        with self.xCombo.handler_block(self.xCon), \
+                self.yCombo.handler_block(self.yCon):
             self.xCombo.remove_all()
             self.yCombo.remove_all()
             self.entries = self.ReadData(statfile)
