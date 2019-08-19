@@ -1632,16 +1632,6 @@ population_balance =
             },
             element scalar_field {
                attribute rank { "0" },
-               attribute name { "Abscissa1_2" },
-               ## Field type
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }
-            },
-            element scalar_field {
-               attribute rank { "0" },
                attribute name { xsd:string },
                ## Field type
                element diagnostic {
@@ -1665,16 +1655,6 @@ population_balance =
             element scalar_field {
                attribute rank { "0" },
                attribute name { "Abscissa2_1" },
-               ## Field type
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }
-            },
-            element scalar_field {
-               attribute rank { "0" },
-               attribute name { "Abscissa2_2" },
                ## Field type
                element diagnostic {
                   internal_algorithm,
@@ -1714,15 +1694,6 @@ population_balance =
             },
             element scalar_field {
                attribute rank { "0" },
-               attribute name { "Weight_2" },
-               ## Field type
-               element prognostic {
-                  velocity_mesh_choice,
-                  prognostic_scalar_field
-               }
-            },
-            element scalar_field {
-               attribute rank { "0" },
                attribute name { xsd:string },
                ## Field type
                element prognostic {
@@ -1752,15 +1723,6 @@ population_balance =
             },
             element scalar_field {
                attribute rank { "0" },
-               attribute name { "WeightedAbscissa1_2" },
-               ## Field type
-               element prognostic {
-                  velocity_mesh_choice,
-                  prognostic_scalar_field
-               }
-            },
-            element scalar_field {
-               attribute rank { "0" },
                attribute name { xsd:string },
                ## Field type
                element prognostic {
@@ -1782,15 +1744,6 @@ population_balance =
             element scalar_field {
                attribute rank { "0" },
                attribute name { "WeightedAbscissa2_1" },
-               ## Field type
-               element prognostic {
-                  velocity_mesh_choice,
-                  prognostic_scalar_field
-               }
-            },
-            element scalar_field {
-               attribute rank { "0" },
-               attribute name { "WeightedAbscissa2_2" },
                ## Field type
                element prognostic {
                   velocity_mesh_choice,

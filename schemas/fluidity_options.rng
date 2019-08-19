@@ -2174,20 +2174,6 @@ The above set does not need to be the same as the diagnostic moments.</a:documen
             <ref name="diagnostic_scalar_field"/>
           </element>
         </element>
-        <element name="scalar_field">
-          <attribute name="rank">
-            <value>0</value>
-          </attribute>
-          <attribute name="name">
-            <value>Abscissa1_2</value>
-          </attribute>
-          <element name="diagnostic">
-            <a:documentation>Field type</a:documentation>
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-        </element>
         <zeroOrMore>
           <element name="scalar_field">
             <attribute name="rank">
@@ -2226,20 +2212,6 @@ The above set does not need to be the same as the diagnostic moments.</a:documen
           </attribute>
           <attribute name="name">
             <value>Abscissa2_1</value>
-          </attribute>
-          <element name="diagnostic">
-            <a:documentation>Field type</a:documentation>
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-        </element>
-        <element name="scalar_field">
-          <attribute name="rank">
-            <value>0</value>
-          </attribute>
-          <attribute name="name">
-            <value>Abscissa2_2</value>
           </attribute>
           <element name="diagnostic">
             <a:documentation>Field type</a:documentation>
@@ -2292,19 +2264,6 @@ The above set does not need to be the same as the diagnostic moments.</a:documen
             <ref name="prognostic_scalar_field"/>
           </element>
         </element>
-        <element name="scalar_field">
-          <attribute name="rank">
-            <value>0</value>
-          </attribute>
-          <attribute name="name">
-            <value>Weight_2</value>
-          </attribute>
-          <element name="prognostic">
-            <a:documentation>Field type</a:documentation>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="prognostic_scalar_field"/>
-          </element>
-        </element>
         <zeroOrMore>
           <element name="scalar_field">
             <attribute name="rank">
@@ -2348,19 +2307,6 @@ The above set does not need to be the same as the diagnostic moments.</a:documen
             <ref name="prognostic_scalar_field"/>
           </element>
         </element>
-        <element name="scalar_field">
-          <attribute name="rank">
-            <value>0</value>
-          </attribute>
-          <attribute name="name">
-            <value>WeightedAbscissa1_2</value>
-          </attribute>
-          <element name="prognostic">
-            <a:documentation>Field type</a:documentation>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="prognostic_scalar_field"/>
-          </element>
-        </element>
         <zeroOrMore>
           <element name="scalar_field">
             <attribute name="rank">
@@ -2397,19 +2343,6 @@ The above set does not need to be the same as the diagnostic moments.</a:documen
           </attribute>
           <attribute name="name">
             <value>WeightedAbscissa2_1</value>
-          </attribute>
-          <element name="prognostic">
-            <a:documentation>Field type</a:documentation>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="prognostic_scalar_field"/>
-          </element>
-        </element>
-        <element name="scalar_field">
-          <attribute name="rank">
-            <value>0</value>
-          </attribute>
-          <attribute name="name">
-            <value>WeightedAbscissa2_2</value>
           </attribute>
           <element name="prognostic">
             <a:documentation>Field type</a:documentation>
