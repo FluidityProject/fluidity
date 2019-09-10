@@ -518,6 +518,7 @@ contains
     !! Note that if X is not all linear simplices we are screwed. 
     real, dimension(X%dim, ele_loc(X,1)) :: X_val
     real, dimension(X%dim, face_loc(X,1)) :: X_f
+    real, dimension(X%dim) :: X_centroid_ele, X_centroid_face
     real, dimension(X%dim, X%dim-1) :: J
     type(element_type), pointer :: X_shape_f
     real :: detJ
@@ -560,6 +561,8 @@ contains
        neigh=>ele_neigh(X, ele)
        X_val=ele_val(X,ele)
 
+       X_centroid_ele = sum(X_val, 2)/size(X_val, 2)
+
        do n=1,size(neigh)
 
           if (neigh(n)<0) then
@@ -587,6 +590,7 @@ contains
           
           
           X_f=face_val(X,face)
+          X_centroid_face = sum(X_f, 2)/size(X_f, 2)
           X_shape_f=>face_shape(X,face)
 
           !     |- dx  dx  -|
@@ -619,7 +623,7 @@ contains
           end select
 
           ! Calculate normal.
-          face_normal_cache(:,current_face)=normgi(X_val,X_f,J)
+          face_normal_cache(:,current_face)=facet_normal(J, X_centroid_face-X_centroid_ele)
           face_detJ_cache(current_face)=detJ
    
        end do
@@ -1459,7 +1463,6 @@ contains
     ! Outward normal vector. (dim x x_shape_f%ngi)
     real, dimension(:,:), intent(out) :: normal
 
-    
     ! Column n of X_f is the position of the nth node on the facet.
     real, dimension(X%dim,face_loc(X,face)) :: X_f
     ! Column n of X_f is the position of the nth node on the facet.
@@ -1468,6 +1471,10 @@ contains
     real, dimension(size(X_f,2)) :: r_f
     ! shape function coordinate interpolation on the boundary
     type(element_type), pointer :: x_shape_f
+    ! element shape functions derivatives evaluated at the facet:
+    real, dimension(size(X_val,2), X%mesh%faces%shape%ngi, X%mesh%shape%dim) :: dn_s
+    ! vector pointing outward (from element to outside facet)
+    real, dimension(X%dim) :: outward_vector
 
 
     ! Jacobian matrix and its inverse.
@@ -1518,6 +1525,15 @@ contains
        X_f=face_val(X, face)
        if (x_spherical) then
           r_f = sqrt(sum(X_f**2, dim=1))
+       end if
+       if (x_spherical .or. .not. (x_shape_f%degree==1)) then
+         assert(x_shape_f%numbering%family==FAMILY_SIMPLEX)
+         assert(associated(X%mesh%shape%surface_quadrature))
+         assert(associated(X%mesh%shape%dn_s))
+         dn_s = face_dn_s(X%mesh%shape, X%mesh, face)
+       else
+         ! linear element, an outward vector is found between the element and face centroid
+         outward_vector = sum(X_f,2)/size(X_f,2) - sum(X_val, 2)/size(X_val,2)
        end if
     end if
 
@@ -1573,8 +1589,15 @@ contains
        if(present(detwei_f)) then
           detwei_f(gi)=detJ*x_shape_f%quadrature%weight(gi)
        end if
+
        ! Calculate normal.
-       normal(:,gi)=normgi(X_val,X_f,J)
+       if (x_spherical .or. .not. (x_shape_f%degree==1)) then
+         ! the 1st local coordinate L_1 in dn_s is the one associated
+         ! with the vertex opposite the facet. The outward_vector
+         ! is chosen as -dX/dL_1 (NOTE: it is not yet orthogonal to the facet)
+         outward_vector = -matmul(X_val, dn_s(:, gi, 1))
+       end if
+       normal(:,gi) = facet_normal(J, outward_vector)
 
     end do quad_loop
       
@@ -1592,57 +1615,33 @@ contains
     
   end subroutine transform_facet_to_physical_full
 
-  function NORMGI(X, X_f, J)
-    ! Calculate the normal at a given quadrature point,
+  function facet_normal(J, outward_vector)
+    ! Calculate the normal at a point on a facet
+    ! facet Jacobian J_ij = dX_i/dL_j where L_j are local coords of the facet
     real, dimension(:,:), intent(in) :: J
-    real, dimension(size(J,1)) :: normgi
-    ! Element and normal node locations respectively.
-    real, dimension (:,:), intent(in) :: X, X_f
-    ! Facet Jacobian.
+    ! Since we don't know the orientation of the facet, the sign of the normal
+    ! will be such that dot(normal, outward_vector)>0
+    real, dimension(:), intent(in) :: outward_vector
+    real, dimension(size(J,1)) :: facet_normal
 
-    ! Outward pointing not necessarily normal vector.
-    real, dimension(3) :: outv
-
-    integer :: ldim
-
-    ldim = size(J,1)
-
-    ! Outv is the vector from the element centroid to the facet centroid.
-    outv(1:ldim) = sum(X_f,2)/size(X_f,2)-sum(X,2)/size(X,2)
-
-    select case (ldim)
+    select case (size(J,1))
     case(1)
-       normgi = 1.0
+       facet_normal = 1.0
     case (2)
-       normgi = (/ -J(2,1), J(1,1) /)
+       facet_normal = (/ -J(2,1), J(1,1) /)
     case (3)
-       normgi=cross_product(J(:,1),J(:,2))
+       facet_normal = cross_product(J(:,1),J(:,2))
     case default
-       FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
+       FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
     end select
 
     ! Set correct orientation.
-    normgi=normgi*dot_product(normgi, outv(1:ldim) )
+    facet_normal=facet_normal*dot_product(facet_normal, outward_vector)
 
     ! normalise
-    normgi=normgi/sqrt(sum(normgi**2))
+    facet_normal=facet_normal/sqrt(sum(facet_normal**2))
 
-  contains
-
-    function cross_product(vector1,vector2) result (prod)
-      real, dimension(3) :: prod
-      real, dimension(3), intent(in) :: vector1, vector2
-
-      integer :: i     
-
-      forall(i=1:3)
-         prod(i)=vector1(cyc3(i+1))*vector2(cyc3(i+2))&
-              -vector1(cyc3(i+2))*vector2(cyc3(i+1))
-      end forall
-
-    end function cross_product
-
-  end function NORMGI
+  end function facet_normal
 
   subroutine transform_facet_to_physical_detwei(X, face, detwei_f)
 
@@ -1823,8 +1822,9 @@ contains
     real :: detJ_local, detJ_local_full
     !! reorientated shape functions
     real, dimension(size(X_val,2),size(dshape,2)) :: n_s
-    real, dimension(size(X_val,2),size(dshape,2),X%dim) :: dn_s
-    real, dimension(shape%loc,size(dshape,2),X%dim) :: dm_s
+    ! element shape functions derivatives evaluated at the facet:
+    real, dimension(size(X_val,2),size(dshape,2),mesh_dim(X)) :: dn_s
+    real, dimension(shape%loc,size(dshape,2),mesh_dim(X)) :: dm_s
     real, dimension(X%dim) :: lnormal
 
     integer :: gi, i, k, dim, ele
@@ -2013,10 +2013,10 @@ contains
        if (present(normal)) then
          if ((x_nonlinear.or.gi==1).and..not.cache_valid) then
              ! Calculate normal.
-             ! We call this using a partial local Jacobian, excluding the first
-             ! entry, which thanks to the reordering of dn_s has the opposite vertex
-             ! as the first entry
-             normal(:,gi)=normgi(X_val,X_f,J_local_T(:,2:size(J_local_T,2)))
+             ! the 1st local coordinate L_1 in dn_s is the one associated
+             ! with the vertex opposite the facet. The outward_vector
+             ! is chosen as J(:,1)=-dX/dL_1 (NOTE: it is not yet orthogonal to the facet)
+             normal(:,gi) = facet_normal(J_local_T(:,2:), -J_local_T(:,1))
          else
              normal(:,gi)=normal(:,1)
          end if

@@ -1,12 +1,12 @@
 import os
 import os.path
 import sys
-import thread
+import _thread
 import traceback
 
-import gtk.gdk
+from gi.repository import Gdk as gdk
 
-import debug
+from . import debug
 
 plugins = []
 
@@ -24,7 +24,7 @@ class PluginDetails(object):
       return False
 
   def execute(self, xml, xpath):
-    thread.start_new_thread(self.cb, (xml, xpath))
+    _thread.start_new_thread(self.cb, (xml, xpath))
 
 def register_plugin(applies, name, cb):
   global plugins
@@ -62,7 +62,7 @@ def configure_plugins(suffix):
 
 def cb_decorator(f):
   def wrapper(*args, **kwargs):
-    gtk.gdk.threads_enter()
+    gdk.threads_enter()
 
     try:
       f(*args, **kwargs)
@@ -74,5 +74,5 @@ def cb_decorator(f):
         tb_msg += tbline
       debug.deprint(tb_msg, 0)
 
-    gtk.gdk.threads_leave()
+    gdk.threads_leave()
   return wrapper

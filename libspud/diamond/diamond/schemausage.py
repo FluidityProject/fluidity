@@ -15,10 +15,10 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
 
-from cStringIO import StringIO
+from io import StringIO
 from lxml import etree
 
-from schema import Schema
+from .schema import Schema
 
 RELAXNGNS = "http://relaxng.org/ns/structure/1.0"
 RELAXNG = "{" + RELAXNGNS + "}"
@@ -99,12 +99,12 @@ def node_name(node):
   """
   Returns a name for this node.
   """
-  tagname = node.get("name") if "name" in node.keys() else strip(node.tag)
+  tagname = node.get("name") if "name" in list(node.keys()) else strip(node.tag)
   name = None
 
   for child in node:
     if child.tag == RELAXNG + "attribute":
-      if "name" in child.keys() and child.get("name") == "name":
+      if "name" in list(child.keys()) and child.get("name") == "name":
         for grandchild in child:
           if grandchild.tag == RELAXNG + "value":
             name = " (" + grandchild.text + ")"

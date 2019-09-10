@@ -22,11 +22,11 @@ import sys
 import traceback
 import string
 
-import gtk
-import gtk.gdk
-gtk.gdk.threads_init()
-import gobject
-gobject.threads_init()
+import gi
+gi.require_version('Gtk', '3.0')
+gi.require_version('GtkSource', '3.0')
+from gi.repository import Gtk as gtk
+from gi.repository import Gdk as gdk
 
 # do this right at the start, so we can find the diamond modules
 diamond_path = os.path.join( os.path.realpath(os.path.dirname(__file__)), os.pardir )
@@ -177,12 +177,12 @@ def main():
 
     # if there is only one schema, use that
     elif len(config.schemata) == 1:
-      suffix = config.schemata.keys()[0]
+      suffix = list(config.schemata.keys())[0]
       schemata = config.schemata[suffix]
     
     # otherwise ask the user to choose
     else:
-      choices = [key + ": " + value[0] for key, value in config.schemata.iteritems()]
+      choices = [key + ": " + value[0] for key, value in list(config.schemata.items())]
       choice = dialogs.radio_dialog("Choose a schema", "Choose a schema to use:", choices, logofile[0])
       suffix = choice.split(":")[0]
       schemata = config.schemata[suffix]
@@ -221,9 +221,9 @@ def main():
   # Import the GUI Glade file.
 
   gladefile = None
-  for possible_gladefile in [os.path.join(diamond_path, "gui", "gui.glade"),
-                             os.path.join(diamond_path, "share", "diamond", "gui", "gui.glade"),
-                             "/usr/share/diamond/gui/gui.glade"]:
+  for possible_gladefile in [os.path.join(diamond_path, "gui", "gui.ui"),
+                             os.path.join(diamond_path, "share", "diamond", "gui", "gui.ui"),
+                             "/usr/share/diamond/gui/gui.ui"]:
     try:
       os.stat(possible_gladefile)
       gladefile = possible_gladefile
@@ -262,7 +262,7 @@ def main():
     unused = schemausage.find_unusedset(schema.Schema(input_schemafile), paths)
 
     for xpath in unused:
-      print xpath
+      print(xpath)
 
     if unused:
       return 1
@@ -277,13 +277,13 @@ def main():
 
     try:
       i = interface.Diamond(gladefile = gladefile, logofile = logofile, suffix = suffix)
-    except Exception, e:
+    except Exception as e:
       debug.deprint('Error: ' + str(e), 0)
       i = interface.Diamond(gladefile = gladefile, suffix = suffix)
 
-    i.main_window.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.WATCH))
+    i.main_window.get_window().set_cursor(gdk.Cursor(gdk.CursorType.WATCH))
     i.open_file(schemafile = input_schemafile, filename = input_filename)
-    i.main_window.window.set_cursor(None)
+    i.main_window.get_window().set_cursor(None)
 
     # see if the user wants to diff against a file
     input_difffile = None

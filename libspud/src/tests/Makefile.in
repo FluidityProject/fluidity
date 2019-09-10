@@ -47,6 +47,9 @@ test-binaries: $(TEST_BINARIES)
 unittest: test-binaries
 	@PATH=.:$PATH; $(TEST_BINARIES)
 
+junittest: test-binaries
+	./junit_test.py
+
 .SUFFIXES: .f90 .F90 .c .cpp .o .a $(.SUFFIXES)
 
 %.o:	%.f90

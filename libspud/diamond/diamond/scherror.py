@@ -15,18 +15,16 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
 
-import debug
-import pango
-import gobject
-import gtk
-import gtk.glade
-import sys
+from . import debug
+from gi.repository import Pango as pango
+from gi.repository import GObject as gobject
+from gi.repository import Gtk as gtk
 import tempfile
 import os
+import subprocess
 import re
 
-import dialogs
-import interface
+from . import dialogs
 
 class DiamondSchemaError:
   def __init__(self, parent, gladefile, schema_file, schematron_file):
@@ -37,8 +35,8 @@ class DiamondSchemaError:
     self.errlist_type = 0
     self.listview = None
 
-    self.listwindow = self.parent.gui.get_widget("errListWindow")
-    self.listview = self.parent.gui.get_widget("sch_err_list")
+    self.listwindow = self.parent.gui.get_object("errListWindow")
+    self.listview = self.parent.gui.get_object("sch_err_list")
 
     if self.listwindow is None or self.listview is None:
       raise Exception("Could not find the error list widgets")
@@ -69,7 +67,7 @@ class DiamondSchemaError:
     self.listview.connect("row_activated", self.on_xml_row_activate)
 
     # User can only select one error at a time to go to.
-    self.listview.get_selection().set_mode(gtk.SELECTION_SINGLE)
+    self.listview.get_selection().set_mode(gtk.SelectionMode.SINGLE)
 
     self.listview.hide()
     self.listwindow.hide()
@@ -99,8 +97,10 @@ class DiamondSchemaError:
     self.tmp = tempfile.NamedTemporaryFile()
     self.parent.tree.write(self.tmp.name)
 
-    std_input, std_output, std_error = os.popen3("xmllint --relaxng %s %s --noout --path \".\"" % (self.schema_file, self.tmp.name))
-    output = std_error.read()
+    p = subprocess.Popen("xmllint --relaxng %s %s --noout --path \".\"" % (self.schema_file, self.tmp.name), \
+                         shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+    (std_input, std_output, std_error) = (p.stdin, p.stdout, p.stderr)
+    output = std_error.read().decode()
 
     output = output.replace("%s fails to validate" % self.tmp.name, "")
 
@@ -118,8 +118,9 @@ class DiamondSchemaError:
 
       # Read the temporary output file, split it by lines and use it to convert
       # line numbers to xpaths for the column data.
-      f = file(self.tmp.name)
+      f = open(self.tmp.name, 'r')
       data = f.read()
+      f.close()
       output_lines = data.split("\n")
 
       for line in lines:
@@ -137,7 +138,7 @@ class DiamondSchemaError:
         message = " ".join(tokens[7:])
 
         line = sub_tokens[1]
-        xpath = self.add_to_xpath(output_lines, "", long(line)-1)
+        xpath = self.add_to_xpath(output_lines, "", int(line)-1)
 
         self.model.append([ xpath, message ])
 
@@ -162,9 +163,10 @@ class DiamondSchemaError:
     # Write the current version out to file.
     tmp = tempfile.NamedTemporaryFile()
     self.parent.tree.write(tmp.name)
-    std_input, std_output, err_output = os.popen3("xmllint --schematron %s %s --noout" % (self.schematron_file, tmp.name))
-    output = err_output.read()
-
+    p = subprocess.Popen("xmllint --schematron %s %s --noout" % (self.schematron_file, tmp.name), \
+                         shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+    (std_input, std_output, std_error) = (p.stdin, p.stdout, p.stderr)
+    output = std_error.read().decode()
     output = output.replace("%s fails to validate" % tmp.name, "")
     output = output.strip()
 
@@ -197,7 +199,6 @@ class DiamondSchemaError:
   def get_elem_name(self, line):
     xml = re.compile("<([/?!]?\w+)", re.VERBOSE)
     matches = xml.findall(line)
- #   print "get_elem_name", line, "=", matches[0]
     return matches[0]
 
   def add_to_xpath(self, lines, xpath, line_no):
@@ -217,7 +218,6 @@ class DiamondSchemaError:
       line_no = line_no - 1
       line = lines[line_no].strip()
 
-#      print "MAIN LOOP: ", line
 
       # Skip past comments
       if line.find("-->") != -1:
@@ -229,7 +229,6 @@ class DiamondSchemaError:
       if line.startswith("</"):
         name = line.strip("<>/")
         while line.find("<%s" % (name)) == -1:
-#          print "BACK LOOP: ", line
           line_no = line_no - 1
           line = lines[line_no].strip()
         continue
