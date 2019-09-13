@@ -4,22 +4,29 @@
 #if PY_MAJOR_VERSION >= 3
 #define PyInt_FromLong PyLong_FromLong
 #define PyString_FromString PyUnicode_FromString
+static struct PyModuleDef moduledef = {
+  PyModuleDef_HEAD_INIT,
+  "spud_manager",
+  NULL, -1, NULL, NULL, NULL, NULL, NULL,
+};
+static PyObject* PyInit_spud_manager(void)
+{
+  return PyModule_Create(&moduledef);
+}
 #endif
 
 void python_init_(void){
 #ifdef HAVE_PYTHON
   // Initialize the Python interpreter
+#if PY_MAJOR_VERSION >= 3
+  PyImport_AppendInittab("spud_manager", &PyInit_spud_manager);
+#endif
   Py_Initialize();
   PyRun_SimpleString("import string");
 
   PyObject* m;
 #if PY_MAJOR_VERSION >= 3
-  static struct PyModuleDef moduledef = {
-    PyModuleDef_HEAD_INIT,
-    "spud_manager",
-    NULL, -1, NULL, NULL, NULL, NULL, NULL,
-  };
-  m = PyModule_Create(&moduledef);
+  m = PyImport_ImportModule("spud_manager");
 #else
   m = Py_InitModule("spud_manager", NULL);
 #endif
