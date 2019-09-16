@@ -741,6 +741,7 @@ contains
     type(detector_type), pointer :: particle
     character(len = OPTION_PATH_LEN) :: group_path, subgroup_path
 
+    real :: dt
     integer :: i, k
     integer :: particle_groups, list_counter
     integer, dimension(:), allocatable :: particle_arrays
@@ -750,6 +751,8 @@ contains
     particle_groups = option_count("/particles/particle_group")
     if (particle_groups==0) return
 
+    call get_option("/timestepping/timestep", dt)
+    
     !Set up particle_lists
     allocate(particle_arrays(particle_groups))
     particle_arrays(:) = 0
@@ -774,7 +777,7 @@ contains
           end if
           particle => particle_lists(list_counter)%first
           if (size(particle%attributes)/=0) then
-             call update_particle_subgroup_attributes_and_fields(state, time, subgroup_path, particle_lists(list_counter))
+             call update_particle_subgroup_attributes_and_fields(state, time, dt, subgroup_path, particle_lists(list_counter))
           end if
           list_counter = list_counter + 1
        end do

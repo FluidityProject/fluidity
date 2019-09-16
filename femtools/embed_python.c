@@ -1104,7 +1104,7 @@ void set_particles_from_python_fields(char *function, int *function_len, int *di
   return;
 #else
   PyObject *pMain, *pGlobals, *pLocals, *pFunc, *pCode, *pResult,
-    *pArgs, *pPos, *px, *pT, *pdT *pField, *pNames;
+    *pArgs, *pPos, *px, *pT, *pdT, *pField, *pNames;
   double (*fields_new)[*nfields] = malloc(sizeof(double[*ndete][*nfields]));
   double (*fields_old)[*old_nfields] = malloc(sizeof(double[*ndete][*old_nfields]));
   double (*attributes_old)[*old_nattributes] = malloc(sizeof(double[*ndete][*old_nattributes]));
