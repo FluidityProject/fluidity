@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<testproblem>
+  <name>spherical-adaptivity-checkpointing<comment>Tests spherical adaptivity checkpointing by ensuring that a surface integral is consistent before and after checkpointing. This is not the case if the base geometry is not popped in/our appropriately.</comment></name>
+  <owner userid="rhodrid"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="4">
+    <command_line>mpiexec -np 4 flredecomp -v -l -i 1 -o 4 spherical-adaptivity-checkpoint P4-spherical-adaptivity-checkpoint &amp;&amp;
+                 mpiexec -np 4 fluidity -v2 -l P4-spherical-adaptivity-checkpoint.flml &amp;&amp;
+                 mpiexec -np 4 fluidity -v2 -l checkpoint_spherical_adaptivity_1_checkpoint.flml
+    </command_line>
+  </problem_definition>
+<variables>  
+
+<variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+</variable>
+
+<variable name="nu_top_a" language="python">
+from fluidity_tools import stat_parser as stat
+rmin          = 1.22
+rmax          = 2.22  
+statfile="checkpoint_spherical_adaptivity.stat"
+nu_top_a = abs(stat(statfile)["Mantle"]["Temperature"]["surface_integral%top_surface_integral_normalised"][-1]) * rmax/rmin
+</variable>
+
+<variable name="nu_top_b" language="python">
+from fluidity_tools import stat_parser as stat
+rmin          = 1.22
+rmax          = 2.22  
+statfile="checkpoint_spherical_adaptivity_checkpoint.stat"
+nu_top_b = abs(stat(statfile)["Mantle"]["Temperature"]["surface_integral%top_surface_integral_normalised"][-1]) * rmax/rmin
+</variable>
+
+</variables>
+
+<pass_tests>
+
+<test name="Solvers converged" language="python">
+assert(solvers_converged)
+</test>
+
+<test name="Nusselt Numbers Consistent Across Checkpoints - Difference .lt. 0.01" language="python">
+  assert(abs(nu_top_a-nu_top_b) &lt; 0.01)
+</test>
+
+</pass_tests>                                                                                                                                                                                                
+
+<warn_tests>
+</warn_tests>
+
+</testproblem>
+
+
+
+
+
