@@ -27,7 +27,7 @@ def check_min_max_radii():
     radius_data = data.GetPointData().GetScalars("Radius")
 
     # Convert radii into a nice numpy array:
-    radius = numpy.array([radius_data.GetValue(p) for p in xrange(radius_data.GetNumberOfTuples())])
+    radius = numpy.array([radius_data.GetValue(p) for p in range(radius_data.GetNumberOfTuples())])
     
     # Check for smallest maximum radius and largest minimum radius on each core:
     smallest_radius_max = min(smallest_radius_max, numpy.max(radius))
