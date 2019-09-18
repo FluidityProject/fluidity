@@ -114,10 +114,10 @@ class DiamondValidator:
             filenames += glob.glob(os.path.join(baseDir, "*." + extension))
             baseDir = os.path.join(baseDir, "*")
         for name in ['../../tests/test_results.xml','../../tests/test_results_medium.xml']:
-	    try:
-	        filenames.remove(name)
-	    except:
-	        pass
+            try:
+                filenames.remove(name)
+            except:
+                pass
    
         return filenames
     
