@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import gi
 gi.require_version('Gdk', '3.0')
@@ -6,7 +6,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gdk, Gtk  # noqa: E402
 
 import argparse  # noqa: E402
-import fluidity.diagnostics.fluiditytools as fluidity_tools  # noqa: E402
+from lxml import etree  # noqa: E402
 from matplotlib import rc  # noqa: E402
 from matplotlib.backends.backend_gtk3agg import (
     FigureCanvasGTK3Agg as FigureCanvas)  # noqa: E402
@@ -16,7 +16,6 @@ from matplotlib.figure import Figure  # noqa: E402
 import matplotlib.ticker as tck  # noqa: E402
 import numpy  # noqa: E402
 import sys  # noqa: E402
-import time  # noqa: E402
 import warnings  # noqa: E402
 
 rc('text', usetex=False)
@@ -31,16 +30,17 @@ When the window is displayed, press the following keys for additional options:
 - l    -> Change the representation of the data (solid line or markers).
 - r    -> Reload the .stat file. Only relevant for simulations that are still
           running.
+- a, o -> Grab focus onto the abscissa, ordinate text boxes.
 - Esc  -> Release focus on text boxes.
 - q    -> Exit the GUI.''')
-parser.add_argument('statfile', nargs='+', help='path to the .stat file')
+parser.add_argument('statfile', nargs='+', help='Path(s) to the .stat file(s)')
 args = parser.parse_args(sys.argv[1:])
 
 
 class StatplotWindow(Gtk.Window):
     def __init__(self, statfile):
         Gtk.Window.__init__(self)
-        self.connect('key-press-event', self.KeyPressed)
+        self.connect('key-release-event', self.KeyPressed)
         self.set_border_width(8)
         self.set_default_size(1600, 900)
         self.set_position(Gtk.WindowPosition.CENTER)
@@ -52,7 +52,7 @@ class StatplotWindow(Gtk.Window):
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         hbox.set_homogeneous(True)
         self.vbox.pack_end(hbox, False, False, 0)
-        self.entries = self.ReadData(statfile)
+        self.entries, self.values = self.ReadData()
         self.xCombo = Gtk.ComboBoxText.new_with_entry()
         self.xCombo.set_wrap_width(3)
         self.yCombo = Gtk.ComboBoxText.new_with_entry()
@@ -77,13 +77,13 @@ class StatplotWindow(Gtk.Window):
         self.vbox.pack_start(self.toolbar, False, False, 0)
 
     def ComboChangedX(self, widget):
-        if self.xCombo.get_active_text() in sorted(self.entries.Paths()):
+        if self.xCombo.get_active_text() in self.entries:
             self.PlotData('update', self.PlotType, 'linear',
                           self.ax.get_yscale())
             self.canvas.grab_focus()
 
     def ComboChangedY(self, widget):
-        if self.yCombo.get_active_text() in sorted(self.entries.Paths()):
+        if self.yCombo.get_active_text() in self.entries:
             self.PlotData('update', self.PlotType, self.ax.get_xscale(),
                           'linear')
             self.canvas.grab_focus()
@@ -152,14 +152,14 @@ class StatplotWindow(Gtk.Window):
         completion = Gtk.EntryCompletion.new()
         completion.set_text_column(0)
         completion.set_inline_completion(True)
-        completion.set_inline_selection(True)
+        completion.set_inline_selection(False)
         completion.set_model(comboBox.get_model())
         comboBox.get_child().set_completion(completion)
 
     def KeyPressed(self, widget, event):
         key = event.string
         if key == 'r':
-            self.RefreshData(self.statfile)
+            self.RefreshData()
             self.PlotData('update', self.PlotType, self.ax.get_xscale(),
                           self.ax.get_yscale())
         elif key == 'q':
@@ -178,11 +178,11 @@ class StatplotWindow(Gtk.Window):
                               + 'is null.', stacklevel=2)
                 scale = 'linear'
             elif self.get_scale() == 'linear' \
-                    and max(abs(self.Data)) / min(abs(self.Data)) < 100:
+                    and max(abs(self.Data)) / min(abs(self.Data)) < 10:
                 warnings.warn('Change to logarithmic scale denied: the '
                               + 'selected variable for the ' + key + ' axis '
-                              + 'has a range of variation smaller than two '
-                              + 'orders of magnitude.', stacklevel=2)
+                              + 'has a range of variation smaller than one '
+                              + 'order of magnitude.', stacklevel=2)
                 scale = 'linear'
             elif self.get_scale() == 'linear':
                 axMin = min(abs(self.Data[self.Data != 0]))
@@ -204,12 +204,26 @@ class StatplotWindow(Gtk.Window):
             self.PlotType = 'line' if self.PlotType == 'marker' else 'marker'
             self.PlotData('update', self.PlotType, self.ax.get_xscale(),
                           self.ax.get_yscale())
+        elif key == 'a':
+            if self.yCombo.get_child().has_focus():
+                pass
+            else:
+                self.xCombo.grab_focus()
+        elif key == 'o':
+            if self.xCombo.get_child().has_focus():
+                pass
+            else:
+                self.yCombo.grab_focus()
 
     def PlotData(self, action, type, xscale, yscale):
         self.xField = self.xCombo.get_active_text()
         self.yField = self.yCombo.get_active_text()
-        self.xData = self.entries[self.xField]
-        self.yData = self.entries[self.yField]
+        if len(self.values.shape) == 1:
+            self.xData = self.values[self.entries.index(self.xField)]
+            self.yData = self.values[self.entries.index(self.yField)]
+        else:
+            self.xData = self.values[:, self.entries.index(self.xField)]
+            self.yData = self.values[:, self.entries.index(self.yField)]
         if numpy.unique(self.xData).size == 1 \
                 and numpy.unique(self.yData).size == 1:
             type = 'marker'
@@ -238,13 +252,13 @@ class StatplotWindow(Gtk.Window):
         self.fig.canvas.flush_events()
 
     def PopulateCombo(self, action, prevIterX=None, prevIterY=None):
-        for entry in sorted(self.entries.Paths()):
+        for entry in self.entries:
             self.xCombo.append_text(entry)
             self.yCombo.append_text(entry)
         if action == 'load':
-            if 'ElapsedTime' in self.entries.Paths():
+            if 'ElapsedTime' in self.entries:
                 iterX = self.xCombo.get_model(). \
-                    get_iter(sorted(self.entries.Paths()).index('ElapsedTime'))
+                    get_iter(self.entries.index('ElapsedTime'))
                 self.xCombo.set_active_iter(iterX)
                 self.yCombo.set_active(0)
             else:
@@ -254,30 +268,50 @@ class StatplotWindow(Gtk.Window):
             self.xCombo.set_active_iter(prevIterX)
             self.yCombo.set_active_iter(prevIterY)
 
-    def ReadData(self, statfile):
-        stats = []
-        for i, filename in enumerate(statfile):
-            failcount = 0
-            while failcount < 4:
-                try:
-                    stats.append(fluidity_tools.Stat(filename))
-                    break
-                except (TypeError, ValueError):
-                    time.sleep(0.2)
-                    failcount += 1
-            if failcount == 4:
-                stats.append(fluidity_tools.Stat(filename))
-        if len(stats) == 1:
-            return stats[0]
-        else:
-            return fluidity_tools.JoinStat(*stats)
+    def ReadData(self):
+        def GatherEntries(stat2read):
+            print('Reading ' + stat2read)
+            entries = numpy.array([])
+            with open(stat2read, 'r') as fid:
+                for num, line in enumerate(fid):
+                    if '<field' in line:
+                        info = etree.fromstring(line)
+                        if info.get('statistic') == 'value':
+                            entries = numpy.append(entries, info.get('name'))
+                        elif 'material_phase' in info.keys():
+                            entries = numpy.append(
+                                entries, info.get('material_phase') + '%'
+                                + info.get('name') + '%'
+                                + info.get('statistic'))
+                        else:
+                            entries = numpy.append(
+                                entries, info.get('name') + '%'
+                                + info.get('statistic'))
+                    elif '</header>' in line:
+                        break
+            return entries, num
+        entries, num = GatherEntries(self.statfile[0])
+        values = numpy.genfromtxt(self.statfile[0], skip_header=num + 1)
+        values = values.T[numpy.argsort(entries)].T
+        entries = entries[numpy.argsort(entries)]
+        if len(self.statfile) > 1:
+            for item in self.statfile[1:]:
+                entriesTemp, num = GatherEntries(item)
+                if numpy.array_equal(entries,
+                                     entriesTemp[numpy.argsort(entriesTemp)]):
+                    valuesTemp = numpy.genfromtxt(item, skip_header=num + 1)
+                    valuesTemp = valuesTemp.T[numpy.argsort(entriesTemp)].T
+                    values = numpy.vstack((values, valuesTemp))
+                else:
+                    sys.exit('Statfiles entries do not match')
+        return list(entries), values
 
-    def RefreshData(self, statfile):
+    def RefreshData(self):
         with self.xCombo.handler_block(self.xCon), \
                 self.yCombo.handler_block(self.yCon):
             self.xCombo.remove_all()
             self.yCombo.remove_all()
-            self.entries = self.ReadData(statfile)
+            self.entries, self.values = self.ReadData()
             self.PopulateCombo('reload',
                                prevIterX=self.xCombo.get_active_iter(),
                                prevIterY=self.yCombo.get_active_iter())
