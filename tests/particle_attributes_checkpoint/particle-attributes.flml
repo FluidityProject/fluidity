@@ -81,7 +81,7 @@
           </attribute>
           <attribute name="Chem2">
             <python_fields>
-              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
   x=X[0]
   y=fields["OldTemperature"]
   return y</string_value>
@@ -105,7 +105,7 @@
         <attributes>
           <attribute name="Chem3">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value lines="20" type="code" language="python">def val(X,t,dt):
   x=X[0]
   y=x+t
   return y</string_value>
@@ -113,7 +113,7 @@
           </attribute>
           <attribute name="Chem4">
             <python_fields>
-              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
   x=X[0]
   z=x+t+fields["Salinity"]+fields["Temperature"]
   return z</string_value>
@@ -122,7 +122,7 @@
           </attribute>
           <attribute name="Chem5">
             <python_fields>
-              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
   y=fields["OldChem4"]
   return y</string_value>
             </python_fields>
@@ -148,7 +148,7 @@
         <attributes>
           <attribute name="Chem6">
             <python_fields>
-              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
   z=fields["Temperature"]-fields["OldTemperature"]
   return z</string_value>
             </python_fields>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>Testing of dt variable for particle attributes</name>
+  <owner userid="cmath"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>        
+../../bin/fluidity -v3 -l Particles.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="dt_error" language="python">
+import numpy as np
+from fluidity_tools import stat_parser
+s = stat_parser("particle_attributes.particles.DtMeasure")
+z = stat_parser("particle_attributes.stat")
+
+for i in range(10):
+    name = 'DtMeasure_' + str(1)
+    dt_errors[i] = s[name]['DtVal'][i] - z['dt']['value'][i]
+dt_error=abs(dt_errors).max()
+print ("max error",dt_error)
+    </variable>
+    <variable name="dt_change_error" language="python">
+import numpy as np
+from fluidity_tools import stat_parser
+s = stat_parser("particle_attributes.particles.DtMeasure")
+z = stat_parser("particle_attributes.stat")
+
+for i in range(1,10):
+    name = 'DtMeasure_' + str(1)
+    dt_change_errors[i] = s[name]['Dtchange'][i] - (z['dt']['value'][i] - z['dt']['value'][i-1])
+dt_change_error=abs(dt_change_errors).max()
+print ("max error",dt_change_error)
+    </variable>
+    <variable name="Walltime" language="python">
+from fluidity_tools import stat_parser
+import numpy as np
+
+s = stat_parser('particle_attributes.stat')
+Walltime = s['ElapsedWallTime']["value"][-1]
+print ("Total wall time", Walltime)
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Maxdterror" language="python">
+assert abs(dt_error).max() &lt; 1.0e-5
+    </test>
+    <test name="Maxdtchangeerror" language="python">
+assert abs(dt_change_error).max() &lt; 1.0e-5
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

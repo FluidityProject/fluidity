@@ -15,84 +15,84 @@ import numpy as np
 from fluidity_tools import stat_parser
 s = stat_parser("particle_attributes.stat")
 MaxXtest= s['BoussinesqFluid']['XChange']['max'][-1]
-print "max X",MaxXtest
+print ("max X",MaxXtest)
     </variable>
     <variable name="MinXtest" language="python">
 import numpy as np
 from fluidity_tools import stat_parser
 s = stat_parser("particle_attributes.stat")
 MinXtest= s['BoussinesqFluid']['XChange']['min'][-1]
-print "min X",MinXtest
+print ("min X",MinXtest)
     </variable>
     <variable name="Xl2norm" language="python">
 import numpy as np
 from fluidity_tools import stat_parser
 s = stat_parser("particle_attributes.stat")
 Xl2norm= s['BoussinesqFluid']['XChange']['l2norm'][-1]
-print "X l2norm",Xl2norm
+print ("X l2norm",Xl2norm)
     </variable>
     <variable name="Xintegral" language="python">
 import numpy as np
 from fluidity_tools import stat_parser
 s = stat_parser("particle_attributes.stat")
 Xintegral= s['BoussinesqFluid']['XChange']['integral'][-1]
-print "X integral",Xintegral
+print ("X integral",Xintegral)
     </variable>
     <variable name="MaxYtest" language="python">
 import numpy as np
 from fluidity_tools import stat_parser
 s = stat_parser("particle_attributes.stat")
 MaxYtest= s['BoussinesqFluid']['YChange']['max'][-1]
-print "max Y",MaxYtest
+print ("max Y",MaxYtest)
     </variable>
     <variable name="MinYtest" language="python">
 import numpy as np
 from fluidity_tools import stat_parser
 s = stat_parser("particle_attributes.stat")
 MinYtest= s['BoussinesqFluid']['YChange']['min'][-1]
-print "min Y",MinYtest
+print ("min Y",MinYtest)
     </variable>
     <variable name="Yl2norm" language="python">
 import numpy as np
 from fluidity_tools import stat_parser
 s = stat_parser("particle_attributes.stat")
 Yl2norm= s['BoussinesqFluid']['YChange']['l2norm'][-1]
-print "Y l2norm",Yl2norm
+print ("Y l2norm",Yl2norm)
     </variable>
     <variable name="Yintegral" language="python">
 import numpy as np
 from fluidity_tools import stat_parser
 s = stat_parser("particle_attributes.stat")
 Yintegral= s['BoussinesqFluid']['YChange']['integral'][-1]
-print "Y integral",Yintegral
+print ("Y integral",Yintegral)
     </variable>
     <variable name="MaxTemptest" language="python">
 import numpy as np
 from fluidity_tools import stat_parser
 s = stat_parser("particle_attributes.stat")
 MaxTemptest= s['BoussinesqFluid']['TempChange']['max'][-1]
-print "max Temp",MaxTemptest
+print ("max Temp",MaxTemptest)
     </variable>
     <variable name="MinTemptest" language="python">
 import numpy as np
 from fluidity_tools import stat_parser
 s = stat_parser("particle_attributes.stat")
 MinTemptest= s['BoussinesqFluid']['TempChange']['min'][-1]
-print "min Temp",MinTemptest
+print ("min Temp",MinTemptest)
     </variable>
     <variable name="Templ2norm" language="python">
 import numpy as np
 from fluidity_tools import stat_parser
 s = stat_parser("particle_attributes.stat")
 Templ2norm= s['BoussinesqFluid']['TempChange']['l2norm'][-1]
-print "Temp l2norm",Templ2norm
+print ("Temp l2norm",Templ2norm)
     </variable>
     <variable name="Tempintegral" language="python">
 import numpy as np
 from fluidity_tools import stat_parser
 s = stat_parser("particle_attributes.stat")
 Tempintegral= s['BoussinesqFluid']['TempChange']['integral'][-1]
-print "Temp integral",Tempintegral
+print ("Temp integral",Tempintegral)
     </variable>
     <variable name="Walltime" language="python">
 from fluidity_tools import stat_parser
@@ -100,7 +100,7 @@ import numpy as np
 
 s = stat_parser('particle_attributes.stat')
 Walltime = s['ElapsedWallTime']["value"][-1]
-print "Total wall time", Walltime
+print ("Total wall time", Walltime)
     </variable>
   </variables>
   <pass_tests>

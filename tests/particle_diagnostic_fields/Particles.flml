@@ -108,7 +108,7 @@
         <attributes>
           <attribute name="TempFlag">
             <python_fields>
-              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
   if (t!=0):
     if (abs(fields["Temperature"]-fields["OldTemperature"])&gt;0.00001):
       a = 1
@@ -164,7 +164,7 @@
         <attributes>
           <attribute name="Xval">
             <python_fields>
-              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
   x = X[0]
   return x</string_value>
               <store_old_attribute/>
@@ -172,7 +172,7 @@
           </attribute>
           <attribute name="Yval">
             <python_fields>
-              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
   y = X[1]
   return y</string_value>
               <store_old_attribute/>
@@ -180,7 +180,7 @@
           </attribute>
           <attribute name="Xflag">
             <python_fields>
-              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
   if (t!=0):
     x = X[0]
     oldx = fields["OldXval"]
@@ -196,7 +196,7 @@
           </attribute>
           <attribute name="Yflag">
             <python_fields>
-              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
   if (t!=0):
     y = X[1]
     oldy = fields["OldYval"]

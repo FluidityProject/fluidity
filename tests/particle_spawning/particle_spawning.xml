@@ -15,7 +15,7 @@ import numpy as np
 from fluidity_tools import stat_parser
 s = stat_parser("particle_attributes.stat")
 Min_particles= s['BoussinesqFluid']['Nparticles']['min'][-1]
-print "min number",Min_particles
+print ("min number",Min_particles)
     </variable>
     <variable name="Walltime" language="python">
 from fluidity_tools import stat_parser
@@ -23,7 +23,7 @@ import numpy as np
 
 s = stat_parser('particle_attributes.stat')
 Walltime = s['ElapsedWallTime']["value"][-1]
-print "Total wall time", Walltime
+print ("Total wall time", Walltime)
     </variable>
   </variables>
   <pass_tests>
