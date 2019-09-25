@@ -33,7 +33,7 @@ module particle_diagnostics
   use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
   use futils, only: int2str
   use spud
-  use parallel_tools, only: getnprocs, allsum
+  use parallel_tools, only: getnprocs, allsum, getprocno
   use elements, only: eval_shape
   use fields_base, only: ele_val, ele_loc
   use parallel_fields, only: node_owned
@@ -900,12 +900,14 @@ module particle_diagnostics
     character(len=OPTION_PATH_LEN) :: particle_name
     integer, dimension(:), allocatable :: node_numbers
     integer, dimension(:), pointer :: ele_nums
-    integer :: id, name_len, tot_len, group_spawn, ele_spawn
+    integer :: id, name_len, tot_len, group_spawn, ele_spawn, proc_num
     integer :: j, i, k, l
     integer, dimension(3) :: attribute_size
     logical :: spawn_group, coords_set
     real :: max_lcoord, rand_lcoord, sum_coords
     real, dimension(:), allocatable :: rand_lcoords
+
+    proc_num = getprocno()
 
     !Check if particle node values of above or below a threshold, only spawn from
     !group containing those node values if they are
@@ -930,7 +932,7 @@ module particle_diagnostics
              if (j/=group_spawn) cycle
           end if
              
-          id = temp_part%id_number
+          id = particle_lists(group_arrays(j))%proc_part_count
           name_len = len(int2str(id+1))+1 !id length + '_'
           tot_len = len(trim(temp_part%name))
           name = trim(temp_part%name(1:tot_len-name_len))
@@ -951,6 +953,7 @@ module particle_diagnostics
           temp_part%name = trim(particle_name)
           temp_part%id_number = id+1
           temp_part%list_id = particle%list_id
+          temp_part%proc_id = proc_num
 
           !Check if particles are spawning within a radius around their parent, or randomly within the CV
           if (have_radius.eqv..true.) then
@@ -1028,6 +1031,7 @@ module particle_diagnostics
           particle_lists(group_arrays(j))%length = particle_lists(group_arrays(j))%length + 1
           add_particles(j) = add_particles(j) + 1
           id = id + 1
+          particle_lists(group_arrays(j))%proc_part_count = particle_lists(group_arrays(j))%proc_part_count + 1
 
           particle => particle%temp_next
 

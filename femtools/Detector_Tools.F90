@@ -462,21 +462,22 @@ contains
     integer, intent(in) :: ndims
     logical, intent(in) :: have_update_vector
     integer, intent(in), optional :: nstages
-    integer :: detector_buffer_size
+    integer :: detector_buffer_size, det_params
     integer, dimension(3), optional, intent(in) :: attribute_size !array to hold size of attributes
+    det_params = 4 !size of basic detector fields: detector element, id_number, proc_id and type
     if (present(attribute_size)) then
        if (have_update_vector) then
           assert(present(nstages))
-          detector_buffer_size=(nstages+2)*ndims+3+sum(attribute_size)
+          detector_buffer_size=(nstages+2)*ndims+det_params+sum(attribute_size)
        else
-          detector_buffer_size=ndims+4+sum(attribute_size)
+          detector_buffer_size=ndims+det_params+1+sum(attribute_size)
        end if
     else
        if (have_update_vector) then
           assert(present(nstages))
-          detector_buffer_size=(nstages+2)*ndims+3
+          detector_buffer_size=(nstages+2)*ndims+det_params
        else
-          detector_buffer_size=ndims+4
+          detector_buffer_size=ndims+det_params+1
        end if 
     end if
 
@@ -494,8 +495,8 @@ contains
     integer, dimension(3), optional, intent(in) :: attribute_size !array to hold size of attributes
     integer :: det_params
     assert(size(detector%position)==ndims)
-    !Set size of basic detector fields, being detector element, id_number and type
-    det_params = 3
+    !Set size of basic detector fields: detector element, id_number, proc_id and type
+    det_params = 4
     !Check if this is a particle carrying attributes
     if (present(attribute_size)) then
        assert(size(buff)>=ndims+det_params+sum(attribute_size))
@@ -503,7 +504,8 @@ contains
        buff(1:ndims) = detector%position
        buff(ndims+1) = detector%element
        buff(ndims+2) = detector%id_number
-       buff(ndims+3) = detector%type
+       buff(ndims+3) = detector%proc_id
+       buff(ndims+4) = detector%type
        if (attribute_size(1).ne.0) then
           buff(ndims+det_params+1:ndims+det_params+attribute_size(1)) = detector%attributes
        end if
@@ -536,7 +538,8 @@ contains
        buff(1:ndims) = detector%position
        buff(ndims+1) = detector%element
        buff(ndims+2) = detector%id_number
-       buff(ndims+3) = detector%type
+       buff(ndims+3) = detector%proc_id
+       buff(ndims+4) = detector%type
 
        ! Lagrangian advection fields: (nstages+1)*ndims
        if (present(nstages)) then
@@ -566,7 +569,7 @@ contains
 
     integer :: det_params
     !Set size of basic detector fields, being detector element, id_number and type
-    det_params = 3
+    det_params = 4
     
     !Check if this is a particle carrying attributes
     if (present(attribute_size)) then
@@ -579,11 +582,12 @@ contains
           allocate(detector%old_attributes(attribute_size(2)))
           allocate(detector%old_fields(attribute_size(3)))
        end if
-       ! Basic fields: ndims+3
+       ! Basic fields: ndims+4
        detector%position = buff(1:ndims)
        detector%element = buff(ndims+1)
        detector%id_number = buff(ndims+2)
-       detector%type = buff(ndims+3)
+       detector%proc_id = buff(ndims+3)
+       detector%type = buff(ndims+4)
        if (attribute_size(1)/=0) then  
           detector%attributes = buff(ndims+det_params+1:ndims+det_params+attribute_size(1))
        end if
@@ -642,11 +646,12 @@ contains
           allocate(detector%position(ndims))
        end if
        
-       ! Basic fields: ndims+3
+       ! Basic fields: ndims+4
        detector%position = buff(1:ndims)
        detector%element = buff(ndims+1)
        detector%id_number = buff(ndims+2)
-       detector%type = buff(ndims+3)
+       detector%proc_id = buff(ndims+3)
+       detector%type = buff(ndims+4)
        
        ! Reconstruct element number if global-to-local mapping is given
        if (present(global_to_local)) then

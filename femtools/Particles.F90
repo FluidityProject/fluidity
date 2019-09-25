@@ -206,7 +206,9 @@ contains
     character(len = FIELD_NAME_LEN) :: fmt
     character(len=FIELD_NAME_LEN) :: particle_name
     real, allocatable, dimension(:,:) :: coords !array to hold coordinates of particles for initialisation
-    integer :: l, str_size
+    integer :: l, str_size, proc_num
+
+    proc_num = getprocno()
 
     ewrite(2,*) "Reading particles from options"
     call get_option(trim(subgroup_path)//"/initial_position/python", func)
@@ -219,7 +221,7 @@ contains
     do l=1,sub_particles
        write(particle_name, fmt) trim(subname)//"_", l
        call create_single_particle(p_list, xfield, coords(:,l), &
-            l, LAGRANGIAN_DETECTOR, trim(particle_name), attribute_size)
+            l, proc_num, LAGRANGIAN_DETECTOR, trim(particle_name), attribute_size)
     end do
     
     deallocate(coords)
@@ -286,7 +288,8 @@ contains
           attribute_vals(3,1:attribute_size(3))=packed_buff(dim+1+attribute_size(1)+attribute_size(2):dim+sum(attribute_size))
        end if
        call create_single_particle_check(p_list, xfield, &
-            particle_location, m, LAGRANGIAN_DETECTOR, trim(particle_name),attribute_size,attribute_vals=attribute_vals)
+            particle_location, m, proc_num, LAGRANGIAN_DETECTOR, trim(particle_name),attribute_size,attribute_vals=attribute_vals)!!!need to set proc_num from checkpointed file
+       !!!need to add something here to initialise p_list%proc_part_count. Must be checkpointed and read in?
     end do
     deallocate(packed_buff)
     deallocate(attribute_vals)
@@ -378,13 +381,13 @@ contains
 
   end subroutine set_particle_output_file
 
-  subroutine create_single_particle(detector_list, xfield, position, id, type, name, attribute_size, attribute_vals)
+  subroutine create_single_particle(detector_list, xfield, position, id, proc_id, type, name, attribute_size, attribute_vals)
     ! Allocate a single particle, populate and insert it into the given list
     ! In parallel, first check if the particle would be local and only allocate if it is
     type(detector_linked_list), intent(inout) :: detector_list
     type(vector_field), pointer, intent(in) :: xfield
     real, dimension(xfield%dim), intent(in) :: position
-    integer, intent(in) :: id, type
+    integer, intent(in) :: id, proc_id, type
     character(len=*), intent(in) :: name
 
     type(detector_type), pointer :: detector
@@ -425,6 +428,8 @@ contains
     detector%local_coords=lcoords
     detector%type=type
     detector%id_number=id
+    detector%proc_id=proc_id
+    detector_list%proc_part_count = detector_list%proc_part_count + 1
 
     allocate(detector%attributes(attribute_size(1)))
     allocate(detector%old_attributes(attribute_size(2)))
@@ -442,13 +447,13 @@ contains
     
   end subroutine create_single_particle
 
-  subroutine create_single_particle_check(detector_list, xfield, position, id, type, name, attribute_size, attribute_vals)
+  subroutine create_single_particle_check(detector_list, xfield, position, id, proc_id, type, name, attribute_size, attribute_vals)
     ! Allocate a single particle, populate and insert it into the given list
     ! In parallel, first check if the particle would be local and only allocate if it is
     type(detector_linked_list), intent(inout) :: detector_list
     type(vector_field), pointer, intent(in) :: xfield
     real, dimension(xfield%dim), intent(in) :: position
-    integer, intent(in) :: id, type
+    integer, intent(in) :: id, proc_id, type
     character(len=*), intent(in) :: name
 
     type(detector_type), pointer :: detector
@@ -493,6 +498,7 @@ contains
     detector%local_coords=lcoords
     detector%type=type
     detector%id_number=id
+    detector%proc_id=proc_id
 
     allocate(detector%attributes(attribute_size(1)))
     allocate(detector%old_attributes(attribute_size(2)))
@@ -1135,7 +1141,7 @@ contains
     num_particles = particle_list%length
 
     ! Construct a new particle checkpoint filename
-    !!!get name of particle array here to construct the output file
+    !get name of particle array here to construct the output file
     particles_cp_filename = trim(prefix)
     if(present(cp_no)) particles_cp_filename = trim(particles_cp_filename) // "_" // int2str(cp_no)
     particles_cp_filename = trim(particles_cp_filename) // "_" // trim(lpostfix)
