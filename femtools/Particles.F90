@@ -474,11 +474,13 @@ contains
     !> Whether to consider this particle in a global element search
     logical, intent(in), optional :: global
 
-    integer :: i, str_size
+    integer :: i, str_size, proc_num
     character(len=PYTHON_FUNC_LEN) :: func
     character(len=FIELD_NAME_LEN) :: fmt, particle_name
     real, allocatable, dimension(:,:) :: coords ! all particle coordinates, from python
     real :: dt
+
+    proc_num = getprocno()
 
     ewrite(2,*) "Reading particles from options"
     call get_option(trim(subgroup_path)//"/initial_position/python", func)
@@ -492,7 +494,7 @@ contains
     do i = 1, n_particles
       write(particle_name, fmt) trim(subgroup_name)//"_", i
       call create_single_particle(p_list, xfield, coords(:,i), &
-           i, trim(particle_name), dim, attr_counts, global=global)
+           i, proc_num, trim(particle_name), dim, attr_counts, global=global)
     end do
 
     ! since the particles have only been initialised with their position
@@ -578,13 +580,13 @@ contains
     integer, intent(in), optional :: n_partitions
 
     integer :: i
-    integer :: ierr, str_size, commsize, rank, id(1)
+    integer :: ierr, str_size, commsize, rank, id(1), proc_id(1)
     integer :: input_comm, world_group, input_group ! opaque MPI pointers
     real, allocatable, dimension(:) :: positions ! particle coordinates
     character(len=OPTION_PATH_LEN) :: particles_cp_filename
     character(len=FIELD_NAME_LEN) :: particle_name, fmt
     integer(kind=8) :: h5_ierror, h5_id, h5_prop, view_start, view_end ! h5hut state
-    integer(kind=8), dimension(:), allocatable :: npoints ! number of points for each rank to read
+    integer(kind=8), dimension(:), allocatable :: npoints, part_counter ! number of points for each rank to read
     type(attr_vals_type), pointer :: attr_vals, old_attr_vals, old_field_vals ! scalar/vector/tensor arrays
 
     ewrite(2,*) "Reading particles from file"
@@ -626,7 +628,9 @@ contains
     call mpi_comm_size(MPI_COMM_FEMTOOLS, commsize, ierr)
     call mpi_comm_rank(MPI_COMM_FEMTOOLS, rank, ierr)
     allocate(npoints(commsize))
+    allocate(part_counter(commsize))
     h5_ierror = h5_readfileattrib_i8(h5_id, "npoints", npoints)
+    h5_ierror = h5_readfileattrib_i8(h5_id, "part_counter", part_counter)
     h5_ierror = h5pt_setnpoints(h5_id, npoints(rank+1))
 
     ! figure out our local offset into the file
@@ -646,6 +650,7 @@ contains
            h5_ierror = h5pt_readdata_r8(h5_id, "z", positions(3))
 
       h5_ierror = h5pt_readdata_i4(h5_id, "id", id(1))
+      h5_ierror = h5pt_readdata_i4(h5_id, "proc_id", proc_id(1))
 
       ! batched reads of scalar, vector, tensor values of each kind of attribute
       call read_attrs(h5_id, dim, attr_counts%attrs, attr_names, attr_vals)
@@ -654,14 +659,18 @@ contains
 
       ! don't use a global check for this particle
       call create_single_particle(p_list, xfield, &
-           positions, id(1), trim(particle_name), dim, &
+           positions, id(1), proc_id(1), trim(particle_name), dim, &
            attr_counts, attr_vals, old_attr_vals, old_field_vals, global=.false.)
     end do
+
+    ! reset proc_particle_count
+    p_list%proc_part_count = part_counter(rank+1)
 
     h5_ierror = h5_closefile(h5_id)
 
     deallocate(positions)
     deallocate(npoints)
+    deallocate(part_counter)
 
     deallocate(attr_vals)
     deallocate(old_attr_vals)
@@ -687,7 +696,7 @@ contains
 
   !> Allocate a single particle, populate and insert it into the given list
   !! In parallel, first check if the particle would be local and only allocate if it is
-  subroutine create_single_particle(detector_list, xfield, position, id, name, dim, &
+  subroutine create_single_particle(detector_list, xfield, position, id, proc_id, name, dim, &
        attr_counts, attr_vals, old_attr_vals, old_field_vals, global)
     !> The detector list to hold the particle
     type(detector_linked_list), intent(inout) :: detector_list
@@ -697,6 +706,8 @@ contains
     real, dimension(xfield%dim), intent(in) :: position
     !> Unique ID number for this particle
     integer, intent(in) :: id
+    !> Procces ID on which this particle was created
+    integer, intent(in) :: proc_id
     !> The particle's name
     character(len=*), intent(in) :: name
     !> Geometry dimension
@@ -754,6 +765,8 @@ contains
     detector%local_coords = lcoords
     detector%type = LAGRANGIAN_DETECTOR
     detector%id_number = id
+    detector%proc_id = proc_id
+    detector_list%proc_part_count = detector_list%proc_part_count + 1
 
     ! allocate space to store all attributes on the particle
     allocate(detector%attributes(total_attributes(attr_counts%attrs, dim)))
@@ -1454,7 +1467,7 @@ contains
     real, dimension(:,:), allocatable :: positions, attr_data, old_attr_data, old_field_data
     integer(kind=8) :: h5_id, h5_prop, h5_ierror
     integer(kind=8), dimension(:), allocatable :: npoints
-    integer, dimension(:), allocatable :: node_ids
+    integer, dimension(:), allocatable :: node_ids, proc_ids
     type(detector_type), pointer :: node
 
     integer :: comm, commsize, ierr
@@ -1464,10 +1477,13 @@ contains
     ! we store the number of points per process, so gather them
     ! this is because h5part attributes must be agreed upon by all,
     ! so every process needs to know the size for every other process
+    ! we also store the proc_part_count to ensure newly spawned
+    ! particles after checkpointing remain unique
     call mpi_comm_size(comm, commsize, ierr)
-    allocate(npoints(commsize))
-    call mpi_allgather([int(particle_list%length, 8)], 1, MPI_INTEGER8, &
-         npoints, 1, MPI_INTEGER8, comm, ierr)
+    allocate(npoints(commsize*2))
+    call mpi_allgather([int(particle_list%length, 8), int(particle_list%proc_part_count, 8)], &
+         2, MPI_INTEGER8, &
+         npoints, 2, MPI_INTEGER8, comm, ierr)
 
     ! construct a new particle checkpoint filename
     particles_cp_filename = trim(prefix)
@@ -1483,7 +1499,9 @@ contains
     h5_id = h5_openfile(trim(particles_cp_filename), H5_O_WRONLY, h5_prop)
     h5_ierror = h5_closeprop(h5_prop)
     ! write out number of points per process
-    h5_ierror = h5_writefileattrib_i8(h5_id, "npoints", npoints, int(commsize, 8))
+    h5_ierror = h5_writefileattrib_i8(h5_id, "npoints", npoints(1::2), int(commsize, 8))
+    ! write out per-processor particle count, for unique spawning
+    h5_ierror = h5_writefileattrib_i8(h5_id, "part_counter", npoints(2::2), int(commsize, 8))
     ! write data in the first step
     h5_ierror = h5_setstep(h5_id, int(1, 8))
     ! the number of points this process is writing
@@ -1499,6 +1517,7 @@ contains
     ! allocate arrays for node data
     allocate(positions(particle_list%length, dim))
     allocate(node_ids(particle_list%length))
+    allocate(proc_ids(particle_list%length))
     allocate(attr_data(particle_list%length, tot_attrs))
     allocate(old_attr_data(particle_list%length, tot_old_attrs))
     allocate(old_field_data(particle_list%length, tot_old_fields))
@@ -1519,6 +1538,7 @@ contains
 
       ! collect node ids
       node_ids(i) = node%id_number
+      proc_ids(i) = node%proc_id
 
       node => node%next
     end do positionloop_cp
@@ -1531,6 +1551,7 @@ contains
     if (dim >= 3) &
          h5_ierror = h5pt_writedata_r8(h5_id, "z", positions(:,3))
     h5_ierror = h5pt_writedata_i4(h5_id, "id", node_ids(:))
+    h5_ierror = h5pt_writedata_i4(h5_id, "proc_id", proc_ids(:))
 
     call write_attrs(h5_id, dim, particle_list%attr_names, attr_data)
     call write_attrs(h5_id, dim, particle_list%old_attr_names, old_attr_data)
@@ -1543,6 +1564,7 @@ contains
     deallocate(old_field_data)
     deallocate(old_attr_data)
     deallocate(node_ids)
+    deallocate(proc_ids)
     deallocate(attr_data)
     deallocate(positions)
     deallocate(npoints)

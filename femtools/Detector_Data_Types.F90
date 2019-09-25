@@ -77,6 +77,8 @@ module detector_data_types
      integer :: type = STATIC_DETECTOR
      !! Identification number indicating the order in which the detectors are read
      integer :: id_number
+     !! Identification number indicating parent processor when detector was created
+     integer :: proc_id
      !! ID of the parent list, needed for Zoltan to map the detector back
      integer :: list_id
      !! RK timestepping stages (first index is stage no., second index is dim)
@@ -117,6 +119,7 @@ module detector_data_types
 
      !! Internal ID used for packing/unpacking detectors
      integer :: id  ! IDs are counted from 1
+     integer :: proc_part_count = 0!Counter for the number of particles spawned on the current processor
 
      !! Parameters for lagrangian movement (n_stages, stage_matrix, etc)
      type(rk_gs_parameters), pointer :: move_parameters => null()
