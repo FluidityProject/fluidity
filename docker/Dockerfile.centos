@@ -28,7 +28,7 @@ RUN yum-config-manager --add-repo http://fluidityproject.github.com/yum/texlive-
 # Update the system
 RUN echo "exclude=iputils" >> /etc/yum.conf
 RUN yum -y update
-RUN yum -y install fluidity-dev
+RUN yum -y install fluidity-dev Judy-devel spatialindex-devel
 # Optional additional hack to get manual building correctly
 RUN yum -y install texlive-collection-latexextra
 
