@@ -6,7 +6,7 @@
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>        
-../../bin/fluidity -v3 -l particle-attributes.flml
+../../bin/fluidity -v3 -l particle-attributes-checkpoint.flml
 ../../bin/fluidity -v3 -l particle_attributes_1_checkpoint.flml
     </command_line>
   </problem_definition>

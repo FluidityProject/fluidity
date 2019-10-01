@@ -6,7 +6,7 @@
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>        
-../../bin/fluidity -v3 -l Particles.flml
+../../bin/fluidity -v3 -l particle-deleting.flml
     </command_line>
   </problem_definition>
   <variables>

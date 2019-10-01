@@ -6,8 +6,8 @@
   <tags>flml parallel zoltan</tags>
   <problem_definition length="medium" nprocs="4">
     <command_line>    
-mpiexec ../../bin/flredecomp -i 1 -o 4 Particles Particles-flredecomp;      
-mpiexec ../../bin/fluidity -v3 -l Particles-flredecomp.flml
+mpiexec ../../bin/flredecomp -i 1 -o 4 particle-multimaterial-adaptive particle-multimaterial-adaptive-flredecomp;      
+mpiexec ../../bin/fluidity -v3 -l particle-multimaterial-adaptive-flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>
