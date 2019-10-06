@@ -1,3 +1,4 @@
+from __future__ import division
 import scipy.special
 import numpy
 from math import sqrt, atan2, cos, sin, tan, acos, pi
@@ -19,11 +20,11 @@ m = l
 
 # coefficients for Pl(r) = A*r**l + B*r**(-l-1) + C*r**(l+2) + D*r**(-l+1) + E*r**(k+3)
 Gamma = ((alpha**(l + 1) + alpha**(l - 3))*(2*l + 1)**2 - 2*alpha**(l - 1)*(2*l + 3)*(2*l - 1) - 4*alpha**(3*l) - 4*alpha**(-l - 2))*(k + l + 4)*(k + l + 2)*(k - l + 3)*(k - l + 1)
-A = ((alpha**(k + 2) + alpha**(l - 1))*(k + l + 2)*(2*l + 3) - (alpha**k + alpha**(l + 1))*(k + l + 4)*(2*l + 1) - 2*(alpha**(k + 2*l + 3) + alpha**(-l - 2))*(k - l + 1))*R2**(-l + 3)*g/(Gamma*nu)
-B = ((alpha**(k + 2*l + 1) + alpha**(l + 1))*(k - l + 3)*(2*l + 1) - (alpha**(k + 2*l + 3) + alpha**(l - 1))*(k - l + 1)*(2*l - 1) - 2*(alpha**(k + 2) + alpha**(3*l))*(k + l + 2))*R2**(l + 4)*g/(Gamma*nu)
-C = -((alpha**(k + 2) + alpha**(l - 3))*(k + l + 2)*(2*l + 1) - (alpha**k + alpha**(l - 1))*(k + l + 4)*(2*l - 1) - 2*(alpha**(k + 2*l + 1) + alpha**(-l - 2))*(k - l + 3))*R2**(-l + 1)*g/(Gamma*nu)
-D = -((alpha**(k + 2*l + 1) + alpha**(l - 1))*(k - l + 3)*(2*l + 3) - (alpha**(k + 2*l + 3) + alpha**(l - 3))*(k - l + 1)*(2*l + 1) - 2*(alpha**k + alpha**(3*l))*(k + l + 4))*R2**(l + 2)*g/(Gamma*nu)
-E = R2**(-k)*g/((k + l + 4)*(k + l + 2)*(k - l + 3)*(k - l + 1)*nu)
+A = ((alpha**(k + 2) + alpha**(l - 1))*(k + l + 2)*(2*l + 3) - (alpha**k + alpha**(l + 1))*(k + l + 4)*(2*l + 1) - 2*(alpha**(k + 2*l + 3) + alpha**(-l - 2))*(k - l + 1))*Rp**(-l + 3)*g/(Gamma*nu)
+B = ((alpha**(k + 2*l + 1) + alpha**(l + 1))*(k - l + 3)*(2*l + 1) - (alpha**(k + 2*l + 3) + alpha**(l - 1))*(k - l + 1)*(2*l - 1) - 2*(alpha**(k + 2) + alpha**(3*l))*(k + l + 2))*Rp**(l + 4)*g/(Gamma*nu)
+C = -((alpha**(k + 2) + alpha**(l - 3))*(k + l + 2)*(2*l + 1) - (alpha**k + alpha**(l - 1))*(k + l + 4)*(2*l - 1) - 2*(alpha**(k + 2*l + 1) + alpha**(-l - 2))*(k - l + 3))*Rp**(-l + 1)*g/(Gamma*nu)
+D = -((alpha**(k + 2*l + 1) + alpha**(l - 1))*(k - l + 3)*(2*l + 3) - (alpha**(k + 2*l + 3) + alpha**(l - 3))*(k - l + 1)*(2*l + 1) - 2*(alpha**k + alpha**(3*l))*(k + l + 4))*Rp**(l + 2)*g/(Gamma*nu)
+E = g/(Rp**k*(k + l + 4)*(k + l + 2)*(k - l + 3)*(k - l + 1)*nu)
 
 # coefficients for pressure solution: p = G r^l + H r^{-l-1} + K r^{k+1}
 G = -2*nu*(l+1)*(2*l+3)*C
@@ -40,7 +41,6 @@ def dPldr(r):
 # no-normal flow
 assert abs(Pl(Rm))<1e-12
 assert abs(Pl(Rp))<1e-12
-@EXTRA_ASSERTS@
 
 def Y(m, l, theta, phi):
     # everywhere we take the real part of Y, corresponding to the cos(m phi) part of the solution

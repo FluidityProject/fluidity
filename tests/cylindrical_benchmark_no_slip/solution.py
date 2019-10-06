@@ -22,10 +22,10 @@ mp = -pm
 # velocity solution: coefficients for n, -n, n+2, and -n+2 power of r
 # since the alpha's are length-2 arrays (each entry corresponding to one halve of the domain)
 # so will the coefficients and thus the solution
-A_pm = 0.125*(((alpha**2 - beta**2)*n + (n + 1)*pm + alpha**(-2*n) - beta**(-2*n))*(n - 1) + (alpha**2*beta**(-2*n) - alpha**(-2*n)*beta**2)*n - (n**2*(beta/alpha)**(2*mp) - (beta/alpha)**(2*n*pm))*pm)*g*rp**(-n + 2)/((n**2*(alpha/beta - beta/alpha)**2 - ((beta/alpha)**(-n) - (beta/alpha)**n)**2)*(n - 1)*nu)
-B_pm = 0.125*(((alpha**2 - beta**2)*n + (n - 1)*pm - alpha**(2*n) + beta**(2*n))*(n + 1) - (alpha**2*beta**(2*n) - alpha**(2*n)*beta**2)*n - (n**2*(beta/alpha)**(2*mp) - (beta/alpha)**(2*mp*n))*pm)*g*rp**(n + 2)/((n**2*(alpha/beta - beta/alpha)**2 - ((beta/alpha)**(-n) - (beta/alpha)**n)**2)*(n + 1)*nu)
-C_pm = -0.125*((n**2*(beta/alpha)**(2*pm) - (beta/alpha)**(2*n*pm))*mp - (mp*(n - 1) - n*(1/alpha**2 - 1/beta**2) + alpha**(-2*n) - beta**(-2*n))*(n + 1) + n*(alpha**(-2*n)/beta**2 - beta**(-2*n)/alpha**2))*g*rp**(-n)/((n**2*(alpha/beta - beta/alpha)**2 - ((beta/alpha)**(-n) - (beta/alpha)**n)**2)*(n + 1)*nu)
-D_pm = -0.125*((n**2*(beta/alpha)**(2*pm) - (beta/alpha)**(2*mp*n))*mp - (mp*(n + 1) - n*(1/alpha**2 - 1/beta**2) - alpha**(2*n) + beta**(2*n))*(n - 1) - n*(alpha**(2*n)/beta**2 - beta**(2*n)/alpha**2))*g*rp**n/((n**2*(alpha/beta - beta/alpha)**2 - ((beta/alpha)**(-n) - (beta/alpha)**n)**2)*(n - 1)*nu)
+A_pm = 0.125*(((alpha**2 - beta**2)*n + (n + 1)*pm + 1/alpha**(2*n) - 1/beta**(2*n))*(n - 1) + (alpha**2/beta**(2*n) - beta**2/alpha**(2*n))*n - (n**2*(beta/alpha)**(2*mp) - (beta/alpha)**(2*n*pm))*pm)*g*rp**(-n + 2)/((n**2*(alpha/beta - beta/alpha)**2 - ((beta/alpha)**n - 1/(beta/alpha)**n)**2)*(n - 1)*nu)
+B_pm = 0.125*(((alpha**2 - beta**2)*n + (n - 1)*pm - alpha**(2*n) + beta**(2*n))*(n + 1) - (alpha**2*beta**(2*n) - alpha**(2*n)*beta**2)*n - (n**2*(beta/alpha)**(2*mp) - (beta/alpha)**(2*mp*n))*pm)*g*rp**(n + 2)/((n**2*(alpha/beta - beta/alpha)**2 - ((beta/alpha)**n - 1/(beta/alpha)**n)**2)*(n + 1)*nu)
+C_pm = -0.125*((n**2*(beta/alpha)**(2*pm) - (beta/alpha)**(2*n*pm))*mp - (mp*(n - 1) - n*(1/alpha**2 - 1/beta**2) + 1/alpha**(2*n) - 1/beta**(2*n))*(n + 1) + n*(1/(alpha**(2*n)*beta**2) - 1/(alpha**2*beta**(2*n))))*g/((n**2*(alpha/beta - beta/alpha)**2 - ((beta/alpha)**n - 1/(beta/alpha)**n)**2)*(n + 1)*nu*rp**n)
+D_pm = -0.125*((n**2*(beta/alpha)**(2*pm) - (beta/alpha)**(2*mp*n))*mp - (mp*(n + 1) - n*(1/alpha**2 - 1/beta**2) - alpha**(2*n) + beta**(2*n))*(n - 1) - n*(alpha**(2*n)/beta**2 - beta**(2*n)/alpha**2))*g*rp**n/((n**2*(alpha/beta - beta/alpha)**2 - ((beta/alpha)**n - 1/(beta/alpha)**n)**2)*(n - 1)*nu)
 
 
 # pressure solution: coefficients for n and -n

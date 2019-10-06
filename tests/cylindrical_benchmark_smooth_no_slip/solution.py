@@ -1,3 +1,4 @@
+from __future__ import division
 import numpy
 from math import sqrt, atan2, cos, sin
 
@@ -13,11 +14,11 @@ if n<=1:
     raise NotImplemented()
 
 # velocity solution: coefficients for n, -n, n+2, -n+2 and k+3 powers of r
-A = 0.5*((alpha**(k + n + 3) + alpha**(2*n))*(k + n + 1)*(n + 1) - (alpha**(k + n + 1) + alpha**(2*n + 2))*(k + n + 3)*n - (alpha**(k + 3*n + 3) + 1)*(k - n + 1))*R2**(-n + 3)*g*n/(((alpha**(n + 1) - alpha**(n - 1))**2*n**2 - (alpha**(2*n) - 1)**2)*((k + 3)**2 - n**2)*((k + 1)**2 - n**2)*nu)
-B = -0.5*((alpha**(k + 3*n + 3) + alpha**(2*n))*(k - n + 1)*(n - 1) - (alpha**(k + 3*n + 1) + alpha**(2*n + 2))*(k - n + 3)*n + (alpha**(k + n + 3) + alpha**(4*n))*(k + n + 1))*R2**(n + 3)*g*n/(((alpha**(n + 1) - alpha**(n - 1))**2*n**2 - (alpha**(2*n) - 1)**2)*((k + 3)**2 - n**2)*((k + 1)**2 - n**2)*nu)
-C = 0.5*((alpha**(k + n + 1) + alpha**(2*n))*(k + n + 3)*(n - 1) - (alpha**(k + n + 3) + alpha**(2*n - 2))*(k + n + 1)*n + (alpha**(k + 3*n + 1) + 1)*(k - n + 3))*R2**(-n + 1)*g*n/(((alpha**(n + 1) - alpha**(n - 1))**2*n**2 - (alpha**(2*n) - 1)**2)*((k + 3)**2 - n**2)*((k + 1)**2 - n**2)*nu)
-D = -0.5*((alpha**(k + 3*n + 1) + alpha**(2*n))*(k - n + 3)*(n + 1) - (alpha**(k + 3*n + 3) + alpha**(2*n - 2))*(k - n + 1)*n - (alpha**(k + n + 1) + alpha**(4*n))*(k + n + 3))*R2**(n + 1)*g*n/(((alpha**(n + 1) - alpha**(n - 1))**2*n**2 - (alpha**(2*n) - 1)**2)*((k + 3)**2 - n**2)*((k + 1)**2 - n**2)*nu)
-E = R2**(-k)*g*n/(((k + 3)**2 - n**2)*((k + 1)**2 - n**2)*nu)
+A = 0.5*((alpha**(k + n + 3) + alpha**(2*n))*(k + n + 1)*(n + 1) - (alpha**(k + n + 1) + alpha**(2*n + 2))*(k + n + 3)*n - (alpha**(k + 3*n + 3) + 1)*(k - n + 1))*Rp**(-n + 3)*g*n/(((alpha**(n + 1) - alpha**(n - 1))**2*n**2 - (alpha**(2*n) - 1)**2)*((k + 3)**2 - n**2)*((k + 1)**2 - n**2)*nu)
+B = -0.5*((alpha**(k + 3*n + 3) + alpha**(2*n))*(k - n + 1)*(n - 1) - (alpha**(k + 3*n + 1) + alpha**(2*n + 2))*(k - n + 3)*n + (alpha**(k + n + 3) + alpha**(4*n))*(k + n + 1))*Rp**(n + 3)*g*n/(((alpha**(n + 1) - alpha**(n - 1))**2*n**2 - (alpha**(2*n) - 1)**2)*((k + 3)**2 - n**2)*((k + 1)**2 - n**2)*nu)
+C = 0.5*((alpha**(k + n + 1) + alpha**(2*n))*(k + n + 3)*(n - 1) - (alpha**(k + n + 3) + alpha**(2*n - 2))*(k + n + 1)*n + (alpha**(k + 3*n + 1) + 1)*(k - n + 3))*Rp**(-n + 1)*g*n/(((alpha**(n + 1) - alpha**(n - 1))**2*n**2 - (alpha**(2*n) - 1)**2)*((k + 3)**2 - n**2)*((k + 1)**2 - n**2)*nu)
+D = -0.5*((alpha**(k + 3*n + 1) + alpha**(2*n))*(k - n + 3)*(n + 1) - (alpha**(k + 3*n + 3) + alpha**(2*n - 2))*(k - n + 1)*n - (alpha**(k + n + 1) + alpha**(4*n))*(k + n + 3))*Rp**(n + 1)*g*n/(((alpha**(n + 1) - alpha**(n - 1))**2*n**2 - (alpha**(2*n) - 1)**2)*((k + 3)**2 - n**2)*((k + 1)**2 - n**2)*nu)
+E = g*n/(((k + 3)**2 - n**2)*((k + 1)**2 - n**2)*Rp**k*nu)
 
 # pressure: coefficients for n, -n, and k+1
 G = -4*nu*C*(n+1)
@@ -39,8 +40,8 @@ def u_phi(r, phi):
     return dpsi_dr
 
 
-numpy.testing.assert_almost_equal(u_phi(R1, 0.), 0.)
-numpy.testing.assert_almost_equal(u_phi(R2, 0.), 0.)
+numpy.testing.assert_almost_equal(u_phi(Rm, 0.), 0.)
+numpy.testing.assert_almost_equal(u_phi(Rp, 0.), 0.)
 
 def p(r, phi):
     return (G*r**n + H*r**(-n) + F*r**(k+1))*cos(n*phi)

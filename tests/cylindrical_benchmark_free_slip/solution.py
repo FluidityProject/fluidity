@@ -24,7 +24,7 @@ mp = -pm
 # so will the coefficients and thus the solution
 A_pm = -0.125*(alpha_mp**(2*n - 2) - 1)*g*pm*rp**(-n + 2)/((alpha_mp**(2*n - 2) - alpha_pm**(2*n - 2))*(n - 1)*nu)
 B_pm = -0.125*(alpha_mp**(2*n + 2) - 1)*alpha_pm**(2*n + 2)*g*pm*rp**(n + 2)/((alpha_mp**(2*n + 2) - alpha_pm**(2*n + 2))*(n + 1)*nu)
-C_pm = 0.125*(alpha_mp**(2*n + 2) - 1)*g*pm*rp**(-n)/((alpha_mp**(2*n + 2) - alpha_pm**(2*n + 2))*(n + 1)*nu)
+C_pm = 0.125*(alpha_mp**(2*n + 2) - 1)*g*pm/((alpha_mp**(2*n + 2) - alpha_pm**(2*n + 2))*(n + 1)*nu*rp**n)
 D_pm = 0.125*(alpha_mp**(2*n - 2) - 1)*alpha_pm**(2*n - 2)*g*pm*rp**n/((alpha_mp**(2*n - 2) - alpha_pm**(2*n - 2))*(n - 1)*nu)
 
 

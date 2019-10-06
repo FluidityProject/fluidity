@@ -30,7 +30,7 @@ mp = -pm
 # so will the coefficients and thus the solution
 A_pm = -0.5*(alpha_mp**(2*l - 1) - 1)*g*pm*rp**(-l + 2)/((alpha_mp**(2*l - 1) - alpha_pm**(2*l - 1))*(2*l + 1)*(2*l - 1)*nu)
 B_pm = -0.5*(alpha_mp**(-2*l - 3) - 1)*g*pm*rp**(l + 3)/((alpha_mp**(-2*l - 3) - alpha_pm**(-2*l - 3))*(2*l + 3)*(2*l + 1)*nu)
-C_pm = 0.5*(alpha_mp**(2*l + 3) - 1)*g*pm*rp**(-l)/((alpha_mp**(2*l + 3) - alpha_pm**(2*l + 3))*(2*l + 3)*(2*l + 1)*nu)
+C_pm = 0.5*(alpha_mp**(2*l + 3) - 1)*g*pm/((alpha_mp**(2*l + 3) - alpha_pm**(2*l + 3))*(2*l + 3)*(2*l + 1)*nu*rp**l)
 D_pm = 0.5*(alpha_mp**(-2*l + 1) - 1)*g*pm*rp**(l + 1)/((alpha_mp**(-2*l + 1) - alpha_pm**(-2*l + 1))*(2*l + 1)*(2*l - 1)*nu)
 
 
