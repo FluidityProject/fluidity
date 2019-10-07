@@ -42,6 +42,7 @@ module solvers
   use Signal_Vars
   use Multigrid
   use sparse_tools_petsc
+  use fields_calculations
   use sparse_matrices_fields
   use vtk_interfaces
   use halos
@@ -130,6 +131,7 @@ subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
   KSP ksp
   Mat A
   Vec y, b
+  PetscErrorCode :: ierr
 
   character(len=OPTION_PATH_LEN):: solver_option_path
   type(petsc_numbering_type) petsc_numbering
@@ -503,6 +505,10 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
         
   ! Copy back the result using the petsc numbering:
   call petsc2field(y, matrix%column_numbering, x)
+
+  ! with remove_null_space, the null modes have been l2-projected out during the solve
+  ! afterwards do a (big) L2 projection 
+  call L2_project_nullspace_vector(x, matrix%M, matrix%column_numbering, positions)
   
   ! destroy all PETSc objects and the petsc_numbering
   call petsc_solve_destroy_petsc_csr(y, b, solver_option_path)
@@ -2731,6 +2737,54 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
 
 end function create_null_space_from_options_vector
 
+subroutine L2_project_nullspace_vector(field, A, petsc_numbering, positions)
+  type(vector_field), intent(inout) :: field
+  Mat, intent(in) :: A
+  type(petsc_numbering_type), intent(in) :: petsc_numbering
+  type(vector_field), intent(in), optional :: positions
+
+  type(vector_field) :: null_field
+  MatNullSpace :: nullsp
+  Vec, dimension(:), allocatable :: vecs
+  PetscBool :: has_const
+  PetscErrorCode :: ierr
+  real :: n_dot_n, f_dot_n
+  integer :: i, n
+
+  call MatGetNullSpace(A, nullsp, ierr)
+  if (ierr/=0 .or. IsNullMatNullSpace(nullsp)) then
+    return
+  end if
+
+  if (.not. present(positions)) then
+    FLAbort("Mesh positions should be present for vector petsc_solves")
+  end if
+
+  call MatNullspaceGetVecs(nullsp, has_const, n, PETSC_NULL_VEC, ierr)
+  ewrite(0,*) "NUMBER OF NULL VECS:", n
+
+  if (has_const) then
+    ! I don't think we actually use this with vector fields
+    field%val = field%val - sum(field_integral(field, positions))/(mesh_integral(positions)*field%dim)
+  end if
+
+  if (n>0) then
+    allocate(vecs(1:n))
+    call allocate(null_field, field%dim, field%mesh, name="NullSpaceVectorField")
+    call MatNullspaceGetVecs(nullsp, has_const, n, vecs, ierr)
+    do i=1, n
+      call petsc2field(vecs(i), petsc_numbering, null_field)
+      f_dot_n = dot_product(field, null_field, positions)
+      n_dot_n = dot_product(null_field, null_field, positions)
+      call addto(field, null_field, -f_dot_n/n_dot_n)
+    end do
+    call deallocate(null_field)
+    deallocate(vecs)
+  end if
+
+end subroutine L2_project_nullspace_vector
+
+
 function petsc_solve_needs_positions(solver_option_path)
   !!< Auxillary function to tell us if we need to pass in a positions field to petsc_solve
   !!< Currently only for vector solves with remove_null_space or multigrid_near_null_space
@@ -2738,9 +2792,12 @@ function petsc_solve_needs_positions(solver_option_path)
   character(len=*), intent(in):: solver_option_path
   logical:: petsc_solve_needs_positions
 
+  ! for vector fields with multigrid_near_null_space we only need it if we have rotations
+  ! for vector fields with remove_null_space we need it in all cases, since we do a L2 projection afterwards
   petsc_solve_needs_positions = &
-    have_option(trim(solver_option_path)//'/remove_null_space/specify_rotations') .or. &
-    have_option(trim(solver_option_path)//'/remove_null_space/all_rotations') .or. &
+    have_option(trim(solver_option_path)//'/remove_null_space/all_components') .or. &
+    have_option(trim(solver_option_path)//'/remove_null_space/specify_components') .or. &
+    have_option(trim(solver_option_path)//'/remove_null_space/no_components') .or. &
     have_option(trim(solver_option_path)//'/multigrid_near_null_space/specify_rotations') .or. &
     have_option(trim(solver_option_path)//'/multigrid_near_null_space/all_rotations')
 
