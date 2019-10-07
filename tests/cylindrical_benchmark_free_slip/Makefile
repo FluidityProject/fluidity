@@ -11,8 +11,8 @@ input:
 	spud-set cylindrical_C.flml "/geometry/mesh::ExtrudedMesh/from_mesh/extrude/layer::LowerMantle/regions::WholeMesh/sizing_function/constant" 0.015625
 	spud-set cylindrical_D.flml "/geometry/mesh::ExtrudedMesh/from_mesh/extrude/layer::UpperMantle/regions::WholeMesh/sizing_function/constant" 0.0078125
 	spud-set cylindrical_D.flml "/geometry/mesh::ExtrudedMesh/from_mesh/extrude/layer::LowerMantle/regions::WholeMesh/sizing_function/constant" 0.0078125
-	spud-set cylindrical_E.flml "/geometry/mesh::ExtrudedMesh/from_mesh/extrude/layer::UpperMantle/regions::WholeMesh/sizing_function/constant" 0.000390625
-	spud-set cylindrical_E.flml "/geometry/mesh::ExtrudedMesh/from_mesh/extrude/layer::LowerMantle/regions::WholeMesh/sizing_function/constant" 0.000390625
+	spud-set cylindrical_E.flml "/geometry/mesh::ExtrudedMesh/from_mesh/extrude/layer::UpperMantle/regions::WholeMesh/sizing_function/constant" 0.00390625
+	spud-set cylindrical_E.flml "/geometry/mesh::ExtrudedMesh/from_mesh/extrude/layer::LowerMantle/regions::WholeMesh/sizing_function/constant" 0.00390625
 
 clean:
 	rm -rf cylindrical_[A-Z].*
