@@ -32,6 +32,7 @@ ENV PETSC_DIR /usr/lib/petscdir/3.8.3
 ENV LD_LIBRARY_PATH /usr/lib/petscdir/3.8.3/linux-gnu-c-opt/lib
 ENV LDFLAGS -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi
 ENV CPPFLAGS -I/usr/include/hdf5/openmpi
+ENV OMPI_MCA_btl_vader_single_copy_mechanism none
 
 # Add a Fluidity user who will be the default user for this container
 # Make sure the user has a userid matching the host system
