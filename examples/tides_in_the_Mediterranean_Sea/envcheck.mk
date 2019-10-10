@@ -1,5 +1,5 @@
-TESTPYTHONPATH=$(shell python -m fluidity.state_types 2>&1 2>/dev/null; echo $$?)
-TESTPYTHONLOCAL=$(shell PYTHONPATH=${PYTHONPATH}:${PWD}/../../python python -m fluidity.state_types 2>&1 2>/dev/null; echo $$?)
+TESTPYTHONPATH=$(shell python3 -m fluidity.state_types 2>&1 2>/dev/null; echo $$?)
+TESTPYTHONLOCAL=$(shell PYTHONPATH=${PYTHONPATH}:${PWD}/../../python python3 -m fluidity.state_types 2>&1 2>/dev/null; echo $$?)
 
 TESTPYTHON=${TESTPYTHONPATH}${TESTPYTHONLOCAL}
 
