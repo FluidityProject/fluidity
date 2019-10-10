@@ -123,7 +123,7 @@ install-version-info: version-info
 .PHONY: install_python
 
 install_python:
-	python setup.py bdist --format=tar
+	python3 setup.py bdist --format=tar
 	tar -x -C /$(DESTDIR) -f dist/*.tar
 
 $(GMSH2VTU): gmsh2vtu.o gmsh2vtu_main.o lib/

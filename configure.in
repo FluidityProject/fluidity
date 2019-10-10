@@ -211,7 +211,7 @@ then
     
     if test "x$search_for_python" == "xyes" ; then
         mycppflag=$CPPFLAGS
-        AC_PYTHON_DEVEL
+        AC_PYTHON_DEVEL([>= '3.6'])
         CPPFLAGS=$mycppflag
     # Save variables...
         if test "x$pythonexists" = "xyes";
