@@ -99,9 +99,10 @@ contains
     integer :: numNodes, numElements, numFaces
     logical :: haveBounds, haveElementOwners, haveRegionIDs
     integer :: dim, coordinate_dim, gdim
-    integer :: gmshFormat
+    integer :: gmshFormat, beforeHeaderPos
     type(version) :: versionNumber
     integer :: n, d, e, f, nodeID
+    logical :: findElementData
 
     type(integer_hash_table) :: entityMap(4)
     integer, allocatable  :: entityTags(:)
@@ -131,18 +132,18 @@ contains
        do n=1,4
           call allocate(entityMap(n))
        end do
-       call read_entities( fd, lfilename, gmshFormat, versionNumber, &
-            entityMap, entityTags )
+       call read_entities(fd, lfilename, gmshFormat, versionNumber, &
+            entityMap, entityTags, beforeHeaderPos, findElementData)
     end if
 
     ! Read in the nodes
     if (versionNumber%major == 4) then
        if( gmshFormat == asciiFormat ) then
-          call read_nodes_coords_v4_ascii( fd, lfilename, &
-               versionNumber, nodes )
+          call read_nodes_coords_v4_ascii(fd, lfilename, beforeHeaderPos, &
+               versionNumber, nodes)
        else
-          call read_nodes_coords_v4_binary( fd, lfilename, &
-               versionNumber, nodes )
+          call read_nodes_coords_v4_binary(fd, lfilename, beforeHeaderPos, &
+               versionNumber, nodes)
        end if
     else
        call read_nodes_coords_v2( fd, lfilename, gmshFormat, nodes )
@@ -152,15 +153,17 @@ contains
     if (versionNumber%major == 4) then
        if( gmshFormat == asciiFormat ) then
           call read_faces_and_elements_v4_ascii( fd, lfilename, &
-               versionNumber, elements, faces, dim, entityMap, entityTags)
+               versionNumber, elements, faces, dim, entityMap, entityTags, &
+               findElementData)
        else
           call read_faces_and_elements_v4_binary( fd, lfilename, &
-               versionNumber, elements, faces, dim, entityMap, entityTags)
+               versionNumber, elements, faces, dim, entityMap, entityTags, &
+               findElementData)
        end if
     else
        call read_faces_and_elements_v2( fd, lfilename, gmshFormat, &
          elements, faces, dim)
-    end if
+     end if
 
     call read_node_column_IDs( fd, lfilename, gmshFormat, nodes )
 
@@ -415,8 +418,8 @@ contains
  ! -----------------------------------------------------------------
  ! Read GMSH 4 entities into a physical tag map
 
-  subroutine read_entities( fd, filename, gmshFormat, versionNumber, &
-       entityMap, entityTags )
+  subroutine read_entities(fd, filename, gmshFormat, versionNumber, &
+       entityMap, entityTags, beforeHeaderPos, findElementData)
 
     integer, intent(in) :: fd, gmshFormat
     type(version), intent(in)    :: versionNumber
@@ -424,6 +427,8 @@ contains
 
     type(integer_hash_table), intent(out) :: entityMap(4)
     integer, allocatable, intent(out) :: entityTags(:)
+    integer, intent(out) :: beforeHeaderPos
+    logical, intent(out) :: findElementData
     type(ilist) :: tmpTags
 
     integer :: i, k, n, numPoints, numDim(3), stat, count
@@ -440,13 +445,35 @@ contains
        pointBounds=3
     end if
 
-    read(fd, *, iostat=stat) charBuf
-    do while (trim(charBuf) /= "$Entities" .and. stat == 0)
-       read(fd, *, iostat=stat ) charBuf
-       if (stat /= 0 ) then
-          FLExit("Error: cannot find '$Entities' in GMSH mesh file")
-       end if
-    end do
+    findElementData = .false.
+
+    ! save location
+    inquire(fd, pos=beforeHeaderPos)
+    read(fd, *) charBuf
+    if (trim(charBuf) /= "$Entities") then
+      ! we'll assume the Entities
+      ! section was omitted (valid for 4.1)
+      if (versionNumber%major == 4 .and. versionNumber%minor < 1) then
+        FLExit("Error: can't find '$Entities' in GMSH <4.1 file")
+      end if
+
+      ! work around gfortran bug(?) in binary files
+      ! where read specifying pos= doesn't work correctly
+      rewind(fd)
+
+      do i = 1, 4
+        ! map tag 0 to the null physical tag
+        call insert(entityMap(i), 0, 1)
+      end do
+      allocate(entityTags(2))
+      entityTags = [1, 0]
+
+      ! we'll look for physical tags in an $ElementData section
+      findElementData = .true.
+
+      ! reset file position to before the header
+      return
+    end if
 
     if( gmshFormat == asciiFormat ) then
        read(fd, * ) numPoints, numDim
@@ -518,19 +545,20 @@ contains
 
     read(fd, *) charBuf
     if( trim(charBuf) /= "$EndEntities" ) then
-       FLExit("Error: can't find '$EndEntities' (is this a GMSH mesh file?)")
+      FLExit("Error: can't find '$EndEntities' (is this a GMSH mesh file?)")
     end if
 
     allocate(entityTags(count-1))
     entityTags = list2vector(tmpTags)
     call deallocate(tmpTags)
 
-
 #ifdef IO_ADVANCE_BUG
 !   for intel the call to ascii_formatting causes the first read after it to have advance='no'
 !   therefore forcing it to jump to a newline here
     if(gmshFormat == binaryFormat) read(fd, *) charBuf
 #endif
+
+    inquire(fd, pos=beforeHeaderPos)
 
   end subroutine read_entities
 
@@ -599,9 +627,11 @@ contains
   ! read in ASCII-formatted GMSH version 4 mesh nodes' coords into
   ! temporary arrays
 
-  subroutine read_nodes_coords_v4_ascii( fd, filename, versionNumber, nodes )
+  subroutine read_nodes_coords_v4_ascii(fd, filename, beforeHeaderPos, &
+       versionNumber, nodes)
     integer, intent(in) :: fd
     character(len=*), intent(in) :: filename
+    integer, intent(in) :: beforeHeaderPos
     type(version), intent(in) :: versionNumber
     type(GMSHnode), pointer :: nodes(:)
 
@@ -609,7 +639,7 @@ contains
     character :: newlineChar
     integer :: i, j, k,  numEntities, numNodes, numEntityNodes, stat, minN, maxN, meta(3)
 
-    read(fd, *) charBuf
+    read(fd, *, pos=beforeHeaderPos) charBuf
     if( trim(charBuf) /= "$Nodes" ) then
        FLExit("Error: cannot find '$Nodes' in GMSH mesh file")
     end if
@@ -661,9 +691,11 @@ contains
   ! read in binary GMSH version 4 mesh nodes' coords into
   ! temporary arrays
 
-  subroutine read_nodes_coords_v4_binary( fd, filename, versionNumber, nodes )
+  subroutine read_nodes_coords_v4_binary(fd, filename, beforeHeaderPos, &
+       versionNumber, nodes)
     integer, intent(in) :: fd
     character(len=*), intent(in) :: filename
+    integer, intent(in) :: beforeHeaderPos
     type(version), intent(in) :: versionNumber
     type(GMSHnode), pointer :: nodes(:)
 
@@ -673,7 +705,7 @@ contains
     integer :: i, j, k, stat,  meta(3)
     integer(kind=c_long)  :: ltmp
 
-    read(fd, *) charBuf
+    read(fd, *, pos=beforeHeaderPos) charBuf
     if( trim(charBuf) /= "$Nodes" ) then
        FLExit("Error: cannot find '$Nodes' in GMSH mesh file")
     end if
@@ -830,7 +862,8 @@ contains
   ! establish topological dimension
 
   subroutine read_faces_and_elements_v4_ascii( fd, filename, &
-       versionNumber, elements, faces, dim, entityMap, entityTags)
+       versionNumber, elements, faces, dim, entityMap, entityTags, &
+       findElementData)
 
     integer, intent(in) :: fd
     character(len=*), intent(in) :: filename
@@ -840,6 +873,8 @@ contains
 
     type(integer_hash_table), intent(in) :: entityMap(4)
     integer, intent(in) :: entityTags(:)
+
+    logical, intent(in) :: findElementData
 
     type(GMSHelement), pointer :: allElements(:)
 
@@ -908,7 +943,12 @@ contains
     ! Check for $EndElements tag
     read(fd,*) charBuf
     if( trim(charBuf) /= "$EndElements" ) then
-       FLExit("Error: cannot find '$EndElements' in GMSH mesh file")
+      FLExit("Error: cannot find '$EndElements' in GMSH mesh file")
+    end if
+
+    ! if we need, get tags from the $ElementData section
+    if (findElementData) then
+      call read_element_data_v4_ascii(fd, numAllElements, allElements)
     end if
 
     call process_gmsh_elements(numAllElements, allElements, elements, faces, dim)
@@ -919,11 +959,84 @@ contains
   end subroutine read_faces_and_elements_v4_ascii
 
   ! -----------------------------------------------------------------
+  ! Read in GMSH 4 element data header
+  ! This is ascii regardless of the file format
+  subroutine read_element_data_v4_common(fd)
+    integer, intent(in) :: fd
+
+    character(len=longStringLen) :: charBuf
+    integer :: numStringTags, numRealTags, numIntegerTags
+    integer :: stat, tmpInt, i
+    real :: tmpReal
+
+    read (fd, *, iostat=stat) charBuf
+    do while (trim(charBuf) /= "$ElementData" .and. stat == 0)
+      read (fd, *, iostat=stat) charBuf
+      if (stat /= 0) then
+        FLExit("Error: cannot find '$ElementData' in GMSH mesh file")
+      end if
+    end do
+
+    ! string tags first
+    read (fd, *) numStringTags
+    do i = 1, numStringTags
+      ! just read and discard the tags
+      ! they're double-quote delimited, and fortran just handles that
+      ! magically...
+      read (fd, *) charBuf
+
+      if (trim(charBuf) /= "gmsh:physical") then
+        FLExit("Error: expected to find physical IDs in $ElementData")
+      end if
+    end do
+
+    ! real tags (apparently for timesteps)
+    read (fd, *) numRealTags
+    do i = 1, numRealTags
+      read (fd, *) tmpReal
+    end do
+
+    ! integer tags, canonically time step index, field components in view, entities in view
+    read (fd, *) numIntegerTags
+    do i = 1, numIntegerTags
+      read (fd, *) tmpInt
+    end do
+  end subroutine read_element_data_v4_common
+
+  ! -----------------------------------------------------------------
+  ! Read in ASCII-formatted GMSH 4 element data associating
+  ! elements with physical tags, when the Entities section is
+  ! omitted
+  subroutine read_element_data_v4_ascii(fd, numAllElements, allElements)
+    integer, intent(in) :: fd, numAllElements
+    type(GMSHelement), pointer :: allElements(:)
+
+    integer :: i, e
+    real :: id
+    character(len=longStringLen) :: charBuf
+
+    ! skip through the common header data
+    call read_element_data_v4_common(fd)
+
+    ! now we have what we're interested in: a map between element tags and the physical entity ID
+    do i = 1, numAllElements
+      read (fd, *) e, id
+      allElements(e)%tags(1) = int(id)
+    end do
+
+    read (fd, *) charBuf
+    if (trim(charBuf) /= "$EndElementData") then
+      FLExit("Error: cannot find '$EndElementData' in GMSH mesh file")
+    end if
+  end subroutine read_element_data_v4_ascii
+
+  ! -----------------------------------------------------------------
   ! Read in binary GMSH 4 element header data and
   ! establish topological dimension
 
   subroutine read_faces_and_elements_v4_binary( fd, filename, &
-       versionNumber, elements, faces, dim, entityMap, entityTags)
+       versionNumber, elements, faces, dim, entityMap, entityTags, &
+       findElementData)
 
     integer, intent(in) :: fd
     character(len=*), intent(in) :: filename
@@ -933,6 +1046,8 @@ contains
 
     type(integer_hash_table), intent(in) :: entityMap(4)
     integer, intent(in) :: entityTags(:)
+
+    logical, intent(in) :: findElementData
 
     type(GMSHelement), pointer :: allElements(:)
 
@@ -1019,12 +1134,54 @@ contains
     read(fd, *) charBuf
 #endif
 
+    ! if we need, get tags from the $ElementData section
+    if (findElementData) then
+      call read_element_data_v4_binary(fd, filename, numAllElements, allElements)
+    end if
+
     call process_gmsh_elements(int(numAllElements), allElements, elements, faces, dim)
 
     ! We no longer need this
     call deallocateElementList( allElements )
 
   end subroutine read_faces_and_elements_v4_binary
+
+  ! -----------------------------------------------------------------
+  ! Read in binary GMSH 4 element data associating
+  ! elements with physical tags, when the Entities section is
+  ! omitted
+  subroutine read_element_data_v4_binary(fd, filename, numAllElements, allElements)
+    integer, intent(in) :: fd
+    character(len=*), intent(in) :: filename
+    integer(kind=c_long), intent(in) :: numAllElements
+    type(GMSHelement), pointer :: allElements(:)
+
+    integer :: i, e
+    real(kind=c_double) :: id
+    character(len=longStringLen) :: charBuf
+    character :: newlineChar
+
+    ! skip through the common header data
+    call read_element_data_v4_common(fd)
+
+    call binary_formatting(fd, filename, "read")
+    do i = 1, numAllElements
+      read (fd) e, id
+      allElements(e)%tags(1) = id
+    end do
+
+    read (fd) newlineChar
+    call ascii_formatting(fd, filename, "read")
+
+    read (fd, *) charBuf
+    if (trim(charBuf) /= "$EndElementData") then
+      FLExit("Error: cannot find '$EndElementData' in GMSH mesh file")
+    end if
+
+#ifdef IO_ADVANCE_BUG
+    read(fd, *) charBuf
+#endif
+  end subroutine read_element_data_v4_binary
 
   ! -----------------------------------------------------------------
   ! Read in GMSH 2 element header data and
