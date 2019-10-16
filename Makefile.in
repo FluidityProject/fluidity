@@ -490,10 +490,6 @@ schema: bin/spud-preprocess
 .PHONY: makefiles
 
 makefiles: sub_system scripts
-ifneq (@GFORTRAN_4_5_OR_NEWER@,yes)
-	@echo "makefile dependency generation requires gfortran (>=4.5)"
-	@false
-endif
 ifneq (@HAVE_ZOLTAN@,yes)
 	@echo "makefile dependency generation requires zoltan"
 	@false

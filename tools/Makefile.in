@@ -88,13 +88,6 @@ BINARIES = $(VTKDIAGNOSTIC)		\
   $(STREAMFUNCTION_2D)							\
   $(TEST_LAPLACIAN) 
 
-# Work around Intel compiler bug in visualise elements by simply not
-# building it.
-ifeq (@GFORTRAN_4_5_OR_NEWER@,yes)
-BINARIES += $(VISUALISE_ELEMENTS)
-endif
-
-
 .SUFFIXES: .f90 .F90 .c .cpp .o .a 
 
 %.o:	%.f90
