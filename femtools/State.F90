@@ -2762,6 +2762,8 @@ contains
   !!< as a big bunch of scalar fields -- adapting and
   !!< interpolating spring to mind. Collapse all the fields
   !!< in state down to an array of scalar fields.
+  !!< NOTE: that this routine will skip a vector field
+  !!< stored under the name "Coordinate"
     type(state_type), intent(in) :: state
     type(scalar_field), dimension(:), pointer :: fields
     integer :: field, i, j, k, field_count
@@ -2814,6 +2816,8 @@ contains
   !!< as a big bunch of scalar fields -- adapting and
   !!< interpolating spring to mind. Collapse all the fields
   !!< in state down to an array of scalar fields.
+  !!< NOTE: that this routine will skip a vector field
+  !!< stored under the name "Coordinate"
     type(state_type), dimension(:), intent(in) :: states
     type(scalar_field), dimension(:), pointer :: fields
     integer :: field, i, j, k, field_count
@@ -2825,8 +2829,8 @@ contains
     do state=1,size(states)
       field_count = field_count + scalar_field_count(states(state))
       do field=1,vector_field_count(states(state))
+        if (states(state)%vector_names(field)=="Coordinate") cycle
         field_v => extract_vector_field(states(state), field)
-        if(trim(field_v%name)=="Coordinate") cycle ! skip Coordinate
         field_count = field_count + field_v%dim
       end do
 
@@ -2846,13 +2850,12 @@ contains
       end do
 
       do field=1,vector_field_count(states(state))
+        if (states(state)%vector_names(field)=="Coordinate") cycle
         field_v => extract_vector_field(states(state), field)
-        if (trim(field_v%name) /= "Coordinate") then
-          do j=1,field_v%dim
-            fields(i) = extract_scalar_field(field_v, j)
-            i = i + 1
-          end do
-        end if
+        do j=1,field_v%dim
+          fields(i) = extract_scalar_field(field_v, j)
+          i = i + 1
+        end do
       end do
 
       do field=1,tensor_field_count(states(state))
@@ -2872,6 +2875,8 @@ contains
   !!< as a big bunch of scalar fields -- adapting and
   !!< interpolating spring to mind. Collapse all the fields
   !!< in input_state down to scalar fields in output_state.
+  !!< NOTE: that this routine will skip a vector field
+  !!< stored under the name "Coordinate"
     type(state_type), intent(in) :: input_state
     type(state_type), intent(out) :: output_state
     
@@ -2888,6 +2893,8 @@ contains
   !!< as a big bunch of scalar fields -- adapting and
   !!< interpolating spring to mind. Collapse all the fields
   !!< in input_states down to scalar fields in output_states.
+  !!< NOTE: that this routine will skip a vector field
+  !!< stored under the name "Coordinate"
     type(state_type), dimension(:), intent(in) :: input_states
     type(state_type), dimension(:), intent(inout) :: output_states
     integer :: i, j, k, l
@@ -2905,13 +2912,12 @@ contains
   
       do i=1,vector_field_count(input_states(l))
         field_v => extract_vector_field(input_states(l), i)
-        if (trim(field_v%name) /= "Coordinate") then
-          do j=1,field_v%dim
-            field_s = extract_scalar_field(field_v, j)
-            call insert(output_states(l), field_s, &
-                        trim(input_states(l)%vector_names(i))//"%"//int2str(j))
-          end do
-        end if
+        if (input_states(l)%vector_names(i)=="Coordinate") cycle
+        do j=1,field_v%dim
+          field_s = extract_scalar_field(field_v, j)
+          call insert(output_states(l), field_s, &
+                      trim(input_states(l)%vector_names(i))//"%"//int2str(j))
+        end do
       end do
   
       do i=1,tensor_field_count(input_states(l))
