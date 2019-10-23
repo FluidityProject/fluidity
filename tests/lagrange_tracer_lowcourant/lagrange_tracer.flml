@@ -76,12 +76,12 @@
           </python>
         </initial_position>
         <attributes>
-          <attribute name="field">
+          <scalar_attribute name="field">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
   return fields["Field"]</string_value>
             </python_fields>
-          </attribute>
+          </scalar_attribute>
         </attributes>
       </particle_subgroup>
     </particle_group>

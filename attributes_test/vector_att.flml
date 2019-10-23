@@ -68,41 +68,70 @@
     </stat>
   </io>
   <particles>
-    <particle_group name="DtTest">
-      <particle_subgroup name="DtMeasure">
+    <particle_group name="PosTest">
+      <velocity_field name="Velocity"/>
+      <particle_subgroup name="PosMeasure">
         <number_of_particles>
-          <integer_value rank="0">1</integer_value>
+          <integer_value rank="0">90000</integer_value>
         </number_of_particles>
         <initial_position>
           <python>
-            <string_value type="code" language="python" lines="20">def val(t):
+            <string_value lines="20" type="code" language="python">def val(t):
   from numpy import arange,zeros,reshape,concatenate,cos,pi
-  c=1
+  a=300
+  b=300
+  c=90000
   x=zeros(c,float)
   y=zeros(c,float)
-  x=0.25
-  y=0.25
+  k=0
+  for i in range(0,b):
+      for j in range(0,a):
+              x[k]=1.0*i/b
+              y[k]=1.0*j/b
+              k=k+1
 
-  return reshape((x,y),(2,c)).T</string_value>
+  return reshape(concatenate((x,y)),(2,c)).T</string_value>
           </python>
         </initial_position>
         <attributes>
-          <scalar_attribute name="DtVal">
+          <scalar_attribute name="vecscal1">
             <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  x = dt
-  return x</string_value>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt, fields):
+  from numpy import sqrt
+  y = sqrt(fields["Oldvecatt"][0]**2 + fields["Oldvecatt"][1]**2)
+  return y</string_value>
+            </python_fields>
+          </scalar_attribute>
+          <scalar_attribute name="vecscal2">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt, fields):
+  from numpy import sqrt
+  y = sqrt(fields["Oldvecatt2"][0]**2 + fields["Oldvecatt2"][1]**2)
+  return y</string_value>
+            </python_fields>
+          </scalar_attribute>
+          <vector_attribute name="vecatt">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt, fields):
+  from numpy import zeros
+  a=zeros(2,float)
+  for i in range(0,2):
+     a[i] = fields["vectest"][i]
+  return a</string_value>
               <store_old_attribute/>
             </python_fields>
-          </scalar_attribute>
-          <scalar_attribute name="Dtchange">
+          </vector_attribute>
+          <vector_attribute name="vecatt2">
             <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  oldDT = fields["OldDtVal"]
-  x = dt - oldDT
-  return x</string_value>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt, fields):
+  from numpy import zeros
+  a=zeros(2,float)
+  for i in range(0,2):
+     a[i] = fields["Oldvecatt"][i]
+  return a</string_value>
+              <store_old_attribute/>
             </python_fields>
-          </scalar_attribute>
+          </vector_attribute>
         </attributes>
       </particle_subgroup>
     </particle_group>
@@ -125,27 +154,16 @@
       <real_value rank="0">0.001</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">0.1</real_value>
+      <real_value rank="0">0.01</real_value>
     </finish_time>
-    <adaptive_timestep>
-      <requested_cfl>
-        <real_value rank="0">1.5</real_value>
-      </requested_cfl>
-      <courant_number name="CFLNumber">
-        <mesh name="VelocityMesh"/>
-      </courant_number>
-      <increase_tolerance>
-        <real_value rank="0">1.5</real_value>
-      </increase_tolerance>
-    </adaptive_timestep>
   </timestepping>
   <material_phase name="BoussinesqFluid">
-    <vector_field rank="1" name="Velocity">
+    <vector_field name="Velocity" rank="1">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="code" language="python" lines="20">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   x = X[0]
   y = X[1]
   return [-(y-0.5)/2.0,(x-0.5)/2.0]</string_value>
@@ -158,7 +176,46 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
+    <vector_field name="vectest" rank="1">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value shape="2" dim1="dim" rank="1">1 2</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <particles>
+          <include_in_particles/>
+        </particles>
+      </prescribed>
+    </vector_field>
+    <tensor_field name="tenstest" rank="2">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <anisotropic_asymmetric>
+            <constant>
+              <real_value symmetric="false" dim2="dim" shape="2 2" dim1="dim" rank="2">1 2 3 4</real_value>
+            </constant>
+          </anisotropic_asymmetric>
+        </value>
+        <output/>
+        <particles>
+          <include_in_particles/>
+        </particles>
+      </prescribed>
+    </tensor_field>
   </material_phase>
 </fluidity_options>

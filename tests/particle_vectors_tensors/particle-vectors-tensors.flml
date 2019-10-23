@@ -1,0 +1,487 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">particle_attributes</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">fluids</string_value>
+  </problem_type>
+  <geometry>
+    <dimension>
+      <integer_value rank="0">2</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="square">
+        <format name="gmsh"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <mesh_continuity>
+          <string_value>continuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="P1DG_Mesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree>
+        <integer_value rank="0">5</integer_value>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period>
+      <constant>
+        <real_value rank="0">0</real_value>
+      </constant>
+    </dump_period>
+    <output_mesh name="CoordinateMesh"/>
+    <stat>
+      <output_at_start/>
+      <output_before_adapts/>
+      <output_after_adapts/>
+    </stat>
+  </io>
+  <particles>
+    <particle_group name="TempTest">
+      <velocity_field name="Velocity"/>
+      <particle_subgroup name="TempMeasure">
+        <number_of_particles>
+          <integer_value rank="0">50625</integer_value>
+        </number_of_particles>
+        <initial_position>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(t):
+  from numpy import arange,zeros,reshape,concatenate,cos,pi
+  a=225
+  b=225
+  c=50625
+  x=zeros(c,float)
+  y=zeros(c,float)
+  k=0
+  for i in range(0,b):
+      for j in range(0,a):
+              x[k]=1.0*i/b
+              y[k]=1.0*j/b
+              k=k+1
+
+  return reshape(concatenate((x,y)),(2,c)).T</string_value>
+          </python>
+        </initial_position>
+        <attributes>
+          <scalar_attribute name="TempFlag">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
+  if (t!=0):
+    if (abs(fields["Temperature"]-fields["OldTemperature"])&gt;0.00001):
+      a = 1
+    else:
+      a = 0
+  else:
+    a = 0
+  return a</string_value>
+            </python_fields>
+          </scalar_attribute>
+        </attributes>
+      </particle_subgroup>
+    </particle_group>
+    <particle_group name="PosTest">
+      <velocity_field name="Velocity"/>
+      <particle_subgroup name="PosMeasure">
+        <number_of_particles>
+          <integer_value rank="0">90000</integer_value>
+        </number_of_particles>
+        <initial_position>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(t):
+  from numpy import arange,zeros,reshape,concatenate,cos,pi
+  a=300
+  b=300
+  c=90000
+  x=zeros(c,float)
+  y=zeros(c,float)
+  k=0
+  for i in range(0,b):
+      for j in range(0,a):
+              x[k]=1.0*i/b
+              y[k]=1.0*j/b
+              k=k+1
+
+  return reshape(concatenate((x,y)),(2,c)).T</string_value>
+          </python>
+        </initial_position>
+        <attributes>
+          <scalar_attribute name="Xval">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
+  x = X[0]
+  return x</string_value>
+              <store_old_attribute/>
+            </python_fields>
+          </scalar_attribute>
+          <scalar_attribute name="Yval">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
+  y = X[1]
+  return y</string_value>
+              <store_old_attribute/>
+            </python_fields>
+          </scalar_attribute>
+          <scalar_attribute name="Xflag">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
+  if (t!=0):
+    x = X[0]
+    oldx = fields["OldXval"]
+    a=0
+    if (x&gt;oldx):
+      a = 1
+    if (x&lt;oldx):
+      a = -1
+  else:
+    a = 0
+  return a</string_value>
+            </python_fields>
+          </scalar_attribute>
+          <scalar_attribute name="Yflag">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
+  if (t!=0):
+    y = X[1]
+    oldy = fields["OldYval"]
+    a=0
+    if (y&gt;oldy):
+      a = 1
+    if (y&lt;oldy):
+      a = -1
+  else:
+    a = 0
+  return a</string_value>
+            </python_fields>
+          </scalar_attribute>
+          <scalar_attribute name="Vectest1">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
+ return fields["vectest"][0]</string_value>
+            </python_fields>
+          </scalar_attribute>
+          <scalar_attribute name="Vectest2">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
+  return fields["vectest"][1]</string_value>
+            </python_fields>
+          </scalar_attribute>
+          <scalar_attribute name="Tenstest1">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
+ return fields["tenstest"][0][0]</string_value>
+            </python_fields>
+          </scalar_attribute>
+          <scalar_attribute name="Tenstest2">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
+ return fields["tenstest"][0][1]</string_value>
+            </python_fields>
+          </scalar_attribute>
+          <scalar_attribute name="Tenstest3">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
+ return fields["tenstest"][1][0]</string_value>
+              <store_old_attribute/>
+            </python_fields>
+          </scalar_attribute>
+          <scalar_attribute name="Tenstest4">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
+ return fields["tenstest"][1][1]</string_value>
+            </python_fields>
+          </scalar_attribute>
+          <scalar_attribute name="OldTens3">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
+ return fields["OldTenstest3"]</string_value>
+            </python_fields>
+          </scalar_attribute>
+          <vector_attribute name="FullVec1">
+            <constant>
+              <real_value shape="2" dim1="dim" rank="1">1 2</real_value>
+            </constant>
+          </vector_attribute>
+          <vector_attribute name="FullVec2">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
+  y=[0,0]
+  for i in range(0,2):
+    y[i] = i
+  return y</string_value>
+            </python_fields>
+          </vector_attribute>
+          <vector_attribute name="FullVec3">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
+  from numpy import zeros
+  y=zeros(2,float)
+  for i in range(0,2):
+    y[i] = fields["vectest"][i]
+  return y</string_value>
+              <store_old_attribute/>
+            </python_fields>
+          </vector_attribute>
+          <tensor_attribute name="FullTens">
+            <python_fields>
+              <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
+  from numpy import zeros
+  y = zeros((2,2),float)
+  for i in range(0,2):
+    for j in range(0,2):
+      y[i,j]=fields["tenstest"][i,j]
+  return y</string_value>
+              <store_old_attribute/>
+            </python_fields>
+          </tensor_attribute>
+          <tensor_attribute name="FullTens2">
+            <constant>
+              <real_value symmetric="false" dim2="dim" shape="2 2" dim1="dim" rank="2">1 2 3 4</real_value>
+            </constant>
+          </tensor_attribute>
+        </attributes>
+      </particle_subgroup>
+    </particle_group>
+    <fail_outside_domain/>
+    <lagrangian_timestepping>
+      <subcycles>
+        <integer_value rank="0">1</integer_value>
+      </subcycles>
+      <search_tolerance>
+        <real_value rank="0">1.0e-10</real_value>
+      </search_tolerance>
+      <rk4_guided_search/>
+    </lagrangian_timestepping>
+  </particles>
+  <timestepping>
+    <current_time>
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep>
+      <real_value rank="0">0.001</real_value>
+    </timestep>
+    <finish_time>
+      <real_value rank="0">0.01</real_value>
+    </finish_time>
+  </timestepping>
+  <material_phase name="BoussinesqFluid">
+    <vector_field name="Velocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+  x = X[0]
+  y = X[1]
+  return [-(y-0.5)/2.0,(x-0.5)/2.0]</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+      </prescribed>
+    </vector_field>
+    <scalar_field name="TempChange" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="Temperature" rank="0">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+  a = 0
+  b = 0
+  x = X[0]
+  y = X[1]
+  if (x&gt;0.5):
+    a = 1
+  if (y&gt;0.5):
+    b = 1
+  return a+b</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <particles>
+          <include_in_particles>
+            <store_old_field/>
+          </include_in_particles>
+        </particles>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="XChange" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="YChange" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="NumTemp" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="NumPos" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="vectest" rank="1">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value shape="2" dim1="dim" rank="1">1 2</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <particles>
+          <include_in_particles/>
+        </particles>
+      </prescribed>
+    </vector_field>
+    <tensor_field name="tenstest" rank="2">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <anisotropic_asymmetric>
+            <constant>
+              <real_value symmetric="false" dim2="dim" shape="2 2" dim1="dim" rank="2">1 2 3 4</real_value>
+            </constant>
+          </anisotropic_asymmetric>
+        </value>
+        <output/>
+        <particles>
+          <include_in_particles/>
+        </particles>
+      </prescribed>
+    </tensor_field>
+  </material_phase>
+</fluidity_options>

@@ -73,12 +73,12 @@
           </python>
         </initial_position>
         <attributes>
-          <attribute name="Chem1">
+          <scalar_attribute name="Chem1">
             <constant>
               <real_value rank="0">5</real_value>
             </constant>
-          </attribute>
-          <attribute name="Chem2">
+          </scalar_attribute>
+          <scalar_attribute name="Chem2">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   x=X[0]
@@ -86,14 +86,14 @@
   return y</string_value>
               <store_old_attribute/>
             </python_fields>
-          </attribute>
-          <attribute name="Chem3">
+          </scalar_attribute>
+          <scalar_attribute name="Chem3">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   y=fields["OldChem2"]
   return y</string_value>
             </python_fields>
-          </attribute>
+          </scalar_attribute>
         </attributes>
       </particle_subgroup>
       <particle_subgroup name="Chris">
@@ -110,15 +110,15 @@
           </python>
         </initial_position>
         <attributes>
-          <attribute name="Chem1">
+          <scalar_attribute name="Chem1">
             <python>
               <string_value type="code" language="python" lines="20">def val(X,t,dt):
   x=X[0]
   y=x+t
   return y</string_value>
             </python>
-          </attribute>
-          <attribute name="Chem2">
+          </scalar_attribute>
+          <scalar_attribute name="Chem2">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   x=X[0]
@@ -126,14 +126,14 @@
   return z</string_value>
               <store_old_attribute/>
             </python_fields>
-          </attribute>
-          <attribute name="Chem3">
+          </scalar_attribute>
+          <scalar_attribute name="Chem3">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   y=fields["OldChem2"]
   return y</string_value>
             </python_fields>
-          </attribute>
+          </scalar_attribute>
         </attributes>
       </particle_subgroup>
     </particle_group>
@@ -152,13 +152,13 @@
           </python>
         </initial_position>
         <attributes>
-          <attribute name="Chem4">
+          <scalar_attribute name="Chem4">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   z=fields["Temperature"]-fields["OldTemperature"]
   return z</string_value>
             </python_fields>
-          </attribute>
+          </scalar_attribute>
         </attributes>
       </particle_subgroup>
     </particle_group>
@@ -177,21 +177,21 @@
           </python>
         </initial_position>
         <attributes>
-          <attribute name="Time">
+          <scalar_attribute name="Time">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   time = t
   return time</string_value>
               <store_old_attribute/>
             </python_fields>
-          </attribute>
-          <attribute name="dt">
+          </scalar_attribute>
+          <scalar_attribute name="dt">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   dt = t - fields["OldTime"]
   return dt</string_value>
             </python_fields>
-          </attribute>
+          </scalar_attribute>
         </attributes>
       </particle_subgroup>
     </particle_group>

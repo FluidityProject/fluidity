@@ -369,12 +369,25 @@ start =
                         } 
                      ),
                      (
-                        ##Define particle attributes
+                        ##Define particle attributes.
                         element attributes {
-                           element attribute {
-                              attribute name { xsd:string },
-                              generic_particle_attribute_choice
-                           }+
+			   (
+			      ##Scalar particle attribute.
+			      element scalar_attribute {
+                                 attribute name { xsd:string },
+                                 generic_scalar_particle_attribute_choice
+			      }|
+			      ##Vector particle attribute.
+			      element vector_attribute {
+                                 attribute name { xsd:string },
+                                 generic_vector_particle_attribute_choice
+			      }|
+			      ##Tensor particle attribute.
+			      element tensor_attribute {
+                                 attribute name { xsd:string },
+                                 generic_tensor_particle_attribute_choice
+		              }
+			   )+
                         }?
                      )
                   }+
@@ -394,6 +407,7 @@ start =
             element move_with_mesh {
                empty
             }?,
+	    ## Lagrangian timestepping options for particle advection.
             lagrangian_timestepping
          }?,
          ## Options dealing with time discretisation
@@ -2740,6 +2754,7 @@ diagnostic_vector_field =
       diagnostic_vector_stat_options,
       vector_convergence_options,      
       diagnostic_detector_options,
+      diagnostic_particle_options,
       vector_steady_state_options,      
       adaptivity_options_vector_field,
       recalculation_options?,
@@ -2770,6 +2785,7 @@ diagnostic_vector_field_bed_shear_stress =
       diagnostic_output_options,
       diagnostic_vector_stat_options,
       diagnostic_detector_options,
+      diagnostic_particle_options,
       adaptivity_options_vector_field
    )
 
@@ -2781,6 +2797,7 @@ diagnostic_tensor_field =
    (
       diagnostic_output_options,
       diagnostic_tensor_stat_options,
+      diagnostic_particle_options,
       adaptivity_options_tensor_field,
       interpolation_algorithm_vector?
    )
@@ -2856,6 +2873,7 @@ diagnostic_cv_gradient_vector_field =
       diagnostic_vector_stat_options,
       vector_convergence_options,
       diagnostic_detector_options,
+      diagnostic_particle_options,
       vector_steady_state_options,
       adaptivity_options_vector_field,
       recalculation_options?
@@ -2871,6 +2889,7 @@ diagnostic_gradient_vector_field =
       diagnostic_vector_stat_options,
       vector_convergence_options,
       diagnostic_detector_options,
+      diagnostic_particle_options,
       vector_steady_state_options,
       adaptivity_options_vector_field,
       recalculation_options?
@@ -2883,6 +2902,7 @@ diagnostic_cv_divergence_scalar_field =
       diagnostic_scalar_stat_options,
       scalar_convergence_options,
       diagnostic_detector_options,
+      diagnostic_particle_options,
       scalar_steady_state_options,
       adaptivity_options_scalar_field,
       recalculation_options?
@@ -2898,6 +2918,7 @@ diagnostic_fe_divergence_scalar_field =
       diagnostic_scalar_stat_options,
       scalar_convergence_options,
       diagnostic_detector_options,
+      diagnostic_particle_options,
       scalar_steady_state_options,
       adaptivity_options_scalar_field,
       recalculation_options?
@@ -3678,7 +3699,7 @@ generic_aliased_field =
       attribute field_name { xsd:string }
    )
 
-generic_particle_attribute_choice =
+generic_scalar_particle_attribute_choice =
    (
       ## Constant value
       element constant {
@@ -3717,6 +3738,107 @@ generic_particle_attribute_choice =
       ## File containing the particle positions in binary form
       element from_checkpoint_file {
          attribute file_name { xsd:string }
+      }
+   )
+
+generic_vector_particle_attribute_choice =
+   (
+      ## Constant value
+      element constant {
+         real_dim_vector
+      }|
+      ## Python function prescribing real input. Functions should be of the form:
+      ##
+      ##  def val(X, t, dt):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ## where X is a tuple of length geometry dimension.
+      element python {
+         python_code
+      }|
+      ## Python function prescribing real input. Functions should be of the form:
+      ##
+      ##  def val (X, t, dt, fields):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ##  where X is a tuple of length geometry dimension.
+      ##
+      ##  E.g. if Velocity field and positions vector are required
+      ##  def val (X, t, dt, fields):
+      ##    from numpy import zeros
+      ##    y = zeros(2,float)
+      ##    for i in range(0,2):
+      ##       y[i] = X[i] + fields["Velocity"][i]
+      ##    return y
+      element python_fields {
+         python_code,
+         ## Store attribute values from previous timestep on particles.
+         element store_old_attribute {
+            comment
+         }?
+      }|
+      ## File containing the particle positions in binary form
+      element from_checkpoint_file {
+         attribute file_name { xsd:string },
+         ## The format of the input file containing field data.
+         element format {
+            element string_value {
+               "binary"
+            }
+         }
+      }
+   )
+
+generic_tensor_particle_attribute_choice =
+   (
+      ## Constant value
+      element constant {
+         real_dim_tensor
+      }|
+      ## Python function prescribing real input. Functions should be of the form:
+      ##
+      ##  def val(X, t, dt):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ## where X is a tuple of length geometry dimension.
+      element python {
+         python_code
+      }|
+      ## Python function prescribing real input. Functions should be of the form:
+      ##
+      ##  def val (X, t, dt, fields):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ##  where X is a tuple of length geometry dimension.
+      ##
+      ##  E.g. to calculate a tensor based off position and velocity:
+      ##  def val (X, t, dt, fields):
+      ##    from numpy import zeros
+      ##    dum = zeros((2,2),float)
+      ##    for i in range(0,2):
+      ##       for j in range(0,2):
+      ##          dum[i,j] = X[i]+fields["Velocity"][j]
+      ##    return dum
+      element python_fields {
+         python_code,
+         ## Store attribute values from previous timestep on particles.
+         element store_old_attribute {
+            comment
+         }?
+      }|
+      ## File containing the particle positions in binary form
+      element from_checkpoint_file {
+         attribute file_name { xsd:string },
+         ## The format of the input file containing field data.
+         element format {
+            element string_value {
+               "binary"
+            }
+         }
       }
    )
 
