@@ -462,6 +462,22 @@ The t argument is for future use only - currently particle locations are only se
                               </optional>
                               <ref name="generic_scalar_particle_attribute_choice"/>
                             </element>
+                            <element name="scalar_attribute_array">
+                              <a:documentation>Scalar particle attribute array.</a:documentation>
+                              <attribute name="name">
+                                <data type="string"/>
+                              </attribute>
+                              <element name="dimension">
+                                <ref name="integer"/>
+                              </element>
+                              <optional>
+                                <element name="exclude_from_output">
+                                  <a:documentation>Do not output this attribute to file</a:documentation>
+                                  <empty/>
+                                </element>
+                              </optional>
+                              <ref name="generic_scalar_particle_attribute_choice"/>
+                            </element>
                             <element name="vector_attribute">
                               <a:documentation>Vector particle attribute.</a:documentation>
                               <attribute name="name">
@@ -475,11 +491,43 @@ The t argument is for future use only - currently particle locations are only se
                               </optional>
                               <ref name="generic_vector_particle_attribute_choice"/>
                             </element>
+                            <element name="vector_attribute_array">
+                              <a:documentation>Vector particle attribute array.</a:documentation>
+                              <attribute name="name">
+                                <data type="string"/>
+                              </attribute>
+                              <element name="dimension">
+                                <ref name="integer"/>
+                              </element>
+                              <optional>
+                                <element name="exclude_from_output">
+                                  <a:documentation>Do not output this attribute to file</a:documentation>
+                                  <empty/>
+                                </element>
+                              </optional>
+                              <ref name="generic_vector_particle_attribute_choice"/>
+                            </element>
                             <element name="tensor_attribute">
                               <a:documentation>Tensor particle attribute.</a:documentation>
                               <attribute name="name">
                                 <data type="string"/>
                               </attribute>
+                              <optional>
+                                <element name="exclude_from_output">
+                                  <a:documentation>Do not output this attribute to file</a:documentation>
+                                  <empty/>
+                                </element>
+                              </optional>
+                              <ref name="generic_tensor_particle_attribute_choice"/>
+                            </element>
+                            <element name="tensor_attribute_array">
+                              <a:documentation>Tensor particle attribute array.</a:documentation>
+                              <attribute name="name">
+                                <data type="string"/>
+                              </attribute>
+                              <element name="dimension">
+                                <ref name="integer"/>
+                              </element>
                               <optional>
                                 <element name="exclude_from_output">
                                   <a:documentation>Do not output this attribute to file</a:documentation>

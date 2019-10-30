@@ -381,9 +381,33 @@ start =
 				 }?,
                                  generic_scalar_particle_attribute_choice
 			      }|
+			      ##Scalar particle attribute array.
+			      element scalar_attribute_array {
+                                 attribute name { xsd:string },
+				 element dimension {
+				    integer
+				 },
+				 ## Do not output this attribute to file
+				 element exclude_from_output {
+				     empty
+				 }?,
+                                 generic_scalar_particle_attribute_choice
+			      }|
 			      ##Vector particle attribute.
 			      element vector_attribute {
                                  attribute name { xsd:string },
+				 ## Do not output this attribute to file
+				 element exclude_from_output {
+				     empty
+				 }?,
+                                 generic_vector_particle_attribute_choice
+			      }|
+			      ##Vector particle attribute array.
+			      element vector_attribute_array {
+                                 attribute name { xsd:string },
+				 element dimension {
+				    integer
+				 },
 				 ## Do not output this attribute to file
 				 element exclude_from_output {
 				     empty
@@ -398,7 +422,19 @@ start =
 				     empty
 				 }?,
                                  generic_tensor_particle_attribute_choice
-		              }
+		              }|
+			      ##Tensor particle attribute array.
+			      element tensor_attribute_array {
+                                 attribute name { xsd:string },
+				 element dimension {
+				    integer
+				 },
+				 ## Do not output this attribute to file
+				 element exclude_from_output {
+				     empty
+				 }?,
+                                 generic_tensor_particle_attribute_choice
+			      }
 			   )+
                         }?
                      )

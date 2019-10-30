@@ -304,13 +304,13 @@ contains
 
           ! Find number of attributes, old attributes, and names of each
           call attr_names_and_count(trim(subgroup_path) // "/attributes/scalar_attribute", &
-               attr_names%s, old_attr_names%s, attr_write%s, &
+               attr_names%s, old_attr_names%s, attr_names%sn, old_attr_names%sn, attr_write%s, &
                attr_counts%attrs(1), attr_counts%old_attrs(1))
           call attr_names_and_count(trim(subgroup_path) // "/attributes/vector_attribute", &
-               attr_names%v, old_attr_names%v, attr_write%v, &
+               attr_names%v, old_attr_names%v, attr_names%vn, old_attr_names%vn, attr_write%v, &
                attr_counts%attrs(2), attr_counts%old_attrs(2))
           call attr_names_and_count(trim(subgroup_path) // "/attributes/tensor_attribute", &
-               attr_names%t, old_attr_names%t, attr_write%t, &
+               attr_names%t, old_attr_names%t, attr_names%tn, old_attr_names%tn, attr_write%t, &
                attr_counts%attrs(3), attr_counts%old_attrs(3))
 
           ! save names in the detector list -- this will allocate and assign values
@@ -322,8 +322,11 @@ contains
           ! If any attributes are from fields, we'll need to store old fields too
           store_old_fields = .false.
           if (option_count(trim(subgroup_path) // "/attributes/scalar_attribute/python_fields") > 0 .or. &
+              option_count(trim(subgroup_path) // "/attributes/scalar_attribute_array/python_fields") > 0 .or. &
               option_count(trim(subgroup_path) // "/attributes/vector_attribute/python_fields") > 0 .or. &
-              option_count(trim(subgroup_path) // "/attributes/tensor_attribute/python_fields") > 0) then
+              option_count(trim(subgroup_path) // "/attributes/vector_attribute_array/python_fields") > 0 .or. &
+              option_count(trim(subgroup_path) // "/attributes/tensor_attribute/python_fields") > 0 .or. &
+              option_count(trim(subgroup_path) // "/attributes/tensor_attribute_array/python_fields") > 0) then
              store_old_fields = .true.
           end if
 
@@ -420,41 +423,77 @@ contains
 
   !> Get the names and count of all attributes and old attributes for
   !! a given attribute rank for a particle subgroup
-  subroutine attr_names_and_count(key, names, old_names, to_write, count, old_count)
+  subroutine attr_names_and_count(key, names, old_names, dims, old_dims, to_write, count, old_count)
     !> Prefix key to an attribute rank within a subgroup
     character(len=*), intent(in) :: key
     !> Output arrays for attribute names
     character(len=*), dimension(:), allocatable, intent(out) :: names, old_names
+    !> Output arrays for attribute dimensions
+    integer, dimension(:), allocatable, intent(out) :: dims, old_dims
     !> Output arrays for whether to write attributes
     logical, dimension(:), allocatable, intent(out) :: to_write
     !> Output attribute counts
     integer, intent(out) :: count, old_count
 
-    integer :: i, old_i
-    character(len=FIELD_NAME_LEN) :: subkey
+    integer :: i, old_i, single_count, array_count, single_old_count, array_old_count
+    character(len=FIELD_NAME_LEN) :: array_key, subkey
+
+    ! array-valued attribute name
+    array_key = trim(key) // "_array"
 
     ! get option count so we can allocate the names array
-    count = option_count(key)
-    old_count = option_count(key//"/python_fields/store_old_attribute")
-    allocate(names(count))
-    allocate(old_names(old_count))
+    single_count = option_count(key)
+    array_count = option_count(array_key)
+
+    single_old_count = option_count(key//"/python_fields/store_old_attribute")
+    array_old_count = option_count(trim(array_key)//"/python_fields/store_old_attribute")
+
+    allocate(names(single_count + array_count))
+    allocate(old_names(single_old_count + array_old_count))
 
     allocate(to_write(single_count + array_count))
 
+    allocate(dims(single_count + array_count))
+    allocate(old_dims(single_old_count + array_old_count))
+
+    ! names for single-valued attributes
     old_i = 1
-    do i = 1, count
+    do i = 1, single_count
       ! get the attribute's name
       write(subkey, "(a,'[',i0,']')") key, i-1
       call get_option(trim(subkey)//"/name", names(i))
+      ! we set single-valued attributes to have a dimension of 0 to distinguish from
+      ! a length 1 array attribute
+      dims(i) = 0
 
       to_write(i) = .not. have_option(trim(subkey)//"/exclude_from_output")
 
       if (have_option(trim(subkey)//"/python_fields/store_old_attribute")) then
         ! prefix with "old%" to distinguish from current attribute
         old_names(old_i) = "old%" // trim(names(i))
+        old_dims(old_i) = 0
         old_i = old_i + 1
       end if
     end do
+
+    ! names for array-valued attributes
+    do i = 1, array_count
+      write(subkey, "(a,'[',i0,']')") trim(array_key), i-1
+      call get_option(trim(subkey)//"/name", names(i+single_count))
+      call get_option(trim(subkey)//"/dimension", dims(i+single_count))
+
+      to_write(i+single_count) = .not. have_option(trim(subkey)//"/exclude_from_output")
+
+      if (have_option(trim(subkey)//"/python_fields/store_old_attribute")) then
+        old_names(old_i) = "Old" // trim(names(i+single_count))
+        old_dims(old_i) = dims(i+single_count)
+        old_i = old_i + 1
+      end if
+    end do
+
+    ! compute the number of attribute arrays
+    count = single_count + sum(dims)
+    old_count = single_old_count + sum(old_dims)
   end subroutine attr_names_and_count
 
   !> Initialise particles which are defined by a Python function
@@ -531,31 +570,76 @@ contains
     !> Optional prefix to attribute names
     character(len=*), intent(in), optional :: prefix
 
-    integer :: i, j, k
+    integer :: i, j, k, ii, val_i
     integer(kind=8) :: h5_ierror
     character(len=FIELD_NAME_LEN) :: p
 
     p = ""
     if (present(prefix)) p = prefix
 
-    scalar_attr_loop: do i = 1, counts(1)
-      h5_ierror = h5pt_readdata_r8(h5_id, trim(p)//trim(names%s(i)), vals%s(i))
+    val_i = 1
+    scalar_attr_loop: do i = 1, size(names%s)
+      if (names%sn(i) == 0) then
+        ! single-valued attribute
+        h5_ierror = h5pt_readdata_r8(h5_id, &
+             trim(p)//trim(names%s(i)), vals%s(val_i))
+        val_i = val_i + 1
+      else
+        do ii = 1, names%sn(i)
+          ! inner loop for array-valued attribute
+          h5_ierror = h5pt_readdata_r8(h5_id, &
+               trim(p)//trim(names%s(i))//int2str(ii), vals%s(val_i))
+          val_i = val_i + 1
+        end do
+      end if
     end do scalar_attr_loop
 
-    vector_attr_loop: do i = 1, counts(2)
-      do j = 1, dim
-        h5_ierror = h5pt_readdata_r8(h5_id, trim(p)//trim(names%v(i))//"_"//int2str(j-1), vals%v(j,i))
-      end do
+    val_i = 1
+    vector_attr_loop: do i = 1, size(names%v)
+      if (names%vn(i) == 0) then
+        ! single-valued attribute
+        do j = 1, dim
+          h5_ierror = h5pt_readdata_r8(h5_id, &
+               trim(p)//trim(names%v(i))//"_"//int2str(j-1), vals%v(j,val_i))
+        end do
+        val_i = val_i + 1
+      else
+        do ii = 1, names%vn(i)
+          ! inner loop for array-valued attribute
+          do j = 1, dim
+            h5_ierror = h5pt_readdata_r8(h5_id, &
+                 trim(p)//trim(names%v(i))//int2str(ii)//"_"//int2str(j-1), vals%v(j,val_i))
+          end do
+          val_i = val_i + 1
+        end do
+      end if
     end do vector_attr_loop
 
-    tensor_attr_loop: do i = 1, counts(3)
-      do j = 1, dim
-        do k = 1, dim
-          h5_ierror = h5pt_readdata_r8(h5_id, &
-               trim(p)//trim(names%t(i))//"_"//int2str((k-1)*dim + (j-1)), &
-               vals%t(j,k,i))
+    val_i = 1
+    tensor_attr_loop: do i = 1, size(names%t)
+      if (names%tn(i) == 0) then
+        ! single-valued attribute
+        do j = 1, dim
+          do k = 1, dim
+            h5_ierror = h5pt_readdata_r8(h5_id, &
+                 trim(p)//trim(names%t(i))//"_"//int2str((k-1)*dim + (j-1)), &
+                 vals%t(j,k,val_i))
+          end do
         end do
-      end do
+        val_i = val_i + 1
+      else
+        do ii = 1, names%tn(i)
+          ! inner loop for array-valued attribute
+          do j = 1, dim
+            do k = 1, dim
+              h5_ierror = h5pt_readdata_r8(h5_id, &
+                   trim(p)//trim(names%t(i))//int2str(ii)//"_"//int2str((k-1)*dim + (j-1)), &
+                   vals%t(j,k,val_i))
+            end do
+          end do
+          val_i = val_i + 1
+        end do
+      end if
     end do tensor_attr_loop
   end subroutine read_attrs
 
@@ -1000,9 +1084,10 @@ contains
     real :: constant
     real, allocatable, dimension(:) :: vconstant
     real, allocatable, dimension(:,:) :: tconstant
-    integer :: i, j, nparticles, l, m, n, dim, attr_idx
+    integer :: i, j, nparticles, l, m, n, dim, attr_idx, i_single, i_array
     integer :: nscalar, nvector, ntensor
     integer, dimension(3) :: old_attr_counts, field_counts, old_field_counts
+    logical :: is_array
 
     nparticles = p_list%length
     if (nparticles == 0) then
@@ -1046,88 +1131,142 @@ contains
     attr_idx = 1
 
     ! calculate new values for all attributes
-    do n = 1, nscalar
-      attr_key = trim(subgroup_path) // '/attributes/scalar_attribute['//int2str(n-1)//']'
+    ! TODO handle array vs not in each of these loops (annoying repetition...)
+    i_single = 1
+    i_array = 1
+    do i = 1, nscalar
+      n = p_list%attr_names%sn(i)
+
+      if (n == 0) then
+        ! single-valued attribute
+        attr_key = trim(subgroup_path) // '/attributes/scalar_attribute['//int2str(i_single-1)//']'
+        i_single = i_single + 1
+        is_array = .false.
+        n = 1
+      else
+        ! array-valued attribute
+        attr_key = trim(subgroup_path) // '/attributes/scalar_attribute_array['//int2str(i_array-1)//']'
+        i_array = i_array + 1
+        is_array = .true.
+      end if
 
       if (have_option(trim(attr_key)//'/constant')) then
         call get_option(trim(attr_key)//'/constant', constant)
-        attribute_array(attr_idx,:) = constant
+        attribute_array(attr_idx:attr_idx+n-1,:) = constant
 
       else if (have_option(trim(attr_key)//'/python')) then
         call get_option(trim(attr_key)//'/python', func)
-        call set_particle_scalar_attribute_from_python(attribute_array(attr_idx,:), positions(:,:), nparticles, func, time, dt)
+        call set_particle_scalar_attribute_from_python( &
+             attribute_array(attr_idx:attr_idx+n-1,:), &
+             positions(:,:), nparticles, n, func, time, dt, is_array)
 
       else if (have_option(trim(attr_key)//'/python_fields')) then
         call get_option(trim(attr_key)//'/python_fields', func)
-        call set_particle_scalar_attribute_from_python_fields(p_list, state, positions(:,:), lcoords(:,:), ele(:), nparticles, &
-             attribute_array(attr_idx,:), &
+        call set_particle_scalar_attribute_from_python_fields( &
+             p_list, state, positions(:,:), lcoords(:,:), ele(:), &
+             nparticles, n, &
+             attribute_array(attr_idx:attr_idx+n-1,:), &
              old_attr_names, old_attr_counts, old_attributes, &
              field_names, field_counts, old_field_names, old_field_counts, &
-             func, time, dt)
+             func, time, dt, is_array)
 
       else if (have_option(trim(attr_key)//'/from_checkpoint_file')) then
         ! don't do anything, the attribute was already loaded from file
       end if
 
-      attr_idx = attr_idx + 1
+      attr_idx = attr_idx + n
     end do
 
-    do n = 1, nvector
-      attr_key = trim(subgroup_path) // '/attributes/vector_attribute['//int2str(n-1)//']'
+    i_single = 1
+    i_array = 1
+    do i = 1, nvector
+      n = p_list%attr_names%vn(i)
+
+      if (n == 0) then
+        ! single-valued attribute
+         attr_key = trim(subgroup_path) // '/attributes/vector_attribute['//int2str(i_single-1)//']'
+         i_single = i_single + 1
+         is_array = .false.
+         n = 1
+      else
+        ! array-valued attribute
+        attr_key = trim(subgroup_path) // '/attributes/vector_attribute_array['//int2str(i_array-1)//']'
+        i_array = i_array + 1
+        is_array = .true.
+      end if
 
       if (have_option(trim(attr_key)//'/constant')) then
         call get_option(trim(attr_key)//'/constant', vconstant)
         ! broadcast vector constant out to all particles
-        attribute_array(attr_idx:attr_idx+dim-1,:) = spread(vconstant, 2, nparticles)
+        attribute_array(attr_idx:attr_idx+n*dim-1,:) = spread(vconstant, 2, nparticles)
 
       else if (have_option(trim(attr_key)//'/python')) then
         call get_option(trim(attr_key)//'/python', func)
         call set_particle_vector_attribute_from_python( &
-             attribute_array(attr_idx:attr_idx+dim-1,:), &
-             positions(:,:), nparticles, func, time, dt)
+             attribute_array(attr_idx:attr_idx+n*dim-1,:), &
+             positions(:,:), nparticles, n, func, time, dt, is_array)
 
       else if (have_option(trim(attr_key)//'/python_fields')) then
         call get_option(trim(attr_key)//'/python_fields', func)
-        call set_particle_vector_attribute_from_python_fields(p_list, state, positions(:,:), lcoords(:,:), ele(:), nparticles, &
-             attribute_array(attr_idx:attr_idx+dim-1,:), &
+        call set_particle_vector_attribute_from_python_fields( &
+             p_list, state, positions(:,:), lcoords(:,:), ele(:), &
+             nparticles, n, &
+             attribute_array(attr_idx:attr_idx+n*dim-1,:), &
              old_attr_names, old_attr_counts, old_attributes, &
              field_names, field_counts, old_field_names, old_field_counts, &
-             func, time, dt)
+             func, time, dt, is_array)
 
       else if (have_option(trim(attr_key)//'/from_checkpoint_file')) then
         ! don't do anything, the attribute was already loaded from file
       end if
 
-      attr_idx = attr_idx + dim
+      attr_idx = attr_idx + n*dim
     end do
 
-    do n = 1, ntensor
-      attr_key = trim(subgroup_path) // '/attributes/tensor_attribute['//int2str(n-1)//']'
+    i_single = 1
+    i_array = 1
+    do i = 1, ntensor
+      n = p_list%attr_names%tn(i)
+
+      if (n == 0) then
+        ! single-valued attribute
+        attr_key = trim(subgroup_path) // '/attributes/tensor_attribute['//int2str(i_single-1)//']'
+        i_single = i_single + 1
+        is_array = .false.
+        n = 1
+      else
+        ! array-valued attribute
+        attr_key = trim(subgroup_path) // '/attributes/tensor_attribute_array['//int2str(i_array-1)//']'
+        i_array = i_array + 1
+        is_array = .true.
+      end if
 
       if (have_option(trim(attr_key)//'/constant')) then
         call get_option(trim(attr_key)//'/constant', tconstant)
         ! flatten tensor, then broadcast out to all particles
-        attribute_array(attr_idx:attr_idx+dim**2-1,:) = spread(reshape(tconstant, [dim**2]), 2, nparticles)
+        attribute_array(attr_idx:attr_idx+n*dim**2-1,:) = spread(reshape(tconstant, [dim**2]), 2, nparticles)
 
        else if (have_option(trim(attr_key)//'/python')) then
          call get_option(trim(attr_key)//'/python', func)
          call set_particle_tensor_attribute_from_python( &
-              attribute_array(attr_idx:attr_idx + dim**2 - 1,:), &
-              positions(:,:), nparticles, func, time, dt)
+              attribute_array(attr_idx:attr_idx + n*dim**2 - 1,:), &
+              positions(:,:), nparticles, n, func, time, dt, is_array)
 
        else if (have_option(trim(attr_key)//'/python_fields')) then
          call get_option(trim(attr_key)//'/python_fields', func)
-         call set_particle_tensor_attribute_from_python_fields(p_list, state, positions(:,:), lcoords(:,:), ele(:), nparticles, &
-               attribute_array(attr_idx:attr_idx + dim**2 - 1,:), &
-               old_attr_names, old_attr_counts, old_attributes, &
-               field_names, field_counts, old_field_names, old_field_counts, &
-               func, time, dt)
+         call set_particle_tensor_attribute_from_python_fields( &
+              p_list, state, positions(:,:), lcoords(:,:), ele(:), &
+              nparticles, n, &
+              attribute_array(attr_idx:attr_idx + n*dim**2 - 1,:), &
+              old_attr_names, old_attr_counts, old_attributes, &
+              field_names, field_counts, old_field_names, old_field_counts, &
+              func, time, dt, is_array)
 
        else if (have_option(trim(attr_key)//'/from_checkpoint_file')) then
         ! don't do anything, the attribute was already loaded from file
        end if
 
-       attr_idx = attr_idx + dim**2
+       attr_idx = attr_idx + n*dim**2
      end do
 
     ! Set attribute values and old_attribute values
@@ -1354,7 +1493,7 @@ contains
     !> Optional control of which attributes to write
     type(attr_write_type), intent(in), optional :: to_write
 
-    integer :: i, j, k, att
+    integer :: i, j, k, att, ii
     integer(kind=8) :: h5_ierror
     character(len=FIELD_NAME_LEN) :: p
     logical :: write_attr
@@ -1372,10 +1511,21 @@ contains
         write_attr = to_write%s(i)
       end if
 
-      if (write_attr) &
-           h5_ierror = h5pt_writedata_r8(h5_id, &
-           trim(p)//trim(names%s(i)), vals(:,att))
-      att = att + 1
+      if (names%sn(i) == 0) then
+        ! single-valued attribute
+        if (write_attr) &
+             h5_ierror = h5pt_writedata_r8(h5_id, &
+             trim(p)//trim(names%s(i)), vals(:,att))
+        att = att + 1
+      else
+        do ii = 1, names%sn(i)
+          ! inner loop for array-valued attribute
+          if (write_attr) &
+               h5_ierror = h5pt_writedata_r8(h5_id, &
+               trim(p)//trim(names%s(i))//int2str(ii), vals(:,att))
+          att = att + 1
+        end do
+      end if
     end do scalar_attr_loop
 
     vector_attr_loop: do i = 1, size(names%v)
@@ -1383,12 +1533,23 @@ contains
         write_attr = to_write%v(i)
       end if
 
-      do j = 1, dim
-        if (write_attr) &
-             h5_ierror = h5pt_writedata_r8(h5_id, &
-             trim(p)//trim(names%v(i))//"_"//int2str(j-1), vals(:,att))
-        att = att + 1
-      end do
+      if (names%vn(i) == 0) then
+        do j = 1, dim
+          if (write_attr) &
+               h5_ierror = h5pt_writedata_r8(h5_id, &
+               trim(p)//trim(names%v(i))//"_"//int2str(j-1), vals(:,att))
+          att = att + 1
+        end do
+      else
+        do ii = 1, names%vn(i)
+          do j = 1, dim
+            if (write_attr) &
+                 h5_ierror = h5pt_writedata_r8(h5_id, &
+                 trim(p)//trim(names%v(i))//int2str(ii)//"_"//int2str(j-1), vals(:,att))
+            att = att + 1
+          end do
+        end do
+      end if
     end do vector_attr_loop
 
     tensor_attr_loop: do i = 1, size(names%t)
@@ -1396,14 +1557,27 @@ contains
         write_attr = to_write%t(i)
       end if
 
-      do j = 1, dim
-        do k = 1, dim
-          if (write_attr) &
-               h5_ierror = h5pt_writedata_r8(h5_id, &
-               trim(p)//trim(names%t(i))//"_"//int2str((k-1)*dim + (j-1)), vals(:,att))
-          att = att + 1
+      if (names%tn(i) == 0) then
+        do j = 1, dim
+          do k = 1, dim
+            if (write_attr) &
+                 h5_ierror = h5pt_writedata_r8(h5_id, &
+                 trim(p)//trim(names%t(i))//"_"//int2str((k-1)*dim + (j-1)), vals(:,att))
+            att = att + 1
+          end do
         end do
-      end do
+      else
+        do ii = 1, names%tn(i)
+          do j = 1, dim
+            do k = 1, dim
+              if (write_attr) &
+                   h5_ierror = h5pt_writedata_r8(h5_id, &
+                   trim(p)//trim(names%t(i))//int2str(ii)//"_"//int2str((k-1)*dim + (j-1)), vals(:,att))
+              att = att + 1
+            end do
+          end do
+        end do
+      end if
     end do tensor_attr_loop
   end subroutine write_attrs
 

@@ -49,6 +49,7 @@ module detector_data_types
 
   type attr_names_type
     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: s, v, t
+    integer, dimension(:), allocatable :: sn, vn, tn
   end type attr_names_type
 
   type field_phase_type
@@ -166,6 +167,14 @@ contains
     allocate(attr_names%s(counts(1)))
     allocate(attr_names%v(counts(2)))
     allocate(attr_names%t(counts(3)))
+
+    allocate(attr_names%sn(counts(1)))
+    allocate(attr_names%vn(counts(2)))
+    allocate(attr_names%tn(counts(3)))
+
+    attr_names%sn(:) = 0
+    attr_names%vn(:) = 0
+    attr_names%tn(:) = 0
   end subroutine allocate_attr_names
 
   subroutine allocate_field_phases(field_phases, counts)
@@ -183,6 +192,10 @@ contains
     deallocate(attr_names%s)
     deallocate(attr_names%v)
     deallocate(attr_names%t)
+
+    deallocate(attr_names%sn)
+    deallocate(attr_names%vn)
+    deallocate(attr_names%tn)
   end subroutine deallocate_attr_names
 
 end module detector_data_types
