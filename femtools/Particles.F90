@@ -141,6 +141,7 @@ contains
     integer :: s_oldfield, v_oldfield, t_oldfield
     integer, dimension(3) :: field_counts, old_field_counts
     type(attr_names_type) :: attr_names, old_attr_names, field_names, old_field_names
+    type(attr_write_type) :: attr_write
     type(attr_counts_type) :: attr_counts
     type(field_phase_type) :: field_phases, old_field_phases
 
@@ -303,16 +304,20 @@ contains
 
           ! Find number of attributes, old attributes, and names of each
           call attr_names_and_count(trim(subgroup_path) // "/attributes/scalar_attribute", &
-               attr_names%s, old_attr_names%s, attr_counts%attrs(1), attr_counts%old_attrs(1))
+               attr_names%s, old_attr_names%s, attr_write%s, &
+               attr_counts%attrs(1), attr_counts%old_attrs(1))
           call attr_names_and_count(trim(subgroup_path) // "/attributes/vector_attribute", &
-               attr_names%v, old_attr_names%v, attr_counts%attrs(2), attr_counts%old_attrs(2))
+               attr_names%v, old_attr_names%v, attr_write%v, &
+               attr_counts%attrs(2), attr_counts%old_attrs(2))
           call attr_names_and_count(trim(subgroup_path) // "/attributes/tensor_attribute", &
-               attr_names%t, old_attr_names%t, attr_counts%attrs(3), attr_counts%old_attrs(3))
+               attr_names%t, old_attr_names%t, attr_write%t, &
+               attr_counts%attrs(3), attr_counts%old_attrs(3))
 
           ! save names in the detector list -- this will allocate and assign values
           ! as expected
           particle_lists(list_counter)%attr_names = attr_names
           particle_lists(list_counter)%old_attr_names = old_attr_names
+          particle_lists(list_counter)%attr_write = attr_write
 
           ! If any attributes are from fields, we'll need to store old fields too
           store_old_fields = .false.
@@ -415,11 +420,13 @@ contains
 
   !> Get the names and count of all attributes and old attributes for
   !! a given attribute rank for a particle subgroup
-  subroutine attr_names_and_count(key, names, old_names, count, old_count)
+  subroutine attr_names_and_count(key, names, old_names, to_write, count, old_count)
     !> Prefix key to an attribute rank within a subgroup
     character(len=*), intent(in) :: key
     !> Output arrays for attribute names
     character(len=*), dimension(:), allocatable, intent(out) :: names, old_names
+    !> Output arrays for whether to write attributes
+    logical, dimension(:), allocatable, intent(out) :: to_write
     !> Output attribute counts
     integer, intent(out) :: count, old_count
 
@@ -432,11 +439,15 @@ contains
     allocate(names(count))
     allocate(old_names(old_count))
 
+    allocate(to_write(single_count + array_count))
+
     old_i = 1
     do i = 1, count
       ! get the attribute's name
       write(subkey, "(a,'[',i0,']')") key, i-1
       call get_option(trim(subkey)//"/name", names(i))
+
+      to_write(i) = .not. have_option(trim(subkey)//"/exclude_from_output")
 
       if (have_option(trim(subkey)//"/python_fields/store_old_attribute")) then
         ! prefix with "old%" to distinguish from current attribute
@@ -1319,7 +1330,7 @@ contains
 
     h5_ierror = h5pt_writedata_i4(detector_list%h5_id, "id", node_ids(:))
 
-    call write_attrs(detector_list%h5_id, dim, detector_list%attr_names, attrib_data)
+    call write_attrs(detector_list%h5_id, dim, detector_list%attr_names, attrib_data, to_write=detector_list%attr_write)
 
     h5_ierror = h5_flushstep(detector_list%h5_id)
 
@@ -1329,7 +1340,7 @@ contains
   end subroutine write_particles_subgroup
 
   !> Write attributes with given names to an H5Part file
-  subroutine write_attrs(h5_id, dim, names, vals, prefix)
+  subroutine write_attrs(h5_id, dim, names, vals, prefix, to_write)
     !> h5 file to write to
     integer(kind=8), intent(in) :: h5_id
     !> spatial dimension
@@ -1340,34 +1351,55 @@ contains
     real, dimension(:,:), intent(in) :: vals
     !> Optional prefix to attribute names
     character(len=*), intent(in), optional :: prefix
+    !> Optional control of which attributes to write
+    type(attr_write_type), intent(in), optional :: to_write
 
     integer :: i, j, k, att
     integer(kind=8) :: h5_ierror
     character(len=FIELD_NAME_LEN) :: p
+    logical :: write_attr
 
     p = ""
     if (present(prefix)) p = prefix
 
+    write_attr = .true.
+
     ! write out attributes -- scalar, vector, tensor
     att = 1
     scalar_attr_loop: do i = 1, size(names%s)
-      h5_ierror = h5pt_writedata_r8(h5_id, &
+      ! booleans aren't short-circuiting, so we have to stack here
+      if (present(to_write)) then
+        write_attr = to_write%s(i)
+      end if
+
+      if (write_attr) &
+           h5_ierror = h5pt_writedata_r8(h5_id, &
            trim(p)//trim(names%s(i)), vals(:,att))
       att = att + 1
     end do scalar_attr_loop
 
     vector_attr_loop: do i = 1, size(names%v)
+      if (present(to_write)) then
+        write_attr = to_write%v(i)
+      end if
+
       do j = 1, dim
-        h5_ierror = h5pt_writedata_r8(h5_id, &
+        if (write_attr) &
+             h5_ierror = h5pt_writedata_r8(h5_id, &
              trim(p)//trim(names%v(i))//"_"//int2str(j-1), vals(:,att))
         att = att + 1
       end do
     end do vector_attr_loop
 
     tensor_attr_loop: do i = 1, size(names%t)
+      if (present(to_write)) then
+        write_attr = to_write%t(i)
+      end if
+
       do j = 1, dim
         do k = 1, dim
-          h5_ierror = h5pt_writedata_r8(h5_id, &
+          if (write_attr) &
+               h5_ierror = h5pt_writedata_r8(h5_id, &
                trim(p)//trim(names%t(i))//"_"//int2str((k-1)*dim + (j-1)), vals(:,att))
           att = att + 1
         end do
@@ -1730,7 +1762,7 @@ contains
       ! gracefully clean up output files
       particle_groups = size(particle_lists)
       do i = 1, particle_groups
-        h5_ierror = h5_closefile(particle_lists(i)%h5_id)
+        if (particle_lists(i)%h5_id /= -1) h5_ierror = h5_closefile(particle_lists(i)%h5_id)
       enddo
 
       ! Deallocate all particle arrays (detector lists)

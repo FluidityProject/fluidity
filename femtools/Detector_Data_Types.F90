@@ -37,7 +37,7 @@ module detector_data_types
   private
   
   public :: detector_type, rk_gs_parameters, detector_linked_list, &
-            detector_list_ptr, stringlist, attr_names_type, field_phase_type, &
+            detector_list_ptr, stringlist, attr_names_type, attr_write_type, field_phase_type, &
             STATIC_DETECTOR, LAGRANGIAN_DETECTOR, allocate, deallocate
 
   integer, parameter :: STATIC_DETECTOR=1, LAGRANGIAN_DETECTOR=2
@@ -54,6 +54,10 @@ module detector_data_types
   type field_phase_type
     integer, dimension(:), allocatable :: s, v, t
   end type field_phase_type
+
+  type attr_write_type
+    logical, dimension(:), allocatable :: s, v, t
+  end type attr_write_type
 
   interface allocate
     module procedure allocate_attr_names, allocate_field_phases
@@ -136,6 +140,8 @@ module detector_data_types
 
      !! Total number of arrays stored for attributes and fields on a particle subgroup
      integer, dimension(3) :: total_attributes
+     !! Whether attributes should be written or not
+     type(attr_write_type) :: attr_write
      !! Names of attributes and fields stored in a particle subgroup
      type(attr_names_type) :: attr_names, old_attr_names, field_names, old_field_names
      !! The phase of each field that is used in particle attribute calculations

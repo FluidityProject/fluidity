@@ -375,16 +375,28 @@ start =
 			      ##Scalar particle attribute.
 			      element scalar_attribute {
                                  attribute name { xsd:string },
+				 ## Do not output this attribute to file
+				 element exclude_from_output {
+				     empty
+				 }?,
                                  generic_scalar_particle_attribute_choice
 			      }|
 			      ##Vector particle attribute.
 			      element vector_attribute {
                                  attribute name { xsd:string },
+				 ## Do not output this attribute to file
+				 element exclude_from_output {
+				     empty
+				 }?,
                                  generic_vector_particle_attribute_choice
 			      }|
 			      ##Tensor particle attribute.
 			      element tensor_attribute {
                                  attribute name { xsd:string },
+				 ## Do not output this attribute to file
+				 element exclude_from_output {
+				     empty
+				 }?,
                                  generic_tensor_particle_attribute_choice
 		              }
 			   )+

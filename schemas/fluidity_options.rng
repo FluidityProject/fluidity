@@ -454,6 +454,12 @@ The t argument is for future use only - currently particle locations are only se
                               <attribute name="name">
                                 <data type="string"/>
                               </attribute>
+                              <optional>
+                                <element name="exclude_from_output">
+                                  <a:documentation>Do not output this attribute to file</a:documentation>
+                                  <empty/>
+                                </element>
+                              </optional>
                               <ref name="generic_scalar_particle_attribute_choice"/>
                             </element>
                             <element name="vector_attribute">
@@ -461,6 +467,12 @@ The t argument is for future use only - currently particle locations are only se
                               <attribute name="name">
                                 <data type="string"/>
                               </attribute>
+                              <optional>
+                                <element name="exclude_from_output">
+                                  <a:documentation>Do not output this attribute to file</a:documentation>
+                                  <empty/>
+                                </element>
+                              </optional>
                               <ref name="generic_vector_particle_attribute_choice"/>
                             </element>
                             <element name="tensor_attribute">
@@ -468,6 +480,12 @@ The t argument is for future use only - currently particle locations are only se
                               <attribute name="name">
                                 <data type="string"/>
                               </attribute>
+                              <optional>
+                                <element name="exclude_from_output">
+                                  <a:documentation>Do not output this attribute to file</a:documentation>
+                                  <empty/>
+                                </element>
+                              </optional>
                               <ref name="generic_tensor_particle_attribute_choice"/>
                             </element>
                           </choice>
