@@ -103,7 +103,7 @@ module vtk_interfaces
 
 contains
     
-  subroutine vtk_write_state(filename, index, model, state, write_region_ids, write_columns, stat)
+  subroutine vtk_write_state(filename, index, model, state, write_region_ids, write_columns, metadata, stat)
     !!< Write the state variables out to a vtu file. Two different elements
     !!< are supported along with fields corresponding to each of them.
     !!<
@@ -118,6 +118,7 @@ contains
     type(state_type), dimension(:), intent(in) :: state
     logical, intent(in), optional :: write_region_ids
     logical, intent(in), optional :: write_columns
+    type(scalar_field), dimension(:), optional :: metadata
     integer, intent(out), optional :: stat
     type(mesh_type), pointer :: model_mesh
 
@@ -214,12 +215,14 @@ contains
          tfields=ltfields, &
          write_region_ids=write_region_ids, &
          write_columns=write_columns, &
+         metadata=metadata, &
          stat=stat)
 
   end subroutine vtk_write_state
 
   subroutine vtk_write_fields(filename, index, position, model, sfields,&
-       & vfields, tfields, write_region_ids, write_columns, number_of_partitions, stat)
+       & vfields, tfields, write_region_ids, write_columns,&
+       & metadata, number_of_partitions, stat)
     !!< Write the state variables out to a vtu file. Two different elements
     !!< are supported along with fields corresponding to each of them.
     !!<
@@ -238,6 +241,7 @@ contains
     type(tensor_field), dimension(:), intent(in), optional :: tfields
     logical, intent(in), optional :: write_region_ids
     logical, intent(in), optional :: write_columns
+    type(scalar_field), dimension(:), optional :: metadata
     !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
     integer, optional, intent(in):: number_of_partitions
     integer, intent(out), optional :: stat
@@ -758,6 +762,11 @@ contains
       
     end if
 
+    if (present(metadata)) then
+       do i=1, size(metadata)
+          call vtkwritefd(metadata(i)%val, trim(metadata(i)%name))
+       end do
+    end if
 
     !----------------------------------------------------------------------
     ! Close the file

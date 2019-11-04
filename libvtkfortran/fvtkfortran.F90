@@ -56,7 +56,7 @@ module vtkfortran
 
   public :: vtkopen, vtkclose, vtkpclose, vtkwritemesh, vtkwritesn,&
        & vtkwritesc, vtkwritevn, vtkwritevc, vtkwritetn, vtkwritetc, &
-       & vtksetactivescalars, vtksetactivevectors, &
+       & vtkwritefd, vtksetactivescalars, vtksetactivevectors, &
        & vtksetactivetensors
 
   interface vtkopen
@@ -287,7 +287,45 @@ module vtkfortran
      end SUBROUTINE VTKWRITEDTC_C
      module procedure vtkwriteftc_f90, vtkwritedtc_f90
   end interface
- 
+
+  interface vtkwritefd
+     ! Write generic field (field-based) to the current vtk file.
+     SUBROUTINE VTKWRITEFFD_C(val, vlen, name,&
+          & len) bind(c,name="vtkwriteffd")
+       use iso_c_binding
+       implicit none
+       REAL(c_float) :: val(*)
+       character(kind=c_char,len=1), dimension(*) :: name
+       integer(kind=c_int) :: vlen, len
+     end SUBROUTINE VTKWRITEFFD_C
+     SUBROUTINE VTKWRITEDFD_C(val, vlen, name,&
+          & len) bind(c,name="vtkwritedfd") 
+       use iso_c_binding
+       implicit none
+       REAL(c_double) :: val(*)
+       character(kind=c_char,len=1), dimension(*) :: name
+       integer(kind=c_int) :: vlen, len
+     end SUBROUTINE VTKWRITEDFD_C
+     SUBROUTINE VTKWRITEIFD_C(val, vlen, name,&
+          & len) bind(c,name="vtkwriteifd") 
+       use iso_c_binding
+       implicit none
+       integer(c_int) :: val(*)
+       character(kind=c_char,len=1), dimension(*) :: name
+       integer(kind=c_int) :: vlen, len
+     end SUBROUTINE VTKWRITEIFD_C
+     SUBROUTINE VTKWRITECFD_C(val, vlen, name,&
+          & len) bind(c,name="vtkwritecfd") 
+       use iso_c_binding
+       implicit none
+       character(kind=c_char,len=1), dimension(*) :: val, name
+       integer(kind=c_int) :: vlen, len
+     end SUBROUTINE VTKWRITECFD_C
+     
+     module procedure vtkwriteffd_f90, vtkwritedfd_f90, &
+          vtkwriteifd_f90, vtkwritecfd_f90
+  end interface
+  
   interface vtksetactivescalars
     subroutine vtksetactivescalars_c(name, len) bind(c,name="vtksetactivescalars")
        use iso_c_binding
@@ -443,7 +481,38 @@ contains
 
     call vtkwritedtc_c(v1, v2, v3, v4, v5, v6, v7, v8, v9, name, len(name))
 
-  end subroutine vtkwritedtc_f90  
+  end subroutine vtkwritedtc_f90
+
+  subroutine vtkwriteifd_f90(val, name)
+    integer(c_int) :: val(:)
+    character(len=*) :: name
+
+    call vtkwriteifd_c(val, size(val), name, len(name))
+    
+  end subroutine vtkwriteifd_f90
+
+  subroutine vtkwriteffd_f90(val, name)
+    real(c_float) :: val(:)
+    character(len=*) :: name
+
+    call vtkwriteffd_c(val, size(val), name, len(name))
+    
+  end subroutine vtkwriteffd_f90
+
+  subroutine vtkwritedfd_f90(val, name)
+    real(c_double) :: val(:)
+    character(len=*) :: name
+
+    call vtkwritedfd_c(val, size(val), name, len(name))
+    
+  end subroutine vtkwritedfd_f90
+
+  subroutine vtkwritecfd_f90(val, name)
+    character(len=*) :: val, name
+
+    call vtkwritecfd_c(val, len(val), name, len(name))
+    
+  end subroutine vtkwritecfd_f90
   
   subroutine vtksetactivescalars_f90(name)
     character(len=*) name
