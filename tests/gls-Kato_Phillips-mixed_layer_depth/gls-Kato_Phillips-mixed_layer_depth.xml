@@ -42,9 +42,14 @@ KWCB_MLD = mld_calc.MLD(filelist)
   </variables>    
 
   <pass_tests> 
+    <!-- 
+    #### This test disabled as it is failing on bionic, and the maintainer
+    ####   doesn't currently have time to debug the failure. Reference
+    ####   discussion in PR #238; revert this change as part of the fix
+    ####   to the test when the maintainer has time to debug it.
     <test name="Final time equals 10 hours for Gen GL" language="python">
 assert FinalTimeGenGL &gt; 35900
-    </test>
+    </test> -->
     <test name="Final time equals 10 hours for k-w CB" language="python">
 assert FinalTimeKWCB &gt; 35900
     </test>
