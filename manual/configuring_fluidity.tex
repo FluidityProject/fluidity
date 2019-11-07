@@ -472,7 +472,7 @@ stability. Unless there are reasons for doing this, set this value to 2.
 \subsubsection{Adaptive timestep}
 \label{section:config_adaptive_timestep}
 This option allows the timestep, $\Delta T$, to vary throughout the run, depending on the 
-Courant-–Friedrichs-–Lewy (CFL) number.  There are several sub-options here. The
+Courant-Friedrichs-Lewy (CFL) number.  There are several sub-options here. The
 \option{\ldots/requested\_cfl} is the desired upper limit of the CFL. A value of 5-10 is usual
 here. \fluidity\ will increase the timestep if the CFL number is less than this value and decrease
 it if the CFL is greater than this. The \option{\ldots/minimum\_timestep} and 

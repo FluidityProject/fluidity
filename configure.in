@@ -223,7 +223,7 @@ then
       if test "x$enable_debugging" = "xyes"; then
         export PYTHON_EXTRA_LDFLAGS=$(echo $PYTHON_EXTRA_LDFLAGS | sed -e 's/-O1/-O0/g' -e 's/-O2/-O0/g' -e 's/-O3/-O0/g')
       fi
-	    LIBS="$LIBS $PYTHON_LDFLAGS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
+	    LIBS="$LIBS $PYTHON_LIBS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
 	    CXXFLAGS="$CXXFLAGS $PYTHON_CPPFLAGS"
 	    CPPFLAGS="$CPPFLAGS $PYTHON_CPPFLAGS"
             CFLAGS="$CFLAGS $PYTHON_CPPFLAGS"

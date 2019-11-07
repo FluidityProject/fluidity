@@ -18,9 +18,9 @@
 import os
 import os.path
 import sys
-import ConfigParser
+import configparser
 
-import debug
+from . import debug
 
 dirs = []
 if sys.platform != "win32" and sys.platform != "win64":
@@ -30,12 +30,12 @@ dirs.append(os.path.join(os.path.expanduser('~'), ".diamond"))
 if "DIAMOND_CONFIG_PATH" in os.environ:
   dirs += reversed(os.environ["DIAMOND_CONFIG_PATH"].split(":"))
 
-config = ConfigParser.SafeConfigParser()
+config = configparser.SafeConfigParser()
 config.read([os.path.join(path, "settings") for path in reversed(dirs)]) #reversed to load usr last
 
 try:
   config.add_section("colour")
-except ConfigParser.DuplicateSectionError:
+except configparser.DuplicateSectionError:
   pass
 
 def __set_default(option, value):

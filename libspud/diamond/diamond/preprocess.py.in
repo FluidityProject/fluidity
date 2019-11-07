@@ -18,17 +18,20 @@
 from lxml import etree
 import os
 import os.path
-import debug
+from . import debug
 import sys
 import copy
-import urllib2
+
+from future.standard_library import install_aliases
+install_aliases()
+import urllib.request, urllib.error, urllib.parse
 
 def preprocess(schemafile):
   p = etree.XMLParser(remove_comments=True)
   ns = 'http://relaxng.org/ns/structure/1.0'
 
   if 'http' in schemafile:
-    schemafile_handle = urllib2.urlopen(schemafile)
+    schemafile_handle = urllib.request.urlopen(schemafile)
   else:
     schemafile_handle = open(schemafile)
   
@@ -57,7 +60,7 @@ def preprocess(schemafile):
     for possible_file in possible_files:
       try:
         if 'http' in possible_file:
-          file = urllib2.urlopen(possible_file)
+          file = urllib.request.urlopen(possible_file)
         else:
           file = open(possible_file)
         break
@@ -144,7 +147,7 @@ def preprocess(schemafile):
     parent.remove(define)
   
   # add the modified defines back to the grammar
-  for define in defines.values():
+  for define in list(defines.values()):
     grammar.append(define)
 
   return etree.tostring(tree, xml_declaration=True, encoding='utf-8', pretty_print=True)

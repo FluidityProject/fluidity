@@ -66,6 +66,9 @@ test: unittest
 unittest: libspud.la
 	@cd src/tests; $(MAKE)
 
+junittest: libspud.la
+	@cd src/tests; $(MAKE) junittest
+
 .PHONY:doc
 
 doc: 

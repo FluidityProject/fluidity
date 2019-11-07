@@ -19,19 +19,19 @@ import os
 import sys
 import traceback
 
-import gtk
+from gi.repository import Gtk as gtk
 
-import pygtkconsole
+from . import pygtkconsole
 
-def prompt(parent, message, type = gtk.MESSAGE_QUESTION, has_cancel = False):
+def prompt(parent, message, type = gtk.MessageType.QUESTION, has_cancel = False):
   """
-  Display a simple Yes / No dialog. Returns one of gtk.RESPONSE_{YES,NO,CANCEL}.
+  Display a simple Yes / No dialog. Returns one of gtk.ResponseType.{YES,NO,CANCEL}.
   """
 
-  prompt_dialog = gtk.MessageDialog(parent, 0, type, gtk.BUTTONS_NONE, message)
-  prompt_dialog.add_buttons(gtk.STOCK_YES, gtk.RESPONSE_YES, gtk.STOCK_NO, gtk.RESPONSE_NO)
+  prompt_dialog = gtk.MessageDialog(transient_for=parent, flags=0, message_type=type, buttons=gtk.ButtonsType.NONE, text=message)
+  prompt_dialog.add_buttons(gtk.STOCK_YES, gtk.ResponseType.YES, gtk.STOCK_NO, gtk.ResponseType.NO)
   if has_cancel:
-    prompt_dialog.add_buttons(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
+    prompt_dialog.add_buttons(gtk.STOCK_CANCEL, gtk.ResponseType.CANCEL)
   prompt_dialog.connect("response", prompt_response)
 
   prompt_dialog.run()
@@ -43,7 +43,7 @@ def long_message(parent, message):
   Display a message prompt, with the message contained within a scrolled window.
   """
 
-  message_dialog = gtk.Dialog(parent = parent, buttons = (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+  message_dialog = gtk.Dialog(parent = parent, buttons = (gtk.STOCK_OK, gtk.ResponseType.ACCEPT))
   message_dialog.set_default_size(400, 300)
   message_dialog.connect("response", close_dialog)
 
@@ -51,7 +51,9 @@ def long_message(parent, message):
   message_dialog.vbox.add(scrolled_window)
   scrolled_window.show()
 
-  scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
+  scrolled_window.set_hexpand(True)
+  scrolled_window.set_vexpand(True)
+  scrolled_window.set_policy(gtk.PolicyType.AUTOMATIC, gtk.PolicyType.ALWAYS)
 
   text_view = gtk.TextView()
   scrolled_window.add(text_view)
@@ -72,7 +74,7 @@ def error(parent, message):
   Display an error message.
   """
 
-  error_dialog = gtk.MessageDialog(parent, 0, gtk.MESSAGE_WARNING, gtk.BUTTONS_OK, message)
+  error_dialog = gtk.MessageDialog(parent, 0, gtk.MessageType.WARNING, gtk.ButtonsType.OK, message)
   error_dialog.connect("response", close_dialog)
   error_dialog.run()
 
@@ -91,19 +93,19 @@ def error_tb(parent, message):
 
   return
 
-def get_filename(title, action, filter_names_and_patterns = {}, folder_uri = None):
+def get_filename(parent, title, action, filter_names_and_patterns = {}, folder_uri = None):
   """
   Utility function to get a filename.
   """
 
-  if action == gtk.FILE_CHOOSER_ACTION_SAVE:
-    buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_SAVE,gtk.RESPONSE_OK)
-  elif action == gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER:
-    buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_NEW,gtk.RESPONSE_OK)
+  if action == gtk.FileChooserAction.SAVE:
+    buttons=(gtk.STOCK_CANCEL,gtk.ResponseType.CANCEL,gtk.STOCK_SAVE,gtk.ResponseType.OK)
+  elif action == gtk.FileChooserAction.CREATE_FOLDER:
+    buttons=(gtk.STOCK_CANCEL,gtk.ResponseType.CANCEL,gtk.STOCK_NEW,gtk.ResponseType.OK)
   else:
-    buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK)
-  filew = gtk.FileChooserDialog(title=title, action=action, buttons=buttons)
-  filew.set_default_response(gtk.RESPONSE_OK)
+    buttons=(gtk.STOCK_CANCEL,gtk.ResponseType.CANCEL,gtk.STOCK_OPEN,gtk.ResponseType.OK)
+  filew = gtk.FileChooserDialog(title=title, parent=parent, action=action, buttons=buttons)
+  filew.set_default_response(gtk.ResponseType.OK)
 
   if not folder_uri is None:
     filew.set_current_folder_uri("file://" + os.path.abspath(folder_uri))
@@ -127,7 +129,7 @@ def get_filename(title, action, filter_names_and_patterns = {}, folder_uri = Non
  
   result = filew.run()
 
-  if result == gtk.RESPONSE_OK:
+  if result == gtk.ResponseType.OK:
     filename = filew.get_filename()
     filtername = filew.get_filter().get_name()
     filew.destroy()
@@ -141,7 +143,7 @@ def console(parent, locals = None):
   Launch a python console.
   """
 
-  console_dialog = gtk.Dialog(parent = parent, buttons = (gtk.STOCK_QUIT, gtk.RESPONSE_ACCEPT))
+  console_dialog = gtk.Dialog(parent = parent, buttons = (gtk.STOCK_QUIT, gtk.ResponseType.ACCEPT))
   console_dialog.set_default_size(400, 300)
   console_dialog.connect("response", close_dialog)
 
@@ -165,8 +167,8 @@ def prompt_response(dialog, response_id):
   function namespace, to allow response return in other functions.
   """
 
-  if response_id == gtk.RESPONSE_DELETE_EVENT:
-    response_id = gtk.RESPONSE_CANCEL
+  if response_id == gtk.ResponseType.DELETE_EVENT:
+    response_id = gtk.ResponseType.CANCEL
 
   prompt_response.response = response_id
   close_dialog(dialog, response_id)
@@ -187,24 +189,24 @@ def radio_dialog(title, message, choices, logo):
   return r.data
 
 def message_box(window, title, message):
-  dialog = gtk.MessageDialog(window, 0, gtk.MESSAGE_INFO, gtk.BUTTONS_OK, message)
+  dialog = gtk.MessageDialog(window, 0, gtk.MessageType.INFO, gtk.ButtonsType.OK, message)
   dialog.set_title(title)
   dialog.connect("response", close_dialog)
   dialog.run()
 
 class RadioDialog:
   def __init__(self, title, message, choices, logo):
-    self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+    self.window = gtk.Window(gtk.WindowType.TOPLEVEL)
     self.window.connect("delete_event", self.cleanup)
     self.window.connect("key_press_event", self.key_press)
     self.window.set_title(title)
-    self.window.set_position(gtk.WIN_POS_CENTER)
+    self.window.set_position(gtk.WindowPosition.CENTER)
     if not logo is None:
       self.window.set_icon_from_file(logo)
     self.window.show()
 
     #swindow = gtk.ScrolledWindow()
-    #swindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+    #swindow.set_policy(gtk.PolicyType.AUTOMATIC, gtk.PolicyType.AUTOMATIC)
     #self.window.add(swindow)
     #swindow.show()
 
@@ -237,7 +239,7 @@ class RadioDialog:
 
     prev_radio = None
     for choice in choices:
-      radio = gtk.RadioButton(prev_radio, choice)
+      radio = gtk.RadioButton.new_with_label_from_widget(prev_radio, choice)
       radio.connect("toggled", self.radio_callback, choice)
       radio_box.pack_start(radio, False, False, 0)
       radio.show()
@@ -254,7 +256,7 @@ class RadioDialog:
     gtk.main_quit()
 
   def key_press(self, widget, event):
-    if event.keyval == gtk.keysyms.Return:
+    if event.keyval == gdk.KEY_Return:
       self.cleanup(None)
 
   def radio_callback(self, widget, data):
@@ -276,8 +278,8 @@ class GoToDialog:
     return ""
 
   def on_goto_activate(self, widget=None):
-    print "goto"
+    print("goto")
 
   def on_cancel_activate(self, widget=None):
-    print "cancel"
+    print("cancel")
 

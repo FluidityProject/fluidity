@@ -52,24 +52,24 @@ if sys.platform == 'darwin' and packaging:
 else:
 	for plugin in plugin_dirs:
 	  if prefix is None:
-		plugin_data_files.append(("@prefix@/share/diamond/plugins/" + plugin,
-		  glob.glob('plugins/' + plugin + '/*.py')))
+            plugin_data_files.append(("@prefix@/share/diamond/plugins/" + plugin,
+                                      glob.glob('plugins/' + plugin + '/*.py')))
 	  else:
-		plugin_data_files.append((prefix + "/share/diamond/plugins/" + plugin,
-		  glob.glob('plugins/' + plugin + '/*.py')))
+            plugin_data_files.append((prefix + "/share/diamond/plugins/" + plugin,
+                                      glob.glob('plugins/' + plugin + '/*.py')))
 
 # Now parse the GUI directories
 gui_data_files = []
 if sys.platform == 'darwin' and packaging	:
   gui_data_files.append(("./gui",
-    ["gui/gui.glade", "gui/diamond.svg", "gui/diamond.png"]))
+    ["gui/gui.ui", "gui/diamond.svg", "gui/diamond.png"]))
 else:
 	if prefix is None:
 	  gui_data_files.append(("@prefix@/share/diamond/gui",
-		["gui/gui.glade", "gui/diamond.svg"]))
+		["gui/gui.ui", "gui/diamond.svg"]))
 	else:
 	  gui_data_files.append((prefix + "/share/diamond/gui",
-		["gui/gui.glade", "gui/diamond.svg"]))
+		["gui/gui.ui", "gui/diamond.svg"]))
 
 # We now have all the information we need; run setup.
 setup(
