@@ -198,37 +198,7 @@ start =
                      (
                         element location {
                            real_dim_vector
-                     }|
-                        ## File containing the detectors positions in binary form
-                        element from_checkpoint_file {
-                           attribute file_name { xsd:string },
-                           ## The format of the input file containing field data.
-                           element format {
-                             element string_value {
-                                 "binary"
-                             }
-                           }
-                        }
-                     )
-                  }|
-                  ## A single lagrangian detector
-                  element lagrangian_detector {
-                     attribute name { xsd:string },
-                     (
-                     ## This is the initial location of a detector that moves with the fluid velocity.
-                        element location {
-                           real_dim_vector
-                     }|
-                        ## File containing the detectors positions in binary form
-                        element from_checkpoint_file {
-                           attribute file_name { xsd:string },
-                           ## The format of the input file containing field data.
-                           element format {
-                             element string_value {
-                                 "binary"
-                             }
-                           }
-                        }
+			}
                      )
                   }|
                   ## Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.
@@ -241,10 +211,6 @@ start =
                      (
                         ## Create fixed detectors.
                         element static {
-                           empty
-                        }|
-                        ## Create detectors which move with the fluid velocity.
-                        element lagrangian {
                            empty
                         }
                      ),
@@ -272,16 +238,6 @@ start =
                                  "binary"
                              }
                            }
-                        }|
-                        ## File containing the detectors positions in binary form
-                        element from_checkpoint_file {
-                           attribute file_name { xsd:string },
-                           ## The format of the input file containing field data.
-                           element format {
-                              element string_value {
-                                 "binary"
-                              }
-                           }
                         }
                      )
                   }
@@ -296,15 +252,10 @@ start =
                      empty
                   }
                ),
-               ## Enable to write detector output in ascii format. This output format will not work in parallel, if not enabled format defaults to binary.
-               element ascii_output {
-                  comment
-               }?,
                ## Enable to let detectors move with the domain if mesh_movement is enabled.
                element move_with_mesh {
                   empty
-               }?,
-               lagrangian_timestepping?
+               }?
             }?, 
             ## Options to create even more output in the logs:
             ##
@@ -338,9 +289,53 @@ start =
                ## and deleting options.
                element particle_group {
                   attribute name { xsd:string },
-                  element velocity_field {
-                     attribute name { xsd:string }
-                  },
+		  element particle_io {
+		      (
+                          ## Period between dumps in time units.
+                          element dump_period {
+                              (
+                                  element constant {
+                                      real
+                                  }|
+                                  ## Python function prescribing real input. Functions should be of the form:
+                                  ##
+                                  ##  def val(t):
+                                  ##     # Function code
+                                  ##     return # Return value
+                                  ##
+                                  element python {
+                                      python_code
+                                  }
+                              )
+                          }|
+                          ## Dump period, in timesteps.
+                          element dump_period_in_timesteps {
+                              (
+                                  element constant {
+                                      integer
+                                  }|
+                                  ## Python function prescribing integer input. Functions should be of the form:
+                                  ##
+                                  ##  def val(t):
+                                  ##     # Function code
+                                  ##     return # Return value
+                                  ##
+                                  element python {
+                                      python_code
+                                  }
+                              )
+                          }
+                      )?,
+                      # every CPUDUM seconds write results to disc.
+                      ## This is usually disabled.
+                      element cpu_dump_period {
+                          real
+                      }?,
+                      ## The period between dumps in walltime seconds. This is usually disabled.
+                      element wall_time_dump_period {
+                          real
+                      }?
+                  }?,
                   ## Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
                   ## and carry the same attributes. Subgroups can have different initial positions specified via a python
                   ## function of from a file.
@@ -369,13 +364,7 @@ start =
                            }|
                            ## File containing the particle positions in binary form
                            element from_file {
-                              attribute file_name { xsd:string },
-                              ## The format of the input file containing field data.
-                              element format {
-                                 element string_value {
-                                    "binary"
-                                 }
-                              }
+                              attribute file_name { xsd:string }
                            }
                         } 
                      ),
@@ -401,10 +390,6 @@ start =
                   empty
                }
             ),
-            ## Enable to write particle output in ascii format
-            element ascii_output {
-               comment
-            }?,
             ## Enable to let particles move with the domain if mesh_movement is enabled.
             element move_with_mesh {
                empty
@@ -3699,7 +3684,7 @@ generic_particle_attribute_choice =
       }|
       ## Python function prescribing real input. Functions should be of the form:
       ##
-      ##  def val(X, t):
+      ##  def val(X, t, dt):
       ##     # Function code
       ##     return # Return value
       ##
@@ -3709,14 +3694,14 @@ generic_particle_attribute_choice =
       }|
       ## Python function prescribing real input. Functions should be of the form:
       ##
-      ##  def val (X, t, fields):
+      ##  def val (X, t, dt, fields):
       ##     # Function code
       ##     return # Return value
       ##
       ##  where X is a tuple of length geometry dimension.
       ##
       ##  E.g. if Temperature field and x position are required
-      ##  def val (X, t, fields):
+      ##  def val (X, t, dt, fields):
       ##    x = X[0]
       ##    y = x + fields["Temperature"]
       ##    return y
@@ -3729,13 +3714,7 @@ generic_particle_attribute_choice =
       }|
       ## File containing the particle positions in binary form
       element from_checkpoint_file {
-         attribute file_name { xsd:string },
-         ## The format of the input file containing field data.
-         element format {
-            element string_value {
-               "binary"
-            }
-         }
+         attribute file_name { xsd:string }
       }
    )
 

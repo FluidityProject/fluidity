@@ -949,7 +949,7 @@ void set_detectors_from_python(char *function, int *function_len, int *dim,
 
 #define set_particles_from_python F77_FUNC(set_particles_from_python, SET_PARTICLES_FROM_PYTHON)
 void set_particles_from_python(char *function, int *function_len, int *dim, int *ndete, 
-                                  double x[], double y[], double z[], double *t,  
+			       double x[], double y[], double z[], double *t, double *dt,  
                                   double result[], int* stat)
 {
 #ifndef HAVE_PYTHON
@@ -965,7 +965,7 @@ void set_particles_from_python(char *function, int *function_len, int *dim, int 
   return;
 #else
   PyObject *pMain, *pGlobals, *pLocals, *pFunc, *pCode, *pResult,
-    *pArgs, *pPos, *px, *pT;
+    *pArgs, *pPos, *px, *pT, *pdT;
   
   char *function_c;
   int i;
@@ -1006,12 +1006,16 @@ void set_particles_from_python(char *function, int *function_len, int *dim, int 
 
   // Python form of time variable.
   pT=PyFloat_FromDouble(*t);
+
+  // Python form of timestep variable.
+  pdT=PyFloat_FromDouble(*dt);
   
   // Tuple containing the current position vector.
   pPos=PyTuple_New(*dim);
 
   //Tuple containing the Arguments
-  pArgs=PyTuple_New(2);
+  pArgs=PyTuple_New(3);
+  PyTuple_SetItem(pArgs, 2, pdT);
   PyTuple_SetItem(pArgs, 1, pT);
   PyTuple_SetItem(pArgs, 0, pPos);
   
@@ -1079,8 +1083,8 @@ void set_particles_from_python(char *function, int *function_len, int *dim, int 
 
 //#define set_particles_from_python_fields F77_FUNC(set_particles_from_python_fields, SET_PARTICLES_FROM_PYTHON_FIELDS)
 void set_particles_from_python_fields(char *function, int *function_len, int *dim, int *ndete,
-				      double x[], double y[], double z[], double *t, int *FIELD_NAME_LEN,
-				      int *nfields, char field_names[*nfields][*FIELD_NAME_LEN],
+				      double x[], double y[], double z[], double *t, double *dt,
+				      int *FIELD_NAME_LEN, int *nfields, char field_names[*nfields][*FIELD_NAME_LEN],
 				      double *field_vals, int *old_nfields, char old_field_names[*old_nfields][*FIELD_NAME_LEN],
 				      double *old_field_vals, int *old_nattributes,
 				      char old_att_names[*old_nattributes][*FIELD_NAME_LEN],
@@ -1100,7 +1104,7 @@ void set_particles_from_python_fields(char *function, int *function_len, int *di
   return;
 #else
   PyObject *pMain, *pGlobals, *pLocals, *pFunc, *pCode, *pResult,
-    *pArgs, *pPos, *px, *pT, *pField, *pNames;
+    *pArgs, *pPos, *px, *pT, *pdT, *pField, *pNames;
   double (*fields_new)[*nfields] = malloc(sizeof(double[*ndete][*nfields]));
   double (*fields_old)[*old_nfields] = malloc(sizeof(double[*ndete][*old_nfields]));
   double (*attributes_old)[*old_nattributes] = malloc(sizeof(double[*ndete][*old_nattributes]));
@@ -1166,12 +1170,16 @@ void set_particles_from_python_fields(char *function, int *function_len, int *di
   // Python form of time variable.
   pT=PyFloat_FromDouble(*t);
 
+  // Python form of timestep variable.
+  pdT=PyFloat_FromDouble(*dt);
+
   // Tuple containing the current position vector.
   pPos=PyTuple_New(*dim);
   
   // Tuple of arguments to function;
-  pArgs=PyTuple_New(3);
-  PyTuple_SetItem(pArgs, 2, pNames);
+  pArgs=PyTuple_New(4);
+  PyTuple_SetItem(pArgs, 3, pNames);
+  PyTuple_SetItem(pArgs, 2, pdT);
   PyTuple_SetItem(pArgs, 1, pT);
   PyTuple_SetItem(pArgs, 0, pPos);
 

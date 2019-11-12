@@ -39,6 +39,7 @@ SLIB_FLUIDITY = lib$(FLUIDITY).so
 # Follow: www.gnu.org/prep/standards/html_node/Directory-Variables.html
 PACKAGE_NAME = @PACKAGE_NAME@
 prefix  = @prefix@
+datarootdir = @datarootdir@
 exec_prefix  = @exec_prefix@
 bindir = @bindir@
 libdir = @libdir@
@@ -65,6 +66,7 @@ LINKER  = @LINKER@ @LDFLAGS@ $(CXXFLAGS)
 FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
 
 LIBS    = -L./lib -l$(FLUIDITY) @LIB_FEMDEM@ ./lib/libadaptivity.a \
+           ./lib/libH5hutF.a ./lib/libH5hut.a @HDF5_LIBS@ \
            ./lib/libvtkfortran.a @LIBSPATIALINDEX@  @SPUDLIB@ @FLIBJUDY@ \
            @LIBS@ @BLAS_LIBS@
 
@@ -112,6 +114,7 @@ default: bin/$(FLUIDITY)
 
 sub_system: $(LIBMBA2D) $(LIBMBA3D) @LIB_FEMDEM@ \
 	lib/libadaptivity.a lib/libvtkfortran.a @LIBSPATIALINDEX@ \
+	lib/libH5hut.a \
 	@SPUDLIB@ @FLIBJUDY@ include/version.h
 
 @FLIBJUDY@:
@@ -129,7 +132,9 @@ lib/libmba3d.a:
 lib/libadaptivity.a:
 	@echo '    MKDIR lib'; mkdir -p lib
 	@BUILD_LIBADAPT@
-
+lib/libH5hut.a:
+	@echo '    MKDIR lib'; mkdir -p lib
+	echo '    MAKE h5hut'; $(MAKE) -C h5hut install-exec install-data && cp include/H5hut.f90 femtools/H5hut.F90
 lib/libvtkfortran.a:
 	@echo '    MKDIR lib'; mkdir -p lib
 	echo '    MAKE libvtkfortran'; $(MAKE) -C libvtkfortran 2>make.log 2>&1 && cp libvtkfortran/libvtkfortran.a lib/ && cp libvtkfortran/*.mod include/
@@ -364,6 +369,9 @@ ifeq ($(abspath @SPUDLIB@),$(abspath lib/libspud.a))
 	@echo "    CLEAN libspud"
 	@cd libspud; $(MAKE) clean
 endif
+	@echo "    CLEAN h5hut"
+	@rm -f femtools/H5hut.F90
+	@cd h5hut; $(MAKE) uninstall >> make.log 2>&1
 	@echo "    CLEAN libspatialindex"
 	@cd @SPATIALINDEXDIR@; $(MAKE) clean >> make.log
 	@echo "    CLEAN libmba2d"
@@ -406,6 +414,7 @@ distclean: clean
 	@cd libvtkfortran ; make distclean > /dev/null
 	@cd libspud ; make distclean > /dev/null ; rm -rf		\
 	 libspud.so.0 libtool diamond/build python/build > /dev/null
+	@cd h5hut ; rm -rf build
 	@cd tools ; make distclean > /dev/null
 	@rm -fr `find ./ -name config.status` `find ./ -name		\
 	 config.log` share include/Judy.h include/Wm4Command.h		\
