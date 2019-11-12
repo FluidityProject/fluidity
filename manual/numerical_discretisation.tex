@@ -2247,19 +2247,20 @@ of the actual error. Especially in ill-conditioned systems this may not
 always be a very good approximation. The quality of the error estimate is
 then very much dependent on the quality of the preconditioner.
 
-\section{Algorithm for detectors (Lagrangian trajectories)}
+\section{Algorithm for Particle Advection (Lagrangian Trajectories)}
 \label{sec:lagrangian_trajectories}
 \index{Lagrangian trajectories} \index{detectors!Lagrangian}
-Detectors can be set in the code at specific positions where the user wants
+Static Detectors can be set in the code at specific positions where the user wants
 to know the values of certain variables at each time step. They are virtual
-probes in the simulation and can be fixed in space (static detectors) or can
-move with the flow (Lagrangian detectors). The configuration of detectors in
+probes in the simulation that are fixed in space.
+
+Alternatively, particles, which move with the flow and track specific attributes
+through time, can also be included. The configuration of (static) detectors and (lagrangian) particles in
 \fluidity\ is detailed in chapter
 \ref{chap:configuration}. This section summarises the method
-employed in the calculation of the new position of each Lagrangian detector
-as it moves with the flow.
+employed in the calculation of the new position of each particle as it moves with the flow.
 
-Lagrangian detectors are advected using an explicit Runge-Kutta method, defined as
+Particles are advected using an explicit Runge-Kutta method, defined as
 
 \begin{equation}\label{eq:detectors_RK}
 \bmx^{n+1} =  \bmx^{n} + \Delta t \sum_{i=1}^{s} b_i f_i
@@ -2283,21 +2284,21 @@ $c_i$ and $a_{ij}$ are the entries of the corresponding \emph{Butcher array}
 \end{center}
 
 In combination with the previous algorithm, the Guided Search method proposed by \citet{coppola2001}
-is used to track the detector across elements and, in parallel runs, across partitions. 
-This method allows a detector leaving an element to be traced without resorting to an iterative procedure,
+is used to track the particle across elements and, in parallel runs, across partitions. 
+This method allows a particle leaving an element to be traced without resorting to an iterative procedure,
 and is based on the observation that each stage of the Runge-Kutta scheme can be considered as a linear substep.
 
-Starting from an initial position P in Figure~\ref{fig:guided_search_menthod}, a linear step in physical space would take the detector to position Q. 
+Starting from an initial position P in Figure~\ref{fig:guided_search_menthod}, a linear step in physical space would take the particle to position Q. 
 For the Guided Search procedure we now evaluate the velocity field in physical space and translate the intermediate position for each RK stage to parametric space.
-In general, the detector will have left the element. However, we can determine the new containing element by inspecting the local coodinates of the arrival point 
+In general, the particle will have left the element. However, we can determine the new containing element by inspecting the local coodinates of the arrival point 
 (R for the first stage, S for the second) with respect to the element enclosing the previous intermediate position. 
 This procedure is now repeated for all stages of the RK scheme, using the intermediate positions to sample the velocity field in their respective elements.
-The final position T of the detector can thus be evaluated with a fixed number of substeps. 
+The final position T of the particle can thus be evaluated with a fixed number of substeps. 
 
 \begin{figure}[ht]
   \centering
   \xfig{numerical_discretisation_images/guided_search_method}
-  \caption{A sketch representing the Guided Search method used in combination with an explicit Runge-Kutta algorithm to advect the Lagrangian detectors with the flow.}
+  \caption{A sketch representing the Guided Search method used in combination with an explicit Runge-Kutta algorithm to advect particles with the flow.}
   \label{fig:guided_search_menthod}
 \end{figure}
 
