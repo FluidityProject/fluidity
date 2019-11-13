@@ -1,4 +1,4 @@
-﻿from numpy import array
+from numpy import array
 from numpy.linalg import norm
 from math import sqrt
 

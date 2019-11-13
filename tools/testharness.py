@@ -1,17 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-from __future__ import print_function
 import sys
 import os
 import os.path
 import glob
 import time
-try:
-  #python2 world
-  from StringIO import StringIO
-except ImportError:
-  #python3 world
-  from io import StringIO
+from io import StringIO
 
 try:
  import fluidity.regressiontest as regressiontest

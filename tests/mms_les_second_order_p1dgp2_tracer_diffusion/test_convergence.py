@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 from fluidity_tools import stat_parser as stat
 from vtktools import *

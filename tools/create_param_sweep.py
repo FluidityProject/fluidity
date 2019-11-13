@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Generate a number of FLML files from a base directory
 # manipulating various parameters to explore parameter
@@ -15,7 +15,6 @@
 #      3
 #      directory_listing.csv
 
-from __future__ import print_function
 import shutil
 import sys
 import string

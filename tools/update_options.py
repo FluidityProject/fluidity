@@ -1,11 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import getopt
 import glob
 import os
 import sys
-
-import gtk.gdk
 
 import diamond.debug as debug
 import diamond.schema as schema

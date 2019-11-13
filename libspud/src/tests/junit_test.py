@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import glob
 import subprocess
@@ -11,7 +11,7 @@ tests = glob.glob('bin/*')
 suites = []
 
 for test in tests:
-    output = subprocess.check_output(os.path.abspath(test)) 
+    output = subprocess.check_output(os.path.abspath(test)).decode()
     title = ''
     for line in output.split('\n'):
         if not line.strip():
@@ -31,5 +31,3 @@ for test in tests:
 
 with open('test_results.xml', 'w') as handle:
     suites[-1].to_file(handle, suites)
-        
-

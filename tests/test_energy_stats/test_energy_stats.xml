@@ -59,7 +59,7 @@ def Getflmlvalue(flml_name, xpath):
 
     node = tree.xpath(xpath)[0]
 
-    child = filter(not_comment, node.getchildren())[0]
+    child = list(filter(not_comment, node.getchildren()))[0]
 
     return child.text
 

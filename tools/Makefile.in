@@ -88,13 +88,6 @@ BINARIES = $(VTKDIAGNOSTIC)		\
   $(STREAMFUNCTION_2D)							\
   $(TEST_LAPLACIAN) 
 
-# Work around Intel compiler bug in visualise elements by simply not
-# building it.
-ifeq (@GFORTRAN_4_5_OR_NEWER@,yes)
-BINARIES += $(VISUALISE_ELEMENTS)
-endif
-
-
 .SUFFIXES: .f90 .F90 .c .cpp .o .a 
 
 %.o:	%.f90
@@ -123,7 +116,7 @@ install-version-info: version-info
 .PHONY: install_python
 
 install_python:
-	python setup.py bdist --format=tar
+	python3 setup.py bdist --format=tar
 	tar -x -C /$(DESTDIR) -f dist/*.tar
 
 $(GMSH2VTU): gmsh2vtu.o gmsh2vtu_main.o lib/

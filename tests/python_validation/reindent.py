@@ -1,4 +1,4 @@
-#! /usr/bin/env python2
+#!/usr/bin/env python3
 
 # Released to the public domain, by Tim Peters, 03 October 2000.
 
@@ -39,8 +39,6 @@ file is generated with shutil.copy(), but some corner cases regarding
 user/group and permissions could leave the backup file more readable that
 you'd prefer. You can always use the --nobackup option to prevent this.
 """
-
-from __future__ import print_function
 
 __version__ = "1"
 
@@ -210,7 +208,7 @@ class Reindenter:
                     want = have2want.get(have, -1)
                     if want < 0:
                         # Then it probably belongs to the next real stmt.
-                        for j in xrange(i+1, len(stats)-1):
+                        for j in range(i+1, len(stats)-1):
                             jline, jlevel = stats[j]
                             if jlevel >= 0:
                                 if have == getlspace(lines[jline]):
@@ -220,7 +218,7 @@ class Reindenter:
                                            # comment like this one,
                         # in which case we should shift it like its base
                         # line got shifted.
-                        for j in xrange(i-1, -1, -1):
+                        for j in range(i-1, -1, -1):
                             jline, jlevel = stats[j]
                             if jlevel >= 0:
                                 want = have + getlspace(after[jline-1]) - \

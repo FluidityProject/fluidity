@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #    This file is part of Diamond.
 #
 #    Diamond is free software: you can redistribute it and/or modify
@@ -566,7 +564,7 @@ class Schema(object):
 
           datatype = tree_choice.attrs["name"][0]
           if datatype == 'fixed':
-            treename = tree_choice.attrs["name"][1]
+            treename = tree_choice.get_attr("name")
             if treename == xmlname:
               have_found = True
               datatree.set_active_choice_by_ref(tree_choice)
