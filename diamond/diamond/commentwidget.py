@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #    This file is part of Diamond.
 #
 #    Diamond is free software: you can redistribute it and/or modify
@@ -23,6 +21,7 @@ from gi.repository import Pango as pango
 class CommentWidget(gtk.Frame):
 
   __gsignals__ = { "on-store"  : (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, ())}
+  fontsize = 12
 
   def __init__(self):
     gtk.Frame.__init__(self)
@@ -34,8 +33,10 @@ class CommentWidget(gtk.Frame):
     textView.set_editable(False)
     textView.set_wrap_mode(gtk.WrapMode.WORD)
     textView.set_cursor_visible(False)
+    textView.modify_font(pango.FontDescription(str(self.fontsize)))
     textView.connect("focus-in-event", self.focus_in)
     textView.connect("focus-out-event", self.focus_out)
+    textView.modify_font(pango.FontDescription.from_string(str(self.fontsize)))
     textView.get_buffer().create_tag("tag")
     
     scrolledWindow.add(textView)
@@ -48,6 +49,7 @@ class CommentWidget(gtk.Frame):
     self.add(scrolledWindow)
     
     self.comment_tree = None                           
+    self.interacted = False
     return
 
   def update(self, node):
@@ -67,7 +69,7 @@ class CommentWidget(gtk.Frame):
         self.textView.set_property("has-tooltip", False)
       except:
         pass
-
+      self.interacted = False
       return
 
     self.comment_tree = comment_tree = node.get_comment()
@@ -144,5 +146,14 @@ class CommentWidget(gtk.Frame):
     Called when the comment widget loses focus. Stores the comment.
     """
     self.store()
+
+  def increase_font(self):
+    self.fontsize = self.fontsize + 2
+    self.textView.modify_font(pango.FontDescription(str(self.fontsize)))
+
+  def decrease_font(self):
+    if self.fontsize > 0:
+      self.fontsize = self.fontsize - 2
+      self.textView.modify_font(pango.FontDescription(str(self.fontsize)))
   
 gobject.type_register(CommentWidget)

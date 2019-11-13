@@ -1,4 +1,4 @@
-#!/usr/bin/env python                                                                                                                                                                                          
+#!/usr/bin/env python3
 
 #    This file is part of Diamond.
 #
@@ -30,13 +30,8 @@ def preprocess(schemafile):
   p = etree.XMLParser(remove_comments=True)
   ns = 'http://relaxng.org/ns/structure/1.0'
 
-  if 'http' in schemafile:
-    schemafile_handle = urllib.request.urlopen(schemafile)
-  else:
-    schemafile_handle = open(schemafile)
-  
   try:
-  	tree = etree.parse(schemafile_handle, p)
+  	tree = etree.parse(schemafile, p)
   except Exception:
   	debug.deprint("Error: %s is not a valid Relax NG schema" % schemafile, 0)
   	sys.exit(1)

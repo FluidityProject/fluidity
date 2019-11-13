@@ -59,7 +59,7 @@ libspud.la: $(OBJS)
 	(if test -f .libs/libspud.so; then cp .libs/libspud.so ./libspud.so.0; ln -s libspud.so.0 libspud.so; fi) || true
 
 build-diamond:
-	cd diamond; python setup.py build; cd ..
+	cd diamond; python3 setup.py build; cd ..
 
 test: unittest
 
@@ -95,20 +95,20 @@ install-spudtools:
 	@INSTALL@ -m644 schema/spud_base.rng $(DESTDIR)@prefix@/share/spud
 
 install-diamond:
-	cd diamond;	python setup.py install --prefix=$(DESTDIR)@prefix@; cd ..
+	cd diamond;	python3 setup.py install --prefix=$(DESTDIR)@prefix@; cd ..
 
 install-pyspud:
 ifeq ($(origin BUILDING_DEBIAN),undefined)
-	cd python; python setup.py install --prefix=$(DESTDIR)@prefix@; cd ..
+	cd python; python3 setup.py install --prefix=$(DESTDIR)@prefix@; cd ..
 else
-	cd python; for python in $(shell pyversions -r); do $$python setup.py install --prefix=$(DESTDIR)@prefix@ --install-layout=deb; done; cd ..
+	cd python; for python in $(shell py3versions -r); do $$python setup.py install --prefix=$(DESTDIR)@prefix@ --install-layout=deb; done; cd ..
 endif
 
 install-dxdiff:
 ifeq ($(origin BUILDING_DEBIAN),undefined)
-	cd dxdiff; python setup.py install --prefix=$(DESTDIR)@prefix@; cd ..
+	cd dxdiff; python3 setup.py install --prefix=$(DESTDIR)@prefix@; cd ..
 else
-	cd dxdiff; for python in $(shell pyversions -r); do $$python setup.py install --prefix=$(DESTDIR)@prefix@ --install-layout=deb; done; cd ..
+	cd dxdiff; for python in $(shell py3versions -r); do $$python setup.py install --prefix=$(DESTDIR)@prefix@ --install-layout=deb; done; cd ..
 endif
 
 clean:
@@ -127,7 +127,7 @@ distclean: clean
 	rm -f Makefile src/tests/Makefile examples/Makefile
 	rm -f bin/spud-preprocess
 	rm -f diamond/setup.py diamond/diamond/plugins.py diamond/diamond/preprocess.py
-	rm -fr debian/diamond debian/python-dxdiff debian/python-spud
+	rm -fr debian/diamond debian/python3-dxdiff debian/python3-spud
 	rm -fr debian/spudtools debian/libspud-dev
 	rm -rf diamond/diamond.egg-info/
 	rm -f debian/*.debhelper* debian/*.substvars 

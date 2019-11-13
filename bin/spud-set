@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 from lxml import etree
@@ -36,8 +36,8 @@ path = re.sub(pattern, r'[@name="\1"]/', path)
 node = tree.xpath(path)[0]
 
 # Now we need to find the <real_value> or <integer_value> etc. tag underneath it.
-child = filter(not_comment, node.getchildren())[0]
+child = list(filter(not_comment, node.getchildren()))[0]
 child.text = newval
 
-newfile = open(sys.argv[1], "w")
+newfile = open(sys.argv[1], "wb")
 tree.write(newfile, encoding="utf-8", xml_declaration=True)

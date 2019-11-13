@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #    This file is part of Diamond.
 #
 #    Diamond is free software: you can redistribute it and/or modify
@@ -19,10 +17,12 @@ from gi.repository import Gtk as gtk
 from gi.repository import Gdk as gdk
 from gi.repository import Pango as pango
 import re
-from . import TextBufferMarkup
 import webbrowser
 
 class DescriptionWidget(gtk.Frame):
+
+  fontsize = 12
+
   def __init__(self):
     gtk.Frame.__init__(self)
 
@@ -33,8 +33,9 @@ class DescriptionWidget(gtk.Frame):
     textView.set_editable(False)
     textView.set_wrap_mode(gtk.WrapMode.WORD)
     textView.set_cursor_visible(False)
+    textView.modify_font(pango.FontDescription(str(self.fontsize)))
 
-    textView.set_buffer(TextBufferMarkup.PangoBuffer())
+    textView.set_buffer(gtk.TextBuffer())
     textView.connect("button-release-event", self.mouse_button_release)
     textView.connect("motion-notify-event", self.mouse_over)
 
@@ -81,7 +82,9 @@ class DescriptionWidget(gtk.Frame):
       new_text.append(text[index:])
       text = ''.join(new_text)
 
-    self.textView.get_buffer().set_text(text)
+    textbuffer = self.textView.get_buffer()
+    textbuffer.set_text("")
+    textbuffer.insert_markup(textbuffer.get_end_iter(), text, -1)
 
     return
 
@@ -197,3 +200,12 @@ class DescriptionWidget(gtk.Frame):
       webbrowser.open(hyperlink)
 
     return
+
+  def increase_font(self):
+    self.fontsize = self.fontsize + 2
+    self.textView.modify_font(pango.FontDescription(str(self.fontsize)))
+
+  def decrease_font(self):
+    if self.fontsize > 0:
+      self.fontsize = self.fontsize - 2
+      self.textView.modify_font(pango.FontDescription(str(self.fontsize)))

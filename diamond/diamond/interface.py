@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #    This file is part of Diamond.
 #
 #    Diamond is free software: you can redistribute it and/or modify
@@ -41,7 +39,6 @@ from . import scherror
 from . import tree
 
 import io
-from . import TextBufferMarkup
 
 from . import attributewidget
 from . import commentwidget
@@ -106,6 +103,9 @@ If there are bugs in writing out, see tree.write.
 """
 
 class Diamond:
+
+  fontsize = 12
+
   def __init__(self, gladefile, schemafile = None, schematron_file = None, logofile = None, input_filename = None, 
       dim_path = "/geometry/dimension", suffix=None):
     self.gladefile = gladefile
@@ -133,6 +133,8 @@ class Diamond:
                     "on_save_as": self.on_save_as,
                     "on_validate": self.scherror.on_validate,
                     "on_validate_schematron": self.scherror.on_validate_schematron,
+                    "on_increase_font": self.on_increase_font,
+                    "on_decrease_font": self.on_decrease_font,
                     "on_expand_all": self.on_expand_all,
                     "on_collapse_all": self.on_collapse_all,
                     "on_find": self.find.on_find,
@@ -575,6 +577,75 @@ class Diamond:
 
    return
 
+  def on_increase_font(self, widget=None):
+    """
+    Increase the font size.
+    """
+    self.description.increase_font()
+    self.comment.increase_font()
+    self.data.increase_font()
+    self.attributes.increase_font()
+
+    self.fontsize = self.fontsize + 2
+    self.cellcombo.set_property("font-desc", pango.FontDescription(str(self.fontsize)))
+    self.redraw_tree()
+    return
+
+  def on_decrease_font(self, widget=None):
+    """
+    Decrease the font size.
+    """
+    self.description.decrease_font()
+    self.comment.decrease_font()
+    self.data.decrease_font()
+    self.attributes.decrease_font()
+
+    if self.fontsize > 0:
+      self.fontsize = self.fontsize - 2
+      self.cellcombo.set_property("font-desc", pango.FontDescription(str(self.fontsize)))
+      self.redraw_tree()
+    return
+
+  def redraw_tree(self):
+    """
+    Completely redraw the tree, attempting to reopen expanded paths
+    """
+    # a helper function to cached the currently expanded iters
+    def get_expanded_iters(treeiter):
+      iters = []
+      itreeiter = treeiter.copy()
+      while treeiter is not None:
+        if self.treeview.row_expanded(self.treestore.get_path(treeiter)):
+          ctreeiter = self.treestore.iter_children(treeiter)
+          iters += get_expanded_iters(ctreeiter)
+        treeiter = self.treestore.iter_next(treeiter)
+      if len(iters) == 0: iters.append(itreeiter)
+      return iters
+
+    # get the currently expanded iterators and append the currently selected iter
+    expanded_iters = get_expanded_iters(self.treestore.get_iter_first())
+    if self.selected_iter is not None: expanded_iters.append(self.selected_iter)
+
+    # re-initialize the model
+    self.treeview.freeze_child_notify()
+    self.treeview.set_model(None)
+    self.treeview.set_model(self.treestore)
+    self.treeview.thaw_child_notify()
+
+    # loop over re-expanding previously expanded paths
+    for treeiter in expanded_iters:
+      ptreeiter = self.treestore.iter_parent(treeiter)
+      if ptreeiter is not None:
+        self.treeview.expand_to_path(self.treestore.get_path(ptreeiter))
+
+    # make the previously selected_iter the current cell
+    if self.selected_iter is not None:
+      path = self.treestore.get_path(self.selected_iter)
+      self.treeview.scroll_to_cell(path)
+      self.treeview.get_selection().select_path(path)
+
+    return
+
   def on_expand_all(self, widget=None):
     """
     Show the whole tree.
@@ -946,6 +1017,7 @@ class Diamond:
     cellCombo.set_property("text-column", 0)
     cellCombo.set_property("editable", True)
     cellCombo.set_property("has-entry", False)
+    cellCombo.set_property("font-desc", pango.FontDescription(str(self.fontsize)))
     cellCombo.connect("changed", self.cellcombo_changed)
     column.pack_start(cellCombo, True)
     column.set_cell_data_func(cellCombo, self.set_combobox_liststore)
@@ -1424,8 +1496,8 @@ class Diamond:
     name_tree = active_tree
     name = ""
     while name_tree is not None:
-      if "name" in name_tree.attrs and name_tree.attrs["name"][1] is not None:
-        used_name = name_tree.name + '::%s' % name_tree.attrs["name"][1]
+      if "name" in name_tree.attrs and name_tree.get_attr("name") is not None:
+        used_name = name_tree.name + '::%s' % name_tree.get_attr("name")
       elif name_tree.parent is not None and name_tree.parent.count_children_by_schemaname(name_tree.schemaname) > 1:
         siblings = [x for x in name_tree.parent.children if x.schemaname == name_tree.schemaname]
         i = 0
@@ -1450,8 +1522,8 @@ class Diamond:
     name_tree = active_tree
     name = ""
     while name_tree is not None:
-      if "name" in name_tree.attrs and name_tree.attrs["name"][1] is not None:
-        used_name = name_tree.name + '[@name="%s"]' % name_tree.attrs["name"][1]
+      if "name" in name_tree.attrs and name_tree.get_attr("name") is not None:
+        used_name = name_tree.name + '[@name="%s"]' % name_tree.get_attr("name")
       elif name_tree.parent is not None and name_tree.parent.count_children_by_schemaname(name_tree.schemaname) > 1:
         siblings = [x for x in name_tree.parent.children if x.schemaname == name_tree.schemaname]
         i = 0
