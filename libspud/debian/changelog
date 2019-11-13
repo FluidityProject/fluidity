@@ -1,3 +1,15 @@
+spud (1.1.8) buster; urgency=medium
+
+  * Change to python3 and remove python(2) dependecies
+
+ -- skramer <s.kramer@imperial.ac.uk>  Wed, 23 Oct 2019 13:52:04 +0100
+
+spud (1.1.7) bionic; urgency=low
+
+  * Point-release to switch packaging over to bionic
+
+ -- Tim Greaves <tim.greaves@imperial.ac.uk>  Tue, 30 Jul 2019 23:04:31 +0100
+
 spud (1.1.5) precise; urgency=low
 
   * Point-release to formally include bugfixes from 2012-03/04

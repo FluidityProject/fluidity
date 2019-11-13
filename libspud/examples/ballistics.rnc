@@ -3,23 +3,21 @@ include "spud_base.rnc"
 start =
    (
       element ballistics_options {
+         ## The name of the simulation.
+         ## This will be used as the basename of output files. 
          element simulation_name {
-            ## The name of the simulation.
-            ## This will be used as the basename of output files. 
             filename
          },
          # Timestepping_options is a named pattern defined below. 
-         # In this case this is used to reduce clutter and increase readability.
          timestepping_options,
+         ## The acceleration due to gravity measured downwards.
          element gravity {
-            ## The acceleration due to gravity measured downwards.
-            ## e.g. 9.8
             real
          },
          projectile+, # The + means one or more projectiles.
          element geometry {
+            ## Only 2D simulations are suppored by ballistics.
             element dimension {
-               ## Only 2D simulations are suppored by ballistics.
                element integer_value {
                   attribute rank {"0"},
                   "2"
@@ -32,18 +30,18 @@ start =
 timestepping_options =
    (
       element timestepping {
+         ## The length of each timestep.
          element dt {
-            ## The length of each timestep.
             real
          },
+         ## The time at which the simulation should stop.
          element finish_time {
-            ## The time at which the simulation should stop.
             real
          },
+         ## The algorithm which will be used to move the projectiles. 
+         ## explicit_euler is the first order unstable numeric scheme.
+         ## analytic is the analytic solution.
          element time_integration_scheme {
-            ## The algorithm which will be used to move the projectiles. 
-            ## explicit_euler is the first order unstable numeric scheme.
-            ## analytic is the analytic solution.
             element string_value {
                # Lines is a hint to the gui about the size of the text box.
                # It is not an enforced limit on string length.

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #  GTK Interactive Console
 #  (C) 2003, Jon Anderson
 #  (C) 2007 Imperial College London and others.

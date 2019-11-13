@@ -192,6 +192,26 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
+                      <object class="GtkMenuItem" id="increase_font">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Increase font</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_increase_font" swapped="no"/>
+                        <accelerator key="plus" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="decrease_font">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Decrease font</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_decrease_font" swapped="no"/>
+                        <accelerator key="minus" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem" id="expand_all">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
