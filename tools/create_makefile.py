@@ -188,9 +188,8 @@ def generate_dependencies(fortran):
     
     # Sort the output by filename.
     files=dependencies.keys()
-    files.sort()
 
-    for f in files:       
+    for f in sorted(files):
         dep_strings+=dependencies[f].as_strings()
     
     return dep_strings
