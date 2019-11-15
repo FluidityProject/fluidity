@@ -19,6 +19,8 @@ pipeline {
             steps { 
                 sh 'make -j' ;
                 sh 'make -j fltools' ;
+                sh 'make makefiles' ;
+                sh 'test -z "$(git status --porcelain */Makefile.dependencies)"' ;
                 sh 'make manual'
             }
         }
