@@ -2285,7 +2285,7 @@ contains
     type(cv_faces_type), intent(in) :: cvfaces
 
     ! Jacobian matrix
-    real, dimension(size(X,1),x_shape%numbering%dimension) :: J
+    real, dimension(size(X,1), size(x_shape%dn, 3)) :: J
 
     ! Determinant of J
     real :: detJ
