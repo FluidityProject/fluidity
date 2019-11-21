@@ -28,6 +28,15 @@ RUN apt-get update
 RUN echo "Europe/London" > /etc/timezone
 RUN apt-get -y install fluidity-dev
 
+RUN mkdir /tmp/tex-install
+WORKDIR /tmp/tex-install 
+ADD installation.profile /tmp/tex-install/
+RUN curl -L http://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz | tar -zxvf - --strip-component=1
+RUN ./install-tl --profile=installation.profile
+WORKDIR /
+RUN rm -rf /tmp/tex-install
+
+ENV PATH="${PATH}:/usr/local/texlive/2019/bin/x86_64-linux"
 ENV PETSC_DIR /usr/lib/petscdir/3.8.3
 ENV LD_LIBRARY_PATH /usr/lib/petscdir/3.8.3/linux-gnu-c-opt/lib
 ENV LDFLAGS -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi
@@ -39,3 +48,6 @@ ENV OMPI_MCA_btl_vader_single_copy_mechanism none
 # -- pass this as an argument at build time
 ARG userid=1000
 RUN adduser --disabled-password --gecos "" -u $userid fluidity
+
+USER fluidity
+WORKDIR /home/fluidity
