@@ -2,6 +2,7 @@
 #include "fdebug.h"
 module load_netcdf_module
 
+use fldebug
 use global_parameters
 use spud
 use fields
@@ -9,6 +10,10 @@ use coordinates
 use Field_Options
 
 implicit none
+
+private
+
+public :: set_scalar_field_from_netcdf
 
 logical :: on_sphere
 

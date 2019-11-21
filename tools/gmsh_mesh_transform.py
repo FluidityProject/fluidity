@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from optparse import OptionParser
 import sys
@@ -43,7 +43,7 @@ if len(argv) == 4:
     region         = argv[1]
     transformation = argv[2]
     mesh_name      = argv[3]
-    constants = constants.translate(None, ' ')
+    constants = constants.replace(' ','')
     constanttextarray = constants.split(',')
     for constanttext in constanttextarray:
       constant = constanttext.split('=')
@@ -61,8 +61,8 @@ else:
     sys.exit(1)
 
 
-f=file(mesh_name,'r')
-newf=file(mesh_name+'.tmp','w')
+f=open(mesh_name,'r')
+newf=open(mesh_name+'.tmp','w')
 
 flag = 0
 for line in f:
@@ -84,7 +84,7 @@ for line in f:
       globals['z'] = float(cols[3])
       if eval(region, globals):
         xyz = eval(transformation, globals)
-        line = `index`+' '+`xyz[0]`+' '+`xyz[1]`+' '+`xyz[2]`
+        line = repr(index)+' '+repr(xyz[0])+' '+repr(xyz[1])+' '+repr(xyz[2])
   newf.write(line + '\n')
 
 newf.close()

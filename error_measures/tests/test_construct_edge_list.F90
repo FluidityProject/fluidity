@@ -2,6 +2,8 @@ subroutine test_construct_edge_list
 
   use elements
   use state_module
+  use linked_lists
+  use sparse_tools
   use fields
   use gradation_metric
   use unittest_tools

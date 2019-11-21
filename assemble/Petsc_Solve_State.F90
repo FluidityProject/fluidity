@@ -36,12 +36,14 @@ module petsc_solve_state_module
 !!< in state is fluidity specific and should therefore not be dealt with
 !!< in femtools/.
 use spud
+use fldebug
+use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
 use sparse_tools
+use parallel_fields
 use fields
-use solvers
 use sparse_tools_petsc
 use state_module
-use global_parameters, only: OPTION_PATH_LEN
+use solvers
 use field_options
 ! modules from assemble:
 use free_surface_module
@@ -181,21 +183,32 @@ contains
     integer, dimension(:), pointer:: surface_nodes
     type(petsc_csr_matrix), dimension(:), pointer:: prolongators
     character(len=OPTION_PATH_LEN):: solver_option_path
-    integer:: i
+    type(petsc_csr_matrix), pointer:: rotation_matrix
+    integer:: i, rotation_stat
     
     ! no solver cache for petsc_csr_matrices at the mo'
     call petsc_solve_state_setup(solver_option_path, prolongators, surface_nodes, &
       state, x%mesh, x%dim, x%option_path, .false., option_path=option_path, &
       mesh_positions=mesh_positions)
+
+    rotation_matrix => extract_petsc_csr_matrix(state, "RotationMatrix", stat=rotation_stat)
+    if (rotation_stat==0 .and. associated(prolongators)) then
+      FLExit("Rotated boundary conditions do not work with mg prolongators in the velocity solve")
+    end if
     
-    if (associated(prolongators) .and. associated(mesh_positions)) then 
+    if (associated(prolongators) .and. associated(mesh_positions)) then
       call petsc_solve(x, matrix, rhs, &
            prolongators=prolongators, option_path=option_path, positions=mesh_positions)
     else if (associated(prolongators)) then
       call petsc_solve(x, matrix, rhs, &
            prolongators=prolongators, option_path=option_path)
+    else if (associated(mesh_positions) .and. rotation_stat==0) then
+      call petsc_solve(x, matrix, rhs, option_path=option_path, positions=mesh_positions, &
+        rotation_matrix=rotation_matrix%M)
     else if (associated(mesh_positions)) then
       call petsc_solve(x, matrix, rhs, option_path=option_path, positions=mesh_positions)
+    else if (rotation_stat==0) then
+      call petsc_solve(x, matrix, rhs, option_path=option_path, rotation_matrix=rotation_matrix%M)
     else
       call petsc_solve(x, matrix, rhs, option_path=option_path)
     end if
@@ -378,8 +391,9 @@ contains
     end do
       
     call allocate(P, rows, columns, dnnz, onnz, (/ ncomponents, ncomponents /), name="HigherOrderProlongator")
-    if (associated(p1_mesh%halos)) then
-      P%column_halo => p1_mesh%halos(1)
+    if (associated(P%column_halo)) then
+      allocate(P%column_halo)
+      P%column_halo = p1_mesh%halos(1)
       call incref(P%column_halo)
     end if
     call zero(P)

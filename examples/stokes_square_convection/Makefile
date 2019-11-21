@@ -2,14 +2,13 @@ include envcheck.mk
 
 preprocess: envcheck
 	@echo **********Generating structured meshes using gmsh in 2d:
-	gmsh -2 mesh/square_24.geo
-	${BINPREFIX}gmsh2triangle --2d mesh/square_24.msh
-	gmsh -2 mesh/square_48.geo
-	${BINPREFIX}gmsh2triangle --2d mesh/square_48.msh
+	gmsh -2 -o square_24.msh mesh/square_24.geo
+	gmsh -2 -o square_48.msh mesh/square_48.geo
 
 run:
 	@echo **********To run this case at a grid resolution of 24x24, use make run_24.
 	@echo **********To run this case at a grid resolution of 48x48, use make run_48.
+	@echo **********Note that you need to run both cases.
 
 run_24: envcheck
 	@echo **********Calling fluidity with verbose log output enabled:

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<testproblem>
+  <name>Stokes-Poiseuille</name>
+  <owner userid="Thomas_Duvernay"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>../../bin/fluidity -v2 -l Stokes-Poiseuille.flml</command_line>
+  </problem_definition>
+
+  <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+
+    <variable name="max_vx_rel_diff" language="python">
+from fluidity_tools import stat_parser as stat
+max_vx_rel_diff = stat("Stokes-Poiseuille.stat")["Fluid"]["VectorRelativeDifference%1"]["max"][-1]
+    </variable>
+
+    <variable name="max_vy" language="python">
+from fluidity_tools import stat_parser as stat
+max_vy = stat("Stokes-Poiseuille.stat")["Fluid"]["Velocity%2"]["max"][-1]
+    </variable>
+  </variables>
+
+  <pass_tests>
+    <test name="Have the solvers converged ?" language="python">
+assert(solvers_converged)
+    </test>
+
+    <test name="Is the horizontal velocity component close enough to the analytical one ?" language="python">
+assert(abs(max_vx_rel_diff) &lt; 1e-7)
+    </test>
+
+    <test name="Is the vertical velocity component close enough to the analytical one ?" language="python">
+assert(abs(max_vy) &lt; 1e-7)
+    </test>
+  </pass_tests>
+
+  <warn_tests>
+  </warn_tests>
+
+</testproblem>

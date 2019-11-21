@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="square">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -70,7 +70,6 @@
         </python>
       </detector_array>
       <fail_outside_domain/>
-      <binary_output/>
       <lagrangian_timestepping>
         <subcycles>
           <integer_value rank="0">1</integer_value>
@@ -130,6 +129,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <consistent_interpolation/>
       </prescribed>
     </scalar_field>
@@ -156,6 +158,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <adaptivity_options>
           <absolute_measure>
             <scalar_field name="InterpolationErrorBound" rank="0">
@@ -170,6 +175,9 @@
                 <detectors>
                   <exclude_from_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </prescribed>
             </scalar_field>
           </absolute_measure>
@@ -188,6 +196,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -205,6 +216,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

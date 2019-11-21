@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>test_vorticity_2d</name>
   <owner userid="am2008"/>
@@ -19,19 +19,21 @@ vtu = vtktools.vtu("test_vorticity_2d_0.vtu")</variable>
     <test name="Vorticity" language="python">import fluidity_tools
 
 for fieldName in ["P1", "P1Lumped", "P1DG", "P2", "P2DG"]:
-  field = vtu.GetScalarField(fieldName)
+    field = vtu.GetScalarField(fieldName)
 
-  print fieldName, field.min(), field.max()
-  fluidity_tools.compare_variable(field.min(), 1.0, 1.0e-12)
-  fluidity_tools.compare_variable(field.max(), 1.0, 1.0e-12)</test>
+    print(fieldName, field.min(), field.max())
+    fluidity_tools.compare_variable(field.min(), 1.0, 1.0e-12)
+    fluidity_tools.compare_variable(field.max(), 1.0, 1.0e-12)
+</test>
     <test name="VorticityOfDGVelocity" language="python">import fluidity_tools
 stat=fluidity_tools.stat_parser("test_vorticity_2d.stat")
 
 for fieldName in ["P2VorticityOfDGVelocity", "P1VorticityOfDGVelocity", "P1LumpedVorticityOfDGVelocity"]:
-  intg = stat['Fluid'][fieldName]['integral'][0]
+    intg = stat['Fluid'][fieldName]['integral'][0]
 
-  print fieldName, intg
-  fluidity_tools.compare_variable(intg, -0.5, 1.0e-12)
-  fluidity_tools.compare_variable(intg, -0.5, 1.0e-12)</test>
+    print(fieldName, intg)
+    fluidity_tools.compare_variable(intg, -0.5, 1.0e-12)
+    fluidity_tools.compare_variable(intg, -0.5, 1.0e-12)
+</test>
   </pass_tests>
 </testproblem>

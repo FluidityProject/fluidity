@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="square">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -108,13 +108,18 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
   </material_phase>
   <flredecomp>
     <final_partitioner>
       <zoltan>
-        <method>graph</method>
+        <method>
+          <string_value lines="1">graph</string_value>
+        </method>
       </zoltan>
     </final_partitioner>
   </flredecomp>

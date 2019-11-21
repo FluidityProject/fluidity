@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Control volume, multi-material flow test</name>
   <owner userid="cwilson"/>
@@ -13,9 +12,9 @@ import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-    <variable name="endtime" language="python">
+    <variable name="endnumtimesteps" language="python">
 from fluidity_tools import stat_parser as stat
-endtime=stat("3material-droplet.stat")["ElapsedTime"]["value"][-1]
+endnumtimesteps=len(stat("3material-droplet.stat")["ElapsedTime"]["value"])
     </variable>
     <variable name="endtimestep" language="python">
 from fluidity_tools import stat_parser as stat
@@ -90,8 +89,8 @@ mnvfracsum = min(fluidity_tools.stat_parser("3material-droplet.stat")['Water']['
       <test name="Solvers converged" language="python">
         assert(solvers_converged)
       </test>
-    <test name="check end time" language="python">
-assert endtime &gt; 0.2
+    <test name="check end number of timesteps" language="python">
+assert endnumtimesteps == 49
     </test>
     <test name="check end timestep" language="python">
 assert endtimestep &gt; 0.001
@@ -100,17 +99,17 @@ assert endtimestep &gt; 0.001
 assert abs(nodes0-nodes) &gt; 0
     </test>
     <test name="check water volume fraction was conserved" language="python">
-print 'conservation error = ', abs(vfracintwater0-vfracintwater)
+print('conservation error = ', abs(vfracintwater0-vfracintwater))
 assert abs(vfracintwater0-vfracintwater) &lt; max(maxdivergence, mindivergence)
-    </test>
+</test>
     <test name="check droplet volume fraction was conserved" language="python">
-print 'conservation error = ', abs(vfracintdrop0-vfracintdrop)
+print('conservation error = ', abs(vfracintdrop0-vfracintdrop))
 assert abs(vfracintdrop0-vfracintdrop) &lt; max(maxdivergence, mindivergence)
-    </test>
+</test>
     <test name="check that reasonable tolerance is being used to test conservation" language="python">
-print 'divergence tolerance = ', max(maxdivergence, mindivergence)
+print('divergence tolerance = ', max(maxdivergence, mindivergence))
 assert max(maxdivergence, mindivergence) &lt; 1.E-7
-    </test>
+</test>
     <test name="check minimum water volume fraction is 0.0" language="python">
 assert abs(mnvfracwater) &lt; 1e-10
     </test>

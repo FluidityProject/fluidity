@@ -140,7 +140,7 @@
         <solver>
           <iterative_method name="cg"/>
           <preconditioner name="hypre">
-            <hypre_type name="euclid"/>
+            <hypre_type name="boomeramg"/>
           </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
@@ -162,6 +162,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -184,6 +187,7 @@
                 <twice/>
               </integrate_advection_by_parts>
             </advection_scheme>
+            <buoyancy/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
@@ -203,9 +207,7 @@
               <integer_value rank="0">40</integer_value>
             </restart>
           </iterative_method>
-          <preconditioner name="hypre">
-            <hypre_type name="euclid"/>
-          </preconditioner>
+          <preconditioner name="sor"/>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
@@ -319,6 +321,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -345,6 +350,9 @@ def val(X,t):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <do_not_recalculate/>
       </prescribed>
     </scalar_field>
@@ -369,6 +377,9 @@ def val(X,t):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <do_not_recalculate/>
       </prescribed>
     </scalar_field>
@@ -395,6 +406,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <!-- Test Synthetic Eddy Method...
 -->
 <testproblem>
@@ -35,11 +34,11 @@ expectedvelocity = (\
 
 diff=abs(probedvelocity-expectedvelocity)
 
-print 'differences for u,v,w'
-print  diff
+print('differences for u,v,w')
+print( diff)
 
 mxdiff = diff.max()
-    </variable>
+</variable>
   </variables>
 
   <pass_tests>

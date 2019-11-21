@@ -30,35 +30,36 @@
 module diagnostic_fields
   !!< A module to calculate diagnostic fields.
 
+  use fldebug
   use global_parameters, only:FIELD_NAME_LEN, current_time, OPTION_PATH_LEN
+  use futils
+  use spud
+  use Vector_Tools
+  use parallel_tools
+  use quicksort
+  use sparse_tools
+  use CV_Faces
+  use fetools
+  use unittest_tools
   use fields
+  use state_module
   use halos
+  use boundary_conditions
   use field_derivatives
   use field_options
-  use state_module
-  use futils
-  use fetools
+  use sparse_matrices_fields
   use fefields, only: compute_lumped_mass, compute_cv_mass
   use MeshDiagnostics
-  use spud
   use CV_Shape_Functions, only: make_cv_element_shape, make_cvbdy_element_shape
-  use CV_Faces
   use CVTools
+  use cv_options
   use CV_Upwind_Values
   use CV_Face_Values, only: evaluate_face_val, theta_val
-  use cv_options
-  use parallel_tools
   use sparsity_patterns
   use sparsity_patterns_meshes
   use solvers
-  use sparse_matrices_fields
-  use boundary_conditions, only: get_entire_boundary_condition, get_dg_surface_mesh
-  use quicksort
-  use unittest_tools
-  use boundary_conditions
   use state_fields_module
   use interpolation_module
-  use Vector_Tools
   use streamfunction
 
   implicit none
@@ -171,15 +172,6 @@ contains
       case("CVMaterialDensityCFLNumber")
         call calculate_matdens_courant_number_cv(state, d_field, dt=dt)
 
-      case("InterstitialVelocityCGCourantNumber")
-        call calculate_interstitial_velocity_cg_courant_number(state, d_field, dt=dt, option_path=option_path)
-
-      case("InterstitialVelocityCVCourantNumber")
-        call calculate_interstitial_velocity_cv_courant_number(state, d_field, dt=dt, option_path=option_path)
-
-      case("InterstitialVelocityDGCourantNumber")
-        call calculate_interstitial_velocity_dg_courant_number(state, d_field, dt=dt, option_path=option_path)
-        
       case("GridReynoldsNumber")
         call calculate_grid_reynolds_number(state, d_field)
 
@@ -221,9 +213,6 @@ contains
      
       case("DiffusiveDissipation")
         call calculate_diffusive_dissipation(state, d_field, stat)
-      
-      case("ViscousDissipation")
-        call calculate_viscous_dissipation(state, d_field, stat)
       
       case("RichardsonNumber")
         call calculate_richardson_number_new(state, d_field)
@@ -444,8 +433,7 @@ contains
        ele_CFL=>ele_nodes(CFL, ele)
        CFL_shape=>ele_shape(CFL, ele)
 
-       call compute_inverse_jacobian(ele_val(X,ele), ele_shape(X,ele), &
-            detwei=detwei, invJ=invJ)
+       call compute_inverse_jacobian(X, ele, detwei=detwei, invJ=invJ)
 
        ! Calculate the CFL number at each quadrature point.
        ! The matmul is the transpose of what I originally thought it should
@@ -530,8 +518,7 @@ contains
        ele_GRN=>ele_nodes(GRN, ele)
        GRN_shape=>ele_shape(GRN, ele)
 
-       call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), &
-            J=J, detwei=detwei)
+       call compute_jacobian(X, ele, J=J, detwei=detwei)
 
        ! Calculate the GRN number at each quadrature point.
        ! The matmul is as given by dham
@@ -619,8 +606,7 @@ contains
            ele_GPN=>ele_nodes(GPN, ele)
            GPN_shape=>ele_shape(GPN, ele)
 
-           call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), &
-            J=J, detwei=detwei)
+           call compute_jacobian(X, ele, J=J, detwei=detwei)
 
            ! Calculate the GPN number at each quadrature point.
            ! The matmul is as given by dham
@@ -1253,59 +1239,6 @@ contains
 
   end subroutine calculate_diffusive_dissipation
 
-  subroutine calculate_viscous_dissipation(state, viscous_dissipation_field, stat)
-    !!< Calculate (grad u):(grad u) or sum_ij(du_i/dx_j)(du_i/dx_j)
-    !!< this can be used to calculate viscous dissipation
-    !!< 2D at the moment
-    !!< it probably should be generalised 
-    !!< currently assumes a constant viscosity
-    
-    type(state_type), intent(in) :: state
-    type(scalar_field), intent(inout) :: viscous_dissipation_field
-    integer, intent(out), optional :: stat
-    
-    integer :: i
-    type(vector_field), pointer :: vel_field
-    type(vector_field), pointer :: positions
-    type(scalar_field), dimension(1) :: du_dx
-    type(scalar_field), dimension(1) :: dv_dx
-    type(scalar_field), dimension(1) :: du_dy
-    type(scalar_field), dimension(1) :: dv_dy
-
-    vel_field => extract_vector_field(state, "Velocity", stat)
-    positions => extract_vector_field(state, "Coordinate", stat)
-      
-    if(present_and_nonzero(stat)) then
-      return
-    end if
-        
-    call allocate(du_dx(1), vel_field%mesh, "DuDx")
-    call allocate(dv_dx(1), vel_field%mesh, "DvDx")
-    call allocate(du_dy(1), vel_field%mesh, "DuDy")
-    call allocate(dv_dy(1), vel_field%mesh, "DvDy")
-
-    call differentiate_field(extract_scalar_field(vel_field, 1), &
-     & positions, (/.true., .false./), du_dx)
-    call differentiate_field(extract_scalar_field(vel_field, 2), &
-     & positions, (/.true., .false./), dv_dx)
-    call differentiate_field(extract_scalar_field(vel_field, 1), &
-     & positions, (/.false., .true./), du_dy)
-    call differentiate_field(extract_scalar_field(vel_field, 2), &
-     & positions, (/.false., .true./), dv_dy)
-    
-    call zero(viscous_dissipation_field)
-    do i = 1, node_count(viscous_dissipation_field)
-      call set(viscous_dissipation_field, i, node_val(du_dx(1),i)**2   &
-       & + node_val(dv_dx(1),i)**2 + node_val(du_dy(1),i)**2 + node_val(dv_dy(1),i)**2)
-    end do  
-    
-    call deallocate(du_dx(1))
-    call deallocate(dv_dx(1))
-    call deallocate(du_dy(1))
-    call deallocate(dv_dy(1))
-
-  end subroutine calculate_viscous_dissipation
- 
   subroutine calculate_richardson_number_old(state, richardson_number_field)
     !!< Calculate the Richardson number field
     !!< Defined in Turner, Buoyancy Effects in Fluids, p.12 as
@@ -2394,528 +2327,6 @@ contains
 
    end subroutine calculate_matdens_courant_number_cv
 
-   subroutine calculate_interstitial_velocity_cg_courant_number(state, s_field, dt, option_path)
-     
-      !!< Calculate the interstitial velocity CG courant number field
-   
-      type(state_type), intent(in) :: state
-      type(scalar_field), intent(inout) :: s_field
-      real, intent(in), optional :: dt
-      character(len=*), intent(in), optional :: option_path
-      
-      ! local variables
-      type(vector_field), pointer :: U, X
-      real :: l_dt
-      integer :: ele, gi
-      ! Transformed quadrature weights.
-      real, dimension(ele_ngi(s_field, 1)) :: detwei
-      ! Inverse of the local coordinate change matrix.
-      real, dimension(mesh_dim(s_field), mesh_dim(s_field), ele_ngi(s_field, 1)) :: invJ
-      ! velocity/dx at each quad point.
-      real, dimension(mesh_dim(s_field), ele_ngi(s_field, 1)) :: CFL_q
-      ! current element global node numbers.
-      integer, dimension(:), pointer :: ele_cfl
-      ! local cfl matrix on the current element.
-      real, dimension(ele_loc(s_field, 1),ele_loc(s_field, 1)) :: CFL_mat
-      ! current CFL element shape
-      type(element_type), pointer :: CFL_shape
-      
-      type(scalar_field) :: porosity_theta 
-      character(len=OPTION_PATH_LEN) :: l_option_path
-
-      ewrite(1,*) 'Entering calculate_interstitial_velocity_cg_courant_number'
-
-      U => extract_vector_field(state, "Velocity")
-      X => extract_vector_field(state, "Coordinate")
-
-      if(present(dt)) then
-         l_dt = dt
-      else
-         call get_option("/timestepping/timestep",l_dt)
-      end if
-
-      if(present(option_path)) then
-         l_option_path = trim(option_path)
-      else
-         l_option_path = trim(s_field%option_path)//'/diagnostic'
-      end if
-
-      ! form the porosity value to include - this will allocate porosity_theta
-      call form_porosity_theta(porosity_theta, state, trim(l_option_path))
-
-      call zero(s_field)
-
-      do ele=1, element_count(s_field)
-         ele_CFL=>ele_nodes(s_field, ele)
-         CFL_shape=>ele_shape(s_field, ele)
-
-         call compute_inverse_jacobian(ele_val(X,ele), ele_shape(X,ele), &
-                                       detwei=detwei, invJ=invJ)
-
-         ! Calculate the CFL number at each quadrature point.
-         ! The matmul is the transpose of what I originally thought it should
-         ! be. I don't understand why it's this way round but the results
-         ! appear correct. -dham
-         CFL_q=ele_val_at_quad(U, ele)
-         do gi=1, size(detwei)
-            CFL_q(:,gi)=l_dt*matmul(CFL_q(:,gi), invJ(:,:,gi))
-         end do
-         
-         assert(ele_ngi(s_field, ele)==ele_ngi(porosity_theta, ele))
-         
-         ! Project onto the basis functions to recover CFL at each node.
-         CFL_mat=matmul(inverse(shape_shape(CFL_shape, CFL_shape, detwei*ele_val_at_quad(porosity_theta,ele))), &
-                        shape_shape(CFL_shape, CFL_shape, detwei*maxval(abs(CFL_q),1)))
-
-         ! CFL is inherently discontinuous. In the case where a continuous
-         ! mesh is provided for CFL, the following takes the safest option
-         ! of taking the maximum value at a node.
-         s_field%val(ele_CFL)=max(s_field%val(ele_CFL), sum(CFL_mat,2))
-
-      end do
-      
-      call deallocate(porosity_theta)
-      
-      ewrite_minmax(s_field)
-      
-      ewrite(1,*) 'Exiting calculate_interstitial_velocity_cg_courant_number'
-
-   end subroutine calculate_interstitial_velocity_cg_courant_number
-
-   subroutine calculate_interstitial_velocity_dg_courant_number(state, s_field, dt, option_path)
-      
-      !!< Calculate the interstitial velocity DG courant number field
-
-      type(state_type), intent(inout) :: state
-      type(scalar_field), intent(inout) :: s_field 
-      real, intent(in), optional :: dt
-      character(len=*), intent(in), optional :: option_path
-      
-      ! local variables
-      type(vector_field), pointer :: u, x
-      real :: l_dt
-      integer :: ele, stat
-
-      type(scalar_field) :: porosity_theta 
-      character(len=OPTION_PATH_LEN) :: l_option_path
-
-      ewrite(1,*) 'Entering calculate_interstitial_velocity_dg_courant_number'
-
-      u => extract_vector_field(state, "NonlinearVelocity",stat)
-      
-      if(stat.ne.0) then    
-         u => extract_vector_field(state, "Velocity",stat)
-         
-         if(stat.ne.0) then
-            FLExit('Failed to extract Velocity field for calculating interstitial_velocity_dg_courant_number')
-         end if
-      end if
-      
-      x => extract_vector_field(state, "Coordinate")
-
-      if(present(dt)) then
-         l_dt = dt
-      else
-         call get_option("/timestepping/timestep",l_dt)
-      end if
-
-      if(present(option_path)) then
-         l_option_path = trim(option_path)
-      else
-         l_option_path = trim(s_field%option_path)//'/diagnostic'
-      end if
-
-      ! form the porosity value to include - this will allocate porosity_theta
-      call form_porosity_theta(porosity_theta, state, trim(l_option_path))
-    
-      call zero(s_field)
-    
-      do ele = 1, element_count(s_field)
-         assert(ele_ngi(s_field, ele)==ele_ngi(porosity_theta, ele))
-         call interstitial_velocity_dg_courant_number_ele(s_field,x,u,ele,l_dt,ele_val_at_quad(porosity_theta,ele))
-      end do
-    
-      call deallocate(porosity_theta)
-    
-      ! the courant values at the edge of the halo are going to be incorrect
-      ! this matters when computing the max courant number
-      call halo_update(s_field)
-      
-      ewrite_minmax(s_field)
-      
-      ewrite(1,*) 'Exiting calculate_interstitial_velocity_dg_courant_number'
-
-   end subroutine calculate_interstitial_velocity_dg_courant_number
-
-   subroutine interstitial_velocity_dg_courant_number_ele(courant,x,u,ele,l_dt,porosity_theta_at_quad)
-      
-      !!< Calculate the DG courant number for the interstitial velocity for element ele.
-      
-      type(scalar_field), intent(inout) :: courant
-      type(vector_field), intent(in) :: x, u
-      real, intent(in) :: l_dt
-      integer, intent(in) :: ele
-      real, dimension(:) :: porosity_theta_at_quad
-      
-      real :: Vol, Flux, val
-      integer :: ni, ele_2, face, face_2
-      integer, dimension(:), pointer :: neigh
-      real, dimension(ele_ngi(u,ele)) :: detwei
-      real, dimension(face_ngi(u,1)) :: detwei_f
-      real, dimension(U%dim, face_ngi(U, 1)) :: normal, U_f_quad
-      real, dimension(face_ngi(U,1)) :: flux_quad
-      integer, dimension(:), pointer :: u_ele
-      real, dimension(ele_loc(u,ele)) :: Vals
-      
-      !Get element volume
-      call transform_to_physical(X, ele, detwei=detwei)
-      Vol = sum(detwei*porosity_theta_at_quad)
-    
-      !Get fluxes
-      Flux = 0.0
-      neigh=>ele_neigh(U, ele)
-      do ni = 1, size(neigh)
-         ele_2=neigh(ni)
-         face=ele_face(U, ele, ele_2)
-         if(ele_2<0.0) then
-            face_2 = face
-         else
-            face_2=ele_face(U, ele_2, ele)
-         end if
-       
-         U_f_quad =0.5*(face_val_at_quad(U, face)&
-              &     +face_val_at_quad(U, face_2))
-
-         call transform_facet_to_physical(X, face, &
-              &                          detwei_f=detwei_f,&
-              &                          normal=normal) 
-
-         Flux_quad = -sum(U_f_quad*normal,1)
-         Flux_quad = max(Flux_quad,0.0)
-
-         Flux = Flux + sum(Flux_quad*detwei_f)
-      end do
-
-      u_ele => ele_nodes(U,ele)
-
-      Val = Flux/Vol*l_dt
-      Vals = Val
-      call set(courant,U_ele,Vals)
-
-   end subroutine interstitial_velocity_dg_courant_number_ele
-
-   subroutine calculate_interstitial_velocity_cv_courant_number(state, s_field, dt, option_path)
-      
-      !!< Calculate the interstitial velocity CV courant number field
-
-      type(state_type), intent(inout) :: state
-      type(scalar_field), intent(inout) :: s_field 
-      real, intent(in), optional :: dt
-      character(len=*), intent(in), optional :: option_path
-      
-      ! local variables      
-      type(vector_field), pointer :: u, x
-      real :: l_dt
-      integer :: ele, iloc, oloc, gi, ggi, sele, face, ni, face_2
-
-      integer :: quaddegree
-      type(cv_faces_type) :: cvfaces
-      type(element_type) :: x_cvshape, x_cvbdyshape
-      type(element_type) :: u_cvshape, u_cvbdyshape
-      type(scalar_field), pointer :: cvmass
-      real, dimension(:,:), allocatable :: x_ele, x_ele_bdy
-      real, dimension(:,:), allocatable :: x_f, u_f, u_bdy_f
-      real, dimension(:,:), allocatable :: normal, normal_bdy
-      real, dimension(:), allocatable :: detwei, detwei_bdy
-      real, dimension(:), allocatable :: normgi
-      integer, dimension(:), pointer :: nodes, x_nodes, neigh
-      integer, dimension(:), allocatable :: nodes_bdy
-      real :: udotn, income
-      ! logical array indicating if a face has already been visited by the opposing node
-      logical, dimension(:), allocatable :: notvisited
-      
-      type(scalar_field) :: porosity_theta 
-      character(len=OPTION_PATH_LEN) :: l_option_path
-            
-      integer, dimension(:), allocatable :: courant_bc_type
-      type(scalar_field) :: courant_bc
-
-      type(vector_field) :: x_courant ! coordinates on s_field mesh
-      
-      ewrite(1,*) 'Entering calculate_interstitial_velocity_cv_courant_number'
-      
-      udotn = 0.0 
-
-      u=>extract_vector_field(state, "NonlinearVelocity")
-      x=>extract_vector_field(state, "Coordinate")
-
-      if(present(dt)) then
-         l_dt = dt
-      else
-         call get_option("/timestepping/timestep",l_dt)
-      end if
-
-      if(present(option_path)) then
-         l_option_path = trim(option_path)
-      else
-         l_option_path = trim(s_field%option_path)//'/diagnostic'
-      end if
-
-      ! form the porosity value to include - this will allocate porosity_theta
-      call form_porosity_theta(porosity_theta, state, trim(l_option_path))
-
-      call zero(s_field)
-
-      x_courant=get_coordinate_field(state, s_field%mesh)
-      
-      ! determine the cv mass matrix to use for the length scale
-      ! which will have included the porosity field
-       
-      allocate(cvmass)  
-      call allocate(cvmass, s_field%mesh, name="LocalCVMassWithPorosity")
-      call compute_cv_mass(x, cvmass, porosity_theta)
-       
-      call deallocate(porosity_theta)
-
-      ewrite_minmax(cvmass)    
-      
-      if(s_field%mesh%shape%degree /= 0) then
-
-        call get_option("/geometry/quadrature/controlvolume_surface_degree", &
-                      quaddegree, default=1)
-
-        cvfaces=find_cv_faces(vertices=ele_vertices(s_field,1), &
-                              dimension=mesh_dim(s_field), &
-                              polydegree=s_field%mesh%shape%degree, &
-                              quaddegree=quaddegree)
-
-        u_cvshape=make_cv_element_shape(cvfaces, u%mesh%shape)
-        x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape)
-
-        allocate(x_ele(x%dim,ele_loc(x,1)), &
-                x_f(x%dim, x_cvshape%ngi), &
-                u_f(u%dim, u_cvshape%ngi), &
-                detwei(x_cvshape%ngi), &
-                normal(x%dim, x_cvshape%ngi), &
-                normgi(x%dim))
-        allocate(notvisited(x_cvshape%ngi))
-
-        do ele=1, element_count(s_field)
-          x_ele=ele_val(x, ele)
-          x_f=ele_val_at_quad(x, ele, x_cvshape)
-          u_f=ele_val_at_quad(u, ele, u_cvshape)
-          nodes=>ele_nodes(s_field, ele)
-          x_nodes=>ele_nodes(x_courant, ele)
-
-          call transform_cvsurf_to_physical(x_ele, x_cvshape, &
-                                            detwei, normal, cvfaces)
-
-          notvisited=.true.
-
-          do iloc = 1, s_field%mesh%shape%loc
-
-            do face = 1, cvfaces%faces
-
-              if(cvfaces%neiloc(iloc, face) /= 0) then
-                oloc = cvfaces%neiloc(iloc, face)
-
-                do gi = 1, cvfaces%shape%ngi
-
-                  ggi = (face-1)*cvfaces%shape%ngi + gi
-
-                  ! have we been here before?
-                  if(notvisited(ggi)) then
-                    notvisited(ggi)=.false.
-
-                    normgi=orientate_cvsurf_normgi(node_val(x_courant, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
-
-                    udotn=dot_product(u_f(:,ggi), normgi)
-
-                    if(udotn>0.0) then
-                      income=0.0
-                    else
-                      income=1.0
-                    end if
-
-                    call addto(s_field, nodes(iloc), abs(udotn)*(1.-income)*detwei(ggi))
-                    call addto(s_field, nodes(oloc), abs(udotn)*income*detwei(ggi)) ! notvisited
-
-                  end if ! notvisited
-
-                end do
-
-              end if
-            end do
-          end do
-        end do
-
-        u_cvbdyshape=make_cvbdy_element_shape(cvfaces, u%mesh%faces%shape)
-        x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape)
-
-        allocate(x_ele_bdy(x%dim,face_loc(x,1)), &
-                u_bdy_f(u%dim, u_cvbdyshape%ngi), &
-                detwei_bdy(x_cvbdyshape%ngi), &
-                normal_bdy(x%dim, x_cvbdyshape%ngi))
-        allocate(nodes_bdy(face_loc(s_field, 1)))
-        allocate(courant_bc_type(surface_element_count(s_field)))
-
-        ! get the fields over the surface containing the bcs
-        call get_entire_boundary_condition(s_field, (/"internal"/), courant_bc, courant_bc_type)
-        
-        do sele=1,surface_element_count(s_field)
-        
-          if(courant_bc_type(sele)==1) cycle
-
-          ele = face_ele(x, sele)
-          x_ele = ele_val(x, ele)
-          x_ele_bdy = face_val(x, sele)
-          nodes_bdy=face_global_nodes(s_field, sele)
-
-          call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, &
-                                x_cvbdyshape, normal_bdy, detwei_bdy)
-
-          u_bdy_f=face_val_at_quad(u, sele, u_cvbdyshape)
-
-          do iloc = 1, s_field%mesh%faces%shape%loc
-
-            do face = 1, cvfaces%sfaces
-
-              if(cvfaces%sneiloc(iloc,face)/=0) then
-
-                do gi = 1, cvfaces%shape%ngi
-
-                  ggi = (face-1)*cvfaces%shape%ngi + gi
-                  
-                    udotn=dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
-
-                    if(udotn>0.0) then
-                      income=0.0
-                    else
-                      income=1.0
-                    end if
-
-                    call addto(s_field, nodes_bdy(iloc), abs(udotn)*(1.0-income)*detwei_bdy(ggi))
-
-                end do
-
-              end if
-
-            end do
-
-          end do
-
-        end do
-
-        deallocate(x_ele, x_f, u_f, detwei, normal, normgi)
-        deallocate(x_ele_bdy, u_bdy_f, detwei_bdy, normal_bdy)
-        deallocate(nodes_bdy)
-        deallocate(notvisited)
-        call deallocate(x_cvbdyshape)
-        call deallocate(u_cvbdyshape)
-        call deallocate(x_cvshape)
-        call deallocate(u_cvshape)
-        call deallocate(cvfaces)
-        call deallocate(courant_bc)
-
-      else
-
-        allocate(detwei(face_ngi(s_field, 1)), &
-                 u_f(u%dim, face_ngi(u, 1)), &
-                 normal(x%dim, face_ngi(s_field, 1)))
-
-        do ele = 1, element_count(s_field)
-
-          nodes=>ele_nodes(s_field, ele)
-          assert(size(nodes)==1)
-
-          neigh=>ele_neigh(s_field, ele)
-
-          do ni= 1, size(neigh)
-
-            face = ele_face(s_field, ele, neigh(ni))
-
-            if(neigh(ni)>0) then
-              ! internal face
-              face_2=ele_face(s_field, neigh(ni), ele)
-            else
-              ! external face
-              face_2 = face
-            end if
-
-            call transform_facet_to_physical(x, face, detwei_f=detwei, normal=normal)
-
-            ! if velocity is dg then use a trapezoidal rule (otherwise this will
-            ! all cancel out to give the face value)
-            u_f = 0.5*(face_val_at_quad(u, face) + face_val_at_quad(u, face_2))
-
-            call addto(s_field, nodes(1), &
-                 sum(sum(u_f*normal,1)*merge(1.0,0.0,.not.(sum(u_f*normal,1)<0.0))*detwei))
-
-          end do
-
-
-        end do
-
-      end if
-
-      s_field%val = s_field%val*l_dt/cvmass%val
-
-      call deallocate(x_courant)
-      
-      call deallocate(cvmass)
-      deallocate(cvmass)
-      
-      call halo_update(s_field)
-      
-      ewrite_minmax(s_field)
-            
-      ewrite(1,*) 'Exiting calculate_interstitial_velocity_cv_courant_number'
-
-   end subroutine calculate_interstitial_velocity_cv_courant_number
-
-   subroutine form_porosity_theta(porosity_theta, state, option_path)
-      
-      !!< Form the porosity theta averaged field determined by the input option path
-      
-      type(scalar_field), intent(inout) :: porosity_theta
-      type(state_type), intent(in) :: state
-      character(len=*) :: option_path
-
-      ! local variables
-      type(scalar_field), pointer :: porosity_old, porosity_new
-      character(len=OPTION_PATH_LEN) :: porosity_name
-      real :: porosity_theta_value
-      integer :: stat
-      
-      call get_option(trim(option_path)//'/porosity_field_name', &
-                      porosity_name, &
-                      default = 'Porosity')
-         
-      ! get the porosity theta value
-      call get_option(trim(option_path)//'/porosity_temporal_theta', &
-                      porosity_theta_value, &
-                      default = 0.0)
-         
-      porosity_new => extract_scalar_field(state, trim(porosity_name), stat = stat)                  
-  
-      if (stat /=0) then 
-         FLExit('Failed to extract Porosity from state from state to be used for forming the theta averaged porosity field')
-      end if
-         
-      porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name), stat = stat)
-
-      if (stat /=0) then 
-         FLExit('Failed to extract OldPorosity from state from state to be used for forming the theta averaged porosity field')
-      end if
-         
-      call allocate(porosity_theta, porosity_new%mesh)
-         
-      call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
-         
-      ewrite_minmax(porosity_theta)
-      
-   end subroutine form_porosity_theta
-   
    subroutine calculate_linear_momentum(state, momentum)
 
       type(state_type), intent(in) :: state
@@ -3284,10 +2695,7 @@ contains
      real, intent(in) :: density
 
      integer :: i, j, i_gi, ele, dim
-     type(element_type) :: augmented_shape
      type(element_type), pointer :: f_shape, shape, X_f_shape, X_shape
-     real, dimension(X%dim, X%dim, ele_ngi(X, face_ele(X, face))) :: invJ
-     real, dimension(X%dim, X%dim, face_ngi(X, face)) :: f_invJ  
      real, dimension(face_ngi(X, face)) :: detwei
      real, dimension(X%dim, face_ngi(X, face)) :: normal, normal_shear_at_quad, X_ele
      real, dimension(X%dim) :: abs_normal
@@ -3303,30 +2711,9 @@ contains
      f_shape => face_shape(U, face)     
      shape   => ele_shape(U, ele)     
      
-     ! generate shape functions that include quadrature points on the face required
-     ! check that the shape does not already have these first
-     assert(shape%degree == 1)
-     if(associated(shape%dn_s)) then
-        augmented_shape = shape
-        call incref(augmented_shape)
-     else
-        augmented_shape = make_element_shape(shape%loc, shape%dim, shape%degree, &
-             & shape%quadrature, quad_s = f_shape%quadrature)
-     end if
+     call transform_facet_to_physical(X, face, shape, ele_dshape_at_face_quad, &
+                                      detwei_f = detwei, normal = normal)
     
-     ! assumes that the jacobian is the same for all quadrature points
-     ! this is not valid for spheres!
-     call compute_inverse_jacobian(ele_val(X, ele), ele_shape(X, ele), invj = invJ)
-     assert(ele_numbering_family(shape) == FAMILY_SIMPLEX)
-     f_invJ = spread(invJ(:, :, 1), 3, size(f_invJ, 3))
-      
-     call transform_facet_to_physical(X, face, detwei_f = detwei, normal = normal)
-    
-     ! Evaluate the volume element shape function derivatives at the surface
-     ! element quadrature points
-     ele_dshape_at_face_quad = eval_volume_dshape_at_face_quad(augmented_shape, &
-          & local_face_number(X, face), f_invJ)
-
      ! Calculate grad U at the surface element quadrature points 
      do i=1, dim
         do j=1, dim
@@ -3362,8 +2749,6 @@ contains
      ! add to bed_shear_stress field
      call addto(bed_shear_stress, face_global_nodes(bed_shear_stress,face), normal_shear_at_loc)
 
-     call deallocate(augmented_shape)
-          
    end subroutine calculate_bed_shear_stress_ele_cg
 
    subroutine calculate_bed_shear_stress_ele_dg(bss, ele, X, grad_U, visc, density)

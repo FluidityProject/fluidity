@@ -30,6 +30,7 @@
 subroutine test_geostrophic_pressure
 
   use field_options
+  use elements
   use fields
   use fldebug
   use geostrophic_pressure

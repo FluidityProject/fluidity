@@ -72,6 +72,14 @@ module futils
 #endif
   end type integer_vector
 
+  private
+
+  public :: real_format_len, real_format, nullify, real_vector, real_matrix,&
+       integer_vector, int2str, present_and_true, present_and_false, present_and_zero,&
+       present_and_nonzero, present_and_nonempty, free_unit, nth_digit, count_chars,&
+       multiindex, file_extension_len, file_extension, trim_file_extension_len,&
+       trim_file_extension, random_number_minmax, int2str_len, starts_with, tokenize 
+
 contains
   
   subroutine nullify_integer_vector(vector)
@@ -289,6 +297,23 @@ contains
     end do
   end function multiindex
 
+  pure function trim_file_extension_len(filename) result(length)
+    !!< Return the length of the supplied filename minus the file extension
+
+    character(len = *), intent(in) :: filename
+
+    integer :: length
+
+    do length = len_trim(filename), 1, -1
+      if(filename(length:length) == ".") then
+        exit
+      end if
+    end do
+
+    length = length - 1
+
+  end function trim_file_extension_len
+
   pure function file_extension_len(filename) result(length)
     !!< Return the length of the file extension of the supplied filename
     !!< (including the ".")
@@ -311,23 +336,6 @@ contains
     file_extension = filename(len(filename) - len(file_extension) + 1:)
 
   end function file_extension
-
-  pure function trim_file_extension_len(filename) result(length)
-    !!< Return the length of the supplied filename minus the file extension
-
-    character(len = *), intent(in) :: filename
-
-    integer :: length
-
-    do length = len_trim(filename), 1, -1
-      if(filename(length:length) == ".") then
-        exit
-      end if
-    end do
-
-    length = length - 1
-
-  end function trim_file_extension_len
 
   function trim_file_extension(filename)
     !!< Trim the file extension from the supplied filename

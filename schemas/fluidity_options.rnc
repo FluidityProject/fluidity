@@ -5,16 +5,13 @@ include "diagnostic_algorithms.rnc"
 include "input_output.rnc"
 include "solvers.rnc"
 include "stabilisation.rnc"
-include "reduced_model.rnc"
 include "mesh_options.rnc"
 include "physical_parameters.rnc"
 include "prognostic_field_options.rnc"
 include "prescribed_field_options.rnc"
 include "spatial_discretisation.rnc"
 include "temporal_discretisation.rnc"
-include "embedded_models.rnc"
 include "flredecomp.rnc"
-include "porous_media.rnc"
 include "multiphase_interaction.rnc"
 include "equation_of_state.rnc"
 
@@ -299,8 +296,8 @@ start =
                      empty
                   }
                ),
-               ## Enable to write detector output in binary format
-               element binary_output {
+               ## Enable to write detector output in ascii format. This output format will not work in parallel, if not enabled format defaults to binary.
+               element ascii_output {
                   comment
                }?,
                ## Enable to let detectors move with the domain if mesh_movement is enabled.
@@ -328,6 +325,92 @@ start =
                }?
             }?
          },
+         ## Particle options. Particles, like Lagrangian detectors, move with a specified velocity field.
+         ## In addition, particles can carry attributes, being properties of the particles. These attributes
+         ## can be constant, or based on a python expression that depends on other attribute values, at the end
+         ## of the previous timestep, or field values interpolated at the particle location. Planned future
+         ## functionality includes the ability to spawn and delete particles to ensure sufficient particles are
+         ## present in every region, and the ability to interpolate from particles back to the (Eulerian) mesh.
+         element particles {
+            (
+               ## Particles groups containing multiple particle arrays or subgroups. The particle group specifies
+               ## which velocity field is used, as well as attributes carried and (eventually) spawning
+               ## and deleting options.
+               element particle_group {
+                  attribute name { xsd:string },
+                  element velocity_field {
+                     attribute name { xsd:string }
+                  },
+                  ## Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
+                  ## and carry the same attributes. Subgroups can have different initial positions specified via a python
+                  ## function of from a file.
+                  element particle_subgroup {
+                     attribute name { xsd:string },
+                     ## The number of particles prescribed by the python function.
+                     element number_of_particles {
+                        integer
+                     },
+                     (
+                        ##Initial position of particles
+                        element initial_position {
+                           ## Python function prescribing dimensional vector input. Functions should be of the form:
+                           ##
+                           ##  def val(t):
+                           ##     # Function code
+                           ##     return # Return value
+                           ##
+                           ## The return value must have length number_of_particles.
+                           ##
+                           ## *** IMPORTANT NOTE ***
+                           ##
+                           ## The t argument is for future use only - currently particle locations are only set at simulation start.
+                           element python {
+                              python_code
+                           }|
+                           ## File containing the particle positions in binary form
+                           element from_file {
+                              attribute file_name { xsd:string },
+                              ## The format of the input file containing field data.
+                              element format {
+                                 element string_value {
+                                    "binary"
+                                 }
+                              }
+                           }
+                        } 
+                     ),
+                     (
+                        ##Define particle attributes
+                        element attributes {
+                           element attribute {
+                              attribute name { xsd:string },
+                              generic_particle_attribute_choice
+                           }+
+                        }?
+                     )
+                  }+
+               }+
+            )*,
+            (
+               ## By default Fluidity will fail if a particle has left the domain.
+               element fail_outside_domain {
+                  empty
+               }|
+               ## Enable to write NaN values to particle output if a particle has left the domain.
+               element write_nan_outside_domain {
+                  empty
+               }
+            ),
+            ## Enable to write particle output in ascii format
+            element ascii_output {
+               comment
+            }?,
+            ## Enable to let particles move with the domain if mesh_movement is enabled.
+            element move_with_mesh {
+               empty
+            }?,
+            lagrangian_timestepping
+         }?,
          ## Options dealing with time discretisation
          element timestepping {
             ## Current simulation time. At the start of the simulation this
@@ -1102,7 +1185,8 @@ start =
                         element diagnostic {
                            velocity_mesh_choice,
                            (
-                              sediment_concentration_dependent_viscosity_algorithm
+                              sediment_concentration_dependent_viscosity_algorithm|
+                              tensor_python_diagnostic_algorithm
                            ),
                            diagnostic_tensor_field
                         }
@@ -1472,149 +1556,15 @@ start =
             scalar_field_choice*,
             vector_field_choice*,
             tensor_field_choice*,
-            ## Parameters required to model spontaneous electrical potentials in porous media.
-            element electrical_properties {
-               (
-                  ## Specify electrical conductivity of fluid (S/m).
-                  ## This assumes that salinity and temperature are not used.
-                  element conductivity {real}|
-                  ## Calculate conductivity from fluid salinity
-                  element conductivity_from_salinity {
-                     empty
-                  }|
-                  ## Calculate conductivity from fluid salinity and temperature
-                  element conductivity_from_salinity_and_temperature {
-                     empty
-                  }
-               ),
-               ## Various coupling coefficients associated with spontaneous potentials.
-               element coupling_coefficients {
-                  ## Electrokinetic coupling coefficient (V/Pa).
-                  element scalar_field {
-                     attribute rank { "0" },
-                     attribute name { "Electrokinetic" },
-                     (
-                        element prescribed {
-                           velocity_mesh_choice,
-                           prescribed_scalar_field_no_adapt
-                        }|
-                        element diagnostic {
-                           velocity_mesh_choice,
-                           scalar_python_diagnostic_algorithm,
-                           diagnostic_scalar_field_no_adapt
-                        }  
-                     )
-                  }?,
-                  ## Thermoelectric coupling coefficient (V/K).
-                  element scalar_field {
-                     attribute rank { "0" },
-                     attribute name { "Thermoelectric" },
-                     (
-                        element prescribed {
-                           velocity_mesh_choice,
-                           prescribed_scalar_field_no_adapt
-                        }|
-                        element diagnostic {
-                           velocity_mesh_choice,
-                           scalar_python_diagnostic_algorithm,
-                           diagnostic_scalar_field_no_adapt
-                        }  
-                     )
-                  }?,
-                  ## Electrochemical coupling coefficient (V.L/mol).
-                  element scalar_field {
-                     attribute rank { "0" },
-                     attribute name { "Electrochemical" },
-                     (
-                        element prescribed {
-                           velocity_mesh_choice,
-                           prescribed_scalar_field_no_adapt
-                        }|
-                        element diagnostic {
-                           velocity_mesh_choice,
-                           scalar_python_diagnostic_algorithm,
-                           diagnostic_scalar_field_no_adapt
-                        }  
-                     )
-                  }?
-               },
-               ## Option to do a saturation distribution search which looks for the
-               ## saturation distribution which gives the best fit of electrical potential
-               ## to measured data
-               element Saturation_Distribution_Search {
-                 ## Here we specify the extents of the search space in x, y and z directions:
-                  element search_criteria_horizontal_well {
-                    ## The minimum x-coordinate of the test space
-                     element x_min {real},
-                    ## The maximum x-coordinate of the test space
-                     element x_max {real},
-                    ## The initial width of the segments, positioned symmetrically opposite the borehole
-                     element width {real},
-                    ## Option to search for the optimum width
-                     element search_for_width { comment }?,
-                    ## The minimum y-coordinate of the test space
-                     element y_min {real},
-                    ## The maximum y-coordinate of the test space
-                     element y_max {real},
-                    ## The minimum z-coordinate of the test space,
-                    ## usually equal to the initial position of the water front
-                     element z_min {real},
-                    ## x-coordinate of the borehole
-                     element borehole_x {real},
-                    ## z-coordinate of the borehole
-                     element borehole_z {real},
-                    ## The maximum z-coordinate of the test space,
-                    ## probably equal to the location of the borehole
-                     element z_max {real},
-                    ## The number of sections into which to divide the space
-                     element sections {integer},
-                    ## Initial step length for the Hooke and Jeeves search
-                     element initial_step_length {real},
-                    ## Set initial base_point, perhaps make this optional later.
-                    ## Starts at the bottom for vertical well!!
-                     element initial_base_point {real_vector}?,
-                    ## filename for target file (real potential curve)
-                     element target_filename {string}
-                  }|
-                  element search_criteria_vertical_well {
-                    ## The minimum x-coordinate of the test space
-                     element x_min {real},
-                    ## The maximum x-coordinate of the test space
-                     element x_max {real},
-                    ## The initial width of the segments, positioned symmetrically opposite the borehole
-                     element width {real},
-                    ## Option to search for the optimum width
-                     element search_for_width { comment }?,
-                    ## The minimum y-coordinate of the test space,
-                    ## usually equal to the initial position of the water front
-                     element y_min {real},
-                    ## The maximum y-coordinate of the test space,
-                    ## probably equal to the location of the borehole
-                     element y_max {real},
-                    ## The minimum z-coordinate of the test space
-                     element z_min {real},
-                    ## The maximum z-coordinate of the test space
-                     element z_max {real},
-                    ## x-coordinate of the borehole
-                     element borehole_x {real},
-                    ## y-coordinate of the borehole
-                     element borehole_y {real},
-                    ## The number of sections into which to divide the space
-                     element sections {integer},
-                    ## Initial step length for the Hooke and Jeeves search
-                     element initial_step_length {real},
-                    ## Set initial base_point, perhaps make this optional later
-                     element initial_base_point {real_vector}?,
-                    ## filename for target file (real potential curve)
-                     element target_filename {string}
-                  }
-               }?
-            }?,
+            population_balance*,
             ## Phase interaction options for Fluidity's multiphase flow model
             element multiphase_properties {
                comment,
-               element particle_diameter { 
-                     real 
+               (element particle_diameter { real }|
+               element particle_diameter_use_scalar_field { anystring })?,
+               element apply_diameter_cap {
+                  # default value 1.0E-12
+                  element lower_cap { real }
                }?,
                ## If this is the fluid phase, 
                ## the effective conductivity is required 
@@ -1631,103 +1581,6 @@ start =
             sediment?
          }+,
          mesh_adaptivity_options?,
-         ## Information needed are a set of coordinates and 
-         ## radius for each particle.
-         element imported_solids{       
-            (  element solid_type{
-                  attribute name {"cylinders"},
-                  element cylinder_width{real}
-               }|
-               element solid_type{
-                  attribute name {"spheres"}
-               }|
-               element solid_type{
-                  attribute name {"small_spheres"}
-               }|
-               element solid_type{
-                  attribute name {"external_2D_mesh"},
-                  (
-                     element mapping_type{
-                        attribute name{"brute_force"},
-                        empty
-                     }|
-                     element mapping_type{
-                        attribute name{"fastest_n_to_n"},
-                        ## As a rule of thumb, (Xmax-Xmin)/(number of bins_x) should be
-                        ## greater than (at least twice) the maximum element size
-                        ## of the fluid mesh (in the region where the particle is).
-                        ## Same thing applies in Y and Z
-                        ## directions. Note that in some cases,
-                        ## choosing the maximum element size for the
-                        ## whole fluid mesh
-                        ## might prove to slow down the mapping a
-                        ## bit.(bins might not have the
-                        ## optimal size)
-                        element max_number_of_bins_x{integer},
-                        element max_number_of_bins_y{integer},
-                        element max_number_of_bins_z{integer},
-                        element ntry {integer}
-                     }
-                  ),
-                  element volume_checking_tol{real}
-               }|
-               element solid_type{
-                  attribute name {"external_3D_mesh"},
-                  (
-                     element mapping_type{
-                        attribute name{"brute_force"},
-                        empty
-                     }|
-                     element mapping_type{
-                        attribute name{"fastest_n_to_n"},
-                        ## As a rule of thumb, (Xmax-Xmin)/(number of bins_x) should be
-                        ## greater than (at least twice) the maximum element size
-                        ## of the fluid mesh (in the region where the particle is).
-                        ## Same thing applies in Y and Z
-                        ## directions. Note that in some cases,
-                        ## choosing the maximum element size for the whole fluid mesh 
-                        ## might prove to slow down the mapping a
-                        ## bit.(bins might not have the
-                        ## optimal size)
-                        element max_number_of_bins_x{integer},
-                        element max_number_of_bins_y{integer},
-                        element max_number_of_bins_z{integer},
-                        element ntry {integer}
-                     }
-                  ),
-                  element volume_checking_tol{real}
-               }
-            ),
-            input_solid_dynamics_choice,
-            element number_of_particles {integer},
-            element position_script{python_code}?,
-            element radius_script{python_code}?,
-            element translation_velocity_script{python_code}?,
-            element angular_velocity_script{python_code}?,
-            element buoyancy {empty}?,
-            element oneway {empty}?,
-            element solid_concentration_max{real},
-            element solid_absorption_factor{real},
-            element solid_density{real},
-            element use_multimaterials{empty}?,
-            element calculate_total_volume{empty}?,
-            element create_buffer{
-               element buffer{real},
-               element solid_concentration_min{real},
-               element include_in_drag{empty}?,
-               element profile1{real},
-               element profile2{real},
-               element profile3{real,
-                  element constant_profile{real}
-               }
-            }?,
-            element visualize_solidfluid{empty}?,
-            element use_particle_cfl{empty}?,
-            element calculate_drag{empty}?,
-            element output_drag{empty}?,
-            element output_particle_vtus{empty}?         
-         }?,
-   
          ## turbine model
          element turbine_model {
            ## specifies a turbine
@@ -1806,13 +1659,490 @@ start =
          }?, 
          biology?,
          forcing?,
-         reduced_model?,
-         porous_media_model?,
-         embedded_models?,
          flredecomp?,
-         multiphase_interaction?
+         multiphase_interaction?,
+         element population_balance_continuous_phase_name{ string }?
       }
    )      
+
+population_balance = 
+   (
+      ##
+      element population_balance {
+         (
+            ## Determine initial weighted_abscissa and weights using the PD algorithm and the 
+            ## initial conditions set in the diagnostic moment fields.
+            ## 
+            ## In this case it does not matter what is set in the weighted_abscissa and weights
+            ## fields initial conditions option
+            element calculate_initial_conditions_from_moments {
+               empty
+            }|
+            ## Use initial conditions set in the weighted_abscissa and weights prognostic
+            ## fields
+            ## 
+            ## In this case it does not matter what is set in the moment field initial conditions 
+            ## options
+            element use_prognostic_field_initial_conditions {
+               empty
+            }
+         ),
+         attribute name { xsd:string },
+         element abscissa {
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Abscissa_0" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Abscissa_1" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { xsd:string },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            }*
+         },
+         element weights {
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Weight_0" },
+               ## Field type
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Weight_1" },
+               ## Field type
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { xsd:string },
+               ## Field type
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }
+            }*
+         },
+         element weighted_abscissa {
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "WeightedAbscissa_0" },
+               ## Field type
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "WeightedAbscissa_1" },
+               ## Field type
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { xsd:string },
+               ## Field type
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }
+            }*
+         },
+         ## This option only works if you are using a continuous mesh for the population balance scalar fields.
+         ## A DG mesh will use inverse mass calculated at element level.
+         ## In the population balance DQMOM algorithm all sources for the 
+         ## advection-diffusion equations are calculated at the quadrature points first 
+         ## and then interpolated back to the nodal points. 
+         ## For a continuous mesh, this interpolation is made by inverting the mass matrix. 
+         ## Mass lumping is fairly quick and can be used with 1st order continuous meshes. 
+         ## But the error is high for higher order continuous meshes and full mass matrix should be used.
+         element adv_diff_source_term_interpolation {
+            ## The mass matrix is lumped to obtain source fields at nodal points.
+            element use_mass_lumping { empty } |
+            ## Full mass marix is used and the linear system is solved iteratively to obtain source fields at nodal points.
+            element use_full_mass_matrix {
+               ## This block specifies the solver options for solving the linear system to interpolate advection-diffusion source terms at nodal points.
+               element solver {
+                  linear_solver_options_asym_scalar
+               }
+            }
+         },
+         element moments {
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Moment_0" },
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  (
+                     ## Initial condition for WholeMesh
+                     ##
+                     ## Only specify one condition if not using mesh regions.
+                     ## Otherwise select other initial_condition option, specify region_ids
+                     ## and distinct names.  Then add extra intial conditions for other regions.
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     }|
+                     ## Multiple initial_conditions are allowed if specifying
+                     ## different values in different
+                     ## regions of the mesh (defined by region_ids).  In this case
+                     ## each initial_condition
+                     ## requires a distinct name for the options dictionary.
+                     element initial_condition {
+                        attribute name { string },
+                        region_ids?,
+                        input_choice_initial_condition_real
+                     }
+                  )+,
+                  diagnostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Moment_1" },
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  (
+                     ## Initial condition for WholeMesh
+                     ##
+                     ## Only specify one condition if not using mesh regions.
+                     ## Otherwise select other initial_condition option, specify region_ids
+                     ## and distinct names.  Then add extra intial conditions for other regions.
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     }|
+                     ## Multiple initial_conditions are allowed if specifying
+                     ## different values in different
+                     ## regions of the mesh (defined by region_ids).  In this case
+                     ## each initial_condition
+                     ## requires a distinct name for the options dictionary.
+                     element initial_condition {
+                        attribute name { string },
+                        region_ids?,
+                        input_choice_initial_condition_real
+                     }
+                  )+,
+                  diagnostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Moment_2" },
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  (
+                     ## Initial condition for WholeMesh
+                     ##
+                     ## Only specify one condition if not using mesh regions.
+                     ## Otherwise select other initial_condition option, specify region_ids
+                     ## and distinct names.  Then add extra intial conditions for other regions.
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     }|
+                     ## Multiple initial_conditions are allowed if specifying
+                     ## different values in different
+                     ## regions of the mesh (defined by region_ids).  In this case
+                     ## each initial_condition
+                     ## requires a distinct name for the options dictionary.
+                     element initial_condition {
+                        attribute name { string },
+                        region_ids?,
+                        input_choice_initial_condition_real
+                     }
+                  )+,
+                  diagnostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Moment_3" },
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  (
+                     ## Initial condition for WholeMesh
+                     ##
+                     ## Only specify one condition if not using mesh regions.
+                     ## Otherwise select other initial_condition option, specify region_ids
+                     ## and distinct names.  Then add extra intial conditions for other regions.
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     }|
+                     ## Multiple initial_conditions are allowed if specifying
+                     ## different values in different
+                     ## regions of the mesh (defined by region_ids).  In this case
+                     ## each initial_condition
+                     ## requires a distinct name for the options dictionary.
+                     element initial_condition {
+                        attribute name { string },
+                        region_ids?,
+                        input_choice_initial_condition_real
+                     }
+                  )+,
+                  diagnostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { xsd:string },
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  (
+                     ## Initial condition for WholeMesh
+                     ##
+                     ## Only specify one condition if not using mesh regions.
+                     ## Otherwise select other initial_condition option, specify region_ids
+                     ## and distinct names.  Then add extra intial conditions for other regions.
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     }|
+                     ## Multiple initial_conditions are allowed if specifying
+                     ## different values in different
+                     ## regions of the mesh (defined by region_ids).  In this case
+                     ## each initial_condition
+                     ## requires a distinct name for the options dictionary.
+                     element initial_condition {
+                        attribute name { string },
+                        region_ids?,
+                        input_choice_initial_condition_real
+                     }
+                  )+,
+                  diagnostic_scalar_field
+               }
+            }*
+         },
+         element statistics {
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Mean" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            }?,
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "StandardDeviation" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            }?,
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Skew" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            }?,
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "SauterMeanDia" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            }?,
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "MeanDia10" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            }?
+         },   
+
+         ## Source terms for the population balance equation like growth, 
+         ## breakage, aggegation and internal dispersion
+         element population_balance_source_terms {
+            ## Growth term in the internal coordinate space
+            element growth{ 
+               ## Enter the growth degree (r) for the power-law growth G(\xi)=\xi^{r}
+               element power_law_growth{ real }
+            }?,
+            ## Dispersion coefficient D. Currently it only works for constant dispersion and can't handle dispersion varying with internal coordinate
+            element internal_dispersion{ real }?,
+            ##
+            element aggregation{
+               ##
+               element aggregation_frequency{
+                  ##
+                  element constant_aggregation{ real }|
+                  ## aggregation frequency is given by \beta_{alpha gamma} = \xi_{alpha}^3 + \xi_{gamma}^3
+                  element hydrodynamic_aggregation{ empty }|
+                  ## aggregation frequency is given by \beta_{alpha gamma} = \beta_o (\xi_{alpha} + \xi_{gamma}). Enter the value of constant \beta_o below
+                  element sum_aggregation{ real }|
+                  ## 
+                  element laakkonen_2007_aggregation{ 
+                     ## enter the value of the coefficient C5 in Laakkonen's aggregation rate expression. default: 0.88  
+                     element C5{ real }? 
+                  }
+               }
+            }?,
+            ##
+            element breakage{
+               ##
+               element breakage_frequency{
+                  ##
+                  element constant_breakage{ real }|
+                  ## breakage frequency is given by a_{alpha} = p * \xi_{alpha}^r
+                  element power_law_breakage{
+                     ## coefficient p in breakage frequency a_{alpha} = p * \xi_{alpha}^r
+                     element coefficient{ real },
+                     ## degree r in breakage frequency a_{alpha} = p * \xi_{alpha}^r
+                     element degree{ real }
+                  }|
+                  element laakkonen_breakage{ empty }
+               },
+               element distribution_function{
+                  ##
+                  element symmetric_fragmentation{ empty }|
+                  ## McCoy and Madras (2003) used P(v|v') = 2/v' for v<v' and 0 otherwise, where v stands for volume. 
+                  ## When written in terms of particle diameter, this converts to P(x|x')=(6x^2)/x'^3 for x<x' and 0 otherwise.
+                  element mcCoy_madras_2003{ empty } |
+                  element laakkonen_2007{ empty }
+               }
+            }?
+         },
+
+         ## At each vertex a linear system is solved to determine source terms
+         ## for the abscissa and weight transport equations. This requires inversion
+         ## of a matrix that has terms that are a function of the weighted abscissa.
+         ## If any two abscissa happen to lie very close to one another this can cause
+         ## this matrix to be ill-conditioned which can cause large errors or solver
+         ## failures when attempting to invert the matrix. There several options for 
+         ## evading this problem:
+         ##
+         ## (a) Set the abscissa and weight source terms to zero at the offending vertex.
+         ## (b) Perturbate the weighted absciss used to construct the matrix until the 
+         ## matrix is no longer ill conditioned and can be inverted.
+         ## (c) Use the source terms of neighbouring cells (not implemented)
+         element ill_conditioned_matrices {
+            ## The required condition number of the matrix. Recommended value of 1e-12
+            element required_condition_number{ real },
+            (
+               ## This is a better option when much of the domain has a minimum 0'th moment
+               element set_source_to_zero { empty }|
+               element perturbate{
+                  ## The amount to perturbate the weighted abscissa. The values are 
+                  ## iteratively perturbated by rand(-1,1)*perturbation until the matrix
+                  ## exceeds the required condition number. Too low a value can cause
+                  ## very long run times but a higher value will lead to larger errors.
+                  ## After every ten perturbations at any one grid location a message is 
+                  ## printed to the log file noting the difficulties in solving the linear 
+                  ## system.
+                  ## Recommended value of 1e-7
+                  element perturbation{ real }
+               }|
+               ## Do not check for ill-conditioning of matrix A
+               element do_nothing{ empty }
+            )
+         },
+         ## weights of zero can cause instabilities. It is recommended that a minimum
+         ## weight of approx 1e-10 is used.
+         element minimum_weight{ real },
+         ## In case the user wants to apply a minimum cap for weighted abscissas. Not Recommended. 
+         element minimum_weighted_abscissa{ real }?,
+         ## Scaling factor to be used for the Sauter Mean Diameter / Mean Diameter calculated in the 
+         ## statistics. It is useful in a non-dimensional implementation of the PBE.
+         element scaling_factor_Dia{ real }?,
+         ## This is the submerged specific gravity, R, of this population balance
+         ## as a function of internal coordinate, Z. 
+         ## It will be used in the equation of state.
+         ## 
+         ## R(Z) = (rho_c(Z) - rho_a)/(rho_a)
+         ## 
+         ## Where: rho_c(Z) is the density of the dispersed phase and rho_a is 
+         ## the ambient fluid density
+         ##
+         ## Must be given as a python function in the form:
+         ## 
+         ##  def R(Z): 
+         ##     # Function code
+         ##     return # Return value of R
+         element submerged_specific_gravity {
+            python_code
+         }?,
+         element output_abscissa_and_weights{ empty }?,
+         element output_sources{ empty }?,
+         ## This will apply all source terms for the weights and weighted_abscissa scalar 
+         ## fields as absorption terms.
+         element apply_source_as_absorption{ 
+            ## For including a sponge region for weights and weighted_abscissas (which are 
+            ## applied as absorption terms) a sponge field is defined which will be analogous to 
+            ## an absorption term. This field is zero everywhere except where a large absorption
+            ## is present. 
+            element include_sponge_region{
+               ## Name of the scalar field which is the sponge scalar field. Note: This sponge field must
+               ## be defined the the same material phase.
+               element sponge_scalar_field_name{ string }
+            }?         
+         }?,
+         ## This will apply selected source terms for the weights and weighted_abscissa scalar 
+         ## fields as absorption terms wherever the source is negative.
+         element apply_source_as_absorption_for_negative_source_only{
+            ## For including a sponge region for weights and weighted_abscissas (which are 
+            ## applied as absorption terms) a sponge field is defined which will be analogous to 
+            ## an absorption term. This field is zero everywhere except where a large absorption
+            ## is present. 
+            element include_sponge_region{
+               ## Name of the scalar field which is the sponge scalar field. Note: This sponge field must
+               ## be defined the the same material phase.
+               element sponge_scalar_field_name{ string }
+            }?
+         }?
+      }
+   )
 
 sediment = 
    (
@@ -1943,7 +2273,7 @@ sediment =
                element diameter {
                   real
                }?,
-               ## Set porosity to use. Default is 0.3. 1.0 is a sold material.
+               ## Set porosity to use. Default is 0.3. 1.0 is a solid material.
                element bed_porosity {
                   real
                }?,
@@ -2164,6 +2494,7 @@ prognostic_density_field =
       prognostic_scalar_stat_options,
       scalar_convergence_options,
       prognostic_detector_options,
+      prognostic_particle_options,
       scalar_steady_state_options,
       adaptivity_options_prognostic_scalar_field,
       interpolation_algorithm_scalar,
@@ -2256,18 +2587,20 @@ geometry =
          element disable_geometric_data_cache {
             empty
          }?,
-         ## Options specifying that the problem is on the surface of the sphere.
+         ## Options specifying that the problem is on the surface of the n-sphere.
          element spherical_earth {
-            (
-               element linear_mapping {
-                  empty
-               }|
-               ## Enabling this option approximates the curvature of the Earth as an
-               ## nth degree polynomial, where n is the polynomial degree of the coordinate mesh.
-               element superparametric_mapping {
-                  empty
-               }
-            )
+            ## Enabling this option approximates the curvature of the Earth as an
+            ## nth degree polynomial, where n is the polynomial degree of the coordinate mesh.
+            element superparametric_mapping {
+               empty
+            }?,
+            ## The simplicial elements (as defined by the CoordinateMesh) are bent on the n-sphere
+            ## using an analytical expression (as opposed to superparametric where it's approximated
+            ## by a higher order polynomial), the derivatives are calculated by taking the analytical
+            ## derivative on the gauss points.
+            element analytical_mapping {
+               empty
+            }?
          }?,
          ## Options specifying the top surface and bottom of the domain
          ## used in various ocean calculations.
@@ -2383,6 +2716,7 @@ diagnostic_scalar_field =
       diagnostic_scalar_stat_options,
       scalar_convergence_options,
       diagnostic_detector_options,
+      diagnostic_particle_options,
       scalar_steady_state_options,
       adaptivity_options_scalar_field,
       recalculation_options?,
@@ -2394,7 +2728,8 @@ diagnostic_scalar_field_no_adapt =
    (
       diagnostic_output_options,
       diagnostic_scalar_stat_options,
-      diagnostic_detector_options
+      diagnostic_detector_options,
+      diagnostic_particle_options
    )
 
 # Default child of diagnostic scalar field
@@ -2611,24 +2946,30 @@ velocity_components_choice =
       (
          element align_bc_with_cartesian {
             element x_component {
-               input_choice_real_bc_component
+               input_choice_real_bc_component,
+               bc_smoothing
             }?,
             element y_component {
-               input_choice_real_bc_component
+               input_choice_real_bc_component,
+               bc_smoothing
             }?,
             element z_component {
-               input_choice_real_bc_component
+               input_choice_real_bc_component,
+               bc_smoothing
             }?
          }|
          element align_bc_with_surface {
             element normal_component {
-               input_choice_real_plus_field
+               input_choice_real_plus_field,
+               bc_smoothing
             }?,
             element tangent_component_1 {
-               input_choice_real_plus_field
+               input_choice_real_plus_field,
+               bc_smoothing
             }?,
             element tangent_component_2 {
-               input_choice_real_plus_field
+               input_choice_real_plus_field,
+               bc_smoothing
             }?,
             rotation_matrix_components,
             ## this will calculate the determinant of the
@@ -2704,6 +3045,14 @@ velocity_boundary_conditions =
                  ## Requires a prognostic FreeSurface field.
                  element explicit {
                    empty
+                 }?,
+                 ## Force the normals used in the free surface boundary condition to be purely in the
+                 ## radial direction (up or down), instead of using the facet normals. This option is
+                 ## recommended in idealised cylindrical and spherical domains (only) when a surface-aligned
+                 ## strong Dirichlet boundary condition is used to prescribe the tangential velocities. In
+                 ## this case we need the normals to be orthogonal to the prescribed tangential direction.
+                 element radial_normals {
+                   empty
                  }?
               }?,
               ## When selected the density at the surface is calculated using the Density field.  Therefore
@@ -2715,7 +3064,7 @@ velocity_boundary_conditions =
               ## using the specified density, i.e. instead of applying p=0 (resp.
               ## normal_stress=0) we apply p=p_external (resp. normal_stress=p_external) where p_external is determined by dp_external/dz=external_density*g
               element external_density {
-                 real
+                 input_choice_real_plus_field
               }?,
               ## This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far. 
               ## Note: Once activated, the stabilisation term will occur in all free surface areas in the domain. 
@@ -2951,7 +3300,7 @@ field_output_options =
          element exclude_from_vtu {
             comment
          }?,
-         ## To be used with time-averaged diagnostic fields so that they can be checkpointed.
+         ## Field will be checkpointed (this is not performed by default).
          element checkpoint {
             empty
          }?
@@ -3310,10 +3659,84 @@ prognostic_detector_options = detector_options_enabled_default
 diagnostic_detector_options = detector_options_enabled_default
 prescribed_detector_options = detector_options_disabled_default
 
+# Specify whether or not values for this field are interpolated to particle locations..
+particle_options_disabled_default = 
+   (
+      ## Specify what is added to particles
+      element particles {
+         (
+            ## Field value is not interpolated to particle locations.
+            element exclude_from_particles {
+               comment
+            }|
+            ## Field value is interpolated to each particle location.
+            element include_in_particles {
+               ## Store values of field at previous timestep/non-linear iteration, for use when updating particle attributes.
+               element store_old_field {
+                  comment
+               }?
+            }
+         )
+      }
+   )
+
+# Particle defaults off for prognostic, diagnostic and prescribed fields
+prognostic_particle_options = particle_options_disabled_default
+diagnostic_particle_options = particle_options_disabled_default
+prescribed_particle_options = particle_options_disabled_default
+
 generic_aliased_field =
    (
       attribute material_phase_name { xsd:string },
       attribute field_name { xsd:string }
+   )
+
+generic_particle_attribute_choice =
+   (
+      ## Constant value
+      element constant {
+         real
+      }|
+      ## Python function prescribing real input. Functions should be of the form:
+      ##
+      ##  def val(X, t):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ## where X is a tuple of length geometry dimension.
+      element python {
+         python_code
+      }|
+      ## Python function prescribing real input. Functions should be of the form:
+      ##
+      ##  def val (X, t, fields):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ##  where X is a tuple of length geometry dimension.
+      ##
+      ##  E.g. if Temperature field and x position are required
+      ##  def val (X, t, fields):
+      ##    x = X[0]
+      ##    y = x + fields["Temperature"]
+      ##    return y
+      element python_fields {
+         python_code,
+         ## Store attribute values from previous timestep on particles.
+         element store_old_attribute {
+            comment
+         }?
+      }|
+      ## File containing the particle positions in binary form
+      element from_checkpoint_file {
+         attribute file_name { xsd:string },
+         ## The format of the input file containing field data.
+         element format {
+            element string_value {
+               "binary"
+            }
+         }
+      }
    )
 
 # This is the choice of additional scalar field to be solved for
@@ -3483,6 +3906,7 @@ scalar_field_choice =
                   prognostic_scalar_stat_options,
                   scalar_convergence_options,
                   prognostic_detector_options,
+                  prognostic_particle_options,
                   scalar_steady_state_options,
                   adaptivity_options_prognostic_scalar_field,
                   interpolation_algorithm_scalar
@@ -3893,7 +4317,7 @@ scalar_field_choice =
          }|
 
          ## PhaseVolumeFraction
-         ## Required in porous_media and multiphase problem types
+         ## Required multiphase problem types
          element scalar_field {
             attribute rank { "0" },
             attribute name { "PhaseVolumeFraction" },
@@ -3912,21 +4336,6 @@ scalar_field_choice =
                   internal_algorithm,
                   diagnostic_scalar_field_no_adapt,
                   cap_option?
-               }
-            )
-         }|
-
-         ## Electrical Potential:
-         ## Required in electrokinetic, electrothermal
-         ## and electrochemical problems
-         ## (sub-option of porous_media problem type)
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "ElectricalPotential" },
-            (
-               element prognostic {
-                  velocity_mesh_choice,
-                  prognostic_scalar_field
                }
             )
          }|
@@ -4122,33 +4531,6 @@ scalar_field_choice =
                }
             )
          }|
-         ## Viscous dissipation
-         ##   For Boussinesq fluid with isotropic viscosity (see below)
-         ##
-         ## Only coded for 2D
-         ##
-         ##   (grad u):(grad u) = sum_ij(du_i/dx_j)(du_i/dx_j)
-         ##
-         ##   The actual viscous dissipation for a Newtonian, Boussinesq fluid with
-         ##   constant, isotropic viscosity is nu*rho_0*(grad u):(grad u)
-         ##   where rho_0 is the reference density in the equation of state
-         ##   and nu is the viscosity so need to multiply by these when post-processing
-         ##
-         ## c.f. Winters 1995, Journal of Fluid Mechanics
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "ViscousDissipation" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
          ## Richardson Number:
          ##
          ##  Ri = \frac{N^2}{(\frac{\partial u}{\partial z})^2 + (\frac{\partial u}{\partial z})^2}
@@ -4223,72 +4605,6 @@ scalar_field_choice =
                element diagnostic {
                   internal_algorithm,
                   velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## InterstitialVelocityCGCourantNumber
-         ##
-         ## Courant Number as defined on a CG mesh 
-         ## using the interstitial velocity for 
-         ## porous media flow.
-         ##
-         ## Adapting to this field is not recommended
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "InterstitialVelocityCGCourantNumber" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  porosity_include_dg_and_cg_cfl,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## InterstitialVelocityCVCourantNumber
-         ##
-         ## Courant Number as defined on a CV mesh 
-         ## using the interstitial velocity for 
-         ## porous media flow.
-         ##
-         ## Adapting to this field is not recommended
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "InterstitialVelocityCVCourantNumber" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  porosity_include_cv_cfl,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## InterstitialVelocityDGCourantNumber
-         ##
-         ## Courant Number as defined on a DG mesh 
-         ## using the interstitial velocity for 
-         ## porous media flow.
-         ##
-         ## Adapting to this field is not recommended
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "InterstitialVelocityDGCourantNumber" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  porosity_include_dg_and_cg_cfl,
                   diagnostic_scalar_field
                }|
                element aliased {
@@ -4394,20 +4710,6 @@ scalar_field_choice =
                }
             )
          }|
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "SolidConcentration" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
          ## This scalar field is meant to replace DENTRAF.
          ## Basically, if you use new options, DENTRAF is no longer needed
          ## No repointing is done from this field to DENTRAF.
@@ -4418,72 +4720,6 @@ scalar_field_choice =
                element diagnostic {
                   internal_algorithm,
                   velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }
-            )
-         }|
-         ## Add field to be used by Solid_configuration to 
-         ## Visualize the solids and MaterialVolumeFraction together
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "VisualizeSolidFluid" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }
-            )
-         }|
-         ## Add field to be used by Solid_configuration to 
-         ## Visualize the solid_Concentration
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "VisualizeSolid" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }
-            )
-         }|
-         ## Add field to be used by Solid_configuration to 
-         ## map  the solid_Concentration from particle mesh to 
-         ## the fluid mesh.
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "ParticleScalar" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
-                  diagnostic_scalar_field
-               }
-            )
-         }|
-         ## Add field to be used by Explicit_ALE to 
-         ## visualize functional values before iterations start.
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "FunctionalBegin" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
-                  diagnostic_scalar_field
-               }
-            )
-         }|
-         ## Add field to be used by Explicit_ALE to 
-         ## visualize functional values at each iteration.
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "FunctionalIter" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
                   diagnostic_scalar_field
                }
             )
@@ -4874,24 +5110,7 @@ scalar_field_choice =
             )
          }|
 
-         ## Used in implicit_solids to determine the interface (i.e. boundary) between the fluid and solid.
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "SolidPhase" },
-            attribute raplaces { "IDENT = -42"},
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## Absolute Difference between two scalar fields.
-         ##
+
          ## Both fields must be in this material_phase.
          ## Assumes both fields are on the same mesh as the AbsoluteDifference field.
          element scalar_field {
@@ -5129,7 +5348,29 @@ scalar_field_choice =
                   }
                }
             )
-         }    
+         }|
+
+         ## DGLESScalarEddyViscosity
+         ##
+         ## Outputs the calculated (isotropic) eddy viscosity term
+         ## for a discontinuous velocity field. The subgridscale viscosity
+         ## follows that of the Smagorinsky–Lilly model. Requires that both a discontinous
+         ## representation of velocity and an les model have been selected.
+
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "DGLESScalarEddyViscosity" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }|element prescribed {
+                  velocity_mesh_choice,
+                  prescribed_scalar_field
+               }
+            )
+         } 
 
 # Insert new diagnostic scalar fields here using the template:
 #        element scalar_field {
@@ -5406,86 +5647,6 @@ vector_field_choice =
                }|
                element aliased {
                   generic_aliased_field
-               }
-            )
-         }|
-         ## Solid Velocity field.  Used to generate the momentum source 
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "SolidVelocity" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
-                  diagnostic_vector_field
-               }
-            )
-         }|
-         ## Same as Solid Velocity field but it is on the Particle mesh.
-         ## It is used to map the velocities coming from an external program like
-         ## FEMDEM or DEM to the fluid mesh. 
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "ParticleVector" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
-                  diagnostic_vector_field
-               }
-            )
-         }|
-         ## Same as Solid Velocity field but it is on the Particle mesh.
-         ## It is used to map the velocities coming from an external program like
-         ## FEMDEM or DEM to the fluid mesh. 
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "ParticleForce" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
-                  diagnostic_vector_field
-               }
-            )
-         }|
-
-         ## Same as Solid Velocity field but it is on the Particle mesh.
-         ## It is used to map the velocities coming from an external program like
-         ## FEMDEM or DEM to the fluid mesh. 
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "SolidForce" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_vector_field
-               }
-            )
-         }|
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "VelocityPlotForSolids" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_vector_field
-               }
-            )
-         }|
-         ## Same as Solid Velocity field but it is on the Particle mesh.
-         ## It is used to map the velocities coming from an external program like
-         ## FEMDEM or DEM to the fluid mesh. 
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "FunctionalGradient" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_vector_field
                }
             )
          }|
@@ -5794,73 +5955,6 @@ tensor_field_choice =
       )
    )
 
-#Select the type of dynamic control to be used
-#Note: DEM and FEMDEM require the respective libraries
-#to be compiled.
-input_solid_dynamics_choice =         
-   (
-      ## Obtain values from point and radius file.
-      ##
-      ## First line of file is free to use (for comments)
-      ## Second line must contain the number of particles
-      ## Third and fourth line are again for comments. 
-      ## Following lines include 10 columns, corresponding to 
-      ## the particle's x, y, and z positions, followed by the radius, then
-      ## velocities in x, y, and z directions, followed by angular velocities
-      ## in the x, y, and z directions.
-      element dynamic_type {
-         attribute name {"from_input_file"},
-         attribute file_name {xsd:string}
-      }|
-      ## Two python scripts must be provided. The script is cycled over each particle.
-      ## One script for particle position (output is tuple of position coords)
-      ## Second script is for particle radius (output is tuple of position coords)
-      ## Third script is for particle translational velocity.
-      ## Fourth script is for particle angular velocity. (Note: particles 
-      ## have a no slip boundary condition at the surface, so this angular velocity
-      ## WILL matter to the flow.)
-      ## Python functions should be of the form:
-      ##  def val(X, t):
-      ##    Function code
-      ##    return # Return value
-      ## where X is a tuple of length geometry dimension.
-      ##    X[0] contains the number of the particle (in real format)
-      element dynamic_type {
-         attribute name {"python_script"}
-      }|
-      element dynamic_type {
-         attribute name {"use_simple_dynamics"},
-         element set_bottom{real},
-         element set_xmin{real},
-         element set_ymin{real},
-         element set_zmin{real},
-         element set_xmax{real},
-         element set_ymax{real},
-         element set_zmax{real}
-      }|
-      ## Using y3D to model dynamics. Filename of input file for y3D must
-      ## be specified.
-      element dynamic_type {
-         attribute name {"use_y3D"},
-         attribute file_name {xsd:string}
-      }|
-      ## Using femdem 2D to model dynamics. Filename of input file must
-      ## be specified.
-      element dynamic_type {
-         attribute name {"use_2Dfemdem"},
-         attribute file_name {xsd:string}
-      }|
-      ## Using femdem 3D to model dynamics. Filename of input file must
-      ## be specified.
-      element dynamic_type {
-         attribute name {"use_3Dfemdem"},
-         attribute file_name {xsd:string},
-         element quad2lin {
-            attribute file_name {xsd:string}
-         }
-      }         
-   )
-
 cap_option =
    (
       ## Cap the min and max values of this field when using
@@ -6113,22 +6207,6 @@ field_based_cfl_number_options =
             empty
          }|
          ## Select the Courant Number definition to be used.
-         ##
-         ## This uses the control volume approximation of the CFL Number 
-         ## and the interstitial velocity for porous media flow.
-         element courant_number {
-            attribute name { "InterstitialVelocityCVCourantNumber" },
-            porosity_include_cv_cfl
-         }|
-         ## Select the Courant Number definition to be used.
-         ##
-         ## This uses the CG finite element approximation of the CFL Number 
-         ## and the interstitial velocity for porous media flow.
-         element courant_number {
-            attribute name { "InterstitialVelocityCGCourantNumber" },
-            porosity_include_cv_cfl
-         }|
-         ## Select the Courant Number definition to be used.
          element courant_number {
             attribute name { string },
             empty
@@ -6147,16 +6225,6 @@ dg_field_based_cfl_number_options =
          element courant_number {
             attribute name { "DG_CourantNumber" },
             empty
-         }|
-         ## IF NOT SELECTED THEN THE DEFAULT DG_CourantNumber IS USED.
-         ## 
-         ## Select the Courant Number definition to be used.
-         ## 
-         ## This uses the DG finite element approximation of the CFL Number 
-         ## and the interstitial velocity for porous media flow.
-         element courant_number {
-            attribute name { "InterstitialVelocityDGCourantNumber" },
-            porosity_include_cv_cfl
          }|
          ## IF NOT SELECTED THEN THE DEFAULT DG_CourantNumber IS USED.
          ## 
@@ -6198,14 +6266,6 @@ cv_face_cfl_number_options =
             attribute name { "CFLNumber" },
             empty
          }|
-         ## Select the Courant Number definition to be used in the slope of
-         ## the NVD diagram upper bound.
-         ## This uses a control volume definition of the CFL Number
-         ## and the interstitial velocity for porous media flow.
-         element courant_number {
-            attribute name { "InterstitialVelocityCVCourantNumber" },
-            porosity_include_cv_cfl
-         }|
          ## ***UNDER TESTING***
          ##
          ## Select the Courant Number definition to be used in the slope of
@@ -6233,22 +6293,6 @@ timestep_cfl_number_options =
             attribute name { "ControlVolumeCFLNumber" },
               ## Select the mesh on which you wish to evaluate the ControlVolumeCFLNumber.
               velocity_mesh_choice
-         }|
-         ## Select the Courant Number definition to be used for adaptive timestepping.
-         ## This uses the CG finite element approximation of the CFL Number 
-         ## and the interstitial velocity for porous media flow.
-         element courant_number {
-            attribute name { "InterstitialVelocityCGCourantNumber" },
-            velocity_mesh_choice,
-            porosity_include_dg_and_cg_cfl
-         }|
-         ## Select the Courant Number definition to be used for adaptive timestepping.
-         ## This uses the control volume approximation of the CFL Number 
-         ## and the interstitial velocity for porous media flow.         
-         element courant_number {
-            attribute name { "InterstitialVelocityCVCourantNumber" },
-            velocity_mesh_choice,
-            porosity_include_cv_cfl
          }
       )
    )

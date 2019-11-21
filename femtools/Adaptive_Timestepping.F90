@@ -30,16 +30,15 @@
 module adaptive_timestepping
   !!< Contains new style adaptive timestepping routines
   
-  use diagnostic_fields
-  use fields
-  use fields_data_types
-  use field_options
   use fldebug
   use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
-  use signal_vars, only : SIG_INT
-  use state_module
   use spud
   use unittest_tools
+  use fields
+  use state_module
+  use field_options
+  use signal_vars, only : SIG_INT
+  use diagnostic_fields
    
   implicit none
   
@@ -91,15 +90,6 @@ contains
       mesh => extract_mesh(state(1), mesh_name)
     else
       mesh => extract_velocity_mesh(state)
-    end if
-    
-    ! If the cfl_type is InterstitialVelocity... porous media related 
-    ! then it always needs to have force_calculation = true as the 
-    ! field name may exist in the state as a diagnostic but have 
-    ! different porosity options to that chosen for the adaptive time stepping one.
-    if ((trim(cfl_type) == "InterstitialVelocityCGCourantNumber") .or. &
-      & (trim(cfl_type) == "InterstitialVelocityCVCourantNumber")) then
-          lforce_calculation = .true.
     end if
     
     allocate(guess_dt(size(state)))

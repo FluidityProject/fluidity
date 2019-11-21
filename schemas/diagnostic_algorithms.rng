@@ -942,6 +942,19 @@ boundaries.</a:documentation>
       <ref name="tensor_source_field"/>
     </element>
   </define>
+  <define name="strain_rate_second_invariant_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm for the second invariant of the strain_rate tensor field.
+Note that the strain rate tensor is calculated automatically as a part
+of this algorithm and, hence, a separate tensor field is not required.</a:documentation>
+      <attribute name="name">
+        <value>strain_rate_second_invariant</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single </value>
+      </attribute>
+    </element>
+  </define>
   <define name="hessian_algorithm">
     <element name="algorithm">
       <a:documentation>algorithm for the Hessian (2nd derivative) of a scalar field</a:documentation>
@@ -1154,12 +1167,7 @@ take the value g.</a:documentation>
     <element name="algorithm">
       <a:documentation>The average (or bulk) viscosity formed from the MaterialViscosity for
 each material_phase, weighted according to the MaterialVolumeFraction
-fields from each material_phase:
-
-  \bar\nu = \alpha^i\nu^i
- 
-where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
-for material i and \nu^i is the viscosity of material i</a:documentation>
+from each material_phase.</a:documentation>
       <attribute name="name">
         <value>bulk_viscosity</value>
       </attribute>
@@ -1169,6 +1177,44 @@ for material i and \nu^i is the viscosity of material i</a:documentation>
       <attribute name="depends">
         <value>MaterialViscosity</value>
       </attribute>
+      <choice>
+        <element name="mean">
+          <a:documentation>Use an arithmetic mean (default):
+
+  \bar\nu = \alpha^i\nu^i
+ 
+where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
+for material i and \nu^i is the viscosity of material i.</a:documentation>
+          <attribute name="name">
+            <value>arithmetic</value>
+          </attribute>
+          <empty/>
+        </element>
+        <element name="mean">
+          <a:documentation>Use a harmonic mean:
+
+  1./\bar\nu = \alpha^i/\nu^i
+ 
+where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
+for material i and \nu^i is the viscosity of material i.</a:documentation>
+          <attribute name="name">
+            <value>harmonic</value>
+          </attribute>
+          <empty/>
+        </element>
+        <element name="mean">
+          <a:documentation>Use a geometric mean:
+
+  \bar\nu = (\nu^i)^(\alpha^i)
+ 
+where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
+for material i and \nu^i is the viscosity of material i.</a:documentation>
+          <attribute name="name">
+            <value>geometric</value>
+          </attribute>
+          <empty/>
+        </element>
+      </choice>
     </element>
   </define>
   <define name="sediment_concentration_dependent_viscosity_algorithm">
@@ -1752,10 +1798,15 @@ phases respectively, and d is the particle diameter.</a:documentation>
 and also the Density, PhaseVolumeFraction and Viscosity fields of the continuous phase.</a:documentation>
         <ref name="anystring"/>
       </element>
-      <element name="particle_diameter">
+      <choice>
         <a:documentation>The particle diameter</a:documentation>
-        <ref name="real"/>
-      </element>
+        <element name="particle_diameter">
+          <ref name="real"/>
+        </element>
+        <element name="particle_diameter_use_scalar_field">
+          <ref name="anystring"/>
+        </element>
+      </choice>
       <element name="continuous_phase_name">
         <a:documentation>The name of the state representing the continuous phase</a:documentation>
         <data type="string" datatypeLibrary=""/>
@@ -1813,6 +1864,85 @@ The mesh must be directly extruded.</a:documentation>
       </attribute>
       <attribute name="material_phase_support">
         <value>single</value>
+      </attribute>
+    </element>
+  </define>
+  <define name="mesh_quality_algorithm">
+    <element name="algorithm">
+      <a:documentation>Mesh Quality function. Basics taken from VTK. See the documentation
+there for further details of specific function choices.
+
+The output mesh for this field must be discontinous P0 and the
+underlying CoordinateMesh must consist of linear triangles
+ or tetrahedra only.</a:documentation>
+      <attribute name="name">
+        <value>mesh_quality</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <choice>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>radius_ratio</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>aspect_ratio</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>aspect_frobenius</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>edge_ratio</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>condition</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>min_angle</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>max_angle</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>shape</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>shape_and_size</value>
+          </attribute>
+        </element>
+        <element name="quality_function">
+          <attribute name="name">
+            <value>area_or_volume</value>
+          </attribute>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <define name="viscous_dissipation_algorithm">
+    <element name="algorithm">
+      <a:documentation>algorithm for calculating the viscous dissipation.</a:documentation>
+      <attribute name="name">
+        <value>viscous_dissipation</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single </value>
       </attribute>
     </element>
   </define>
@@ -1949,8 +2079,94 @@ This field needs to be interpolated between adapts.</a:documentation>
       </optional>
     </element>
   </define>
+  <!-- surface algorithm -->
+  <define name="surface_horizontal_divergence_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm calculates the horizontally restricted divergence of
+a horizontal vector living on the specified surface.</a:documentation>
+      <attribute name="name">
+        <value>surface_horizontal_divergence</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="vector_source_field"/>
+      <element name="surface_ids">
+        <ref name="integer_vector"/>
+      </element>
+    </element>
+  </define>
+  <define name="subtract_average_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm that subtracts the average from a scalar field. The integral
+of the resulting diagnostic field is therefore zero.
+
+This is useful for fields that are only defined up to a constant. During
+their solve it is typically best to remove this freedom by using the 
+"remove_null_space" option (which effectively introduces a mesh dependent 
+constraint on the sum of the nodal values). For diagnostic purposes however,
+it may be useful to impose the more natural constraint that the integrated
+average is zero.</a:documentation>
+      <attribute name="name">
+        <value>subtract_average</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="scalar_source_field"/>
+    </element>
+  </define>
+  <define name="subtract_point_value_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm that subtracts the scalar field value in a certain point 
+from that same field. The resulting diagnostic field will therefore be zero in that point.
+
+This is useful for fields that are only defined up to a constant. It is similar
+to pinning using a reference node during the solve, except it is only imposed afterwards.
+This can be useful because during the solve it is typically better to pin the 
+arbitrary constant with the "remove_null_space" option instead.</a:documentation>
+      <attribute name="name">
+        <value>subtract_point_value</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="scalar_source_field"/>
+      <element name="coordinates">
+        <ref name="real_dim_vector">
+          <a:documentation>coordinates of the point whose value should be subtracted</a:documentation>
+        </ref>
+      </element>
+    </element>
+  </define>
+  <define name="subtract_surface_average_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm that subtracts the surface average from a scalar field. The 
+surface integral of the resulting diagnostic field is therefore zero.
+
+This is useful for fields that are only defined up to a constant. During
+their solve it is typically best to remove this freedom by using the 
+"remove_null_space" option (which effectively introduces a mesh dependent 
+constraint on the sum of the nodal values). For diagnostic purposes however,
+it may be useful to impose a more natural constraint such as the surface 
+integral being zero.</a:documentation>
+      <attribute name="name">
+        <value>subtract_surface_average</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="scalar_source_field"/>
+      <element name="surface_ids">
+        <ref name="integer_vector"/>
+      </element>
+    </element>
+  </define>
   <define name="scalar_diagnostic_algorithms">
     <ref name="universal_numbering_diagnostic_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="viscous_dissipation_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="universal_column_id_algorithm"/>
@@ -1962,7 +2178,13 @@ This field needs to be interpolated between adapts.</a:documentation>
     <ref name="tensor_second_invariant_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="strain_rate_second_invariant_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="temporalmin_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="surface_horizontal_divergence_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_temporalmax_algorithm"/>
@@ -1984,6 +2206,15 @@ This field needs to be interpolated between adapts.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_laplacian_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="subtract_surface_average_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="subtract_point_value_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="subtract_average_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_galerkin_projection_algorithm"/>
@@ -2011,6 +2242,9 @@ This field needs to be interpolated between adapts.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="node_halo_diagnostic_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="mesh_quality_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="lumped_mass_smoothed_scalar_algorithm"/>

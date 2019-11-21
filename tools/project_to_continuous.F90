@@ -30,12 +30,12 @@
 subroutine project_to_continuous(vtuname_, vtuname_len, meshname_,&
      & meshname_len) bind(c)
   !!< Given a vtu file containing fields on a discontinuous mesh, and the
-  !!< triangle files for the corresponding continuous mesh, produce a vtu
+  !!< mesh files for the corresponding continuous mesh, produce a vtu
   !!< with its fields projected onto the continuous mesh.
   use state_module
   use elements
   use fields
-  use read_triangle
+  use mesh_files
   use vtk_interfaces
   use sparse_tools
   use fefields
@@ -53,9 +53,7 @@ subroutine project_to_continuous(vtuname_, vtuname_len, meshname_,&
 
   type(state_type) :: dg_state, cg_state
   type(vector_field) :: cg_coordinate
-  type(csr_matrix) :: P
-  type(scalar_field) :: lumped_mass
-  type(mesh_type) :: dg_mesh, cg_mesh
+  type(mesh_type) :: cg_mesh
   type(scalar_field) :: dg_scalar, cg_scalar
   type(vector_field) :: dg_vector, cg_vector
   type(tensor_field) :: dg_tensor, cg_tensor
@@ -72,27 +70,15 @@ subroutine project_to_continuous(vtuname_, vtuname_len, meshname_,&
 
   call vtk_read_state(vtuname, dg_state, quad_degree=6)
   
-  cg_coordinate= read_triangle_files(meshname, quad_degree=6)
+  cg_coordinate= read_mesh_files(meshname, quad_degree=6, format="gmsh")
   cg_mesh=cg_coordinate%mesh
-
-  call allocate(lumped_mass, cg_mesh, "LumpedMass")
-  
-  call compute_lumped_mass(cg_coordinate, lumped_mass)
-  ! Invert lumped mass.
-  lumped_mass%val=1./lumped_mass%val
-
-  dg_mesh=extract_mesh(dg_state, "Mesh")
-  
-  P=compute_projection_matrix(cg_mesh, dg_mesh, cg_coordinate)
   
   do i=1,size(dg_state%scalar_fields)
      dg_scalar=dg_state%scalar_fields(i)%ptr
      call allocate(cg_scalar, cg_mesh, name=dg_scalar%name)
      
      ! Perform projection.
-     call mult(cg_scalar, P, dg_scalar)
-     ! Apply inverted lumped mass to projected quantity.
-     call scale(cg_scalar, lumped_mass)
+     call project_field(dg_scalar, cg_scalar, cg_coordinate)
 
      call insert(cg_state, cg_scalar, cg_scalar%name)
      
@@ -104,14 +90,7 @@ subroutine project_to_continuous(vtuname_, vtuname_len, meshname_,&
      dg_vector=dg_state%vector_fields(i)%ptr
      call allocate(cg_vector, dg_vector%dim, cg_mesh, name=dg_vector%name)
      
-     ! Perform projection.
-     do j=1,cg_vector%dim
-        cg_scalar=extract_scalar_field_from_vector_field(cg_vector, j)
-        dg_scalar=extract_scalar_field_from_vector_field(dg_vector, j)
-        call mult(cg_scalar, P, dg_scalar)
-     end do
-     ! Apply inverted lumped mass to projected quantity.
-     call scale(cg_vector, lumped_mass)
+     call project_field(dg_vector, cg_vector, cg_coordinate)
 
      call insert(cg_state, cg_vector, cg_vector%name)
      
@@ -128,11 +107,9 @@ subroutine project_to_continuous(vtuname_, vtuname_len, meshname_,&
         do k=1,cg_tensor%dim(2)
            cg_scalar=extract_scalar_field_from_tensor_field(cg_tensor, j, k)
            dg_scalar=extract_scalar_field_from_tensor_field(dg_tensor, j, k)
-           call mult(cg_scalar, P, dg_scalar)
+           call project_field(dg_scalar, cg_scalar, cg_coordinate)
         end do
      end do
-     ! Apply inverted lumped mass to projected quantity.
-     call scale(cg_tensor, lumped_mass)
 
      call insert(cg_state, cg_tensor, cg_tensor%name)
      

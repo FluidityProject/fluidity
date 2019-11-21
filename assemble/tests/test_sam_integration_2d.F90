@@ -1,7 +1,7 @@
 subroutine test_sam_integration_2d
 
   use fields
-  use read_triangle
+  use mesh_files
   use conservative_interpolation_module
   use unittest_tools
   use state_module

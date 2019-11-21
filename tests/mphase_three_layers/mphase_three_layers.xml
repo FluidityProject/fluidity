@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
    
   <name>mphase_three_layers</name>
@@ -143,31 +142,31 @@ nnodes = len(f1_vfrac)
 
 vals = []
 for i in range(nnodes):
-   if(positions[i] &lt; (1.0/3.0)):
-      assert abs(f1_vfrac[i] - 0.7) &lt; 0.3
-      vals.append(f1_vfrac[i])
-      
-print "Max vfrac in lower third of domain = ", max(vals)
-print "Min vfrac in lower third of domain = ", min(vals)
-      
+    if(positions[i] &lt; (1.0/3.0)):
+        assert abs(f1_vfrac[i] - 0.7) &lt; 0.3
+        vals.append(f1_vfrac[i])
+
+print("Max vfrac in lower third of domain = ", max(vals))
+print("Min vfrac in lower third of domain = ", min(vals))
+
 assert max(vals) &lt; 1.0
 assert min(vals) &gt; 0.4
-    </test>
+</test>
     <test name="Fluid 1 has vfrac in [0.0, 0.6] in the rest of the domain" language="python">
 nnodes = len(f1_vfrac)
 
 vals = []
 for i in range(nnodes):
-   if(positions[i] &gt; (1.0/3.0)):
-      assert abs(f1_vfrac[i] - 0.3) &lt; 0.3
-      vals.append(f1_vfrac[i])
+    if(positions[i] &gt; (1.0/3.0)):
+        assert abs(f1_vfrac[i] - 0.3) &lt; 0.3
+        vals.append(f1_vfrac[i])
 
-print "Max vfrac in the rest of the domain = ", max(vals)
-print "Min vfrac in the rest of the domain = ", min(vals)
+print("Max vfrac in the rest of the domain = ", max(vals))
+print("Min vfrac in the rest of the domain = ", min(vals))
 
 assert max(vals) &lt; 0.6
 assert min(vals) &gt; 0.0
-    </test>
+</test>
     
     <test name="SumVelocityDivergence is less than 1e-9" language="python">
 assert abs(divergence) &lt; 1e-9

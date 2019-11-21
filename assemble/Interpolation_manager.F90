@@ -29,21 +29,26 @@
 
 module interpolation_manager
 
+  use fldebug
+  use spud
+  use global_parameters, only : OPTION_PATH_LEN, periodic_boundary_option_path,&
+      FIELD_NAME_LEN
+  use futils, only: int2str
+  use linked_lists
+  use element_numbering, only: ELEMENT_LAGRANGIAN
+  use elements
+  use supermesh_construction
+  use intersection_finder_module
+  use fields
+  use state_module
+  use field_options
+  use vtk_interfaces
   use interpolation_module
   use conservative_interpolation_module
   use dg_interpolation_module
-  use state_module
-  use fields
-  use spud
-  use global_parameters, only : OPTION_PATH_LEN, periodic_boundary_option_path
-  use supermesh_construction
-  use field_options
-  use intersection_finder_module
-  use linked_lists
-  use boundary_conditions_from_options
   use tictoc
+  use boundary_conditions_from_options
   use populate_state_module
-  use vtk_interfaces
   use geostrophic_pressure
   use pseudo_consistent_interpolation
   
@@ -59,11 +64,13 @@ module interpolation_manager
 
 contains
 
-  subroutine interpolate(states_old, states_new, map)
+  subroutine interpolate(states_old, states_new, map, only_owned)
     !! OK! We need to figure out what algorithm to use when and where.
     type(state_type), dimension(:), intent(inout) :: states_old, states_new
     !! Map from new nodes to old elements
     integer, dimension(:), optional, intent(in) :: map
+    !! Only interpolate in owned nodes
+    logical, optional, intent(in) :: only_owned
 
     ! The fields organised by mesh:
     type(state_type), dimension(:), allocatable :: meshes_old, meshes_new
@@ -186,11 +193,7 @@ contains
       call tic(TICTOC_ID_INTERPOLATION)
 
       ! Assuming here that "map" is for the linear mesh
-      if(present(map)) then
-        call linear_interpolate_states(states_old, states_new, map = map)
-      else
-        call linear_interpolate_states(states_old, states_new)
-      end if
+      call linear_interpolate_states(states_old, states_new, map = map, only_owned=only_owned)
 
       call toc(TICTOC_ID_INTERPOLATION)
       call tictoc_report(2, TICTOC_ID_INTERPOLATION)
@@ -342,12 +345,12 @@ contains
                 ! Cannot assume here that "map" applies for new_mesh (as
                 ! new_mesh may have any degree)
                 if(size(map) == node_count(new_mesh)) then
-                  call linear_interpolation(alg_old(mesh), alg_new(mesh), map = map)
+                  call linear_interpolation(alg_old(mesh), alg_new(mesh), map = map, only_owned=only_owned)
                 else
-                  call linear_interpolation(alg_old(mesh), alg_new(mesh))
+                  call linear_interpolation(alg_old(mesh), alg_new(mesh), only_owned=only_owned)
                 end if
               else
-                call linear_interpolation(alg_old(mesh), alg_new(mesh))
+                call linear_interpolation(alg_old(mesh), alg_new(mesh), only_owned=only_owned)
               end if
             end if
           

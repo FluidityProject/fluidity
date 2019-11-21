@@ -28,13 +28,16 @@
 #include "fdebug.h"
 
 module detector_move_lagrangian
-  use state_module
   use spud
-  use fields
+  use fldebug
   use global_parameters, only: OPTION_PATH_LEN
   use integer_hash_table_module
   use halo_data_types
+  use parallel_tools
   use halos_base
+  use parallel_fields
+  use fields
+  use state_module
   use detector_data_types
   use detector_tools
   use detector_parallel
@@ -76,6 +79,8 @@ contains
           parameters%n_stages = 1
           allocate(parameters%timestep_weights(parameters%n_stages))
           parameters%timestep_weights = 1.0
+          allocate(parameters%timestep_nodes(parameters%n_stages))
+          parameters%timestep_nodes = 0.0
        end if
 
        ! Parameters for classical Runge-Kutta
@@ -96,6 +101,8 @@ contains
           end do
           allocate(parameters%timestep_weights(parameters%n_stages))
           parameters%timestep_weights = (/ 1./6., 1./3., 1./3., 1./6. /)
+          allocate(parameters%timestep_nodes(parameters%n_stages))
+          parameters%timestep_nodes = (/ 0., 1./2., 1./2., 1. /)
        end if
 
        ! Generic Runge-Kutta options
@@ -136,6 +143,16 @@ contains
              FLExit('Timestep Array wrong size')
           end if
           call get_option(trim(detector_path)//trim(rk_gs_path)//"/timestep_weights",parameters%timestep_weights)
+
+          ! Allocate and set timestep_nodes
+          allocate(parameters%timestep_nodes(parameters%n_stages))
+          parameters%timestep_nodes= 0.
+          do i = 1, parameters%n_stages
+             do j = 1, parameters%n_stages
+                parameters%timestep_nodes(i)=parameters%timestep_nodes(i) + parameters%stage_matrix(i,j)
+             end do
+          end do
+
        end if
 
     else
@@ -147,14 +164,15 @@ contains
 
   end subroutine read_detector_move_options
 
-  subroutine move_lagrangian_detectors(state, detector_list, dt, timestep)
+  subroutine move_lagrangian_detectors(state, detector_list, dt, timestep, attribute_size)
     type(state_type), dimension(:), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     real, intent(in) :: dt
     integer, intent(in) :: timestep
+    integer, dimension(3), optional, intent(in) :: attribute_size !Array to hold attribute sizes
 
     type(rk_gs_parameters), pointer :: parameters
-    type(vector_field), pointer :: vfield, xfield
+    type(vector_field), pointer :: vfield, vfield_old, xfield
     type(detector_type), pointer :: detector
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
     type(halo_type), pointer :: ele_halo
@@ -169,8 +187,9 @@ contains
     parameters => detector_list%move_parameters
 
     ! Pull some information from state
-    xfield=>extract_vector_field(state(1), "Coordinate")
-    vfield => extract_vector_field(state(1),"Velocity")
+    xfield     => extract_vector_field(state(1),"Coordinate")
+    vfield     => extract_vector_field(state(1),"Velocity")
+    vfield_old => extract_vector_field(state(1),"OldVelocity")    
 
     ! We allocate a sendlist for every processor
     nprocs=getnprocs()
@@ -184,12 +203,12 @@ contains
        RKstages_loop: do stage = 1, parameters%n_stages
 
           ! Compute the update vector
-          call set_stage(detector_list,vfield,xfield,rk_dt,stage)
+          call set_stage(detector_list,vfield,vfield_old,xfield,rk_dt,stage)
 
           ! This loop continues until all detectors have completed their
           ! timestep this is measured by checking if the send and receive
           ! lists are empty in all processors
-          detector_timestepping_loop: do  
+          detector_timestepping_loop: do
 
              ! Make sure we still have lagrangian detectors
              any_lagrangian=check_any_lagrangian(detector_list)
@@ -215,7 +234,7 @@ contains
 
                 !This call serialises send_list_array, sends it, 
                 !receives serialised receive_list_array, and unserialises that.
-                call exchange_detectors(state(1),detector_list, send_list_array)
+                call exchange_detectors(state(1),detector_list, send_list_array, attribute_size)
              else
                 ! If we run out of lagrangian detectors for some reason, exit the loop
                 exit
@@ -229,7 +248,7 @@ contains
 
     ! Make sure all local detectors are owned and distribute the ones that 
     ! stoppped moving in a halo element
-    call distribute_detectors(state(1), detector_list)
+    call distribute_detectors(state(1), detector_list, attribute_size)
 
     ! This needs to be called after distribute_detectors because the exchange  
     ! routine serialises det%k and det%update_vector if it finds the RK-GS option
@@ -252,7 +271,7 @@ contains
       
     checkint = 0
     det0 => detector_list0%first
-    do i = 1, detector_list0%length         
+    do i = 1, detector_list0%length
        if (det0%type==LAGRANGIAN_DETECTOR) then
           checkint = 1
           exit
@@ -311,11 +330,11 @@ contains
     end do
   end subroutine deallocate_rk_guided_search
 
-  subroutine set_stage(detector_list,vfield,xfield,dt0,stage0)
+  subroutine set_stage(detector_list,vfield,vfield_old,xfield,dt0,stage0)
     ! Compute the vector to search for in the next RK stage
     ! If this is the last stage, update detector position
     type(detector_linked_list), intent(inout) :: detector_list
-    type(vector_field), pointer, intent(in) :: vfield, xfield
+    type(vector_field), pointer, intent(in) :: vfield, vfield_old, xfield
     real, intent(in) :: dt0
     integer, intent(in) :: stage0
     
@@ -337,8 +356,8 @@ contains
 
           ! stage vector is computed by evaluating velocity at current position
           stage_local_coords=local_coords(xfield,det0%element,det0%update_vector)
-          det0%k(stage0,:)=eval_field(det0%element, vfield, stage_local_coords)
-
+          det0%k(stage0,:)=parameters%timestep_nodes(stage0)*eval_field(det0%element, vfield, stage_local_coords) + &
+          (1.-parameters%timestep_nodes(stage0))*eval_field(det0%element, vfield_old, stage_local_coords)
           if(stage0<parameters%n_stages) then
              ! update vector maps from current position to place required
              ! for computing next stage vector
@@ -399,6 +418,7 @@ contains
                 !the arrival point is in this element
                 det0%search_complete = .true.
                 !move on to the next detector
+                det0%local_coords = arrival_local_coords
                 det0 => det0%next
                 exit search_loop
              end if

@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Transient population balance using direct quadrature method of moments (N=2) for a homogeneous case with breakage and aggregation (McCoy and Madras (2003))</name>
+  <owner userid="gb812"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity popbal_homog_N2.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="solvers_converged" language="python">import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+    <variable name="moment0_maxerror_t_5s" language="python">from fluidity_tools import stat_parser
+s = stat_parser("popbal_homog_N2_brk_aggr.stat")
+moment0_maxerror_t_5s = s["fluid"]["diff_m0"]["max"][-1]</variable>
+    <variable name="moment1_maxerror_t_5s" language="python">from fluidity_tools import stat_parser
+s = stat_parser("popbal_homog_N2_brk_aggr.stat")
+moment1_maxerror_t_5s = s["fluid"]["diff_m1"]["max"][-1]</variable>
+    <variable name="moment2_maxerror_t_5s" language="python">from fluidity_tools import stat_parser
+s = stat_parser("popbal_homog_N2_brk_aggr.stat")
+moment2_maxerror_t_5s = s["fluid"]["diff_m2"]["max"][-1]</variable>
+    <variable name="moment3_maxerror_t_5s" language="python">from fluidity_tools import stat_parser
+s = stat_parser("popbal_homog_N2_brk_aggr.stat")
+moment3_maxerror_t_5s = s["fluid"]["diff_m3"]["max"][-1]</variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">assert(solvers_converged)</test>
+    <test name="moment0 max percent error at 5s less than 0.006" language="python">assert moment0_maxerror_t_5s &lt; 0.006</test>
+    <test name="moment1 max percent error at 5s less than 0.003" language="python">assert moment1_maxerror_t_5s &lt; 0.003</test>
+    <test name="moment2 max percent error at 5s less than 0.003" language="python">assert moment2_maxerror_t_5s &lt; 0.003</test>
+    <test name="moment3 max percent error at 5s less than 0.01" language="python">assert moment3_maxerror_t_5s &lt; 0.01</test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>

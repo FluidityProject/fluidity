@@ -80,6 +80,25 @@ FLFEMDEM="femdem"
 # Check system type
 AC_CANONICAL_HOST
 
+case $host_os in
+     darwin* ) 
+	     LINUX=no
+         DARWIN=yes
+	     FCFLAGS="-DDARWIN $FCFLAGS"
+	     CXXFLAGS="-DDARWIN -fpermissive $CXXFLAGS"
+	     CPPFLAGS="-DDARWIN $CPPFLAGS"
+# Should really check for Mac OS vs. straight Darwin here, or at least test
+# that the framework is valid
+	     LIBS="$LIBS -framework Carbon";;
+     linux*  )
+       LINUX=yes
+       DARWIN=no;;
+     *       )
+       LINUX=no
+	     DARWIN=no;;
+esac
+
+
 # Find compilers
 AC_MSG_NOTICE([*** Fishing for legacy fortran compiler.])
 AC_PROG_F77(ifort ifc efc sunf95 gfortran pgf95 pathf95 g95 f90,,f90,$PATH)
@@ -103,11 +122,6 @@ fi
 if $FC -v 2>&1 | grep 'gcc version'; then
   USING_GFORTRAN="yes"
   GFORTRAN_VERSION=$($FC -v 2>&1 | grep 'gcc version' | awk '{print $3}')
-  # test really is so retarded that it can't lexicographically compare strings
-  if test "$(python -c "print \"$GFORTRAN_VERSION\" >= \"4.5\"")" = "True"; then
-    GFORTRAN_4_5_OR_NEWER="yes"
-    AC_SUBST(GFORTRAN_4_5_OR_NEWER)
-  fi
 else
   USING_GFORTRAN="no"
 fi
@@ -142,10 +156,16 @@ if test "$fcompiler" = "ifort" ; then
     FCFLAGS="$FCFLAGS -vec-report=0"
 fi
 
-AC_PROG_CC(icc ecc suncc pgcc gcc cc)
-AC_PROG_CXX(icpc icc ecc sunCC pgCC g++ CC)
+AC_PROG_CC(icc ecc suncc pgcc gcc cc clang)
+AC_PROG_CXX(icpc icc ecc sunCC pgCC g++ CC clang++)
 AC_PROG_CPP
 LINKER=$CXX
+
+if $CC -v 2>&1 | grep 'clang'; then
+   USING_CLANG="yes"
+else
+   USING_CLANG="no"
+fi
 
 AC_LONG_64_BITS
 
@@ -161,49 +181,42 @@ AC_ARG_ENABLE(python,
 
 if test "x$enable_python" != "xno"
 then
-    AC_MSG_NOTICE([Checking for Python automagic.])
-    AC_LANG_PUSH([C++])
-    AC_LINK_IFELSE(
-        [AC_LANG_PROGRAM([[
-     #include <Python.h>
-                        ]],[[
-                        Py_Initialize();
-                        PyRun_SimpleString("from time import time,ctime\n"
-                            "print 'Today is',ctime(time())\n");
-                        Py_Finalize();
-		        ]])],
-        [
-	    AC_MSG_NOTICE([Python automagic works.])
-	    CPPFLAGS="$CPPFLAGS -DHAVE_PYTHON"],
-        [
-            AC_MSG_NOTICE([No Python automagic.])
-	    search_for_python=yes	    
-        ])
-    AC_LANG_POP([C++])
-    
-    if test "x$search_for_python" == "xyes" ; then
-        mycppflag=$CPPFLAGS
-        AC_PYTHON_DEVEL
-        CPPFLAGS=$mycppflag
-    # Save variables...
-        if test "x$pythonexists" = "xyes";
-        then
-	    if  test "$fcompiler" = "pgf90"; then
-	        PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-Xlinker/}
-	        PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-export-dynamic/}
-	    fi
-      if test "x$enable_debugging" = "xyes"; then
-        export PYTHON_EXTRA_LDFLAGS=$(echo $PYTHON_EXTRA_LDFLAGS | sed -e 's/-O1/-O0/g' -e 's/-O2/-O0/g' -e 's/-O3/-O0/g')
-      fi
-	    LIBS="$LIBS $PYTHON_LDFLAGS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
-	    CXXFLAGS="$CXXFLAGS $PYTHON_CPPFLAGS"
-	    CPPFLAGS="$CPPFLAGS $PYTHON_CPPFLAGS"
-            CFLAGS="$CFLAGS $PYTHON_CPPFLAGS"
+    if test -z "$PYTHON_VERSION"; then
+      # if PYTHON_VERSION is set we use python$PYTHON_VERSION as the python interpreter
+      # if not, if there is no `python` in the path, or there is a `python` but its version is <3
+      # then use `python3` (by setting PETSC_VERSION=3).
+      # If there *is* a `python` of version 3, we use that
+      AC_CHECK_PROG(have_bare_python, python, "yes")
+      if test "x$have_bare_python" = "xyes"; then
+        bare_python_is_two=`python -c "import sys; print(sys.version_info.major < 3)"`
+        if test "x$bare_python_is_two=xTrue"; then
+          PYTHON_VERSION=3
         fi
+      else
+        PYTHON_VERSION=3
+      fi
+    fi
+    mycppflag=$CPPFLAGS
+    AC_PYTHON_DEVEL([>= '3.6'])
+    CPPFLAGS=$mycppflag
+    # Save variables...
+    if test "x$pythonexists" = "xyes";
+    then
+        if  test "$fcompiler" = "pgf90"; then
+            PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-Xlinker/}
+            PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-export-dynamic/}
+        fi
+        if test "x$enable_debugging" = "xyes"; then
+          export PYTHON_EXTRA_LDFLAGS=$(echo $PYTHON_EXTRA_LDFLAGS | sed -e 's/-O1/-O0/g' -e 's/-O2/-O0/g' -e 's/-O3/-O0/g')
+        fi
+        LIBS="$LIBS $PYTHON_LIBS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
+        CXXFLAGS="$CXXFLAGS $PYTHON_CPPFLAGS"
+        CPPFLAGS="$CPPFLAGS $PYTHON_CPPFLAGS"
+        CFLAGS="$CFLAGS $PYTHON_CPPFLAGS"
     fi
     
     # Additionally check for numpy
-    NUMPY=$(python -c 'import numpy; print numpy.get_include()' 2>/dev/null)
+    NUMPY=$($PYTHON -c 'import numpy; print(numpy.get_include())' 2>/dev/null)
     if ! test -z "$NUMPY"; then	
 	echo "Numpy is " $NUMPY	
 	CXXFLAGS="$CXXFLAGS -DHAVE_NUMPY -I$NUMPY"
@@ -574,7 +587,9 @@ EOF
     FCFLAGS="-fbounds-check -Wall -Wimplicit-interface -Wno-surprising ${FCFLAGS}"
     CFLAGS="-fbounds-check -Wall ${CFLAGS}"
     CXXFLAGS="-fbounds-check -Wall ${CXXFLAGS}"
-    LDFLAGS="-rdynamic ${LDFLAGS}"
+    if test "$DARWIN" = "no" ; then
+        LDFLAGS="-rdynamic ${LDFLAGS}"
+    fi
   elif test "$fcompiler" = "g95" ; then
     FFLAGS="-fbounds-check -ftrace=full ${FFLAGS}"
     FCFLAGS="-fbounds-check -ftrace=full ${FCFLAGS}"
@@ -590,18 +605,19 @@ else
     cat >> confdefs.h << EOF
 #define NDEBUG 1
 EOF
-    OPTIMIZATION_FFLAGS="$OPTIMIZATION_FFLAGS -O3"
+    OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -O3"
+    if test "$fcompiler" = "ifort" ; then
+      # add inlining and cpu-specific optimisations for intel
+      OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -ip"
+    fi
 
     AC_CHECK_LIB(tcmalloc,malloc,,AC_MSG_WARN([No tcmalloc support available.]))
 fi
 
-FFLAGS="$FFLAGS $OPTIMIZATION_FFLAGS"
-FCFLAGS="$FCFLAGS $OPTIMIZATION_FFLAGS"
-
-if test "$FC" = "ifc" ; then
-  FFLAGS="-implicitnone -132 -w95 $FFLAGS"
-  FCFLAGS="-implicitnone -w95 $FCFLAGS"
-fi
+FFLAGS="$FFLAGS $OPTIMISATION_FLAGS"
+FCFLAGS="$FCFLAGS $OPTIMISATION_FLAGS"
+CFLAGS="$CFLAGS $OPTIMISATION_FLAGS"
+CXXFLAGS="$CXXFLAGS $OPTIMISATION_FLAGS"
 
 ##########################################
 # Are we using FEMDEM
@@ -771,7 +787,7 @@ if test "$with_netcdf" != "no" ; then
     fi
   fi
   ACX_lib_automagic(netcdf, nc_create, [AC_DEFINE(HAVE_LIBNETCDF, [1])])
-  ACX_lib_automagic(netcdff, nc_create, [AC_DEFINE(HAVE_LIBNETCDFF, [1])])
+  ACX_lib_fautomagic(netcdff, nccre, [AC_DEFINE(HAVE_LIBNETCDFF, [1])])
 fi
 
 # Exodus-II support
@@ -791,10 +807,52 @@ if test "$with_exodusii" = "yes" ; then
                                            ])
 fi
 AC_SUBST(HAVE_EXODUSII)
+AC_ARG_ENABLE(petsc-fortran-modules,
+    [AC_HELP_STRING([--disable-petsc-fortran-modules],
+    [By default fluidity tries to use fortran modules provided with petsc. Use --disable-petsc-fortran-modules if these are known to be not functional (e.g. compiled with different compiler version)])])
+ACX_PETSc([AC_MSG_NOTICE(["PETSc found, enabling scalable solver"])], [AC_MSG_ERROR(["PETSc not found"])])
+ACX_hypre([AC_MSG_NOTICE(["hypre found, enabling hypre preconditioners"])], [AC_MSG_WARN(["hypre not found"])])
+CPPFLAGS="$CPPFLAGS -DHAVE_PETSC"
 
 # Metis, ParMetis
+AC_MSG_CHECKING([if we can compile and link without using -lparmetis])
+AC_TRY_LINK([
+],[
+METIS_PartGraphKway();
+ParMETIS_V3_AdaptiveRepart();
+],[
+AC_MSG_RESULT([yes])
+AC_DEFINE(HAVE_LIBMETIS, [1])
+AC_DEFINE(HAVE_LIBPARMETIS, [1])
+],[
+AC_MSG_RESULT([no])
 ACX_lib_automagic(metis, METIS_PartGraphKway, [AC_DEFINE(HAVE_LIBMETIS, [1])])
 ACX_lib_automagic(parmetis, ParMETIS_V3_AdaptiveRepart, [AC_DEFINE(HAVE_LIBPARMETIS, [1])])
+])
+AC_CHECK_HEADERS([parmetis.h])
+AS_IF([test "x$ac_cv_header_parmetis_h" = "xyes" ],
+	    [
+	    AC_LANG_SAVE
+	    AC_LANG_CPLUSPLUS
+	    AC_MSG_CHECKING([parmetis major version <=3])
+	    AC_EGREP_CPP([test_true],
+		[
+#include <parmetis.h>
+#if defined(PARMETIS_MAJOR_VERSION) && PARMETIS_MAJOR_VERSION <= 3
+test_true
+#endif
+		],
+		[AC_MSG_RESULT([yes])
+		AC_DEFINE(HAVE_PARMETIS_V3,"yes")
+		PARMETIS_FLAGS="-DPARMETIS_V3" ],
+		[AC_MSG_RESULT([no])
+		PARMETIS_FLAGS=""]
+		)
+	     AC_LANG_RESTORE
+	     ]
+	)
+
+CPPFLAGS="$CPPFLAGS $PARMETIS_FLAGS"
 
 AC_ARG_ENABLE(sam,
               [AC_HELP_STRING([--enable-sam],
@@ -802,55 +860,43 @@ AC_ARG_ENABLE(sam,
 if test "$enable_sam" = "yes"; then
   HAVE_ZOLTAN=no
 else
-  ACX_lib_automagic(zoltan, Zoltan_Create, [
-                                            AC_DEFINE(HAVE_ZOLTAN, [1])
-                                            HAVE_ZOLTAN=yes
-                                            ])
+  ACX_lib_automagic(zoltan, Zoltan_Create, [],
+    [
+      AC_MSG_NOTICE([Fluidity can be built without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details.])
+      AC_MSG_FAILURE("Could not link with Zoltan library.")
+    ])
+
+  # Small test for zoltan .mod files:
+  AC_LANG(Fortran)
+  c_ext=F90
+  # In fluidity's makefile we explicitly add CPPFLAGS, temporarily add it to
+  # FCFLAGS here for this zoltan test:
+  tmpFCFLAGS="$FCFLAGS"
+  FCFLAGS="$FCFLAGS $CPPFLAGS"
+  AC_LINK_IFELSE(
+    [AC_LANG_SOURCE([
+      program test_zoltan
+       use zoltan
+      end program test_zoltan
+      ])
+    ],
+    [
+    AC_MSG_NOTICE([Great success! Zoltan .mod files exist and are usable])
+    ],
+    [
+      cp conftest.F90 test_zoltan.F90
+      AC_MSG_NOTICE([Fluiidity can be build without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details.])
+      AC_MSG_NOTICE([Failed to compile with zoltan.mod fortran module. This means the module can either not be found - please add the necessary -I flag to CPPFLAGS - or, the zoltan fortran module has been compiled with a different (version of the) fortran compiler than you are using to compile fluidity - in which case please rebuild zoltan with the same compiler.])
+      AC_MSG_FAILURE([Failed to find usable zoltan.mod file])
+    ]
+  )
+  # And now revert FCFLAGS
+  FCFLAGS="$tmpFCFLAGS"
+  AC_LANG_RESTORE
+  AC_DEFINE(HAVE_ZOLTAN, [1])
+  HAVE_ZOLTAN=yes
 fi
 AC_SUBST(HAVE_ZOLTAN)
-
-HAVE_ADJOINT=no
-CAN_USE_ADJOINT=yes
-WANTS_ADJOINT=yes
-if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
-  # test really is so retarded that it can't lexicographically compare strings
-  if test "$GFORTRAN_4_5_OR_NEWER" != "yes"; then
-    CAN_USE_ADJOINT=no
-  fi
-fi
-
-if test "$with_adjoint" = no || test -z "$with_adjoint"; then
-  WANTS_ADJOINT=no
-fi
-
-if test "$CAN_USE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
-  echo "Wanted adjoint, but you need gcc > 4.5"
-  exit 1
-fi
-
-if test "$with_adjoint" != "no"; then
-  if test "$CAN_USE_ADJOINT" != "no"; then
-    ACX_adjoint([AC_MSG_NOTICE(["libadjoint found"])], [AC_MSG_WARN(["libadjoint not found"])])
-  fi
-  if test "$HAVE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
-    echo "Wanted adjoint, but couldn't find it"
-    exit 1
-  fi
-fi
-AC_SUBST(HAVE_ADJOINT)
-
-AC_ARG_ENABLE(petsc-fortran-modules,
-    [AC_HELP_STRING([--disable-petsc-fortran-modules],
-    [By default fluidity tries to use fortran modules provided with petsc. Use --disable-petsc-fortran-modules if these are known to be not functional (e.g. compiled with different compiler version)])])
-ACX_PETSc([AC_MSG_NOTICE(["PETSc found, enabling scalable solver"])], [AC_MSG_ERROR(["PETSc not found"])])
-ACX_hypre([AC_MSG_NOTICE(["hypre found, enabling hypre preconditioners"])], [AC_MSG_WARN(["hypre not found"])])
-CPPFLAGS="$CPPFLAGS -DHAVE_PETSC"
-if test "$HAVE_PETSC_MODULES" == "1"; then
-  CPPFLAGS="$CPPFLAGS -DHAVE_PETSC_MODULES"
-fi
-if test "$HAVE_HYPRE" == "1"; then
-  CPPFLAGS="$CPPFLAGS -DHAVE_HYPRE"
-fi
 
 # Double precision.
 AC_MSG_CHECKING(what voodoo is required to get 64 bit reals....)
@@ -931,6 +977,44 @@ if test -z "$FORTRAN_REAL_8" ; then
 fi
 
 AC_LANG_POP([Fortran])
+
+AC_LANG_SAVE
+AC_LANG(Fortran)
+c_ext=F90
+
+AC_RUN_IFELSE([AC_LANG_PROGRAM([], [
+	implicit none
+
+	integer :: unit = 10
+	integer :: i, data(3)
+
+	open(access='stream', action='write', form='formatted', file='conftest.data', unit=unit)
+	do i = 1, 3
+ 	   write(fmt='(i0)', unit=unit) i
+	end do
+	close(unit=unit)
+
+	open(access='stream', action='read', form='formatted', file='conftest.data', unit=unit)
+	read(fmt='(i1)', advance='no', unit=unit)
+	read(fmt=*, unit=unit) data(1)
+	read(fmt=*, unit=unit) data(2)
+	read(fmt=*, unit=unit) data(3)
+	close(unit=unit)
+
+	if (all(data == (/1,2,3/))) then
+ 	   call exit(0)
+	else
+	   call exit(-1)
+  	end if
+])],
+ [  IO_ADVANCE_BUG="no"],
+ [AC_MSG_NOTICE(fortran compiler has bugged advance io)
+  AC_DEFINE(IO_ADVANCE_BUG, [1])
+  IO_ADVANCE_BUG="yes"
+  ])
+AC_SUBST(IO_ADVANCE_BUG)
+
+AC_LANG_RESTORE
 
 AC_ARG_ENABLE(dp,
 [AC_HELP_STRING([--enable-dp[=flag]],
@@ -1090,9 +1174,10 @@ AC_ARG_ENABLE(profiling,
 
 if test "$enable_profiling" = "yes" ; then
   PROFILING_FLAG="-pg"
-  CPPFLAGS="-pg $CPPFLAGS"
   FFLAGS="-pg $FFLAGS"
   FCFLAGS="-pg $FCFLAGS"
+  CFLAGS="-pg $CFLAGS"
+  CXXFLAGS="-pg $CXXFLAGS"
 
   LINKER="$LINKER -pg"
   LIBS="$LIBS -pg"
@@ -1107,7 +1192,6 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 #AC_C_INLINE
 
 AC_SUBST(FORTRAN_REAL_8)
-AC_SUBST(OPTIMIZATION_FFLAGS)
 AC_SUBST(LINKER)
 AC_SUBST(FLLINKER)
 
@@ -1128,6 +1212,42 @@ CC=$MPICC
 CXX=$MPICXX
 LINKER=$CXX
 
+AC_ARG_ENABLE(libsupermesh, [AC_HELP_STRING([--enable-libsupermesh], [enable use of the libsupermesh library])])
+if test "x$enable_libsupermesh" = "xyes" ; then
+  AC_MSG_CHECKING([libsupermesh])
+  AC_LANG_PUSH([C++])
+  AC_SEARCH_LIBS([libsupermesh_build_rtree], [supermesh])
+  if test "$ac_cv_search_libsupermesh_build_rtree" = "none required" ; then
+    AC_MSG_ERROR("Unexpected error when checking for libsupermesh")
+  elif test "$ac_cv_search_libsupermesh_build_rtree" = "no" ; then
+    AC_MSG_ERROR("libsupermesh not found")
+  else
+    LIBS="$LIBS $ac_cv_search_libsupermesh_build_rtree"
+  fi
+  AC_LANG_POP([C++])
+   
+  AC_LANG_PUSH([Fortran])
+  tmpFCFLAGS="$FCFLAGS"
+  FCFLAGS="$FCFLAGS $CPPFLAGS"
+  AC_LINK_IFELSE(
+    [AC_LANG_SOURCE([
+      program test_libsupermesh
+       use libsupermesh
+      end program test_libsupermesh
+      ])
+    ],
+    [
+      AC_MSG_RESULT([libsupermesh Fortran module found])
+    ],
+    [
+      AC_MSG_ERROR("libsupermesh Fortran module not found")
+    ])    
+  FCFLAGS="$tmpFCFLAGS"
+  AC_LANG_POP([Fortran])
+  AC_DEFINE(HAVE_LIBSUPERMESH, [1])
+fi
+AC_SUBST(HAVE_LIBSUPERMESH)
+
 # Configure adaptivity
 if test -d libadaptivity ; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
@@ -1142,14 +1262,18 @@ if test -d libadaptivity ; then
     # fluidity's (except for MPI)
     if test "$enable_dp" = "yes" ; then     
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
-            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" ./configure
+            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" \
+	    CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" \
+            CPPFLAGS="${env_cppflags}" ./configure
         if test "$?" -ne "0"; then
           AC_MSG_ERROR([Configuration of libadaptivity has failed.])
           exit -1
         fi
     else
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
-            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" ./configure --enable-dp=no
+            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" \
+	    CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" \
+	    CPPFLAGS="${env_cppflags}" ./configure --enable-dp=no
         if test "$?" -ne "0"; then
           AC_MSG_ERROR([Configuration of libadaptivity has failed.])
           exit -1
@@ -1169,12 +1293,32 @@ else
 fi
 
 # Configure libjudy
-if test -d libjudy ; then
+
+AC_ARG_WITH([judy],
+	[AC_HELP_STRING([--with-judy=<lib>], [specify Judy library <lib>])])
+
+if test -n "$with_judy"; then
+    AC_MSG_NOTICE([Linking against $with_judy])
+   	case $with_judy in
+	      -l* | */* | *.a | *.so | *.so.* | *.o) acx_judy_lib="$with_judy" ;;
+	      *) acx_judy_lib="-l$with_judy" ;;
+	esac	      
+   	FLIBJUDY="$acx_judy_lib"
+    if test "x$ARCHER" != "x" ; then
+        FLLINKER=$CXX
+    else
+        FLLINKER=$FC
+    fi
+    AC_SUBST(FLLINKER)
+elif test -d libjudy ; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
     AC_MSG_NOTICE([Configuring libjudy])
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
 
     cd libjudy
+    # NOTE: the output of libjudy's configure is actually overwritten by us at
+    # the end of the current configure. Do we actually need this or
+    # do we keep it as a check that libjudy is happy with the environment?
     FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CC="${saved_CC}" ./configure --prefix=${PWD}/..
     if test "$?" -ne "0"; then
       AC_MSG_ERROR([Configuration of libjudy has failed.])
@@ -1187,7 +1331,15 @@ if test -d libjudy ; then
     else
         JUDY_CFLAGS="-UJU_64BIT"
     fi
+    # this is a workaround for https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=755099
+    if echo "$CFLAGS" | grep -q -- "-O[[2-3]]"; then
+      if test "x$USING_GFORTRAN" = "xyes" -a "x$USING_CLANG" = "xno"; then
+        JUDY_CFLAGS="$JUDY_CFLAGS -fno-aggressive-loop-optimizations"
+      fi
+    fi
     AC_SUBST(JUDY_CFLAGS)
+    LIBJUDY=-ljudy
+    FLIBJUDY="./lib/libjudy.a"
 
     
 cat >> confdefs.h << EOF
@@ -1196,23 +1348,40 @@ EOF
 else
     AC_MSG_ERROR("libjudy directory missing!!")
 fi
+AC_SUBST(FLIBJUDY)
 
 # Configure libspud
-if test -d libspud ; then
+AC_ARG_WITH([libspud-root],
+	[AC_HELP_STRING([--with-libspud-root=<lib>], [specify external libspud installation root directory])])
+
+if test -n "$with_libspud_root"; then
+   	SPUDLIB="${with_libspud_root}/lib/libspud.a"
+	SPUDHEADER="${with_libspud_root}/include/spud.h"
+	CPPFLAGS="$CPPFLAGS -I${with_libspud_root}/include"
+	FCFLAGS="$FCFLAGS -I${with_libspud_root}/include"
+elif test -d libspud ; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
     AC_MSG_NOTICE([Configuring libspud])
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
 
     # Check if we're on hector xe6
-    if echo $(hostname) | grep -q "^hector-xe6"; then
-        AC_MSG_NOTICE([Building on hector xe6; disabling shared libraries])
-        SHFLAG=--disable-shared
+    if test "x$ARCHER" != "x" ; then
+        AC_MSG_NOTICE([Building on ARCHER; disabling shared libraries])
+        CONFIG_FLAG=--disable-shared
         SPUD_ONLY="yes"
         FLLINKER=$CXX
     else
         FLLINKER=$FC
-        SHFLAG=--enable-shared
+        CONFIG_FLAG=--enable-shared
     fi
+
+    if test "$enable_profiling" = "yes" ; then
+        CONFIG_FLAG="${CONFIG_FLAG} --enable-profiling"
+    fi
+
+    SPUDLIB="${PWD}/lib/libspud.a"
+    SPUDHEADER="${PWD}/include/spud.h"
+
     AC_SUBST(SPUD_ONLY)
 
     cd libspud
@@ -1223,7 +1392,7 @@ if test -d libspud ; then
     # fluidity's (except for MPI)
     echo "${env_fcflags}"
     echo "${env_fflags}"
-    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" CPPFLAGS="${env_cppflags}" ./configure --prefix=${PWD}/.. ${SHFLAG}
+    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" CPPFLAGS="${env_cppflags}" ./configure --prefix=${PWD}/.. ${CONFIG_FLAG}
     if test "$?" -ne "0"; then
       AC_MSG_ERROR([Configuration of libspud has failed.])
       exit -1
@@ -1236,11 +1405,16 @@ EOF
 else
     AC_MSG_ERROR("libspud directory missing!!")
 fi
+AC_SUBST(SPUDLIB)
+AC_SUBST(SPUDHEADER)
 
 #*************SpatialIndex******
 AC_ARG_ENABLE(spatialindex-version, 
 [AC_HELP_STRING([--enable-spatialindex-version],
 [Select required version of spatialindex library: 1.8.0])])
+AC_ARG_WITH([spatialindex-root],
+	[AC_HELP_STRING([--with-spatialindex-root=<dir>],
+        [specify root directory of system spatialindex installation])])
 
 if test "x$enable_spatialindex_version" != "x"
 then
@@ -1249,6 +1423,14 @@ else
   enable_spatialindex_version="1.8.0"
   SPATIALINDEXDIR="spatialindex-1.8.0"
 fi
+
+if test -n "$with_spatialindex_root"; then
+   LIBSPATIALINDEX="${with_spatialindex_root}/lib/libspatialindex.a"
+   CPPFLAGS="$CPPFLAGS -I${with_spatialindex_root}/include/spatialindex/"
+else
+
+LIBSPATIALINDEX="${PWD}/lib/libspatialindex.a"
+
 AC_SUBST(SPATIALINDEXDIR)
 
 AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
@@ -1263,12 +1445,14 @@ if test "$enable_profiling" = "yes" ; then
 fi
 CC="${CC}" CXX="${CXX}" CFLAGS="${env_cflags}" CXXFLAGS="${env_cxxflags}" CPPFLAGS="-D_GNU_SOURCE" \
     LIBS="${env_lib}" ./configure --prefix=${PWD}/../ --disable-shared --without-pic \
-    ${SPATIALINDEX_CONFIGURE_DEBUG_OPTION} ${SPATIALINDEX_CONFIGURE_PROF_OPTION}
+    ${SPATIALINDEX_CONFIGURE_DEBUG_OPTION} ${SPATIALINDEX_CONFIGURE_PROF_OPTION} --disable-maintainer-mode
 if test "$?" -ne "0"; then
   AC_MSG_ERROR([Configuration of spatialindex has failed.])
   exit -1
 fi
 cd ../
+fi
+AC_SUBST(LIBSPATIALINDEX)
 
 #*************ARPACK*********
 AC_LANG_PUSH([Fortran])
@@ -1292,6 +1476,13 @@ if test "$with_VTK" = no ; then enable_vtk=no; fi
 if test "$enable_VTK" = no ; then enable_vtk=no; fi
 if test "$enable_vtk" != "no" ; then
     AC_MSG_NOTICE([Checking for VTK automagic.])
+    VTK_FLAGS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=COMPILE`
+    VTK_LIBS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=LINK`
+
+    OLD_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS $VTK_FLAGS"
+    OLD_LIBS="$LIBS"
+    LIBS="$LIBS $VTK_LIBS" 
     AC_LANG_PUSH([C++])
     AC_LINK_IFELSE(
 	[AC_LANG_PROGRAM([[
@@ -1311,54 +1502,131 @@ if test "$enable_vtk" != "no" ; then
             ],
 	[
             AC_MSG_NOTICE([No VTK automagic])
-	    search_for_vtk=yes	    
+	    search_for_vtk=yes
+	    CPPFLAGS="$OLD_CPPFLAGS"
+	    LIBS="$OLD_LIBS"	    
 	])
     
     if test "x$search_for_vtk" = "xyes" ; then
-        # Usually the location of the libraries is not a mystery. The
-        # header files are another matter.
-        AC_CHECK_LIB(dl, main)
-        AC_CHECK_LIB(vtksys, main)
-        AC_CHECK_LIB(vtkCommon, main, [], 
-            [if test "x$VTK_LIBS" != "x" ; then
-                LIBS="$LIBS -L$VTK_LIBS"
-                unset ac_cv_lib_vtkCommon_main
-                AC_CHECK_LIB(vtkCommon, main, [], 
-                   [
-                      AC_MSG_ERROR([Cannot find vtk installation.])
-                      exit -1
-                   ])
-             else
-                AC_MSG_ERROR([Cannot find vtk installation.])
-                exit -1
-             fi
-            ])
-        AC_CHECK_LIB(vtkzlib, main)
-        AC_CHECK_LIB(vtkexpat, main)
-        AC_CHECK_LIB(vtkFiltering, main)
-        AC_CHECK_LIB(vtkGraphics, main)
-        AC_CHECK_LIB(vtkIO, main)
-        
-        # check at the usual places:
-        for i in $(ls -d /usr/include/vtk*) $VTK_INCLUDE; do
-            if test -r $i/vtkCellData.h; then
-                CPPFLAGS="-I$i $CPPFLAGS"
+
+        # Need to check what version of VTK is on the system.
+
+        # User may set the install directory for VTK but use
+        # the default sensible location if not.
+        if test "x$VTK_INSTALL_PREFIX" == "x"; then
+            VTK_INSTALL_PREFIX=/usr/include 
+        fi
+
+        # Loop through potential vtk installations and get the highest version number 
+        vtk_version=0
+        vtk_include_dir=""
+        vtk_version_file=""
+        for i in $(ls -d $VTK_INSTALL_PREFIX/vtk*) $VTK_INCLUDE; do
+            # VTK 6 has a version macros file
+            if test -r $i/vtkVersionMacros.h; then
+                # Get the version number from the macros file
+                this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkVersionMacros.h | sed 's/#define VTK_MAJOR_VERSION //')
+                # Use the latest version available
+                if [[ $this_vtk_version -gt $vtk_version ]]; then
+                   vtk_version=$this_vtk_version
+                   vtk_include_dir=$i
+                   vtk_version_file="vtkVersionMacros.h"
+                fi
+            # VTK 5 has a configure file that defined the macros
+            elif test -r $i/vtkConfigure.h; then
+                # Get the version number from the configure file
+                this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkConfigure.h | sed 's/#define VTK_MAJOR_VERSION //')
+                # Use the latest version available
+                if [[ $this_vtk_version -gt $vtk_version ]]; then
+                   vtk_version=$this_vtk_version
+                   vtk_include_dir=$i
+                   vtk_version_file="vtkConfigure.h"
+                fi
+            else
+              AC_MSG_WARN([Found VTK folder $i but could not find file to get version.])
             fi
         done
-        AC_CHECK_HEADER(vtkCellData.h,
-            [CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
-                VTK=yes
-                ],
-            [AC_CHECK_HEADER(vtk-5.0/vtkCellData.h,
-                    [CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
-                        VTK=yes
-                        vtk_header_relative_path="vtk-5.0/"
-                        ],
-                    [       
-                        AC_MSG_ERROR([Cannot find vtk installation.])
-                        exit -1
-                    ])
-          ])
+
+        # Add to include path
+        AC_CHECK_HEADER([$vtk_include_dir/$vtk_version_file],
+                        [CPPFLAGS="$CPPFLAGS -I$vtk_include_dir -DHAVE_VTK=1"
+                         VTK=yes],
+                        [AC_MSG_ERROR([Cannot find vtk installation.])])
+
+        AC_MSG_NOTICE([Found and using VTK major version: $vtk_version])
+
+        # Link the correct libraries depending on the version
+        if [[ "x$vtk_version" == "x5" ]]; then 
+            # Usually the location of the libraries is not a mystery. The
+            # header files are another matter.
+            AC_CHECK_LIB(dl, main)
+            AC_CHECK_LIB(vtkCommon, main, [], 
+                [if test "x$VTK_LIBS" != "x" ; then
+                    LIBS="$LIBS -L$VTK_LIBS"
+                    unset ac_cv_lib_vtkCommon_main
+                    AC_CHECK_LIB(vtkCommon, main, [], 
+                       [
+                          AC_MSG_ERROR([Cannot find vtk installation.])
+                          exit -1
+                       ])
+                 else
+                    AC_MSG_ERROR([Cannot find vtk installation.])
+                    exit -1
+                 fi
+                ])
+            AC_CHECK_LIB(vtkzlib, main)
+            AC_CHECK_LIB(vtkexpat, main)
+            AC_CHECK_LIB(vtkFiltering, main)
+            AC_CHECK_LIB(vtkGraphics, main)
+            AC_CHECK_LIB(vtkIO, main)
+            
+            # check at the usual places:
+            for i in $(ls -d /usr/include/vtk*) $VTK_INCLUDE; do
+                if test -r $i/vtkCellData.h; then
+                    CPPFLAGS="-I$i $CPPFLAGS"
+                fi
+            done
+            AC_CHECK_HEADER(vtkCellData.h,
+                [CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
+                    VTK=yes
+                    ],
+                [AC_CHECK_HEADER(vtk-5.0/vtkCellData.h,
+                        [CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
+                            VTK=yes
+                            vtk_header_relative_path="vtk-5.0/"
+                            ],
+                        [       
+                            AC_MSG_ERROR([Cannot find vtk installation.])
+                            exit -1
+                        ])
+              ])
+        elif [[ "x$vtk_version" == "x6" ]]; then
+            if test -d /usr/lib64/vtk ; then
+                LIBS="$LIBS -L/usr/lib64/vtk"
+            fi
+            AC_CHECK_LIB(vtkCommonCore, main, [], 
+                [if test "x$VTK_LIBS" != "x" ; then
+                    LIBS="$LIBS -L$VTK_LIBS"
+                    unset ac_cv_lib_vtkCommonCore_main
+                    AC_CHECK_LIB(vtkCommonCore, main, [], 
+                       [
+                          AC_MSG_ERROR([Cannot find vtk installation.])
+                          exit -1
+                       ])
+                 else
+                    AC_MSG_ERROR([Cannot find vtk installation.])
+                    exit -1
+                 fi
+                ])
+            AC_CHECK_LIB(vtkIOXML, main)
+            AC_CHECK_LIB(vtkIOParallel, main)
+            AC_CHECK_LIB(vtkIOParallelXML, main)
+            AC_CHECK_LIB(vtkIOCore, main)
+            AC_CHECK_LIB(vtkCommonDataModel, main)
+            AC_CHECK_LIB(vtkCommonExecutionModel, main)
+            AC_CHECK_LIB(vtkIOLegacy, main)
+            AC_CHECK_LIB(vtkFiltersGeneral, main)
+        fi
     fi
 fi
 cat > include/vtk.h <<EOF
@@ -1403,6 +1671,11 @@ cat > include/vtk.h <<EOF
 #include <${vtk_header_relative_path}vtkXMLUnstructuredGridReader.h>
 #include <${vtk_header_relative_path}vtkXMLUnstructuredGridWriter.h>
 #include <${vtk_header_relative_path}vtkZLibDataCompressor.h>
+
+#if VTK_MAJOR_VERSION>6 
+#include <${vtk_header_relative_path}vtkMPIController.h>
+#include <${vtk_header_relative_path}vtkMPICommunicator.h>
+#endif
 
 #ifndef vtkFloatingPointType
 #define vtkFloatingPointType vtkFloatingPointType
@@ -1498,11 +1771,16 @@ fi
 
 #*******************
 
+
+AC_PROG_SED
+AC_PROG_GREP
+
 AC_OUTPUT(Makefile
           debug/Makefile
           bathymetry/Makefile
           ocean_forcing/Makefile ocean_forcing/tests/Makefile
           sediments/Makefile
+          population_balance/Makefile
           hyperlight/Makefile
           femtools/Makefile femtools/tests/Makefile
           forward_interfaces/Makefile
@@ -1517,8 +1795,6 @@ AC_OUTPUT(Makefile
           tools/Makefile
           tools/version-info
           python/setup.py
-          adjoint/Makefile
-          adjoint/tests/Makefile
           climatology/Makefile
           libmba2d/Makefile
       	  libmba3d/Makefile
@@ -1531,5 +1807,4 @@ AC_OUTPUT(Makefile
           libjudy/src/JudyHS/Makefile
           libwm/Makefile
           libvtkfortran/Makefile
-          schemas/flml
-	  reduced_modelling/Makefile)
+	  tests/tools.mk)

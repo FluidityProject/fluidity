@@ -3,7 +3,7 @@
 subroutine test_intersection_finder_completeness
 
   use unittest_tools
-  use read_triangle
+  use mesh_files
   use fields
   use linked_lists
   use intersection_finder_module
@@ -16,12 +16,12 @@ subroutine test_intersection_finder_completeness
   real, dimension(:), allocatable :: detwei
   integer :: ele_A, ele_B, ele_C
   real :: vol_B, vols_C
-  logical :: fail
+  logical :: fail, empty_intersection
   type(inode), pointer :: llnode
   type(vector_field) :: intersection
 
-  positionsA = read_triangle_files("data/intersection_finder.1", quad_degree=4)
-  positionsB = read_triangle_files("data/intersection_finder.2", quad_degree=4)
+  positionsA = read_mesh_files("data/intersection_finder.1", quad_degree=4, format="gmsh")
+  positionsB = read_mesh_files("data/intersection_finder.2", quad_degree=4, format="gmsh")
 
   allocate(map_BA(ele_count(positionsB)))
   allocate(detwei(ele_ngi(positionsA, 1)))
@@ -37,7 +37,11 @@ subroutine test_intersection_finder_completeness
     vols_C = 0.0
     do while(associated(llnode))
       ele_A = llnode%value
-      intersection = intersect_elements(positionsA, ele_A, ele_val(positionsB, ele_B), ele_shape(positionsB, ele_B))
+      intersection = intersect_elements(positionsA, ele_A, ele_val(positionsB, ele_B), ele_shape(positionsB, ele_B), empty_intersection=empty_intersection)
+      if (empty_intersection) then
+         llnode => llnode%next
+         cycle
+      end if
       do ele_C=1,ele_count(intersection)
         call transform_to_physical(intersection, ele_C, detwei=detwei)
         vols_C = vols_C + sum(detwei)

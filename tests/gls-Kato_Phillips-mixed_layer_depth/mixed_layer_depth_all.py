@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from numpy import arange,concatenate,array,argsort
 import os
@@ -33,7 +33,7 @@ def MLD(filelist):
      try:
        os.stat(file)
      except:
-       print "No such file: %s" % file
+       print("No such file: %s" % file)
        sys.exit(1)
      
      u=vtktools.vtu(file)

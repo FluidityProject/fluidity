@@ -4,21 +4,15 @@
   <start>
     <element name="ballistics_options">
       <element name="simulation_name">
-        <ref name="filename">
-          <a:documentation>The name of the simulation.
+        <a:documentation>The name of the simulation.
 This will be used as the basename of output files. </a:documentation>
-        </ref>
+        <ref name="filename"/>
       </element>
-      <!--
-        Timestepping_options is a named pattern defined below. 
-        In this case this is used to reduce clutter and increase readability.
-      -->
+      <!-- Timestepping_options is a named pattern defined below. -->
       <ref name="timestepping_options"/>
       <element name="gravity">
-        <ref name="real">
-          <a:documentation>The acceleration due to gravity measured downwards.
-e.g. 9.8</a:documentation>
-        </ref>
+        <a:documentation>The acceleration due to gravity measured downwards.</a:documentation>
+        <ref name="real"/>
       </element>
       <oneOrMore>
         <ref name="projectile"/>
@@ -26,8 +20,8 @@ e.g. 9.8</a:documentation>
       <!-- The + means one or more projectiles. -->
       <element name="geometry">
         <element name="dimension">
+          <a:documentation>Only 2D simulations are suppored by ballistics.</a:documentation>
           <element name="integer_value">
-            <a:documentation>Only 2D simulations are suppored by ballistics.</a:documentation>
             <attribute name="rank">
               <value>0</value>
             </attribute>
@@ -40,20 +34,18 @@ e.g. 9.8</a:documentation>
   <define name="timestepping_options">
     <element name="timestepping">
       <element name="dt">
-        <ref name="real">
-          <a:documentation>The length of each timestep.</a:documentation>
-        </ref>
+        <a:documentation>The length of each timestep.</a:documentation>
+        <ref name="real"/>
       </element>
       <element name="finish_time">
-        <ref name="real">
-          <a:documentation>The time at which the simulation should stop.</a:documentation>
-        </ref>
+        <a:documentation>The time at which the simulation should stop.</a:documentation>
+        <ref name="real"/>
       </element>
       <element name="time_integration_scheme">
-        <element name="string_value">
-          <a:documentation>The algorithm which will be used to move the projectiles. 
+        <a:documentation>The algorithm which will be used to move the projectiles. 
 explicit_euler is the first order unstable numeric scheme.
 analytic is the analytic solution.</a:documentation>
+        <element name="string_value">
           <!--
             Lines is a hint to the gui about the size of the text box.
             It is not an enforced limit on string length.

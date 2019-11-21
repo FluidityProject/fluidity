@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="column">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -191,6 +191,9 @@
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </scalar_field>
             <scalar_field name="Absorption" rank="0">
@@ -201,6 +204,9 @@
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </scalar_field>
             <output/>
@@ -211,6 +217,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -287,6 +296,9 @@
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </scalar_field>
             <scalar_field name="Absorption" rank="0">
@@ -297,6 +309,9 @@
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </scalar_field>
             <output/>
@@ -307,6 +322,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -371,6 +389,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -388,6 +409,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -405,6 +429,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -422,6 +449,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -439,6 +469,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -456,6 +489,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -473,6 +509,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -490,6 +529,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -507,6 +549,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -524,6 +569,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -541,6 +589,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -558,6 +609,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -575,6 +629,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -592,6 +649,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -609,6 +669,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -626,6 +689,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -643,6 +709,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -662,6 +731,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -690,6 +762,7 @@
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
@@ -863,7 +936,7 @@
 
   templ = []
   layerl = []
-  reader = csv.reader(file("temperature.csv"))
+  reader = csv.reader(open("temperature.csv"))
   for row in reader:
     layerl.append(abs(float(row[0])))
     templ.append(float(row[1]))
@@ -886,6 +959,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -947,7 +1023,7 @@
 
   templ = []
   layerl = []
-  reader = csv.reader(file("salinity.csv"))
+  reader = csv.reader(open("salinity.csv"))
   for row in reader:
     layerl.append(abs(float(row[0])))
     templ.append(float(row[1]))
@@ -970,6 +1046,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -988,6 +1067,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -1005,6 +1087,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -1024,6 +1109,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
     <scalar_field name="DistanceToBottom" rank="0">
@@ -1040,6 +1128,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
   </material_phase>

@@ -6,22 +6,22 @@ MODEL = Stokes-square-convection-1e4-p1p1
 
 default: input
 
-input: src/$(MESH).edge src/$(MESH).ele src/$(MESH).node clean
-	cp src/$(MESH).edge src/$(MESH).ele src/$(MESH).node .
+input: src/$(MESH).msh clean
+	cp src/$(MESH).msh .
 
 clean: clean-mesh clean-run-debug
 clean-mesh:
-	rm -f $(MESH).ele $(MESH).face $(MESH).node $(MESH).edge
-	rm -f $(MESH)_?*.ele $(MESH)_?*.edge $(MESH)_?*.face $(MESH)_?*.halo $(MESH)_?*.node
+	rm -f $(MESH).msh
+	rm -f $(MESH)_?*.msh $(MESH)_?*.halo
 clean-run:
 	rm -f $(FLMLMODEL)_?*.pvtu $(FLMLMODEL)_?*.vtu
 	rm -f $(FLMLMODEL).detectors.dat $(FLMLMODEL).detectors $(FLMLMODEL).stat tmpf*
 	rm -f fluidity.err-?* fluidity.log-?*
 	rm -f matrixdump matrixdump.info
 	rm -f $(FLMLMODEL)_?*_checkpoint.flml
-	rm -f $(FLMLMODEL)_?*_checkpoint_?*.ele $(FLMLMODEL)_?*_checkpoint_?*.face $(FLMLMODEL)_?*_checkpoint_?*.halo $(FLMLMODEL)_?*_checkpoint_?*.node
+	rm -f $(FLMLMODEL)_?*_checkpoint_?*.msh $(FLMLMODEL)_?*_checkpoint_?*.halo
 	rm -f $(FLMLMODEL)_?*_?*_checkpoint.pvtu $(FLMLMODEL)_?*_?*_checkpoint.vtu
-	rm -f $(FLMLMODEL)_?*_checkpoint.ele $(FLMLMODEL)_?*_checkpoint.face $(FLMLMODEL)_?*_checkpoint.node
+	rm -f $(FLMLMODEL)_?*_checkpoint.msh
 	rm -f $(FLMLMODEL)_?*_checkpoint.vtu
 	rm -rf *flredecomp*
 clean-run-debug: clean-run

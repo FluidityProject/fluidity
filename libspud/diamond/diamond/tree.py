@@ -1,5 +1,3 @@
-#/usr/bin/env python
-
 #    This file is part of Diamond.
 #
 #    Diamond is free software: you can redistribute it and/or modify
@@ -18,25 +16,23 @@
 import base64
 import bz2
 import copy
-import cPickle as pickle
-import cStringIO as StringIO
+import pickle
 import re
 import zlib
 from lxml import etree
 import sys
 
-import gobject
+from gi.repository import GObject as gobject
 
-import debug
-import choice
-import mixedtree
+from . import debug
+from . import mixedtree
 
 class Tree(gobject.GObject):
   """This class maps pretty much 1-to-1 with an xml tree.
      It is used to represent the options in-core."""
 
-  __gsignals__ = { "on-set-data" : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (str,)),
-                   "on-set-attr"  : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (str, str))}
+  __gsignals__ = { "on-set-data" : (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, (str,)),
+                   "on-set-attr"  : (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, (str, str))}
   
   def __init__(self, name="", schemaname="", attrs={}, children=None, cardinality='', datatype=None, doc=None):
     gobject.GObject.__init__(self)
@@ -91,7 +87,7 @@ class Tree(gobject.GObject):
 
     # The attributes of the tree
     self.attrs = {}
-    for key in attrs.keys():
+    for key in list(attrs.keys()):
       if isinstance(attrs[key][0], tuple) and len(attrs[key][0]) == 1:
         self.attrs[key] = ("fixed", attrs[key][0][0])
       else:
@@ -104,7 +100,7 @@ class Tree(gobject.GObject):
     (datatype, curval) = self.attrs[attr]
     (invalid, newdata) = self.valid_data(datatype, val)
     if invalid:
-      raise Exception, "invalid data: (%s, %s)" % (datatype, val)
+      raise Exception("invalid data: (%s, %s)" % (datatype, val))
     self.attrs[attr] = (datatype, newdata)
     self.recompute_validity()
     self.emit("on-set-attr", attr, val)
@@ -121,17 +117,17 @@ class Tree(gobject.GObject):
   def set_data(self, data):
     (invalid, data) = self.valid_data(self.datatype, data)
     if invalid:
-      raise Exception, "invalid data: (%s, %s)" % (str(self.datatype), data)
+      raise Exception("invalid data: (%s, %s)" % (str(self.datatype), data))
     self.data = data
     self.recompute_validity()
     self.emit("on-set-data", data)
 
   def valid_data(self, datatype, data):
     if datatype is None:
-      raise Exception, "datatype is None!"
+      raise Exception("datatype is None!")
 
     elif datatype == "fixed":
-      raise Exception, "datatype is fixed!"
+      raise Exception("datatype is fixed!")
 
     datatypes_to_check = []
 
@@ -186,6 +182,7 @@ class Tree(gobject.GObject):
     return new_copy
 
   def recompute_validity(self):
+    from . import choice # try to get around circular import (in interface.py) by importing here
 
     new_valid = True
 
@@ -202,7 +199,7 @@ class Tree(gobject.GObject):
 
     # if any attributes are unset,
     # we are invalid.
-    for attr in self.attrs.keys():
+    for attr in list(self.attrs.keys()):
       (datatype, val) = self.attrs[attr]
       if not datatype is None and val is None:
         new_valid = False
@@ -230,20 +227,18 @@ class Tree(gobject.GObject):
     outlist = []
 
     for tree in treelist:
-      new_tree = None
       found = False
       for t in self.children:
         if t.schemaname == tree.schemaname:
-          tree = t
+          outlist.append(t)
           found = True
-          break
+
       if not found:
         tree.set_parent(self)
 
         self.children.append(tree)
         tree.recompute_validity()
-
-      outlist.append(tree)
+        outlist.append(tree)
 
       for tree in outlist:
         if tree.cardinality in ['+', '*']:
@@ -261,7 +256,7 @@ class Tree(gobject.GObject):
     else:
       file = filename
 
-    xmlTree=etree.tostring(self.write_core(None), pretty_print = True, xml_declaration = True, encoding="utf-8")
+    xmlTree=etree.tostring(self.write_core(None), pretty_print = True, xml_declaration = True, encoding="utf-8").decode()
     
     file.write(xmlTree)
 
@@ -274,14 +269,14 @@ class Tree(gobject.GObject):
       val = self.attrs[key]
       output_val = val[1]
       if output_val is not None:
-        sub_tree.set(unicode(key), unicode(output_val))
+        sub_tree.set(str(key), str(output_val))
   
     for child in self.children:
       if child.active is True:
         child.write_core(sub_tree)
         
     if self.data is not None:
-      sub_tree.text = unicode(self.data)
+      sub_tree.text = str(self.data)
       
     if parent is not None:
       parent.append(sub_tree)
@@ -319,11 +314,11 @@ class Tree(gobject.GObject):
       self.active = False
 
   def count_children_by_schemaname(self, schemaname):
-    count = len(filter(lambda x: x.schemaname == schemaname, self.children))
+    count = len([x for x in self.children if x.schemaname == schemaname])
     return count
 
   def get_children_by_schemaname(self, schemaname):
-    return filter(lambda x: x.schemaname == schemaname, self.children)
+    return [x for x in self.children if x.schemaname == schemaname]
 
   def delete_child_by_ref(self, ref):
     self.children.remove(ref)
@@ -342,6 +337,7 @@ class Tree(gobject.GObject):
     return new_tree
 
   def print_recursively(self, indent=""):
+    from . import choice # try to get around circular import (in interface.py) by importing here
     s = self.__str__()
     debug.dprint(indent + ' ' + s.replace('\n', '\n' + indent + ' '), 0, newline = False)
     debug.dprint("", 0)
@@ -401,7 +397,7 @@ class Tree(gobject.GObject):
     if name == self.name:
       return self
     else:
-      raise Exception, "ban the bomb"
+      raise Exception("ban the bomb")
 
   def choices(self):
     return [self]
@@ -488,7 +484,7 @@ class Tree(gobject.GObject):
 
   def get_name(self):
     if "name" in self.attrs:
-      name = self.attrs["name"][1]
+      name = self.get_attr("name")
       return name
 
     return None
@@ -563,4 +559,3 @@ class Tree(gobject.GObject):
     return True
  
 gobject.type_register(Tree)
-

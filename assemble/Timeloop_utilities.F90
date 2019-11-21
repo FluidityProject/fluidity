@@ -27,14 +27,16 @@
 #include "fdebug.h"
 
 module timeloop_utilities
-  use state_module
-  use FEFields
-  use fields
+  use fldebug
   use spud
+  use global_parameters, only: simulation_start_cpu_time,&
+    & simulation_start_wall_time, OPTION_PATH_LEN
+  use parallel_tools
+  use fields
+  use state_module
+  use fefields
   use signal_vars
   use timers
-  use global_parameters, only: simulation_start_cpu_time,&
-       & simulation_start_wall_time, OPTION_PATH_LEN
   implicit none
   
   private
@@ -143,20 +145,24 @@ contains
 
           sfield=extract_scalar_field(state(s), f)
 
-          if(.not.aliased(sfield)) then
+          if(.not.(have_option(trim(sfield%option_path)//"/prescribed"))) then
+             
+             if(.not.aliased(sfield)) then
 
-            ! Special case: do not copy back pressure or density or geostrophic pressure
-            if ((sfield%name=="Pressure").or.(sfield%name=="Density").or.(sfield%name=="GeostrophicPressure")) then
-              cycle
-            end if
+                ! Special case: do not copy back pressure or density or geostrophic pressure
+                if ((sfield%name=="Pressure").or.(sfield%name=="Density").or.(sfield%name=="GeostrophicPressure")) then
+                   cycle
+                end if
 
-            old_sfield=extract_scalar_field(state(s), trim(prefix)//sfield%name,&
-                & stat=stat)
+                old_sfield=extract_scalar_field(state(s), trim(prefix)//sfield%name,&
+                     & stat=stat)
 
-            if ((stat==0).and.(.not.aliased(old_sfield))) then
-              ! In this case there is an old field to be set.
+                if ((stat==0).and.(.not.aliased(old_sfield))) then
+                   ! In this case there is an old field to be set.
 
-              call set(sfield, old_sfield)
+                   call set(sfield, old_sfield)
+
+                end if
 
             end if
 
@@ -168,23 +174,25 @@ contains
 
           vfield=extract_vector_field(state(s), f)
 
-          if(.not.aliased(vfield)) then
+          if(.not.(have_option(trim(vfield%option_path)//"/prescribed"))) then
+             
+             if(.not.aliased(vfield)) then
 
-            ! Special case: do not copy back the coordinates or the gridvelocity
-            if ((vfield%name=="Coordinate").or.(vfield%name=="GridVelocity")) then
-              cycle
-            end if
+                ! Special case: do not copy back the coordinates or the gridvelocity
+                if ((vfield%name=="Coordinate").or.(vfield%name=="GridVelocity")) then
+                   cycle
+                end if
 
-            old_vfield=extract_vector_field(state(s), trim(prefix)//vfield%name,&
-                & stat=stat)
-
-            if ((stat==0).and.(.not.aliased(old_vfield))) then
-              ! In this case there is an old field to be set.
-
-              call set(vfield, old_vfield)
-
-            end if
-
+                old_vfield=extract_vector_field(state(s), trim(prefix)//vfield%name,&
+                     & stat=stat)
+                
+                if ((stat==0).and.(.not.aliased(old_vfield))) then
+                   ! In this case there is an old field to be set.
+                   call set(vfield, old_vfield)
+                end if
+                
+             end if
+             
           end if
 
        end do
@@ -193,17 +201,21 @@ contains
 
           tfield=extract_tensor_field(state(s), f)
 
-          if(.not.aliased(tfield)) then
+          if(.not.(have_option(trim(tfield%option_path)//"/prescribed"))) then
+             
+             if(.not.aliased(tfield)) then
 
-            old_tfield=extract_tensor_field(state(s), trim(prefix)//tfield%name,&
-                & stat=stat)
+                old_tfield=extract_tensor_field(state(s), trim(prefix)//tfield%name,&
+                     & stat=stat)
 
-            if ((stat==0).and.(.not.aliased(old_tfield))) then
-              ! In this case there is an old field to be set.
+                if ((stat==0).and.(.not.aliased(old_tfield))) then
+                   ! In this case there is an old field to be set.
 
-              call set(tfield, old_tfield)
+                   call set(tfield, old_tfield)
 
-            end if
+                end if
+
+             end if
 
           end if
 
@@ -251,8 +263,13 @@ contains
 
        velocity=>extract_vector_field(state(s), "Velocity", stat)
        if(stat==0) then
-         call get_option(trim(velocity%option_path)//"/prognostic&
-                        &/temporal_discretisation/relaxation", itheta, default=0.5)
+          if (have_option(trim(velocity%option_path)//"/prognostic")) then
+             call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/relaxation", itheta, default=0.5)
+          else if (have_option(trim(velocity%option_path)//"/prescribed")) then
+             call get_option(trim(velocity%option_path)//"/prescribed/temporal_discretisation/relaxation", itheta, default=1.0)
+          else
+	     itheta = 0.5
+          end if
        else
          itheta = 0.5
        end if

@@ -1,15 +1,9 @@
 include envcheck.mk
 
 preprocess: envcheck
-	@echo **********Converting the gmsh mesh to triangle format:
-	${BINPREFIX}gmsh2triangle med.msh
-	@echo **********Modifying mesh nodal file using sed:
-	sed '1s/3/2/2' < med.node > med2.node
-	@echo **********Replacing mesh with modified version:
-	mv med2.node med.node
 
 run: envcheck
-ifndef ($(NPROCS))
+ifndef NPROCS
 	@echo **********ERROR: Please define NPROCS to set the number of processors to use
 	@exit 1
 endif
@@ -29,7 +23,7 @@ endif
 
 postprocess: envcheck
 	@echo **********Reprojecting final output to long-lat and extracting RMS differences:
-	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH python ./reproject-to-loglat.py
+	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH python ./reproject-to-lonlat.py
 	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH python ./Med-tides-probe.py
 
 
@@ -41,3 +35,5 @@ clean:
 input: clean
 	$(MAKE) preprocess
 
+config: envcheck
+	diamond -s $(FLOPTIONSPREFIX)/fluidity_options.rng  med.flml

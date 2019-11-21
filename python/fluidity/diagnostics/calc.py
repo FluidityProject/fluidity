@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -17,6 +17,8 @@
 """
 Some mathematical routines
 """
+
+from __future__ import print_function
 
 import copy
 import math
@@ -588,7 +590,7 @@ def InterpolatedSSA(v, t, N_T, n, J = 1, t0 = None, t1 = None):
   
   lt = [t0 + i * dt for i in range(N_T)]
   lv = LinearlyInterpolateField(v, t, lt)
-  print lv, lt
+  print(lv, lt)
     
   return SSA(lv, n, J = J)
     

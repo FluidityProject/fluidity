@@ -29,6 +29,7 @@
 
 subroutine test_adapt_mesh
 
+  use fldebug
   use adapt_integration
   use field_options
   use fields

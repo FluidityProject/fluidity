@@ -28,10 +28,19 @@
 
 module sparsity_patterns
   ! This module produces sparsity patterns for matrices.
+  use fldebug
   use linked_lists
   use elements
+  use sparse_tools
+  use fields_data_types
   use fields_base
   implicit none
+
+  private
+
+  public :: make_sparsity, make_sparsity_transpose, make_sparsity_mult,&
+            make_sparsity_dg_mass, make_sparsity_compactdgdouble,&
+	    make_sparsity_lists, lists2csr_sparsity
 
 contains
 

@@ -85,11 +85,11 @@ p=(pl+pr)/2.
 # solve eqn (3.1.164): F(p*)=0, to find p* the pressure between the u-a and u+a waves
 # (is constant over contact discontinuity at the u wave)
 ps=newton(F, p, fprime=Fprime, maxiter=500)
-print "should be zero: F(p*) = ", F(ps)
-print "p* =", ps
+print("should be zero: F(p*) = ", F(ps))
+print("p* =", ps)
 us=ul+F1l(ps)
-print "u* =", us
-print "should be equal to:", ur+F3r(ps)
+print("u* =", us)
+print("should be equal to:", ur+F3r(ps))
 
 # the star region is divide by the contact discontinuity which gives a discontinuity in
 # density rhosl/rhosr and internal energy iesl/iesr

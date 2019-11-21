@@ -514,4 +514,273 @@ viscosity, $\nu_0$, and the total sediment concentration, $c$, as follows.
 
 Note: a ZeroSedimentConcentrationViscosity tensor field is required.
 
+\newpage
 
+\section{Population balance modelling}
+
+Dispersed objects are found widely in many diverse applications and the need to model their evolution has given rise to the development of the population balance equation (PBE). Dispersed items, which may be particles, cells or molecules, have a distribution that usually changes in time and space. The population balance equation is a conservation equation for the number of dispersed particles that models the evolution of this distribution \citep{ramkrishna2000population}. Fluidity can solve the PBE using the direct quadrature method of moments (DQMOM), which is a quadrature based moment method (QBMM) proposed by \citet{marchisio2005solution}.
+
+\subsection{Population balance equation}
+The PBE can be written as \citep{ramkrishna2000population}:
+\begin{equation}
+\frac{\partial n(\xi,\vec{x},t)}{\partial t} + \nabla \cdot \left( \langle \vec{u}|\xi \rangle \, n \right) - \nabla \cdot \left( \overline{\overline D}_\vec{x} (\xi,\vec{x},t) \nabla n \right) = S_\xi (\xi,\vec{x},t),
+\label{eq:pbe}
+\end{equation}
+where $n(\xi,\vec{x},t)$ is the dispersed phase number density function, with $\xi$ and $\vec{x}$  being the internal and the external coordinates, respectively. 
+In many cases, the PBE is formulated in terms of the particle volume as the internal coordinate due to the volume being conserved in breakage and aggregation processes. 
+In Fluidity, though, particle size has been taken as the internal coordinate and all conservation terms have been written using a length-based formulation. Since particle size is the internal variable of interest when modelling polydispersed flows, it is convenient to formulate the PBE in terms of the particle length instead of its volume. Also, while implementing the method of moments to solve the PBE in this work, integral moments are used for the length-based NDF instead of fractional moments that are generally needed for the volume-based NDF. This simplifies the calculations mathematically.
+
+The number density function is defined such that $n(\xi,\vec{x},t) \d \xi \d V_{\vec{x}}$ is the average number of dispersed particles contained in an infinitesimal volume $\d \xi \d V_{\vec{x}}$ centered around the particle state ($\xi,\vec{x}$). Therefore the total number of particles in the system is given as:
+\begin{equation}
+n_{tot}=\int_{\Omega_{\xi}} \int_{\Omega_{\vec{x}}} n(\xi,\vec{x},t) \d \xi \d V_{\vec{x}},
+\end{equation}
+where $\xi \in \Omega_{\xi}$ and $\vec{x} \in \Omega_{\vec{x}}$.
+
+In Equation~\eqref{eq:pbe}, $\langle \vec{u}|\xi \rangle$ is the mean dispersed phase velocity field conditional to the particle size $\xi$. This velocity field is responsible for convecting the particles in the physical domain. $\overline{\overline D}_\vec{x}$ in the third term on the left hand side of Equation~\eqref{eq:pbe} is the spatial diffusion tensor. Spatial diffusion is useful when modelling the Brownian motion effects in the evolution of fine particle distribution.
+
+$S_\xi$, called the source term in Equation~\eqref{eq:pbe}, includes all terms containing derivatives or integrals with respect to the particle size $\xi$. $S_{\xi}$ includes the growth term, diffusion in the internal (or phase) space, and the birth and death functions due to particle breakage and coalescence.
+
+\subsection{Source terms in the PBE}
+\subsubsection{Growth}
+Growth can be understood as convection in the particle internal space, smooth movement from one internal coordinate (i.e. particle size) to another. 
+The contribution to the source term in Equation~\eqref{eq:pbe} due to dispersed phase growth is given by:
+\begin{equation}
+S_\xi=-\frac{\partial}{\partial \xi} \left( \dot{\xi}(\xi,\vec{x},t) n \right),
+\label{eq:pbe_source_term_growth}
+\end{equation}
+where $\dot{\xi}$ ($=\frac{\d \xi}{\d t}$) is the growth rate, which is analogous to the velocity in external space.
+
+Some of the examples of growth in the PBE are: an increase in particle size due to deposition from the continuous phase in solutions (e.g. crystal growth) and an increase in bubble size as they rise in a column due to the decrease in hydrostatic pressure. Growth is considered a continuous process even though the actual physical process might not be strictly continuous. For example, in the case of crystal growth, the deposition process is molecular but crystal size increases infinitesimally in an infinitesimal time and hence the process can be considered continuous. The definition of growth, therefore, is time-scale dependent.
+
+\subsubsection{Internal diffusion}
+Certain processes can be modelled as diffusive with the diffusion occurring in the internal space in the PBE, e.g. when particles grow at different rates \citep{jones2002using}.
+The source term corresponding to this internal diffusion is given by:
+\begin{equation}
+S_\xi=\frac{\partial^2}{\partial \xi^2} \left(D_{\xi} (\xi,\vec{x},t) n \right),
+\label{eq:pbe_source_term_internal_diff}
+\end{equation}
+where $D_{\xi} (\xi,\vec{x},t)$ is the diffusivity in the internal space.
+
+\subsubsection{Breakage and coalescence} \label{sec:pbe_brk_aggr}
+Breakage and coalescence of particles are discontinuous events that lead to the birth and death of particles in a very short time (assuming particle interactions though hard-sphere potential). 
+The contribution to the source term of Equation~\eqref{eq:pbe} from the birth and death functions due to particle breakage and coalescence is given as:
+\begin{equation}
+S_\xi=B_B - D_B + B_C - D_C.
+\label{eq:pbe_source_term_br_ag}
+\end{equation}
+The birth and death functions due to breakage are given as:
+\begin{equation} \label{eq:B_B_pbe}
+B_B(\xi)=\int_{\xi}^{\infty} \nu(\xi_1) a(\xi_1) b(\xi | \xi_1) n(\xi_1) \d \xi_1
+\end{equation}
+and 
+\begin{equation} \label{eq:D_B_pbe}
+D_B(\xi) = a(\xi) n(\xi),
+\end{equation}
+respectively. Here, $\nu(\xi)$, $a(\xi)$ and $b(\xi|\xi_1)$ are the breakage kernels that define the number of particles formed after breakage, the breakage frequency, and the daughter distribution function, respectively.
+These three kernels are determined from physical models.
+The breakage frequency (also known as breakage rate) is the fraction of particles breaking per unit time and has the units \SI{}{\per\second}. It is usually modelled probabilistically.
+Binary breakage is considered in most applications, i.e. $\nu(\xi)=2$.
+The daughter distribution function $b(\xi|\xi_1)$ defines the probability of formation of particles of size $\xi$ due to the breakage of particles from class $\xi_1$. This probability density function satisfies the normalisation condition $\int_0^{\xi_1} b(\xi|\xi_1) \d \xi = 1$. \label{pagelabel:ddf_properies} For binary breakage, the relation $b((\tilde{\xi}_1-\tilde{\xi})|\tilde{\xi}_1)$ = $b(\tilde{\xi}|\tilde{\xi}_1)$ holds. Additionally, the conservation of mass imposes the following condition on the daughter distribution function: $\tilde{\xi}_1=\nu(\tilde{\xi}_1) \int_0^{\tilde{\xi}_1} \tilde{\xi} b(\tilde{\xi}|\tilde{\xi}_1) \d \tilde{\xi}$. $\tilde{\xi}$ in the above equations refers to the particle volume corresponding to the particle size $\xi$. It must be noted that the breakage functions are local, i.e. the fragments share the same spatial location as the parent particle. 
+
+Coalescence is described in terms of the number of particle pairs and a coalescence frequency.
+If there is no statistical correlation between the colliding particles, the particle pairs can be defined as the product of two individual number densities.
+The birth and death functions due to coalescence are, therefore, given as:
+\begin{equation} 
+B_C(\xi) = \frac{1}{\tilde{\delta}} \int_{0}^{\xi} \left(\frac{\xi^2}{\xi'^2}\right) \beta (\xi', \xi_1) n(\xi') n(\xi_1) \d \xi_1
+\label{eq:birth_coalescence}
+\end{equation}
+and
+\begin{equation} \label{eq:D_C_pbe}
+D_C(\xi) =\int_0^{\infty} \beta (\xi, \xi_1) n(\xi) n(\xi_1) \d \xi_1,
+\end{equation}
+respectively, where $\beta(\xi',\xi_1)$ is the coalescence frequency for particles of sizes $\xi'$ and $\xi_1$, and it has the units \SI{}{\metre\cubed\per\second}.
+In general, the coalescence frequency may also depend on the spatial coordinates of the two aggregating particles and time, but for simplicity it is assumed to be a function of particle size only in this implementation.
+As for breakage, coalescence frequency is also determined from physical models.
+The parameter $\tilde{\delta}$ represents the number of times identical pairs have been considered in the interval of integration and is equal to two for binary coalescence, which is the most common scenario for dilute systems \citep{ramkrishna2000population}.
+In Equation~\eqref{eq:birth_coalescence}, $\xi'$ is given as $\xi'^3=\xi^3-\xi_1^3$, i.e. the particles are considered three-dimensional and the volume of the resulting particle class ($\xi$) is the sum of the volumes from the contributing size classes ($\xi'$ and $\xi_1$). See \citet{bhutani2016} and \citet{bhutani2016polydispersed} for more details on the breakage and coalescence terms. 
+
+\subsection{Solution method -- DQMOM}
+
+Fluidity uses the direct quadrature method of moments \citep{marchisio2005solution} to solve the population balance equation.
+This method requires fewer equations to be solved in order to get a good estimate of the particle size distribution, i.e. 4--6 equations against 50--200 equations needed in the other popular method---the classes method \citep{marchisio2003quadratureb}. 
+\subsubsection{DQMOM approximation}
+This method uses a quadrature approximation to the NDF, given by:
+\begin{equation}
+n \left( \xi, \vec{x}, t \right) = \sum_{j=1}^N w_{j} \left( \vec{x}, t \right) \delta \left[ \xi - \langle \xi \rangle_{j} \left( \vec{x}, t \right) \right],
+\label{eq:DQMOM_ndf}
+\end{equation}
+as opposed to approximating the integrals in some other methods of moments. $\delta$ in the above equation is the Dirac delta function, $N$ is the total number of quadrature points, and $w_j$ and $\langle \xi \rangle_{j}$ are the weights and abscissas in the DQMOM approximation, respectively. This choice for the approximation to the NDF provides a convenient closure for the source term $S_{\xi}$ in Equation~\eqref{eq:pbe}.
+
+The major advantages of using DQMOM over any other method of moments is that each weight and abscissa can be defined as a function of space, which makes it easier to implement this method, and very few abscissas are needed to accurately model the NDF due to the adaptive quadrature approach.
+Additionally, each node can have its own velocity field, if required, as stated in \citet{marchisio2005solution}.
+
+\subsubsection{Population balance equation with DQMOM}
+By substituting Equation~\eqref{eq:DQMOM_ndf} in the PBE (Equation~\eqref{eq:pbe}) and replacing $w_{j} \langle \xi \rangle_{j} = \varsigma_{j}$ as the weighted-abscissa, the PBE gets transformed to:
+\begin{equation} \label{eq:dqmomdiff}
+\begin{split}
+\sum_{j=1}^N \delta&(\xi - \langle \xi \rangle_{j}) \left[ \frac{\partial w_{j}}{\partial t} + 
+\nabla \cdot \left( \langle \vec{u} \rangle_j w_j \right) - 
+\nabla \cdot \left( \overline{\overline{D}}_{\vec{x}} \nabla w_j \right)
+ \right]\\
+&- \sum_{j=1}^N \delta'(\xi - \langle \xi \rangle_{j}) \left\{ \left[ \frac{\partial \varsigma_{j}}{\partial t} + 
+\nabla \cdot \left( \langle \vec{u} \rangle_j \varsigma_j \right)
+ - 
+ \nabla \cdot \left( \overline{\overline{D}}_{\vec{x}} \nabla \varsigma_j \right) \right]
+  \right.\\
+&- \left.\langle \xi \rangle_{j} \left[ \frac{\partial w_{j}}{\partial t} + 
+\nabla \cdot \left( \langle \vec{u} \rangle_j w_j \right)
+ - 
+ \nabla \cdot \left( \overline{\overline{D}}_{\vec{x}} \nabla w_j \right)
+  \right] \right\}\\
+&- \sum_{j=1}^N \delta''(\xi - \langle \xi \rangle_{j}) \left[ \left( \nabla \langle \xi \rangle_j \cdot \overline{\overline{D}}_{\vec{x}} \cdot \nabla \langle \xi \rangle_j \right) w_j \right] = S_{\xi},
+\end{split}
+\end{equation}
+where $\delta'(\xi - \langle \xi \rangle_{j})$ and $\delta''(\xi - \langle \xi \rangle_{j})$ are the first and second derivatives of the function $\delta(\xi - \langle \xi \rangle_{j})$.
+
+Although the advection term in Equation~\eqref{eq:pbe} included a velocity field conditional on the abscissa, a common velocity field approximation to the dispersed phase is used in Fluidity without any dependence on the particle size for simplicity. This velocity field is obtained from the solution to the momentum equation.
+
+The DQMOM transport equations are defined as:
+\begin{subequations}
+\begin{equation} \label{eq:dqmomweight}
+\frac{\partial w_{j}}{\partial t} + \nabla \cdot \left( \langle \vec{u} \rangle_j w_j \right) - \nabla \cdot \left( \overline{\overline{D}}_{\vec{x}} \nabla w_j \right) = \widetilde{g}_{j}
+\end{equation}
+and 
+\begin{equation} \label{eq:dqmomweightabscissa}
+\frac{\partial \varsigma_{j}}{\partial t} + \nabla \cdot \left( \langle \vec{u} \rangle_j \varsigma_j \right) - \nabla \cdot \left( \overline{\overline{D}}_{\vec{x}} \nabla \varsigma_j \right)  = \widetilde{h}_{j},
+\end{equation}
+\end{subequations}
+where $j=1,2,...,N$. 
+The equations above are similar to an advection--diffusion system and can be solved for the scalar fields $w_j$ and $\varsigma_j$ once the source terms $\widetilde{g}_{j}$ and $\widetilde{h}_{j}$ have been calculated. 
+
+Taking the $k^{\textrm{th}}$ moment of Equation~\eqref{eq:dqmomdiff}, it gets transformed to a linear system, given as:
+\begin{equation} \label{eq:dqmom_lineq_raw}
+(1-k) \sum_{j=1}^N \langle \xi \rangle_{j}^k \widetilde{g}_{j} + k \sum_{j=1}^N \langle \xi \rangle_{j}^{k-1} \widetilde{h}_{j} = \overline{S}_k^{(N)} + \overline{C}_k,
+\end{equation}
+which can be solved to obtain $\widetilde{g}_{j}$ and $\widetilde{h}_{j}$. In deriving this linear system, either integral or fractional-order moments can be used depending on physical considerations. Since a length-based formulation is used for the NDF in Fluidity, integral moments make more sense and hence $k=1,2,...,2N$ is used.
+In the above equation $\overline{S}_k^{(N)}$ is the $k$\textsuperscript{th} moment of the source term of the PBE with the DQMOM quadrature approximation applied, i.e.
+\begin{equation}
+\overline{S}_k^{(N)} = \int_{0}^{\infty} \xi^k S_{\xi} d\xi.
+\label{eq:source_moment}
+\end{equation}
+Also
+\begin{equation}
+\overline{C}_k = k(k-1) \sum_{j=1}^N \langle \xi \rangle_{j}^{k-2} C_{j},
+\end{equation}
+where $C_j$ is defined as:
+\begin{equation}
+C_j =\left( \nabla \langle \xi \rangle_j \cdot \overline{\overline{D}}_{\vec{x}} \cdot \nabla \langle \xi \rangle_j \right) w_j.
+\end{equation}
+Due to the inherent nature of the DQMOM quadrature approximation, the moment source term $\overline{S}_k^{(N)}$ is closed for any functional form.
+A detailed formulation of the terms that constitute the PBE source term can be found in \citet{bhutani2016}. 
+
+The moments of the NDF can be calculated from the DQMOM weights and abscissas using:
+\begin{equation} \label{eq:moments_quad_wts_abs}
+m_k = \sum_{j=1}^N w_{j} \langle \xi \rangle_{j}^k.
+\end{equation}
+The Sauter mean diameter $d_{32}$, defined as the ratio of the third to the second moment of the NDF, is used for the estimation of the particle size and can be calculated using the above equation.
+
+\subsection{Implementation of DQMOM in Fluidity}
+\label{DQMOM_implementation_Fluidity}
+Equations~\eqref{eq:dqmomweight} and \eqref{eq:dqmomweightabscissa} form a system of combined advection--diffusion equations that are coupled in the source terms. 
+These equations are solved for the weights $w_j$ and the weighted-abscissas $\varsigma_j$, which are then used to calculate the moments and eventually the Sauter mean diameter $d_{32}$.
+
+The number of equations that need to be solved depends on the value of the number of quadrature nodes, $N$, chosen to represent the NDF. Solution accuracy improves as the number of nodes are increased but $N=2$ to $N=3$ has been reported to produce sufficiently accurate solution of the PBE  with a small computation cost \citep{marchisio2005solution}. 
+DQMOM however has been implemented in Fluidity to solve the PBE for any value for the number of nodes $N$.
+
+\subsubsection{Matrix form of the DQMOM linear system}
+The DQMOM linear system (Equation~\eqref{eq:dqmom_lineq_raw}) is implemented in Fluidity in a matrix form as:
+\begin{equation} \label{eq:dqmom_matrix_eqn}
+\mathbf{A} \pmb{\alpha} = \mathbf{d},
+\end{equation}
+where the square matrix $\mathbf{A} = \left[ \mathbf{A_1} \ \mathbf{A_2} \right ]$. The matrices  $\mathbf{A_1}$ and $\mathbf{A_2}$ are given as follows:
+\begin{equation} \label{eq:dqmom_matrix_A1}
+\mathbf{A_1} = 	\begin{bmatrix}
+		1 & \dots & 1 \\
+		0 & \dots & 0 \\
+		-\langle \xi \rangle_1^2 & \dots & -\langle \xi \rangle_N^2 \\
+		\vdots & \vdots & \vdots \\
+		2 (1-N) \langle \xi \rangle_1^{2N-1} & \dots & 2 (1-N) \langle \xi \rangle_N^{2N-1} \\		
+		\end{bmatrix}
+\end{equation}
+and
+\begin{equation} \label{eq:dqmom_matrix_A2}
+\mathbf{A_2} = 	\begin{bmatrix}
+		0 & \dots & 0 \\
+		1 & \dots & 1 \\
+		2 \langle \xi \rangle_1 & \dots & 2 \langle \xi \rangle_N \\
+		\vdots & \vdots & \vdots \\
+		(2N-1) \langle \xi \rangle_1^{2N-2} & \dots & (2N-1) \langle \xi \rangle_N^{2N-2} \\		
+		\end{bmatrix}.
+\end{equation}
+The vector of unknowns $\pmb{\alpha}$ is given as:
+\begin{equation}
+\pmb{\alpha} = 	\begin{bmatrix}
+		\widetilde{g}_{1} & \dots & \widetilde{g}_{N} \ \widetilde{h}_{1} & \dots & \widetilde{h}_{N} \\	
+		\end{bmatrix}^\mathrm{T} = 
+		\begin{bmatrix}
+		\mathbf{\widetilde{g}}\\	
+		\mathbf{\widetilde{h}}\\
+		\end{bmatrix},
+\end{equation}
+and the right hand side vector $\mathbf{d}$ is given as:
+\begin{equation} \label{eq:vector_d_eqn}
+\mathbf{d} = \mathbf{A_3} \mathbf{C} + \pmb{\beta},
+\end{equation}
+where 
+\begin{equation} \label{eq:C}
+\mathbf{C} = 	\begin{bmatrix}
+		C_1 & \dots & C_N \\	
+		\end{bmatrix}^\mathrm{T},
+\end{equation}
+
+\begin{equation} \label{eq:A_3}
+\mathbf{A_3} = 	\begin{bmatrix}
+		0 & \dots & 0 \\
+		0 & \dots & 0 \\
+		2 & \dots & 2 \\
+		6 \langle \xi \rangle_1 & \dots & 6 \langle \xi \rangle_N \\
+		\vdots & \vdots & \vdots \\
+		2(2N-1)(N-1) \langle \xi \rangle_1^{2N-3} & \dots & 2(2N-1)(N-1) \langle \xi \rangle_N^{2N-3} \\		
+		\end{bmatrix}
+\end{equation}
+and 
+\begin{equation} \label{eq:beta_vector}
+\pmb{\beta} = 	\begin{bmatrix}
+		\overline{S}_0^{(N)} & \dots & \overline{S}_{2N-1}^{(N)} \\	
+		\end{bmatrix}^\mathrm{T}.
+\end{equation}
+
+\subsubsection{Initial conditions for DQMOM scalars} \label{sec:pbe_initial_conditions}
+The population balance solver has been implemented in Fluidity to accept initial conditions for either the initial weights and weighted-abscissas for all nodes, i.e. values for $w_1, \dots, w_N$ and $\varsigma_1, \dots, \varsigma_N$, or initial conditions for the moments $m_0, m_1, \dots, m_{2N-1}$. The product-difference (PD) algorithm \citep{gordon1968error} is used to convert the $2N$ initial moments to weights and abscissas. If the initial number density function is known, moments have to be calculated externally and supplied as an input to the Fluidity PBE solver. See \cite{bhutani2016} for the details of the PD algorithm implemented in Fluidity. 
+
+If the initial distribution is mono-sized, i.e. all dispersed particles have the same size, the left hand side matrix $\mathbf{A}$ in Equation~\eqref{eq:dqmom_matrix_eqn} becomes singular. In the context of DQMOM, this translates to the fact that all the $N$ abscissas may not be needed to completely describe the initial NDF. To overcome this problem of singularity, two techniques have been implemented in Fluidity. One perturbs the abscissa values by a small amount so that it comes out of singularity as time progresses \citep{marchisio2005solution} (only one perturbation in allowed in \fluidity\ for now). Another method forces the source term $S_{\xi}$ equal to zero. Singularity of matrix $\vec{A}$ can also occur somewhere in the middle of the code execution instead of at $t=0$ and the two methods discussed above are applicable to those situations too. 
+
+\subsubsection{Implementation algorithm} \label{sec:pbe_implementation_algo}
+
+\begin{algorithmic}[1]
+\Procedure{DQMOM}{}
+    \parState{Initialise DQMOM weights ($w_j$) and weighted-abscissas ($\varsigma_j$). Use PD algorithm if initial conditions for moments are specified.} 
+    \parState{Calculate abscissas ($\langle\xi\rangle_j$) for all DQMOM quadrature points ($1,2,\dots,N$).}
+    \For {$t=0$ to T}
+        \For {non-linear iterations = 1 to $N_{NL}$}
+            \parState{Calculate LHS matrix $\vec{A}$ at all spatial quadrature points (Equations~\eqref{eq:dqmom_matrix_A1} and \eqref{eq:dqmom_matrix_A2}) using $\langle\xi\rangle_j$ from the previous time step.}
+            \parState{Check for the singularity of $\vec{A}$ matrix. Keep perturbing the abscissas by a small value until the matrix $\vec{A}$ becomes non-singular (i.e. its reciprocal condition number exceeds a given minimum value).}
+            \parState{Calculate source term vector $\pmb{\beta}$ for all spatial quadrature points. Include source term ($S_{\xi}$) contribution from growth, internal diffusion, breakage and aggregation.}
+            \parState{Calculate matrix $\vec{A_3}$, vector $\vec{C}$ and therefore vector $\vec{d}$ using Equation~\eqref{eq:vector_d_eqn}.}
+            \parState{Solve Equation~\eqref{eq:dqmom_matrix_eqn} for the vector $\pmb{\alpha}$=$\left[\vec{\widetilde{g}} \ \ \vec{\widetilde{h}} \right]^\mathrm{T}$ at all spatial quadrature points. Interpolate $\pmb{\alpha}$ from spatial quadrature points to mesh nodes using FE shape functions.}
+            \parState{Solve the DQMOM transport Equations~\eqref{eq:dqmomweight} and \eqref{eq:dqmomweightabscissa} using Fluidity's FE framework. If needed, for negative source terms $\vec{\widetilde{g}}$ and $\vec{\widetilde{h}}$ apply source terms as absorption terms to ensure positivity.}
+            \parState{Apply minimum weight limit, if required.}
+            \parState{Calculate new estimate for $\langle\xi\rangle_j$ values.}
+            \parState{Calculate moments and the Sauter mean diameter.}
+            
+        \EndFor
+	\EndFor
+\EndProcedure
+\end{algorithmic}
+
+It can be seen that the DQMOM method is inherently explicit in its approach as the source terms for Equations~\eqref{eq:dqmomweight} and \eqref{eq:dqmomweightabscissa} are calculated at the previous time step. 
+In addition, as mentioned in the algorithm above, the matrix $\vec{A}$ and the RHS vector $\vec{d}$ are calculated at the spatial quadrature points instead of the mesh nodes. This is because the spatial derivatives of the abscissas are not defined at the mesh nodes when using DG discretisations.
+However, it is possible to evaluate $\vec{A}$ and $\vec{d}$ directly on the mesh nodes in Fluidity (if a continuous spatial discretisation is used or if spatial diffusion is absent). This nodal implementation uses the nodal evaluation of $\widetilde{g}_j$ and $\widetilde{h}_j$ to minimise errors due to spatial interpolation.
+Note that the spatial diffusion term can not be included in the nodal version of the PBE solver and only continuous elements can be used with this nodal implementation. In order to compile the population balance code with the nodal implementation, rename the file 
+\option{DQMOM\_node\_source}.\option{F90} to \option{DQMOM}.\option{F90} in the \option{population\_balance} directory and recompile Fluidity.
+The default quadrature version allows the use of the diffusion term and DG discretisations in the PBE solver.

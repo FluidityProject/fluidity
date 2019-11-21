@@ -383,7 +383,9 @@ vtkUnstructuredGrid* Adaptivity::get_adapted_vtu(){
     points->SetPoint(i, newX[i], newY[i], newZ[i]);
   }
   aug->SetPoints(points);
+#if VTK_MAJOR_VERSION <= 5
   aug->Update();
+#endif
   points->Delete();
   
   // Set up elements.
@@ -409,7 +411,9 @@ vtkUnstructuredGrid* Adaptivity::get_adapted_vtu(){
                  newMetric[i*9+6], newMetric[i*9+7], newMetric[i*9+8]);
   }
   aug->GetPointData()->AddArray(m);
+#if VTK_MAJOR_VERSION <= 5
   aug->Update();
+#endif
   m->Delete();
 
   if(interpolate){
@@ -435,7 +439,9 @@ vtkUnstructuredGrid* Adaptivity::get_adapted_vtu(){
 	m->SetTuple(i, &(tuple[0]));
       }
       aug->GetPointData()->AddArray(m);
+#if VTK_MAJOR_VERSION <= 5
       aug->Update();
+#endif
       m->Delete();
     }
   }
@@ -463,8 +469,9 @@ int Adaptivity::getNProcessors() const{
   if(verbose)
     cout<<"int Adaptivity::getNProcessors() const\n";
 #ifdef HAVE_MPI
-  if(MPI::Is_initialized()){
-    return MPI::COMM_WORLD.Get_size();
+  int init_flag,size;
+  if(MPI_Initialized(&init_flag)){
+    return MPI_Comm_size(MPI_COMM_WORLD,&size);
   }
 #endif
   return 1;

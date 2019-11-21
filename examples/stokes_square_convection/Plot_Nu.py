@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This script plots up the Nusselt number for both the 24x24 and 48x48 cases:
 import pylab

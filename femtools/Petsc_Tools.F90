@@ -26,27 +26,37 @@
 !    USA
 #include "fdebug.h"
 module Petsc_Tools
-#include "petscversion.h"
   use FLDebug
-  use Sparse_Tools
+  use global_parameters, only: FIELD_NAME_LEN
+  use futils
   use parallel_tools
-  use fields_base
-  use fields_manipulation
+  use Reference_Counting
   use halo_data_types
   use halos_base
-  use halos_communications
-  use halos_numbering
-  use Reference_Counting
-  use profiler
 #ifdef HAVE_PETSC_MODULES
   use petsc 
 #endif
+  use Sparse_Tools
+  use fields_data_types
+  use fields_base
+  use halos_communications
+  use halos_numbering
+  use fields_manipulation
+  use profiler
   implicit none
-#include "petscversion.h"
-#ifdef HAVE_PETSC_MODULES
-#include "finclude/petscdef.h"
+
+#include "petsc_legacy.h"
+
+! Some routines, like MatCreateVecs, behave differently if a null vec is passed in, even though
+! the argument is normally intent(out) - when passing an uninitialised petsc object variable
+! it is possible (and not unlikely) that the uninitialised object happens to contain -1 which
+! in petsc v3.8 is recognized as a NULL object. Therefore in petsc v3.8 we have to pass in an
+! object that is known not to be a null vec
+#if PETSC_VERSION_MINOR>=8
+  Vec, parameter, public :: PETSC_NOTANULL_VEC = tVec(1)
 #else
-#include "finclude/petsc.h"
+  ! previously Vec was just an integer (and NULL was checked by comparing its memory address with the one cannonical PETSC_NULL_OBJECT)
+  Vec, parameter, public :: PETSC_NOTANULL_VEC = 1
 #endif
 
   PetscReal, parameter, private :: dummy_petsc_real = 0.0
@@ -54,21 +64,14 @@ module Petsc_Tools
   PetscScalar, parameter, private :: dummy_petsc_scalar = 0.0
   integer, parameter, public :: PetscScalar_kind = kind(dummy_petsc_scalar)
   
-  ! see at the bottom of this file
-  interface
-    subroutine myMatGetInfo(A, flag, info, ierr)
-       Mat, intent(in):: A
-       MatInfoType, intent(in):: flag
-       double precision, dimension(:), intent(out):: info
-       PetscErrorCode, intent(out):: ierr
-    end subroutine myMatGetInfo
-  end interface
-
   type petsc_numbering_type
      type(halo_type), pointer :: halo => null()
      integer nprivatenodes
-     ! length of a vector 
+     ! global length of Petsc vector 
      integer universal_length
+     ! block size as seen by petsc
+     integer group_size
+     ! start index of local part of petsc vector
      integer offset
      ! mapping between "global" (fludity numbering inside each local domain)
      ! and "universal" numbering (truly global numbering over all processes
@@ -118,13 +121,17 @@ module Petsc_Tools
   public addup_global_assembly
   ! for petsc_numbering:
   public incref, decref, addref
-#if PETSC_VERSION_MINOR>=3
-#define MatCreateSeqAIJ myMatCreateSeqAIJ
-#define MatCreateMPIAIJ myMatCreateMPIAIJ
-#define MatCreateSeqBAIJ myMatCreateSeqBAIJ
-#define MatCreateMPIBAIJ myMatCreateMPIBAIJ
-  public MatCreateSeqAIJ, MatCreateMPIAIJ, MatCreateSeqBAIJ, MatCreateMPIBAIJ
+  ! for unit-testing:
+  logical, public, save :: petsc_test_error_handler_called = .false.
+  public petsc_test_error_handler
+#if PETSC_VERSION_MINOR<5
+  public mykspgetoperators
 #endif
+#if PETSC_VERSION_MINOR<7
+  public NullPetscViewerAndFormatCreate
+#endif
+  public IsNullMatNullSpace
+
 contains
 
   ! Note about definitions in this module:
@@ -145,7 +152,7 @@ contains
   ! as group to avoid confusion with the above definition.
   
   subroutine allocate_petsc_numbering(petsc_numbering, &
-       nnodes, nfields, halo, ghost_nodes)
+       nnodes, nfields, group_size, halo, ghost_nodes)
     !!< Set ups the 'universal'(what most people call global)
     !!< numbering used in PETSc. In serial this is trivial
     !!< but could still be used for reordering schemes.
@@ -155,13 +162,15 @@ contains
     !! (here nfields counts each scalar component of vector fields, so
     !!  e.g. for nphases velocity fields in 3 dimensions nfields=3*nphases)
     integer, intent(in):: nnodes, nfields
+    !! if present 'group_size' fields are grouped in the petsc numbering, i.e.
+    integer, intent(in), optional:: group_size
     !! for parallel: halo information
     type(halo_type), pointer, optional :: halo
     !! If supplied number these as -1, so they'll be skipped by Petsc
     integer, dimension(:), optional, intent(in):: ghost_nodes 
     integer, dimension(:), allocatable:: ghost_marker
-    integer i, g, f, start, offset
-    integer nuniversalnodes, ngroups, lgroup_size, ierr
+    integer i, g, f, start, offset, fpg
+    integer nuniversalnodes, ngroups, ierr
 
     allocate( petsc_numbering%gnn2unn(1:nnodes, 1:nfields) )
 
@@ -175,7 +184,15 @@ contains
        end if
     end if
 
-    ngroups=nfields
+    if (present(group_size)) then
+      fpg=group_size ! fields per group
+      ngroups=nfields/fpg
+      assert(nfields==fpg*ngroups)
+    else
+      fpg=1
+      ngroups=nfields
+    end if
+    petsc_numbering%group_size=fpg
 
     ! first we set up the petsc numbering for the first entry of each group only:
 
@@ -184,11 +201,13 @@ contains
        ! *** Serial case *or* parallel without halo
 
        ! standard, trivial numbering, starting at 0:
-       start=0 ! start of each field -1
-       do g=1, nfields
-          petsc_numbering%gnn2unn(:, g )= &
-               (/ ( start+i, i=0, nnodes-1 ) /)
-          start=start+nnodes
+       start=0 ! start of each group of fields
+       do g=0, ngroups-1
+          do f=0, fpg-1
+            petsc_numbering%gnn2unn(:, g*fpg+f+1 )= &
+               (/ ( start + fpg*i+f, i=0, nnodes-1 ) /)
+          end do
+          start=start+nnodes*fpg
        end do
 
        if (isParallel()) then
@@ -199,7 +218,7 @@ contains
           call mpi_scan(nnodes, offset, 1, MPI_INTEGER, &
                MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
           offset=offset-nnodes
-          petsc_numbering%gnn2unn=petsc_numbering%gnn2unn+offset
+          petsc_numbering%gnn2unn=petsc_numbering%gnn2unn+offset*nfields
 
        end if
        
@@ -214,10 +233,22 @@ contains
 
        ! *** Parallel case with halo:
 
-       ! get 'universal' numbering
-       call get_universal_numbering(halo, petsc_numbering%gnn2unn)
+       ! the hard work is done inside get_universal_numbering() for the case fpg=1
+       ! for fpg>1 we just ask for a numbering for the groups and pad it out afterwards
+       call get_universal_numbering(halo, petsc_numbering%gnn2unn(:,1:ngroups))
        ! petsc uses base 0
-       petsc_numbering%gnn2unn = petsc_numbering%gnn2unn-1
+       petsc_numbering%gnn2unn(:,1:ngroups) = petsc_numbering%gnn2unn(:,1:ngroups)-1
+
+       if (fpg>1) then
+         ! the universal node number of the first node in each group is
+         ! simply the universal groups times fpg - as we know other processes
+         ! do the same we need no negotiation for the halo nodes
+         petsc_numbering%gnn2unn(:,1:nfields:fpg) = petsc_numbering%gnn2unn(:,1:ngroups)*fpg
+         ! as always the subsequent nodes in a group are number consequently:
+         do f=2, fpg
+           petsc_numbering%gnn2unn(:,f:nfields:fpg) = petsc_numbering%gnn2unn(:,1:nfields:fpg)+(f-1)
+         end do
+       end if
          
        petsc_numbering%nprivatenodes=halo_nowned_nodes(halo)
 
@@ -228,7 +259,7 @@ contains
     if (isParallel()) then
        ! work out the length of global(universal) vector
        call mpi_allreduce(petsc_numbering%nprivatenodes, nuniversalnodes, 1, MPI_INTEGER, &
-           MPI_SUM, MPI_COMM_FEMTOOLS, ierr)       
+           MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
 
        petsc_numbering%universal_length=nuniversalnodes*nfields
     else
@@ -415,11 +446,10 @@ contains
   end subroutine Array2Petsc
   
   subroutine VectorFields2Petsc(fields, petsc_numbering, vec)
-    !!< Assembles contiguous petsc array using the specified numbering from the given fields.
-    !!< Allocates a petsc Vec that should be destroyed with VecDestroy
+    !!< Assembles field into (previously created) petsc Vec using petsc_numbering for the DOFs of the fields combined
     type(vector_field), dimension(:), intent(in):: fields
     type(petsc_numbering_type), intent(in):: petsc_numbering
-    Vec :: vec
+    Vec, intent(inout) :: vec
   
     integer ierr, nnodp, b, nfields, nnodes
     integer i, j
@@ -466,17 +496,17 @@ contains
   end subroutine VectorFields2Petsc
   
   subroutine VectorField2Petsc(field, petsc_numbering, vec)
-    !!< Assembles contiguous petsc array using the specified numbering from the given field.
+    !!< Assembles given field into (previously created) petsc Vec using petsc_numbering
     type(vector_field), intent(in):: field
     type(petsc_numbering_type), intent(in):: petsc_numbering
-    Vec, intent(out) :: vec
+    Vec, intent(inout) :: vec
   
     call VectorFields2Petsc( (/ field /), petsc_numbering, vec)
     
   end subroutine VectorField2Petsc
   
   subroutine ScalarFields2Petsc(fields, petsc_numbering, vec)
-    !!< Assembles contiguous petsc array using the specified numbering from the given fields.
+    !!< Assembles field into (previously created) petsc Vec using petsc_numbering for the DOFs of the fields combined
     type(scalar_field), dimension(:), intent(in):: fields
     type(petsc_numbering_type), intent(in):: petsc_numbering
     Vec, intent(inout) :: vec
@@ -520,8 +550,7 @@ contains
   end subroutine ScalarFields2Petsc
   
   subroutine ScalarField2Petsc(field, petsc_numbering, vec)
-    !!< Assembles petsc array using the specified numbering.
-    !!< Allocates a petsc Vec that should be destroyed with VecDestroy
+    !!< Assembles given field into (previously created) petsc Vec using petsc_numbering
     type(scalar_field), intent(in):: field
     type(petsc_numbering_type), intent(in):: petsc_numbering
     Vec, intent(inout) :: vec
@@ -577,13 +606,8 @@ contains
 
     nnodp = petsc_numbering%nprivatenodes
 
-#if PETSC_VERSION_MINOR>=2
     call ISCreateGeneral(MPI_COMM_FEMTOOLS, nnodp, petsc_numbering%gnn2unn(:,dim), &
          PETSC_COPY_VALUES, index_set, ierr)
-#else
-    call ISCreateGeneral(MPI_COMM_FEMTOOLS, nnodp, petsc_numbering%gnn2unn(:,dim), &
-         index_set, ierr)
-#endif
        
   end function petsc_numbering_create_is_dim
   
@@ -614,9 +638,12 @@ contains
 #ifdef DOUBLEP
     do b=1, nfields
       
-      call VecGetValues(vec, nnodp, &
-        petsc_numbering%gnn2unn( 1:nnodp, b ), &
-        array( start+1:start+nnodp ), ierr)
+      ! this check should be unnecessary but is a work around for a bug in petsc, fixed in 18ae1927 (pops up with intel 15)
+      if (nnodp>0) then
+        call VecGetValues(vec, nnodp, &
+          petsc_numbering%gnn2unn( 1:nnodp, b ), &
+          array( start+1:start+nnodp ), ierr)
+      end if
         
       ! go to next field:
       start=start+nnodes
@@ -632,10 +659,12 @@ contains
     allocate(vals(nnodp))
     do b=1, nfields
       
-      call VecGetValues(vec, nnodp, &
-        petsc_numbering%gnn2unn( 1:nnodp, b ), &
-        vals, ierr)
-      array( start+1:start+nnodp ) = vals
+      if (nnodp>0) then
+        call VecGetValues(vec, nnodp, &
+          petsc_numbering%gnn2unn( 1:nnodp, b ), &
+          vals, ierr)
+        array( start+1:start+nnodp ) = vals
+      end if
         
       ! go to next field:
       start=start+nnodes
@@ -679,9 +708,12 @@ contains
     do b=1, nfields
       
       call profiler_tic(fields(b), "petsc2field")
-      call VecGetValues(vec, nnodp, &
-        petsc_numbering%gnn2unn( 1:nnodp, b ), &
-        fields(b)%val( 1:nnodp ), ierr)
+      ! this check should be unnecessary but is a work around for a bug in petsc, fixed in 18ae1927 (pops up with intel 15)
+      if (nnodp>0) then
+        call VecGetValues(vec, nnodp, &
+          petsc_numbering%gnn2unn( 1:nnodp, b ), &
+          fields(b)%val( 1:nnodp ), ierr)
+      end if
       call profiler_toc(fields(b), "petsc2field")
         
     end do
@@ -690,9 +722,11 @@ contains
     do b=1, nfields
       
       call profiler_tic(fields(b), "petsc2field")
-      call VecGetValues(vec, nnodp, &
-        petsc_numbering%gnn2unn( 1:nnodp, b ), &
-        vals, ierr)
+      if (nnodp>0) then
+        call VecGetValues(vec, nnodp, &
+          petsc_numbering%gnn2unn( 1:nnodp, b ), &
+          vals, ierr)
+      end if
       fields(b)%val( 1:nnodp ) = vals
       call profiler_toc(fields(b), "petsc2field")
         
@@ -777,9 +811,12 @@ contains
       
       call profiler_tic(fields(i), "petsc2field")
       do j=1, fields(i)%dim
-         call VecGetValues(vec, nnodp, &
-           petsc_numbering%gnn2unn( 1:nnodp, b ), &
-           fields(i)%val(j, 1:nnodp ), ierr)
+         ! this check should be unnecessary but is a work around for a bug in petsc, fixed in 18ae1927 (pops up with intel 15)
+         if (nnodp>0) then
+           call VecGetValues(vec, nnodp, &
+             petsc_numbering%gnn2unn( 1:nnodp, b ), &
+             fields(i)%val(j, 1:nnodp ), ierr)
+         end if
          b=b+1
       end do
       call profiler_toc(fields(i), "petsc2field")
@@ -792,9 +829,11 @@ contains
       
       call profiler_tic(fields(i), "petsc2field")
       do j=1, fields(i)%dim
-         call VecGetValues(vec, nnodp, &
-           petsc_numbering%gnn2unn( 1:nnodp, b ), &
-           vals, ierr)
+         if (nnodp>0) then
+           call VecGetValues(vec, nnodp, &
+             petsc_numbering%gnn2unn( 1:nnodp, b ), &
+             vals, ierr)
+         end if
          fields(i)%val(j, 1:nnodp ) = vals
          b=b+1
       end do
@@ -1086,8 +1125,9 @@ contains
 
     end do
     
-    call MatCreateSeqAIJ(MPI_COMM_SELF, nprows, npcols, &
-      PETSC_NULL_INTEGER, nnz, M, ierr)
+    call MatCreateAIJ(MPI_COMM_SELF, nprows, npcols, nprows, npcols, &
+      PETSC_NULL_INTEGER, nnz, 0, PETSC_NULL_INTEGER, M, ierr)
+    call MatSetup(M, ierr)
       
     call MatSetOption(M, MAT_USE_INODES, PETSC_FALSE, ierr)
 
@@ -1169,12 +1209,18 @@ contains
       end do
     end do
       
-    call MatCreateSeqAIJ(MPI_COMM_SELF, nrows, ncols, PETSC_NULL_INTEGER, &
-      nnz, M, ierr)
+    call MatCreate(PETSC_COMM_SELF, M, ierr)
+    call MatSetSizes(M, nrows, ncols, PETSC_DETERMINE, PETSC_DETERMINE, ierr)
+    call MatSetBlockSizes(M, row_numbering%group_size, col_numbering%group_size, ierr)
+    call MatSetType(M, MATAIJ, ierr)
+    ! NOTE: 2nd argument is not used
+    call MatSeqAIJSetPreallocation(M, 0, nnz, ierr)
       
     if (.not. present_and_true(use_inodes)) then
       call MatSetOption(M, MAT_USE_INODES, PETSC_FALSE, ierr)
     end if
+
+    call MatSetup(M, ierr)
 
     deallocate(nnz)
       
@@ -1255,8 +1301,9 @@ contains
       end do
     end do
 
-    call MatCreateMPIAIJ(MPI_COMM_FEMTOOLS, nrowsp, ncolsp, nrows, ncols, &
+    call MatCreateAIJ(MPI_COMM_FEMTOOLS, nrowsp, ncolsp, nrows, ncols, &
       PETSC_NULL_INTEGER, d_nnz, PETSC_NULL_INTEGER, o_nnz, M, ierr)
+    call MatSetup(M, ierr)
       
     if (.not. present_and_true(use_inodes)) then
       call MatSetOption(M, MAT_USE_INODES, PETSC_FALSE, ierr)
@@ -1295,16 +1342,16 @@ contains
     PetscScalar, dimension(:), allocatable:: row_vals
     integer, dimension(:), allocatable:: row_cols, unn2gnn
     integer private_columns
-    integer i, j, k, ui, rows, columns, entries, ncols, offset
+    integer i, j, k, ui, rows, columns, entries, ncols, offset, end_of_range
     logical parallel
     
     ! get the necessary info about the matrix:
-    call myMatGetInfo(matrix, MAT_LOCAL, matrixinfo, ierr)
+    call MatGetInfo(matrix, MAT_LOCAL, matrixinfo, ierr)
     entries=matrixinfo(MAT_INFO_NZ_USED)
     ! note we're no longer using MAT_INFO for getting local n/o rows and cols
     ! as it's bugged in Petsc < 3.0 and obsoloted thereafter:
     call MatGetLocalSize(matrix, rows, columns, ierr)
-    call MatGetOwnershipRange(matrix, offset, PETSC_NULL_INTEGER, ierr)
+    call MatGetOwnershipRange(matrix, offset, end_of_range, ierr)
     parallel=IsParallel()
 
     if (present(column_numbering)) then
@@ -1349,9 +1396,6 @@ contains
       do i=0, rows-1
         sparsity%findrm(i+1)=j
         call MatGetRow(matrix, offset+i, ncols, row_cols, row_vals, ierr)
-        ! This is stupid, we were given copies in MatGetRow so it could
-        ! have restored its internal tmp arrays straight away, anyway:
-        call MatRestoreRow(matrix, offset+i, ncols, row_cols, row_vals, ierr)
         do k=1, ncols
           if (row_cols(k)>=offset .and. row_cols(k)<offset+rows) then
             ! only local->local entries get inserted
@@ -1366,6 +1410,9 @@ contains
             j=j+1
           end if
         end do
+        ! This is stupid, we were given copies in MatGetRow so it could
+        ! have restored its internal tmp arrays straight away, anyway:
+        call MatRestoreRow(matrix, offset+i, ncols, row_cols, row_vals, ierr)
       end do
       A%sparsity%findrm(i+1)=j
 
@@ -1377,6 +1424,7 @@ contains
         sparsity%findrm(i+1)=j
 #ifdef DOUBLEP
         call MatGetRow(matrix, offset+i, ncols, sparsity%colm(j:), A%val(j:), ierr)
+        j=j+ncols
         ! This is stupid, we were given copies in MatGetRow so it could
         ! have restored its internal tmp arrays straight away, anyway:
         call MatRestoreRow(matrix, offset+i, ncols, sparsity%colm(j:), A%val(j:), ierr)
@@ -1384,12 +1432,12 @@ contains
         allocate(row_vals(size(A%val) - j + 1))
         call MatGetRow(matrix, offset+i, ncols, sparsity%colm(j:), row_vals, ierr)
         A%val(j:) = row_vals
+        j=j+ncols
         ! This is stupid, we were given copies in MatGetRow so it could
         ! have restored its internal tmp arrays straight away, anyway:
         call MatRestoreRow(matrix, offset+i, ncols, sparsity%colm(j:), row_vals, ierr)
         deallocate(row_vals)
 #endif
-        j=j+ncols
       end do
       A%sparsity%findrm(i+1)=j
       
@@ -1421,7 +1469,7 @@ contains
     if (.not. IsParallel()) return
     
     call allocate(petsc_numbering, node_count(vfield), vfield%dim, &
-      halo)
+      halo=halo)
     vec=PetscNumberingCreateVec(petsc_numbering)
     ! assemble vfield into petsc Vec, this lets petsc do the adding up
     call field2petsc(vfield, petsc_numbering, vec)
@@ -1473,82 +1521,73 @@ contains
     call PetscInitialize(PETSC_NULL_CHARACTER, ierr); CHKERRQ(ierr);
   end subroutine Initialize_Petsc
 
-! In petsc-3.3 the MatCreate[B]{Seq|MPI}() routines have changed to MatCreate[B]Aij
-! and MatSetup always needs to be called
-#if PETSC_VERSION_MINOR>=3
-  subroutine MatCreateSeqAIJ(MPI_Comm, nrows, ncols, &
-      nz, nnz, M, ierr)
-    integer, intent(in):: MPI_Comm
-    PetscInt, intent(in):: nrows, ncols, nz
-    PetscInt, dimension(:), intent(in):: nnz
-    Mat, intent(out):: M
-    PetscErrorCode, intent(out):: ierr
+! Simple dummy error handler that just tracks whether it's been called or not
+! Useful for unittesting to see that petsc gives error messages at the right moment
+subroutine petsc_test_error_handler(comm,line, func, file, dir, n, p, mess, ctx, ierr)
+  MPI_Comm:: comm
+  PetscInt:: line
+  character(len=*):: func, file, dir
+  PetscErrorCode:: n
+  PetscInt:: p
+  character(len=*):: mess
+  PetscInt:: ctx
+  PetscErrorCode:: ierr
+  
 
-    call MatCreateAij(MPI_Comm, nrows, ncols, nrows, ncols, &
-      nz, nnz, 0, PETSC_NULL_INTEGER, M, ierr)
-    call MatSetup(M, ierr)
+  petsc_test_error_handler_called = .true.
+  
+end subroutine petsc_test_error_handler
 
-  end subroutine MatCreateSeqAIJ
+! this is a wrapper around KSPGetOperators, that in petsc <3.5
+! has an extra mat_structure flag. We need to wrap this because
+! we need a local variable.
+! in include/petsc_legacy.h we #define KSPGetOperators -> mykspgetoperators
+#if PETSC_VERSION_MINOR<5
+subroutine mykspgetoperators(ksp, amat, pmat, ierr)
+  KSP, intent(in):: ksp
+  Mat, intent(in):: amat, pmat
+  PetscErrorCode, intent(out):: ierr
 
-  subroutine MatCreateMPIAIJ(MPI_Comm, nprows, npcols, &
-      nrows, ncols, &
-      dnz, dnnz, onz, onnz, M, ierr)
-    integer, intent(in):: MPI_Comm
-    PetscInt, intent(in):: nprows, npcols,nrows, ncols, dnz, onz
-    PetscInt, dimension(:), intent(in):: dnnz, onnz
-    Mat, intent(out):: M
-    PetscErrorCode, intent(out):: ierr
+  MatStructure:: mat_structure
+  
+  ! need small caps, to avoid #define from include/petsc_legacy.h
+  call  kspgetoperators(ksp, amat, pmat, mat_structure, ierr)
 
-    call MatCreateAij(MPI_Comm, nprows, npcols, nrows, ncols, &
-      dnz, dnnz, onz, onnz, M, ierr)
-    call MatSetup(M, ierr)
-
-  end subroutine MatCreateMPIAIJ
-
-  subroutine MatCreateSeqBAIJ(MPI_Comm, bs, nrows, ncols, &
-      nz, nnz, M, ierr)
-    integer, intent(in):: MPI_Comm
-    PetscInt, intent(in):: bs, nrows, ncols, nz
-    PetscInt, dimension(:), intent(in):: nnz
-    Mat, intent(out):: M
-    PetscErrorCode, intent(out):: ierr
-
-    call MatCreateBAij(MPI_Comm, bs, nrows, ncols, nrows, ncols, &
-      nz, nnz, 0, PETSC_NULL_INTEGER, M, ierr)
-    call MatSetup(M, ierr)
-
-  end subroutine MatCreateSeqBAIJ
-
-  subroutine MatCreateMPIBAIJ(MPI_Comm, bs, nprows, npcols, &
-      nrows, ncols, &
-      dnz, dnnz, onz, onnz, M, ierr)
-    integer, intent(in):: MPI_Comm
-    PetscInt, intent(in):: bs, nprows, npcols,nrows, ncols, dnz, onz
-    PetscInt, dimension(:), intent(in):: dnnz, onnz
-    Mat, intent(out):: M
-    PetscErrorCode, intent(out):: ierr
-
-    call MatCreateBAij(MPI_Comm, bs, nprows, npcols, nrows, ncols, &
-      dnz, dnnz, onz, onnz, M, ierr)
-    call MatSetup(M, ierr)
-
-  end subroutine MatCreateMPIBAIJ
+end subroutine mykspgetoperators
 #endif
+
+#if PETSC_VERSION_MINOR<7
+subroutine NullPetscViewerAndFormatCreate(viewer, format, vf, ierr)
+  PetscViewer, intent(in) :: viewer
+  PetscEnum, intent(in) :: format
+  PetscObject, intent(out) :: vf
+  PetscErrorCode, intent(out) :: ierr
+
+  assert(viewer==PETSC_VIEWER_STDOUT_WORLD)
+  assert(format==PETSC_VIEWER_DEFAULT)
+  vf = PETSC_NULL_VIEWER
+  ierr = 0
+
+end subroutine NullPetscViewerAndFormatCreate
+#endif
+
+function IsNullMatNullSpace(nullsp)
+  ! This function checks whether `nullsp` is a NULL nullspace
+  ! (the equivalent of (MatNullspace *) null in C)
+  MatNullSpace, intent(in) :: nullsp
+  logical :: IsNullMatNullSpace
+
+#if PETSC_VERSION_MINOR>=8
+    ! MatNullSpace(-1) is what is recognized as null in CHKFORTRANNULLOBJECT
+    ! MatNullSpace(0) is what is returned by MatGetNullspace if no nullspace is present
+    ! (because a wrapper on the output is missing, and there isn't a PETSC_NULL_MATNULLSPACE
+    ! in the first place)
+    IsNullMatNullSpace = nullsp%v==-1 .or. nullsp%v==0
+#else
+    IsNullMatNullSpace = nullsp==PETSC_NULL_OBJECT
+#endif
+
+end function IsNullMatNullSpace
 
 #include "Reference_count_petsc_numbering_type.F90"
 end module Petsc_Tools
-
-! this is a wrapper routine around MatGetInfo as it appears PETSc
-! provides the wrong explicit interface for it. By putting it outside
-! the module (and only including petsc headers and not use petsc modules)
-! this routine calls MatGetInfo with an implicit interface.
-subroutine myMatGetInfo(A, flag, info, ierr)
-#include "finclude/petsc.h"
-Mat, intent(in):: A
-MatInfoType, intent(in):: flag
-double precision, dimension(:), intent(out):: info
-PetscErrorCode, intent(out):: ierr
-
-  call MatGetInfo(A, flag, info, ierr)
-  
-end subroutine myMatGetInfo

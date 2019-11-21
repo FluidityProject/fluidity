@@ -63,8 +63,8 @@
   \usepackage{color}
   \usepackage{pst-node,pst-tree}
   \psset{framearc=.2} 
-  \newcommand{\typebox}[2]{\psframebox{\parbox{4cm}{\centering #1\\(\lstinline!#2!)}}}
 \end{psinputs}
+\newcommand{\typebox}[2]{\psframebox{\parbox{4cm}{\centering #1\\(\lstinline!#2!)}}}
 
 
 \begin{document}
@@ -1853,7 +1853,7 @@ pure function node_count(mesh)
 
 \begin{lstlisting}
 pure function node_count(field)
-  logical :: node_count
+  integer :: node_count
   type(@\anyfield@), intent(in) :: field
 \end{lstlisting}
 
@@ -1869,7 +1869,7 @@ pure function element_count(mesh)
 
 \begin{lstlisting}
 pure function element_count(field)
-  logical :: element_count
+  integer :: element_count
   type(@\anyfield@), intent(in) :: field
 \end{lstlisting}
 
@@ -1885,11 +1885,47 @@ pure function surface_element_count(mesh)
 
 \begin{lstlisting}
 pure function surface_element_count(field)
-  logical :: surface_element_count
+  integer :: surface_element_count
   type(@\anyfield@), intent(in) :: field
 \end{lstlisting}
 
 Return the number of surface elements in the mesh or field provided.
+
+\procedure{unique\_surface\_element\_count}{proc:uniquesurfaceelementcount}
+
+\begin{lstlisting}
+pure function unique_surface_element_count(mesh)
+  integer :: unique_surface_element_count
+  type(@\meshtype@), intent(in) :: mesh
+\end{lstlisting}
+
+\begin{lstlisting}
+pure function unique_surface_element_count(field)
+  integer :: unique_surface_element_count
+  type(@\anyfield@), intent(in) :: field
+\end{lstlisting}
+
+Return the number of unique surface elements in the mesh or field provided. When
+using internal boundaries, the facets on the internal boundary (which have a
+non-zero surface\_id associated with them), are included in the surface mesh.
+These interior facets come in pairs corresponding to the two facets associated
+with the two adjacent elements on either side of the internal boundary. The
+facets of the surface mesh numbered one to
+\hyperlink{proc:uniquesurfaceelementcount}{unique\_surface\_element\_count}
+loop through all facets, with only one of each pair of internal facets
+appearing. The second facet of each pair is numbered with a facet number bigger
+than
+\hyperlink{proc:uniquesurfaceelementcount}{unique\_surface\_element\_count}
+but smaller or equal to
+\hyperlink{proc:surfaceelementcount}{surface\_element\_count}. If there are no
+internal facets, both counts return the same number. In finite element assembly
+code
+\hyperlink{proc:uniquesurfaceelementcount}{unique\_surface\_element\_count}
+should typically be used, as boundary conditions should be applied on both sides of the
+internal boundary, whereas
+\hyperlink{proc:uniquesurfaceelementcount}{unique\_surface\_element\_count}
+may appear in parts of the code that deal with the geometry of the mesh.
+
 
 \procedure{face\_count}{proc:facecount}
 
@@ -1906,7 +1942,8 @@ pure function face_count(field)
 \end{lstlisting}
 
 Return the number of faces in the mesh or field provided. Note that this
-includes interior faces, not just surface faces (for which see
+includes all interior faces, not just facets that have a surface\_id
+associated with them (for which see
 \hyperlink{proc:surfaceelementcount}{surface\_element\_count} above). Note
 also that on internal faces, there is a separate face for each of the two
 elements adjacent to the face.
@@ -2914,7 +2951,7 @@ functions should be drawn:
   \begin{tabular}{ll}
     \textbf{element type} & \textbf{description} \\\hline
     \lstinline+ELEMENT_LAGRANGIAN+ & Equispaced Lagrangian elements.\\
-    \lstinline+ELEMENT_LAGRANGIAN+ & $\mathrm{P}1_\mathrm{NC}$
+    \lstinline+ELEMENT_LAGRANGIAN+ & $\mathrm{P}1_{\mathrm{NC}}$
     non-conforming elements on triangles.\\
     \lstinline+ELEMENT_CONTROLVOLUME_SURFACE+ & A control
     volume surface interior to the domain.\\

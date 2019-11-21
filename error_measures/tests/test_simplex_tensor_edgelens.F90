@@ -1,7 +1,7 @@
 subroutine test_simplex_tensor_edgelens
 
   use fields
-  use read_triangle
+  use mesh_files
   use transform_elements
   use meshdiagnostics
   use conformity_measurement
@@ -13,7 +13,7 @@ subroutine test_simplex_tensor_edgelens
   integer :: ele
   type(vector_field) :: positions
 
-  positions = read_triangle_files("data/laplacian_grid.3", 4)
+  positions = read_mesh_files("data/laplacian_grid.3", quad_degree=4, format="gmsh")
 
   do ele=1,ele_count(positions)
     call transform_ele(positions, ele)
@@ -43,7 +43,7 @@ subroutine test_simplex_tensor_edgelens
       do iloc=1,ele_loc(positions, ele)
         do jloc=iloc+1,ele_loc(positions, ele)
           edge_length = norm2(t_pos(:, iloc) - t_pos(:, jloc))
-          fail = fail .or. fnequals(edge_length, 1.0, tol = 200.0 * epsilon(0.0))
+          fail = fail .or. fnequals(edge_length, 1.0, tol = 201.0 * epsilon(0.0))
         end do
       end do
 

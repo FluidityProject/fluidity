@@ -3,8 +3,11 @@
 
 subroutine test_unify_meshes
 
+  use fldebug
   use unittest_tools
-  use read_triangle
+  use mesh_files
+  use quadrature
+  use elements
   use fields
   use linked_lists
   use intersection_finder_module
@@ -19,7 +22,7 @@ subroutine test_unify_meshes
   real, dimension(:), allocatable :: quad_detwei, tri_detwei
   integer :: ele_A, ele_B, ele_C
   real :: vol_B, vols_C, total_B, total_C
-  logical :: fail
+  logical :: fail, empty_intersection
   type(element_type), pointer :: shape
   type(inode), pointer :: llnode
   type(vector_field) :: intersection
@@ -30,8 +33,8 @@ subroutine test_unify_meshes
   type(mesh_type) :: accum_mesh
   type(vector_field) :: accum_positions, accum_positions_tmp
 
-  positionsA = read_triangle_files("data/dg_interpolation_quads_A", quad_degree=1)
-  positionsB = read_triangle_files("data/dg_interpolation_quads_B", quad_degree=1)
+  positionsA = read_mesh_files("data/dg_interpolation_quads_A", quad_degree=1, format="gmsh")
+  positionsB = read_mesh_files("data/dg_interpolation_quads_B", quad_degree=1, format="gmsh")
 
   dim = positionsA%dim
 
@@ -60,7 +63,12 @@ subroutine test_unify_meshes
     vols_C = 0.0
     do while(associated(llnode))
       ele_A = llnode%value
-      intersection = intersect_elements(positionsA, ele_A, ele_val(positionsB, ele_B), supermesh_shape)
+      intersection = intersect_elements(positionsA, ele_A, ele_val(positionsB, ele_B), supermesh_shape, empty_intersection=empty_intersection)
+      if (empty_intersection) then
+          llnode => llnode%next
+          cycle
+      end if
+
       call unify_meshes_quadratic(accum_positions, intersection, accum_positions_tmp)
       call deallocate(accum_positions)
       accum_positions = accum_positions_tmp

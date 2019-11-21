@@ -30,14 +30,13 @@
 module foam_drainage
   ! This module contains the options used for Foam drainage
   use fldebug
-  use state_module
-  use fields     
   use spud
+  use fields
+  use state_module
   use field_options
-  use cv_upwind_values 
-  use diagnostic_fields_matrices
+  use cv_upwind_values
   use state_fields_module
-
+  use diagnostic_fields_matrices
 
   implicit none
 

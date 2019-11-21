@@ -328,6 +328,7 @@ the direction of the flow with respect to gravity.  This is approximated to be:
 \end{equation}
 where $u_z$ is the magnitude of the velocity in the same direction as gravity and $u_{xy}$
 is the magnitude of the velocity in all other directions.
+The multiphase version of the $k$ and $\epsilon$ equations includes a contribution from volume fraction and interphase interaction terms, as discussed by \cite{bhutani2016}. The present multiphase implementation of the $k$ and $\epsilon$ equations in Fluidity neglects the interphase interaction terms.
 
 The last term in equations \ref{eq:R_tensor_compressible} and \ref{eq:R_tensor_incompressible} is not added explicitly. This term is determined during the conservation equation solve and is absorbed into the calculated pressure gradient. This means that the pressure gradient calculated by the model is actually:
 \begin{equation}\label{eq:Modified_pressure}

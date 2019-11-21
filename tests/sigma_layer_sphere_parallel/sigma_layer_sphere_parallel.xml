@@ -1,24 +1,17 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-    <name>sigma_layer_sphere_parallel</name>
-    <!-- Section of sphere (over North Pole) using sigma layers in parallel. Checks that the
-         depth of the layers is correct at each end (should be the same) and at the centre -->
+  <name>sigma_layer_sphere_parallel</name>
   <owner userid="jhill1"/>
-  <tags>flml</tags>
+  <tags>flml zoltan</tags>
   <problem_definition length="short" nprocs="2">
-      <command_line>mpiexec flredecomp -i 1 -o 2  sphere_sigma  sphere_sigma_flredecomp;
-                    mpiexec fluidity sphere_sigma_flredecomp.flml</command_line>
+    <command_line>mpiexec flredecomp -i 1 -o 2  sphere_sigma  sphere_sigma_flredecomp;
+                    mpiexec fluidity -v2 -l sphere_sigma_flredecomp.flml</command_line>
   </problem_definition>
   <variables>
-    <variable name="solvers_converged" language="python">
-import os
+    <variable name="solvers_converged" language="python">import os
 files = os.listdir("./")
-solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
-    </variable>
-    <!-- Each of the below is an array of layer depths at west end, centre and east end respectively-->
-    <variable name="depths_p1" language="python">
-import vtktools
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+    <variable name="depths_p1" language="python">import vtktools
 
 # load in the vtu
 u=vtktools.vtu('sigma_layers_1.pvtu')
@@ -32,10 +25,8 @@ y0 = 85
 depths_p1 = []
 for i in range(0,len(dtb)):
     if (abs(coords[i,0] - x0) &lt; 0.01 and abs(coords[i,1] - y0) &lt; 0.01):
-        depths_p1.append(dtb[i]) # should be depth, but could also grab dtb
-    </variable>
-    <variable name="depths_p2" language="python">
-import vtktools
+        depths_p1.append(dtb[i]) # should be depth, but could also grab dtb</variable>
+    <variable name="depths_p2" language="python">import vtktools
 
 # load in the vtu
 u=vtktools.vtu('sigma_layers_1.pvtu')
@@ -49,10 +40,8 @@ y0 = 85
 depths_p2 = []
 for i in range(0,len(dtb)):
     if (abs(coords[i,0] - x0) &lt; 0.01 and abs(coords[i,1] - y0) &lt; 0.01):
-        depths_p2.append(dtb[i]) # should be depth, but could also grab dtb    
-    </variable>
-    <variable name="depths_p3" language="python">
-import vtktools
+        depths_p2.append(dtb[i]) # should be depth, but could also grab dtb</variable>
+    <variable name="depths_p3" language="python">import vtktools
 
 # load in the vtu
 u=vtktools.vtu('sigma_layers_1.pvtu')
@@ -67,27 +56,14 @@ y0 = 90
 depths_p3 = []
 for i in range(0,len(dtb)):
     if (abs(coords[i,0] - x0) &lt; 0.5 and abs(coords[i,1] - y0) &lt; 0.5):
-        depths_p3.append(dtb[i]) # should be depth, but could also grab dtb    
-    </variable>
+        depths_p3.append(dtb[i]) # should be depth, but could also grab dtb</variable>
   </variables>
   <pass_tests>
-    <test name="Solvers converged" language="python">
-      assert(solvers_converged)
-    </test>
-    <test name="Depths at p1 are good" language="python">
-        assert(abs(depths_p1[1] - (abs(depths_p1[0] - depths_p1[2]) / 2.)) &lt; 0.1)
-    </test>
-    <test name="Depths at p2 are good" language="python">
-        assert(abs(depths_p2[1] - (abs(depths_p2[0] - depths_p2[2]) / 2.)) &lt; 0.1)
-    </test>
-    <test name="Depths at p3 are good" language="python">
-        assert(abs(depths_p3[1] - (abs(depths_p3[0] - depths_p3[2]) / 2.)) &lt; 0.1)
-    </test>
-    <test name="Depths p1 is not same as p3" language="python">
-        assert(abs(depths_p1[0] - depths_p3[0]) &gt; 500)
-    </test>
-
+    <test name="Solvers converged" language="python">assert(solvers_converged)</test>
+    <test name="Depths at p1 are good" language="python">assert(abs(depths_p1[1] - (abs(depths_p1[0] - depths_p1[2]) / 2.)) &lt; 0.1)</test>
+    <test name="Depths at p2 are good" language="python">assert(abs(depths_p2[1] - (abs(depths_p2[0] - depths_p2[2]) / 2.)) &lt; 0.1)</test>
+    <test name="Depths at p3 are good" language="python">assert(abs(depths_p3[1] - (abs(depths_p3[0] - depths_p3[2]) / 2.)) &lt; 0.1)</test>
+    <test name="Depths p1 is not same as p3" language="python">assert(abs(depths_p1[0] - depths_p3[0]) &gt; 500)</test>
   </pass_tests>
-  <warn_tests>
-  </warn_tests>
+  <warn_tests/>
 </testproblem>

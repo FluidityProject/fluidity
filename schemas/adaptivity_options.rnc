@@ -8,9 +8,12 @@ adaptivity_preprocessing =
             ## before using it to adapt. This can help with noisy
             ## fields.
             element helmholtz_smoother {
-                 element smoothing_length_scale {
-                     real_dim_symmetric_tensor
-                 },
+               ## The characteristic scale factor alpha used by the smoother.
+               ## The length scale is alpha*local element width (a scalar)
+               ## 2 is recommended.
+                 element smoothing_scale_factor {
+                     real
+                 }?,
                  element solver {
                    linear_solver_options_sym
                  }
@@ -588,7 +591,6 @@ hr_adaptivity =
                   empty
               }
             ),
-            porosity_include?,
             ## Debugging output options
             element output {
               ## Output vtus of the advected metric and edge lengths at every subcycle
@@ -939,6 +941,26 @@ hr_adaptivity =
                     }
                 }
             }?,
+            ## Load-balancing approach, for all but the final adapt iteration. For the final
+	    ## adapt iteration we always use the PARTITION approach, to ensure the best 
+	    ## possible load balance after adaptivity.
+            element  load_balancing_approach {
+                ## PARTITION (default): partition from scratch, not taking the current data 
+		## distribution into account
+                element partition {
+                    empty
+                }|
+                ## REPARTITION: partition but try to stay close to the current 
+		## partition/distribution
+                element repartition {
+                    empty
+                }|
+                ## REFINE: refine the current partition/distribution; assumes only 
+		## small changes
+                element refine {
+                    empty
+                }
+            }?,
             ## Element quality cut off. 
             ## Elements with a quality greater than this will be liable to be
             ## on the parition boundary. Below this, they will be free to be adapted
@@ -977,10 +999,16 @@ hr_adaptivity =
 	        element scalar_field {
                   attribute rank { "0" },
                   attribute name { "FieldWeightedPartitionValues" },
-                  element prescribed {
-                     coordinate_mesh_choice,
-                     prescribed_scalar_field
-                  }
+                  (
+                     element prescribed {
+                        coordinate_mesh_choice,
+                        prescribed_scalar_field
+                     }|
+                     element diagnostic {
+                        coordinate_mesh_choice,
+                        diagnostic_scalar_field
+                     }
+                  )                  
                }
             }?,
             ## Zoltan Debugging
@@ -1128,8 +1156,8 @@ hr_adaptivity =
             element write_metric_stages {
                comment
             }?,
-            ## Write out the Coordinate field to a triangle mesh for every
-            ## state adapt. In parallel, a triangle mesh and .halo files
+            ## Write out the Coordinate field to a mesh for every
+            ## state adapt. In parallel, mesh and .halo files
             ## will be written for every parallel adapt iteration.
             element write_adapted_mesh {
                comment
@@ -1205,9 +1233,9 @@ prescribed_adaptivity =
             ## system state.
             element from_file {
                (
-                  ## Input mesh file format.
+                  ## GMSH mesh format
                   element format {
-                     attribute name {"triangle"},
+                     attribute name { "gmsh" },
                      comment
                   }
                ),
@@ -1849,60 +1877,7 @@ mesh_adaptivity_options =
                  attribute material_phase_name { xsd:string },
                  empty
                }?
-            }|
-            ## enable full ale movement of mesh
-            element explicit_ale {
-               element number_of_linesearch_pts {integer},
-               element maximum_iterations {integer},
-               element max_elements_second_level {integer},
-               element functional1_weight {real}, 
-               element functional2_weight {real},
-               element functional3_weight {real}, 
-               element functional4_weight {real},
-               element functional5_weight {real},
-               element minimum_val_functional_change {real},       
-               element minimum_val_functional {real},      
-               element coarse_tolerance {real},
-               element fine_tolerance {real},
-               element gradient_dx {real},  
-               element gradient_dy {real}, 
-               element gradient_dz {real},
-               element move_nodes_in_x {empty}?,
-               element move_nodes_in_y {empty}?,
-               element move_nodes_in_z {empty}?
-            }|
-            ## enable vertical movement of mesh (TBD)
-            element vertical_ale {
-               (
-                  ## Functionals
-                  element physical_functionals {
-                     ## move the nodes along an isosurface
-                     ##Please specify a scalar field
-                     element minimise_relative_velocity_dot_grad_density {
-                        attribute name { xsd:string }
-                     }|
-                     ## Lock a node to a high curvature region, 
-                     ##Please specify a scalar field
-                     element use_hessian_density {
-                        attribute name { xsd:string }
-                     }
-                  },
-                  ##Mesh Quality terms
-                  element mesh_quality_terms {
-                     ##Spring term, default value is 1.0
-                     element spring_term {
-                        real 
-                     }?,
-                     ## Exponential term, default value is 1.0
-                     element exponential_term{
-                        real 
-                     }?
-                  }?,
-                  element block_nodes_in_x {empty}?,
-                  element block_nodes_in_y {empty}?,
-                  element block_nodes_in_z {empty}?
-               )
-            }                  
+            }
          ),
          ## The velocity of the mesh.
          element vector_field {

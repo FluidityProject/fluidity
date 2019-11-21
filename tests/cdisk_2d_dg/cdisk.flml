@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="cdisk">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -79,8 +79,8 @@
         <value name="whole_mesh">
           <python>
             <string_value lines="20" type="code" language="python">def val(X,t):
-	# Rigid rotation about origin.
-        return (X[1], -X[0])</string_value>
+    # Rigid rotation about origin.
+    return (X[1], -X[0])</string_value>
           </python>
         </value>
         <output/>
@@ -104,6 +104,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -163,9 +166,9 @@
     dx= (matrix(X)-matrix((-0.5,0)))
     r=sqrt(dx*dx.T)
     if (r&lt;0.25):
-	return 1.0
+        return 1.0
     else:
-	return 0</string_value>
+        return 0</string_value>
             <comment>Produce a radius 0.25 disk centred at -0.5,0</comment>
           </python>
         </initial_condition>
@@ -187,6 +190,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -199,7 +205,7 @@
           <string_value lines="20" type="code" language="python">tracer=state.scalar_fields['Tracer']
 x=state.vector_fields['DiagnosticCoordinate']
 for i in range(field.node_count):
-  field.set(i, tracer.node_val(i)*x.node_val(i))</string_value>
+    field.set(i, tracer.node_val(i)*x.node_val(i))</string_value>
         </algorithm>
         <mesh name="VelocityMesh"/>
         <output/>

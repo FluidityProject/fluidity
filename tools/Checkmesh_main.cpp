@@ -48,16 +48,20 @@ extern "C"{
 }
 
 void Usage(){
-  cout << "Usage: checkmesh TRIANGLE_BASENAME\n"
+  cout << "Usage: checkmesh MESH_BASENAME\n"
        << "\n"
-       << "Checks the validity of the supplied triangle mesh" << endl;
+       << "Checks the validity of the supplied mesh" << endl;
 }
 
 int main(int argc, char** argv){
 #ifdef HAVE_MPI
-  MPI::Init(argc, argv);
+  MPI_Init(&argc, &argv);
   // Undo some MPI init shenanigans
-  chdir(getenv("PWD"));
+  int ierr = chdir(getenv("PWD"));
+  if (ierr == -1) {
+        cerr << "Unable to switch to directory " << getenv("PWD");
+        abort();
+  }
 #endif
     
   if(argc < 2){
@@ -68,15 +72,19 @@ int main(int argc, char** argv){
   // Logging
   int nprocs = 1;
 #ifdef HAVE_MPI
-  if(MPI::Is_initialized()){
-    nprocs = MPI::COMM_WORLD.Get_size();
+  int init_flag;
+  MPI_Initialized(&init_flag);
+  if(init_flag){
+    MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
   }
 #endif
 if(nprocs > 1){
   int rank = 0;
 #ifdef HAVE_MPI
-  if (MPI::Is_initialized()){
-    rank = MPI::COMM_WORLD.Get_rank();
+  int init_flag;
+  MPI_Initialized(&init_flag);
+  if (init_flag){
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   }
 #endif
   ostringstream buffer;
@@ -105,7 +113,7 @@ if(nprocs > 1){
   checkmesh(basename.c_str(), basename_len);
 
 #ifdef HAVE_MPI
-  MPI::Finalize();
+  MPI_Finalize();
 #endif
   return 0;
 }

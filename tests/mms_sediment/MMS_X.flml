@@ -140,9 +140,6 @@
             <remove_stabilisation_term/>
           </continuous_galerkin>
         </spatial_discretisation>
-        <reference_coordinates>
-          <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
-        </reference_coordinates>
         <scheme>
           <poisson_pressure_solution>
             <string_value lines="1">only first timestep</string_value>
@@ -161,6 +158,7 @@
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
+          <remove_null_space/>
           <never_ignore_solver_failures/>
           <diagnostics>
             <monitors/>
@@ -178,6 +176,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -198,6 +199,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -221,6 +225,7 @@
             <stress_terms>
               <partial_stress_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
@@ -348,6 +353,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -370,6 +378,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
     <scalar_field name="PressureProjection" rank="0">
@@ -401,6 +412,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -408,7 +422,7 @@
     </scalar_field>
     <scalar_field name="PressureError" rank="0">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="PressureProjection" source_field_2_name="PressureAnalytical" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="PressureRemeaned" source_field_2_name="PressureAnalytical" material_phase_support="single" source_field_1_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
@@ -420,6 +434,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -442,6 +459,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -464,6 +484,9 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
     <scalar_field name="s1Projection" rank="0">
@@ -495,6 +518,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -514,6 +540,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -536,6 +565,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -558,6 +590,9 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
     <scalar_field name="s2Projection" rank="0">
@@ -589,6 +624,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -608,6 +646,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -630,6 +671,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -652,6 +696,9 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
     <scalar_field name="s1BedloadErosionRateProjection" rank="0">
@@ -683,6 +730,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -704,6 +754,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -726,6 +779,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -748,6 +804,9 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
     <scalar_field name="s2BedloadErosionRateProjection" rank="0">
@@ -779,6 +838,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -800,6 +862,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -822,6 +887,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -844,6 +912,9 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
     <scalar_field name="s1BedloadDepositRateProjection" rank="0">
@@ -875,6 +946,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -896,6 +970,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -918,6 +995,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -940,6 +1020,9 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
     <scalar_field name="s2BedloadDepositRateProjection" rank="0">
@@ -971,6 +1054,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -992,8 +1078,35 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="PressureRemeaned" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="subtract_surface_average" source_field_name="PressureProjection">
+          <surface_ids>
+            <integer_value shape="1" rank="1">2</integer_value>
+          </surface_ids>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+        <steady_state>
+          <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
@@ -1190,6 +1303,9 @@ for n in range(field.node_count):
               <detectors>
                 <exclude_from_detectors/>
               </detectors>
+              <particles>
+                <exclude_from_particles/>
+              </particles>
             </prescribed>
           </scalar_field>
           <scalar_field name="SinkingVelocity" rank="0">
@@ -1201,6 +1317,9 @@ for n in range(field.node_count):
               <detectors>
                 <include_in_detectors/>
               </detectors>
+              <particles>
+                <exclude_from_particles/>
+              </particles>
             </diagnostic>
           </scalar_field>
           <output/>
@@ -1211,6 +1330,9 @@ for n in range(field.node_count):
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <exclude_from_steady_state/>
           </steady_state>
@@ -1274,6 +1396,9 @@ for n in range(field.node_count):
               <detectors>
                 <include_in_detectors/>
               </detectors>
+              <particles>
+                <exclude_from_particles/>
+              </particles>
               <steady_state>
                 <include_in_steady_state/>
               </steady_state>
@@ -1291,6 +1416,9 @@ for n in range(field.node_count):
               <detectors>
                 <include_in_detectors/>
               </detectors>
+              <particles>
+                <exclude_from_particles/>
+              </particles>
               <steady_state>
                 <exclude_from_steady_state/>
               </steady_state>
@@ -1306,6 +1434,9 @@ for n in range(field.node_count):
               <detectors>
                 <include_in_detectors/>
               </detectors>
+              <particles>
+                <exclude_from_particles/>
+              </particles>
               <steady_state>
                 <exclude_from_steady_state/>
               </steady_state>
@@ -1321,6 +1452,9 @@ for n in range(field.node_count):
               <detectors>
                 <include_in_detectors/>
               </detectors>
+              <particles>
+                <exclude_from_particles/>
+              </particles>
               <steady_state>
                 <exclude_from_steady_state/>
               </steady_state>
@@ -1339,6 +1473,9 @@ for n in range(field.node_count):
               <detectors>
                 <exclude_from_detectors/>
               </detectors>
+              <particles>
+                <exclude_from_particles/>
+              </particles>
             </prescribed>
           </scalar_field>
           <submerged_specific_gravity>
@@ -1448,6 +1585,9 @@ for n in range(field.node_count):
               <detectors>
                 <exclude_from_detectors/>
               </detectors>
+              <particles>
+                <exclude_from_particles/>
+              </particles>
             </prescribed>
           </scalar_field>
           <scalar_field name="SinkingVelocity" rank="0">
@@ -1459,6 +1599,9 @@ for n in range(field.node_count):
               <detectors>
                 <include_in_detectors/>
               </detectors>
+              <particles>
+                <exclude_from_particles/>
+              </particles>
             </diagnostic>
           </scalar_field>
           <output/>
@@ -1469,6 +1612,9 @@ for n in range(field.node_count):
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <exclude_from_steady_state/>
           </steady_state>
@@ -1532,6 +1678,9 @@ for n in range(field.node_count):
               <detectors>
                 <include_in_detectors/>
               </detectors>
+              <particles>
+                <exclude_from_particles/>
+              </particles>
               <steady_state>
                 <include_in_steady_state/>
               </steady_state>
@@ -1549,6 +1698,9 @@ for n in range(field.node_count):
               <detectors>
                 <include_in_detectors/>
               </detectors>
+              <particles>
+                <exclude_from_particles/>
+              </particles>
               <steady_state>
                 <exclude_from_steady_state/>
               </steady_state>
@@ -1564,6 +1716,9 @@ for n in range(field.node_count):
               <detectors>
                 <include_in_detectors/>
               </detectors>
+              <particles>
+                <exclude_from_particles/>
+              </particles>
               <steady_state>
                 <exclude_from_steady_state/>
               </steady_state>
@@ -1579,6 +1734,9 @@ for n in range(field.node_count):
               <detectors>
                 <include_in_detectors/>
               </detectors>
+              <particles>
+                <exclude_from_particles/>
+              </particles>
               <steady_state>
                 <exclude_from_steady_state/>
               </steady_state>
@@ -1597,6 +1755,9 @@ for n in range(field.node_count):
               <detectors>
                 <exclude_from_detectors/>
               </detectors>
+              <particles>
+                <exclude_from_particles/>
+              </particles>
             </prescribed>
           </scalar_field>
           <submerged_specific_gravity>
@@ -1622,6 +1783,9 @@ for n in range(field.node_count):
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <exclude_from_steady_state/>
           </steady_state>
@@ -1642,6 +1806,9 @@ for n in range(field.node_count):
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <exclude_from_steady_state/>
           </steady_state>

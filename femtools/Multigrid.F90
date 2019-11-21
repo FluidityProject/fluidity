@@ -2,32 +2,18 @@
 !! This module contains multigrid related subroutines, such as the smoothed
 !! aggregation preconditioner.
 module multigrid
-use Petsc_Tools
-use Sparse_tools
-use sparse_tools_petsc
 use FLDebug
 use spud
 use futils
 use parallel_tools
-#include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
   use petsc
 #endif
+use Sparse_tools
+use Petsc_Tools
+use sparse_tools_petsc
 implicit none
-#ifdef HAVE_PETSC_MODULES
-#include "finclude/petscdef.h"
-#else
-#include "finclude/petsc.h"
-#endif
-#if PETSC_VERSION_MINOR>=2
-#define KSP_NORM_NO KSP_NORM_NONE
-#endif
-#if PETSC_VERSION_MINOR>=3
-#define MatCreateSeqAIJ myMatCreateSeqAIJ
-#define MatCreateMPIAIJ myMatCreateMPIAIJ
-#define MatCreateSeqBAIJ myMatCreateSeqBAIJ
-#define MatCreateMPIBAIJ myMatCreateMPIBAIJ
-#endif
+#include "petsc_legacy.h"
 
 !! Some parameters that change the behaviour of 
 !! the smoothed aggregation method. All of
@@ -85,18 +71,6 @@ PetscReal, dimension(:), pointer, save :: surface_values => null()
 private
 public SetupSmoothedAggregation, SetupMultigrid, DestroyMultigrid
   
-  ! see at the bottom of Petsc_Tools.F90
-  ! For some reason "use"ing the interface from the petsc_tools module
-  ! - if made public - doesn't work.
-  interface
-    subroutine myMatGetInfo(A, flag, info, ierr)
-       Mat, intent(in):: A
-       MatInfoType, intent(in):: flag
-       double precision, dimension(:), intent(out):: info
-       PetscErrorCode, intent(out):: ierr
-    end subroutine myMatGetInfo
-  end interface
-
 contains
 
 subroutine SetUpInternalSmoother(surface_node_list_in,matrix,pc, &
@@ -108,7 +82,6 @@ subroutine SetUpInternalSmoother(surface_node_list_in,matrix,pc, &
   PC, intent(inout) :: pc
   logical, intent(in), optional :: no_top_smoothing
   !
-  PetscObject:: myPETSC_NULL_OBJECT
   type(csr_matrix) :: matrix_internal
   integer :: row,i, ierr, nsurface
   integer, dimension(:), pointer :: r_ptr
@@ -165,15 +138,11 @@ subroutine SetUpInternalSmoother(surface_node_list_in,matrix,pc, &
   call SetupSmoothedAggregation(internal_smoother_pc, &
        Internal_Smoother_Mat, ierr, no_top_smoothing=lno_top_smoothing)
 
-  call PCSetOperators(internal_smoother_pc,Internal_Smoother_Mat, &
-       Internal_Smoother_Mat,DIFFERENT_NONZERO_PATTERN,ierr)
+  ! PCSetOperators needs to be in small caps due to macro hack in include/petsc_legacy.h
+  call pcsetoperators(internal_smoother_pc,Internal_Smoother_Mat, Internal_Smoother_Mat, ierr)
 
   !set up pc to output
-  myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-  call PCShellSetApply(pc,ApplySmoother,PETSC_NULL_OBJECT,ierr)
-  if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-    FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-  end if  
+  call PCShellSetApply(pc,ApplySmoother,ierr)
 
   surface_node_list = surface_node_list - 1
 
@@ -214,7 +183,7 @@ end subroutine DestroyInternalSmoother
 
 subroutine SetupMultigrid(prec, matrix, ierror, &
   external_prolongators, surface_node_list, matrix_csr, &
-  internal_smoothing_option, has_null_space)
+  internal_smoothing_option)
 !!< This subroutine sets up the multigrid preconditioner including
 !!< all options (vertical_lumping, internal_smoother)
 PC, intent(inout):: prec
@@ -230,8 +199,6 @@ type(petsc_csr_matrix), dimension(:), optional, intent(in):: external_prolongato
 integer, optional, dimension(:):: surface_node_list
 type(csr_matrix), intent(in), optional :: matrix_csr
 integer, optional, intent(in) :: internal_smoothing_option
-!! option to prevent a direct solve at the coarsest level
-logical, optional, intent(in) :: has_null_space
 
 integer :: linternal_smoothing_option
 
@@ -248,8 +215,7 @@ integer :: linternal_smoothing_option
   case (INTERNAL_SMOOTHING_NONE)
      !Don't apply internal smoothing, just regular mg
      call SetupSmoothedAggregation(prec, matrix, ierror, &
-          external_prolongators=external_prolongators, &
-          has_null_space=has_null_space)
+          external_prolongators=external_prolongators)
   case (INTERNAL_SMOOTHING_WRAP_SOR)
      !Apply the internal smoothing with wrapped SOR
      if(.not.present(surface_node_list)) then
@@ -291,8 +257,7 @@ integer :: linternal_smoothing_option
      ! set up the vertical_lumped mg
      call PCCompositeGetPC(subprec, 0, subsubprec, ierr)
      call SetupSmoothedAggregation(subsubprec, matrix, ierror, &
-          external_prolongators, no_top_smoothing=.true., &
-          has_null_space=has_null_space)
+          external_prolongators, no_top_smoothing=.true.)
      !set up the "internal" mg shell
      call PCCompositeGetPC(subprec, 1, subsubprec, ierr)
      call SetupInternalSmoother(surface_node_list,matrix_csr,subsubprec, &
@@ -317,8 +282,7 @@ integer :: linternal_smoothing_option
      ! set up the vertical_lumped mg
      call PCCompositeGetPC(prec, 0, subprec, ierr)
      call SetupSmoothedAggregation(subprec, matrix, ierror, &
-          external_prolongators=external_prolongators, &
-          has_null_space=has_null_space)
+          external_prolongators=external_prolongators)
      ! set up the "internal" mg shell
      call PCCompositeGetPC(prec, 1, subprec, ierr)
      call SetupInternalSmoother(surface_node_list,matrix_csr,subprec)
@@ -348,7 +312,7 @@ PC, intent(inout):: prec
 end subroutine DestroyMultigrid
 
 subroutine SetupSmoothedAggregation(prec, matrix, ierror, &
-  external_prolongators,no_top_smoothing, has_null_space)
+  external_prolongators,no_top_smoothing)
 !!< This subroutine sets up the preconditioner for using the smoothed
 !!< aggregation method (as described in Vanek et al. 
 !!< Computing 56, 179-196 (1996).
@@ -361,13 +325,12 @@ integer, intent(out):: ierror
 type(petsc_csr_matrix), dimension(:), optional, intent(in):: external_prolongators
 !! Don't do smoothing on the top level
 logical, intent(in), optional :: no_top_smoothing
-!! option to prevent a direct solve at the coarsest level
-logical, optional, intent(in) :: has_null_space
 
   Mat, allocatable, dimension(:):: matrices, prolongators
   KSP ksp_smoother
   PC  prec_smoother
   Vec lvec, rvec
+  MatNullSpace nullsp
   PetscErrorCode ierr
   PetscReal epsilon, epsilon_decay, omega
   PetscInt maxlevels, coarsesize
@@ -375,7 +338,6 @@ logical, optional, intent(in) :: has_null_space
   PetscScalar :: Px2
   Vec:: eigvec, Px
   PetscReal, allocatable, dimension(:):: emin, emax
-  PetscObject:: myPETSC_NULL_OBJECT
   integer, allocatable, dimension(:):: contexts
   integer i, j, ri, nolevels, m, n, top_level
   integer nosmd, nosmu, clustersize, no_external_prolongators
@@ -384,6 +346,13 @@ logical, optional, intent(in) :: has_null_space
 
     ! this might be already done, but it doesn't hurt:
     call PCSetType(prec, PCMG, ierr)
+
+    call PCMGGetLevels(prec, nolevels, ierr)
+    if (ierr==0 .and. nolevels>0) then
+      ewrite(2,*) "Assuming mg preconditioner is used with the same matrix and same options as before"
+      ierror = 0
+      return
+    end if
 
     lno_top_smoothing = .false.
     if(present(no_top_smoothing)) then
@@ -427,7 +396,7 @@ logical, optional, intent(in) :: has_null_space
          epsilon=epsilon/epsilon_decay
       end if
 
-      if (prolongators(i)==PETSC_NULL_OBJECT) then
+      if (prolongators(i)==PETSC_NULL_MAT) then
         if (IsParallel()) then
           ! in parallel we give up
           ewrite(-1,*) "ERROR: mg preconditioner setup failed"
@@ -443,11 +412,8 @@ logical, optional, intent(in) :: has_null_space
         end do
         deallocate(matrices, prolongators, contexts)
         ! Need to set n/o levels (to 1) otherwise PCDestroy will fail:
-        myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-        call PCMGSetLevels(prec, 1, PETSC_NULL_OBJECT, ierr)
-        if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-           FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-        end if
+        ! See note below about PETSC_NULL_KSP argument
+        call PCMGSetLevels(prec, 1, PETSC_NULL_KSP, ierr)
         ierror=1
         return
       end if
@@ -469,11 +435,10 @@ logical, optional, intent(in) :: has_null_space
       nolevels=i
     end if
     
-    myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-    call PCMGSetLevels(prec, nolevels, PETSC_NULL_OBJECT, ierr)
-    if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-       FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-    end if
+    ! NOTE: in petsc v3.8 it's unclear what the legal null argument should be for MPI_Comm *comms
+    ! it does not accept any scalar null object (e.g. PETSC_NULL_INTEGER) - luckily there's no
+    ! explicit interface so we can pass this instead which does get correctly translated to a null argument
+    call PCMGSetLevels(prec, nolevels, PETSC_NULL_KSP, ierr)
     
     if (lno_top_smoothing) then
       top_level=nolevels-2
@@ -497,11 +462,8 @@ logical, optional, intent(in) :: has_null_space
         call PowerMethod(matrices(ri), eigval, eigvec)
         emax(ri)=eigval
         
-        myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-        call MatGetVecs(prolongators(ri-1), PETSC_NULL_OBJECT, Px, ierr)
-        if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-           FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-        end if
+        Px = PETSC_NOTANULL_VEC
+        call MatCreateVecs(prolongators(ri-1), PETSC_NULL_VEC, Px, ierr)
         call MatMult(prolongators(ri-1), eigvec, Px, ierr)
         call VecNorm(Px, NORM_2, Px2, ierr)
         emin(ri-1)=eigval/Px2**2.
@@ -572,22 +534,9 @@ logical, optional, intent(in) :: has_null_space
       
     end do
     
-    ! Create rhs's for coarsest to one but finest level:
-    ! This shouldn't be necessary, but PETSc messes up leaving
-    !   the vector when destroying the preconditioner. 
-    ! (believed fixed in PETSc 3.0.0)
-    do i=0, nolevels-2
-      ri=nolevels-i
-      ! using PETSC_NULL_OBJECT for rvec leaks a reference
-      call MatGetVecs(matrices(ri), lvec, rvec, ierr)
-      call PCMGSetRHS(prec, i, lvec, ierr)
-      ! Again, this does not yet destroy rhs immediately:
-      call VecDestroy(lvec, ierr)
-      call VecDestroy(rvec, ierr)
-    end do
-      
     ! residual needs to be set if PCMG is used with KSPRICHARDSON
-    call MatGetVecs(matrices(1), lvec, rvec, ierr)
+    lvec = PETSC_NOTANULL_VEC; rvec = PETSC_NOTANULL_VEC
+    call MatCreateVecs(matrices(1), lvec, rvec, ierr)
     call PCMGSetR(prec, nolevels-1, lvec, ierr)
     call VecDestroy(lvec, ierr)
     call VecDestroy(rvec, ierr)
@@ -595,12 +544,13 @@ logical, optional, intent(in) :: has_null_space
     ! solver options coarsest level:
     call PCMGGetCoarseSolve(prec, ksp_smoother, ierr)
     call KSPGetPC(ksp_smoother, prec_smoother, ierr)
-    if (IsParallel() .or. present_and_true(has_null_space)) then
+    call MatGetNullSpace(matrix, nullsp, ierr)
+    if (IsParallel() .or. (ierr==0 .and. .not. IsNullMatNullSpace(nullsp))) then
+      ! if parallel or if we have a null space: use smoothing instead of direct solve
       call SetupSORSmoother(ksp_smoother, matrices(nolevels), &
         SOR_LOCAL_SYMMETRIC_SWEEP, 20)
     else
-      call KSPSetOperators(ksp_smoother, matrices(nolevels), matrices(nolevels), &
-        SAME_PRECONDITIONER, ierr)
+      call KSPSetOperators(ksp_smoother, matrices(nolevels), matrices(nolevels), ierr)
       call KSPSetType(ksp_smoother, KSPPREONLY, ierr)
       call PCSetType(prec_smoother, PCLU, ierr)
       call KSPSetTolerances(ksp_smoother, 1.0e-100_PetscReal_kind, 1e-8_PetscReal_kind, 1e10_PetscReal_kind, 300, ierr)
@@ -628,12 +578,12 @@ integer, intent(in):: iterations
   PetscErrorCode:: ierr
   
   call KSPSetType(ksp, KSPRICHARDSON, ierr)
-  call KSPSetOperators(ksp, matrix, matrix, SAME_PRECONDITIONER, ierr)
+  call KSPSetOperators(ksp, matrix, matrix, ierr)
   ! set 1 richardson iteration, as global iteration inside pcsor might be more efficient
-  call KSPSetTolerances(ksp, PETSC_DEFAULT_DOUBLE_PRECISION, &
-    PETSC_DEFAULT_DOUBLE_PRECISION, PETSC_DEFAULT_DOUBLE_PRECISION, &
+  call KSPSetTolerances(ksp, PETSC_DEFAULT_REAL, &
+    PETSC_DEFAULT_REAL, PETSC_DEFAULT_REAL, &
     1, ierr)
-  call KSPSetNormType(ksp, KSP_NORM_NO, ierr)
+  call KSPSetNormType(ksp, KSP_NORM_NONE, ierr)
   
   call KSPGetPC(ksp, pc, ierr)
   call PCSetType(pc, PCSOR, ierr)
@@ -651,12 +601,12 @@ Mat, intent(in):: matrix
   PetscErrorCode:: ierr
   
   call KSPSetType(ksp, KSPRICHARDSON, ierr)
-  call KSPSetOperators(ksp, matrix, matrix, SAME_PRECONDITIONER, ierr)
-  call KSPSetTolerances(ksp, PETSC_DEFAULT_DOUBLE_PRECISION, &
-    PETSC_DEFAULT_DOUBLE_PRECISION, PETSC_DEFAULT_DOUBLE_PRECISION, &
+  call KSPSetOperators(ksp, matrix, matrix, ierr)
+  call KSPSetTolerances(ksp, PETSC_DEFAULT_REAL, &
+    PETSC_DEFAULT_REAL, PETSC_DEFAULT_REAL, &
     0, ierr)
   call KSPRichardsonSetScale(ksp,real(0.0, kind = PetscReal_kind),ierr)
-  call KSPSetNormType(ksp, KSP_NORM_NO, ierr)
+  call KSPSetNormType(ksp, KSP_NORM_NONE, ierr)
   
   call KSPGetPC(ksp, pc, ierr)
   call PCSetType(pc,PCNONE,ierr)
@@ -672,21 +622,13 @@ integer, intent(in):: iterations
   PC:: pc
   PetscErrorCode:: ierr
   
-#if PETSC_VERSION_MINOR>=3
   call KSPSetType(ksp, KSPCHEBYSHEV, ierr)
-#else
-  call KSPSetType(ksp, KSPCHEBYCHEV, ierr)
-#endif
-  call KSPSetOperators(ksp, matrix, matrix, SAME_PRECONDITIONER, ierr)
-  call KSPSetTolerances(ksp, PETSC_DEFAULT_DOUBLE_PRECISION, &
-    PETSC_DEFAULT_DOUBLE_PRECISION, PETSC_DEFAULT_DOUBLE_PRECISION, &
+  call KSPSetOperators(ksp, matrix, matrix, ierr)
+  call KSPSetTolerances(ksp, PETSC_DEFAULT_REAL, &
+    PETSC_DEFAULT_REAL, PETSC_DEFAULT_REAL, &
     iterations, ierr)
-#if PETSC_VERSION_MINOR>=3
   call KSPChebyshevSetEigenvalues(ksp, emax, emin, ierr)
-#else
-  call KSPChebychevSetEigenvalues(ksp, emax, emin, ierr)
-#endif
-  call KSPSetNormType(ksp, KSP_NORM_NO, ierr)
+  call KSPSetNormType(ksp, KSP_NORM_NONE, ierr)
 
   call KSPGetPC(ksp, pc, ierr)
   call PCSetType(pc, PCNONE, ierr)
@@ -699,30 +641,26 @@ PetscReal, intent(out):: epsilon, epsilon_decay, omega
 integer, intent(out):: maxlevels, coarsesize
 integer, intent(out):: nosmd, nosmu, clustersize
 
-#if PETSC_VERSION_MINOR>=2
   PetscBool flag
-#else
-  PetscTruth flag
-#endif
   PetscErrorCode ierr
 
-    call PetscOptionsGetReal('', '-mymg_epsilon', epsilon, flag, ierr)
+    call PetscOptionsGetReal(PETSC_NULL_OPTIONS, '', '-mymg_epsilon', epsilon, flag, ierr)
     if (.not. flag) then
       epsilon=MULTIGRID_EPSILON_DEFAULT
     end if
-    call PetscOptionsGetReal('', '-mymg_epsilon_decay', epsilon_decay, flag, ierr)
+    call PetscOptionsGetReal(PETSC_NULL_OPTIONS, '', '-mymg_epsilon_decay', epsilon_decay, flag, ierr)
     if (.not. flag) then
       epsilon_decay=MULTIGRID_EPSILON_DECAY_DEFAULT
     end if
-    call PetscOptionsGetReal('', '-mymg_omega', omega, flag, ierr)
+    call PetscOptionsGetReal(PETSC_NULL_OPTIONS, '', '-mymg_omega', omega, flag, ierr)
     if (.not. flag) then
       omega=MULTIGRID_OMEGA_DEFAULT
     end if
-    call PetscOptionsGetInt('', '-mymg_maxlevels', maxlevels, flag, ierr)
+    call PetscOptionsGetInt(PETSC_NULL_OPTIONS, '', '-mymg_maxlevels', maxlevels, flag, ierr)
     if (.not. flag) then
       maxlevels=MULTIGRID_MAXLEVELS_DEFAULT
     end if
-    call PetscOptionsGetInt('', '-mymg_coarsesize', coarsesize, flag, ierr)
+    call PetscOptionsGetInt(PETSC_NULL_OPTIONS, '', '-mymg_coarsesize', coarsesize, flag, ierr)
     if (.not. flag) then
       if (IsParallel()) then
         coarsesize=MULTIGRID_COARSESIZE_DEFAULT_PARALLEL
@@ -730,15 +668,15 @@ integer, intent(out):: nosmd, nosmu, clustersize
         coarsesize=MULTIGRID_COARSESIZE_DEFAULT_SERIAL
       end if
     end if
-    call PetscOptionsGetInt('', '-mymg_nosmd', nosmd, flag, ierr)
+    call PetscOptionsGetInt(PETSC_NULL_OPTIONS, '', '-mymg_nosmd', nosmd, flag, ierr)
     if (.not. flag) then
       nosmd=MULTIGRID_NOSMD_DEFAULT
     end if
-    call PetscOptionsGetInt('', '-mymg_nosmu', nosmu, flag, ierr)
+    call PetscOptionsGetInt(PETSC_NULL_OPTIONS, '', '-mymg_nosmu', nosmu, flag, ierr)
     if (.not. flag) then
       nosmu=MULTIGRID_NOSMU_DEFAULT
     end if
-    call PetscOptionsGetInt('', '-mymg_clustersize', clustersize, flag, ierr)
+    call PetscOptionsGetInt(PETSC_NULL_OPTIONS, '', '-mymg_clustersize', clustersize, flag, ierr)
     if (.not. flag) then
       clustersize=MULTIGRID_CLUSTERSIZE_DEFAULT
     end if
@@ -776,21 +714,23 @@ integer, optional, dimension(:), intent(out):: cluster
   double precision, dimension(MAT_INFO_SIZE):: matrixinfo
   integer, dimension(:), allocatable:: findN, N, R
   integer:: nrows, nentries, ncols
-  integer:: jc, ccnt, base
+  integer:: jc, ccnt, base, end_of_range
     
   ! find out basic dimensions of A
   call MatGetLocalSize(A, nrows, ncols, ierr)
   ! use Petsc_Tools's MatGetInfo because of bug in earlier patch levels of petsc 3.0
-  call myMatGetInfo(A, MAT_LOCAL, matrixinfo, ierr)
+  call MatGetInfo(A, MAT_LOCAL, matrixinfo, ierr)
   nentries=matrixinfo(MAT_INFO_NZ_USED)
-  call MatGetOwnerShipRange(A, base, PETSC_NULL_INTEGER, ierr)
+  call MatGetOwnerShipRange(A, base, end_of_range, ierr)
   ! we decrease by 1, so base+i gives 0-based petsc index if i is the local fortran index:
   base=base-1
   
   allocate(findN(1:nrows+1), N(1:nentries), R(1:nrows))
      
   ! rescale the matrix: a_ij -> a_ij/sqrt(aii*ajj)
-  call MatGetVecs(A, diag, sqrt_diag, ierr)
+  ! ensure we don't pass PETSC_NULL_VEC
+  diag = PETSC_NOTANULL_VEC; sqrt_diag = PETSC_NOTANULL_VEC
+  call MatCreateVecs(A, diag, sqrt_diag, ierr)
   call MatGetDiagonal(A, diag, ierr)
   call VecMin(diag, diagminloc, diagmin, ierr)
   if (diagmin<=0.0) then
@@ -800,11 +740,7 @@ integer, optional, dimension(:), intent(out):: cluster
   
   !
   call VecCopy(diag, sqrt_diag, ierr)
-#if PETSC_VERSION_MINOR>=2
   call VecSqrtAbs(sqrt_diag, ierr)
-#else
-  call VecSqrt(sqrt_diag, ierr)
-#endif
   !
   call VecDuplicate(sqrt_diag, inv_sqrt_diag, ierr)
   call VecCopy(sqrt_diag, inv_sqrt_diag, ierr)
@@ -821,7 +757,7 @@ integer, optional, dimension(:), intent(out):: cluster
     if (present(cluster)) cluster=ISOLATED
     deallocate(findN, N, R)
     ! we return PETSC_NULL; callers of this function should check for this
-    P=PETSC_NULL_OBJECT
+    P=PETSC_NULL_MAT
     return
   else if (100*ccnt<99*nrows .and. .not. IsParallel()) then
     ! more than 1% isolated nodes, give a warning
@@ -887,13 +823,12 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
   integer, intent(in):: base
   PetscReal, intent(in):: omega
   
-  PetscObject:: myPETSC_NULL_OBJECT
   PetscErrorCode:: ierr
   Vec:: rowsum_vec
   PetscReal, dimension(:), allocatable:: Arowsum
   PetscReal:: aij(1), rowsum
   integer, dimension(:), allocatable:: dnnz, onnz
-  integer:: i, j, k, coarse_base
+  integer:: i, j, k, coarse_base, end_of_range
   
   allocate(dnnz(1:nrows), Arowsum(1:nrows))
   
@@ -917,27 +852,25 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
     allocate(onnz(1:nrows))
     onnz=0
     
-    call MatCreateMPIAIJ(MPI_COMM_FEMTOOLS, nrows, ncols, PETSC_DECIDE, PETSC_DECIDE, &
+    call MatCreateAIJ(MPI_COMM_FEMTOOLS, nrows, ncols, PETSC_DECIDE, PETSC_DECIDE, &
       PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, P, ierr)
     call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
       
     ! get base for coarse node/cluster numbering
-    call MatGetOwnerShipRangeColumn(P, coarse_base, PETSC_NULL_INTEGER, ierr)
+    call MatGetOwnerShipRangeColumn(P, coarse_base, end_of_range, ierr)
     ! subtract 1 to convert from 1-based fortran to 0 based petsc
     coarse_base=coarse_base-1
   else
-    call MatCreateSeqAIJ(MPI_COMM_SELF, nrows, ncols, &
-      PETSC_NULL_INTEGER, dnnz, P, ierr)
+    call MatCreateAIJ(MPI_COMM_SELF, nrows, ncols, nrows, ncols, &
+      PETSC_NULL_INTEGER, dnnz, 0, PETSC_NULL_INTEGER, P, ierr)
     call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
     ! subtract 1 from each cluster no to get petsc 0-based numbering
     coarse_base=-1
   end if
+  call MatSetup(P, ierr)
   
-  myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-  call MatGetVecs(A, rowsum_vec, PETSC_NULL_OBJECT, ierr)
-  if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-    FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-  end if
+  rowsum_vec = PETSC_NOTANULL_VEC
+  call MatCreateVecs(A, rowsum_vec, PETSC_NULL_VEC, ierr)
   call VecPlaceArray(rowsum_vec, Arowsum, ierr)
   call MatGetRowSum(A, rowsum_vec, ierr)
     
@@ -1139,17 +1072,13 @@ Vec, intent(out):: eigvec
   PetscReal:: rho_k, rho_kp1, norm2
   integer:: i
   PetscRandom:: pr
-  PetscObject:: myPETSC_NULL_OBJECT  
   
-  call MatGetVecs(matrix, x_kp1, x_k, ierr)
+  x_kp1 = PETSC_NOTANULL_VEC; x_k = PETSC_NOTANULL_VEC
+  call MatCreateVecs(matrix, x_kp1, x_k, ierr)
   
   ! initial guess
   call PetscRandomCreate(PETSC_COMM_WORLD, pr, ierr)
-  myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-  call VecSetRandom(x_k, PETSC_NULL_OBJECT, ierr)
-  if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-    FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-  end if
+  call VecSetRandom(x_k, pr, ierr)
   call PetscRandomDestroy(pr, ierr)
 
   rho_k=0.0

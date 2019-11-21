@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
-
 <testproblem>
   <name>lock exchange<comment>Runs a 2d adaptive simulation of the lock exchange, following the set-up of Hartel et al., 2000, JFM. Has basic adaptivity settings so check with in 15% of Hartel values. Also basic checks on mixing stats.
   NOTE: This test copies the example flml file and edits it to run to 30 seconds to properly test the head speeds.
@@ -46,7 +45,7 @@ import sys
 import os
 import scipy.stats
 import le_tools
-import numpy 
+import numpy
 
 hartel_no_slip_head_speed = 0.0128350
 hartel_free_slip_head_speed = 0.01509346
@@ -70,17 +69,17 @@ results_head_speed.append(numpy.average(U_fs[start_val:end_val]))
 
 results_head_speed.append(abs(results_head_speed[0]-hartel_no_slip_head_speed))
 results_head_speed.append(abs(results_head_speed[1]-hartel_free_slip_head_speed))
-print "Speed of no slip head, free slip head and errors from literature values"
-print results_head_speed
-print "WARNING: example is set up as a quick start. To check the head speed values properly the example must be run until a finish time of 30.0 s"
-    </variable>
+print("Speed of no slip head, free slip head and errors from literature values")
+print(results_head_speed)
+print("WARNING: example is set up as a quick start. To check the head speed values properly the example must be run until a finish time of 30.0 s")
+</variable>
  </variables>    
  <pass_tests> 
-<test name ="check cg lower 2 mixing bins have roughly half material at t=0 (tol = 1e-3)" language="python">
+<test name="check cg lower 2 mixing bins have roughly half material at t=0 (tol = 1e-3)" language="python">
 print (abs(temp_bin_lower_0 - 0.5))
 assert (abs(temp_bin_lower_0 - 0.5) &lt; 1e-3)
 </test>
-    <test name ="check cg upper mixing bin has half material at t=0 (tol= 1e-3)" language="python">
+    <test name="check cg upper mixing bin has half material at t=0 (tol= 1e-3)" language="python">
 print (abs(temp_bin_upper_0 - 0.5))
 assert (abs(temp_bin_upper_0 - 0.5) &lt; 1e-3)
 </test>

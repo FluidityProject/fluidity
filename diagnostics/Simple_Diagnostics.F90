@@ -28,17 +28,21 @@
 #include "fdebug.h"
 
 module simple_diagnostics
-  use diagnostic_source_fields
-  use field_options
-  use fields_manipulation
-  use initialise_fields_module
-  use fields
+
   use fldebug
   use global_parameters, only : timestep, OPTION_PATH_LEN
   use spud
-  use state_fields_module
+  use futils
+  use parallel_tools
+  use fields
   use state_module
+  use field_options
+  use diagnostic_source_fields
   use vtk_cache_module
+  use initialise_fields_module
+  use state_fields_module
+  use pickers_inquire
+  use surface_integrals
 
   implicit none
 
@@ -53,7 +57,8 @@ module simple_diagnostics
   public :: calculate_temporalmax_scalar, calculate_temporalmax_vector, calculate_temporalmin, calculate_l2norm, &
             calculate_time_averaged_scalar, calculate_time_averaged_vector, &
             calculate_time_averaged_scalar_squared, &
-            calculate_time_averaged_vector_times_scalar, calculate_period_averaged_scalar
+            calculate_time_averaged_vector_times_scalar, calculate_period_averaged_scalar, &
+            calculate_subtract_average, calculate_subtract_point_value, calculate_subtract_surface_average
 
   ! for the period_averaged_scalar routine
   real, save :: last_output_time
@@ -385,6 +390,103 @@ contains
     end if
     call deallocate(l_field)
   end subroutine calculate_time_averaged_vector_times_scalar
+
+  subroutine calculate_subtract_average(state, s_field)
+    type(state_type), intent(in) :: state
+    type(scalar_field), intent(inout) :: s_field
+
+    type(vector_field), pointer :: positions
+    type(scalar_field), pointer :: source_field
+    real :: average
+    integer :: stat
+
+    source_field => scalar_source_field(state, s_field)
+    call remap_field(source_field, s_field, stat)
+    if (stat/=0) then
+      FLExit("In subtract_average diagnostic, the source field is on a different mesh and cannot be remapped.")
+    end if
+
+    positions => extract_vector_field(state, "Coordinate")
+    average = field_integral(s_field, positions) / mesh_integral(positions)
+    call addto(s_field, -average)
+
+  end subroutine calculate_subtract_average
+
+  subroutine calculate_subtract_point_value(state, s_field)
+    type(state_type), intent(in) :: state
+    type(scalar_field), intent(inout) :: s_field
+
+    type(vector_field), pointer :: positions
+    type(scalar_field), pointer :: source_field
+    real, dimension(:), allocatable :: coords, lcoords
+    real :: point_value
+    integer :: stat, ele
+    logical :: found
+
+    source_field => scalar_source_field(state, s_field)
+    call remap_field(source_field, s_field, stat)
+    if (stat/=0) then
+      FLExit("In subtract_point_value diagnostic, the source field is on a different mesh and cannot be remapped.")
+    end if
+
+    positions => extract_vector_field(state, "Coordinate")
+    allocate(coords(1:positions%dim), lcoords(1:positions%dim+1))
+    call get_option(trim(s_field%option_path)//"/diagnostic/algorithm/coordinates", coords)
+    call picker_inquire(positions, coords, ele, lcoords, global=.true.)
+    found = ele>0
+    if (found) then
+      point_value = eval_field(ele, s_field, lcoords)
+    else
+      point_value = 0.0
+    end if
+    deallocate(coords, lcoords)
+
+    if (IsParallel()) then
+      ! picker_inquire with global=.true., is a bit dumb: it negotiates to ensure
+      ! only one processes returns with ele>0 - but then throws away the winning
+      ! process number, so we can't do a bcast - use allsum instead
+      call allsum(point_value)
+      ! more importantly we don't know whether any process has found this location
+      ! so let's confirm that here
+      call allor(found)
+    end if
+
+    if (.not. found) then
+      FLExit("In subtract_point_value, specified coordinates not found within domain")
+    end if
+
+    call addto(s_field, -point_value)
+
+  end subroutine calculate_subtract_point_value
+
+  subroutine calculate_subtract_surface_average(state, s_field)
+    type(state_type), intent(in) :: state
+    type(scalar_field), intent(inout) :: s_field
+
+    type(vector_field), pointer :: positions
+    type(scalar_field), pointer :: source_field
+    character(len = OPTION_PATH_LEN) :: option_path
+    integer, dimension(:), allocatable:: surface_ids
+    integer, dimension(2) :: shape_option
+    real :: surface_average
+    integer :: stat
+
+    source_field => scalar_source_field(state, s_field)
+    call remap_field(source_field, s_field, stat)
+    if (stat/=0) then
+      FLExit("In subtract_surface_average diagnostic, the source field is on a different mesh and cannot be remapped.")
+    end if
+
+    option_path = trim(s_field%option_path)//"/diagnostic/algorithm"
+    shape_option=option_shape(trim(option_path)//"/surface_ids")
+    allocate(surface_ids(1:shape_option(1)))
+    call get_option(trim(option_path)//"/surface_ids", surface_ids)
+
+    positions => extract_vector_field(state, "Coordinate")
+    surface_average = surface_integral(source_field, positions, surface_ids, normalise=.True.)
+    call addto(s_field, -surface_average)
+
+  end subroutine calculate_subtract_surface_average
 
   subroutine initialise_diagnostic_scalar_from_checkpoint(s_field) 
     type(scalar_field), intent(inout) :: s_field

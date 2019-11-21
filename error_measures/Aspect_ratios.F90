@@ -2,10 +2,11 @@
 
 module aspect_ratios_module
 
-  use fields
-  use metric_tools
   use spud
+  use fldebug
   use vector_tools
+  use metric_tools
+  use fields
 
   implicit none
 

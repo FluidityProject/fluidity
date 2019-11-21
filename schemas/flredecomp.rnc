@@ -26,7 +26,13 @@ flredecomp =
                 ## Currently hypergraph partitioning is the simplest implementation
                 ## and can produce non-contiguous partitions for certain problems.
                 element method {
-                "graph"|"hypergraph"
+		  element string_value {
+		     # Lines is a hint to the gui about the size of the text box.
+		     # It is not an enforced limit on string length.
+                     attribute lines { "1" },
+                     ( "graph" | "hypergraph" )
+                  },
+                comment
                 }
             }
         }?,
@@ -43,6 +49,14 @@ flredecomp =
                   prescribed_scalar_field
                }
             }
+        }?,
+        ## After the decomposition the extruded mesh is changed to a from_file
+        ## mesh. All non-extruded meshes are removed from the output flml, so
+        ## this can no longer be used in combination with vertically_structured_adaptivity
+        ## The decomposition itself will still be based on a columnar decomposition of the
+        ## horizontal mesh. If you want to decompose in all directions, run flredecomp again.
+        element write_extruded_mesh_only {
+           empty
         }?,
         ## Zoltan Debugging
         ## 

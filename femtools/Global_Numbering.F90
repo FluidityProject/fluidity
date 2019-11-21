@@ -30,20 +30,22 @@ module global_numbering
   ! **********************************************************************
   ! Module to construct the global node numbering map for elements of a
   ! given degree.
-  use adjacency_lists
-  use elements
-  use sparse_tools
   use fldebug
+  use element_numbering
+  use elements
+  use mpi_interfaces
   use halo_data_types
-  use halos_allocates
+  use parallel_tools
   use halos_base
   use halos_debug
+  use halos_allocates
+  use sparse_tools
+  use fields_data_types
+  use fields_base
+  use adjacency_lists
+  use linked_lists
   use halos_numbering
   use halos_ownership
-  use parallel_tools
-  use linked_lists
-  use mpi_interfaces
-  use fields_base
   
   implicit none
 
@@ -369,7 +371,7 @@ contains
     ! Vertices per surface element
     snloc = nloc - 1
 
-    call MakeLists_Dynamic(Nonods, Totele, Nloc, ndglno, D3, NEList,&
+    call MakeLists(Nonods, Totele, Nloc, ndglno, D3, NEList,&
        & NNList, EEList)
 
     new_ndglno=0
@@ -1201,31 +1203,33 @@ contains
     end do
 
     do proc=1, nprocs
-       allocate(send_lists(proc)%ptr(&
-            sum(visible_list(halo_sends(element_halo,proc))%length)))
-    
-       ! Use the first halo_send_count places to indicate how many
-       ! processors (other than the receiver) know about each element.
-       send_lists(proc)%ptr(:halo_send_count(element_halo, proc)) &
-            = visible_list(halo_sends(element_halo,proc))%length - 1 
-       
-       sends = halo_send_count(element_halo, proc)       
-       pos=sends
-       do e=1, sends
-          this_item=>visible_list(halo_send(element_halo, proc, e))&
-               &%firstnode 
-          do while(associated(this_item))
-             ! Eliminate self-cites.
-             if (this_item%value/=proc) then
-                pos=pos+1
-                send_lists(proc)%ptr(pos)=this_item%value
-             end if
-             
-             this_item=>this_item%next
-          end do
-          
-       end do
-       assert(pos==size(send_lists(proc)%ptr))
+       if (halo_send_count(element_halo, proc)>0) then
+         allocate(send_lists(proc)%ptr(&
+              sum(visible_list(halo_sends(element_halo,proc))%length)))
+      
+         ! Use the first halo_send_count places to indicate how many
+         ! processors (other than the receiver) know about each element.
+         send_lists(proc)%ptr(:halo_send_count(element_halo, proc)) &
+              = visible_list(halo_sends(element_halo,proc))%length - 1 
+         
+         sends = halo_send_count(element_halo, proc)       
+         pos=sends
+         do e=1, sends
+            this_item=>visible_list(halo_send(element_halo, proc, e))&
+                 &%firstnode 
+            do while(associated(this_item))
+               ! Eliminate self-cites.
+               if (this_item%value/=proc) then
+                  pos=pos+1
+                  send_lists(proc)%ptr(pos)=this_item%value
+               end if
+               
+               this_item=>this_item%next
+            end do
+            
+         end do
+         assert(pos==size(send_lists(proc)%ptr))
+       end if
     end do
     
     call flush_lists(visible_list)
@@ -1234,15 +1238,18 @@ contains
     ! Set up non-blocking communications
     communicator = halo_communicator(element_halo)
     allocate(requests(nprocs))
+    requests = MPI_REQUEST_NULL
     rank = getrank(communicator)  
     tag = next_mpi_tag()
 
     do proc=1, nprocs
 
-       call mpi_isend(send_lists(proc)%ptr, &
-            size(send_lists(proc)%ptr), MPI_INTEGER,&
-            proc-1, tag, communicator, requests(proc), ierr)
-       assert(ierr == MPI_SUCCESS)
+       if (halo_send_count(element_halo, proc)>0) then
+         call mpi_isend(send_lists(proc)%ptr, &
+              size(send_lists(proc)%ptr), MPI_INTEGER,&
+              proc-1, tag, communicator, requests(proc), ierr)
+         assert(ierr == MPI_SUCCESS)
+       end if
 
     end do
 
@@ -1250,6 +1257,11 @@ contains
 
     ! Wait for incoming data.
     do proc=1, nprocs
+
+       ! note we don't actually use 'proc' in this loop
+       ! all that matters is that the number of probe+recv calls 
+       ! equals the number of procs that we have recv elements of
+       if (halo_receive_count(element_halo, proc)==0) cycle
 
        call mpi_probe(MPI_ANY_SOURCE, tag, communicator, status,&
             & ierr)
@@ -1309,7 +1321,9 @@ contains
     call flush_lists(visible_elements)
 
     do proc=1, nprocs
-       deallocate(send_lists(proc)%ptr)
+       if (halo_send_count(element_halo, proc)>0) then
+         deallocate(send_lists(proc)%ptr)
+       end if
     end do
 #else
     FLAbort("Communicating halo visibility makes no sense without MPI.")

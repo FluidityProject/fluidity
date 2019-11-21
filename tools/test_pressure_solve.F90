@@ -4,23 +4,27 @@
 #include "fdebug.h"
   
   subroutine test_pressure_solve
-
+  
+    use futils, only: free_unit
+    use quadrature
     use unittest_tools
     use solvers
     use fields
     use state_module
     use elements
     use sparse_tools
-    use read_triangle
+    use mesh_files
     use vtk_interfaces
     use boundary_conditions
     use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN
     use free_surface_module
     use FLDebug
-    implicit none
+#ifdef HAVE_PETSC_MODULES
+  use petsc
+#endif
+  implicit none
+#include "petsc_legacy.h"
 
-#include "petscversion.h"
-#include "finclude/petsc.h"
     type(state_type) :: state
     type(vector_field), target:: positions, vertical_normal
     type(scalar_field) :: psi, DistanceToTop, exact
@@ -31,7 +35,7 @@
     integer :: quad_degree=4, unit
     integer, parameter:: DIM=3
     real :: eps0
-    character(len=999) triangle_filename, exact_sol_filename
+    character(len=999) filename, exact_sol_filename
     character(len=PYTHON_FUNC_LEN) :: func, buffer
     logical :: vl_as, vl, no_vl, sor, vl_as_wsor
     logical :: file_exists
@@ -40,18 +44,18 @@
 
     ewrite(1,*) 'test_pressure_solve'
 
-    call pressure_solve_options(triangle_filename, eps0, &
+    call pressure_solve_options(filename, eps0, &
          & exact_sol_filename, vl_as, vl_as_wsor, vl, no_vl, sor)
 
-    ewrite(2,*) 'Using triangle files:',trim(triangle_filename)
+    ewrite(2,*) 'Using mesh files:',trim(filename)
     ewrite(2,*) 'epsilon =', eps0
     ewrite(2,*) 'using exact solution file', trim(exact_sol_filename)
     ewrite(2,*) vl_as, vl_as_wsor, vl, no_vl, sor
 
     if(vl_as.or.(vl.or.(no_vl.or.(vl_as_wsor.or.sor)))) then
 
-       positions=read_triangle_files(trim(triangle_filename), &
-            quad_degree=QUAD_DEGREE)
+       positions=read_mesh_files(trim(filename), &
+            quad_degree=QUAD_DEGREE, format="gmsh")
 
        x_mesh => positions%mesh
 
@@ -110,13 +114,14 @@
   subroutine run_model(state,vl_as,vl_as_wsor,vl,no_vl,sor)
     use global_parameters, only: PYTHON_FUNC_LEN
     use unittest_tools
+    use sparse_tools
     use solvers
     use boundary_conditions
     use fields
+    use fetools
     use state_module
     use elements
     use sparse_tools_petsc
-    use read_triangle
     use sparsity_patterns
     use boundary_conditions
     use free_surface_module
@@ -240,6 +245,7 @@
   subroutine get_laplacian(A,positions,psi)
     use sparse_tools
     use fields
+    use fetools
     implicit none
     type(csr_matrix), intent(inout) :: A
     type(vector_field), intent(in) :: positions
@@ -258,10 +264,11 @@
     use unittest_tools
     use solvers
     use fields
+    use fetools
+    use transform_elements
     use state_module
     use elements
     use sparse_tools
-    use read_triangle
     implicit none
     type(csr_matrix), intent(inout) :: A
     type(vector_field), intent(in) :: positions
@@ -296,58 +303,55 @@
 
   end subroutine assemble_laplacian_element_contribution
 
-  subroutine pressure_solve_options(triangle_filename, eps0, &
+  subroutine pressure_solve_options(filename, eps0, &
        & exact_sol_filename, vl_as, vl_as_wsor, vl, no_vl, sor)
     use Fldebug
     use petsc_tools
-    implicit none
-    character(len=*), intent(out):: triangle_filename, exact_sol_filename
+#ifdef HAVE_PETSC_MODULES
+  use petsc
+#endif
+  implicit none
+#include "petsc_legacy.h"
+
+    character(len=*), intent(out):: filename, exact_sol_filename
     logical, intent(out) :: vl_as, vl, no_vl, sor, vl_as_wsor
     real, intent(out) :: eps0
 
-#include "finclude/petsc.h"
-
-#if PETSC_VERSION_MINOR>=2
     PetscBool:: flag
-#else
-    PetscTruth:: flag
-#endif
     PetscErrorCode :: ierr
     PetscReal :: number_in=0.0
 
-    call PetscOptionsGetString(&
-         &PETSC_NULL_CHARACTER, '-filename', triangle_filename, flag, ierr)
+    call PetscOptionsGetString(PETSC_NULL_OPTIONS, PETSC_NULL_CHARACTER, '-filename', filename, flag, ierr)
     if (.not. flag) then
        call usage()
     end if
 
-    call PetscOptionsGetReal(PETSC_NULL_CHARACTER, '-epsilon', number_in, flag, ierr)
+    call PetscOptionsGetReal(PETSC_NULL_OPTIONS, PETSC_NULL_CHARACTER, '-epsilon', number_in, flag, ierr)
     if(.not. flag) then
        call usage()
     end if
     eps0 = number_in
 
-    call PetscOptionsGetString(PETSC_NULL_CHARACTER, '-exact_solution', &
-         & exact_sol_filename, flag, ierr) 
+    call PetscOptionsGetString(PETSC_NULL_OPTIONS, PETSC_NULL_CHARACTER, '-exact_solution', exact_sol_filename, flag, ierr)
     if (.not. flag) then 
        call usage()
     end if
 
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-vl_as', vl_as, ierr)
+    call PetscOptionsHasName(PETSC_NULL_OPTIONS, PETSC_NULL_CHARACTER, '-vl_as', vl_as, ierr)
 
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-vl_as_wsor', vl_as_wsor, ierr)
+    call PetscOptionsHasName(PETSC_NULL_OPTIONS, PETSC_NULL_CHARACTER, '-vl_as_wsor', vl_as_wsor, ierr)
 
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-vl', vl, ierr)
+    call PetscOptionsHasName(PETSC_NULL_OPTIONS, PETSC_NULL_CHARACTER, '-vl', vl, ierr)
 
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-no_vl', no_vl, ierr)
+    call PetscOptionsHasName(PETSC_NULL_OPTIONS, PETSC_NULL_CHARACTER, '-no_vl', no_vl, ierr)
 
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-sor', sor, ierr)
+    call PetscOptionsHasName(PETSC_NULL_OPTIONS, PETSC_NULL_CHARACTER, '-sor', sor, ierr)
 
   end subroutine pressure_solve_options
 
   subroutine usage()
     use FLDebug    
-    ewrite(0,*) 'Usage: test_pressure_solve -filename <triangle_filename> &
+    ewrite(0,*) 'Usage: test_pressure_solve -filename <filename> &
          &-exact_solution <exact_solution_python_filename> -epsilon &
          &<epsilon> [options ...]'
     ewrite(0,*) 'Options:'

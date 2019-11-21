@@ -52,7 +52,11 @@ TESTLIBS = $(shell echo @LIBS@ | sed 's@./lib/lib\([a-z]*\)\.a@-l\1@g')
 # These are all the objects that are supposed to go into the makefile
 OBJS = Wm4Command.o Wm4FoundationPCH.o \
 Wm4Math.o Wm4Memory.o \
-Wm4System.o Wm4Vector2.o Wm4Vector3.o
+Wm4System.o Wm4Vector2.o Wm4Vector3.o \
+Wm4Intersector.o Wm4Intersector1.o \
+Wm4IntrQuad2Quad2.o \
+Wm4IntrTetrahedron3Tetrahedron3.o \
+Wm4IntrTriangle2Triangle2.o
 
 .SUFFIXES: .f90 .F90 .c .o .a
 

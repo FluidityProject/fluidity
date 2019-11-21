@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>turbine_dirichlet_3d</name>
   <owner userid="sf1409"/>
@@ -41,13 +41,14 @@ import numpy
 flux_l=[0.0,0.0]
 flux_r=[0.0,0.0]
 for i in range(2,area_block1.size):
-   flux_l.append(area_block1[i-2]*velocity_block1[i])
-   flux_r.append(area_block2*velocity_block2[i])
+    flux_l.append(area_block1[i-2]*velocity_block1[i])
+    flux_r.append(area_block2*velocity_block2[i])
 maxerr=0.0
 for i in range(0,len(flux_l)):
-   maxerr=max(maxerr,abs(flux_l[i]-flux_r[i]))
-print maxerr
-assert(maxerr&lt;1e-6)</test>
+    maxerr=max(maxerr,abs(flux_l[i]-flux_r[i]))
+print(maxerr)
+assert(maxerr&lt;1e-6)
+</test>
     <test name="time" language="python">from math import cos
 turbine_flux=velocity_block2
 head=[]

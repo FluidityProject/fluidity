@@ -1,0 +1,20 @@
+# A dockerfile for a container that provides the reference build
+# and test environment for spud
+FROM ubuntu:bionic
+
+# This Dockerfile is looked after by:
+MAINTAINER tim.greaves@imperial.ac.uk
+
+# Install the required packages for spud building and testing
+RUN apt-get -y update
+RUN apt-get -y install gfortran g++ python3-setuptools python3-all-dev python3-dev debhelper dh-python texlive python3-junit.xml
+
+# Make sure the spud user has a userid matching the host system if you
+#   are exposing a volume into the container and need files to be
+#   writeable by the spud user.
+# Pass 'userid' as an argument at build time if you need to change the 
+#   default UID 1000 to another value
+ARG userid=1000
+RUN adduser --disabled-password --gecos "" -u $userid spud
+USER spud
+WORKDIR /home/spud

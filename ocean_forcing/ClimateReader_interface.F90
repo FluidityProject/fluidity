@@ -76,7 +76,7 @@ contains
   end subroutine climatology_SetClimatology
 
   subroutine climatology_SetTimeSeconds(time)
-    real(real_8), intent(in) :: time
+    real(c_double), intent(in) :: time
     call climatology_SetTimeSeconds_c(time)
   end subroutine climatology_SetTimeSeconds
 

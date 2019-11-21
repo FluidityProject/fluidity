@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="square-structured-linear">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -66,7 +66,6 @@
         </location>
       </static_detector>
       <fail_outside_domain/>
-      <binary_output/>
     </detectors>
   </io>
   <timestepping>
@@ -142,7 +141,7 @@
         </scheme>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="eisenstat"/>
+          <preconditioner name="gamg"/>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
@@ -167,6 +166,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -206,6 +208,7 @@
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
@@ -464,6 +467,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -500,6 +506,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -515,12 +524,12 @@
         </spatial_discretisation>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="eisenstat"/>
+          <preconditioner name="gamg"/>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">3000</integer_value>
+            <integer_value rank="0">200</integer_value>
           </max_iterations>
           <remove_null_space/>
           <never_ignore_solver_failures/>

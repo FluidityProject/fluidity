@@ -17,7 +17,7 @@
           <regions name="WholeMesh">
             <bottom_depth>
               <constant>
-                <real_value rank="0">1.0</real_value>
+                <real_value rank="0">-1.0</real_value>
               </constant>
             </bottom_depth>
             <sizing_function>
@@ -80,7 +80,7 @@
     </mesh>
     <mesh name="InputMesh">
       <from_file file_name="line">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -113,6 +113,9 @@
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>
@@ -130,6 +133,9 @@
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>
@@ -236,6 +242,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -254,6 +263,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -279,6 +291,7 @@
               </integrate_advection_by_parts>
               <integrate_conservation_term_by_parts/>
             </advection_scheme>
+            <buoyancy/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0</real_value>
@@ -405,7 +418,7 @@
         <initial_condition name="WholeMesh">
           <python>
             <string_value lines="20" type="code" language="python">def val(X,t):
-   if((X[1]&lt;-0.75)):
+   if((X[1]&lt;0.25)):
       return 1.0
    else:
       return 0.0</string_value>
@@ -419,6 +432,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -437,6 +453,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -493,6 +512,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
     <scalar_field name="ConstantNodalField" rank="0">
@@ -508,6 +530,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
   </material_phase>
@@ -536,6 +561,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

@@ -1,6 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-from Scientific.IO.NetCDF import NetCDFFile
+from scipy.version import version as SciPyVersion
+
+if tuple(int(x) for x in SciPyVersion.split('.')) < (0, 9, 0):
+    from Scientific.IO.NetCDF import NetCDFFile as netcdf_file
+else:
+    from scipy.io.netcdf import netcdf_file
+
 from numpy import arange, zeros
 
 def create(missingdata = False, missingdimension = False, missingvariable = False, incorrectdimension = False, incorrectvariable = False):
@@ -24,9 +30,9 @@ def create(missingdata = False, missingdimension = False, missingvariable = Fals
     filename = 'valid.nc'
     description = '.'
 
-  print "Creating " + filename + description
+  print("Creating " + filename + description)
 
-  f = NetCDFFile(filename, 'w')
+  f = netcdf_file(filename, 'w')
   f.description = 'Example free surface height' + description
   
   if (missingdata):
@@ -53,7 +59,7 @@ def create(missingdata = False, missingdimension = False, missingvariable = Fals
   else:
     zdimlabel = 'height'
 
-  print xdimlabel, ydimlabel, zdimlabel
+  print(xdimlabel, ydimlabel, zdimlabel)
 
   # dimensions
   f.createDimension(xdimlabel, len(x))

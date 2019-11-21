@@ -2,7 +2,6 @@ include envcheck.mk
 
 preprocess: envcheck
 	@echo **********Converting the gmsh mesh to triangle format:
-	${BINPREFIX}gmsh2triangle unit_sphere.msh
 
 run: envcheck
 ifneq ($(NPROCS),8)
@@ -21,7 +20,7 @@ endif
 
 postprocess:
 	@echo **********Calling the data extraction and plotting script
-	python ./plot_data.py
+	python3 ./plot_data.py
 
 input: clean
 	$(MAKE) preprocess

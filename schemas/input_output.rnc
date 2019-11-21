@@ -65,14 +65,12 @@ input_choice_real_plus_map =
          element min_depth {
            real
          }?,
-         ## For use with 2D depth maps.
          ## If you are reading data from a file whose top layer height
          ## is not equal to zero, set the height of that top layer here.
          ## Note however that the height of the top layer in the the 
-         ## extruded mesh will still be equal to zero, the given domain
+         ## extruded mesh will still be equal to zero (if planar) or 
+         ## the radius of the shell mesh (if spherical), the given domain
          ## will in effect have been shifted down.
-         ## This option has no effect when extruding meshes on the surface
-         ## of a sphere.
          element surface_height {
            real
          }?
@@ -129,6 +127,19 @@ input_choice_real_contents =
    element python {
       python_code
    }
+
+bc_smoothing =
+   (
+      ## Smoothing on mesh. This uses the lumped mass approach. When the mesh is not
+      ## linear and continuous, the boundary values are evaluated on a continuous
+      ## linear mesh first, then smoothed and then interpolated onto the actual mesh.
+      element smoothing {
+         ## Number of smoothing iterations. More iterations means more smoothing
+         element iterations {
+             integer
+         }
+      }?
+   )
 
 initial_condition_scalar = 
    (
@@ -211,11 +222,6 @@ input_choice_initial_condition_real =
                   "raw"
               }
           }
-      }|
-      ## Indicate that no initial condition exists. Users should not set this;
-      ## this is only used in adjoint runs.
-      element no_initial_condition {
-         empty
       }
    )
 
@@ -283,11 +289,6 @@ input_choice_initial_condition_pressure =
                   "raw"
               }
           }
-      }|
-      ## Indicate that no initial condition exists. Users should not set this;
-      ## this is only used in adjoint runs.
-      element no_initial_condition {
-         empty
       }
    )
 
@@ -321,11 +322,6 @@ input_choice_real_dim_vector_plus_file =
                   "Velocity"
               }
           }
-      }|
-      ## Indicate that no initial condition exists. Users should not set this;
-      ## this is only used in adjoint runs.
-      element no_initial_condition {
-         empty
       }
    )
    
@@ -412,11 +408,6 @@ input_choice_initial_condition_vector =
                   "Velocity"
               }
           }
-      }|
-      ## Indicate that no initial condition exists. Users should not set this;
-      ## this is only used in adjoint runs.
-      element no_initial_condition {
-         empty
       }
    )
 

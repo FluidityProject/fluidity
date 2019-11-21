@@ -3,24 +3,16 @@ mesh_info =
       ## Read mesh from file.
       element from_file {
          (
-            ## Triangle mesh format.
-            ##
-            ## Enter the base name without the .edge .ele, .face or
-            ## .node extensions, and without process numbers.
+            ## GMSH mesh format
             element format {
-              attribute name { "triangle" },
-              comment
+               attribute name { "gmsh" },
+               comment
             }|
             ## Read the mesh from a vtu. Note that the mesh will have no 
             ## surface or region IDs.
             element format {
               attribute name { "vtu" },
               comment
-            }|
-            ## GMSH mesh format
-            element format {
-               attribute name { "gmsh" },
-               comment
             }|
             ## ExodusII mesh format.
             ##
@@ -240,9 +232,9 @@ extrusion_options =
       ## varies both in the horizontal as in the vertical.
       element sizing_function {
           input_choice_real_plus_list,
-      ## If your sizing function only varies in z enable this options.
-      ## Do not use if your function depends on x and/or y as it takes a column of z values and re-uses it. 
-          element varies_only_in_z {empty}?
+      ## If your sizing function only varies in depth enable this option.
+      ## Do not use if your function depends on x and/or y as it takes a column of depth values and re-uses it. 
+          element varies_only_in_depth {empty}?
       },
       ## To prevent infinitesimally thin bottom layer if sizing function
       ## is an integer multiple of total depth, the bottom layer needs

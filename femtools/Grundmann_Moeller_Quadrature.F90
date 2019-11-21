@@ -1,6 +1,6 @@
 module grundmann_moeller_quadrature
 
-  use global_parameters, only : real_4, real_8
+  use iso_c_binding, only: c_float, c_double
 
   implicit none
 
@@ -192,11 +192,11 @@ module grundmann_moeller_quadrature
     integer, intent(in) :: rule
     integer, intent(in) :: dim_num
     integer, intent(in) :: point_num
-    real(kind = real_4), dimension(point_num), intent(out) :: w
-    real(kind = real_4), dimension(dim_num, point_num), intent(out) :: x
+    real(kind = c_float), dimension(point_num), intent(out) :: w
+    real(kind = c_float), dimension(dim_num, point_num), intent(out) :: x
     
-    real(kind = real_8), dimension(point_num) :: lw
-    real(kind = real_8), dimension(dim_num, point_num) :: lx
+    real(kind = c_double), dimension(point_num) :: lw
+    real(kind = c_double), dimension(dim_num, point_num) :: lx
     
     call gm_rule_set(rule, dim_num, point_num, lw, lx)
     w = lw

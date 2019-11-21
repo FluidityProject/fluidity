@@ -1,23 +1,36 @@
-!#define COUNT_INTERSECTION_TESTS
 #include "fdebug.h"
 
 module intersection_finder_module
 
+use fldebug
 use quadrature
 use elements
-use fields_base
+use parallel_tools
+use data_structures
+use sparse_tools
 use fields_data_types
-use fields_allocates
+use fields_base
 use adjacency_lists
 use linked_lists
+use fields_allocates
 use parallel_fields
-use parallel_tools
-use supermesh_construction
 use transform_elements
-use data_structures
+#ifdef HAVE_LIBSUPERMESH
+use libsupermesh, only : intersections, deallocate, &
+  & rtree_intersection_finder_reset, &
+  & rtree_intersection_finder_query_output, &
+  & rtree_intersection_finder_get_output
+use libsupermesh, only : &
+  & libsupermesh_advancing_front_intersection_finder => advancing_front_intersection_finder, &
+  & libsupermesh_rtree_intersection_finder => rtree_intersection_finder, &
+  & libsupermesh_rtree_intersection_finder_set_input => rtree_intersection_finder_set_input, &
+  & libsupermesh_rtree_intersection_finder_find => rtree_intersection_finder_find
+#endif
+use supermesh_construction
 
 implicit none
 
+#ifndef HAVE_LIBSUPERMESH
 interface crtree_intersection_finder_set_input
   subroutine cintersection_finder_set_input(positions, enlist, ndim, loc, nnodes, nelements)
     implicit none
@@ -50,12 +63,13 @@ interface rtree_intersection_finder_get_output
   end subroutine cintersection_finder_get_output
 end interface rtree_intersection_finder_get_output
 
-interface rtree_intersection_finder_reset
+interface crtree_intersection_finder_reset
   subroutine cintersection_finder_reset(ntests)
     implicit none
     integer, intent(out) :: ntests
   end subroutine cintersection_finder_reset
-end interface rtree_intersection_finder_reset
+end interface crtree_intersection_finder_reset
+#endif
 
 private
 
@@ -63,14 +77,10 @@ public :: rtree_intersection_finder_set_input, rtree_intersection_finder_find, &
   & rtree_intersection_finder_query_output, &
   & rtree_intersection_finder_get_output, rtree_intersection_finder_reset
 
-public :: tri_predicate, tet_predicate, bbox_predicate, intersection_tests, &
-  & reset_intersection_tests_counter, intersection_finder, &
-  & advancing_front_intersection_finder_seeds, advancing_front_intersection_finder, &
-  & rtree_intersection_finder, brute_force_intersection_finder, verify_map
-  
-#ifdef COUNT_INTERSECTION_TESTS
-integer, save :: intersection_tests_count = 0
-#endif
+public :: tri_predicate, tet_predicate, bbox_predicate, intersection_finder, &
+  & advancing_front_intersection_finder_seeds, &
+  & advancing_front_intersection_finder, rtree_intersection_finder, &
+  & brute_force_intersection_finder, verify_map
 
 contains
   function tri_predicate(posA, posB) result(intersects)
@@ -87,10 +97,6 @@ contains
 
     real, dimension(2) :: p1, q1, r1, p2, q2, r2
     integer :: f
-    
-#ifdef COUNT_INTERSECTION_TESTS
-    intersection_tests_count = intersection_tests_count + 1
-#endif
 
     p1 = posA(:, 1); q1 = posA(:, 2); r1 = posA(:, 3)
     p2 = posB(:, 1); q2 = posB(:, 2); r2 = posB(:, 3)
@@ -112,10 +118,6 @@ contains
     end interface
 
     integer :: f
-    
-#ifdef COUNT_INTERSECTION_TESTS
-    intersection_tests_count = intersection_tests_count + 1
-#endif
 
     f = tet_a_tet(posA, posB)
     intersects = (f == 1)
@@ -146,10 +148,6 @@ contains
     logical :: intersects
     integer :: dim, i
 
-#ifdef COUNT_INTERSECTION_TESTS
-    intersection_tests_count = intersection_tests_count + 1
-#endif
-
     intersects = .false.
     dim = size(bboxA, 1)
 
@@ -160,33 +158,7 @@ contains
     intersects = .true.
 
   end function bbox_predicate
-  
-  function intersection_tests() result(tests)
-    !!< Return the number of intersection tests
-    
-    integer :: tests
-    
-#ifdef COUNT_INTERSECTION_TESTS
-    tests = intersection_tests_count
-#else
-    FLAbort("Counting of intersection tests is not available")
-    ! To keep the compiler quiet
-    tests = 0
-#endif
 
-  end function intersection_tests
-  
-  subroutine reset_intersection_tests_counter()
-    !!< Reset the intersection tests counter
-    
-#ifdef COUNT_INTERSECTION_TESTS
-    intersection_tests_count = 0
-#else
-    FLAbort("Counting of intersection tests is not available")
-#endif
-
-  end subroutine reset_intersection_tests_counter
-      
   function intersection_finder(positionsA, positionsB) result(map_AB)
     !!< A simple wrapper to select an intersection finder
     
@@ -196,11 +168,38 @@ contains
     type(ilist), dimension(ele_count(positionsA)) :: map_AB
     
     integer :: i
+#if HAVE_LIBSUPERMESH
+    integer :: j
+    type(intersections), dimension(:), allocatable :: lmap_AB
+
+    ewrite(1, *) "In intersection_finder"
+
+    ! workaround gfortran issue: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85750
+    map_AB%length = 0.0
+
+    allocate(lmap_AB(size(map_AB)))
+    call libsupermesh_advancing_front_intersection_finder( &
+      & positionsA%val, reshape(positionsA%mesh%ndglno, (/positionsA%mesh%shape%loc, ele_count(positionsA)/)), &
+      & positionsB%val, reshape(positionsB%mesh%ndglno, (/positionsB%mesh%shape%loc, ele_count(positionsB)/)), lmap_AB)
+
+    do i = 1, size(lmap_AB)
+      do j = 1, lmap_AB(i)%n
+        call insert(map_AB(i), lmap_AB(i)%v(j))
+      end do
+    end do
+    call deallocate(lmap_AB)
+    deallocate(lmap_AB)
+
+    ewrite(1, *) "Exiting intersection_finder"
+#else
     type(ilist) :: seeds
     type(inode), pointer :: node
     type(ilist), dimension(:), allocatable :: sub_map_AB
     
     ewrite(1, *) "In intersection_finder"
+
+    ! workaround gfortran issue: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85750
+    map_AB%length = 0.0
 
     ! We cannot assume connectedness, so we may have to run the
     ! advancing front more than once (once per connected sub-domain)
@@ -225,6 +224,7 @@ contains
     call deallocate(seeds)
 
     ewrite(1, *) "Exiting intersection_finder"
+#endif
   
   end function intersection_finder
   
@@ -360,6 +360,39 @@ contains
     
   end function advancing_front_intersection_finder_seeds
 
+#ifdef HAVE_LIBSUPERMESH
+  function advancing_front_intersection_finder(positionsA, positionsB) result(map_AB)
+    ! The positions and meshes of A and B
+    type(vector_field), intent(in) :: positionsA
+    type(vector_field), intent(in) :: positionsB
+    
+    ! for each element in A, the intersecting elements in B
+    type(ilist), dimension(ele_count(positionsA)) :: map_AB
+    
+    integer :: i, j
+    type(intersections), dimension(:), allocatable :: lmap_AB
+
+    ewrite(1, *) "In advancing_front_intersection_finder"
+
+    ! workaround gfortran issue: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85750
+    map_AB%length = 0.0
+
+    allocate(lmap_AB(size(map_AB)))
+    call libsupermesh_advancing_front_intersection_finder( &
+      & positionsA%val, reshape(positionsA%mesh%ndglno, (/positionsA%mesh%shape%loc, ele_count(positionsA)/)), &
+      & positionsB%val, reshape(positionsB%mesh%ndglno, (/positionsB%mesh%shape%loc, ele_count(positionsB)/)), lmap_AB)
+
+    do i = 1, size(lmap_AB)
+      do j = 1, lmap_AB(i)%n
+        call insert(map_AB(i), lmap_AB(i)%v(j))
+      end do
+    end do
+    call deallocate(lmap_AB)
+
+    ewrite(1, *) "Exiting advancing_front_intersection_finder"
+    
+  end function advancing_front_intersection_finder
+#else
   function advancing_front_intersection_finder(positionsA, positionsB, seed) result(map_AB)
     ! The positions and meshes of A and B
     type(vector_field), intent(in), target :: positionsA, positionsB
@@ -384,6 +417,9 @@ contains
     type(ilist) :: clues
 
     ewrite(1, *) "In advancing_front_intersection_finder"
+
+    ! workaround gfortran issue: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85750
+    map_AB%length = 0.0
       
     mesh_A => positionsA%mesh
     mesh_B => positionsB%mesh
@@ -521,6 +557,7 @@ contains
         possible_size = 0
       end function advance_front
   end function advancing_front_intersection_finder
+#endif
   
   function brute_force_intersection_finder(positions_a, positions_b) result(map_ab)
     !!< As advancing_front_intersection_finder, but uses a brute force
@@ -547,9 +584,24 @@ contains
     ewrite(1, *) "Exiting brute_force_intersection_finder"
     
   end function brute_force_intersection_finder
+
+#ifndef HAVE_LIBSUPERMESH
+  subroutine rtree_intersection_finder_reset()
+    integer :: ntests
+
+    call crtree_intersection_finder_reset(ntests)
+
+  end subroutine rtree_intersection_finder_reset
+#endif
   
   subroutine rtree_intersection_finder_set_input(old_positions)
     type(vector_field), intent(in) :: old_positions
+    
+#ifdef HAVE_LIBSUPERMESH
+    call libsupermesh_rtree_intersection_finder_set_input( &
+      & old_positions%val, &
+      & reshape(old_positions%mesh%ndglno, (/old_positions%mesh%shape%loc, ele_count(old_positions)/)))
+#else
     real, dimension(node_count(old_positions) * old_positions%dim) :: tmp_positions
     integer :: node, dim
     
@@ -564,33 +616,37 @@ contains
     call crtree_intersection_finder_set_input(tmp_positions, old_positions%mesh%ndglno, dim, &
                                       & ele_loc(old_positions, 1), node_count(old_positions), &
                                       & ele_count(old_positions))
-                                      
+#endif
+      
   end subroutine rtree_intersection_finder_set_input
 
   subroutine rtree_intersection_finder_find(new_positions, ele_B)
     type(vector_field), intent(in) :: new_positions
     integer, intent(in) :: ele_B
 
+#ifdef HAVE_LIBSUPERMESH
+    call libsupermesh_rtree_intersection_finder_find(ele_val(new_positions, ele_B))
+#else
     integer :: dim, loc
 
     dim = new_positions%dim
     loc = ele_loc(new_positions, 1)
 
     call crtree_intersection_finder_find(reshape(ele_val(new_positions, ele_B), (/dim*loc/)), dim, loc)
+#endif
     
   end subroutine rtree_intersection_finder_find
   
-  function rtree_intersection_finder(positions_a, positions_b, npredicates) result(map_ab)
+  function rtree_intersection_finder(positions_a, positions_b) result(map_ab)
     !!< As advancing_front_intersection_finder, but uses an rtree algorithm. For
     !!< testing *only*. For practical applications, use the linear algorithm.
     
     ! The positions and meshes of A and B
     type(vector_field), intent(in), target :: positions_a, positions_b
-    integer, intent(out), optional :: npredicates
     ! for each element in A, the intersecting elements in B
     type(ilist), dimension(ele_count(positions_a)) :: map_ab
     
-    integer :: i, j, id, nelms, ntests
+    integer :: i, j, id, nelms
 
     ewrite(1, *) "In rtree_intersection_finder"
     
@@ -603,9 +659,7 @@ contains
         call insert(map_ab(i), id)
       end do
     end do
-    call rtree_intersection_finder_reset(ntests)
-
-    if (present(npredicates)) npredicates = ntests
+    call rtree_intersection_finder_reset()
     
     ewrite(1, *) "Exiting rtree_intersection_finder"
     
@@ -627,6 +681,7 @@ contains
     type(quadrature_type) :: quad
     type(inode), pointer :: node
     type(vector_field) :: intersection
+    logical :: empty_intersection
     
     ewrite(1, *) "Entering verify_map"
         
@@ -658,7 +713,12 @@ contains
       intersection_volume = 0.0
       node => map_ab(i)%firstnode
       do while(associated(node))
-        intersection = intersect_elements(mesh_field_a, i, ele_val(mesh_field_b, node%value), shape)
+        intersection = intersect_elements(mesh_field_a, i, ele_val(mesh_field_b, node%value), shape, empty_intersection)
+        if (empty_intersection) then
+           node => node%next
+           cycle
+        end if
+
         do j = 1, ele_count(intersection)
           allocate(detwei(shape%ngi))
           call transform_to_physical(intersection, j, detwei = detwei)
@@ -672,7 +732,12 @@ contains
       reference_intersection_volume = 0.0
       node => map_ab_reference(i)%firstnode
       do while(associated(node))
-        intersection = intersect_elements(mesh_field_a, i, ele_val(mesh_field_b, node%value), shape)
+        intersection = intersect_elements(mesh_field_a, i, ele_val(mesh_field_b, node%value), shape, empty_intersection)
+        if (empty_intersection) then
+           node => node%next
+           cycle
+        end if
+
         do j = 1, ele_count(intersection)
           allocate(detwei(shape%ngi))
           call transform_to_physical(intersection, j, detwei = detwei)
@@ -699,6 +764,7 @@ contains
   
   end subroutine verify_map
 
+#ifndef HAVE_LIBSUPERMESH
   subroutine compute_bboxes(positionsB, bboxes_B)
     type(vector_field), intent(in) :: positionsB
     real, dimension(:, :, :), intent(out) :: bboxes_B
@@ -781,5 +847,6 @@ contains
 !!      FLAbort("Should never get here -- it has to intersect /something/!")
 !    end if
   end function clueful_search
+#endif
 
 end module

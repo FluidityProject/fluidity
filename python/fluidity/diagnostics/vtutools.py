@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -181,8 +181,8 @@ def ModelPvtuToVtu(pvtu):
   ghostLevel = pvtu.ugrid.GetCellData().GetArray("vtkGhostLevels")
   if ghostLevel is None:
     # We have a serial vtu
-    debug.deprint("Warning: VtuFromPvtu passed a serial vtu")
-    ghostLevel = [0 for i in range(vtu.ugrid.GetNumberOfCells())]
+    debug.deprint("Warning: input file contains no vtkGhostLevels")
+    ghostLevel = [0 for i in range(pvtu.ugrid.GetNumberOfCells())]
   else:
     # We have a parallel vtu
     ghostLevel = [ghostLevel.GetValue(i) for i in range(ghostLevel.GetNumberOfComponents() * ghostLevel.GetNumberOfTuples())]
@@ -210,21 +210,60 @@ def ModelPvtuToVtu(pvtu):
   
   debug.dprint("Input points: " + str(pvtu.ugrid.GetNumberOfPoints()))
  
-  nodeIds = []
   keepNode = [False for i in range(pvtu.ugrid.GetNumberOfPoints())]
-  oldNodeIdToNew = [None for i in range(pvtu.ugrid.GetNumberOfPoints())]
   
   # Find a list of candidate non-ghost node IDs, based on nodes attached to
   # non-ghost cells
+  keepNodeCount = 0
   for cellId in cellIds:
     cellNodeIds = pvtu.ugrid.GetCell(cellId).GetPointIds()
     cellNodeIds = [cellNodeIds.GetId(i) for i in range(cellNodeIds.GetNumberOfIds())]
+    keepNodeCount += len(cellNodeIds)
     for nodeId in cellNodeIds:
       keepNode[nodeId] = True
       
-  debug.dprint("Non-ghost nodes (pass 1): " + str(keepNode.count(True)))
-      
-  # Detect duplicate nodes
+  uniqueKeepNodeCount = keepNode.count(True)
+  debug.dprint("Non-ghost nodes (pass 1): " + str(uniqueKeepNodeCount))
+  if uniqueKeepNodeCount==keepNodeCount:
+    debug.dprint("Assuming pvtu is discontinuous")
+    # we're keeping all non-ghost nodes:
+    nodeIds = [i for i in range(pvtu.ugrid.GetNumberOfPoints()) if keepNode[i]]
+    oldNodeIdToNew = numpy.array([None]*pvtu.ugrid.GetNumberOfPoints())
+    oldNodeIdToNew[nodeIds] = range(keepNodeCount)
+  else:
+    # for the CG case we still have duplicate nodes that need to be removed
+    oldNodeIdToNew, nodeIds = PvtuToVtuRemoveDuplicateNodes(pvtu, keepNode)
+
+  # Step 4: Generate the new locations
+  locations = pvtu.GetLocations()
+  locations = numpy.array([locations[i] for i in nodeIds])
+  points = vtk.vtkPoints()
+  points.SetDataTypeToDouble()
+  for location in locations:
+    points.InsertNextPoint(location)
+  result.ugrid.SetPoints(points)
+
+  # Step 5: Generate the new cells
+  for cellId in cellIds:
+    cell = pvtu.ugrid.GetCell(cellId)
+    cellNodeIds = cell.GetPointIds()
+    cellNodeIds = [cellNodeIds.GetId(i) for i in range(cellNodeIds.GetNumberOfIds())]
+    idList = vtk.vtkIdList()
+    for nodeId in cellNodeIds:
+      oldNodeId = nodeId
+      nodeId = oldNodeIdToNew[nodeId]
+      assert(not nodeId is None)
+      assert(nodeId >= 0)
+      assert(nodeId <= len(nodeIds))
+      idList.InsertNextId(nodeId)
+    result.ugrid.InsertNextCell(cell.GetCellType(), idList)
+
+  return result, oldNodeIdToNew, oldCellIdToNew
+
+ModelVtuFromPvtu = ModelPvtuToVtu
+
+def PvtuToVtuRemoveDuplicateNodes(pvtu,  keepNode):
+  # Detect duplicate nodes and remove them
     
   # Jumping through Python 2.3 hoops for cx1 - in >= 2.4, can just pass a cmp
   # argument to list.sort
@@ -254,6 +293,9 @@ def ModelPvtuToVtu(pvtu):
         
     return True
       
+  nodeIds = []
+  oldNodeIdToNew = [None] * pvtu.ugrid.GetNumberOfPoints()
+
   locations = pvtu.GetLocations()
   lbound, ubound = VtuBoundingBox(pvtu).GetBounds()
   tol = calc.L2Norm([ubound[i] - lbound[i] for i in range(len(lbound))]) / 1.0e12
@@ -335,34 +377,8 @@ def ModelPvtuToVtu(pvtu):
       oldNodeIdToNew[i] = oldNodeIdToNew[nodeId]
   
   debug.dprint("Non-ghost nodes (pass 2): " + str(len(nodeIds)))
-    
-  # Step 4: Generate the new locations
-  locations = pvtu.GetLocations()
-  locations = numpy.array([locations[i] for i in nodeIds])
-  points = vtk.vtkPoints()
-  points.SetDataTypeToDouble()
-  for location in locations:
-    points.InsertNextPoint(location)
-  result.ugrid.SetPoints(points)
-  
-  # Step 5: Generate the new cells
-  for cellId in cellIds:
-    cell = pvtu.ugrid.GetCell(cellId)
-    cellNodeIds = cell.GetPointIds()
-    cellNodeIds = [cellNodeIds.GetId(i) for i in range(cellNodeIds.GetNumberOfIds())]
-    idList = vtk.vtkIdList()
-    for nodeId in cellNodeIds:
-      oldNodeId = nodeId
-      nodeId = oldNodeIdToNew[nodeId]
-      assert(not nodeId is None)
-      assert(nodeId >= 0)
-      assert(nodeId <= len(nodeIds))
-      idList.InsertNextId(nodeId)
-    result.ugrid.InsertNextCell(cell.GetCellType(), idList)
-  
-  return result, oldNodeIdToNew, oldCellIdToNew
 
-ModelVtuFromPvtu = ModelPvtuToVtu
+  return oldNodeIdToNew, nodeIds
 
 def PvtuToVtu(pvtu, model = None, oldNodeIdToNew = [], oldCellIdToNew = [],
                     fieldlist = []):
@@ -493,7 +509,10 @@ def VtuFieldGradient(inputVtu, fieldName):
   tempVtu.ugrid.GetPointData().SetActiveScalars(fieldName)
     
   gradientFilter = vtk.vtkCellDerivatives()
-  gradientFilter.SetInput(tempVtu.ugrid)
+  if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+    gradientFilter.SetInput(tempVtu.ugrid)
+  else:
+    gradientFilter.SetInputData(tempVtu.ugrid)
   gradientFilter.Update()
   
   projectionFilter = vtk.vtkCellDataToPointData()
@@ -539,7 +558,10 @@ def ImplicitFunctionVtuCut(inputVtu, implicitFunction):
   # The cutter
   cutter = vtk.vtkCutter()
   cutter.SetCutFunction(implicitFunction)
-  cutter.SetInput(inputVtu.ugrid)
+  if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+    cutter.SetInput(inputVtu.ugrid)
+  else:
+    cutter.SetInputData(inputVtu.ugrid)
   # Cut
   cutter.Update()
   cutUPoly = cutter.GetOutput()
@@ -706,7 +728,10 @@ def IsosurfaceVtuCut(inputVtu, scalarField, value):
   inputVtu.ugrid.GetPointData().SetActiveScalars(scalarField)
   
   filter = vtk.vtkContourFilter()
-  filter.SetInput(inputVtu.ugrid)
+  if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+    filter.SetInput(inputVtu.ugrid)
+  else:
+    filter.SetInputData(inputVtu.ugrid)
   filter.SetNumberOfContours(1)
   filter.SetValue(0, value)
   filter.Update()
@@ -724,7 +749,10 @@ def ExtractVtuGeometry(inputVtu):
   """
   
   filter = vtk.vtkGeometryFilter()
-  filter.SetInput(inputVtu.ugrid)
+  if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+    filter.SetInput(inputVtu.ugrid)
+  else:
+    filter.SetInputData(inputVtu.ugrid)
   filter.Update()
   surfacePoly = filter.GetOutput()
   
@@ -800,8 +828,12 @@ def RemappedVtu(inputVtu, targetVtu):
   polydata = vtk.vtkPolyData()
   polydata.SetPoints(points)
   probe = vtk.vtkProbeFilter()
-  probe.SetInput(polydata)
-  probe.SetSource(inputVtu.ugrid)
+  if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+    probe.SetInput(polydata)
+    probe.SetSource(inputVtu.ugrid)
+  else:
+    probe.SetInputData(polydata)
+    probe.SetSourceData(inputVtu.ugrid)
   probe.Update()
 
   # Generate a list invalidNodes, containing a map from invalid nodes in the
@@ -1058,7 +1090,7 @@ def VtuBoundingBox(vtu):
   """
   
   vtuBounds = vtu.ugrid.GetBounds()
-  lbound, ubound = [vtuBounds[2 * i] for i in range(len(vtuBounds) / 2)], [vtuBounds[2 * i + 1] for i in range(len(vtuBounds) / 2)]
+  lbound, ubound = [vtuBounds[2 * i] for i in range(int(len(vtuBounds) / 2))], [vtuBounds[2 * i + 1] for i in range(int(len(vtuBounds) / 2))]
   if len(lbound) > 0 and lbound[0] > ubound[0]:
     if optimise.DebuggingEnabled():
       for i in range(1, len(lbound)):

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import sys
@@ -11,7 +11,7 @@ import fluidity.diagnostics.fluiditytools as fluiditytools
 import fluidity.diagnostics.vtutools as vtktools
 
 if not len(sys.argv) == 2:
-  print "Usage: genpvtu basename"
+  print("Usage: genpvtu basename")
   sys.exit(1)
 basename = sys.argv[1]
 debug.dprint("vtu basename: " + basename)
@@ -32,7 +32,10 @@ writer.SetFileName(os.path.join(tempDir, pvtuName))
 # knows which fields we have)
 pieceName = fluiditytools.VtuFilenames(basename, 0)[0]
 pieceVtu = vtktools.vtu(pieceName)
-writer.SetInput(0, pieceVtu.ugrid)
+if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+  writer.SetInput(0, pieceVtu.ugrid)
+else:
+  writer.SetInputData(0, pieceVtu.ugrid)
 
 # Write
 writer.Write()

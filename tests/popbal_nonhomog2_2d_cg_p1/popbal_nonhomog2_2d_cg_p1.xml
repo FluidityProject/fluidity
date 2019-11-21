@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Transient population balance using direct quadrature method of moments (N=2) for 2d mesh using P1 CG</name>
+  <owner userid="gb812"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity -v2 -l popbal_nonhomog2_2d.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="solvers_converged" language="python">import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+    <variable name="moment3_L2error_t_5s" language="python">from fluidity_tools import stat_parser
+s = stat_parser("popbal_nonhomog2_2d.stat")
+timestep=0.005
+t=5.0
+index_time_for_norm=int((1.0/timestep)*t)-1
+moment3_L2error_t_5s = s["fluid"]["ScalarAbsoluteDifference"]["l2norm"][index_time_for_norm]</variable>
+    <variable name="moment3_L2error_t_20s" language="python">from fluidity_tools import stat_parser
+s = stat_parser("popbal_nonhomog2_2d.stat")
+timestep=0.005
+t=20.0
+index_time_for_norm=int((1.0/timestep)*t)-1
+moment3_L2error_t_20s = s["fluid"]["ScalarAbsoluteDifference"]["l2norm"][index_time_for_norm]</variable>
+    <variable name="moment3_maxerror_t_5s" language="python">from fluidity_tools import stat_parser
+s = stat_parser("popbal_nonhomog2_2d.stat")
+timestep=0.005
+t=5.0
+index_time_for_norm=int((1.0/timestep)*t)-1
+moment3_maxerror_t_5s = s["fluid"]["ScalarAbsoluteDifference"]["max"][index_time_for_norm]</variable>
+    <variable name="moment3_maxerror_t_20s" language="python">from fluidity_tools import stat_parser
+s = stat_parser("popbal_nonhomog2_2d.stat")
+timestep=0.005
+t=20.0
+index_time_for_norm=int((1.0/timestep)*t)-1
+moment3_maxerror_t_20s = s["fluid"]["ScalarAbsoluteDifference"]["max"][index_time_for_norm]</variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">assert(solvers_converged)</test>
+    <test name="moment3 L2error at 5s less than 0.0006" language="python">assert moment3_L2error_t_5s &lt; 0.0006</test>
+    <test name="moment3 L2error at 20s less than 0.0005" language="python">assert moment3_L2error_t_20s &lt; 0.0005</test>
+    <test name="moment3 maxerror at 5s less than 0.003" language="python">assert moment3_maxerror_t_5s &lt; 0.003</test>
+    <test name="moment3 maxerror at 20s less than 0.0007" language="python">assert moment3_maxerror_t_20s &lt; 0.0007</test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>

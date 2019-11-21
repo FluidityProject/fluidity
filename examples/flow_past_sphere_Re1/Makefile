@@ -2,7 +2,6 @@ include envcheck.mk
 
 preprocess: envcheck
 	@echo **********Converting the gmsh mesh to triangle format:
-	${BINPREFIX}gmsh2triangle unit_sphere.msh
 
 run: envcheck
 	@echo **********Calling fluidity with verbose log output enabled:
@@ -10,7 +9,7 @@ run: envcheck
 
 postprocess:
 	@echo **********Calling the data extraction and plotting script
-	python ./plot_data.py
+	python3 ./plot_data.py
 
 input: clean preprocess
 

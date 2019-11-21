@@ -28,10 +28,20 @@ closely as possible the setup used previously by Sam.</a:documentation>
                 <a:documentation>Select the partitioning method you would like used by Zoltan PHG.
 Currently hypergraph partitioning is the simplest implementation
 and can produce non-contiguous partitions for certain problems.</a:documentation>
-                <choice>
-                  <value>graph</value>
-                  <value>hypergraph</value>
-                </choice>
+                <element name="string_value">
+                  <!--
+                    Lines is a hint to the gui about the size of the text box.
+                    It is not an enforced limit on string length.
+                  -->
+                  <attribute name="lines">
+                    <value>1</value>
+                  </attribute>
+                  <choice>
+                    <value>graph</value>
+                    <value>hypergraph</value>
+                  </choice>
+                </element>
+                <ref name="comment"/>
               </element>
             </element>
           </choice>
@@ -55,6 +65,16 @@ value of 1 (no normalisation is done within the code).</a:documentation>
               <ref name="prescribed_scalar_field"/>
             </element>
           </element>
+        </element>
+      </optional>
+      <optional>
+        <element name="write_extruded_mesh_only">
+          <a:documentation>After the decomposition the extruded mesh is changed to a from_file
+mesh. All non-extruded meshes are removed from the output flml, so
+this can no longer be used in combination with vertically_structured_adaptivity
+The decomposition itself will still be based on a columnar decomposition of the
+horizontal mesh. If you want to decompose in all directions, run flredecomp again.</a:documentation>
+          <empty/>
         </element>
       </optional>
       <optional>

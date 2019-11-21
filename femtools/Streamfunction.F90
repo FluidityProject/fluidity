@@ -28,20 +28,25 @@
 #include "fdebug.h"
 
 module streamfunction
-  use state_module
-  use fields
-  use sparse_tools
   use spud
+  use fldebug
   use global_parameters, only: OPTION_PATH_LEN
+  use futils, only: present_and_nonzero, nullify
+  use parallel_tools
+  use sparse_tools
+  use vector_tools
+  use eventcounter
+  use elements
+  use transform_elements
+  use linked_lists
+  use parallel_fields
+  use fetools, only: dshape_dot_dshape, shape_curl_shape_2d
+  use fields
+  use state_module
   use sparsity_patterns
   use solvers
   use boundary_conditions
-  use vector_tools
-  use transform_elements
-  use eventcounter
   use sparsity_patterns_meshes
-  USE parallel_fields
-  USE Parallel_Tools
   
   implicit none
 

@@ -30,19 +30,19 @@
 module bound_field_module
 
   use FLDebug
-  use fields
   use spud
-  use global_parameters, only : FIELD_NAME_LEN, real_8
-  use field_options
-  use sparse_matrices_fields
+  use global_parameters, only : FIELD_NAME_LEN
   use quicksort
+  use parallel_tools
   use sparse_tools
-  use sparsity_patterns
   use transform_elements
   use fetools
-  use halos
   use parallel_fields
-  use parallel_tools
+  use fields
+  use field_options
+  use sparse_matrices_fields
+  use sparsity_patterns
+  use halos
   implicit none
 
   type(scalar_field), save :: func_target_field, func_lumped_mass
@@ -55,7 +55,9 @@ module bound_field_module
                                 FUNCTIONAL_LUMPED_VEC_L2=1, &
                                 FUNCTIONAL_FUNC_L2=2
 
-  public :: bound_field
+  private
+
+  public :: bound_field, bound_field_diffuse
 
   contains
   
@@ -154,7 +156,7 @@ module bound_field_module
     call addto(diffused, deviation, -1.0)
     call addto(field, diffused, 2.0)
 
-    call halo_update(field, 1)
+    call halo_update(field, 1, verbose=.false.)
   end do iterloop
   
   ewrite(2,*) "Bounded interpolation for field ", trim(field%name), " took ", k, " iterations"

@@ -42,8 +42,8 @@ static int packing_ncalls = 0;
 
 packing::packing(const MI5& intelligance_report, const Mesh& mesh){
   
-  NProcs   = MPI::COMM_WORLD.Get_size();
-  MyRank   = MPI::COMM_WORLD.Get_rank();
+  MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
+  MPI_Comm_size(MPI_COMM_WORLD, &NProcs);
   __nnodes = intelligance_report.nnodes();
   __nelems = intelligance_report.nelems();
   
@@ -61,7 +61,8 @@ packing::packing(const MI5& intelligance_report, const Mesh& mesh){
 
   // allocate space for the send buffers.
   size_t nbytes;
-  int _space_for_ints = MPI::INT.Pack_size(3, MPI::COMM_WORLD);
+  int _space_for_ints;
+  MPI_Pack_size(3, MPI_INT, MPI_COMM_WORLD, &_space_for_ints);
 
   for(unsigned p=0; p<NProcs; p++){
 
@@ -114,7 +115,7 @@ void packing::pack(const MI5& intelligance_report, Mesh& mesh){
 
     ECHO("Packing "<<cnt<<" nodes for "<<p);
     
-    MPI::INT.Pack(&cnt, 1, buff, len, offsets[p], MPI::COMM_WORLD);
+    MPI_Pack(&cnt, 1, MPI_INT, buff, len, &offsets[p], MPI_COMM_WORLD);
   }
   pack_nodes(intelligance_report, mesh);
   
@@ -128,7 +129,7 @@ void packing::pack(const MI5& intelligance_report, Mesh& mesh){
 
     ECHO("Packing "<<cnt<<" elements for "<<p);
     
-    MPI::INT.Pack(&cnt, 1, buff, len, offsets[p], MPI::COMM_WORLD);
+    MPI_Pack(&cnt, 1, MPI_INT, buff, len, &offsets[p], MPI_COMM_WORLD);
   }
   pack_elems(intelligance_report, mesh);
   
@@ -142,7 +143,7 @@ void packing::pack(const MI5& intelligance_report, Mesh& mesh){
     
     ECHO("Pressure "<<cnt<<" nodes for "<<p<<" buff len="<<len<<", offsets[p]="<<offsets[p]);
     
-    MPI::INT.Pack(&cnt, 1, buff, len, offsets[p], MPI::COMM_WORLD);
+    MPI_Pack(&cnt, 1, MPI_INT, buff, len, &offsets[p], MPI_COMM_WORLD);
   }
   pack_pnodes(intelligance_report, mesh);
   
@@ -250,7 +251,7 @@ void packing::unpack_nodes( MI5& intelligance_report, Mesh& mesh){
     buffer     = &(SendRecvBuffer[p][0]);
 
     // How many new nodes.
-    MPI::INT.Unpack(buffer, nbytes, &ncnt, 1, offsets[p], MPI::COMM_WORLD);
+    MPI_Unpack(buffer, nbytes, &offsets[p], &ncnt, 1, MPI_INT, MPI_COMM_WORLD);
     
     ECHO("Unpacking " << ncnt << " nodes from " << p);
     
@@ -288,7 +289,7 @@ void packing::unpack_elems(MI5& intelligance_report, Mesh& mesh){
     buffer     = &(SendRecvBuffer[p][0]);
     
     // How many new elements.
-    MPI::INT.Unpack(buffer, nbytes, &ecnt, 1, offsets[p], MPI::COMM_WORLD);
+    MPI_Unpack(buffer, nbytes, &offsets[p], &ecnt, 1, MPI_INT, MPI_COMM_WORLD);
 
     ECHO("Unpacking " << ecnt << " elements from " << p);
 
@@ -318,7 +319,7 @@ void packing::unpack_pnodes( MI5& intelligance_report, Mesh& mesh){
     char *buffer     = &(SendRecvBuffer[p][0]);
     
     // How many new pressure nodes.
-    MPI::INT.Unpack(buffer, nbytes, &ncnt, 1, offsets[p], MPI::COMM_WORLD);
+    MPI_Unpack(buffer, nbytes, &offsets[p], &ncnt, 1, MPI_INT, MPI_COMM_WORLD);
     
     ECHO("Unpacking " << ncnt << " pressure nodes from " << p);
     

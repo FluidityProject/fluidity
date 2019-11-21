@@ -1,12 +1,10 @@
-#!/usr/bin/nv python
+#!/usr/bin/nv python3
 
 import numpy as np
 import math
 import argparse
 import pylab
 import fileinput
-from scipy.interpolate import griddata
-
 
 slide_start_x = 112500
 R = 150000 # slide total runout

@@ -162,6 +162,13 @@ void print_version(ostream& stream){
 #else
       <<"no\n"
 #endif
+      <<"libsupermesh support\t\t"
+#ifdef HAVE_LIBSUPERMESH
+      <<"yes\n"
+#else
+      <<"no\n"
+#endif
+
       ;
   stream.flush();
   return;
@@ -280,9 +287,11 @@ void ParseArguments(int argc, char** argv){
   // Verbose?
   {    
     int MyRank = 0;
-#ifdef HAVE_MPI
-    if(MPI::Is_initialized()){
-      MyRank = MPI::COMM_WORLD.Get_rank();
+#ifdef HAVE_MPI  
+    int init_flag;
+    MPI_Initialized(&init_flag);
+    if(init_flag){
+      MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
     }
 #endif
  
@@ -303,8 +312,11 @@ void ParseArguments(int argc, char** argv){
     debug_file << "fluidity.log";
     err_file << "fluidity.err";
 #ifdef HAVE_MPI
-    if(MPI::Is_initialized()){
-      int MyRank = MPI::COMM_WORLD.Get_rank();
+    int init_flag;
+    MPI_Initialized(&init_flag);
+    if(init_flag){
+      int MyRank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
       debug_file << "-" << MyRank;
       err_file << "-" << MyRank;
     }

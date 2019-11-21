@@ -30,8 +30,8 @@
 module timers
 !  !!< This module contains routines which time the fluidity run
 
+  use iso_c_binding, only: c_double
   use fldebug
-  use global_parameters, only : real_8
   use mpi_interfaces
 
   implicit none
@@ -48,10 +48,10 @@ contains
     !
     ! It must be called at the start of the simulation to get the clock
     ! running.
-    real(kind = real_8):: wall_time
+    real(kind = c_double):: wall_time
     logical, save :: started=.false.
 #ifdef HAVE_MPI
-    real(kind = real_8), save :: wall_time0
+    real(kind = c_double), save :: wall_time0
     
     wall_time = MPI_Wtime()
     if(.not.started) then

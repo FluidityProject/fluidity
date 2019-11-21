@@ -1,6 +1,6 @@
 subroutine test_tet_intersector
 
-  use read_triangle
+  use mesh_files
   use tetrahedron_intersection_module
   use supermesh_construction
   use fields
@@ -16,8 +16,8 @@ subroutine test_tet_intersector
   type(tet_type) :: tet_A, tet_B
   type(plane_type), dimension(4) :: planes_B
 
-  positionsA = read_triangle_files("data/plcA", quad_degree=4)
-  positionsB = read_triangle_files("data/plcB", quad_degree=4)
+  positionsA = read_mesh_files("data/plcA", quad_degree=4, format="gmsh")
+  positionsB = read_mesh_files("data/plcB", quad_degree=4, format="gmsh")
 
   call intersector_set_dimension(3)
   call intersector_set_exactness(.false.)
@@ -47,7 +47,9 @@ subroutine test_tet_intersector
       fail = (vol_libwm .fne. vol_fort)
       call report_test("[tet_intersector volumes]", fail, .false., "Should give the same volumes of intersection")
 
-      call deallocate(libwm)
+      if (has_references(libwm)) then
+         call deallocate(libwm)
+      end if
       if (stat == 0) then
         call deallocate(fort)
       end if

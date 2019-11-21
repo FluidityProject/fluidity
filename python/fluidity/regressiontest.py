@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import sys
 import os
 import copy
@@ -9,6 +9,16 @@ import time
 import glob
 import threading
 import traceback
+from io import StringIO
+
+try:
+    from junit_xml import TestCase
+except ImportError:
+    class TestCase(object):
+        def __init__(self,*args,**kwargs):
+            pass
+        def add_failure_info(self,*args,**kwargs):
+            pass
 
 class TestProblem:
     """A test records input information as well as tests for the output."""
@@ -27,6 +37,7 @@ class TestProblem:
         self.warn_status = []
         self.filename = filename.split('/')[-1]
         self.genpbs = genpbs
+        self.xml_reports=[]
         # add dir to import path
         sys.path.insert(0, os.path.dirname(filename))
 
@@ -74,7 +85,7 @@ class TestProblem:
 
     def log(self, str):
         if self.verbose == True:
-            print self.filename[:-4] + ": " + str
+            print(self.filename[:-4] + ": " + str)
 
     def random_string(self):
         letters = "abcdefghijklmnopqrstuvwxyz"
@@ -122,12 +133,14 @@ class TestProblem:
         self.log("Running")
 
         run_time=0.0
+        start_time=time.clock()
+        wall_time=time.time()
 
         try:
           os.stat(dir+"/Makefile")
           self.log("Calling 'make input':")
           ret = os.system("cd "+dir+"; make input")
-          assert ret == 0
+          assert(ret == 0)
         except OSError:
           self.log("No Makefile, not calling make")
 
@@ -137,9 +150,13 @@ class TestProblem:
             os.system("cd "+dir+"; qsub " + self.filename[:-4] + ".pbs")
         else:
           self.log(self.command_line)
-          start_time=time.clock()
           os.system("cd "+dir+"; "+self.command_line)
           run_time=time.clock()-start_time
+
+        self.xml_reports.append(TestCase(self.name,
+                                            '%s.%s'%(self.length,
+                                                     self.filename[:-4]),
+                                           elapsed_sec=time.time()-wall_time))
 
         return run_time
         
@@ -180,6 +197,11 @@ class TestProblem:
             except:
               self.log("failure.")
               self.pass_status.append('F')
+              tc=TestCase(self.name,
+                          '%s.%s'%(self.length,
+                                   self.filename[:-4]))
+              tc.add_failure_info("Failure" )
+              self.xml_reports.append(tc)
               return self.pass_status
 
             varsdict[var.name] = tmpdict[var.name]
@@ -189,16 +211,29 @@ class TestProblem:
             self.log("Running failure tests: ")
             for test in self.pass_tests:
                 self.log("Running %s:" % test.name)
+                log = StringIO()
+                original_stdout = sys.stdout
+                sys.stdout = log
                 status = test.run(varsdict)
+                tc=TestCase(test.name,
+                            '%s.%s'%(self.length,
+                                     self.filename[:-4]))
                 if status == True:
                     self.log("success.")
                     self.pass_status.append('P')
                 elif status == False:
                     self.log("failure.")
                     self.pass_status.append('F')
+                    tc.add_failure_info(  "Failure" )
                 else:
                     self.log("failure (info == %s)." % status)
                     self.pass_status.append('F')
+                    tc.add_failure_info(  "Failure", status )
+                self.xml_reports.append(tc)
+                sys.stdout = original_stdout
+                log.seek(0)
+                tc.stdout = log.read()
+                print(tc.stdout)
 
         if len(self.warn_tests) != 0:
             self.log("Running warning tests: ")
@@ -244,7 +279,7 @@ class Test(TestOrVariable):
     def run_python(self, varsdict):
         tmpdict = copy.copy(varsdict)
         try:
-          exec self.code in tmpdict
+          exec(self.code, tmpdict)
           return True
         except AssertionError:
           # in case of an AssertionError, we assume the test has just failed
@@ -259,27 +294,28 @@ class Variable(TestOrVariable):
     def run_bash(self, varsdict):
         cmd = "bash -c \"%s\"" % self.code
         fd = os.popen(cmd, "r")
-        exec self.name + "=" + fd.read() in varsdict
+        exec(self.name + "=" + fd.read(), varsdict)
         if self.name not in varsdict.keys():
             raise Exception
 
     def run_python(self, varsdict):
         try:
-            exec self.code in varsdict
+            print(self.code)
+            exec(self.code, varsdict)
         except:
-            print "Variable computation raised an exception"
-            print "-" * 80
+            print("Variable computation raised an exception")
+            print("-" * 80)
             for (lineno, line) in enumerate(self.code.split('\n')):
-              print "%3d  %s" % (lineno+1, line)
-            print "-" * 80
+              print("%3d  %s" % (lineno+1, line))
+            print("-" * 80)
             traceback.print_exc()
-            print "-" * 80
+            print("-" * 80)
             raise Exception
 
         if self.name not in varsdict.keys():
-            print "self.name == ", self.name
-            print "varsdict.keys() == ", varsdict.keys()
-            print "self.name not found: does the variable define the right name?"
+            print("self.name == ", self.name)
+            print("varsdict.keys() == ", varsdict.keys())
+            print("self.name not found: does the variable define the right name?")
             raise Exception
 
 class ThreadIterator(list):
@@ -292,6 +328,9 @@ class ThreadIterator(list):
 
     def __iter__(self):
         return self
+
+    def __next__(self):
+        return self.next()
 
     def next(self):
 
@@ -310,4 +349,4 @@ if __name__ == "__main__":
     prob.run()
     while not prob.is_finished():
         time.sleep(60)
-    print prob.test()
+    print(prob.test())

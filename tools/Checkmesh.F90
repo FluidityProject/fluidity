@@ -1,21 +1,29 @@
 #include "fdebug.h"
 
 subroutine checkmesh(filename_, filename_len) bind(c)
-  !!< Checks the validity of the supplied triangle mesh
+  !!< Checks the validity of the supplied mesh
 
 ! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler 
   use quadrature
+  use element_numbering, only: FAMILY_SIMPLEX
   use elements
+  use transform_elements
   use sparse_tools
   use fields
   use state_module
 !
+  use fldebug
+  use futils
+  use reference_counting, only: print_references
+  use vector_tools, only: eigendecomposition_symmetric
+  use parallel_tools
+  use parallel_fields
   use halos
   use intersection_finder_module
   use linked_lists
   use meshdiagnostics
   use metric_tools
-  use read_triangle
+  use mesh_files
   use supermesh_construction
   use tetrahedron_intersection_module
   use iso_c_binding
@@ -35,10 +43,10 @@ subroutine checkmesh(filename_, filename_len) bind(c)
   end do
 
 
-  rformat = real_format()    
+  rformat = real_format()
 
   print "(a)", "Reading in mesh mesh with base name " // trim(filename)
-  positions = read_triangle_files(filename, quad_degree = 4)    
+  positions = read_mesh_files(filename, quad_degree = 4, format="gmsh")
   if(isparallel()) call read_halos(filename, positions)
   print "(a)", "Read successful"
 

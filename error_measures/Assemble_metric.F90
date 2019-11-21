@@ -2,31 +2,42 @@
 
 module metric_assemble
 
-  use VTK_interfaces
+  use spud
+  use fldebug
+  use global_parameters, only: domain_bbox
+  use mpi_interfaces, only: mpi_allreduce
+  use parallel_tools
+  use sparse_tools
+  use quadrature
+  use elements
+  use metric_tools
+  use fields
+  use state_module
+  use field_options, only: get_coordinate_field
+  use vtk_interfaces
+  use merge_tensors
+  use halos
   use surfacelabels
-!  use fields
+  use node_boundary, only: initialise_boundcount
   use field_derivatives
   use form_metric_field
-  use merge_tensors
   use edge_length_module
+  use aspect_ratios_module
+  use initialise_fields_module, only: initialise_field
+  use hadapt_advancing_front, only: create_columns_sparsity
+  use project_metric_to_surface_module, only: project_metric_to_surface
   use interpolation_metric
   use goals
-  use goal_metric
   use gradation_metric
+  use goal_metric
   use bounding_box_metric
   use boundary_metric
   use geometric_constraints_metric
   use limit_metric_module
-  use metric_tools
-  use state_module
-  use halos
-  use spud
-  use parallel_tools
   use metric_advection
   use anisotropic_gradation
   use richardson_metric_module
   use anisotropic_zz_module
-  use aspect_ratios_module
   use reference_meshes
   use hadapt_metric_based_extrude, only: get_1d_mesh, recombine_metric, get_1d_tensor
   
@@ -91,7 +102,10 @@ module metric_assemble
     call initialise_richardson_number_metric
 
     if (use_goal_metric) then
-      call form_goal_metric(state, error_metric)
+!     ***** Note that the following interface causes issues with the Intel compiler. Changed for now as a workaround ******
+!      call form_goal_metric(state, error_metric)
+      call form_goal_metric_generic(state, error_metric)
+!     ***** End of Intel compiler workaround *****
       call halo_update(error_metric)
     else if (use_interpolation_metric) then
       call form_interpolation_metric(state, error_metric)
@@ -346,7 +360,7 @@ module metric_assemble
         ! eigenbounds are the wrong size (and they weren't in state)... so do it now!
         ! (min and max refer to edge lengths, not eigenvalues)
         call allocate(oned_min_bound, oned_positions%mesh, "1DMaxMetricEigenbound", field_type=min_bound%field_type)
-        call allocate(oned_max_bound, oned_positions%mesh, "1DMinMetricEigenbound", field_type=min_bound%field_type)
+        call allocate(oned_max_bound, oned_positions%mesh, "1DMinMetricEigenbound", field_type=max_bound%field_type)
         call get_1d_tensor(column, min_bound, oned_min_bound, back_columns)
         call get_1d_tensor(column, max_bound, oned_max_bound, back_columns)
 

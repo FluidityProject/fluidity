@@ -27,18 +27,20 @@
 #include "fdebug.h"
 module fields_calculations
 
+use fldebug
+use vector_tools
+use quadrature
 use elements
-use fields_allocates
+use parallel_tools
 use fields_data_types
 use fields_base
+use linked_lists
+use fields_allocates
 use fields_manipulation
 use fetools
 use parallel_fields
-use parallel_tools
-use vector_tools
 use supermesh_construction
 use intersection_finder_module
-use linked_lists
 
 implicit none
     
@@ -97,6 +99,14 @@ implicit none
   interface norm2_difference
     module procedure norm2_difference_single, norm2_difference_multiple
   end interface
+
+  private
+
+  public :: mean, maxval, minval, sum, norm2, field_stats, field_cv_stats,&
+	 field_integral, fields_integral, function_val_at_quad,&
+	 dot_product, outer_product, norm2_difference, magnitude,&
+	 magnitude_tensor, merge_meshes, distance, divergence_field_stats,&
+	 field_con_stats, function_val_at_quad_scalar, trace, mesh_integral
     
   integer, parameter, public :: CONVERGENCE_INFINITY_NORM=0, CONVERGENCE_L2_NORM=1, CONVERGENCE_CV_L2_NORM=2
   
@@ -697,7 +707,8 @@ implicit none
       FLAbort("Programmmer laziness detected")
     end if
 
-    if (fieldA%field_type == FIELD_TYPE_NORMAL .and. fieldB%field_type == FIELD_TYPE_NORMAL) then
+    if ((fieldA%field_type == FIELD_TYPE_NORMAL) .and. &
+        (fieldB%field_type == FIELD_TYPE_NORMAL)) then
        do d=1,fieldA%dim
           val(d) = dot_product(fieldA%val(d,:), fieldB%val(d,:))
        end do
@@ -728,7 +739,8 @@ implicit none
       FLAbort("Programmmer laziness detected")
     end if
 
-    if (fieldA%field_type == FIELD_TYPE_NORMAL .and. fieldB%field_type == FIELD_TYPE_NORMAL) then
+    if ((fieldA%field_type == FIELD_TYPE_NORMAL) .and. &
+        (fieldB%field_type == FIELD_TYPE_NORMAL)) then
        do d1=1,fieldA%dim
           do d2=1,fieldB%dim
              val(d1,d2) = dot_product(fieldA%val(d1,:), fieldB%val(d2,:))

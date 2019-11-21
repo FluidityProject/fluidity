@@ -29,45 +29,48 @@
 
   module momentum_cg
 
-    use fields
-    use state_module
     use spud
     use fldebug
-    use sparse_tools
-    use boundary_conditions
-    use boundary_conditions_from_options
-    use solvers
-    use petsc_solve_state_module
-    use sparse_tools_petsc
-    use sparse_matrices_fields
-    use field_options
-    use halos
     use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, &
          COLOURING_CG1
-    use elements
-    use transform_elements, only: transform_to_physical
-    use coriolis_module
-    use vector_tools
-    use fetools
-    use upwind_stabilisation
-    use les_module
-    use smoothing_module
-    use metric_tools
-    use field_derivatives
-    use state_fields_module
-    use state_matrices_module
-    use sparsity_patterns_meshes
-    use fefields
-    use rotated_boundary_conditions
-    use Coordinates
-    use multiphase_module
-    use edge_length_module
-    use physics_from_options
-    use colouring
-    use Profiler
 #ifdef _OPENMP
     use omp_lib
 #endif
+    use integer_set_module
+    use sparse_tools
+    use vector_tools
+    use elements
+    use transform_elements, only: transform_to_physical
+    use fetools
+    use metric_tools
+    use fields
+    use profiler
+    use sparse_tools_petsc
+    use state_module
+    use boundary_conditions
+    use sparse_matrices_fields
+    use halos
+    use solvers
+    use field_options
+    use sparsity_patterns_meshes, only: get_csr_sparsity_firstorder
+    use physics_from_options
+    use smoothing_module
+    use fefields
+    use state_fields_module, only: get_lumped_mass
+    use field_derivatives
+    use coordinates, only: radial_inward_normal_at_quad_face,&
+         rotate_diagonal_to_sphere_face, radial_inward_normal_at_quad_ele,&
+         rotate_diagonal_to_sphere_gi
+    use boundary_conditions_from_options
+    use petsc_solve_state_module, only: petsc_solve
+    use coriolis_module, only: coriolis, set_coriolis_parameters
+    use upwind_stabilisation, only: make_supg_element, supg_test_function, element_upwind_stabilisation, get_upwind_options
+    use les_module
+    use multiphase_module
+    use state_matrices_module, only: get_pressure_stabilisation_matrix
+    use rotated_boundary_conditions
+    use edge_length_module
+    use colouring
 
     implicit none
 
@@ -118,7 +121,7 @@
     logical :: have_les
     logical :: have_surface_fs_stabilisation
     logical :: les_second_order, les_fourth_order, wale, dynamic_les
-    logical :: on_sphere
+    logical :: on_sphere, radial_gravity
     
     logical :: move_mesh
     
@@ -289,8 +292,10 @@
       type(integer_set), dimension(:), pointer :: colours
       integer :: clr, nnid, len, i
       integer :: num_threads, thread_num
+#ifdef _OPENMP
       !! Did we successfully prepopulate the transform_to_physical_cache?
       logical :: cache_valid
+#endif
 
 
       type(element_type), dimension(:), allocatable :: supg_element
@@ -378,9 +383,10 @@
       if (have_option(trim(u%option_path)//'/prognostic/equation::ShallowWater')) then
         ! for the swe there's no buoyancy term
         have_gravity = .false.
-      end if
-
-      if(have_gravity) then
+        buoyancy=>dummyscalar
+        gravity=>dummyvector
+        ! but we do need gravity_magnitude to convert pressure to free surface elevation
+      else if(have_gravity) then
         buoyancy=>extract_scalar_field(state, "VelocityBuoyancyDensity")
         gravity=>extract_vector_field(state, "GravityDirection", stat)
       else
@@ -389,6 +395,9 @@
         gravity_magnitude = 0.0
       end if
       ewrite_minmax(buoyancy)
+
+      radial_gravity = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/continuous_galerkin"//&
+         &"/buoyancy/radial_gravity_direction_at_gauss_points")
 
       ! Splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). 
       ! The hydrostatic components, denoted p' and rho', should satisfy the balance: grad(p') = rho'*g
@@ -709,7 +718,6 @@
       
 #ifdef _OPENMP
     cache_valid = prepopulate_transform_cache(x)
-    assert(cache_valid)
     if (have_coriolis) then
        call set_coriolis_parameters
     end if
@@ -1104,7 +1112,7 @@
 
       if (velocity_bc_type(1,sele)==BC_TYPE_FREE_SURFACE .and. have_surface_fs_stabilisation) then
         if (on_sphere) then
-          upwards_gi=-sphere_inward_normal_at_quad_face(x, sele)
+          upwards_gi=-radial_inward_normal_at_quad_face(x, sele)
         else
           upwards_gi=-face_val_at_quad(gravity, sele)
         end if
@@ -1770,12 +1778,12 @@
          coefficient_detwei = coefficient_detwei*nvfrac_gi
       end if
 
-      if (on_sphere) then
-      ! If we're on a spherical Earth evaluate the direction of the gravity vector
+      if (radial_gravity) then
+      ! If we're using radial gravity evaluate the direction of the gravity vector
       ! exactly at quadrature points.
         rhs_addto = rhs_addto + &
                     shape_vector_rhs(test_function, &
-                                     sphere_inward_normal_at_quad_ele(positions, ele), &
+                                     radial_inward_normal_at_quad_ele(positions, ele), &
                                      coefficient_detwei)
       else
         rhs_addto = rhs_addto + &
@@ -1919,7 +1927,7 @@
 
           ! Calculate the gradient in the direction of gravity
           if (on_sphere) then
-            grav_at_quads=sphere_inward_normal_at_quad_ele(positions, ele)
+            grav_at_quads=radial_inward_normal_at_quad_ele(positions, ele)
           else
             grav_at_quads=ele_val_at_quad(gravity, ele)
           end if
@@ -2589,10 +2597,27 @@
       delta_u2%option_path = trim(delta_p%option_path)//&
                                   &"/prognostic/scheme/use_projection_method"//&
                                   &"/full_schur_complement/inner_matrix[0]"
+      if (.not. have_option(trim(delta_u2%option_path)//"/solver")) then
+        ! inner solver options are optional (for FullMomemtumMatrix), if not
+        ! present use the same as those for the initial velocity solve
+        delta_u2%option_path = u%option_path
+      end if
       
       ! compute delta_u1=grad delta_p
       call mult_t(delta_u1, ct_m, delta_p)
       
+      ! the rows of the gradient matrix (ct_m^T) and columns of ctp_m 
+      ! corresponding to dirichlet bcs have not been zeroed
+      ! This is because lifting the dirichlet bcs from the continuity
+      ! equation into ct_rhs would require maintaining the lifted contributions.
+      ! Typically, we reassemble ct_rhs every nl.it. but keeping ctp_m
+      ! which means that we can't recompute those contributions as the columns 
+      ! are already zeroed. Therefore, here we have to make sure that the dirichlet
+      ! bcs are not being clobbered. u should at this point already adhere to the bcs,
+      ! so we simply have to apply homogeneous bcs for the change delta_u2
+      ! (we also assume that 'mass' already has had dirichlet bcs applied to it)
+      call zero_dirichlet_rows(u, delta_u1)
+
       ! compute M^{-1} delta_u1
       call zero(delta_u2)
       call petsc_solve(delta_u2, mass, delta_u1, state)

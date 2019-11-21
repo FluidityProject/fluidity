@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -31,6 +31,7 @@ import fluidity.diagnostics.debug as debug
 import fluidity.diagnostics.elements as elements
 import fluidity.diagnostics.filehandling as filehandling
 import fluidity.diagnostics.meshes as meshes
+import fluidity.diagnostics.mesh_halos as mesh_halos
 import fluidity.diagnostics.utils as utils
 
 GMSH_UNKNOWN = None
@@ -39,11 +40,13 @@ GMSH_TRIANGLE = 2
 GMSH_TETRAHEDRON = 4
 GMSH_QUAD = 3
 GMSH_HEXAHEDRON = 5
+GMSH_POINT = 15
  
 gmshElementTypeIds = ( \
     GMSH_UNKNOWN, \
     GMSH_LINE, GMSH_TRIANGLE, GMSH_QUAD, \
-    GMSH_TETRAHEDRON, GMSH_HEXAHEDRON \
+    GMSH_TETRAHEDRON, GMSH_HEXAHEDRON, \
+    GMSH_POINT \
   )
   
 def FromGmshNodeOrder(nodes, type):
@@ -83,7 +86,8 @@ class GmshElementType(elements.ElementType):
       GMSH_UNKNOWN:elements.ELEMENT_UNKNOWN, \
       GMSH_LINE:elements.ELEMENT_LINE, \
       GMSH_TRIANGLE:elements.ELEMENT_TRIANGLE, GMSH_QUAD:elements.ELEMENT_QUAD, \
-      GMSH_TETRAHEDRON:elements.ELEMENT_TETRAHEDRON, GMSH_HEXAHEDRON:elements.ELEMENT_HEXAHEDRON \
+      GMSH_TETRAHEDRON:elements.ELEMENT_TETRAHEDRON, GMSH_HEXAHEDRON:elements.ELEMENT_HEXAHEDRON, \
+      GMSH_POINT:elements.ELEMENT_VERTEX
     }
   _elementTypeIdToGmshElementTypeId = utils.DictInverse(_gmshElementTypeIdToElementTypeId)
   
@@ -122,16 +126,19 @@ def ReadMsh(filename):
   """
       
   def ReadNonCommentLine(fileHandle):
-    line = fileHandle.readline()
+    line = fileHandle.readline().decode("utf8")
     while len(line) > 0:
       line = line.strip()
       if len(line) > 0:
         return line
-      line = fileHandle.readline()
+      line = fileHandle.readline().decode("utf8")
       
     return line
   
-  fileHandle = open(filename, "r")
+  fileHandle = open(filename, "rb")
+
+  basename = filename.split(".")[0]
+  hasHalo = filehandling.FileExists(basename + ".halo")
   
   # Read the MeshFormat section
   
@@ -228,7 +235,6 @@ def ReadMsh(filename):
         iArr.byteswap()
       typeId = iArr[0]
       nSubEles = iArr[1]
-      assert(nSubEles > 0)  # Helps avoid inf looping
       nIds = iArr[2]
       
       type = GmshElementType(gmshElementTypeId = typeId)
@@ -318,13 +324,12 @@ def ReadMsh(filename):
       eleId = int(lineSplit[0])
       assert(eleId > 0)
       typeId = int(lineSplit[1])
-      nIds = int(lineSplit[3])
+      nIds = int(lineSplit[2])
       
       type = GmshElementType(gmshElementTypeId = typeId)
       ids = [int(id) for id in lineSplit[3:3 + nIds]]
       nodes = FromGmshNodeOrder([int(node) - 1 for node in lineSplit[-type.GetNodeCount():]], type)
       element = elements.Element(nodes, ids)
-      
       if type.GetDim() == dim - 1:
         mesh.AddSurfaceElement(element)
       elif type.GetDim() == dim:
@@ -340,6 +345,16 @@ def ReadMsh(filename):
     raise Exception("File type " + str(fileType) + " not recognised")
   
   fileHandle.close()
+
+  if hasHalo:
+    # Read the .halo file
+    debug.dprint("Reading .halo file")
+
+    if mesh_halos.HaloIOSupport():
+      halos = mesh_halos.ReadHalos(basename + ".halo")
+      mesh.SetHalos(halos)
+    else:
+      debug.deprint("Warning: No .halo I/O support")
   
   return mesh
   
@@ -354,22 +369,22 @@ def WriteMsh(mesh, filename, binary = True):
     fileHandle = open(filename, "wb")
     
     # Write the MeshFormat section    
-    fileHandle.write("$MeshFormat\n")
+    fileHandle.write("$MeshFormat\n".encode("utf8"))
     version = 2.1
     fileType = 1
     dataSize = ctypes.sizeof(ctypes.c_double)
-    fileHandle.write(utils.FormLine([version, fileType, dataSize]))
+    fileHandle.write(utils.FormLine([version, fileType, dataSize]).encode("utf8"))
     
     iArr = array.array("i", [1])
     iArr.tofile(fileHandle)
-    fileHandle.write("\n")
+    fileHandle.write("\n".encode("utf8"))
     
-    fileHandle.write("$EndMeshFormat\n")
+    fileHandle.write("$EndMeshFormat\n".encode("utf8"))
     
     # Write the Nodes section
     
-    fileHandle.write("$Nodes\n")
-    fileHandle.write(utils.FormLine([mesh.NodeCoordsCount()]))
+    fileHandle.write("$Nodes\n".encode("utf8"))
+    fileHandle.write(utils.FormLine([mesh.NodeCoordsCount()]).encode("utf8"))
     
     for i, nodeCoord in enumerate(mesh.GetNodeCoords()):
       nodeCoord = list(nodeCoord)
@@ -381,14 +396,14 @@ def WriteMsh(mesh, filename, binary = True):
       rArr = array.array("d", nodeCoord)
       iArr.tofile(fileHandle)
       rArr.tofile(fileHandle) 
-    fileHandle.write("\n")     
+    fileHandle.write("\n".encode("utf8"))     
     
-    fileHandle.write("$EndNodes\n")
+    fileHandle.write("$EndNodes\n".encode("utf8"))
     
     # Write the Elements section
         
-    fileHandle.write("$Elements\n")
-    fileHandle.write(utils.FormLine([mesh.SurfaceElementCount() + mesh.VolumeElementCount()]))
+    fileHandle.write("$Elements\n".encode("utf8"))
+    fileHandle.write(utils.FormLine([mesh.SurfaceElementCount() + mesh.VolumeElementCount()]).encode("utf8"))
     
     eleSort = {}
     for ele in mesh.GetSurfaceElements() + mesh.GetVolumeElements():
@@ -411,9 +426,9 @@ def WriteMsh(mesh, filename, binary = True):
         iArr.tofile(fileHandle)
         index += 1
     assert(index == mesh.SurfaceElementCount() + mesh.VolumeElementCount() + 1)
-    fileHandle.write("\n")
+    fileHandle.write("\n".encode("utf8"))
     
-    fileHandle.write("$EndElements\n")
+    fileHandle.write("$EndElements\n".encode("utf8"))
   else:
     # ASCII format
     

@@ -40,8 +40,9 @@
 // In-place send-receive.
 template<class T>
 void allSendRecv(std::vector< std::vector<T> >& inout){
-  size_t MyRank = MPI::COMM_WORLD.Get_rank();
-  size_t NProcs = MPI::COMM_WORLD.Get_size();
+  int MyRank, NProcs;
+  MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
+  MPI_Comm_size(MPI_COMM_WORLD, &NProcs);
   assert(NProcs == inout.size());
   
   // Inform all process how much data they are receiving from every
@@ -52,61 +53,61 @@ void allSendRecv(std::vector< std::vector<T> >& inout){
   for(size_t p=0;p<NProcs;p++){
     send_count[p] = inout[p].size();
   }
-  MPI::COMM_WORLD.Alltoall(&(send_count[0]), 1, MPI::INT,
-                           &(recv_count[0]), 1, MPI::INT);
+  MPI_Alltoall(&(send_count[0]), 1, MPI_INT,
+               &(recv_count[0]), 1, MPI_INT, MPI_COMM_WORLD);
 
   // Receiving buffer space.
   std::vector< std::vector<T> > recvBuffer(NProcs);
 
   // MPI_Status sendStatus, recvStatus;
-  std::vector<MPI::Request> sendRequest(NProcs, MPI::REQUEST_NULL);
-  std::vector<MPI::Request> recvRequest(NProcs, MPI::REQUEST_NULL);
-  MPI::Status recvStatus;
+  std::vector<MPI_Request> sendRequest(NProcs, MPI_REQUEST_NULL);
+  std::vector<MPI_Request> recvRequest(NProcs, MPI_REQUEST_NULL);
+  MPI_Status recvStatus;
 
   // Determine the MPI datatype on the fly.
-  MPI::Datatype mpi_type;
+  MPI_Datatype mpi_type;
   if(typeid(T) == typeid(signed char)){
-    mpi_type =  MPI::CHAR;
+    mpi_type =  MPI_CHAR;
   }else if(typeid(T) == typeid(char)){
-    mpi_type =  MPI::CHAR;
+    mpi_type =  MPI_CHAR;
   }else if(typeid(T) == typeid(signed short int)){
-    mpi_type =  MPI::SHORT;
+    mpi_type =  MPI_SHORT;
   }else if(typeid(T) == typeid(signed int)){
-    mpi_type =  MPI::INT;
+    mpi_type =  MPI_INT;
   }else if(typeid(T) == typeid(int)){
-    mpi_type =  MPI::INT;
+    mpi_type =  MPI_INT;
   }else if(typeid(T) == typeid(signed long int)){
-    mpi_type =  MPI::LONG;
+    mpi_type =  MPI_LONG;
   }else if(typeid(T) == typeid(long)){
-    mpi_type =  MPI::LONG;
+    mpi_type =  MPI_LONG;
   }else if(typeid(T) == typeid(unsigned char)){
-    mpi_type =  MPI::UNSIGNED_CHAR;
+    mpi_type =  MPI_UNSIGNED_CHAR;
   }else if(typeid(T) == typeid(unsigned short int)){
-    mpi_type =  MPI::UNSIGNED_SHORT;
+    mpi_type =  MPI_UNSIGNED_SHORT;
   }else if(typeid(T) == typeid(unsigned int)){
-    mpi_type =  MPI::UNSIGNED;
+    mpi_type =  MPI_UNSIGNED;
   }else if(typeid(T) == typeid(unsigned)){
-    mpi_type =  MPI::UNSIGNED;
+    mpi_type =  MPI_UNSIGNED;
   }else if(typeid(T) == typeid(unsigned long int)){
-    mpi_type =  MPI::UNSIGNED_LONG;
+    mpi_type =  MPI_UNSIGNED_LONG;
   }else if(typeid(T) == typeid(float)){
-    mpi_type =  MPI::FLOAT;
+    mpi_type =  MPI_FLOAT;
   }else if(typeid(T) == typeid(double)){
-    mpi_type =  MPI::DOUBLE;
+    mpi_type =  MPI_DOUBLE;
   }else if(typeid(T) == typeid(long double)){
-    mpi_type =  MPI::LONG_DOUBLE;
+    mpi_type =  MPI_LONG_DOUBLE;
   }else{
     std::cerr << "ERROR: illegal type " << typeid(T).name()
               << " passed into allSendRecv(std::vector< std::vector<T> >& inout)"
               << std::endl;
-    MPI::COMM_WORLD.Abort(-1);
+    MPI_Abort(MPI_COMM_WORLD,-1);
   }
-  const MPI::Datatype const_mpi_type = mpi_type;
+  const MPI_Datatype const_mpi_type = mpi_type;
   
   // Send
   for(size_t p=0;p<NProcs;p++){
     if(send_count[p]){
-      sendRequest[p] = MPI::COMM_WORLD.Isend(&(inout[p][0]), send_count[p], const_mpi_type, p, 1);
+      MPI_Isend(&(inout[p][0]), send_count[p], const_mpi_type, p, 1, MPI_COMM_WORLD, &(sendRequest[p]));
     }
   }
   
@@ -117,11 +118,11 @@ void allSendRecv(std::vector< std::vector<T> >& inout){
       recvBuffer[p].resize(recv_count[p]);
       
       // initiate non-blocking receive
-      recvRequest[p]=MPI::COMM_WORLD.Irecv(&(recvBuffer[p][0]), recv_count[p], const_mpi_type, p, 1);
+      MPI_Irecv(&(recvBuffer[p][0]), recv_count[p], const_mpi_type, p, 1, MPI_COMM_WORLD, &(recvRequest[p]));
     }
   }
-  MPI::Request::Waitall(NProcs, &(sendRequest[0])); // Wait all sends
-  MPI::Request::Waitall(NProcs, &(recvRequest[0])); // Wait all receives
+  MPI_Waitall(NProcs, &(sendRequest[0]), MPI_STATUSES_IGNORE); // Wait all sends
+  MPI_Waitall(NProcs, &(recvRequest[0]), MPI_STATUSES_IGNORE); // Wait all receives
 
   inout.swap(recvBuffer);
  
@@ -161,51 +162,52 @@ void allSendRecv(std::vector< std::set<T> >& inout){
 template<class T>
 void allSendRecv(const std::vector< std::vector<T> >& sendBuffer, 
 		 std::vector< std::vector<T> >& recvBuffer){
-  size_t MyRank = MPI::COMM_WORLD.Get_rank();
+  int MyRank; 
+  MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
   size_t NProcs = sendBuffer.size();
   recvBuffer.clear();
   recvBuffer.resize(NProcs);
   
   // Determine the MPI datatype on the fly.
-  MPI::Datatype mpi_type;
+  MPI_Datatype mpi_type;
 
   if(typeid(T) == typeid(signed char)){
-    mpi_type =  MPI::CHAR;
+    mpi_type =  MPI_CHAR;
   }else if(typeid(T) == typeid(char)){
-    mpi_type =  MPI::CHAR;
+    mpi_type =  MPI_CHAR;
   }else if(typeid(T) == typeid(signed short int)){
-    mpi_type =  MPI::SHORT;
+    mpi_type =  MPI_SHORT;
   }else if(typeid(T) == typeid(signed int)){
-    mpi_type =  MPI::INT;
+    mpi_type =  MPI_INT;
   }else if(typeid(T) == typeid(int)){
-    mpi_type =  MPI::INT;
+    mpi_type =  MPI_INT;
   }else if(typeid(T) == typeid(signed long int)){
-    mpi_type =  MPI::LONG;
+    mpi_type =  MPI_LONG;
   }else if(typeid(T) == typeid(long)){
-    mpi_type =  MPI::LONG;
+    mpi_type =  MPI_LONG;
   }else if(typeid(T) == typeid(unsigned char)){
-    mpi_type =  MPI::UNSIGNED_CHAR;
+    mpi_type =  MPI_UNSIGNED_CHAR;
   }else if(typeid(T) == typeid(unsigned short int)){
-    mpi_type =  MPI::UNSIGNED_SHORT;
+    mpi_type =  MPI_UNSIGNED_SHORT;
   }else if(typeid(T) == typeid(unsigned int)){
-    mpi_type =  MPI::UNSIGNED;
+    mpi_type =  MPI_UNSIGNED;
   }else if(typeid(T) == typeid(unsigned)){
-    mpi_type =  MPI::UNSIGNED;
+    mpi_type =  MPI_UNSIGNED;
   }else if(typeid(T) == typeid(unsigned long int)){
-    mpi_type =  MPI::UNSIGNED_LONG;
+    mpi_type =  MPI_UNSIGNED_LONG;
   }else if(typeid(T) == typeid(float)){
-    mpi_type =  MPI::FLOAT;
+    mpi_type =  MPI_FLOAT;
   }else if(typeid(T) == typeid(double)){
-    mpi_type =  MPI::DOUBLE;
+    mpi_type =  MPI_DOUBLE;
   }else if(typeid(T) == typeid(long double)){
-    mpi_type =  MPI::LONG_DOUBLE;
+    mpi_type =  MPI_LONG_DOUBLE;
   }else{
     std::cerr << "ERROR: illegal type " << typeid(T).name()
               << " passed into allSendRecv(std::vector< std::vector<T> >& inout)"
               << std::endl;
     exit(-1);
   }  
-  const MPI::Datatype const_mpi_type = mpi_type;
+  const MPI_Datatype const_mpi_type = mpi_type;
 
   // Inform all process how much data they are receiving from every
   // other process. This is implemented using MPI_Alltoall because
@@ -215,18 +217,18 @@ void allSendRecv(const std::vector< std::vector<T> >& sendBuffer,
   for(size_t p=0;p<NProcs;p++){
     send_count[p] = sendBuffer[p].size();
   }
-  MPI::COMM_WORLD.Alltoall(&(send_count[0]), 1, MPI::INT,
-                           &(recv_count[0]), 1, MPI::INT);
+  MPI_Alltoall(&(send_count[0]), 1, MPI_INT,
+                           &(recv_count[0]), 1, MPI_INT, MPI_COMM_WORLD);
   
   // MPI_Status sendStatus, recvStatus;
-  std::vector<MPI::Request> sendRequest(NProcs, MPI::REQUEST_NULL);
-  std::vector<MPI::Request> recvRequest(NProcs, MPI::REQUEST_NULL);
-  MPI::Status recvStatus;
+  std::vector<MPI_Request> sendRequest(NProcs, MPI_REQUEST_NULL);
+  std::vector<MPI_Request> recvRequest(NProcs, MPI_REQUEST_NULL);
+  MPI_Status recvStatus;
   
   // Send
   for(size_t p=0;p<NProcs;p++){
     if(send_count[p]){
-      sendRequest[p]=MPI::COMM_WORLD.Isend(&(sendBuffer[p][0]), send_count[p], const_mpi_type, p, 1);
+      MPI_Isend(&(sendBuffer[p][0]), send_count[p], const_mpi_type, p, 1,MPI_COMM_WORLD, &(sendRequest[p]));
     }
   }
 
@@ -237,13 +239,12 @@ void allSendRecv(const std::vector< std::vector<T> >& sendBuffer,
       recvBuffer[p].resize(recv_count[p]);
       
       // initiate non-blocking receive
-      recvRequest[p]=MPI::COMM_WORLD.Irecv(&(recvBuffer[p][0]), recv_count[p], const_mpi_type, p, 1);
+      MPI_Irecv(&(recvBuffer[p][0]), recv_count[p], const_mpi_type, p, 1, MPI_COMM_WORLD, &(recvRequest[p]));
     }
   }
 
-  MPI::Request::Waitall(NProcs, &(sendRequest[0])); // Wait all sends
-  MPI::Request::Waitall(NProcs, &(recvRequest[0])); // Wait all receives
-  
+  MPI_Waitall(NProcs, &(sendRequest[0]), MPI_STATUSES_IGNORE); // Wait all sends
+  MPI_Waitall(NProcs, &(recvRequest[0]), MPI_STATUSES_IGNORE); // Wait all receives
   return;
 }
 

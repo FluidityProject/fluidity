@@ -425,34 +425,32 @@ if test "x$PETSC_DIR" == "x"; then
 fi
 AC_MSG_NOTICE([Using PETSC_DIR=$PETSC_DIR])
 
-PETSC_LINK_LIBS=`make -s -f petsc_makefile getlinklibs`
+PETSC_LINK_LIBS=`make -s -f petsc_makefile_old getlinklibs 2> /dev/null || make -s -f petsc_makefile getlinklibs`
 LIBS="$PETSC_LINK_LIBS $LIBS"
 
-PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile getincludedirs`
-CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS"
-FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS"
+# need to add -I$PWD/include/ to what we get from petsc, so we can use our own petsc_legacy.h wrapper
+PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile_old getincludedirs 2> /dev/null || make -s -f petsc_makefile getincludedirs`
+CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS -I$PWD/include/"
+FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS -I$PWD/include/"
 
-# Horrible hacks needed for cx1
-# Somehow /apps/intel/ict/mpi/3.1.038/lib64 gets given as /apps/intel/ict/mpi/3.1.038/lib/64
-# maybe the directory got moved after building petsc? Anyhow next time we
-# request a new petsc package on cx1, this hack can be removed - and we
-# can check if the new packages passes the test without any hacks.
-fixedLIBS=`echo $LIBS |sed 's@/apps/intel/ict/mpi/3.1.038/lib/64@/apps/intel/ict/mpi/3.1.038/lib64@g'`
-
-if test ! "$LIBS" == "$fixedLIBS"; then
-  # more fixes needed:
-  # also -lmpichcxx got mangled to -lmpichxx
-  LIBS=`echo $fixedLIBS |sed 's@mpichxx@mpichcxx@g'`
-  # remove -lPEPCF90, -lpromfei and -lprometheus
-  LIBS=`echo $LIBS |sed 's@-lPEPCF90@@g'`
-  LIBS=`echo $LIBS |sed 's@-lpromfei@@g'`
-  LIBS=`echo $LIBS |sed 's@-lprometheus@@g'`
+# first check we have the right petsc version
+AC_COMPUTE_INT(PETSC_VERSION_MAJOR, "PETSC_VERSION_MAJOR", [#include "petscversion.h"], 
+  [AC_MSG_ERROR([Unknown petsc major version])])
+AC_COMPUTE_INT(PETSC_VERSION_MINOR, "PETSC_VERSION_MINOR", [#include "petscversion.h"], 
+  [AC_MSG_ERROR([Unknown petsc minor version])])
+AC_MSG_NOTICE([Detected PETSc version "$PETSC_VERSION_MAJOR"."$PETSC_VERSION_MINOR"])
+# if major<3 or minor<4
+if test "0$PETSC_VERSION_MAJOR" -lt 3 -o "0$PETSC_VERSION_MINOR" -lt 4; then
+  AC_MSG_ERROR([Fluidity needs PETSc version >=3.4])
 fi
 
 AC_LANG(Fortran)
 # F90 (capital F) to invoke preprocessing
-# it's only 20 years ago now!
 ac_ext=F90
+
+# may need some extra flags for testing that we don't want to use in the end
+SAVE_FCFLAGS="$FCFLAGS"
+
 if test "$enable_petsc_fortran_modules" != "no" ; then
   # now try if the petsc fortran modules work:
   AC_LINK_IFELSE(
@@ -465,13 +463,13 @@ if test "$enable_petsc_fortran_modules" != "no" ; then
           [
               AC_MSG_NOTICE([PETSc modules are working.])
               AC_DEFINE(HAVE_PETSC_MODULES,1,[Define if you have petsc fortran modules.] )
+              FCFLAGS="$FCFLAGS -DHAVE_PETSC_MODULES"
           ],
           [
               AC_MSG_NOTICE([PETSc modules don't work, using headers instead.])
-              unset HAVE_PETSC_MODULES
           ])
-else
-  unset HAVE_PETSC_MODULES
+elif test "0$PETSC_VERSION_MINOR" -ge 8; then
+  AC_MSG_ERROR([PETSc v3.8 and newer requires petsc fortran modules. Do not use the --disable-petsc-fortran-modules option])
 fi
 
 # now try a more realistic program, it's a stripped down
@@ -479,26 +477,19 @@ fi
 AC_LINK_IFELSE(
 [AC_LANG_SOURCE([
 program test_petsc
-#include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
   use petsc
 #endif
 implicit none
-#ifdef HAVE_PETSC_MODULES
-#include "finclude/petscdef.h"
-#else
-#include "finclude/petsc.h"
-#endif
+#include "petsc_legacy.h"
       double precision  norm
-      PetscInt  i,j,II,JJ,m,n,its
+      PetscInt  i,j,II0,m,n,its
+      PetscInt, dimension(1) ::  II, JJ
       PetscInt  Istart,Iend,ione
       PetscErrorCode ierr
-#if PETSC_VERSION_MINOR>=2
       PetscBool flg
-#else
-      PetscTruth  flg
-#endif
-      PetscScalar v,one,neg_one
+      PetscScalar, dimension(1) :: v
+      PetscScalar one,neg_one
       Vec         x,b,u
       Mat         A 
       KSP         ksp
@@ -509,8 +500,8 @@ implicit none
       one  = 1.0
       neg_one = -1.0
       ione    = 1
-      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-m',m,flg,ierr)
-      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
+      call PetscOptionsGetInt(PETSC_NULL_OPTIONS, PETSC_NULL_CHARACTER,'-m',m,flg,ierr)
+      call PetscOptionsGetInt(PETSC_NULL_OPTIONS, PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
 
       call MatCreate(PETSC_COMM_WORLD,A,ierr)
       call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,m*n,m*n,ierr)
@@ -518,10 +509,11 @@ implicit none
 
       call MatGetOwnershipRange(A,Istart,Iend,ierr)
       
-      do 10, II=Istart,Iend-1
+      do 10, II0=Istart,Iend-1
+        II = II0
         v = -1.0
-        i = II/n
-        j = II - i*n  
+        i = II0/n
+        j = II0 - i*n  
         if (i.gt.0) then
           JJ = II - n
           call MatSetValues(A,ione,II,ione,JJ,v,INSERT_VALUES,ierr)
@@ -554,7 +546,7 @@ implicit none
       call MatMult(A,u,b,ierr)
 
       call KSPCreate(PETSC_COMM_WORLD,ksp,ierr)
-      call KSPSetOperators(ksp,A,A,DIFFERENT_NONZERO_PATTERN,ierr)
+      call KSPSetOperators(ksp,A,A,ierr)
       call KSPSetFromOptions(ksp,ierr)
 
       call KSPSolve(ksp,b,x,ierr)
@@ -579,29 +571,11 @@ AC_MSG_NOTICE([PETSc program succesfully compiled and linked.])
 cp conftest.F90 test_petsc.F90
 AC_MSG_FAILURE([Failed to compile and link PETSc program.])])
 
+FCFLAGS="$SAVE_FCFLAGS"
 AC_LANG_RESTORE
 
-# finally check we have the right petsc version
-AC_COMPUTE_INT(PETSC_VERSION_MAJOR, "PETSC_VERSION_MAJOR", [#include "petscversion.h"], 
-  [AC_MSG_ERROR([Unknown petsc major version])])
-AC_COMPUTE_INT(PETSC_VERSION_MINOR, "PETSC_VERSION_MINOR", [#include "petscversion.h"], 
-  [AC_MSG_ERROR([Unknown petsc minor version])])
-AC_MSG_NOTICE([Detected PETSc version "$PETSC_VERSION_MAJOR"."$PETSC_VERSION_MINOR"])
-# if major<3 or minor<1
-if test "0$PETSC_VERSION_MAJOR" -lt 3 -o "0$PETSC_VERSION_MINOR" -lt 1; then
-  AC_MSG_ERROR([Fluidity needs PETSc version >=3.1])
-fi
 
 AC_DEFINE(HAVE_PETSC,1,[Define if you have the PETSc library.])
-
-# define HAVE_PETSC33 for use in the Makefiles (including petsc's makefiles
-# would require having PETSC_DIR+PETSC_ARCH set correctly for every make)
-if test "0$PETSC_VERSION_MINOR" -ge 3; then
-  HAVE_PETSC33=yes
-else
-  HAVE_PETSC33=no
-fi
-AC_SUBST(HAVE_PETSC33)
 
 ])dnl ACX_PETSc
 
@@ -629,12 +603,12 @@ CPPFLAGS=$tmpCPPFLAGS
 ])dnl ACX_hypre
 
 # ===========================================================================
-#         http://www.nongnu.org/autoconf-archive/ac_python_devel.html
+#     https://www.gnu.org/software/autoconf-archive/ax_python_devel.html
 # ===========================================================================
 #
 # SYNOPSIS
 #
-#   AC_PYTHON_DEVEL([version])
+#   AX_PYTHON_DEVEL([version])
 #
 # DESCRIPTION
 #
@@ -642,8 +616,8 @@ CPPFLAGS=$tmpCPPFLAGS
 #   in your configure.ac.
 #
 #   This macro checks for Python and tries to get the include path to
-#   'Python.h'. It provides the $(PYTHON_CPPFLAGS) and $(PYTHON_LDFLAGS)
-#   output variables. It also exports $(PYTHON_EXTRA_LIBS) and
+#   'Python.h'. It provides the $(PYTHON_CPPFLAGS) and $(PYTHON_LIBS) output
+#   variables. It also exports $(PYTHON_EXTRA_LIBS) and
 #   $(PYTHON_EXTRA_LDFLAGS) for embedding Python in your code.
 #
 #   You can search for some particular version of Python by passing a
@@ -664,11 +638,12 @@ CPPFLAGS=$tmpCPPFLAGS
 # LICENSE
 #
 #   Copyright (c) 2009 Sebastian Huber <sebastian-huber@web.de>
-#   Copyright (c) 2009 Alan W. Irwin <irwin@beluga.phys.uvic.ca>
+#   Copyright (c) 2009 Alan W. Irwin
 #   Copyright (c) 2009 Rafael Laboissiere <rafael@laboissiere.net>
-#   Copyright (c) 2009 Andrew Collier <colliera@ukzn.ac.za>
+#   Copyright (c) 2009 Andrew Collier
 #   Copyright (c) 2009 Matteo Settenvini <matteo@member.fsf.org>
 #   Copyright (c) 2009 Horst Knorr <hk_classes@knoda.org>
+#   Copyright (c) 2013 Daniel Mullner <muellner@math.stanford.edu>
 #
 #   This program is free software: you can redistribute it and/or modify it
 #   under the terms of the GNU General Public License as published by the
@@ -681,7 +656,7 @@ CPPFLAGS=$tmpCPPFLAGS
 #   Public License for more details.
 #
 #   You should have received a copy of the GNU General Public License along
-#   with this program. If not, see <http://www.gnu.org/licenses/>.
+#   with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 #   As a special exception, the respective Autoconf Macro's copyright owner
 #   gives unlimited permission to copy, distribute and modify the configure
@@ -696,7 +671,10 @@ CPPFLAGS=$tmpCPPFLAGS
 #   modified version of the Autoconf Macro, you may extend this special
 #   exception to the GPL to apply to your modified version as well.
 
-AC_DEFUN([AC_PYTHON_DEVEL],[
+#serial 21
+
+AU_ALIAS([AC_PYTHON_DEVEL], [AX_PYTHON_DEVEL])
+AC_DEFUN([AX_PYTHON_DEVEL],[
 	#
 	# Allow the use of a (user set) custom python version
 	#
@@ -725,7 +703,7 @@ AC_DEFUN([AC_PYTHON_DEVEL],[
 This version of the AC@&t@_PYTHON_DEVEL macro
 doesn't work properly with versions of Python before
 2.1.0. You may need to re-run configure, setting the
-variables PYTHON_CPPFLAGS, PYTHON_LDFLAGS, PYTHON_SITE_PKG,
+variables PYTHON_CPPFLAGS, PYTHON_LIBS, PYTHON_SITE_PKG,
 PYTHON_EXTRA_LIBS and PYTHON_EXTRA_LDFLAGS by hand.
 Moreover, to disable this check, set PYTHON_NOVERSIONCHECK
 to something else than an empty string.
@@ -746,7 +724,7 @@ to something else than an empty string.
 			ver = sys.version.split ()[[0]]; \
 			print (ver $1)"`
 		if test "$ac_supports_python_ver" = "True"; then
-	   	   AC_MSG_RESULT([yes])
+		   AC_MSG_RESULT([yes])
 		else
 			AC_MSG_RESULT([no])
 			AC_MSG_ERROR([this package requires Python $1.
@@ -763,7 +741,7 @@ variable to configure. See ``configure --help'' for reference.
 	#
 	AC_MSG_CHECKING([for the distutils Python package])
 	ac_distutils_result=`$PYTHON -c "import distutils" 2>&1`
-	if test -z "$ac_distutils_result"; then
+	if test $? -eq 0; then
 		AC_MSG_RESULT([yes])
 	else
 		AC_MSG_RESULT([no])
@@ -779,9 +757,15 @@ $ac_distutils_result])
 	AC_MSG_CHECKING([for Python include path])
 	if test -z "$PYTHON_CPPFLAGS"; then
 		python_path=`$PYTHON -c "import distutils.sysconfig; \
-           		print (distutils.sysconfig.get_python_inc ());"`
+			print (distutils.sysconfig.get_python_inc ());"`
+		plat_python_path=`$PYTHON -c "import distutils.sysconfig; \
+			print (distutils.sysconfig.get_python_inc (plat_specific=1));"`
 		if test -n "${python_path}"; then
-		   	python_path="-I$python_path"
+			if test "${plat_python_path}" != "${python_path}"; then
+				python_path="-I$python_path -I$plat_python_path"
+			else
+				python_path="-I$python_path"
+			fi
 		fi
 		PYTHON_CPPFLAGS=$python_path
 	fi
@@ -792,7 +776,7 @@ $ac_distutils_result])
 	# Check for Python library path
 	#
 	AC_MSG_CHECKING([for Python library path])
-	if test -z "$PYTHON_LDFLAGS"; then
+	if test -z "$PYTHON_LIBS"; then
 		# (makes two attempts to ensure we've got a version number
 		# from the interpreter)
 		ac_python_version=`cat<<EOD | $PYTHON -
@@ -800,11 +784,9 @@ $ac_distutils_result])
 # join all versioning strings, on some systems
 # major/minor numbers could be in different list elements
 from distutils.sysconfig import *
-ret = ''
-for e in get_config_vars ('VERSION'):
-	if (e != None):
-		ret += e
-print (ret)
+e = get_config_var('VERSION')
+if e is not None:
+	print(e)
 EOD`
 
 		if test -z "$ac_python_version"; then
@@ -825,55 +807,49 @@ EOD`
 
 # There should be only one
 import distutils.sysconfig
-for e in distutils.sysconfig.get_config_vars ('LIBDIR'):
-	if e != None:
-		print (e)
-		break
+e = distutils.sysconfig.get_config_var('LIBDIR')
+if e is not None:
+	print (e)
 EOD`
 
-		# Before checking for libpythonX.Y, we need to know
-		# the extension the OS we're on uses for libraries
-		# (we take the first one, if there's more than one fix me!):
-		ac_python_soext=`$PYTHON -c \
-		  "import distutils.sysconfig; \
-		  print (distutils.sysconfig.get_config_vars('SO')[[0]])"`
-
 		# Now, for the library:
-		ac_python_soname=`$PYTHON -c \
-		  "import distutils.sysconfig; \
-		  print (distutils.sysconfig.get_config_vars('LDLIBRARY')[[0]])"`
+		ac_python_library=`cat<<EOD | $PYTHON -
 
-		# Strip away extension from the end to canonicalize its name:
-		ac_python_library=`echo "$ac_python_soname" | sed "s/${ac_python_soext}$//"`
+import distutils.sysconfig
+c = distutils.sysconfig.get_config_vars()
+if 'LDVERSION' in c:
+	print ('python'+c[['LDVERSION']])
+else:
+	print ('python'+c[['VERSION']])
+EOD`
 
 		# This small piece shamelessly adapted from PostgreSQL python macro;
 		# credits goes to momjian, I think. I'd like to put the right name
 		# in the credits, if someone can point me in the right direction... ?
 		#
-		if test -n "$ac_python_libdir" -a -n "$ac_python_library" \
-			-a x"$ac_python_library" != x"$ac_python_soname"
+		if test -n "$ac_python_libdir" -a -n "$ac_python_library"
 		then
 			# use the official shared library
 			ac_python_library=`echo "$ac_python_library" | sed "s/^lib//"`
-			PYTHON_LDFLAGS="-L$ac_python_libdir -l$ac_python_library"
+			PYTHON_LIBS="-L$ac_python_libdir -l$ac_python_library"
 		else
 			# old way: use libpython from python_configdir
 			ac_python_libdir=`$PYTHON -c \
 			  "from distutils.sysconfig import get_python_lib as f; \
 			  import os; \
 			  print (os.path.join(f(plat_specific=1, standard_lib=1), 'config'));"`
-			PYTHON_LDFLAGS="-L$ac_python_libdir -lpython$ac_python_version"
+			PYTHON_LIBS="-L$ac_python_libdir -lpython$ac_python_version"
 		fi
 
-		if test -z "PYTHON_LDFLAGS"; then
+		if test -z "PYTHON_LIBS"; then
 			AC_MSG_ERROR([
   Cannot determine location of your Python DSO. Please check it was installed with
-  dynamic libraries enabled, or try setting PYTHON_LDFLAGS by hand.
+  dynamic libraries enabled, or try setting PYTHON_LIBS by hand.
 			])
 		fi
 	fi
-	AC_MSG_RESULT([$PYTHON_LDFLAGS])
-	AC_SUBST([PYTHON_LDFLAGS])
+	AC_MSG_RESULT([$PYTHON_LIBS])
+	AC_SUBST([PYTHON_LIBS])
 
 	#
 	# Check for site packages
@@ -881,7 +857,7 @@ EOD`
 	AC_MSG_CHECKING([for Python site-packages path])
 	if test -z "$PYTHON_SITE_PKG"; then
 		PYTHON_SITE_PKG=`$PYTHON -c "import distutils.sysconfig; \
-		        print (distutils.sysconfig.get_python_lib(0,0));"`
+			print (distutils.sysconfig.get_python_lib(0,0));"`
 	fi
 	AC_MSG_RESULT([$PYTHON_SITE_PKG])
 	AC_SUBST([PYTHON_SITE_PKG])
@@ -893,7 +869,7 @@ EOD`
 	if test -z "$PYTHON_EXTRA_LIBS"; then
 	   PYTHON_EXTRA_LIBS=`$PYTHON -c "import distutils.sysconfig; \
                 conf = distutils.sysconfig.get_config_var; \
-                print (conf('LOCALMODLIBS') + ' ' + conf('LIBS'))"`
+                print (conf('LIBS') + ' ' + conf('SYSLIBS'))"`
 	fi
 	AC_MSG_RESULT([$PYTHON_EXTRA_LIBS])
 	AC_SUBST(PYTHON_EXTRA_LIBS)
@@ -905,7 +881,7 @@ EOD`
 	if test -z "$PYTHON_EXTRA_LDFLAGS"; then
 		PYTHON_EXTRA_LDFLAGS=`$PYTHON -c "import distutils.sysconfig; \
 			conf = distutils.sysconfig.get_config_var; \
-			print (conf('LINKFORSHARED'))"`
+			print ('' if conf('PYTHONFRAMEWORK') else conf('LINKFORSHARED'))"`
 	fi
 	AC_MSG_RESULT([$PYTHON_EXTRA_LDFLAGS])
 	AC_SUBST(PYTHON_EXTRA_LDFLAGS)
@@ -915,7 +891,11 @@ EOD`
 	#
 	AC_MSG_CHECKING([consistency of all components of python development environment])
 	# save current global flags
-	LIBS="$ac_save_LIBS $PYTHON_LDFLAGS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
+	ac_save_LIBS="$LIBS"
+	ac_save_LDFLAGS="$LDFLAGS"
+	ac_save_CPPFLAGS="$CPPFLAGS"
+	LIBS="$ac_save_LIBS $PYTHON_LIBS $PYTHON_EXTRA_LIBS $PYTHON_EXTRA_LIBS"
+	LDFLAGS="$ac_save_LDFLAGS $PYTHON_EXTRA_LDFLAGS"
 	CPPFLAGS="$ac_save_CPPFLAGS $PYTHON_CPPFLAGS"
 	AC_LANG_PUSH([C])
 	AC_LINK_IFELSE([
@@ -926,6 +906,7 @@ EOD`
 	# turn back to default flags
 	CPPFLAGS="$ac_save_CPPFLAGS"
 	LIBS="$ac_save_LIBS"
+	LDFLAGS="$ac_save_LDFLAGS"
 
 	AC_MSG_RESULT([$pythonexists])
 
@@ -933,8 +914,8 @@ EOD`
 	   AC_MSG_FAILURE([
   Could not link test program to Python. Maybe the main Python library has been
   installed in some non-standard library path. If so, pass it to configure,
-  via the LDFLAGS environment variable.
-  Example: ./configure LDFLAGS="-L/usr/non-standard-path/python/lib"
+  via the LIBS environment variable.
+  Example: ./configure LIBS="-L/usr/non-standard-path/python/lib"
   ============================================================================
    ERROR!
    You probably have to install the development version of the Python package
@@ -949,76 +930,6 @@ EOD`
 	#
 ])
 
-AC_DEFUN([ACX_zoltan], [
-# Set variables...
-AC_ARG_WITH(
-	[zoltan],
-	[  --with-zoltan=prefix        Prefix where zoltan is installed],
-	[zoltan="$withval"],
-    [])
-
-tmpLIBS=$LIBS
-tmpCPPFLAGS=$CPPFLAGS
-if test $zoltan != no; then
-  if test $zoltan != yes; then
-    zoltan_LIBS_PATH="$zoltan/lib"
-    zoltan_INCLUDES_PATH="$zoltan/include"
-    # Ensure the comiler finds the library...
-    tmpLIBS="$tmpLIBS -L$zoltan_LIBS_PATH"
-    tmpCPPFLAGS="$tmpCPPFLAGS  -I/$zoltan_INCLUDES_PATH"
-  fi
-  tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -lzoltan -lparmetis -lmetis $ZOLTAN_DEPS"
-  tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/"
-fi
-LIBS=$tmpLIBS
-CPPFLAGS=$tmpCPPFLAGS
-# Check that the compiler uses the library we specified...
-if test -e $zoltan_LIBS_PATH/libzoltan.a; then
-  echo "note: using $zoltan_LIBS_PATH/libzoltan.a"
-fi 
-
-# Check that the compiler uses the include path we specified...
-if test -e $zoltan_INCLUDES_PATH/zoltan.mod; then
-	echo "note: using $zoltan_INCLUDES_PATH/zoltan.mod"
-fi 
-
-AC_LANG_SAVE
-AC_LANG_C
-AC_CHECK_LIB(
-	[zoltan],
-	[Zoltan_Initialize],
-	[AC_DEFINE(HAVE_ZOLTAN,1,[Define if you have zoltan library.])],
-	[AC_MSG_ERROR( [Could not link in the zoltan library... exiting] )] )
-
-# Small test for zoltan .mod files:
-AC_LANG(Fortran)
-ac_ext=F90
-# In fluidity's makefile we explicitly add CPPFLAGS, temporarily add it to
-# FCFLAGS here for this zoltan test:
-tmpFCFLAGS="$FCFLAGS"
-FCFLAGS="$FCFLAGS $CPPFLAGS"
-AC_LINK_IFELSE(
-[AC_LANG_SOURCE([
-program test_zoltan
- use zoltan
-end program test_zoltan
-])],
-[
-AC_MSG_NOTICE([Great success! Zoltan .mod files exist and are usable])
-],
-[
-cp conftest.F90 test_zoltan.F90
-AC_MSG_FAILURE([Failed to find zoltan.mod files])])
-# And now revert FCFLAGS
-FCFLAGS="$tmpFCFLAGS"
-AC_LANG_RESTORE
-
-ZOLTAN="yes"
-AC_SUBST(ZOLTAN)
-
-echo $LIBS
-])dnl ACX_zoltan
-
 AC_DEFUN([ACX_adjoint], [
 # Set variables...
 AC_ARG_WITH(
@@ -1031,15 +942,17 @@ bakLIBS=$LIBS
 tmpLIBS=$LIBS
 tmpCPPFLAGS=$CPPFLAGS
 if test "$adjoint" != "no"; then
-  if test "$adjoint" != "yes"; then
+  if test -d "$adjoint" ; then
     adjoint_LIBS_PATH="$adjoint/lib"
     adjoint_INCLUDES_PATH="$adjoint/include"
     # Ensure the comiler finds the library...
     tmpLIBS="$tmpLIBS -L$adjoint/lib"
     tmpCPPFLAGS="$tmpCPPFLAGS  -I$adjoint/include -I$adjoint/include/libadjoint"
   fi
-  tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -ladjoint"
-  tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint"
+  if [[ -f /usr/lib/libadjoint.a -o -f /usr/local/lib/libadjoint.a ]] ; then
+    tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -ladjoint"
+    tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint"
+  fi
 fi
 LIBS=$tmpLIBS
 CPPFLAGS=$tmpCPPFLAGS

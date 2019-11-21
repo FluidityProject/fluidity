@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="square">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -47,7 +47,6 @@
         </location>
       </static_detector>
       <write_nan_outside_domain/>
-      <binary_output/>
     </detectors>
   </io>
   <timestepping>
@@ -94,6 +93,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <consistent_interpolation/>
         <do_not_recalculate/>
       </prescribed>

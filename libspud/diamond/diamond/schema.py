@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #    This file is part of Diamond.
 #
 #    Diamond is free software: you can redistribute it and/or modify
@@ -20,15 +18,15 @@ import bz2
 import copy
 import sys
 
-import cStringIO
+import io
 
 from lxml import etree
 
-import debug
-import choice
-import plist
-import preprocess
-import tree
+from . import debug
+from . import choice
+from . import plist
+from . import preprocess
+from . import tree
 
 def memoise(f):
     cache = {}
@@ -45,7 +43,7 @@ def memoise(f):
 class Schema(object):
   def __init__(self, schemafile):
     p = etree.XMLParser(remove_comments=True)
-    self.tree = etree.parse(cStringIO.StringIO(preprocess.preprocess(schemafile)), p)
+    self.tree = etree.parse(io.BytesIO(preprocess.preprocess(schemafile)), p)
 
     self.callbacks = {'element': self.cb_element,
                       'documentation': self.cb_documentation,
@@ -85,7 +83,7 @@ class Schema(object):
     children = []
     for child1 in element.iterchildren(tag=etree.Element):
       if self.tag(child1) == "ref":
-        if not "name" in child1.keys():
+        if not "name" in list(child1.keys()):
           debug.deprint("Warning: Encountered reference with no name")
           continue
 
@@ -188,7 +186,7 @@ class Schema(object):
     if "cardinality" in facts:
       newfacts["cardinality"] = facts["cardinality"]
 
-    if "name" in element.keys():
+    if "name" in list(element.keys()):
       newfacts["name"] = element.get("name")
     else:
       debug.deprint("Warning: Encountered element with no name")
@@ -227,7 +225,7 @@ class Schema(object):
               l_data.append(x)
 
           if len(l_data) > 1:
-            if "name" in element.keys():
+            if "name" in list(element.keys()):
               debug.deprint("Warning: Element %s has multiple datatypes - using first one" % newfacts["name"])
             else:
               debug.deprint("Warning: Unnamed element has multiple datatypes - using first one")
@@ -255,7 +253,7 @@ class Schema(object):
     facts["datatype"] = tuple(l)
 
   def cb_attribute(self, element, facts):
-    if not "name" in element.keys():
+    if not "name" in list(element.keys()):
       debug.deprint("Warning: Encountered attribute with no name")
       return
 
@@ -549,7 +547,7 @@ class Schema(object):
     # merge the two.
     
     datatree.xmlnode = xmlnode
-    xmlkeys = xmlnode.keys()
+    xmlkeys = list(xmlnode.keys())
 
     if datatree.__class__ is tree.Tree:
       to_set = datatree
@@ -566,7 +564,7 @@ class Schema(object):
 
           datatype = tree_choice.attrs["name"][0]
           if datatype == 'fixed':
-            treename = tree_choice.attrs["name"][1]
+            treename = tree_choice.get_attr("name")
             if treename == xmlname:
               have_found = True
               datatree.set_active_choice_by_ref(tree_choice)
@@ -591,11 +589,11 @@ class Schema(object):
 
     # catch any lost XML attributes
     for key in xmlkeys:
-      if key not in to_set.attrs.keys():
+      if key not in list(to_set.attrs.keys()):
         self.lost_attrs += [to_set.name + '/' + key]
 
     # attribute values.
-    for key in to_set.attrs.keys():
+    for key in list(to_set.attrs.keys()):
       if key in xmlkeys:
         try:
           to_set.set_attr(key, xmlnode.get(key))
@@ -813,8 +811,8 @@ class Schema(object):
   # Loop over lost nodes, and store their XML so the user can be notified later.
   def check_unused_nodes(self, used): 
     def xml2string(xml):
-      buf = cStringIO.StringIO()
-      buf.write(etree.tostring(xml, pretty_print = True))
+      buf = io.StringIO()
+      buf.write(etree.tostring(xml, pretty_print = True).decode())
       s = buf.getvalue()
       buf.close()
       

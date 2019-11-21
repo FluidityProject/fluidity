@@ -34,6 +34,8 @@ static bool gs_bInitializedTime = false;
 
 // support for locating the application directory
 #ifdef __APPLE__
+#undef  __OSX_AVAILABLE_BUT_DEPRECATED_MSG
+#define __OSX_AVAILABLE_BUT_DEPRECATED_MSG(a,b,c,d,e)
 #include <Carbon/Carbon.h>
 #endif
 
@@ -248,7 +250,8 @@ int System::Write1 (char* acBuffer, int iQuantity, const void* pvData)
 int System::Read1 (FILE* pkFile, int iQuantity, void* pvData)
 {
     assert(pkFile && iQuantity > 0 && pvData);
-    fread(pvData,1,iQuantity,pkFile);
+    int iRead = fread(pvData,1,iQuantity,pkFile);
+    if (iRead != iQuantity) assert(false);
     return iQuantity;
 }
 //----------------------------------------------------------------------------
@@ -334,7 +337,8 @@ int System::Write8le (char* acBuffer, int iQuantity, const void* pvData)
 int System::Read2le (FILE* pkFile, int iQuantity, void* pvData)
 {
     assert(pkFile && iQuantity > 0 && pvData);
-    fread(pvData,2,iQuantity,pkFile);
+    int iRead = fread(pvData,2,iQuantity,pkFile);
+    if (iRead != iQuantity) assert(false);
 #ifdef WM4_BIG_ENDIAN
     SwapBytes(2,iQuantity,pvData);
 #endif
@@ -344,7 +348,8 @@ int System::Read2le (FILE* pkFile, int iQuantity, void* pvData)
 int System::Read4le (FILE* pkFile, int iQuantity, void* pvData)
 {
     assert(pkFile && iQuantity > 0 && pvData);
-    fread(pvData,4,iQuantity,pkFile);
+    int iRead = fread(pvData,4,iQuantity,pkFile);
+    if (iRead != iQuantity) assert(false);
 #ifdef WM4_BIG_ENDIAN
     SwapBytes(4,iQuantity,pvData);
 #endif
@@ -354,7 +359,8 @@ int System::Read4le (FILE* pkFile, int iQuantity, void* pvData)
 int System::Read8le (FILE* pkFile, int iQuantity, void* pvData)
 {
     assert(pkFile && iQuantity > 0 && pvData);
-    fread(pvData,8,iQuantity,pkFile);
+    int iRead = fread(pvData,8,iQuantity,pkFile);
+    if (iRead != iQuantity) assert(false);
 #ifdef WM4_BIG_ENDIAN
     SwapBytes(8,iQuantity,pvData);
 #endif
@@ -487,7 +493,8 @@ int System::Write8be (char* acBuffer, int iQuantity, const void* pvData)
 int System::Read2be (FILE* pkFile, int iQuantity, void* pvData)
 {
     assert(pkFile && iQuantity > 0 && pvData);
-    fread(pvData,2,iQuantity,pkFile);
+    int iRead = fread(pvData,2,iQuantity,pkFile);
+    if (iRead != iQuantity) assert(false);
 #ifndef WM4_BIG_ENDIAN
     SwapBytes(2,iQuantity,pvData);
 #endif
@@ -497,7 +504,8 @@ int System::Read2be (FILE* pkFile, int iQuantity, void* pvData)
 int System::Read4be (FILE* pkFile, int iQuantity, void* pvData)
 {
     assert(pkFile && iQuantity > 0 && pvData);
-    fread(pvData,4,iQuantity,pkFile);
+    int iRead = fread(pvData,4,iQuantity,pkFile);
+    if (iRead != iQuantity) assert(false);
 #ifndef WM4_BIG_ENDIAN
     SwapBytes(4,iQuantity,pvData);
 #endif
@@ -507,7 +515,8 @@ int System::Read4be (FILE* pkFile, int iQuantity, void* pvData)
 int System::Read8be (FILE* pkFile, int iQuantity, void* pvData)
 {
     assert(pkFile && iQuantity > 0 && pvData);
-    fread(pvData,8,iQuantity,pkFile);
+    int iRead = fread(pvData,8,iQuantity,pkFile);
+    if (iRead != iQuantity) assert(false);
 #ifndef WM4_BIG_ENDIAN
     SwapBytes(8,iQuantity,pvData);
 #endif

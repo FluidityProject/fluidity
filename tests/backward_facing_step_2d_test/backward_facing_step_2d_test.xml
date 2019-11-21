@@ -43,14 +43,14 @@ assert FinalTime &gt; 1.0
     <test name="Maximum velocity less than 1.1" language="python">
 assert MaximumVelocity &lt; 1.1
     </test>
-    <test name="Maximum pressure less than 0.25" language="python">
-assert MaximumPressure &lt; 0.25
+    <test name="Maximum pressure less than 0.3" language="python">
+assert MaximumPressure &lt; 0.3
     </test>
     <test name="Minimum pressure greater than -0.25" language="python">
 assert MinimumPressure &gt; -0.25
     </test>
-    <test name="Check final number of nodes within 100 of the number I had when run with code revision 10100" language="python">
-assert abs ( FinalNodeCount - 14200 ) &lt; 1000
+    <test name="Check final number of nodes within 2000 of the number when run with code revision 10100" language="python">
+assert abs ( FinalNodeCount - 14200 ) &lt; 2000
     </test>
   </pass_tests>
   <warn_tests>

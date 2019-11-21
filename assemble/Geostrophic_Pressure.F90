@@ -28,39 +28,44 @@
 #include "fdebug.h"
 
 module geostrophic_pressure
-
-  use assemble_cmc
-  use boundary_conditions
-  use boundary_conditions_from_options 
-  use conservative_interpolation_module
-  use coriolis_module, only : two_omega => coriolis
-  use data_structures
-  use dgtools
-  use divergence_matrix_cg
-  use eventcounter
-  use fefields
-  use field_options
-  use quadrature
-  use elements
-  use fields
   use fldebug
   use global_parameters, only : empty_path, FIELD_NAME_LEN, OPTION_PATH_LEN
+  use futils, only: present_and_true, present_and_false, int2str
+  use spud
+  use vector_tools, only: solve
+  use data_structures
+  use parallel_tools, only: allsum
+  use sparse_tools
+  use quadrature
+  use eventcounter
+  use element_numbering, only : FAMILY_SIMPLEX
+  use elements
+  use unittest_tools
+  use parallel_fields, only: assemble_ele, element_owned
+  use fetools
+  use fields
+  use state_module
+  use field_options
+  use sparse_matrices_fields
+  use vtk_interfaces
+  use fefields
+  use boundary_conditions
+  use assemble_cmc
+  use sparsity_patterns
+  use dgtools
+  use solvers
+  use sparsity_patterns_meshes
+  use state_fields_module
+  use surfacelabels
+  use boundary_conditions_from_options
+  use pickers
+  use conservative_interpolation_module
+  use coriolis_module, only : two_omega => coriolis
+  use divergence_matrix_cg
   use hydrostatic_pressure
+  use petsc_solve_state_module
   use momentum_cg
   use momentum_dg
-  use petsc_solve_state_module
-  use pickers
-  use solvers
-  use state_fields_module
-  use sparse_matrices_fields
-  use sparse_tools
-  use sparsity_patterns
-  use sparsity_patterns_meshes
-  use spud
-  use state_module
-  use surfacelabels  
-  use unittest_tools
-  use vtk_interfaces
 
   implicit none
   
@@ -1981,7 +1986,7 @@ contains
     
     call clear_boundary_conditions(ps)
     
-    ewrite(2, *), "Adding strong Dirichlet bc for field " // trim(ps(1)%name)
+    ewrite(2, *) "Adding strong Dirichlet bc for field " // trim(ps(1)%name)
     do i = 1, size(surface_eles)
       surface_eles(i) = i
     end do
@@ -1994,7 +1999,7 @@ contains
     call insert_surface_field(ps(1), 1, b_ps(1))
     call deallocate(b_ps(1))
     do i = 2, size(ps)
-      ewrite(2, *), "Adding strong Dirichlet bc for field " // trim(ps(i)%name) 
+      ewrite(2, *) "Adding strong Dirichlet bc for field " // trim(ps(i)%name) 
       call add_boundary_condition_surface_elements(ps(i), "InterpolatedBoundary", "dirichlet", surface_eles) 
       ewrite_minmax(b_ps(i))
       call insert_surface_field(ps(i), 1, b_ps(i))
@@ -2160,7 +2165,7 @@ contains
       end do
       do i = 1, size(bc_ps, 1)
         call clear_boundary_conditions(bc_ps(i))
-        ewrite(2, *), "Adding strong Dirichlet bc for field " // trim(bc_ps(i)%name)
+        ewrite(2, *) "Adding strong Dirichlet bc for field " // trim(bc_ps(i)%name)
         call add_boundary_condition_surface_elements(bc_ps(i), "ConstantBoundary", "dirichlet", surface_eles) 
         call get_boundary_condition(bc_ps(i), 1, surface_mesh = bc_mesh, &
           & surface_element_list = bc_surface_element_list) 
@@ -2368,7 +2373,7 @@ contains
       end do
       do i = 1, size(bc_ps, 1)
         call clear_boundary_conditions(bc_ps(i))
-        ewrite(2, *), "Adding strong Dirichlet bc for field " // trim(bc_ps(i)%name)
+        ewrite(2, *) "Adding strong Dirichlet bc for field " // trim(bc_ps(i)%name)
         call add_boundary_condition_surface_elements(bc_ps(i), "ConstantBoundary", "dirichlet", surface_eles) 
         call get_boundary_condition(bc_ps(i), 1, surface_mesh = bc_mesh, &
           & surface_element_list = bc_surface_element_list) 

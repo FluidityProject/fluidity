@@ -53,9 +53,9 @@ extern "C" {
 using namespace std; 
 
 void usage(char *binary){
-  cerr<<"Usage: "<<binary<<" [OPTIONS] vtufile trianglename.\n"
+  cerr<<"Usage: "<<binary<<" [OPTIONS] vtufile meshname.\n"
       <<"\twhere 'vtufile' is the name of the discontinuous vtu\n"
-      <<"\tand 'trianglename' is the base name of the triangle files.\n"
+      <<"\tand 'meshname' is the base name of the mesh file.\n"
       <<"\n"
       <<"\t-h\t\tPrints out this message\n"
       <<"\t-v\t\tVerbose mode\n";
@@ -64,10 +64,14 @@ void usage(char *binary){
 int main(int argc, char **argv){
  #ifdef HAVE_MPI
   // This must be called before we process any arguments
-  MPI::Init(argc,argv);
+  MPI_Init(&argc, &argv);
 
   // Undo some MPI init shenanigans
-  chdir(getenv("PWD"));
+  int ierr = chdir(getenv("PWD"));
+  if (ierr == -1) {
+        cerr << "Unable to switch to directory " << getenv("PWD");
+        abort();
+  }
 #endif
  
   // Get any command line arguments
@@ -115,16 +119,16 @@ int main(int argc, char **argv){
 
   string vtufile;
   vtufile.append(argv[no_option_args+1]);
-  size_t vtulen = vtufile.size();  
+  size_t vtulen = vtufile.size();
 
-  string trianglefile;
-  trianglefile.append(argv[no_option_args+2]);
-  size_t trianglelen = trianglefile.size();  
+  string meshfile;
+  meshfile.append(argv[no_option_args+2]);
+  size_t meshlen = meshfile.size();
 
-  project_to_continuous(vtufile.c_str(),vtulen,trianglefile.c_str(),trianglelen);
+  project_to_continuous(vtufile.c_str(),vtulen,meshfile.c_str(),meshlen);
   
 #ifdef HAVE_MPI
-  MPI::Finalize();
+  MPI_Finalize();
 #endif
   return(0);
 }

@@ -155,6 +155,12 @@ AC_ARG_ENABLE(vtk,[AC_HELP_STRING([--enable-vtk],
             [Enable VTK support to build and run test cases (default: no).])])
 if test "x$enable_vtk" != "xno" ; then
     AC_MSG_NOTICE([Checking for VTK automagic.])
+    VTK_FLAGS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=COMPILE`
+    VTK_LIBS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=LINK`
+    OLD_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS $VTK_FLAGS"
+    OLD_LIBS="$LIBS"
+    LIBS="$LIBS $VTK_LIBS"
     AC_LINK_IFELSE(
 	[AC_LANG_PROGRAM([[
 #include <vtkVersion.h>
@@ -173,53 +179,127 @@ if test "x$enable_vtk" != "xno" ; then
             ],
 	[
             AC_MSG_NOTICE([No VTK automagic])
-	    search_for_vtk=yes	    
+	    search_for_vtk=yes
+	    CPPFLAGS="$OLD_CPPFLAGS"
+	    LIBS="$OLD_LIBS"	    
 	])
     
     if test "x$search_for_vtk" == "xyes" ; then
-        # Usually the location of the libraries is not a mystery. The
-        # header files are another matter.
-        AC_CHECK_LIB(dl, main)
-        AC_CHECK_LIB(vtkCommon, main, [], 
-            [if test "x$VTK_LIBS" != "x" ; then
-                LIBS="$LIBS -L$VTK_LIBS"
-                unset ac_cv_lib_vtkCommon_main
-                AC_CHECK_LIB(vtkCommon, main, [], 
-                   [
-                      AC_MSG_ERROR([Cannot find vtk installation.])
-                      exit -1
-                   ])
-             else
-                AC_MSG_ERROR([Cannot find vtk installation.])
-                exit -1
-             fi
-            ])
-        AC_CHECK_LIB(vtkzlib, main)
-        AC_CHECK_LIB(vtkexpat, main)
-        AC_CHECK_LIB(vtkFiltering, main)
-        AC_CHECK_LIB(vtkGraphics, main)
-        AC_CHECK_LIB(vtkIO, main)
-        
-        # check at the usual places:
-        for i in $(ls -d /usr/include/vtk*) $VTK_INCLUDE; do
-            if test -r $i/vtkCellData.h; then
-                CPPFLAGS="-I$i $CPPFLAGS"
+
+        # Need to check what version of VTK is on the system.
+
+        # User may set the install directory for VTK but use
+        # the default sensible location if not.
+        if test "x$VTK_INSTALL_PREFIX" == "x"; then
+            VTK_INSTALL_PREFIX=/usr/include 
+        fi
+
+        # Loop through potential vtk installations and get the highest version number 
+        vtk_version=0
+        vtk_include_dir=""
+        vtk_version_file=""
+        for i in $(ls -d $VTK_INSTALL_PREFIX/vtk*) $VTK_INCLUDE; do
+            # VTK 6 has a version macros file
+            if test -r $i/vtkVersionMacros.h; then
+                # Get the version number from the macros file
+                this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkVersionMacros.h | sed 's/#define VTK_MAJOR_VERSION //')
+                # Use the latest version available
+                if [[ $this_vtk_version -gt $vtk_version ]]; then
+                   vtk_version=$this_vtk_version
+                   vtk_include_dir=$i
+                   vtk_version_file="vtkVersionMacros.h"
+                fi
+            # VTK 5 has a configure file that defined the macros
+            elif test -r $i/vtkConfigure.h; then
+                # Get the version number from the configure file
+                this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkConfigure.h | sed 's/#define VTK_MAJOR_VERSION //')
+                # Use the latest version available
+                if [[ $this_vtk_version -gt $vtk_version ]]; then
+                   vtk_version=$this_vtk_version
+                   vtk_include_dir=$i
+                   vtk_version_file="vtkConfigure.h"
+                fi
+            else
+              AC_MSG_WARN([Found VTK folder $i but could not find file to get version.])
             fi
         done
-        AC_CHECK_HEADER(vtkCellData.h,
-            [CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
-                VTK=yes
-                ],
-            [AC_CHECK_HEADER(vtk-5.0/vtkCellData.h,
-                    [CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
-                        VTK=yes
-                        vtk_header_relative_path="vtk-5.0/"
-                        ],
-                    [       
-                        AC_MSG_ERROR([Cannot find vtk installation.])
-                        exit -1
-                    ])
-          ])
+
+        # Add to include path
+        AC_CHECK_HEADER([$vtk_include_dir/$vtk_version_file],
+                        [CPPFLAGS="$CPPFLAGS -I$vtk_include_dir -DHAVE_VTK=1"
+                         VTK=yes],
+                        [AC_MSG_ERROR([Cannot find vtk installation.])])
+
+        AC_MSG_NOTICE([Found and using VTK major version: $vtk_version])
+
+        # Link the correct libraries depending on the version
+        if [[ "x$vtk_version" == "x5" ]]; then 
+            # Usually the location of the libraries is not a mystery. The
+            # header files are another matter.
+            AC_CHECK_LIB(dl, main)
+            AC_CHECK_LIB(vtkCommon, main, [], 
+                [if test "x$VTK_LIBS" != "x" ; then
+                    LIBS="$LIBS -L$VTK_LIBS"
+                    unset ac_cv_lib_vtkCommon_main
+                    AC_CHECK_LIB(vtkCommon, main, [], 
+                       [
+                          AC_MSG_ERROR([Cannot find vtk installation.])
+                          exit -1
+                       ])
+                 else
+                    AC_MSG_ERROR([Cannot find vtk installation.])
+                    exit -1
+                 fi
+                ])
+            AC_CHECK_LIB(vtkzlib, main)
+            AC_CHECK_LIB(vtkexpat, main)
+            AC_CHECK_LIB(vtkFiltering, main)
+            AC_CHECK_LIB(vtkGraphics, main)
+            AC_CHECK_LIB(vtkIO, main)
+            
+            # check at the usual places:
+            for i in $(ls -d /usr/include/vtk*) $VTK_INCLUDE; do
+                if test -r $i/vtkCellData.h; then
+                    CPPFLAGS="-I$i $CPPFLAGS"
+                fi
+            done
+            AC_CHECK_HEADER(vtkCellData.h,
+                [CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
+                    VTK=yes
+                    ],
+                [AC_CHECK_HEADER(vtk-5.0/vtkCellData.h,
+                        [CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
+                            VTK=yes
+                            vtk_header_relative_path="vtk-5.0/"
+                            ],
+                        [       
+                            AC_MSG_ERROR([Cannot find vtk installation.])
+                            exit -1
+                        ])
+              ])
+        elif [[ "x$vtk_version" == "x6" ]]; then
+            if test -d /usr/lib64/vtk ; then
+                LIBS="$LIBS -L/usr/lib64/vtk"
+            fi
+            AC_CHECK_LIB(vtkCommonCore, main, [], 
+                [if test "x$VTK_LIBS" != "x" ; then
+                    LIBS="$LIBS -L$VTK_LIBS"
+                    unset ac_cv_lib_vtkCommonCore_main
+                    AC_CHECK_LIB(vtkCommonCore, main, [], 
+                       [
+                          AC_MSG_ERROR([Cannot find vtk installation.])
+                          exit -1
+                       ])
+                 else
+                    AC_MSG_ERROR([Cannot find vtk installation.])
+                    exit -1
+                 fi
+                ])
+            AC_CHECK_LIB(vtkIOXML, main)
+            AC_CHECK_LIB(vtkIOParallel, main)
+            AC_CHECK_LIB(vtkIOCore, main)
+            AC_CHECK_LIB(vtkCommonDataModel, main)
+        fi
     fi
 fi
 cat > include/vtk.h <<EOF
@@ -537,19 +617,17 @@ else
     cat >> confdefs.h << EOF
 #define NDEBUG 1
 EOF
-    OPTIMIZATION_FFLAGS="$OPTIMIZATION_FFLAGS -O3"
-    OPTIMIZATION_CFLAGS="$OPTIMIZATION_CFLAGS -O3"
+    OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -O3"
+    if test "$fcompiler" = "ifort" ; then
+      # add inlining and cpu-specific optimisations for intel
+      OPTIMISATION_FLAGS="$OPTIMISATION_FLAGS -ip"
+    fi
 fi
 
-FFLAGS="$FFLAGS $OPTIMIZATION_FFLAGS"
-FCFLAGS="$FCFLAGS $OPTIMIZATION_FFLAGS"
-CFLAGS="$CFLAGS $OPTIMIZATION_CFLAGS"
-CXXFLAGS="$CXXFLAGS $OPTIMIZATION_CFLAGS"
-
-if test "$FC" = "ifc" ; then
-  FFLAGS="-implicitnone -132 -w95 $FFLAGS"
-  FCFLAGS="-implicitnone -w95 $FCFLAGS"
-fi
+FFLAGS="$FFLAGS $OPTIMISATION_FLAGS"
+FCFLAGS="$FCFLAGS $OPTIMISATION_FLAGS"
+CFLAGS="$CFLAGS $OPTIMISATION_FLAGS"
+CXXFLAGS="$CXXFLAGS $OPTIMISATION_FLAGS"
 
 ##########################################
 # MPI
@@ -809,7 +887,6 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 #AC_C_INLINE
 
 AC_SUBST(FORTRAN_REAL_8)
-AC_SUBST(OPTIMIZATION_FFLAGS)
 AC_SUBST(LINKER)
 
 dnl Specific f90 options

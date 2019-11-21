@@ -234,70 +234,70 @@ size_t Element::get_size_fields() const{
 void Element::pack(char *buffer, int& bsize, int& offset) const{  
   ECHO("packing..." << *this);
   
-  //  MPI::EID_T.Pack(&eid,           1, buffer, bsize, offset, MPI::COMM_WORLD);
-  MPI::UNSIGNED_CHAR.Pack(&flags, 1, buffer, bsize, offset, MPI::COMM_WORLD);
+  //  MPI_Pack(&eid, 1, EID_T, buffer, bsize, &offset, MPI_COMM_WORLD);
+  MPI_Pack(&flags, 1, MPI_UNSIGNED_CHAR, buffer, bsize, &offset, MPI_COMM_WORLD);
   
   { // Pack element-node list for this element
     unsigned ncnt = nodes.size();
-    MPI::UNSIGNED.Pack(&ncnt,         1, buffer, bsize, offset, MPI::COMM_WORLD);
-    MPI::UNN_T.Pack(&(nodes[0]), ncnt, buffer, bsize, offset, MPI::COMM_WORLD);
+    MPI_Pack(&ncnt, 1, MPI_UNSIGNED, buffer, bsize, &offset, MPI_COMM_WORLD);
+    MPI_Pack(&(nodes[0]), ncnt, UNN_T, buffer, bsize, &offset, MPI_COMM_WORLD);
   }
   
   { // Pack Mixed-Formulation based element-node lists for this element
     unsigned ncnt = MFnodes.size();
-    MPI::UNSIGNED.Pack(&ncnt,          1, buffer, bsize, offset, MPI::COMM_WORLD);
+    MPI_Pack(&ncnt, 1,MPI_UNSIGNED, buffer, bsize, &offset, MPI_COMM_WORLD);
     if( ncnt > 0 )
-      MPI::UNN_T.Pack(&(MFnodes[0]), ncnt, buffer, bsize, offset, MPI::COMM_WORLD);
+      MPI_Pack(&(MFnodes[0]), ncnt, UNN_T, buffer, bsize, &offset, MPI_COMM_WORLD);
   }
   
   { // Pack integer fields
     unsigned icnt = ifields.size();
-    MPI::UNSIGNED.Pack(&icnt,         1, buffer, bsize, offset, MPI::COMM_WORLD);
-    MPI::INT.Pack(&(ifields[0]), icnt, buffer, bsize, offset, MPI::COMM_WORLD);
+    MPI_Pack(&icnt, 1, MPI_UNSIGNED, buffer, bsize, &offset, MPI_COMM_WORLD);
+    MPI_Pack(&(ifields[0]), icnt, MPI_INT, buffer, bsize, &offset, MPI_COMM_WORLD);
   }
 
   { // Pack real fields field
     unsigned fcnt = fields.size();
-    MPI::UNSIGNED.Pack(&fcnt,            1, buffer, bsize, offset, MPI::COMM_WORLD);
-    MPI::SAMFLOAT.Pack(&(fields[0]), fcnt, buffer, bsize, offset, MPI::COMM_WORLD);
+    MPI_Pack(&fcnt, 1, MPI_UNSIGNED, buffer, bsize, &offset, MPI_COMM_WORLD);
+    MPI_Pack(&(fields[0]), fcnt, SAMFLOAT, buffer, bsize, &offset, MPI_COMM_WORLD);
   }
 
 }
 
 void Element::unpack(char *buffer, int& bsize, int& offset){
   
-  // MPI::EID_T.Unpack(buffer,         bsize, &eid,  1, offset, MPI::COMM_WORLD);
-  MPI::UNSIGNED_CHAR.Unpack(buffer, bsize, &flags,1, offset, MPI::COMM_WORLD);
+  // MPI_Unpack(buffer, bsize, &offset, &eid,  1, EID_T, MPI_COMM_WORLD);
+  MPI_Unpack(buffer, bsize, &offset, &flags,1, MPI_UNSIGNED_CHAR, MPI_COMM_WORLD);
   
   { // unpack element-node list
     unsigned ncnt;
-    MPI::UNSIGNED.Unpack(buffer, bsize, &ncnt, 1, offset, MPI::COMM_WORLD);
+    MPI_Unpack(buffer, bsize, &offset, &ncnt, 1, MPI_UNSIGNED, MPI_COMM_WORLD);
     nodes.resize(ncnt);
-    MPI::UNN_T.Unpack(buffer, bsize, &(nodes[0]), ncnt, offset, MPI::COMM_WORLD);
+    MPI_Unpack(buffer, bsize, &offset, &(nodes[0]), ncnt, UNN_T, MPI_COMM_WORLD);
   }
   
   { // unpack pressure element-node list
     unsigned ncnt;
-    MPI::UNSIGNED.Unpack(buffer, bsize, &ncnt, 1, offset, MPI::COMM_WORLD);
+    MPI_Unpack(buffer, bsize, &offset, &ncnt, 1, MPI_UNSIGNED, MPI_COMM_WORLD);
     
     if( ncnt > 0 ){
       MFnodes.resize( ncnt );
-      MPI::UNN_T.Unpack(buffer, bsize, &(MFnodes[0]), ncnt, offset, MPI::COMM_WORLD);
+      MPI_Unpack(buffer, bsize, &offset, &(MFnodes[0]), ncnt, UNN_T, MPI_COMM_WORLD);
     }
   }
 
   { // unpack the integer fields
     unsigned icnt;
-    MPI::UNSIGNED.Unpack(buffer, bsize, &icnt, 1, offset, MPI::COMM_WORLD);
+    MPI_Unpack(buffer, bsize,&offset, &icnt, 1, MPI_UNSIGNED, MPI_COMM_WORLD);
     ifields.resize(icnt);
-    MPI::INT.Unpack(buffer, bsize, &(ifields[0]), icnt, offset, MPI::COMM_WORLD);
+    MPI_Unpack(buffer, bsize, &offset, &(ifields[0]), icnt, MPI_INT, MPI_COMM_WORLD);
   }
 
   { // unpack real field values
     unsigned fcnt;
-    MPI::UNSIGNED.Unpack(buffer, bsize, &fcnt, 1, offset, MPI::COMM_WORLD);
+    MPI_Unpack(buffer, bsize, &offset, &fcnt, 1, MPI_UNSIGNED, MPI_COMM_WORLD);
     fields.resize(fcnt);
-    MPI::SAMFLOAT.Unpack(buffer, bsize, &(fields[0]), fcnt, offset, MPI::COMM_WORLD);
+    MPI_Unpack(buffer, bsize, &offset, &(fields[0]), fcnt, SAMFLOAT, MPI_COMM_WORLD);
   }
 
 }
@@ -306,36 +306,44 @@ void Element::unpack(char *buffer, int& bsize, int& offset){
 // Get an estimate of the number of bytes required to pack an element.
 //
 unsigned Element::pack_size() const{  
-  int total;
+  int total=0,s1,s2;
   
-  total  = MPI::EID_T.Pack_size(1, MPI::COMM_WORLD);
-  total += MPI::UNSIGNED_CHAR.Pack_size(1, MPI::COMM_WORLD);
+  MPI_Pack_size(1, EID_T, MPI_COMM_WORLD, &s1);
+  MPI_Pack_size(1, MPI_UNSIGNED_CHAR, MPI_COMM_WORLD, &s2);
+  total += (s1 + s2);
   
   { // Pack_size element-node list for this element
     unsigned ncnt = nodes.size();
-    total += MPI::UNSIGNED.Pack_size(1, MPI::COMM_WORLD);
-    total += MPI::UNN_T.Pack_size(ncnt, MPI::COMM_WORLD);
+    MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);
+    MPI_Pack_size(ncnt, UNN_T, MPI_COMM_WORLD, &s2);
+    total += (s1 + s2);
   }
   
   { // Pack_size Mixed-Formulation based element-node lists for this element
     unsigned ncnt = MFnodes.size();
-    total += MPI::UNSIGNED.Pack_size(1, MPI::COMM_WORLD);
+    MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);
+    total += s1;
     if( ncnt > 0 )
-      total += MPI::UNN_T.Pack_size(ncnt, MPI::COMM_WORLD);
+      MPI_Pack_size(ncnt, UNN_T, MPI_COMM_WORLD, &s2);
+      total += s2;
   }
   
   { // Pack_size the ifields
     unsigned icnt = ifields.size();
-    total += MPI::UNSIGNED.Pack_size(1, MPI::COMM_WORLD);
+    MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);
+    total += s1;
     if( icnt>0 )
-      total += MPI::INT.Pack_size(icnt, MPI::COMM_WORLD);
+      MPI_Pack_size(icnt, MPI_INT, MPI_COMM_WORLD, &s2);
+      total += s2;
   }
   
   { // Pack_size element-wise field values
     unsigned fcnt = fields.size();
-    total += MPI::UNSIGNED.Pack_size(1, MPI::COMM_WORLD);
+    MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);
+    total += s1;
     if( fcnt>0 )
-      total += MPI::SAMFLOAT.Pack_size(fcnt, MPI::COMM_WORLD);
+      MPI_Pack_size(fcnt, SAMFLOAT, MPI_COMM_WORLD, &s2);
+      total += s2;
   }
   
   return total;

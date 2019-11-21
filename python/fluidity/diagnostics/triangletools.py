@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -62,7 +62,7 @@ def ReadTriangle(baseName):
     
   # Read the .node file
   
-  nodeHandle = file(baseName + ".node", "r")
+  nodeHandle = open(baseName + ".node", "r")
   
   # Extract the meta data
   line = ReadNonCommentLine(nodeHandle)
@@ -96,7 +96,7 @@ def ReadTriangle(baseName):
     # Read the .bound file
     debug.dprint("Reading .bound file")
     
-    boundHandle = file(baseName + ".bound", "r")
+    boundHandle = open(baseName + ".bound", "r")
     
     # Extract the meta data
     line = ReadNonCommentLine(boundHandle)
@@ -126,7 +126,7 @@ def ReadTriangle(baseName):
     # Read the .edge file
     debug.dprint("Reading .edge file")
     
-    edgeHandle = file(baseName + ".edge", "r")
+    edgeHandle = open(baseName + ".edge", "r")
     
     # Extract the meta data
     line = ReadNonCommentLine(edgeHandle)
@@ -156,7 +156,7 @@ def ReadTriangle(baseName):
     # Read the .face file
     debug.dprint("Reading .face file")
     
-    faceHandle = file(baseName + ".face", "r")
+    faceHandle = open(baseName + ".face", "r")
     
     # Extract the meta data
     line = ReadNonCommentLine(faceHandle)
@@ -186,7 +186,7 @@ def ReadTriangle(baseName):
     # Read the .ele file
     debug.dprint("Reading .ele file")
     
-    eleHandle = file(baseName + ".ele", "r")
+    eleHandle = open(baseName + ".ele", "r")
     
     # Extract the meta data
     line = ReadNonCommentLine(eleHandle)
@@ -241,7 +241,7 @@ def WriteTriangle(mesh, baseName):
   # Write the .node file
   debug.dprint("Writing .node file")
   
-  nodeHandle = file(baseName + ".node", "w")
+  nodeHandle = open(baseName + ".node", "w")
   
   # Write the meta data
   nodeHandle.write(utils.FormLine([mesh.NodeCount(), mesh.GetDim(), 0, 0]))
@@ -256,7 +256,7 @@ def WriteTriangle(mesh, baseName):
     # Write the .bound file
     debug.dprint("Writing .bound file")
     
-    boundHandle = file(baseName + ".bound", "w")
+    boundHandle = open(baseName + ".bound", "w")
     
     # Write the meta data
     nBoundIds = 0
@@ -276,7 +276,7 @@ def WriteTriangle(mesh, baseName):
     # Write the .edge file
     debug.dprint("Writing .edge file")
     
-    edgeHandle = file(baseName + ".edge", "w")
+    edgeHandle = open(baseName + ".edge", "w")
     
     # Write the meta data
     nEdgeIds = 0
@@ -296,7 +296,7 @@ def WriteTriangle(mesh, baseName):
     # Write the .face file
     debug.dprint("Writing .face file")
     
-    faceHandle = file(baseName + ".face", "w")
+    faceHandle = open(baseName + ".face", "w")
     
     # Write the meta data
     nFaceIds = 0
@@ -316,7 +316,7 @@ def WriteTriangle(mesh, baseName):
   # Write the .ele file
   debug.dprint("Writing .ele file")
   
-  eleHandle = file(baseName + ".ele", "w")
+  eleHandle = open(baseName + ".ele", "w")
   
   # Write the meta data
   nNodesPerEle = 0
@@ -351,6 +351,28 @@ def WriteTriangle(mesh, baseName):
   debug.dprint("Finished writing triangle file")
     
   return
+
+def hasPeriodicBoundary(basename):
+  """
+  The given file is checked for the number of ids defined the header of edge/face files and returns a boolean.
+  """
+  def hasEdgeFile(basename):
+    return filehandling.FileExists(basename + ".edge")
+  def hasFaceFile(basename):
+    return filehandling.FileExists(basename + ".face")
+
+  hasEdge = hasEdgeFile(basename)
+  hasFace = hasFaceFile(basename)
+  if (hasEdge):
+    fileHandle = open(basename+".edge", "r")
+  elif (hasFace):
+    fileHandle = open(basename+".face", "r")
+  else:
+    return 
+  line = fileHandle.readline()
+  fileHandle.close()
+  nIds = int(line.strip().split()[-1])
+  return nIds==2 # If nIds==2, periodic boundaries were found in the triangle file
 
 class triangletoolsUnittests(unittest.TestCase):
   def testTriangleIo(self):

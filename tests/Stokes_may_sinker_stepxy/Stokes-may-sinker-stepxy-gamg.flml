@@ -136,26 +136,7 @@
           </poisson_pressure_solution>
           <use_projection_method>
             <full_schur_complement>
-              <inner_matrix name="FullMomentumMatrix">
-                <solver>
-                  <iterative_method name="cg"/>
-                  <preconditioner name="gamg"/>
-                  <relative_error>
-                    <real_value rank="0">1.0e-10</real_value>
-                  </relative_error>
-                  <max_iterations>
-                    <integer_value rank="0">10000</integer_value>
-                  </max_iterations>
-                  <multigrid_near_null_space>
-                    <all_components/>
-                    <all_rotations/>
-                  </multigrid_near_null_space>
-                  <never_ignore_solver_failures/>
-                  <diagnostics>
-                    <monitors/>
-                  </diagnostics>
-                </solver>
-              </inner_matrix>
+              <inner_matrix name="FullMomentumMatrix"/>
               <preconditioner_matrix name="ScaledPressureMassMatrix"/>
             </full_schur_complement>
           </use_projection_method>
@@ -164,7 +145,7 @@
           <iterative_method name="fgmres"/>
           <preconditioner name="jacobi"/>
           <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0e-5</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
@@ -185,6 +166,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -203,6 +187,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -226,6 +213,7 @@
             <stress_terms>
               <partial_stress_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
@@ -243,7 +231,7 @@
           <iterative_method name="cg"/>
           <preconditioner name="gamg"/>
           <relative_error>
-            <real_value rank="0">1.0e-10</real_value>
+            <real_value rank="0">1.0e-6</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
@@ -358,6 +346,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
   </material_phase>
