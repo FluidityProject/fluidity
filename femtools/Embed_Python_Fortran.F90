@@ -160,7 +160,7 @@ module embed_python
 
     subroutine set_scalar_particles_from_python_fields(function, function_len, dim, &
          npart, x, y, z, t, dt, fld_name_len, nfields, field_names, field_vals, old_nfields, old_field_names, &
-         old_field_vals, old_nattributes, old_att_names, old_attributes, result, stat) bind(c)
+         old_field_vals, old_nattributes, old_att_names, old_att_dims, old_attributes, result, stat) bind(c)
       !! Interface to c wrapper function.
       use iso_c_binding, only: c_double, c_char, c_int
       use global_parameters, only: FIELD_NAME_LEN
@@ -177,6 +177,7 @@ module embed_python
       character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nfields)), intent(in) :: old_field_names
       real(c_double), dimension(old_nfields(1)+dim*old_nfields(2)+dim**2*old_nfields(3),npart), intent(in) :: old_field_vals
       character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nattributes)), intent(in) :: old_att_names
+      integer(c_int), dimension(sum(old_nattributes)), intent(in) :: old_att_dims
       real(c_double), dimension(old_nattributes(1)+dim*old_nattributes(2)+dim**2*old_nattributes(3),npart), intent(in) :: old_attributes
       real(c_double), dimension(1,npart), intent(out) :: result
       integer(c_int), intent(out) :: stat
@@ -184,7 +185,7 @@ module embed_python
 
     subroutine set_scalar_particles_from_python_fields_array(function, function_len, dim, &
          npart, natt, x, y, z, t, dt, fld_name_len, nfields, field_names, field_vals, old_nfields, old_field_names, &
-         old_field_vals, old_nattributes, old_att_names, old_attributes, result, stat) bind(c)
+         old_field_vals, old_nattributes, old_att_names, old_att_dims, old_attributes, result, stat) bind(c)
       !! Interface to c wrapper function.
       use iso_c_binding, only: c_double, c_char, c_int
       use global_parameters, only: FIELD_NAME_LEN
@@ -201,6 +202,7 @@ module embed_python
       character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nfields)), intent(in) :: old_field_names
       real(c_double), dimension(old_nfields(1)+dim*old_nfields(2)+dim**2*old_nfields(3),npart), intent(in) :: old_field_vals
       character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nattributes)), intent(in) :: old_att_names
+      integer(c_int), dimension(sum(old_nattributes)), intent(in) :: old_att_dims
       real(c_double), dimension(old_nattributes(1)+dim*old_nattributes(2)+dim**2*old_nattributes(3),npart), intent(in) :: old_attributes
       real(c_double), dimension(natt,npart), intent(out) :: result
       integer(c_int), intent(out) :: stat
@@ -241,30 +243,31 @@ module embed_python
 
     subroutine set_vector_particles_from_python_fields(function, function_len, dim, &
         npart, x, y, z, t, dt, fld_name_len, nfields, field_names, field_vals, old_nfields, old_field_names, &
-        old_field_vals, old_nattributes, old_att_names, old_attributes, result, stat) bind(c)
-    use iso_c_binding, only: c_double, c_int, c_char
-    use global_parameters, only: FIELD_NAME_LEN
-    implicit none
-    integer(c_int), intent(in), value :: function_len
-    character(kind=c_char) :: function
-    integer(c_int), intent(in), value :: dim, npart
-    integer(c_int), dimension(3), intent(in) :: nfields, old_nfields, old_nattributes
-    integer(c_int), intent(in), value :: fld_name_len
-    real(c_double), dimension(npart), intent(in) :: x, y, z
-    real(c_double), intent(in), value :: t, dt
-    character(kind=c_char), dimension(FIELD_NAME_LEN,sum(nfields)), intent(in) :: field_names
-    real(c_double), dimension(nfields(1)+dim*nfields(2)+dim**2*nfields(3),npart), intent(in) :: field_vals
-    character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nfields)), intent(in) :: old_field_names
-    real(c_double), dimension(old_nfields(1)+dim*old_nfields(2)+dim**2*old_nfields(3),npart), intent(in) :: old_field_vals
-    character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nattributes)), intent(in) :: old_att_names
-    real(c_double), dimension(old_nattributes(1)+dim*old_nattributes(2)+dim**2*old_nattributes(3),npart), intent(in) :: old_attributes
-    real(c_double), dimension(dim,npart), intent(out) :: result
-    integer(c_int), intent(out) :: stat
+        old_field_vals, old_nattributes, old_att_names, old_att_dims, old_attributes, result, stat) bind(c)
+      use iso_c_binding, only: c_double, c_int, c_char
+      use global_parameters, only: FIELD_NAME_LEN
+      implicit none
+      integer(c_int), intent(in), value :: function_len
+      character(kind=c_char) :: function
+      integer(c_int), intent(in), value :: dim, npart
+      integer(c_int), dimension(3), intent(in) :: nfields, old_nfields, old_nattributes
+      integer(c_int), intent(in), value :: fld_name_len
+      real(c_double), dimension(npart), intent(in) :: x, y, z
+      real(c_double), intent(in), value :: t, dt
+      character(kind=c_char), dimension(FIELD_NAME_LEN,sum(nfields)), intent(in) :: field_names
+      real(c_double), dimension(nfields(1)+dim*nfields(2)+dim**2*nfields(3),npart), intent(in) :: field_vals
+      character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nfields)), intent(in) :: old_field_names
+      real(c_double), dimension(old_nfields(1)+dim*old_nfields(2)+dim**2*old_nfields(3),npart), intent(in) :: old_field_vals
+      character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nattributes)), intent(in) :: old_att_names
+      integer(c_int), dimension(sum(old_nattributes)), intent(in) :: old_att_dims
+      real(c_double), dimension(old_nattributes(1)+dim*old_nattributes(2)+dim**2*old_nattributes(3),npart), intent(in) :: old_attributes
+      real(c_double), dimension(dim,npart), intent(out) :: result
+      integer(c_int), intent(out) :: stat
     end subroutine set_vector_particles_from_python_fields
 
     subroutine set_vector_particles_from_python_fields_array(function, function_len, dim, &
         npart, natt, x, y, z, t, dt, fld_name_len, nfields, field_names, field_vals, old_nfields, old_field_names, &
-        old_field_vals, old_nattributes, old_att_names, old_attributes, result, stat) bind(c)
+        old_field_vals, old_nattributes, old_att_names, old_att_dims, old_attributes, result, stat) bind(c)
       use iso_c_binding, only: c_double, c_int, c_char
       use global_parameters, only: FIELD_NAME_LEN
       implicit none
@@ -280,6 +283,7 @@ module embed_python
       character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nfields)), intent(in) :: old_field_names
       real(c_double), dimension(old_nfields(1)+dim*old_nfields(2)+dim**2*old_nfields(3),npart), intent(in) :: old_field_vals
       character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nattributes)), intent(in) :: old_att_names
+      integer(c_int), dimension(sum(old_nattributes)), intent(in) :: old_att_dims
       real(c_double), dimension(old_nattributes(1)+dim*old_nattributes(2)+dim**2*old_nattributes(3),npart), intent(in) :: old_attributes
       real(c_double), dimension(dim*natt,npart), intent(out) :: result
       integer(c_int), intent(out) :: stat
@@ -319,7 +323,7 @@ module embed_python
 
     subroutine set_tensor_particles_from_python_fields(function, function_len, dim, &
          npart, x, y, z, t, dt, fld_name_len, nfields, field_names, field_vals, old_nfields, old_field_names, &
-         old_field_vals, old_nattributes, old_att_names, old_attributes, result, stat) bind(c)
+         old_field_vals, old_nattributes, old_att_names, old_att_dims, old_attributes, result, stat) bind(c)
       use iso_c_binding, only: c_double, c_int, c_char
       use global_parameters, only: FIELD_NAME_LEN
       implicit none
@@ -335,6 +339,7 @@ module embed_python
       character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nfields)), intent(in) :: old_field_names
       real(c_double), dimension(old_nfields(1)+dim*old_nfields(2)+dim**2*old_nfields(3),npart), intent(in) :: old_field_vals
       character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nattributes)), intent(in) :: old_att_names
+      integer(c_int), dimension(sum(old_nattributes)), intent(in) :: old_att_dims
       real(c_double), dimension(old_nattributes(1)+dim*old_nattributes(2)+dim**2*old_nattributes(3),npart), intent(in) :: old_attributes
       real(c_double), dimension(dim,dim,1,npart), intent(out) :: result
       integer(c_int), intent(out) :: stat
@@ -342,7 +347,7 @@ module embed_python
 
     subroutine set_tensor_particles_from_python_fields_array(function, function_len, dim, &
          npart, natt, x, y, z, t, dt, fld_name_len, nfields, field_names, field_vals, old_nfields, old_field_names, &
-         old_field_vals, old_nattributes, old_att_names, old_attributes, result, stat) bind(c)
+         old_field_vals, old_nattributes, old_att_names, old_att_dims, old_attributes, result, stat) bind(c)
       use iso_c_binding, only: c_double, c_int, c_char
       use global_parameters, only: FIELD_NAME_LEN
       implicit none
@@ -358,6 +363,7 @@ module embed_python
       character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nfields)), intent(in) :: old_field_names
       real(c_double), dimension(old_nfields(1)+dim*old_nfields(2)+dim**2*old_nfields(3),npart), intent(in) :: old_field_vals
       character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nattributes)), intent(in) :: old_att_names
+      integer(c_int), dimension(sum(old_nattributes)), intent(in) :: old_att_dims
       real(c_double), dimension(old_nattributes(1)+dim*old_nattributes(2)+dim**2*old_nattributes(3),npart), intent(in) :: old_attributes
       real(c_double), dimension(dim,dim,natt,npart), intent(out) :: result
       integer(c_int), intent(out) :: stat
@@ -574,7 +580,7 @@ contains
   !Subroutine to call c_wrapper function set_scalar_particles_from_python_fields
   subroutine set_scalar_particles_from_python_fields_sp(function, function_len, dim, &
        npart, natt, x, y, z, t, dt, nfields, field_names, field_vals, old_nfields, &
-       old_field_names, old_field_vals, old_nattributes, old_att_names, old_attributes, &
+       old_field_names, old_field_vals, old_nattributes, old_att_names, old_att_dims, old_attributes, &
        is_array, result, stat)
     integer, intent(in) :: function_len
     character(len = *) :: function
@@ -591,6 +597,7 @@ contains
     character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nfields)), intent(in) :: old_field_names
     real(kind=c_double), dimension(old_nfields(1)+dim*old_nfields(2)+dim**2*old_nfields(3),npart), intent(in) :: old_field_vals
     character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nattributes)), intent(in) :: old_att_names
+    integer, dimension(sum(old_nattributes)), intent(in) :: old_att_dims
     real(kind=c_double), dimension(old_nattributes(1)+dim*old_nattributes(2)+dim**2*old_nattributes(3),npart), intent(in) :: old_attributes
     real(kind=c_double), dimension(natt, npart), intent(out) :: result
     integer, intent(out) :: stat
@@ -602,13 +609,13 @@ contains
            real(x, kind=c_double), real(y, kind=c_double), real(z, kind=c_double), real(t, kind=c_double), &
            real(dt, kind=c_double), FIELD_NAME_LEN, nfields, field_names, real(field_vals, kind=c_double), &
            old_nfields, old_field_names, real(old_field_vals, kind=c_double), old_nattributes, old_att_names, &
-           real(old_attributes, kind=c_double), lresult, stat)
+           old_att_dims, real(old_attributes, kind=c_double), lresult, stat)
     else
       call set_scalar_particles_from_python_fields(function, function_len, dim, npart, &
            real(x, kind=c_double), real(y, kind=c_double), real(z, kind=c_double), real(t, kind=c_double), &
            real(dt, kind=c_double), FIELD_NAME_LEN, nfields, field_names, real(field_vals, kind=c_double), &
            old_nfields, old_field_names, real(old_field_vals, kind=c_double), old_nattributes, old_att_names, &
-           real(old_attributes, kind=c_double), lresult, stat)
+           old_att_dims, real(old_attributes, kind=c_double), lresult, stat)
     end if
 
     result = lresult
@@ -617,7 +624,7 @@ contains
   !Subroutine to call c_wrapper function set_vector_particles_from_python_fields
   subroutine set_vector_particles_from_python_fields_sp(function, function_len, dim, &
        npart, natt, x, y, z, t, dt, nfields, field_names, field_vals, old_nfields, &
-       old_field_names, old_field_vals, old_nattributes, old_att_names, old_attributes, &
+       old_field_names, old_field_vals, old_nattributes, old_att_names, old_att_dims, old_attributes, &
        is_array, result, stat)
     integer, intent(in) :: function_len
     character(len = *) :: function
@@ -634,6 +641,7 @@ contains
     character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nfields)), intent(in) :: old_field_names
     real(kind=c_double), dimension(old_nfields(1)+dim*old_nfields(2)+dim**2*old_nfields(3),npart), intent(in) :: old_field_vals
     character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nattributes)), intent(in) :: old_att_names
+    integer, dimension(sum(old_nattributes)), intent(in) :: old_att_dims
     real(kind=c_double), dimension(old_nattributes(1)+dim*old_nattributes(2)+dim**2*old_nattributes(3),npart), intent(in) :: old_attributes
     real(kind=c_double), dimension(dim*natt,npart), intent(out) :: result
     integer, intent(out) :: stat
@@ -644,13 +652,13 @@ contains
           real(x, kind=c_double), real(y, kind=c_double), real(z, kind=c_double), real(t, kind=c_double), &
           real(dt, kind=c_double), FIELD_NAME_LEN, nfields, field_names, real(field_vals, kind=c_double), &
           old_nfields, old_field_names, real(old_field_vals, kind=c_double), old_nattributes, old_att_names, &
-          real(old_attributes, kind=c_double), lresult, stat)
+          old_att_dims, real(old_attributes, kind=c_double), lresult, stat)
     else
       call set_vector_particles_from_python_fields(function, function_len, dim, npart, &
           real(x, kind=c_double), real(y, kind=c_double), real(z, kind=c_double), real(t, kind=c_double), &
           real(dt, kind=c_double), FIELD_NAME_LEN, nfields, field_names, real(field_vals, kind=c_double), &
           old_nfields, old_field_names, real(old_field_vals, kind=c_double), old_nattributes, old_att_names, &
-          real(old_attributes, kind=c_double), lresult, stat)
+          old_att_dims, real(old_attributes, kind=c_double), lresult, stat)
     end if
 
     result = lresult
@@ -659,7 +667,7 @@ contains
   !Subroutine to call c_wrapper function set_tensor_particles_from_python_fields
   subroutine set_tensor_particles_from_python_fields_sp(function, function_len, dim, &
        npart, natt, x, y, z, t, dt, nfields, field_names, field_vals, old_nfields, &
-       old_field_names, old_field_vals, old_nattributes, old_att_names, old_attributes, &
+       old_field_names, old_field_vals, old_nattributes, old_att_names, old_att_dims, old_attributes, &
        is_array, result, stat)
     integer, intent(in) :: function_len
     character(len = *) :: function
@@ -676,6 +684,7 @@ contains
     character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nfields)), intent(in) :: old_field_names
     real(kind=c_double), dimension(old_nfields(1)+dim*old_nfields(2)+dim**2*old_nfields(3),npart), intent(in) :: old_field_vals
     character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nattributes)), intent(in) :: old_att_names
+    integer, dimension(sum(old_nattributes)), intent(in) :: old_att_dims
     real(kind=c_double), dimension(old_nattributes(1)+dim*old_nattributes(2)+dim**2*old_nattributes(3),npart), intent(in) :: old_attributes
     real(kind=c_double), dimension(dim,dim,natt,npart), intent(out) :: result
     integer, intent(out) :: stat
@@ -687,13 +696,13 @@ contains
            real(x, kind=c_double), real(y, kind=c_double), real(z, kind=c_double), real(t, kind=c_double), &
            real(dt, kind=c_double), FIELD_NAME_LEN, nfields, field_names, real(field_vals, kind=c_double), &
            old_nfields, old_field_names, real(old_field_vals, kind=c_double), old_nattributes, old_att_names, &
-           real(old_attributes, kind=c_double), lresult, stat)
+           old_att_dims, real(old_attributes, kind=c_double), lresult, stat)
     else
       call set_tensor_particles_from_python_fields(function, function_len, dim, npart, &
            real(x, kind=c_double), real(y, kind=c_double), real(z, kind=c_double), real(t, kind=c_double), &
            real(dt, kind=c_double), FIELD_NAME_LEN, nfields, field_names, real(field_vals, kind=c_double), &
            old_nfields, old_field_names, real(old_field_vals, kind=c_double), old_nattributes, old_att_names, &
-           real(old_attributes, kind=c_double), lresult, stat)
+           old_att_dims, real(old_attributes, kind=c_double), lresult, stat)
     end if
 
     result = lresult

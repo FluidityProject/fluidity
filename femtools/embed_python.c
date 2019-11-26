@@ -496,11 +496,97 @@ static inline void set_dict_from_fields(int i, int dim, int *nfields, int name_l
   }
 }
 
+static void set_dict_from_old_atts(int i, int dim, int *natts, int name_len, char *_att_names,
+				   int *att_dims, double *_att_vals, PyObject *pNames)
+{
+  int all_atts = natts[0] + dim*natts[1] + dim*dim*natts[2];
+  double (*att_vals)[all_atts] = (double (*)[all_atts])_att_vals;
+  char (*att_names)[name_len] = (char (*)[name_len])_att_names;
+
+  npy_intp dims[] = {0, dim, dim};
+
+  int ai = 0; // attribute index
+
+  for (int j = 0; j < natts[0]; j++) {
+    // scalar old attributes
+    PyObject *pAtt;
+    int ad = att_dims[j];
+
+    if (ad == 0) {
+      // non-array
+      pAtt = PyFloat_FromDouble(att_vals[i][ai++]);
+    } else {
+      dims[0] = ad;
+      pAtt = PyArray_SimpleNew(1, dims, NPY_DOUBLE);
+      for (int d = 0; d < ad; d++) {
+	*((double*)PyArray_GETPTR1((PyArrayObject*)pAtt, d)) = att_vals[i][ai + d];
+      }
+      ai += ad;
+    }
+    PyDict_SetItemString(pNames, att_names[j], pAtt);
+    Py_DECREF(pAtt);
+  }
+  for (int j = 0; j < natts[1]; j++) {
+    // vector old attributes
+    PyObject *pAtt;
+    int ad = att_dims[j + natts[0]];
+
+    if (ad == 0) {
+      // non-array
+      pAtt = PyArray_SimpleNew(1, dims+1, NPY_DOUBLE);
+      for (int k = 0; k < dim; k++) {
+	*((double*)PyArray_GETPTR1((PyArrayObject*)pAtt, k)) = att_vals[i][ai + k];
+      }
+      ai += dim;
+    } else {
+      dims[0] = ad;
+      pAtt = PyArray_SimpleNew(2, dims, NPY_DOUBLE);
+      for (int d = 0; d < ad; d++) {
+	for (int k = 0; k < dim; k++) {
+	  *((double*)PyArray_GETPTR2((PyArrayObject*)pAtt, d, k)) = att_vals[i][ai + k];
+	}
+	ai += dim;
+      }
+    }
+    PyDict_SetItemString(pNames, att_names[j + natts[0]], pAtt);
+    Py_DECREF(pAtt);
+  }
+  for (int j = 0; j < natts[2]; j++) {
+    // tensor old attributes
+    PyObject *pAtt;
+    int ad = att_dims[j + natts[0] + natts[1]];
+
+    if (ad == 0) {
+      // non-array
+      pAtt = PyArray_SimpleNew(2, dims+1, NPY_DOUBLE);
+      for (int k = 0; k < dim; k++) {
+	for (int l = 0; l < dim; l++) {
+	  *((double*)PyArray_GETPTR2((PyArrayObject*)pAtt, l, k)) = att_vals[i][ai + l];
+	}
+	ai += dim;
+      }
+    } else {
+      dims[0] = ad;
+      pAtt = PyArray_SimpleNew(3, dims, NPY_DOUBLE);
+      for (int d = 0; d < ad; d++) {
+	for (int k = 0; k < dim; k++) {
+	  for (int l = 0; l < dim; l++) {
+	    *((double*)PyArray_GETPTR3((PyArrayObject*)pAtt, d, l, k)) = att_vals[i][ai + l];
+	  }
+	  ai += dim;
+	}
+      }
+    }
+    PyDict_SetItemString(pNames, att_names[j + natts[0] + natts[1]], pAtt);
+    Py_DECREF(pAtt);
+  }
+}
+
 void set_field_from_python_fields(char *function, int function_len, int dim, int nodes, int *natt,
 				  double *x, double *y, double *z, double t, double dt,
 				  int name_len, int *nfields, char *field_names, double *field_vals,
 				  int *old_nfields, char *old_field_names, double *old_field_vals,
-				  int *old_natts, char *old_att_names, double *old_atts,
+				  int *old_natts, char *old_att_names, int *old_att_dims, double *old_atts,
 				  int *stat, int *result_dim, void **result,
 				  int (*set_result)(int, int *, void *, void **, PyObject*),
 				  void *result_user_data)
@@ -553,7 +639,7 @@ void set_field_from_python_fields(char *function, int function_len, int dim, int
     set_pos_tuple(i, dim, pPos, x, y, z);
     set_dict_from_fields(i, dim, nfields, name_len, field_names, field_vals, pNames);
     set_dict_from_fields(i, dim, old_nfields, name_len, old_field_names, old_field_vals, pNames);
-    set_dict_from_fields(i, dim, old_natts, name_len, old_att_names, old_atts, pNames);
+    set_dict_from_old_atts(i, dim, old_natts, name_len, old_att_names, old_att_dims, old_atts, pNames);
 
     if (PyErr_Occurred()) {
       PyErr_Print();
@@ -589,14 +675,14 @@ void set_scalar_particles_from_python_fields(char *function, int function_len, i
 					     double *x, double *y, double *z, double t, double dt,
 					     int name_len, int *nfields, char *field_names, double *field_vals,
 					     int *old_nfields, char *old_field_names, double *old_field_vals,
-					     int *old_natts, char *old_att_names, double *old_atts,
+					     int *old_natts, char *old_att_names, int *old_att_dims, double *old_atts,
 					     double *result, int *stat)
 {
   set_field_from_python_fields(function, function_len, dim, nodes, NULL,
 			       x, y, z, t, dt, name_len,
 			       nfields, field_names, field_vals,
 			       old_nfields, old_field_names, old_field_vals,
-			       old_natts, old_att_names, old_atts,
+			       old_natts, old_att_names, old_att_dims, old_atts,
 			       stat, NULL, (void**)&result, set_scalar_result_double, NULL);
 }
 
@@ -604,14 +690,14 @@ void set_scalar_particles_from_python_fields_array(char *function, int function_
 						   double *x, double *y, double *z, double t, double dt,
 						   int name_len, int *nfields, char *field_names, double *field_vals,
 						   int *old_nfields, char *old_field_names, double *old_field_vals,
-						   int *old_natts, char *old_att_names, double *old_atts,
+						   int *old_natts, char *old_att_names, int *old_att_dims, double *old_atts,
 						   double *result, int *stat)
 {
   set_field_from_python_fields(function, function_len, dim, nodes, &natt,
 			       x, y, z, t, dt, name_len,
 			       nfields, field_names, field_vals,
 			       old_nfields, old_field_names, old_field_vals,
-			       old_natts, old_att_names, old_atts,
+			       old_natts, old_att_names, old_att_dims, old_atts,
 			       stat, NULL, (void**)&result, set_scalar_result_double_array, &natt);
 }
 
@@ -619,14 +705,14 @@ void set_vector_particles_from_python_fields(char *function, int function_len, i
 					     double *x, double *y, double *z, double t, double dt,
 					     int name_len, int *nfields, char *field_names, double *field_vals,
 					     int *old_nfields, char *old_field_names, double *old_field_vals,
-					     int *old_natts, char *old_att_names, double *old_atts,
+					     int *old_natts, char *old_att_names, int *old_att_dims, double *old_atts,
 					     double *result, int *stat)
 {
   set_field_from_python_fields(function, function_len, dim, nodes, NULL,
 			       x, y, z, t, dt, name_len,
 			       nfields, field_names, field_vals,
 			       old_nfields, old_field_names, old_field_vals,
-			       old_natts, old_att_names, old_atts,
+			       old_natts, old_att_names, old_att_dims, old_atts,
 			       stat, &dim, (void**)&result,
 			       set_vector_result_double_contiguous, NULL);
 }
@@ -635,14 +721,14 @@ void set_vector_particles_from_python_fields_array(char *function, int function_
 						   double *x, double *y, double *z, double t, double dt,
 						   int name_len, int *nfields, char *field_names, double *field_vals,
 						   int *old_nfields, char *old_field_names, double *old_field_vals,
-						   int *old_natts, char *old_att_names, double *old_atts,
+						   int *old_natts, char *old_att_names, int *old_att_dims, double *old_atts,
 						   double *result, int *stat)
 {
   set_field_from_python_fields(function, function_len, dim, nodes, &natt,
 			       x, y, z, t, dt, name_len,
 			       nfields, field_names, field_vals,
 			       old_nfields, old_field_names, old_field_vals,
-			       old_natts, old_att_names, old_atts,
+			       old_natts, old_att_names, old_att_dims, old_atts,
 			       stat, &dim, (void**)&result,
 			       set_vector_result_double_array, &natt);
 }
@@ -651,7 +737,7 @@ void set_tensor_particles_from_python_fields(char *function, int function_len, i
 					     double *x, double *y, double *z, double t, double dt,
 					     int name_len, int *nfields, char *field_names, double *field_vals,
 					     int *old_nfields, char *old_field_names, double *old_field_vals,
-					     int *old_natts, char *old_att_names, double *old_atts,
+					     int *old_natts, char *old_att_names, int *old_att_dims, double *old_atts,
 					     double *result, int *stat)
 {
   int result_dims[] = {dim, dim};
@@ -659,7 +745,7 @@ void set_tensor_particles_from_python_fields(char *function, int function_len, i
 			       x, y, z, t, dt, name_len,
 			       nfields, field_names, field_vals,
 			       old_nfields, old_field_names, old_field_vals,
-			       old_natts, old_att_names, old_atts,
+			       old_natts, old_att_names, old_att_dims, old_atts,
 			       stat, result_dims, (void**)&result,
 			       set_tensor_result_double, NULL);
 }
@@ -668,7 +754,7 @@ void set_tensor_particles_from_python_fields_array(char *function, int function_
 						   double *x, double *y, double *z, double t, double dt,
 						   int name_len, int *nfields, char *field_names, double *field_vals,
 						   int *old_nfields, char *old_field_names, double *old_field_vals,
-						   int *old_natts, char *old_att_names, double *old_atts,
+						   int *old_natts, char *old_att_names, int *old_att_dims, double *old_atts,
 						   double *result, int *stat)
 {
   int result_dims[] = {dim, dim};
@@ -676,7 +762,7 @@ void set_tensor_particles_from_python_fields_array(char *function, int function_
 			       x, y, z, t, dt, name_len,
 			       nfields, field_names, field_vals,
 			       old_nfields, old_field_names, old_field_vals,
-			       old_natts, old_att_names, old_atts,
+			       old_natts, old_att_names, old_att_dims, old_atts,
 			       stat, result_dims, (void**)&result,
 			       set_tensor_result_double_array, &natt);
 }
