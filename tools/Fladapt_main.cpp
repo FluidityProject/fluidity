@@ -32,9 +32,7 @@
 
 #include "confdefs.h"
 
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
+#include "flmpi.h"
 
 #include "Usage.h"
 #include "c++debug.h"

@@ -17,9 +17,7 @@
 #include "confdefs.h"
 #include "spud"
 
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
+#include "flmpi.h"
 
 
 extern "C"{

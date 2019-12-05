@@ -32,9 +32,7 @@
 
 #include "confdefs.h"
 
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
+#include "flmpi.h"
 
 using namespace std;
 

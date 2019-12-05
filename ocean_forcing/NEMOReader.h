@@ -58,9 +58,7 @@ typedef float vtkFloatingPointType;
 #endif
 #endif
 
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
+#include "flmpi.h"
 
 #include <stdio.h>
 #include <stdlib.h>

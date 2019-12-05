@@ -28,9 +28,7 @@
 
 #include "Usage.h"
 
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
+#include "flmpi.h"
 
 extern "C" {
   void differentiate_vtu(const char *, size_t, const char *, size_t, const char *, size_t);

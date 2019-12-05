@@ -29,9 +29,7 @@
 #include "Usage.h"
 #include "Precision.h"
 
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
+#include "flmpi.h"
 
 extern "C" {
   void vtu_bins(const char*, size_t, const char*, size_t, double*, size_t);

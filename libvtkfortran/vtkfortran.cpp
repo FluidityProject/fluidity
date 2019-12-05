@@ -29,10 +29,6 @@
 
 #include "confdefs.h"
 
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
-
 #ifdef HAVE_VTK
 
 #include <vtk.h>
@@ -773,25 +769,7 @@ extern "C" {
   */
   void vtkpclose(int *rank, int *npartitions){
 
-#ifdef HAVE_MPI
-    // Interleaving is experimental - play at your own risk
-#define INTERLEAVE_IO_TRESHOLD 64000
-#define CORES_PER_NODE 8
-    if(*npartitions>INTERLEAVE_IO_TRESHOLD){
-      int nwrites = (int)(sqrt(*npartitions)+0.5);
-      
-      for(int lrank=0; lrank<nwrites; lrank++){
-        if((*rank)%nwrites==lrank){
-          _vtkpclose_nointerleave(rank, npartitions);
-        }
-        MPI_Barrier(MPI_COMM_WORLD);
-      }
-    }else{
-#endif
-      _vtkpclose_nointerleave(rank, npartitions);
-#ifdef HAVE_MPI
-    }
-#endif
+    _vtkpclose_nointerleave(rank, npartitions);
     return;
   }
   
