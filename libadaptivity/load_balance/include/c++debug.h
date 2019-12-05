@@ -29,10 +29,6 @@
 #define DEBUG_H
 
 #include "confdefs.h"
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
-
 #include <string>
 #include <iostream>
 

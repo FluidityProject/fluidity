@@ -25,7 +25,6 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
  USA
 */
-#include <mpi.h>
 #include <vector>
 #include <string>
 #include <map>
@@ -34,6 +33,7 @@
 #include <cassert>
 #include <cstdlib>
 
+#include "sam_mpi.h"
 #include "c++debug.h"
 #include "Element.h"
 

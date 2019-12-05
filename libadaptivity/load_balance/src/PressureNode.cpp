@@ -25,7 +25,6 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
  USA
 */
-#include <mpi.h>
 #include <vector>
 #include <string>
 #include <map>
@@ -33,6 +32,7 @@
 #include <set>
 #include <assert.h>
 
+#include "sam_mpi.h"
 #include "c++debug.h"
 #include "Mesh.h"
 #include "PressureNode.h"

@@ -27,7 +27,7 @@
 */
 #include <confdefs.h>
 
-#include <mpi.h>
+#include "sam_mpi.h"
 #include <cassert>
 #include <cstdlib>
 #include <vector>

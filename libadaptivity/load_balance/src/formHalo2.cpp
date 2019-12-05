@@ -25,7 +25,6 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
  USA
 */
-#include <mpi.h>
 #include <assert.h>
 #include <vector>
 #include <deque>
@@ -35,9 +34,10 @@
 
 using namespace std;
 
+#include "sam_mpi.h"
+#include "c++debug.h"
 #include "Mesh.h"
 #include "packing.h"
-#include "c++debug.h"
 #include "comTools.h"
 
 //#define CREATE_VELOCITY_HALO2 1
