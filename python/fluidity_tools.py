@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-
-from __future__ import print_function
+#!/usr/bin/env python3
 
 import array
 import os
@@ -468,7 +466,7 @@ def petsc_memory_stats(log):
     # after the first line starting with --- up until the first line starting with =====
     # re.DOTALL makes . match newlines as well
     try:
-        memory_profile = re.finditer('Memory usage is given in bytes:.*?\n---[^\n].*?\n(.*?)\n===========', log, re.DOTALL).next().group(1)
+        memory_profile = next(re.finditer('Memory usage is given in bytes:.*?\n---[^\n].*?\n(.*?)\n===========', log, re.DOTALL)).group(1)
     except StopIteration:
         # no memory stats section found (did you run with -log_view ?)
         return None
@@ -476,7 +474,7 @@ def petsc_memory_stats(log):
     stats = {}
     for line in memory_profile.split('\n'):
         try:
-            (object, profile) = re.finditer('(\s.*?)([0-9]+.*)', line).next().groups()
+            (object, profile) = next(re.finditer('(\s.*?)([0-9]+.*)', line)).groups()
         except StopIteration:
             continue
         profile = profile.split()

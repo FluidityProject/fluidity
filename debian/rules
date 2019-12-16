@@ -12,13 +12,13 @@ export prefix=/usr
 export DEB_BUILD_OPTIONS=nostrip
 export PYTHONPATH=
 export FLUIDITY_PYTHON_INSTALL_ARGS=--install-layout=deb
-export PETSC_DIR=/usr/lib/petscdir/3.6.3
+export PETSC_DIR=/usr/lib/petscdir/3.8.3
 # setting this sets the version number reported by ./fluidity --version
 # it also stops the build system trying to use bzr to get a version number
 export FLUIDITY_VERSION=fluidity/4.1
 
 %:
-	dh --with=python2 $@
+	dh --with=python3 $@
 
 override_dh_auto_build:
 	make -j8
@@ -28,3 +28,7 @@ override_dh_auto_configure:
 	./configure --prefix=/usr --enable-2d-adaptivity --datadir=/usr/share --datarootdir=/usr/share --docdir=/usr/share/doc
 
 override_dh_auto_test:
+
+override_dh_shlibdeps:
+	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info
+

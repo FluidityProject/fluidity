@@ -116,7 +116,7 @@ assert abs(attributes_error_2).max() &lt; 1.0e-5
 assert abs(attributes_error_3).max() &lt; 1.0e-5
     </test>
     <test name="Correctattribteserror4" language="python">
-assert sq_error_4 &lt; 1.0e-3
+assert sq_error_4 &lt; 6.0e-3
     </test>
     <test name="Correctattribteserror5" language="python">
 assert abs(attributes_error_5).max() &lt; 1.0e-5

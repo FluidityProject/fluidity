@@ -1,7 +1,7 @@
 pipeline {
     agent { 
         docker {
-            image "fluidity/baseimages:xenial"
+            image "fluidity/baseimages:bionic-python3"
             label 'dockerhost'
         } 
     }
@@ -19,6 +19,8 @@ pipeline {
             steps { 
                 sh 'make -j' ;
                 sh 'make -j fltools' ;
+                sh 'make makefiles' ;
+                sh 'test -z "$(git status --porcelain */Makefile.dependencies)"' ;
                 sh 'make manual'
             }
         }

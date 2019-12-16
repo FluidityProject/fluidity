@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -247,8 +247,8 @@ class Stat:
       for key1 in s.keys():
         assert(not key1 in ["val", "value"])
         if isinstance(s[key1], dict):
-          if len(s[key1].keys()) == 1 and s[key1].keys()[0] in ["val", "value"]:
-            newS[str(key1)] = s[key1][s[key1].keys()[0]]
+          if len(s[key1]) == 1 and ("val" in s[key1] or "value" in s[key1]):
+            newS[str(key1)] = list(s[key1].values())[0]
           else:
             subS = ParseRawS(s[key1], delimiter)
             newS[str(key1)] = {}

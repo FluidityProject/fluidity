@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-from __future__ import print_function
+#!/usr/bin/env python3
 import sys
 import os
 import copy
@@ -10,12 +9,7 @@ import time
 import glob
 import threading
 import traceback
-try:
-  #python2
-  from StringIO import StringIO
-except ImportError:
-  #python3
-  from io import StringIO
+from io import StringIO
 
 try:
     from junit_xml import TestCase

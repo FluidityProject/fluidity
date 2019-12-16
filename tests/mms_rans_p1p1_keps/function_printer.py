@@ -6,7 +6,7 @@ import sys
 
 '''
 run using:
-python function_printer.py AA BB CC DD .. n_rows
+python3 function_printer.py AA BB CC DD .. n_rows
 where:
 	AA, BB, CC, DD are names of functions in mms_keps_p1p1_bouss_tools.py (any number can be entered)
 	n_rows is the number of rows to display the functions on

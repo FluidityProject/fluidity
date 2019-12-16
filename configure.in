@@ -122,14 +122,6 @@ fi
 if $FC -v 2>&1 | grep 'gcc version'; then
   USING_GFORTRAN="yes"
   GFORTRAN_VERSION=$($FC -v 2>&1 | grep 'gcc version' | awk '{print $3}')
-  # test really is so retarded that it can't lexicographically compare strings
-  if test "$(python -c "print(\"$GFORTRAN_VERSION\" >= \"4.5\")")" = "True"; then
-    GFORTRAN_4_5_OR_NEWER="yes"
-    AC_SUBST(GFORTRAN_4_5_OR_NEWER)
-  fi
-  if test "$(python -c "print(\"$GFORTRAN_VERSION\" >= \"4.8\")")" = "True"; then
-    GFORTRAN_4_8_OR_NEWER="yes"
-  fi
 else
   USING_GFORTRAN="no"
 fi
@@ -189,47 +181,38 @@ AC_ARG_ENABLE(python,
 
 if test "x$enable_python" != "xno"
 then
-    AC_MSG_NOTICE([Checking for Python automagic.])
-    AC_LANG_PUSH([C++])
-    AC_LINK_IFELSE(
-        [AC_LANG_PROGRAM([[
-     #include <Python.h>
-                        ]],[[
-                        Py_Initialize();
-                        PyRun_SimpleString("from time import time,ctime\n"
-                            "print 'Today is',ctime(time())\n");
-                        Py_Finalize();
-		        ]])],
-        [
-	    AC_MSG_NOTICE([Python automagic works.])
-	    CPPFLAGS="$CPPFLAGS -DHAVE_PYTHON"],
-        [
-            AC_MSG_NOTICE([No Python automagic.])
-	    search_for_python=yes	    
-        ])
-    AC_LANG_POP([C++])
-    
-    if test "x$search_for_python" == "xyes" ; then
-        mycppflag=$CPPFLAGS
-        AC_PYTHON_DEVEL
-        CPPFLAGS=$mycppflag
-    # Save variables...
-        if test "x$pythonexists" = "xyes";
-        then
-	    if  test "$fcompiler" = "pgf90"; then
-	        PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-Xlinker/}
-	        PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-export-dynamic/}
-	    fi
-      if test "x$enable_debugging" = "xyes"; then
-        export PYTHON_EXTRA_LDFLAGS=$(echo $PYTHON_EXTRA_LDFLAGS | sed -e 's/-O1/-O0/g' -e 's/-O2/-O0/g' -e 's/-O3/-O0/g')
-      fi
-	    LIBS="$LIBS $PYTHON_LIBS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
-	    CXXFLAGS="$CXXFLAGS $PYTHON_CPPFLAGS"
-	    CPPFLAGS="$CPPFLAGS $PYTHON_CPPFLAGS"
-            CFLAGS="$CFLAGS $PYTHON_CPPFLAGS"
+    if test -z "$PYTHON_VERSION"; then
+      # if PYTHON_VERSION is set we use python$PYTHON_VERSION as the python interpreter
+      # if not, if there is no `python` in the path, or there is a `python` but its version is <3
+      # then use `python3` (by setting PETSC_VERSION=3).
+      # If there *is* a `python` of version 3, we use that
+      AC_CHECK_PROG(have_bare_python, python, "yes")
+      if test "x$have_bare_python" = "xyes"; then
+        bare_python_is_two=`python -c "import sys; print(sys.version_info.major < 3)"`
+        if test "x$bare_python_is_two=xTrue"; then
+          PYTHON_VERSION=3
         fi
-    else
-       AC_PATH_PROG([PYTHON],[python[$PYTHON_VERSION]])
+      else
+        PYTHON_VERSION=3
+      fi
+    fi
+    mycppflag=$CPPFLAGS
+    AC_PYTHON_DEVEL([>= '3.6'])
+    CPPFLAGS=$mycppflag
+    # Save variables...
+    if test "x$pythonexists" = "xyes";
+    then
+        if  test "$fcompiler" = "pgf90"; then
+            PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-Xlinker/}
+            PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-export-dynamic/}
+        fi
+        if test "x$enable_debugging" = "xyes"; then
+          export PYTHON_EXTRA_LDFLAGS=$(echo $PYTHON_EXTRA_LDFLAGS | sed -e 's/-O1/-O0/g' -e 's/-O2/-O0/g' -e 's/-O3/-O0/g')
+        fi
+        LIBS="$LIBS $PYTHON_LIBS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
+        CXXFLAGS="$CXXFLAGS $PYTHON_CPPFLAGS"
+        CPPFLAGS="$CPPFLAGS $PYTHON_CPPFLAGS"
+        CFLAGS="$CFLAGS $PYTHON_CPPFLAGS"
     fi
     
     # Additionally check for numpy
@@ -1350,7 +1333,7 @@ elif test -d libjudy ; then
     fi
     # this is a workaround for https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=755099
     if echo "$CFLAGS" | grep -q -- "-O[[2-3]]"; then
-      if test "x$USING_GFORTRAN" = "xyes" -a "x$GFORTRAN_4_8_OR_NEWER" = "xyes" -a "x$USING_CLANG" = "xno"; then
+      if test "x$USING_GFORTRAN" = "xyes" -a "x$USING_CLANG" = "xno"; then
         JUDY_CFLAGS="$JUDY_CFLAGS -fno-aggressive-loop-optimizations"
       fi
     fi

@@ -1,4 +1,4 @@
-#!/usr/bin/nv python
+#!/usr/bin/nv python3
 
 import numpy as np
 import math

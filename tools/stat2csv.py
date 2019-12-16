@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Bibiography:
 #
@@ -10,7 +10,6 @@
 stat to csv convertor for Fluidity output stat files.
 """
 
-from __future__ import print_function
 import getopt
 import os
 import sys

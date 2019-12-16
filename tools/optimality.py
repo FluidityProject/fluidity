@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #    Copyright (C) 2006 Imperial College London and others.
 #
 #    Please see the AUTHORS file in the main source directory for a full list
@@ -26,7 +26,6 @@
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
 
-from __future__ import print_function
 import os.path
 import numpy
 import argparse
