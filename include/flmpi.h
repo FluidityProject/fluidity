@@ -36,9 +36,6 @@
 #if !defined(OMPI_SKIP_MPICXX)
 #  define OMPI_SKIP_MPICXX 1
 #endif
-#if !defined(OMPI_WANT_MPI_INTERFACE_WARNING)
-#  define OMPI_WANT_MPI_INTERFACE_WARNING 0
-#endif
 #include <mpi.h>
 #endif
 
