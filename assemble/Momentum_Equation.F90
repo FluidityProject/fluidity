@@ -1859,7 +1859,7 @@
          if (have_option(trim(u%option_path)//"/prognostic/solver/remove_null_space")) then
             x => extract_vector_field(state(istate), "Coordinate")
             u_positions = get_nodal_coordinate_field(state(istate), u%mesh)
-            call L2_project_nullspace_vector(u, trim(u%option_path)//"/solver/remove_null_space", x, u_positions)
+            call L2_project_nullspace_vector(u, trim(u%option_path)//"/prognostic/solver/remove_null_space", x, u_positions)
             call deallocate(u_positions)
          end if
 

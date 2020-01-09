@@ -2701,6 +2701,9 @@ subroutine get_null_space_component_options(null_space_option_path, mask, rot_ma
      mask = .true.
    else if(have_option(trim(null_space_option_path)//'/no_components')) then
      mask = .false.
+   else
+     ewrite(0,*) "null_space_option_path: ",  null_space_option_path
+     FLAbort("Invalid null_space_option_path")
    end if
 
    if(have_option(trim(null_space_option_path)//'/specify_rotations')) then
@@ -2792,7 +2795,9 @@ subroutine L2_project_nullspace_vector(field, null_space_option_path, coordinate
       ! the rotational null field is basically j and k swapped, with a sign in front of one
       ! while keeping the i component at zero
       ! note that we do not care about the overall sign here, since the L2 projection takes care of that
-      null_field%val(i,:) = 0.
+      if (i<=field%dim) then
+        null_field%val(i,:) = 0.
+      end if
       null_field%val(j,:) = mesh_positions%val(k,:)
       null_field%val(k,:) = -mesh_positions%val(j,:)
       call L2_project_nullmode_vector(field, null_field, coordinates)
