@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+  <Plugin name="Binner" type="operator" label="Binner" version="1.0" enabled="true" mdspecificcode="false" onlyengine="false" noengine="false" iconFile="icon.xpm">
+    <Attribute name="Binner" purpose="Bin particles" persistent="true" exportAPI="" exportInclude="">
+      <Field name="dim1" label="dim1" type="int">
+      </Field>
+      <Field name="dim2" label="dim2" type="int">
+      </Field>
+      <Field name="dim3" label="dim3" type="int">
+      </Field>
+    </Attribute>
+  </Plugin>
