@@ -1,0 +1,13 @@
+## Makefile.am -- process this file with automake to produce Makefile.in
+## authors   - christof kraus
+## modified  - 2008 jan 07, creation, christof kraus
+## objective - automake file for H5PartMerge
+
+#SUBDIRS = src examples
+
+#SUBDIRS = src examples test doc
+CLEANFILES=*~
+bin_PROGRAMS = H5merge
+H5merge_SOURCES  = ./src/H5merge.cpp ./src/optparse.cpp
+
+AM_CPPFLAGS = @AM_CPPFLAGS@
