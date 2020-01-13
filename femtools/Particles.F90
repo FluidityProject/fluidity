@@ -859,6 +859,8 @@ contains
       h5_ierror = h5pt_writedata_r8(detector_list%h5_id, trim(attname), attrib_data(:,i))
     end do attribute_loop
 
+    h5_ierror = h5_flushstep(detector_list%h5_id)
+
     deallocate(node_ids)
     deallocate(attrib_data)
     deallocate(positions)
