@@ -50,6 +50,12 @@ def normal_stress(r, phi):
     tau_rr = 2*nu*(dpsi_dphi/r**2 - dpsi_drdphi/r)
     return tau_rr - p(r,phi)
 
+def normal_stress_cartesian(X, i):
+  # i==0: upper mantle, i==1: lower mantle
+  r = sqrt(X[0]**2+X[1]**2)
+  phi = atan2(X[1], X[0])
+  return normal_stress(r, phi)[i]
+
 def delta_rho(r, phi):
     return r**k * cos(n*phi) / Rp**k
 
