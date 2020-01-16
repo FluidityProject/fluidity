@@ -58,6 +58,12 @@ numpy.testing.assert_almost_equal(u_phi(Rm, 0.), 0.)
 def p(r, phi):
     return (G_pm*r**n + H_pm*r**(-n))*cos(n*phi)
 
+def normal_stress(r, phi):
+    dpsi_dphi = n*cos(n*phi)*(A_pm*r**n + B_pm*r**(-n) + C_pm*r**(n+2) + D_pm*r**(-n+2))
+    dpsi_drdphi = n*cos(n*phi)*(A_pm*n*r**(n-1) + B_pm*-n*r**(-n-1) + C_pm*(n+2)*r**(n+1) + D_pm*(-n+2)*r**(-n+1))
+    tau_rr = 2*nu*(dpsi_dphi/r**2 - dpsi_drdphi/r)
+    return tau_rr - p(r,phi)
+
 def velocity_cartesian(X, i):
   # i==0: upper mantle, i==1: lower mantle
   r = sqrt(X[0]**2+X[1]**2)

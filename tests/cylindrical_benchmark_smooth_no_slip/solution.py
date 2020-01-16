@@ -46,6 +46,12 @@ numpy.testing.assert_almost_equal(u_phi(Rp, 0.), 0.)
 def p(r, phi):
     return (G*r**n + H*r**(-n) + F*r**(k+1))*cos(n*phi)
 
+def normal_stress(r, phi):
+    dpsi_dphi = n*cos(n*phi)*(A_pm*r**n + B_pm*r**(-n) + C_pm*r**(n+2) + D_pm*r**(-n+2))
+    dpsi_drdphi = n*cos(n*phi)*(A_pm*n*r**(n-1) + B_pm*-n*r**(-n-1) + C_pm*(n+2)*r**(n+1) + D_pm*(-n+2)*r**(-n+1))
+    tau_rr = 2*nu*(dpsi_dphi/r**2 - dpsi_drdphi/r)
+    return tau_rr - p(r,phi)
+
 def delta_rho(r, phi):
     return r**k * cos(n*phi) / Rp**k
 
