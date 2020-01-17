@@ -518,6 +518,48 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <scalar_field rank="0" name="VelocityErrorMagnitude">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value type="code" language="python" lines="20">import math
+
+u_error = state.vector_fields["VelocityError"]
+
+# Loop over nodes and calculate magnitude
+for n in range(field.node_count):
+  field.set(n,math.sqrt(u_error.node_val(n)[0]**2 + u_error.node_val(n)[1]**2))</string_value>
+          <depends>
+            <string_value lines="1">VelocityError</string_value>
+          </depends>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <surface_integral name="Top" type="value">
+            <surface_ids>
+              <integer_value rank="1" shape="1">1</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral name="Bottom" type="value">
+            <surface_ids>
+              <integer_value rank="1" shape="1">2</integer_value>
+            </surface_ids>
+          </surface_integral>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
     <scalar_field rank="0" name="NormalStress">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
