@@ -788,7 +788,7 @@ contains
            ! Surface l2norms
            do j = 0, option_count(trim(complete_field_path(vfield%option_path, stat = stat)) // "/stat/surface_l2norm") - 1
              call get_option(trim(complete_field_path(vfield%option_path)) &
-             // "/stat/surface_integral[" // int2str(j) // "]/name", surface_integral_name)
+             // "/stat/surface_l2norm[" // int2str(j) // "]/name", surface_integral_name)
              column = column + 1
              buffer = field_tag(vfield%name, column, "surface_l2norm%" // trim(surface_integral_name), material_phase_name)
              write(default_stat%diag_unit, "(a)") trim(buffer)
