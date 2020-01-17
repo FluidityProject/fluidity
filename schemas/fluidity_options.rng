@@ -4435,6 +4435,9 @@ iteration in the .stat file.</a:documentation>
       <ref name="surface_integral_stats_scalar"/>
     </zeroOrMore>
     <zeroOrMore>
+      <ref name="surface_l2norm_stats"/>
+    </zeroOrMore>
+    <zeroOrMore>
       <ref name="mixing_stats"/>
     </zeroOrMore>
   </define>
@@ -4565,6 +4568,9 @@ IN PROGRESS - Does not include all terms!</a:documentation>
     <ref name="vector_field_stat_options_enabled_default"/>
     <zeroOrMore>
       <ref name="surface_integral_stats_vector"/>
+    </zeroOrMore>
+    <zeroOrMore>
+      <ref name="surface_l2norm_stats"/>
     </zeroOrMore>
   </define>
   <!-- Combining of stat elements for tensor fields -->
@@ -8006,6 +8012,12 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
     <attribute name="type">
       <value>normal</value>
     </attribute>
+  </define>
+  <define name="surface_l2norm_stats">
+    <element name="surface_l2norm">
+      <a:documentation>Calculate L2-norm of field over the specified surface</a:documentation>
+      <ref name="surface_integral_stats_base.surface_integral"/>
+    </element>
   </define>
   <define name="forcing">
     <element name="ocean_forcing">

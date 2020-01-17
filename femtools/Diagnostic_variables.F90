@@ -714,6 +714,15 @@ contains
               buffer = field_tag(sfield%name, column, "surface_integral%" // trim(surface_integral_name), material_phase_name)
               write(default_stat%diag_unit, "(a)") trim(buffer)
            end do
+
+            ! Surface l2norms
+            do j = 0, option_count(trim(complete_field_path(sfield%option_path, stat = stat)) // "/stat/surface_l2norm") - 1
+              call get_option(trim(complete_field_path(sfield%option_path)) &
+              // "/stat/surface_l2norm[" // int2str(j) // "]/name", surface_integral_name)
+              column = column + 1
+              buffer = field_tag(sfield%name, column, "surface_l2norm%" // trim(surface_integral_name), material_phase_name)
+              write(default_stat%diag_unit, "(a)") trim(buffer)
+           end do
            
          end do
 
@@ -773,6 +782,15 @@ contains
              // "/stat/surface_integral[" // int2str(j) // "]/name", surface_integral_name)
              column = column + 1
              buffer = field_tag(vfield%name, column, "surface_integral%" // trim(surface_integral_name), material_phase_name)
+             write(default_stat%diag_unit, "(a)") trim(buffer)
+           end do
+
+           ! Surface l2norms
+           do j = 0, option_count(trim(complete_field_path(vfield%option_path, stat = stat)) // "/stat/surface_l2norm") - 1
+             call get_option(trim(complete_field_path(vfield%option_path)) &
+             // "/stat/surface_integral[" // int2str(j) // "]/name", surface_integral_name)
+             column = column + 1
+             buffer = field_tag(vfield%name, column, "surface_l2norm%" // trim(surface_integral_name), material_phase_name)
              write(default_stat%diag_unit, "(a)") trim(buffer)
            end do
 
@@ -1915,7 +1933,7 @@ contains
     logical, intent(in), optional :: not_to_move_det_yet 
 
     character(len = 2 + real_format_len(padding = 1) + 1) :: format, format2, format3, format4
-    character(len = OPTION_PATH_LEN) :: func
+    character(len = OPTION_PATH_LEN) :: func, option_path
     integer :: i, j, k, phase, stat
     integer, dimension(2) :: shape_option
     integer :: nodes, elements, surface_elements
@@ -2050,8 +2068,19 @@ contains
           end do
          
          ! Surface integrals
-         do j = 0, option_count(trim(complete_field_path(sfield%option_path, stat = stat)) // "/stat/surface_integral") - 1
-           surface_integral = calculate_surface_integral(sfield, xfield, j)
+         option_path = trim(complete_field_path(sfield%option_path, stat = stat)) // "/stat/surface_integral"
+         do j = 0, option_count(option_path) - 1
+           surface_integral = calculate_surface_integral(sfield, xfield, trim(option_path)//"["//int2str(j)//"]")
+           ! Only the first process should write statistics information
+           if(getprocno() == 1) then
+             write(default_stat%diag_unit, trim(format), advance = "no") surface_integral
+           end if
+         end do
+
+         ! Surface l2norms
+         option_path = trim(complete_field_path(sfield%option_path, stat = stat)) // "/stat/surface_l2norm"
+         do j = 0, option_count(option_path) - 1
+           surface_integral = calculate_surface_l2norm(sfield, xfield, trim(option_path)//"["//int2str(j)//"]")
            ! Only the first process should write statistics information
            if(getprocno() == 1) then
              write(default_stat%diag_unit, trim(format), advance = "no") surface_integral
@@ -2094,8 +2123,19 @@ contains
          end if
          
          ! Surface integrals
-         do j = 0, option_count(trim(complete_field_path(vfield%option_path, stat = stat)) // "/stat/surface_integral") - 1
-           surface_integral = calculate_surface_integral(vfield, xfield, j)
+         option_path = trim(complete_field_path(vfield%option_path, stat = stat)) // "/stat/surface_integral"
+         do j = 0, option_count(option_path) - 1
+           surface_integral = calculate_surface_integral(vfield, xfield, trim(option_path)//"["//int2str(j)//"]")
+           ! Only the first process should write statistics information
+           if(getprocno() == 1) then
+             write(default_stat%diag_unit, trim(format), advance = "no") surface_integral
+           end if
+         end do
+
+         ! Surface l2norms
+         option_path = trim(complete_field_path(vfield%option_path, stat = stat)) // "/stat/surface_l2norm"
+         do j = 0, option_count(option_path) - 1
+           surface_integral = calculate_surface_l2norm(vfield, xfield, trim(option_path)//"["//int2str(j)//"]")
            ! Only the first process should write statistics information
            if(getprocno() == 1) then
              write(default_stat%diag_unit, trim(format), advance = "no") surface_integral

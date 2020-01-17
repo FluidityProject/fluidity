@@ -3392,6 +3392,7 @@ prognostic_scalar_stat_no_old_or_nonlinear_options.stat =
       exclude_stat?,
       cv_stats?,
       surface_integral_stats_scalar*,
+      surface_l2norm_stats*,
       mixing_stats*
    )   
    
@@ -3490,7 +3491,8 @@ prognostic_velocity_stat_options.stat &=
 prognostic_vector_stat_no_old_or_nonlinear_options.stat =
    (
       vector_field_stat_options_enabled_default,
-      surface_integral_stats_vector*
+      surface_integral_stats_vector*,
+      surface_l2norm_stats*
    )
 
 # Combining of stat elements for tensor fields
@@ -6408,6 +6410,13 @@ surface_integral_stats_vector.surface_integral &=
       attribute type { "normal" }
    )
 
+surface_l2norm_stats =
+   (
+      ## Calculate L2-norm of field over the specified surface
+      element surface_l2norm {
+         surface_integral_stats_base.surface_integral
+      }
+   )
 
 forcing =
   (
