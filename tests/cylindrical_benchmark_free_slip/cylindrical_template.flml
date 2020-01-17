@@ -109,7 +109,6 @@
     <mesh name="StrainRateMesh">
       <from_mesh>
         <mesh name="ExtrudedMesh"/>
-        <mesh_shape/>
         <mesh_continuity>
           <string_value>discontinuous</string_value>
         </mesh_continuity>
@@ -705,7 +704,9 @@ for i in range(field.node_count):
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="StrainRateMesh"/>
-        <output/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
         <stat>
           <include_in_stat/>
         </stat>
