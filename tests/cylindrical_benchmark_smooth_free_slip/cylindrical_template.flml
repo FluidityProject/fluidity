@@ -391,7 +391,7 @@
     <scalar_field rank="0" name="AnalyticalPressure">
       <prescribed>
         <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
+        <value name="StrainRateMesh">
           <python>
             <string_value type="code" language="python" lines="20">def val(X,t):
   import solution
@@ -410,8 +410,8 @@
     </scalar_field>
     <scalar_field rank="0" name="PressureError">
       <diagnostic>
-        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="PressureRemeaned" source_field_1_type="scalar" source_field_2_name="AnalyticalPressure" source_field_2_type="scalar"/>
-        <mesh name="PressureMesh"/>
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="PressureRemeanedDG" source_field_1_type="scalar" source_field_2_name="AnalyticalPressure" source_field_2_type="scalar"/>
+        <mesh name="StrainRateMesh"/>
         <output/>
         <stat>
           <surface_integral name="Top" type="value">
@@ -544,16 +544,16 @@ for i in range(field.node_count):
         <mesh name="StrainRateMesh"/>
         <output/>
         <stat>
-          <surface_integral name="Top" type="value">
+          <surface_l2norm name="Top">
             <surface_ids>
               <integer_value rank="1" shape="1">1</integer_value>
             </surface_ids>
-          </surface_integral>
-          <surface_integral name="Bottom" type="value">
+          </surface_l2norm>
+          <surface_l2norm name="Bottom">
             <surface_ids>
               <integer_value rank="1" shape="1">2</integer_value>
             </surface_ids>
-          </surface_integral>
+          </surface_l2norm>
         </stat>
         <convergence>
           <include_in_convergence/>
@@ -615,6 +615,16 @@ for i in range(field.node_count):
         <output/>
         <stat>
           <include_in_stat/>
+          <surface_l2norm name="Top">
+            <surface_ids>
+              <integer_value rank="1" shape="1">1</integer_value>
+            </surface_ids>
+          </surface_l2norm>
+          <surface_l2norm name="Bottom">
+            <surface_ids>
+              <integer_value rank="1" shape="1">2</integer_value>
+            </surface_ids>
+          </surface_l2norm>
         </stat>
         <convergence>
           <include_in_convergence/>
@@ -631,7 +641,9 @@ for i in range(field.node_count):
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="StrainRateMesh"/>
-        <output/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
         <stat>
           <include_in_stat/>
         </stat>
