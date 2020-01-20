@@ -1664,7 +1664,7 @@ contains
 
 
     ! Jacobian matrix and its inverse.
-    real, dimension(X%dim,X%dim-1) :: J
+    real, dimension(X%dim, mesh_dim(X)-1) :: J
     ! Determinant of J
     real :: detJ
     ! Whether the cache can be used
