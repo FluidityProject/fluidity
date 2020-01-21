@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-  <name>cylindrical_benchmark_freeslip</name>
+  <name>cylindrical_benchmark_noslip</name>
   <owner userid="skramer"/>
   <problem_definition length="medium" nprocs="1">
     <command_line>for i in A B C; do
