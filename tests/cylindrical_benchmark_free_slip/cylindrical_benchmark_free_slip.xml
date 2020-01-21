@@ -3,32 +3,116 @@
   <name>cylindrical_benchmark_freeslip</name>
   <owner userid="skramer"/>
   <problem_definition length="medium" nprocs="1">
-    <command_line>for i in A B C D; do
+    <command_line>for i in A B C; do
   fluidity -v2 -l cylindrical_${i}.flml;
 done</command_line>
   </problem_definition>
   <variables>
-    <variable name="finish_time_a" language="python">from fluidity_tools import stat_parser as stat
+    <variable name="ab_volume_convergence_vel" language="python">import calculate_convergence as cc
+file_coarse = "cylindrical_A.stat"
+file_fine = "cylindrical_B.stat"
+ab_volume_convergence_vel = cc.velocity_convergence(file_coarse,file_fine)
+    </variable>
 
-file1 = "viscous_fs_zhong_A.stat"
+    <variable name="bc_volume_convergence_vel" language="python">import calculate_convergence as cc
+file_coarse = "cylindrical_B.stat"
+file_fine = "cylindrical_C.stat"
+bc_volume_convergence_vel = cc.velocity_convergence(file_coarse,file_fine)
+    </variable>
 
-finish_time_a = stat(file1)["ElapsedTime"]["value"][-1]</variable>
-    <variable name="ab_convergence_fs" language="python">import calculate_order_zhong_spatial as calculate_order
+    <variable name="ab_surface_convergence_vel" language="python">import calculate_convergence as cc
+file_coarse = "cylindrical_A.stat"
+file_fine = "cylindrical_B.stat"
+ab_surface_convergence_vel = cc.surface_velocity_convergence(file_coarse,file_fine)
+    </variable>
 
-file1 = "viscous_fs_zhong_A.stat"
-file2 = "viscous_fs_zhong_B.stat"
+    <variable name="bc_surface_convergence_vel" language="python">import calculate_convergence as cc
+file_coarse = "cylindrical_B.stat"
+file_fine = "cylindrical_C.stat"
+bc_surface_convergence_vel = cc.surface_velocity_convergence(file_coarse,file_fine)
+    </variable>
 
-ab_convergence_fs = calculate_order.report_convergence(file1, file2)</variable>
-    <variable name="finish_time_b" language="python">from fluidity_tools import stat_parser as stat
+    <variable name="ab_CMB_convergence_vel" language="python">import calculate_convergence as cc
+file_coarse = "cylindrical_A.stat"
+file_fine = "cylindrical_B.stat"
+ab_CMB_convergence_vel = cc.CMB_velocity_convergence(file_coarse,file_fine)
+    </variable>
 
-file1 = "viscous_fs_zhong_B.stat"
+    <variable name="bc_CMB_convergence_vel" language="python">import calculate_convergence as cc
+file_coarse = "cylindrical_B.stat"
+file_fine = "cylindrical_C.stat"
+bc_CMB_convergence_vel = cc.CMB_velocity_convergence(file_coarse,file_fine)
+    </variable>
 
-finish_time_b = stat(file1)["ElapsedTime"]["value"][-1]</variable>
+    <variable name="ab_volume_convergence_pressure" language="python">import calculate_convergence as cc
+file_coarse = "cylindrical_A.stat"
+file_fine = "cylindrical_B.stat"
+ab_volume_convergence_pressure = cc.pressure_convergence(file_coarse,file_fine)
+    </variable>
+
+    <variable name="bc_volume_convergence_pressure" language="python">import calculate_convergence as cc
+file_coarse = "cylindrical_B.stat"
+file_fine = "cylindrical_C.stat"
+bc_volume_convergence_pressure = cc.pressure_convergence(file_coarse,file_fine)
+    </variable>
+
+    <variable name="ab_volume_convergence_ns" language="python">import calculate_convergence as cc
+file_coarse = "cylindrical_A.stat"
+file_fine = "cylindrical_B.stat"
+ab_volume_convergence_ns = cc.normalstress_convergence(file_coarse,file_fine)
+    </variable>
+
+    <variable name="bc_volume_convergence_ns" language="python">import calculate_convergence as cc
+file_coarse = "cylindrical_B.stat"
+file_fine = "cylindrical_C.stat"
+bc_volume_convergence_ns = cc.normalstress_convergence(file_coarse,file_fine)
+    </variable>
+
+    <variable name="ab_surface_convergence_ns" language="python">import calculate_convergence as cc
+file_coarse = "cylindrical_A.stat"
+file_fine = "cylindrical_B.stat"
+ab_surface_convergence_ns = cc.surface_normalstress_convergence(file_coarse,file_fine)
+    </variable>
+
+    <variable name="bc_surface_convergence_ns" language="python">import calculate_convergence as cc
+file_coarse = "cylindrical_B.stat"
+file_fine = "cylindrical_C.stat"
+bc_surface_convergence_ns = cc.surface_normalstress_convergence(file_coarse,file_fine)
+    </variable>
+
+    <variable name="ab_CMB_convergence_ns" language="python">import calculate_convergence as cc
+file_coarse = "cylindrical_A.stat"
+file_fine = "cylindrical_B.stat"
+ab_CMB_convergence_ns = cc.CMB_normalstress_convergence(file_coarse,file_fine)
+    </variable>
+
+    <variable name="bc_CMB_convergence_ns" language="python">import calculate_convergence as cc
+file_coarse = "cylindrical_B.stat"
+file_fine = "cylindrical_C.stat"
+bc_CMB_convergence_ns = cc.CMB_normalstress_convergence(file_coarse,file_fine)
+    </variable>
+
+
   </variables>
+
   <pass_tests>
-    <test name="afinish" language="python">assert(finish_time_a&gt;64.0)</test>
-    <test name="bfinish" language="python">assert(finish_time_b&gt;64.0)</test>
-    <test name="abtop" language="python">assert(ab_convergence_fs[0]&gt;1.95)</test>
-    <test name="abbot" language="python">assert(ab_convergence_fs[1]&gt;1.95)</test>
+    <test name="abvolume_vel" language="python">assert( abs(ab_volume_convergence_vel -1.5) &lt; 0.1)</test>
+    <test name="bcvolume_vel" language="python">assert( abs(bc_volume_convergence_vel -1.5) &lt; 0.1)</test>
+    <test name="absurface_vel" language="python">assert( abs(ab_surface_convergence_vel -3.0) &lt; 0.8)</test>
+    <test name="bcsurface_vel" language="python">assert( abs(bc_surface_convergence_vel -3.0) &lt; 0.1)</test>
+    <test name="abCMB_vel" language="python">assert( abs(ab_CMB_convergence_vel -3.0) &lt; 0.8)</test>
+    <test name="bcCMB_vel" language="python">assert( abs(bc_CMB_convergence_vel -3.0) &lt; 0.1)</test>
+
+    <test name="abvolume_pressure" language="python">assert( abs(ab_volume_convergence_pressure -0.5) &lt; 0.02)</test>
+    <test name="bcvolume_pressure" language="python">assert( abs(bc_volume_convergence_pressure -0.5) &lt; 0.02)</test>
+
+    <test name="abvolume_ns" language="python">assert( abs(ab_volume_convergence_ns -0.5) &lt; 0.1)</test>
+    <test name="bcvolume_ns" language="python">assert( abs(bc_volume_convergence_ns -0.5) &lt; 0.1)</test>
+    <test name="absurface_ns" language="python">assert( abs(ab_surface_convergence_ns -2.0) &lt; 0.8)</test>
+    <test name="bcsurface_ns" language="python">assert( abs(bc_surface_convergence_ns -2.0) &lt; 0.1)</test>
+    <test name="abCMB_ns" language="python">assert( abs(ab_CMB_convergence_ns -2.0) &lt; 0.8)</test>
+    <test name="bcCMB_ns" language="python">assert( abs(bc_CMB_convergence_ns -2.0) &lt; 0.1)</test>
+
   </pass_tests>
+
 </testproblem>
