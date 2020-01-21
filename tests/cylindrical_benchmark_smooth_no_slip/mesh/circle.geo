@@ -1,4 +1,4 @@
-lti = 3*N; // number of cells per Pi/4 section
+lti = 64*N; // number of cells per Pi/4 section
 Point(1) = {2.22, 0, 0, 1.0};
 Extrude {{0, 0, 1}, {0, 0, 0}, Pi/4} {
   Point{1};
