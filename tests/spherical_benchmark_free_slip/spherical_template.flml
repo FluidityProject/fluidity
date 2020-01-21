@@ -554,6 +554,81 @@ for i in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <scalar_field rank="0" name="AnalyticalNormalStress">
+      <prescribed>
+        <mesh name="StrainRateMesh"/>
+        <value name="TopHalf">
+          <region_ids>
+            <integer_value rank="1" shape="1">1</integer_value>
+          </region_ids>
+          <python>
+            <string_value type="code" language="python" lines="20">def val(X,t):
+  import solution
+  return solution.normal_stress_cartesian(X, 0)</string_value>
+          </python>
+        </value>
+        <value name="BottomHalf">
+          <region_ids>
+            <integer_value rank="1" shape="1">2</integer_value>
+          </region_ids>
+          <python>
+            <string_value type="code" language="python" lines="20">def val(X,t):
+  import solution
+  return solution.normal_stress_cartesian(X, 1)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <surface_l2norm name="Top">
+            <surface_ids>
+              <integer_value rank="1" shape="1">1</integer_value>
+            </surface_ids>
+          </surface_l2norm>
+          <surface_l2norm name="Bottom">
+            <surface_ids>
+              <integer_value rank="1" shape="1">2</integer_value>
+            </surface_ids>
+          </surface_l2norm>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+      </prescribed>
+    </scalar_field>
+    <scalar_field rank="0" name="NormalStressError">
+      <diagnostic>
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="NormalStress" source_field_1_type="scalar" source_field_2_name="AnalyticalNormalStress" source_field_2_type="scalar"/>
+        <mesh name="StrainRateMesh"/>
+        <output/>
+        <stat>
+          <surface_l2norm name="Top">
+            <surface_ids>
+              <integer_value rank="1" shape="1">1</integer_value>
+            </surface_ids>
+          </surface_l2norm>
+          <surface_l2norm name="Bottom">
+            <surface_ids>
+              <integer_value rank="1" shape="1">2</integer_value>
+            </surface_ids>
+          </surface_l2norm>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
     <scalar_field rank="0" name="PressureRemeanedDG">
       <diagnostic>
         <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="PressureRemeaned" source_field_type="scalar"/>
