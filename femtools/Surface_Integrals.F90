@@ -870,7 +870,7 @@ contains
     real :: integral
     
     character(len = real_format_len() + 4) :: format_buffer
-    character(len = FIELD_NAME_LEN) :: integral_name, integral_type
+    character(len = FIELD_NAME_LEN) :: integral_name
     integer, dimension(2) :: shape
     integer, dimension(:), allocatable :: surface_ids
     logical :: normalise
@@ -896,9 +896,9 @@ contains
     
     call get_option(trim(option_path) // "/name", integral_name)
     if(normalise) then
-      ewrite(2, *) "Normalised surface l2norm of type " // trim(integral_type) // " for field " // trim(s_field%name) // ":"
+      ewrite(2, *) "Normalised surface l2norm of field " // trim(s_field%name) // ":"
     else
-      ewrite(2, *) "Surface l2norm of type " // trim(integral_type) // " for field " // trim(s_field%name) // ":"
+      ewrite(2, *) "Surface l2norm of field " // trim(s_field%name) // ":"
     end if
     format_buffer = "(a," // real_format() // ")"
     ewrite(2, format_buffer) trim(integral_name) // " = ", integral
@@ -916,7 +916,7 @@ contains
     real :: integral
     
     character(len = real_format_len() + 4) :: format_buffer
-    character(len = FIELD_NAME_LEN) :: integral_name, integral_type
+    character(len = FIELD_NAME_LEN) :: integral_name
     integer, dimension(2) :: shape
     integer, dimension(:), allocatable :: surface_ids
     logical :: normalise
@@ -942,9 +942,9 @@ contains
     
     call get_option(trim(option_path) // "/name", integral_name)
     if(normalise) then
-      ewrite(2, *) "Normalised surface integral of type " // trim(integral_type) // " for field " // trim(v_field%name) // ":"
+      ewrite(2, *) "Normalised surface integral of field " // trim(v_field%name) // ":"
     else
-      ewrite(2, *) "Surface integral of type " // trim(integral_type) // " for field " // trim(v_field%name) // ":"
+      ewrite(2, *) "Surface integral of field " // trim(v_field%name) // ":"
     end if
     format_buffer = "(a," // real_format() // ")"
     ewrite(2, format_buffer) trim(integral_name) // " = ", integral
