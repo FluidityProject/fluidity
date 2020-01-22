@@ -152,4 +152,4 @@ def normal_stress_cartesian(X, i):
     r = sqrt(X[0]**2+X[1]**2+X[2]**2)
     theta = acos(X[2]/r)
     phi = atan2(X[1], X[0])
-    return tau_rr(r, theta, phi)[i]
+    return tau_rr(r, theta, phi)[i] - pressure(r, theta, phi)[i]
