@@ -63,7 +63,14 @@ contains
     if (have_option(trim(option_path) // "/dump_period")) then
       ! dump period isn't set, or dump period has elapsed since the last time there was a dump
 
-      if (CS%real_dump_period == 0.0 .or. dump_count_greater(current_time, CS%last_dump_time, CS%real_dump_period)) then
+      ! avoid division by zero due to non-short-circuiting operator
+      if (CS%real_dump_period == 0.0) then
+        should_output = .true.
+      else if (dump_count_greater(current_time, CS%last_dump_time, CS%real_dump_period)) then
+        should_output = .true.
+      end if
+
+      if (should_output) then
         if (have_option(trim(option_path) // "/dump_period/constant")) then
           call get_option(trim(option_path) // "/dump_period/constant", CS%real_dump_period)
         else if (have_option(trim(option_path) // "/dump_period/python")) then
@@ -77,7 +84,6 @@ contains
           FLExit("Dump period cannot be negative.")
         end if
 
-        should_output = .true.
         return
       end if
     end if
@@ -85,7 +91,13 @@ contains
     if (have_option(trim(option_path) // "/dump_period_in_timesteps")) then
       ! timestep dump period isn't set, or the required number of timesteps has passed since the last dump
 
-      if (CS%int_dump_period == 0 .or. mod(timestep, CS%int_dump_period) == 0) then
+      if (CS%int_dump_period == 0) then
+        should_output = .true.
+      else if (mod(timestep, CS%int_dump_period) == 0) then
+        should_output = .true.
+      end if
+
+      if (should_output) then
         if (have_option(trim(option_path) // "/dump_period_in_timesteps/constant")) then
           call get_option(trim(option_path) // "/dump_period_in_timesteps/constant", CS%int_dump_period)
         else if (have_option(trim(option_path) // "/dump_period_in_timesteps/python")) then
@@ -99,7 +111,6 @@ contains
           FLExit("Dump period cannot be negative.")
         end if
 
-        should_output = .true.
         return
       end if
     end if
@@ -115,7 +126,10 @@ contains
     call allmax(current_cpu_time)
     call get_option(trim(option_path) // "/cpu_dump_period", CS%real_dump_period, stat)
     if (stat == SPUD_NO_ERROR) then
-      if (CS%real_dump_period == 0.0 .or. dump_count_greater(current_cpu_time, CS%last_dump_cpu_time, CS%real_dump_period)) then
+      if (CS%real_dump_period == 0.0) then
+        should_output = .true.
+        return
+      else if (dump_count_greater(current_cpu_time, CS%last_dump_cpu_time, CS%real_dump_period)) then
         should_output = .true.
         return
       end if
@@ -125,7 +139,10 @@ contains
     call allmax(current_wall_time)
     call get_option(trim(option_path) // "/wall_time_dump_period", CS%real_dump_period, stat)
     if (stat == SPUD_NO_ERROR) then
-      if (CS%real_dump_period == 0.0 .or. dump_count_greater(current_wall_time, CS%last_dump_wall_time, CS%real_dump_period)) then
+      if (CS%real_dump_period == 0.0) then
+        should_output = .true.
+        return
+      else if (dump_count_greater(current_wall_time, CS%last_dump_wall_time, CS%real_dump_period)) then
         should_output = .true.
         return
       end if
