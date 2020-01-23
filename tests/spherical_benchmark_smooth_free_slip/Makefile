@@ -1,5 +1,5 @@
 input:
-	N=1; for i in A B C D E F; do \
+	N=1; for i in A B C D E F G; do \
 	  python icosahedral_gmsh.py icosahedron_$${i} 2.22 $${N}; N=$$(($${N}+1)); \
 	  sed "s/_TEMPLATE/_$${i}/" spherical_template.flml > spherical_$${i}.flml; \
 	done
@@ -8,8 +8,11 @@ input:
 	spud-set spherical_C.flml "/geometry/mesh::ExtrudedMesh/from_mesh/extrude/layer::WholeDepth/regions::WholeMesh/sizing_function/constant" 0.0625
 	spud-set spherical_D.flml "/geometry/mesh::ExtrudedMesh/from_mesh/extrude/layer::WholeDepth/regions::WholeMesh/sizing_function/constant" 0.03125
 	spud-set spherical_E.flml "/geometry/mesh::ExtrudedMesh/from_mesh/extrude/layer::WholeDepth/regions::WholeMesh/sizing_function/constant" 0.015625
+	spud-set spherical_F.flml "/geometry/mesh::ExtrudedMesh/from_mesh/extrude/layer::WholeDepth/regions::WholeMesh/sizing_function/constant" 0.0078125
+	spud-set spherical_G.flml "/geometry/mesh::ExtrudedMesh/from_mesh/extrude/layer::WholeDepth/regions::WholeMesh/sizing_function/constant" 0.00390625
 
 clean:
 	rm -rf spherical_[A-Z].*
 	rm -rf fluidity.* *.msh *.vtu
 	rm -rf matrixdump*
+	rm -rf *pycache*

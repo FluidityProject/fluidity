@@ -23,3 +23,4 @@ clean:
 	rm -rf spherical_[A-Z].*
 	rm -rf fluidity.* *.msh *.vtu
 	rm -rf matrixdump*
+	rm -rf *pycache*
