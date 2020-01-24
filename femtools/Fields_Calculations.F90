@@ -370,16 +370,16 @@ implicit none
     type(vector_field), intent(in) :: X
 
     integer :: ele
-    real, dimension(X%mesh%shape%loc) :: ones
 
     integral=0
-    
-    ones = 1.0
-
     do ele=1, element_count(X)
-       integral=integral &
-            +element_volume(X, ele)
+       if (element_owned(X, ele)) then
+         integral = integral + element_volume(X, ele)
+        end if
     end do
+
+    call allsum(integral)
+
   end function mesh_integral
 
   subroutine field_stats_scalar(field, X, min, max, norm2, integral)
