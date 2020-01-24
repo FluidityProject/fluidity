@@ -204,7 +204,7 @@
               <iterative_method name="cg"/>
               <preconditioner name="gamg"/>
               <relative_error>
-                <real_value rank="0">1e-10</real_value>
+                <real_value rank="0">1e-12</real_value>
               </relative_error>
               <max_iterations>
                 <integer_value rank="0">1000</integer_value>
@@ -217,7 +217,7 @@
             </solver>
           </preconditioner>
           <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0e-10</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
@@ -254,13 +254,7 @@
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
         <output/>
-        <stat>
-          <surface_integral name="InteriorSurface" type="value">
-            <surface_ids>
-              <integer_value rank="1" shape="1">3</integer_value>
-            </surface_ids>
-          </surface_integral>
-        </stat>
+        <stat/>
         <convergence>
           <exclude_from_convergence/>
         </convergence>
@@ -313,7 +307,7 @@
           <iterative_method name="cg"/>
           <preconditioner name="gamg"/>
           <relative_error>
-            <real_value rank="0">1e-10</real_value>
+            <real_value rank="0">1e-12</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
@@ -400,8 +394,8 @@
         <value name="WholeMesh">
           <python>
             <string_value type="code" language="python" lines="20">def val(X,t):
-    import solution
-    return solution.pressure_cartesian(X)</string_value>
+  import solution
+  return solution.pressure_cartesian(X)</string_value>
           </python>
         </value>
         <output/>
@@ -445,26 +439,6 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field rank="0" name="Temperature">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value type="code" language="python" lines="20">def val(X,t):
-    import solution
-    return -solution.delta_rho_cartesian(X)</string_value>
-          </python>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
-      </prescribed>
-    </scalar_field>
     <scalar_field rank="0" name="PressureRemeaned">
       <diagnostic>
         <algorithm name="subtract_average" material_phase_support="single" source_field_name="Pressure" source_field_type="scalar"/>
@@ -484,6 +458,28 @@
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
+    </scalar_field>
+    <scalar_field rank="0" name="Temperature">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="code" language="python" lines="20">def val(X,t):
+  import solution
+  # NOTE: assuming thermal expansion coefficient and ref. density of 1
+  # need a minus sign as rho'=-alpha*rho0*T
+  return -solution.delta_rho_cartesian(X)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+      </prescribed>
     </scalar_field>
     <scalar_field rank="0" name="NormalStress">
       <diagnostic>
