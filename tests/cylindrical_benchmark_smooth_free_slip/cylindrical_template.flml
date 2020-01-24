@@ -390,8 +390,8 @@
     </vector_field>
     <scalar_field rank="0" name="AnalyticalPressure">
       <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="StrainRateMesh">
+        <mesh name="StrainRateMesh"/>
+        <value name="WholeMesh">
           <python>
             <string_value type="code" language="python" lines="20">def val(X,t):
   import solution
