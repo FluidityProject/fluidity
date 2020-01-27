@@ -46,18 +46,18 @@ class StatplotWindow(Gtk.Window):
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_title(statfile[-1])
         self.statfile = statfile
-        self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        self.vbox.set_homogeneous(False)
-        self.add(self.vbox)
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        vbox.set_homogeneous(False)
+        self.add(vbox)
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         hbox.set_homogeneous(True)
-        self.vbox.pack_end(hbox, False, False, 0)
+        vbox.pack_end(hbox, False, False, 0)
         self.entries, self.values = self.ReadData()
-        self.store = Gtk.ListStore.new([str])
+        store = Gtk.ListStore.new([str])
         for entry in self.entries:
-            self.store.append([entry])
-        self.xCombo = Gtk.ComboBox.new_with_model_and_entry(self.store)
-        self.yCombo = Gtk.ComboBox.new_with_model_and_entry(self.store)
+            store.append([entry])
+        self.xCombo = Gtk.ComboBox.new_with_model_and_entry(store)
+        self.yCombo = Gtk.ComboBox.new_with_model_and_entry(store)
         self.ComboParams(self.xCombo)
         self.ComboParams(self.yCombo)
         self.InitCombo('load')
@@ -73,11 +73,11 @@ class StatplotWindow(Gtk.Window):
         self.ax = self.fig.gca()
         self.canvas = FigureCanvas(self.fig)
         self.canvas.set_can_focus(True)
-        self.vbox.pack_start(self.canvas, True, True, 0)
+        vbox.pack_start(self.canvas, True, True, 0)
         self.PlotType = 'line'
         self.PlotData('create', self.PlotType, 'linear', 'linear')
         self.toolbar = NavigationToolbar(self.canvas, self)
-        self.vbox.pack_start(self.toolbar, False, False, 0)
+        vbox.pack_start(self.toolbar, False, False, 0)
 
     def ComboChanged(self, combo_box):
         activeText = combo_box.get_child().get_text()
@@ -95,39 +95,39 @@ class StatplotWindow(Gtk.Window):
 
     def FormatAxis(self, ax2fmt, scale):
         if ax2fmt == 'x':
-            self.set_scale = self.ax.set_xscale
-            self.axis = self.ax.xaxis
-            self.Data = self.xData
+            setScale = self.ax.set_xscale
+            curAxis = self.ax.xaxis
+            curData = self.xData
         elif ax2fmt == 'y':
-            self.set_scale = self.ax.set_yscale
-            self.axis = self.ax.yaxis
-            self.Data = self.yData
-        self.set_scale(scale)
+            setScale = self.ax.set_yscale
+            curAxis = self.ax.yaxis
+            curData = self.yData
+        setScale(scale)
         if scale == 'linear':
             self.ax.ticklabel_format(style='sci', axis=ax2fmt,
                                      scilimits=(0, 0), useMathText=True)
-            self.axis.set_minor_locator(tck.AutoMinorLocator())
+            curAxis.set_minor_locator(tck.AutoMinorLocator())
             self.ax.relim()
             self.ax.autoscale(True, ax2fmt, None)
         elif scale == 'log':
-            self.axis.set_minor_locator(
+            curAxis.set_minor_locator(
                 tck.LogLocator(subs=numpy.arange(2, 10)))
             logFmt = tck.LogFormatterSciNotation(base=10,
                                                  labelOnlyBase=False,
                                                  minor_thresholds=(4, 1))
-            self.axis.set_minor_formatter(logFmt)
+            curAxis.set_minor_formatter(logFmt)
             self.ax.relim()
             self.ax.autoscale(True, ax2fmt, None)
         elif scale == 'symlog':
-            axMin = min(abs(self.Data[self.Data != 0]))
-            axMax = max(abs(self.Data))
+            axMin = min(abs(curData[curData != 0]))
+            axMax = max(abs(curData))
             axRange = numpy.log10(axMax / axMin)
             if ax2fmt == 'x':
-                self.set_scale(
+                setScale(
                     'symlog', basex=10, subsx=numpy.arange(2, 10),
                     linthreshx=axMin * 10 ** (axRange / 2))
             elif ax2fmt == 'y':
-                self.set_scale(
+                setScale(
                     'symlog', basey=10, subsy=numpy.arange(2, 10),
                     linthreshy=axMin * 10 ** (axRange / 2))
             # Thomas Duvernay, 06/01/19
@@ -137,13 +137,15 @@ class StatplotWindow(Gtk.Window):
             symLogLoc = tck.SymmetricalLogLocator(
                 subs=numpy.arange(2, 10),
                 linthresh=axMin * 10 ** (axRange / 2), base=10)
-            self.axis.set_minor_locator(symLogLoc)
+            curAxis.set_minor_locator(symLogLoc)
             logFmt = tck.LogFormatterSciNotation(
                 base=10, labelOnlyBase=False, minor_thresholds=(4, 1),
                 linthresh=axMin * 10 ** (axRange / 2))
-            self.axis.set_minor_formatter(logFmt)
-        self.ax.set_xlabel(self.xField, fontweight='bold', fontsize=20)
-        self.ax.set_ylabel(self.yField, fontweight='bold', fontsize=20)
+            curAxis.set_minor_formatter(logFmt)
+        self.ax.set_xlabel(self.xCombo.get_child().get_text(),
+                           fontweight='bold', fontsize=20)
+        self.ax.set_ylabel(self.yCombo.get_child().get_text(),
+                           fontweight='bold', fontsize=20)
         self.ax.tick_params(which='major', length=7, labelsize=16, width=2)
         self.ax.tick_params(which='minor', length=4, labelsize=10, width=2,
                             colors='xkcd:scarlet', labelrotation=45)
@@ -186,27 +188,27 @@ class StatplotWindow(Gtk.Window):
         elif key == 'x' or key == 'y':
             if key == 'x':
                 self.get_scale = self.ax.get_xscale
-                self.Data = self.xData
+                curData = self.xData
             elif key == 'y':
                 self.get_scale = self.ax.get_yscale
-                self.Data = self.yData
+                curData = self.yData
             if (self.get_scale() == 'linear'
-                    and self.Data[self.Data != 0].size == 0):
+                    and curData[curData != 0].size == 0):
                 warnings.warn('Change to logarithmic scale denied: the '
                               + 'selected variable for the ' + key + ' axis '
                               + 'is null.', stacklevel=2)
                 scale = 'linear'
             elif (self.get_scale() == 'linear'
-                    and max(abs(self.Data)) / min(abs(self.Data)) < 10):
+                    and max(abs(curData)) / min(abs(curData)) < 10):
                 warnings.warn('Change to logarithmic scale denied: the '
                               + 'selected variable for the ' + key + ' axis '
                               + 'has a range of variation smaller than one '
                               + 'order of magnitude.', stacklevel=2)
                 scale = 'linear'
             elif self.get_scale() == 'linear':
-                axMin = min(abs(self.Data[self.Data != 0]))
-                axMax = max(abs(self.Data))
-                if axMin != axMax and min(self.Data) < 0:
+                axMin = min(abs(curData[curData != 0]))
+                axMax = max(abs(curData))
+                if axMin != axMax and min(curData) < 0:
                     scale = 'symlog'
                 elif axMin != axMax:
                     scale = 'log'
@@ -237,8 +239,6 @@ class StatplotWindow(Gtk.Window):
                 self.yCombo.grab_focus()
 
     def PlotData(self, action, type, xscale, yscale):
-        self.xField = self.entries[self.xCombo.get_active()]
-        self.yField = self.entries[self.yCombo.get_active()]
         if len(self.values.shape) == 1:
             self.xData = self.values[self.xCombo.get_active()]
             self.yData = self.values[self.yCombo.get_active()]
