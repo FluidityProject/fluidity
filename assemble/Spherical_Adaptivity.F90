@@ -586,9 +586,9 @@ module spherical_adaptivity
           k = local_face_number(positions, face_neigh(positions, facets(j)))
           tet_xyz(:, positions%dim+1) = node_val(positions, nodes2(k))
           if (dim==3) then
-            vol1 = tetvol(tet_xyz(1,:), tet_xyz(2,:), tet_xyz(3,:))
+            vol2 = tetvol(tet_xyz(1,:), tet_xyz(2,:), tet_xyz(3,:))
           else
-            vol1 = cross_product2(tet_xyz(:,2)-tet_xyz(:,1), tet_xyz(:,3)-tet_xyz(:,1))
+            vol2 = cross_product2(tet_xyz(:,2)-tet_xyz(:,1), tet_xyz(:,3)-tet_xyz(:,1))
           end if
 
           if (vol1*vol2>0.0) then
