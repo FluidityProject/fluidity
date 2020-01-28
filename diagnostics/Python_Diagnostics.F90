@@ -31,11 +31,12 @@ module python_diagnostics
 
   use fldebug
   use global_parameters, only : PYTHON_FUNC_LEN, OPTION_PATH_LEN,&
-       iteration, timestep
+       iteration, timestep, dump_no
   use spud
   use fields
   use python_state
   use state_module
+  use checkpoint
 
   implicit none
   
@@ -56,6 +57,7 @@ contains
     type(scalar_field), intent(inout) :: s_field
     real, intent(in) :: current_time
     real, intent(in) :: dt
+
 
 #ifdef HAVE_NUMPY    
     character(len = PYTHON_FUNC_LEN) :: pycode
@@ -95,8 +97,16 @@ contains
     call python_run_string("iteration="//trim(buffer))  
     write(buffer,*) timestep
     call python_run_string("timestep="//trim(buffer))  
-    
-      
+    write(buffer,*) dump_no
+    call python_run_string("persistent['dump_no']="//trim(buffer))
+
+    !Check if checkpoint needed
+    if(do_checkpoint_simulation(dump_no)) then
+        call python_run_string("persistent['checkpoint']=True")
+    else
+        call python_run_string("persistent['checkpoint']=False")
+    end if
+
     ! And finally run the user's code
     call get_option(trim(s_field%option_path)//"/diagnostic/algorithm",pycode)
     call python_run_string(trim(pycode))

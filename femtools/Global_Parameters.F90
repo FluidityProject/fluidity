@@ -83,6 +83,8 @@ module global_parameters
   integer, save, target :: timestep = 0
   !! The current nonlinear
   integer, save :: iteration = 0
+  !! The Dump Index
+  integer, save :: dump_no = 0
 
 
 
