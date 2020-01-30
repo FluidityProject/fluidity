@@ -54,14 +54,13 @@
   </io>
   <particles>
     <particle_group name="Rhodri">
-      <velocity_field name="Velocity"/>
       <particle_subgroup name="Thomas">
         <number_of_particles>
           <integer_value rank="0">60</integer_value>
         </number_of_particles>
         <initial_position>
           <python>
-            <string_value lines="20" type="code" language="python">def val(t):
+            <string_value type="code" language="python" lines="20">def val(t):
   from numpy import arange,zeros,reshape,concatenate
   x = 0.6+0.25*arange(0,60.)/60.
   y = zeros(60) + 0.5
@@ -76,7 +75,7 @@
           </attribute>
           <attribute name="Chem2">
             <python_fields>
-              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   x=X[0]
   y=fields["OldTemperature"]
   return y</string_value>
@@ -90,7 +89,7 @@
         </number_of_particles>
         <initial_position>
           <python>
-            <string_value lines="20" type="code" language="python">def val(t):
+            <string_value type="code" language="python" lines="20">def val(t):
   from numpy import arange,zeros,reshape,concatenate
   x = 0.5+0.25*arange(0,100.)/100.
   y = zeros(100) + 0.5
@@ -100,7 +99,7 @@
         <attributes>
           <attribute name="Chem3">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value type="code" language="python" lines="20">def val(X,t,dt):
   x=X[0]
   y=x+t
   return y</string_value>
@@ -108,7 +107,7 @@
           </attribute>
           <attribute name="Chem4">
             <python_fields>
-              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   x=X[0]
   z=x+t+fields["Salinity"]+fields["Temperature"]
   return z</string_value>
@@ -117,7 +116,7 @@
           </attribute>
           <attribute name="Chem5">
             <python_fields>
-              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   y=fields["OldChem4"]
   return y</string_value>
             </python_fields>
@@ -126,14 +125,13 @@
       </particle_subgroup>
     </particle_group>
     <particle_group name="Cian">
-      <velocity_field name="Velocity"/>
       <particle_subgroup name="Steph">
         <number_of_particles>
           <integer_value rank="0">80</integer_value>
         </number_of_particles>
         <initial_position>
           <python>
-            <string_value lines="20" type="code" language="python">def val(t):
+            <string_value type="code" language="python" lines="20">def val(t):
   from numpy import arange,zeros,reshape,concatenate
   x = 0.2+0.6*arange(0,80.)/80.
   y = zeros(80) + 0.2
@@ -143,7 +141,7 @@
         <attributes>
           <attribute name="Chem6">
             <python_fields>
-              <string_value lines="20" type="code" language="python">def val(X,t,fields):
+              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   z=fields["Temperature"]-fields["OldTemperature"]
   return z</string_value>
             </python_fields>
@@ -186,7 +184,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">0.0 -1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="2">0.0 -1.0</real_value>
             </constant>
           </value>
           <output/>
@@ -201,12 +199,12 @@
     </gravity>
   </physical_parameters>
   <material_phase name="BoussinesqFluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
   x = X[0]
   y = X[1]
   return [-(y-0.5)/2.0,(x-0.5)/2.0]</string_value>
@@ -221,12 +219,12 @@
         </detectors>
       </prescribed>
     </vector_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
   from math import sin, pi
   x = X[0]
   y = X[1]
@@ -245,12 +243,12 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Salinity" rank="0">
+    <scalar_field rank="0" name="Salinity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
   x = X[0]
   y = X[1]
   return 2.0-y</string_value>
@@ -281,14 +279,14 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.03 0 0 0.03</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">0.03 0 0 0.03</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.05 0 0 0.05</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">0.05 0 0 0.05</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

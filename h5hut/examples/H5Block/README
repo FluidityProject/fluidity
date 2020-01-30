@@ -1,0 +1,189 @@
+Since we have no different version for serial and parallel system, 
+all tests are compiled for "parallel" systems (which may have only
+one processor). 
+
+Only one time-step!
+
+* H5BlockWriteScalarField1Proc
+	- 1 processor
+	- Write field data "TestField" with dimension sizes
+	  (64, 64, 512) and scalar values:
+	  data[i,j,k] = k + 1000*j + 100000*i
+	- Set field attribute "TestString" to "42"
+	- Set field attribute "TestInt64" to 42
+	- Set field attribute "TestFloat64" to 42.0
+	- filename: blockfile1.h5
+
+* H5BlockReadScalarField1Proc
+	- 1 processor
+	- read file "blockfile1.h5"
+	- check values of field data
+	- check values of attributes
+
+* H5BlockWriteScalarField8Procs
+	- 8 processors
+	- Write field data "TestField" with dimension sizes
+	  (64, 64, 512) and scalar values:
+	  data[i,j,k] = k + 1000*j + 100000*i + 10000000*proc
+	- layout:
+		proc  0: (  0:63,  0:63,   0: 63)
+		proc  1: (  0:63,  0:63,  64:127)
+		proc  2: (  0:63,  0:63, 128:191)
+		proc  3: (  0:63,  0:63, 192,255)
+		proc  4: (  0:63,  0:63, 256:319)
+		proc  5: (  0:63,  0:63, 320:383)
+		proc  6: (  0:63,  0:63, 384:447)
+		proc  7: (  0:63,  0:63, 448:511)
+	- filename = blockfile2.h5
+
+* H5BlockReadScalarField8Procs
+	- 8 processors
+	- read file "blockfile2.h5"
+	- check values of field data
+	- layout as above
+
+* H5BlockWriteScalarField8ProcsWithGosts
+	- 8 processors
+	- Write field data "TestField" with dimension sizes
+	  (64, 64, 512) and scalar values:
+	  data[i,j,k] = k + 1000*j + 100000*i + 10000000*proc
+	- layout:
+		proc  0: (  0:63,  0:63,   0: 64)
+		proc  1: (  0:63,  0:63,  63:128)
+		proc  2: (  0:63,  0:63, 127:192)
+		proc  3: (  0:63,  0:63, 191,256)
+		proc  4: (  0:63,  0:63, 255:320)
+		proc  5: (  0:63,  0:63, 319:384)
+		proc  6: (  0:63,  0:63, 383:448)
+		proc  7: (  0:63,  0:63, 447:511)
+	- filename: blockfile3.h5
+
+* H5BlockReadScalarField8ProcsWithGostZones
+	- 8 processors
+	- read file "blockfile3.h5"
+	- check values of field data
+	- layout as above
+
+* H5BlockWriteScalarField16ProcsWithGostZones
+	- 16 processors
+	- Write field data "TestField" with dimension sizes
+	  (64, 64, 512) and scalar values:
+	  data[i,j,k] = k + 1000*j + 100000*i + 10000000*proc
+	- layout:
+		proc  0: (  0:63,  0:32,   0: 64)
+		proc  1: (  0:63, 31:63,   0: 64)
+		proc  2: (  0:63,  0:32,  63:128)
+		proc  3: (  0:63, 31:63,  63:128)
+		proc  4: (  0:63,  0:32, 127:192)
+		proc  5: (  0:63, 31:63, 127:192)
+		proc  6: (  0:63,  0:32, 191,256)
+		proc  7: (  0:63, 31:63, 191,256)
+		proc  8: (  0:63,  0:32, 255:320)
+		proc  9: (  0:63, 31:63, 255:320)
+		proc 10: (  0:63,  0:32, 319:384)
+		proc 11: (  0:63, 31:63, 319:384)
+		proc 12: (  0:63,  0:32, 383:448)
+		proc 13: (  0:63, 31:63, 383:448)
+		proc 14: (  0:63,  0:32, 447:511)
+		proc 15: (  0:63, 31:63, 447:511)
+	- filename: blockfile4.h5
+
+* H5BlockReadScalarField16ProcsWithGosts
+	- 16 processors
+	- read file "blockfile4.h5"
+	- check values of field data
+	- layout as above
+
+
+
+* H5BlockWriteScalarField32Procs
+	- 32 processors
+	- Write field data "TestField" with dimension sizes
+	  (64, 64, 512) and scalar values:
+	  data[i,j,k] = k + 1000*j + 100000*i + 10000000*proc
+	- layout:
+		proc  0: (  0:31,  0:31,   0: 63)
+		proc  1: (  0:31, 32:63,   0: 63)
+		proc  2: ( 32:63,  0:31,   0: 63)
+		proc  3: ( 32:63, 32:63,   0: 63)
+		proc  4: (  0:31,  0:31,  64:127)
+		proc  5: (  0:31, 32:63,  64:127)
+		proc  6: ( 32:63,  0:31,  64:127)
+		proc  7: ( 32:63, 32:63,  64:127)
+		proc  8: (  0:31,  0:31, 128:191)
+		proc  9: (  0:31, 32:63, 128:191)
+		proc 10: ( 32:63,  0:31, 128:191)
+		proc 11: ( 32:63, 32:63, 128:191)
+		proc 12: (  0:31,  0:31, 192:255)
+		proc 13: (  0:31, 32:63, 192:255)
+		proc 14: ( 32:63,  0:31, 192:255)
+		proc 15: ( 32:63, 32:63, 192:255)
+		proc 16: (  0:31,  0:31, 256:319)
+		proc 17: (  0:31, 32:63, 256:319)
+		proc 18: ( 32:63,  0:31, 256:319)
+		proc 19: ( 32:63, 32:63, 256:319)
+		proc 20: (  0:31,  0:31, 320:383)
+		proc 21: (  0:31, 32:63, 320:383)
+		proc 22: ( 32:63,  0:31, 320:383)
+		proc 23: ( 32:63, 32:63, 320:383)
+		proc 24: (  0:31,  0:31, 384:447)
+		proc 25: (  0:31, 32:63, 384:447)
+		proc 26: ( 32:63,  0:31, 384:447)
+		proc 27: ( 32:63, 32:63, 384:447)
+		proc 28: (  0:31,  0:31, 448:511)
+		proc 29: (  0:31, 32:63, 448:511)
+		proc 30: ( 32:63,  0:31, 448:511)
+		proc 31: ( 32:63, 32:63, 448:511)
+	- filename: blockfile5.h5
+
+* H5BlockReadScalarField32Procs
+	- 32 processors
+	- read file "blockfile4.h5"
+	- check values of field data
+	- layout as above
+
+* H5BlockWriteScalarField32ProcsWithGosts
+	- 32 processors
+	- Write field data "TestField" with dimension sizes
+	  (64, 64, 512) and scalar values:
+	  data[i,j,k] = k + 1000*j + 100000*i + 10000000*proc
+	- layout:
+		proc  0: (  0:32,  0:32,   0: 64)
+		proc  1: (  0:32, 31:63,   0: 64)
+		proc  2: ( 31:63,  0:32,   0: 64)
+		proc  3: ( 31:63, 31:63,   0: 64)
+		proc  4: (  0:32,  0:32,  63:128)
+		proc  5: (  0:32, 31:63,  63:128)
+		proc  6: ( 31:63,  0:32,  63:128)
+		proc  7: ( 31:63, 31:63,  63:128)
+		proc  8: (  0:32,  0:32, 127:192)
+		proc  9: (  0:32, 31:63, 127:192)
+		proc 10: ( 31:63,  0:32, 127:192)
+		proc 11: ( 31:63, 31:63, 127:192)
+		proc 12: (  0:32,  0:32, 191:256)
+		proc 13: (  0:32, 31:63, 191:256)
+		proc 14: ( 31:63,  0:32, 191:256)
+		proc 15: ( 31:63, 31:63, 191:256)
+		proc 16: (  0:32,  0:32, 255:320)
+		proc 17: (  0:32, 31:63, 255:320)
+		proc 18: ( 31:63,  0:32, 255:320)
+		proc 19: ( 31:63, 31:63, 255:320)
+		proc 20: (  0:32,  0:32, 319:384)
+		proc 21: (  0:32, 31:63, 319:384)
+		proc 22: ( 31:63,  0:32, 319:384)
+		proc 23: ( 31:63, 31:63, 319:384)
+		proc 24: (  0:31,  0:31, 383:448)
+		proc 25: (  0:31, 31:63, 383:448)
+		proc 26: ( 31:63,  0:31, 383:448)
+		proc 27: ( 31:63, 31:63, 383:448)
+		proc 28: (  0:32,  0:32, 447:511)
+		proc 29: (  0:32, 31:63, 447:511)
+		proc 30: ( 31:63,  0:32, 447:511)
+		proc 31: ( 31:63, 31:63, 447:511)
+	filename: blockfile6.h5
+
+* H5BlockReadScalarField32ProcsWithGhosts
+	- 32 processors
+	- read file "blockfile6.h5"
+	- check values of field data
+	- layout as above

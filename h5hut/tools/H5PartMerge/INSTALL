@@ -1,0 +1,17 @@
+
+Installing H5PartMerge version 0.1 - January 8, 2008
+
+On Unix/Linux and similar systems, you can simply type
+
+    ./configure [--prefix=/path] [other options]
+    make check
+    make install
+
+and ignore the rest of this document.
+
+If configure does not work on your system and you have a reasonably
+up-to-date set of tools, running ./autogen.sh before running ./configure
+may fix the problem.  You can also run the individual commands in
+autogen.sh with the --force option, if supported by your version of
+the tools. 
+

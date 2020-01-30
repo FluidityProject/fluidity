@@ -60,9 +60,11 @@ x, w = utils.KeyedSort(x, w, returnSortedKeys = True)
 final_mid_line_w = [(x[i], w[i]) for i in range(len(x))]
     </variable>
     <variable name="psi_mid" language="python">
-import fluidity_tools
-s = fluidity_tools.stat_parser("square-convection.detectors")
-psi_mid = s["Fluid"]["StreamFunction"]["MidPoint"]
+import h5py
+import numpy as np
+f = h5py.File('square-convection.detectors.h5part', 'r')
+mp = f.attrs['MidPoint%ids'][0] - 1
+psi_mid = np.fromiter((f[f'/Step#{i}/Fluid%StreamFunction'][mp] for i in range(len(f))), np.float)
     </variable>
     <variable name="left_boundary_average_nus" language="python">
 import fluidity_tools
@@ -70,10 +72,12 @@ s = fluidity_tools.stat_parser("square-convection.stat")
 left_boundary_average_nus = s["Fluid"]["Temperature"]["surface_integral%LeftH"]
     </variable>
     <variable name="left_boundary_mid_height_nus" language="python">
-import fluidity_tools
-s = fluidity_tools.stat_parser("square-convection.detectors")
-left_boundary_mid_height_nus = s["Fluid"]["TemperatureGradient"]["LeftBoundaryMidHeight"][0]
-left_boundary_mid_height_nus = [-val for val in left_boundary_mid_height_nus]
+import h5py
+import numpy as np
+f = h5py.File('square-convection.detectors.h5part', 'r')
+mp = f.attrs['LeftBoundaryMidHeight%ids'][0] - 1
+
+left_boundary_mid_height_nus = np.fromiter((-f[f'/Step#{i}/Fluid%TemperatureGradient%x'][mp] for i in range(len(f))), np.float)
     </variable>
     <variable name="final_left_boundary_nus" language="python">
 import vtktools

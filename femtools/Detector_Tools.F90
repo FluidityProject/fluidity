@@ -612,7 +612,7 @@ contains
 
   end subroutine set_detector_coords_from_python
 
-  subroutine set_particle_attribute_from_python(attributes, positions, nparts, func, time)
+  subroutine set_particle_attribute_from_python(attributes, positions, nparts, func, time, dt)
     !!< Given the particle position and time, evaluate the specified python function for a group of particles
     !!< specified in the string func at that location. 
     real, dimension(:), intent(inout) :: attributes
@@ -623,6 +623,7 @@ contains
     character(len=*), intent(in) :: func !function for attributes to be set from
     integer, intent(in) :: nparts !number of particles
     real, intent(in) :: time !current simulation time
+    real, intent(in) :: dt !current timestep
     real, dimension(:,:), target, intent(in) :: positions !current particle positions
     real, dimension(:), pointer :: lvx,lvy,lvz
     real, dimension(0), target :: zero
@@ -643,7 +644,7 @@ contains
       lvz=>positions(3,:)
     end select
     call set_particles_from_python(func, len(func), size(positions(:,1)), &
-         nparts, lvx, lvy, lvz, time, attributes, stat)
+         nparts, lvx, lvy, lvz, time, dt, attributes, stat)
     if (stat/=0) then
       ewrite(-1, *) "Python error, Python string was:"
       ewrite(-1 , *) trim(func)
@@ -651,7 +652,7 @@ contains
     end if
   end subroutine set_particle_attribute_from_python
 
-  subroutine set_particle_attribute_from_python_fields(particle_list, state, xfield, positions, lcoords, ele, nparts, attributes, old_att_names, old_attributes, func, time)
+  subroutine set_particle_attribute_from_python_fields(particle_list, state, xfield, positions, lcoords, ele, nparts, attributes, old_att_names, old_attributes, func, time, dt)
     !!< Given a particle position, time and field values, evaluate the python function
     !!< specified in the string func at that location. 
     !! Func may contain any python at all but the following function must
@@ -670,7 +671,8 @@ contains
     integer, dimension(:), intent(in) :: ele !elements particles are found in
     character(len=*), intent(in) :: func !function for attributes to be set from
     integer, intent(in) :: nparts !number of particles
-    real, intent(in) :: time
+    real, intent(in) :: time !current simulation time
+    real, intent(in) :: dt !current timestep
     character, allocatable, dimension(:,:) :: field_names
     character, allocatable, dimension(:,:) :: old_field_names
     real, allocatable, dimension(:,:) :: field_vals
@@ -770,7 +772,7 @@ contains
     end if
 
     call set_particles_from_python_fields(func, len(func), size(positions(:,1)), nparts, &
-         lvx, lvy, lvz, time, nfields, field_names, field_vals, old_nfields, old_field_names, &
+         lvx, lvy, lvz, time, dt, nfields, field_names, field_vals, old_nfields, old_field_names, &
          old_field_vals, old_nattributes, old_att_names, old_attributes, attributes, stat)
     if (stat/=0) then
        ewrite(-1, *) "Python error, Python string was:"

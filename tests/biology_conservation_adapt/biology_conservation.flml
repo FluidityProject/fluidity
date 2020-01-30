@@ -88,12 +88,12 @@
     <detectors>
       <static_detector name="Max">
         <location>
-          <real_value shape="3" dim1="dim" rank="1">1. 99. -10</real_value>
+          <real_value rank="1" dim1="dim" shape="3">1. 99. -10</real_value>
         </location>
       </static_detector>
       <static_detector name="Min">
         <location>
-          <real_value shape="3" dim1="dim" rank="1">99. 1. -10.</real_value>
+          <real_value rank="1" dim1="dim" shape="3">99. 1. -10.</real_value>
         </location>
       </static_detector>
       <fail_outside_domain/>
@@ -125,7 +125,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="3" dim1="dim" rank="1">0.0 0.0 -1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="3">0.0 0.0 -1.0</real_value>
             </constant>
           </value>
           <output/>
@@ -140,12 +140,12 @@
     </gravity>
   </physical_parameters>
   <material_phase name="water">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">1 1 1</real_value>
+            <real_value rank="1" dim1="dim" shape="3">1 1 1</real_value>
           </constant>
         </value>
         <output/>
@@ -157,7 +157,7 @@
         </detectors>
       </prescribed>
     </vector_field>
-    <scalar_field name="Phytoplankton" rank="0">
+    <scalar_field rank="0" name="Phytoplankton">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -200,7 +200,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
         if (abs(X[2]) &lt; 300):
                 return 1
         else:
@@ -209,7 +209,7 @@
         </initial_condition>
         <boundary_conditions name="NoFlux">
           <surface_ids>
-            <integer_value shape="2" rank="1">111 333</integer_value>
+            <integer_value rank="1" shape="2">111 333</integer_value>
           </surface_ids>
           <type name="zero_flux"/>
         </boundary_conditions>
@@ -242,7 +242,7 @@
         </steady_state>
         <adaptivity_options>
           <relative_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -289,7 +289,7 @@
         </galerkin_projection>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Zooplankton" rank="0">
+    <scalar_field rank="0" name="Zooplankton">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -332,7 +332,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
         if (abs(X[2]) &lt; 300):
                 return 1
         else:
@@ -341,7 +341,7 @@
         </initial_condition>
         <boundary_conditions name="Noflux">
           <surface_ids>
-            <integer_value shape="2" rank="1">111 333</integer_value>
+            <integer_value rank="1" shape="2">111 333</integer_value>
           </surface_ids>
           <type name="zero_flux"/>
         </boundary_conditions>
@@ -397,7 +397,7 @@
         </galerkin_projection>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Nutrient" rank="0">
+    <scalar_field rank="0" name="Nutrient">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -445,7 +445,7 @@
         </initial_condition>
         <boundary_conditions name="NoFlux">
           <surface_ids>
-            <integer_value shape="2" rank="1">111 333</integer_value>
+            <integer_value rank="1" shape="2">111 333</integer_value>
           </surface_ids>
           <type name="zero_flux"/>
         </boundary_conditions>
@@ -514,7 +514,7 @@
         </galerkin_projection>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Detritus" rank="0">
+    <scalar_field rank="0" name="Detritus">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -557,7 +557,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
         if (abs(X[2]) &lt; 300):
                 return 0.1
         else:
@@ -566,7 +566,7 @@
         </initial_condition>
         <boundary_conditions name="NoFlux">
           <surface_ids>
-            <integer_value shape="2" rank="1">111 333</integer_value>
+            <integer_value rank="1" shape="2">111 333</integer_value>
           </surface_ids>
           <type name="zero_flux"/>
         </boundary_conditions>
@@ -588,7 +588,7 @@
             <mesh name="VelocityMesh"/>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
 	if (X[2]&gt;-1000):
 		return 0.001
 	elif(X[2]&gt;-2000):
@@ -623,7 +623,7 @@
         </steady_state>
         <adaptivity_options>
           <relative_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -670,7 +670,7 @@
         </galerkin_projection>
       </prognostic>
     </scalar_field>
-    <scalar_field name="PrimaryProduction" rank="0">
+    <scalar_field rank="0" name="PrimaryProduction">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -690,7 +690,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PhytoplanktonGrazing" rank="0">
+    <scalar_field rank="0" name="PhytoplanktonGrazing">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -710,10 +710,10 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TotalBiology" rank="0">
+    <scalar_field rank="0" name="TotalBiology">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">D=state.scalar_fields["Detritus"]
+          <string_value type="code" language="python" lines="20">D=state.scalar_fields["Detritus"]
 P=state.scalar_fields["Phytoplankton"]
 Z=state.scalar_fields["Zooplankton"]
 N=state.scalar_fields["Nutrient"]
@@ -758,14 +758,14 @@ for node in range(field.node_count):
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">100 0 0 0 100 0 0 0 1</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">100 0 0 0 100 0 0 0 1</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">100 0 0 0 100 0 0 0 50</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">100 0 0 0 100 0 0 0 50</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
@@ -780,7 +780,7 @@ for node in range(field.node_count):
   <ocean_biology>
     <pznd>
       <source_and_sink_algorithm>
-        <string_value lines="20" type="code" language="python">import fluidity.ocean_biology as biology
+        <string_value type="code" language="python" lines="20">import fluidity.ocean_biology as biology
 
 day=1./(3600*24)
 
@@ -800,7 +800,7 @@ p["v"]=1.5*day
 
 biology.pznd(state, p)</string_value>
       </source_and_sink_algorithm>
-      <scalar_field name="PhotosyntheticRadiation" rank="0">
+      <scalar_field rank="0" name="PhotosyntheticRadiation">
         <prognostic>
           <mesh name="VelocityMesh"/>
           <equation name="PhotosyntheticRadiation"/>
@@ -838,12 +838,12 @@ biology.pznd(state, p)</string_value>
           </absorption_coefficients>
           <boundary_conditions name="SurfaceLight">
             <surface_ids>
-              <integer_value shape="1" rank="1">111</integer_value>
+              <integer_value rank="1" shape="1">111</integer_value>
             </surface_ids>
             <type name="dirichlet">
               <apply_weakly/>
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
 	from math import cos, pi
 	day=3600*24.
 	year=365.*day

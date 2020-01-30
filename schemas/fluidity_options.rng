@@ -246,47 +246,9 @@ checkpoints may be overwritten.</a:documentation>
                   <attribute name="name">
                     <data type="string"/>
                   </attribute>
-                  <choice>
-                    <element name="location">
-                      <ref name="real_dim_vector"/>
-                    </element>
-                    <element name="from_checkpoint_file">
-                      <a:documentation>File containing the detectors positions in binary form</a:documentation>
-                      <attribute name="file_name">
-                        <data type="string"/>
-                      </attribute>
-                      <element name="format">
-                        <a:documentation>The format of the input file containing field data.</a:documentation>
-                        <element name="string_value">
-                          <value>binary</value>
-                        </element>
-                      </element>
-                    </element>
-                  </choice>
-                </element>
-                <element name="lagrangian_detector">
-                  <a:documentation>A single lagrangian detector</a:documentation>
-                  <attribute name="name">
-                    <data type="string"/>
-                  </attribute>
-                  <choice>
-                    <element name="location">
-                      <a:documentation>This is the initial location of a detector that moves with the fluid velocity.</a:documentation>
-                      <ref name="real_dim_vector"/>
-                    </element>
-                    <element name="from_checkpoint_file">
-                      <a:documentation>File containing the detectors positions in binary form</a:documentation>
-                      <attribute name="file_name">
-                        <data type="string"/>
-                      </attribute>
-                      <element name="format">
-                        <a:documentation>The format of the input file containing field data.</a:documentation>
-                        <element name="string_value">
-                          <value>binary</value>
-                        </element>
-                      </element>
-                    </element>
-                  </choice>
+                  <element name="location">
+                    <ref name="real_dim_vector"/>
+                  </element>
                 </element>
                 <element name="detector_array">
                   <a:documentation>Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.</a:documentation>
@@ -297,16 +259,10 @@ checkpoints may be overwritten.</a:documentation>
                     <a:documentation>The number of detectors prescribed by the python function.</a:documentation>
                     <ref name="integer"/>
                   </element>
-                  <choice>
-                    <element name="static">
-                      <a:documentation>Create fixed detectors.</a:documentation>
-                      <empty/>
-                    </element>
-                    <element name="lagrangian">
-                      <a:documentation>Create detectors which move with the fluid velocity.</a:documentation>
-                      <empty/>
-                    </element>
-                  </choice>
+                  <element name="static">
+                    <a:documentation>Create fixed detectors.</a:documentation>
+                    <empty/>
+                  </element>
                   <choice>
                     <element name="python">
                       <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
@@ -334,18 +290,6 @@ The t argument is for future use only - currently detector locations are only se
                         </element>
                       </element>
                     </element>
-                    <element name="from_checkpoint_file">
-                      <a:documentation>File containing the detectors positions in binary form</a:documentation>
-                      <attribute name="file_name">
-                        <data type="string"/>
-                      </attribute>
-                      <element name="format">
-                        <a:documentation>The format of the input file containing field data.</a:documentation>
-                        <element name="string_value">
-                          <value>binary</value>
-                        </element>
-                      </element>
-                    </element>
                   </choice>
                 </element>
               </choice>
@@ -361,19 +305,10 @@ The t argument is for future use only - currently detector locations are only se
               </element>
             </choice>
             <optional>
-              <element name="ascii_output">
-                <a:documentation>Enable to write detector output in ascii format. This output format will not work in parallel, if not enabled format defaults to binary.</a:documentation>
-                <ref name="comment"/>
-              </element>
-            </optional>
-            <optional>
               <element name="move_with_mesh">
                 <a:documentation>Enable to let detectors move with the domain if mesh_movement is enabled.</a:documentation>
                 <empty/>
               </element>
-            </optional>
-            <optional>
-              <ref name="lagrangian_timestepping"/>
             </optional>
           </element>
         </optional>
@@ -417,11 +352,61 @@ and deleting options.</a:documentation>
                 <attribute name="name">
                   <data type="string"/>
                 </attribute>
-                <element name="velocity_field">
-                  <attribute name="name">
-                    <data type="string"/>
-                  </attribute>
-                </element>
+                <optional>
+                  <element name="particle_io">
+                    <optional>
+                      <choice>
+                        <element name="dump_period">
+                          <a:documentation>Period between dumps in time units.</a:documentation>
+                          <choice>
+                            <element name="constant">
+                              <ref name="real"/>
+                            </element>
+                            <element name="python">
+                              <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+</a:documentation>
+                              <ref name="python_code"/>
+                            </element>
+                          </choice>
+                        </element>
+                        <element name="dump_period_in_timesteps">
+                          <a:documentation>Dump period, in timesteps.</a:documentation>
+                          <choice>
+                            <element name="constant">
+                              <ref name="integer"/>
+                            </element>
+                            <element name="python">
+                              <a:documentation>Python function prescribing integer input. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+</a:documentation>
+                              <ref name="python_code"/>
+                            </element>
+                          </choice>
+                        </element>
+                      </choice>
+                    </optional>
+                    <optional>
+                      <!-- every CPUDUM seconds write results to disc. -->
+                      <element name="cpu_dump_period">
+                        <a:documentation>This is usually disabled.</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="wall_time_dump_period">
+                        <a:documentation>The period between dumps in walltime seconds. This is usually disabled.</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                    </optional>
+                  </element>
+                </optional>
                 <oneOrMore>
                   <element name="particle_subgroup">
                     <a:documentation>Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
@@ -456,12 +441,6 @@ The t argument is for future use only - currently particle locations are only se
                           <attribute name="file_name">
                             <data type="string"/>
                           </attribute>
-                          <element name="format">
-                            <a:documentation>The format of the input file containing field data.</a:documentation>
-                            <element name="string_value">
-                              <value>binary</value>
-                            </element>
-                          </element>
                         </element>
                       </choice>
                     </element>
@@ -493,12 +472,6 @@ The t argument is for future use only - currently particle locations are only se
               <empty/>
             </element>
           </choice>
-          <optional>
-            <element name="ascii_output">
-              <a:documentation>Enable to write particle output in ascii format</a:documentation>
-              <ref name="comment"/>
-            </element>
-          </optional>
           <optional>
             <element name="move_with_mesh">
               <a:documentation>Enable to let particles move with the domain if mesh_movement is enabled.</a:documentation>
@@ -4774,7 +4747,7 @@ i.e. excluding the components</a:documentation>
       <element name="python">
         <a:documentation>Python function prescribing real input. Functions should be of the form:
 
- def val(X, t):
+ def val(X, t, dt):
     # Function code
     return # Return value
 
@@ -4784,14 +4757,14 @@ where X is a tuple of length geometry dimension.</a:documentation>
       <element name="python_fields">
         <a:documentation>Python function prescribing real input. Functions should be of the form:
 
- def val (X, t, fields):
+ def val (X, t, dt, fields):
     # Function code
     return # Return value
 
  where X is a tuple of length geometry dimension.
 
  E.g. if Temperature field and x position are required
- def val (X, t, fields):
+ def val (X, t, dt, fields):
    x = X[0]
    y = x + fields["Temperature"]
    return y</a:documentation>
@@ -4808,12 +4781,6 @@ where X is a tuple of length geometry dimension.</a:documentation>
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
-        <element name="format">
-          <a:documentation>The format of the input file containing field data.</a:documentation>
-          <element name="string_value">
-            <value>binary</value>
-          </element>
-        </element>
       </element>
     </choice>
   </define>

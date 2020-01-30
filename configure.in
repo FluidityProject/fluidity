@@ -1454,6 +1454,31 @@ cd ../
 fi
 AC_SUBST(LIBSPATIALINDEX)
 
+AX_LIB_HDF5([parallel])
+if test "$with_hdf5" = "no"; then
+  AC_MSG_ERROR([Unable to find parallel HDF5 installation])
+fi
+LDFLAGS="$LDFLAGS $HDF5_LDFLAGS"
+
+#************H5hut***********
+if test -d h5hut; then
+    AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
+    AC_MSG_NOTICE([Configuring h5hut])
+    AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
+
+    cd h5hut
+    ./autogen.sh
+    # use some info we found earlier from AX_LIB_HDF5
+    CC="${CC}" CXX="${CXX}" CFLAGS="${env_cflags} $HDF5_CFLAGS" CPPFLAGS="${env_cppflags} $HDF5_CPPFLAGS" \
+        CXXFLAGS="${env_cxxflags}" LIBS="${env_libs} $HDF5_LIBS" LDFLAGS="$HDF5_LDFLAGS" \
+        ./configure --prefix=${PWD}/../ --enable-fortran --enable-parallel
+    if test "$?" -ne "0"; then
+       AC_MSG_ERROR([Configuration of h5hut has failed.])
+       exit -1
+    fi
+    cd ..
+fi
+
 #*************ARPACK*********
 AC_LANG_PUSH([Fortran])
 AC_ARG_WITH(arpack-lib,

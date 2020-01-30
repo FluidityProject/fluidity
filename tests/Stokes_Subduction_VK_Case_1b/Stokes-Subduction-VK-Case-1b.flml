@@ -53,17 +53,17 @@
     <detectors>
       <static_detector name="Temperature6060">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">60000. -60000.</real_value>
+          <real_value rank="1" dim1="dim" shape="2">60000. -60000.</real_value>
         </location>
       </static_detector>
       <static_detector name="Pressure_up">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">66000. -54000.</real_value>
+          <real_value rank="1" dim1="dim" shape="2">66000. -54000.</real_value>
         </location>
       </static_detector>
       <static_detector name="Pressure_down">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">594000. -354000.</real_value>
+          <real_value rank="1" dim1="dim" shape="2">594000. -354000.</real_value>
         </location>
       </static_detector>
       <detector_array name="TSlab">
@@ -72,7 +72,7 @@
         </number_of_detectors>
         <static/>
         <python>
-          <string_value lines="20" type="code" language="python">def val(t):
+          <string_value type="code" language="python" lines="20">def val(t):
     import numpy
     start = numpy.array([0, 0])
     end = numpy.array([210000, -210000])
@@ -88,7 +88,7 @@
         </number_of_detectors>
         <static/>
         <python>
-          <string_value lines="20" type="code" language="python">def val(t):
+          <string_value type="code" language="python" lines="20">def val(t):
     output1 = []
     for i in range(12):
         for j in range(12):
@@ -129,7 +129,7 @@
     </steady_state>
   </timestepping>
   <material_phase name="Fluid">
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <spatial_discretisation>
@@ -216,7 +216,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -236,7 +236,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -284,23 +284,23 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <prescribed_region name="Crust">
           <region_ids>
-            <integer_value shape="1" rank="1">24</integer_value>
+            <integer_value rank="1" shape="1">24</integer_value>
           </region_ids>
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0. 0.</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0. 0.</real_value>
           </constant>
         </prescribed_region>
         <prescribed_region name="Slab">
           <region_ids>
-            <integer_value shape="1" rank="1">30</integer_value>
+            <integer_value rank="1" shape="1">30</integer_value>
           </region_ids>
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
     from math import sqrt
     vx = sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
     vy = -sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
@@ -309,13 +309,13 @@
         </prescribed_region>
         <boundary_conditions name="Batchelor">
           <surface_ids>
-            <integer_value shape="3" rank="1">12 13 16</integer_value>
+            <integer_value rank="1" shape="3">12 13 16</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
 
     from math import sqrt, atan, cos, sin, pi
 
@@ -352,7 +352,7 @@
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
 
     from math import sqrt, atan, cos, sin, pi
 
@@ -392,7 +392,7 @@
         </boundary_conditions>
         <boundary_conditions name="Crust">
           <surface_ids>
-            <integer_value shape="1" rank="1">32</integer_value>
+            <integer_value rank="1" shape="1">32</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -411,13 +411,13 @@
         </boundary_conditions>
         <boundary_conditions name="Slab">
           <surface_ids>
-            <integer_value shape="1" rank="1">31</integer_value>
+            <integer_value rank="1" shape="1">31</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
     from math import sqrt
     vx = sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
     return vx</string_value>
@@ -425,7 +425,7 @@
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
     from math import sqrt
     vy = -sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
     return vy</string_value>
@@ -449,14 +449,14 @@
         <output/>
         <stat>
           <include_in_stat/>
-          <surface_integral type="normal" name="Outflow">
+          <surface_integral name="Outflow" type="normal">
             <surface_ids>
-              <integer_value shape="2" rank="1">13 16</integer_value>
+              <integer_value rank="1" shape="2">13 16</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="normal" name="All">
+          <surface_integral name="All" type="normal">
             <surface_ids>
-              <integer_value shape="3" rank="1">12 13 16</integer_value>
+              <integer_value rank="1" shape="3">12 13 16</integer_value>
             </surface_ids>
           </surface_integral>
           <previous_time_step>
@@ -478,7 +478,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -519,14 +519,14 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
     T = 273.
     return T</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="SurfaceTemperature">
           <surface_ids>
-            <integer_value shape="1" rank="1">10</integer_value>
+            <integer_value rank="1" shape="1">10</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -536,7 +536,7 @@
         </boundary_conditions>
         <boundary_conditions name="InflowWedge">
           <surface_ids>
-            <integer_value shape="1" rank="1">12</integer_value>
+            <integer_value rank="1" shape="1">12</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -546,11 +546,11 @@
         </boundary_conditions>
         <boundary_conditions name="ERF">
           <surface_ids>
-            <integer_value shape="1" rank="1">15</integer_value>
+            <integer_value rank="1" shape="1">15</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X, t):
+              <string_value type="code" language="python" lines="20">def val(X, t):
 
     import math
 
@@ -584,11 +584,11 @@
         </boundary_conditions>
         <boundary_conditions name="LinearGradientCrust">
           <surface_ids>
-            <integer_value shape="1" rank="1">11</integer_value>
+            <integer_value rank="1" shape="1">11</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X, t):
+              <string_value type="code" language="python" lines="20">def val(X, t):
     Depth = X[1] * -1.
     T = 273. + (Depth*0.026)
     return T</string_value>
@@ -597,7 +597,7 @@
         </boundary_conditions>
         <boundary_conditions name="Outflow">
           <surface_ids>
-            <integer_value shape="2" rank="1">13 16</integer_value>
+            <integer_value rank="1" shape="2">13 16</integer_value>
           </surface_ids>
           <type name="neumann">
             <constant>
@@ -634,9 +634,9 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="FEDiv" rank="0">
+    <scalar_field rank="0" name="FEDiv">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="finite_element_divergence" source_field_name="Velocity">
+        <algorithm name="finite_element_divergence" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -669,7 +669,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="FiniteElementGradient" rank="1">
+    <vector_field rank="1" name="FiniteElementGradient">
       <diagnostic field_name="Pressure">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>

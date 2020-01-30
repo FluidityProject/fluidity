@@ -1,0 +1,171 @@
+/*!
+\mainpage H5hut: A High-Performance I/O Library for Particle-based Simulations
+
+Particle-based simulations running on large high-performance computing systems
+over many time steps can generate an enormous amount of particle- and
+field-based data for post-processing and analysis. Achieving high-performance
+I/O for this data, effectively managing it on disk, and interfacing it with
+analysis and visualization tools can be challenging, especially for domain
+scientists who do not have I/O and data management expertise. We present the
+H5hut library, an implementation of several data models for particle-based
+simulations that encapsulates the complexity of HDF5 and is simple to use, yet
+does not compromise performance.
+
+Developers:
+
+<UL>
+<LI> Andreas Adelmann (PSI) </LI>
+<LI> Achim Gsell (PSI) </LI>
+<LI> Mark Howison (NERSC/LBNL) </LI>
+<LI> Prabhat (NERSC/LBNL) </LI>
+<LI> Wes Bethel (NERSC/LBNL) </LI>
+</UL>
+
+Previous developers:
+
+<UL>
+<LI> Benedikt Oswald (PSI) </LI>
+<LI> Cristina Siegerist (NERSC/LBNL)</LI>
+<LI> John Shalf (NERSC/LBNL)</LI>
+</UL>
+
+For more information, please contact the
+ <a href="mailto:h5part@lists.psi.ch">h5part</a> mailing list.
+
+\defgroup c_api                                 C API
+@{
+    \note The C API is implemented with '\c static \c inline' functions to minimize overhead.
+    \defgroup h5_c_api                  H5
+    @{
+        \defgroup h5_file		File interface
+
+	In this section we document the interface for accessing H5hut files.
+	
+        \defgroup h5_model          	Setting up the data model
+
+	The fundamental data model of H5hut is pretty simple. There
+	are (time-)steps to group data, that's it. In this section we
+	document the interface to these (time-)steps.
+	
+        \defgroup h5_file_attribs   	File attributes interface
+
+        File attributes are small datasets that can be used to
+        describe specific properties of a file. The H5hut API provides
+        functions to attach (write), read and inquire file attributes.
+
+        \defgroup h5_step_attribs   	Step attributes interface
+
+        Step attributes are similar to file attributes but are
+        attached to (time-)steps. They can be used to describe
+        specific properties of a specific step. The H5hut API provides
+        functions to attach (write), read and inquire step attributes.
+
+	\defgroup h5_attach		Attaching files
+
+	Sometimes it is required (or at least useful) to attach
+	additional information to H5hut files. H5hut provides
+	functions to attach other files to H5hut files. The attached
+	files can be of any type.
+	
+        \defgroup h5_log            	Controlling verbosity level
+
+	Controlling the verbosity level of H5hut. By default only
+	error messages are printed. For debugging it might be helpful
+	to increase the verbosity level.
+	
+        \defgroup h5_debug          	Controlling debug output
+
+	Debug output mainly intended for developers.
+
+        \defgroup h5_error          	Error handling interface
+
+	H5hut comes with two error handler. The default error handler
+	prints an error message (which can be suppressed by setting
+	the verbosity level to \c 0), sets an internal error number
+	and returns to the calling program with the value \c
+	H5_FAILURE. It is up to the programmer to handle the error
+	properly. In certain use-cases it make sense just to abort the
+	program, so no additional error handling is needed.  H5hut
+	provides an abort error-handler for this use-cases-
+	
+    @}
+    \defgroup h5part_c_api              H5Part
+    @{
+        \defgroup h5part_model          Setting up the data model
+
+	The H5Part data model interface provides functions to set and
+	inquire (per core) views on datasets.
+	
+        \defgroup h5part_io         	Dataset interface
+
+	The dataset interface provides functions to read and write
+	datasets. The following data types are supported:
+
+	- 64-bit floating point numbers (\c h5_float64_t)
+	- 32-bit floating point numbers (\c h5_float32_t)
+	- 64-bit integers (\c h5_int64_t)
+	- 32-bit integers (\c h5_int32_t)
+
+	\note Before you can write or read a dataset, you have to
+	define a "view" on the dataset for each core.
+
+    @}
+    \defgroup h5block_c_api             H5Block
+    @{
+        \defgroup h5block_model         Setting up the data model
+
+	The H5Block data model interface provides functions to set and
+	inquire (per core) views on fields. 
+
+	\defgroup h5block_io            Interface to block structured data
+
+	H5Block provides functions to store and retrieve
+
+	- 3-dimensional fields with scalar values
+	- 3-dimensional fields with 3-dimensional vectors as values
+
+	The following datatypes are supported:
+	
+	- 64-bit floating point numbers (\c h5_float64_t)
+	- 32-bit floating point numbers (\c h5_float32_t)
+	- 64-bit integers (\c h5_int64_t)
+	- 32-bit integers (\c h5_int32_t)
+
+	\defgroup h5block_attrib	Attaching attributes to field data
+
+        Field attributes are small datasets that can be used to
+        describe specific properties of a field like origin, spacing
+        or coordinates. The H5hut API provides functions to attach
+        (write), read and inquire file attributes.
+                    
+   @}
+@}
+*/
+
+/*!
+        \defgroup f90_api                               Fortran90 API
+        @{
+                \defgroup h5_f90_api                    H5
+                @{
+                        \defgroup h5_file_f             file interface
+                        \defgroup h5_model_f            setting up the data model
+                        \defgroup h5_file_attribs_f     reading and writing file attributes
+                        \defgroup h5_step_attribs_f     reading and writing step attributes	
+			\defgroup h5_log_f		control verbosity level
+			\defgroup h5_debug_f		control debug output
+		        \defgroup h5_error_f            error handling interface
+		@}
+                \defgroup h5part_f90_api                H5Part
+                @{
+                        \defgroup h5part_model_f        setting up the data model
+                        \defgroup h5part_io_f           reading and writing datasets
+                @}
+                \defgroup h5block_f90_api               H5Block
+                @{
+                        \defgroup h5block_model_f       setting up the data model
+                        \defgroup h5block_io_f          reading and writing datasets
+                        \defgroup h5block_attrib_f      reading and writing attributes
+                @}
+        @}
+*/
+

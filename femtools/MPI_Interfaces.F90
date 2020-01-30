@@ -178,6 +178,8 @@ module mpi_interfaces
   !  integer, intent(in) :: communicator
   !  integer, intent(out) :: ierr
   !end subroutine mpi_gather
+
+  external :: mpi_allgather
   
   external :: mpi_irecv
   !subroutine mpi_irecv(buffer, buffer_size, type, source, tag, communicator, request, ierr)
