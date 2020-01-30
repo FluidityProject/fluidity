@@ -259,7 +259,7 @@ def ReadBinaryMshV2(fileHandle, dataSize):
         debug.deprint("Warning: Element of type " + str(type) + " encountered in " + str(dim) + " dimensions")
 
     i += nSubEles
-    assert(i == nEles)
+  assert(i == nEles)
 
   line = ReadNonCommentLine(fileHandle)
   assert(line == "$EndElements")
