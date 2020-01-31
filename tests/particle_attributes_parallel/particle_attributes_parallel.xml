@@ -38,7 +38,7 @@ att_chem2 = f[f'/Step#{n}/Chem2'][:][idx]
 
 attributes_error = np.zeros(60)
 for i in range(60):
-    OldTemp = 2.0 - abs(0.5-pos[0,i]) - abs(0.5-pos[1,i]) - np.sin(elapsed_time*np.pi/2.0)/2.0
+    OldTemp = 2.0 - np.sin(elapsed_time*np.pi/2.0)/2.0
     attributes_error[i] = att_chem2[i] - OldTemp
 
 attributes_error_2=abs(attributes_error).max()
@@ -72,7 +72,7 @@ attributes_error_4 = np.zeros((1,100))
 sq_error=0
 
 for i in range(100):
-    Temp = 2.0 - abs(0.5-pos[0,i]) - abs(0.5-pos[1,i]) - np.sin(elapsed_time*np.pi/2.0)/2.0
+    Temp = 2.0 - np.sin(elapsed_time*np.pi/2.0)/2.0
     Salinity = 2.0 - pos[1,i]
     attributes_error_4[0,i] = att_chem4[i] - (pos[0,i] + elapsed_time + Salinity + Temp)
     sq_error = sq_error + attributes_error_4[0,i]**2
@@ -113,8 +113,8 @@ attributes_error_6 = np.zeros((1,80))
 sq_error = 0
 
 for i in range(80):
-    Temp = 2.0 - abs(0.5-pos[0,i]) - abs(0.5-pos[1,i]) - np.sin(newtime*np.pi/2.0)/2.0
-    OldTemp = 2.0 - abs(0.5-old_pos[0,i]) - abs(0.5-old_pos[1,i]) - np.sin(oldtime*np.pi/2.0)/2.0
+    Temp = 2.0 - np.sin(newtime*np.pi/2.0)/2.0
+    OldTemp = 2.0 - np.sin(oldtime*np.pi/2.0)/2.0
     attributes_error_6[0,i] = att_chem6[i] - (Temp - OldTemp)
     sq_error = sq_error + attributes_error_6[0,i]**2
 
