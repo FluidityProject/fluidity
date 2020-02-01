@@ -274,7 +274,7 @@
   from math import sin, pi
   x = X[0]
   y = X[1]
-  return 2.0-abs(0.5-x)-abs(0.5-y)-sin(t*pi/2.0)/2.0</string_value>
+  return 2.0-sin(t*pi/2.0)/2.0</string_value>
           </python>
         </value>
         <output/>
