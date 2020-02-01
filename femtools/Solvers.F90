@@ -2654,6 +2654,7 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
          call set(null_vector_field, permutations(comp+2), &
            extract_scalar_field(positions, permutations(comp+1)))
          null_space_array(i)=PetscNumberingCreateVec(petsc_numbering)
+         call zero_bubble_vals(null_vector_field)
          call field2petsc(null_vector_field, petsc_numbering, null_space_array(i))
        end if
      end do

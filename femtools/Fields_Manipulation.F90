@@ -65,6 +65,7 @@ module fields_manipulation
   public :: remap_to_subdomain, remap_to_full_domain
   public :: get_coordinates_remapped_to_surface, get_remapped_coordinates
   public :: power
+  public :: zero_bubble_vals, ele_zero_bubble_val
   
   integer, parameter, public :: REMAP_ERR_DISCONTINUOUS_CONTINUOUS = 1, &
                                 REMAP_ERR_HIGHER_LOWER_CONTINUOUS  = 2, &
@@ -199,6 +200,13 @@ module fields_manipulation
     module procedure remap_to_full_domain_scalar, remap_to_full_domain_vector, remap_to_full_domain_tensor
   end interface
 
+  interface zero_bubble_vals
+    module procedure zero_bubble_vals_scalar, zero_bubble_vals_vector, zero_bubble_vals_tensor
+  end interface
+
+  interface ele_zero_bubble_val
+    module procedure ele_zero_bubble_val_scalar, ele_zero_bubble_val_vector, ele_zero_bubble_val_tensor
+  end interface
 
   type patch_type
     !!< This is a type that represents a patch of elements around a given node.
@@ -4330,6 +4338,81 @@ module fields_manipulation
     end if
 
   end function get_coordinates_remapped_to_surface
-  
+
+  subroutine zero_bubble_vals_scalar(field)
+    type(scalar_field), intent(inout) :: field
+    integer :: ele
+
+    if (field%mesh%shape%numbering%type == ELEMENT_BUBBLE) then
+      do ele=1,ele_count(field)
+        call ele_zero_bubble_val(field, ele)
+      end do
+    end if
+
+  end subroutine zero_bubble_vals_scalar
+
+  subroutine zero_bubble_vals_vector(field)
+    type(vector_field), intent(inout) :: field
+    integer :: ele
+
+    if (field%mesh%shape%numbering%type == ELEMENT_BUBBLE) then
+      do ele=1,ele_count(field)
+        call ele_zero_bubble_val(field, ele)
+      end do
+    end if
+
+  end subroutine zero_bubble_vals_vector
+
+  subroutine zero_bubble_vals_tensor(field)
+    type(tensor_field), intent(inout) :: field
+    integer :: ele
+
+    if (field%mesh%shape%numbering%type == ELEMENT_BUBBLE) then
+      do ele=1,ele_count(field)
+        call ele_zero_bubble_val(field, ele)
+      end do
+    end if
+
+  end subroutine zero_bubble_vals_tensor
+
+  subroutine ele_zero_bubble_val_scalar(field, ele_number)
+    type(scalar_field), intent(inout) :: field
+    integer, intent(in) :: ele_number
+    integer, dimension(:), pointer :: e_nodes
+
+    assert(field%mesh%shape%numbering%type == ELEMENT_BUBBLE)
+    assert(field%field_type == FIELD_TYPE_NORMAL)
+
+    e_nodes => ele_nodes(field, ele_number)
+    field%val(e_nodes(ele_loc(field, ele_number))) = 0.0
+
+  end subroutine ele_zero_bubble_val_scalar
+
+  subroutine ele_zero_bubble_val_vector(field, ele_number)
+    type(vector_field), intent(inout) :: field
+    integer, intent(in) :: ele_number
+    integer, dimension(:), pointer :: e_nodes
+
+    assert(field%mesh%shape%numbering%type == ELEMENT_BUBBLE)
+    assert(field%field_type == FIELD_TYPE_NORMAL)
+
+    e_nodes => ele_nodes(field, ele_number)
+    field%val(:, e_nodes(ele_loc(field, ele_number))) = 0.0
+
+  end subroutine ele_zero_bubble_val_vector
+
+  subroutine ele_zero_bubble_val_tensor(field, ele_number)
+    type(tensor_field), intent(inout) :: field
+    integer, intent(in) :: ele_number
+    integer, dimension(:), pointer :: e_nodes
+
+    assert(field%mesh%shape%numbering%type == ELEMENT_BUBBLE)
+    assert(field%field_type == FIELD_TYPE_NORMAL)
+
+    e_nodes => ele_nodes(field, ele_number)
+    field%val(:, :, e_nodes(ele_loc(field, ele_number))) = 0.0
+
+  end subroutine ele_zero_bubble_val_tensor
+
 end module fields_manipulation
 
