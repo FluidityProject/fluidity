@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>spherical_benchmark_freeslip_p2bp1dg</name>
+  <owner userid="cwilson"/>
+  <problem_definition length="special" nprocs="1">
+    <command_line>for i in A B C D; do
+  fluidity -v2 -l spherical_${i}.flml;
+  mv fluidity.log-0 fluidity.${i}.log-0;
+  mv fluidity.err-0 fluidity.${i}.err-0;
+done</command_line>
+  </problem_definition>
+  <variables/>
+  <pass_tests/>
+</testproblem>
