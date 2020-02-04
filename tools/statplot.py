@@ -193,7 +193,7 @@ class StatplotWindow(Gtk.Window):
                 self.get_scale = self.ax.get_yscale
                 curData = self.yData
             if (self.get_scale() == 'linear'
-                    and curData[curData != 0].size == 0):
+                    and (curData == 0).all()):
                 warnings.warn('Change to logarithmic scale denied: the '
                               + 'selected variable for the ' + key + ' axis '
                               + 'is null.', stacklevel=2)
@@ -239,12 +239,8 @@ class StatplotWindow(Gtk.Window):
                 self.yCombo.grab_focus()
 
     def PlotData(self, action, type, xscale, yscale):
-        if len(self.values.shape) == 1:
-            self.xData = self.values[self.xCombo.get_active()]
-            self.yData = self.values[self.yCombo.get_active()]
-        else:
-            self.xData = self.values[:, self.xCombo.get_active()]
-            self.yData = self.values[:, self.yCombo.get_active()]
+        self.xData = self.values[..., self.xCombo.get_active()]
+        self.yData = self.values[..., self.yCombo.get_active()]
         if (numpy.unique(self.xData).size == 1
                 and numpy.unique(self.yData).size == 1):
             type = 'marker'
@@ -275,42 +271,38 @@ class StatplotWindow(Gtk.Window):
     def ReadData(self):
         def GatherEntries(stat2read):
             print('Reading ' + stat2read)
-            entries = numpy.array([])
+            entries = []
             with open(stat2read, 'r') as fid:
                 for num, line in enumerate(fid):
                     if line.startswith('<field'):
                         info = etree.fromstring(line)
-                        if info.get('statistic') == 'value':
-                            entries = numpy.append(entries, info.get('name'))
-                        elif all([x in info.keys() for x in
+                        if info.attrib['statistic'] == 'value':
+                            entries.append(info.attrib['name'])
+                        elif all([x in info.attrib for x in
                                   ['components', 'material_phase']]):
+                            for i in range(int(info.attrib['components'])):
+                                entries.append('{e[material_phase]}%{e[name]}'
+                                               '%{e[statistic]}%i'
+                                               .format(e=info.attrib, i=i))
+                        elif 'components' in info.attrib:
                             for i in range(int(info.get('components'))):
-                                entries = numpy.append(
-                                    entries, info.get('material_phase') + '%'
-                                    + info.get('name') + '%'
-                                    + info.get('statistic') + f'%{i}')
-                        elif 'components' in info.keys():
-                            for i in range(int(info.get('components'))):
-                                entries = numpy.append(
-                                    entries, info.get('name') + '%'
-                                    + info.get('statistic') + f'%{i}')
-                        elif 'material_phase' in info.keys():
-                            entries = numpy.append(
-                                entries, info.get('material_phase') + '%'
-                                + info.get('name') + '%'
-                                + info.get('statistic'))
+                                entries.append('{e[name]}%{e[statistic]}%i'
+                                               .format(e=info.attrib, i=i))
+                        elif 'material_phase' in info.attrib:
+                            entries.append('{e[material_phase]}%{e[name]}'
+                                           '%{e[statistic]}'
+                                           .format(e=info.attrib))
                         else:
-                            entries = numpy.append(
-                                entries, info.get('name') + '%'
-                                + info.get('statistic'))
+                            entries.append('{e[name]}%{e[statistic]}'
+                                           .format(e=info.attrib))
                     elif line.startswith('</header>'):
                         break
-            return entries, num
+            return numpy.asarray(entries), num
 
         if self.statfile[0].endswith('stat'):
             entries, num = GatherEntries(self.statfile[0])
             values = numpy.genfromtxt(self.statfile[0], skip_header=num + 1)
-            values = values.T[numpy.argsort(entries)].T
+            values = values[:, numpy.argsort(entries)]
             entries = entries[numpy.argsort(entries)]
             if len(self.statfile) > 1:
                 for item in self.statfile[1:]:
@@ -328,7 +320,7 @@ class StatplotWindow(Gtk.Window):
             values = numpy.fromfile(self.statfile[0] + '.dat',
                                     dtype=numpy.float64)
             ncols = entries.size
-            nrows = numpy.floor(values.size / ncols).astype(int)
+            nrows = int(values.size // ncols)
             values = values[:nrows * ncols].reshape(nrows, ncols)
         return list(entries), values
 
