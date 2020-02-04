@@ -3,12 +3,91 @@
   <name>spherical_benchmark_no_slip_p2bp1dg</name>
   <owner userid="cwilson"/>
   <problem_definition length="special" nprocs="1">
-    <command_line>for i in A B C D; do
+    <command_line>for i in A B C; do
   fluidity -v2 -l spherical_${i}.flml;
   mv fluidity.log-0 fluidity.${i}.log-0;
   mv fluidity.err-0 fluidity.${i}.err-0;
 done</command_line>
   </problem_definition>
-  <variables/>
-  <pass_tests/>
+
+  <variables>
+    <variable name="ab_volume_convergence_vel" language="python">import calculate_convergence as cc
+file_coarse = "sphere_A.stat"
+file_fine = "sphere_B.stat"
+ab_volume_convergence_vel = cc.velocity_convergence(file_coarse,file_fine)
+    </variable>
+
+    <variable name="bc_volume_convergence_vel" language="python">import calculate_convergence as cc
+file_coarse = "sphere_B.stat"
+file_fine = "sphere_C.stat"
+bc_volume_convergence_vel = cc.velocity_convergence(file_coarse,file_fine)
+    </variable>
+
+    <variable name="ab_volume_convergence_pressure" language="python">import calculate_convergence as cc
+file_coarse = "sphere_A.stat"
+file_fine = "sphere_B.stat"
+ab_volume_convergence_pressure = cc.pressure_convergence(file_coarse,file_fine)
+    </variable>
+
+    <variable name="bc_volume_convergence_pressure" language="python">import calculate_convergence as cc
+file_coarse = "sphere_B.stat"
+file_fine = "sphere_C.stat"
+bc_volume_convergence_pressure = cc.pressure_convergence(file_coarse,file_fine)
+    </variable>
+
+    <variable name="ab_volume_convergence_ns" language="python">import calculate_convergence as cc
+file_coarse = "sphere_A.stat"
+file_fine = "sphere_B.stat"
+ab_volume_convergence_ns = cc.normalstress_convergence(file_coarse,file_fine)
+    </variable>
+
+    <variable name="bc_volume_convergence_ns" language="python">import calculate_convergence as cc
+file_coarse = "sphere_B.stat"
+file_fine = "sphere_C.stat"
+bc_volume_convergence_ns = cc.normalstress_convergence(file_coarse,file_fine)
+    </variable>
+
+    <variable name="ab_surface_convergence_ns" language="python">import calculate_convergence as cc
+file_coarse = "sphere_A.stat"
+file_fine = "sphere_B.stat"
+ab_surface_convergence_ns = cc.surface_normalstress_convergence(file_coarse,file_fine)
+    </variable>
+
+    <variable name="bc_surface_convergence_ns" language="python">import calculate_convergence as cc
+file_coarse = "sphere_B.stat"
+file_fine = "sphere_C.stat"
+bc_surface_convergence_ns = cc.surface_normalstress_convergence(file_coarse,file_fine)
+    </variable>
+
+    <variable name="ab_CMB_convergence_ns" language="python">import calculate_convergence as cc
+file_coarse = "sphere_A.stat"
+file_fine = "sphere_B.stat"
+ab_CMB_convergence_ns = cc.CMB_normalstress_convergence(file_coarse,file_fine)
+    </variable>
+
+    <variable name="bc_CMB_convergence_ns" language="python">import calculate_convergence as cc
+file_coarse = "sphere_B.stat"
+file_fine = "sphere_C.stat"
+bc_CMB_convergence_ns = cc.CMB_normalstress_convergence(file_coarse,file_fine)
+    </variable>
+
+
+  </variables>
+
+  <pass_tests>
+    <test name="abvolume_vel" language="python">assert( abs(ab_volume_convergence_vel -3.0) &lt; 0.2)</test>
+    <test name="bcvolume_vel" language="python">assert( abs(bc_volume_convergence_vel -3.0) &lt; 0.1)</test>
+
+    <test name="abvolume_pressure" language="python">assert( abs(ab_volume_convergence_pressure -2.0) &lt; 0.1)</test>
+    <test name="bcvolume_pressure" language="python">assert( abs(bc_volume_convergence_pressure -2.0) &lt; 0.1)</test>
+
+    <test name="abvolume_ns" language="python">assert( abs(ab_volume_convergence_ns -2.0) &lt; 0.1)</test>
+    <test name="bcvolume_ns" language="python">assert( abs(bc_volume_convergence_ns -2.0) &lt; 0.1)</test>
+    <test name="absurface_ns" language="python">assert( abs(ab_surface_convergence_ns -2.0) &lt; 0.1)</test>
+    <test name="bcsurface_ns" language="python">assert( abs(bc_surface_convergence_ns -2.0) &lt; 0.1)</test>
+    <test name="abCMB_ns" language="python">assert( abs(ab_CMB_convergence_ns -2.0) &lt; 0.2)</test>
+    <test name="bcCMB_ns" language="python">assert( abs(bc_CMB_convergence_ns -2.0) &lt; 0.1)</test>
+
+  </pass_tests>
+
 </testproblem>

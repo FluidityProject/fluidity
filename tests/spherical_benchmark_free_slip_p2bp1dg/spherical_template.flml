@@ -51,7 +51,7 @@
       </from_mesh>
     </mesh>
     <mesh name="InputMesh">
-      <from_file file_name="../../Meshes/icosahedron_TEMPLATE">
+      <from_file file_name="icosahedron_TEMPLATE">
         <format name="gmsh"/>
         <stat>
           <include_in_stat/>
@@ -326,8 +326,10 @@
           </relaxation>
         </temporal_discretisation>
         <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="gamg"/>
+          <iterative_method name="preonly"/>
+          <preconditioner name="lu">
+            <factorization_package name="mumps"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1e-12</real_value>
           </relative_error>
@@ -339,10 +341,6 @@
             <all_rotations/>
             <test_null_space/>
           </remove_null_space>
-          <multigrid_near_null_space>
-            <all_components/>
-            <all_rotations/>
-          </multigrid_near_null_space>
           <never_ignore_solver_failures/>
           <diagnostics>
             <print_norms/>
