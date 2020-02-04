@@ -320,7 +320,7 @@ class StatplotWindow(Gtk.Window):
             values = numpy.fromfile(self.statfile[0] + '.dat',
                                     dtype=numpy.float64)
             ncols = entries.size
-            nrows = int(values.size // ncols)
+            nrows = values.size // ncols
             values = values[:nrows * ncols].reshape(nrows, ncols)
         return list(entries), values
 
