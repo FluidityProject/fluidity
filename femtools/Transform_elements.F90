@@ -61,7 +61,11 @@ module transform_elements
   interface retrieve_cached_face_transform
      module procedure retrieve_cached_face_transform_full, retrieve_cached_full_face_transform_full
   end interface
-    
+
+  interface local_coords
+    module procedure local_coords_interpolation
+  end interface
+
   private
   public :: transform_to_physical, transform_facet_to_physical, &
             transform_cvsurf_to_physical, transform_cvsurf_facet_to_physical, &
@@ -69,7 +73,8 @@ module transform_elements
             compute_jacobian, compute_inverse_jacobian, &
             compute_facet_full_inverse_jacobian, element_volume,&
             cache_transform_elements, deallocate_transform_cache, &
-            prepopulate_transform_cache, set_analytical_spherical_mapping
+            prepopulate_transform_cache, set_analytical_spherical_mapping, &
+            local_coords, local_coords_interpolation
   
   integer, parameter :: cyc3(1:5)=(/ 1, 2, 3, 1, 2 /)  
 
@@ -84,8 +89,8 @@ module transform_elements
   real, dimension(:,:,:), allocatable, save :: face_J_T_cache
   ! Record which element is on the other side of the last n/2 elements.
   integer, dimension(:), allocatable, save :: face_cache
-  
-  
+
+
   ! The reference count id of the positions mesh being cached.
   integer, save :: position_id=-1
   integer, save :: last_mesh_movement=-1
@@ -134,7 +139,7 @@ contains
     logical :: x_spherical, x_nonlinear
 
     cache_valid=.true.
-    
+
     if (X%refcount%id/=position_id) then
        cache_valid=.false.
        if (X%name/="Coordinate") then
@@ -142,11 +147,11 @@ contains
           ! then we're screwed anyway.
           return
        end if
-    
+
     else if(eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement) then
        cache_valid=.false.
     end if
-       
+
     x_spherical = use_analytical_spherical_mapping(X)
 
     x_nonlinear = x_spherical .or. .not.(X%mesh%shape%degree==1 .and. X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
@@ -179,17 +184,17 @@ contains
     cache_valid = is_cache_valid(X)
     if (.not. cache_valid) return
 
-    
+
     J_local_T=J_T_cache(:, :, ele)
     invJ_local=invJ_cache(:, :, ele)
-    detJ_local=detJ_cache(ele)    
-    
+    detJ_local=detJ_cache(ele)
+
   end function retrieve_cached_transform_full
 
   function retrieve_cached_transform_det(X, ele, detJ_local) &
        result (cache_valid)
     !!< Determine whether the transform cache is valid for this operation.
-    !!< 
+    !!<
     !!< If caching is applicable and the cache is not ready, set up the
     !!< cache and then return true.
     type(vector_field), intent(in) :: X
@@ -197,12 +202,12 @@ contains
     !! Local version of the determinant of J
     real, intent(out) :: detJ_local
     logical :: cache_valid
-    
+
     cache_valid = is_cache_valid(X)
     if (.not. cache_valid) return
 
     detJ_local=detJ_cache(ele)
-    
+
   end function retrieve_cached_transform_det
 
   function prepopulate_transform_cache(X) result (cache_valid)
@@ -222,7 +227,7 @@ contains
   subroutine construct_cache(X)
     !!< The cache is invalid so make a new one.
     type(vector_field), intent(in) :: X
-    
+
     integer :: elements, ele, i, k
     !! Note that if X is not all linear simplices we are screwed. 
     real, dimension(X%dim, ele_loc(X,1)) :: X_val
@@ -244,7 +249,7 @@ contains
     end if
 
     elements=element_count(X)
-    
+
     allocate(invJ_cache(X%dim,X%dim,elements), &
          J_T_cache(X%dim,X%dim,elements), &
          detJ_cache(elements))
@@ -2640,5 +2645,71 @@ contains
     element_volume=sum(detwei)
 
   end function element_volume
+
+  function local_coords_interpolation(X, ele, position) result(local_coords)
+    !!< Given a position field, this returns the local coordinates of
+    !!< position with respect to element "ele".
+    !!<
+    !!< This assumes the position field is linear. For higher order
+    !!< only the coordinates of the vertices are considered
+    type(vector_field), intent(in) :: X
+    integer, intent(in) :: ele
+    real, dimension(:), intent(in) :: position
+    real, dimension(size(position) + 1) :: local_coords
+
+    integer, dimension(:), pointer:: nodes
+    integer :: dim
+
+    dim = size(position)
+
+    assert(dim == mesh_dim(X))
+    assert(X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
+    assert(X%mesh%shape%numbering%type==ELEMENT_LAGRANGIAN)
+
+    if (is_cache_valid(X)) then
+      ! currently we only cache linear meshes
+      assert(X%mesh%shape%degree==1)
+      nodes => ele_nodes(X, ele)
+
+      ! we seek local coords xi[1:dim+1] s.t. \sum_i X_i xi_i = X
+      ! (where X_i are the vertex locations and X is the location we search for)
+      ! the last local coordinate can be expressed as  xi_{dim+1} = 1 - \sum_{i=1}^dim xi_i
+      ! so that we can write X as a function of the first 1:dim local coordinates xi only:
+      ! X(xi[1:dim]) = \sum_{i=1}^dim X_i xi_i + X_dim  (1 - \sum_{i=1}^dim xi_i)
+      !              = [X_i - X_dim] xi[1:dim] + X_dim
+      ! where [X_i-X_dim] is a dim X dim matrix that we can obtain from J = dX/dxi (seeing X as a function
+      ! of the first 1:dim local coordinates only). Therefore:
+      !   xi = J^{-1} X-X_dim
+
+      ! the Js and invJ used above are actually the transpose, so we use invJ^T * (X-X_dim) = (X-X_dim)^T invJ
+      local_coords(1:dim) = matmul(position-node_val(X, nodes(dim+1)), invJ_cache(:, :, ele))
+      ! and the final local coordinate, using \sum_i xi_i=1
+      local_coords(dim+1) = 1.0 - sum(local_coords(1:dim))
+    else
+      call local_coords_slow
+    end if
+
+    contains
+
+      subroutine local_coords_slow()
+        real, dimension(mesh_dim(X) + 1, size(position) + 1) :: matrix
+        real, dimension(mesh_dim(X), size(position) + 1) :: tmp_matrix
+        integer, dimension(X%mesh%shape%numbering%vertices):: vertices
+
+        ! the slow way: invert a matrix each time
+        ! NOTE that for nonlinear meshes, we linearize using the vertex positions only
+        nodes => ele_nodes(X, ele)
+        vertices=local_vertices(X%mesh%shape%numbering)
+        tmp_matrix = node_val(X, nodes(vertices) )
+        matrix(1:dim, :) = tmp_matrix
+        matrix(dim+1, :) = 1.0
+
+        local_coords(1:dim) = position
+        local_coords(dim+1) = 1.0
+        call solve(matrix, local_coords)
+
+      end subroutine local_coords_slow
+
+  end function local_coords_interpolation
 
 end module transform_elements

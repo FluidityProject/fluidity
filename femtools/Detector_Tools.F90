@@ -39,6 +39,7 @@ module detector_tools
   use parallel_tools
   use parallel_fields, only: element_owned
   use fields
+  use transform_elements
   use state_module, only: state_type, extract_scalar_field, aliased
   use field_options
   use detector_data_types

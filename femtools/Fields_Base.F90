@@ -299,8 +299,7 @@ module fields_base
   end interface
 
   interface local_coords
-    module procedure local_coords_interpolation, &
-          local_coords_interpolation_all, local_coords_mesh, &
+    module procedure local_coords_interpolation_all, local_coords_mesh, &
           local_coords_scalar, local_coords_vector, local_coords_tensor
   end interface
 
@@ -348,27 +347,26 @@ module fields_base
 
   public :: mesh_dim, mesh_periodic, halo_count, node_val, ele_loc, &
             node_count, node_ele, element_count, surface_element_count,&
-	    unique_surface_element_count, face_count, surface_element_id,&
-	    ele_region_id, ele_region_ids, mesh_connectivity, mesh_equal,&
-	    mesh_compatible, print_mesh_incompatibility,&
-	    ele_faces, ele_neigh, operator (==), local_coords, eval_field,&
-	    face_eval_field, set_from_python_function, tetvol, face_opposite,&
-	    write_minmax, field_val, element_halo_count, field2file,&
-	    ele_val_at_superconvergent, extract_scalar_field,&
-	    has_discontinuous_internal_boundaries, has_faces,&
-	    element_degree, face_val_at_quad, ele_val_at_quad, face_val,&
-	    ele_val, ele_n_constraints, ele_shape, face_ngi, ele_and_faces_loc,&
-	    face_loc, ele_ngi, face_vertices, ele_vertices, ele_num_type,&
-	    ele_numbering_family, ele_face_count, face_ele, ele_face,&
-	    face_neigh, node_neigh, face_global_nodes, face_local_nodes,&
-	    ele_nodes, ele_count, local_face_number, face_shape, face_n_s,&
-	    face_dn_s, continuity, simplex_volume, ele_div_at_quad,&
-	    extract_scalar_field_from_vector_field, triarea, ele_grad_at_quad,&
-	    extract_scalar_field_from_tensor_field, ele_curl_at_quad,&
-	    eval_shape, ele_jacobian_at_quad, ele_div_at_quad_tensor,&
-	    ele_2d_curl_at_quad, getsndgln, local_coords_matrix,&
-            local_coords_interpolation
-    
+            unique_surface_element_count, face_count, surface_element_id,&
+            ele_region_id, ele_region_ids, mesh_connectivity, mesh_equal,&
+            mesh_compatible, print_mesh_incompatibility,&
+            ele_faces, ele_neigh, operator (==), local_coords, eval_field,&
+            face_eval_field, set_from_python_function, tetvol, face_opposite,&
+            write_minmax, field_val, element_halo_count, field2file,&
+            ele_val_at_superconvergent, extract_scalar_field,&
+            has_discontinuous_internal_boundaries, has_faces,&
+            element_degree, face_val_at_quad, ele_val_at_quad, face_val,&
+            ele_val, ele_n_constraints, ele_shape, face_ngi, ele_and_faces_loc,&
+            face_loc, ele_ngi, face_vertices, ele_vertices, ele_num_type,&
+            ele_numbering_family, ele_face_count, face_ele, ele_face,&
+            face_neigh, node_neigh, face_global_nodes, face_local_nodes,&
+            ele_nodes, ele_count, local_face_number, face_shape, face_n_s,&
+            face_dn_s, continuity, simplex_volume, ele_div_at_quad,&
+            extract_scalar_field_from_vector_field, triarea, ele_grad_at_quad,&
+            extract_scalar_field_from_tensor_field, ele_curl_at_quad,&
+            eval_shape, ele_jacobian_at_quad, ele_div_at_quad_tensor,&
+            ele_2d_curl_at_quad, getsndgln, local_coords_matrix
+
 contains
 
   pure function mesh_dim_mesh(mesh) result (mesh_dim)
@@ -1245,8 +1243,6 @@ contains
     type(mesh_type), intent(in) :: mesh
     integer, intent(in) :: ele_number
     
-    type(element_type), pointer :: shape
-
     face_count=mesh%shape%numbering%boundaries
 
   end function ele_face_count_mesh
@@ -3195,46 +3191,6 @@ contains
     
   end function face_vertices_shape
 
-  function local_coords_interpolation(position_field, ele, position) result(local_coords)
-    !!< Given a position field, this returns the local coordinates of
-    !!< position with respect to element "ele".
-    !!<
-    !!< This assumes the position field is linear. For higher order
-    !!< only the coordinates of the vertices are considered
-    type(vector_field), intent(in) :: position_field
-    integer, intent(in) :: ele
-    real, dimension(:), intent(in) :: position
-    real, dimension(size(position) + 1) :: local_coords
-    real, dimension(mesh_dim(position_field) + 1, size(position) + 1) :: matrix
-    real, dimension(mesh_dim(position_field), size(position) + 1) :: tmp_matrix
-    integer, dimension(position_field%mesh%shape%numbering%vertices):: vertices
-    integer, dimension(:), pointer:: nodes
-    integer :: dim
-
-    dim = size(position)
-
-    assert(dim == mesh_dim(position_field))
-    assert(position_field%mesh%shape%numbering%family==FAMILY_SIMPLEX)
-    assert(position_field%mesh%shape%numbering%type==ELEMENT_LAGRANGIAN)
-
-    local_coords(1:dim) = position
-    local_coords(dim+1) = 1.0
-
-    if (position_field%mesh%shape%degree==1) then
-      tmp_matrix = ele_val(position_field, ele)
-    else
-      nodes => ele_nodes(position_field, ele)
-      vertices=local_vertices(position_field%mesh%shape%numbering)
-      tmp_matrix = node_val(position_field, nodes(vertices) )
-    end if
-    
-    matrix(1:dim, :) = tmp_matrix
-    matrix(dim+1, :) = 1.0
-
-    call solve(matrix, local_coords)
-    
-  end function local_coords_interpolation
-
   function local_coords_interpolation_all(position_field, ele, position) result(local_coords)
     !!< Given a position field, this returns the local coordinates of a number
     !!< of positions which respect to element "ele".
@@ -3675,7 +3631,7 @@ contains
     
     real :: val
     
-    integer :: i, j
+    integer :: i
     real, dimension(face_loc(t_field, face)) :: n
     type(element_type), pointer :: shape
     
