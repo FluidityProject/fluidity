@@ -1067,6 +1067,19 @@ contains
       assert(size(detJ)==x_shape%ngi)
     end if
 
+    if (is_cache_valid(X)) then
+      do gi=1, size(invJ, 3)
+        invJ(:,:,gi) = invJ_cache(:, :, ele)
+      end do
+      if (present(detJ)) then
+        detJ = detJ_cache(ele)
+      end if
+      if (present(detwei)) then
+        detwei = abs(detJ_cache(ele)) * x_shape%quadrature%weight
+      end if
+      return
+    end if
+
     x_spherical = use_analytical_spherical_mapping(X)
 
     if (x_spherical .or. .not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)) then
