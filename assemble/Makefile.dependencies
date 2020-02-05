@@ -79,7 +79,7 @@ Adaptivity_1D.o ../include/adaptivity_1d.mod: Adaptivity_1D.F90 \
    ../include/fldebug.mod ../include/futils.mod \
    ../include/hadapt_metric_based_extrude.mod ../include/metric_tools.mod \
    ../include/node_locking.mod ../include/parallel_tools.mod \
-   ../include/tictoc.mod
+   ../include/tictoc.mod ../include/transform_elements.mod
 
 ../include/advection_diffusion_cg.mod: Advection_Diffusion_CG.o
 	@true
