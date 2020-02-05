@@ -36,8 +36,8 @@ module detector_move_lagrangian
   use parallel_tools
   use halos_base
   use parallel_fields
-  use fields
   use transform_elements
+  use fields
   use state_module
   use detector_data_types
   use detector_tools

@@ -35,8 +35,8 @@ module adaptivity_1d
   use elements
   use parallel_tools
   use metric_tools, only: edge_length_from_eigenvalue
-  use fields
   use transform_elements
+  use fields
   use hadapt_metric_based_extrude
   use node_locking
   use tictoc

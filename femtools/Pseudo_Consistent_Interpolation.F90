@@ -31,8 +31,8 @@ module pseudo_consistent_interpolation
 
   use fldebug
   use data_structures
-  use fields
   use transform_elements
+  use fields
   use state_module
   use field_options
   use node_ownership
