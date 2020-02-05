@@ -390,7 +390,7 @@ contains
     logical :: cache_valid
 
     cache_valid = is_face_cache_valid(X)
-    if (cache_valid) return
+    if (.not. cache_valid) return
 
     ! if the face cache is valid, we should always be able to construct the full_face_cache as well
     ! just need to check whether it is still up-to-date
