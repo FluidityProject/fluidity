@@ -843,9 +843,9 @@ Zoltan_integration.o ../include/zoltan_integration.mod: Zoltan_integration.F90 \
    ../include/populate_state_module.mod ../include/quadrature.mod \
    ../include/reserve_state_module.mod ../include/sparse_tools.mod \
    ../include/sparsity_patterns_meshes.mod ../include/state_module.mod \
-   ../include/surface_id_interleaving.mod ../include/vtk_interfaces.mod \
-   ../include/zoltan_callbacks.mod ../include/zoltan_detectors.mod \
-   ../include/zoltan_global_variables.mod
+   ../include/surface_id_interleaving.mod ../include/transform_elements.mod \
+   ../include/vtk_interfaces.mod ../include/zoltan_callbacks.mod \
+   ../include/zoltan_detectors.mod ../include/zoltan_global_variables.mod
 
 ../include/qmesh_module.mod: qmesh.o
 	@true
