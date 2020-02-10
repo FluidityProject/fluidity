@@ -216,8 +216,8 @@ module conservative_interpolation_module
               basis_at_quad_B(:nloc,:) = pos_at_quad_B 
             else
               do j=1,ele_ngi(intersection, ele_C)
-                basis_at_quad_A(:, j) = eval_shape(B_shape, pos_at_quad_A(:, j))
-                basis_at_quad_B(:, j) = eval_shape(B_shape, pos_at_quad_B(:, j))
+                basis_at_quad_A(:nloc, j) = eval_shape(B_shape, pos_at_quad_A(:, j))
+                basis_at_quad_B(:nloc, j) = eval_shape(B_shape, pos_at_quad_B(:, j))
               end do
             end if
           
