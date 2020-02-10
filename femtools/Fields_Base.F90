@@ -3344,238 +3344,95 @@ contains
   function eval_field_scalar(ele, s_field, local_coord) result(val)
     !!< Evaluate the scalar field s_field at element local coordinate
     !!< local_coord of element ele.
-  
+
     integer, intent(in) :: ele
     type(scalar_field), intent(in) :: s_field
     real, dimension(:), intent(in) :: local_coord
-    
     real :: val
-    
-    integer :: i
-    real, dimension(ele_loc(s_field, ele)) :: n
-    type(element_type), pointer :: shape
-    
-    shape => ele_shape(s_field, ele)
-    
-    select case(shape%degree)
-      case(0)
-        n = 1.0
-      case(1)
-        if((ele_numbering_family(s_field, ele) == FAMILY_SIMPLEX).and.&
-           (ele_num_type(s_field, ele) == ELEMENT_LAGRANGIAN)) then
-          n = local_coord
-        else
-          do i = 1, size(n)
-            n(i) = eval_shape(shape, i, local_coord)
-          end do   
-        end if
-      case default
-        do i = 1, size(n)
-          n(i) = eval_shape(shape, i, local_coord)
-        end do    
-    end select
-      
-    val = dot_product(ele_val(s_field, ele), n)
-      
+
+    val = dot_product(ele_val(s_field, ele), &
+      eval_shape(ele_shape(s_field, ele), local_coord))
+
   end function eval_field_scalar
-  
+
   function eval_field_vector(ele, v_field, local_coord) result(val)
     !!< Evaluate the vector field v_field at element local coordinate
     !!< local_coord of element ele.
-  
+
     integer, intent(in) :: ele
     type(vector_field), intent(in) :: v_field
     real, dimension(:), intent(in) :: local_coord
-    
     real, dimension(v_field%dim) :: val
-    
-    integer :: i
-    real, dimension(ele_loc(v_field, ele)) :: n
-    type(element_type), pointer :: shape
-    
-    shape => ele_shape(v_field, ele)
-    
-    select case(shape%degree)
-      case(0)
-        n = 1.0
-      case(1)
-        if((ele_numbering_family(v_field, ele) == FAMILY_SIMPLEX).and.&
-           (ele_num_type(v_field, ele) == ELEMENT_LAGRANGIAN)) then
-          n = local_coord
-        else
-          do i = 1, size(n)
-            n(i) = eval_shape(shape, i, local_coord)
-          end do   
-        end if
-      case default
-        do i = 1, size(n)
-          n(i) = eval_shape(shape, i, local_coord)
-        end do    
-    end select
-      
-    do i = 1, size(val)
-      val(i) = dot_product(ele_val(v_field, i, ele), n)
-    end do
-      
+
+    val = matmul(ele_val(v_field, ele), &
+      eval_shape(ele_shape(v_field, ele), local_coord))
+
   end function eval_field_vector
-  
+
   function eval_field_tensor(ele, t_field, local_coord) result(val)
     !!< Evaluate the tensor field t_field at element local coordinate
     !!< local_coord of element ele.
-  
+
     integer, intent(in) :: ele
     type(tensor_field), intent(in) :: t_field
     real, dimension(:), intent(in) :: local_coord
-    
     real, dimension(t_field%dim(1), t_field%dim(2)) :: val
-    
-    integer :: i, j
+
+    integer :: i
+    real, dimension(t_field%dim(1), t_field%dim(2), ele_loc(t_field, ele)) :: ele_values
     real, dimension(ele_loc(t_field, ele)) :: n
-    type(element_type), pointer :: shape
-    
-    shape => ele_shape(t_field, ele)
-    
-    select case(shape%degree)
-      case(0)
-        n = 1.0
-      case(1)
-        if((ele_numbering_family(t_field, ele) == FAMILY_SIMPLEX).and.&
-           (ele_num_type(t_field, ele) == ELEMENT_LAGRANGIAN)) then
-          n = local_coord
-        else
-          do i = 1, size(n)
-            n(i) = eval_shape(shape, i, local_coord)
-          end do   
-        end if
-      case default
-        do i = 1, size(n)
-          n(i) = eval_shape(shape, i, local_coord)
-        end do    
-    end select
-      
-    do i = 1, size(val, 1)
-      do j = 1, size(val, 2)
-        val(i, j) = dot_product(ele_val(t_field, i, j, ele), n)
-      end do
+
+    n = eval_shape(ele_shape(t_field, ele), local_coord)
+    ele_values = ele_val(t_field, ele)
+
+    do i=1, size(val, 1)
+      val(i,:) = matmul(ele_values(i, :, :), n)
     end do
-      
+
   end function eval_field_tensor
 
   function face_eval_field_scalar(face, s_field, local_coord) result(val)
     !!< Evaluate the scalar field s_field at face local coordinate
     !!< local_coord of the facet face.
-  
+
     integer, intent(in) :: face
     type(scalar_field), intent(in) :: s_field
     real, dimension(:), intent(in) :: local_coord
-    
     real :: val
-    
-    integer :: i
-    real, dimension(face_loc(s_field, face)) :: n
-    type(element_type), pointer :: shape
-    
-    shape => face_shape(s_field, face)
-    
-    select case(shape%degree)
-      case(0)
-        n = 1.0
-      case(1)
-        if((ele_numbering_family(shape) == FAMILY_SIMPLEX).and.&
-           ((ele_num_type(shape) == ELEMENT_LAGRANGIAN).or.(ele_num_type(shape) == ELEMENT_BUBBLE))) then
-          n = local_coord
-        else
-          do i = 1, size(n)
-            n(i) = eval_shape(shape, i, local_coord)
-          end do   
-        end if
-      case default
-        do i = 1, size(n)
-          n(i) = eval_shape(shape, i, local_coord)
-        end do    
-    end select
-      
-    val = dot_product(face_val(s_field, face), n)
-      
+
+    val = dot_product(face_val(s_field, face), &
+      eval_shape(face_shape(s_field, face), local_coord))
+
   end function face_eval_field_scalar
-  
+
   function face_eval_field_vector(face, v_field, local_coord) result(val)
     !!< Evaluate the vector field v_field at face local coordinate
     !!< local_coord of facet face.
-  
+
     integer, intent(in) :: face
     type(vector_field), intent(in) :: v_field
     real, dimension(:), intent(in) :: local_coord
-    
     real, dimension(v_field%dim) :: val
-    
-    integer :: i
-    real, dimension(face_loc(v_field, face)) :: n
-    type(element_type), pointer :: shape
-    
-    shape => face_shape(v_field, face)
-    
-    select case(shape%degree)
-      case(0)
-        n = 1.0
-      case(1)
-        if((ele_numbering_family(shape) == FAMILY_SIMPLEX).and.&
-           ((ele_num_type(shape) == ELEMENT_LAGRANGIAN).or.(ele_num_type(shape) == ELEMENT_BUBBLE))) then
-          n = local_coord
-        else
-          do i = 1, size(n)
-            n(i) = eval_shape(shape, i, local_coord)
-          end do   
-        end if
-      case default
-        do i = 1, size(n)
-          n(i) = eval_shape(shape, i, local_coord)
-        end do    
-    end select
-      
-    do i = 1, size(val)
-      val(i) = dot_product(face_val(v_field, i, face), n)
-    end do
-      
+
+    val = matmul(face_val(v_field, face), &
+      eval_shape(face_shape(v_field, face), local_coord))
+
   end function face_eval_field_vector
-  
+
   function face_eval_field_vector_dim(face, v_field, dim, local_coord) result(val)
     !!< Evaluate the vector field v_field at face local coordinate
     !!< local_coord of facet face.
-  
+
     integer, intent(in) :: face
     type(vector_field), intent(in) :: v_field
     integer, intent(in) :: dim
     real, dimension(:), intent(in) :: local_coord
-    
     real :: val
-    
-    integer :: i
-    real, dimension(face_loc(v_field, face)) :: n
-    type(element_type), pointer :: shape
-    
-    shape => face_shape(v_field, face)
-    
-    select case(shape%degree)
-      case(0)
-        n = 1.0
-      case(1)
-        if((ele_numbering_family(shape) == FAMILY_SIMPLEX).and.&
-           ((ele_num_type(shape) == ELEMENT_LAGRANGIAN).or.(ele_num_type(shape) == ELEMENT_BUBBLE))) then
-          n = local_coord
-        else
-          do i = 1, size(n)
-            n(i) = eval_shape(shape, i, local_coord)
-          end do   
-        end if
-      case default
-        do i = 1, size(n)
-          n(i) = eval_shape(shape, i, local_coord)
-        end do    
-    end select
-      
-    val = dot_product(face_val(v_field, dim, face), n)
-      
+
+    val = dot_product(face_val(v_field, dim, face), &
+      eval_shape(face_shape(v_field, face), local_coord))
+
+
   end function face_eval_field_vector_dim
   
   function face_eval_field_tensor(face, t_field, local_coord) result(val)
@@ -3585,78 +3442,35 @@ contains
     integer, intent(in) :: face
     type(tensor_field), intent(in) :: t_field
     real, dimension(:), intent(in) :: local_coord
-    
     real, dimension(t_field%dim(1), t_field%dim(2)) :: val
-    
-    integer :: i, j
+
+    integer :: i
+    real, dimension(t_field%dim(1), t_field%dim(2), face_loc(t_field, face)) :: face_values
     real, dimension(face_loc(t_field, face)) :: n
-    type(element_type), pointer :: shape
-    
-    shape => face_shape(t_field, face)
-    
-    select case(shape%degree)
-      case(0)
-        n = 1.0
-      case(1)
-        if((ele_numbering_family(shape) == FAMILY_SIMPLEX).and.&
-           ((ele_num_type(shape) == ELEMENT_LAGRANGIAN).or.(ele_num_type(shape) == ELEMENT_BUBBLE))) then
-          n = local_coord
-        else
-          do i = 1, size(n)
-            n(i) = eval_shape(shape, i, local_coord)
-          end do   
-        end if
-      case default
-        do i = 1, size(n)
-          n(i) = eval_shape(shape, i, local_coord)
-        end do    
-    end select
-      
-    do i = 1, size(val, 1)
-      do j = 1, size(val, 2)
-        val(i, j) = dot_product(face_val(t_field, i, j, face), n)
-      end do
+
+    n = eval_shape(face_shape(t_field, face), local_coord)
+    face_values = face_val(t_field, face)
+
+    do i=1, size(val, 1)
+      val(i,:) = matmul(face_values(i, :, :), n)
     end do
-      
+
+
   end function face_eval_field_tensor
 
   function face_eval_field_tensor_dim_dim(face, t_field, dim1, dim2, local_coord) result(val)
     !!< Evaluate the tensor field t_field at face local coordinate
     !!< local_coord of facet face.
-  
+
     integer, intent(in) :: face
     type(tensor_field), intent(in) :: t_field
     integer, intent(in) :: dim1, dim2
     real, dimension(:), intent(in) :: local_coord
-    
     real :: val
-    
-    integer :: i
-    real, dimension(face_loc(t_field, face)) :: n
-    type(element_type), pointer :: shape
-    
-    shape => face_shape(t_field, face)
-    
-    select case(shape%degree)
-      case(0)
-        n = 1.0
-      case(1)
-        if((ele_numbering_family(shape) == FAMILY_SIMPLEX).and.&
-           ((ele_num_type(shape) == ELEMENT_LAGRANGIAN).or.(ele_num_type(shape) == ELEMENT_BUBBLE))) then
-          n = local_coord
-        else
-          do i = 1, size(n)
-            n(i) = eval_shape(shape, i, local_coord)
-          end do   
-        end if
-      case default
-        do i = 1, size(n)
-          n(i) = eval_shape(shape, i, local_coord)
-        end do    
-    end select
-      
-    val = dot_product(face_val(t_field, dim1, dim2, face), n)
-      
+
+    val = dot_product(face_val(t_field, dim1, dim2, face), &
+      eval_shape(face_shape(t_field, face), local_coord))
+
   end function face_eval_field_tensor_dim_dim
 
   subroutine getsndgln(mesh, sndgln)

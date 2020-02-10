@@ -165,7 +165,6 @@ module adaptive_interpolation_module
       real, dimension(shape_B%loc, ele_ngi(supermesh, 1)) :: basis_at_quad_B
       real, dimension(ele_loc(old_field, 1), ele_ngi(supermesh, 1)) :: basis_at_quad_A
 
-      integer :: loc
       integer :: dim
       integer :: j, k, l
 
@@ -202,10 +201,8 @@ module adaptive_interpolation_module
         elseif (shape_B%degree==1) then
           basis_at_quad_B = pos_at_quad_B 
         else
-          do loc=1,shape_B%loc
-            do j=1,ele_ngi(supermesh, ele_C)
-              basis_at_quad_B(loc, j) = eval_shape(shape_B, loc, pos_at_quad_B(:, j))
-            end do
+          do j=1,ele_ngi(supermesh, ele_C)
+            basis_at_quad_B(:, j) = eval_shape(shape_B, pos_at_quad_B(:, j))
           end do
         end if
 
@@ -214,10 +211,8 @@ module adaptive_interpolation_module
         elseif (shape_A%degree==1) then
           basis_at_quad_A = pos_at_quad_A 
         else
-          do loc=1,ele_loc(old_field, ele_A)
-            do j=1,ele_ngi(supermesh, ele_C)
-              basis_at_quad_A(loc, j) = eval_shape(shape_A, loc, pos_at_quad_A(:, j))
-            end do
+          do j=1,ele_ngi(supermesh, ele_C)
+            basis_at_quad_A(:, j) = eval_shape(shape_A, pos_at_quad_A(:, j))
           end do
         end if
 
