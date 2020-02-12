@@ -227,7 +227,7 @@ def rename_boundary(filelist, index, verbose=False):
     for i in range(len(filelist)):
       filesplit  = filelist[i].split(".vtu")[0].split("boundary_")[-1].split("_")
       newindex = index + int(filesplit[0])
-      newfilename = "boundary_"+str(newindex)+".vtp"
+      newfilename = "boundary_"+str(newindex)+".vtu"
       if(os.path.exists(newfilename)):
         if(verbose): print "backing up", newfilename, "to", newfilename+".bak"
         shutil.move(newfilename, newfilename+".bak")
