@@ -360,7 +360,7 @@ module hadapt_extrude
     real, intent(in) :: map_depth, min_depth
     real, intent(in) :: depth, constant_sizing
     character(len=*), intent(in) :: depth_function, sizing_function
-    real, dimension(:), intent(in) :: sizing_vector
+    real, dimension(:), allocatable, intent(in) :: sizing_vector
     integer, intent(in) :: number_sigma_layers
     logical, intent(in) :: radial_extrusion
 
@@ -569,7 +569,7 @@ module hadapt_extrude
     integer, intent(in) :: column
     logical, intent(in) :: apply_region_ids
     logical, intent(inout) :: column_visited
-    integer, dimension(:), intent(in) :: region_ids
+    integer, dimension(:), allocatable, intent(in) :: region_ids
     integer, intent(inout), optional :: visited_count
     
     integer, dimension(:), pointer :: eles
