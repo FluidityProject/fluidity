@@ -370,7 +370,7 @@ int set_tensor_result_double(int i, int *dim, void *data, void **result, PyObjec
 
   for (int ii = 0; ii < dim[0]; ii++) {
     for (int jj = 0; jj < dim[1]; jj++) {
-      (*(double**)result)[i*(dim[0]+dim[1]) + jj*dim[0] + ii] = *((double*)PyArray_GETPTR2(pArray, ii, jj));
+      (*(double**)result)[i*(dim[0]*dim[1]) + jj*dim[0] + ii] = *((double*)PyArray_GETPTR2(pArray, ii, jj));
     }
   }
   Py_DECREF(pArray);
