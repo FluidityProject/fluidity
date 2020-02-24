@@ -179,7 +179,10 @@ class StatplotWindow(Gtk.Window):
 
     def KeyPressed(self, widget, event):
         key = event.string
-        if key == 'r':
+        if (self.xCombo.get_child().has_focus()
+                or self.yCombo.get_child().has_focus()):
+            pass
+        elif key == 'r':
             self.RefreshData()
             self.PlotData('update', self.PlotType, self.ax.get_xscale(),
                           self.ax.get_yscale())
@@ -226,17 +229,9 @@ class StatplotWindow(Gtk.Window):
             self.PlotData('update', self.PlotType, self.ax.get_xscale(),
                           self.ax.get_yscale())
         elif key == 'a':
-            if (self.xCombo.get_child().has_focus()
-                    or self.yCombo.get_child().has_focus()):
-                pass
-            else:
-                self.xCombo.grab_focus()
+            self.xCombo.grab_focus()
         elif key == 'o':
-            if (self.xCombo.get_child().has_focus()
-                    or self.yCombo.get_child().has_focus()):
-                pass
-            else:
-                self.yCombo.grab_focus()
+            self.yCombo.grab_focus()
 
     def PlotData(self, action, type, xscale, yscale):
         self.xData = self.values[..., self.xCombo.get_active()]
