@@ -34,6 +34,7 @@ subroutine test_find_node_ownership_if
   use node_ownership
   use mesh_files
   use unittest_tools
+  use transform_elements
   
   implicit none
   
