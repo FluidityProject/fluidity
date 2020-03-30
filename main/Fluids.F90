@@ -132,7 +132,6 @@ contains
     !     System state wrapper.
     type(state_type), dimension(:), pointer :: state => null()
     type(state_type), dimension(:), pointer :: sub_state => null()
-    type(state_type), dimension(:), allocatable :: POD_state
 
     type(tensor_field) :: metric_tensor
     !     Dump index
@@ -148,17 +147,6 @@ contains
 
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
-    !     STUFF for MEsh movement, and Solid-fluid-coupling.  ------ jem
-
-    !     Ale mesh movement - Julian 05-02-07
-    LOGICAL:: USE_ALE
-    INTEGER:: fs
-
-    !     Solid-fluid coupling - Julian 18-09-06
-    !New options
-    INTEGER :: ss,ph
-    LOGICAL :: have_solids
-
     ! An array of submaterials of the current phase in state(istate).
     ! Needed for k-epsilon VelocityBuoyancyDensity calculation line:~630
     ! S Parkinson 31-08-12
@@ -173,7 +161,7 @@ contains
     !     backward compatibility with new option structure - crgw 21/12/07
     logical::use_advdif=.true.  ! decide whether we enter advdif or not
 
-    INTEGER :: adapt_count
+    INTEGER :: adapt_count, tracer_its, n_tracer_its
 
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
@@ -263,9 +251,6 @@ contains
        ! Ensure that checkpoints do not adapt at first timestep.
        call delete_option(&
             "/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")
-
-       ! Remove dummy field used by implicit_solids
-       if (have_option("/implicit_solids")) call remove_dummy_field(state(1))
     else
        ! Auxilliary fields.
        call allocate_and_insert_auxilliary_fields(state)
@@ -344,7 +329,7 @@ contains
        FLExit("Rejig your FLML: /io/dump_format")
     end if
 
-    ! Initialise multimaterial fields
+    ! Initialise multimaterial fields:
     call initialise_diagnostic_material_properties(state)
 
     ! Calculate diagnostic variables:
@@ -435,11 +420,11 @@ contains
        call tic(TICTOC_ID_TIMESTEP)
 
        if( &
-                                ! Do not dump at the start of the simulation (this is handled by write_state call earlier)
+            ! Do not dump at the start of the simulation (this is handled by write_state call earlier)
             & current_time > simulation_start_time &
-                                ! Do not dump at the end of the simulation (this is handled by later write_state call)
+            ! Do not dump at the end of the simulation (this is handled by later write_state call)
             & .and. current_time < finish_time &
-                                ! Test write_state conditions
+            ! Test write_state conditions
             & .and. do_write_state(current_time, timestep) &
             & ) then
 
@@ -943,12 +928,6 @@ contains
        end do
     end if
 
-    if (allocated(pod_state)) then
-       do i=1, size(pod_state)
-          call deallocate(pod_state(i))
-       end do
-    end if
-    
     ! deallocate the pointer to the array of states and sub-state:
     deallocate(state)
     if(use_sub_state()) deallocate(sub_state)

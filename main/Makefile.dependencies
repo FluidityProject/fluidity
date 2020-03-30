@@ -22,21 +22,12 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/foam_flow_module.mod ../include/free_surface_module.mod \
    ../include/futils.mod ../include/global_parameters.mod ../include/gls.mod \
    ../include/goals.mod ../include/halos.mod \
-<<<<<<< HEAD
-   ../include/iceshelf_meltrate_surf_normal.mod ../include/implicit_solids.mod \
-   ../include/k_epsilon.mod ../include/memory_diagnostics.mod \
-   ../include/meshdiagnostics.mod ../include/meshmovement.mod \
-   ../include/momentum_diagnostic_fields.mod ../include/momentum_equation.mod \
-   ../include/multimaterial_module.mod ../include/multiphase_module.mod \
-   ../include/parallel_tools.mod ../include/populate_state_module.mod \
-=======
    ../include/iceshelf_meltrate_surf_normal.mod ../include/k_epsilon.mod \
    ../include/memory_diagnostics.mod ../include/meshdiagnostics.mod \
    ../include/meshmovement.mod ../include/momentum_diagnostic_fields.mod \
    ../include/momentum_equation.mod ../include/multimaterial_module.mod \
    ../include/multiphase_module.mod ../include/parallel_tools.mod \
    ../include/populate_state_module.mod \
->>>>>>> f965d41a32312238defc18d886bcbbd8a9096da6
    ../include/populate_sub_state_module.mod ../include/qmesh_module.mod \
    ../include/reference_counting.mod ../include/reserve_state_module.mod \
    ../include/sediment_diagnostics.mod ../include/signal_vars.mod \

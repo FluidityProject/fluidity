@@ -114,11 +114,6 @@ VTK_Cache.o ../include/vtk_cache_module.mod: VTK_Cache.F90 ../include/fdebug.h \
    ../include/fields.mod ../include/fldebug.mod ../include/state_module.mod \
    ../include/vtk_interfaces.mod
 
-../include/dl_fortran.mod: dl_fortran.o
-	@true
-
-dl_fortran.o ../include/dl_fortran.mod: dl_fortran.F90
-
 ../include/synthetic_bc.mod: synthetic_bc.o
 	@true
 
