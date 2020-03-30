@@ -166,6 +166,19 @@ where X is a tuple of length geometry dimension.</a:documentation>
       </element>
     </choice>
   </define>
+  <define name="bc_smoothing">
+    <optional>
+      <element name="smoothing">
+        <a:documentation>Smoothing on mesh. This uses the lumped mass approach. When the mesh is not
+linear and continuous, the boundary values are evaluated on a continuous
+linear mesh first, then smoothed and then interpolated onto the actual mesh.</a:documentation>
+        <element name="iterations">
+          <a:documentation>Number of smoothing iterations. More iterations means more smoothing</a:documentation>
+          <ref name="integer"/>
+        </element>
+      </element>
+    </optional>
+  </define>
   <define name="initial_condition_scalar">
     <choice>
       <element name="initial_condition">

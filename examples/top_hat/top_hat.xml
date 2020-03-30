@@ -3,9 +3,9 @@
   <name>tophat</name>
   <owner userid="skramer"/>
   <problem_definition length="long" nprocs="1">
-    <command_line>fluidity -v2 -l top_hat_cg.flml &amp;&amp; 
-fluidity -v2 -l top_hat_dg.flml &amp;&amp;
-fluidity -v2 -l top_hat_cv.flml</command_line>
+    <command_line>mpiexec fluidity -v2 -l top_hat_cg.flml &amp;&amp; 
+mpiexec fluidity -v2 -l top_hat_dg.flml &amp;&amp;
+mpiexec fluidity -v2 -l top_hat_cv.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="cg_times" language="python">import fluidity_tools

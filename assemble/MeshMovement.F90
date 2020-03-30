@@ -149,7 +149,7 @@ module meshmovement
   end interface
   private
   
-  public :: move_mesh_imposed_velocity, move_mesh_pseudo_lagrangian, movemeshy,&
+  public :: move_mesh_imposed_velocity, move_mesh_pseudo_lagrangian, &
        move_mesh_laplacian_smoothing, move_mesh_initialise_laplacian_smoothing,&
        move_mesh_lineal_smoothing, move_mesh_initialise_lineal_smoothing,&
        move_mesh_lineal_torsional_smoothing, move_mesh_initialise_lineal_torsional_smoothing,&
@@ -1250,9 +1250,7 @@ contains
     integer, intent(in)::cdim
     real, dimension(:,:,:)::matrix
     logical,dimension(3),intent(in)::blocking
-    logical X,Y,Z
-
-    X=blocking(1)  
+    logical X,Y,Z=blocking(1)  
     Y=blocking(2)  
     Z=blocking(3)  
     if (cdim==4.or.cdim==3) then
@@ -1287,7 +1285,7 @@ contains
   end subroutine apply_lagrangian_multiplier
 
   subroutine move_mesh_imposed_velocity(states)
-    type(state_type), dimension(:), intent(inout) :: states
+  type(state_type), dimension(:), intent(inout) :: states
   
     type(vector_field), pointer :: coordinate, old_coordinate, new_coordinate
     type(vector_field), pointer :: velocity
@@ -1309,22 +1307,21 @@ contains
     new_coordinate => extract_vector_field(states(1), "IteratedCoordinate")
     
     call get_option("/timestepping/timestep", dt)
-
     
     found_velocity = .false.
     do i = 1, size(states)
-       velocity => extract_vector_field(states(i), "Velocity", stat)
-       if(stat==0 .and. .not. velocity%aliased) then
-          call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/relaxation", itheta, stat)
-          if(found_velocity.and.(stat==0)) then
-             FLExit("Only one prognostic velocity allowed with imposed mesh movement.")
-          else
-             found_velocity = (stat==0)
-          end if
-       end if
+      velocity => extract_vector_field(states(i), "Velocity", stat)
+      if(stat==0 .and. .not. velocity%aliased) then
+        call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/relaxation", itheta, stat)
+        if(found_velocity.and.(stat==0)) then
+          FLExit("Only one prognostic velocity allowed with imposed mesh movement.")
+        else
+          found_velocity = (stat==0)
+        end if
+      end if
     end do
     if(.not.found_velocity) then
-       itheta = 0.5
+      itheta = 0.5
     end if
     
     call set(new_coordinate, old_coordinate)

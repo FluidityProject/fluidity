@@ -114,13 +114,6 @@ contains
     type(scalar_field), pointer :: t_cvmass
     type(scalar_field) :: cvmass
       
-    ! Porosity fields, field name, theta value and include flag
-    type(scalar_field), pointer :: porosity_old, porosity_new
-    type(scalar_field) :: porosity_theta 
-    character(len=OPTION_PATH_LEN) :: porosity_name
-    real :: porosity_theta_value
-    logical :: include_porosity
-
     ! local copy of option_path for solution field
     character(len=OPTION_PATH_LEN) :: option_path
 
@@ -282,48 +275,7 @@ contains
     sub_dt=adapt_dt/real(no_subcycles)
 
     ! find the cv mass that is used for the time term derivative
-
-    ! are we including a porosity coefficient on the time term?
-    if (have_option(trim(option_path)//'/porosity')) then
-       include_porosity = .true.
-     
-       ! get the name of the field to use as porosity
-       call get_option(trim(option_path)//'/porosity/porosity_field_name', &
-                       porosity_name, &
-                       default = 'Porosity')
-         
-       ! get the porosity theta value
-       call get_option(trim(option_path)//'/porosity/temporal_discretisation/theta', &
-                       porosity_theta_value, &
-                       default = 0.0)
-         
-       porosity_new => extract_scalar_field(state, trim(porosity_name), stat = stat)                  
-
-       if (stat /=0) then
-         FLExit('Including porosity in Metric_Advection but failed to extract Porosity from state')
-       end if
-
-       porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name), stat = stat)
-
-       if (stat /=0) then
-         FLExit('Including porosity in Metric_Advection but failed to extract OldPorosity from state')
-       end if
-         
-       call allocate(porosity_theta, porosity_new%mesh)
-         
-       call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
-         
-       ewrite_minmax(porosity_theta)
-       
-       allocate(t_cvmass)  
-       call allocate(t_cvmass, tfield%mesh, name="LocalCVMassWithPorosity")
-       call compute_cv_mass(x, t_cvmass, porosity_theta)
-       
-       call deallocate(porosity_theta)
-    else
-       include_porosity = .false.
-       t_cvmass => get_cv_mass(state, tfield%mesh)
-    end if
+    t_cvmass => get_cv_mass(state, tfield%mesh)
     ewrite_minmax(t_cvmass)    
     
     call allocate(cvmass, tfield%mesh, "LocalCVMass")
@@ -447,10 +399,6 @@ contains
     call deallocate(relu)
     call deallocate(x_tfield)
     call deallocate(cvmass)
-    if (include_porosity) then
-       call deallocate(t_cvmass)
-       deallocate(t_cvmass)
-    end if
 
   end subroutine form_advection_metric
   ! end of solution wrapping subroutines

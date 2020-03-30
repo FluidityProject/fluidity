@@ -2,7 +2,7 @@
 <testproblem>
   <name>Stokes-may-step-x</name>
   <owner userid="rhodrid"/>
-  <tags>flml petsc33</tags>
+  <tags>flml</tags>
 
   <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v2 -l Stokes-may-solcx-stepx-gamg.flml; mv fluidity.log-0 log_gamg; fluidity -v2 -l Stokes-may-solcx-stepx-fs.flml; mv fluidity.log-0 log_fs; fluidity -v2 -l Stokes-may-solcx-stepx-mg.flml; mv fluidity.log-0 log_mg; fluidity -v2 -l Stokes-may-solcx-stepx-sor.flml; mv fluidity.log-0 log_sor</command_line>
@@ -45,7 +45,7 @@ assert(solvers_converged)
 </test>
 
 <test name="GAMG solver behaving as expected" language="python">
-assert(DeltaU_iterations_GAMG &lt; 38)
+assert(DeltaU_iterations_GAMG &lt; 16)
 </test>
 
 <test name="Fieldsplit solver behaving as expected" language="python">
@@ -53,11 +53,11 @@ assert(abs(DeltaU_iterations_FS - 11) &lt; 2)
 </test>
 
 <test name="MG solver behaving as expected" language="python">
-assert(abs(DeltaU_iterations_MG - 108) &lt; 2)
+assert(abs(DeltaU_iterations_MG - 112) &lt; 2)
 </test>
 
 <test name="SOR solver behaving as expected" language="python">
-assert(abs(DeltaU_iterations_SOR - 187) &lt; 2)
+assert(abs(DeltaU_iterations_SOR - 207) &lt; 2)
 </test>
 
 </pass_tests>

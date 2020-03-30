@@ -16,7 +16,7 @@ subroutine test_intersection_finder_completeness
   real, dimension(:), allocatable :: detwei
   integer :: ele_A, ele_B, ele_C
   real :: vol_B, vols_C
-  logical :: fail
+  logical :: fail, empty_intersection
   type(inode), pointer :: llnode
   type(vector_field) :: intersection
 
@@ -37,8 +37,8 @@ subroutine test_intersection_finder_completeness
     vols_C = 0.0
     do while(associated(llnode))
       ele_A = llnode%value
-      intersection = intersect_elements(positionsA, ele_A, ele_val(positionsB, ele_B), ele_shape(positionsB, ele_B))
-      if (.not. has_references(intersection)) then
+      intersection = intersect_elements(positionsA, ele_A, ele_val(positionsB, ele_B), ele_shape(positionsB, ele_B), empty_intersection=empty_intersection)
+      if (empty_intersection) then
          llnode => llnode%next
          cycle
       end if

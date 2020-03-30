@@ -8,18 +8,18 @@ Boundary_Conditions_From_Options.o \
    Boundary_Conditions_From_Options.F90 ../include/boundary_conditions.mod \
    ../include/bulk_parameterisations.mod ../include/coordinates.mod \
    ../include/elements.mod ../include/embed_python.mod ../include/fdebug.h \
-   ../include/fefields.mod ../include/field_options.mod ../include/fields.mod \
-   ../include/fldebug.mod ../include/futils.mod \
+   ../include/fefields.mod ../include/fetools.mod ../include/field_options.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/halos_base.mod \
-   ../include/halos_numbering.mod ../include/initialise_fields_module.mod \
-   ../include/integer_set_module.mod ../include/k_epsilon.mod \
-   ../include/parallel_tools.mod ../include/pickers_inquire.mod \
-   ../include/quadrature.mod ../include/samplenetcdf.mod \
-   ../include/sediment.mod ../include/sparse_tools.mod \
-   ../include/sparse_tools_petsc.mod ../include/state_module.mod \
-   ../include/synthetic_bc.mod ../include/tidal_module.mod \
-   ../include/transform_elements.mod ../include/vector_tools.mod \
-   ../include/vtk_interfaces.mod
+   ../include/halos_derivation.mod ../include/halos_numbering.mod \
+   ../include/initialise_fields_module.mod ../include/integer_set_module.mod \
+   ../include/k_epsilon.mod ../include/parallel_tools.mod \
+   ../include/pickers_inquire.mod ../include/quadrature.mod \
+   ../include/samplenetcdf.mod ../include/sediment.mod \
+   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
+   ../include/state_module.mod ../include/synthetic_bc.mod \
+   ../include/tidal_module.mod ../include/transform_elements.mod \
+   ../include/vector_tools.mod ../include/vtk_interfaces.mod
 
 ../include/field_priority_lists.mod: Field_Priority_Lists.o
 	@true

@@ -136,26 +136,7 @@
           </poisson_pressure_solution>
           <use_projection_method>
             <full_schur_complement>
-              <inner_matrix name="FullMomentumMatrix">
-                <solver>
-                  <iterative_method name="cg"/>
-                  <preconditioner name="gamg"/>
-                  <relative_error>
-                    <real_value rank="0">1.0e-6</real_value>
-                  </relative_error>
-                  <max_iterations>
-                    <integer_value rank="0">10000</integer_value>
-                  </max_iterations>
-                  <multigrid_near_null_space>
-                    <all_components/>
-                    <all_rotations/>
-                  </multigrid_near_null_space>
-                  <never_ignore_solver_failures/>
-                  <diagnostics>
-                    <monitors/>
-                  </diagnostics>
-                </solver>
-              </inner_matrix>
+              <inner_matrix name="FullMomentumMatrix"/>
               <preconditioner_matrix name="ScaledPressureMassMatrix"/>
             </full_schur_complement>
           </use_projection_method>

@@ -460,6 +460,28 @@ def test_steady(vals, error, test_count = 1):
 
   return
 
+def petsc_memory_stats(log):
+    """Return the memory stats section of PETSc's -log_view output as a dictionary."""
+    # first search for the 'Memory usage' header, then match anything that follows
+    # after the first line starting with --- up until the first line starting with =====
+    # re.DOTALL makes . match newlines as well
+    try:
+        memory_profile = re.finditer('Memory usage is given in bytes:.*?\n---[^\n].*?\n(.*?)\n===========', log, re.DOTALL).next().group(1)
+    except StopIteration:
+        # no memory stats section found (did you run with -log_view ?)
+        return None
+
+    stats = {}
+    for line in memory_profile.split('\n'):
+        try:
+            (object, profile) = re.finditer('(\s.*?)([0-9]+.*)', line).next().groups()
+        except StopIteration:
+            continue
+        profile = profile.split()
+        stats[object.strip()] = [int(x) for x in profile[0:3]] + [float(profile[3]),]
+
+    return stats
+
 if __name__ == "__main__":
     import sys
     var = parse_s(sys.argv[1])
