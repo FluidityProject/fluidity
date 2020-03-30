@@ -28,6 +28,7 @@
 
 #include <map>
 #include <string>
+#include <cstring>
 #include <iostream>
 
 #include "confdefs.h"

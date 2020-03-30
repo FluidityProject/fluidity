@@ -30,11 +30,12 @@
 module stocastic
 
   use fldebug
+  use parallel_tools
   use transform_elements, only: element_volume, &
        element_volume_field_weighted
-  use fields
   use parallel_fields
-  use parallel_tools
+  use fields
+  use iso_fortran_env, only: int64
 
   implicit none
 
@@ -53,7 +54,6 @@ contains
 
   subroutine init_random_seed()
     ! Procedure is taken from the examples in the GCC online document
-    use iso_fortran_env, only: int64
     implicit none
     integer, allocatable :: seed(:)
     integer :: i, n, un, istat, dt(8), pid

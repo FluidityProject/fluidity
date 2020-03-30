@@ -1447,8 +1447,9 @@ contains
     character(len=PYTHON_FUNC_LEN) :: func
 
     integer :: column, i, j, k, phase, m, IERROR, field_count, totaldet_global
-    integer :: static_dete, python_functions_or_files, total_dete, total_dete_groups, lagrangian_dete
-    integer :: python_dete, ndete, dim, str_size, type_det
+    integer :: static_dete, python_functions_or_files, total_dete, total_dete_groups
+    integer :: python_dete, ndete, dim, str_size, type_det, group_size
+    integer(kind=8) :: h5_ierror
     integer, dimension(2) :: shape_option
     character(len = 254) :: buffer, material_phase_name, fmt
     type(scalar_field), pointer :: sfield
@@ -1477,11 +1478,11 @@ contains
        call get_option(trim(buffer)//"/number_of_detectors", j)
        python_dete=python_dete+j
     end do
-   
-    total_dete=static_dete+lagrangian_dete+python_dete
-    default_stat%detector_list%total_num_det=total_dete
 
-    total_dete_groups=static_dete+lagrangian_dete+python_functions_or_files
+    total_dete = static_dete + python_dete
+    default_stat%detector_list%total_num_det = total_dete
+
+    total_dete_groups = static_dete + python_functions_or_files
 
     allocate(default_stat%detector_group_names(total_dete_groups))
     allocate(default_stat%number_det_in_each_group(total_dete_groups))
@@ -1598,8 +1599,8 @@ contains
                 k=k+1
              end do
           end if
-       end do      
-    else 
+       end do
+    else
        ewrite(2,*) "Reading detectors from checkpoint"
 
        ! If reading from checkpoint file:
@@ -2127,32 +2128,6 @@ contains
              do i=1, mesh_dim(vfield%mesh)
                 write(default_stat%diag_unit, trim(format), advance="no") force(i)
              end do
-            end if     
-        end if
-      end do
-
-      do s = 0, option_count(trim(complete_field_path(vfield%option_path, stat = stat)) // "/stat/compute_body_torque_on_surfaces") - 1
-        call get_option(trim(complete_field_path(vfield%option_path))//"/stat/compute_body_torque_on_surfaces[" // int2str(s) // "]/name", surface_integral_name)
-
-        if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_torque_on_surfaces[" // int2str(s) // "]/output_terms")) then
-          if(have_viscosity) then
-            ! calculate the forces on the surface
-            call diagnostic_body_torque(state, torque, surface_integral_name, pressure_torque = pressure_torque, viscous_torque = viscous_torque)
-          else
-            call diagnostic_body_torque(state, torque, surface_integral_name, pressure_torque = pressure_torque)   
-          end if
-          if(getprocno() == 1) then
-              write(default_stat%diag_unit, trim(format), advance="no") torque
-              write(default_stat%diag_unit, trim(format), advance="no") pressure_torque
-            if(have_viscosity) then
-               write(default_stat%diag_unit, trim(format), advance="no") viscous_torque
-            end if
-          end if
-        else
-            ! calculate the torques on the surface
-            call diagnostic_body_torque(state, torque, surface_integral_name) 
-            if(getprocno() == 1) then
-                write(default_stat%diag_unit, trim(format), advance="no") torque
             end if     
         end if
       end do

@@ -469,7 +469,6 @@ contains
              end if
              detector%local_coords=local_coords(coordinates,detector%element,detector%position)
           end if
-          detector%local_coords=local_coords(coordinates,detector%element,detector%position)
        end if
        
        ! Lagrangian advection fields: (nstages+1)*ndims

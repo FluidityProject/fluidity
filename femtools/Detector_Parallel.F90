@@ -304,7 +304,7 @@ contains
 
   end subroutine distribute_detectors
 
-  subroutine exchange_detectors(state, detector_list, send_list_array)
+  subroutine exchange_detectors(state, detector_list, send_list_array, attribute_size)
     ! This subroutine serialises send_list_array, sends it, 
     ! receives serialised detectors from all procs and unpacks them.
     type(state_type), intent(in) :: state
@@ -312,6 +312,7 @@ contains
     ! the assumption is here that we only send detectors located in element that we know about
     ! in the largest element halo
     type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
+    integer, dimension(3), optional, intent(in) :: attribute_size !Array to hold attribute sizes
 
     type(detector_buffer), dimension(:), allocatable :: send_buffer, recv_buffer
     type(detector_type), pointer :: detector, detector_received
@@ -432,10 +433,10 @@ contains
           ! back to local detector element
           if (have_update_vector) then
              call unpack_detector(detector_received,recv_buffer(receive_proc)%ptr(j,1:det_size),dim,&
-                    global_to_local=ele_numbering_inverse,coordinates=xfield,nstages=n_stages)
+                    global_to_local=ele_numbering_inverse,coordinates=xfield,nstages=n_stages, attribute_size=attribute_size)
           else
              call unpack_detector(detector_received,recv_buffer(receive_proc)%ptr(j,1:det_size),dim,&
-                    global_to_local=ele_numbering_inverse,coordinates=xfield)
+                    global_to_local=ele_numbering_inverse,coordinates=xfield, attribute_size=attribute_size)
           end if
 
           ! If there is a list of detector names, use it, otherwise set ID as name

@@ -39,19 +39,19 @@ maxgridvelocity_y_2d=s["Fluid"]["GridVelocity%2"]["max"][-1]
       assert(solvers_converged)
     </test>
     <test name="Check minimum grid velocity in x-direction for 2D Lin." language="python">
-print 'min(GridVelocity%1)_2d = ', mingridvelocity_x_2d
+print('min(GridVelocity%1)_2d = ', mingridvelocity_x_2d)
 assert mingridvelocity_x_2d &lt; 0 and mingridvelocity_x_2d &gt; -0.1
     </test>
     <test name="Check maximum grid velocity in x-direction for 2D Lin." language="python">
-print 'max(GridVelocity%1)_2d = ', maxgridvelocity_x_2d
+print('max(GridVelocity%1)_2d = ', maxgridvelocity_x_2d)
 assert maxgridvelocity_x_2d &gt; 0 and maxgridvelocity_x_2d &lt; 0.1 
     </test>
     <test name="Check minimum grid velocity in y-direction for 2D Lin." language="python">
-print 'min(GridVelocity%2)_2d = ', mingridvelocity_y_2d
+print( 'min(GridVelocity%2)_2d = ', mingridvelocity_y_2d)
 assert mingridvelocity_y_2d &lt; 0 and mingridvelocity_y_2d &gt; -0.2
     </test>
     <test name="Check maximum grid velocity in y-direction for 2D Lin." language="python">
-print 'max(GridVelocity%2)_2d = ', maxgridvelocity_y_2d
+print( 'max(GridVelocity%2)_2d = ', maxgridvelocity_y_2d)
 assert maxgridvelocity_y_2d &gt; 0 and maxgridvelocity_y_2d &lt; 0.2 
     </test>
   </pass_tests>
