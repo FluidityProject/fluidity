@@ -36,7 +36,7 @@ module fluids_module
        simulation_start_time, &
        simulation_start_cpu_time, &
        simulation_start_wall_time, &
-       topology_mesh_name, FIELD_NAME_LEN, iteration
+       topology_mesh_name, FIELD_NAME_LEN, iteration, dump_no
   use futils, only: int2str
   use reference_counting, only: print_references
   use parallel_tools
@@ -135,8 +135,8 @@ contains
     type(state_type), dimension(:), pointer :: sub_state => null()
 
     type(tensor_field) :: metric_tensor
-    !     Dump index
-    integer :: dump_no = 0
+    !     Dump index - no longer needed here, get from global parameters
+    !integer :: dump_no
     !     Temporary buffer for any string options which may be required.
     character(len=OPTION_PATH_LEN) :: option_buffer
     character(len=OPTION_PATH_LEN):: option_path
@@ -412,6 +412,7 @@ contains
        ewrite(1, *) "Current simulation time: ", current_time
        ewrite(1, *) "Timestep number: ", timestep
        ewrite(1, *) "Timestep size (dt): ", dt
+       ewrite(1, *) "Dump_no:", dump_no
        if(.not. allfequals(dt)) then
           ewrite(-1, *) "Timestep size (dt): ", dt
           FLAbort("The timestep is not global across all processes!")
