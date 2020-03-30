@@ -1,10 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import os
 import os.path
 import glob
 import time
+from io import StringIO
 
 try:
  import fluidity.regressiontest as regressiontest
@@ -16,18 +17,27 @@ except ImportError:
  import fluidity.regressiontest as regressiontest
 
 import traceback
-import threading
+import multiprocessing
+try:
+  import Queue
+except ImportError:
+  import queue as Queue
 import xml.parsers.expat
 import string
 
 try:
-  from junit_xml import TestSuite
+  from junit_xml import TestSuite, TestCase
 except ImportError:
   class TestSuite(object):
      def __init__(self, name, test_cases):
          self.test_cases=test_cases
      def to_file(self,*args):
-         print "cannot generate xml report without junit_xml module."
+         print("cannot generate xml report without junit_xml module.")
+  class TestCase(object):
+        def __init__(self,*args,**kwargs):
+            pass
+        def add_failure_info(self,*args,**kwargs):
+            pass
 
 # make sure we use the correct version of regressiontest
 sys.path.insert(0, os.path.join(os.getcwd(), os.path.dirname(sys.argv[0]), os.pardir, "python"))
@@ -57,20 +67,21 @@ class TestHarness:
         self.genpbs = genpbs
         self.xml_parser=TestSuite('TestHarness',[])
         self.cwd=os.getcwd()
+        self.iolock = multiprocessing.Lock()
         self.xml_outfile=xml_outfile
         self.exit_fails=exit_fails
 
         fluidity_command = self.decide_fluidity_command()
 
         if file == "":
-          print "Test criteria:"
-          print "-" * 80
-          print "length: ", length
-          print "parallel: ", parallel
-          print "tags to include: ", tags
-          print "tags to exclude: ", exclude_tags
-          print "-" * 80
-          print 
+          print("Test criteria:")
+          print("-" * 80)
+          print("length: ", length)
+          print("parallel: ", parallel)
+          print("tags to include: ", tags)
+          print("tags to exclude: ", exclude_tags)
+          print("-" * 80)
+          print()
 
         # step 1. form a list of all the xml files to be considered.
 
@@ -93,7 +104,7 @@ class TestHarness:
                 if x.tag == "testproblem":
                   xml_files.append(os.path.join(subdir, xml_file))
               except xml.parsers.expat.ExpatError:
-                print "Warning: %s mal-formed" % xml_file
+                print(("Warning: %s mal-formed" % xml_file))
                 traceback.print_exc()
 
         # step 2. if the user has specified a particular file, let's use that.
@@ -124,9 +135,9 @@ class TestHarness:
                 self.tests.append((subdir, testprob))
                 files.remove(xml_file)
           if files != []:
-            print "Could not find the following specified test files:"
+            print("Could not find the following specified test files:")
             for f in files:
-              print f
+              print(f)
             sys.exit(1)
           return
 
@@ -199,7 +210,7 @@ class TestHarness:
           self.tests.append((subdir, testprob))
 
         if len(self.tests) == 0:
-          print "Warning: no matching tests."
+          print("Warning: no matching tests.")
 
     def length_matches(self, filelength):
         if self.length == filelength: return True
@@ -241,7 +252,7 @@ class TestHarness:
             # no longer valid since debugging doesn't change the name - any suitable alternative tests?
             # if self.valgrind is True:
             #  if flucmd != debugBinary:
-            #     print "Error: you really should compile with debugging for use with valgrind!"
+            #     print("Error: you really should compile with debugging for use with valgrind!")
             #     sys.exit(1)
                 
             return flucmd
@@ -250,7 +261,7 @@ class TestHarness:
 
     def modify_command_line(self, nprocs):
       flucmd = self.decide_fluidity_command()
-      print flucmd
+      print(flucmd)
       def f(s):
         if not flucmd in [None, "fluidity"]:
           s = s.replace('fluidity ', flucmd + ' ')
@@ -271,7 +282,7 @@ class TestHarness:
 
     def log(self, str):
         if self.verbose == True:
-            print str
+            print(str)
 
     def clean(self):
       self.log(" ")
@@ -285,13 +296,52 @@ class TestHarness:
         self.log(" ")
         if not self.justtest:
             threadlist=[]
-            self.threadtests=regressiontest.ThreadIterator(self.tests)
-            for i in range(options.thread_count):
-                threadlist.append(threading.Thread(target=self.threadrun)) 
-                threadlist[-1].start()
+            self.test_exception_ids = multiprocessing.Queue()
+            tests_by_nprocs={}
+            for test_id in range(len(self.tests)):
+                # sort tests by number of processes requested
+                tests_by_nprocs.setdefault(self.tests[test_id][1].nprocs,
+                                           []).append(test_id)
+            serial_tests = multiprocessing.Queue()
+            for test in tests_by_nprocs.get(1, []):
+                # collect serial tests to pass to worker threads
+                serial_tests.put(test)
+            for nprocs in sorted(list(tests_by_nprocs.keys()), reverse=True):
+               for i in range(len(threadlist),
+                              max(0, options.thread_count-nprocs)):
+                   # spin up enough new workers to fully subscribe thread count
+                   threadlist.append(multiprocessing.Process(target=self.threadrun, args=[serial_tests])) 
+                   threadlist[-1].start()
+               if nprocs==1:
+                   # remaining tests are serial. Join the workers
+                   self.threadrun(serial_tests)
+               else:
+                   tests = tests_by_nprocs[nprocs]
+                   queue = Queue.Queue()
+                   for test in tests:
+                       queue.put(test)
+
+                   # run the parallel queue on master thread
+                   self.threadrun(queue)
             for t in threadlist:
                 '''Wait until all threads finish'''
                 t.join()
+
+            exceptions = []
+            while True:
+                try:
+                    test_id, lines = self.test_exception_ids.get(timeout=0.1)
+                    exceptions.append((self.tests[test_id], lines))
+                except Queue.Empty:
+                    break
+            for e, lines in exceptions:
+                tc=TestCase(e[1].name,
+                            '%s.%s'%(e[1].length,
+                                     e[1].filename[:-4]))
+                tc.add_failure_info("Failure", lines)
+                self.xml_parser.test_cases+= [tc]
+                self.tests.remove(e)
+                self.completed_tests += [e[1]]
 
             count = len(self.tests)
             while True:
@@ -338,17 +388,17 @@ class TestHarness:
         self.warncount = self.teststatus.count('W')
         
         if self.failcount + self.warncount > 0:
-            print
-            print "Summary of test problems with failures or warnings:"
+            print()
+            print("Summary of test problems with failures or warnings:")
             for t in self.completed_tests:
                 if t.pass_status.count('F')+t.warn_status.count('W')>0:
-                    print t.filename+':', ''.join(t.pass_status+t.warn_status)
-            print
+                    print(t.filename+':', ''.join(t.pass_status+t.warn_status))
+            print()
         
         if self.passcount + self.failcount + self.warncount > 0:
-            print "Passes:   %d" % self.passcount
-            print "Failures: %d" % self.failcount
-            print "Warnings: %d" % self.warncount
+            print("Passes:   %d" % self.passcount)
+            print("Failures: %d" % self.failcount)
+            print("Warnings: %d" % self.warncount)
 
         if self.xml_outfile!="":
             fd=open(self.cwd+'/'+self.xml_outfile,'w')
@@ -359,12 +409,30 @@ class TestHarness:
             sys.exit(self.failcount)
 
           
-
-    def threadrun(self):
+    def threadrun(self, queue):
         '''This is the portion of the loop which actually runs the
-        tests. This is split out so that it can be threaded'''
-        
-        for (dir, test) in self.threadtests:
+        tests. This is split out so that it can be threaded.
+        Each thread runs tests from the queue until it is exhausted.'''
+
+        # We use IO locking to attempt to keep output understandable
+        # That means writing to a buffer to minimise interactions
+        main_stdout = sys.stdout
+
+        while True:
+            buf = StringIO()
+            sys.stdout = buf
+            try:
+                #pull a test number from the queue
+                test_id = queue.get(timeout=0.1)
+                (dir, test) = self.tests[test_id]
+            except Queue.Empty:
+                # If the queue is empty, we're done.
+                sys.stdout = main_stdout
+                buf.seek(0)
+                with self.iolock:
+                    print (buf.read())
+                break
+
             try:
                 runtime=test.run(dir)
                 if self.length=="short" and runtime>30.0:
@@ -378,14 +446,17 @@ class TestHarness:
                 lines = traceback.format_exception( sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2] )
                 for line in lines:
                     self.log(line)
-                self.tests.remove((dir, test))
-                self.teststatus += ['F']
                 test.pass_status = ['F']
-                self.completed_tests += [test]
+                self.test_exception_ids.put((test_id, lines))
+            finally:
+                sys.stdout = main_stdout
+                buf.seek(0)
+                with self.iolock:
+                    print(buf.read())
 
     def list(self):
       for (subdir, test) in self.tests:
-        print os.path.join(subdir, test.filename)
+        print(os.path.join(subdir, test.filename))
 
 
 if __name__ == "__main__":
@@ -456,21 +527,21 @@ if __name__ == "__main__":
     elif options.clean:
       testharness.clean()
     else:
-      print "-" * 80
+      print("-" * 80)
       which = os.popen("which %s" % testharness.decide_fluidity_command()).read()
       if len(which) > 0:
-        print "which %s: %s" % ("fluidity", which),
+        print("which %s: %s" % ("fluidity", which), end=' ')
       versio = os.popen("%s -V" % testharness.decide_fluidity_command()).read()
       if len(versio) > 0:
-        print versio
-      print "-" * 80
+        print(versio)
+      print("-" * 80)
 
       if options.valgrind is True:
-        print "-" * 80
-        print "I see you are using valgrind!"
-        print "A couple of points to remember."
-        print "a) The log file will be produced in the directory containing the tests."
-        print "b) Valgrind typically takes O(100) times as long. I hope your test is short."
-        print "-" * 80
+        print("-" * 80)
+        print("I see you are using valgrind!")
+        print("A couple of points to remember.")
+        print("a) The log file will be produced in the directory containing the tests.")
+        print("b) Valgrind typically takes O(100) times as long. I hope your test is short.")
+        print("-" * 80)
 
       testharness.run()

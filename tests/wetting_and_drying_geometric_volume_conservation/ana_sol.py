@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import math
 from scipy.special import erf
 from numpy import poly1d
@@ -46,13 +48,13 @@ def analytic_solution(t, x, a_0, L, g, eta): # time, x_value, initial maximum pe
   Z4=(z1-z4)*(z2-z4)*(z3-z4)
 
   if debug:
-                print 'Calculate analytic solution:'        
-                print 't=', t
-                print 'a=', a
-                print 'k=', k
-                print 'g=', g
-                print 'eta=', eta
-                print 'omega_0sq=', omega_0sq
+                print('Calculate analytic solution:') 
+                print('t=', t)
+                print('a=', a)
+                print('k=', k)
+                print('g=', g)
+                print('eta=', eta)
+                print('omega_0sq=', omega_0sq)
         
   t0=4*eta**2*k**4/(8*eta**2*k**4+omega_0sq)*a*erfc((eta*k**2*t)**0.5)
   t1=z1/Z1*omega_0sq*a/(z1**2-eta*k**2)*exp((z1**2-eta*k**2)*t)*erfc(z1*t**0.5)
@@ -63,9 +65,9 @@ def analytic_solution(t, x, a_0, L, g, eta): # time, x_value, initial maximum pe
   a=t0+t1+t2+t3+t4
         
   if debug:
-                print 'a(t)=', a.real        
+                print('a(t)=', a.real)
   if (a.imag>0.000001):
-                print 'Warning: Imaginary part of a(t) is not zero!'
+                print('Warning: Imaginary part of a(t) is not zero!')
   return a.real
 
 

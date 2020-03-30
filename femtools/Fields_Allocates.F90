@@ -2286,7 +2286,7 @@ contains
     x => positions%val(1,:)
     if (positions%dim>1) then
        y => positions%val(2,:)
-       if(positions%dim>1) then
+       if(positions%dim>2) then
           z => positions%val(3,:)
        end if
     end if

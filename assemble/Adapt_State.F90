@@ -1131,6 +1131,16 @@ contains
 
       call prepare_vertically_structured_adaptivity(states, metric, full_metric, &
                                                     old_positions, extruded_positions)
+      if (have_option(trim(old_linear_mesh%option_path)//"/from_mesh/extrude")) then
+        ! this happens with an extruded setup for the initial mesh if we don't
+        ! have hr_adaptivity/vertically_structured_adaptivity
+        ! We've reached adaptivity now, so immediately after the adapt there will no longer any
+        ! relation with the horizontal meshes (and in parallel with their decomposition)
+        ! We therefore change the options tree to make the adapted mesh external, so we checkpoint
+        ! correctly, and remove the horizontal mesh options. The horizontal meshes may still linger around
+        ! for a while as they could be needed for instance in .stat file during this run
+        call remove_non_extruded_mesh_options(states)
+      end if
 
       call initialise_boundcount(old_linear_mesh, old_positions)
 

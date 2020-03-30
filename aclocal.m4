@@ -428,10 +428,10 @@ AC_MSG_NOTICE([Using PETSC_DIR=$PETSC_DIR])
 PETSC_LINK_LIBS=`make -s -f petsc_makefile_old getlinklibs 2> /dev/null || make -s -f petsc_makefile getlinklibs`
 LIBS="$PETSC_LINK_LIBS $LIBS"
 
-# need to add -Iinclude/ to what we get from petsc, so we can use our own petsc_legacy.h wrapper
+# need to add -I$PWD/include/ to what we get from petsc, so we can use our own petsc_legacy.h wrapper
 PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile_old getincludedirs 2> /dev/null || make -s -f petsc_makefile getincludedirs`
-CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
-FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
+CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS -I$PWD/include/"
+FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS -I$PWD/include/"
 
 # first check we have the right petsc version
 AC_COMPUTE_INT(PETSC_VERSION_MAJOR, "PETSC_VERSION_MAJOR", [#include "petscversion.h"], 
@@ -603,12 +603,12 @@ CPPFLAGS=$tmpCPPFLAGS
 ])dnl ACX_hypre
 
 # ===========================================================================
-#         http://www.nongnu.org/autoconf-archive/ac_python_devel.html
+#     https://www.gnu.org/software/autoconf-archive/ax_python_devel.html
 # ===========================================================================
 #
 # SYNOPSIS
 #
-#   AC_PYTHON_DEVEL([version])
+#   AX_PYTHON_DEVEL([version])
 #
 # DESCRIPTION
 #
@@ -616,8 +616,8 @@ CPPFLAGS=$tmpCPPFLAGS
 #   in your configure.ac.
 #
 #   This macro checks for Python and tries to get the include path to
-#   'Python.h'. It provides the $(PYTHON_CPPFLAGS) and $(PYTHON_LDFLAGS)
-#   output variables. It also exports $(PYTHON_EXTRA_LIBS) and
+#   'Python.h'. It provides the $(PYTHON_CPPFLAGS) and $(PYTHON_LIBS) output
+#   variables. It also exports $(PYTHON_EXTRA_LIBS) and
 #   $(PYTHON_EXTRA_LDFLAGS) for embedding Python in your code.
 #
 #   You can search for some particular version of Python by passing a
@@ -638,11 +638,12 @@ CPPFLAGS=$tmpCPPFLAGS
 # LICENSE
 #
 #   Copyright (c) 2009 Sebastian Huber <sebastian-huber@web.de>
-#   Copyright (c) 2009 Alan W. Irwin <irwin@beluga.phys.uvic.ca>
+#   Copyright (c) 2009 Alan W. Irwin
 #   Copyright (c) 2009 Rafael Laboissiere <rafael@laboissiere.net>
-#   Copyright (c) 2009 Andrew Collier <colliera@ukzn.ac.za>
+#   Copyright (c) 2009 Andrew Collier
 #   Copyright (c) 2009 Matteo Settenvini <matteo@member.fsf.org>
 #   Copyright (c) 2009 Horst Knorr <hk_classes@knoda.org>
+#   Copyright (c) 2013 Daniel Mullner <muellner@math.stanford.edu>
 #
 #   This program is free software: you can redistribute it and/or modify it
 #   under the terms of the GNU General Public License as published by the
@@ -655,7 +656,7 @@ CPPFLAGS=$tmpCPPFLAGS
 #   Public License for more details.
 #
 #   You should have received a copy of the GNU General Public License along
-#   with this program. If not, see <http://www.gnu.org/licenses/>.
+#   with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 #   As a special exception, the respective Autoconf Macro's copyright owner
 #   gives unlimited permission to copy, distribute and modify the configure
@@ -670,7 +671,10 @@ CPPFLAGS=$tmpCPPFLAGS
 #   modified version of the Autoconf Macro, you may extend this special
 #   exception to the GPL to apply to your modified version as well.
 
-AC_DEFUN([AC_PYTHON_DEVEL],[
+#serial 21
+
+AU_ALIAS([AC_PYTHON_DEVEL], [AX_PYTHON_DEVEL])
+AC_DEFUN([AX_PYTHON_DEVEL],[
 	#
 	# Allow the use of a (user set) custom python version
 	#
@@ -699,7 +703,7 @@ AC_DEFUN([AC_PYTHON_DEVEL],[
 This version of the AC@&t@_PYTHON_DEVEL macro
 doesn't work properly with versions of Python before
 2.1.0. You may need to re-run configure, setting the
-variables PYTHON_CPPFLAGS, PYTHON_LDFLAGS, PYTHON_SITE_PKG,
+variables PYTHON_CPPFLAGS, PYTHON_LIBS, PYTHON_SITE_PKG,
 PYTHON_EXTRA_LIBS and PYTHON_EXTRA_LDFLAGS by hand.
 Moreover, to disable this check, set PYTHON_NOVERSIONCHECK
 to something else than an empty string.
@@ -720,7 +724,7 @@ to something else than an empty string.
 			ver = sys.version.split ()[[0]]; \
 			print (ver $1)"`
 		if test "$ac_supports_python_ver" = "True"; then
-	   	   AC_MSG_RESULT([yes])
+		   AC_MSG_RESULT([yes])
 		else
 			AC_MSG_RESULT([no])
 			AC_MSG_ERROR([this package requires Python $1.
@@ -737,7 +741,7 @@ variable to configure. See ``configure --help'' for reference.
 	#
 	AC_MSG_CHECKING([for the distutils Python package])
 	ac_distutils_result=`$PYTHON -c "import distutils" 2>&1`
-	if test -z "$ac_distutils_result"; then
+	if test $? -eq 0; then
 		AC_MSG_RESULT([yes])
 	else
 		AC_MSG_RESULT([no])
@@ -753,9 +757,15 @@ $ac_distutils_result])
 	AC_MSG_CHECKING([for Python include path])
 	if test -z "$PYTHON_CPPFLAGS"; then
 		python_path=`$PYTHON -c "import distutils.sysconfig; \
-           		print (distutils.sysconfig.get_python_inc ());"`
+			print (distutils.sysconfig.get_python_inc ());"`
+		plat_python_path=`$PYTHON -c "import distutils.sysconfig; \
+			print (distutils.sysconfig.get_python_inc (plat_specific=1));"`
 		if test -n "${python_path}"; then
-		   	python_path="-I$python_path"
+			if test "${plat_python_path}" != "${python_path}"; then
+				python_path="-I$python_path -I$plat_python_path"
+			else
+				python_path="-I$python_path"
+			fi
 		fi
 		PYTHON_CPPFLAGS=$python_path
 	fi
@@ -766,7 +776,7 @@ $ac_distutils_result])
 	# Check for Python library path
 	#
 	AC_MSG_CHECKING([for Python library path])
-	if test -z "$PYTHON_LDFLAGS"; then
+	if test -z "$PYTHON_LIBS"; then
 		# (makes two attempts to ensure we've got a version number
 		# from the interpreter)
 		ac_python_version=`cat<<EOD | $PYTHON -
@@ -774,11 +784,9 @@ $ac_distutils_result])
 # join all versioning strings, on some systems
 # major/minor numbers could be in different list elements
 from distutils.sysconfig import *
-ret = ''
-for e in get_config_vars ('VERSION'):
-	if (e != None):
-		ret += e
-print (ret)
+e = get_config_var('VERSION')
+if e is not None:
+	print(e)
 EOD`
 
 		if test -z "$ac_python_version"; then
@@ -799,55 +807,49 @@ EOD`
 
 # There should be only one
 import distutils.sysconfig
-for e in distutils.sysconfig.get_config_vars ('LIBDIR'):
-	if e != None:
-		print (e)
-		break
+e = distutils.sysconfig.get_config_var('LIBDIR')
+if e is not None:
+	print (e)
 EOD`
 
-		# Before checking for libpythonX.Y, we need to know
-		# the extension the OS we're on uses for libraries
-		# (we take the first one, if there's more than one fix me!):
-		ac_python_soext=`$PYTHON -c \
-		  "import distutils.sysconfig; \
-		  print (distutils.sysconfig.get_config_vars('SO')[[0]])"`
-
 		# Now, for the library:
-		ac_python_soname=`$PYTHON -c \
-		  "import distutils.sysconfig; \
-		  print (distutils.sysconfig.get_config_vars('LDLIBRARY')[[0]])"`
+		ac_python_library=`cat<<EOD | $PYTHON -
 
-		# Strip away extension from the end to canonicalize its name:
-		ac_python_library=`echo "$ac_python_soname" | sed "s/${ac_python_soext}$//"`
+import distutils.sysconfig
+c = distutils.sysconfig.get_config_vars()
+if 'LDVERSION' in c:
+	print ('python'+c[['LDVERSION']])
+else:
+	print ('python'+c[['VERSION']])
+EOD`
 
 		# This small piece shamelessly adapted from PostgreSQL python macro;
 		# credits goes to momjian, I think. I'd like to put the right name
 		# in the credits, if someone can point me in the right direction... ?
 		#
-		if test -n "$ac_python_libdir" -a -n "$ac_python_library" \
-			-a x"$ac_python_library" != x"$ac_python_soname"
+		if test -n "$ac_python_libdir" -a -n "$ac_python_library"
 		then
 			# use the official shared library
 			ac_python_library=`echo "$ac_python_library" | sed "s/^lib//"`
-			PYTHON_LDFLAGS="-L$ac_python_libdir -l$ac_python_library"
+			PYTHON_LIBS="-L$ac_python_libdir -l$ac_python_library"
 		else
 			# old way: use libpython from python_configdir
 			ac_python_libdir=`$PYTHON -c \
 			  "from distutils.sysconfig import get_python_lib as f; \
 			  import os; \
 			  print (os.path.join(f(plat_specific=1, standard_lib=1), 'config'));"`
-			PYTHON_LDFLAGS="-L$ac_python_libdir -lpython$ac_python_version"
+			PYTHON_LIBS="-L$ac_python_libdir -lpython$ac_python_version"
 		fi
 
-		if test -z "PYTHON_LDFLAGS"; then
+		if test -z "PYTHON_LIBS"; then
 			AC_MSG_ERROR([
   Cannot determine location of your Python DSO. Please check it was installed with
-  dynamic libraries enabled, or try setting PYTHON_LDFLAGS by hand.
+  dynamic libraries enabled, or try setting PYTHON_LIBS by hand.
 			])
 		fi
 	fi
-	AC_MSG_RESULT([$PYTHON_LDFLAGS])
-	AC_SUBST([PYTHON_LDFLAGS])
+	AC_MSG_RESULT([$PYTHON_LIBS])
+	AC_SUBST([PYTHON_LIBS])
 
 	#
 	# Check for site packages
@@ -855,7 +857,7 @@ EOD`
 	AC_MSG_CHECKING([for Python site-packages path])
 	if test -z "$PYTHON_SITE_PKG"; then
 		PYTHON_SITE_PKG=`$PYTHON -c "import distutils.sysconfig; \
-		        print (distutils.sysconfig.get_python_lib(0,0));"`
+			print (distutils.sysconfig.get_python_lib(0,0));"`
 	fi
 	AC_MSG_RESULT([$PYTHON_SITE_PKG])
 	AC_SUBST([PYTHON_SITE_PKG])
@@ -867,7 +869,7 @@ EOD`
 	if test -z "$PYTHON_EXTRA_LIBS"; then
 	   PYTHON_EXTRA_LIBS=`$PYTHON -c "import distutils.sysconfig; \
                 conf = distutils.sysconfig.get_config_var; \
-                print (conf('LOCALMODLIBS') + ' ' + conf('LIBS'))"`
+                print (conf('LIBS') + ' ' + conf('SYSLIBS'))"`
 	fi
 	AC_MSG_RESULT([$PYTHON_EXTRA_LIBS])
 	AC_SUBST(PYTHON_EXTRA_LIBS)
@@ -879,7 +881,7 @@ EOD`
 	if test -z "$PYTHON_EXTRA_LDFLAGS"; then
 		PYTHON_EXTRA_LDFLAGS=`$PYTHON -c "import distutils.sysconfig; \
 			conf = distutils.sysconfig.get_config_var; \
-			print (conf('LINKFORSHARED'))"`
+			print ('' if conf('PYTHONFRAMEWORK') else conf('LINKFORSHARED'))"`
 	fi
 	AC_MSG_RESULT([$PYTHON_EXTRA_LDFLAGS])
 	AC_SUBST(PYTHON_EXTRA_LDFLAGS)
@@ -889,7 +891,11 @@ EOD`
 	#
 	AC_MSG_CHECKING([consistency of all components of python development environment])
 	# save current global flags
-	LIBS="$ac_save_LIBS $PYTHON_LDFLAGS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
+	ac_save_LIBS="$LIBS"
+	ac_save_LDFLAGS="$LDFLAGS"
+	ac_save_CPPFLAGS="$CPPFLAGS"
+	LIBS="$ac_save_LIBS $PYTHON_LIBS $PYTHON_EXTRA_LIBS $PYTHON_EXTRA_LIBS"
+	LDFLAGS="$ac_save_LDFLAGS $PYTHON_EXTRA_LDFLAGS"
 	CPPFLAGS="$ac_save_CPPFLAGS $PYTHON_CPPFLAGS"
 	AC_LANG_PUSH([C])
 	AC_LINK_IFELSE([
@@ -900,6 +906,7 @@ EOD`
 	# turn back to default flags
 	CPPFLAGS="$ac_save_CPPFLAGS"
 	LIBS="$ac_save_LIBS"
+	LDFLAGS="$ac_save_LDFLAGS"
 
 	AC_MSG_RESULT([$pythonexists])
 
@@ -907,8 +914,8 @@ EOD`
 	   AC_MSG_FAILURE([
   Could not link test program to Python. Maybe the main Python library has been
   installed in some non-standard library path. If so, pass it to configure,
-  via the LDFLAGS environment variable.
-  Example: ./configure LDFLAGS="-L/usr/non-standard-path/python/lib"
+  via the LIBS environment variable.
+  Example: ./configure LIBS="-L/usr/non-standard-path/python/lib"
   ============================================================================
    ERROR!
    You probably have to install the development version of the Python package
@@ -921,6 +928,330 @@ EOD`
 	#
 	# all done!
 	#
+])
+
+# ===========================================================================
+#       https://www.gnu.org/software/autoconf-archive/ax_lib_hdf5.html
+# ===========================================================================
+#
+# SYNOPSIS
+#
+#   AX_LIB_HDF5([serial/parallel])
+#
+# DESCRIPTION
+#
+#   This macro provides tests of the availability of HDF5 library.
+#
+#   The optional macro argument should be either 'serial' or 'parallel'. The
+#   former only looks for serial HDF5 installations via h5cc. The latter
+#   only looks for parallel HDF5 installations via h5pcc. If the optional
+#   argument is omitted, serial installations will be preferred over
+#   parallel ones.
+#
+#   The macro adds a --with-hdf5 option accepting one of three values:
+#
+#     no   - do not check for the HDF5 library.
+#     yes  - do check for HDF5 library in standard locations.
+#     path - complete path to the HDF5 helper script h5cc or h5pcc.
+#
+#   If HDF5 is successfully found, this macro calls
+#
+#     AC_SUBST(HDF5_VERSION)
+#     AC_SUBST(HDF5_CC)
+#     AC_SUBST(HDF5_CFLAGS)
+#     AC_SUBST(HDF5_CPPFLAGS)
+#     AC_SUBST(HDF5_LDFLAGS)
+#     AC_SUBST(HDF5_LIBS)
+#     AC_SUBST(HDF5_FC)
+#     AC_SUBST(HDF5_FFLAGS)
+#     AC_SUBST(HDF5_FLIBS)
+#     AC_SUBST(HDF5_TYPE)
+#     AC_DEFINE(HAVE_HDF5)
+#
+#   and sets with_hdf5="yes".  Additionally, the macro sets
+#   with_hdf5_fortran="yes" if a matching Fortran wrapper script is found.
+#   Note that Autoconf's Fortran support is not used to perform this check.
+#   H5CC and H5FC will contain the appropriate serial or parallel HDF5
+#   wrapper script locations.
+#
+#   If HDF5 is disabled or not found, this macros sets with_hdf5="no" and
+#   with_hdf5_fortran="no".
+#
+#   Your configuration script can test $with_hdf to take any further
+#   actions. HDF5_{C,CPP,LD}FLAGS may be used when building with C or C++.
+#   HDF5_F{FLAGS,LIBS} should be used when building Fortran applications.
+#
+#   To use the macro, one would code one of the following in "configure.ac"
+#   before AC_OUTPUT:
+#
+#     1) dnl Check for HDF5 support
+#        AX_LIB_HDF5()
+#
+#     2) dnl Check for serial HDF5 support
+#        AX_LIB_HDF5([serial])
+#
+#     3) dnl Check for parallel HDF5 support
+#        AX_LIB_HDF5([parallel])
+#
+#   One could test $with_hdf5 for the outcome or display it as follows
+#
+#     echo "HDF5 support:  $with_hdf5"
+#
+#   You could also for example, override the default CC in "configure.ac" to
+#   enforce compilation with the compiler that HDF5 uses:
+#
+#     AX_LIB_HDF5([parallel])
+#     if test "$with_hdf5" = "yes"; then
+#             CC="$HDF5_CC"
+#     else
+#             AC_MSG_ERROR([Unable to find HDF5, we need parallel HDF5.])
+#     fi
+#
+#   The HDF5_TYPE environment variable returns "parallel" or "serial",
+#   depending on which type of library is found.
+#
+# LICENSE
+#
+#   Copyright (c) 2009 Timothy Brown <tbrown@freeshell.org>
+#   Copyright (c) 2010 Rhys Ulerich <rhys.ulerich@gmail.com>
+#
+#   Copying and distribution of this file, with or without modification, are
+#   permitted in any medium without royalty provided the copyright notice
+#   and this notice are preserved. This file is offered as-is, without any
+#   warranty.
+
+#serial 19
+
+AC_DEFUN([AX_LIB_HDF5], [
+
+AC_REQUIRE([AC_PROG_SED])
+AC_REQUIRE([AC_PROG_AWK])
+AC_REQUIRE([AC_PROG_GREP])
+
+dnl Check first argument is one of the recognized values.
+dnl Fail eagerly if is incorrect as this simplifies case statements below.
+if   test "m4_normalize(m4_default([$1],[]))" = ""        ; then
+    : # Recognized value
+elif test "m4_normalize(m4_default([$1],[]))" = "serial"  ; then
+    : # Recognized value
+elif test "m4_normalize(m4_default([$1],[]))" = "parallel"; then
+    : # Recognized value
+else
+    AC_MSG_ERROR([
+Unrecognized value for AX[]_LIB_HDF5 within configure.ac.
+If supplied, argument 1 must be either 'serial' or 'parallel'.
+])
+fi
+
+dnl Add a default --with-hdf5 configuration option.
+AC_ARG_WITH([hdf5],
+  AS_HELP_STRING(
+    [--with-hdf5=[yes/no/PATH]],
+    m4_case(m4_normalize([$1]),
+            [serial],   [location of h5cc for serial HDF5 configuration],
+            [parallel], [location of h5pcc for parallel HDF5 configuration],
+            [location of h5cc or h5pcc for HDF5 configuration])
+  ),
+  [if test "$withval" = "no"; then
+     with_hdf5="no"
+   elif test "$withval" = "yes"; then
+     with_hdf5="yes"
+   else
+     with_hdf5="yes"
+     H5CC="$withval"
+   fi],
+   [with_hdf5="yes"]
+)
+
+dnl Set defaults to blank
+HDF5_CC=""
+HDF5_VERSION=""
+HDF5_CFLAGS=""
+HDF5_CPPFLAGS=""
+HDF5_LDFLAGS=""
+HDF5_LIBS=""
+HDF5_FC=""
+HDF5_FFLAGS=""
+HDF5_FLIBS=""
+HDF5_TYPE=""
+
+dnl Try and find hdf5 compiler tools and options.
+if test "$with_hdf5" = "yes"; then
+    if test -z "$H5CC"; then
+        dnl Check to see if H5CC is in the path.
+        AC_PATH_PROGS(
+            [H5CC],
+            m4_case(m4_normalize([$1]),
+                [serial],   [h5cc],
+                [parallel], [h5pcc],
+                [h5cc h5pcc]),
+            [])
+    else
+        AC_MSG_CHECKING([Using provided HDF5 C wrapper])
+        AC_MSG_RESULT([$H5CC])
+    fi
+    AC_MSG_CHECKING([for HDF5 type])
+    AS_CASE([$H5CC],
+        [*h5pcc], [HDF5_TYPE=parallel],
+        [*h5cc], [HDF5_TYPE=serial],
+        [HDF5_TYPE=neither])
+    AC_MSG_RESULT([$HDF5_TYPE])
+    AC_MSG_CHECKING([for HDF5 libraries])
+    if test ! -f "$H5CC" || test ! -x "$H5CC"; then
+        AC_MSG_RESULT([no])
+        AC_MSG_WARN(m4_case(m4_normalize([$1]),
+            [serial],  [
+Unable to locate serial HDF5 compilation helper script 'h5cc'.
+Please specify --with-hdf5=<LOCATION> as the full path to h5cc.
+HDF5 support is being disabled (equivalent to --with-hdf5=no).
+],            [parallel],[
+Unable to locate parallel HDF5 compilation helper script 'h5pcc'.
+Please specify --with-hdf5=<LOCATION> as the full path to h5pcc.
+HDF5 support is being disabled (equivalent to --with-hdf5=no).
+],            [
+Unable to locate HDF5 compilation helper scripts 'h5cc' or 'h5pcc'.
+Please specify --with-hdf5=<LOCATION> as the full path to h5cc or h5pcc.
+HDF5 support is being disabled (equivalent to --with-hdf5=no).
+]))
+        with_hdf5="no"
+        with_hdf5_fortran="no"
+    else
+        dnl Get the h5cc output
+        HDF5_SHOW=$(eval $H5CC -show)
+
+        dnl Get the actual compiler used
+        HDF5_CC=$(eval $H5CC -show | $AWK '{print $[]1}')
+        if test "$HDF5_CC" = "ccache"; then
+            HDF5_CC=$(eval $H5CC -show | $AWK '{print $[]2}')
+        fi
+
+        dnl h5cc provides both AM_ and non-AM_ options
+        dnl depending on how it was compiled either one of
+        dnl these are empty. Lets roll them both into one.
+
+        dnl Look for "HDF5 Version: X.Y.Z"
+        HDF5_VERSION=$(eval $H5CC -showconfig | $GREP 'HDF5 Version:' \
+            | $AWK '{print $[]3}')
+
+        dnl A ideal situation would be where everything we needed was
+        dnl in the AM_* variables. However most systems are not like this
+        dnl and seem to have the values in the non-AM variables.
+        dnl
+        dnl We try the following to find the flags:
+        dnl (1) Look for "NAME:" tags
+        dnl (2) Look for "H5_NAME:" tags
+        dnl (3) Look for "AM_NAME:" tags
+        dnl
+        HDF5_tmp_flags=$(eval $H5CC -showconfig \
+            | $GREP 'FLAGS\|Extra libraries:' \
+            | $AWK -F: '{printf("%s "), $[]2}' )
+
+        dnl Find the installation directory and append include/
+        HDF5_tmp_inst=$(eval $H5CC -showconfig \
+            | $GREP 'Installation point:' \
+            | $AWK '{print $[]NF}' )
+
+        dnl Add this to the CPPFLAGS
+        HDF5_CPPFLAGS="-I${HDF5_tmp_inst}/include"
+
+        dnl Now sort the flags out based upon their prefixes
+        for arg in $HDF5_SHOW $HDF5_tmp_flags ; do
+          case "$arg" in
+            -I*) echo $HDF5_CPPFLAGS | $GREP -e "$arg" 2>&1 >/dev/null \
+                  || HDF5_CPPFLAGS="$HDF5_CPPFLAGS $arg"
+              ;;
+            -L*) echo $HDF5_LDFLAGS | $GREP -e "$arg" 2>&1 >/dev/null \
+                  || HDF5_LDFLAGS="$HDF5_LDFLAGS $arg"
+              ;;
+            -l*) echo $HDF5_LIBS | $GREP -e "$arg" 2>&1 >/dev/null \
+                  || HDF5_LIBS="$HDF5_LIBS $arg"
+              ;;
+          esac
+        done
+
+        HDF5_LIBS="-lhdf5 $HDF5_LIBS"
+        AC_MSG_RESULT([yes (version $[HDF5_VERSION])])
+
+        dnl See if we can compile
+        AC_LANG_PUSH([C])
+        ax_lib_hdf5_save_CC=$CC
+        ax_lib_hdf5_save_CPPFLAGS=$CPPFLAGS
+        ax_lib_hdf5_save_LIBS=$LIBS
+        ax_lib_hdf5_save_LDFLAGS=$LDFLAGS
+        CC=$HDF5_CC
+        CPPFLAGS=$HDF5_CPPFLAGS
+        LIBS=$HDF5_LIBS
+        LDFLAGS=$HDF5_LDFLAGS
+        AC_CHECK_HEADER([hdf5.h], [ac_cv_hadf5_h=yes], [ac_cv_hadf5_h=no])
+        AC_CHECK_LIB([hdf5], [H5Fcreate], [ac_cv_libhdf5=yes],
+                     [ac_cv_libhdf5=no])
+        if test "$ac_cv_hadf5_h" = "no" && test "$ac_cv_libhdf5" = "no" ; then
+          AC_MSG_WARN([Unable to compile HDF5 test program])
+        fi
+        dnl Look for HDF5's high level library
+        AC_HAVE_LIBRARY([hdf5_hl], [HDF5_LIBS="-lhdf5_hl $HDF5_LIBS"], [], [])
+
+        CC=$ax_lib_hdf5_save_CC
+        CPPFLAGS=$ax_lib_hdf5_save_CPPFLAGS
+        LIBS=$ax_lib_hdf5_save_LIBS
+        LDFLAGS=$ax_lib_hdf5_save_LDFLAGS
+        AC_LANG_POP([C])
+
+        AC_MSG_CHECKING([for matching HDF5 Fortran wrapper])
+        dnl Presume HDF5 Fortran wrapper is just a name variant from H5CC
+        H5FC=$(eval echo -n $H5CC | $SED -n 's/cc$/fc/p')
+        if test -x "$H5FC"; then
+            AC_MSG_RESULT([$H5FC])
+            with_hdf5_fortran="yes"
+            AC_SUBST([H5FC])
+
+            dnl Again, pry any remaining -Idir/-Ldir from compiler wrapper
+            for arg in `$H5FC -show`
+            do
+              case "$arg" in #(
+                -I*) echo $HDF5_FFLAGS | $GREP -e "$arg" >/dev/null \
+                      || HDF5_FFLAGS="$HDF5_FFLAGS $arg"
+                  ;;#(
+                -L*) echo $HDF5_FFLAGS | $GREP -e "$arg" >/dev/null \
+                      || HDF5_FFLAGS="$HDF5_FFLAGS $arg"
+                     dnl HDF5 installs .mod files in with libraries,
+                     dnl but some compilers need to find them with -I
+                     echo $HDF5_FFLAGS | $GREP -e "-I${arg#-L}" >/dev/null \
+                      || HDF5_FFLAGS="$HDF5_FFLAGS -I${arg#-L}"
+                  ;;
+              esac
+            done
+
+            dnl Make Fortran link line by inserting Fortran libraries
+            for arg in $HDF5_LIBS
+            do
+              case "$arg" in #(
+                -lhdf5_hl) HDF5_FLIBS="$HDF5_FLIBS -lhdf5hl_fortran $arg"
+                  ;; #(
+                -lhdf5)    HDF5_FLIBS="$HDF5_FLIBS -lhdf5_fortran $arg"
+                  ;; #(
+                *) HDF5_FLIBS="$HDF5_FLIBS $arg"
+                  ;;
+              esac
+            done
+        else
+            AC_MSG_RESULT([no])
+            with_hdf5_fortran="no"
+        fi
+
+	AC_SUBST([HDF5_VERSION])
+	AC_SUBST([HDF5_CC])
+	AC_SUBST([HDF5_CFLAGS])
+	AC_SUBST([HDF5_CPPFLAGS])
+	AC_SUBST([HDF5_LDFLAGS])
+	AC_SUBST([HDF5_LIBS])
+	AC_SUBST([HDF5_FC])
+	AC_SUBST([HDF5_FFLAGS])
+	AC_SUBST([HDF5_FLIBS])
+	AC_SUBST([HDF5_TYPE])
+	AC_DEFINE([HAVE_HDF5], [1], [Defined if you have HDF5 support])
+    fi
+fi
 ])
 
 AC_DEFUN([ACX_adjoint], [

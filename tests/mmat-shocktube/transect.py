@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import vtktools
 from numpy import concatenate, arange, newaxis, ones, array
 from pylab import plot, show

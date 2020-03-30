@@ -32,8 +32,6 @@ USA
 //
 #include <confdefs.h>
 
-#include <mpi.h>
-
 #include <cassert>
 #include <deque>
 #include <map>

@@ -1,0 +1,276 @@
+#! /bin/sh
+
+# This tool is adapted from the h5cc command from HDF5, which is
+# in turn adapted from mpicc command of the MPICH Software.
+
+############################################################################
+##                                                                        ##
+## Things You May Have to Modify:                                         ##
+##                                                                        ##
+## If the following paths don't point to the place were HDF5 is installed ##
+## on your system (i.e., you received a binary distribution or moved the  ##
+## files from the originally installed directory to another directory)    ##
+## then modify them accordingly to represent the new paths.               ##
+##                                                                        ##
+############################################################################
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+libdir="@libdir@"
+includedir="@includedir@"
+hdf5dir="@HDF5ROOT@"
+
+############################################################################
+##                                                                        ##
+## You shouldn't have to modify anything below this line.                 ##
+##                                                                        ##
+############################################################################
+
+host_os="@host_os@"
+
+prog_name="`basename $0`"
+
+allargs=""
+compile_args=""
+libraries=""
+link_args=""
+link_objs=""
+clibpath=""
+
+do_link="yes"
+do_compile="no"
+dash_o="no"
+dash_c="no"
+get_output_file="no"
+
+SHOW="eval"
+CCBASE="@CC@"
+CLINKERBASE="@CC@"
+CFLAGS="@CFLAGS@"
+CPPFLAGS="@CPPFLAGS@"
+INCLUDES="@INCLUDES@"
+LDFLAGS="@LDFLAGS@"
+LIBS="@LIBS@"
+
+CC="${H5HUT_CC:-$CCBASE}"
+CLINKER="${H5HUT_CLINKER:-$CLINKERBASE}"
+
+usage() {
+  # A wonderfully informative "usage" message.
+  echo "usage: $prog_name [OPTIONS] <compile line>"
+  echo "  OPTIONS:"
+  echo "    -help        This help message."
+  echo "    -echo        Show all the shell commands executed"
+  echo "    -prefix=DIR  Prefix directory to find HDF5 lib/ and include/"
+  echo "                   subdirectories [default: $prefix]"
+  echo "    -show        Show the commands without executing them"
+  echo "    -showconfig  Show the HDF5 library configuration summary"
+  echo " "
+  echo "  <compile line>  - the normal compile line options for your compiler."
+  echo "                    $prog_name uses the same compiler you used to compile"
+  echo "                    HDF5. Check with your compiler's man pages for more"
+  echo "                    information on which options are needed."
+  echo " "
+  echo " You can override the compiler, linker, and whether or not to use static"
+  echo " or shared libraries to compile your program by setting the following"
+  echo " environment variables accordingly:"
+  echo " "
+  echo "   H5HUT_CC                  -  use a different C compiler"
+  echo "   H5HUT_CLINKER             -  use a different linker"
+  echo " "
+  exit 1
+}
+
+# Show the configuration summary of the library recorded in the
+# libhdf5.settings file reside in the lib directory.
+showconfigure()
+{
+  cat ${hdf5dir}/lib/libhdf5.settings
+  status=$?
+}
+
+# Main
+status=0
+
+if test "$#" = "0"; then
+  # No parameters specified, issue usage statement and exit.
+  usage
+fi
+
+case "$CC" in
+  gcc)
+    kind="gcc"
+    ;;
+  mpicc|mpcc|mpicc_r)
+    # Is this gcc masquarading as an MPI compiler?
+    if test "`${CC} -v 2>&1 | sed -n 2p | cut -c1-3`" = "gcc"; then
+      kind="gcc"
+    else
+      # Nope
+      kind="$host_os"
+    fi
+    ;;
+  *)
+    kind="$host_os"
+    ;;
+esac
+
+for arg in $@ ; do
+  if test "x$get_output_file" = "xyes"; then
+    link_args="$link_args $arg"
+    output_file="$arg"
+    get_output_file="no"
+    continue
+  fi
+
+  case "$arg" in
+    -c)
+      allargs="$allargs $arg"
+      compile_args="$compile_args $arg"
+
+      if test "x$do_link" = "xyes" -a -n "$output_file"; then
+        compile_args="$compile_args -o $outputfile"
+      fi
+
+      do_link="no"
+      dash_c="yes"
+      ;;
+    -o)
+      allargs="$allargs $arg"
+      dash_o="yes"
+
+      if test "x$dash_c" = "xyes"; then
+        compile_args="$compile_args $arg"
+      else
+        link_args="$link_args $arg"
+        do_link="yes"
+        get_output_file="yes"
+      fi
+      ;;
+    -E|-M)
+      allargs="$allargs $arg"
+      compile_args="$compile_args $arg"
+      dash_c="yes"
+      do_link="no"
+      ;;
+    -l*)
+      libraries=" $libraries $arg "
+      allargs="$allargs $arg"
+      ;;
+    -prefix=*)
+      prefix="`expr "$arg" : '-prefix=\(.*\)'`"
+      ;;
+    -echo)
+      set -x
+      ;;
+    -show)
+      SHOW="echo"
+      ;;
+    -showconfig)
+      showconfigure
+      exit $status
+      ;;
+    -help)
+      usage
+      ;;
+    *\"*)
+      qarg="'"$arg"'"
+      allargs="$allargs $qarg"
+      ;;
+    *\'*)
+      qarg='\"'"$arg"'\"'
+      allargs="$allargs $qarg"
+      ;;
+    *)
+      allargs="$allargs $qarg"
+
+      if test -s "$arg"; then
+        ext=`expr "$arg" : '.*\(\..*\)'`
+
+        if test "x$ext" = "x.c"; then
+          do_compile="yes"
+          compile_args="$compile_args $arg"
+          fname=`basename $arg .c`
+          link_objs="$link_objs $fname.o"
+        elif test "x$ext" = "x.o"; then
+          if test "x$dash_c" = "xyes"; then
+            compile_args="$compile_args $arg"
+          else
+            do_link="yes"
+            link_objs="$link_objs $arg"
+          fi
+        elif test "x$ext" = "x.a"; then
+          # This is an archive that we're linking in
+          libraries=" $libraries $arg "
+        else
+          compile_args="$compile_args $arg"
+          link_args="$link_args $arg"
+        fi
+      else
+        compile_args="$compile_args $arg"
+        link_args="$link_args $arg"
+      fi
+      ;;
+  esac
+done
+
+if test "$dash_c" = "yes" -a "$do_compile" = no -a "$do_link" = no ; then
+    # -c was specified.  Force do_compile on.
+    do_compile=yes
+fi
+
+if test "x$do_compile" = "xyes"; then
+  if test "x$dash_c" != "xyes"; then
+    compile_args="-c $compile_args"
+  fi
+
+  $SHOW $CC -I$includedir $INCLUDES $CPPFLAGS $CFLAGS $compile_args
+  status=$?
+
+  if test "$status" != "0"; then
+    exit $status
+  fi
+fi
+
+if test "x$do_link" = "xyes"; then
+  shared_link=""
+  libraries=" $libraries  -lH5hut "
+  link_args="$link_args -L${libdir}"
+
+  case "$kind" in
+    gcc|linux*)
+      # MacOS X doesn't support the "-Wl,-rpath -Wl," style of linker flags.
+      # It appears to want none of them specified.
+      case "$host_os" in
+        darwin*)          flag="" ;;
+        *)                flag="-Wl,-rpath -Wl," ;;
+      esac
+      ;;
+    hpux*)                flag="-Wl,+b -Wl," ;;
+    freebsd*|solaris*)    flag="-R" ;;
+    rs6000*|aix*)         flag="-L" ;;
+    irix*|sgi)            flag="-rpath " ;;
+    *)                    flag="" ;;
+  esac
+
+  if test -n "$flag"; then
+    shared_link="${flag}${libdir}"
+  fi
+
+  for lib in $libraries; do
+    if echo $link_args | grep " $lib " > /dev/null ||
+       echo $link_args | grep " $lib$" > /dev/null; then
+      :
+    else
+      link_args="$link_args $lib "
+    fi
+  done
+
+  # The LIBS are just a bunch of -l* libraries necessary for the HDF5
+  # module. It's okay if they're included twice in the compile line.
+  link_args="$link_args $LIBS"
+
+  $SHOW $CLINKER $CFLAGS $LDFLAGS $clibpath $link_objs $link_args
+  status=$?
+fi
+
+exit $status

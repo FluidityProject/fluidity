@@ -107,9 +107,8 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   GMSH_Common.o Read_GMSH.o Write_GMSH.o \
   Exodusii_C_Interface.o Exodusii_F_Interface.o Exodusii_Common.o Read_Exodusii.o \
   Mesh_Files.o Vertical_Extrapolation.o \
-  Mesh_Quality.o Mesh_Quality_C.o C_Solvers.o \
+  Mesh_Quality.o Mesh_Quality_C.o Particles.o Time_Period.o H5hut.o \
   Stocastic.o
-
 
 # objects to be included in libfemtools:
 F90LIB_OBJS := ../debug/*.o ../libwm/*.o  \

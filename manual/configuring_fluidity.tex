@@ -257,10 +257,7 @@ It is possible to enable the creation of a convergence file, giving details of t
 \subsubsection{Checkpointing}
 \index{checkpointing}
 \label{sec:configuring_fluidity_checkpointing}
-Enables checkpointing, which saves sufficient information (including a new flml options file) to restart a simulation, i.e., to continue the simulation after it stopped. You must specify how often to checkpoint in terms of the number of dumps. There
-are also options to checkpoint at the start of the simulation and at the
-end. This latter is useful when running on batch systems that have a time
-limit.
+Enables checkpointing, which saves sufficient information (including a new flml options file) to restart a simulation, i.e., to continue the simulation after it stopped. You must specify how often to checkpoint in terms of the number of dumps. There are also options to checkpoint at the start of the simulation and at the end. This latter is useful when running on batch systems that have a time limit.
 
 Up to five sets of files are created when checkpointing:
 \begin{enumerate}
@@ -273,40 +270,35 @@ Up to five sets of files are created when checkpointing:
 \item Checkpointed option file - A new FLML file, with the from\_file mesh
   set to read the checkpoint mesh files and the prognostic fields set
   to initialise from the checkpoint field files.
-\item Checkpointed detector files - Two files related to checkpointing of
-  detectors are created.
+\item Particle files - files related to checkpointing of
+  particles are created.
 \end{enumerate}
 
-The first checkpointed detector file has the extension .groups and contains
-a header with the names of the groups of detectors in the order they were
-read in the simulation. It also contains information about the number of
-detectors in each group. This is to guarantee that when restarting from a
-checkpoint, the detectors will be read in the same order and consequently
-will be saved in that same order into the output detector file for
-consistency.  The second checkpointed detector file has the extension
-.positions.dat and contains the last position of the detectors at the time 
-of checkpointing, in binary format.
+Particles are checkpointed with a single file for each subgroup. The
+checkpoint files use the same H5Part format used for regular particle
+dumps, with some additions to ensure that the particles' state can be
+completely reconstructed in a restart. The number of particles written
+by each processor is stored in a global attribute. Additionally, field
+values evaluated at each particle are stored if
+\option{particles/include\_in\_particles/store\_old\_field} is set on
+the field. In the same manner, old attribute values are stored if
+\option{store\_old\_attribute} is set on the attribute. These old
+values are saved in checkpoints to ensure that calculations referring
+to previous timesteps can succeed.
 
-No checkpointed detector files will be created if only static detectors are
-defined in Diamond, since the position of these detectors remains always the
-same. This is mainly used when Lagrangian detectors are set that are
-advected by the flow and hence, their position changes as the simulation
-proceeds.
-
-At the same time as creating the two files related to checkpointing of
-detectors, the detector options in the options tree or Diamond are updated
-so that in the new flml file the detectors are set to initialise from the
-checkpoint detectors files \\
-(\option{/io/detectors/detector\_array/from\_checkpoint\_file} or \\
-\option{/io/detectors/lagrangian\_detector/from\_checkpoint\_file}). For
-simplicity, the static detectors are also read from the checkpoint file that
-contains the position of all detectors, static and Lagrangian
-(\option{/io/detectors/static\_detector/from\_checkpoint\_file}).
+When particles are checkpointed, the particles options in the options
+tree or Diamond are updated so that in the new flml file the particles
+are set to initialise from the checkpoint files. This is done by
+loading the particle positions from file
+(\option{particle\_subgroup/initial\_position/from\_file}) and loading
+any attributes that are not dynamically computed
+(\option{attributes/attribute/from\_checkpoint\_file}).
 
 Checkpoint filenames all end with [dump
-no.]\_checkpoint[-[process]].[extension], where the process number is added
-to the mesh, halo and field files in parallel.  The checkpoint detectors
-filenames contain \_det after [dump no.]\_checkpoint. 
+  no.]\_checkpoint[-[process]].[extension], where the process number
+is added to the mesh, halo and field files in parallel. The
+particle checkpoint filenames instead end with [dump
+  no.]\_checkpoint\_particles.[subgroup].h5part.
 
 A script is available at \lstinline[language = bash]+scripts/rename_checkpoint.py+ 
 that can be used to easily rename these filenames and there contents to continue 
@@ -324,24 +316,15 @@ after an adapt.
 
 There are further options under individual fields, for example to exclude data from the stat file.
 
-\subsubsection{Detectors}
+\subsubsection{Detectors and Particles}
 \index{detectors!options}\label{detectors_options}
 
-Detectors are set in Diamond with the \option{/io/detectors} option. The detectors can be set to be static detectors, \option{/io/detectors/static\_detector}, Lagrangian detectors \\
-\option{/io/detectors/lagrangian\_detector} or an array of detectors, \\
-\option{/io/detectors/detector\_array}.
-
-When choosing to set detectors using an array, the total number of detectors
-needs to be specified in
-\option{/io/detectors/detector\_array/number\_of\_detectors} and the type of
-detectors is indicated with the option
-\option{/io/detectors/detector\_array/static} or \\
-\option{/io/detectors/detector\_array/lagrangian}.
+Static Detectors are set in Diamond with the \option{/io/detectors} option. The detectors can be set individually or as an array of detectors, \option{/io/detectors/detector\_array}. When choosing to set detectors using an array, the total number of detectors needs to be specified in \option{/io/detectors/detector\_array/number\_of\_detectors}.
 
 \index{Python!detector positions}
 Examples \ref{examp:python_function_detectors} and
 \ref{examp:python_function_detectors_1} illustrate the use of a Python
-function to set an array of detectors, that can be static or Lagrangian.
+function to set an array of detectors:
 
 \begin{example}
   \begin{lstlisting}[language=Python]
@@ -378,32 +361,27 @@ def val(t):
   \label{examp:python_function_detectors_1}
 \end{example}
 
-If one or more Lagrangian detectors are selected the option \option{/lagrangian\_timestepping} must be set to define detector movement. 
-The user can define the order of the Runge-Kutta method to be used by defining the Butcher tableau and timestepping weights under \option{/explicit\_runge\_kutta\_guided\_search}. 
-For convenience the first- and fourth-order Runge-Kutta method (\option{/forward\_euler\_guided\_search} and \option{/rk4\_guided\_search}) are available as pre-defined options. 
-See section \ref{sec:lagrangian_trajectories} for more information on Lagrangian detector advection.
+If particles are selected, the user must specify \option{/particle\_group}, each of which can contain multiple \option{/particle\_subgroup}. Particle groups also define particle IO options, such as \option{/dump\_period}, \option{/cpu\_dump\_period} and \option{/wall\_time\_dump\_period}. Each subgroup within a particle group will be governed by the same specified set of parameters. Particle subgroups define an array of particles, each of which is initialized with a specified \option{/number\_of\_particles} and \option{/initial\_position}. Particle attributes are defined per particle subgroup under the option \option{/attributes}. These attributes allow users to calculate and track variables on particles and can be set either as a constant, from python, or from python\_fields, which incorporates any fields values having the option \option{/include\_in\_particles} enabled. Old field values and old particle attributes can also be utilized under the python\_fields category, assuming the corresponding \option{/store\_old\_field} or \option{/store\_old\_attribute} option is enabled. Particle attributes can be set as either scalars, vectors or tensors, allowing for a wide variety of uses and applications.
 
-The output of the detectors is an ascii file called
-\option{name\_of\_simulation.detectors} where the name of the simulation has
-been indicated in \option{/simulation\_name}. If binary output
-\option{/io/detectors/} \option{binary\_output} option is enabled then the file containing the detector data is called
-\option{name\_of\_simulation.detectors.dat} and in this case \option{name\_of\_simulation.detectors} contains only the header with the
-information about the detectors (name of each detector, in which column the
-position of each detector is stored, etc.).
+The option \option{/lagrangian\_timestepping} must be set to define particle movement. The user can define the order of the Runge-Kutta method to be used by defining the Butcher tableau and timestepping weights under \option{/explicit\_runge\_kutta\_guided\_search}. For convenience the first- and fourth-order Runge-Kutta method (\option{/forward\_euler\_guided\_search} and \option{/rk4\_guided\_search}) are available as pre-defined options. See section \ref{sec:lagrangian_trajectories} for more information on particle advection.
 
-Note that the algorithm used to determine the element containing a detector (of
-any kind) assumes that the detector is known to be within the simulation domain.
-The option \option{/fail\_outside\_domain} will cause Fluidity to fail if a detector
-is found to be outside the domain boundaries. 
-This option should be the default choice when creating new simulations.
-If detectors are intended to temporarily reside outside of the domain the option
+The output of both detectors and particles is in the H5Part format,
+which uses HDF5 for its underlying storage. This format is able to
+handle parallel readers and writers, as well as scaling from a single
+static detector to a large number of particles. All static detectors
+are written to a single file
+\option{simulation\_name.detectors.h5part}, where the name of the
+simulation has been indicated in \option{/simulation\_name}. Each
+particle subgroup is written to a separate file
+\option{simulation\_name.particles.subgroup\_name.h5part}.
+
+Note that the algorithm used to determine the element containing a particle assumes that the particle is known to be within the simulation domain.
+The option \option{/fail\_outside\_domain} will cause Fluidity to fail if a particle is found to be outside the domain boundaries. 
+This option should be the default choice when creating new simulations. If particles are intended to temporarily reside outside of the domain the option
 \option{/write\_nan\_outside\_domain} will cause Fluidity to write "NaN" values 
-to the detector output in this case.
+to the particle output in this case.
 
-If \option{/move\_with\_mesh} is selected with any mesh movement algorithm the 
-detectors will move according to the mesh displacement. 
-That is to say that a static detector will remain static with reference to the 
-domain boundaries rather than its true physical coordinates.
+If \option{/move\_with\_mesh} is selected with any mesh movement algorithm, detectors will move according to the mesh displacement. That is to say that a static detector will remain static with reference to the domain boundaries rather than its true physical coordinates.
 
 \subsubsection{Log output}
 
@@ -472,7 +450,7 @@ stability. Unless there are reasons for doing this, set this value to 2.
 \subsubsection{Adaptive timestep}
 \label{section:config_adaptive_timestep}
 This option allows the timestep, $\Delta T$, to vary throughout the run, depending on the 
-Courant-–Friedrichs-–Lewy (CFL) number.  There are several sub-options here. The
+Courant-Friedrichs-Lewy (CFL) number.  There are several sub-options here. The
 \option{\ldots/requested\_cfl} is the desired upper limit of the CFL. A value of 5-10 is usual
 here. \fluidity\ will increase the timestep if the CFL number is less than this value and decrease
 it if the CFL is greater than this. The \option{\ldots/minimum\_timestep} and 

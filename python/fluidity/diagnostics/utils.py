@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -140,6 +140,9 @@ class Sorter:
   
   def GetValue(self):
     return self._value
+
+  def __lt__(self, val):
+    return self._key<val._key
     
   def __cmp__(self, val):
     if self._key > val:

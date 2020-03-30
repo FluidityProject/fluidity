@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>lock exchange 2d</name>
   <owner userid="sp911"/>
@@ -52,23 +51,23 @@ hartel_no_slip_head_speed = 0.0128350
 hartel_free_slip_head_speed = 0.01509346
 
 def get_head_speed(filelist, timdum=0.25):
-  mins = []
-  maxs = []
-  nums = []
-  for file in filelist:
-    try:
-      os.stat(file)
-    except:
-      print "No such file: %s" % file
-      sys.exit(1)
-    num = int(file.split(".vtu")[0].split('_')[-1])
-    if num>2:
-      nums.append(num)
-      reader = vtk.vtkXMLUnstructuredGridReader();
-      reader.SetFileName(file)
-      reader.Update()
-      data = reader.GetOutput()
-      data.GetPointData().SetActiveScalars("Temperature")
+    mins = []
+    maxs = []
+    nums = []
+    for file in filelist:
+        try:
+            os.stat(file)
+        except:
+            print("No such file: %s" % file)
+            sys.exit(1)
+        num = int(file.split(".vtu")[0].split('_')[-1])
+        if num&gt;2:
+            nums.append(num)
+            reader = vtk.vtkXMLUnstructuredGridReader();
+            reader.SetFileName(file)
+            reader.Update()
+            data = reader.GetOutput()
+            data.GetPointData().SetActiveScalars("Temperature")
 #      bbox = data.GetBounds()
 #      centre = (bbox[4]+bbox[5])/2.0
 #      plane = vtk.vtkPlane()
@@ -78,45 +77,45 @@ def get_head_speed(filelist, timdum=0.25):
 #      cutter.SetCutFunction(plane)
 #      cutter.SetInput(data)
 #      cutter.Update()
-      contour = vtk.vtkContourFilter ()
+            contour = vtk.vtkContourFilter ()
 #      contour.SetInput(cutter.GetOutput())
-      if vtk.vtkVersion.GetVTKMajorVersion() &lt;= 5:
-        contour.SetInput(data)
-      else:
-        contour.SetInputData(data)
-      contour.SetValue(0, 0.0)
-      contour.Update()
-      polydata = contour.GetOutput()
-      bounding_box = polydata.GetBounds()
-      (minx, maxx) = bounding_box[0:2]
-      mins.append(minx); maxs.append(maxx)
-  results = []
-  for y in [mins, maxs]:
-    x = [(nums[i] * timdum)-0.025 for i in range(len(nums))]
-    r = scipy.stats.linregress(x, y)[0]
-    print x,y
-    results.append(abs(r))
-  results.append(abs(hartel_free_slip_head_speed - results[0]))
-  results.append(abs(hartel_no_slip_head_speed -  results[1]))
-  return results
-  
+            if vtk.vtkVersion.GetVTKMajorVersion() &lt;= 5:
+                contour.SetInput(data)
+            else:
+                contour.SetInputData(data)
+            contour.SetValue(0, 0.0)
+            contour.Update()
+            polydata = contour.GetOutput()
+            bounding_box = polydata.GetBounds()
+            (minx, maxx) = bounding_box[0:2]
+            mins.append(minx); maxs.append(maxx)
+    results = []
+    for y in [mins, maxs]:
+        x = [(nums[i] * timdum)-0.025 for i in range(len(nums))]
+        r = scipy.stats.linregress(x, y)[0]
+        print(x,y)
+        results.append(abs(r))
+    results.append(abs(hartel_free_slip_head_speed - results[0]))
+    results.append(abs(hartel_no_slip_head_speed -  results[1]))
+    return results
+
 filelist = glob.glob("*[1-2][0-9].vtu")
 filelist.sort()
-print filelist
+print(filelist)
 results_head_speed = get_head_speed(filelist)
-print "Speed of free slip head, no slip head and errors from literature values"
-print results_head_speed
-    </variable>
+print("Speed of free slip head, no slip head and errors from literature values")
+print(results_head_speed)
+</variable>
  </variables>    
  <pass_tests> 
    <test name="Solvers converged" language="python">
      assert(solvers_converged)
    </test>
-<test name ="check cg lower 2 mixing bins have roughly half material at t=0 (tol = 1e-3)" language="python">
+<test name="check cg lower 2 mixing bins have roughly half material at t=0 (tol = 1e-3)" language="python">
 print (abs(temp_bin_lower_0 - 0.5))
 assert (abs(temp_bin_lower_0 - 0.5) &lt; 1e-3)
 </test>
-    <test name ="check cg upper mixing bin has half material at t=0 (tol= 1e-3)" language="python">
+    <test name="check cg upper mixing bin has half material at t=0 (tol= 1e-3)" language="python">
 print (abs(temp_bin_upper_0 - 0.5))
 assert (abs(temp_bin_upper_0 - 0.5) &lt; 1e-3)
 </test>

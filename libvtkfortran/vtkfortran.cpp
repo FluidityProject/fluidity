@@ -29,13 +29,13 @@
 
 #include "confdefs.h"
 
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
-
 #ifdef HAVE_VTK
 
 #include <vtk.h>
+
+#if VTK_MAJOR_VERSION>6
+#define VTK_USES_MPI 1
+#endif
 
 #include <vector>
 #include <string>
@@ -734,8 +734,18 @@ extern "C" {
     // Set to true binary format (not encoded as base 64)
     writer->SetDataModeToAppended();
     writer->EncodeAppendedDataOff();
+#ifdef VTK_USES_MPI
+    // From version 6.3 VTK uses parallel communication to decide
+    // which files have been written
+    if (!writer->GetController()) {
+      vtkMPIController *cont = vtkMPIController::New();
+      cont->SetCommunicator(vtkMPICommunicator::GetWorldCommunicator());
+      writer->SetController(cont);
+    }
+    writer->SetWriteSummaryFile(true);
+#else
     writer->SetWriteSummaryFile((*rank)==0);
-
+#endif
     
     writer->Write();
     writer->Delete();
@@ -759,25 +769,7 @@ extern "C" {
   */
   void vtkpclose(int *rank, int *npartitions){
 
-#ifdef HAVE_MPI
-    // Interleaving is experimental - play at your own risk
-#define INTERLEAVE_IO_TRESHOLD 64000
-#define CORES_PER_NODE 8
-    if(*npartitions>INTERLEAVE_IO_TRESHOLD){
-      int nwrites = (int)(sqrt(*npartitions)+0.5);
-      
-      for(int lrank=0; lrank<nwrites; lrank++){
-        if((*rank)%nwrites==lrank){
-          _vtkpclose_nointerleave(rank, npartitions);
-        }
-        MPI::COMM_WORLD.Barrier();
-      }
-    }else{
-#endif
-      _vtkpclose_nointerleave(rank, npartitions);
-#ifdef HAVE_MPI
-    }
-#endif
+    _vtkpclose_nointerleave(rank, npartitions);
     return;
   }
   

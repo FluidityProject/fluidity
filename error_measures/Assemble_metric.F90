@@ -129,7 +129,7 @@ module metric_assemble
     call enforce_reference_meshes(state, positions, error_metric)
 
     if (use_geometric_constraints_metric) then
-      call form_geometric_constraints_metric(positions, error_metric, state(1))
+      call form_geometric_constraints_metric(error_metric, state(1))
       call halo_update(error_metric)
     end if
 

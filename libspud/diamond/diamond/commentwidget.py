@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #    This file is part of Diamond.
 #
 #    Diamond is free software: you can redistribute it and/or modify
@@ -15,25 +13,30 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
 
-import gobject
-import gtk
+import sys
+from gi.repository import GObject as gobject
+from gi.repository import Gtk as gtk
+from gi.repository import Pango as pango
 
 class CommentWidget(gtk.Frame):
 
-  __gsignals__ = { "on-store"  : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())}
+  __gsignals__ = { "on-store"  : (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, ())}
+  fontsize = 12
 
   def __init__(self):
     gtk.Frame.__init__(self)
     
     scrolledWindow = gtk.ScrolledWindow()
-    scrolledWindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+    scrolledWindow.set_policy(gtk.PolicyType.AUTOMATIC, gtk.PolicyType.AUTOMATIC)
 
     textView = self.textView = gtk.TextView()
     textView.set_editable(False)
-    textView.set_wrap_mode(gtk.WRAP_WORD)
+    textView.set_wrap_mode(gtk.WrapMode.WORD)
     textView.set_cursor_visible(False)
+    textView.modify_font(pango.FontDescription(str(self.fontsize)))
     textView.connect("focus-in-event", self.focus_in)
     textView.connect("focus-out-event", self.focus_out)
+    textView.modify_font(pango.FontDescription.from_string(str(self.fontsize)))
     textView.get_buffer().create_tag("tag")
     
     scrolledWindow.add(textView)
@@ -41,11 +44,12 @@ class CommentWidget(gtk.Frame):
     label = gtk.Label()
     label.set_markup("<b>Comment</b>")
 
-    self.set_shadow_type(gtk.SHADOW_NONE)
+    self.set_shadow_type(gtk.ShadowType.NONE)
     self.set_label_widget(label)
     self.add(scrolledWindow)
     
     self.comment_tree = None                           
+    self.interacted = False
     return
 
   def update(self, node):
@@ -65,7 +69,7 @@ class CommentWidget(gtk.Frame):
         self.textView.set_property("has-tooltip", False)
       except:
         pass
-
+      self.interacted = False
       return
 
     self.comment_tree = comment_tree = node.get_comment()
@@ -111,7 +115,7 @@ class CommentWidget(gtk.Frame):
       return
 
     data_buffer_bounds = self.textView.get_buffer().get_bounds()
-    new_comment = self.textView.get_buffer().get_text(data_buffer_bounds[0], data_buffer_bounds[1])
+    new_comment = self.textView.get_buffer().get_text(data_buffer_bounds[0], data_buffer_bounds[1], True)
 
     if new_comment != comment_tree.data:
       if new_comment == "":
@@ -142,5 +146,14 @@ class CommentWidget(gtk.Frame):
     Called when the comment widget loses focus. Stores the comment.
     """
     self.store()
+
+  def increase_font(self):
+    self.fontsize = self.fontsize + 2
+    self.textView.modify_font(pango.FontDescription(str(self.fontsize)))
+
+  def decrease_font(self):
+    if self.fontsize > 0:
+      self.fontsize = self.fontsize - 2
+      self.textView.modify_font(pango.FontDescription(str(self.fontsize)))
   
 gobject.type_register(CommentWidget)

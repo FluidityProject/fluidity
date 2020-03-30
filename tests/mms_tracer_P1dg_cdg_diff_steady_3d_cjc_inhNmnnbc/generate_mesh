@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from optparse import OptionParser
 import sys
 
@@ -14,7 +14,7 @@ optparser=OptionParser(usage='usage: %prog [options] <layers>',
 #try:
 layers=float(argv[0])
 dx = 1.0/layers
-print 'dx = ',dx
+print('dx = ',dx)
 #except:
 #    optparser.print_help()
 #    sys.exit(1)

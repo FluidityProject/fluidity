@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>p1cv element gradient diffusion equation spatial convergence test</name>
   <owner userid="cwilson"/>
@@ -22,16 +22,16 @@ b_error = stat("MMS_B_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
 a_error_inf = stat("MMS_A_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
 b_error_inf = stat("MMS_B_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
 
-print a_error
-print b_error
+print(a_error)
+print(b_error)
 
-print a_error_inf
-print b_error_inf
+print(a_error_inf)
+print(b_error_inf)
 
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
 ab_convergence_gal_stat = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
-    </variable>
+</variable>
     <variable name="bc_convergence_gal_stat" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -42,16 +42,16 @@ c_error = stat("MMS_C_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
 b_error_inf = stat("MMS_B_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
 c_error_inf = stat("MMS_C_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
 
-print b_error
-print c_error
+print(b_error)
+print(c_error)
 
-print b_error_inf
-print c_error_inf
+print(b_error_inf)
+print(c_error_inf)
 
 bc_ratio = b_error / c_error
 bc_ratio_inf = b_error_inf / c_error_inf
 bc_convergence_gal_stat = [log(bc_ratio, 2), log(bc_ratio_inf, 2)]
-    </variable>
+</variable>
     <variable name="cd_convergence_gal_stat" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -62,16 +62,16 @@ d_error = stat("MMS_D_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
 c_error_inf = stat("MMS_C_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
 d_error_inf = stat("MMS_D_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
 
-print c_error
-print d_error
+print(c_error)
+print(d_error)
 
-print c_error_inf
-print d_error_inf
+print(c_error_inf)
+print(d_error_inf)
 
 cd_ratio = c_error / d_error
 cd_ratio_inf = c_error_inf / d_error_inf
 cd_convergence_gal_stat = [log(cd_ratio, 2), log(cd_ratio_inf, 2)]
-    </variable>
+</variable>
     <variable name="de_convergence_gal_stat" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -82,16 +82,16 @@ e_error = stat("MMS_E_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
 d_error_inf = stat("MMS_D_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
 e_error_inf = stat("MMS_E_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
 
-print d_error
-print e_error
+print(d_error)
+print(e_error)
 
-print d_error_inf
-print e_error_inf
+print(d_error_inf)
+print(e_error_inf)
 
 de_ratio = d_error / e_error
 de_ratio_inf = d_error_inf / e_error_inf
 de_convergence_gal_stat = [log(de_ratio, 2), log(de_ratio_inf, 2)]
-    </variable>
+</variable>
 <!--    <variable name="ef_convergence_gal_stat" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -178,4 +178,3 @@ assert(f_finish_time-4.0 &lt; 1.E-10)
   <warn_tests>
   </warn_tests>
 </testproblem>
-

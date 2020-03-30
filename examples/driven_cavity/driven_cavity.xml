@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>driven_cavity</name>
   <owner userid="piggt01"/>
@@ -18,28 +18,36 @@ convergence=numpy.log(error[:-1,:]/error[1:,:])/numpy.log(numpy.matrix(NN[1:]/NN
   </variables>
   <pass_tests>
     <test name="Quantity1ConvergesToSecondOrder" language="python">import numpy
-print convergence[:,0]
-assert(numpy.all(convergence[:,0]&gt;1.54))</test>
+print(convergence[:,0])
+assert(numpy.all(convergence[:,0]&gt;1.54))
+</test>
     <test name="Quantity2ConvergesToSecondOrder" language="python">import numpy
-print convergence[:,1]
-assert(numpy.all(convergence[:,1]&gt;1.38))</test>
+print(convergence[:,1])
+assert(numpy.all(convergence[:,1]&gt;1.38))
+</test>
     <test name="Quantity3ConvergesToSecondOrder" language="python">import numpy
-print convergence[:,2]
-assert(numpy.all(convergence[:,2]&gt;1.85))</test>
+print(convergence[:,2])
+assert(numpy.all(convergence[:,2]&gt;1.85))
+</test>
     <test name="Quantity4ConvergesToSecondOrder" language="python">import numpy
-print convergence[:,3]
-assert(numpy.all(convergence[:,3]&gt;1.85))</test>
+print(convergence[:,3])
+assert(numpy.all(convergence[:,3]&gt;1.85))
+</test>
     <test name="Quantity5ConvergesToSecondOrder" language="python">import numpy
-print convergence[:,4]
-assert(numpy.all(convergence[:,4]&gt;1.9))</test>
+print(convergence[:,4])
+assert(numpy.all(convergence[:,4]&gt;1.9))
+</test>
     <test name="Quantity6ConvergesToSecondOrder" language="python">import numpy
-print convergence[:,5]
-assert(numpy.all(convergence[:,5]&gt;1.9))</test>
+print(convergence[:,5])
+assert(numpy.all(convergence[:,5]&gt;1.9))
+</test>
     <test name="Quantity7ConvergesToSecondOrder" language="python">import numpy
-print convergence[:,6]
-assert(numpy.all(convergence[:,6]&gt;1.9))</test>
+print(convergence[:,6])
+assert(numpy.all(convergence[:,6]&gt;1.9))
+</test>
     <test name="Quantity8ConvergesToSecondOrder" language="python">import numpy
-print convergence[:,7]
-assert(numpy.all(convergence[:,7]&gt;1.8))</test>
+print(convergence[:,7])
+assert(numpy.all(convergence[:,7]&gt;1.8))
+</test>
   </pass_tests>
 </testproblem>

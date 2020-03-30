@@ -25,7 +25,7 @@ class fortran_integral():
     def __init__(self, integral, dim="dim"):
         err=integral.invalid()
         if err:
-            raise TypeError, err
+            raise TypeError(err)
 
         self.integral=integral
         self.test_dim="ele_loc("+self.integral.test.name+")"
@@ -42,7 +42,7 @@ class fortran_integral():
 
     def fortran(self):
 
-        dim_indices=["dim"+`i`+"_i" for i in range(self.integral.rank)]
+        dim_indices=["dim"+str(i)+"_i" for i in range(self.integral.rank)]
 
         name, declaration, lhs=self.function_spec(dim_indices)
         
@@ -59,7 +59,7 @@ class fortran_integral():
 
         if self.sum_index_count:
             sum_indices="integer :: "+\
-                  ", ".join(["i"+`i+1` for i in
+                  ", ".join(["i"+str(i+1) for i in
                              range(self.sum_index_count)])
             decs=decs+[sum_indices]
 
@@ -77,7 +77,7 @@ class fortran_integral():
         for index in dim_indices:
             body=do_loop(index,self.dim,body)
         for index in range(self.sum_index_count):
-            body=do_loop("i"+`index+1`,self.dim,body)
+            body=do_loop("i"+str(index+1),self.dim,body)
         
         body=do_loop("gi","ngi",body)
         if self.integral.trial:
@@ -112,7 +112,7 @@ class fortran_integral():
                 dim_indices.remove(index)
                 index_code.append(index)
             else:
-                index="i"+`self.sum_index_map[i.id]`
+                index="i"+str(self.sum_index_map[i.id])
                 index_code.append(index)
 
         # Now the special indices for basis functions.
@@ -162,7 +162,7 @@ class fortran_integral():
                     
                 else:
 
-                    name=name+"_i"+`self.sum_index_map[i.id]`
+                    name=name+"_i"+str(self.sum_index_map[i.id])
 
         name=name+"_"+self.integral.measure.name
 
@@ -185,7 +185,7 @@ class fortran_integral():
         self.sum_index_count=0
 
         for ii in self.integral.sum_indices.iterkeys():
-            if (not self.sum_index_map.has_key(ii)):
+            if ii not in self.sum_index_map:
                 self.sum_index_count=self.sum_index_count+1
                 
                 self.sum_index_map[ii]=self.sum_index_count

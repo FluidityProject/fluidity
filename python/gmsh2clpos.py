@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Module for generating gmsh post processing files for use as background meshes.
@@ -18,7 +18,7 @@ def ReadMsh(filename):
   Uses code from gmsh2triangle.
   """
 
-  mshfile = file(filename, "r")
+  mshfile = open(filename, "r")
 
   # Header section
   assert(mshfile.readline().strip()=="$MeshFormat")
@@ -136,7 +136,7 @@ def WriteClPos(filename, clfunc, nodes, elements):
 
   elements = GenerateClPos(clfunc, nodes, elements)
 
-  posfile = file(filename, "w")
+  posfile = open(filename, "w")
 
   posfile.write("// Produced by gmsh2clpos\n" + \
                 "View \"CharactisticLengths\"\n" + \

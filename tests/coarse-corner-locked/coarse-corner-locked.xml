@@ -1,9 +1,9 @@
-<?xml version = "1.0" encoding = "UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Coarse Corner (locked nodes version)</name>
   <owner userid="pef"/>
   <tags>flml</tags>
-  <problem_definition length = "short" nprocs = "1">
+  <problem_definition length="short" nprocs="1">
     <command_line>make clean-run; fluidity -v2 -l coarse-corner-locked.flml</command_line>
   </problem_definition>
   <variables>
@@ -12,21 +12,21 @@ import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-    <variable name = "times" language = "python">
+    <variable name="times" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("coarse-corner-locked.stat")
 times = s["ElapsedTime"]["value"]
     </variable>
-    <variable name = "node_counts" language = "python">
+    <variable name="node_counts" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("coarse-corner-locked.stat")
 node_counts = s["CoordinateMesh"]["nodes"]
     </variable>
-    <variable name = "initial_locations" language = "python">
+    <variable name="initial_locations" language="python">
 import vtktools
 initial_locations = vtktools.vtu("coarse-corner-locked_0.vtu").GetLocations()
     </variable>
-      <variable name = "final_locations" language = "python">
+      <variable name="final_locations" language="python">
 import vtktools
 final_locations = vtktools.vtu("coarse-corner-locked_2.vtu").GetLocations()
     </variable>
@@ -35,61 +35,62 @@ final_locations = vtktools.vtu("coarse-corner-locked_2.vtu").GetLocations()
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>
-    <test name = "Simulation completed" language = "python">
+    <test name="Simulation completed" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(len(times), 5, 1.0e-6)
     </test>
-    <test name = "Correct initial node count" language = "python">
+    <test name="Correct initial node count" language="python">
 import fluidity_tools
 assert(node_counts[0] == 1331)
     </test>
-    <test name = "Correct adapted node count" language = "python">
+    <test name="Correct adapted node count" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(node_counts[-1], 1331 / 2.0, 0.1)
     </test>
-    <test name = "Nodes locked" language = "python">
+    <test name="Nodes locked" language="python">
+import functools
 locationsBuffer = []
 for location in initial_locations:
-  if location[0] &gt; 5.0:
-    locationsBuffer.append(location)
+    if location[0] &gt; 5.0:
+        locationsBuffer.append(location)
 initial_locations = locationsBuffer
 
 locationsBuffer = []
 for location in final_locations:
-  if location[0] &gt; 5.0:
-    locationsBuffer.append(location)
+    if location[0] &gt; 5.0:
+        locationsBuffer.append(location)
 final_locations = locationsBuffer
 
 def cmp(a, b, tolerance = 0.0):
-  if len(a) == 0:
-    return 0
-  elif abs(a[0] - b[0]) &lt; tolerance:
-    return 0
-  elif a[0] &lt; b[0]:
-    return -1
-  else:
-    return 1
-initial_locations.sort(cmp = cmp)
-final_locations.sort(cmp = cmp)
+    if len(a) == 0:
+        return 0
+    elif abs(a[0] - b[0]) &lt; tolerance:
+        return 0
+    elif a[0] &lt; b[0]:
+        return -1
+    else:
+        return 1
+initial_locations.sort(key = functools.cmp_to_key(cmp))
+final_locations.sort(key = functools.cmp_to_key(cmp))
 
 initialIndex = 0
 finalIndex = 0
 while initialIndex &lt; len(initial_locations) and finalIndex &lt; len(final_locations):
-  initial_location = initial_locations[initialIndex]
-  final_location = final_locations[finalIndex]
-  compare = cmp(initial_location, final_location, tolerance = 1.0e-6)
-  if compare == 0:
-    initialIndex += 1
-    finalIndex += 1
-  elif compare &gt; 0:
-    finalIndex += 1
-  else:
-    break
+    initial_location = initial_locations[initialIndex]
+    final_location = final_locations[finalIndex]
+    compare = cmp(initial_location, final_location, tolerance = 1.0e-6)
+    if compare == 0:
+        initialIndex += 1
+        finalIndex += 1
+    elif compare &gt; 0:
+        finalIndex += 1
+    else:
+        break
 
 if initialIndex &lt; len(initial_locations):
-  print initial_locations[initialIndex:]
-  raise Exception("Failure")  
-    </test>
+    print(initial_locations[initialIndex:])
+    raise Exception("Failure")
+</test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

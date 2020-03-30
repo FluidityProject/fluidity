@@ -2,14 +2,14 @@ Source: fluidity
 Section: science
 Priority: extra
 Maintainer: Tim Greaves <tim.greaves@imperial.ac.uk>
-Build-Depends: debhelper (>= 7.0.50~), fluidity-dev
+Build-Depends: debhelper (>= 7.0.50~), fluidity-dev, texlive, texlive-pstricks, texlive-latex-extra, texlive-science
 Standards-Version: 3.9.1
 XS-Python-Version: >= 2.5
 Homepage: http://amcg.ese.ic.ac.uk/fluidity
 
 Package: fluidity
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libpetsc3.6.3, diamond, triangle | triangle-bin, python, gmsh, python-lxml, python-scipy, python-numpy, python-vtk, python-matplotlib, python-sympy, python-fluidity, python-spud, libspud-dev, make
+Depends: ${shlibs:Depends}, ${misc:Depends}, libpetsc3.8.3, spud-diamond, triangle-bin, python3, gmsh, python3-lxml, python3-scipy, python3-numpy, python3-vtk7, python3-matplotlib, python3-sympy, python3-fluidity, python3-spud, libspud-dev, make
 Description: 3D adaptive CFD model from Imperial College London
  Fluidity is a general purpose multi-phase CFD code capable of solving
  numerically the Navier-Stokes and accompanying field equations on
@@ -19,7 +19,7 @@ Description: 3D adaptive CFD model from Imperial College London
  element/spectral elements and full spectral methods which include
  many elements for mixed formulations.
 
-Package: python-fluidity
+Package: python3-fluidity
 Architecture: any
 Section: python
 XB-Python-Version: ${python:Versions}

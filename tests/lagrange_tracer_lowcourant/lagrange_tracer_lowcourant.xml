@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>lagrange_tracer</name>
   <owner userid="cwilson"/>
@@ -11,22 +11,30 @@ import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-    <variable name="detector_locx_0" language="python">from fluidity_tools import stat_parser as stat
-detector_locx_0 = stat("lagrange_tracer.detectors")["DummyArray_1"]["position"][0][-1]</variable>
-    <variable name="detector_locy_0" language="python">from fluidity_tools import stat_parser as stat
-detector_locy_0 = stat("lagrange_tracer.detectors")["DummyArray_1"]["position"][1][-1]</variable>
-    <variable name="detected_field_value" language="python">from fluidity_tools import stat_parser as stat
-detected_field_value = stat("lagrange_tracer.detectors")["Dummy"]["Field"]["DummyArray_1"][-1]</variable>
+    <variable name="detector_0" language="python">
+import numpy as np
+import h5py
+
+f = h5py.File('lagrange_tracer.particles.SingleParticle.h5part', 'r')
+d = f['/Step#{}'.format(len(f)-1)]
+
+detector_0 = {'x': d['x'][0],
+              'y': d['y'][0],
+              'value': d['field'][0]}
+    </variable>
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>
-    <test name="correct_x" language="python">print "detector should be at "+str(2./3.-0.1/3.)+", actually at "+str(detector_locx_0)
-assert(abs(detector_locx_0-(2./3.-0.1/3.)) &lt; 1.e-9)</test>
-    <test name="correct_y" language="python">print "detector should be at "+str(1./3.+0.1/3.)+", actually at "+str(detector_locy_0)
-assert(abs(detector_locy_0-(1./3.+0.1/3.0)) &lt; 1.e-9)</test>
-    <test name="correct_field_value" language="python">print "detector value should be "+str(1.0)+", actually "+str(detected_field_value)
-assert(abs(detected_field_value-1.0) &lt; 1.e-9)</test>
+    <test name="correct_x" language="python">print("detector should be at "+str(2./3.-0.1/3.)+", actually at "+str(detector_0['x']))
+assert(abs(detector_0['x']-(2./3.-0.1/3.)) &lt; 1.e-9)
+</test>
+    <test name="correct_y" language="python">print("detector should be at "+str(1./3.+0.1/3.)+", actually at "+str(detector_0['y']))
+assert(abs(detector_0['y']-(1./3.+0.1/3.0)) &lt; 1.e-9)
+</test>
+    <test name="correct_field_value" language="python">print("detector value should be "+str(1.0)+", actually "+str(detector_0['value']))
+assert(abs(detector_0['value']-1.0) &lt; 1.e-9)
+</test>
   </pass_tests>
 </testproblem>

@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
    <name>Backward-facing step 2D example</name>
    <!--Runs a reference and kepsilon 2D backward-facing step problems.-->
@@ -35,10 +35,9 @@ assert(solvers_converged)
 assert(abs(kepsilon_reattachment_length[-1,0] - 7.0) &lt; 2.0)
     </test>
     <test name="kepsilon reattachment length converges with accuracy 25%" language="python">
-print abs(kepsilon_reattachment_length[-1,0]/kepsilon_reattachment_length[-2,0]-1.0)
+print(abs(kepsilon_reattachment_length[-1,0]/kepsilon_reattachment_length[-2,0]-1.0))
 assert(abs(kepsilon_reattachment_length[-1,0]/kepsilon_reattachment_length[-2,0]-1.0) &lt; 0.25)
-    </test>
+</test>
   </pass_tests>
   <warn_tests/>
 </testproblem>
-

@@ -38,50 +38,55 @@
     <detectors>
       <static_detector name="D1">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">-0.5 0.0</real_value>
+          <real_value rank="1" dim1="dim" shape="2">-0.5 0.0</real_value>
         </location>
       </static_detector>
       <static_detector name="D2">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.5 0.0</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.5 0.0</real_value>
         </location>
       </static_detector>
       <static_detector name="D3">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.0 -0.5</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.0 -0.5</real_value>
         </location>
       </static_detector>
       <static_detector name="D4">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.0 0.5</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.0 0.5</real_value>
         </location>
       </static_detector>
-      <detector_array name="Steve">
-        <number_of_detectors>
+      <fail_outside_domain/>
+    </detectors>
+  </io>
+  <particles>
+    <particle_group name="Detectors">
+      <particle_subgroup name="Steve">
+        <number_of_particles>
           <integer_value rank="0">100</integer_value>
-        </number_of_detectors>
-        <lagrangian/>
-        <python>
-          <string_value lines="20" type="code" language="python">def val(t):
+        </number_of_particles>
+        <initial_position>
+          <python>
+            <string_value type="code" language="python" lines="20">def val(t):
   from numpy import arange,zeros,reshape,concatenate
   x = 0.25*arange(0,100.)/100.
   y = zeros(100)
   return reshape(concatenate((x,y)),(2,100)).T</string_value>
-        </python>
-      </detector_array>
-      <fail_outside_domain/>
-      <binary_output/>
-      <lagrangian_timestepping>
-        <subcycles>
-          <integer_value rank="0">1</integer_value>
-        </subcycles>
-        <search_tolerance>
-          <real_value rank="0">1.0e-10</real_value>
-        </search_tolerance>
-        <rk4_guided_search/>
-      </lagrangian_timestepping>
-    </detectors>
-  </io>
+          </python>
+        </initial_position>
+      </particle_subgroup>
+    </particle_group>
+    <fail_outside_domain/>
+    <lagrangian_timestepping>
+      <subcycles>
+        <integer_value rank="0">1</integer_value>
+      </subcycles>
+      <search_tolerance>
+        <real_value rank="0">1.0e-10</real_value>
+      </search_tolerance>
+      <rk4_guided_search/>
+    </lagrangian_timestepping>
+  </particles>
   <timestepping>
     <current_time>
       <real_value rank="0">0.0</real_value>
@@ -95,12 +100,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="Water">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
   x = X[0]
   y = X[1]
   return [-(y),x]</string_value>
@@ -116,12 +121,12 @@
         <consistent_interpolation/>
       </prescribed>
     </vector_field>
-    <scalar_field name="Tracer" rank="0">
+    <scalar_field rank="0" name="Tracer">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
 	return x[0]</string_value>
           </python>
         </value>
@@ -130,15 +135,18 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <consistent_interpolation/>
       </prescribed>
     </scalar_field>
-    <scalar_field name="AdaptivityControl" rank="0">
+    <scalar_field rank="0" name="AdaptivityControl">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
   if t &lt; 4.0:
     if x[0] &lt; 0.0:
       return 0.0
@@ -156,9 +164,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -170,15 +181,18 @@
                 <detectors>
                   <exclude_from_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </prescribed>
             </scalar_field>
           </absolute_measure>
         </adaptivity_options>
       </prescribed>
     </scalar_field>
-    <scalar_field name="NodeOwner" rank="0">
+    <scalar_field rank="0" name="NodeOwner">
       <diagnostic>
-        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
+        <algorithm name="Internal" material_phase_support="multiple" legacy="true"/>
         <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
@@ -188,12 +202,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="MaxEdgeWeightOnNodes" rank="0">
+    <scalar_field rank="0" name="MaxEdgeWeightOnNodes">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="CoordinateMesh"/>
@@ -205,6 +222,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -227,14 +247,14 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1.0e-6 0.0 0.0 1.0e-6</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">1.0e-6 0.0 0.0 1.0e-6</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1.0e6 0.0 0.0 1.0e6</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">1.0e6 0.0 0.0 1.0e6</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

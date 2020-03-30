@@ -106,7 +106,7 @@ implicit none
 	 field_integral, fields_integral, function_val_at_quad,&
 	 dot_product, outer_product, norm2_difference, magnitude,&
 	 magnitude_tensor, merge_meshes, distance, divergence_field_stats,&
-	 field_con_stats, function_val_at_quad_scalar, trace
+	 field_con_stats, function_val_at_quad_scalar, trace, mesh_integral
     
   integer, parameter, public :: CONVERGENCE_INFINITY_NORM=0, CONVERGENCE_L2_NORM=1, CONVERGENCE_CV_L2_NORM=2
   
@@ -370,16 +370,16 @@ implicit none
     type(vector_field), intent(in) :: X
 
     integer :: ele
-    real, dimension(X%mesh%shape%loc) :: ones
 
     integral=0
-    
-    ones = 1.0
-
     do ele=1, element_count(X)
-       integral=integral &
-            +element_volume(X, ele)
+       if (element_owned(X, ele)) then
+         integral = integral + element_volume(X, ele)
+        end if
     end do
+
+    call allsum(integral)
+
   end function mesh_integral
 
   subroutine field_stats_scalar(field, X, min, max, norm2, integral)

@@ -68,6 +68,12 @@ module detector_data_types
      real, dimension(:,:), allocatable :: k
      !! RK update destination vector (size dim)
      real, dimension(:), allocatable :: update_vector
+     !! Attributes carried by particles.
+     real, dimension(:), allocatable :: attributes
+     !! Attributes carried by particles at the previous timestep.
+     real, dimension(:), allocatable :: old_attributes
+     !! Interpolated field values at the particle position at the previous timestep.
+     real, dimension(:), allocatable :: old_fields
      !! Have we completed the search?
      logical :: search_complete
      !! Pointers for detector linked lists
@@ -77,9 +83,13 @@ module detector_data_types
 
   ! Parameters for lagrangian detector movement
   type rk_gs_parameters
-    ! Runk-Kutta Guided Search parameters
+    !! Runge-Kutta Guided Search parameters
     integer :: n_stages, n_subcycles
+    !! Timestep_weights give the weights of temporal positions
     real, allocatable, dimension(:) :: timestep_weights
+    !! Timestep_nodes give the locations of temporal positions
+    real, allocatable, dimension(:) :: timestep_nodes
+    !! Stage_matrix gives the weights to RK function values
     real, allocatable, dimension(:,:) :: stage_matrix
     real :: search_tolerance
   end type rk_gs_parameters
@@ -107,11 +117,8 @@ module detector_data_types
      integer :: num_vfields = 0   ! Total number of vector fields across all phases
 
      !! I/O parameters
-     logical :: binary_output = .false.
      logical :: write_nan_outside = .false.
-     integer :: output_unit = 0          ! Assumed non-opened as long this is 0
-     integer :: mpi_fh = 0               ! MPI filehandle
-     integer :: mpi_write_count = 0      ! Offset in MPI file
+     integer(kind=8) :: h5_id = -1 ! H5hut output identifier
      integer :: total_num_det = 0        ! Global number of detectors in this list
   end type detector_linked_list
 

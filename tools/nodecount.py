@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import vtktools
 
@@ -50,4 +50,4 @@ if __name__ == "__main__":
 
   for filename in files:
     fmt = "%" + ("%d" % lenmax) + "s: %" + "s"
-    print fmt % (filename, nodecount(filename))
+    print(fmt % (filename, nodecount(filename)))

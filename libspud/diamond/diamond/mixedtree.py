@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #    This file is part of Diamond.
 #
 #    Diamond is free software: you can redistribute it and/or modify
@@ -15,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
 
-import plist
+from . import plist
 
 class MixedTree:
   def __init__(self, parent, child):
@@ -32,7 +30,7 @@ class MixedTree:
     self.schemaname = parent.schemaname
 
     excluded_attrs = ["shape"]
-    self.attrs = dict(self.parent.attrs.items() + [x for x in self.child.attrs.items() if x[0] not in excluded_attrs])
+    self.attrs = dict(list(self.parent.attrs.items()) + [x for x in list(self.child.attrs.items()) if x[0] not in excluded_attrs])
 
     self.children = parent.children
     self.datatype = child.datatype
@@ -48,17 +46,17 @@ class MixedTree:
     elif attr in self.child.attrs:
       self.child.set_attr(attr, val)
     else:
-      raise Exception, "Attribute not present in either parent or child!"
+      raise Exception("Attribute not present in either parent or child!")
 
     return
 
   def get_attr(self, attr):
     if attr in self.parent.attrs:
-      self.parent.get_attr(attr)
+      return self.parent.get_attr(attr)
     elif attr in self.child.attrs:
-      self.child.get_attr(attr)
+      return self.child.get_attr(attr)
     else:
-      raise Exception, "Attribute not present in either parent or child!"
+      raise Exception("Attribute not present in either parent or child!")
 
   def set_data(self, data):
     self.child.set_data(data)
@@ -117,27 +115,27 @@ class MixedTree:
         return False
 
     # The element must have dim1, rank and shape attributes
-    if "dim1" not in self.child.attrs.keys() \
-       or "rank" not in self.child.attrs.keys() \
-       or "shape" not in self.child.attrs.keys():
+    if "dim1" not in list(self.child.attrs.keys()) \
+       or "rank" not in list(self.child.attrs.keys()) \
+       or "shape" not in list(self.child.attrs.keys()):
       return False
 
     # The dim1 and rank attributes must be of fixed type
     if self.child.attrs["dim1"][0] != "fixed" or self.child.attrs["rank"][0] != "fixed":
       return False
 
-    if "dim2" in self.child.attrs.keys():
+    if "dim2" in list(self.child.attrs.keys()):
       # If a dim2 attribute is specified, it must be of fixed type and the rank must be 2
       # Also, the shape attribute must be a list of integers with cardinality equal to the rank
       if self.child.attrs["dim2"][0] != "fixed" \
-         or self.child.attrs["rank"][1] != "2" \
+         or self.child.get_attr("rank") != "2" \
          or not isinstance(self.child.attrs["shape"][0], plist.List) \
          or self.child.attrs["shape"][0].datatype is not int \
-         or str(self.child.attrs["shape"][0].cardinality) != self.child.attrs["rank"][1]:
+         or str(self.child.attrs["shape"][0].cardinality) != self.child.get_attr("rank"):
         return False
 
     # Otherwise, the rank must be one and the shape an integer
-    elif self.child.attrs["rank"][1] != "1" or self.child.attrs["shape"][0] is not int:
+    elif self.child.get_attr("rank") != "1" or self.child.attrs["shape"][0] is not int:
       return False
 
     # The data for the element must be a list of one or more
@@ -145,15 +143,15 @@ class MixedTree:
       return False
 
     # If the shape has been set, check that it has a valid value
-    if self.child.attrs["shape"][1] != None:
+    if self.child.get_attr("shape") != None:
       if geometry_dim_tree.data is None:
         return False
 
       dim1, dim2 = self.tensor_shape(geometry_dim_tree)
-      if "dim2" in self.child.attrs.keys():
-        if self.child.attrs["shape"][1] != str(dim1) + " " + str(dim2):
+      if "dim2" in list(self.child.attrs.keys()):
+        if self.child.get_attr("shape") != str(dim1) + " " + str(dim2):
           return False
-      elif self.child.attrs["shape"][1] != str(dim1):
+      elif self.child.get_attr("shape") != str(dim1):
         return False
 
     return True
@@ -168,10 +166,10 @@ class MixedTree:
 
     dim1 = 1
     dim2 = 1
-    if "dim1" in self.child.attrs.keys():
-      dim1 = int(eval(self.child.attrs["dim1"][1], {"dim":dimension}))
-      if "dim2" in self.child.attrs.keys():
-        dim2 = int(eval(self.child.attrs["dim2"][1], {"dim":dimension}))
+    if "dim1" in list(self.child.attrs.keys()):
+      dim1 = int(eval(self.child.get_attr("dim1"), {"dim":dimension}))
+      if "dim2" in list(self.child.attrs.keys()):
+        dim2 = int(eval(self.child.get_attr("dim2"), {"dim":dimension}))
 
     return (dim1, dim2)
 
@@ -182,7 +180,7 @@ class MixedTree:
 
     dim1, dim2 = self.tensor_shape(geometry)
 
-    return dim1 == dim2 and "symmetric" in self.child.attrs.keys() and self.child.attrs["symmetric"][1] == "true"
+    return dim1 == dim2 and "symmetric" in list(self.child.attrs.keys()) and self.child.get_attr("symmetric") == "true"
 
   def is_code(self):
     """
@@ -199,8 +197,8 @@ class MixedTree:
     if self.datatype is not str:
       return False
 
-    if "type" in self.child.attrs.keys():
-      return self.child.attrs["type"][1] == "code"
+    if "type" in list(self.child.attrs.keys()):
+      return self.child.get_attr("type") == "code"
     
     return False
 

@@ -142,7 +142,8 @@ Simple_Diagnostics.o ../include/simple_diagnostics.mod: Simple_Diagnostics.F90 \
    ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/futils.mod ../include/global_parameters.mod \
    ../include/initialise_fields_module.mod ../include/parallel_tools.mod \
-   ../include/state_fields_module.mod ../include/state_module.mod \
+   ../include/pickers_inquire.mod ../include/state_fields_module.mod \
+   ../include/state_module.mod ../include/surface_integrals.mod \
    ../include/vtk_cache_module.mod
 
 ../include/surface_diagnostics.mod: Surface.o

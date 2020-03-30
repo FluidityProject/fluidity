@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
    
   <name>mphase_sedimentation_2d</name>
@@ -112,46 +111,46 @@ nnodes = len(f1_vfrac)
 
 vals = []
 for i in range(nnodes):
-   if(positions[i] &lt; (1.0/3.0)):
-      assert abs(f1_vfrac[i] - 0.95) &lt; 0.05
-      vals.append(f1_vfrac[i])
-      
-print "Max vfrac in lower third of domain = ", max(vals)
-print "Min vfrac in lower third of domain = ", min(vals)
-      
+    if(positions[i] &lt; (1.0/3.0)):
+        assert abs(f1_vfrac[i] - 0.95) &lt; 0.05
+        vals.append(f1_vfrac[i])
+
+print("Max vfrac in lower third of domain = ", max(vals))
+print("Min vfrac in lower third of domain = ", min(vals))
+
 assert max(vals) &lt; 1.0
 assert min(vals) &gt; 0.9
-    </test>
+</test>
     <test name="Fluid 1 has vfrac in [0.05, 0.95] in middle third of domain" language="python">
 nnodes = len(f1_vfrac)
 
 vals = []
 for i in range(nnodes):
-   if((positions[i] &lt; (2.0/3.0)) and (positions[i] &gt; (1.0/3.0))):
-      assert abs(f1_vfrac[i] - 0.5) &lt; 0.45
-      vals.append(f1_vfrac[i])
+    if((positions[i] &lt; (2.0/3.0)) and (positions[i] &gt; (1.0/3.0))):
+        assert abs(f1_vfrac[i] - 0.5) &lt; 0.45
+        vals.append(f1_vfrac[i])
 
-print "Max vfrac in middle third of domain = ", max(vals)
-print "Min vfrac in middle third of domain = ", min(vals)
+print("Max vfrac in middle third of domain = ", max(vals))
+print("Min vfrac in middle third of domain = ", min(vals))
 
 assert max(vals) &lt; 0.95
 assert min(vals) &gt; 0.05
-    </test>
+</test>
     <test name="Fluid 1 has vfrac in [0.0, 0.12] in upper third of domain" language="python">
 nnodes = len(f1_vfrac)
 
 vals = []
 for i in range(nnodes):
-   if((positions[i] &lt; 1.0) and (positions[i] &gt; (2.0/3.0))):
-      assert abs(f1_vfrac[i] - 0.6) &lt; 0.6
-      vals.append(f1_vfrac[i])
+    if((positions[i] &lt; 1.0) and (positions[i] &gt; (2.0/3.0))):
+        assert abs(f1_vfrac[i] - 0.6) &lt; 0.6
+        vals.append(f1_vfrac[i])
 
-print "Max vfrac in upper third of domain = ", max(vals)
-print "Min vfrac in upper third of domain = ", min(vals)
+print("Max vfrac in upper third of domain = ", max(vals))
+print("Min vfrac in upper third of domain = ", min(vals))
 
 assert max(vals) &lt; 0.12
 assert min(vals) &gt; 0.0
-    </test>
+</test>
     
     <test name="SumVelocityDivergence is less than 1e-9" language="python">
 assert abs(divergence) &lt; 1e-9

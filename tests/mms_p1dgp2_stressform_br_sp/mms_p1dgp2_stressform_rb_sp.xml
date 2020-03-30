@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>MMS test of partial stress form for P1DGP2 with bassi-rebay viscosity scheme</name>
@@ -16,12 +16,12 @@ import numpy as np
 
 meshes = [['A','B'], ['B','C'], ['C','D']]
 
-print ''
-print 'ORDER OF CONVERGENCE'
-print '-------------------------------------------'
+print('')
+print('ORDER OF CONVERGENCE')
+print('-------------------------------------------')
 
-print 'VelocityError:'
-print '-------------------------------------------'
+print('VelocityError:')
+print('-------------------------------------------')
 
 for i, mesh in enumerate(meshes):
 
@@ -33,19 +33,18 @@ for i, mesh in enumerate(meshes):
     ratio_x = a_error_x / b_error_x
     ratio_y = a_error_y / b_error_y
 
-    print mesh[0] + '->' + mesh[1] + ': ', [log(ratio_x, 2), log(ratio_y, 2)]
+    print(mesh[0] + '-&gt;' + mesh[1] + ': ', [log(ratio_x, 2), log(ratio_y, 2)])
 
     convergence = min(log(ratio_x, 2), log(ratio_y, 2))
 
-print '-------------------------------------------'
-    </variable>
+print('-------------------------------------------')
+</variable>
   </variables>
   <pass_tests>
-    <test name="velocity convergence order > 1.9" language="python">
+    <test name="velocity convergence order &gt; 1.9" language="python">
 assert(convergence &gt; 1.9)
     </test>
   </pass_tests>
   <warn_tests>
   </warn_tests>
 </testproblem>
-

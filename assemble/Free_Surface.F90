@@ -27,33 +27,35 @@
 #include "fdebug.h"
 
 module free_surface_module
-use fldebug
-use integer_set_module
-use data_structures
-use spud
-use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
-use futils, only: int2str, present_and_true
-use parallel_tools
-use sparse_tools
-use parallel_fields
-use eventcounter
-use cv_faces
-use transform_elements
-use fetools
-use fields
-use sparse_tools_petsc
-use state_module
-use sparse_matrices_fields
-use boundary_conditions
-use vertical_extrapolation_module
-use halos
-use field_options
-use physics_from_options
-use tidal_module, only: calculate_diagnostic_equilibrium_pressure
-use sparsity_patterns
-use sparsity_patterns_meshes
-use solvers
-use cv_shape_functions
+  use fldebug
+  use integer_set_module
+  use data_structures
+  use spud
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
+  use futils, only: int2str, present_and_true
+  use parallel_tools
+  use sparse_tools
+  use parallel_fields
+  use eventcounter
+  use cv_faces
+  use transform_elements
+  use fetools
+  use fields
+  use sparse_tools_petsc
+  use state_module
+  use sparse_matrices_fields
+  use boundary_conditions
+  use vertical_extrapolation_module
+  use halos
+  use field_options
+  use physics_from_options
+  use coordinates
+  use tidal_module, only: calculate_diagnostic_equilibrium_pressure
+  use sparsity_patterns
+  use sparsity_patterns_meshes
+  use solvers
+  use cv_shape_functions
+
 implicit none
 
 private
@@ -195,7 +197,7 @@ contains
     type(scalar_field) :: original_bottomdist, original_bottomdist_remap
 
     if (.not. has_scalar_field(state, "OriginalDistanceToBottom")) then
-       ewrite(2, *), "Inserting OriginalDistanceToBottom field into state."   
+       ewrite(2, *) "Inserting OriginalDistanceToBottom field into state."   
        bottomdist => extract_scalar_field(state, "DistanceToBottom")
        call allocate(original_bottomdist, bottomdist%mesh, "OriginalDistanceToBottom")
        call zero(original_bottomdist)
@@ -204,7 +206,7 @@ contains
        call deallocate(original_bottomdist)
 
        ! We also cache  the OriginalDistanceToBottom on the pressure mesh
-       ewrite(2, *), "Inserting OriginalDistanceToBottomPressureMesh field into state."   
+       ewrite(2, *) "Inserting OriginalDistanceToBottomPressureMesh field into state."   
        p_mesh => extract_pressure_mesh(state)
        call allocate(original_bottomdist_remap, p_mesh, "OriginalDistanceToBottomPressureMesh")
        call remap_field(original_bottomdist, original_bottomdist_remap)
@@ -267,7 +269,7 @@ contains
       real:: g, rho0, delta_rho, alpha, alpha_old, coef, coef_old, d0
       integer, dimension(:), pointer:: surface_element_list, fs_surface_element_list
       integer:: i, j, grav_stat, dens_stat, external_density_stat
-      logical:: include_normals, move_mesh
+      logical:: include_normals, move_mesh, radial_fs
       logical:: addto_cmc, variable_density, any_variable_density, have_density
       logical:: have_wd, have_wd_node_int, have_external_density
       logical:: implicit_prognostic_fs, use_fs_mesh
@@ -367,9 +369,12 @@ contains
           else
             use_fs_mesh=.false.
           end if
+          radial_fs = have_option(trim(fs_option_path)//"/type[0]/no_normal_stress/radial_normals")
 
-          variable_density = have_option(trim(fs_option_path)//"/type[0]/variable_density") &
-                            .and. (.not.move_mesh)
+          variable_density = have_option(trim(fs_option_path)//"/type[0]/variable_density")
+          if (variable_density .and. move_mesh) then
+            FLExit("Free surface with variable density and mesh movement not implemented")
+          end if
           if (variable_density .and. (.not. have_density)) then
             FLExit("Variable density free surface requires a Density field.")
           end if
@@ -407,6 +412,10 @@ contains
             delta_rho = rho0 - node_val(external_density, 1)
           else
             delta_rho = rho0
+          end if
+          if (move_mesh .and. delta_rho/=1.0) then
+            ! Someone needs to go through the maths to see where we should divide by delta_rho
+            FLExit("Free surface with a density difference that is not 1.0 and mesh movement not supported")
           end if
 
           alpha=1.0/g/dt                        ! delta_rho included in alpha and coeff within element loop
@@ -462,7 +471,13 @@ contains
 
       real, dimension(face_ngi(p, sele)):: inv_delta_rho_quad, old_inv_delta_rho_quad
 
-      if(include_normals) then
+      if(radial_fs) then
+        ! we assume the gravity and surface normal are the same (both radial)
+        ! we do however need to include their relative sign
+        call transform_facet_to_physical(positions, sele, detwei_f=detwei,&
+            & normal=normals)
+        detwei=detwei*(-1.0)*sign(1.0, sum(face_val_at_quad(gravity_normal,sele)*normals, dim=1))
+      else if(include_normals) then
         call transform_facet_to_physical(positions, sele, detwei_f=detwei,&
             & normal=normals)
         ! at each gauss point multiply with inner product of gravity and surface normal
@@ -1696,6 +1711,7 @@ contains
     type(integer_hash_table):: sele_to_fs_ele
     character(len=FIELD_NAME_LEN):: bc_type
     character(len=OPTION_PATH_LEN):: bc_option_path
+    logical :: radial_fs
     integer, dimension(:), pointer:: surface_element_list
     integer:: i, j
 
@@ -1720,6 +1736,7 @@ contains
       if (bc_type=="free_surface") then
         if(have_option(trim(bc_option_path)//"/type[0]/no_normal_stress") .and. &
            (.not.have_option(trim(bc_option_path)//"/type[0]/no_normal_stress/explicit"))) then
+          radial_fs = have_option(trim(bc_option_path)//"/type[0]/no_normal_stress/radial_normals")
           do j=1, size(surface_element_list)
             call add_boundary_integral_sele(surface_element_list(j))
           end do
@@ -1735,13 +1752,19 @@ contains
       real, dimension(u%dim, face_loc(p_mesh, sele), face_loc(u, sele)) :: ct_mat_bdy
       real, dimension(u%dim, face_loc(fs, sele), face_loc(u, sele)) :: ht_mat_bdy
       real, dimension(face_ngi(u, sele)) :: detwei_bdy
-      real, dimension(u%dim, face_ngi(u, sele)) :: normal_bdy
+      real, dimension(u%dim, face_ngi(u, sele)) :: normal_bdy, radials_bdy
       integer:: dim
       
       call transform_facet_to_physical(x, sele, &
            detwei_f=detwei_bdy, normal=normal_bdy)
       ct_mat_bdy = shape_shape_vector(face_shape(p_mesh, sele), face_shape(u, sele), &
            detwei_bdy, normal_bdy)
+      if (radial_fs) then
+        ! use purely radial normals instead
+        radials_bdy = radial_inward_normal_at_quad_face(X, sele)
+        detwei_bdy = detwei_bdy * sign(1.0, sum(radials_bdy*normal_bdy, dim=1))
+        normal_bdy = radials_bdy
+      end if
       ht_mat_bdy = shape_shape_vector(face_shape(fs, sele), face_shape(u, sele), &
            detwei_bdy, normal_bdy)
       do dim=1, u%dim

@@ -53,17 +53,17 @@
     <detectors>
       <static_detector name="Temperature6060">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">60000. -60000.</real_value>
+          <real_value rank="1" dim1="dim" shape="2">60000. -60000.</real_value>
         </location>
       </static_detector>
       <static_detector name="Pressure_up">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">66000. -54000.</real_value>
+          <real_value rank="1" dim1="dim" shape="2">66000. -54000.</real_value>
         </location>
       </static_detector>
       <static_detector name="Pressure_down">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">594000. -354000.</real_value>
+          <real_value rank="1" dim1="dim" shape="2">594000. -354000.</real_value>
         </location>
       </static_detector>
       <detector_array name="TSlab">
@@ -72,14 +72,14 @@
         </number_of_detectors>
         <static/>
         <python>
-          <string_value lines="20" type="code" language="python">def val(t):
-  import numpy
-  start = numpy.array([0, 0])
-  end = numpy.array([210000, -210000])
-  output = []
-  for i in range(36):
-    output.append(start + (float(i)/35) * end)
-  return output</string_value>
+          <string_value type="code" language="python" lines="20">def val(t):
+    import numpy
+    start = numpy.array([0, 0])
+    end = numpy.array([210000, -210000])
+    output = []
+    for i in range(36):
+        output.append(start + (float(i)/35) * end)
+    return output</string_value>
         </python>
       </detector_array>
       <detector_array name="TWedge">
@@ -88,13 +88,13 @@
         </number_of_detectors>
         <static/>
         <python>
-          <string_value lines="20" type="code" language="python">def val(t):
-  output1 = []
-  for i in range(12):
-    for j in range(12):
-        if i &gt;= j:
-           output1.append([54000 + (float(i)/20) * 120000, -54000 + (float(j)/20) * (-120000)])
-  return output1</string_value>
+          <string_value type="code" language="python" lines="20">def val(t):
+    output1 = []
+    for i in range(12):
+        for j in range(12):
+            if i &gt;= j:
+                output1.append([54000 + (float(i)/20) * 120000, -54000 + (float(j)/20) * (-120000)])
+    return output1</string_value>
         </python>
       </detector_array>
       <fail_outside_domain/>
@@ -129,7 +129,7 @@
     </steady_state>
   </timestepping>
   <material_phase name="Fluid">
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <spatial_discretisation>
@@ -207,13 +207,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -225,12 +228,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -278,107 +284,107 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <prescribed_region name="Crust">
           <region_ids>
-            <integer_value shape="1" rank="1">24</integer_value>
+            <integer_value rank="1" shape="1">24</integer_value>
           </region_ids>
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0. 0.</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0. 0.</real_value>
           </constant>
         </prescribed_region>
         <prescribed_region name="Slab">
           <region_ids>
-            <integer_value shape="1" rank="1">30</integer_value>
+            <integer_value rank="1" shape="1">30</integer_value>
           </region_ids>
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
-        from math import sqrt
-        vx = sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
-        vy = -sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
-        return [vx,vy]</string_value>
+            <string_value type="code" language="python" lines="20">def val(X, t):
+    from math import sqrt
+    vx = sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
+    vy = -sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
+    return [vx,vy]</string_value>
           </python>
         </prescribed_region>
         <boundary_conditions name="Batchelor">
           <surface_ids>
-            <integer_value shape="3" rank="1">12 13 16</integer_value>
+            <integer_value rank="1" shape="3">12 13 16</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
-  
-   	from math import sqrt, atan, cos, sin, pi
+                  <string_value type="code" language="python" lines="20">def val(X, t):
 
-   	Xcoord = X[0]
-        Ycoord = X[1]
-  
-   	Depth = (X[1] * -1.) -50000.
-   	Xdist  = X[0] -50000.
+    from math import sqrt, atan, cos, sin, pi
 
-   	if(Xdist == 0.) :
-	   	Xdist = 0.000000000000001
+    Xcoord = X[0]
+    Ycoord = X[1]
 
-   	if Depth == 0 :
- 
-      		Vx = 0.
-      		Vy = 0.
+    Depth = (X[1] * -1.) -50000.
+    Xdist  = X[0] -50000.
 
-   	else :
- 
-      		ALFA = atan(1)
-      		THETA = atan(Depth/Xdist)
+    if(Xdist == 0.) :
+        Xdist = 0.000000000000001
 
-		VTHETA = (((ALFA - THETA) * sin(THETA) * sin(ALFA)) - (ALFA * THETA * sin(ALFA-THETA))) / (ALFA**2 - (sin(ALFA)**2))
-		VTHETA = VTHETA * (0.05/(3600.*24.*365.)) *-1.
+    if Depth == 0 :
 
-		VR = (((ALFA - THETA) * cos(THETA) * sin(ALFA)) - (sin(ALFA) * sin(THETA)) - (ALFA * sin(ALFA-THETA)) + (ALFA*THETA*cos(ALFA-THETA))) / ((ALFA**2) - (sin(ALFA))**2)
-      		VR = VR * (0.05/(3600.*24.*365.))
+        Vx = 0.
+        Vy = 0.
 
-      		Vx = -( VTHETA*sin(THETA) - VR*cos(THETA) )
-      		Vy = - (VTHETA*cos(THETA) + VR*sin(THETA) )
+    else :
 
-   	return Vx</string_value>
+        ALFA = atan(1)
+        THETA = atan(Depth/Xdist)
+
+        VTHETA = (((ALFA - THETA) * sin(THETA) * sin(ALFA)) - (ALFA * THETA * sin(ALFA-THETA))) / (ALFA**2 - (sin(ALFA)**2))
+        VTHETA = VTHETA * (0.05/(3600.*24.*365.)) *-1.
+
+        VR = (((ALFA - THETA) * cos(THETA) * sin(ALFA)) - (sin(ALFA) * sin(THETA)) - (ALFA * sin(ALFA-THETA)) + (ALFA*THETA*cos(ALFA-THETA))) / ((ALFA**2) - (sin(ALFA))**2)
+        VR = VR * (0.05/(3600.*24.*365.))
+
+        Vx = -( VTHETA*sin(THETA) - VR*cos(THETA) )
+        Vy = - (VTHETA*cos(THETA) + VR*sin(THETA) )
+
+    return Vx</string_value>
                 </python>
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
-  
-   	from math import sqrt, atan, cos, sin, pi
+                  <string_value type="code" language="python" lines="20">def val(X, t):
 
-   	Xcoord = X[0]
-        Ycoord = X[1]
-  
-   	Depth = (X[1] * -1.) -50000.
-   	Xdist  = X[0] -50000.
+    from math import sqrt, atan, cos, sin, pi
 
-   	if(Xdist == 0.) :
-	   	Xdist = 0.000000000000001
+    Xcoord = X[0]
+    Ycoord = X[1]
 
-   	if Depth == 0 :
- 
-      		Vx = 0.
-      		Vy = 0.
+    Depth = (X[1] * -1.) -50000.
+    Xdist  = X[0] -50000.
 
-   	else :
- 
-      		ALFA = atan(1)
-      		THETA = atan(Depth/Xdist)
+    if(Xdist == 0.) :
+        Xdist = 0.000000000000001
 
-		VTHETA = (((ALFA - THETA) * sin(THETA) * sin(ALFA)) - (ALFA * THETA * sin(ALFA-THETA))) / (ALFA**2 - (sin(ALFA)**2))
-		VTHETA = VTHETA * (0.05/(3600.*24.*365.)) *-1.
+    if Depth == 0 :
 
-		VR = (((ALFA - THETA) * cos(THETA) * sin(ALFA)) - (sin(ALFA) * sin(THETA)) - (ALFA * sin(ALFA-THETA)) + (ALFA*THETA*cos(ALFA-THETA))) / ((ALFA**2) - (sin(ALFA))**2)
-      		VR = VR * (0.05/(3600.*24.*365.))
+        Vx = 0.
+        Vy = 0.
 
-      		Vx = -( VTHETA*sin(THETA) - VR*cos(THETA) )
-      		Vy = - (VTHETA*cos(THETA) + VR*sin(THETA) )
+    else :
 
-   	return Vy</string_value>
+        ALFA = atan(1)
+        THETA = atan(Depth/Xdist)
+
+        VTHETA = (((ALFA - THETA) * sin(THETA) * sin(ALFA)) - (ALFA * THETA * sin(ALFA-THETA))) / (ALFA**2 - (sin(ALFA)**2))
+        VTHETA = VTHETA * (0.05/(3600.*24.*365.)) *-1.
+
+        VR = (((ALFA - THETA) * cos(THETA) * sin(ALFA)) - (sin(ALFA) * sin(THETA)) - (ALFA * sin(ALFA-THETA)) + (ALFA*THETA*cos(ALFA-THETA))) / ((ALFA**2) - (sin(ALFA))**2)
+        VR = VR * (0.05/(3600.*24.*365.))
+
+        Vx = -( VTHETA*sin(THETA) - VR*cos(THETA) )
+        Vy = - (VTHETA*cos(THETA) + VR*sin(THETA) )
+
+    return Vy</string_value>
                 </python>
               </y_component>
             </align_bc_with_cartesian>
@@ -386,7 +392,7 @@
         </boundary_conditions>
         <boundary_conditions name="Crust">
           <surface_ids>
-            <integer_value shape="1" rank="1">32</integer_value>
+            <integer_value rank="1" shape="1">32</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -405,24 +411,24 @@
         </boundary_conditions>
         <boundary_conditions name="Slab">
           <surface_ids>
-            <integer_value shape="1" rank="1">31</integer_value>
+            <integer_value rank="1" shape="1">31</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
-        from math import sqrt
-        vx = sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
-        return vx</string_value>
+                  <string_value type="code" language="python" lines="20">def val(X, t):
+    from math import sqrt
+    vx = sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
+    return vx</string_value>
                 </python>
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
-        from math import sqrt
-        vy = -sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
-        return vy</string_value>
+                  <string_value type="code" language="python" lines="20">def val(X, t):
+    from math import sqrt
+    vy = -sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
+    return vy</string_value>
                 </python>
               </y_component>
             </align_bc_with_cartesian>
@@ -443,14 +449,14 @@
         <output/>
         <stat>
           <include_in_stat/>
-          <surface_integral type="normal" name="Outflow">
+          <surface_integral name="Outflow" type="normal">
             <surface_ids>
-              <integer_value shape="2" rank="1">13 16</integer_value>
+              <integer_value rank="1" shape="2">13 16</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="normal" name="All">
+          <surface_integral name="All" type="normal">
             <surface_ids>
-              <integer_value shape="3" rank="1">12 13 16</integer_value>
+              <integer_value rank="1" shape="3">12 13 16</integer_value>
             </surface_ids>
           </surface_integral>
           <previous_time_step>
@@ -472,7 +478,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -513,14 +519,14 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
-	T = 273.
-	return T</string_value>
+            <string_value type="code" language="python" lines="20">def val(x, t):
+    T = 273.
+    return T</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="SurfaceTemperature">
           <surface_ids>
-            <integer_value shape="1" rank="1">10</integer_value>
+            <integer_value rank="1" shape="1">10</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -530,7 +536,7 @@
         </boundary_conditions>
         <boundary_conditions name="InflowWedge">
           <surface_ids>
-            <integer_value shape="1" rank="1">12</integer_value>
+            <integer_value rank="1" shape="1">12</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -540,58 +546,58 @@
         </boundary_conditions>
         <boundary_conditions name="ERF">
           <surface_ids>
-            <integer_value shape="1" rank="1">15</integer_value>
+            <integer_value rank="1" shape="1">15</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X, t):
+              <string_value type="code" language="python" lines="20">def val(X, t):
 
-	import math
+    import math
 
-	def erf(x):
-  		# save the sign of x
- 		sign = 1
- 		if x &lt; 0: 
- 	    		sign = -1
- 	   	x = abs(x)
+    def erf(x):
+        # save the sign of x
+        sign = 1
+        if x &lt; 0:
+            sign = -1
+        x = abs(x)
 
-	    	# constants
-	    	a1 =  0.254829592
-	    	a2 = -0.284496736
-	    	a3 =  1.421413741
-    	    	a4 = -1.453152027
- 	    	a5 =  1.061405429
- 	    	p  =  0.3275911
+        # constants
+        a1 =  0.254829592
+        a2 = -0.284496736
+        a3 =  1.421413741
+        a4 = -1.453152027
+        a5 =  1.061405429
+        p  =  0.3275911
 
- 	   	# A&amp;S formula 7.1.26
- 	   	t = 1.0/(1.0 + p*x)
- 	   	y = 1.0 - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*math.exp(-x*x)
-          	return sign*y # erf(-x) = -erf(x)
+        # A&amp;S formula 7.1.26
+        t = 1.0/(1.0 + p*x)
+        y = 1.0 - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*math.exp(-x*x)
+        return sign*y # erf(-x) = -erf(x)
 
 
-   	Depth = X[1] * -1.
-  	Age = 1576800000000000.
-   	TempHalfSpace = 273.+ 1300.*(erf(Depth/(2.*math.sqrt(0.0000007272*Age))))
-   	return TempHalfSpace</string_value>
+    Depth = X[1] * -1.
+    Age = 1576800000000000.
+    TempHalfSpace = 273.+ 1300.*(erf(Depth/(2.*math.sqrt(0.0000007272*Age))))
+    return TempHalfSpace</string_value>
             </python>
           </type>
         </boundary_conditions>
         <boundary_conditions name="LinearGradientCrust">
           <surface_ids>
-            <integer_value shape="1" rank="1">11</integer_value>
+            <integer_value rank="1" shape="1">11</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X, t):
-   	Depth = X[1] * -1.
-   	T = 273. + (Depth*0.026)
-	return T</string_value>
+              <string_value type="code" language="python" lines="20">def val(X, t):
+    Depth = X[1] * -1.
+    T = 273. + (Depth*0.026)
+    return T</string_value>
             </python>
           </type>
         </boundary_conditions>
         <boundary_conditions name="Outflow">
           <surface_ids>
-            <integer_value shape="2" rank="1">13 16</integer_value>
+            <integer_value rank="1" shape="2">13 16</integer_value>
           </surface_ids>
           <type name="neumann">
             <constant>
@@ -619,15 +625,18 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="FEDiv" rank="0">
+    <scalar_field rank="0" name="FEDiv">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="finite_element_divergence" source_field_name="Velocity">
+        <algorithm name="finite_element_divergence" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -652,12 +661,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="FiniteElementGradient" rank="1">
+    <vector_field rank="1" name="FiniteElementGradient">
       <diagnostic field_name="Pressure">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>

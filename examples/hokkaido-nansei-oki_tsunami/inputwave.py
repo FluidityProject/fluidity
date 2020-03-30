@@ -14,5 +14,5 @@ def val(X, t):
                 h2=data[i][1]
                 return h1*(t-t2)/(t1-t2)+h2*(t-t1)/(t2-t1)
         
-        print "Warning: t is outside the available data. Using last available waterheigth..."
+        print("Warning: t is outside the available data. Using last available waterheigth...")
         return data[-1][1]

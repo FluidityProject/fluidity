@@ -15,13 +15,13 @@
         <mesh name="ExternalMesh"/>
         <periodic_boundary_conditions name="InternalBC">
           <physical_boundary_ids>
-            <integer_value shape="1" rank="1">24</integer_value>
+            <integer_value rank="1" shape="1">24</integer_value>
           </physical_boundary_ids>
           <aliased_boundary_ids>
-            <integer_value shape="1" rank="1">25</integer_value>
+            <integer_value rank="1" shape="1">25</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    return X</string_value>
           </coordinate_map>
           <remove_periodicity/>
@@ -82,7 +82,7 @@
         </number_of_detectors>
         <static/>
         <python>
-          <string_value lines="20" type="code" language="python">def val(t):
+          <string_value type="code" language="python" lines="20">def val(t):
  import math
  ret=[]
  for j in range(2,11):
@@ -107,7 +107,7 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="water">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -157,19 +157,19 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0 0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="block1_left">
           <surface_ids>
-            <integer_value shape="1" rank="1">20</integer_value>
+            <integer_value rank="1" shape="1">20</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
     # Function code
     return X[1]*0.01</string_value>
                 </python>
@@ -179,7 +179,7 @@
         </boundary_conditions>
         <boundary_conditions name="block1_right">
           <surface_ids>
-            <integer_value shape="1" rank="1">24</integer_value>
+            <integer_value rank="1" shape="1">24</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -199,7 +199,7 @@
         </boundary_conditions>
         <boundary_conditions name="block2_left">
           <surface_ids>
-            <integer_value shape="1" rank="1">25</integer_value>
+            <integer_value rank="1" shape="1">25</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -257,7 +257,7 @@
       <flux>
         <penalty>
           <factor>
-            <string_value lines="20" type="code" language="python">def val(h):
+            <string_value type="code" language="python" lines="20">def val(h):
      return 100.0</string_value>
           </factor>
         </penalty>

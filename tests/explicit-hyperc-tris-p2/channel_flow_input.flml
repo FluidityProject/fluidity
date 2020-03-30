@@ -62,127 +62,127 @@
     <detectors>
       <static_detector name="01">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 -0.5</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 -0.5</real_value>
         </location>
       </static_detector>
       <static_detector name="02">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 -0.45</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 -0.45</real_value>
         </location>
       </static_detector>
       <static_detector name="03">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 -0.4</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 -0.4</real_value>
         </location>
       </static_detector>
       <static_detector name="04">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 -0.35</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 -0.35</real_value>
         </location>
       </static_detector>
       <static_detector name="05">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 -0.3</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 -0.3</real_value>
         </location>
       </static_detector>
       <static_detector name="06">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 -0.25</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 -0.25</real_value>
         </location>
       </static_detector>
       <static_detector name="07">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 -0.2</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 -0.2</real_value>
         </location>
       </static_detector>
       <static_detector name="08">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 -0.15</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 -0.15</real_value>
         </location>
       </static_detector>
       <static_detector name="09">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 -0.1</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 -0.1</real_value>
         </location>
       </static_detector>
       <static_detector name="10">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 -0.05</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 -0.05</real_value>
         </location>
       </static_detector>
       <static_detector name="11">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 0.0</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 0.0</real_value>
         </location>
       </static_detector>
       <static_detector name="12">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 0.05</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 0.05</real_value>
         </location>
       </static_detector>
       <static_detector name="13">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 0.1</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 0.1</real_value>
         </location>
       </static_detector>
       <static_detector name="14">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 0.15</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 0.15</real_value>
         </location>
       </static_detector>
       <static_detector name="15">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 0.2</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 0.2</real_value>
         </location>
       </static_detector>
       <static_detector name="15a">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 0.225</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 0.225</real_value>
         </location>
       </static_detector>
       <static_detector name="16">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 0.25</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 0.25</real_value>
         </location>
       </static_detector>
       <static_detector name="16a">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 0.275</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 0.275</real_value>
         </location>
       </static_detector>
       <static_detector name="17">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 0.3</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 0.3</real_value>
         </location>
       </static_detector>
       <static_detector name="17a">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 0.325</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 0.325</real_value>
         </location>
       </static_detector>
       <static_detector name="18">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 0.35</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 0.35</real_value>
         </location>
       </static_detector>
       <static_detector name="18a">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 0.375</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 0.375</real_value>
         </location>
       </static_detector>
       <static_detector name="19">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 0.4</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 0.4</real_value>
         </location>
       </static_detector>
       <static_detector name="20">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 0.45</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 0.45</real_value>
         </location>
       </static_detector>
       <static_detector name="21">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.1 0.5</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 0.5</real_value>
         </location>
       </static_detector>
       <fail_outside_domain/>
@@ -201,12 +201,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="Water">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 1.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 1.0</real_value>
           </constant>
         </value>
         <output/>
@@ -218,7 +218,7 @@
         </detectors>
       </prescribed>
     </vector_field>
-    <scalar_field name="Tracer" rank="0">
+    <scalar_field rank="0" name="Tracer">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -255,7 +255,7 @@
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
 	if(X[1]&lt;0.0):
  		return 1.0
 	else:
@@ -264,7 +264,7 @@
         </initial_condition>
         <boundary_conditions name="inlet">
           <surface_ids>
-            <integer_value shape="1" rank="1">29</integer_value>
+            <integer_value rank="1" shape="1">29</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -283,13 +283,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="ControlVolumeCFLNumber" rank="0">
+    <scalar_field rank="0" name="ControlVolumeCFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -301,6 +304,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

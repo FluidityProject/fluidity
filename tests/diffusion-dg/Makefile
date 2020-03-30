@@ -19,4 +19,4 @@ geos:
 	gmsh -2 src/MMS_E.geo
 
 setfiles:
-	python set_input_files.py
+	python3 set_input_files.py

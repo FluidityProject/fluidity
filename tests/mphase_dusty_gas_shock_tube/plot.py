@@ -38,8 +38,8 @@ pylab.subplot(321)
 pylab.plot( x/0.0271002710027, p/1.013e5,'b.', label="Numerical")
 
 pylab.subplot(322)
-print len(x)
-print len(u_air)
+print(len(x))
+print(len(u_air))
 pylab.plot( x[:len(x)]/0.0271002710027, u_air/286.980353992,'b.', label="Numerical (Air)")
 pylab.plot( x[:len(x)]/0.0271002710027, u_dust/286.980353992,'r.', label="Numerical (Particles)")
 

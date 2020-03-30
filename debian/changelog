@@ -1,15 +1,15 @@
-fluidity (4.1maverick1) maverick; urgency=low
+fluidity (4.1.17bionic1) bionic; urgency=low
 
-  * Fluidity release 4.1
+  * Fluidity release 4.1.17 - python3
 
- -- Tim Bond <timothy.bond@imperial.ac.uk>  Mon, 07 Nov 2011 12:49:49 +0000
+ -- Tim Greaves <tim.greaves@imperial.ac.uk>  Thu, 21 Nov 2019 10:30:28 +0000
 
 fluidity (4.0.999prerelease1maverick5) maverick; urgency=low
 
   * Additional trunk changes brought in prior to release
   * Adding in an examples tarball to the package for release
 
- -- Tim Bond <timothy.bond@imperial.ac.uk> Sun, 06 Nov 2011 20:49:11 +0000
+ -- Tim Bond <timothy.bond@imperial.ac.uk>  Sun, 06 Nov 2011 20:49:11 +0000
 
 fluidity (4.0.999prerelease1maverick4) maverick; urgency=low
 

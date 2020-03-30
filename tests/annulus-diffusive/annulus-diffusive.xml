@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Pure diffusion annulus test</name>
   <owner userid="dham"/>
@@ -29,25 +29,28 @@ outerWallNus = [h  * math.log(8.0 / 2.5) / (2.0 * math.pi * 14.0 * math.log(math
     <test name="FinalInnerWallNu" language="python">import fluidity_tools
 
 nu = innerWallNus[-1]
-print nu
+print(nu)
 assert(nu &lt; 0.0)
-fluidity_tools.compare_variable(abs(nu), 1.0, 1.0e-2)</test>
+fluidity_tools.compare_variable(abs(nu), 1.0, 1.0e-2)
+</test>
     <test name="FinalOuterWallNu" language="python">import fluidity_tools
 
 nu = outerWallNus[-1]
-print nu
+print(nu)
 assert(nu &gt; 0.0)
-fluidity_tools.compare_variable(abs(nu), 1.0, 1.0e-2)</test>
+fluidity_tools.compare_variable(abs(nu), 1.0, 1.0e-2)
+</test>
     <test name="Steady" language="python">import fluidity_tools
 
 s = fluidity_tools.stat_parser("annulus.steady_state")
 
 maxchange = s["MaxChange"]["value"][-1]
-print maxchange
+print(maxchange)
 assert(maxchange &lt; 1.0e-7)
 
 maxchange = s["Water"]["Temperature"]["error"][-1]
-print maxchange
-assert(maxchange &lt; 1.0e-7)</test>
+print(maxchange)
+assert(maxchange &lt; 1.0e-7)
+</test>
   </pass_tests>
 </testproblem>

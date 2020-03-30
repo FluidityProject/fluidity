@@ -1,0 +1,5 @@
+Add annotation to image:
+
+$ convert -font helvetica -fill black -pointsize 24 \
+	-draw "text 10,30 'Refined edges: 01 12 20 23 30 31'" \
+	tets.png  output_file.jpg

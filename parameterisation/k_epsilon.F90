@@ -742,7 +742,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   integer :: term, ngi, dim, gi, i
 
   type(vector_field), intent(in) :: bc_value
-  integer, dimension(:,:), intent(in) :: bc_type    
+  integer, dimension(:,:), allocatable, intent(in) :: bc_type    
 
   real, dimension(:, :, :), allocatable :: dshape_u
 

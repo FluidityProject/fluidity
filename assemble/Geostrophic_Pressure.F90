@@ -1986,7 +1986,7 @@ contains
     
     call clear_boundary_conditions(ps)
     
-    ewrite(2, *), "Adding strong Dirichlet bc for field " // trim(ps(1)%name)
+    ewrite(2, *) "Adding strong Dirichlet bc for field " // trim(ps(1)%name)
     do i = 1, size(surface_eles)
       surface_eles(i) = i
     end do
@@ -1999,7 +1999,7 @@ contains
     call insert_surface_field(ps(1), 1, b_ps(1))
     call deallocate(b_ps(1))
     do i = 2, size(ps)
-      ewrite(2, *), "Adding strong Dirichlet bc for field " // trim(ps(i)%name) 
+      ewrite(2, *) "Adding strong Dirichlet bc for field " // trim(ps(i)%name) 
       call add_boundary_condition_surface_elements(ps(i), "InterpolatedBoundary", "dirichlet", surface_eles) 
       ewrite_minmax(b_ps(i))
       call insert_surface_field(ps(i), 1, b_ps(i))
@@ -2165,7 +2165,7 @@ contains
       end do
       do i = 1, size(bc_ps, 1)
         call clear_boundary_conditions(bc_ps(i))
-        ewrite(2, *), "Adding strong Dirichlet bc for field " // trim(bc_ps(i)%name)
+        ewrite(2, *) "Adding strong Dirichlet bc for field " // trim(bc_ps(i)%name)
         call add_boundary_condition_surface_elements(bc_ps(i), "ConstantBoundary", "dirichlet", surface_eles) 
         call get_boundary_condition(bc_ps(i), 1, surface_mesh = bc_mesh, &
           & surface_element_list = bc_surface_element_list) 
@@ -2373,7 +2373,7 @@ contains
       end do
       do i = 1, size(bc_ps, 1)
         call clear_boundary_conditions(bc_ps(i))
-        ewrite(2, *), "Adding strong Dirichlet bc for field " // trim(bc_ps(i)%name)
+        ewrite(2, *) "Adding strong Dirichlet bc for field " // trim(bc_ps(i)%name)
         call add_boundary_condition_surface_elements(bc_ps(i), "ConstantBoundary", "dirichlet", surface_eles) 
         call get_boundary_condition(bc_ps(i), 1, surface_mesh = bc_mesh, &
           & surface_element_list = bc_surface_element_list) 

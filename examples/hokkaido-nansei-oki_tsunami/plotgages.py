@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from fluidity_tools import stat_parser
 import matplotlib.pyplot as plt
@@ -9,7 +9,7 @@ import csv
 import tools
 
 def usage():
-  print "plotgages.py --file=filename.detectors"
+  print("plotgages.py --file=filename.detectors")
 
 def main(argv=None):
 
@@ -24,7 +24,7 @@ def main(argv=None):
   try:
     opts, args = getopt.getopt(sys.argv[1:], "", ['file='])
   except getopt.GetoptError:
-    print "Getopterror :("
+    print("Getopterror :(")
     usage()
     sys.exit(2)
   
@@ -36,21 +36,21 @@ def main(argv=None):
         usage()
         sys.exit(2)
   if filename=='':
-    print 'No filename specified. You have to supply the detectos filename'
+    print('No filename specified. You have to supply the detectos filename')
     usage()
     sys.exit(2)
 
 
-  print "Generating plots"
+  print("Generating plots")
 
   s = stat_parser(filename)
 
   timesteps=s["ElapsedTime"]["value"]
   timestep=timesteps[1]-timesteps[0]
-  print "Found ", len(timesteps), " timesteps with dt=", timestep, " starting at t0=", timesteps[0]-timestep
+  print("Found ", len(timesteps), " timesteps with dt=", timestep, " starting at t0=", timesteps[0]-timestep)
   
   fs=s["water"]["FreeSurface"]
-  print "Found ", len(fs), " free surface detectors."
+  print("Found ", len(fs), " free surface detectors.")
 
 
 

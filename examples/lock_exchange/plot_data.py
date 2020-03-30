@@ -15,9 +15,9 @@ import le_tools
 ################################################
 
 def Froudenumber(flmlname):
-  print "\n********** Calculating the Froude number\n"
+  print("\n********** Calculating the Froude number\n")
   # warn user about assumptions
-  print "Froude number calculations makes three assumptions: \n i) domain height = 0.1m \n ii) mid point domain is at x = 0.4 \n iii) initial temperature difference is 1.0 degC"
+  print("Froude number calculations makes three assumptions: \n i) domain height = 0.1m \n ii) mid point domain is at x = 0.4 \n iii) initial temperature difference is 1.0 degC")
   domainheight = 0.1
   domainmid = 0.4
   rho_zero, T_zero, alpha, g = le_tools.Getconstantsfromflml(flmlname)
@@ -126,9 +126,9 @@ def Froudenumber(flmlname):
 
 def mixing(flmlname):
 
-  print "\n********** Calculating the mixing diagnostics\n"
+  print("\n********** Calculating the mixing diagnostics\n")
   # warn user about assumptions
-  print "Background potential energy calculations makes two assumptions: \n i) domain height = 0.1m \n ii) initial temperature difference is 1.0 degC"
+  print("Background potential energy calculations makes two assumptions: \n i) domain height = 0.1m \n ii) initial temperature difference is 1.0 degC")
   domainheight = 0.1
   rho_zero, T_zero, alpha, g = le_tools.Getconstantsfromflml(flmlname)
 
@@ -250,4 +250,4 @@ mixing(flmlname)
 
 # show plots and tell user where to find a copy
 pylab.show()
-print 'The images have also been saved in ./diagnostics/plots'
+print('The images have also been saved in ./diagnostics/plots')

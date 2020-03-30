@@ -32,6 +32,15 @@
 
 #include "confdefs.h"
 
+#ifdef HAVE_MPI
+#if !defined(MPICH_SKIP_MPICXX)
+#  define MPICH_SKIP_MPICXX 1
+#endif
+#if !defined(OMPI_SKIP_MPICXX)
+#  define OMPI_SKIP_MPICXX 1
+#endif
+#include <mpi.h>
+#endif
 #ifdef USING_DOUBLE_PRECISION
 typedef double afloat_t;
 #else
@@ -50,10 +59,6 @@ typedef float afloat_t;
 #include <string.h>
 
 #include "vtk.h"
-
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
 
 /// C++ class wrapper for serial adaptivity
 class Adaptivity{
