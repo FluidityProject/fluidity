@@ -24,7 +24,7 @@ except:
 
 nodes, faces = icosahedron()
 
-for i in xrange(subdivisions):
+for i in range(subdivisions):
     subdivide(nodes, faces)
 
 nodes = radius * numpy.array(nodes)
