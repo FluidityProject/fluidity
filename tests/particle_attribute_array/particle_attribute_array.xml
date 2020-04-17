@@ -4,7 +4,7 @@
   <name>Testing of particle attribute arrays</name>
   <owner userid="angus-g"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="2">
+  <problem_definition length="special" nprocs="2">
     <command_line>
 mpiexec ../../bin/flredecomp -i 1 -o 2 particle-attribute-array particle-attribute-array-flredecomp;
 mpiexec ../../bin/fluidity -v3 -l particle-attribute-array-flredecomp.flml
