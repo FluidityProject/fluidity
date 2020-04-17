@@ -72,12 +72,12 @@
     </finish_time>
   </timestepping>
   <material_phase name="Main">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </value>
         <output/>
@@ -87,9 +87,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Unbounded" rank="0">
+    <scalar_field rank="0" name="Unbounded">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -150,7 +153,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="MaxBound" rank="0">
+    <scalar_field rank="0" name="MaxBound">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
@@ -168,7 +171,7 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="MinBound" rank="0">
+    <scalar_field rank="0" name="MinBound">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">

@@ -76,6 +76,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <consistent_interpolation/>
       </prescribed>
     </vector_field>
@@ -118,6 +121,9 @@
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>

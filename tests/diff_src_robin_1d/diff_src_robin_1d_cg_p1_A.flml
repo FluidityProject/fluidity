@@ -51,12 +51,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="fluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="1" dim1="dim" rank="1">0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="1">0.0</real_value>
           </constant>
         </value>
         <output/>
@@ -66,9 +66,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="T" rank="0">
+    <scalar_field rank="0" name="T">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -121,7 +124,7 @@
         </initial_condition>
         <boundary_conditions name="right">
           <surface_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
+            <integer_value rank="1" shape="1">2</integer_value>
           </surface_ids>
           <type name="robin">
             <order_zero_coefficient>
@@ -146,6 +149,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <scalar_field name="Source" rank="0">
@@ -182,12 +188,12 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="TAnalytic" rank="0">
+    <scalar_field rank="0" name="TAnalytic">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    # get the 1d coord
    x = X[0]
    
@@ -220,10 +226,10 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="TError" rank="0">
+    <scalar_field rank="0" name="TError">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">field1=state.scalar_fields["T"]
+          <string_value type="code" language="python" lines="20">field1=state.scalar_fields["T"]
 field2=state.scalar_fields["TAnalytic"]
 for i in range(field.node_count):
    field.set(i, abs(field1.node_val(i)-field2.node_val(i)))</string_value>

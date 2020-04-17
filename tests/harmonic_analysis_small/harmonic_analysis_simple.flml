@@ -46,12 +46,12 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
     </quadrature>
     <ocean_boundaries>
       <top_surface_ids>
-        <integer_value shape="1" rank="1">29</integer_value>
+        <integer_value rank="1" shape="1">29</integer_value>
       </top_surface_ids>
       <bottom_surface_ids>
-        <integer_value shape="1" rank="1">30</integer_value>
+        <integer_value rank="1" shape="1">30</integer_value>
       </bottom_surface_ids>
-      <scalar_field name="DistanceToTop" rank="0">
+      <scalar_field rank="0" name="DistanceToTop">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -71,7 +71,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
           </steady_state>
         </diagnostic>
       </scalar_field>
-      <scalar_field name="DistanceToBottom" rank="0">
+      <scalar_field rank="0" name="DistanceToBottom">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -126,7 +126,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="3" dim1="dim" rank="1">0 0 -1</real_value>
+              <real_value rank="1" dim1="dim" shape="3">0 0 -1</real_value>
             </constant>
           </value>
           <output/>
@@ -136,6 +136,9 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -151,7 +154,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -182,11 +185,11 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </solver>
         <boundary_conditions name="FreeSurfaceBC">
           <surface_ids>
-            <integer_value shape="1" rank="1">29</integer_value>
+            <integer_value rank="1" shape="1">29</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X, t):
+              <string_value type="code" language="python" lines="20">def val(X, t):
    from math import cos
 #   z= 0.1+0.05*cos(2*3.1415926536*(t/9-0.11111))+0.01*cos(2*3.1415926536*(t/4-0.25))
 #   z= 0.05*(0.1+0.1*cos(2*3.1415926536*(t/9-0.11111)))
@@ -212,7 +215,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -262,24 +265,24 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="SidesNoNormalFlow">
           <surface_ids>
-            <integer_value shape="2" rank="1">32 31</integer_value>
+            <integer_value rank="1" shape="2">32 31</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions name="TopFreeSurface">
           <surface_ids>
-            <integer_value shape="1" rank="1">29</integer_value>
+            <integer_value rank="1" shape="1">29</integer_value>
           </surface_ids>
           <type name="free_surface"/>
         </boundary_conditions>
         <boundary_conditions name="BottomNoNormalFlow">
           <surface_ids>
-            <integer_value shape="1" rank="1">30</integer_value>
+            <integer_value rank="1" shape="1">30</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
@@ -293,6 +296,9 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -317,7 +323,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="FreeSurface" rank="0">
+    <scalar_field rank="0" name="FreeSurface">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -337,9 +343,9 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="1over9Ampl" rank="0">
+    <scalar_field rank="0" name="1over9Ampl">
       <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Amplitude">
+        <algorithm name="tidal_harmonics" material_phase_support="single" depends="FreeSurfaceHistory" target="Amplitude" averageFSLevel="Calculate">
           <constituent name="custom">
             <real_value rank="0">0.111111111111111111111</real_value>
           </constituent>
@@ -361,9 +367,9 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="1over9Phase" rank="0">
+    <scalar_field rank="0" name="1over9Phase">
       <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Phase">
+        <algorithm name="tidal_harmonics" material_phase_support="single" depends="FreeSurfaceHistory" target="Phase" averageFSLevel="Calculate">
           <constituent name="custom">
             <real_value rank="0">0.111111111111111111111</real_value>
           </constituent>
@@ -385,9 +391,9 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Residual" rank="0">
+    <scalar_field rank="0" name="Residual">
       <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Amplitude">
+        <algorithm name="tidal_harmonics" material_phase_support="single" depends="FreeSurfaceHistory" target="Amplitude" averageFSLevel="Calculate">
           <constituent name="Residual"/>
         </algorithm>
         <mesh name="VelocityMesh"/>
@@ -407,11 +413,11 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="C0" rank="0">
+    <scalar_field rank="0" name="C0">
       <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Amplitude">
+        <algorithm name="tidal_harmonics" material_phase_support="single" depends="FreeSurfaceHistory" target="Amplitude" averageFSLevel="Calculate">
           <constituent name="C0">
-            <real_value shape="1" rank="0">0.0</real_value>
+            <real_value rank="0" shape="1">0.0</real_value>
           </constituent>
         </algorithm>
         <mesh name="VelocityMesh"/>
@@ -431,9 +437,9 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="1over4Ampl" rank="0">
+    <scalar_field rank="0" name="1over4Ampl">
       <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Amplitude">
+        <algorithm name="tidal_harmonics" material_phase_support="single" depends="FreeSurfaceHistory" target="Amplitude" averageFSLevel="Calculate">
           <constituent name="custom">
             <real_value rank="0">0.25</real_value>
           </constituent>
@@ -455,9 +461,9 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="1over4Phase" rank="0">
+    <scalar_field rank="0" name="1over4Phase">
       <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Phase">
+        <algorithm name="tidal_harmonics" material_phase_support="single" depends="FreeSurfaceHistory" target="Phase" averageFSLevel="Calculate">
           <constituent name="custom">
             <real_value rank="0">0.25</real_value>
           </constituent>
@@ -479,9 +485,9 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="FreeSurfaceHistory" rank="0">
+    <scalar_field rank="0" name="FreeSurfaceHistory">
       <diagnostic>
-        <algorithm depends="FreeSurface" name="free_surface_history" material_phase_support="single">
+        <algorithm name="free_surface_history" material_phase_support="single" depends="FreeSurface">
           <levels>
             <integer_value rank="0">10</integer_value>
           </levels>
@@ -512,6 +518,9 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>

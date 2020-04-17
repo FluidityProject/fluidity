@@ -71,12 +71,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="fluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="1" dim1="dim" rank="1">1.0</real_value>
+            <real_value rank="1" dim1="dim" shape="1">1.0</real_value>
           </constant>
         </value>
         <output/>
@@ -86,9 +86,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Tracer" rank="0">
+    <scalar_field rank="0" name="Tracer">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -136,7 +139,7 @@
         </initial_condition>
         <boundary_conditions name="ends">
           <surface_ids>
-            <integer_value shape="2" rank="1">1 2</integer_value>
+            <integer_value rank="1" shape="2">1 2</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -154,6 +157,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <scalar_field name="Source" rank="0">
@@ -190,7 +196,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="GridPecletNumber" rank="0">
+    <scalar_field rank="0" name="GridPecletNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="CoordinateMesh"/>

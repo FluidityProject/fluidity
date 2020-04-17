@@ -91,12 +91,12 @@
     </spherical_earth>
     <ocean_boundaries>
       <top_surface_ids>
-        <integer_value shape="1" rank="1">1</integer_value>
+        <integer_value rank="1" shape="1">1</integer_value>
       </top_surface_ids>
       <bottom_surface_ids>
-        <integer_value shape="1" rank="1">2</integer_value>
+        <integer_value rank="1" shape="1">2</integer_value>
       </bottom_surface_ids>
-      <scalar_field name="DistanceToTop" rank="0">
+      <scalar_field rank="0" name="DistanceToTop">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -116,7 +116,7 @@
           </steady_state>
         </diagnostic>
       </scalar_field>
-      <scalar_field name="DistanceToBottom" rank="0">
+      <scalar_field rank="0" name="DistanceToBottom">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -177,7 +177,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X, t):
+              <string_value type="code" language="python" lines="20">def val(X, t):
 
   a = X[0]
   b = X[1]
@@ -197,6 +197,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -235,7 +238,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -292,7 +295,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -312,7 +315,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -376,12 +379,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="drag_on_bottom_and_sides">
           <surface_ids>
-            <integer_value shape="5" rank="1">2 1009 1010 1011 1012</integer_value>
+            <integer_value rank="1" shape="5">2 1009 1010 1011 1012</integer_value>
           </surface_ids>
           <type name="drag">
             <constant>
@@ -392,13 +395,13 @@
         </boundary_conditions>
         <boundary_conditions name="FreeSurface">
           <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value rank="1" shape="1">1</integer_value>
           </surface_ids>
           <type name="free_surface"/>
         </boundary_conditions>
         <boundary_conditions name="NoNormalFlow">
           <surface_ids>
-            <integer_value shape="5" rank="1">2 1009 1010 1011 1012</integer_value>
+            <integer_value rank="1" shape="5">2 1009 1010 1011 1012</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
@@ -408,7 +411,7 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
     from GFD_basisChange_tools import cartesian_2_sphericalPolar, transform_tensor_sphericalPolar_2_cartesian
     import numpy as np
     tensor_inSphericalPolar = np.array([[1.0,   0.0,   0.0],
@@ -423,6 +426,9 @@
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <vertical_stabilization>
@@ -454,7 +460,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="FreeSurface" rank="0">
+    <scalar_field rank="0" name="FreeSurface">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -474,7 +480,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="DG_CourantNumber" rank="0">
+    <scalar_field rank="0" name="DG_CourantNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -494,7 +500,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prognostic>
         <mesh name="BaseMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -537,7 +543,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
     import numpy as np
     from math import sqrt
     x = X[0]
@@ -570,7 +576,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Salinity" rank="0">
+    <scalar_field rank="0" name="Salinity">
       <prognostic>
         <mesh name="BaseMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -616,7 +622,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
     import numpy as np
     from math import sqrt
     x = X[0]
@@ -649,7 +655,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field name="DiagnosticCoordinate" rank="1">
+    <vector_field rank="1" name="DiagnosticCoordinate">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -665,15 +671,18 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="LonLatVerticalVelocity" rank="1">
+    <vector_field rank="1" name="LonLatVerticalVelocity">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">from GFD_basisChange_tools import transform_vector_cartesian_2_lon_lat_rad
+          <string_value type="code" language="python" lines="20">from GFD_basisChange_tools import transform_vector_cartesian_2_lon_lat_rad
 cartesianVelocity=state.vector_fields["Velocity"]
 cartesianCoord=state.vector_fields["DiagnosticCoordinate"]
 for n in range(field.node_count):
@@ -691,6 +700,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

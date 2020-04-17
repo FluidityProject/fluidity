@@ -113,12 +113,12 @@
     </steady_state>
   </timestepping>
   <material_phase name="One">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="1" dim1="dim" rank="1">0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="1">0.0</real_value>
           </constant>
         </value>
         <output/>
@@ -128,9 +128,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Flux1" rank="0">
+    <scalar_field rank="0" name="Flux1">
       <prognostic>
         <mesh name="Flux1Mesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -173,7 +176,7 @@
         </initial_condition>
         <boundary_conditions name="left_and_right">
           <surface_ids>
-            <integer_value shape="2" rank="1">1 2</integer_value>
+            <integer_value rank="1" shape="2">1 2</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -191,12 +194,15 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <scalar_field name="Source" rank="0">
           <diagnostic>
             <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-              <string_value lines="20" type="code" language="python">import numpy
+              <string_value type="code" language="python" lines="20">import numpy
 
 coord = states["One"].vector_fields["Coordinate"]
 
@@ -285,7 +291,7 @@ for ele in range(field.element_count):
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Flux2" rank="0">
+    <scalar_field rank="0" name="Flux2">
       <prognostic>
         <mesh name="Flux2Mesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -328,7 +334,7 @@ for ele in range(field.element_count):
         </initial_condition>
         <boundary_conditions name="left_and_right">
           <surface_ids>
-            <integer_value shape="2" rank="1">1 2</integer_value>
+            <integer_value rank="1" shape="2">1 2</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -346,12 +352,15 @@ for ele in range(field.element_count):
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <scalar_field name="Source" rank="0">
           <diagnostic>
             <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-              <string_value lines="20" type="code" language="python">import numpy
+              <string_value type="code" language="python" lines="20">import numpy
 
 coord = states["One"].vector_fields["Coordinate"]
 
@@ -440,9 +449,9 @@ for ele in range(field.element_count):
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Flux1_ele" rank="0">
+    <scalar_field rank="0" name="Flux1_ele">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="Flux1"/>
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="Flux1" source_field_type="scalar"/>
         <mesh name="DGP0"/>
         <output/>
         <stat/>
@@ -460,9 +469,9 @@ for ele in range(field.element_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Flux2_ele" rank="0">
+    <scalar_field rank="0" name="Flux2_ele">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="Flux2"/>
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="Flux2" source_field_type="scalar"/>
         <mesh name="DGP0"/>
         <output/>
         <stat/>
@@ -480,10 +489,10 @@ for ele in range(field.element_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Eigenvalue" rank="0">
+    <scalar_field rank="0" name="Eigenvalue">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="code" language="python">from math import sqrt
+          <string_value type="code" language="python" lines="20">from math import sqrt
 
 flux1_ele = states["One"].scalar_fields["Flux1_ele"]
 flux2_ele = states["One"].scalar_fields["Flux2_ele"]

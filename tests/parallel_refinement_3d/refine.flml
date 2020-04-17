@@ -64,12 +64,12 @@
     </finish_time>
   </timestepping>
   <material_phase name="Fields">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0 0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0 0 0</real_value>
           </constant>
         </value>
         <output/>
@@ -79,9 +79,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="CellVolume" rank="0">
+    <scalar_field rank="0" name="CellVolume">
       <diagnostic>
         <algorithm name="finite_element_lumped_mass_matrix" material_phase_support="single"/>
         <mesh name="P0Mesh"/>
@@ -101,7 +104,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="ElementHalo" rank="0">
+    <scalar_field rank="0" name="ElementHalo">
       <diagnostic>
         <algorithm name="element_halo" material_phase_support="single"/>
         <mesh name="P0Mesh"/>
@@ -121,7 +124,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="NodeHalo" rank="0">
+    <scalar_field rank="0" name="NodeHalo">
       <diagnostic>
         <algorithm name="node_halo" material_phase_support="single"/>
         <mesh name="CoordinateMesh"/>
@@ -154,14 +157,14 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">1e-06 0 0 0 1e-06 0 0 0 1e-06</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">1e-06 0 0 0 1e-06 0 0 0 1e-06</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">0.05 0 0 0 0.05 0 0 0 0.05</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">0.05 0 0 0 0.05 0 0 0 0.05</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

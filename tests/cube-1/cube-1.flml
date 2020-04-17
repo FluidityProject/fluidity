@@ -70,7 +70,7 @@
     </coriolis>
   </physical_parameters>
   <material_phase name="Water">
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <spatial_discretisation>
@@ -119,7 +119,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <equation name="Boussinesq"/>
@@ -172,12 +172,12 @@
         </solver>
         <initial_condition name="whole_mesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">1.0 0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">1.0 0 0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="Sides">
           <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value rank="1" shape="1">1</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -191,7 +191,7 @@
         </boundary_conditions>
         <boundary_conditions name="TopBottom">
           <surface_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
+            <integer_value rank="1" shape="1">2</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -205,7 +205,7 @@
         </boundary_conditions>
         <boundary_conditions name="Inflow">
           <surface_ids>
-            <integer_value shape="1" rank="1">3</integer_value>
+            <integer_value rank="1" shape="1">3</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -227,6 +227,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output>
@@ -254,7 +257,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="CoordinateMesh"/>
@@ -274,7 +277,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="GeostrophicPressure" rank="0">
+    <scalar_field rank="0" name="GeostrophicPressure">
       <prognostic>
         <mesh name="GeostrophicPressureMesh"/>
         <spatial_discretisation>
@@ -283,7 +286,7 @@
           </geostrophic_pressure_option>
         </spatial_discretisation>
         <reference_node name="node_1">
-          <integer_value shape="1" rank="0">1</integer_value>
+          <integer_value rank="0" shape="1">1</integer_value>
         </reference_node>
         <solver>
           <iterative_method name="cg"/>
@@ -313,7 +316,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="GridReynoldsNumber" rank="0">
+    <scalar_field rank="0" name="GridReynoldsNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="CoordinateMesh"/>
@@ -333,9 +336,9 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TotalPressure" rank="0">
+    <scalar_field rank="0" name="TotalPressure">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_sum" source_field_1_name="Pressure" source_field_2_name="GeostrophicPressure" material_phase_support="single" source_field_1_type="scalar"/>
+        <algorithm name="scalar_sum" material_phase_support="single" source_field_1_name="Pressure" source_field_1_type="scalar" source_field_2_name="GeostrophicPressure" source_field_2_type="scalar"/>
         <mesh name="GeostrophicPressureMesh"/>
         <output/>
         <stat/>
@@ -353,9 +356,9 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="ImbalancedVelocity" rank="1">
+    <vector_field rank="1" name="ImbalancedVelocity">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="BalancedVelocity" material_phase_support="single" source_field_1_type="vector"/>
+        <algorithm name="vector_difference" material_phase_support="single" source_field_1_name="Velocity" source_field_1_type="vector" source_field_2_name="BalancedVelocity" source_field_2_type="vector"/>
         <mesh name="CoordinateMesh"/>
         <output/>
         <stat>
@@ -367,14 +370,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="BalancedVelocity" rank="1">
+    <vector_field rank="1" name="BalancedVelocity">
       <diagnostic>
-        <algorithm depends="Velocity" source_field_type="scalar" material_phase_support="single" name="geostrophic_velocity" source_field_name="TotalPressure">
+        <algorithm name="geostrophic_velocity" material_phase_support="single" depends="Velocity" source_field_name="TotalPressure" source_field_type="scalar">
           <mass>
             <lump_mass/>
           </mass>
@@ -390,6 +396,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

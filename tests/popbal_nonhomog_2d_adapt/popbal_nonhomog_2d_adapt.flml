@@ -64,12 +64,12 @@
     </finish_time>
   </timestepping>
   <material_phase name="fluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0 0</real_value>
           </constant>
         </value>
         <output/>
@@ -79,14 +79,17 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="m3_analytical" rank="0">
+    <scalar_field rank="0" name="m3_analytical">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
   from math import exp, pi, cos
   if (abs(t-round(t))&lt;=0.01):
      nu=0.001
@@ -117,8 +120,8 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="ScalarAbsoluteDifference" rank="0">
-      <diagnostic field_name_b="m3_analytical" field_name_a="Moment_3">
+    <scalar_field rank="0" name="ScalarAbsoluteDifference">
+      <diagnostic field_name_a="Moment_3" field_name_b="m3_analytical">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
         <output/>
@@ -140,7 +143,7 @@
     <population_balance name="DQMOM">
       <use_prognostic_field_initial_conditions/>
       <abscissa>
-        <scalar_field name="Abscissa_0" rank="0">
+        <scalar_field rank="0" name="Abscissa_0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -161,7 +164,7 @@
             <consistent_interpolation/>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="Abscissa_1" rank="0">
+        <scalar_field rank="0" name="Abscissa_1">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -184,7 +187,7 @@
         </scalar_field>
       </abscissa>
       <weights>
-        <scalar_field name="Weight_0" rank="0">
+        <scalar_field rank="0" name="Weight_0">
           <prognostic>
             <mesh name="VelocityMesh"/>
             <equation name="AdvectionDiffusion"/>
@@ -238,6 +241,9 @@
                   </isotropic>
                 </value>
                 <output/>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </prescribed>
             </tensor_field>
             <scalar_field name="Source" rank="0">
@@ -270,7 +276,7 @@
             <consistent_interpolation/>
           </prognostic>
         </scalar_field>
-        <scalar_field name="Weight_1" rank="0">
+        <scalar_field rank="0" name="Weight_1">
           <prognostic>
             <mesh name="VelocityMesh"/>
             <equation name="AdvectionDiffusion"/>
@@ -324,6 +330,9 @@
                   </isotropic>
                 </value>
                 <output/>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </prescribed>
             </tensor_field>
             <scalar_field name="Source" rank="0">
@@ -358,7 +367,7 @@
         </scalar_field>
       </weights>
       <weighted_abscissa>
-        <scalar_field name="WeightedAbscissa_0" rank="0">
+        <scalar_field rank="0" name="WeightedAbscissa_0">
           <prognostic>
             <mesh name="VelocityMesh"/>
             <equation name="AdvectionDiffusion"/>
@@ -399,7 +408,7 @@
             </solver>
             <initial_condition name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X, t):
+                <string_value type="code" language="python" lines="20">def val(X, t):
   if X[0] &lt; 0.5:
     return 0.5*0.6
   else:
@@ -416,6 +425,9 @@
                   </isotropic>
                 </value>
                 <output/>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </prescribed>
             </tensor_field>
             <scalar_field name="Source" rank="0">
@@ -448,7 +460,7 @@
             <consistent_interpolation/>
           </prognostic>
         </scalar_field>
-        <scalar_field name="WeightedAbscissa_1" rank="0">
+        <scalar_field rank="0" name="WeightedAbscissa_1">
           <prognostic>
             <mesh name="VelocityMesh"/>
             <equation name="AdvectionDiffusion"/>
@@ -489,7 +501,7 @@
             </solver>
             <initial_condition name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X, t):
+                <string_value type="code" language="python" lines="20">def val(X, t):
   if X[0] &lt; 0.5:
     return 0.5*0.4
   else:
@@ -506,6 +518,9 @@
                   </isotropic>
                 </value>
                 <output/>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </prescribed>
             </tensor_field>
             <scalar_field name="Source" rank="0">
@@ -543,7 +558,7 @@
         <use_mass_lumping/>
       </adv_diff_source_term_interpolation>
       <moments>
-        <scalar_field name="Moment_0" rank="0">
+        <scalar_field rank="0" name="Moment_0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -569,13 +584,13 @@
             <consistent_interpolation/>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="Moment_1" rank="0">
+        <scalar_field rank="0" name="Moment_1">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
             <initial_condition name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X, t):
+                <string_value type="code" language="python" lines="20">def val(X, t):
   if X[0] &lt; 0.5:
     return 0.5
   else:
@@ -599,13 +614,13 @@
             <consistent_interpolation/>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="Moment_2" rank="0">
+        <scalar_field rank="0" name="Moment_2">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
             <initial_condition name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X, t):
+                <string_value type="code" language="python" lines="20">def val(X, t):
   if X[0] &lt; 0.5:
     return 0.5*(0.6**2 + 0.4**2)
   else:
@@ -629,13 +644,13 @@
             <consistent_interpolation/>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="Moment_3" rank="0">
+        <scalar_field rank="0" name="Moment_3">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
             <initial_condition name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X, t):
+                <string_value type="code" language="python" lines="20">def val(X, t):
   if X[0] &lt; 0.5:
     return 0.5*(0.6**3 + 0.4**3)
   else:
@@ -658,7 +673,7 @@
             </steady_state>
             <adaptivity_options>
               <absolute_measure>
-                <scalar_field name="InterpolationErrorBound" rank="0">
+                <scalar_field rank="0" name="InterpolationErrorBound">
                   <prescribed>
                     <value name="WholeMesh">
                       <constant>
@@ -707,14 +722,14 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.005 0.0 0.0 0.005</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">0.005 0.0 0.0 0.005</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.1 0.0 0.0 0.1</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">0.1 0.0 0.0 0.1</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

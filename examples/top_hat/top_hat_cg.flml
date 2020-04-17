@@ -60,12 +60,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="Fluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="1" dim1="dim" rank="1">0.01</real_value>
+            <real_value rank="1" dim1="dim" shape="1">0.01</real_value>
           </constant>
         </value>
         <output>
@@ -77,9 +77,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Tracer" rank="0">
+    <scalar_field rank="0" name="Tracer">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -89,7 +92,7 @@
               <streamline_upwind_petrov_galerkin>
                 <nu_bar_optimal/>
                 <nu_scale name="0.5">
-                  <real_value shape="1" rank="0">0.5</real_value>
+                  <real_value rank="0" shape="1">0.5</real_value>
                 </nu_scale>
               </streamline_upwind_petrov_galerkin>
             </stabilisation>
@@ -125,7 +128,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
   if x[0] &gt; 1 and x[0] &lt;  1.25:
     return 1.0
   else:
@@ -148,7 +151,7 @@
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -200,7 +203,7 @@
         </galerkin_projection>
       </prognostic>
     </scalar_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="CoordinateMesh"/>
@@ -233,7 +236,7 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="1 1" dim1="dim" rank="2">1.0e-3</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="1 1">1.0e-3</real_value>
             <comment>Note that in the presence of a shock you will typically always hit this minimum. Setting this number too low will therefore give some very small elements at the shock, which results in
 very small timesteps being chosen in the adaptive time stepping.</comment>
           </constant>
@@ -242,7 +245,7 @@ very small timesteps being chosen in the adaptive time stepping.</comment>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="1 1" dim1="dim" rank="2">0.5</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="1 1">0.5</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

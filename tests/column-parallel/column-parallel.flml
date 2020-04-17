@@ -80,7 +80,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="3" dim1="dim" rank="1">0.0 0.0 -1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="3">0.0 0.0 -1.0</real_value>
             </constant>
           </value>
           <output/>
@@ -90,6 +90,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -118,13 +121,13 @@
         <calculate_boundaries>
           <string_value>neumann</string_value>
           <top_surface_ids>
-            <integer_value shape="1" rank="1">38</integer_value>
+            <integer_value rank="1" shape="1">38</integer_value>
           </top_surface_ids>
           <bottom_surface_ids>
-            <integer_value shape="1" rank="1">39</integer_value>
+            <integer_value rank="1" shape="1">39</integer_value>
           </bottom_surface_ids>
         </calculate_boundaries>
-        <scalar_field name="GLSTurbulentKineticEnergy" rank="0">
+        <scalar_field rank="0" name="GLSTurbulentKineticEnergy">
           <prognostic>
             <mesh name="VelocityMesh"/>
             <equation name="AdvectionDiffusion"/>
@@ -181,6 +184,9 @@
                 <stat>
                   <include_in_stat/>
                 </stat>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </tensor_field>
             <scalar_field name="Source" rank="0">
@@ -229,7 +235,7 @@
             </minimum_value>
           </prognostic>
         </scalar_field>
-        <scalar_field name="GLSGenericSecondQuantity" rank="0">
+        <scalar_field rank="0" name="GLSGenericSecondQuantity">
           <prognostic>
             <mesh name="VelocityMesh"/>
             <equation name="AdvectionDiffusion"/>
@@ -286,6 +292,9 @@
                 <stat>
                   <include_in_stat/>
                 </stat>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </tensor_field>
             <scalar_field name="Source" rank="0">
@@ -331,13 +340,13 @@
             <consistent_interpolation/>
           </prognostic>
         </scalar_field>
-        <tensor_field name="GLSBackgroundViscosity" rank="2">
+        <tensor_field rank="2" name="GLSBackgroundViscosity">
           <prescribed>
             <mesh name="VelocityMesh"/>
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
    depth = 3.
    surface_nu = 0.1
    if (X[2] &gt; -depth): # top depth m
@@ -352,15 +361,18 @@
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
-        <tensor_field name="GLSBackgroundDiffusivity" rank="2">
+        <tensor_field rank="2" name="GLSBackgroundDiffusivity">
           <prescribed>
             <mesh name="VelocityMesh"/>
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
    depth = 3.
    surface_nu = 0.1
    if (X[2] &gt; -depth): # top depth m
@@ -375,9 +387,12 @@
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
-        <tensor_field name="GLSEddyViscosityKM" rank="2">
+        <tensor_field rank="2" name="GLSEddyViscosityKM">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -397,7 +412,7 @@
             </steady_state>
           </diagnostic>
         </tensor_field>
-        <tensor_field name="GLSEddyDiffusivityKH" rank="2">
+        <tensor_field rank="2" name="GLSEddyDiffusivityKH">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -417,7 +432,7 @@
             </steady_state>
           </diagnostic>
         </tensor_field>
-        <scalar_field name="GLSLengthScale" rank="0">
+        <scalar_field rank="0" name="GLSLengthScale">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -437,7 +452,7 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSBuoyancyFrequency" rank="0">
+        <scalar_field rank="0" name="GLSBuoyancyFrequency">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -457,7 +472,7 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSVelocityShear" rank="0">
+        <scalar_field rank="0" name="GLSVelocityShear">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -477,7 +492,7 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSShearProduction" rank="0">
+        <scalar_field rank="0" name="GLSShearProduction">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -497,7 +512,7 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSBuoyancyProduction" rank="0">
+        <scalar_field rank="0" name="GLSBuoyancyProduction">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -517,7 +532,7 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSDissipationEpsilon" rank="0">
+        <scalar_field rank="0" name="GLSDissipationEpsilon">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -537,7 +552,7 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSStabilityFunctionSM" rank="0">
+        <scalar_field rank="0" name="GLSStabilityFunctionSM">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -557,7 +572,7 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSStabilityFunctionSH" rank="0">
+        <scalar_field rank="0" name="GLSStabilityFunctionSH">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -577,7 +592,7 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSSource1" rank="0">
+        <scalar_field rank="0" name="GLSSource1">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -597,7 +612,7 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSSource2" rank="0">
+        <scalar_field rank="0" name="GLSSource2">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -617,7 +632,7 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSAbsorption1" rank="0">
+        <scalar_field rank="0" name="GLSAbsorption1">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -637,7 +652,7 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSAbsorption2" rank="0">
+        <scalar_field rank="0" name="GLSAbsorption2">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -657,7 +672,7 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSWallFunction" rank="0">
+        <scalar_field rank="0" name="GLSWallFunction">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -677,7 +692,7 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSVerticalViscosity" rank="0">
+        <scalar_field rank="0" name="GLSVerticalViscosity">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -697,7 +712,7 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSVerticalDiffusivity" rank="0">
+        <scalar_field rank="0" name="GLSVerticalDiffusivity">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -719,7 +734,7 @@
         </scalar_field>
       </GLS>
     </subgridscale_parameterisations>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -739,7 +754,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -749,7 +764,7 @@
               <streamline_upwind>
                 <nu_bar_optimal/>
                 <nu_scale name="0.5">
-                  <real_value shape="1" rank="0">0.5</real_value>
+                  <real_value rank="0" shape="1">0.5</real_value>
                 </nu_scale>
               </streamline_upwind>
             </stabilisation>
@@ -796,12 +811,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="lateral">
           <surface_ids>
-            <integer_value shape="4" rank="1">40 41 42 43</integer_value>
+            <integer_value rank="1" shape="4">40 41 42 43</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -815,7 +830,7 @@
         </boundary_conditions>
         <boundary_conditions name="topbottom">
           <surface_ids>
-            <integer_value shape="2" rank="1">38 39</integer_value>
+            <integer_value rank="1" shape="2">38 39</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -829,7 +844,7 @@
         </boundary_conditions>
         <boundary_conditions name="BulkForcingVelocity">
           <surface_ids>
-            <integer_value shape="1" rank="1">38</integer_value>
+            <integer_value rank="1" shape="1">38</integer_value>
           </surface_ids>
           <type name="bulk_formulae"/>
         </boundary_conditions>
@@ -840,13 +855,16 @@
             <stat>
               <include_in_stat/>
             </stat>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </diagnostic>
         </tensor_field>
         <vector_field name="Absorption" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <constant>
-                <real_value shape="3" dim1="dim" rank="1">1.0e-7 1.0e-7 1.0e-7</real_value>
+                <real_value rank="1" dim1="dim" shape="3">1.0e-7 1.0e-7 1.0e-7</real_value>
               </constant>
             </value>
             <output/>
@@ -856,6 +874,9 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
           <default_absorption/>
         </vector_field>
@@ -881,7 +902,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -891,7 +912,7 @@
               <streamline_upwind>
                 <nu_bar_optimal/>
                 <nu_scale name="0.5">
-                  <real_value shape="1" rank="0">0.5</real_value>
+                  <real_value rank="0" shape="1">0.5</real_value>
                 </nu_scale>
               </streamline_upwind>
             </stabilisation>
@@ -929,7 +950,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):              
+            <string_value type="code" language="python" lines="20">def val(X,t):              
   import numpy
   import csv
   import interpolate
@@ -946,7 +967,7 @@
         </initial_condition>
         <boundary_conditions name="BulkForcingTemperature">
           <surface_ids>
-            <integer_value shape="1" rank="1">38</integer_value>
+            <integer_value rank="1" shape="1">38</integer_value>
           </surface_ids>
           <type name="bulk_formulae"/>
         </boundary_conditions>
@@ -968,7 +989,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Salinity" rank="0">
+    <scalar_field rank="0" name="Salinity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -978,7 +999,7 @@
               <streamline_upwind>
                 <nu_bar_optimal/>
                 <nu_scale name="0.5">
-                  <real_value shape="1" rank="0">0.5</real_value>
+                  <real_value rank="0" shape="1">0.5</real_value>
                 </nu_scale>
               </streamline_upwind>
             </stabilisation>
@@ -1016,7 +1037,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
   import csv
   import numpy
   from interpolate import interpolate
@@ -1033,7 +1054,7 @@
         </initial_condition>
         <boundary_conditions name="BulkForcingSalinity">
           <surface_ids>
-            <integer_value shape="1" rank="1">38</integer_value>
+            <integer_value rank="1" shape="1">38</integer_value>
           </surface_ids>
           <type name="bulk_formulae"/>
         </boundary_conditions>
@@ -1055,7 +1076,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="PerturbationDensity" rank="0">
+    <scalar_field rank="0" name="PerturbationDensity">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -1075,7 +1096,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -1095,12 +1116,12 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="DistanceToTop" rank="0">
+    <scalar_field rank="0" name="DistanceToTop">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
   return abs(X[2])</string_value>
           </python>
         </value>
@@ -1114,12 +1135,12 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="DistanceToBottom" rank="0">
+    <scalar_field rank="0" name="DistanceToBottom">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
   return 900.0 - abs(X[2])</string_value>
           </python>
         </value>
@@ -1141,7 +1162,7 @@
       </bulk_formulae>
       <input_file file_name="1970_1980_StationPapa.nc"/>
       <position>
-        <real_value shape="2" rank="1">50 -145</real_value>
+        <real_value rank="1" shape="2">50 -145</real_value>
         <single_location/>
       </position>
       <output_fluxes_diagnostics/>

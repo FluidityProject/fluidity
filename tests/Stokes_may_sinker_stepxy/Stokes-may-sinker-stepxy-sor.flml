@@ -89,7 +89,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">0.0 -1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="2">0.0 -1.0</real_value>
             </constant>
           </value>
           <output/>
@@ -99,6 +99,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -122,7 +125,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <spatial_discretisation>
@@ -190,7 +193,7 @@
         <no_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -210,7 +213,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -260,12 +263,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="FreeSlipX">
           <surface_ids>
-            <integer_value shape="2" rank="1">7 9</integer_value>
+            <integer_value rank="1" shape="2">7 9</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -279,7 +282,7 @@
         </boundary_conditions>
         <boundary_conditions name="FreeSlipY">
           <surface_ids>
-            <integer_value shape="2" rank="1">6 8</integer_value>
+            <integer_value rank="1" shape="2">6 8</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -297,7 +300,7 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
   import math
   import numpy
   visc = numpy.zeros((2,2))
@@ -315,6 +318,9 @@
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -339,12 +345,12 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
   T = 1.
   if((X[0] &gt;= 0.4 and X[0] &lt;= 0.6)):
     if((X[1] &gt;= 0.65 and X[1] &lt;= 0.85)):

@@ -93,7 +93,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">0 0</real_value>
+              <real_value rank="1" dim1="dim" shape="2">0 0</real_value>
             </constant>
           </value>
           <output/>
@@ -103,12 +103,15 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
   </physical_parameters>
   <material_phase name="Water">
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -148,11 +151,11 @@
         </initial_condition>
         <boundary_conditions name="Left">
           <surface_ids>
-            <integer_value shape="1" rank="1">3</integer_value>
+            <integer_value rank="1" shape="1">3</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X, t):
+              <string_value type="code" language="python" lines="20">def val(X, t):
   from math import sin, pi
   g = 9.8
   return g*(4 - 4*sin(pi*((4*t/86400.0) + 0.5)))</string_value>
@@ -176,16 +179,16 @@
         <no_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="ShallowWater">
-          <scalar_field name="BottomDepth" rank="0">
+          <scalar_field rank="0" name="BottomDepth">
             <prescribed>
               <mesh name="CoordinateMesh"/>
               <value name="WholeMesh">
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
   from math import sin, pi
   return 50.5 - 40*X[0]/14000.0 - 10*sin(pi*((4*X[0]/14000.0) - 0.5))</string_value>
                 </python>
@@ -247,18 +250,18 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0 0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="Sides">
           <surface_ids>
-            <integer_value shape="2" rank="1">5 6</integer_value>
+            <integer_value rank="1" shape="2">5 6</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions name="Right">
           <surface_ids>
-            <integer_value shape="1" rank="1">4</integer_value>
+            <integer_value rank="1" shape="1">4</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -281,11 +284,14 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1 1 1 1</real_value>
+                  <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">1 1 1 1</real_value>
                 </constant>
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -310,7 +316,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="FreeSurface" rank="0">
+    <scalar_field rank="0" name="FreeSurface">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
