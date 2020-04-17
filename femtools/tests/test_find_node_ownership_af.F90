@@ -39,7 +39,8 @@ subroutine test_find_node_ownership_af
   implicit none
   
   integer :: i
-  integer, dimension(:), allocatable :: l_coords, nodeownership
+  real, dimension(:), allocatable :: l_coords
+  integer, dimension(:), allocatable :: nodeownership
   logical :: fail
   type(vector_field) :: positions1, positions2
   

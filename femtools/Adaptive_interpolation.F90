@@ -99,11 +99,12 @@ module adaptive_interpolation_module
 
         call construct_supermesh(new_positions, ele_B, old_positions, map_BA(ele_B), supermesh_shape, supermesh)
         call galerkin_projection_ele_exact(old_field, inversion_matrices_A, shape_fns(p), new_positions, ele_B, &
-                                         & inversion_matrix_B, supermesh, element_value)
+                                         & inversion_matrix_B, supermesh, element_value(1:shape_fns(p)%loc))
         ele_volume = simplex_volume(new_positions, ele_B)
         ele_tol = error_tolerance * (ele_volume / domain_volume)
         ewrite(3,*) "ele_B: ", ele_B, "; ele_tol: ", ele_tol
-        call compute_projection_error(old_field, old_positions, shape_fns(p), element_value, new_positions, ele_B, &
+        call compute_projection_error(old_field, old_positions, shape_fns(p), element_value(1:shape_fns(p)%loc), &
+                                    & new_positions, ele_B, &
                                     & supermesh, inversion_matrices_A, inversion_matrix_B, ele_error)
         ewrite(3,*) "  p: ", p, "; ele_error: ", ele_error
         do while (ele_error > ele_tol)
@@ -114,8 +115,9 @@ module adaptive_interpolation_module
           end if
           no_refinements = no_refinements + 1
           call galerkin_projection_ele_exact(old_field, inversion_matrices_A, shape_fns(p), new_positions, ele_B, &
-                                           & inversion_matrix_B, supermesh, element_value)
-          call compute_projection_error(old_field, old_positions, shape_fns(p), element_value, new_positions, ele_B, &
+                                           & inversion_matrix_B, supermesh, element_value(1:shape_fns(p)%loc))
+          call compute_projection_error(old_field, old_positions, shape_fns(p), element_value(1:shape_fns(p)%loc), &
+                                      & new_positions, ele_B, &
                                       & supermesh, inversion_matrices_A, inversion_matrix_B, ele_error)
           ewrite(3,*) "  p: ", p, "; ele_error: ", ele_error
         end do
