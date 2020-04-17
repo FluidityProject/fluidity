@@ -77,7 +77,7 @@
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   x=X[0]
-  y=fields["OldTemperature"]
+  y=fields["old%Temperature"]
   return y</string_value>
             </python_fields>
           </scalar_attribute>
@@ -117,7 +117,7 @@
           <scalar_attribute name="Chem5">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  y=fields["OldChem4"]
+  y=fields["old%Chem4"]
   return y</string_value>
             </python_fields>
           </scalar_attribute>
@@ -142,7 +142,7 @@
           <scalar_attribute name="Chem6">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  z=fields["Temperature"]-fields["OldTemperature"]
+  z=fields["Temperature"]-fields["old%Temperature"]
   return z</string_value>
             </python_fields>
           </scalar_attribute>

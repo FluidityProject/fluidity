@@ -228,9 +228,6 @@
       </particle_subgroup>
     </particle_group>
     <particle_group name="ComputeOnly">
-      <particle_io>
-        <exclude_from_output/>
-      </particle_io>
       <particle_subgroup name="Strain">
         <number_of_particles>
           <integer_value rank="0">10</integer_value>
@@ -247,6 +244,7 @@
             <dimension>
               <integer_value rank="0">10</integer_value>
             </dimension>
+            <exclude_from_output/>
             <python>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,n):
   import numpy as np

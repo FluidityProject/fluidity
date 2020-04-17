@@ -69,7 +69,6 @@
   </io>
   <particles>
     <particle_group name="TempTest">
-      <velocity_field name="Velocity"/>
       <particle_subgroup name="TempMeasure">
         <number_of_particles>
           <integer_value rank="0">50625</integer_value>
@@ -98,7 +97,7 @@
             <python_fields>
               <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
   if (t!=0):
-    if (abs(fields["Temperature"]-fields["OldTemperature"])&gt;0.00001):
+    if (abs(fields["Temperature"]-fields["old%Temperature"])&gt;0.00001):
       a = 1
     else:
       a = 0
@@ -111,7 +110,6 @@
       </particle_subgroup>
     </particle_group>
     <particle_group name="PosTest">
-      <velocity_field name="Velocity"/>
       <particle_subgroup name="PosMeasure">
         <number_of_particles>
           <integer_value rank="0">90000</integer_value>
@@ -157,7 +155,7 @@
               <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
   if (t!=0):
     x = X[0]
-    oldx = fields["OldXval"]
+    oldx = fields["old%Xval"]
     a=0
     if (x&gt;oldx):
       a = 1
@@ -173,7 +171,7 @@
               <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
   if (t!=0):
     y = X[1]
-    oldy = fields["OldYval"]
+    oldy = fields["old%Yval"]
     a=0
     if (y&gt;oldy):
       a = 1
@@ -224,7 +222,7 @@
           <scalar_attribute name="OldTens3">
             <python_fields>
               <string_value lines="20" type="code" language="python">def val(X,t,dt,fields):
- return fields["OldTenstest3"]</string_value>
+ return fields["old%Tenstest3"]</string_value>
             </python_fields>
           </scalar_attribute>
           <vector_attribute name="FullVec1">

@@ -82,7 +82,7 @@
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   x=X[0]
-  y=fields["OldTemperature"]
+  y=fields["old%Temperature"]
   return y</string_value>
               <store_old_attribute/>
             </python_fields>
@@ -90,7 +90,7 @@
           <scalar_attribute name="Chem3">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  y=fields["OldChem2"]
+  y=fields["old%Chem2"]
   return y</string_value>
             </python_fields>
           </scalar_attribute>
@@ -130,7 +130,7 @@
           <scalar_attribute name="Chem3">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  y=fields["OldChem2"]
+  y=fields["old%Chem2"]
   return y</string_value>
             </python_fields>
           </scalar_attribute>
@@ -155,7 +155,7 @@
           <scalar_attribute name="Chem4">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  z=fields["Temperature"]-fields["OldTemperature"]
+  z=fields["Temperature"]-fields["old%Temperature"]
   return z</string_value>
             </python_fields>
           </scalar_attribute>
@@ -188,7 +188,7 @@
           <scalar_attribute name="dt">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  dt = t - fields["OldTime"]
+  dt = t - fields["old%Time"]
   return dt</string_value>
             </python_fields>
           </scalar_attribute>
