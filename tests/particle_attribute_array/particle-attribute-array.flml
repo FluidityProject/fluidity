@@ -69,6 +69,7 @@
   </io>
   <particles>
     <particle_group name="ArrayTest">
+      <particle_io/>
       <particle_subgroup name="ArrayMeasure">
         <number_of_particles>
           <integer_value rank="0">1000</integer_value>
@@ -111,7 +112,7 @@
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields,n):
   import numpy as np
-  return np.arange(n) + fields["Temperature"]</string_value>
+  return np.arange(n) + fields["tenstest"][1,1]</string_value>
             </python_fields>
           </scalar_attribute_array>
           <vector_attribute_array name="VectorArrayAttribute">
@@ -122,7 +123,7 @@
               <string_value type="code" language="python" lines="20">def val(X,t,dt,n):
   import numpy as np
   r = np.arange(n)
-  return np.random.rand(n,2) + r[:,None]</string_value>
+  return np.zeros((n,2)) + r[:,None]</string_value>
             </python>
           </vector_attribute_array>
           <vector_attribute_array name="VectorFieldAttribute">
@@ -132,7 +133,7 @@
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields,n):
   import numpy as np
-  return np.random.rand(n,2) + np.arange(n)[:,None] + fields["Temperature"]</string_value>
+  return np.zeros((n,2)) + np.arange(n)[:,None] + fields["vectest"][1]</string_value>
             </python_fields>
           </vector_attribute_array>
           <tensor_attribute_array name="TensorArrayAttribute">
@@ -143,7 +144,7 @@
               <string_value type="code" language="python" lines="20">def val(X,t,dt,n):
   import numpy as np
   r = np.arange(n)
-  return np.random.rand(n,2,2) + r[:,None,None]</string_value>
+  return np.zeros((n,2,2)) + r[:,None,None]</string_value>
             </python>
           </tensor_attribute_array>
           <tensor_attribute_array name="TensorFieldAttribute">
@@ -153,13 +154,14 @@
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields,n):
   import numpy as np
-  return np.random.rand(n,2,2) + np.arange(n)[:,None,None] + fields["Temperature"]</string_value>
+  return np.zeros((n,2,2)) + np.arange(n)[:,None,None] + fields["tenstest"]</string_value>
             </python_fields>
           </tensor_attribute_array>
         </attributes>
       </particle_subgroup>
     </particle_group>
     <particle_group name="SingleTest">
+      <particle_io/>
       <particle_subgroup name="Attributes">
         <number_of_particles>
           <integer_value rank="0">100</integer_value>
