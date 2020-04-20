@@ -48,15 +48,25 @@ module detector_data_types
   end type stringlist
 
   type attr_names_type
+    !< A bundling of names of scalar, vector, and tensor attributes.
     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: s, v, t
+    !! The array length of each individual attribute.
+    !! A value of 0 indicates a scalar attribute, otherwise it is
+    !! array-valued with the specified dimension.
     integer, dimension(:), allocatable :: sn, vn, tn
   end type attr_names_type
 
   type field_phase_type
+    !< A bundling of material_phase number for each
+    !! scalar, vector, and tensor field that is to be
+    !! included on particles.
     integer, dimension(:), allocatable :: s, v, t
   end type field_phase_type
 
   type attr_write_type
+    !< A bundling of whether to include attributes in
+    !! the output file, grouped by scalar, vector, and tensor to match
+    !! other attribute-related datatypes.
     logical, dimension(:), allocatable :: s, v, t
   end type attr_write_type
 
@@ -160,6 +170,8 @@ module detector_data_types
 
 contains
 
+  !> Allocate the attribute name type, given an array of
+  !! the number of scalar, vector, and tensor components.
   subroutine allocate_attr_names(attr_names, counts)
     type(attr_names_type), intent(out) :: attr_names
     integer, dimension(3), intent(in) :: counts
@@ -177,6 +189,8 @@ contains
     attr_names%tn(:) = 0
   end subroutine allocate_attr_names
 
+  !> Allocate the field phase type, given an array of
+  !! the number of scalar, vector, and tensor components.
   subroutine allocate_field_phases(field_phases, counts)
     type(field_phase_type), intent(out) :: field_phases
     integer, dimension(3), intent(in) :: counts
