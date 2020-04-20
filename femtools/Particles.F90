@@ -111,16 +111,17 @@ contains
   end subroutine deallocate_attr_vals
 
   !> Initialise particles and set up particle file headers (per particle array)
-  subroutine initialise_particles(filename, state, global, from_flredecomp, number_of_partitions)
+  subroutine initialise_particles(filename, state, global, setup_output, ignore_analytical, number_of_partitions)
     !> Experiment filename to prefix particle output files
     character(len=*), intent(in) :: filename
     !> Model state structure
     type(state_type), dimension(:), intent(in) :: state
     !> Use global/parallel picker queries to determine particle elements?
     logical, intent(in), optional :: global
-    !> Whether we're being called by flredecomp, this changes behaviour around
-    !! parallel access to particle files
-    logical, intent(in), optional :: from_flredecomp
+    !> Whether to set up output files for particle lists
+    logical, intent(in), optional :: setup_output
+    !> Whether to ignore analytical particles (i.e. not from file)
+    logical, intent(in), optional :: ignore_analytical
     !> Number of processes to use for reading particle data
     integer, intent(in), optional :: number_of_partitions
 
@@ -135,7 +136,7 @@ contains
     integer :: dim, particle_groups, total_arrays, list_counter
     integer, dimension(:), allocatable :: particle_arrays
     integer :: totaldet_global
-    logical :: from_file, do_output, store_old_fields
+    logical :: from_file, do_output, do_analytical, store_old_fields
     integer :: n_fields, n_oldfields, phase, f
     integer :: s_field, v_field, t_field ! field index variables
     integer :: s_oldfield, v_oldfield, t_oldfield
@@ -155,9 +156,10 @@ contains
 
     ewrite(2,*) "In initialise_particles"
 
-    ! If we're not being called from flredecomp, we'll set up particle output files
     do_output = .true.
-    if (present(from_flredecomp)) do_output = .not. from_flredecomp
+    if (present(setup_output)) do_output = setup_output
+    do_analytical = .true.
+    if (present(ignore_analytical)) do_analytical = .not. ignore_analytical
 
     ! Check whether there are any particle groups to initialise
     particle_groups = option_count("/particles/particle_group")
@@ -291,7 +293,7 @@ contains
           ! But if we're flredecomping, we don't want to handle
           ! particles with analytically-specified positions (i.e. not
           ! from a file)
-          if (present(from_flredecomp) .and. .not. from_file) cycle
+          if (.not. do_analytical .and. .not. from_file) cycle
 
           ! Set up the particle list structure
           call get_option(trim(subgroup_path) // "/number_of_particles", sub_particles)
