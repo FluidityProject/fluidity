@@ -3801,7 +3801,7 @@ generic_vector_particle_attribute_choice =
       ##     # Function code
       ##     return # Return value
       ##
-      ## where X is a tuple of length geometry dimension.
+      ## where X and the return value are tuples of length geometry dimension.
       element python {
          python_code
       }|
@@ -3811,7 +3811,7 @@ generic_vector_particle_attribute_choice =
       ##     # Function code
       ##     return # Return value
       ##
-      ##  where X is a tuple of length geometry dimension.
+      ##  where X and the return value are tuples of length geometry dimension.
       ##
       ##  E.g. if Velocity field and positions vector are required
       ##  def val (X, t, dt, fields):
@@ -3851,7 +3851,8 @@ generic_tensor_particle_attribute_choice =
       ##     # Function code
       ##     return # Return value
       ##
-      ## where X is a tuple of length geometry dimension.
+      ## where X is a tuple of length geometry dimension and the return value
+      ## is a (dim x dim) numpy array or list of lists.
       element python {
          python_code
       }|
@@ -3861,7 +3862,8 @@ generic_tensor_particle_attribute_choice =
       ##     # Function code
       ##     return # Return value
       ##
-      ##  where X is a tuple of length geometry dimension.
+      ##  where X is a tuple of length geometry dimension and the return value
+      ##  is a (dim x dim) numpy array or list of lists.
       ##
       ##  E.g. to calculate a tensor based off position and velocity:
       ##  def val (X, t, dt, fields):
