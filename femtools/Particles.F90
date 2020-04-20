@@ -1175,13 +1175,12 @@ contains
         call get_option(trim(attr_key)//'/python', func)
         call set_particle_scalar_attribute_from_python( &
              attribute_array(attr_idx:attr_idx+n-1,:), &
-             positions(:,:), nparticles, n, func, time, dt, is_array)
+             positions(:,:), n, func, time, dt, is_array)
 
       else if (have_option(trim(attr_key)//'/python_fields')) then
         call get_option(trim(attr_key)//'/python_fields', func)
         call set_particle_scalar_attribute_from_python_fields( &
-             p_list, state, positions(:,:), lcoords(:,:), ele(:), &
-             nparticles, n, &
+             p_list, state, positions(:,:), lcoords(:,:), ele(:), n, &
              attribute_array(attr_idx:attr_idx+n-1,:), &
              old_attr_names, old_attr_counts, old_attr_dims, old_attributes, &
              field_names, field_counts, old_field_names, old_field_counts, &
@@ -1221,13 +1220,12 @@ contains
         call get_option(trim(attr_key)//'/python', func)
         call set_particle_vector_attribute_from_python( &
              attribute_array(attr_idx:attr_idx+n*dim-1,:), &
-             positions(:,:), nparticles, n, func, time, dt, is_array)
+             positions(:,:), n, func, time, dt, is_array)
 
       else if (have_option(trim(attr_key)//'/python_fields')) then
         call get_option(trim(attr_key)//'/python_fields', func)
         call set_particle_vector_attribute_from_python_fields( &
-             p_list, state, positions(:,:), lcoords(:,:), ele(:), &
-             nparticles, n, &
+             p_list, state, positions(:,:), lcoords(:,:), ele(:), n, &
              attribute_array(attr_idx:attr_idx+n*dim-1,:), &
              old_attr_names, old_attr_counts, old_attr_dims, old_attributes, &
              field_names, field_counts, old_field_names, old_field_counts, &
@@ -1267,13 +1265,12 @@ contains
          call get_option(trim(attr_key)//'/python', func)
          call set_particle_tensor_attribute_from_python( &
               attribute_array(attr_idx:attr_idx + n*dim**2 - 1,:), &
-              positions(:,:), nparticles, n, func, time, dt, is_array)
+              positions(:,:), n, func, time, dt, is_array)
 
        else if (have_option(trim(attr_key)//'/python_fields')) then
          call get_option(trim(attr_key)//'/python_fields', func)
          call set_particle_tensor_attribute_from_python_fields( &
-              p_list, state, positions(:,:), lcoords(:,:), ele(:), &
-              nparticles, n, &
+              p_list, state, positions(:,:), lcoords(:,:), ele(:), n, &
               attribute_array(attr_idx:attr_idx + n*dim**2 - 1,:), &
               old_attr_names, old_attr_counts, old_attr_dims, old_attributes, &
               field_names, field_counts, old_field_names, old_field_counts, &
