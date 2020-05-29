@@ -375,22 +375,22 @@
               <x_component>
                 <python>
                   <string_value type="code" language="python" lines="20">def val(X,t):
-  from solution import Y_cartesian, rp
-  return -Y_cartesian(X)*X[0]/2./rp</string_value>
+  from solution import Y_cartesian, rp, l, m
+  return -Y_cartesian(l, m, X)*X[0]/2./rp</string_value>
                 </python>
               </x_component>
               <y_component>
                 <python>
                   <string_value type="code" language="python" lines="20">def val(X,t):
-  from solution import Y_cartesian, rp
+  from solution import Y_cartesian, rp, l, m
   return -Y_cartesian(X)*X[1]/2./rp</string_value>
                 </python>
               </y_component>
               <z_component>
                 <python>
                   <string_value type="code" language="python" lines="20">def val(X,t):
-  from solution import Y_cartesian, rp
-  return -Y_cartesian(X)*X[2]/2./rp</string_value>
+  from solution import Y_cartesian, rp, l, m
+  return -Y_cartesian(l, m, X)*X[2]/2./rp</string_value>
                 </python>
               </z_component>
             </align_bc_with_cartesian>
@@ -440,8 +440,8 @@
           </region_ids>
           <python>
             <string_value type="code" language="python" lines="20">def val(X,t):
-    import solution
-    return solution.pressure_cartesian(X, 0)</string_value>
+  from solution import solution_upper
+  return solution_upper.pressure_cartesian(X)</string_value>
           </python>
         </value>
         <value name="BottomHalf">
@@ -450,8 +450,8 @@
           </region_ids>
           <python>
             <string_value type="code" language="python" lines="20">def val(X,t):
-    import solution
-    return solution.pressure_cartesian(X, 1)</string_value>
+  from solution import solution_lower
+  return solution_lower.pressure_cartesian(X)</string_value>
           </python>
         </value>
         <output/>
@@ -561,8 +561,8 @@ for i in range(field.node_count):
           </region_ids>
           <python>
             <string_value type="code" language="python" lines="20">def val(X,t):
-  import solution
-  return solution.normal_stress_cartesian(X, 0)</string_value>
+  from solution import solution_upper
+  return solution_upper.radial_stress_cartesian(X)</string_value>
           </python>
         </value>
         <value name="BottomHalf">
@@ -571,8 +571,8 @@ for i in range(field.node_count):
           </region_ids>
           <python>
             <string_value type="code" language="python" lines="20">def val(X,t):
-  import solution
-  return solution.normal_stress_cartesian(X, 1)</string_value>
+  from solution import solution_lower
+  return solution_lower.radial_stress_cartesian(X)</string_value>
           </python>
         </value>
         <output/>
@@ -656,8 +656,8 @@ for i in range(field.node_count):
           </region_ids>
           <python>
             <string_value type="code" language="python" lines="20">def val(X,t):
-  import solution
-  return solution.velocity_cartesian(X, 0)</string_value>
+  from solution import solution_upper
+  return solution_upper.velocity_cartesian(X)</string_value>
           </python>
         </value>
         <value name="BottomHalf">
@@ -666,8 +666,8 @@ for i in range(field.node_count):
           </region_ids>
           <python>
             <string_value type="code" language="python" lines="20">def val(X,t):
-  import solution
-  return solution.velocity_cartesian(X, 1)</string_value>
+  from solution import solution_lower
+  return solution_lower.velocity_cartesian(X)</string_value>
           </python>
         </value>
         <output/>
