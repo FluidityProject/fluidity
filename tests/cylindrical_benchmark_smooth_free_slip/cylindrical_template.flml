@@ -394,7 +394,7 @@
         <value name="WholeMesh">
           <python>
             <string_value type="code" language="python" lines="20">def val(X,t):
-  import solution
+  from solution import solution
   return solution.pressure_cartesian(X)</string_value>
           </python>
         </value>
@@ -465,7 +465,7 @@
         <value name="WholeMesh">
           <python>
             <string_value type="code" language="python" lines="20">def val(X,t):
-  import solution
+  from solution import solution
   # NOTE: assuming thermal expansion coefficient and ref. density of 1
   # need a minus sign as rho'=-alpha*rho0*T
   return -solution.delta_rho_cartesian(X)</string_value>
@@ -524,8 +524,8 @@ for i in range(field.node_count):
         <value name="WholeMesh">
           <python>
             <string_value type="code" language="python" lines="20">def val(X,t):
-  import solution
-  return solution.normal_stress_cartesian(X)</string_value>
+  from solution import solution
+  return solution.radial_stress_cartesian(X)</string_value>
           </python>
         </value>
         <output/>
@@ -606,7 +606,7 @@ for i in range(field.node_count):
         <value name="WholeMesh">
           <python>
             <string_value type="code" language="python" lines="20">def val(X,t):
-  import solution
+  from solution import solution
   return solution.velocity_cartesian(X)</string_value>
           </python>
         </value>
