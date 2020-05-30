@@ -383,7 +383,7 @@
                 <python>
                   <string_value type="code" language="python" lines="20">def val(X,t):
   from solution import Y_cartesian, rp, l, m
-  return -Y_cartesian(X)*X[1]/2./rp</string_value>
+  return -Y_cartesian(l, m, X)*X[1]/2./rp</string_value>
                 </python>
               </y_component>
               <z_component>
