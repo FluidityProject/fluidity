@@ -571,7 +571,7 @@ for i in range(field.node_count):
           <python>
             <string_value type="code" language="python" lines="20">def val(X,t):
   from solution import solution_upper
-  return solution_upper.normal_stress_cartesian(X, 0)</string_value>
+  return solution_upper.radial_stress_cartesian(X)</string_value>
           </python>
         </value>
         <value name="BottomHalf">
