@@ -570,8 +570,8 @@ for i in range(field.node_count):
           </region_ids>
           <python>
             <string_value type="code" language="python" lines="20">def val(X,t):
-  import solution
-  return solution.normal_stress_cartesian(X, 0)</string_value>
+  from solution import solution_upper
+  return solution_upper.normal_stress_cartesian(X, 0)</string_value>
           </python>
         </value>
         <value name="BottomHalf">
