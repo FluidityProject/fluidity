@@ -74,9 +74,11 @@ contains
         if (element%dim == 3 .and. element%degree == 1 .and. element%loc == 4) then
             superconvergence => superconvergence_tet_array(1)
 
+            do j=1,superconvergence%nsp
+              superconvergence%n(:, j)     = eval_shape(element,  superconvergence%l(j, :))
+            end do
             do i=1,element%loc
                 do j=1,superconvergence%nsp
-                    superconvergence%n(i, j)     = eval_shape(element,  i, superconvergence%l(j, :))
                     superconvergence%dn(i, j, :) = eval_dshape(element, i, superconvergence%l(j, :))
                 end do
             end do

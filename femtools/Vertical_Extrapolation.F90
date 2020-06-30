@@ -696,7 +696,7 @@ function VerticalProlongationOperator(mesh, positions, vertical_normal, &
   type(integer_hash_table):: facet2sele
   real, dimension(:,:), allocatable:: loc_coords
   real, dimension(:), allocatable:: mat
-  real:: coef
+  real, dimension(:), allocatable:: coefs
   integer, dimension(:), pointer:: snodes
   integer, dimension(:), allocatable:: seles, colm, findrm, snod2used_snod
   integer i, j, k, rows, entries, count, snod, sele
@@ -746,6 +746,7 @@ function VerticalProlongationOperator(mesh, positions, vertical_normal, &
      end do
   end if
 
+  allocate(coefs(1:lsurface_mesh%shape%loc))
   entries=0 ! this time only count nonzero entries
   do i=1, rows
 
@@ -754,11 +755,11 @@ function VerticalProlongationOperator(mesh, positions, vertical_normal, &
 
      sele = seles(i)
      snodes => ele_nodes(lsurface_mesh, sele)
+     coefs = eval_shape(ele_shape(lsurface_mesh, sele), loc_coords(:,i))
      
      do j=1, size(snodes)
-       coef=eval_shape(ele_shape(lsurface_mesh, sele), j, loc_coords(:,i))
        snod=snodes(j)
-       if (abs(coef)>COEF_EPS) then
+       if (abs(coefs(j))>COEF_EPS) then
          if (.not. present(surface_mesh)) then
            if (snod2used_snod(snod)==0) then
              ! as of yet unused surface node
@@ -770,7 +771,7 @@ function VerticalProlongationOperator(mesh, positions, vertical_normal, &
          end if
          entries=entries+1
          colm(entries)=snod
-         mat(entries)=coef
+         mat(entries)=coefs(j)
        end if
      end do
        
@@ -809,7 +810,7 @@ function VerticalProlongationOperator(mesh, positions, vertical_normal, &
   else
     call deallocate(facet2sele)
   end if
-  deallocate( findrm, colm, mat )
+  deallocate( findrm, colm, mat, coefs )
   deallocate( seles, loc_coords )
   
   call remove_boundary_condition(positions, "TempSurfaceName")

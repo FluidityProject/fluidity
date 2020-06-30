@@ -390,21 +390,15 @@ module supermesh_construction
       do i=1,size(nodes)
         node_C = nodes(i)
         
-        val = 0.0
         local_coords(1:dim) = node_val(supermesh_positions_remapped, node_C); local_coords(dim+1) = 1.0
         local_coords = matmul(inversion_matrix_A, local_coords)
         old_values = ele_val(old_field, ele_A)
-        do j=1,ele_loc(old_field, ele_A)
-          val = val + eval_shape(ele_shape(old_field, ele_A), j, local_coords) * old_values(j)
-        end do
+        val = dot_product(eval_shape(ele_shape(old_field, ele_A), local_coords), old_values)
         call set(old_field_on_supermesh, node_C, val)
 
-        val = 0.0
         local_coords(1:dim) = node_val(supermesh_positions_remapped, node_C); local_coords(dim+1) = 1.0
         local_coords = matmul(inversion_matrix_B, local_coords)
-        do j=1,supermesh_field_shape%loc
-          val = val + eval_shape(supermesh_field_shape, j, local_coords) * element_value(j)
-        end do
+        val = dot_product(eval_shape(supermesh_field_shape, local_coords), element_value)
         call set(new_field_on_supermesh, node_C, val)
       end do
     end do
