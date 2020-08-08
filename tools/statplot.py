@@ -56,11 +56,9 @@ class StatplotWindow(Gtk.Window):
         store = Gtk.ListStore.new([str])
         for entry in self.entries:
             store.append([entry])
-        self.xCombo = Gtk.ComboBox.new_with_model_and_entry(store)
-        self.yCombo = Gtk.ComboBox.new_with_model_and_entry(store)
-        self.ComboParams(self.xCombo)
-        self.ComboParams(self.yCombo)
-        self.InitCombo('load')
+        self.xCombo = self.CreateCombo(store)
+        self.yCombo = self.CreateCombo(store)
+        self.InitCombo()
         self.InitCompletion(self.xCombo)
         self.InitCompletion(self.yCombo)
         self.xCombo.connect('changed', self.ComboChanged)
@@ -92,11 +90,13 @@ class StatplotWindow(Gtk.Window):
             self.canvas.grab_focus()
 
     @staticmethod
-    def ComboParams(comboBox):
+    def CreateCombo(store):
+        comboBox = Gtk.ComboBox.new_with_model_and_entry(store)
         comboBox.set_entry_text_column(0)
         comboBox.set_margin_left(100)
         comboBox.set_margin_right(100)
         comboBox.set_wrap_width(3)
+        return comboBox
 
     def FormatAxis(self, ax2fmt, scale):
         if ax2fmt == 'x':
@@ -160,19 +160,15 @@ class StatplotWindow(Gtk.Window):
                                             color='xkcd:black')
         self.fig.set_tight_layout(True)
 
-    def InitCombo(self, action, prevIterX=None, prevIterY=None):
-        if action == 'load':
-            if 'ElapsedTime' in self.entries:
-                iterX = self.xCombo.get_model().get_iter(
-                    self.entries.index('ElapsedTime'))
-                self.xCombo.set_active_iter(iterX)
-                self.yCombo.set_active(0)
-            else:
-                self.xCombo.set_active(0)
-                self.yCombo.set_active(1)
-        elif action == 'reload':
-            self.xCombo.set_active_iter(prevIterX)
-            self.yCombo.set_active_iter(prevIterY)
+    def InitCombo(self):
+        if 'ElapsedTime' in self.entries:
+            iterX = self.xCombo.get_model().get_iter(
+                self.entries.index('ElapsedTime'))
+            self.xCombo.set_active_iter(iterX)
+            self.yCombo.set_active(0)
+        else:
+            self.xCombo.set_active(0)
+            self.yCombo.set_active(1)
 
     @staticmethod
     def InitCompletion(comboBox):
@@ -197,54 +193,52 @@ class StatplotWindow(Gtk.Window):
         elif key == 'x' or key == 'y':
             if self.values.ndim == 1:
                 warnings.warn('Insufficient data available to turn on '
-                              + 'logarithmic scale', stacklevel=2)
+                              'logarithmic scale', stacklevel=2)
+                return
+            if key == 'x':
+                self.get_scale = self.ax.get_xscale
+                curData = self.xData
             else:
-                if key == 'x':
-                    self.get_scale = self.ax.get_xscale
-                    curData = self.xData
-                elif key == 'y':
-                    self.get_scale = self.ax.get_yscale
-                    curData = self.yData
-                if (self.get_scale() == 'linear'
-                        and (curData == 0).all()):
+                self.get_scale = self.ax.get_yscale
+                curData = self.yData
+            if self.get_scale() == 'linear' and (curData == 0).all():
+                warnings.warn('Change to logarithmic scale denied: the '
+                              f'selected variable for the {key} axis is null.',
+                              stacklevel=2)
+                return
+            elif (self.get_scale() == 'linear'
+                  and max(abs(curData)) / min(abs(curData)) < 10):
+                warnings.warn('Change to logarithmic scale denied: the '
+                              f'selected variable for the {key} axis has a '
+                              'range of variation smaller than one order of '
+                              'magnitude.', stacklevel=2)
+                return
+            elif self.get_scale() == 'linear':
+                axMin = min(abs(curData[curData != 0]))
+                axMax = max(abs(curData))
+                if axMin != axMax and min(curData) < 0:
+                    scale = 'symlog'
+                elif axMin != axMax:
+                    scale = 'log'
+                else:
                     warnings.warn('Change to logarithmic scale denied: the '
-                                  + 'selected variable for the ' + key
-                                  + ' axis is null.', stacklevel=2)
-                    scale = 'linear'
-                elif (self.get_scale() == 'linear'
-                      and max(abs(curData)) / min(abs(curData)) < 10):
-                    warnings.warn('Change to logarithmic scale denied: the '
-                                  + 'selected variable for the ' + key
-                                  + ' axis has a range of variation smaller '
-                                  + 'than one order of magnitude.',
-                                  stacklevel=2)
-                    scale = 'linear'
-                elif self.get_scale() == 'linear':
-                    axMin = min(abs(curData[curData != 0]))
-                    axMax = max(abs(curData))
-                    if axMin != axMax and min(curData) < 0:
-                        scale = 'symlog'
-                    elif axMin != axMax:
-                        scale = 'log'
-                    else:
-                        warnings.warn('Change to logarithmic scale denied: '
-                                      + 'the selected variable for the ' + key
-                                      + ' axis is a constant.', stacklevel=2)
-                        scale = 'linear'
-                elif self.get_scale() in ['log', 'symlog']:
-                    scale = 'linear'
-                self.FormatAxis(key, scale)
-                self.fig.canvas.draw_idle()
-                self.fig.canvas.draw()
-                self.fig.canvas.flush_events()
+                                  f'selected variable for the {key} axis is a '
+                                  'constant.', stacklevel=2)
+                    return
+            elif self.get_scale() in ['log', 'symlog']:
+                scale = 'linear'
+            self.FormatAxis(key, scale)
+            self.fig.canvas.draw_idle()
+            self.fig.canvas.draw()
+            self.fig.canvas.flush_events()
         elif key == 'l':
             if self.values.ndim == 1:
                 warnings.warn('Insufficient data available to turn on line '
                               + 'display', stacklevel=2)
-            else:
-                self.PlotType = 'marker' if self.PlotType == 'line' else 'line'
-                self.PlotData('update', self.PlotType, self.ax.get_xscale(),
-                              self.ax.get_yscale())
+                return
+            self.PlotType = 'marker' if self.PlotType == 'line' else 'line'
+            self.PlotData('update', self.PlotType, self.ax.get_xscale(),
+                          self.ax.get_yscale())
         elif key == 'a':
             self.xCombo.grab_focus()
         elif key == 'o':
@@ -253,12 +247,14 @@ class StatplotWindow(Gtk.Window):
     def PlotData(self, action, type, xscale, yscale):
         self.xData = self.values[..., self.xCombo.get_active()]
         self.yData = self.values[..., self.yCombo.get_active()]
+
         if action == 'create':
             self.statplot, = self.ax.plot(self.xData, self.yData)
         elif action == 'update':
             self.statplot.set_xdata(self.xData)
             self.statplot.set_ydata(self.yData)
             self.toolbar.update()
+
         if type == 'line':
             self.statplot.set_color('xkcd:light purple')
             self.statplot.set_linestyle('solid')
@@ -271,8 +267,10 @@ class StatplotWindow(Gtk.Window):
             self.statplot.set_markerfacecolor('xkcd:light purple')
             self.statplot.set_markersize(7)
             self.statplot.set_markeredgewidth(0.3)
+
         self.FormatAxis('x', xscale)
         self.FormatAxis('y', yscale)
+
         if action == 'update':
             self.fig.canvas.draw_idle()
             self.fig.canvas.draw()
