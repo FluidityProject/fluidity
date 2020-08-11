@@ -132,7 +132,6 @@ subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
   KSP ksp
   Mat A
   Vec y, b
-  PetscErrorCode :: ierr
 
   character(len=OPTION_PATH_LEN):: solver_option_path
   type(petsc_numbering_type) petsc_numbering
