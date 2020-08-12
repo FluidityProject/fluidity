@@ -54,7 +54,7 @@ module hadapt_extrude
     integer:: h_dim, column, quadrature_degree
 
     logical, dimension(:), allocatable :: sigma_layers
-    integer :: nlayers
+    integer :: nlayers, nregions
 
     integer :: i, layer
 
@@ -66,6 +66,14 @@ module hadapt_extrude
     call add_nelist(h_mesh%mesh)
 
     nlayers = option_count(trim(option_path)//"/from_mesh/extrude/layer")
+    nregions = option_count(trim(option_path)//"/from_mesh/extrude/regions")
+    if (nregions>0) then
+      ! regions directly under extrude/ - assume a single layer
+      if (nlayers>0) then
+        FLExit("Cannot specify regions and layers at the top level of extrude options")
+      end if
+      nlayers = 1
+    end if
 
     allocate(z_meshes(nlayers, node_count(h_mesh)))
     allocate(sigma_layers(nlayers))
@@ -74,10 +82,17 @@ module hadapt_extrude
     allocate(top_depth(node_count(h_mesh)))
     top_depth = 0.0
 
-    do i=0, nlayers-1
-      call compute_z_meshes_layer(h_mesh, trim(option_path) // "/from_mesh/extrude/layer[" // int2str(i) // "]", &
-        z_meshes(i+1,:), top_depth, sigma_layers(i+1))
-    end do
+    if (nregions>0) then
+      ! if regions are specified directly under extrude/ the options under extrude/
+      ! are the same as if we would have a top layer (first of one or more layers specified)
+      ! we  therefore simply skip that level in the options hierarchy
+      call compute_z_meshes_layer(h_mesh, trim(option_path) // "/from_mesh/extrude", z_meshes(1,:), top_depth, sigma_layers(1))
+    else
+      do i=0, nlayers-1
+        call compute_z_meshes_layer(h_mesh, trim(option_path) // "/from_mesh/extrude/layer[" // int2str(i) // "]", &
+          z_meshes(i+1,:), top_depth, sigma_layers(i+1))
+      end do
+    end if
 
     ! Now the tiresome business of making a shape function.
     h_dim = mesh_dim(h_mesh)
@@ -610,14 +625,18 @@ module hadapt_extrude
   ! hadapt_extrude options checking
   subroutine hadapt_extrude_check_options
 
-    integer :: nmeshes, m, nregions
+    integer :: nmeshes, m, nregions, nlayers
     character(len=OPTION_PATH_LEN) :: mesh_path
 
     nmeshes=option_count("/geometry/mesh")
     do m = 0, nmeshes-1
       mesh_path="/geometry/mesh["//int2str(m)//"]"
       nregions=option_count(trim(mesh_path)//'/from_mesh/extrude/regions')
-      if (nregions>1) then
+      nlayers =option_count(trim(mesh_path)//'/from_mesh/extrude/layer')
+      if (nregions>0 .and. nlayers>0) then
+        FLExit("Cannot specify regions and layers at the top level of extrude options")
+      end if
+      if (nregions>1 .or. option_count(trim(mesh_path)//'/from_mesh/extrude/layer/regions')>1) then
         ! we're using region ids to extrude
         if (have_option('/mesh_adaptivity/hr_adaptivity') &
            .and. .not. have_option('/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions')) then
@@ -627,8 +646,7 @@ module hadapt_extrude
           ewrite(-1,*) "This means fluidity will not be able to extrude your mesh again after the adapt."
           FLExit("Missing /mesh_adaptivity/hr_adaptivity/preserve_mesh_regions option")
         end if
-      end if   
-        
+      end if
     end do
 
   end subroutine hadapt_extrude_check_options

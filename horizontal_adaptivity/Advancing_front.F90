@@ -39,7 +39,7 @@ module hadapt_advancing_front
     type(scalar_field) :: height_field
     type(mesh_type) :: in_mesh
     type(integer_hash_table):: old2new_ele
-    character(len=OPTION_PATH_LEN) :: region_option_path
+    character(len=OPTION_PATH_LEN) :: region_option_path, layer_path
  
     ! the maximum amount of faces you could possibly want to add is
     ! number of elements in the extruded mesh (ele_count(mesh))
@@ -122,7 +122,16 @@ module hadapt_advancing_front
     end if
 
     ele = 0
-      
+
+    n_regions = option_count(trim(mesh%mesh%option_path)//'/from_mesh/extrude/regions')
+    if (n_regions>0) then
+      ! regions directly under extrude/: single layer layer only which is specified directly under regions/
+      layer_path = trim(mesh%mesh%option_path)//'/from_mesh/extrude'
+      assert(size(layer_nodes)==1)
+    else
+      layer_path = trim(mesh%mesh%option_path)//'/from_mesh/extrude/layer[0]'
+    end if
+
     ! The main loop.
     layers: do layer = 1, size(layer_nodes)
       ! order nodes within layer
@@ -172,8 +181,7 @@ module hadapt_advancing_front
       end if
 
       ! get the region id information used for extrusion (if any) plus the top and bottom surface ids
-      n_regions = option_count(trim(mesh%mesh%option_path)//'/from_mesh/extrude/layer[' &
-        // int2str(layer-1) // ']/regions')
+      n_regions = option_count(trim(layer_path) // '/regions')
       multiple_regions = (n_regions>1)
 
       if (multiple_regions .and. .not. associated(h_mesh%mesh%region_ids)) then
@@ -188,9 +196,7 @@ module hadapt_advancing_front
 
       do r = 0, n_regions-1
 
-        region_option_path = trim(mesh%mesh%option_path) // &
-            "/from_mesh/extrude/layer[" // int2str(layer-1) // &
-            "]/regions[" // int2str(r) // "]"
+        region_option_path = trim(layer_path) // "/regions[" // int2str(r) // "]"
         if(multiple_regions) then
           shape_option=option_shape(trim(region_option_path)// "/region_ids")
           allocate(region_ids(1:shape_option(1)))
@@ -376,6 +382,11 @@ module hadapt_advancing_front
       assert(all(column_count==column_size))
 
       deallocate(sorted)
+
+      ! if #layers>1, set layer path for next layer
+      layer_path = trim(mesh%mesh%option_path) // &
+          "/from_mesh/extrude/layer[" // int2str(layer) // ']'
+
 
     end do layers
       
