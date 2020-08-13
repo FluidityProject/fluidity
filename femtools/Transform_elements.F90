@@ -1573,7 +1573,7 @@ contains
 
 
     ! Jacobian matrix and its inverse.
-    real, dimension(X%dim,X%dim-1) :: J
+    real, dimension(X%dim, mesh_dim(X)-1) :: J
     ! Determinant of J
     real :: detJ
     ! Whether the cache can be used
@@ -2194,7 +2194,7 @@ contains
     type(cv_faces_type), intent(in) :: cvfaces
 
     ! Jacobian matrix
-    real, dimension(size(X,1),x_shape%numbering%dimension) :: J
+    real, dimension(size(X,1), size(x_shape%dn, 3)) :: J
 
     ! Determinant of J
     real :: detJ
