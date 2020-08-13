@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">super_analytic</string_value>
@@ -43,7 +43,7 @@
       <from_mesh>
         <mesh name="InputMesh"/>
         <extrude>
-          <layer name="WholeDepth"><regions name="25">
+          <regions name="25">
             <region_ids>
               <integer_value rank="1" shape="1">25</integer_value>
             </region_ids>
@@ -379,7 +379,7 @@
               <integer_value rank="0">16</integer_value>
             </bottom_surface_id>
           </regions>
-        </layer></extrude>
+        </extrude>
         <stat>
           <include_in_stat/>
         </stat>

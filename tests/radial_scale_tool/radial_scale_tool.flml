@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">radial</string_value>
@@ -30,7 +30,7 @@
       <from_mesh>
         <mesh name="2dmesh"/>
         <extrude>
-          <layer name="WholeDepth"><regions name="WholeMesh">
+          <regions name="WholeMesh">
             <bottom_depth>
               <constant>
                 <real_value rank="0">1000</real_value>
@@ -48,7 +48,7 @@
               <integer_value rank="0">162</integer_value>
             </bottom_surface_id>
           </regions>
-        </layer></extrude>
+        </extrude>
         <stat>
           <exclude_from_stat/>
         </stat>
