@@ -60,7 +60,7 @@
         <mesh name="InputMesh"/>
         <extrude>
           <regions name="WholeMesh">
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <from_map file_name="mesh/globesampled.grd">
                 <min_depth>
                   <real_value rank="0">3.0</real_value>
@@ -78,7 +78,7 @@
             <bottom_surface_id>
               <integer_value rank="0">308</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
         </extrude>
         <stat>
           <include_in_stat/>

@@ -15,7 +15,7 @@
         <mesh name="InputMesh"/>
         <extrude>
           <regions name="WholeMesh">
-            <layers name="WholeDepth"><bottom_depth>
+            <bottom_depth>
               <from_map file_name="raw_data/Bathymetry.grd">
                 <surface_height>
                   <real_value rank="0">0.2</real_value>
@@ -33,7 +33,7 @@
             <bottom_surface_id>
               <integer_value rank="0">2</integer_value>
             </bottom_surface_id>
-          </layers></regions>
+          </regions>
         </extrude>
         <stat>
           <exclude_from_stat/>
