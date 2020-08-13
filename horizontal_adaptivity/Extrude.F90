@@ -636,6 +636,12 @@ module hadapt_extrude
       if (nregions>0 .and. nlayers>0) then
         FLExit("Cannot specify regions and layers at the top level of extrude options")
       end if
+      if (nlayers>1 .and.have_option('/mesh_adaptivity/hr_adaptivity')) then
+        ! note we do allow a single layer under extrude/ (although this obv. does not add any functionality)
+        ! the reason multiple layers don't work is because it needs implementing in Metric_based_extrude.F90
+        ! where we currently hardcode nlayers=1
+        FLExit('Cannot combine layered extrusion with mesh adaptivity')
+      end if
       if (nregions>1 .or. option_count(trim(mesh_path)//'/from_mesh/extrude/layer/regions')>1) then
         ! we're using region ids to extrude
         if (have_option('/mesh_adaptivity/hr_adaptivity') &
