@@ -29,6 +29,7 @@ module solvers
   use FLDebug
   use Global_Parameters
   use futils, only: present_and_true, int2str, free_unit, real_format
+  use element_numbering, only: ELEMENT_BUBBLE
   use elements
   use spud
   use parallel_tools
@@ -2514,7 +2515,7 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
    Mat, intent(in):: mat
    !! the option path to remove_null_space or multigrid_near_space
    character(len=*), intent(in):: null_space_option_path
-   type(petsc_numbering_type), intent(in):: petsc_numbering 
+   type(petsc_numbering_type), intent(in):: petsc_numbering
    ! positions field is only used with remove_null_space/ with rotational components
    type(vector_field), intent(in), optional :: positions
    ! with rotated bcs: matrix to transform from x,y,z aligned vectors to boundary aligned
@@ -2528,7 +2529,8 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
    PetscErrorCode :: ierr
    PetscBool :: isnull
 
-   integer :: i, nnulls, nnodes, comp, dim, universal_nodes
+   integer :: i, ele, nnulls, nnodes, comp, dim, universal_nodes
+   integer, dimension(:), pointer :: nodes
    logical, dimension(3) :: rot_mask
    logical, dimension(size(petsc_numbering%gnn2unn,2)) :: mask
    real, dimension(:,:), allocatable :: null_vector
@@ -2547,7 +2549,14 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
    ! allocate the array of null spaces
    allocate(null_space_array(1:nnulls))
    allocate(null_vector(nnodes,dim))
+
+   ! used in l2-normalisation
    universal_nodes=petsc_numbering%universal_length/dim
+   if (any(mask)) then
+     if (positions%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
+       universal_nodes=universal_nodes-element_count(positions)
+     end if
+   end if
 
    ewrite(2,*) "Setting up array of "//int2str(nnulls)//" null spaces."
    
@@ -2559,6 +2568,13 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
        null_vector = 0.0
        ! ensure the translations are orthonormal:
        null_vector(:,comp)=1.0/sqrt(real(universal_nodes))
+       if (positions%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
+         ! zero bubble nodes
+         do ele=1, element_count(positions)
+           nodes => ele_nodes(positions, ele)
+           null_vector(nodes(size(nodes)),comp) = 0.
+         end do
+       end if
        null_space_array(i)=PetscNumberingCreateVec(petsc_numbering)
        call array2petsc(reshape(null_vector,(/nnodes*dim/)), petsc_numbering, null_space_array(i))
      end if
@@ -2782,6 +2798,7 @@ subroutine L2_project_nullspace_vector(field, null_space_option_path, coordinate
   do i=1, field%dim
     if (mask(i)) then
       call set(null_field, i, 1.0)
+      call zero_bubble_vals(null_field)
       call L2_project_nullmode_vector(field, null_field, coordinates)
       call zero(null_field, dim=i)
     end if
@@ -2833,7 +2850,6 @@ end subroutine L2_project_nullmode_vector
 function petsc_solve_needs_positions(solver_option_path)
   !!< Auxillary function to tell us if we need to pass in a positions field to petsc_solve
   !!< Currently only for vector solves with remove_null_space or multigrid_near_null_space
-  !!< with specify_rotations or all_rotations
   character(len=*), intent(in):: solver_option_path
   logical:: petsc_solve_needs_positions
 
@@ -2843,8 +2859,9 @@ function petsc_solve_needs_positions(solver_option_path)
     have_option(trim(solver_option_path)//'/remove_null_space/all_components') .or. &
     have_option(trim(solver_option_path)//'/remove_null_space/specify_components') .or. &
     have_option(trim(solver_option_path)//'/remove_null_space/no_components') .or. &
-    have_option(trim(solver_option_path)//'/multigrid_near_null_space/specify_rotations') .or. &
-    have_option(trim(solver_option_path)//'/multigrid_near_null_space/all_rotations')
+    have_option(trim(solver_option_path)//'/multigrid_near_null_space/all_components') .or. &
+    have_option(trim(solver_option_path)//'/multigrid_near_null_space/specify_components') .or. &
+    have_option(trim(solver_option_path)//'/multigrid_near_null_space/no_components')
 
 end function petsc_solve_needs_positions
 
