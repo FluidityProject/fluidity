@@ -91,7 +91,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="3" dim1="dim" rank="1">0.0 0.0 -1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="3">0.0 0.0 -1.0</real_value>
             </constant>
           </value>
           <output/>
@@ -101,6 +101,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -124,7 +127,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <spatial_discretisation>
@@ -208,7 +211,7 @@
         <no_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -228,7 +231,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -276,12 +279,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="RigidTopBottom">
           <surface_ids>
-            <integer_value shape="2" rank="1">30 31</integer_value>
+            <integer_value rank="1" shape="2">30 31</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -305,7 +308,7 @@
         </boundary_conditions>
         <boundary_conditions name="FreeSlipSides">
           <surface_ids>
-            <integer_value shape="2" rank="1">33 35</integer_value>
+            <integer_value rank="1" shape="2">33 35</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -319,7 +322,7 @@
         </boundary_conditions>
         <boundary_conditions name="FreeSlipFaces">
           <surface_ids>
-            <integer_value shape="2" rank="1">32 34</integer_value>
+            <integer_value rank="1" shape="2">32 34</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -341,6 +344,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -365,7 +371,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -408,7 +414,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
         import math
         a = 1.0079
         b = 0.6283
@@ -422,7 +428,7 @@
         </initial_condition>
         <boundary_conditions name="HotBase">
           <surface_ids>
-            <integer_value shape="1" rank="1">30</integer_value>
+            <integer_value rank="1" shape="1">30</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -432,7 +438,7 @@
         </boundary_conditions>
         <boundary_conditions name="ColdTop">
           <surface_ids>
-            <integer_value shape="1" rank="1">31</integer_value>
+            <integer_value rank="1" shape="1">31</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -442,7 +448,7 @@
         </boundary_conditions>
         <boundary_conditions name="Insulating">
           <surface_ids>
-            <integer_value shape="4" rank="1">32 33 34 35</integer_value>
+            <integer_value rank="1" shape="4">32 33 34 35</integer_value>
           </surface_ids>
           <type name="neumann">
             <constant>
@@ -460,18 +466,21 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
         <stat>
-          <surface_integral type="gradient_normal" name="Base">
+          <surface_integral name="Base" type="gradient_normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="gradient_normal" name="Top">
+          <surface_integral name="Top" type="gradient_normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">31</integer_value>
+              <integer_value rank="1" shape="1">31</integer_value>
             </surface_ids>
             <normalise/>
           </surface_integral>

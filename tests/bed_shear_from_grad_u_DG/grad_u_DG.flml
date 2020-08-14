@@ -59,12 +59,12 @@
     </finish_time>
   </timestepping>
   <material_phase name="test_fluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
     from numpy import floor, array
     c = abs(floor(array(X) - [0.3, 0.6]))
     u = c[0]*0.5 + c[1]*1.0
@@ -75,17 +75,20 @@
         <output/>
         <stat>
           <include_in_stat/>
-          <surface_integral type="normal" name="u_dot_n"/>
+          <surface_integral name="u_dot_n" type="normal"/>
         </stat>
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="VelocityDiv" rank="0">
+    <scalar_field rank="0" name="VelocityDiv">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">import fluidity_tools
+          <string_value type="code" language="python" lines="20">import fluidity_tools
 
 E=state.tensor_fields["DGVelocityGradient"]
 
@@ -111,14 +114,17 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <tensor_field name="DGVelocityGradient" rank="2">
+    <tensor_field rank="2" name="DGVelocityGradient">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single " name="grad_vector" source_field_name="Velocity"/>
+        <algorithm name="grad_vector" material_phase_support="single " source_field_name="Velocity" source_field_type="vector"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>
           <include_in_stat/>
         </stat>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </diagnostic>
     </tensor_field>
   </material_phase>

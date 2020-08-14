@@ -60,7 +60,7 @@
             </bottom_depth>
             <sizing_function>
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
   import math
   inner_radius = 3480e3
   outer_radius = 6370e3
@@ -134,7 +134,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X, t):
+              <string_value type="code" language="python" lines="20">def val(X, t):
   import math
   r = math.sqrt(X[0]**2+X[1]**2+X[2]**2)
   return [-(X[0]/r), -(X[1]/r), -(X[2]/r)]</string_value>
@@ -149,6 +149,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -164,7 +167,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -217,7 +220,7 @@
         <no_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -237,7 +240,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -289,12 +292,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="FreeSlipBase">
           <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value rank="1" shape="1">1</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_surface>
@@ -305,7 +308,7 @@
               </normal_component>
               <normal_direction>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
   import math
   r = math.sqrt(X[0]**2+X[1]**2+X[2]**2)
   return X[0]/r, X[1]/r, X[2]/r</string_value>
@@ -316,13 +319,13 @@
         </boundary_conditions>
         <boundary_conditions name="Rotational_Surface">
           <surface_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
+            <integer_value rank="1" shape="1">2</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_surface>
               <tangent_component_1>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
   import math
   dist_to_z_axis = math.sqrt(X[0]**2+X[1]**2)
   val = dist_to_z_axis * 1e-9
@@ -336,7 +339,7 @@
               </tangent_component_2>
               <normal_direction>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
   import math
   r = math.sqrt(X[0]**2+X[1]**2+X[2]**2)
   return X[0]/r, X[1]/r, X[2]/r</string_value>
@@ -344,7 +347,7 @@
               </normal_direction>
               <tangent_direction_1>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t): # Theta
+                  <string_value type="code" language="python" lines="20">def val(X,t): # Theta
   import math
   dist_to_z_axis = math.sqrt(X[0]**2+X[1]**2)
   tolerance = 1e-10
@@ -356,7 +359,7 @@
               </tangent_direction_1>
               <tangent_direction_2>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
   import math
   r = math.sqrt(X[0]**2+X[1]**2+X[2]**2)
   phi = math.atan2(X[1],X[0]) + math.pi
@@ -373,7 +376,7 @@
         </boundary_conditions>
         <boundary_conditions name="FreeSurface">
           <surface_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
+            <integer_value rank="1" shape="1">2</integer_value>
           </surface_ids>
           <type name="free_surface">
             <no_normal_stress>
@@ -387,11 +390,14 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">1e22 1e22 1e22 1e22 1e22 1e22 1e22 1e22 1e22</real_value>
+                  <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">1e22 1e22 1e22 1e22 1e22 1e22 1e22 1e22 1e22</real_value>
                 </constant>
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -416,7 +422,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="FreeSurface" rank="0">
+    <scalar_field rank="0" name="FreeSurface">
       <prognostic>
         <mesh name="PressureMesh"/>
         <initial_condition name="WholeMesh">

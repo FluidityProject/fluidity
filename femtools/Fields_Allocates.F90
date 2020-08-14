@@ -230,7 +230,7 @@ contains
 
     integer :: lfield_type
     integer :: stat
-    integer :: toloc, fromloc
+    integer :: toloc
 
     if (present(field_type)) then
       lfield_type = field_type
@@ -294,10 +294,8 @@ contains
         field%py_positions_same_mesh = .false.
         allocate(field%py_locweight(mesh%shape%loc, py_positions%mesh%shape%loc))
         do toloc=1,size(field%py_locweight,1)
-          do fromloc=1,size(field%py_locweight,2)
-            field%py_locweight(toloc,fromloc)=eval_shape(py_positions%mesh%shape, fromloc, &
+            field%py_locweight(toloc,:)=eval_shape(py_positions%mesh%shape, &
               local_coords(toloc, mesh%shape))
-          end do
         end do
       end if
 

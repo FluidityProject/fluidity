@@ -1880,7 +1880,7 @@ module fields_manipulation
 
     real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: locweight
 
-    integer :: fromloc, toloc, ele
+    integer :: toloc, ele
     integer, dimension(:), pointer :: from_ele, to_ele
     
     if(present(stat)) stat = 0
@@ -1898,10 +1898,8 @@ module fields_manipulation
 
         ! First construct remapping weights.
         do toloc=1,size(locweight,1)
-          do fromloc=1,size(locweight,2)
-              locweight(toloc,fromloc)=eval_shape(from_field%mesh%shape, fromloc, &
-                  local_coords(toloc, to_field%mesh%shape))
-          end do
+          locweight(toloc,:)=eval_shape(from_field%mesh%shape, &
+            local_coords(toloc, to_field%mesh%shape))
         end do
         
         ! Now loop over the elements.
@@ -1938,7 +1936,7 @@ module fields_manipulation
     real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc), optional :: locweight
     real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: llocweight
 
-    integer :: fromloc, toloc, ele, i
+    integer :: toloc, ele, i
 
     if(present(stat)) stat = 0
 
@@ -1952,10 +1950,8 @@ module fields_manipulation
     if (.not. present(locweight)) then
       ! First construct remapping weights.
       do toloc=1,size(llocweight,1)
-         do fromloc=1,size(llocweight,2)
-            llocweight(toloc,fromloc)=eval_shape(from_field%mesh%shape, fromloc, &
-                 local_coords(toloc, to_field%mesh%shape))
-         end do
+        llocweight(toloc,:)=eval_shape(from_field%mesh%shape, &
+          local_coords(toloc, to_field%mesh%shape))
       end do
     else
       llocweight = locweight
@@ -1979,7 +1975,7 @@ module fields_manipulation
 
     real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: locweight
 
-    integer :: fromloc, toloc, ele, i
+    integer :: toloc, ele, i
     integer, dimension(:), pointer :: from_ele, to_ele
     
     if(present(stat)) stat = 0
@@ -2009,10 +2005,8 @@ module fields_manipulation
 
         ! First construct remapping weights.
         do toloc=1,size(locweight,1)
-          do fromloc=1,size(locweight,2)
-              locweight(toloc,fromloc)=eval_shape(from_field%mesh%shape, fromloc, &
-                  local_coords(toloc, to_field%mesh%shape))
-          end do
+          locweight(toloc,:)=eval_shape(from_field%mesh%shape, &
+            local_coords(toloc, to_field%mesh%shape))
         end do
         
         ! Now loop over the elements.
@@ -2058,7 +2052,7 @@ module fields_manipulation
     real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc), optional :: locweight
     real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: llocweight
 
-    integer :: fromloc, toloc, ele, i, j
+    integer :: toloc, ele, i, j
 
     if(present(stat)) stat = 0
 
@@ -2081,10 +2075,8 @@ module fields_manipulation
     if (.not. present(locweight)) then
       ! First construct remapping weights.
       do toloc=1,size(llocweight,1)
-         do fromloc=1,size(llocweight,2)
-            llocweight(toloc,fromloc)=eval_shape(from_field%mesh%shape, fromloc, &
-                 local_coords(toloc, to_field%mesh%shape))
-         end do
+        llocweight(toloc,:)=eval_shape(from_field%mesh%shape, &
+          local_coords(toloc, to_field%mesh%shape))
       end do
     else
       llocweight = locweight
@@ -2110,7 +2102,7 @@ module fields_manipulation
 
     real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: locweight
 
-    integer :: fromloc, toloc, ele, i, j
+    integer :: toloc, ele, i, j
     integer, dimension(:), pointer :: from_ele, to_ele
 
     if(present(stat)) stat = 0
@@ -2130,10 +2122,8 @@ module fields_manipulation
 
         ! First construct remapping weights.
         do toloc=1,size(locweight,1)
-          do fromloc=1,size(locweight,2)
-              locweight(toloc,fromloc)=eval_shape(from_field%mesh%shape, fromloc, &
-                  local_coords(toloc, to_field%mesh%shape))
-          end do
+          locweight(toloc,:)=eval_shape(from_field%mesh%shape, &
+            local_coords(toloc, to_field%mesh%shape))
         end do
         
         ! Now loop over the elements.
@@ -2171,7 +2161,7 @@ module fields_manipulation
     type(element_type), pointer:: from_shape, to_shape
     real, dimension(face_loc(from_field,1)) :: from_val
     integer, dimension(:), pointer :: to_nodes
-    integer toloc, fromloc, ele, face
+    integer toloc, ele, face
 
     if (present(stat)) stat = 0
 
@@ -2186,10 +2176,8 @@ module fields_manipulation
       to_shape => ele_shape(to_field, 1)
       ! First construct remapping weights.
       do toloc=1,size(locweight,1)
-         do fromloc=1,size(locweight,2)
-            locweight(toloc,fromloc)=eval_shape(from_shape, fromloc, &
-                 local_coords(toloc, to_shape))
-         end do
+        locweight(toloc,:)=eval_shape(from_shape, &
+          local_coords(toloc, to_shape))
       end do
     
       ! Now loop over the surface elements.
@@ -2226,7 +2214,7 @@ module fields_manipulation
     type(element_type), pointer:: from_shape, to_shape
     real, dimension(from_field%dim, face_loc(from_field,1)) :: from_val
     integer, dimension(:), pointer :: to_nodes
-    integer toloc, fromloc, ele, face, i
+    integer toloc, ele, face, i
 
     if(present(stat)) stat = 0
 
@@ -2243,10 +2231,8 @@ module fields_manipulation
       to_shape => ele_shape(to_field, 1)
       ! First construct remapping weights.
       do toloc=1,size(locweight,1)
-         do fromloc=1,size(locweight,2)
-            locweight(toloc,fromloc)=eval_shape(from_shape, fromloc, &
-                 local_coords(toloc, to_shape))
-         end do
+        locweight(toloc,:)=eval_shape(from_shape, &
+          local_coords(toloc, to_shape))
       end do
     
       ! Now loop over the surface elements.
@@ -2292,7 +2278,7 @@ module fields_manipulation
     type(element_type), pointer:: from_shape, to_shape
     real, dimension(from_field%dim(1), from_field%dim(2), face_loc(from_field,1)) :: from_val
     integer, dimension(:), pointer :: to_nodes
-    integer toloc, fromloc, ele, face, i, j
+    integer toloc, ele, face, i, j
 
     if(present(stat)) stat = 0
 
@@ -2310,10 +2296,8 @@ module fields_manipulation
       to_shape => ele_shape(to_field, 1)
       ! First construct remapping weights.
       do toloc=1,size(locweight,1)
-         do fromloc=1,size(locweight,2)
-            locweight(toloc,fromloc)=eval_shape(from_shape, fromloc, &
-                 local_coords(toloc, to_shape))
-         end do
+        locweight(toloc,:)=eval_shape(from_shape, &
+          local_coords(toloc, to_shape))
       end do
     
       ! Now loop over the surface elements.

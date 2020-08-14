@@ -49,12 +49,12 @@
     </quadrature>
     <ocean_boundaries>
       <top_surface_ids>
-        <integer_value shape="1" rank="1">38</integer_value>
+        <integer_value rank="1" shape="1">38</integer_value>
       </top_surface_ids>
       <bottom_surface_ids>
-        <integer_value shape="1" rank="1">39</integer_value>
+        <integer_value rank="1" shape="1">39</integer_value>
       </bottom_surface_ids>
-      <scalar_field name="DistanceToTop" rank="0">
+      <scalar_field rank="0" name="DistanceToTop">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -74,7 +74,7 @@
           </steady_state>
         </diagnostic>
       </scalar_field>
-      <scalar_field name="DistanceToBottom" rank="0">
+      <scalar_field rank="0" name="DistanceToBottom">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -135,7 +135,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="3" dim1="dim" rank="1">0.0 0.0 -1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="3">0.0 0.0 -1.0</real_value>
             </constant>
           </value>
           <output/>
@@ -145,6 +145,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -162,7 +165,7 @@
         <ocean_pade_approximation/>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
@@ -180,7 +183,7 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="CoordinateMesh"/>
@@ -200,12 +203,12 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.01 0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.01 0 0</real_value>
           </constant>
         </value>
         <output/>
@@ -215,9 +218,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -227,7 +233,7 @@
               <streamline_upwind>
                 <nu_bar_unity/>
                 <nu_scale name="unity">
-                  <real_value shape="1" rank="0">1.0</real_value>
+                  <real_value rank="0" shape="1">1.0</real_value>
                 </nu_scale>
               </streamline_upwind>
             </stabilisation>
@@ -270,7 +276,7 @@
         </initial_condition>
         <boundary_conditions name="BulkFormulaTemperature">
           <surface_ids>
-            <integer_value shape="1" rank="1">38</integer_value>
+            <integer_value rank="1" shape="1">38</integer_value>
           </surface_ids>
           <type name="bulk_formulae"/>
         </boundary_conditions>
@@ -279,11 +285,14 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">10 0 0 0 10 0 0 0 1e-4</real_value>
+                  <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">10 0 0 0 10 0 0 0 1e-4</real_value>
                 </constant>
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -303,7 +312,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="PerturbationDensity" rank="0">
+    <scalar_field rank="0" name="PerturbationDensity">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="CoordinateMesh"/>
@@ -323,7 +332,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Salinity" rank="0">
+    <scalar_field rank="0" name="Salinity">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -375,7 +384,7 @@
         </initial_condition>
         <boundary_conditions name="BulkFormulaSalinity">
           <surface_ids>
-            <integer_value shape="1" rank="1">38</integer_value>
+            <integer_value rank="1" shape="1">38</integer_value>
           </surface_ids>
           <type name="bulk_formulae"/>
         </boundary_conditions>
@@ -384,11 +393,14 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">10 0 0 0 10 0 0 0 1e-4</real_value>
+                  <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">10 0 0 0 10 0 0 0 1e-4</real_value>
                 </constant>
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -408,7 +420,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="DG_CourantNumber" rank="0">
+    <scalar_field rank="0" name="DG_CourantNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -436,7 +448,7 @@
       </bulk_formulae>
       <input_file file_name="1970_stationPapa.nc"/>
       <output_fluxes_diagnostics>
-        <vector_field name="MomentumFlux" rank="1">
+        <vector_field rank="1" name="MomentumFlux">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -456,7 +468,7 @@
             </steady_state>
           </diagnostic>
         </vector_field>
-        <scalar_field name="HeatFlux" rank="0">
+        <scalar_field rank="0" name="HeatFlux">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -476,7 +488,7 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="SalinityFlux" rank="0">
+        <scalar_field rank="0" name="SalinityFlux">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>

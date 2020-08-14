@@ -98,12 +98,12 @@
     </spherical_earth>
     <ocean_boundaries>
       <top_surface_ids>
-        <integer_value shape="1" rank="1">307</integer_value>
+        <integer_value rank="1" shape="1">307</integer_value>
       </top_surface_ids>
       <bottom_surface_ids>
-        <integer_value shape="1" rank="1">308</integer_value>
+        <integer_value rank="1" shape="1">308</integer_value>
       </bottom_surface_ids>
-      <scalar_field name="DistanceToTop" rank="0">
+      <scalar_field rank="0" name="DistanceToTop">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -123,7 +123,7 @@
           </steady_state>
         </diagnostic>
       </scalar_field>
-      <scalar_field name="DistanceToBottom" rank="0">
+      <scalar_field rank="0" name="DistanceToBottom">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -194,7 +194,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X, t):
+              <string_value type="code" language="python" lines="20">def val(X, t):
 
   a = X[0]
   b = X[1]
@@ -216,6 +216,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -239,7 +242,7 @@
       </fluids>
     </equation_of_state>
     <subgridscale_parameterisations/>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -280,14 +283,14 @@
         </initial_condition>
         <boundary_conditions name="BoundaryTide">
           <surface_ids>
-            <integer_value shape="1" rank="1">384</integer_value>
+            <integer_value rank="1" shape="1">384</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <from_file>
-              <tidal file_name="med.nc" variable_name_amplitude="M2amp" name="M2" variable_name_phase="M2phase"/>
-              <tidal file_name="med.nc" variable_name_amplitude="S2amp" name="S2" variable_name_phase="S2phase"/>
-              <tidal file_name="med.nc" variable_name_amplitude="K1amp" name="K1" variable_name_phase="K1phase"/>
-              <tidal file_name="med.nc" variable_name_amplitude="O1amp" name="O1" variable_name_phase="O1phase"/>
+              <tidal file_name="med.nc" variable_name_amplitude="M2amp" variable_name_phase="M2phase" name="M2"/>
+              <tidal file_name="med.nc" variable_name_amplitude="S2amp" variable_name_phase="S2phase" name="S2"/>
+              <tidal file_name="med.nc" variable_name_amplitude="K1amp" variable_name_phase="K1phase" name="K1"/>
+              <tidal file_name="med.nc" variable_name_amplitude="O1amp" variable_name_phase="O1phase" name="O1"/>
             </from_file>
           </type>
         </boundary_conditions>
@@ -310,7 +313,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -332,7 +335,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -390,12 +393,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="drag_on_bottom_and_sides">
           <surface_ids>
-            <integer_value shape="3" rank="1">308 385 388</integer_value>
+            <integer_value rank="1" shape="3">308 385 388</integer_value>
           </surface_ids>
           <type name="drag">
             <constant>
@@ -406,13 +409,13 @@
         </boundary_conditions>
         <boundary_conditions name="FreeSurface">
           <surface_ids>
-            <integer_value shape="1" rank="1">307</integer_value>
+            <integer_value rank="1" shape="1">307</integer_value>
           </surface_ids>
           <type name="free_surface"/>
         </boundary_conditions>
         <boundary_conditions name="NoNormalFlow">
           <surface_ids>
-            <integer_value shape="3" rank="1">308 385 388</integer_value>
+            <integer_value rank="1" shape="3">308 385 388</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
@@ -421,7 +424,7 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
     a = X[0]
     b = X[1]
     c = X[2]
@@ -451,6 +454,9 @@
             <output>
               <exclude_from_vtu/>
             </output>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output>
@@ -477,7 +483,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="FreeSurface" rank="0">
+    <scalar_field rank="0" name="FreeSurface">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -497,9 +503,9 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="FreeSurfaceHistory" rank="0">
+    <scalar_field rank="0" name="FreeSurfaceHistory">
       <diagnostic>
-        <algorithm depends="FreeSurface" name="free_surface_history" material_phase_support="single">
+        <algorithm name="free_surface_history" material_phase_support="single" depends="FreeSurface">
           <levels>
             <integer_value rank="0">200</integer_value>
           </levels>
@@ -513,11 +519,11 @@
         <mesh name="PressureMesh"/>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="M2amp" rank="0">
+    <scalar_field rank="0" name="M2amp">
       <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Amplitude">
+        <algorithm name="tidal_harmonics" material_phase_support="single" depends="FreeSurfaceHistory" target="Amplitude" averageFSLevel="Calculate">
           <constituent name="M2">
-            <real_value shape="1" rank="0">2.23642934E-05</real_value>
+            <real_value rank="0" shape="1">2.23642934E-05</real_value>
           </constituent>
         </algorithm>
         <mesh name="PressureMesh"/>
@@ -537,11 +543,11 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="S2amp" rank="0">
+    <scalar_field rank="0" name="S2amp">
       <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Amplitude">
+        <algorithm name="tidal_harmonics" material_phase_support="single" depends="FreeSurfaceHistory" target="Amplitude" averageFSLevel="Calculate">
           <constituent name="S2">
-            <real_value shape="1" rank="0">2.31481315E-05</real_value>
+            <real_value rank="0" shape="1">2.31481315E-05</real_value>
           </constituent>
         </algorithm>
         <mesh name="PressureMesh"/>
@@ -561,11 +567,11 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="K1amp" rank="0">
+    <scalar_field rank="0" name="K1amp">
       <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Amplitude">
+        <algorithm name="tidal_harmonics" material_phase_support="single" depends="FreeSurfaceHistory" target="Amplitude" averageFSLevel="Calculate">
           <constituent name="K1">
-            <real_value shape="1" rank="0">1.16057376E-05</real_value>
+            <real_value rank="0" shape="1">1.16057376E-05</real_value>
           </constituent>
         </algorithm>
         <mesh name="PressureMesh"/>
@@ -585,11 +591,11 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="O1amp" rank="0">
+    <scalar_field rank="0" name="O1amp">
       <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Amplitude">
+        <algorithm name="tidal_harmonics" material_phase_support="single" depends="FreeSurfaceHistory" target="Amplitude" averageFSLevel="Calculate">
           <constituent name="O1">
-            <real_value shape="1" rank="0">1.07585558E-05</real_value>
+            <real_value rank="0" shape="1">1.07585558E-05</real_value>
           </constituent>
         </algorithm>
         <mesh name="PressureMesh"/>
@@ -609,11 +615,11 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="M2phase" rank="0">
+    <scalar_field rank="0" name="M2phase">
       <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Phase">
+        <algorithm name="tidal_harmonics" material_phase_support="single" depends="FreeSurfaceHistory" target="Phase" averageFSLevel="Calculate">
           <constituent name="M2">
-            <real_value shape="1" rank="0">2.23642934E-05</real_value>
+            <real_value rank="0" shape="1">2.23642934E-05</real_value>
           </constituent>
         </algorithm>
         <mesh name="PressureMesh"/>
@@ -633,11 +639,11 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="S2phase" rank="0">
+    <scalar_field rank="0" name="S2phase">
       <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Phase">
+        <algorithm name="tidal_harmonics" material_phase_support="single" depends="FreeSurfaceHistory" target="Phase" averageFSLevel="Calculate">
           <constituent name="S2">
-            <real_value shape="1" rank="0">2.31481315E-05</real_value>
+            <real_value rank="0" shape="1">2.31481315E-05</real_value>
           </constituent>
         </algorithm>
         <mesh name="PressureMesh"/>
@@ -657,11 +663,11 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="K1phase" rank="0">
+    <scalar_field rank="0" name="K1phase">
       <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Phase">
+        <algorithm name="tidal_harmonics" material_phase_support="single" depends="FreeSurfaceHistory" target="Phase" averageFSLevel="Calculate">
           <constituent name="K1">
-            <real_value shape="1" rank="0">1.16057376E-05</real_value>
+            <real_value rank="0" shape="1">1.16057376E-05</real_value>
           </constituent>
         </algorithm>
         <mesh name="PressureMesh"/>
@@ -681,11 +687,11 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="O1phase" rank="0">
+    <scalar_field rank="0" name="O1phase">
       <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Phase">
+        <algorithm name="tidal_harmonics" material_phase_support="single" depends="FreeSurfaceHistory" target="Phase" averageFSLevel="Calculate">
           <constituent name="O1">
-            <real_value shape="1" rank="0">1.07585558E-05</real_value>
+            <real_value rank="0" shape="1">1.07585558E-05</real_value>
           </constituent>
         </algorithm>
         <mesh name="PressureMesh"/>
@@ -705,9 +711,9 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Frees_max" rank="0">
+    <scalar_field rank="0" name="Frees_max">
       <diagnostic>
-        <algorithm source_field_name="FreeSurface" source_field_type="scalar" material_phase_support="single" name="temporalmax_scalar" persistent="true">
+        <algorithm name="temporalmax_scalar" material_phase_support="single" persistent="true" source_field_name="FreeSurface" source_field_type="scalar">
           <spin_up_time>
             <real_value rank="0">72000.0</real_value>
           </spin_up_time>
@@ -731,9 +737,9 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Frees_min" rank="0">
+    <scalar_field rank="0" name="Frees_min">
       <diagnostic>
-        <algorithm source_field_name="FreeSurface" source_field_type="scalar" material_phase_support="single" name="temporalmin" persistent="true">
+        <algorithm name="temporalmin" material_phase_support="single" persistent="true" source_field_name="FreeSurface" source_field_type="scalar">
           <spin_up_time>
             <real_value rank="0">72000.0</real_value>
           </spin_up_time>
@@ -757,9 +763,9 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Tidal_Range" rank="0">
+    <scalar_field rank="0" name="Tidal_Range">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Frees_max" source_field_2_name="Frees_min" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="Frees_max" source_field_1_type="scalar" source_field_2_name="Frees_min" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="PressureMesh"/>
@@ -779,7 +785,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
@@ -799,7 +805,7 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -821,7 +827,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="DG_CourantNumber" rank="0">
+    <scalar_field rank="0" name="DG_CourantNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -843,9 +849,9 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="ProjectedCFLNumber" rank="0">
+    <scalar_field rank="0" name="ProjectedCFLNumber">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="CFLNumber">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="CFLNumber" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -878,7 +884,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="BedShearStress" rank="1">
+    <vector_field rank="1" name="BedShearStress">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -899,11 +905,14 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </diagnostic>
     </vector_field>
-    <vector_field name="MaxBedShearStress_projection" rank="1">
+    <vector_field rank="1" name="MaxBedShearStress_projection">
       <diagnostic>
-        <algorithm source_field_name="BedShearStress_projection" source_field_type="vector" material_phase_support="single" name="temporalmax_vector" persistent="true">
+        <algorithm name="temporalmax_vector" material_phase_support="single" persistent="true" source_field_name="BedShearStress_projection" source_field_type="vector">
           <spin_up_time>
             <real_value rank="0">72000.0</real_value>
           </spin_up_time>
@@ -919,14 +928,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="AveBedShearStress_projection" rank="1">
+    <vector_field rank="1" name="AveBedShearStress_projection">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="time_averaged_vector" source_field_name="BedShearStress_projection">
+        <algorithm name="time_averaged_vector" material_phase_support="single" source_field_name="BedShearStress_projection" source_field_type="vector">
           <spin_up_time>
             <real_value rank="0">72000.0</real_value>
           </spin_up_time>
@@ -943,14 +955,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="MaxVelocity_projection" rank="1">
+    <vector_field rank="1" name="MaxVelocity_projection">
       <diagnostic>
-        <algorithm source_field_name="Velocity_projection" source_field_type="vector" material_phase_support="single" name="temporalmax_vector" persistent="true">
+        <algorithm name="temporalmax_vector" material_phase_support="single" persistent="true" source_field_name="Velocity_projection" source_field_type="vector">
           <spin_up_time>
             <real_value rank="0">72000.0</real_value>
           </spin_up_time>
@@ -966,14 +981,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="Velocity_projection" rank="1">
+    <vector_field rank="1" name="Velocity_projection">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="Velocity">
+        <algorithm name="vector_galerkin_projection" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -1000,14 +1018,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="AveVelocity_projection" rank="1">
+    <vector_field rank="1" name="AveVelocity_projection">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="time_averaged_vector" source_field_name="Velocity_projection">
+        <algorithm name="time_averaged_vector" material_phase_support="single" source_field_name="Velocity_projection" source_field_type="vector">
           <spin_up_time>
             <real_value rank="0">72000.0</real_value>
           </spin_up_time>
@@ -1024,14 +1045,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="BedShearStress_projection" rank="1">
+    <vector_field rank="1" name="BedShearStress_projection">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="BedShearStress">
+        <algorithm name="vector_galerkin_projection" material_phase_support="single" source_field_name="BedShearStress" source_field_type="vector">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -1058,6 +1082,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

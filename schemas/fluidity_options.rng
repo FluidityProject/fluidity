@@ -446,14 +446,97 @@ The t argument is for future use only - currently particle locations are only se
                     </element>
                     <optional>
                       <element name="attributes">
-                        <a:documentation>Define particle attributes</a:documentation>
+                        <a:documentation>Define particle attributes.</a:documentation>
                         <oneOrMore>
-                          <element name="attribute">
-                            <attribute name="name">
-                              <data type="string"/>
-                            </attribute>
-                            <ref name="generic_particle_attribute_choice"/>
-                          </element>
+                          <choice>
+                            <element name="scalar_attribute">
+                              <a:documentation>Scalar particle attribute.</a:documentation>
+                              <attribute name="name">
+                                <data type="string"/>
+                              </attribute>
+                              <optional>
+                                <element name="exclude_from_output">
+                                  <a:documentation>Do not output this attribute to file</a:documentation>
+                                  <empty/>
+                                </element>
+                              </optional>
+                              <ref name="generic_scalar_particle_attribute_choice"/>
+                            </element>
+                            <element name="scalar_attribute_array">
+                              <a:documentation>Scalar particle attribute array.</a:documentation>
+                              <attribute name="name">
+                                <data type="string"/>
+                              </attribute>
+                              <element name="dimension">
+                                <ref name="integer"/>
+                              </element>
+                              <optional>
+                                <element name="exclude_from_output">
+                                  <a:documentation>Do not output this attribute to file</a:documentation>
+                                  <empty/>
+                                </element>
+                              </optional>
+                              <ref name="generic_scalar_particle_attribute_choice"/>
+                            </element>
+                            <element name="vector_attribute">
+                              <a:documentation>Vector particle attribute.</a:documentation>
+                              <attribute name="name">
+                                <data type="string"/>
+                              </attribute>
+                              <optional>
+                                <element name="exclude_from_output">
+                                  <a:documentation>Do not output this attribute to file</a:documentation>
+                                  <empty/>
+                                </element>
+                              </optional>
+                              <ref name="generic_vector_particle_attribute_choice"/>
+                            </element>
+                            <element name="vector_attribute_array">
+                              <a:documentation>Vector particle attribute array.</a:documentation>
+                              <attribute name="name">
+                                <data type="string"/>
+                              </attribute>
+                              <element name="dimension">
+                                <ref name="integer"/>
+                              </element>
+                              <optional>
+                                <element name="exclude_from_output">
+                                  <a:documentation>Do not output this attribute to file</a:documentation>
+                                  <empty/>
+                                </element>
+                              </optional>
+                              <ref name="generic_vector_particle_attribute_choice"/>
+                            </element>
+                            <element name="tensor_attribute">
+                              <a:documentation>Tensor particle attribute.</a:documentation>
+                              <attribute name="name">
+                                <data type="string"/>
+                              </attribute>
+                              <optional>
+                                <element name="exclude_from_output">
+                                  <a:documentation>Do not output this attribute to file</a:documentation>
+                                  <empty/>
+                                </element>
+                              </optional>
+                              <ref name="generic_tensor_particle_attribute_choice"/>
+                            </element>
+                            <element name="tensor_attribute_array">
+                              <a:documentation>Tensor particle attribute array.</a:documentation>
+                              <attribute name="name">
+                                <data type="string"/>
+                              </attribute>
+                              <element name="dimension">
+                                <ref name="integer"/>
+                              </element>
+                              <optional>
+                                <element name="exclude_from_output">
+                                  <a:documentation>Do not output this attribute to file</a:documentation>
+                                  <empty/>
+                                </element>
+                              </optional>
+                              <ref name="generic_tensor_particle_attribute_choice"/>
+                            </element>
+                          </choice>
                         </oneOrMore>
                       </element>
                     </optional>
@@ -478,7 +561,9 @@ The t argument is for future use only - currently particle locations are only se
               <empty/>
             </element>
           </optional>
-          <ref name="lagrangian_timestepping"/>
+          <ref name="lagrangian_timestepping">
+            <a:documentation>Lagrangian timestepping options for particle advection.</a:documentation>
+          </ref>
         </element>
       </optional>
       <element name="timestepping">
@@ -3650,6 +3735,7 @@ guided search particle tracking</a:documentation>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="vector_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_vector_field"/>
     <optional>
@@ -3682,6 +3768,7 @@ bed shear stress. Valid for non parameterised velocity boundaries.</a:documentat
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="adaptivity_options_vector_field"/>
   </define>
   <!--
@@ -3692,6 +3779,7 @@ bed shear stress. Valid for non parameterised velocity boundaries.</a:documentat
   <define name="diagnostic_tensor_field">
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_tensor_stat_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="adaptivity_options_tensor_field"/>
     <optional>
       <ref name="interpolation_algorithm_vector"/>
@@ -3786,6 +3874,7 @@ formulations</a:documentation>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="vector_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_vector_field"/>
     <optional>
@@ -3801,6 +3890,7 @@ formulations</a:documentation>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="vector_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_vector_field"/>
     <optional>
@@ -3813,6 +3903,7 @@ formulations</a:documentation>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <optional>
@@ -3828,6 +3919,7 @@ formulations</a:documentation>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <optional>
@@ -4408,6 +4500,9 @@ iteration in the .stat file.</a:documentation>
       <ref name="surface_integral_stats_scalar"/>
     </zeroOrMore>
     <zeroOrMore>
+      <ref name="surface_l2norm_stats"/>
+    </zeroOrMore>
+    <zeroOrMore>
       <ref name="mixing_stats"/>
     </zeroOrMore>
   </define>
@@ -4538,6 +4633,9 @@ IN PROGRESS - Does not include all terms!</a:documentation>
     <ref name="vector_field_stat_options_enabled_default"/>
     <zeroOrMore>
       <ref name="surface_integral_stats_vector"/>
+    </zeroOrMore>
+    <zeroOrMore>
+      <ref name="surface_l2norm_stats"/>
     </zeroOrMore>
   </define>
   <!-- Combining of stat elements for tensor fields -->
@@ -4738,7 +4836,7 @@ i.e. excluding the components</a:documentation>
       <data type="string"/>
     </attribute>
   </define>
-  <define name="generic_particle_attribute_choice">
+  <define name="generic_scalar_particle_attribute_choice">
     <choice>
       <element name="constant">
         <a:documentation>Constant value</a:documentation>
@@ -4781,6 +4879,117 @@ where X is a tuple of length geometry dimension.</a:documentation>
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
+      </element>
+    </choice>
+  </define>
+  <define name="generic_vector_particle_attribute_choice">
+    <choice>
+      <element name="constant">
+        <a:documentation>Constant value</a:documentation>
+        <ref name="real_dim_vector"/>
+      </element>
+      <element name="python">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val(X, t, dt):
+    # Function code
+    return # Return value
+
+where X and the return value are tuples of length geometry dimension.</a:documentation>
+        <ref name="python_code"/>
+      </element>
+      <element name="python_fields">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val (X, t, dt, fields):
+    # Function code
+    return # Return value
+
+ where X and the return value are tuples of length geometry dimension.
+
+ E.g. if Velocity field and positions vector are required
+ def val (X, t, dt, fields):
+   from numpy import zeros
+   y = zeros(2,float)
+   for i in range(0,2):
+      y[i] = X[i] + fields["Velocity"][i]
+   return y</a:documentation>
+        <ref name="python_code"/>
+        <optional>
+          <element name="store_old_attribute">
+            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <ref name="comment"/>
+          </element>
+        </optional>
+      </element>
+      <element name="from_checkpoint_file">
+        <a:documentation>File containing the particle positions in binary form</a:documentation>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+        <element name="format">
+          <a:documentation>The format of the input file containing field data.</a:documentation>
+          <element name="string_value">
+            <value>binary</value>
+          </element>
+        </element>
+      </element>
+    </choice>
+  </define>
+  <define name="generic_tensor_particle_attribute_choice">
+    <choice>
+      <element name="constant">
+        <a:documentation>Constant value</a:documentation>
+        <ref name="real_dim_tensor"/>
+      </element>
+      <element name="python">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val(X, t, dt):
+    # Function code
+    return # Return value
+
+where X is a tuple of length geometry dimension and the return value
+is a (dim x dim) numpy array or list of lists.</a:documentation>
+        <ref name="python_code"/>
+      </element>
+      <element name="python_fields">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val (X, t, dt, fields):
+    # Function code
+    return # Return value
+
+ where X is a tuple of length geometry dimension and the return value
+ is a (dim x dim) numpy array or list of lists.
+
+ E.g. to calculate a tensor based off position and velocity:
+ def val (X, t, dt, fields):
+   from numpy import zeros
+   dum = zeros((2,2),float)
+   for i in range(0,2):
+      for j in range(0,2):
+         dum[i,j] = X[i]+fields["Velocity"][j]
+   return dum</a:documentation>
+        <ref name="python_code"/>
+        <optional>
+          <element name="store_old_attribute">
+            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <ref name="comment"/>
+          </element>
+        </optional>
+      </element>
+      <element name="from_checkpoint_file">
+        <a:documentation>File containing the particle positions in binary form</a:documentation>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+        <element name="format">
+          <a:documentation>The format of the input file containing field data.</a:documentation>
+          <element name="string_value">
+            <value>binary</value>
+          </element>
+        </element>
       </element>
     </choice>
   </define>
@@ -7973,6 +8182,12 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
     <attribute name="type">
       <value>normal</value>
     </attribute>
+  </define>
+  <define name="surface_l2norm_stats">
+    <element name="surface_l2norm">
+      <a:documentation>Calculate L2-norm of field over the specified surface</a:documentation>
+      <ref name="surface_integral_stats_base.surface_integral"/>
+    </element>
   </define>
   <define name="forcing">
     <element name="ocean_forcing">

@@ -82,14 +82,8 @@ contains
     
     if(zoltan_global_migrate_extruded_mesh) then
        ! weight the nodes according to the number of nodes in the column beneath it
-       max_obj_wgt = 1.0
        do i = 1, count
           obj_wgts(i) = float(row_length(zoltan_global_columns_sparsity, i))
-          max_obj_wgt = max(max_obj_wgt, obj_wgts(i))
-       end do
-       ! normalise according to the most nodes in a column
-       do i = 1, count
-          obj_wgts(i) = obj_wgts(i)/max_obj_wgt
        end do
     else
        do i = 1, count

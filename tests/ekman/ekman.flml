@@ -39,25 +39,25 @@
         <mesh name="CoordinateMesh"/>
         <periodic_boundary_conditions name="X_Periodic">
           <physical_boundary_ids>
-            <integer_value shape="1" rank="1">5</integer_value>
+            <integer_value rank="1" shape="1">5</integer_value>
           </physical_boundary_ids>
           <aliased_boundary_ids>
-            <integer_value shape="1" rank="1">6</integer_value>
+            <integer_value rank="1" shape="1">6</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    return (X[0]-100,X[1],X[2])</string_value>
           </coordinate_map>
         </periodic_boundary_conditions>
         <periodic_boundary_conditions name="Y_Periodic">
           <physical_boundary_ids>
-            <integer_value shape="1" rank="1">3</integer_value>
+            <integer_value rank="1" shape="1">3</integer_value>
           </physical_boundary_ids>
           <aliased_boundary_ids>
-            <integer_value shape="1" rank="1">4</integer_value>
+            <integer_value rank="1" shape="1">4</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    return (X[0],X[1]-100,X[2])</string_value>
           </coordinate_map>
         </periodic_boundary_conditions>
@@ -116,7 +116,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="3" dim1="dim" rank="1">0 0 -1</real_value>
+              <real_value rank="1" dim1="dim" shape="3">0 0 -1</real_value>
             </constant>
           </value>
           <output/>
@@ -126,6 +126,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -148,7 +151,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -194,7 +197,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -244,17 +247,17 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0 0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0 0 0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="Top">
           <surface_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
+            <integer_value rank="1" shape="1">2</integer_value>
           </surface_ids>
           <type name="wind_forcing">
             <wind_stress>
               <constant>
-                <real_value shape="2" dim1="dim-1" rank="1">0 1.775e-4</real_value>
+                <real_value rank="1" dim1="dim-1" shape="2">0 1.775e-4</real_value>
               </constant>
             </wind_stress>
           </type>
@@ -264,11 +267,14 @@
             <value name="WholeMesh">
               <diagonal>
                 <constant>
-                  <real_value shape="3" dim1="dim" rank="1">100.0 100.0 0.014</real_value>
+                  <real_value rank="1" dim1="dim" shape="3">100.0 100.0 0.014</real_value>
                 </constant>
               </diagonal>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>

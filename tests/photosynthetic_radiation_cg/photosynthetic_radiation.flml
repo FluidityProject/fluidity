@@ -73,7 +73,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="3" dim1="dim" rank="1">0.0 0.0 -1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="3">0.0 0.0 -1.0</real_value>
             </constant>
           </value>
           <output/>
@@ -83,17 +83,20 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
   </physical_parameters>
   <material_phase name="Water">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0 0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0 0 0</real_value>
           </constant>
         </value>
         <output/>
@@ -103,9 +106,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Phytoplankton" rank="0">
+    <scalar_field rank="0" name="Phytoplankton">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
@@ -127,7 +133,7 @@
   <ocean_biology>
     <pznd>
       <disable_sources_and_sinks/>
-      <scalar_field name="PhotosyntheticRadiation" rank="0">
+      <scalar_field rank="0" name="PhotosyntheticRadiation">
         <prognostic>
           <mesh name="VelocityMesh"/>
           <equation name="PhotosyntheticRadiation"/>
@@ -163,7 +169,7 @@
           </absorption_coefficients>
           <boundary_conditions name="Sunlight">
             <surface_ids>
-              <integer_value shape="1" rank="1">111</integer_value>
+              <integer_value rank="1" shape="1">111</integer_value>
             </surface_ids>
             <type name="dirichlet">
               <apply_weakly/>

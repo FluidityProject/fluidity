@@ -86,7 +86,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -132,7 +132,7 @@
         <no_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -152,7 +152,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -202,18 +202,18 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0 0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="TopWind">
           <surface_ids>
-            <integer_value shape="1" rank="1">333</integer_value>
+            <integer_value rank="1" shape="1">333</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
   if(X[0]&lt;1e-3):
     return 0.0
   elif(X[0]&gt;1.-1e-3):
@@ -232,7 +232,7 @@
         </boundary_conditions>
         <boundary_conditions name="OtherWalls">
           <surface_ids>
-            <integer_value shape="2" rank="1">444 666</integer_value>
+            <integer_value rank="1" shape="2">444 666</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -259,6 +259,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -283,7 +286,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -303,9 +306,9 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Vorticity2D" rank="0">
+    <scalar_field rank="0" name="Vorticity2D">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="curl_2d" source_field_name="Velocity">
+        <algorithm name="curl_2d" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <lump_mass/>
         </algorithm>
         <mesh name="VelocityMesh"/>
@@ -325,7 +328,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field depends="Velocity" name="MultiplyConnectedStreamFunction" rank="0">
+    <scalar_field rank="0" name="MultiplyConnectedStreamFunction" depends="Velocity">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <solver>
@@ -344,7 +347,7 @@
         </solver>
         <boundary_conditions name="bottom">
           <surface_ids>
-            <integer_value shape="1" rank="1">444</integer_value>
+            <integer_value rank="1" shape="1">444</integer_value>
           </surface_ids>
           <primary_boundary/>
           <type name="dirichlet">
@@ -353,14 +356,14 @@
         </boundary_conditions>
         <boundary_conditions name="top">
           <surface_ids>
-            <integer_value shape="1" rank="1">333</integer_value>
+            <integer_value rank="1" shape="1">333</integer_value>
           </surface_ids>
           <secondary_boundary>
             <primary_point>
-              <real_value shape="2" dim1="dim" rank="1">0.5 0.0</real_value>
+              <real_value rank="1" dim1="dim" shape="2">0.5 0.0</real_value>
             </primary_point>
             <secondary_point>
-              <real_value shape="2" dim1="dim" rank="1">0.5 1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="2">0.5 1.0</real_value>
             </secondary_point>
           </secondary_boundary>
           <type name="dirichlet">

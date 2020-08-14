@@ -110,14 +110,14 @@
     </steady_state>
   </timestepping>
   <material_phase name="NS">
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
           <continuous_galerkin/>
         </spatial_discretisation>
         <reference_coordinates>
-          <real_value shape="2" dim1="dim" rank="1">1.57079632679 1.57079632679</real_value>
+          <real_value rank="1" dim1="dim" shape="2">1.57079632679 1.57079632679</real_value>
         </reference_coordinates>
         <scheme>
           <poisson_pressure_solution>
@@ -158,7 +158,7 @@
         <no_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -208,25 +208,25 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0. 0.</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0. 0.</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="sides">
           <surface_ids>
-            <integer_value shape="4" rank="1">7 8 9 10</integer_value>
+            <integer_value rank="1" shape="4">7 8 9 10</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import helmholtz_tools as k
    return k.velocity(X)[0]</string_value>
                 </python>
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import helmholtz_tools as k
    return k.velocity(X)[1]</string_value>
                 </python>
@@ -239,20 +239,23 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.7 0. 0. 0.7</real_value>
+                  <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">0.7 0. 0. 0.7</real_value>
                 </constant>
               </anisotropic_symmetric>
             </value>
             <output>
               <exclude_from_vtu/>
             </output>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <vector_field name="Source" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    import helmholtz_tools as k
    return k.forcing_mom(X)</string_value>
               </python>
@@ -264,6 +267,9 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </vector_field>
         <output/>
@@ -288,7 +294,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="Edges" rank="0">
+    <scalar_field rank="0" name="Edges">
       <diagnostic>
         <algorithm name="scalar_edge_lengths" material_phase_support="single"/>
         <mesh name="VelocityMesh"/>
@@ -308,7 +314,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -328,9 +334,9 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="VelocityProjection" rank="1">
+    <vector_field rank="1" name="VelocityProjection">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="Velocity">
+        <algorithm name="vector_galerkin_projection" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -357,14 +363,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="AnisoFilteredVelocity" rank="1">
+    <vector_field rank="1" name="AnisoFilteredVelocity">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="helmholtz_anisotropic_smoothed_vector" source_field_name="Velocity">
+        <algorithm name="helmholtz_anisotropic_smoothed_vector" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <smoothing_scale_factor>
             <real_value rank="0">2.0</real_value>
           </smoothing_scale_factor>
@@ -394,14 +403,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="AnisoFilteredVelocityProjection" rank="1">
+    <vector_field rank="1" name="AnisoFilteredVelocityProjection">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="AnisoFilteredVelocity">
+        <algorithm name="vector_galerkin_projection" material_phase_support="single" source_field_name="AnisoFilteredVelocity" source_field_type="vector">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -428,14 +440,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="AnisoFilterDifference" rank="1">
+    <vector_field rank="1" name="AnisoFilterDifference">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="VelocityProjection" source_field_2_name="AnisoFilteredVelocityProjection" material_phase_support="single" source_field_1_type="vector"/>
+        <algorithm name="vector_difference" material_phase_support="single" source_field_1_name="VelocityProjection" source_field_1_type="vector" source_field_2_name="AnisoFilteredVelocityProjection" source_field_2_type="vector"/>
         <mesh name="ErrorMesh"/>
         <output/>
         <stat>
@@ -447,14 +462,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="IsoFilteredVelocity" rank="1">
+    <vector_field rank="1" name="IsoFilteredVelocity">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="helmholtz_smoothed_vector" source_field_name="Velocity">
+        <algorithm name="helmholtz_smoothed_vector" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <smoothing_scale_factor>
             <real_value rank="0">2.0</real_value>
           </smoothing_scale_factor>
@@ -484,14 +502,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="IsoFilteredVelocityProjection" rank="1">
+    <vector_field rank="1" name="IsoFilteredVelocityProjection">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="IsoFilteredVelocity">
+        <algorithm name="vector_galerkin_projection" material_phase_support="single" source_field_name="IsoFilteredVelocity" source_field_type="vector">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -518,14 +539,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="IsoFilterDifference" rank="1">
+    <vector_field rank="1" name="IsoFilterDifference">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="VelocityProjection" source_field_2_name="IsoFilteredVelocityProjection" material_phase_support="single" source_field_1_type="vector"/>
+        <algorithm name="vector_difference" material_phase_support="single" source_field_1_name="VelocityProjection" source_field_1_type="vector" source_field_2_name="IsoFilteredVelocityProjection" source_field_2_type="vector"/>
         <mesh name="ErrorMesh"/>
         <output/>
         <stat>
@@ -537,14 +561,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="MLFilteredVelocity" rank="1">
+    <vector_field rank="1" name="MLFilteredVelocity">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="lumped_mass_smoothed_vector" source_field_name="Velocity"/>
+        <algorithm name="lumped_mass_smoothed_vector" material_phase_support="single" source_field_name="Velocity" source_field_type="vector"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>
@@ -556,14 +583,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="MLFilteredVelocityProjection" rank="1">
+    <vector_field rank="1" name="MLFilteredVelocityProjection">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="MLFilteredVelocity">
+        <algorithm name="vector_galerkin_projection" material_phase_support="single" source_field_name="MLFilteredVelocity" source_field_type="vector">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -590,14 +620,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="MLFilterDifference" rank="1">
+    <vector_field rank="1" name="MLFilterDifference">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="VelocityProjection" source_field_2_name="MLFilteredVelocityProjection" material_phase_support="single" source_field_1_type="vector"/>
+        <algorithm name="vector_difference" material_phase_support="single" source_field_1_name="VelocityProjection" source_field_1_type="vector" source_field_2_name="MLFilteredVelocityProjection" source_field_2_type="vector"/>
         <mesh name="ErrorMesh"/>
         <output/>
         <stat>
@@ -609,17 +642,20 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="AnalyticalVelocity" rank="1">
+    <vector_field rank="1" name="AnalyticalVelocity">
       <prescribed>
         <mesh name="ErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import helmholtz_tools as k
    return k.velocity(X)</string_value>
           </python>
@@ -631,11 +667,14 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <vector_field name="AnalyticalDifference" rank="1">
+    <vector_field rank="1" name="AnalyticalDifference">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="AnalyticalVelocity" source_field_2_name="VelocityProjection" material_phase_support="single" source_field_1_type="vector">
+        <algorithm name="vector_difference" material_phase_support="single" source_field_1_name="AnalyticalVelocity" source_field_1_type="vector" source_field_2_name="VelocityProjection" source_field_2_type="vector">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
@@ -649,14 +688,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="GradDelta" rank="1">
+    <vector_field rank="1" name="GradDelta">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="grad" source_field_name="Edges"/>
+        <algorithm name="grad" material_phase_support="single" source_field_name="Edges" source_field_type="scalar"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>
@@ -668,14 +710,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="ZeroFilteredVelocity" rank="1">
+    <vector_field rank="1" name="ZeroFilteredVelocity">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="helmholtz_anisotropic_smoothed_vector" source_field_name="Velocity">
+        <algorithm name="helmholtz_anisotropic_smoothed_vector" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <smoothing_scale_factor>
             <real_value rank="0">0.0</real_value>
           </smoothing_scale_factor>
@@ -705,14 +750,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="ZeroFilteredVelocityProjection" rank="1">
+    <vector_field rank="1" name="ZeroFilteredVelocityProjection">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="ZeroFilteredVelocity">
+        <algorithm name="vector_galerkin_projection" material_phase_support="single" source_field_name="ZeroFilteredVelocity" source_field_type="vector">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -739,14 +787,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="ZeroFilterDifference" rank="1">
+    <vector_field rank="1" name="ZeroFilterDifference">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="VelocityProjection" source_field_2_name="ZeroFilteredVelocityProjection" material_phase_support="single" source_field_1_type="vector"/>
+        <algorithm name="vector_difference" material_phase_support="single" source_field_1_name="VelocityProjection" source_field_1_type="vector" source_field_2_name="ZeroFilteredVelocityProjection" source_field_2_type="vector"/>
         <mesh name="ErrorMesh"/>
         <output/>
         <stat>
@@ -758,24 +809,30 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <tensor_field name="GradVelocity" rank="2">
+    <tensor_field rank="2" name="GradVelocity">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single " name="grad_vector" source_field_name="Velocity"/>
+        <algorithm name="grad_vector" material_phase_support="single " source_field_name="Velocity" source_field_type="vector"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>
           <exclude_components_from_stat/>
         </stat>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </diagnostic>
     </tensor_field>
-    <tensor_field name="IsoFilteredGradVelocity" rank="2">
+    <tensor_field rank="2" name="IsoFilteredGradVelocity">
       <diagnostic>
-        <algorithm source_field_type="tensor" material_phase_support="single" name="helmholtz_smoothed_tensor" source_field_name="GradVelocity">
+        <algorithm name="helmholtz_smoothed_tensor" material_phase_support="single" source_field_name="GradVelocity" source_field_type="tensor">
           <smoothing_scale_factor>
             <real_value rank="0">2.0</real_value>
           </smoothing_scale_factor>
@@ -799,11 +856,14 @@
         <stat>
           <exclude_components_from_stat/>
         </stat>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </diagnostic>
     </tensor_field>
-    <tensor_field name="AnisoFilteredGradVelocity" rank="2">
+    <tensor_field rank="2" name="AnisoFilteredGradVelocity">
       <diagnostic>
-        <algorithm source_field_type="tensor" material_phase_support="single" name="helmholtz_anisotropic_smoothed_tensor" source_field_name="GradVelocity">
+        <algorithm name="helmholtz_anisotropic_smoothed_tensor" material_phase_support="single" source_field_name="GradVelocity" source_field_type="tensor">
           <smoothing_scale_factor>
             <real_value rank="0">2.0</real_value>
           </smoothing_scale_factor>
@@ -827,32 +887,41 @@
         <stat>
           <exclude_components_from_stat/>
         </stat>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </diagnostic>
     </tensor_field>
-    <tensor_field name="GradIsoFilteredVelocity" rank="2">
+    <tensor_field rank="2" name="GradIsoFilteredVelocity">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single " name="grad_vector" source_field_name="IsoFilteredVelocity"/>
+        <algorithm name="grad_vector" material_phase_support="single " source_field_name="IsoFilteredVelocity" source_field_type="vector"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>
           <exclude_components_from_stat/>
         </stat>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </diagnostic>
     </tensor_field>
-    <tensor_field name="GradAnisoFilteredVelocity" rank="2">
+    <tensor_field rank="2" name="GradAnisoFilteredVelocity">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single " name="grad_vector" source_field_name="AnisoFilteredVelocity"/>
+        <algorithm name="grad_vector" material_phase_support="single " source_field_name="AnisoFilteredVelocity" source_field_type="vector"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>
           <exclude_components_from_stat/>
         </stat>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </diagnostic>
     </tensor_field>
-    <tensor_field name="IsoCommError" rank="2">
+    <tensor_field rank="2" name="IsoCommError">
       <diagnostic>
         <algorithm name="tensor_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">f1 = state.tensor_fields["IsoFilteredGradVelocity"]
+          <string_value type="code" language="python" lines="20">f1 = state.tensor_fields["IsoFilteredGradVelocity"]
 f2 = state.tensor_fields["GradIsoFilteredVelocity"]
 assert(f1.node_count == field.node_count)
 assert(f2.node_count == field.node_count)
@@ -865,12 +934,15 @@ for i in range(field.node_count):
         <stat>
           <include_in_stat/>
         </stat>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </diagnostic>
     </tensor_field>
-    <tensor_field name="AnisoCommError" rank="2">
+    <tensor_field rank="2" name="AnisoCommError">
       <diagnostic>
         <algorithm name="tensor_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">f1 = state.tensor_fields["AnisoFilteredGradVelocity"]
+          <string_value type="code" language="python" lines="20">f1 = state.tensor_fields["AnisoFilteredGradVelocity"]
 f2 = state.tensor_fields["GradAnisoFilteredVelocity"]
 assert(f1.node_count == field.node_count)
 assert(f2.node_count == field.node_count)
@@ -883,6 +955,9 @@ for i in range(field.node_count):
         <stat>
           <include_in_stat/>
         </stat>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </diagnostic>
     </tensor_field>
   </material_phase>

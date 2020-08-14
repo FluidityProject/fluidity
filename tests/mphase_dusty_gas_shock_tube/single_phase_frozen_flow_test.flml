@@ -109,7 +109,7 @@ u_ref = sqrt(p/rho_g)</comment>
         </stiffened_gas>
       </compressible>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -156,7 +156,7 @@ u_ref = sqrt(p/rho_g)</comment>
         <no_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -178,7 +178,7 @@ u_ref = sqrt(p/rho_g)</comment>
         </temporal_discretisation>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
   if(X[0] &lt;= 0):
     return 12.3
   else:
@@ -202,7 +202,7 @@ u_ref = sqrt(p/rho_g)</comment>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -212,7 +212,7 @@ u_ref = sqrt(p/rho_g)</comment>
               <streamline_upwind>
                 <nu_bar_optimal/>
                 <nu_scale name="0.5">
-                  <real_value shape="1" rank="0">0.5</real_value>
+                  <real_value rank="0" shape="1">0.5</real_value>
                 </nu_scale>
               </streamline_upwind>
             </stabilisation>
@@ -255,12 +255,12 @@ u_ref = sqrt(p/rho_g)</comment>
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="1" dim1="dim" rank="1">0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="1">0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="Ends">
           <surface_ids>
-            <integer_value shape="2" rank="1">1 2</integer_value>
+            <integer_value rank="1" shape="2">1 2</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -277,11 +277,14 @@ u_ref = sqrt(p/rho_g)</comment>
             <value name="WholeMesh">
               <anisotropic_asymmetric>
                 <constant>
-                  <real_value symmetric="false" dim2="dim" shape="1 1" dim1="dim" rank="2">1.83e-5</real_value>
+                  <real_value symmetric="false" rank="2" dim1="dim" dim2="dim" shape="1 1">1.83e-5</real_value>
                 </constant>
               </anisotropic_asymmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -306,7 +309,7 @@ u_ref = sqrt(p/rho_g)</comment>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="InternalEnergy" rank="0">
+    <scalar_field rank="0" name="InternalEnergy">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="InternalEnergy">
@@ -318,7 +321,7 @@ u_ref = sqrt(p/rho_g)</comment>
               <streamline_upwind>
                 <nu_bar_optimal/>
                 <nu_scale name="0.5">
-                  <real_value shape="1" rank="0">0.5</real_value>
+                  <real_value rank="0" shape="1">0.5</real_value>
                 </nu_scale>
               </streamline_upwind>
             </stabilisation>
@@ -374,7 +377,7 @@ InternalEnergy needed for a Pressure of 1.013e5 = 205894.308943</comment>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>

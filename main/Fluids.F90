@@ -368,6 +368,7 @@ contains
          & .and. .not. have_option("/io/disable_dump_at_start") &
          & ) then
        call write_state(dump_no, state)
+       call write_particles_loop(state, timestep, current_time)
     end if
 
     call initialise_convergence(filename, state)

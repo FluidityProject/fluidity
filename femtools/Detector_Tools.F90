@@ -34,16 +34,18 @@ module detector_tools
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
   use futils, only: int2str
   use elements, only: local_coord_count
-  use embed_python, only: set_detectors_from_python, set_particles_from_python_fields, set_particles_from_python
+  use embed_python
   use integer_hash_table_module
   use parallel_tools
   use parallel_fields, only: element_owned
+  use transform_elements
   use fields
-  use state_module, only: state_type, extract_scalar_field, aliased
+  use state_module, only: state_type, extract_scalar_field, aliased, &
+       & extract_vector_field, extract_tensor_field
   use field_options
   use detector_data_types
   use pickers
-  
+
   implicit none
   
   private
@@ -51,8 +53,13 @@ module detector_tools
   public :: insert, allocate, deallocate, copy, move, move_all, remove, &
             delete, delete_all, pack_detector, unpack_detector, &
             detector_value, set_detector_coords_from_python, &
-            detector_buffer_size, set_particle_attribute_from_python, &
-            set_particle_attribute_from_python_fields
+            detector_buffer_size, set_particle_scalar_attribute_from_python, &
+            set_particle_scalar_attribute_from_python_fields, &
+            set_particle_vector_attribute_from_python, &
+            set_particle_vector_attribute_from_python_fields, &
+            set_particle_tensor_attribute_from_python, &
+            set_particle_tensor_attribute_from_python_fields, &
+            evaluate_particle_fields
 
   interface insert
      module procedure insert_into_detector_list
@@ -162,6 +169,14 @@ contains
        if(allocated(detector%attributes)) then
           deallocate(detector%attributes)
        end if
+       if(allocated(detector%old_attributes)) then
+          deallocate(detector%old_attributes)
+       end if
+       if(allocated(detector%old_fields)) then
+          deallocate(detector%old_fields)
+       end if
+       detector%next => null()
+       detector%previous => null()
        deallocate(detector)
     end if
     detector => null()
@@ -325,21 +340,22 @@ contains
     integer, intent(in) :: ndims
     logical, intent(in) :: have_update_vector
     integer, intent(in), optional :: nstages
-    integer :: detector_buffer_size
+    integer :: detector_buffer_size, det_params
     integer, dimension(3), optional, intent(in) :: attribute_size !array to hold size of attributes
+    det_params = 4 !size of basic detector fields: detector element, id_number, proc_id and type
     if (present(attribute_size)) then
        if (have_update_vector) then
           assert(present(nstages))
-          detector_buffer_size=(nstages+2)*ndims+3+sum(attribute_size)
+          detector_buffer_size=(nstages+2)*ndims+det_params+sum(attribute_size)
        else
-          detector_buffer_size=ndims+4+sum(attribute_size)
+          detector_buffer_size=ndims+det_params+1+sum(attribute_size)
        end if
     else
        if (have_update_vector) then
           assert(present(nstages))
-          detector_buffer_size=(nstages+2)*ndims+3
+          detector_buffer_size=(nstages+2)*ndims+det_params
        else
-          detector_buffer_size=ndims+4
+          detector_buffer_size=ndims+det_params+1
        end if 
     end if
 
@@ -357,8 +373,8 @@ contains
     integer, dimension(3), optional, intent(in) :: attribute_size !array to hold size of attributes
     integer :: det_params
     assert(size(detector%position)==ndims)
-    !Set size of basic detector fields, being detector element, id_number and type
-    det_params = 3
+    !Set size of basic detector fields: detector element, id_number, proc_id and type
+    det_params = 4
     !Check if this is a particle carrying attributes
     if (present(attribute_size)) then
        assert(size(buff)>=ndims+det_params+sum(attribute_size))
@@ -366,7 +382,8 @@ contains
        buff(1:ndims) = detector%position
        buff(ndims+1) = detector%element
        buff(ndims+2) = detector%id_number
-       buff(ndims+3) = detector%type
+       buff(ndims+3) = detector%proc_id
+       buff(ndims+4) = detector%type
        if (attribute_size(1).ne.0) then
           buff(ndims+det_params+1:ndims+det_params+attribute_size(1)) = detector%attributes
        end if
@@ -399,7 +416,8 @@ contains
        buff(1:ndims) = detector%position
        buff(ndims+1) = detector%element
        buff(ndims+2) = detector%id_number
-       buff(ndims+3) = detector%type
+       buff(ndims+3) = detector%proc_id
+       buff(ndims+4) = detector%type
 
        ! Lagrangian advection fields: (nstages+1)*ndims
        if (present(nstages)) then
@@ -429,7 +447,7 @@ contains
 
     integer :: det_params
     !Set size of basic detector fields, being detector element, id_number and type
-    det_params = 3
+    det_params = 4
     
     !Check if this is a particle carrying attributes
     if (present(attribute_size)) then
@@ -437,14 +455,17 @@ contains
        if (.not. allocated(detector%position)) then
           allocate(detector%position(ndims))
        end if
-       allocate(detector%attributes(attribute_size(1)))
-       allocate(detector%old_attributes(attribute_size(2)))
-       allocate(detector%old_fields(attribute_size(3)))
-       ! Basic fields: ndims+3
+       if (.not. allocated(detector%attributes)) then
+          allocate(detector%attributes(attribute_size(1)))
+          allocate(detector%old_attributes(attribute_size(2)))
+          allocate(detector%old_fields(attribute_size(3)))
+       end if
+       ! Basic fields: ndims+4
        detector%position = buff(1:ndims)
        detector%element = buff(ndims+1)
        detector%id_number = buff(ndims+2)
-       detector%type = buff(ndims+3)
+       detector%proc_id = buff(ndims+3)
+       detector%type = buff(ndims+4)
        if (attribute_size(1)/=0) then  
           detector%attributes = buff(ndims+det_params+1:ndims+det_params+attribute_size(1))
        end if
@@ -503,11 +524,12 @@ contains
           allocate(detector%position(ndims))
        end if
        
-       ! Basic fields: ndims+3
+       ! Basic fields: ndims+4
        detector%position = buff(1:ndims)
        detector%element = buff(ndims+1)
        detector%id_number = buff(ndims+2)
-       detector%type = buff(ndims+3)
+       detector%proc_id = buff(ndims+3)
+       detector%type = buff(ndims+4)
        
        ! Reconstruct element number if global-to-local mapping is given
        if (present(global_to_local)) then
@@ -612,24 +634,101 @@ contains
 
   end subroutine set_detector_coords_from_python
 
-  subroutine set_particle_attribute_from_python(attributes, positions, nparts, func, time, dt)
-    !!< Given the particle position and time, evaluate the specified python function for a group of particles
-    !!< specified in the string func at that location. 
-    real, dimension(:), intent(inout) :: attributes
+  !> Evaluate a set of fields on particles
+  subroutine evaluate_particle_fields(npart, state, ele, lcoords, names, phases, counts, vals, dim)
+    !! Number of particles
+    integer, intent(in) :: npart
+    !! Model state structure
+    type(state_type), dimension(:), intent(in) :: state
+    !! Elements containing particles
+    integer, dimension(:), intent(in) :: ele
+    !! Local coordinates of particles in elements
+    real, dimension(:,:), intent(in) :: lcoords
+    !! Names of fields to be evaluated
+    type(attr_names_type), intent(in) :: names
+    !! Phases of each field
+    type(field_phase_type), intent(in) :: phases
+    !! Scalar/vector/tensor counts of each field
+    integer, dimension(3), intent(in) :: counts
+    !! Output array
+    real, dimension(:,:), intent(out) :: vals
+    !! Geometric dimension
+    integer, intent(in) :: dim
+
+    integer :: i, j
+    integer :: field_idx, phase
+    type(scalar_field), pointer :: sfield
+    type(vector_field), pointer :: vfield
+    type(tensor_field), pointer :: tfield
+
+    field_idx = 1
+
+    ! scalar fields
+    do i = 1, counts(1)
+      phase = phases%s(i)
+      sfield => extract_scalar_field(state(phase), names%s(i))
+
+      do j = 1, npart
+        vals(field_idx,j) = eval_field(ele(j), sfield, lcoords(:,j))
+      end do
+
+      field_idx = field_idx + 1
+    end do
+
+    ! vector fields
+    do i = 1, counts(2)
+      phase = phases%v(i)
+      vfield => extract_vector_field(state(phase), names%v(i))
+
+      do j = 1, npart
+        vals(field_idx:field_idx+dim-1,j) = eval_field(ele(j), vfield, lcoords(:,j))
+      end do
+
+      field_idx = field_idx + dim
+    end do
+
+    ! tensor fields
+    do i = 1, counts(3)
+      phase = phases%t(i)
+      tfield => extract_tensor_field(state(phase), names%t(i))
+
+      do j = 1, npart
+        vals(field_idx:field_idx+dim**2-1,j) = reshape( &
+             eval_field(ele(j), tfield, lcoords(:,j)), &
+             [ dim**2 ])
+      end do
+
+      field_idx = field_idx + dim**2
+    end do
+  end subroutine evaluate_particle_fields
+
+  !> Given the particle position and time, evaluate the specified python function for a group of particles
+  !! specified in the string func at that location.
+  subroutine set_particle_scalar_attribute_from_python(attributes, positions, natt, func, time, dt, is_array)
+    !! (natt x nparts) array of calculated attribute values
+    real, dimension(:,:), intent(out) :: attributes
+    !! Current particle positions
+    real, dimension(:,:), target, intent(in) :: positions
+    !! Array dimension of this attribute
+    integer, intent(in) :: natt
     !! Func may contain any python at all but the following function must
     !! be defined::
-    !!  def val(X,t)
-    !! where X is position and t is the time. The result must be a float. 
-    character(len=*), intent(in) :: func !function for attributes to be set from
-    integer, intent(in) :: nparts !number of particles
-    real, intent(in) :: time !current simulation time
-    real, intent(in) :: dt !current timestep
-    real, dimension(:,:), target, intent(in) :: positions !current particle positions
-    real, dimension(:), pointer :: lvx,lvy,lvz
-    real, dimension(0), target :: zero
-    integer :: stat
+    !!  def val(X,t,dt)
+    !! where X is position and t is the time. The result must be a float.
+    character(len=*), intent(in) :: func
+    !! Current simulation time
+    real, intent(in) :: time
+    !! Current simulation timestep
+    real, intent(in) :: dt
+    !! Whether this is an array-valued attribute
+    logical, intent(in) :: is_array
 
-    select case(size(positions(:,1)))
+    real, dimension(:), pointer :: lvx, lvy, lvz
+    real, dimension(0), target :: zero
+    integer :: stat, dim
+
+    dim = size(positions, 1)
+    select case(dim)
     case(1)
       lvx=>positions(1,:)
       lvy=>zero
@@ -643,65 +742,86 @@ contains
       lvy=>positions(2,:)
       lvz=>positions(3,:)
     end select
-    call set_particles_from_python(func, len(func), size(positions(:,1)), &
-         nparts, lvx, lvy, lvz, time, dt, attributes, stat)
+
+    if (is_array) then
+      ! call interface with additional array dimension argument
+      call set_scalar_particles_from_python(func, len(func), dim, &
+           size(attributes,2), natt, lvx, lvy, lvz, time, dt, attributes, stat)
+    else
+      call set_scalar_particles_from_python(func, len(func), dim, &
+           size(attributes,2), lvx, lvy, lvz, time, dt, attributes, stat)
+    end if
     if (stat/=0) then
       ewrite(-1, *) "Python error, Python string was:"
       ewrite(-1 , *) trim(func)
       FLExit("Dying")
     end if
-  end subroutine set_particle_attribute_from_python
+  end subroutine set_particle_scalar_attribute_from_python
 
-  subroutine set_particle_attribute_from_python_fields(particle_list, state, xfield, positions, lcoords, ele, nparts, attributes, old_att_names, old_attributes, func, time, dt)
-    !!< Given a particle position, time and field values, evaluate the python function
-    !!< specified in the string func at that location. 
+  !> Given a particle position, time and field values, evaluate the python function
+  !! specified in the string func at that location.
+  subroutine set_particle_scalar_attribute_from_python_fields(particle_list, state, positions, lcoords, ele, natt, &
+       attributes, old_attr_names, old_attr_counts, old_attr_Dims, old_attributes, field_names, field_counts, old_field_names, &
+       old_field_counts, func, time, dt, is_array)
+    !! Particle list for which to evaluate the function
+    type(detector_linked_list), intent(in) :: particle_list
+    !! Model state structure
+    type(state_type), dimension(:), intent(in) :: state
+    !! Current particle positions
+    real, dimension(:,:), target, intent(in) :: positions
+    !! Local coordinates of particle positions
+    real, dimension(:,:), intent(in) :: lcoords
+    !! Elements containing particles
+    integer, dimension(:), intent(in) :: ele
+    !! Array dimension of this attribute
+    integer, intent(in) :: natt
+    !! Attribute values to set
+    real, dimension(:,:), intent(out) :: attributes
+    !! Names of attributes stored from the previous timestep
+    character, dimension(:,:), intent(in) :: old_attr_names
+    !! Number of each of scalar, vector, tensor old attributes
+    integer, dimension(3), intent(in) :: old_attr_counts
+    !! Array dimensions of old attributes
+    integer, dimension(:), intent(in) :: old_attr_dims
+    !! Attribute values from the previous timestep
+    real, dimension(:,:), intent(in) :: old_attributes
+    !! Names of fields that are to be passed to Python
+    character, dimension(:,:), intent(in) :: field_names
+    !! Number of each of scalar, vector, tensor fields
+    integer, dimension(3), intent(in) :: field_counts
+    !! Names of old fields that are to be passed to Python
+    character, dimension(:,:), intent(in) :: old_field_names
+    !! Number of each of salar, vector, tensor old fields
+    integer, dimension(3), intent(in) :: old_field_counts
     !! Func may contain any python at all but the following function must
     !! be defined::
-    !!  def val(X,t, fields)
+    !!  def val(X,t,dt,fields)
     !! where X is position t is the time, and fields is a dictionary where fields["FieldName"] and fields["OldFieldName" store
     !! the interpolated value of "FieldName" at the particle position at the current and previous time levels, and fields["OldAttributeName"] stores the attribute
-    !! value at the previous time level. The result must be a float. 
-    type(detector_linked_list), intent(in) :: particle_list
-    type(state_type), dimension(:), intent(in) :: state
-    real, dimension(:,:), intent(in) :: old_attributes !Attribute values from the previous timestep
-    character, dimension(:,:), intent(in) :: old_att_names !Names of attributes stored from the previous timestep
-    real, dimension(:), intent(inout) :: attributes !Attribute values to be set
-    real, dimension(:,:), target, intent(in) :: positions !positions of particles
-    real, dimension(:,:), intent(in) :: lcoords !local coordinates of the particle position
-    integer, dimension(:), intent(in) :: ele !elements particles are found in
-    character(len=*), intent(in) :: func !function for attributes to be set from
-    integer, intent(in) :: nparts !number of particles
-    real, intent(in) :: time !current simulation time
-    real, intent(in) :: dt !current timestep
-    character, allocatable, dimension(:,:) :: field_names
-    character, allocatable, dimension(:,:) :: old_field_names
-    real, allocatable, dimension(:,:) :: field_vals
-    real, allocatable, dimension(:,:) :: old_field_vals
-    type(vector_field), pointer :: xfield
-    real :: value
-    real, dimension(:), pointer :: lvx,lvy,lvz
+    !! value at the previous time level. The result must be a float.
+    character(len=*), intent(in) :: func
+    !! Current model time
+    real, intent(in) :: time
+    !! Current model timestep
+    real, intent(in) :: dt
+    !! Whether this is an array-valued attribute
+    logical, intent(in) :: is_array
+
+    ! locals
+    integer :: i, j, field_idx
+    integer :: dim, stat, phase
+    integer :: nparts
+    real, dimension(:), pointer :: lvx, lvy, lvz
     real, dimension(0), target :: zero
-    character(len=FIELD_NAME_LEN) :: buffer
+    type(scalar_field), pointer :: sfield
+    type(vector_field), pointer :: vfield
+    type(tensor_field), pointer :: tfield
+    real, allocatable, dimension(:,:) :: field_vals, old_field_vals
     type(detector_type), pointer :: particle
 
-    type(scalar_field), pointer :: sfield
-    character(len=FIELD_NAME_LEN) :: name
-    integer :: phase, i, j, nfields
-    integer :: p, f, stat, k, pfields, l, old_nfields, old_nattributes
-
-    nfields=0
-    do phase=1,size(state)
-       do i=1, size(state(phase)%scalar_names)
-          sfield => extract_scalar_field(state(phase),state(phase)%scalar_names(i))
-          if (sfield%option_path=="".or.aliased(sfield)) then
-             cycle
-          else if (have_option(trim(complete_field_path(sfield%option_path)) // "/particles/include_in_particles")) then
-             nfields=nfields+1
-          end if
-       end do
-    end do
-
-    select case(size(positions(:,1)))
+    nparts = size(attributes, 2)
+    dim = size(positions, 1)
+    select case(dim)
     case(1)
       lvx=>positions(1,:)
       lvy=>zero
@@ -714,77 +834,371 @@ contains
       lvx=>positions(1,:)
       lvy=>positions(2,:)
       lvz=>positions(3,:)
-   end select
+    end select
 
+    ! allocate space to hold fields and old fields
+    allocate(field_vals(field_counts(1) + dim*field_counts(2) + dim**2*field_counts(3), nparts))
+    allocate(old_field_vals(old_field_counts(1) + dim*old_field_counts(2) + dim**2*old_field_counts(3), nparts))
+
+    call evaluate_particle_fields(nparts, state, ele, lcoords, &
+         particle_list%field_names, particle_list%field_phases, field_counts, &
+         field_vals, dim)
+
+    ! copy old fields off particles
     particle => particle_list%first
-    
-    old_nfields = size(particle%old_fields)
-    old_nattributes = size(particle%old_attributes)
-
-    allocate(field_names(FIELD_NAME_LEN,nfields))
-    allocate(field_vals(nfields,nparts))
-    allocate(old_field_names(FIELD_NAME_LEN,size(particle%old_fields)))
-    allocate(old_field_vals(size(particle%old_fields),nparts))
-    j=1
-    l=1
-    do phase=1,size(state)
-       do f = 1, size(state(phase)%scalar_names)
-          sfield => extract_scalar_field(state(phase),state(phase)%scalar_names(f))
-          if (sfield%option_path=="".or.aliased(sfield)) then
-             cycle
-          else if (have_option(trim(complete_field_path(sfield%option_path)) // "/particles/include_in_particles")) then
-             name=trim(state(phase)%scalar_names(f))
-             do k = 1,len_trim(name)
-                field_names(k,j)=name(k:k)
-             end do
-             field_names(k,j)= C_NULL_CHAR
-             if (have_option(trim(complete_field_path(sfield%option_path)) // "/particles/include_in_particles/store_old_field")) then
-                old_field_names(1,l) = 'O'
-                old_field_names(2,l) = 'l'
-                old_field_names(3,l) = 'd'
-                do k = 4,len_trim(name)+3
-                   old_field_names(k,l)=name(k-3:k-3)
-                end do
-                old_field_names(k,l)= C_NULL_CHAR
-                do i = 1,nparts    
-                   value = eval_field(ele(i), sfield, lcoords(:,i))
-                   field_vals(j,i)=value
-                   old_field_vals(l,i)=value
-                end do
-                l=l+1
-             else
-                do i = 1,nparts
-                   value = eval_field(ele(i), sfield, lcoords(:,i))
-                   field_vals(j,i)=value
-                end do
-             end if
-             j=j+1
-          end if
-       end do
+    do i = 1, nparts
+      old_field_vals(:,i) = particle%old_fields(:)
+      particle => particle%next
     end do
-    particle => particle_list%first
-    if (allocated(particle%old_fields)) then
-       particle => particle_list%first
-       do i = 1,nparts
-          old_field_vals(:,i) = particle%old_fields
-          particle=>particle%next
-       end do
-    end if
 
-    call set_particles_from_python_fields(func, len(func), size(positions(:,1)), nparts, &
-         lvx, lvy, lvz, time, dt, nfields, field_names, field_vals, old_nfields, old_field_names, &
-         old_field_vals, old_nattributes, old_att_names, old_attributes, attributes, stat)
+    call set_scalar_particles_from_python_fields(func, len(func), dim, nparts, natt, &
+         lvx, lvy, lvz, time, dt, field_counts, field_names, field_vals, old_field_counts, old_field_names, &
+         old_field_vals, old_attr_counts, old_attr_names, old_attr_dims, old_attributes, is_array, attributes, stat)
     if (stat/=0) then
        ewrite(-1, *) "Python error, Python string was:"
        ewrite(-1 , *) trim(func)
        FLExit("Dying")
     end if
-    
-    deallocate(field_names)
-    deallocate(field_vals)
-    deallocate(old_field_names)
-    deallocate(old_field_vals)
-    
-  end subroutine set_particle_attribute_from_python_fields
 
+    deallocate(field_vals)
+    deallocate(old_field_vals)
+  end subroutine set_particle_scalar_attribute_from_python_fields
+
+  !> Given the particle position and time, evaluate the specified python function for a group of particles
+  !! specified in the string func at that location.
+  subroutine set_particle_vector_attribute_from_python(attributes, positions, natt, func, time, dt, is_array)
+    !! Attribute values to set
+    real, dimension(:,:), intent(out) :: attributes
+    !! Current particle positions
+    real, dimension(:,:), target, intent(in) :: positions
+    !! Array dimension of this attribute
+    integer, intent(in) :: natt
+    !! Func may contain any python at all but the following function must
+    !! be defined::
+    !!  def val(X,t,dt)
+    !! where X is position and t is the time. The result must be a float.
+    character(len=*), intent(in) :: func
+    !! Current simulation time
+    real, intent(in) :: time
+    !! Curretn simulation timestep
+    real, intent(in) :: dt
+    !! Whether this is an array-valued attribute
+    logical, intent(in) :: is_array
+
+    real, dimension(:), pointer :: lvx,lvy,lvz
+    real, dimension(0), target :: zero
+    integer :: stat, dim
+
+    dim = size(positions, 1)
+    select case(dim)
+    case(1)
+      lvx=>positions(1,:)
+      lvy=>zero
+      lvz=>zero
+    case(2)
+      lvx=>positions(1,:)
+      lvy=>positions(2,:)
+      lvz=>zero
+    case(3)
+      lvx=>positions(1,:)
+      lvy=>positions(2,:)
+      lvz=>positions(3,:)
+    end select
+
+    if (is_array) then
+      ! call interface with additional array dimension argumetn
+      call set_vector_particles_from_python(func, len(func), dim, &
+            size(attributes,2), natt, lvx, lvy, lvz, time, dt, attributes, stat)
+    else
+      call set_vector_particles_from_python(func, len(func), dim, &
+            size(attributes,2), lvx, lvy, lvz, time, dt, attributes, stat)
+    end if
+    if (stat/=0) then
+      ewrite(-1, *) "Python error, Python string was:"
+      ewrite(-1 , *) trim(func)
+      FLExit("Dying")
+    end if
+  end subroutine set_particle_vector_attribute_from_python
+
+  !> Given a particle position, time and field values, evaluate the python function
+  !! specified in the string func at that location.
+  subroutine set_particle_vector_attribute_from_python_fields(particle_list, state, positions, lcoords, ele, natt, &
+       attributes, old_attr_names, old_attr_counts, old_attr_dims, old_attributes, field_names, field_counts, old_field_names, &
+       old_field_counts, func, time, dt, is_array)
+    !! Particle list for which to evaluate the function
+    type(detector_linked_list), intent(in) :: particle_list
+    !! Model state structure
+    type(state_type), dimension(:), intent(in) :: state
+    !! Current particle positions
+    real, dimension(:,:), target, intent(in) :: positions
+    !! Local coordinates of particle positions
+    real, dimension(:,:), intent(in) :: lcoords
+    !! Elements containing particles
+    integer, dimension(:), intent(in) :: ele
+    !! Array dimnesion of this attribute
+    integer, intent(in) :: natt
+    !! Attribute values to set
+    real, dimension(:,:), intent(out) :: attributes
+    !! Names of attributes stored from the previous timestep
+    character, dimension(:,:), intent(in) :: old_attr_names
+    !! Number of each of scalar, vector, tensor old attributes
+    integer, dimension(3), intent(in) :: old_attr_counts
+    !! Array dimensions of old attributes
+    integer, dimension(:), intent(in) :: old_attr_dims
+    !! Attribute values from the previous timestep
+    real, dimension(:,:), intent(in) :: old_attributes
+    !! Names of fields that are to be passed to Python
+    character, dimension(:,:), intent(in) :: field_names
+    !! Number of each of scalar, vector, tensor fields
+    integer, dimension(3), intent(in) :: field_counts
+    !! Names of old fields that are to be passed to Python
+    character, dimension(:,:), intent(in) :: old_field_names
+    !! Number of each of salar, vector, tensor old fields
+    integer, dimension(3), intent(in) :: old_field_counts
+    !! Func may contain any python at all but the following function must
+    !! be defined::
+    !!  def val(X,t,dt,fields)
+    !! where X is position t is the time, and fields is a dictionary where fields["FieldName"] and fields["OldFieldName" store
+    !! the interpolated value of "FieldName" at the particle position at the current and previous time levels, and fields["OldAttributeName"] stores the attribute
+    !! value at the previous time level. The result must be a float.
+    character(len=*), intent(in) :: func
+    !! Current model time
+    real, intent(in) :: time
+    !! Current model timestep
+    real, intent(in) :: dt
+    !! Whether this is an array-valued attribute
+    logical, intent(in) :: is_array
+
+    ! locals
+    integer :: i, j, field_idx
+    integer :: dim, stat, phase
+    integer :: nparts
+    real, dimension(:), pointer :: lvx, lvy, lvz
+    real, dimension(0), target :: zero
+    type(scalar_field), pointer :: sfield
+    type(vector_field), pointer :: vfield
+    type(tensor_field), pointer :: tfield
+    real, allocatable, dimension(:,:) :: field_vals, old_field_vals
+    type(detector_type), pointer :: particle
+
+    nparts = size(attributes, 2)
+    dim = size(positions, 1)
+    select case(dim)
+    case(1)
+      lvx=>positions(1,:)
+      lvy=>zero
+      lvz=>zero
+    case(2)
+      lvx=>positions(1,:)
+      lvy=>positions(2,:)
+      lvz=>zero
+    case(3)
+      lvx=>positions(1,:)
+      lvy=>positions(2,:)
+      lvz=>positions(3,:)
+    end select
+
+    ! allocate space to hold fields and old fields
+    allocate(field_vals(field_counts(1) + dim*field_counts(2) + dim**2*field_counts(3), nparts))
+    allocate(old_field_vals(old_field_counts(1) + dim*old_field_counts(2) + dim**2*old_field_counts(3), nparts))
+
+    call evaluate_particle_fields(nparts, state, ele, lcoords, &
+         particle_list%field_names, particle_list%field_phases, field_counts, &
+         field_vals, dim)
+
+    ! copy old fields off particles
+    particle => particle_list%first
+    do i = 1, nparts
+      old_field_vals(:,i) = particle%old_fields(:)
+      particle => particle%next
+    end do
+
+    call set_vector_particles_from_python_fields(func, len(func), dim, nparts, natt, &
+         lvx, lvy, lvz, time, dt, field_counts, field_names, field_vals, old_field_counts, old_field_names, &
+         old_field_vals, old_attr_counts, old_attr_names, old_attr_dims, old_attributes, is_array, attributes, stat)
+    if (stat/=0) then
+      ewrite(-1, *) "Python error, Python string was:"
+      ewrite(-1 , *) trim(func)
+      FLExit("Dying")
+    end if
+
+    deallocate(field_vals)
+    deallocate(old_field_vals)
+  end subroutine set_particle_vector_attribute_from_python_fields
+
+  !> Given the particle position and time, evaluate the specified python function for a group of particles
+  !! specified in the string func at that location.
+  subroutine set_particle_tensor_attribute_from_python(attributes, positions, natt, func, time, dt, is_array)
+    !! Attribute values to set
+    real, dimension(:,:), intent(inout) :: attributes
+    !! Current particle positions
+    real, dimension(:,:), target, intent(in) :: positions
+    !! Array dimension of this attribute
+    integer, intent(in) :: natt
+    !! Func may contain any python at all but the following function must
+    !! be defined::
+    !!  def val(X,t,dt)
+    !! where X is position and t is the time. The result must be a float.
+    character(len=*), intent(in) :: func
+    !! Current simulation time
+    real, intent(in) :: time
+    !! Curretn simulation timestep
+    real, intent(in) :: dt
+    !! Whether this is an array-valued attribute
+    logical, intent(in) :: is_array
+
+    real, dimension(:), pointer :: lvx,lvy,lvz
+    real, dimension(0), target :: zero
+    real, dimension(:,:,:,:), allocatable :: tensor_res
+    integer :: i, j, k, dim, idx
+    integer :: nparts
+    integer :: stat
+
+    nparts = size(attributes, 2)
+    dim = size(positions, 1)
+    select case(dim)
+    case(1)
+      lvx=>positions(1,:)
+      lvy=>zero
+      lvz=>zero
+    case(2)
+      lvx=>positions(1,:)
+      lvy=>positions(2,:)
+      lvz=>zero
+    case(3)
+      lvx=>positions(1,:)
+      lvy=>positions(2,:)
+      lvz=>positions(3,:)
+    end select
+
+    allocate(tensor_res(dim,dim,natt,nparts))
+    if (is_array) then
+      call set_tensor_particles_from_python(func, len(func), dim, &
+            nparts, natt, lvx, lvy, lvz, time, dt, tensor_res, stat)
+    else
+      call set_tensor_particles_from_python(func, len(func), dim, &
+            nparts, lvx, lvy, lvz, time, dt, tensor_res, stat)
+    end if
+    if (stat/=0) then
+      ewrite(-1, *) "Python error, Python string was:"
+      ewrite(-1 , *) trim(func)
+      FLExit("Dying")
+    end if
+
+    ! convert tensor to array of attributes
+    attributes(:,:) = reshape(tensor_res, [natt * dim**2, nparts])
+    deallocate(tensor_res)
+  end subroutine set_particle_tensor_attribute_from_python
+  !> Given a particle position, time and field values, evaluate the python function
+  !! specified in the string func at that location.
+  subroutine set_particle_tensor_attribute_from_python_fields(particle_list, state, positions, lcoords, ele, natt, &
+       attributes, old_attr_names, old_attr_counts, old_attr_dims, old_attributes, field_names, field_counts, old_field_names, &
+       old_field_counts, func, time, dt, is_array)
+    !! Particle list for which to evaluate the function
+    type(detector_linked_list), intent(in) :: particle_list
+    !! Model state structure
+    type(state_type), dimension(:), intent(in) :: state
+    !! Current particle positions
+    real, dimension(:,:), target, intent(in) :: positions
+    !! Local coordinates of particle positions
+    real, dimension(:,:), intent(in) :: lcoords
+    !! Elements containing particles
+    integer, dimension(:), intent(in) :: ele
+    !! Array dimension of this attribute
+    integer, intent(in) :: natt
+    !! Attribute values to set
+    real, dimension(:,:), intent(out) :: attributes
+    !! Names of attributes stored from the previous timestep
+    character, dimension(:,:), intent(in) :: old_attr_names
+    !! Number of each of scalar, vector, tensor old attributes
+    integer, dimension(3), intent(in) :: old_attr_counts
+    !! Array dimensions of old attributes
+    integer, dimension(:), intent(in) :: old_attr_dims
+    !! Attribute values from the previous timestep
+    real, dimension(:,:), intent(in) :: old_attributes
+    !! Names of fields that are to be passed to Python
+    character, dimension(:,:), intent(in) :: field_names
+    !! Number of each of scalar, vector, tensor fields
+    integer, dimension(3), intent(in) :: field_counts
+    !! Names of old fields that are to be passed to Python
+    character, dimension(:,:), intent(in) :: old_field_names
+    !! Number of each of salar, vector, tensor old fields
+    integer, dimension(3), intent(in) :: old_field_counts
+    !! Func may contain any python at all but the following function must
+    !! be defined::
+    !!  def val(X,t,dt,fields)
+    !! where X is position t is the time, and fields is a dictionary where fields["FieldName"] and fields["OldFieldName" store
+    !! the interpolated value of "FieldName" at the particle position at the current and previous time levels, and fields["OldAttributeName"] stores the attribute
+    !! value at the previous time level. The result must be a float.
+    character(len=*), intent(in) :: func
+    !! Current model time
+    real, intent(in) :: time
+    !! Current model timestep
+    real, intent(in) :: dt
+    !! Whether this is an array-valued attribute
+    logical, intent(in) :: is_array
+
+    ! locals
+    integer :: i, j, field_idx
+    integer :: dim, stat, phase
+    integer :: nparts
+    real, dimension(:), pointer :: lvx, lvy, lvz
+    real, dimension(0), target :: zero
+    type(scalar_field), pointer :: sfield
+    type(vector_field), pointer :: vfield
+    type(tensor_field), pointer :: tfield
+    real, allocatable, dimension(:,:) :: field_vals, old_field_vals
+    type(detector_type), pointer :: particle
+    real, dimension(:,:,:,:), allocatable :: tensor_res
+
+    nparts = size(attributes, 2)
+    dim = size(positions, 1)
+    select case(dim)
+    case(1)
+      lvx=>positions(1,:)
+      lvy=>zero
+      lvz=>zero
+    case(2)
+      lvx=>positions(1,:)
+      lvy=>positions(2,:)
+      lvz=>zero
+    case(3)
+      lvx=>positions(1,:)
+      lvy=>positions(2,:)
+      lvz=>positions(3,:)
+    end select
+
+    ! allocate space to hold fields and old fields
+    allocate(field_vals(field_counts(1) + dim*field_counts(2) + dim**2*field_counts(3), nparts))
+    allocate(old_field_vals(old_field_counts(1) + dim*old_field_counts(2) + dim**2*old_field_counts(3), nparts))
+
+    call evaluate_particle_fields(nparts, state, ele, lcoords, &
+         particle_list%field_names, particle_list%field_phases, field_counts, &
+         field_vals, dim)
+
+    ! copy old fields off particles
+    particle => particle_list%first
+    do i = 1, nparts
+      old_field_vals(:,i) = particle%old_fields(:)
+      particle => particle%next
+    end do
+
+    allocate(tensor_res(dim,dim,natt,nparts))
+
+    call set_tensor_particles_from_python_fields(func, len(func), dim, nparts, natt, &
+         lvx, lvy, lvz, time, dt, field_counts, field_names, field_vals, old_field_counts, old_field_names, &
+         old_field_vals, old_attr_counts, old_attr_names, old_attr_dims, old_attributes, is_array, tensor_res, stat)
+    if (stat/=0) then
+       ewrite(-1, *) "Python error, Python string was:"
+       ewrite(-1 , *) trim(func)
+       FLExit("Dying")
+    end if
+
+    ! convert tensor to array of attributes
+    attributes(:,:) = reshape(tensor_res, [natt * dim**2, nparts])
+
+    deallocate(tensor_res)
+    deallocate(field_vals)
+    deallocate(old_field_vals)
+  end subroutine set_particle_tensor_attribute_from_python_fields
 end module detector_tools

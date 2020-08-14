@@ -64,12 +64,12 @@
     </finish_time>
   </timestepping>
   <material_phase name="Fields">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0 0</real_value>
           </constant>
         </value>
         <output/>
@@ -79,9 +79,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="CellArea" rank="0">
+    <scalar_field rank="0" name="CellArea">
       <diagnostic>
         <algorithm name="finite_element_lumped_mass_matrix" material_phase_support="single"/>
         <mesh name="P0Mesh"/>
@@ -114,14 +117,14 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1e-06 0 0 1e-06</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">1e-06 0 0 1e-06</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.01 0 0 0.01</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">0.01 0 0 0.01</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

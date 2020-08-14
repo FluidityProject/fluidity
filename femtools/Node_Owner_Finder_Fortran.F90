@@ -37,6 +37,7 @@ module node_owner_finder
   use mpi_interfaces
   use parallel_tools
   use parallel_fields
+  use transform_elements
   use fields
 
   implicit none

@@ -79,7 +79,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="3" dim1="dim" rank="1">0.0 0.0 -1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="3">0.0 0.0 -1.0</real_value>
             </constant>
           </value>
           <output/>
@@ -89,17 +89,20 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
   </physical_parameters>
   <material_phase name="Water">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0 0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0 0 0</real_value>
           </constant>
         </value>
         <output/>
@@ -109,9 +112,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Phytoplankton" rank="0">
+    <scalar_field rank="0" name="Phytoplankton">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -189,7 +195,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Zooplankton" rank="0">
+    <scalar_field rank="0" name="Zooplankton">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -271,7 +277,7 @@
   <ocean_biology>
     <pznd>
       <source_and_sink_algorithm>
-        <string_value lines="20" type="code" language="python">import fluidity.ocean_biology as biology
+        <string_value type="code" language="python" lines="20">import fluidity.ocean_biology as biology
 
 p={}
 p["alpha"]=.1
@@ -281,7 +287,7 @@ p["delta"]=0.01
 
 biology.lotka_volterra(state, p)</string_value>
       </source_and_sink_algorithm>
-      <scalar_field name="PhotosyntheticRadiation" rank="0">
+      <scalar_field rank="0" name="PhotosyntheticRadiation">
         <prescribed>
           <mesh name="VelocityMesh"/>
           <value name="WholeMesh">

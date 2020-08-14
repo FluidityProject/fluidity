@@ -19,7 +19,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
           <regions name="WholeMesh">
             <bottom_depth>
               <python>
-                <string_value lines="20" type="code" language="python">def val(X, t):
+                <string_value type="code" language="python" lines="20">def val(X, t):
     mindepth=0.1
     return mindepth+X[0]</string_value>
               </python>
@@ -73,12 +73,12 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
     </quadrature>
     <ocean_boundaries>
       <top_surface_ids>
-        <integer_value shape="1" rank="1">29</integer_value>
+        <integer_value rank="1" shape="1">29</integer_value>
       </top_surface_ids>
       <bottom_surface_ids>
-        <integer_value shape="1" rank="1">30</integer_value>
+        <integer_value rank="1" shape="1">30</integer_value>
       </bottom_surface_ids>
-      <scalar_field name="DistanceToTop" rank="0">
+      <scalar_field rank="0" name="DistanceToTop">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -98,7 +98,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
           </steady_state>
         </diagnostic>
       </scalar_field>
-      <scalar_field name="DistanceToBottom" rank="0">
+      <scalar_field rank="0" name="DistanceToBottom">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -160,7 +160,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="3" dim1="dim" rank="1">0 0 -1</real_value>
+              <real_value rank="1" dim1="dim" shape="3">0 0 -1</real_value>
             </constant>
           </value>
           <output/>
@@ -170,6 +170,9 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -185,7 +188,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -219,7 +222,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
     import settings
     import ana_sol
     a_0 = settings.a0 # initial maximum perturbation
@@ -248,7 +251,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -268,7 +271,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -318,24 +321,24 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="SidesNoNormalFlow">
           <surface_ids>
-            <integer_value shape="1" rank="1">31</integer_value>
+            <integer_value rank="1" shape="1">31</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions name="fs">
           <surface_ids>
-            <integer_value shape="1" rank="1">29</integer_value>
+            <integer_value rank="1" shape="1">29</integer_value>
           </surface_ids>
           <type name="free_surface"/>
         </boundary_conditions>
         <boundary_conditions name="BottomNoNormalFlow">
           <surface_ids>
-            <integer_value shape="1" rank="1">30</integer_value>
+            <integer_value rank="1" shape="1">30</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
@@ -344,13 +347,16 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
             <value name="WholeMesh">
               <isotropic>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
     import settings
     return settings.eta</string_value>
                 </python>
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -375,7 +381,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="FreeSurface" rank="0">
+    <scalar_field rank="0" name="FreeSurface">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -395,7 +401,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="WettingDryingAlpha" rank="0">
+    <scalar_field rank="0" name="WettingDryingAlpha">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -441,6 +447,9 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>

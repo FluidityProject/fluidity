@@ -36,6 +36,7 @@ module pickers_inquire
   use detector_data_types
   use picker_data_types
   use pickers_base
+  use transform_elements
   use fields
   use node_owner_finder
   use pickers_allocates

@@ -89,7 +89,7 @@
     </coriolis>
   </physical_parameters>
   <material_phase name="Fluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -137,7 +137,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
 	import math
 
 	x, y = x[0] * math.pi, x[1] * math.pi
@@ -170,7 +170,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="GeostrophicPressure" rank="0">
+    <scalar_field rank="0" name="GeostrophicPressure">
       <prognostic>
         <mesh name="GeostrophicPressureMesh"/>
         <spatial_discretisation>
@@ -179,7 +179,7 @@
           </geostrophic_pressure_option>
         </spatial_discretisation>
         <zero_coord>
-          <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
         </zero_coord>
         <solver>
           <iterative_method name="cg"/>
@@ -210,12 +210,12 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Analytic" rank="0">
+    <scalar_field rank="0" name="Analytic">
       <prescribed>
         <mesh name="GeostrophicPressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
 	import math
 
 	x, y = x[0] * math.pi, x[1] * math.pi
@@ -236,8 +236,8 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="ScalarAbsoluteDifference" rank="0">
-      <diagnostic field_name_b="GeostrophicPressure" field_name_a="Analytic">
+    <scalar_field rank="0" name="ScalarAbsoluteDifference">
+      <diagnostic field_name_a="Analytic" field_name_b="GeostrophicPressure">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="GeostrophicPressureMesh"/>
         <output/>

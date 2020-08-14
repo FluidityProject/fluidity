@@ -34,11 +34,13 @@ subroutine test_find_node_ownership_if
   use node_ownership
   use mesh_files
   use unittest_tools
+  use transform_elements
   
   implicit none
   
   integer :: i
-  integer, dimension(:), allocatable :: l_coords, nodeownership
+  real, dimension(:), allocatable :: l_coords
+  integer, dimension(:), allocatable :: nodeownership
   logical :: fail
   type(vector_field) :: positions1, positions2
   

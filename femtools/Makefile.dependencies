@@ -230,7 +230,7 @@ Detector_Move_Lagrangian.o ../include/detector_move_lagrangian.mod: \
    ../include/global_parameters.mod ../include/halo_data_types.mod \
    ../include/halos_base.mod ../include/integer_hash_table_module.mod \
    ../include/parallel_fields.mod ../include/parallel_tools.mod \
-   ../include/state_module.mod
+   ../include/state_module.mod ../include/transform_elements.mod
 
 ../include/detector_parallel.mod: Detector_Parallel.o
 	@true
@@ -253,7 +253,7 @@ Detector_Tools.o ../include/detector_tools.mod: Detector_Tools.F90 \
    ../include/futils.mod ../include/global_parameters.mod \
    ../include/integer_hash_table_module.mod ../include/parallel_fields.mod \
    ../include/parallel_tools.mod ../include/pickers.mod \
-   ../include/state_module.mod
+   ../include/state_module.mod ../include/transform_elements.mod
 
 ../include/dgtools.mod: Dgtools.o
 	@true
@@ -822,7 +822,8 @@ Node_Owner_Finder_Fortran.o ../include/node_owner_finder.mod: \
    Node_Owner_Finder_Fortran.F90 ../include/data_structures.mod \
    ../include/element_numbering.mod ../include/fdebug.h ../include/fields.mod \
    ../include/fldebug.mod ../include/futils.mod ../include/mpi_interfaces.mod \
-   ../include/parallel_fields.mod ../include/parallel_tools.mod
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/transform_elements.mod
 
 ../include/node_ownership.mod: Node_Ownership.o
 	@true
@@ -939,7 +940,8 @@ Pickers_Inquire.o ../include/pickers_inquire.mod: Pickers_Inquire.F90 \
    ../include/element_numbering.mod ../include/fdebug.h ../include/fields.mod \
    ../include/fldebug.mod ../include/node_owner_finder.mod \
    ../include/parallel_tools.mod ../include/picker_data_types.mod \
-   ../include/pickers_allocates.mod ../include/pickers_base.mod
+   ../include/pickers_allocates.mod ../include/pickers_base.mod \
+   ../include/transform_elements.mod
 
 ../include/polynomials.mod: Polynomials.o
 	@true
@@ -964,7 +966,7 @@ Pseudo_Consistent_Interpolation.o \
    Pseudo_Consistent_Interpolation.F90 ../include/data_structures.mod \
    ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
    ../include/fldebug.mod ../include/node_ownership.mod \
-   ../include/state_module.mod
+   ../include/state_module.mod ../include/transform_elements.mod
 
 ../include/quadrature.mod: Quadrature.o
 	@true
@@ -1074,7 +1076,8 @@ Smoothing_module.o ../include/smoothing_module.mod: Smoothing_module.F90 \
 	@true
 
 Solvers.o ../include/solvers.mod: Solvers.F90 ../include/elements.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/fdebug.h ../include/fields.mod \
+   ../include/fields_calculations.mod ../include/fldebug.mod \
    ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
    ../include/meshdiagnostics.mod ../include/multigrid.mod \
    ../include/parallel_tools.mod ../include/petsc_legacy.h \

@@ -74,12 +74,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="BoussinesqFluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
           </constant>
         </value>
         <output>
@@ -91,14 +91,17 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
 	if x[0] &gt; 5.0 and x[1] &gt; 5.0 and x[2] &gt; 5.0:
 		return 1.0
 	else:
@@ -115,7 +118,7 @@
         </particles>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -150,7 +153,7 @@
       </maximum_number_of_nodes>
       <node_locking>
         <python>
-          <string_value lines="20" type="code" language="python">def val(x, t):
+          <string_value type="code" language="python" lines="20">def val(x, t):
 	if x[0] &gt; 5.0:
 		return 1
 	else:
@@ -161,14 +164,14 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">1.0e-6 0.0 0.0 0.0 1.0e-6 0.0 0.0 0.0 1.0e-6</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">1.0e-6 0.0 0.0 0.0 1.0e-6 0.0 0.0 0.0 1.0e-6</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">1.0e6 0.0 0.0 0.0 1.0e6 0.0 0.0 0.0 1.0e6</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">1.0e6 0.0 0.0 0.0 1.0e6 0.0 0.0 0.0 1.0e6</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

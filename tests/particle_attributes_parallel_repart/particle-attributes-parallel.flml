@@ -68,19 +68,19 @@
           </python>
         </initial_position>
         <attributes>
-          <attribute name="Chem1">
+          <scalar_attribute name="Chem1">
             <constant>
               <real_value rank="0">5</real_value>
             </constant>
-          </attribute>
-          <attribute name="Chem2">
+          </scalar_attribute>
+          <scalar_attribute name="Chem2">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   x=X[0]
-  y=fields["OldTemperature"]
+  y=fields["old%Temperature"]
   return y</string_value>
             </python_fields>
-          </attribute>
+          </scalar_attribute>
         </attributes>
       </particle_subgroup>
       <particle_subgroup name="Chris">
@@ -97,15 +97,15 @@
           </python>
         </initial_position>
         <attributes>
-          <attribute name="Chem3">
+          <scalar_attribute name="Chem3">
             <python>
               <string_value type="code" language="python" lines="20">def val(X,t,dt):
   x=X[0]
   y=x+t
   return y</string_value>
             </python>
-          </attribute>
-          <attribute name="Chem4">
+          </scalar_attribute>
+          <scalar_attribute name="Chem4">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   x=X[0]
@@ -113,14 +113,14 @@
   return z</string_value>
               <store_old_attribute/>
             </python_fields>
-          </attribute>
-          <attribute name="Chem5">
+          </scalar_attribute>
+          <scalar_attribute name="Chem5">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  y=fields["OldChem4"]
+  y=fields["old%Chem4"]
   return y</string_value>
             </python_fields>
-          </attribute>
+          </scalar_attribute>
         </attributes>
       </particle_subgroup>
     </particle_group>
@@ -139,13 +139,13 @@
           </python>
         </initial_position>
         <attributes>
-          <attribute name="Chem6">
+          <scalar_attribute name="Chem6">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  z=fields["Temperature"]-fields["OldTemperature"]
+  z=fields["Temperature"]-fields["old%Temperature"]
   return z</string_value>
             </python_fields>
-          </attribute>
+          </scalar_attribute>
         </attributes>
       </particle_subgroup>
     </particle_group>
@@ -194,6 +194,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -217,6 +220,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
     <scalar_field rank="0" name="Temperature">
@@ -228,7 +234,7 @@
   from math import sin, pi
   x = X[0]
   y = X[1]
-  return 2.0-abs(0.5-x)-abs(0.5-y)-sin(t*pi/2.0)/2.0</string_value>
+  return 2.0-sin(t*pi/2.0)/2.0</string_value>
           </python>
         </value>
         <output/>

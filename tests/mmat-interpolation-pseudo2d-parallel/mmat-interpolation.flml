@@ -100,7 +100,7 @@ will get cut off by final_timestep</comment>
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -120,12 +120,12 @@ will get cut off by final_timestep</comment>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import sin, cos
    # Shear rotation about origin.
    return (sin(X[0])*cos(X[1]), -1.0*cos(X[0])*sin(X[1]), 0.0)</string_value>
@@ -138,6 +138,9 @@ will get cut off by final_timestep</comment>
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <consistent_interpolation/>
         <enforce_discrete_properties>
           <solenoidal>
@@ -171,7 +174,7 @@ will get cut off by final_timestep</comment>
         </enforce_discrete_properties>
       </prescribed>
     </vector_field>
-    <scalar_field name="ControlVolumeCFLNumber" rank="0">
+    <scalar_field rank="0" name="ControlVolumeCFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -192,7 +195,7 @@ will get cut off by final_timestep</comment>
         <do_not_recalculate/>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="MaterialVolumeFraction" rank="0">
+    <scalar_field rank="0" name="MaterialVolumeFraction">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -224,7 +227,7 @@ will get cut off by final_timestep</comment>
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
 	from math import sqrt, pi
 	dx1 = X[0]-pi/2
 	dx2 = X[1]-0.2*(1.0+pi)
@@ -251,7 +254,7 @@ will get cut off by final_timestep</comment>
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -308,7 +311,7 @@ will get cut off by final_timestep</comment>
         </galerkin_projection>
       </prognostic>
     </scalar_field>
-    <scalar_field name="ControlVolumeDivergence" rank="0">
+    <scalar_field rank="0" name="ControlVolumeDivergence">
       <diagnostic field_name="Velocity">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -320,13 +323,16 @@ will get cut off by final_timestep</comment>
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <do_not_recalculate/>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Lambda" rank="0">
+    <scalar_field rank="0" name="Lambda">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
@@ -348,9 +354,9 @@ will get cut off by final_timestep</comment>
         <do_not_recalculate/>
       </prescribed>
     </scalar_field>
-    <scalar_field name="NodeOwner" rank="0">
+    <scalar_field rank="0" name="NodeOwner">
       <diagnostic>
-        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
+        <algorithm name="Internal" material_phase_support="multiple" legacy="true"/>
         <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
@@ -379,13 +385,13 @@ will get cut off by final_timestep</comment>
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <aliased material_phase_name="Material1" field_name="Density"/>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <aliased material_phase_name="Material1" field_name="Velocity"/>
     </vector_field>
-    <scalar_field name="MaterialVolumeFraction" rank="0">
+    <scalar_field rank="0" name="MaterialVolumeFraction">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -416,13 +422,13 @@ will get cut off by final_timestep</comment>
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <aliased material_phase_name="Material1" field_name="Density"/>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <aliased material_phase_name="Material1" field_name="Velocity"/>
     </vector_field>
-    <scalar_field name="MaterialVolumeFraction" rank="0">
+    <scalar_field rank="0" name="MaterialVolumeFraction">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -454,7 +460,7 @@ will get cut off by final_timestep</comment>
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
 	from math import sqrt, pi
 	dx1 = X[0]-pi/2
 	dx2 = X[1]-0.55*(1.0+pi)
@@ -481,7 +487,7 @@ will get cut off by final_timestep</comment>
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -538,8 +544,8 @@ will get cut off by final_timestep</comment>
         </galerkin_projection>
       </prognostic>
     </scalar_field>
-    <scalar_field name="ScalarAbsoluteDifference" rank="0">
-      <diagnostic field_name_b="MaterialVolumeFraction" field_name_a="InitialMaterialVolumeFraction">
+    <scalar_field rank="0" name="ScalarAbsoluteDifference">
+      <diagnostic field_name_a="InitialMaterialVolumeFraction" field_name_b="MaterialVolumeFraction">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
         <output/>
@@ -558,12 +564,12 @@ will get cut off by final_timestep</comment>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="InitialMaterialVolumeFraction" rank="0">
+    <scalar_field rank="0" name="InitialMaterialVolumeFraction">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
 	from math import sqrt, pi
 	dx1 = X[0]-pi/2
 	dx2 = X[1]-0.55*(1.0+pi)
@@ -597,7 +603,7 @@ will get cut off by final_timestep</comment>
         <tensor_field name="Gamma">
           <anisotropic_symmetric>
             <constant>
-              <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">1.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 1.0</real_value>
+              <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">1.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 1.0</real_value>
             </constant>
           </anisotropic_symmetric>
         </tensor_field>
@@ -605,14 +611,14 @@ will get cut off by final_timestep</comment>
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">0.01 0.0 0.0 0.0 0.01 0.0 0.0 0.0 0.01</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">0.01 0.0 0.0 0.0 0.01 0.0 0.0 0.0 0.01</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">1.5 0.0 0.0 0.0 1.5 0.0 0.0 0.0 0.01</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">1.5 0.0 0.0 0.0 1.5 0.0 0.0 0.0 0.01</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

@@ -15,18 +15,18 @@
         <mesh name="ExtrudedMesh"/>
         <periodic_boundary_conditions name="x">
           <physical_boundary_ids>
-            <integer_value shape="1" rank="1">10</integer_value>
+            <integer_value rank="1" shape="1">10</integer_value>
           </physical_boundary_ids>
           <aliased_boundary_ids>
-            <integer_value shape="1" rank="1">8</integer_value>
+            <integer_value rank="1" shape="1">8</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import pi
    return(X[0]-1, X[1], X[2])</string_value>
           </coordinate_map>
           <inverse_coordinate_map>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import pi
    return(X[0]+1, X[1], X[2])</string_value>
           </inverse_coordinate_map>
@@ -58,18 +58,18 @@
         <mesh name="ExternalMesh"/>
         <periodic_boundary_conditions name="x">
           <physical_boundary_ids>
-            <integer_value shape="1" rank="1">10</integer_value>
+            <integer_value rank="1" shape="1">10</integer_value>
           </physical_boundary_ids>
           <aliased_boundary_ids>
-            <integer_value shape="1" rank="1">8</integer_value>
+            <integer_value rank="1" shape="1">8</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import pi
    return(X[0]-1, X[1])</string_value>
           </coordinate_map>
           <inverse_coordinate_map>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import pi
    return(X[0]+1, X[1])</string_value>
           </inverse_coordinate_map>
@@ -141,12 +141,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="Main">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0 0.0</real_value>
           </constant>
         </value>
         <output/>
@@ -156,14 +156,17 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Unity" rank="0">
+    <scalar_field rank="0" name="Unity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
   #return (X[0]**2 - X[0])/-0.25
   return 1.0</string_value>
           </python>
@@ -178,7 +181,7 @@
         </particles>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -199,7 +202,7 @@
         </adaptivity_options>
       </prescribed>
     </scalar_field>
-    <scalar_field name="PrognosticFieldConsistent" rank="0">
+    <scalar_field rank="0" name="PrognosticFieldConsistent">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>

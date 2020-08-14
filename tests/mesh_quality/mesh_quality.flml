@@ -66,12 +66,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="Water">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </value>
         <output/>
@@ -81,9 +81,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="RadiusRatio" rank="0">
+    <scalar_field rank="0" name="RadiusRatio">
       <diagnostic>
         <algorithm name="mesh_quality" material_phase_support="single">
           <quality_function name="radius_ratio"/>
@@ -105,7 +108,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="MinAngle" rank="0">
+    <scalar_field rank="0" name="MinAngle">
       <diagnostic>
         <algorithm name="mesh_quality" material_phase_support="single">
           <quality_function name="min_angle"/>
@@ -127,7 +130,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Area" rank="0">
+    <scalar_field rank="0" name="Area">
       <diagnostic>
         <algorithm name="mesh_quality" material_phase_support="single">
           <quality_function name="area_or_volume"/>

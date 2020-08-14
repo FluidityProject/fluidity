@@ -65,12 +65,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="Fluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </value>
         <output>
@@ -82,11 +82,14 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <vector_field name="Choke" rank="1">
+    <vector_field rank="1" name="Choke">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_copy" source_field_name="Choke"/>
+        <algorithm name="vector_copy" material_phase_support="single" source_field_name="Choke" source_field_type="vector"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>
@@ -98,6 +101,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

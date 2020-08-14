@@ -49,12 +49,12 @@
     </finish_time>
   </timestepping>
   <material_phase name="Fluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0 0.0</real_value>
           </constant>
         </value>
         <output>
@@ -66,14 +66,17 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Phi0" rank="0">
+    <scalar_field rank="0" name="Phi0">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
   import math
   
   return math.sin(math.pi * x[0]) * math.sin(math.pi * x[1]) * math.sin(math.pi * x[2])</string_value>
@@ -85,7 +88,7 @@
             <continuous_galerkin/>
             <mixing_bin_bounds>
               <python>
-                <string_value lines="20" type="code" language="python">def val(t):
+                <string_value type="code" language="python" lines="20">def val(t):
   bounds = [float(i) / float(101) for i in range(100)]
   bounds.insert(0, -float("inf"))
   bounds.append(float("inf"))
@@ -103,12 +106,12 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Phi1" rank="0">
+    <scalar_field rank="0" name="Phi1">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
   return x[0]</string_value>
           </python>
         </value>
@@ -118,7 +121,7 @@
             <continuous_galerkin/>
             <mixing_bin_bounds>
               <constant>
-                <real_value shape="5" rank="1">-inf 0.0 0.5 1.0 inf</real_value>
+                <real_value rank="1" shape="5">-inf 0.0 0.5 1.0 inf</real_value>
               </constant>
             </mixing_bin_bounds>
           </include_mixing_stats>

@@ -42,6 +42,7 @@ module solvers
   use Signal_Vars
   use Multigrid
   use sparse_tools_petsc
+  use fields_calculations
   use sparse_matrices_fields
   use vtk_interfaces
   use halos
@@ -79,7 +80,8 @@ module solvers
 private
 
 public petsc_solve, set_solver_options, &
-   complete_solver_option_path, petsc_solve_needs_positions
+   complete_solver_option_path, petsc_solve_needs_positions, &
+   L2_project_nullspace_vector
 
 ! meant for unit-testing solver code only:
 public petsc_solve_core, petsc_solve_destroy, &
@@ -503,7 +505,7 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
         
   ! Copy back the result using the petsc numbering:
   call petsc2field(y, matrix%column_numbering, x)
-  
+
   ! destroy all PETSc objects and the petsc_numbering
   call petsc_solve_destroy_petsc_csr(y, b, solver_option_path)
   
@@ -2539,75 +2541,7 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
    nnodes=size(petsc_numbering%gnn2unn,1)
    dim=size(petsc_numbering%gnn2unn,2)
 
-   if(have_option(trim(null_space_option_path)//'/specify_components')) then
-     ! count how many null spaces we want
-     mask = .false.
-     mask(1) = have_option(trim(null_space_option_path)//&
-                            &"/specify_components/x_component")
-     if (have_option(trim(null_space_option_path)//&
-                            &"/specify_components/y_component")) then
-       if(dim<2) then
-         FLExit("Requested the removal of a y component null space on a less than 2d vector.")
-       end if
-       mask(2) = .true.
-     end if
-     if (have_option(trim(null_space_option_path)//&
-                            &"/specify_components/z_component")) then
-       if(dim<3) then
-         FLExit("Requested the removal of a z component null space on a less than 3d vector.")
-       end if
-       mask(3) = .true.
-     end if
-     if(.not. any(mask)) then
-       FLExit("Requested null space removal on specific components but have not specified which components.")
-     end if
-   else if(have_option(trim(null_space_option_path)//'/all_components')) then
-     mask = .true.
-   else if(have_option(trim(null_space_option_path)//'/no_components')) then
-     mask = .false.
-   end if
-
-   if(have_option(trim(null_space_option_path)//'/specify_rotations')) then
-     rot_mask = .false.
-     rot_mask(3)=have_option(trim(null_space_option_path)//&
-                            &"/specify_rotations/xy_rotation")
-     if (have_option(trim(null_space_option_path)//&
-                            &"/specify_rotations/xz_rotation")) then
-
-       if(dim<3) then
-         FLExit("Requested the removal of xz rotation on a less than 3d vector.")
-       end if
-       rot_mask(2) = .true.
-     end if
-     if (have_option(trim(null_space_option_path)//&
-                            &"/specify_rotations/yz_rotation")) then
-
-       if(dim<3) then
-         FLExit("Requested the removal of yz rotation on a less than 3d vector.")
-       end if
-       rot_mask(1) = .true.
-     end if
-     if(.not. any(rot_mask)) then
-       FLExit("Requested null space removal on specific rotations but have not specified which rotations.")
-     end if
-   else if(have_option(trim(null_space_option_path)//'/all_rotations')) then
-     rot_mask = .false.
-     if (dim==3) then
-       rot_mask = .true.
-     else if (dim==2) then
-       rot_mask(3) = .true.
-     end if
-   else
-     rot_mask = .false.
-   end if
-
-   if (.not. (any(mask) .or. any(rot_mask)) ) then
-      FLExit("You must remove either a component or a rotation.")
-   end if
-
-   if(any(rot_mask) .and. dim<2) then
-     FLExit("Requested the removal of rotational component for a less than 2d vector.")
-   end if 
+   call get_null_space_component_options(null_space_option_path, mask, rot_mask)
 
    nnulls=count(mask)+count(rot_mask)
    ! allocate the array of null spaces
@@ -2732,6 +2666,169 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
 
 end function create_null_space_from_options_vector
 
+subroutine get_null_space_component_options(null_space_option_path, mask, rot_mask)
+   character(len=*), intent(in) :: null_space_option_path
+   logical, dimension(:), intent(out) :: mask  ! length should be field%dim
+   logical, dimension(3), intent(out) :: rot_mask  ! NOTE: always 3-dim
+
+   integer :: dim
+
+   dim = size(mask)
+
+   if(have_option(trim(null_space_option_path)//'/specify_components')) then
+     ! count how many null spaces we want
+     mask = .false.
+     mask(1) = have_option(trim(null_space_option_path)//&
+                            &"/specify_components/x_component")
+     if (have_option(trim(null_space_option_path)//&
+                            &"/specify_components/y_component")) then
+       if(dim<2) then
+         FLExit("Requested the removal of a y component null space on a less than 2d vector.")
+       end if
+       mask(2) = .true.
+     end if
+     if (have_option(trim(null_space_option_path)//&
+                            &"/specify_components/z_component")) then
+       if(dim<3) then
+         FLExit("Requested the removal of a z component null space on a less than 3d vector.")
+       end if
+       mask(3) = .true.
+     end if
+     if(.not. any(mask)) then
+       FLExit("Requested null space removal on specific components but have not specified which components.")
+     end if
+   else if(have_option(trim(null_space_option_path)//'/all_components')) then
+     mask = .true.
+   else if(have_option(trim(null_space_option_path)//'/no_components')) then
+     mask = .false.
+   else
+     ewrite(0,*) "null_space_option_path: ",  null_space_option_path
+     FLAbort("Invalid null_space_option_path")
+   end if
+
+   if(have_option(trim(null_space_option_path)//'/specify_rotations')) then
+     rot_mask = .false.
+     rot_mask(3)=have_option(trim(null_space_option_path)//&
+                            &"/specify_rotations/xy_rotation")
+     if (have_option(trim(null_space_option_path)//&
+                            &"/specify_rotations/xz_rotation")) then
+
+       if(dim<3) then
+         FLExit("Requested the removal of xz rotation on a less than 3d vector.")
+       end if
+       rot_mask(2) = .true.
+     end if
+     if (have_option(trim(null_space_option_path)//&
+                            &"/specify_rotations/yz_rotation")) then
+
+       if(dim<3) then
+         FLExit("Requested the removal of yz rotation on a less than 3d vector.")
+       end if
+       rot_mask(1) = .true.
+     end if
+     if(.not. any(rot_mask)) then
+       FLExit("Requested null space removal on specific rotations but have not specified which rotations.")
+     end if
+   else if(have_option(trim(null_space_option_path)//'/all_rotations')) then
+     rot_mask = .false.
+     if (dim==3) then
+       rot_mask = .true.
+     else if (dim==2) then
+       rot_mask(3) = .true.
+     end if
+   else
+     rot_mask = .false.
+   end if
+
+   if (.not. (any(mask) .or. any(rot_mask)) ) then
+      FLExit("You must remove either a component or a rotation.")
+   end if
+
+   if(any(rot_mask) .and. dim<2) then
+     FLExit("Requested the removal of rotational component for a less than 2d vector.")
+   end if 
+
+end subroutine get_null_space_component_options
+
+subroutine L2_project_nullspace_vector(field, null_space_option_path, coordinates, mesh_positions)
+  ! L2 project the nullspace specified under <null_space_option_path>/remove_null_space
+  ! out of the solution field `field`
+  ! This uses a proper (big) L2 projection, so after the projection
+  ! <n,f> = \int_\Omega n(x)f(x) dx =0 for all null modes n(x)
+  ! This in contrast with an l2-projection, as it used during the petsc solve
+  ! which merely results in \sum_i n_i f_i =0 where n_i and f_i are the DOFs of n(x) and f(x)
+
+  ! solution field to project the nullspace out of:
+  type(vector_field), intent(inout) :: field
+  ! null_space_option_path (should have remove_null_space/ under it)
+  character(len=*), intent(in) :: null_space_option_path
+  ! coordinate field used for integration (should be "Coordinate")
+  type(vector_field), intent(in) :: coordinates
+  ! positions of field%mesh
+  type(vector_field), intent(in) :: mesh_positions
+  
+  type(vector_field) :: null_field
+  integer, dimension(5), parameter:: permutations=(/ 1,2,3,1,2 /)
+  logical, dimension(field%dim) :: mask
+  logical, dimension(3) :: rot_mask
+  integer :: i, j, k
+
+  ewrite(1,*) "Inside L2_project_nullspace_vector"
+
+  call get_null_space_component_options(null_space_option_path, mask, rot_mask)
+
+  call allocate(null_field, field%dim, field%mesh, "NullspaceField")
+  call zero(null_field)
+  do i=1, field%dim
+    if (mask(i)) then
+      call set(null_field, i, 1.0)
+      call L2_project_nullmode_vector(field, null_field, coordinates)
+      call zero(null_field, dim=i)
+    end if
+  end do
+
+  do i=1, 3
+    if (rot_mask(i)) then
+      ! the two directions orthogonal to i
+      j = permutations(i+1)
+      k = permutations(i+2)
+      ! the rotational null field is basically j and k swapped, with a sign in front of one
+      ! while keeping the i component at zero
+      ! note that we do not care about the overall sign here, since the L2 projection takes care of that
+      if (i<=field%dim) then
+        null_field%val(i,:) = 0.
+      end if
+      null_field%val(j,:) = mesh_positions%val(k,:)
+      null_field%val(k,:) = -mesh_positions%val(j,:)
+      call L2_project_nullmode_vector(field, null_field, coordinates)
+    end if
+  end do
+
+  call deallocate(null_field)
+
+end subroutine L2_project_nullspace_vector
+
+subroutine L2_project_nullmode_vector(field, null_field, coordinates)
+  ! L2 project a single null_field out of field
+  ! This uses a proper (big) L2 projection, so after the projection
+  ! <n,f> = \int_\Omega n(x)f(x) dx =0 for null_field n(x) and field f(x)
+
+  ! solution field to project the nullspace out of:
+  type(vector_field), intent(inout) :: field
+  ! null mode to project out
+  type(vector_field), intent(inout) :: null_field
+  ! coordinate field used for integration (should be "Coordinate")
+  type(vector_field), intent(in) :: coordinates
+
+  real :: n_dot_f, n_dot_n
+
+  n_dot_f = dot_product(null_field, field, coordinates)
+  n_dot_n = dot_product(null_field, null_field, coordinates)
+
+  call addto(field, null_field, scale=-n_dot_f/n_dot_n)
+
+end subroutine L2_project_nullmode_vector
+
 function petsc_solve_needs_positions(solver_option_path)
   !!< Auxillary function to tell us if we need to pass in a positions field to petsc_solve
   !!< Currently only for vector solves with remove_null_space or multigrid_near_null_space
@@ -2739,9 +2836,12 @@ function petsc_solve_needs_positions(solver_option_path)
   character(len=*), intent(in):: solver_option_path
   logical:: petsc_solve_needs_positions
 
+  ! for vector fields with multigrid_near_null_space we only need it if we have rotations
+  ! for vector fields with remove_null_space we need it in all cases, since we do a L2 projection afterwards
   petsc_solve_needs_positions = &
-    have_option(trim(solver_option_path)//'/remove_null_space/specify_rotations') .or. &
-    have_option(trim(solver_option_path)//'/remove_null_space/all_rotations') .or. &
+    have_option(trim(solver_option_path)//'/remove_null_space/all_components') .or. &
+    have_option(trim(solver_option_path)//'/remove_null_space/specify_components') .or. &
+    have_option(trim(solver_option_path)//'/remove_null_space/no_components') .or. &
     have_option(trim(solver_option_path)//'/multigrid_near_null_space/specify_rotations') .or. &
     have_option(trim(solver_option_path)//'/multigrid_near_null_space/all_rotations')
 
