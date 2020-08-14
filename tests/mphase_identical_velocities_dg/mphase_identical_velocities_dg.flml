@@ -82,10 +82,10 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <aliased material_phase_name="Fluid1" field_name="Pressure"/>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -105,7 +105,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -158,12 +158,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0 0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="TopWind">
           <surface_ids>
-            <integer_value shape="1" rank="1">333</integer_value>
+            <integer_value rank="1" shape="1">333</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -183,7 +183,7 @@
         </boundary_conditions>
         <boundary_conditions name="OtherWalls">
           <surface_ids>
-            <integer_value shape="2" rank="1">444 666</integer_value>
+            <integer_value rank="1" shape="2">444 666</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -211,6 +211,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -235,7 +238,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="PhaseVolumeFraction" rank="0">
+    <scalar_field rank="0" name="PhaseVolumeFraction">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
@@ -264,7 +267,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -318,7 +321,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -338,7 +341,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -391,12 +394,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0 0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="TopWind">
           <surface_ids>
-            <integer_value shape="1" rank="1">333</integer_value>
+            <integer_value rank="1" shape="1">333</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -416,7 +419,7 @@
         </boundary_conditions>
         <boundary_conditions name="OtherWalls">
           <surface_ids>
-            <integer_value shape="2" rank="1">444 666</integer_value>
+            <integer_value rank="1" shape="2">444 666</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -444,6 +447,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -468,7 +474,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="PhaseVolumeFraction" rank="0">
+    <scalar_field rank="0" name="PhaseVolumeFraction">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">

@@ -84,12 +84,12 @@
     </final_timestep>
   </timestepping>
   <material_phase name="Fields">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
   from math import cos, sin
   return cos(X[0])*sin(X[1]), cos(X[1])*sin(X[0])</string_value>
           </python>
@@ -101,14 +101,17 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Scalar" rank="0">
+    <scalar_field rank="0" name="Scalar">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
   from math import sin,cos
   return sin(X[0])*cos(X[1])</string_value>
           </python>
@@ -124,19 +127,22 @@
         <consistent_interpolation/>
       </prescribed>
     </scalar_field>
-    <tensor_field name="Tensor" rank="2">
+    <tensor_field rank="2" name="Tensor">
       <prescribed>
         <mesh name="P0Mesh"/>
         <value name="WholeMesh">
           <anisotropic_asymmetric>
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value type="code" language="python" lines="20">def val(X,t):
   from math import sin,cos
   return [[cos(X[0]),sin(X[1])],[sin(X[0]),cos(X[1])]]</string_value>
             </python>
           </anisotropic_asymmetric>
         </value>
         <output/>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </tensor_field>
   </material_phase>

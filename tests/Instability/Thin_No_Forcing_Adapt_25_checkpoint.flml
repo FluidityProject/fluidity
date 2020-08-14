@@ -91,7 +91,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">0 -1</real_value>
+              <real_value rank="1" dim1="dim" shape="2">0 -1</real_value>
             </constant>
           </value>
           <output/>
@@ -101,6 +101,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -124,7 +127,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -175,7 +178,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -195,7 +198,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -250,7 +253,7 @@
         </initial_condition>
         <boundary_conditions name="LeftRight">
           <surface_ids>
-            <integer_value shape="2" rank="1">5 6</integer_value>
+            <integer_value rank="1" shape="2">5 6</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -264,7 +267,7 @@
         </boundary_conditions>
         <boundary_conditions name="TopBottom">
           <surface_ids>
-            <integer_value shape="2" rank="1">7 8</integer_value>
+            <integer_value rank="1" shape="2">7 8</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -286,6 +289,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -309,11 +315,11 @@
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <vector_field name="InterpolationErrorBound" rank="1">
+            <vector_field rank="1" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
-                    <real_value shape="2" dim1="dim" rank="1">0.002 0.002</real_value>
+                    <real_value rank="1" dim1="dim" shape="2">0.002 0.002</real_value>
                   </constant>
                 </value>
                 <output/>
@@ -323,6 +329,9 @@
                 <detectors>
                   <exclude_from_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </prescribed>
             </vector_field>
           </absolute_measure>
@@ -330,7 +339,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="GeostrophicPressure" rank="0">
+    <scalar_field rank="0" name="GeostrophicPressure">
       <prognostic>
         <mesh name="GeostrophicPressureMesh"/>
         <spatial_discretisation>
@@ -339,7 +348,7 @@
           </geostrophic_pressure_option>
         </spatial_discretisation>
         <reference_node name="node_1">
-          <integer_value shape="1" rank="0">1</integer_value>
+          <integer_value rank="0" shape="1">1</integer_value>
         </reference_node>
         <solver>
           <iterative_method name="cg"/>
@@ -369,7 +378,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -389,12 +398,12 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="InitialTemperature" rank="0">
+    <scalar_field rank="0" name="InitialTemperature">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
    return (0.025-(X[1]/40000.0))</string_value>
           </python>
         </value>
@@ -408,7 +417,7 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -459,31 +468,34 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
         <stat>
-          <surface_integral type="gradient_normal" name="HeatFlux1">
+          <surface_integral name="HeatFlux1" type="gradient_normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">5</integer_value>
+              <integer_value rank="1" shape="1">5</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="gradient_normal" name="HeatFlux2">
+          <surface_integral name="HeatFlux2" type="gradient_normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">6</integer_value>
+              <integer_value rank="1" shape="1">6</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="gradient_normal" name="HeatFlux3">
+          <surface_integral name="HeatFlux3" type="gradient_normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">7</integer_value>
+              <integer_value rank="1" shape="1">7</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="gradient_normal" name="HeatFlux4">
+          <surface_integral name="HeatFlux4" type="gradient_normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">8</integer_value>
+              <integer_value rank="1" shape="1">8</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="gradient_normal" name="Hf_Total"/>
+          <surface_integral name="Hf_Total" type="gradient_normal"/>
         </stat>
         <convergence>
           <include_in_convergence/>
@@ -499,7 +511,7 @@
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -538,12 +550,12 @@
         </galerkin_projection>
       </prognostic>
     </scalar_field>
-    <scalar_field name="VolumeTemperatureSource" rank="0">
+    <scalar_field rank="0" name="VolumeTemperatureSource">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
 	import math	
 	if X[1]&gt;1800.0:
 		F_xy = 1.0
@@ -576,14 +588,14 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">100 0 0 5</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">100 0 0 5</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1000 0 0 100</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">1000 0 0 100</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

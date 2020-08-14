@@ -78,7 +78,7 @@
     </nonlinear_iterations>
   </timestepping>
   <material_phase name="Fluid">
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -123,7 +123,7 @@
         <no_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -173,12 +173,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="Inflow">
           <surface_ids>
-            <integer_value shape="1" rank="1">10</integer_value>
+            <integer_value rank="1" shape="1">10</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -197,7 +197,7 @@
         </boundary_conditions>
         <boundary_conditions name="walls">
           <surface_ids>
-            <integer_value shape="2" rank="1">11 12</integer_value>
+            <integer_value rank="1" shape="2">11 12</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -216,7 +216,7 @@
         </boundary_conditions>
         <boundary_conditions name="outflow">
           <surface_ids>
-            <integer_value shape="1" rank="1">13</integer_value>
+            <integer_value rank="1" shape="1">13</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian/>
@@ -232,6 +232,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>

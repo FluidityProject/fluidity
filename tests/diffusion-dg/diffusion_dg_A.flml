@@ -98,7 +98,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">0 -1</real_value>
+              <real_value rank="1" dim1="dim" shape="2">0 -1</real_value>
             </constant>
           </value>
           <output/>
@@ -108,12 +108,15 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
   </physical_parameters>
   <material_phase name="MyState">
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -133,12 +136,12 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0 0</real_value>
             <comment>was 1.0,0.0</comment>
           </constant>
         </value>
@@ -149,12 +152,15 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="BR_error" rank="0">
+    <scalar_field rank="0" name="BR_error">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">field1=state.scalar_fields["Tracer_BR"]
+          <string_value type="code" language="python" lines="20">field1=state.scalar_fields["Tracer_BR"]
 field2=state.scalar_fields["TemperatureExact"]
 for i in range(field.node_count):
    field.set(i, field1.node_val(i)-field2.node_val(i))</string_value>
@@ -176,10 +182,10 @@ for i in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="IP_error" rank="0">
+    <scalar_field rank="0" name="IP_error">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">field1=state.scalar_fields["Tracer_IP"]
+          <string_value type="code" language="python" lines="20">field1=state.scalar_fields["Tracer_IP"]
 field2=state.scalar_fields["TemperatureExact"]
 for i in range(field.node_count):
    field.set(i, field1.node_val(i)-field2.node_val(i))</string_value>
@@ -201,12 +207,12 @@ for i in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TemperatureExact" rank="0">
+    <scalar_field rank="0" name="TemperatureExact">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
 	from math import sin,pi,exp
 	x = X[0]
 	y = X[1]
@@ -223,7 +229,7 @@ for i in range(field.node_count):
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Tracer_BR" rank="0">
+    <scalar_field rank="0" name="Tracer_BR">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -264,19 +270,19 @@ for i in range(field.node_count):
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
 	from math import pi,sin
 	return sin(2*pi*X[1])</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="sinusoidal">
           <surface_ids>
-            <integer_value shape="4" rank="1">8 9 10 7</integer_value>
+            <integer_value rank="1" shape="4">8 9 10 7</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value type="code" language="python" lines="20">def val(X,t):
 	from math import pi, sin
 	return sin(2*pi*X[1])</string_value>
             </python>
@@ -292,6 +298,9 @@ for i in range(field.node_count):
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -311,7 +320,7 @@ for i in range(field.node_count):
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Tracer_IP" rank="0">
+    <scalar_field rank="0" name="Tracer_IP">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -362,19 +371,19 @@ for i in range(field.node_count):
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
 	from math import sin, pi
 	return sin(2*pi*X[1])</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="sinusoidal">
           <surface_ids>
-            <integer_value shape="4" rank="1">8 9 10 7</integer_value>
+            <integer_value rank="1" shape="4">8 9 10 7</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value type="code" language="python" lines="20">def val(X,t):
 	from math import sin, pi
 	return sin(2*pi*X[1])</string_value>
             </python>
@@ -390,6 +399,9 @@ for i in range(field.node_count):
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -409,7 +421,7 @@ for i in range(field.node_count):
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Tracer_CDG" rank="0">
+    <scalar_field rank="0" name="Tracer_CDG">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -450,19 +462,19 @@ for i in range(field.node_count):
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
 	from math import sin, pi
 	return sin(2*pi*X[1])</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="sinusoidal">
           <surface_ids>
-            <integer_value shape="4" rank="1">8 9 10 7</integer_value>
+            <integer_value rank="1" shape="4">8 9 10 7</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value type="code" language="python" lines="20">def val(X,t):
 	from math import sin, pi
 	return sin(2*pi*X[1])</string_value>
             </python>
@@ -478,6 +490,9 @@ for i in range(field.node_count):
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -497,10 +512,10 @@ for i in range(field.node_count):
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="CDG_error" rank="0">
+    <scalar_field rank="0" name="CDG_error">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">field1=state.scalar_fields["Tracer_CDG"]
+          <string_value type="code" language="python" lines="20">field1=state.scalar_fields["Tracer_CDG"]
 field2=state.scalar_fields["TemperatureExact"]
 for i in range(field.node_count):
    field.set(i, field1.node_val(i)-field2.node_val(i))</string_value>

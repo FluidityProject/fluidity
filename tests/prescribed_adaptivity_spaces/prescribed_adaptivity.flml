@@ -208,12 +208,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="Fluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </value>
         <output>
@@ -225,14 +225,17 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Tracer1" rank="0">
+    <scalar_field rank="0" name="Tracer1">
       <prescribed>
         <mesh name="Mesh1"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
 	import math
 	r = math.sqrt((x[0] - 0.5) ** 2 + (x[1] - 0.5) ** 2)
 
@@ -256,12 +259,12 @@
         <do_not_recalculate/>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Tracer2" rank="0">
+    <scalar_field rank="0" name="Tracer2">
       <prescribed>
         <mesh name="Mesh2"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
 	import math
 	r = math.sqrt((x[0] - 0.5) ** 2 + (x[1] - 0.5) ** 2)
 
@@ -285,12 +288,12 @@
         <do_not_recalculate/>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Tracer3" rank="0">
+    <scalar_field rank="0" name="Tracer3">
       <prescribed>
         <mesh name="Mesh3"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
 	import math
 	r = math.sqrt((x[0] - 0.5) ** 2 + (x[1] - 0.5) ** 2)
 
@@ -314,12 +317,12 @@
         <do_not_recalculate/>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Tracer4" rank="0">
+    <scalar_field rank="0" name="Tracer4">
       <prescribed>
         <mesh name="Mesh4"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
 	import math
 	r = math.sqrt((x[0] - 0.5) ** 2 + (x[1] - 0.5) ** 2)
 
@@ -358,12 +361,12 @@
         <do_not_recalculate/>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Tracer5" rank="0">
+    <scalar_field rank="0" name="Tracer5">
       <prescribed>
         <mesh name="Mesh5"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
 	import math
 	r = math.sqrt((x[0] - 0.5) ** 2 + (x[1] - 0.5) ** 2)
 
@@ -402,12 +405,12 @@
         <do_not_recalculate/>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Tracer6" rank="0">
+    <scalar_field rank="0" name="Tracer6">
       <prescribed>
         <mesh name="Mesh6"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
 	import math
 	r = math.sqrt((x[0] - 0.5) ** 2 + (x[1] - 0.5) ** 2)
 
@@ -451,7 +454,7 @@
     <prescribed_adaptivity>
       <adapt_interval>
         <python>
-          <string_value lines="20" type="code" language="python">def val(t):
+          <string_value type="code" language="python" lines="20">def val(t):
 	if "meshCounter" in persistent:
 		if persistent["meshCounter"] &gt;= 7:
 			return 0
@@ -464,7 +467,7 @@
       <mesh>
         <name>
           <python>
-            <string_value lines="20" type="code" language="python">def val(t):
+            <string_value type="code" language="python" lines="20">def val(t):
 	if "meshCounter" in persistent:
 		persistent["meshCounter"] += 1
 	else:

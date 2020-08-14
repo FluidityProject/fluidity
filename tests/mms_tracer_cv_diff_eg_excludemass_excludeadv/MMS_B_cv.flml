@@ -76,12 +76,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="Burgers">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">100.0 100.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">100.0 100.0</real_value>
             <comment>def val(XX, t):
    from math import sin,cos
    x = XX[0];
@@ -100,9 +100,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="NumericalSolution" rank="0">
+    <scalar_field rank="0" name="NumericalSolution">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -148,11 +151,11 @@
         </initial_condition>
         <boundary_conditions name="sides">
           <surface_ids>
-            <integer_value shape="2" rank="1">7 9</integer_value>
+            <integer_value rank="1" shape="2">7 9</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="code" language="python">def val(XX, t):
+              <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import sin,cos,sqrt
    omega = 0.0;
    x = XX[0];
@@ -166,11 +169,11 @@
         </boundary_conditions>
         <boundary_conditions name="neumann_x_left">
           <surface_ids>
-            <integer_value shape="1" rank="1">10</integer_value>
+            <integer_value rank="1" shape="1">10</integer_value>
           </surface_ids>
           <type name="neumann">
             <python>
-              <string_value lines="20" type="code" language="python">def val(XX, t):
+              <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import sin,cos,sqrt
    omega = 0.0;
    nu = 0.7;
@@ -186,11 +189,11 @@
         </boundary_conditions>
         <boundary_conditions name="neumann_x_right">
           <surface_ids>
-            <integer_value shape="1" rank="1">8</integer_value>
+            <integer_value rank="1" shape="1">8</integer_value>
           </surface_ids>
           <type name="neumann">
             <python>
-              <string_value lines="20" type="code" language="python">def val(XX, t):
+              <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import sin,cos,sqrt
    omega = 0.0;
    nu = 0.7;
@@ -214,13 +217,16 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <scalar_field name="Source" rank="0">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(XX, t):
+                <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import sin,cos,sqrt
    nu = 0.7;
    omega = 0.0;
@@ -282,12 +288,12 @@ S = T_t + adv*(u*T_x + v*T_y + beta*(T*(u_x + v_y))) - nu*(T_xx + T_yy)
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="AnalyticalSolution" rank="0">
+    <scalar_field rank="0" name="AnalyticalSolution">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(XX, t):
+            <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import sin,cos,sqrt
    omega = 0.0;
    x = XX[0];
@@ -306,7 +312,7 @@ S = T_t + adv*(u*T_x + v*T_y + beta*(T*(u_x + v_y))) - nu*(T_xx + T_yy)
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -326,8 +332,8 @@ S = T_t + adv*(u*T_x + v*T_y + beta*(T*(u_x + v_y))) - nu*(T_xx + T_yy)
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="AbsoluteDifference" rank="0">
-      <diagnostic field_name_b="NumericalSolution" field_name_a="AnalyticalSolution">
+    <scalar_field rank="0" name="AbsoluteDifference">
+      <diagnostic field_name_a="AnalyticalSolution" field_name_b="NumericalSolution">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
         <output/>
@@ -348,7 +354,7 @@ S = T_t + adv*(u*T_x + v*T_y + beta*(T*(u_x + v_y))) - nu*(T_xx + T_yy)
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="ControlVolumeCFLNumber" rank="0">
+    <scalar_field rank="0" name="ControlVolumeCFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>

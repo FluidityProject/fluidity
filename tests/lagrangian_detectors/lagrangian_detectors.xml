@@ -22,7 +22,7 @@ for i in range(3):
   f = h5py.File('lagrangian_detectors.particles.Singl_Lagr_{i}.h5part'.format(i=i+1), 'r')
   d = f['/Step#{}'.format(len(f)-1)]
   last_single_locations_error[0,i] = d['x'][0] - X[vals_idx[i]]
-  last_single_locations_error[0,i] = d['y'][0] - Y[vals_idx[i]]
+  last_single_locations_error[1,i] = d['y'][0] - Y[vals_idx[i]]
     </variable>
     <variable name="last_locations_error" language="python">
 import h5py

@@ -98,7 +98,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">0 -1</real_value>
+              <real_value rank="1" dim1="dim" shape="2">0 -1</real_value>
             </constant>
           </value>
           <output/>
@@ -108,17 +108,20 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
   </physical_parameters>
   <material_phase name="MyState">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0 0</real_value>
             <comment>was 1.0,0.0</comment>
           </constant>
         </value>
@@ -129,12 +132,15 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="BR_error" rank="0">
+    <scalar_field rank="0" name="BR_error">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">field1=state.scalar_fields["Tracer_BR"]
+          <string_value type="code" language="python" lines="20">field1=state.scalar_fields["Tracer_BR"]
 field2=state.scalar_fields["TemperatureExact"]
 for i in range(field.node_count):
    field.set(i, field1.node_val(i)-field2.node_val(i))</string_value>
@@ -156,12 +162,12 @@ for i in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TemperatureExact" rank="0">
+    <scalar_field rank="0" name="TemperatureExact">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
 	from math import sin,pi,exp
 	L = 1000.0
 	x = X[0]/L
@@ -179,7 +185,7 @@ for i in range(field.node_count):
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Tracer_BR" rank="0">
+    <scalar_field rank="0" name="Tracer_BR">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -228,12 +234,12 @@ for i in range(field.node_count):
         </initial_condition>
         <boundary_conditions name="sinusoidal">
           <surface_ids>
-            <integer_value shape="4" rank="1">6 7 8 9</integer_value>
+            <integer_value rank="1" shape="4">6 7 8 9</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value type="code" language="python" lines="20">def val(X,t):
 	from math import pi, sin
   #BR
 	y = X[1]
@@ -246,11 +252,14 @@ for i in range(field.node_count):
             <value name="WholeMesh">
               <diagonal>
                 <constant>
-                  <real_value shape="2" dim1="dim" rank="1">1.0e6 1.0</real_value>
+                  <real_value rank="1" dim1="dim" shape="2">1.0e6 1.0</real_value>
                 </constant>
               </diagonal>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -270,7 +279,7 @@ for i in range(field.node_count):
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Tracer_CDG" rank="0">
+    <scalar_field rank="0" name="Tracer_CDG">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -319,12 +328,12 @@ for i in range(field.node_count):
         </initial_condition>
         <boundary_conditions name="sinusoidal">
           <surface_ids>
-            <integer_value shape="4" rank="1">6 7 8 9</integer_value>
+            <integer_value rank="1" shape="4">6 7 8 9</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value type="code" language="python" lines="20">def val(X,t):
   #CDG
   from math import sin, pi
   y = X[1]
@@ -337,11 +346,14 @@ for i in range(field.node_count):
             <value name="WholeMesh">
               <diagonal>
                 <constant>
-                  <real_value shape="2" dim1="dim" rank="1">1.0e6 1.0</real_value>
+                  <real_value rank="1" dim1="dim" shape="2">1.0e6 1.0</real_value>
                 </constant>
               </diagonal>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -361,10 +373,10 @@ for i in range(field.node_count):
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="CDG_error" rank="0">
+    <scalar_field rank="0" name="CDG_error">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">field1=state.scalar_fields["Tracer_CDG"]
+          <string_value type="code" language="python" lines="20">field1=state.scalar_fields["Tracer_CDG"]
 field2=state.scalar_fields["TemperatureExact"]
 for i in range(field.node_count):
    field.set(i, field1.node_val(i)-field2.node_val(i))</string_value>

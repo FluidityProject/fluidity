@@ -83,12 +83,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="Material1">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import sin, cos
    # Shear rotation about origin.
    return (sin(X[0])*cos(X[1]), -1.0*cos(X[0])*sin(X[1]))</string_value>
@@ -101,6 +101,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <enforce_discrete_properties>
           <solenoidal>
             <interpolated_field>
@@ -132,7 +135,7 @@
         </enforce_discrete_properties>
       </prescribed>
     </vector_field>
-    <scalar_field name="ControlVolumeCFLNumber" rank="0">
+    <scalar_field rank="0" name="ControlVolumeCFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -152,7 +155,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TracerBeta1" rank="0">
+    <scalar_field rank="0" name="TracerBeta1">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -185,7 +188,7 @@
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
 	from math import sqrt, pi
 	xc = pi/2
 	yc = 0.2*(1.0+pi)
@@ -200,7 +203,7 @@
         </initial_condition>
         <boundary_conditions name="keep_it_all_in">
           <surface_ids>
-            <integer_value shape="4" rank="1">7 8 9 10</integer_value>
+            <integer_value rank="1" shape="4">7 8 9 10</integer_value>
           </surface_ids>
           <type name="zero_flux"/>
         </boundary_conditions>
@@ -211,7 +214,7 @@
             <control_volumes/>
             <mixing_bin_bounds>
               <constant>
-                <real_value shape="9" rank="1">-1.0 -1.E-8 1.E-8 0.025 0.5 0.975 0.99999999 1.00000001 2.0</real_value>
+                <real_value rank="1" shape="9">-1.0 -1.E-8 1.E-8 0.025 0.5 0.975 0.99999999 1.00000001 2.0</real_value>
               </constant>
             </mixing_bin_bounds>
             <tolerance>
@@ -259,7 +262,7 @@
         </priority>
       </prognostic>
     </scalar_field>
-    <scalar_field name="TracerBeta0" rank="0">
+    <scalar_field rank="0" name="TracerBeta0">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -292,7 +295,7 @@
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
 	from math import sqrt, pi
 	xc = pi/2
 	yc = 0.2*(1.0+pi)
@@ -307,7 +310,7 @@
         </initial_condition>
         <boundary_conditions name="keep_it_all_in">
           <surface_ids>
-            <integer_value shape="4" rank="1">7 8 9 10</integer_value>
+            <integer_value rank="1" shape="4">7 8 9 10</integer_value>
           </surface_ids>
           <type name="zero_flux"/>
         </boundary_conditions>
@@ -318,7 +321,7 @@
             <control_volumes/>
             <mixing_bin_bounds>
               <constant>
-                <real_value shape="9" rank="1">-1.0 -1.E-8 1.E-8 0.025 0.5 0.975 0.99999999 1.00000001 2.0</real_value>
+                <real_value rank="1" shape="9">-1.0 -1.E-8 1.E-8 0.025 0.5 0.975 0.99999999 1.00000001 2.0</real_value>
               </constant>
             </mixing_bin_bounds>
             <tolerance>
@@ -366,7 +369,7 @@
         </priority>
       </prognostic>
     </scalar_field>
-    <scalar_field name="ControlVolumeDivergence" rank="0">
+    <scalar_field rank="0" name="ControlVolumeDivergence">
       <diagnostic field_name="Velocity">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -378,13 +381,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="ScalarAbsoluteDifference" rank="0">
-      <diagnostic field_name_b="TracerBeta0" field_name_a="TracerBeta1">
+    <scalar_field rank="0" name="ScalarAbsoluteDifference">
+      <diagnostic field_name_a="TracerBeta1" field_name_b="TracerBeta0">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
         <output/>
@@ -412,7 +418,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value type="code" language="python" lines="20">def val(X,t):
    from math import sin, cos
    # Shear rotation about origin.
    dt = 0.00427561316453
@@ -428,6 +434,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </mesh_movement>

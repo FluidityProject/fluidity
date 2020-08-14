@@ -79,12 +79,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="Stuff">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
             <comment>def val(XX, t):
    from math import sin,cos
    x = XX[0];
@@ -106,9 +106,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="NumericalSolution" rank="0">
+    <scalar_field rank="0" name="NumericalSolution">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -158,14 +161,14 @@
         </initial_condition>
         <boundary_conditions name="Dirichlet_all_sides">
           <surface_ids>
-            <integer_value shape="1" rank="1">28</integer_value>
+            <integer_value rank="1" shape="1">28</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly>
               <boundary_overwrites_initial_condition/>
             </apply_weakly>
             <python>
-              <string_value lines="20" type="code" language="python">def val(XX, t):
+              <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import exp
    x = XX[0];
    y = XX[1];
@@ -185,13 +188,16 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <scalar_field name="Source" rank="0">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(XX, t):
+                <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import exp
    x = XX[0];
    y = XX[1];
@@ -258,12 +264,12 @@ sage: S
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="AnalyticalSolution" rank="0">
+    <scalar_field rank="0" name="AnalyticalSolution">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(XX, t):
+            <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import exp
    x = XX[0];
    y = XX[1];
@@ -282,8 +288,8 @@ sage: S
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="AbsoluteDifference" rank="0">
-      <diagnostic field_name_b="NumericalSolution" field_name_a="AnalyticalSolution">
+    <scalar_field rank="0" name="AbsoluteDifference">
+      <diagnostic field_name_a="AnalyticalSolution" field_name_b="NumericalSolution">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
         <output/>

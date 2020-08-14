@@ -39,13 +39,13 @@
         <mesh name="CoordinateMesh"/>
         <periodic_boundary_conditions name="SidesPeriodic">
           <physical_boundary_ids>
-            <integer_value shape="1" rank="1">10</integer_value>
+            <integer_value rank="1" shape="1">10</integer_value>
           </physical_boundary_ids>
           <aliased_boundary_ids>
-            <integer_value shape="1" rank="1">9</integer_value>
+            <integer_value rank="1" shape="1">9</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="code" language="python">def val(x,t):
+            <string_value type="code" language="python" lines="20">def val(x,t):
 	return [x[0]-1.0,x[1]]</string_value>
           </coordinate_map>
         </periodic_boundary_conditions>
@@ -96,7 +96,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">0.0 -1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="2">0.0 -1.0</real_value>
             </constant>
           </value>
           <output/>
@@ -106,17 +106,20 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
   </physical_parameters>
   <material_phase name="BoussinesqFluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">1.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">1.0 0.0</real_value>
           </constant>
         </value>
         <output/>
@@ -126,9 +129,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -179,7 +185,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
 	from math import tanh, sin, pi
 	return tanh(10.0*sin(2*pi*X[0])-0.5) + 1.0</string_value>
             <comment>def val(X, t):
@@ -189,23 +195,23 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="gradient_normal" name="NusseltNoT1">
+          <surface_integral name="NusseltNoT1" type="gradient_normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="gradient_normal" name="NusseltNoT0">
+          <surface_integral name="NusseltNoT0" type="gradient_normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">32</integer_value>
+              <integer_value rank="1" shape="1">32</integer_value>
             </surface_ids>
             <normalise/>
           </surface_integral>
-          <surface_integral type="gradient_normal" name="GradientNormalWholeMesh"/>
+          <surface_integral name="GradientNormalWholeMesh" type="gradient_normal"/>
           <include_mixing_stats name="stats">
             <control_volumes/>
             <mixing_bin_bounds>
               <constant>
-                <real_value shape="6" rank="1">0.0 0.2 0.4 0.6 0.8 1.0</real_value>
+                <real_value rank="1" shape="6">0.0 0.2 0.4 0.6 0.8 1.0</real_value>
               </constant>
             </mixing_bin_bounds>
           </include_mixing_stats>
@@ -225,7 +231,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="DG_CourantNumber" rank="0">
+    <scalar_field rank="0" name="DG_CourantNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>

@@ -85,7 +85,7 @@
         </stiffened_gas>
       </compressible>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -123,7 +123,7 @@
         </solver>
         <initial_condition name="whole_mesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
 	if(X[1]&gt;0.0):
 		return 0.0
 	else:
@@ -147,7 +147,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -165,7 +165,7 @@
         </temporal_discretisation>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
 	if(X[1]&gt;0.0):
 		return 0.2
 	else:
@@ -189,7 +189,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -242,12 +242,12 @@
         </solver>
         <initial_condition name="whole_mesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="no_flow_out_base">
           <surface_ids>
-            <integer_value shape="2" rank="1">29 31</integer_value>
+            <integer_value rank="1" shape="2">29 31</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -261,7 +261,7 @@
         </boundary_conditions>
         <boundary_conditions name="no_flow_out_top_or_bottom">
           <surface_ids>
-            <integer_value shape="2" rank="1">33 34</integer_value>
+            <integer_value rank="1" shape="2">33 34</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -275,7 +275,7 @@
         </boundary_conditions>
         <boundary_conditions name="no_flow_out_sides">
           <surface_ids>
-            <integer_value shape="2" rank="1">30 32</integer_value>
+            <integer_value rank="1" shape="2">30 32</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -292,11 +292,14 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">1.E-3 1.E-3 1.E-3 1.E-3 1.E-3 1.E-3 1.E-3 1.E-3 1.E-3</real_value>
+                  <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">1.E-3 1.E-3 1.E-3 1.E-3 1.E-3 1.E-3 1.E-3 1.E-3 1.E-3</real_value>
                 </constant>
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -321,7 +324,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="InternalEnergy" rank="0">
+    <scalar_field rank="0" name="InternalEnergy">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="InternalEnergy">
@@ -389,7 +392,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="ControlVolumeDivergence" rank="0">
+    <scalar_field rank="0" name="ControlVolumeDivergence">
       <diagnostic field_name="Velocity">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -401,6 +404,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

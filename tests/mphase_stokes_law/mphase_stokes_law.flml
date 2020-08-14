@@ -85,7 +85,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">0.0 -1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="2">0.0 -1.0</real_value>
             </constant>
           </value>
           <output/>
@@ -95,6 +95,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -109,10 +112,10 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <aliased material_phase_name="Tephra" field_name="Pressure"/>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -132,7 +135,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -142,7 +145,7 @@
               <streamline_upwind>
                 <nu_bar_optimal/>
                 <nu_scale name="0.5">
-                  <real_value shape="1" rank="0">0.5</real_value>
+                  <real_value rank="0" shape="1">0.5</real_value>
                 </nu_scale>
               </streamline_upwind>
             </stabilisation>
@@ -187,24 +190,24 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="Sides">
           <surface_ids>
-            <integer_value shape="1" rank="1">666</integer_value>
+            <integer_value rank="1" shape="1">666</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions name="Bottom">
           <surface_ids>
-            <integer_value shape="1" rank="1">444</integer_value>
+            <integer_value rank="1" shape="1">444</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions name="Top">
           <surface_ids>
-            <integer_value shape="1" rank="1">333</integer_value>
+            <integer_value rank="1" shape="1">333</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
@@ -218,6 +221,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -242,7 +248,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="PhaseVolumeFraction" rank="0">
+    <scalar_field rank="0" name="PhaseVolumeFraction">
       <diagnostic>
         <mesh name="VelocityMesh"/>
         <algorithm name="Internal" material_phase_support="multiple"/>
@@ -275,7 +281,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -324,7 +330,7 @@
         <no_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -344,7 +350,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -354,7 +360,7 @@
               <streamline_upwind>
                 <nu_bar_optimal/>
                 <nu_scale name="0.5">
-                  <real_value shape="1" rank="0">0.5</real_value>
+                  <real_value rank="0" shape="1">0.5</real_value>
                 </nu_scale>
               </streamline_upwind>
             </stabilisation>
@@ -399,24 +405,24 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="Sides">
           <surface_ids>
-            <integer_value shape="1" rank="1">666</integer_value>
+            <integer_value rank="1" shape="1">666</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions name="Bottom">
           <surface_ids>
-            <integer_value shape="1" rank="1">444</integer_value>
+            <integer_value rank="1" shape="1">444</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions name="Top">
           <surface_ids>
-            <integer_value shape="1" rank="1">333</integer_value>
+            <integer_value rank="1" shape="1">333</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
@@ -430,6 +436,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -454,7 +463,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="PhaseVolumeFraction" rank="0">
+    <scalar_field rank="0" name="PhaseVolumeFraction">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -512,7 +521,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="ReynoldsNumber" rank="0">
+    <scalar_field rank="0" name="ReynoldsNumber">
       <diagnostic>
         <algorithm name="particle_reynolds_number" material_phase_support="multiple">
           <depends>
@@ -540,10 +549,10 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="DragForce" rank="1">
+    <vector_field rank="1" name="DragForce">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="code" language="python">## Calculates the fluid-particle drag force interaction term
+          <string_value type="code" language="python" lines="20">## Calculates the fluid-particle drag force interaction term
 from math import sqrt, pi
 
 vfrac_tephra = states["Tephra"].scalar_fields["PhaseVolumeFraction"]
@@ -600,15 +609,18 @@ for i in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="BuoyancyForce" rank="1">
+    <vector_field rank="1" name="BuoyancyForce">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="code" language="python">## Calculates the fluid-particle drag force interaction term
+          <string_value type="code" language="python" lines="20">## Calculates the fluid-particle drag force interaction term
 from math import sqrt, pi
 
 vfrac_tephra = states["Tephra"].scalar_fields["PhaseVolumeFraction"]
@@ -645,15 +657,18 @@ for i in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="TerminalVelocity" rank="1">
+    <vector_field rank="1" name="TerminalVelocity">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="code" language="python">## Calculates the fluid-particle drag force interaction term
+          <string_value type="code" language="python" lines="20">## Calculates the fluid-particle drag force interaction term
 from math import sqrt, pi
 
 vfrac_tephra = states["Tephra"].scalar_fields["PhaseVolumeFraction"]
@@ -689,6 +704,9 @@ for i in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

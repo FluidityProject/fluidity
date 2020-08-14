@@ -65,12 +65,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="Fluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </value>
         <output>
@@ -82,11 +82,14 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="One" rank="0">
+    <scalar_field rank="0" name="One">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_copy" source_field_name="Three"/>
+        <algorithm name="scalar_copy" material_phase_support="single" source_field_name="Three" source_field_type="scalar"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
@@ -104,9 +107,9 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Two" rank="0">
+    <scalar_field rank="0" name="Two">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_copy" source_field_name="One"/>
+        <algorithm name="scalar_copy" material_phase_support="single" source_field_name="One" source_field_type="scalar"/>
         <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
@@ -124,9 +127,9 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Three" rank="0">
+    <scalar_field rank="0" name="Three">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_copy" source_field_name="Two"/>
+        <algorithm name="scalar_copy" material_phase_support="single" source_field_name="Two" source_field_type="scalar"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat/>

@@ -80,12 +80,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="Burgers">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(XX, t):
+            <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import sin,cos
    x = XX[0];
    y = XX[1];
@@ -103,9 +103,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="NumericalSolution" rank="0">
+    <scalar_field rank="0" name="NumericalSolution">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -168,12 +171,12 @@
         </initial_condition>
         <boundary_conditions name="sides">
           <surface_ids>
-            <integer_value shape="4" rank="1">7 8 9 10</integer_value>
+            <integer_value rank="1" shape="4">7 8 9 10</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
             <python>
-              <string_value lines="20" type="code" language="python">def val(XX, t):
+              <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import sin,cos,sqrt
    omega = 0.0;
    x = XX[0];
@@ -189,7 +192,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(XX, t):
+                <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import sin,cos,sqrt
    omega = 0.0;
    x = XX[0];
@@ -231,12 +234,12 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="AnalyticalSolution" rank="0">
+    <scalar_field rank="0" name="AnalyticalSolution">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(XX, t):
+            <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import sin,cos,sqrt
    omega = 0.0;
    x = XX[0];
@@ -255,7 +258,7 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="ControlVolumeCFLNumber" rank="0">
+    <scalar_field rank="0" name="ControlVolumeCFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -275,8 +278,8 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="AbsoluteDifference" rank="0">
-      <diagnostic field_name_b="NumericalSolution" field_name_a="AnalyticalSolution">
+    <scalar_field rank="0" name="AbsoluteDifference">
+      <diagnostic field_name_a="AnalyticalSolution" field_name_b="NumericalSolution">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
         <output/>

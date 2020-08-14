@@ -118,7 +118,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -170,7 +170,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -190,7 +190,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -214,7 +214,7 @@
                   <real_value rank="0">888.8</real_value>
                 </smagorinsky_coefficient>
                 <length_scale_type>scalar</length_scale_type>
-                <tensor_field name="EddyViscosity" rank="2">
+                <tensor_field rank="2" name="EddyViscosity">
                   <diagnostic>
                     <algorithm name="Internal" material_phase_support="multiple"/>
                     <mesh name="VelocityMesh"/>
@@ -222,6 +222,9 @@
                     <stat>
                       <include_in_stat/>
                     </stat>
+                    <particles>
+                      <exclude_from_particles/>
+                    </particles>
                     <mass_matrix>
                       <use_consistent_mass_matrix/>
                     </mass_matrix>
@@ -263,25 +266,25 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="all_sides">
           <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value rank="1" shape="1">1</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_les_second_order_p2p1_tools as tools
    return tools.u(X)</string_value>
                 </python>
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_les_second_order_p2p1_tools as tools
    return tools.v(X)</string_value>
                 </python>
@@ -294,18 +297,21 @@
             <value name="WholeMesh">
               <anisotropic_asymmetric>
                 <constant>
-                  <real_value symmetric="false" dim2="dim" shape="2 2" dim1="dim" rank="2">0.7 0.7 0.7 0.7</real_value>
+                  <real_value symmetric="false" rank="2" dim1="dim" dim2="dim" shape="2 2">0.7 0.7 0.7 0.7</real_value>
                 </constant>
               </anisotropic_asymmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <vector_field name="Source" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_les_second_order_p2p1_tools as tools
    density = tools.rho(X)
    forcing_velocity = tools.forcing_velocity(X)
@@ -322,6 +328,9 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </vector_field>
         <output>
@@ -348,12 +357,12 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="PressureAnalytical" rank="0">
+    <scalar_field rank="0" name="PressureAnalytical">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_les_second_order_p2p1_tools as tools
    return tools.p(X)</string_value>
           </python>
@@ -368,9 +377,9 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="PressureError" rank="0">
+    <scalar_field rank="0" name="PressureError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="PressureRepinned" source_field_2_name="PressureAnalytical" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="PressureRepinned" source_field_1_type="scalar" source_field_2_name="PressureAnalytical" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="PressureMesh"/>
@@ -390,7 +399,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -410,11 +419,11 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PressureRepinned" rank="0">
+    <scalar_field rank="0" name="PressureRepinned">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="subtract_point_value" source_field_name="Pressure">
+        <algorithm name="subtract_point_value" material_phase_support="single" source_field_name="Pressure" source_field_type="scalar">
           <coordinates>
-            <real_value shape="2" dim1="dim" rank="1">0. 0.</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0. 0.</real_value>
           </coordinates>
         </algorithm>
         <mesh name="PressureMesh"/>
@@ -434,12 +443,12 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="VelocityAnalytical" rank="1">
+    <vector_field rank="1" name="VelocityAnalytical">
       <prescribed>
         <mesh name="ErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_les_second_order_p2p1_tools as tools
    return tools.velocity(X)</string_value>
           </python>
@@ -451,11 +460,14 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <vector_field name="VelocityProjection" rank="1">
+    <vector_field rank="1" name="VelocityProjection">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="Velocity">
+        <algorithm name="vector_galerkin_projection" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -482,14 +494,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="VelocityError" rank="1">
+    <vector_field rank="1" name="VelocityError">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="VelocityProjection" source_field_2_name="VelocityAnalytical" material_phase_support="single" source_field_1_type="vector">
+        <algorithm name="vector_difference" material_phase_support="single" source_field_1_name="VelocityProjection" source_field_1_type="vector" source_field_2_name="VelocityAnalytical" source_field_2_type="vector">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
@@ -503,18 +518,21 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <tensor_field name="EddyViscosityAnalytical" rank="2">
+    <tensor_field rank="2" name="EddyViscosityAnalytical">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <anisotropic_asymmetric>
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_les_second_order_p2p1_tools as tools
    return [[tools.nu_T(X), tools.nu_T(X)],
            [tools.nu_T(X), tools.nu_T(X)]]</string_value>
@@ -522,11 +540,14 @@
           </anisotropic_asymmetric>
         </value>
         <output/>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </tensor_field>
-    <tensor_field name="EddyViscosityError" rank="2">
+    <tensor_field rank="2" name="EddyViscosityError">
       <diagnostic>
-        <algorithm source_field_2_type="tensor" name="tensor_difference" source_field_1_name="EddyViscosityCopy" source_field_2_name="EddyViscosityAnalytical" material_phase_support="single" source_field_1_type="tensor">
+        <algorithm name="tensor_difference" material_phase_support="single" source_field_1_name="EddyViscosityCopy" source_field_1_type="tensor" source_field_2_name="EddyViscosityAnalytical" source_field_2_type="tensor">
           <absolute_difference/>
         </algorithm>
         <mesh name="VelocityMesh"/>
@@ -534,12 +555,15 @@
         <stat>
           <include_in_stat/>
         </stat>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </diagnostic>
     </tensor_field>
-    <tensor_field name="EddyViscosityCopy" rank="2">
+    <tensor_field rank="2" name="EddyViscosityCopy">
       <diagnostic>
         <algorithm name="tensor_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python"># Unfortunately, the tensor_difference algorithm does not find EddyViscosity in the LES model options path. So let's copy it here instead.
+          <string_value type="code" language="python" lines="20"># Unfortunately, the tensor_difference algorithm does not find EddyViscosity in the LES model options path. So let's copy it here instead.
 
 ev = states["Fluid"].tensor_fields["EddyViscosity"]
 
@@ -551,6 +575,9 @@ for i in range(field.node_count):
         <stat>
           <include_in_stat/>
         </stat>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </diagnostic>
     </tensor_field>
   </material_phase>

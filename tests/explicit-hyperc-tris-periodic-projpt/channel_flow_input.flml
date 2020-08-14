@@ -23,13 +23,13 @@
         <mesh name="CoordinateMesh"/>
         <periodic_boundary_conditions name="ends">
           <physical_boundary_ids>
-            <integer_value shape="1" rank="1">31</integer_value>
+            <integer_value rank="1" shape="1">31</integer_value>
           </physical_boundary_ids>
           <aliased_boundary_ids>
-            <integer_value shape="1" rank="1">29</integer_value>
+            <integer_value rank="1" shape="1">29</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    return (X[0],X[1]+1.0)</string_value>
           </coordinate_map>
         </periodic_boundary_conditions>
@@ -85,12 +85,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="Water">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 1.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 1.0</real_value>
           </constant>
         </value>
         <output/>
@@ -100,9 +100,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Tracer" rank="0">
+    <scalar_field rank="0" name="Tracer">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -135,7 +138,7 @@
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
 	if((X[1]&gt;=-0.1)and(X[1]&lt;=0.1)):
  		return 1.0
 	else:
@@ -164,7 +167,7 @@
         </priority>
       </prognostic>
     </scalar_field>
-    <scalar_field name="ControlVolumeCFLNumber" rank="0">
+    <scalar_field rank="0" name="ControlVolumeCFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>

@@ -56,12 +56,12 @@
     </finish_time>
   </timestepping>
   <material_phase name="fluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0 0</real_value>
           </constant>
         </value>
         <output/>
@@ -71,14 +71,17 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="m0_anal" rank="0">
+    <scalar_field rank="0" name="m0_anal">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import tanh
    phi_inf=10.0
    phi_t = phi_inf*( (1.0+phi_inf*tanh(phi_inf*(t/2.0)))/(phi_inf+tanh(phi_inf*(t/2.0))) )
@@ -95,12 +98,12 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="m1_anal" rank="0">
+    <scalar_field rank="0" name="m1_anal">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import tanh, pi
    phi_inf=10.0
    phi_t = phi_inf*( (1.0+phi_inf*tanh(phi_inf*(t/2.0)))/(phi_inf+tanh(phi_inf*(t/2.0))) )
@@ -120,12 +123,12 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="m2_anal" rank="0">
+    <scalar_field rank="0" name="m2_anal">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import tanh, pi
    phi_inf=10.0
    phi_t = phi_inf*( (1.0+phi_inf*tanh(phi_inf*(t/2.0)))/(phi_inf+tanh(phi_inf*(t/2.0))) )
@@ -145,12 +148,12 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="m3_anal" rank="0">
+    <scalar_field rank="0" name="m3_anal">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import tanh, pi
    phi_inf=10.0
    phi_t = phi_inf*( (1.0+phi_inf*tanh(phi_inf*(t/2.0)))/(phi_inf+tanh(phi_inf*(t/2.0))) )
@@ -170,10 +173,10 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="diff_m0" rank="0">
+    <scalar_field rank="0" name="diff_m0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">mom0_anal=state.scalar_fields["m0_anal"]
+          <string_value type="code" language="python" lines="20">mom0_anal=state.scalar_fields["m0_anal"]
 mom0_dqmom=state.scalar_fields["Moment_0"]
 for i in range(field.node_count):
   field.set(i, abs(mom0_dqmom.node_val(i)-mom0_anal.node_val(i))/abs(mom0_anal.node_val(i)))</string_value>
@@ -198,10 +201,10 @@ for i in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="diff_m1" rank="0">
+    <scalar_field rank="0" name="diff_m1">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">mom1_anal=state.scalar_fields["m1_anal"]
+          <string_value type="code" language="python" lines="20">mom1_anal=state.scalar_fields["m1_anal"]
 mom1_dqmom=state.scalar_fields["Moment_1"]
 for i in range(field.node_count):
   field.set(i, abs(mom1_dqmom.node_val(i)-mom1_anal.node_val(i))/abs(mom1_anal.node_val(i)))</string_value>
@@ -226,10 +229,10 @@ for i in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="diff_m2" rank="0">
+    <scalar_field rank="0" name="diff_m2">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">mom2_anal=state.scalar_fields["m2_anal"]
+          <string_value type="code" language="python" lines="20">mom2_anal=state.scalar_fields["m2_anal"]
 mom2_dqmom=state.scalar_fields["Moment_2"]
 for i in range(field.node_count):
   field.set(i, abs(mom2_dqmom.node_val(i)-mom2_anal.node_val(i))/abs(mom2_anal.node_val(i)))</string_value>
@@ -254,10 +257,10 @@ for i in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="diff_m3" rank="0">
+    <scalar_field rank="0" name="diff_m3">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">mom3_anal=state.scalar_fields["m3_anal"]
+          <string_value type="code" language="python" lines="20">mom3_anal=state.scalar_fields["m3_anal"]
 mom3_dqmom=state.scalar_fields["Moment_3"]
 for i in range(field.node_count):
   field.set(i, abs(mom3_dqmom.node_val(i)-mom3_anal.node_val(i))/abs(mom3_anal.node_val(i)))</string_value>
@@ -285,7 +288,7 @@ for i in range(field.node_count):
     <population_balance name="DQMOM">
       <calculate_initial_conditions_from_moments/>
       <abscissa>
-        <scalar_field name="Abscissa_0" rank="0">
+        <scalar_field rank="0" name="Abscissa_0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -305,7 +308,7 @@ for i in range(field.node_count):
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="Abscissa_1" rank="0">
+        <scalar_field rank="0" name="Abscissa_1">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -327,7 +330,7 @@ for i in range(field.node_count):
         </scalar_field>
       </abscissa>
       <weights>
-        <scalar_field name="Weight_0" rank="0">
+        <scalar_field rank="0" name="Weight_0">
           <prognostic>
             <mesh name="VelocityMesh"/>
             <equation name="AdvectionDiffusion"/>
@@ -403,7 +406,7 @@ for i in range(field.node_count):
             <consistent_interpolation/>
           </prognostic>
         </scalar_field>
-        <scalar_field name="Weight_1" rank="0">
+        <scalar_field rank="0" name="Weight_1">
           <prognostic>
             <mesh name="VelocityMesh"/>
             <equation name="AdvectionDiffusion"/>
@@ -481,7 +484,7 @@ for i in range(field.node_count):
         </scalar_field>
       </weights>
       <weighted_abscissa>
-        <scalar_field name="WeightedAbscissa_0" rank="0">
+        <scalar_field rank="0" name="WeightedAbscissa_0">
           <prognostic>
             <mesh name="VelocityMesh"/>
             <equation name="AdvectionDiffusion"/>
@@ -524,7 +527,7 @@ for i in range(field.node_count):
             </solver>
             <initial_condition name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    return (0.99480625*1.13701522)</string_value>
               </python>
             </initial_condition>
@@ -558,7 +561,7 @@ for i in range(field.node_count):
             <consistent_interpolation/>
           </prognostic>
         </scalar_field>
-        <scalar_field name="WeightedAbscissa_1" rank="0">
+        <scalar_field rank="0" name="WeightedAbscissa_1">
           <prognostic>
             <mesh name="VelocityMesh"/>
             <equation name="AdvectionDiffusion"/>
@@ -601,7 +604,7 @@ for i in range(field.node_count):
             </solver>
             <initial_condition name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    return (0.00519377*-4.46492922)</string_value>
               </python>
             </initial_condition>
@@ -640,7 +643,7 @@ for i in range(field.node_count):
         <use_mass_lumping/>
       </adv_diff_source_term_interpolation>
       <moments>
-        <scalar_field name="Moment_0" rank="0">
+        <scalar_field rank="0" name="Moment_0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -665,13 +668,13 @@ for i in range(field.node_count):
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="Moment_1" rank="0">
+        <scalar_field rank="0" name="Moment_1">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
             <initial_condition name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    from math import pi
    mom1 = (6./pi)**(1./3.) * 0.89297951
    return mom1</string_value>
@@ -693,13 +696,13 @@ for i in range(field.node_count):
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="Moment_2" rank="0">
+        <scalar_field rank="0" name="Moment_2">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
             <initial_condition name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    from math import pi
    mom2 = (6./pi)**(2./3.) * 0.90274529
    return mom2</string_value>
@@ -721,13 +724,13 @@ for i in range(field.node_count):
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="Moment_3" rank="0">
+        <scalar_field rank="0" name="Moment_3">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
             <initial_condition name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    from math import pi
    mom3 = (6./pi)
    return mom3</string_value>
