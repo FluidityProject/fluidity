@@ -2800,6 +2800,7 @@ subroutine L2_project_nullspace_vector(field, null_space_option_path, coordinate
       end if
       null_field%val(j,:) = mesh_positions%val(k,:)
       null_field%val(k,:) = -mesh_positions%val(j,:)
+      call zero_bubble_vals(null_field)
       call L2_project_nullmode_vector(field, null_field, coordinates)
     end if
   end do
