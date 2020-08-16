@@ -1843,8 +1843,8 @@ i.e. Density multiplied by the PhaseVolumeFraction field.</a:documentation>
   <!-- Mesh -->
   <define name="region_id_algorithm">
     <element name="algorithm">
-      <a:documentation>Convert the region_ids to a field. Best stored on a DG mesh as these are
-element-wise values.</a:documentation>
+      <a:documentation>Convert the region_ids to a field. This field must be on a P0 mesh
+(i.e. degree 0 and discontinuous) as these are element-wise values.</a:documentation>
       <attribute name="name">
         <value>region_ids</value>
       </attribute>

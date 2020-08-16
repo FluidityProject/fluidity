@@ -156,6 +156,10 @@ contains
       FLAbort("No region ids stored on mesh.")
     end if
 
+    if(.not.(s_field%mesh%shape%degree==0 .and. s_field%mesh%continuity<0)) then
+      FLExit("Diagnostic region_ids field should be on a P0(DG) mesh")
+    end if
+
     call set_all(s_field, float(s_field%mesh%region_ids))
 
     ewrite(1, *) "Exiting calculate_region_ids"

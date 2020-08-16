@@ -1362,8 +1362,8 @@ l2norm_algorithm =
    
 region_id_algorithm =
    (
-      ## Convert the region_ids to a field. Best stored on a DG mesh as these are
-      ## element-wise values.
+      ## Convert the region_ids to a field. This field must be on a P0 mesh
+      ## (i.e. degree 0 and discontinuous) as these are element-wise values.
       element algorithm {
         attribute name { "region_ids" },
         attribute material_phase_support { "single" }
