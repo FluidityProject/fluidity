@@ -1360,6 +1360,16 @@ l2norm_algorithm =
 
 # Mesh
    
+region_id_algorithm =
+   (
+      ## Convert the region_ids to a field. This field must be on a P0 mesh
+      ## (i.e. degree 0 and discontinuous) as these are element-wise values.
+      element algorithm {
+        attribute name { "region_ids" },
+        attribute material_phase_support { "single" }
+      }
+   )
+
 column_id_algorithm =
    (
       ## Convert the column_ids to a field.
@@ -1644,6 +1654,7 @@ scalar_diagnostic_algorithms |= element_ownership_algorithm
 scalar_diagnostic_algorithms |= element_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= div_algorithm
 scalar_diagnostic_algorithms |= curl_2d_algorithm
+scalar_diagnostic_algorithms |= region_id_algorithm
 scalar_diagnostic_algorithms |= column_id_algorithm
 scalar_diagnostic_algorithms |= finite_element_lumped_mass_matrix
 scalar_diagnostic_algorithms |= control_volume_mass_matrix
