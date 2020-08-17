@@ -233,7 +233,7 @@ then
     if test $? -eq 0;
     then
       HAVE_ASSESS=yes
-      AC_MSG_NOTICE([Successfully import assess python module])
+      AC_MSG_NOTICE([Successfully imported assess python module])
     else
       HAVE_ASSESS=no
       AC_MSG_NOTICE([Failed to import (optional) python module assess])

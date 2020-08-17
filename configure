@@ -6356,8 +6356,8 @@ See \`config.log' for more details" "$LINENO" 5; }
     if test $? -eq 0;
     then
       HAVE_ASSESS=yes
-      { $as_echo "$as_me:${as_lineno-$LINENO}: Successfully import assess python module" >&5
-$as_echo "$as_me: Successfully import assess python module" >&6;}
+      { $as_echo "$as_me:${as_lineno-$LINENO}: Successfully imported assess python module" >&5
+$as_echo "$as_me: Successfully imported assess python module" >&6;}
     else
       HAVE_ASSESS=no
       { $as_echo "$as_me:${as_lineno-$LINENO}: Failed to import (optional) python module assess" >&5
