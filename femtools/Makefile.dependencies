@@ -1075,8 +1075,8 @@ Smoothing_module.o ../include/smoothing_module.mod: Smoothing_module.F90 \
 ../include/solvers.mod: Solvers.o
 	@true
 
-Solvers.o ../include/solvers.mod: Solvers.F90 ../include/elements.mod \
-   ../include/fdebug.h ../include/fields.mod \
+Solvers.o ../include/solvers.mod: Solvers.F90 ../include/element_numbering.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fields.mod \
    ../include/fields_calculations.mod ../include/fldebug.mod \
    ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
    ../include/meshdiagnostics.mod ../include/multigrid.mod \
