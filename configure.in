@@ -227,6 +227,18 @@ then
     else
 	echo "Failed to locate Numpy"
     fi
+    # check for the assess python package used in some tests
+    # (see https://github.com/stephankramer/assess/)
+    $PYTHON -c "import assess" 2>/dev/null
+    if test $? -eq 0;
+    then
+      HAVE_ASSESS=yes
+      AC_MSG_NOTICE([Successfully imported assess python module])
+    else
+      HAVE_ASSESS=no
+      AC_MSG_NOTICE([Failed to import (optional) python module assess])
+    fi
+    AC_SUBST(HAVE_ASSESS)
 fi
 AC_SUBST(HAVE_PYTHON)
 
