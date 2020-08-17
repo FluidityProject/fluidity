@@ -37,13 +37,13 @@ module solvers
   use petsc
 #endif
   use Sparse_Tools
+  use fields_calculations
   use Fields
   use profiler
   use Petsc_tools
   use Signal_Vars
   use Multigrid
   use sparse_tools_petsc
-  use fields_calculations
   use sparse_matrices_fields
   use vtk_interfaces
   use halos
