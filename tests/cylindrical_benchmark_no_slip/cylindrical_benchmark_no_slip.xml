@@ -2,6 +2,7 @@
 <testproblem>
   <name>cylindrical_benchmark_noslip</name>
   <owner userid="skramer"/>
+  <tags>assess</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>for i in A B C; do
   fluidity -v2 -l cylindrical_${i}.flml;
