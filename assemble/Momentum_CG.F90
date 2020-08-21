@@ -759,65 +759,62 @@
 
       ! ----- Surface integrals over boundaries -----------
       
-      if((integrate_advection_by_parts.and.(.not.exclude_advection)).or.&
-           (integrate_continuity_by_parts)) then
-         allocate(velocity_bc_type(u%dim, surface_element_count(u)))
-         call get_entire_boundary_condition(u, &
-           & (/ &
-             "weakdirichlet ", &
-             "no_normal_flow", &
-             "internal      ", &
-             "free_surface  ", &
-             "flux          " &
-           & /), velocity_bc, velocity_bc_type)
+      allocate(velocity_bc_type(u%dim, surface_element_count(u)))
+      call get_entire_boundary_condition(u, &
+        & (/ &
+          "weakdirichlet ", &
+          "no_normal_flow", &
+          "internal      ", &
+          "free_surface  ", &
+          "flux          " &
+        & /), velocity_bc, velocity_bc_type)
 
-         allocate(pressure_bc_type(surface_element_count(p)))
-         call get_entire_boundary_condition(p, &
-           & (/ &
-              "weakdirichlet", &
-              "dirichlet    " /), &
-              pressure_bc, pressure_bc_type)
+      allocate(pressure_bc_type(surface_element_count(p)))
+      call get_entire_boundary_condition(p, &
+        & (/ &
+           "weakdirichlet", &
+           "dirichlet    " /), &
+           pressure_bc, pressure_bc_type)
 
-         ! Check if we want free surface stabilisation (in development!)
-         have_surface_fs_stabilisation=have_fs_stab(u)
-         if (have_surface_fs_stabilisation) then
-           fs_sf=get_surface_stab_scale_factor(u)
-         end if
-
-         if(subtract_out_reference_profile.and.integrate_continuity_by_parts.and.(assemble_ct_matrix_here .or. include_pressure_and_continuity_bcs)) then
-            hb_pressure => extract_scalar_field(state, "HydrostaticReferencePressure", stat)
-            if(stat /= 0) then
-               FLExit("When using the subtract_out_reference_profile option, please set a (prescribed) HydrostaticReferencePressure field.")
-               ewrite(-1,*) 'The HydrostaticReferencePressure field, defining the hydrostatic component of the pressure field, needs to be set.'
-            end if
-         else
-            hb_pressure => dummyscalar
-         end if
-
-         surface_element_loop: do sele=1, surface_element_count(u)
-            
-            ! if no_normal flow and no other condition in the tangential directions, or if periodic
-            ! but not if there's a pressure bc
-            if(((velocity_bc_type(1,sele)==BC_TYPE_NO_NORMAL_FLOW &
-                    .and. sum(velocity_bc_type(:,sele))==BC_TYPE_NO_NORMAL_FLOW) &
-                 .or. any(velocity_bc_type(:,sele)==BC_TYPE_INTERNAL)) &
-              .and. pressure_bc_type(sele)==0) cycle
-            
-            ele = face_ele(x, sele)
-            
-            call construct_momentum_surface_element_cg(sele, big_m, rhs, ct_m, ct_rhs, &
-                 inverse_masslump, x, u, nu, ug, density, gravity, &
-                 velocity_bc, velocity_bc_type, &
-                 pressure_bc, pressure_bc_type, hb_pressure, &
-                 assemble_ct_matrix_here, include_pressure_and_continuity_bcs, oldu, nvfrac)
-            
-         end do surface_element_loop
-
-         call deallocate(velocity_bc)
-         deallocate(velocity_bc_type)
-         call deallocate(pressure_bc)
-         deallocate(pressure_bc_type)
+      ! Check if we want free surface stabilisation (in development!)
+      have_surface_fs_stabilisation=have_fs_stab(u)
+      if (have_surface_fs_stabilisation) then
+        fs_sf=get_surface_stab_scale_factor(u)
       end if
+
+      if(subtract_out_reference_profile.and.integrate_continuity_by_parts.and.(assemble_ct_matrix_here .or. include_pressure_and_continuity_bcs)) then
+         hb_pressure => extract_scalar_field(state, "HydrostaticReferencePressure", stat)
+         if(stat /= 0) then
+            FLExit("When using the subtract_out_reference_profile option, please set a (prescribed) HydrostaticReferencePressure field.")
+            ewrite(-1,*) 'The HydrostaticReferencePressure field, defining the hydrostatic component of the pressure field, needs to be set.'
+         end if
+      else
+         hb_pressure => dummyscalar
+      end if
+
+      surface_element_loop: do sele=1, surface_element_count(u)
+         
+         ! if no_normal flow and no other condition in the tangential directions, or if periodic
+         ! but not if there's a pressure bc
+         if(((velocity_bc_type(1,sele)==BC_TYPE_NO_NORMAL_FLOW &
+                 .and. sum(velocity_bc_type(:,sele))==BC_TYPE_NO_NORMAL_FLOW) &
+              .or. any(velocity_bc_type(:,sele)==BC_TYPE_INTERNAL)) &
+           .and. pressure_bc_type(sele)==0) cycle
+         
+         ele = face_ele(x, sele)
+         
+         call construct_momentum_surface_element_cg(sele, big_m, rhs, ct_m, ct_rhs, &
+              inverse_masslump, x, u, nu, ug, density, gravity, &
+              velocity_bc, velocity_bc_type, &
+              pressure_bc, pressure_bc_type, hb_pressure, &
+              assemble_ct_matrix_here, include_pressure_and_continuity_bcs, oldu, nvfrac)
+         
+      end do surface_element_loop
+
+      call deallocate(velocity_bc)
+      deallocate(velocity_bc_type)
+      call deallocate(pressure_bc)
+      deallocate(pressure_bc_type)
       
       if(abs_lump_on_submesh) then
         
@@ -1614,7 +1611,7 @@
       type(scalar_field), intent(in) :: nvfrac
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: du_t
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: dug_t
-      real, dimension(:, :, :), intent(in) :: dnvfrac_t
+      real, dimension(:, :, :), allocatable, intent(in) :: dnvfrac_t
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
       real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat, diff_q
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto

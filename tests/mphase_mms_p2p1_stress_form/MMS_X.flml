@@ -111,10 +111,10 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <aliased material_phase_name="Fluid1" field_name="Pressure"/>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -134,7 +134,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -186,25 +186,25 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="all_sides">
           <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value rank="1" shape="1">1</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_stress_form_tools as tools
    return tools.u2(X)</string_value>
                 </python>
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_stress_form_tools as tools
    return tools.v2(X)</string_value>
                 </python>
@@ -217,18 +217,21 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.7 0.7 0.7 0.7</real_value>
+                  <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">0.7 0.7 0.7 0.7</real_value>
                 </constant>
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <vector_field name="Source" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_stress_form_tools as tools
    density = tools.rho2(X)
    forcing_velocity = tools.forcing_velocity2(X)
@@ -245,6 +248,9 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </vector_field>
         <output>
@@ -271,7 +277,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="PhaseVolumeFraction" rank="0">
+    <scalar_field rank="0" name="PhaseVolumeFraction">
       <diagnostic>
         <mesh name="VelocityMesh"/>
         <algorithm name="Internal" material_phase_support="multiple"/>
@@ -285,12 +291,12 @@
         </particles>
       </diagnostic>
     </scalar_field>
-    <vector_field name="VelocityAnalytical" rank="1">
+    <vector_field rank="1" name="VelocityAnalytical">
       <prescribed>
         <mesh name="ErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_stress_form_tools as tools
    return tools.velocity2(X)</string_value>
           </python>
@@ -302,11 +308,14 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <vector_field name="VelocityProjection" rank="1">
+    <vector_field rank="1" name="VelocityProjection">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="Velocity">
+        <algorithm name="vector_galerkin_projection" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -333,14 +342,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="VelocityError" rank="1">
+    <vector_field rank="1" name="VelocityError">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="VelocityProjection" source_field_2_name="VelocityAnalytical" material_phase_support="single" source_field_1_type="vector">
+        <algorithm name="vector_difference" material_phase_support="single" source_field_1_name="VelocityProjection" source_field_1_type="vector" source_field_2_name="VelocityAnalytical" source_field_2_type="vector">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
@@ -354,6 +366,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -370,7 +385,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -420,7 +435,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -440,7 +455,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -492,25 +507,25 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="all_sides">
           <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value rank="1" shape="1">1</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_stress_form_tools as tools
    return tools.u1(X)</string_value>
                 </python>
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_stress_form_tools as tools
    return tools.v1(X)</string_value>
                 </python>
@@ -523,18 +538,21 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.7 0.7 0.7 0.7</real_value>
+                  <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">0.7 0.7 0.7 0.7</real_value>
                 </constant>
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <vector_field name="Source" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_stress_form_tools as tools
    density = tools.rho1(X)
    forcing_velocity = tools.forcing_velocity1(X)
@@ -551,6 +569,9 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </vector_field>
         <output>
@@ -577,12 +598,12 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="PhaseVolumeFraction" rank="0">
+    <scalar_field rank="0" name="PhaseVolumeFraction">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_stress_form_tools as tools
    return tools.vfrac1(X)</string_value>
           </python>
@@ -597,12 +618,12 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="PressureAnalytical" rank="0">
+    <scalar_field rank="0" name="PressureAnalytical">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_stress_form_tools as tools
    return tools.p(X)</string_value>
           </python>
@@ -617,9 +638,9 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="PressureError" rank="0">
+    <scalar_field rank="0" name="PressureError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="PressureRemeaned" source_field_2_name="PressureAnalytical" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="PressureRemeaned" source_field_1_type="scalar" source_field_2_name="PressureAnalytical" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="PressureMesh"/>
@@ -639,9 +660,9 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PressureRemeaned" rank="0">
+    <scalar_field rank="0" name="PressureRemeaned">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="subtract_average" source_field_name="Pressure"/>
+        <algorithm name="subtract_average" material_phase_support="single" source_field_name="Pressure" source_field_type="scalar"/>
         <mesh name="PressureMesh"/>
         <output/>
         <stat/>
@@ -659,12 +680,12 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="VelocityAnalytical" rank="1">
+    <vector_field rank="1" name="VelocityAnalytical">
       <prescribed>
         <mesh name="ErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_stress_form_tools as tools
    return tools.velocity1(X)</string_value>
           </python>
@@ -676,11 +697,14 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <vector_field name="VelocityProjection" rank="1">
+    <vector_field rank="1" name="VelocityProjection">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="Velocity">
+        <algorithm name="vector_galerkin_projection" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -707,14 +731,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="VelocityError" rank="1">
+    <vector_field rank="1" name="VelocityError">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="VelocityProjection" source_field_2_name="VelocityAnalytical" material_phase_support="single" source_field_1_type="vector">
+        <algorithm name="vector_difference" material_phase_support="single" source_field_1_name="VelocityProjection" source_field_1_type="vector" source_field_2_name="VelocityAnalytical" source_field_2_type="vector">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
@@ -728,6 +755,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

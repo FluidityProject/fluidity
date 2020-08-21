@@ -230,7 +230,7 @@ Detector_Move_Lagrangian.o ../include/detector_move_lagrangian.mod: \
    ../include/global_parameters.mod ../include/halo_data_types.mod \
    ../include/halos_base.mod ../include/integer_hash_table_module.mod \
    ../include/parallel_fields.mod ../include/parallel_tools.mod \
-   ../include/state_module.mod
+   ../include/state_module.mod ../include/transform_elements.mod
 
 ../include/detector_parallel.mod: Detector_Parallel.o
 	@true
@@ -253,7 +253,7 @@ Detector_Tools.o ../include/detector_tools.mod: Detector_Tools.F90 \
    ../include/futils.mod ../include/global_parameters.mod \
    ../include/integer_hash_table_module.mod ../include/parallel_fields.mod \
    ../include/parallel_tools.mod ../include/pickers.mod \
-   ../include/state_module.mod
+   ../include/state_module.mod ../include/transform_elements.mod
 
 ../include/dgtools.mod: Dgtools.o
 	@true
@@ -291,13 +291,13 @@ Diagnostic_Fields.o ../include/diagnostic_fields.mod: Diagnostic_Fields.F90 \
 Diagnostic_variables.o ../include/diagnostic_variables.mod: \
    Diagnostic_variables.F90 ../include/c_interfaces.mod \
    ../include/data_structures.mod ../include/detector_data_types.mod \
-   ../include/detector_move_lagrangian.mod ../include/detector_parallel.mod \
-   ../include/detector_tools.mod ../include/elements.mod \
-   ../include/embed_python.mod ../include/eventcounter.mod ../include/fdebug.h \
-   ../include/fefields.mod ../include/fetools.mod \
-   ../include/field_derivatives.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/fields_base.mod ../include/fldebug.mod \
-   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/detector_parallel.mod ../include/detector_tools.mod \
+   ../include/elements.mod ../include/embed_python.mod \
+   ../include/eventcounter.mod ../include/fdebug.h ../include/fefields.mod \
+   ../include/fetools.mod ../include/field_derivatives.mod \
+   ../include/field_options.mod ../include/fields.mod \
+   ../include/fields_base.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/h5hut.mod \
    ../include/halo_data_types.mod ../include/halos_allocates.mod \
    ../include/halos_base.mod ../include/halos_communications.mod \
    ../include/halos_debug.mod ../include/halos_derivation.mod \
@@ -536,6 +536,16 @@ Global_Parameters.o ../include/global_parameters.mod: Global_Parameters.F90 \
 
 Grundmann_Moeller_Quadrature.o ../include/grundmann_moeller_quadrature.mod: \
    Grundmann_Moeller_Quadrature.F90
+
+../include/h5hut.mod: H5hut.o
+	@true
+
+H5hut.o ../include/h5hut.mod: H5hut.F90 ../include/H5Block_attribs.f90 \
+   ../include/H5Block_io.f90 ../include/H5Block_model.f90 \
+   ../include/H5Part_io.f90 ../include/H5Part_model.f90 \
+   ../include/H5_const.f90 ../include/H5_err.f90 ../include/H5_file.f90 \
+   ../include/H5_file_attribs.f90 ../include/H5_log.f90 \
+   ../include/H5_model.f90 ../include/H5_step_attribs.f90
 
 ../include/halo_data_types.mod: Halo_Data_Types.o
 	@true
@@ -812,7 +822,8 @@ Node_Owner_Finder_Fortran.o ../include/node_owner_finder.mod: \
    Node_Owner_Finder_Fortran.F90 ../include/data_structures.mod \
    ../include/element_numbering.mod ../include/fdebug.h ../include/fields.mod \
    ../include/fldebug.mod ../include/futils.mod ../include/mpi_interfaces.mod \
-   ../include/parallel_fields.mod ../include/parallel_tools.mod
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/transform_elements.mod
 
 ../include/node_ownership.mod: Node_Ownership.o
 	@true
@@ -857,12 +868,12 @@ Parallel_fields.o ../include/parallel_fields.mod: Parallel_fields.F90 \
 Particles.o ../include/particles.mod: Particles.F90 \
    ../include/detector_data_types.mod ../include/detector_move_lagrangian.mod \
    ../include/detector_parallel.mod ../include/detector_tools.mod \
-   ../include/diagnostic_variables.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
-   ../include/fldebug.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/mpi_interfaces.mod \
-   ../include/parallel_fields.mod ../include/parallel_tools.mod \
-   ../include/pickers.mod ../include/state_module.mod
+   ../include/elements.mod ../include/fdebug.h ../include/field_options.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/h5hut.mod \
+   ../include/mpi_interfaces.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/pickers.mod \
+   ../include/state_module.mod ../include/time_period.mod
 
 ../include/petsc_tools.mod: Petsc_Tools.o
 	@true
@@ -929,7 +940,8 @@ Pickers_Inquire.o ../include/pickers_inquire.mod: Pickers_Inquire.F90 \
    ../include/element_numbering.mod ../include/fdebug.h ../include/fields.mod \
    ../include/fldebug.mod ../include/node_owner_finder.mod \
    ../include/parallel_tools.mod ../include/picker_data_types.mod \
-   ../include/pickers_allocates.mod ../include/pickers_base.mod
+   ../include/pickers_allocates.mod ../include/pickers_base.mod \
+   ../include/transform_elements.mod
 
 ../include/polynomials.mod: Polynomials.o
 	@true
@@ -954,7 +966,7 @@ Pseudo_Consistent_Interpolation.o \
    Pseudo_Consistent_Interpolation.F90 ../include/data_structures.mod \
    ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
    ../include/fldebug.mod ../include/node_ownership.mod \
-   ../include/state_module.mod
+   ../include/state_module.mod ../include/transform_elements.mod
 
 ../include/quadrature.mod: Quadrature.o
 	@true
@@ -1063,8 +1075,9 @@ Smoothing_module.o ../include/smoothing_module.mod: Smoothing_module.F90 \
 ../include/solvers.mod: Solvers.o
 	@true
 
-Solvers.o ../include/solvers.mod: Solvers.F90 ../include/elements.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+Solvers.o ../include/solvers.mod: Solvers.F90 ../include/element_numbering.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/fields_calculations.mod ../include/fldebug.mod \
    ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
    ../include/meshdiagnostics.mod ../include/multigrid.mod \
    ../include/parallel_tools.mod ../include/petsc_legacy.h \
@@ -1238,6 +1251,14 @@ Tetrahedron_intersection.o ../include/tetrahedron_intersection_module.mod: \
    ../include/fields_base.mod ../include/fields_data_types.mod \
    ../include/fields_manipulation.mod ../include/fldebug.mod \
    ../include/transform_elements.mod ../include/vector_tools.mod
+
+../include/time_period.mod: Time_Period.o
+	@true
+
+Time_Period.o ../include/time_period.mod: Time_Period.F90 \
+   ../include/embed_python.mod ../include/fdebug.h ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/parallel_tools.mod \
+   ../include/timers.mod
 
 ../include/timers.mod: Timers.o
 	@true

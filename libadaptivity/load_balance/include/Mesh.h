@@ -34,10 +34,6 @@
    As can be seen below, the mesh is built using two classes,
    Node and Element. */
 #include "confdefs.h"
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
-
 #include <vector>
 #include <deque>
 #include <map>

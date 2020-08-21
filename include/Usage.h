@@ -40,9 +40,7 @@
 #endif
 #undef MPI_Comm
 
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
+#include "flmpi.h"
 
 #ifdef HAVE_PETSC
 #include <petsc.h>

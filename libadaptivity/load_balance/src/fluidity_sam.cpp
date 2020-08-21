@@ -51,6 +51,7 @@ USA
 #include <string>
 #include <vector>
 
+#include "sam_mpi.h"
 #include "c++debug.h"
 #include "Mesh.h"
 #include "samtypes.h"

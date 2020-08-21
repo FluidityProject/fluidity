@@ -87,7 +87,7 @@ module conservative_interpolation_module
     type(inode), pointer :: llnode
     
     real :: vol_B, vols_C
-    integer :: ele_A, ele_C, nloc, dim, j, k, l, loc, field, mesh, mesh_count
+    integer :: ele_A, ele_C, nloc, dim, j, k, l, field, mesh, mesh_count
     type(vector_field) :: intersection
     type(element_type), pointer :: B_shape
 
@@ -215,11 +215,9 @@ module conservative_interpolation_module
               basis_at_quad_A(:nloc,:) = pos_at_quad_A 
               basis_at_quad_B(:nloc,:) = pos_at_quad_B 
             else
-              do loc=1,nloc
-                do j=1,ele_ngi(intersection, ele_C)
-                  basis_at_quad_A(loc, j) = eval_shape(B_shape, loc, pos_at_quad_A(:, j))
-                  basis_at_quad_B(loc, j) = eval_shape(B_shape, loc, pos_at_quad_B(:, j))
-                end do
+              do j=1,ele_ngi(intersection, ele_C)
+                basis_at_quad_A(:nloc, j) = eval_shape(B_shape, pos_at_quad_A(:, j))
+                basis_at_quad_B(:nloc, j) = eval_shape(B_shape, pos_at_quad_B(:, j))
               end do
             end if
           

@@ -27,9 +27,7 @@
 */
 #include "fmangle.h"
 
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
+#include "flmpi.h"
 
 #include <stdlib.h>
 

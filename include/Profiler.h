@@ -38,9 +38,7 @@
 #include <sys/resource.h>
 #endif
 
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
+#include "flmpi.h"
 
 class Profiler{
  public:

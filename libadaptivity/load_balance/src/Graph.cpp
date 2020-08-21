@@ -28,7 +28,6 @@
 
 // CSR - Compressed Storage Row format
 
-#include <mpi.h>
 #include "c++debug.h"
 
 #include <vector>

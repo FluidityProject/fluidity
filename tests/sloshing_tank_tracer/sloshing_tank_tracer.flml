@@ -56,12 +56,12 @@
     <disable_geometric_data_cache/>
     <ocean_boundaries>
       <top_surface_ids>
-        <integer_value shape="1" rank="1">29</integer_value>
+        <integer_value rank="1" shape="1">29</integer_value>
       </top_surface_ids>
       <bottom_surface_ids>
-        <integer_value shape="1" rank="1">30</integer_value>
+        <integer_value rank="1" shape="1">30</integer_value>
       </bottom_surface_ids>
-      <scalar_field name="DistanceToTop" rank="0">
+      <scalar_field rank="0" name="DistanceToTop">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -81,7 +81,7 @@
           </steady_state>
         </diagnostic>
       </scalar_field>
-      <scalar_field name="DistanceToBottom" rank="0">
+      <scalar_field rank="0" name="DistanceToBottom">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -153,7 +153,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="whole_mesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">0 -1</real_value>
+              <real_value rank="1" dim1="dim" shape="2">0 -1</real_value>
             </constant>
           </value>
           <output>
@@ -165,6 +165,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -180,7 +183,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -214,7 +217,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
    from math import cos
    g=1.00
    return  ((g*0.01*cos(3.1415926536*X[0])))</string_value>
@@ -222,24 +225,24 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="value" name="Top">
+          <surface_integral name="Top" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Bottom">
+          <surface_integral name="Bottom" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="RightSide">
+          <surface_integral name="RightSide" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">32</integer_value>
+              <integer_value rank="1" shape="1">32</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="LeftSide">
+          <surface_integral name="LeftSide" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">31</integer_value>
+              <integer_value rank="1" shape="1">31</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -258,7 +261,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -278,7 +281,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -331,43 +334,43 @@
         </solver>
         <initial_condition name="whole_mesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="sides">
           <surface_ids>
-            <integer_value shape="2" rank="1">31 32</integer_value>
+            <integer_value rank="1" shape="2">31 32</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions name="bottom">
           <surface_ids>
-            <integer_value shape="1" rank="1">30</integer_value>
+            <integer_value rank="1" shape="1">30</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions name="FreeSurface">
           <surface_ids>
-            <integer_value shape="1" rank="1">29</integer_value>
+            <integer_value rank="1" shape="1">29</integer_value>
           </surface_ids>
           <type name="free_surface"/>
         </boundary_conditions>
         <output/>
         <stat>
           <include_in_stat/>
-          <surface_integral type="normal" name="Top">
+          <surface_integral name="Top" type="normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="normal" name="Bottom">
+          <surface_integral name="Bottom" type="normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="normal" name="Sides">
+          <surface_integral name="Sides" type="normal">
             <surface_ids>
-              <integer_value shape="2" rank="1">31 32</integer_value>
+              <integer_value rank="1" shape="2">31 32</integer_value>
             </surface_ids>
           </surface_integral>
           <previous_time_step>
@@ -390,7 +393,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="FreeSurface" rank="0">
+    <scalar_field rank="0" name="FreeSurface">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -410,7 +413,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TracerCG" rank="0">
+    <scalar_field rank="0" name="TracerCG">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -451,7 +454,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -467,19 +470,19 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="value" name="Top">
+          <surface_integral name="Top" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Bottom">
+          <surface_integral name="Bottom" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Sides">
+          <surface_integral name="Sides" type="value">
             <surface_ids>
-              <integer_value shape="2" rank="1">31 32</integer_value>
+              <integer_value rank="1" shape="2">31 32</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -498,7 +501,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="TracerCGlumped" rank="0">
+    <scalar_field rank="0" name="TracerCGlumped">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -541,7 +544,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -557,19 +560,19 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="value" name="Top">
+          <surface_integral name="Top" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Bottom">
+          <surface_integral name="Bottom" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Sides">
+          <surface_integral name="Sides" type="value">
             <surface_ids>
-              <integer_value shape="2" rank="1">31 32</integer_value>
+              <integer_value rank="1" shape="2">31 32</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -588,7 +591,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="TracerCGibp" rank="0">
+    <scalar_field rank="0" name="TracerCGibp">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -631,7 +634,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -647,19 +650,19 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="value" name="Top">
+          <surface_integral name="Top" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Bottom">
+          <surface_integral name="Bottom" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Sides">
+          <surface_integral name="Sides" type="value">
             <surface_ids>
-              <integer_value shape="2" rank="1">31 32</integer_value>
+              <integer_value rank="1" shape="2">31 32</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -678,7 +681,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="TracerDGibp1" rank="0">
+    <scalar_field rank="0" name="TracerDGibp1">
       <prognostic>
         <mesh name="DGMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -723,7 +726,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -739,19 +742,19 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="value" name="Top">
+          <surface_integral name="Top" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Bottom">
+          <surface_integral name="Bottom" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Sides">
+          <surface_integral name="Sides" type="value">
             <surface_ids>
-              <integer_value shape="2" rank="1">31 32</integer_value>
+              <integer_value rank="1" shape="2">31 32</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -770,7 +773,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="TracerDGibp2" rank="0">
+    <scalar_field rank="0" name="TracerDGibp2">
       <prognostic>
         <mesh name="DGMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -815,7 +818,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -831,19 +834,19 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="value" name="Top">
+          <surface_integral name="Top" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Bottom">
+          <surface_integral name="Bottom" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Sides">
+          <surface_integral name="Sides" type="value">
             <surface_ids>
-              <integer_value shape="2" rank="1">31 32</integer_value>
+              <integer_value rank="1" shape="2">31 32</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -862,7 +865,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="TracerDGibp1icbp" rank="0">
+    <scalar_field rank="0" name="TracerDGibp1icbp">
       <prognostic>
         <mesh name="DGMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -908,7 +911,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -924,19 +927,19 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="value" name="Top">
+          <surface_integral name="Top" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Bottom">
+          <surface_integral name="Bottom" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Sides">
+          <surface_integral name="Sides" type="value">
             <surface_ids>
-              <integer_value shape="2" rank="1">31 32</integer_value>
+              <integer_value rank="1" shape="2">31 32</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -955,7 +958,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="TracerDGibp2icbp" rank="0">
+    <scalar_field rank="0" name="TracerDGibp2icbp">
       <prognostic>
         <mesh name="DGMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -1001,7 +1004,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1017,19 +1020,19 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="value" name="Top">
+          <surface_integral name="Top" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Bottom">
+          <surface_integral name="Bottom" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Sides">
+          <surface_integral name="Sides" type="value">
             <surface_ids>
-              <integer_value shape="2" rank="1">31 32</integer_value>
+              <integer_value rank="1" shape="2">31 32</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -1048,7 +1051,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="TracerCV" rank="0">
+    <scalar_field rank="0" name="TracerCV">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -1100,7 +1103,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1116,19 +1119,19 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="value" name="Top">
+          <surface_integral name="Top" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Bottom">
+          <surface_integral name="Bottom" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Sides">
+          <surface_integral name="Sides" type="value">
             <surface_ids>
-              <integer_value shape="2" rank="1">31 32</integer_value>
+              <integer_value rank="1" shape="2">31 32</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -1147,7 +1150,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Beta0TracerCG" rank="0">
+    <scalar_field rank="0" name="Beta0TracerCG">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -1188,7 +1191,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1204,19 +1207,19 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="value" name="Top">
+          <surface_integral name="Top" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Bottom">
+          <surface_integral name="Bottom" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Sides">
+          <surface_integral name="Sides" type="value">
             <surface_ids>
-              <integer_value shape="2" rank="1">31 32</integer_value>
+              <integer_value rank="1" shape="2">31 32</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -1235,7 +1238,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Beta0TracerCGlumped" rank="0">
+    <scalar_field rank="0" name="Beta0TracerCGlumped">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -1278,7 +1281,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1294,19 +1297,19 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="value" name="Top">
+          <surface_integral name="Top" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Bottom">
+          <surface_integral name="Bottom" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Sides">
+          <surface_integral name="Sides" type="value">
             <surface_ids>
-              <integer_value shape="2" rank="1">31 32</integer_value>
+              <integer_value rank="1" shape="2">31 32</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -1325,7 +1328,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Beta0TracerCGibp" rank="0">
+    <scalar_field rank="0" name="Beta0TracerCGibp">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -1368,7 +1371,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1384,19 +1387,19 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="value" name="Top">
+          <surface_integral name="Top" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Bottom">
+          <surface_integral name="Bottom" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Sides">
+          <surface_integral name="Sides" type="value">
             <surface_ids>
-              <integer_value shape="2" rank="1">31 32</integer_value>
+              <integer_value rank="1" shape="2">31 32</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -1415,7 +1418,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Beta0TracerDGibp1" rank="0">
+    <scalar_field rank="0" name="Beta0TracerDGibp1">
       <prognostic>
         <mesh name="DGMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -1460,7 +1463,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1476,19 +1479,19 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="value" name="Top">
+          <surface_integral name="Top" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Bottom">
+          <surface_integral name="Bottom" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Sides">
+          <surface_integral name="Sides" type="value">
             <surface_ids>
-              <integer_value shape="2" rank="1">31 32</integer_value>
+              <integer_value rank="1" shape="2">31 32</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -1507,7 +1510,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Beta0TracerDGibp2" rank="0">
+    <scalar_field rank="0" name="Beta0TracerDGibp2">
       <prognostic>
         <mesh name="DGMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -1552,7 +1555,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1568,19 +1571,19 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="value" name="Top">
+          <surface_integral name="Top" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Bottom">
+          <surface_integral name="Bottom" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Sides">
+          <surface_integral name="Sides" type="value">
             <surface_ids>
-              <integer_value shape="2" rank="1">31 32</integer_value>
+              <integer_value rank="1" shape="2">31 32</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -1599,7 +1602,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Beta0TracerDGibp1icbp" rank="0">
+    <scalar_field rank="0" name="Beta0TracerDGibp1icbp">
       <prognostic>
         <mesh name="DGMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -1645,7 +1648,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1661,19 +1664,19 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="value" name="Top">
+          <surface_integral name="Top" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Bottom">
+          <surface_integral name="Bottom" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Sides">
+          <surface_integral name="Sides" type="value">
             <surface_ids>
-              <integer_value shape="2" rank="1">31 32</integer_value>
+              <integer_value rank="1" shape="2">31 32</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -1692,7 +1695,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Beta0TracerDGibp2icbp" rank="0">
+    <scalar_field rank="0" name="Beta0TracerDGibp2icbp">
       <prognostic>
         <mesh name="DGMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -1738,7 +1741,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1754,19 +1757,19 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="value" name="Top">
+          <surface_integral name="Top" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Bottom">
+          <surface_integral name="Bottom" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Sides">
+          <surface_integral name="Sides" type="value">
             <surface_ids>
-              <integer_value shape="2" rank="1">31 32</integer_value>
+              <integer_value rank="1" shape="2">31 32</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -1785,7 +1788,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Beta0TracerCV" rank="0">
+    <scalar_field rank="0" name="Beta0TracerCV">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -1837,7 +1840,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1853,19 +1856,19 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="value" name="Top">
+          <surface_integral name="Top" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Bottom">
+          <surface_integral name="Bottom" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Sides">
+          <surface_integral name="Sides" type="value">
             <surface_ids>
-              <integer_value shape="2" rank="1">31 32</integer_value>
+              <integer_value rank="1" shape="2">31 32</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -1884,7 +1887,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Beta0TracerHyperC" rank="0">
+    <scalar_field rank="0" name="Beta0TracerHyperC">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -1920,7 +1923,7 @@
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1937,19 +1940,19 @@
         </initial_condition>
         <output/>
         <stat>
-          <surface_integral type="value" name="Top">
+          <surface_integral name="Top" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Bottom">
+          <surface_integral name="Bottom" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="value" name="Sides">
+          <surface_integral name="Sides" type="value">
             <surface_ids>
-              <integer_value shape="2" rank="1">31 32</integer_value>
+              <integer_value rank="1" shape="2">31 32</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -1968,7 +1971,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -1988,10 +1991,10 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="VelocityDifference" rank="1">
+    <vector_field rank="1" name="VelocityDifference">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">field1=state.vector_fields["Velocity"]
+          <string_value type="code" language="python" lines="20">field1=state.vector_fields["Velocity"]
 field2=state.vector_fields["GridVelocity"]
 for i in range(field.node_count):
    field.set(i, field1.node_val(i)-field2.node_val(i))</string_value>
@@ -2000,24 +2003,24 @@ for i in range(field.node_count):
         <output/>
         <stat>
           <include_in_stat/>
-          <surface_integral type="normal" name="Top">
+          <surface_integral name="Top" type="normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="normal" name="Bottom">
+          <surface_integral name="Bottom" type="normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="normal" name="RightSide">
+          <surface_integral name="RightSide" type="normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">32</integer_value>
+              <integer_value rank="1" shape="1">32</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="normal" name="LeftSide">
+          <surface_integral name="LeftSide" type="normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">31</integer_value>
+              <integer_value rank="1" shape="1">31</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -2027,15 +2030,18 @@ for i in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="VelocityDifferenceIterated" rank="1">
+    <vector_field rank="1" name="VelocityDifferenceIterated">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">field1=state.vector_fields["NonlinearVelocity"]
+          <string_value type="code" language="python" lines="20">field1=state.vector_fields["NonlinearVelocity"]
 field2=state.vector_fields["GridVelocity"]
 for i in range(field.node_count):
    field.set(i, field1.node_val(i)-field2.node_val(i))</string_value>
@@ -2044,24 +2050,24 @@ for i in range(field.node_count):
         <output/>
         <stat>
           <include_in_stat/>
-          <surface_integral type="normal" name="Top">
+          <surface_integral name="Top" type="normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">29</integer_value>
+              <integer_value rank="1" shape="1">29</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="normal" name="Bottom">
+          <surface_integral name="Bottom" type="normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
+              <integer_value rank="1" shape="1">30</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="normal" name="RightSide">
+          <surface_integral name="RightSide" type="normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">32</integer_value>
+              <integer_value rank="1" shape="1">32</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="normal" name="LeftSide">
+          <surface_integral name="LeftSide" type="normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">31</integer_value>
+              <integer_value rank="1" shape="1">31</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -2071,6 +2077,9 @@ for i in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -2096,6 +2105,9 @@ for i in range(field.node_count):
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>

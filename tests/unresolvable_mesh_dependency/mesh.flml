@@ -65,12 +65,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="None">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="1" dim1="dim" rank="1">0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="1">0.0</real_value>
           </constant>
         </value>
         <output>
@@ -82,6 +82,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
   </material_phase>

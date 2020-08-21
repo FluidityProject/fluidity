@@ -61,7 +61,8 @@ prescribed_vector_field_no_adapt =
       prescribed_relaxation_term?,
       prescribed_output_options,
       prescribed_vector_stat_options,
-      prescribed_detector_options
+      prescribed_detector_options,
+      prescribed_particle_options
    )
 
 prescribed_values_vector_field =
@@ -111,6 +112,7 @@ prescribed_tensor_field =
    (
       prescribed_values_tensor_field,
       prescribed_output_options,
+      prescribed_particle_options,
       adaptivity_options_tensor_field
    )
    
@@ -120,7 +122,8 @@ prescribed_tensor_field =
 prescribed_tensor_field_no_adapt =
    (
       prescribed_values_tensor_field,
-      prescribed_output_options
+      prescribed_output_options,
+      prescribed_particle_options
    )
 
 prescribed_values_tensor_field =

@@ -20,6 +20,7 @@ module zoltan_integration
   use linked_lists
   use halos_ownership
   use parallel_fields
+  use transform_elements
   use metric_tools
   use fields
   use state_module
@@ -1974,6 +1975,7 @@ module zoltan_integration
           if(has_key(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)) then
              ! Update the element number for the detector
              detector%element = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
+             detector%local_coords = local_coords(zoltan_global_new_positions,detector%element,detector%position)
              detector => detector%next
           else
              ! We no longer own the element containing this detector, and cannot establish its new
@@ -2051,6 +2053,10 @@ module zoltan_integration
                    new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, detector%element)
                    if (element_owned(zoltan_global_new_positions%mesh, new_local_element_number)) then
                       detector%element = new_local_element_number
+                      if (.not. allocated(detector%local_coords)) then
+                         allocate(detector%local_coords(local_coord_count(ele_shape(zoltan_global_new_positions,1))))
+                      end if
+                      detector%local_coords=local_coords(zoltan_global_new_positions,detector%element,detector%position)
                       call insert(detector, detector_list_array(detector%list_id)%ptr)
                       detector => null()
                    else
@@ -2121,6 +2127,7 @@ module zoltan_integration
           if(has_key(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)) then
              ! Update the element number for the particle
              detector%element = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
+             detector%local_coords = local_coords(zoltan_global_new_positions,detector%element,detector%position)
              detector => detector%next
           else
              ! We no longer own the element containing this particle, and cannot establish its new
@@ -2180,7 +2187,7 @@ module zoltan_integration
                 
                 ! Receive broadcast
                 ewrite(2,*) "Receiving ", ndets_being_sent(i), " particles from process ", i
-                call mpi_bcast(recv_buff,ndets_being_sent(i)*(zoltan_global_ndata_per_det*total_attributes), getPREAL(), i-1, MPI_COMM_FEMTOOLS, ierr)
+                call mpi_bcast(recv_buff,ndets_being_sent(i)*(zoltan_global_ndata_per_det+total_attributes), getPREAL(), i-1, MPI_COMM_FEMTOOLS, ierr)
                 assert(ierr == MPI_SUCCESS)
                 
                 ! Unpack particle if you own it
@@ -2189,12 +2196,16 @@ module zoltan_integration
                    ! Allocate and unpack the particle
                    shape=>ele_shape(zoltan_global_new_positions,1)                     
                    call allocate(detector, zoltan_global_ndims, local_coord_count(shape), attribute_size)
-                   call unpack_detector(detector, recv_buff(j, 1:zoltan_global_ndata_per_det+total_attributes), zoltan_global_ndims, attribute_size=attribute_size)
+                   call unpack_detector(detector, recv_buff(k, 1:zoltan_global_ndata_per_det+total_attributes), zoltan_global_ndims, attribute_size=attribute_size)
                    
                    if (has_key(zoltan_global_uen_to_new_local_numbering, detector%element)) then 
                       new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, detector%element)
                       if (element_owned(zoltan_global_new_positions%mesh, new_local_element_number)) then
                          detector%element = new_local_element_number
+                         if (.not. allocated(detector%local_coords)) then
+                            allocate(detector%local_coords(local_coord_count(ele_shape(zoltan_global_new_positions,1))))
+                         end if
+                         detector%local_coords=local_coords(zoltan_global_new_positions,detector%element,detector%position)
                          call insert(detector, detector_list_array(detector%list_id)%ptr)
                          detector => null()
                       else

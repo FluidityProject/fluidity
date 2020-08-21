@@ -25,8 +25,7 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
  USA
 */
-#include <mpi.h>
-
+#include "sam_mpi.h"
 #include "c++debug.h"
 #include "packing.h"
 #include "Mesh.h"

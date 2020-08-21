@@ -25,13 +25,11 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
  USA
 */
+#include "sam_mpi.h"
 #ifndef NODEVECTOR_H
 #define NODEVECTOR_H
 
 #include "confdefs.h"
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
 
 #include <vector>
 #include <deque>

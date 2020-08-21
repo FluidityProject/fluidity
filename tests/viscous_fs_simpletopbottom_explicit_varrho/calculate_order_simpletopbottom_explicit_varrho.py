@@ -12,24 +12,24 @@ def report_convergence(file1, file2):
 
   print(stat1["dt"]["value"][0], "->", stat2["dt"]["value"][0])
   
-  errortop_l2_1 = sqrt(sum(stat1["Fluid"]["DifferenceSquared"]["surface_integral%TopSurfaceL2Norm"][1:]*stat1["dt"]["value"][1:]))
-  errortop_l2_2 = sqrt(sum(stat2["Fluid"]["DifferenceSquared"]["surface_integral%TopSurfaceL2Norm"][1:]*stat2["dt"]["value"][1:]))
+  errortop_l2_1 = sqrt(sum(stat1["Fluid"]["FreeSurfaceDifference"]["surface_l2norm%Top"][1:]**2*stat1["dt"]["value"][1:]))
+  errortop_l2_2 = sqrt(sum(stat2["Fluid"]["FreeSurfaceDifference"]["surface_l2norm%Top"][1:]**2*stat2["dt"]["value"][1:]))
   convergencetop_l2 = log((errortop_l2_1/errortop_l2_2), 2)
 
   print('  convergencetop_l2 = ', convergencetop_l2)
   print('    errortop_l2_1 = ', errortop_l2_1)
   print('    errortop_l2_2 = ', errortop_l2_2)
   
-  errorbottom_l2_1 = sqrt(sum(stat1["Fluid"]["DifferenceSquared"]["surface_integral%BottomSurfaceL2Norm"][1:]*stat1["dt"]["value"][1:]))
-  errorbottom_l2_2 = sqrt(sum(stat2["Fluid"]["DifferenceSquared"]["surface_integral%BottomSurfaceL2Norm"][1:]*stat2["dt"]["value"][1:]))
+  errorbottom_l2_1 = sqrt(sum(stat1["Fluid"]["FreeSurfaceDifference"]["surface_l2norm%Bottom"][1:]**2*stat1["dt"]["value"][1:]))
+  errorbottom_l2_2 = sqrt(sum(stat2["Fluid"]["FreeSurfaceDifference"]["surface_l2norm%Bottom"][1:]**2*stat2["dt"]["value"][1:]))
   convergencebottom_l2 = log((errorbottom_l2_1/errorbottom_l2_2), 2)
 
   print('  convergencebottom_l2 = ', convergencebottom_l2)
   print('    errorbottom_l2_1 = ', errorbottom_l2_1)
   print('    errorbottom_l2_2 = ', errorbottom_l2_2)
   
-  error_l2_1 = sqrt(sum(stat1["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat1["dt"]["value"][1:]))
-  error_l2_2 = sqrt(sum(stat2["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat2["dt"]["value"][1:]))
+  error_l2_1 = sqrt(sum(stat1["Fluid"]["FreeSurfaceDifference"]["surface_l2norm%Both"][1:]**2*stat1["dt"]["value"][1:]))
+  error_l2_2 = sqrt(sum(stat2["Fluid"]["FreeSurfaceDifference"]["surface_l2norm%Both"][1:]**2*stat2["dt"]["value"][1:]))
   convergence_l2 = log((error_l2_1/error_l2_2), 2)
 
   print('  convergence_l2 = ', convergence_l2)

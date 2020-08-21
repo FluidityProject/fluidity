@@ -28,9 +28,7 @@
 #include "fmangle.h"
 #include "Usage.h"
 
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
+#include "flmpi.h"
 
 extern "C" {
   void supermesh_difference(const char*, size_t, const char*, size_t, const char*, size_t);

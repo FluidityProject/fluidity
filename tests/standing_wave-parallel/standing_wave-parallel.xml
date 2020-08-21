@@ -16,39 +16,90 @@ mpiexec ../../bin/fluidity -v3 -l standing_wave_1_checkpoint.flml</command_line>
     <variable name="solvers_converged" language="python">import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
-    <variable name="max_pressure_diff_left" language="python">import fluidity_tools
-det=fluidity_tools.stat_parser('standing_wave.detectors')
-plb=det['water']['Pressure']['LeftBottom']
-plt=det['water']['Pressure']['LeftTop']
+    <variable name="max_pressure_diff_left" language="python">
+import h5py
+import numpy as np
+f = h5py.File('standing_wave.detectors.h5part', 'r')
+lb = f.attrs['LeftBottom%ids'][0]
+lt = f.attrs['LeftTop%ids'][0]
+plb = np.empty(len(f))
+plt = np.empty(len(f))
+
+for i in range(len(f)):
+  s = f[f'/Step#{i}']
+  lb_id, = np.where(s['id'][:] == lb)
+  lt_id, = np.where(s['id'][:] == lt)
+  plb[i] = s['water%Pressure'][lb_id[0]]
+  plt[i] = s['water%Pressure'][lt_id[0]]
 g=10.0
 max_pressure_diff_left=abs(plb-plt).max()/g</variable>
-    <variable name="max_pressure_diff_right" language="python">import fluidity_tools
-det=fluidity_tools.stat_parser('standing_wave.detectors')
-prb=det['water']['Pressure']['RightBottom']
-prt=det['water']['Pressure']['RightTop']
+    <variable name="max_pressure_diff_right" language="python">
+import h5py
+import numpy as np
+f = h5py.File('standing_wave.detectors.h5part', 'r')
+rb = f.attrs['RightBottom%ids'][0]
+rt = f.attrs['RightTop%ids'][0]
+prb = np.empty(len(f))
+prt = np.empty(len(f))
+
+for i in range(len(f)):
+  s = f[f'/Step#{i}']
+  rb_id, = np.where(s['id'][:] == rb)
+  rt_id, = np.where(s['id'][:] == rt)
+  prb[i] = s['water%Pressure'][rb_id[0]]
+  prt[i] = s['water%Pressure'][rt_id[0]]
 g=10.0
 max_pressure_diff_right=abs(prt-prb).max()/g</variable>
-    <variable name="max_pressure_diff_middle" language="python">import fluidity_tools
-det=fluidity_tools.stat_parser('standing_wave.detectors')
-pmb=det['water']['Pressure']['MiddleBottom']
-pmt=det['water']['Pressure']['MiddleTop']
+    <variable name="max_pressure_diff_middle" language="python">
+import h5py
+import numpy as np
+f = h5py.File('standing_wave.detectors.h5part', 'r')
+mb = f.attrs['MiddleBottom%ids'][0]
+mt = f.attrs['MiddleTop%ids'][0]
+pmb = np.empty(len(f))
+pmt = np.empty(len(f))
+
+for i in range(len(f)):
+  s = f[f'/Step#{i}']
+  mb_id, = np.where(s['id'][:] == mb)
+  mt_id, = np.where(s['id'][:] == mt)
+  pmb[i] = s['water%Pressure'][mb_id[0]]
+  pmt[i] = s['water%Pressure'][mt_id[0]]
 g=10.0
 max_pressure_diff_middle=abs(pmt-pmb).max()/g</variable>
-    <variable name="fs_left" language="python">import fluidity_tools
-det=fluidity_tools.stat_parser('standing_wave.detectors')
-fsl=det['water']['FreeSurface']['LeftTop']
-t=det['ElapsedTime']['value']
+    <variable name="fs_left" language="python">
+import h5py
+import numpy as np
+f = h5py.File('standing_wave.detectors.h5part', 'r')
+lt = f.attrs['LeftTop%ids'][0]
+fsl = np.empty(len(f))
+for i in range(len(f)):
+  s = f[f'/Step#{i}']
+  lt_id, = np.where(s['id'][:] == lt)
+  fsl[i] = s['water%FreeSurface'][lt_id[0]]
+
+tm = fsl.argmin()
+t=f[f'/Step#{tm}'].attrs['time'].item()
 fs_left={}
 fs_left['min']=fsl.min()
-fs_left['min_time']=t[fsl.argmin()]
+fs_left['min_time']=t
 fs_left['end_value']=fsl[-1]</variable>
-    <variable name="fs_right" language="python">import fluidity_tools
-det=fluidity_tools.stat_parser('standing_wave.detectors')
-fsr=det['water']['FreeSurface']['RightTop']
-t=det['ElapsedTime']['value']
+    <variable name="fs_right" language="python">
+import h5py
+import numpy as np
+f = h5py.File('standing_wave.detectors.h5part', 'r')
+rt = f.attrs['RightTop%ids'][0]
+fsr = np.empty(len(f))
+for i in range(len(f)):
+  s = f[f'/Step#{i}']
+  rt_id, = np.where(s['id'][:] == rt)
+  fsr[i] = s['water%FreeSurface'][rt_id[0]]
+
+tm = fsr.argmax()
+t=f[f'/Step#{tm}'].attrs['time'].item()
 fs_right={}
 fs_right['max']=fsr.max()
-fs_right['max_time']=t[fsr.argmax()]
+fs_right['max_time']=t
 fs_right['end_value']=fsr[-1]</variable>
     <variable name="checkpoint_differences" language="python">import vtktools
 vtu_init_run=vtktools.vtu('standing_wave_2.pvtu')

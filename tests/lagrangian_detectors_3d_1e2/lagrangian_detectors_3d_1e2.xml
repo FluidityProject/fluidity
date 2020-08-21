@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-
 <testproblem>
   <name>lagrangian_detectors_3d_1e2</name>
-  <owner userid="colin"/>
+  <owner userid="drhodrid"/>
   <tags>flml parallel</tags>
   <problem_definition length="short" nprocs="4">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian_detectors_3d_1e2 lagrangian_detectors_3d_1e2_flredecomp &amp;&amp;
@@ -11,13 +10,26 @@ mpiexec ../../bin/fluidity -v3 -l lagrangian_detectors_3d_1e2_flredecomp.flml
   </problem_definition>
   <variables>
     <variable name="last_locations_error" language="python">
-from readtool_3d import readstat_3d
-last_locations_error = readstat_3d()
+import numpy as np
+import h5py
+
+last_locations_error = np.zeros((3,100))
+X = np.fromfile('Xvals.txt',sep=' ')
+Y = np.fromfile('Yvals.txt',sep=' ')
+Z = 0.5*np.ones(np.shape(X))
+
+f = h5py.File('lagrangian_detectors.particles.Steve.h5part', 'r')
+d = f['/Step#{}'.format(len(f)-1)]
+idx = np.argsort(d['id'])
+pos = np.vstack([d[dim] for dim in ('x', 'y', 'z')])[:, idx]
+last_locations_error[0,:] = pos[0,:] - X[:]
+last_locations_error[1,:] = pos[1,:] - Y[:]
+last_locations_error[2,:] = pos[2,:] - Z[:]
     </variable>
   </variables>
   <pass_tests>
     <test name="CorrectLagrangianTrajectory" language="python">
-assert abs(last_locations_error).max() &lt; 1.0e-6
+      assert abs(last_locations_error).max() &lt; 1.0e-6
     </test>
   </pass_tests>
   <warn_tests>

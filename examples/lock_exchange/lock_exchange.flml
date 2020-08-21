@@ -50,7 +50,7 @@
     </dump_format>
     <dump_period>
       <python>
-        <string_value lines="20" type="code" language="python">def val(t):
+        <string_value type="code" language="python" lines="20">def val(t):
   if t&lt;40.0: return 0.25
   else: return 1.25</string_value>
       </python>
@@ -90,7 +90,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">0.0 -1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="2">0.0 -1.0</real_value>
             </constant>
           </value>
           <output/>
@@ -100,6 +100,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -123,7 +126,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -171,7 +174,7 @@
         <no_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -221,12 +224,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="top">
           <surface_ids>
-            <integer_value shape="1" rank="1">6</integer_value>
+            <integer_value rank="1" shape="1">6</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -240,7 +243,7 @@
         </boundary_conditions>
         <boundary_conditions name="bottom">
           <surface_ids>
-            <integer_value shape="1" rank="1">7</integer_value>
+            <integer_value rank="1" shape="1">7</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -259,7 +262,7 @@
         </boundary_conditions>
         <boundary_conditions name="ends">
           <surface_ids>
-            <integer_value shape="1" rank="1">8</integer_value>
+            <integer_value rank="1" shape="1">8</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -281,6 +284,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -304,11 +310,11 @@
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <vector_field name="InterpolationErrorBound" rank="1">
+            <vector_field rank="1" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
-                    <real_value shape="2" dim1="dim" rank="1">0.001 0.001</real_value>
+                    <real_value rank="1" dim1="dim" shape="2">0.001 0.001</real_value>
                     <comment>def val(X, t):
 
 # exponential function of form p = Ae^(aq) + B, 
@@ -346,6 +352,9 @@
                 <detectors>
                   <exclude_from_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </prescribed>
             </vector_field>
           </absolute_measure>
@@ -353,7 +362,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -407,7 +416,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
 	if(X[0]&lt;0.4):
 		return -0.5
 	else:
@@ -422,7 +431,7 @@
             </control_volumes>
             <mixing_bin_bounds>
               <python>
-                <string_value lines="20" type="code" language="python">def val(t):
+                <string_value type="code" language="python" lines="20">def val(t):
   bounds = [-1E10]
   for i in range(501):
     bounds.append(-0.5+(i/500.))  
@@ -445,7 +454,7 @@
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -484,14 +493,14 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.0001 0.0 0.0 0.0001</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">0.0001 0.0 0.0 0.0001</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.5 0.0 0.0 0.5</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">0.5 0.0 0.0 0.5</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

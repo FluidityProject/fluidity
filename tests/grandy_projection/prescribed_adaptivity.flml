@@ -149,12 +149,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="Fluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </value>
         <output>
@@ -166,9 +166,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Tracer" rank="0">
+    <scalar_field rank="0" name="Tracer">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -214,7 +217,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
 	import math
 	r = math.sqrt((x[0] - 0.5) ** 2 + (x[1] - 0.5) ** 2)
 
@@ -246,7 +249,7 @@
     <prescribed_adaptivity>
       <adapt_interval>
         <python>
-          <string_value lines="20" type="code" language="python">def val(t):
+          <string_value type="code" language="python" lines="20">def val(t):
 	if "meshCounter" in persistent:
 		if persistent["meshCounter"] &gt;= 9:
 			return 0
@@ -259,7 +262,7 @@
       <mesh>
         <name>
           <python>
-            <string_value lines="20" type="code" language="python">def val(t):
+            <string_value type="code" language="python" lines="20">def val(t):
 	if "meshCounter" in persistent:
 		persistent["meshCounter"] += 1
 	else:

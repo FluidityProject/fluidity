@@ -98,7 +98,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -170,7 +170,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -190,7 +190,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -238,18 +238,18 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="all_sides">
           <surface_ids>
-            <integer_value shape="4" rank="1">7 8 9 10</integer_value>
+            <integer_value rank="1" shape="4">7 8 9 10</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    from math import sin, cos
    # Shear rotation about origin.
    u = sin(X[0])*cos(X[1])
@@ -258,7 +258,7 @@
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    from math import sin, cos
    # Shear rotation about origin.
    v = -1.0*cos(X[0])*sin(X[1])
@@ -273,7 +273,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
   from math import sin, cos
   A = 0.25;
   nu0 = 0.7;
@@ -283,13 +283,16 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <vector_field name="Source" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(XX, t):
+                <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import sin,cos
    nu0 = 0.7;
    A = 0.25;
@@ -339,6 +342,9 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nuv_x_x - nu
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </vector_field>
         <output>
@@ -365,7 +371,7 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nuv_x_x - nu
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -385,12 +391,12 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nuv_x_x - nu
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PressureAnalytical" rank="0">
+    <scalar_field rank="0" name="PressureAnalytical">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import cos
    p = cos(X[0])*cos(X[1])
    return p</string_value>
@@ -406,8 +412,8 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nuv_x_x - nu
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="ScalarAbsoluteDifference" rank="0">
-      <diagnostic field_name_b="Pressure" field_name_a="PressureAnalytical">
+    <scalar_field rank="0" name="ScalarAbsoluteDifference">
+      <diagnostic field_name_a="PressureAnalytical" field_name_b="Pressure">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
         <output/>
@@ -427,9 +433,9 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nuv_x_x - nu
         <relative_to_average/>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="FiniteElementDivergence" rank="0">
+    <scalar_field rank="0" name="FiniteElementDivergence">
       <diagnostic field_name="Velocity">
-        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
+        <algorithm name="Internal" material_phase_support="multiple" legacy="true"/>
         <mesh name="PressureMesh"/>
         <solver>
           <iterative_method name="cg"/>
@@ -453,17 +459,20 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nuv_x_x - nu
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="VelocityAnalytical" rank="1">
+    <vector_field rank="1" name="VelocityAnalytical">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import sin, cos
    # Shear rotation about origin.
    return (sin(X[0])*cos(X[1]), -1.0*cos(X[0])*sin(X[1]))</string_value>
@@ -476,10 +485,13 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nuv_x_x - nu
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <vector_field name="VectorAbsoluteDifference" rank="1">
-      <diagnostic field_name_b="Velocity" field_name_a="VelocityAnalytical">
+    <vector_field rank="1" name="VectorAbsoluteDifference">
+      <diagnostic field_name_a="VelocityAnalytical" field_name_b="Velocity">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
         <output/>
@@ -492,6 +504,9 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nuv_x_x - nu
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

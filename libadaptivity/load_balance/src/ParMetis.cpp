@@ -28,7 +28,6 @@
 //
 // provides interface for ParMetis
 //
-#include <mpi.h>
 #include <vector>
 #include <set>
 #include <deque>
@@ -37,9 +36,10 @@
 #include <string.h>
 #include <iostream>
 
+#include "sam_mpi.h"
+#include "c++debug.h"
 #include "Graph.h"
 #include "samParMetis.h"
-#include "c++debug.h"
 
 using namespace std;
 using namespace csr;

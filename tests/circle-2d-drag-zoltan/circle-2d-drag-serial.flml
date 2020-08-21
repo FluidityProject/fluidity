@@ -84,7 +84,7 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="0">
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -127,7 +127,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -179,18 +179,18 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="in">
           <surface_ids>
-            <integer_value shape="1" rank="1">94</integer_value>
+            <integer_value rank="1" shape="1">94</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
    UM = 0.3
    H = 0.41
    return 4.0*UM*X[1]*(H-X[1])/(H*H)</string_value>
@@ -198,7 +198,7 @@
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
    return 0.0</string_value>
                 </python>
               </y_component>
@@ -207,7 +207,7 @@
         </boundary_conditions>
         <boundary_conditions name="top_bottom_no_slip">
           <surface_ids>
-            <integer_value shape="1" rank="1">96</integer_value>
+            <integer_value rank="1" shape="1">96</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -226,7 +226,7 @@
         </boundary_conditions>
         <boundary_conditions name="cylinder_no_slip">
           <surface_ids>
-            <integer_value shape="1" rank="1">100</integer_value>
+            <integer_value rank="1" shape="1">100</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -253,6 +253,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -266,7 +269,7 @@
           </nonlinear_field>
           <compute_body_forces_on_surfaces name="circle">
             <surface_ids>
-              <integer_value shape="1" rank="1">100</integer_value>
+              <integer_value rank="1" shape="1">100</integer_value>
             </surface_ids>
           </compute_body_forces_on_surfaces>
         </stat>
@@ -299,7 +302,7 @@
         </galerkin_projection>
       </prognostic>
     </vector_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -319,7 +322,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Speed" rank="0">
+    <scalar_field rank="0" name="Speed">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -339,9 +342,9 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="GalerkinProjection" rank="0">
+    <scalar_field rank="0" name="GalerkinProjection">
       <diagnostic>
-        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
+        <algorithm name="Internal" material_phase_support="multiple" legacy="true"/>
         <source_field_name>Speed</source_field_name>
         <mesh name="PressureMesh"/>
         <solver>
@@ -374,11 +377,11 @@
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <python>
-                    <string_value lines="20" type="code" language="python">def val(X, t):
+                    <string_value type="code" language="python" lines="20">def val(X, t):
   if X[0] == 0.0:
     return 1.0e10
   if X[1] &lt;= 0.1:

@@ -29,10 +29,6 @@
 #define H_PRESSURENODES
 
 #include "confdefs.h"
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
-
 #include <vector>
 #include <deque>
 #include <map>

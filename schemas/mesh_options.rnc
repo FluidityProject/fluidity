@@ -121,28 +121,28 @@ mesh_info =
          ## Extrude a horizontal (1D or 2D) mesh in the vertical
          element extrude {
             (
-              ## Extrusion options for WholeMesh
-              ##
-              ## Only specify one set of parameters if not using mesh regions.
-              ## Otherwise select other regions option, specify region_ids
-              ## and distinct names.  Then add extra regions for other regions.
-              element regions {
-                attribute name { "WholeMesh" },
-                extrusion_options
-              }|
-              ## Multiple extrusion options are allowed if specifying
-              ## different values in different
-              ## regions of the mesh (defined by region_ids).  In this case
-              ## each set of options
-              ## requires a distinct name for the options dictionary.
-              element regions {
-                attribute name { string },
-                region_ids?,
-                extrusion_options
-              }
-            )+,
-            ## This is an internal option used by checkpointing. The 
-            ## option is switched on automatically in writing a 
+               top_layer_whole_mesh_region | top_layer_named_region |
+               (
+                  ## Extrusion options for the top layer. Give this layer a unique name
+                  ## and if necessary add more layers below with different extrusion options.
+                  element layer {
+                     attribute name { string },
+                     top_layer_extrusion_options
+                  }
+               )
+            ),
+            (
+               top_layer_named_region |
+               (
+                  ## Continue mesh extrusion under the previous extrusion layer with possibly different options.
+                  element layer {
+                     attribute name { string },
+                     next_layer_extrusion_options
+                  }
+                )
+            )*,
+            ## This is an internal option used by checkpointing. The
+            ## option is switched on automatically in writing a
             ## checkpoint, so that when starting from the checkpoint .flml
             ## fluidity picks up the extruded mesh from file. After the next
             ## adapt the extrusion is again done as specified in the other
@@ -218,23 +218,121 @@ derived_mesh_stat_options =
       }
    )
 
+top_layer_whole_mesh_region =
+   (
+         ## Extrusion options for WholeMesh
+         ##
+         ## Only specify one set of parameters if not using mesh regions.
+         ## Otherwise use the dropdown menu to specify a named region,
+         ## specify the region_ids in the surface mesh that define this
+         ## named region, and then hen add extra regions for other regions.
+         element regions {
+            attribute name { "WholeMesh" },
+            top_layer_regional_extrusion_options
+         }
+   )
+
+top_layer_named_region =
+   (
+         ## Multiple extrusion options are allowed if specifying
+         ## different values in different
+         ## regions of the mesh (defined by region_ids).  In this case
+         ## each set of options
+         ## requires a distinct name for the options dictionary.
+         element regions {
+            attribute name { string },
+            region_ids?,
+            top_layer_regional_extrusion_options
+         }
+   )
+
+top_layer_extrusion_options =
+   (
+      (
+         top_layer_whole_mesh_region | top_layer_named_region
+      ),
+      top_layer_named_region*
+   )
+
+next_layer_whole_mesh_region =
+      (
+         ## Extrusion options for WholeMesh
+         ##
+         ## Only specify one set of parameters if not using mesh regions.
+         ## Otherwise use the dropdown menu to specify a named region,
+         ## specify the region_ids in the surface mesh that define this
+         ## named region, and then hen add extra regions for other regions.
+         element regions {
+            attribute name { "WholeMesh" },
+            next_layer_regional_extrusion_options
+         }
+      )
+
+next_layer_named_region =
+      (
+         ## Multiple extrusion options are allowed if specifying
+         ## different values in different
+         ## regions of the mesh (defined by region_ids).  In this case
+         ## each set of options
+         ## requires a distinct name for the options dictionary.
+         element regions {
+            attribute name { string },
+            region_ids?,
+            next_layer_regional_extrusion_options
+         }
+      )
+
+next_layer_extrusion_options =
+   (
+      (
+         next_layer_whole_mesh_region | next_layer_named_region
+      ),
+      next_layer_named_region*
+   )
+
+# in the top layer we can specify both top and bottom surface id in each region:
+top_layer_regional_extrusion_options =
+   (
+      extrusion_options,
+      ## surface_id to assign to the top of the extruded mesh
+      element top_surface_id {
+          integer
+      }?,
+      ## surface_id to assign to the bottom of the extruded mesh, or to the internal
+      ## boundary below the current extrusion layer if multiple extrusion layers
+      ## are specified.
+      element bottom_surface_id {
+          integer
+      }?
+   )
+
+# in the next layers we can only specify the bottom surface id in each region:
+next_layer_regional_extrusion_options =
+   (
+      extrusion_options,
+      ## surface_id to assign to the bottom of the layer
+      element bottom_surface_id {
+          integer
+      }?
+   )
+
 extrusion_options = 
    (
       ## Depth over which to extrude
       ## top will be at z=0
       ## bottom will be at z=-bottom_depth
       element bottom_depth {
-          input_choice_real_plus_map
+         input_choice_real_plus_map
       },
       ## Constant or function to specify the depth of the
       ## layers. The function is a function of all coordinates
       ## (so in 2+1D: x,y and z) to specify a layer depth that
       ## varies both in the horizontal as in the vertical.
       element sizing_function {
-          input_choice_real_plus_list,
+         input_choice_real_plus_list,
       ## If your sizing function only varies in depth enable this option.
       ## Do not use if your function depends on x and/or y as it takes a column of depth values and re-uses it. 
-          element varies_only_in_depth {empty}?
+         element varies_only_in_depth {empty}?
       },
       ## To prevent infinitesimally thin bottom layer if sizing function
       ## is an integer multiple of total depth, the bottom layer needs
@@ -242,15 +340,12 @@ extrusion_options =
       ##
       ## Default is 1e-3.
       element minimum_bottom_layer_fraction {
-          real
+         real
       }?,
-      ## surface_id to assign to the top of the extruded mesh
-      element top_surface_id {
-          integer
-      }?,
-      ## surface_id to assign to the bottom of the extruded mesh
-      element bottom_surface_id {
-          integer
+      ## Change the region_id of this extruded region. If not specified
+      ## the region obtains the region_id of the horizontal mesh above.
+      element extruded_region_id {
+         integer
       }?
    )
 

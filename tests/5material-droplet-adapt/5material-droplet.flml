@@ -103,7 +103,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">0.0 -1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="2">0.0 -1.0</real_value>
             </constant>
           </value>
           <output>
@@ -115,6 +115,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -138,7 +141,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -185,7 +188,7 @@
         </enforce_discrete_properties>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -206,7 +209,7 @@
         <do_not_recalculate/>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -261,18 +264,18 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="no_flow_out_base">
           <surface_ids>
-            <integer_value shape="1" rank="1">7</integer_value>
+            <integer_value rank="1" shape="1">7</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions name="no_flow_out_sides">
           <surface_ids>
-            <integer_value shape="2" rank="1">8 10</integer_value>
+            <integer_value rank="1" shape="2">8 10</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
@@ -286,6 +289,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -345,7 +351,7 @@
         </enforce_discrete_properties>
       </prognostic>
     </vector_field>
-    <scalar_field name="MaterialVolumeFraction" rank="0">
+    <scalar_field rank="0" name="MaterialVolumeFraction">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -389,7 +395,7 @@
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
         from math import sqrt
         dx1 = X[0]-0.0
         dx2 = X[1]+0.51
@@ -402,7 +408,7 @@
         </initial_condition>
         <boundary_conditions name="incoming_vfrac">
           <surface_ids>
-            <integer_value shape="1" rank="1">9</integer_value>
+            <integer_value rank="1" shape="1">9</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -427,7 +433,7 @@
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -488,7 +494,7 @@
         </priority>
       </prognostic>
     </scalar_field>
-    <scalar_field name="MaterialDensity" rank="0">
+    <scalar_field rank="0" name="MaterialDensity">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -509,7 +515,7 @@
         <do_not_recalculate/>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="ControlVolumeCFLNumber" rank="0">
+    <scalar_field rank="0" name="ControlVolumeCFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -529,7 +535,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="SumMaterialVolumeFractions" rank="0">
+    <scalar_field rank="0" name="SumMaterialVolumeFractions">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -549,7 +555,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="ControlVolumeDivergence" rank="0">
+    <scalar_field rank="0" name="ControlVolumeDivergence">
       <diagnostic field_name="Velocity">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -561,12 +567,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
@@ -603,16 +612,16 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <aliased material_phase_name="Water" field_name="Pressure"/>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <aliased material_phase_name="Water" field_name="Density"/>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <aliased material_phase_name="Water" field_name="Velocity"/>
     </vector_field>
-    <scalar_field name="MaterialVolumeFraction" rank="0">
+    <scalar_field rank="0" name="MaterialVolumeFraction">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -663,7 +672,7 @@
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
         from math import sqrt
         dx1 = X[0]-0.0
         dx2 = X[1]-0.51
@@ -676,7 +685,7 @@
         </initial_condition>
         <boundary_conditions name="incoming_vfrac">
           <surface_ids>
-            <integer_value shape="1" rank="1">9</integer_value>
+            <integer_value rank="1" shape="1">9</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -703,7 +712,7 @@
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -764,7 +773,7 @@
         </priority>
       </prognostic>
     </scalar_field>
-    <scalar_field name="MaterialDensity" rank="0">
+    <scalar_field rank="0" name="MaterialDensity">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -785,7 +794,7 @@
         <do_not_recalculate/>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <aliased material_phase_name="Water" field_name="Temperature"/>
     </scalar_field>
   </material_phase>
@@ -799,16 +808,16 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <aliased material_phase_name="Water" field_name="Pressure"/>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <aliased material_phase_name="Water" field_name="Density"/>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <aliased material_phase_name="Water" field_name="Velocity"/>
     </vector_field>
-    <scalar_field name="MaterialVolumeFraction" rank="0">
+    <scalar_field rank="0" name="MaterialVolumeFraction">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -828,7 +837,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="MaterialDensity" rank="0">
+    <scalar_field rank="0" name="MaterialDensity">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -860,16 +869,16 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <aliased material_phase_name="Water" field_name="Pressure"/>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <aliased material_phase_name="Water" field_name="Density"/>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <aliased material_phase_name="Water" field_name="Velocity"/>
     </vector_field>
-    <scalar_field name="MaterialVolumeFraction" rank="0">
+    <scalar_field rank="0" name="MaterialVolumeFraction">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -913,7 +922,7 @@
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
         from math import sqrt
         dx1 = X[0]-0.0
         dx2 = X[1]+0.51
@@ -926,7 +935,7 @@
         </initial_condition>
         <boundary_conditions name="incoming_vfrac">
           <surface_ids>
-            <integer_value shape="1" rank="1">9</integer_value>
+            <integer_value rank="1" shape="1">9</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -951,7 +960,7 @@
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -1012,7 +1021,7 @@
         </priority>
       </prognostic>
     </scalar_field>
-    <scalar_field name="MaterialDensity" rank="0">
+    <scalar_field rank="0" name="MaterialDensity">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -1044,16 +1053,16 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <aliased material_phase_name="Water" field_name="Pressure"/>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <aliased material_phase_name="Water" field_name="Density"/>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <aliased material_phase_name="Water" field_name="Velocity"/>
     </vector_field>
-    <scalar_field name="MaterialVolumeFraction" rank="0">
+    <scalar_field rank="0" name="MaterialVolumeFraction">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -1104,7 +1113,7 @@
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
         from math import sqrt
         dx1 = X[0]-0.0
         dx2 = X[1]+0.51
@@ -1117,7 +1126,7 @@
         </initial_condition>
         <boundary_conditions name="incoming_vfrac">
           <surface_ids>
-            <integer_value shape="1" rank="1">9</integer_value>
+            <integer_value rank="1" shape="1">9</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -1142,7 +1151,7 @@
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -1203,7 +1212,7 @@
         </priority>
       </prognostic>
     </scalar_field>
-    <scalar_field name="MaterialDensity" rank="0">
+    <scalar_field rank="0" name="MaterialDensity">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -1237,7 +1246,7 @@
         <tensor_field name="Gamma">
           <anisotropic_symmetric>
             <constant>
-              <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1.0 0.0 0.0 1.0</real_value>
+              <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">1.0 0.0 0.0 1.0</real_value>
             </constant>
           </anisotropic_symmetric>
         </tensor_field>
@@ -1291,14 +1300,14 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.01 0.0 0.0 0.01</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">0.01 0.0 0.0 0.01</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.1 0.0 0.0 0.1</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">0.1 0.0 0.0 0.1</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

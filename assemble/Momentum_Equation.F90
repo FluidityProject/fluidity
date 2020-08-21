@@ -1828,8 +1828,9 @@
          type(block_csr_matrix), dimension(:), intent(inout) :: subcycle_m
          type(vector_field), dimension(:), intent(inout) :: subcycle_rhs
 
-         ! Slope limiter variables:
          integer :: d
+         type(vector_field), pointer :: x
+         type(vector_field) :: u_positions
          type(scalar_field) :: u_cpt
 
          ewrite(1,*) 'Entering finalise_state'
@@ -1854,6 +1855,14 @@
                call limit_vb(state(istate), u_cpt)
             end do
          end if
+
+         if (have_option(trim(u%option_path)//"/prognostic/solver/remove_null_space")) then
+            x => extract_vector_field(state(istate), "Coordinate")
+            u_positions = get_nodal_coordinate_field(state(istate), u%mesh)
+            call L2_project_nullspace_vector(u, trim(u%option_path)//"/prognostic/solver/remove_null_space", x, u_positions)
+            call deallocate(u_positions)
+         end if
+
          call profiler_toc(u, "assembly")
 
          if(dg(istate)) then

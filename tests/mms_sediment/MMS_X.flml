@@ -107,7 +107,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">1.0 1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="2">1.0 1.0</real_value>
             </constant>
           </value>
           <output/>
@@ -117,6 +117,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -132,7 +135,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -185,7 +188,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -207,7 +210,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -262,27 +265,27 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_sediment_tools as k
    return k.velocity(X)</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="all_sides">
           <surface_ids>
-            <integer_value shape="2" rank="1">1 2</integer_value>
+            <integer_value rank="1" shape="2">1 2</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_sediment_tools as k
    return k.u(X)</string_value>
                 </python>
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_sediment_tools as k
    return k.v(X)</string_value>
                 </python>
@@ -297,13 +300,16 @@
             <stat>
               <exclude_from_stat/>
             </stat>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </diagnostic>
         </tensor_field>
         <vector_field name="Source" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_sediment_tools as k
    return k.forcing_velocity(X)</string_value>
               </python>
@@ -315,6 +321,9 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </vector_field>
         <output/>
@@ -339,7 +348,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -361,12 +370,12 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PressureAnalytical" rank="0">
+    <scalar_field rank="0" name="PressureAnalytical">
       <prescribed>
         <mesh name="ErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
         import mms_sediment_tools as k
         return k.p(X)</string_value>
           </python>
@@ -383,9 +392,9 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="PressureProjection" rank="0">
+    <scalar_field rank="0" name="PressureProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="Pressure">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="Pressure" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -420,9 +429,9 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PressureError" rank="0">
+    <scalar_field rank="0" name="PressureError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="PressureRemeaned" source_field_2_name="PressureAnalytical" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="PressureRemeaned" source_field_1_type="scalar" source_field_2_name="PressureAnalytical" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
@@ -442,10 +451,10 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="s1Copy" rank="0">
+    <scalar_field rank="0" name="s1Copy">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">E=state.scalar_fields["s1"]
+          <string_value type="code" language="python" lines="20">E=state.scalar_fields["s1"]
 
 for n in range(field.node_count):
 	field.set(n,E.node_val(n))</string_value>
@@ -467,12 +476,12 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="s1Analytical" rank="0">
+    <scalar_field rank="0" name="s1Analytical">
       <prescribed>
         <mesh name="ErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_sediment_tools as k
    return k.s1(X)</string_value>
           </python>
@@ -489,9 +498,9 @@ for n in range(field.node_count):
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="s1Projection" rank="0">
+    <scalar_field rank="0" name="s1Projection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="s1Copy">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="s1Copy" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -526,9 +535,9 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="s1Error" rank="0">
+    <scalar_field rank="0" name="s1Error">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="s1Analytical" source_field_2_name="s1Projection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="s1Analytical" source_field_1_type="scalar" source_field_2_name="s1Projection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
@@ -548,10 +557,10 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="s2Copy" rank="0">
+    <scalar_field rank="0" name="s2Copy">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">E=state.scalar_fields["s2"]
+          <string_value type="code" language="python" lines="20">E=state.scalar_fields["s2"]
 
 for n in range(field.node_count):
 	field.set(n,E.node_val(n))</string_value>
@@ -573,12 +582,12 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="s2Analytical" rank="0">
+    <scalar_field rank="0" name="s2Analytical">
       <prescribed>
         <mesh name="ErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_sediment_tools as k
    return k.s2(X)</string_value>
           </python>
@@ -595,9 +604,9 @@ for n in range(field.node_count):
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="s2Projection" rank="0">
+    <scalar_field rank="0" name="s2Projection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="s2Copy">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="s2Copy" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -632,9 +641,9 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="s2Error" rank="0">
+    <scalar_field rank="0" name="s2Error">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="s2Analytical" source_field_2_name="s2Projection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="s2Analytical" source_field_1_type="scalar" source_field_2_name="s2Projection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
@@ -654,10 +663,10 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="s1BedloadErosionRateCopy" rank="0">
+    <scalar_field rank="0" name="s1BedloadErosionRateCopy">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">E=state.scalar_fields["s1BedloadErosionRate"]
+          <string_value type="code" language="python" lines="20">E=state.scalar_fields["s1BedloadErosionRate"]
 
 for n in range(field.node_count):
 	field.set(n,E.node_val(n))</string_value>
@@ -679,12 +688,12 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="s1BedloadErosionRateAnalytical" rank="0">
+    <scalar_field rank="0" name="s1BedloadErosionRateAnalytical">
       <prescribed>
         <mesh name="ErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_sediment_tools as k
    return k.E_1(X)</string_value>
           </python>
@@ -701,9 +710,9 @@ for n in range(field.node_count):
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="s1BedloadErosionRateProjection" rank="0">
+    <scalar_field rank="0" name="s1BedloadErosionRateProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="s1BedloadErosionRateCopy">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="s1BedloadErosionRateCopy" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -738,15 +747,15 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="s1BedloadErosionRateError" rank="0">
+    <scalar_field rank="0" name="s1BedloadErosionRateError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="s1BedloadErosionRateAnalytical" source_field_2_name="s1BedloadErosionRateProjection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="s1BedloadErosionRateAnalytical" source_field_1_type="scalar" source_field_2_name="s1BedloadErosionRateProjection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
         <output/>
         <stat>
-          <surface_integral type="value" name="s1BedloadErosionRateErrorIntegral"/>
+          <surface_integral name="s1BedloadErosionRateErrorIntegral" type="value"/>
         </stat>
         <convergence>
           <include_in_convergence/>
@@ -762,10 +771,10 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="s2BedloadErosionRateCopy" rank="0">
+    <scalar_field rank="0" name="s2BedloadErosionRateCopy">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">E=state.scalar_fields["s2BedloadErosionRate"]
+          <string_value type="code" language="python" lines="20">E=state.scalar_fields["s2BedloadErosionRate"]
 
 for n in range(field.node_count):
 	field.set(n,E.node_val(n))</string_value>
@@ -787,12 +796,12 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="s2BedloadErosionRateAnalytical" rank="0">
+    <scalar_field rank="0" name="s2BedloadErosionRateAnalytical">
       <prescribed>
         <mesh name="ErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_sediment_tools as k
    return k.E_2(X)</string_value>
           </python>
@@ -809,9 +818,9 @@ for n in range(field.node_count):
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="s2BedloadErosionRateProjection" rank="0">
+    <scalar_field rank="0" name="s2BedloadErosionRateProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="s2BedloadErosionRateCopy">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="s2BedloadErosionRateCopy" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -846,15 +855,15 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="s2BedloadErosionRateError" rank="0">
+    <scalar_field rank="0" name="s2BedloadErosionRateError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="s2BedloadErosionRateAnalytical" source_field_2_name="s2BedloadErosionRateProjection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="s2BedloadErosionRateAnalytical" source_field_1_type="scalar" source_field_2_name="s2BedloadErosionRateProjection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
         <output/>
         <stat>
-          <surface_integral type="value" name="s2BedloadErosionRateErrorIntegral"/>
+          <surface_integral name="s2BedloadErosionRateErrorIntegral" type="value"/>
         </stat>
         <convergence>
           <include_in_convergence/>
@@ -870,10 +879,10 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="s1BedloadDepositRateCopy" rank="0">
+    <scalar_field rank="0" name="s1BedloadDepositRateCopy">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">E=state.scalar_fields["s1BedloadDepositRate"]
+          <string_value type="code" language="python" lines="20">E=state.scalar_fields["s1BedloadDepositRate"]
 
 for n in range(field.node_count):
 	field.set(n,E.node_val(n))</string_value>
@@ -895,12 +904,12 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="s1BedloadDepositRateAnalytical" rank="0">
+    <scalar_field rank="0" name="s1BedloadDepositRateAnalytical">
       <prescribed>
         <mesh name="ErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_sediment_tools as k
    return k.D_1(X)</string_value>
           </python>
@@ -917,9 +926,9 @@ for n in range(field.node_count):
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="s1BedloadDepositRateProjection" rank="0">
+    <scalar_field rank="0" name="s1BedloadDepositRateProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="s1BedloadDepositRateCopy">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="s1BedloadDepositRateCopy" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -954,15 +963,15 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="s1BedloadDepositRateError" rank="0">
+    <scalar_field rank="0" name="s1BedloadDepositRateError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="s1BedloadDepositRateAnalytical" source_field_2_name="s1BedloadDepositRateProjection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="s1BedloadDepositRateAnalytical" source_field_1_type="scalar" source_field_2_name="s1BedloadDepositRateProjection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
         <output/>
         <stat>
-          <surface_integral type="value" name="s1BedloadDepositRateErrorIntegral"/>
+          <surface_integral name="s1BedloadDepositRateErrorIntegral" type="value"/>
         </stat>
         <convergence>
           <include_in_convergence/>
@@ -978,10 +987,10 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="s2BedloadDepositRateCopy" rank="0">
+    <scalar_field rank="0" name="s2BedloadDepositRateCopy">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">E=state.scalar_fields["s2BedloadDepositRate"]
+          <string_value type="code" language="python" lines="20">E=state.scalar_fields["s2BedloadDepositRate"]
 
 for n in range(field.node_count):
 	field.set(n,E.node_val(n))</string_value>
@@ -1003,12 +1012,12 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="s2BedloadDepositRateAnalytical" rank="0">
+    <scalar_field rank="0" name="s2BedloadDepositRateAnalytical">
       <prescribed>
         <mesh name="ErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_sediment_tools as k
    return k.D_2(X)</string_value>
           </python>
@@ -1025,9 +1034,9 @@ for n in range(field.node_count):
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="s2BedloadDepositRateProjection" rank="0">
+    <scalar_field rank="0" name="s2BedloadDepositRateProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="s2BedloadDepositRateCopy">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="s2BedloadDepositRateCopy" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -1062,15 +1071,15 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="s2BedloadDepositRateError" rank="0">
+    <scalar_field rank="0" name="s2BedloadDepositRateError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="s2BedloadDepositRateAnalytical" source_field_2_name="s2BedloadDepositRateProjection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="s2BedloadDepositRateAnalytical" source_field_1_type="scalar" source_field_2_name="s2BedloadDepositRateProjection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
         <output/>
         <stat>
-          <surface_integral type="value" name="s2BedloadDepositRateErrorIntegral"/>
+          <surface_integral name="s2BedloadDepositRateErrorIntegral" type="value"/>
         </stat>
         <convergence>
           <include_in_convergence/>
@@ -1086,11 +1095,11 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PressureRemeaned" rank="0">
+    <scalar_field rank="0" name="PressureRemeaned">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="subtract_surface_average" source_field_name="PressureProjection">
+        <algorithm name="subtract_surface_average" material_phase_support="single" source_field_name="PressureProjection" source_field_type="scalar">
           <surface_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
+            <integer_value rank="1" shape="1">2</integer_value>
           </surface_ids>
         </algorithm>
         <mesh name="ErrorMesh"/>
@@ -1110,12 +1119,12 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="VelocityAnalytical" rank="1">
+    <vector_field rank="1" name="VelocityAnalytical">
       <prescribed>
         <mesh name="ErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
         import mms_sediment_tools as k
         return k.velocity(X)</string_value>
           </python>
@@ -1127,11 +1136,14 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <vector_field name="VelocityProjection" rank="1">
+    <vector_field rank="1" name="VelocityProjection">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="Velocity">
+        <algorithm name="vector_galerkin_projection" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -1158,14 +1170,17 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="VelocityError" rank="1">
+    <vector_field rank="1" name="VelocityError">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="VelocityProjection" source_field_2_name="VelocityAnalytical" material_phase_support="single" source_field_1_type="vector">
+        <algorithm name="vector_difference" material_phase_support="single" source_field_1_name="VelocityProjection" source_field_1_type="vector" source_field_2_name="VelocityAnalytical" source_field_2_type="vector">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
@@ -1179,12 +1194,15 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="BedShearStress" rank="1">
+    <vector_field rank="1" name="BedShearStress">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -1203,10 +1221,13 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </diagnostic>
     </vector_field>
     <sediment>
-      <scalar_field name="s1" rank="0">
+      <scalar_field rank="0" name="s1">
         <prognostic>
           <mesh name="VelocityMesh"/>
           <equation name="AdvectionDiffusion"/>
@@ -1250,14 +1271,14 @@ for n in range(field.node_count):
           </solver>
           <initial_condition name="WholeMesh">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_sediment_tools as k
    return k.s1(X)</string_value>
             </python>
           </initial_condition>
           <boundary_conditions name="reentrainment">
             <surface_ids>
-              <integer_value shape="1" rank="1">2</integer_value>
+              <integer_value rank="1" shape="1">2</integer_value>
             </surface_ids>
             <type name="sediment_reentrainment">
               <algorithm>Garcia_1991</algorithm>
@@ -1265,11 +1286,11 @@ for n in range(field.node_count):
           </boundary_conditions>
           <boundary_conditions name="all_sides">
             <surface_ids>
-              <integer_value shape="2" rank="1">1 2</integer_value>
+              <integer_value rank="1" shape="2">1 2</integer_value>
             </surface_ids>
             <type name="dirichlet">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_sediment_tools as k
    return k.s1(X)</string_value>
               </python>
@@ -1285,13 +1306,16 @@ for n in range(field.node_count):
                 </isotropic>
               </value>
               <output/>
+              <particles>
+                <exclude_from_particles/>
+              </particles>
             </prescribed>
           </tensor_field>
           <scalar_field name="Source" rank="0">
             <prescribed>
               <value name="WholeMesh">
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_sediment_tools as k
    return k.forcing_s1(X)</string_value>
                 </python>
@@ -1337,10 +1361,10 @@ for n in range(field.node_count):
             <exclude_from_steady_state/>
           </steady_state>
           <consistent_interpolation/>
-          <scalar_field name="Bedload" rank="0">
+          <scalar_field rank="0" name="Bedload">
             <prognostic>
               <surface_ids>
-                <integer_value shape="1" rank="1">2</integer_value>
+                <integer_value rank="1" shape="1">2</integer_value>
               </surface_ids>
               <equation name="AdvectionDiffusion"/>
               <spatial_discretisation>
@@ -1383,7 +1407,7 @@ for n in range(field.node_count):
               </solver>
               <initial_condition name="WholeMesh">
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_sediment_tools as k
    return k.s1_d(X)</string_value>
                 </python>
@@ -1406,7 +1430,7 @@ for n in range(field.node_count):
               <disable_calculation/>
             </prognostic>
           </scalar_field>
-          <scalar_field name="BedloadVolumeFraction" rank="0">
+          <scalar_field rank="0" name="BedloadVolumeFraction">
             <diagnostic>
               <output/>
               <stat/>
@@ -1424,7 +1448,7 @@ for n in range(field.node_count):
               </steady_state>
             </diagnostic>
           </scalar_field>
-          <scalar_field name="BedloadDepositRate" rank="0">
+          <scalar_field rank="0" name="BedloadDepositRate">
             <diagnostic>
               <output/>
               <stat/>
@@ -1442,7 +1466,7 @@ for n in range(field.node_count):
               </steady_state>
             </diagnostic>
           </scalar_field>
-          <scalar_field name="BedloadErosionRate" rank="0">
+          <scalar_field rank="0" name="BedloadErosionRate">
             <diagnostic>
               <output/>
               <stat/>
@@ -1486,7 +1510,7 @@ for n in range(field.node_count):
           </diameter>
         </prognostic>
       </scalar_field>
-      <scalar_field name="s2" rank="0">
+      <scalar_field rank="0" name="s2">
         <prognostic>
           <mesh name="VelocityMesh"/>
           <equation name="AdvectionDiffusion"/>
@@ -1532,14 +1556,14 @@ for n in range(field.node_count):
           </solver>
           <initial_condition name="WholeMesh">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_sediment_tools as k
    return k.s2(X)</string_value>
             </python>
           </initial_condition>
           <boundary_conditions name="reentrainment">
             <surface_ids>
-              <integer_value shape="1" rank="1">2</integer_value>
+              <integer_value rank="1" shape="1">2</integer_value>
             </surface_ids>
             <type name="sediment_reentrainment">
               <algorithm>Garcia_1991</algorithm>
@@ -1547,11 +1571,11 @@ for n in range(field.node_count):
           </boundary_conditions>
           <boundary_conditions name="all_sides">
             <surface_ids>
-              <integer_value shape="2" rank="1">1 2</integer_value>
+              <integer_value rank="1" shape="2">1 2</integer_value>
             </surface_ids>
             <type name="dirichlet">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_sediment_tools as k
    return k.s2(X)</string_value>
               </python>
@@ -1567,13 +1591,16 @@ for n in range(field.node_count):
                 </isotropic>
               </value>
               <output/>
+              <particles>
+                <exclude_from_particles/>
+              </particles>
             </prescribed>
           </tensor_field>
           <scalar_field name="Source" rank="0">
             <prescribed>
               <value name="WholeMesh">
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_sediment_tools as k
    return k.forcing_s2(X)</string_value>
                 </python>
@@ -1619,10 +1646,10 @@ for n in range(field.node_count):
             <exclude_from_steady_state/>
           </steady_state>
           <consistent_interpolation/>
-          <scalar_field name="Bedload" rank="0">
+          <scalar_field rank="0" name="Bedload">
             <prognostic>
               <surface_ids>
-                <integer_value shape="1" rank="1">2</integer_value>
+                <integer_value rank="1" shape="1">2</integer_value>
               </surface_ids>
               <equation name="AdvectionDiffusion"/>
               <spatial_discretisation>
@@ -1665,7 +1692,7 @@ for n in range(field.node_count):
               </solver>
               <initial_condition name="WholeMesh">
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_sediment_tools as k
    return k.s2_d(X)</string_value>
                 </python>
@@ -1688,7 +1715,7 @@ for n in range(field.node_count):
               <disable_calculation/>
             </prognostic>
           </scalar_field>
-          <scalar_field name="BedloadVolumeFraction" rank="0">
+          <scalar_field rank="0" name="BedloadVolumeFraction">
             <diagnostic>
               <output/>
               <stat/>
@@ -1706,7 +1733,7 @@ for n in range(field.node_count):
               </steady_state>
             </diagnostic>
           </scalar_field>
-          <scalar_field name="BedloadDepositRate" rank="0">
+          <scalar_field rank="0" name="BedloadDepositRate">
             <diagnostic>
               <output/>
               <stat/>
@@ -1724,7 +1751,7 @@ for n in range(field.node_count):
               </steady_state>
             </diagnostic>
           </scalar_field>
-          <scalar_field name="BedloadErosionRate" rank="0">
+          <scalar_field rank="0" name="BedloadErosionRate">
             <diagnostic>
               <output/>
               <stat/>
@@ -1768,10 +1795,10 @@ for n in range(field.node_count):
           </diameter>
         </prognostic>
       </scalar_field>
-      <scalar_field name="SedimentBedActiveLayerD50" rank="0">
+      <scalar_field rank="0" name="SedimentBedActiveLayerD50">
         <diagnostic>
           <surface_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
+            <integer_value rank="1" shape="1">2</integer_value>
           </surface_ids>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="VelocityMesh"/>
@@ -1791,10 +1818,10 @@ for n in range(field.node_count):
           </steady_state>
         </diagnostic>
       </scalar_field>
-      <scalar_field name="SedimentBedActiveLayerSigma" rank="0">
+      <scalar_field rank="0" name="SedimentBedActiveLayerSigma">
         <diagnostic>
           <surface_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
+            <integer_value rank="1" shape="1">2</integer_value>
           </surface_ids>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="VelocityMesh"/>
@@ -1814,17 +1841,20 @@ for n in range(field.node_count):
           </steady_state>
         </diagnostic>
       </scalar_field>
-      <tensor_field name="ZeroSedimentConcentrationViscosity" rank="2">
+      <tensor_field rank="2" name="ZeroSedimentConcentrationViscosity">
         <prescribed>
           <mesh name="VelocityMesh"/>
           <value name="WholeMesh">
             <anisotropic_symmetric>
               <constant>
-                <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1.0 1.0 1.0 1.0</real_value>
+                <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">1.0 1.0 1.0 1.0</real_value>
               </constant>
             </anisotropic_symmetric>
           </value>
           <output/>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </tensor_field>
     </sediment>

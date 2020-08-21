@@ -29,9 +29,7 @@
 #define H_SAMTYPES
 
 #include "confdefs.h"
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
+#include "sam_mpi.h"
 
 #ifdef USING_DOUBLE_PRECISION
 typedef double samfloat_t;

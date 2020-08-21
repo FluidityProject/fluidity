@@ -28,9 +28,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <mpi.h>
 #include <assert.h>
 
+#include "sam_mpi.h"
 #include "migrate.h"
 #include "mesh.h"
 #include "LUTs.h"

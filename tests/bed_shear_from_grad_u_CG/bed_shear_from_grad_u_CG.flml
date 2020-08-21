@@ -56,7 +56,7 @@
     </finish_time>
   </timestepping>
   <material_phase name="test_fluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -104,7 +104,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
     return [X[1], X[0]]</string_value>
           </python>
         </initial_condition>
@@ -118,6 +118,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -142,7 +145,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <vector_field name="BedShearStress" rank="1">
+    <vector_field rank="1" name="BedShearStress">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -159,6 +162,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </diagnostic>
     </vector_field>
   </material_phase>

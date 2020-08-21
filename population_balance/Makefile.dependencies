@@ -10,13 +10,3 @@ DQMOM.o ../include/dqmom.mod: DQMOM.F90 ../include/elements.mod \
    ../include/state_fields_module.mod ../include/state_module.mod \
    ../include/vector_tools.mod
 
-../include/dqmom.mod: DQMOM_node_source.o
-	@true
-
-DQMOM_node_source.o ../include/dqmom.mod: DQMOM_node_source.F90 \
-   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/futils.mod ../include/global_parameters.mod \
-   ../include/initialise_fields_module.mod ../include/solvers.mod \
-   ../include/sparse_tools.mod ../include/state_fields_module.mod \
-   ../include/state_module.mod ../include/vector_tools.mod
-

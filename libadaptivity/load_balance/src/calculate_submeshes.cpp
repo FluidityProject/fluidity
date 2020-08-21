@@ -29,7 +29,6 @@
 #include <deque>
 #include <string>
 #include <set>
-#include <mpi.h>
 
 using std::set;
 using std::vector;

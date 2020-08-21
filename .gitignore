@@ -26,10 +26,24 @@ tramp
 *.o
 *.so
 
+## header files
+include/confdefs.h
+include/Judy.h
+include/Wm4*.h
+include/config.h
+include/spatialindex/
+include/spud
+include/spud.h
+include/spud_enums.h
+include/tinystr.h
+include/tinyxml.h
+include/version.h
+include/vtk.h
+
+
 ## Fortran extensions
 *.mod
 
 ## directories
 bin/
-include/*.*
 lib/

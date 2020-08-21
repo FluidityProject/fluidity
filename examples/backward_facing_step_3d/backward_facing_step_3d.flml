@@ -78,7 +78,7 @@
     </adaptive_timestep>
   </timestepping>
   <material_phase name="Fluid">
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -121,7 +121,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -171,18 +171,18 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="Inflow">
           <surface_ids>
-            <integer_value shape="1" rank="1">41</integer_value>
+            <integer_value rank="1" shape="1">41</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
     from math import log
     h = 1.0
     y0 = 0.01
@@ -210,7 +210,7 @@
         </boundary_conditions>
         <boundary_conditions name="NoSlip">
           <surface_ids>
-            <integer_value shape="1" rank="1">50</integer_value>
+            <integer_value rank="1" shape="1">50</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -234,7 +234,7 @@
         </boundary_conditions>
         <boundary_conditions name="FreeSlipSides">
           <surface_ids>
-            <integer_value shape="2" rank="1">47 48</integer_value>
+            <integer_value rank="1" shape="2">47 48</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -248,7 +248,7 @@
         </boundary_conditions>
         <boundary_conditions name="FreeSlipTop">
           <surface_ids>
-            <integer_value shape="1" rank="1">46</integer_value>
+            <integer_value rank="1" shape="1">46</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -270,13 +270,16 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <vector_field name="Absorption" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X, t):
+                <string_value type="code" language="python" lines="20">def val(X, t):
     # absorption coefficient
     k = 0.2
     if(X[0] &gt; 25.):
@@ -296,6 +299,9 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
           <default_absorption/>
         </vector_field>
@@ -320,11 +326,11 @@
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <vector_field name="InterpolationErrorBound" rank="1">
+            <vector_field rank="1" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
-                    <real_value shape="3" dim1="dim" rank="1">0.15 0.15 0.15</real_value>
+                    <real_value rank="1" dim1="dim" shape="3">0.15 0.15 0.15</real_value>
                   </constant>
                 </value>
                 <output>
@@ -336,6 +342,9 @@
                 <detectors>
                   <exclude_from_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </prescribed>
             </vector_field>
             <p_norm>
@@ -363,9 +372,9 @@
         </galerkin_projection>
       </prognostic>
     </vector_field>
-    <vector_field name="AverageVelocity" rank="1">
+    <vector_field rank="1" name="AverageVelocity">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="time_averaged_vector" source_field_name="Velocity">
+        <algorithm name="time_averaged_vector" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <spin_up_time>
             <real_value rank="0">100</real_value>
           </spin_up_time>
@@ -381,6 +390,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -404,9 +416,9 @@
         </galerkin_projection>
       </diagnostic>
     </vector_field>
-    <vector_field name="FluctuatingVelocity" rank="1">
+    <vector_field rank="1" name="FluctuatingVelocity">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="AverageVelocity" material_phase_support="single" source_field_1_type="vector"/>
+        <algorithm name="vector_difference" material_phase_support="single" source_field_1_name="Velocity" source_field_1_type="vector" source_field_2_name="AverageVelocity" source_field_2_type="vector"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>
@@ -418,6 +430,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -458,14 +473,14 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">0.025 0. 0. 0. 0.025 0. 0. 0. 0.025</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">0.025 0. 0. 0. 0.025 0. 0. 0. 0.025</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">0.5 0. 0. 0. 0.5 0. 0. 0. 0.5</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">0.5 0. 0. 0. 0.5 0. 0. 0. 0.5</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

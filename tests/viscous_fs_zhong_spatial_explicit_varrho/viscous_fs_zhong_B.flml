@@ -31,19 +31,6 @@
         </stat>
       </from_mesh>
     </mesh>
-    <mesh name="FreeSurfaceSquaredMesh">
-      <from_mesh>
-        <mesh name="CoordinateMesh"/>
-        <mesh_shape>
-          <polynomial_degree>
-            <integer_value rank="0">2</integer_value>
-          </polynomial_degree>
-        </mesh_shape>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
     <quadrature>
       <degree>
         <integer_value rank="0">5</integer_value>
@@ -104,6 +91,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -354,6 +344,9 @@
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -475,54 +468,24 @@ def val(X,t):
         <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="FreeSurface" source_field_2_name="AnalyticalFreeSurface" material_phase_support="single" source_field_1_type="scalar">
           <absolute_difference/>
         </algorithm>
-        <mesh name="FreeSurfaceSquaredMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="DifferenceSquared" rank="0">
-      <diagnostic>
-        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">fsd = state.scalar_fields["FreeSurfaceDifference"]
-
-assert(field.node_count==fsd.node_count)
-
-for i in range(field.node_count):
-  field.set(i, fsd.node_val(i)*fsd.node_val(i))</string_value>
-          <depends>
-            <string_value lines="1">FreeSurfaceDifference</string_value>
-          </depends>
-        </algorithm>
-        <mesh name="FreeSurfaceSquaredMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat>
-          <surface_integral type="value" name="SurfaceL2Norm">
+          <surface_l2norm name="Both">
             <surface_ids>
-              <integer_value shape="1" rank="1">6 8</integer_value>
+              <integer_value rank="1" shape="2">6 8</integer_value>
             </surface_ids>
-          </surface_integral>
-          <surface_integral type="value" name="TopSurfaceL2Norm">
+          </surface_l2norm>
+          <surface_l2norm name="Top">
             <surface_ids>
-              <integer_value shape="1" rank="1">8</integer_value>
+              <integer_value rank="1" shape="1">8</integer_value>
             </surface_ids>
-          </surface_integral>
-          <surface_integral type="value" name="BottomSurfaceL2Norm">
+          </surface_l2norm>
+          <surface_l2norm name="Bottom">
             <surface_ids>
-              <integer_value shape="1" rank="1">6</integer_value>
+              <integer_value rank="1" shape="1">6</integer_value>
             </surface_ids>
-          </surface_integral>
+          </surface_l2norm>
         </stat>
         <convergence>
           <include_in_convergence/>

@@ -67,7 +67,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -87,7 +87,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -135,18 +135,21 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="1" dim1="dim" rank="1">1.0</real_value>
+            <real_value rank="1" dim1="dim" shape="1">1.0</real_value>
           </constant>
         </initial_condition>
         <tensor_field name="Viscosity" rank="2">
           <diagnostic>
-            <algorithm depends="MaterialViscosity" name="bulk_viscosity" material_phase_support="multiple">
+            <algorithm name="bulk_viscosity" material_phase_support="multiple" depends="MaterialViscosity">
               <mean name="geometric"/>
             </algorithm>
             <output/>
             <stat>
               <include_in_stat/>
             </stat>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </diagnostic>
         </tensor_field>
         <output/>
@@ -171,7 +174,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="MaterialVolumeFraction" rank="0">
+    <scalar_field rank="0" name="MaterialVolumeFraction">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
@@ -189,7 +192,7 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <tensor_field name="MaterialViscosity" rank="2">
+    <tensor_field rank="2" name="MaterialViscosity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
@@ -200,6 +203,9 @@
           </isotropic>
         </value>
         <output/>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </tensor_field>
   </material_phase>
@@ -213,10 +219,10 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <aliased material_phase_name="Material1" field_name="Velocity"/>
     </vector_field>
-    <scalar_field name="MaterialVolumeFraction" rank="0">
+    <scalar_field rank="0" name="MaterialVolumeFraction">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
@@ -234,7 +240,7 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <tensor_field name="MaterialViscosity" rank="2">
+    <tensor_field rank="2" name="MaterialViscosity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
@@ -245,6 +251,9 @@
           </isotropic>
         </value>
         <output/>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </tensor_field>
   </material_phase>
@@ -258,10 +267,10 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <aliased material_phase_name="Material1" field_name="Velocity"/>
     </vector_field>
-    <scalar_field name="MaterialVolumeFraction" rank="0">
+    <scalar_field rank="0" name="MaterialVolumeFraction">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -281,7 +290,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <tensor_field name="MaterialViscosity" rank="2">
+    <tensor_field rank="2" name="MaterialViscosity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
@@ -292,6 +301,9 @@
           </isotropic>
         </value>
         <output/>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </tensor_field>
   </material_phase>

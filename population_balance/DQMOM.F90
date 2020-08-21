@@ -716,8 +716,8 @@ contains
                  &X, singular_option, perturb_val, cond, ele)
 
     type(scalar_field), dimension(:), intent(in) :: abscissa, weight
-    type(scalar_field), intent(in) :: turbulent_dissipation
-    type(tensor_field), intent(in) :: viscosity_continuous
+    type(scalar_field), pointer, intent(in) :: turbulent_dissipation
+    type(tensor_field), pointer, intent(in) :: viscosity_continuous
     type(scalar_field_pointer), dimension(:), intent(inout) :: s_weighted_abscissa, s_weight
     type(tensor_field), pointer, intent(in) :: D
     type(vector_field), pointer, intent(in) :: X

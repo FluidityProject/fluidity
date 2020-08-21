@@ -123,13 +123,13 @@ Form_metric.o ../include/form_metric_field.mod: Form_metric.F90 \
 
 Geometric_constraints_metric.o ../include/geometric_constraints_metric.mod: \
    Geometric_constraints_metric.F90 ../include/edge_length_module.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/form_metric_field.mod ../include/gradation_metric.mod \
-   ../include/halos.mod ../include/merge_tensors.mod \
-   ../include/metric_tools.mod ../include/mpi_interfaces.mod \
-   ../include/node_boundary.mod ../include/parallel_tools.mod \
-   ../include/state_module.mod ../include/surfacelabels.mod \
-   ../include/vtk_interfaces.mod
+   ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
+   ../include/fldebug.mod ../include/form_metric_field.mod \
+   ../include/gradation_metric.mod ../include/halos.mod \
+   ../include/merge_tensors.mod ../include/metric_tools.mod \
+   ../include/mpi_interfaces.mod ../include/node_boundary.mod \
+   ../include/parallel_tools.mod ../include/state_module.mod \
+   ../include/surfacelabels.mod ../include/vtk_interfaces.mod
 
 ../include/goal_metric.mod: Goal_metric.o
 	@true

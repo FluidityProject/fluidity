@@ -76,12 +76,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="Fluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
 	gridPoints = 40
 	CFL = 0.125
 	return [(1.0 / gridPoints) * CFL]</string_value>
@@ -96,9 +96,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Tracer" rank="0">
+    <scalar_field rank="0" name="Tracer">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -139,7 +142,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
 	topHatPoints = 10
 	gridPoints = 40
 	if x[0] &gt; - 0.5 / float(gridPoints) and x[0] &lt; float(topHatPoints + 0.5) / float(gridPoints):
@@ -164,7 +167,7 @@
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -215,7 +218,7 @@
         </galerkin_projection>
       </prognostic>
     </scalar_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -235,7 +238,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="MeshEdgeLengths" rank="0">
+    <scalar_field rank="0" name="MeshEdgeLengths">
       <diagnostic>
         <algorithm name="scalar_edge_lengths" material_phase_support="single"/>
         <mesh name="CoordinateMesh"/>
@@ -271,14 +274,14 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="1 1" dim1="dim" rank="2">1.0e-6</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="1 1">1.0e-6</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="1 1" dim1="dim" rank="2">0.025</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="1 1">0.025</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
