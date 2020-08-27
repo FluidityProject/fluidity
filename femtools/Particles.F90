@@ -1473,7 +1473,7 @@ contains
     integer :: dim, i, tot_atts
     integer(kind=8) :: h5_ierror
     real, dimension(:,:), allocatable :: positions, attrib_data
-    integer, dimension(:), allocatable :: node_ids
+    integer, dimension(:), allocatable :: node_ids, proc_ids
     type(detector_type), pointer :: node
 
     ewrite(1,*) "In write_particles"
@@ -1494,6 +1494,7 @@ contains
     allocate(positions(detector_list%length, 3))
     allocate(attrib_data(detector_list%length, tot_atts))
     allocate(node_ids(detector_list%length))
+    allocate(proc_ids(detector_list%length))
 
     node => detector_list%first
     position_loop: do i = 1, detector_list%length
@@ -1503,6 +1504,7 @@ contains
       positions(i,1:dim) = node%position(:)
       attrib_data(i,:) = node%attributes(:)
       node_ids(i) = node%id_number
+      proc_ids(i) = node%proc_id
 
       node => node%next
     end do position_loop
@@ -1520,11 +1522,13 @@ contains
     end if
 
     h5_ierror = h5pt_writedata_i4(detector_list%h5_id, "id", node_ids(:))
+    h5_ierror = h5pt_writedata_i4(detector_list%h5_id, "proc_id", proc_ids(:))
 
     call write_attrs(detector_list%h5_id, dim, detector_list%attr_names, attrib_data, to_write=detector_list%attr_write)
 
     h5_ierror = h5_flushstep(detector_list%h5_id)
 
+    deallocate(proc_ids)
     deallocate(node_ids)
     deallocate(attrib_data)
     deallocate(positions)
