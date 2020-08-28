@@ -46,7 +46,7 @@ module halos_communications
   
   private
   
-  public :: halo_update, halo_max, halo_verifies
+  public :: halo_update, halo_accumulate, halo_max, halo_verifies
   
   interface zero_halo_receives
     module procedure zero_halo_receives_array_integer, &
@@ -72,6 +72,10 @@ module halos_communications
     module procedure halo_verifies_array_integer, halo_verifies_array_real, &
       & halo_verifies_scalar, halo_verifies_vector_dim, halo_verifies_vector
   end interface halo_verifies
+
+  interface halo_accumulate
+    module procedure halo_accumulate_array_real
+  end interface halo_accumulate
 
 contains
 
@@ -408,7 +412,7 @@ contains
   end subroutine halo_update_array_real_star
   
   subroutine halo_update_scalar_on_halo(halo, s_field, verbose)
-    !!< Update the supplied scalar field on the suppied halo.
+    !!< Update the supplied scalar field on the supplied halo.
     
     type(halo_type), intent(in) :: halo
     type(scalar_field), intent(inout) :: s_field
@@ -446,7 +450,7 @@ contains
   end subroutine halo_update_scalar_on_halo
   
   subroutine halo_update_vector_on_halo(halo, v_field, verbose)
-    !!< Update the supplied vector field on the suppied halo.
+    !!< Update the supplied vector field on the supplied halo.
     
     type(halo_type), intent(in) :: halo
     type(vector_field), intent(inout) :: v_field
@@ -470,7 +474,7 @@ contains
   end subroutine halo_update_vector_on_halo
   
   subroutine halo_update_tensor_on_halo(halo, t_field, verbose)
-    !!< Update the supplied tensor field on the suppied halo.
+    !!< Update the supplied tensor field on the supplied halo.
 
     type(halo_type), intent(in) :: halo
     type(tensor_field), intent(inout) :: t_field
@@ -565,6 +569,101 @@ contains
     end if
     
   end subroutine halo_update_tensor
+
+  subroutine halo_accumulate_array_real_star(halo, real_data, block_size)
+    !!< For nodes that are seen by one or more other processors (recv nodes on these processes)
+    !!< add the contributions they have stored for these recv nodes to the correpsonding entry
+    !!< of the corresponding send node on the owner of the node. Note, that this is a reverse
+    !!< communication pattern, where contributions from recv nodes are send to send nodes
+    type(halo_type), intent(in) :: halo
+    real, dimension(*), intent(inout) :: real_data
+    integer, intent(in) :: block_size
+
+#ifdef HAVE_MPI
+    integer :: communicator, ierr, nprocs, nrecvs, nsends
+    type(real_vector), dimension(:), allocatable :: send_buffer, recv_buffer
+    integer, dimension(:), allocatable :: requests, statuses
+    integer tag
+    integer i, j, k
+
+    assert(halo_valid_for_communication(halo))
+    assert(.not. pending_communication(halo))
+
+    nprocs = halo_proc_count(halo)
+    communicator = halo_communicator(halo)
+    allocate(requests(1:2*nprocs), statuses(1:2*nprocs*MPI_STATUS_SIZE))
+    allocate(recv_buffer(1:nprocs), send_buffer(1:nprocs))
+
+    tag = next_mpi_tag()
+
+    do i = 1, nprocs
+      nrecvs = halo_receive_count(halo, i)
+      if (nrecvs > 0) then
+        allocate(send_buffer(i)%ptr(1:nrecvs*block_size))
+        do j=1, nrecvs
+          k = halo_receive(halo, i, j)
+          send_buffer(i)%ptr((j-1)*block_size+1:j*block_size) = real_data((k-1)*block_size+1:k*block_size)
+        end do
+        call mpi_isend(send_buffer(i)%ptr, nrecvs*block_size, getpreal(), i-1, tag, communicator, requests(i), ierr)
+        assert(ierr == MPI_SUCCESS)
+      else
+        requests(i) = MPI_REQUEST_NULL
+      end if
+
+      nsends = halo_send_count(halo, i)
+      if (nsends > 0) then
+        allocate(recv_buffer(i)%ptr(1:nsends*block_size))
+        call mpi_irecv(recv_buffer(i)%ptr, nsends*block_size, getpreal(), i-1, tag, communicator, requests(nprocs+i), ierr)
+        assert(ierr == MPI_SUCCESS)
+      else
+        requests(nprocs+i) = MPI_REQUEST_NULL
+      end if
+    end do
+
+    call mpi_waitall(2*nprocs, requests, statuses, ierr)
+    assert(ierr == MPI_SUCCESS)
+    deallocate(requests, statuses)
+
+    do i=1, nprocs
+      nsends = halo_send_count(halo, i)
+      if (nsends > 0) then
+        do j=1, nsends
+          k = halo_send(halo, i, j)
+          real_data((k-1)*block_size+1:k*block_size) = real_data((k-1)*block_size+1:k*block_size) + &
+              recv_buffer(i)%ptr((j-1)*block_size+1:j*block_size)
+        end do
+        deallocate(recv_buffer(i)%ptr)
+      end if
+
+      nrecvs = halo_receive_count(halo, i)
+      if (nrecvs > 0) then
+        deallocate(send_buffer(i)%ptr)
+      end if
+    end do
+
+    deallocate(send_buffer, recv_buffer)
+
+#else
+    if(.not. valid_serial_halo(halo)) then
+      FLAbort("Cannot update halos without MPI support")
+    end if
+#endif
+
+  end subroutine halo_accumulate_array_real_star
+
+  subroutine halo_accumulate_array_real(halo, array)
+    !!< For nodes that are seen by one or more other processors (recv nodes on these processes)
+    !!< add the contributions they have stored for these recv nodes to the correpsonding entry
+    !!< of the corresponding send node on the owner of the node. Note, that this is a reverse
+    !!< communication pattern, where contributions from recv nodes are send to send nodes
+    type(halo_type), intent(in) :: halo
+    real, dimension(:), intent(inout) :: array
+
+    assert(size(array,1) >= max_halo_node(halo))
+
+    call halo_accumulate_array_real_star(halo, array, 1)
+
+  end subroutine halo_accumulate_array_real
   
   subroutine halo_max_array_real(halo, real_data)
     type(halo_type), intent(in) :: halo

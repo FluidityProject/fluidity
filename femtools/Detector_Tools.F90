@@ -59,10 +59,15 @@ module detector_tools
             set_particle_vector_attribute_from_python_fields, &
             set_particle_tensor_attribute_from_python, &
             set_particle_tensor_attribute_from_python_fields, &
-            evaluate_particle_fields
+            evaluate_particle_fields, temp_insert, &
+            temp_deallocate, temp_delete, temp_delete_all, temp_remove
 
   interface insert
      module procedure insert_into_detector_list
+  end interface
+
+  interface temp_insert
+     module procedure insert_into_temp_detector_list
   end interface
 
   ! Removes detector from a list without deallocating it
@@ -70,14 +75,29 @@ module detector_tools
      module procedure remove_detector_from_list
   end interface
 
+  ! Removes detector from a temp list without deallocating it
+  interface temp_remove
+     module procedure remove_detector_from_temp_list
+  end interface
+
   ! Removes detector from a list and deallocates it
   interface delete
      module procedure delete_detector
   end interface
 
+  ! Removes detector from a temp list
+  interface temp_delete
+     module procedure delete_temp_detector
+  end interface
+
   ! Deletes all detectors from a given list
   interface delete_all
      module procedure delete_all_detectors
+  end interface
+
+  ! Deletes all detectors from a given temp list
+  interface temp_delete_all
+     module procedure delete_all_temp_detectors
   end interface
 
   ! Move detector from one list to another
@@ -100,6 +120,10 @@ module detector_tools
 
   interface deallocate
      module procedure detector_deallocate, detector_list_deallocate
+  end interface
+
+  interface temp_deallocate
+     module procedure detector_list_temp_deallocate
   end interface
 
   ! Evaluate field at the location of the detector.
@@ -177,6 +201,8 @@ contains
        end if
        detector%next => null()
        detector%previous => null()
+       detector%temp_next => null()
+       detector%temp_previous => null()
        deallocate(detector)
     end if
     detector => null()
@@ -216,6 +242,38 @@ contains
     end if
 
   end subroutine detector_list_deallocate
+
+  subroutine detector_list_temp_deallocate(detector_list)
+    type(detector_linked_list), pointer :: detector_list
+
+    type(rk_gs_parameters), pointer :: parameters
+    ! Delete detectors
+    if (detector_list%length > 0) then
+       call temp_delete_all(detector_list)
+    end if
+    ! Deallocate list information
+    if (allocated(detector_list%detector_names)) then
+       deallocate(detector_list%detector_names)
+    end if
+    if (allocated(detector_list%sfield_list)) then
+       deallocate(detector_list%sfield_list)
+    end if
+    if (allocated(detector_list%vfield_list)) then
+       deallocate(detector_list%vfield_list)
+    end if
+
+    ! Deallocate move_parameters
+    parameters => detector_list%move_parameters
+    if (associated(parameters)) then
+       if (allocated(parameters%timestep_weights)) then
+          deallocate(parameters%timestep_weights)
+       end if
+       if (allocated(parameters%stage_matrix)) then
+          deallocate(parameters%stage_matrix)
+       end if
+    end if
+
+  end subroutine detector_list_temp_deallocate
     
   subroutine detector_copy(new_detector, old_detector)
     ! Copies all the information from the old detector to
@@ -226,7 +284,6 @@ contains
     new_detector%position = old_detector%position
     new_detector%element = old_detector%element
     new_detector%id_number = old_detector%id_number
-    new_detector%type = old_detector%type
     new_detector%name = old_detector%name
     new_detector%local_coords=old_detector%local_coords
       
@@ -252,6 +309,27 @@ contains
     end if
 
   end subroutine insert_into_detector_list
+
+  subroutine insert_into_temp_detector_list(detector, current_list)
+    ! Inserts detector at the end of a list
+    type(detector_linked_list), intent(inout) :: current_list
+    type(detector_type), pointer :: detector
+
+    if (current_list%length == 0) then
+       current_list%first => detector 
+       current_list%last => detector 
+       current_list%first%temp_previous => null()
+       current_list%last%temp_next => null()
+       current_list%length = 1
+    else
+       detector%temp_previous => current_list%last
+       current_list%last%temp_next => detector
+       current_list%last => detector
+       current_list%last%temp_next => null()
+       current_list%length = current_list%length+1
+    end if
+
+  end subroutine insert_into_temp_detector_list
 
   subroutine remove_detector_from_list(detector, detector_list)
     !! Removes the detector from the list, 
@@ -280,6 +358,32 @@ contains
 
   end subroutine remove_detector_from_list
 
+  subroutine remove_detector_from_temp_list(detector, detector_list)
+    !! Removes the detector from the list,
+    !! but does not deallocated it
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(detector_type), pointer :: detector
+
+    if (detector_list%length==1) then
+       detector_list%first => null()
+       detector_list%last => null()
+    else
+       if (associated(detector%temp_previous)) then
+          detector%temp_previous%temp_next => detector%temp_next
+       else
+          detector_list%first => detector%temp_next
+       end if
+
+       if (associated(detector%next)) then
+          detector%temp_next%temp_previous => detector%temp_previous
+       else
+          detector_list%last => detector%temp_previous
+       end if
+    end if
+    detector_list%length = detector_list%length-1
+
+  end subroutine remove_detector_from_temp_list
+
   subroutine delete_detector(detector, detector_list)
     ! Removes and deallocates the given detector 
     ! and outputs the next detector in the list as detector
@@ -298,6 +402,19 @@ contains
     end if
       
   end subroutine delete_detector
+
+  subroutine delete_temp_detector(detector, detector_list)
+    ! Removes and deallocates the given detector
+    ! and outputs the next detector in the list as detector
+    type(detector_type), pointer :: detector
+    type(detector_linked_list), intent(inout), optional :: detector_list
+    
+    type(detector_type), pointer :: temp_detector
+    temp_detector => detector
+    detector => detector%temp_next
+    call temp_remove(temp_detector, detector_list)
+    
+  end subroutine delete_temp_detector
 
   subroutine move_detector(detector, from_list, to_list)
     ! Move detector from one list to the other
@@ -335,6 +452,18 @@ contains
 
   end subroutine delete_all_detectors
 
+  subroutine delete_all_temp_detectors(detector_list)
+    ! Remove and deallocate all detectors in a list
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(detector_type), pointer :: detector
+
+    detector => detector_list%first
+    do while (associated(detector))
+       call temp_delete(detector,detector_list)
+    end do
+
+  end subroutine delete_all_temp_detectors
+
   function detector_buffer_size(ndims, have_update_vector, nstages, attribute_size)
     ! Returns the number of reals we need to pack a detector
     integer, intent(in) :: ndims
@@ -342,7 +471,7 @@ contains
     integer, intent(in), optional :: nstages
     integer :: detector_buffer_size, det_params
     integer, dimension(3), optional, intent(in) :: attribute_size !array to hold size of attributes
-    det_params = 4 !size of basic detector fields: detector element, id_number, proc_id and type
+    det_params = 3 !size of basic detector fields: detector element, id_number and proc_id
     if (present(attribute_size)) then
        if (have_update_vector) then
           assert(present(nstages))
@@ -373,8 +502,8 @@ contains
     integer, dimension(3), optional, intent(in) :: attribute_size !array to hold size of attributes
     integer :: det_params
     assert(size(detector%position)==ndims)
-    !Set size of basic detector fields: detector element, id_number, proc_id and type
-    det_params = 4
+    !Set size of basic detector fields: detector element, id_number, proc_id
+    det_params = 3
     !Check if this is a particle carrying attributes
     if (present(attribute_size)) then
        assert(size(buff)>=ndims+det_params+sum(attribute_size))
@@ -383,7 +512,6 @@ contains
        buff(ndims+1) = detector%element
        buff(ndims+2) = detector%id_number
        buff(ndims+3) = detector%proc_id
-       buff(ndims+4) = detector%type
        if (attribute_size(1).ne.0) then
           buff(ndims+det_params+1:ndims+det_params+attribute_size(1)) = detector%attributes
        end if
@@ -417,7 +545,6 @@ contains
        buff(ndims+1) = detector%element
        buff(ndims+2) = detector%id_number
        buff(ndims+3) = detector%proc_id
-       buff(ndims+4) = detector%type
 
        ! Lagrangian advection fields: (nstages+1)*ndims
        if (present(nstages)) then
@@ -446,8 +573,8 @@ contains
     integer, dimension(3), optional, intent(in) :: attribute_size !array to hold size of attributes
 
     integer :: det_params
-    !Set size of basic detector fields, being detector element, id_number and type
-    det_params = 4
+    !Set size of basic detector fields, being detector element, id_number
+    det_params = 3
     
     !Check if this is a particle carrying attributes
     if (present(attribute_size)) then
@@ -465,7 +592,6 @@ contains
        detector%element = buff(ndims+1)
        detector%id_number = buff(ndims+2)
        detector%proc_id = buff(ndims+3)
-       detector%type = buff(ndims+4)
        if (attribute_size(1)/=0) then  
           detector%attributes = buff(ndims+det_params+1:ndims+det_params+attribute_size(1))
        end if
@@ -529,7 +655,6 @@ contains
        detector%element = buff(ndims+1)
        detector%id_number = buff(ndims+2)
        detector%proc_id = buff(ndims+3)
-       detector%type = buff(ndims+4)
        
        ! Reconstruct element number if global-to-local mapping is given
        if (present(global_to_local)) then
@@ -600,7 +725,7 @@ contains
     !!< specified in the string func at those points. 
     real, dimension(:,:), target, intent(inout) :: values
     !! Func may contain any python at all but the following function must
-    !! be defiled:
+    !! be defined:
     !!  def val(t)
     !! where t is the time. The result must be a float. 
     character(len=*), intent(in) :: func

@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 USA
 */
 
-
+#include <stdlib.h>
 
 #include "confdefs.h"
 #include "string.h"
@@ -44,6 +44,10 @@ USA
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
 #endif
+
+void deallocate_c_array(void *ptr) {
+  free(ptr);
+}
 
 int eval_user_func(char *function, int function_len, PyObject *pLocals, PyObject **pFunc) {
   PyObject *pMain, *pGlobals, *pCode;
@@ -765,6 +769,62 @@ void set_tensor_particles_from_python_fields_array(char *function, int function_
 			       old_natts, old_att_names, old_att_dims, old_atts,
 			       stat, result_dims, (void**)&result,
 			       set_tensor_result_double_array, &natt);
+}
+
+void set_detectors_from_python_unknown(char *function, int function_len, int dim, double t,
+               double **result_ptr, int *n, int *stat)
+{
+  PyObject *pFunc, *pLocals, *pArgs, *pResult;
+  pLocals = PyDict_New();
+
+  // borrow locals, returns a string from the locals dictionary
+  if (eval_user_func(function, function_len, pLocals, &pFunc)) {
+    *stat = -1;
+    return;
+  }
+
+  pArgs = PyTuple_New(1);
+  // tuple steals refs
+  PyTuple_SetItem(pArgs, 0, PyFloat_FromDouble(t));
+
+  pResult = PyObject_CallObject(pFunc, pArgs);
+  if (PyErr_Occurred()) {
+    PyErr_Print();
+    *stat = -1;
+    return;
+  }
+
+  // get the number of particles returned by the function
+  *n = PySequence_Length(pResult);
+  // allocate the result array
+  *result_ptr = (double *)malloc(*n * dim * sizeof(double));
+  // cast to 2D array for easier working -- result[n_particles][dim]
+  double (*result)[dim] = (double (*)[dim])(*result_ptr);
+
+  // copy into result array
+  for (int i = 0; i < *n; i++) {
+    PyObject *pResultItem = PySequence_GetItem(pResult, i);
+
+    for (int j = 0; j < dim; j++) {
+      PyObject *pX = PySequence_GetItem(pResultItem, j);
+      result[i][j] = PyFloat_AsDouble(pX);
+
+      if (PyErr_Occurred()) {
+        PyErr_Print();
+        *stat = -1;
+        return;
+      }
+
+      Py_DECREF(pX);
+    }
+
+    Py_DECREF(pResultItem);
+  }
+
+  Py_DECREF(pResult);
+  Py_DECREF(pArgs);
+  Py_DECREF(pLocals);
+  *stat = 0;
 }
 
 

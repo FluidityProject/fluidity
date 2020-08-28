@@ -294,16 +294,6 @@ The t argument is for future use only - currently detector locations are only se
                 </element>
               </choice>
             </zeroOrMore>
-            <choice>
-              <element name="fail_outside_domain">
-                <a:documentation>By default Fluidity will fail if a detector has left the domain.</a:documentation>
-                <empty/>
-              </element>
-              <element name="write_nan_outside_domain">
-                <a:documentation>Enable to write NaN values to detector output if a detector has left the domain.</a:documentation>
-                <empty/>
-              </element>
-            </choice>
             <optional>
               <element name="move_with_mesh">
                 <a:documentation>Enable to let detectors move with the domain if mesh_movement is enabled.</a:documentation>
@@ -407,6 +397,59 @@ and deleting options.</a:documentation>
                     </optional>
                   </element>
                 </optional>
+                <optional>
+                  <element name="particle_spawning">
+                    <a:documentation>Options for spawning and deleting particles based on the minimum and maximum limits of particles per control volume. Defined per particle_group.</a:documentation>
+                    <ref name="mesh_choice">
+                      <a:documentation>Set the mesh which will be used for particle spawning. Currently only works for a P1CV mesh!</a:documentation>
+                    </ref>
+                    <element name="min_cv_threshhold">
+                      <a:documentation>Minimum number of particles per control volume.</a:documentation>
+                      <ref name="integer"/>
+                    </element>
+                    <element name="max_cv_threshhold">
+                      <a:documentation>Maximum number of particles per control volume (recommended to be at least four times the minimum threshold).</a:documentation>
+                      <ref name="integer"/>
+                    </element>
+                    <element name="spawn_location">
+                      <a:documentation>Options for setting where particles will be spawned within the control volume</a:documentation>
+                      <choice>
+                        <element name="radius">
+                          <a:documentation>Particles will spawn within a radius of the parent particle (ensuring they remain within the current element and control volume).
+Value is in local coordinates (recommended value 0.3).</a:documentation>
+                          <ref name="real"/>
+                        </element>
+                        <element name="random">
+                          <a:documentation>Particles will spawn randomly within the control volume.</a:documentation>
+                          <empty/>
+                        </element>
+                      </choice>
+                    </element>
+                    <element name="spawn_attributes">
+                      <a:documentation>Options for setting particle attributes when spawned</a:documentation>
+                      <choice>
+                        <element name="copy_parent_attributes">
+                          <a:documentation>Particles will spawn with attributes copied from the parent particle.
+Used when attributes are identical across the particle_subgroup.</a:documentation>
+                          <empty/>
+                        </element>
+                        <element name="calculate_average">
+                          <a:documentation>Particles will spawn with attributes calculated from the average of particle_attributes within the control volume.</a:documentation>
+                          <empty/>
+                        </element>
+                      </choice>
+                    </element>
+                    <optional>
+                      <element name="subgroup_spawning_caps">
+                        <a:documentation>Option to set spawning caps for specific particle subgroups if one is dominant in a control volume.</a:documentation>
+                        <element name="percentage">
+                          <a:documentation>Percentage of single subgroup required to be present for only that subgroup to spawn within a specific control volume.</a:documentation>
+                          <ref name="real"/>
+                        </element>
+                      </element>
+                    </optional>
+                  </element>
+                </optional>
                 <oneOrMore>
                   <element name="particle_subgroup">
                     <a:documentation>Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
@@ -415,15 +458,12 @@ function of from a file.</a:documentation>
                     <attribute name="name">
                       <data type="string"/>
                     </attribute>
-                    <element name="number_of_particles">
-                      <a:documentation>The number of particles prescribed by the python function.</a:documentation>
-                      <ref name="integer"/>
-                    </element>
-                    <element name="initial_position">
-                      <a:documentation>Initial position of particles</a:documentation>
-                      <choice>
-                        <element name="python">
-                          <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+                    <group>
+                      <element name="initial_position">
+                        <a:documentation>Initial position of particles</a:documentation>
+                        <choice>
+                          <element name="python">
+                            <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
 
  def val(t):
     # Function code
@@ -433,17 +473,39 @@ The return value must have length number_of_particles.
 
 *** IMPORTANT NOTE ***
 
-The t argument is for future use only - currently particle locations are only set at simulation start.</a:documentation>
-                          <ref name="python_code"/>
+The t argument is not used here. To spawn with t dependence use initialise_during_simulation option below.</a:documentation>
+                            <ref name="python_code"/>
+                          </element>
+                          <element name="from_file">
+                            <a:documentation>File containing the particle positions in binary form</a:documentation>
+                            <attribute name="file_name">
+                              <data type="string"/>
+                            </attribute>
+                            <element name="number_of_particles">
+                              <ref name="integer"/>
+                            </element>
+                          </element>
+                        </choice>
+                      </element>
+                      <optional>
+                        <element name="initialise_during_simulation">
+                          <element name="python">
+                            <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+
+The return value must have length number_of_particles.
+
+*** IMPORTANT NOTE ***
+
+This function will only be called after simulation start. To initialise starting positions use initial_position option above.</a:documentation>
+                            <ref name="python_code"/>
+                          </element>
                         </element>
-                        <element name="from_file">
-                          <a:documentation>File containing the particle positions in binary form</a:documentation>
-                          <attribute name="file_name">
-                            <data type="string"/>
-                          </attribute>
-                        </element>
-                      </choice>
-                    </element>
+                      </optional>
+                    </group>
                     <optional>
                       <element name="attributes">
                         <a:documentation>Define particle attributes.</a:documentation>
@@ -545,16 +607,13 @@ The t argument is for future use only - currently particle locations are only se
               </element>
             </oneOrMore>
           </zeroOrMore>
-          <choice>
-            <element name="fail_outside_domain">
-              <a:documentation>By default Fluidity will fail if a particle has left the domain.</a:documentation>
+          <element name="moving_outside_domain">
+            <a:documentation>Options for particles being advected outside the computational domain.</a:documentation>
+            <element name="delete">
+              <a:documentation>By default Fluidity will delete particles if they move outside the domain.</a:documentation>
               <empty/>
             </element>
-            <element name="write_nan_outside_domain">
-              <a:documentation>Enable to write NaN values to particle output if a particle has left the domain.</a:documentation>
-              <empty/>
-            </element>
-          </choice>
+          </element>
           <optional>
             <element name="move_with_mesh">
               <a:documentation>Enable to let particles move with the domain if mesh_movement is enabled.</a:documentation>

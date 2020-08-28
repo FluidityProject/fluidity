@@ -133,17 +133,67 @@ Otherwise, uses a scalar field as a source field.</a:documentation>
     </optional>
   </define>
   <define name="internal_algorithm">
-    <element name="algorithm">
-      <a:documentation>This diagnostic is internal - i.e. it is calculated somewhere within
+    <choice>
+      <element name="algorithm">
+        <a:documentation>This diagnostic is internal - i.e. it is calculated somewhere within
 the main code, and is not wrapped by the automatic diagnostics
 wrappers.</a:documentation>
-      <attribute name="name">
-        <value>Internal</value>
-      </attribute>
-      <attribute name="material_phase_support">
-        <value>multiple</value>
-      </attribute>
-    </element>
+        <attribute name="name">
+          <value>Internal</value>
+        </attribute>
+        <attribute name="material_phase_support">
+          <value>multiple</value>
+        </attribute>
+      </element>
+      <element name="algorithm">
+        <a:documentation>This diagnostic is derived from particle attributes, it is calculated
+within the Particle_Diagnostics.F90 routine, and set via the ratio method.</a:documentation>
+        <attribute name="name">
+          <value>from_particles</value>
+        </attribute>
+        <attribute name="material_phase_support">
+          <value>multiple</value>
+        </attribute>
+        <group>
+          <element name="particle_group">
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <element name="particle_attribute">
+              <attribute name="name">
+                <data type="string"/>
+              </attribute>
+            </element>
+          </element>
+          <element name="interpolation">
+            <a:documentation>Function used to interpolate particle values onto nodes.</a:documentation>
+            <choice>
+              <element name="weighted_distance">
+                <a:documentation>Weighted distribution of particle values between all nodes of the current particle element.</a:documentation>
+                <empty/>
+              </element>
+              <element name="nearest_neighbour">
+                <a:documentation>Transfers particle values only to the closest node.</a:documentation>
+                <empty/>
+              </element>
+            </choice>
+          </element>
+        </group>
+      </element>
+      <element name="algorithm">
+        <attribute name="name">
+          <value>number_of_particles</value>
+        </attribute>
+        <attribute name="material_phase_support">
+          <value>multiple</value>
+        </attribute>
+        <element name="particle_group">
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+        </element>
+      </element>
+    </choice>
   </define>
   <define name="legacy_internal_algorithm">
     <element name="algorithm">

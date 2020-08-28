@@ -49,7 +49,8 @@ module detector_parallel
 
   public :: distribute_detectors, exchange_detectors, register_detector_list, &
             get_num_detector_lists, get_registered_detector_lists, &
-            deallocate_detector_list_array, sync_detector_coordinates
+            deallocate_detector_list_array, sync_detector_coordinates, &
+            l2_halo_detectors
 
   type(detector_list_ptr), dimension(:), allocatable, target, save :: detector_list_array
   integer :: num_detector_lists = 0
@@ -123,12 +124,13 @@ contains
 
   end subroutine deallocate_detector_list_array
 
-  subroutine distribute_detectors(state, detector_list, attribute_size)
+  subroutine distribute_detectors(state, detector_list, attribute_size, positions)
     ! Loop over all the detectors in the list and check that I own the element they are in. 
     ! If not, they need to be sent to the processor owner before adaptivity happens
     type(state_type), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     integer, dimension(3), optional, intent(in) :: attribute_size !Array to hold attribute sizes
+    type(vector_field), optional, target, intent(in) :: positions
 
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
     type(detector_linked_list) :: detector_bcast_list, lost_detectors_list
@@ -140,12 +142,15 @@ contains
     real, allocatable :: send_buff(:), recv_buff(:)
     type(element_type), pointer :: shape  
 
-    ewrite(2,*) "In distribute_detectors"  
-
-    xfield => extract_vector_field(state,"Coordinate")
-
+    ewrite(2,*) "In distribute_detectors"
+    if (present(positions)) then
+       xfield => positions
+    else
+       xfield => extract_vector_field(state,"Coordinate")
+    end if
     ! We allocate a point-to-point sendlist for every processor
     nprocs=getnprocs()
+    if (nprocs==1) return
     allocate(send_list_array(nprocs))
     bcast_count=0
 
@@ -186,7 +191,11 @@ contains
     end do
     call allmax(all_send_lists_empty)
     if (all_send_lists_empty/=0) then
-       call exchange_detectors(state,detector_list,send_list_array, attribute_size)
+       if (present(positions)) then
+          call exchange_detectors(state,detector_list,send_list_array, attribute_size, positions)
+       else
+          call exchange_detectors(state,detector_list,send_list_array, attribute_size)
+       end if
     end if
 
     ! Make sure send lists are empty and deallocate them
@@ -207,13 +216,13 @@ contains
     call mpi_allgather(bcast_count, 1, getPINTEGER(), ndets_being_bcast, 1 , getPINTEGER(), MPI_COMM_FEMTOOLS, ierr)
     assert(ierr == MPI_SUCCESS)
 
-    ! If there are no unknow detectors exit
+    ! If there are no unknown detectors exit
     if (all(ndets_being_bcast == 0)) then
        return
     else
        ewrite(2,*) "Broadcast required, initialising..."
 
-       ! If there are unknow detectors we need to broadcast.
+       ! If there are unknown detectors we need to broadcast.
        ! Since we can not be sure whether any processor will accept a detector
        ! we broadcast one at a time so we can make sure somebody accepted it. 
        ! If there are no takers we keep the detector with element -1, 
@@ -304,7 +313,7 @@ contains
 
   end subroutine distribute_detectors
 
-  subroutine exchange_detectors(state, detector_list, send_list_array, attribute_size)
+  subroutine exchange_detectors(state, detector_list, send_list_array, attribute_size, positions)
     ! This subroutine serialises send_list_array, sends it, 
     ! receives serialised detectors from all procs and unpacks them.
     type(state_type), intent(in) :: state
@@ -313,6 +322,7 @@ contains
     ! in the largest element halo
     type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
     integer, dimension(3), optional, intent(in) :: attribute_size !Array to hold attribute sizes
+    type(vector_field), optional, target, intent(in) :: positions
 
     type(detector_buffer), dimension(:), allocatable :: send_buffer, recv_buffer
     type(detector_type), pointer :: detector, detector_received
@@ -326,13 +336,17 @@ contains
     integer, dimension(:), allocatable :: sendRequest, status
     logical :: have_update_vector
 
-    ewrite(2,*) "In exchange_detectors"  
+    ewrite(2,*) "In exchange_detectors"
 
     ! We want a sendlist for every processor
     nprocs=getnprocs()
     assert(size(send_list_array)==nprocs)
 
-    xfield => extract_vector_field(state,"Coordinate")
+    if (present(positions)) then
+       xfield => positions
+    else
+       xfield => extract_vector_field(state,"Coordinate")
+    end if
     dim=xfield%dim
     allocate( sendRequest(nprocs) )
     sendRequest = MPI_REQUEST_NULL
@@ -347,11 +361,16 @@ contains
     end if
 
     ! Get buffer size, depending on whether RK-GS parameters are still allocated
-    have_update_vector=associated(detector_list%move_parameters)
-    if(have_update_vector) then
-       n_stages=detector_list%move_parameters%n_stages
-       det_size=detector_buffer_size(dim,have_update_vector,n_stages, attribute_size=attribute_size)
+    if (.not.present(positions)) then
+       have_update_vector=associated(detector_list%move_parameters)
+       if(have_update_vector) then
+          n_stages=detector_list%move_parameters%n_stages
+          det_size=detector_buffer_size(dim,have_update_vector,n_stages, attribute_size=attribute_size)
+       else
+          det_size=detector_buffer_size(dim,have_update_vector, attribute_size=attribute_size)
+       end if
     else
+       have_update_vector=.false.
        det_size=detector_buffer_size(dim,have_update_vector, attribute_size=attribute_size)
     end if
     
@@ -440,11 +459,7 @@ contains
           end if
 
           ! If there is a list of detector names, use it, otherwise set ID as name
-          if (allocated(detector_list%detector_names)) then
-             detector_received%name=detector_list%detector_names(detector_received%id_number)
-          else
-             detector_received%name=int2str(detector_received%id_number)
-          end if
+          detector_received%name=int2str(detector_received%id_number)
 
           call insert(detector_received, detector_list)           
        end do
@@ -505,5 +520,47 @@ contains
     end if
 
   end subroutine sync_detector_coordinates
+
+  subroutine l2_halo_detectors(detector_list, positions, state)
+    !Routine to check if detectors exist within l2 halos
+    !pack and send detectors to other processor if they do
+
+    type(state_type), intent(in) :: state
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(vector_field), intent(in) :: positions
+
+    type(detector_type), pointer :: detector
+    integer :: i, val, ierr
+    integer, dimension(3) :: attribute_size
+    integer, dimension(:), allocatable :: proc_set
+    logical :: set
+
+    ewrite(2,*) "In l2_halo_detectors"
+    
+    detector => detector_list%first
+    val=0
+    if (associated(detector)) then
+       attribute_size(1) = size(detector%attributes)
+       attribute_size(2) = size(detector%old_attributes)
+       attribute_size(3) = size(detector%old_fields)
+       val=1
+    end if
+    allocate(proc_set(getnprocs()))
+    call mpi_allgather(val, 1, getPINTEGER(), proc_set, 1, getPINTEGER(), MPI_COMM_FEMTOOLS, ierr)
+    assert(ierr == MPI_SUCCESS)
+    i=1
+    set=.false.
+    do while (set.eqv..false.)
+       if (proc_set(i)==1) then
+          call mpi_bcast(attribute_size, 3, getPINTEGER(), i-1, MPI_COMM_FEMTOOLS, ierr)
+          assert(ierr == MPI_SUCCESS)
+          set=.true.
+       end if
+       i=i+1
+    end do
+    
+    call distribute_detectors(state, detector_list, attribute_size, positions)
+
+  end subroutine l2_halo_detectors
 
 end module detector_parallel

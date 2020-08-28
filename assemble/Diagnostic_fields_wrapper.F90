@@ -76,6 +76,7 @@ contains
     type(scalar_field), pointer :: s_field
     type(vector_field), pointer :: v_field
     logical :: diagnostic
+    integer :: diagnostic_particles
 
     ! An array of submaterials of the current phase in state(istate).
     type(state_type), dimension(:), pointer :: submaterials
@@ -361,8 +362,10 @@ contains
 
        s_field => extract_scalar_field(state(i), "MaterialVolumeFraction", stat)
        if(stat == 0) then
-         diagnostic = have_option(trim(s_field%option_path)//"/diagnostic")
-         if(diagnostic .and. .not.(aliased(s_field))) then
+         diagnostic = have_option(trim(s_field%option_path)//"/diagnostic/algorithm::Internal")
+         !Check if MaterialVolumeFraction field is set from particles, if so don't calculate internal MVF here
+         diagnostic_particles = option_count("material_phase/scalar_field::MaterialVolumeFraction/diagnostic/algorithm::from_particles")
+         if(diagnostic .and. .not.(aliased(s_field) .and. diagnostic_particles.lt.1)) then
            if(recalculate(trim(s_field%option_path))) then
              call calculate_sum_material_volume_fractions(state, s_field)
              call scale(s_field, -1.0)

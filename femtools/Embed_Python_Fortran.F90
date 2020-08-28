@@ -35,6 +35,15 @@ module embed_python
 
   implicit none
 
+  interface deallocate_c_array
+    subroutine deallocate_c_array(ptr) bind(c)
+      use iso_c_binding, only: c_ptr
+      implicit none
+
+      type(c_ptr), value :: ptr
+    end subroutine deallocate_c_array
+  end interface deallocate_c_array
+
   interface set_scalar_field_from_python
     module procedure set_scalar_field_from_python_sp
 
@@ -123,6 +132,19 @@ module embed_python
       real(kind = c_double), dimension(ndete), intent(out) :: result_x, result_y, result_z
       integer, intent(out) :: stat
     end subroutine set_detectors_from_python
+
+    subroutine set_detectors_from_python_unknown(func, func_len, dim, &
+      t, result_ptr, n, stat) bind(c)
+      use iso_c_binding, only: c_double, c_ptr, c_int, c_char
+      implicit none
+
+      integer(c_int), intent(in), value :: func_len
+      character(kind=c_char) :: func
+      integer(c_int), intent(in), value :: dim
+      real(c_double), intent(in), value :: t
+      type(c_ptr), intent(out) :: result_ptr
+      integer(c_int), intent(out) :: n, stat
+    end subroutine set_detectors_from_python_unknown
   end interface set_detectors_from_python
 
   interface set_scalar_particles_from_python
@@ -459,7 +481,8 @@ module embed_python
     & integer_from_python, string_from_python, integer_vector_from_python, &
     & set_scalar_particles_from_python_fields, set_scalar_particles_from_python, &
     & set_vector_particles_from_python_fields, set_vector_particles_from_python, &
-    & set_tensor_particles_from_python_fields, set_tensor_particles_from_python
+    & set_tensor_particles_from_python_fields, set_tensor_particles_from_python, &
+    deallocate_c_array
 
 contains
 

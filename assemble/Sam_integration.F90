@@ -1500,8 +1500,7 @@ module sam_integration
           ! Pack this node for sending
           
           ! Integer data
-          isend_data(owner)%ptr(data_index(owner) * idata_size + 1) = node%type
-          isend_data(owner)%ptr(data_index(owner) * idata_size + 2) = node%id_number
+          isend_data(owner)%ptr(data_index(owner) * idata_size + 1) = node%id_number
           ! Real data
           rsend_data(owner)%ptr(data_index(owner) * rdata_size + 1:data_index(owner) * rdata_size + new_positions%dim) = node%position
                     
@@ -1574,8 +1573,7 @@ module sam_integration
         allocate(node)
         
         ! Integer data
-        node%type = ireceive_data(i)%ptr((j - 1) * idata_size + 1)
-        node%id_number = ireceive_data(i)%ptr((j - 1) * idata_size + 2)
+        node%id_number = ireceive_data(i)%ptr((j - 1) * idata_size + 1)
                 
         ! Real data
         allocate(node%position(new_positions%dim))

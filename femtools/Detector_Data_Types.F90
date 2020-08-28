@@ -38,9 +38,7 @@ module detector_data_types
   
   public :: detector_type, rk_gs_parameters, detector_linked_list, &
             detector_list_ptr, stringlist, attr_names_type, attr_write_type, field_phase_type, &
-            STATIC_DETECTOR, LAGRANGIAN_DETECTOR, allocate, deallocate
-
-  integer, parameter :: STATIC_DETECTOR=1, LAGRANGIAN_DETECTOR=2
+            allocate, deallocate
 
   type stringlist
     !!< Container type for a list of strings.
@@ -88,8 +86,6 @@ module detector_data_types
      integer :: element
      !! Local coordinates of the detector in that element.
      real, dimension(:), allocatable :: local_coords
-     !! Whether the detector is static or Lagrangian.
-     integer :: type = STATIC_DETECTOR
      !! Identification number indicating the order in which the detectors are read
      integer :: id_number
      !! Identification number indicating parent processor when detector was created
@@ -111,6 +107,8 @@ module detector_data_types
      !! Pointers for detector linked lists
      TYPE (detector_type), POINTER :: next=> null()
      TYPE (detector_type), POINTER :: previous=> null()
+     TYPE (detector_type), POINTER :: temp_next => null()
+     TYPE (detector_type), POINTER :: temp_previous => null()
   end type detector_type
 
   ! Parameters for lagrangian detector movement

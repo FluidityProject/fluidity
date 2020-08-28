@@ -100,6 +100,40 @@ internal_algorithm =
       element algorithm {
          attribute name { "Internal" },
          attribute material_phase_support { "multiple" }
+      }|
+      ## This diagnostic is derived from particle attributes, it is calculated
+      ## within the Particle_Diagnostics.F90 routine, and set via the ratio method.
+      element algorithm {
+         attribute name { "from_particles" },
+	 attribute material_phase_support { "multiple" },
+	 (
+            element particle_group {
+	       attribute name { xsd:string },
+	       element particle_attribute {
+	          attribute name { xsd:string }
+	       }
+	    },
+	    ## Function used to interpolate particle values onto nodes.
+	    element interpolation {
+	       ## Weighted distribution of particle values between all nodes of the current particle element.
+	       element weighted_distance {
+		  empty
+	       }|
+	       ## Transfers particle values only to the closest node.
+	       element nearest_neighbour {
+	          empty
+	       }
+            }
+	 )
+      }|
+      element algorithm {
+         attribute name { "number_of_particles" },
+	 attribute material_phase_support { "multiple" },
+	 (
+	    element particle_group {
+	       attribute name { xsd:string }
+	    }
+	 )
       }
    )
 legacy_internal_algorithm =

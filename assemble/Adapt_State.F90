@@ -44,6 +44,7 @@ module adapt_state_module
   use parallel_fields
   use intersection_finder_module
   use fields
+  use profiler
   use state_module
   use vtk_interfaces
   use halos
@@ -62,6 +63,7 @@ module adapt_state_module
   use adaptive_timestepping
   use detector_parallel
   use diagnostic_variables
+  use particle_diagnostics, only: initialise_constant_particle_diagnostics, initialise_particle_diagnostics
   use checkpoint
   use edge_length_module
   use boundary_conditions_from_options
@@ -987,8 +989,14 @@ contains
       call copy_to_stored_values(states,"Iterated")
       call relax_to_nonlinear(states)
 
+      !Set constant particle attributes and MVF fields based on particles
+      call initialise_constant_particle_diagnostics(states)
+
       call calculate_diagnostic_variables(states)
       call calculate_diagnostic_variables_new(states)
+
+      !Set particle attributes and dependent fields
+      call initialise_particle_diagnostics(states)
 
       call enforce_discrete_properties(states)
       if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then
@@ -1165,6 +1173,16 @@ contains
       ! been deallocated
       call tag_references()
 
+      !Check if particle lists are initialised
+      if (get_num_detector_lists()>0) then
+        call get_registered_detector_lists(detector_list_array)
+        ! Check if particle elements exist on this processor, pack to other processor if not
+        do j = 1, size(detector_list_array)
+           call l2_halo_detectors(detector_list_array(j)%ptr, old_positions, states(1))
+        end do
+
+      end if
+
       ! Generate a new mesh field based on the current mesh field and the input
       ! metric
       if (.not. vertical_only) then
@@ -1211,11 +1229,11 @@ contains
 
       if (get_num_detector_lists()>0) then
         ! Update detector element and local_coords for every detector in all lists
-        call get_registered_detector_lists(detector_list_array)
+        call profiler_tic("find_particles_mesh_adapt")
         do j = 1, size(detector_list_array)
            call search_for_detectors(detector_list_array(j)%ptr, new_positions)
         end do
-
+        call profiler_toc("find_particles_mesh_adapt")
 #ifdef DDEBUG
         ! Sanity check that all local detectors are owned
         call get_registered_detector_lists(detector_list_array)

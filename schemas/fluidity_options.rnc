@@ -242,16 +242,6 @@ start =
                      )
                   }
                )*,
-               (
-                  ## By default Fluidity will fail if a detector has left the domain.
-                  element fail_outside_domain {
-                     empty
-                  }|
-                  ## Enable to write NaN values to detector output if a detector has left the domain.
-                  element write_nan_outside_domain {
-                     empty
-                  }
-               ),
                ## Enable to let detectors move with the domain if mesh_movement is enabled.
                element move_with_mesh {
                   empty
@@ -335,20 +325,87 @@ start =
                       element wall_time_dump_period {
                           real
                       }?
+		  }?,
+                  ## Options for spawning and deleting particles based on the minimum and maximum limits of particles per control volume. Defined per particle_group.
+		  element particle_spawning {
+		     ## Set the mesh which will be used for particle spawning. Currently only works for a P1CV mesh!
+	             mesh_choice,
+		     ## Minimum number of particles per control volume.
+		     element min_cv_threshhold {
+			integer
+	             },
+	             ## Maximum number of particles per control volume (recommended to be at least four times the minimum threshold).
+		     element max_cv_threshhold {
+			integer
+		     },
+		     ## Options for setting where particles will be spawned within the control volume
+		     element spawn_location {
+	                ## Particles will spawn within a radius of the parent particle (ensuring they remain within the current element and control volume).
+			## Value is in local coordinates (recommended value 0.3).
+	                element radius {
+			   real
+	                }|
+			## Particles will spawn randomly within the control volume.
+			element random {
+			   empty
+			}
+	             },
+		     ## Options for setting particle attributes when spawned
+		     element spawn_attributes {
+	                ## Particles will spawn with attributes copied from the parent particle.
+			## Used when attributes are identical across the particle_subgroup.
+	                element copy_parent_attributes {
+			   empty
+	                }|
+			## Particles will spawn with attributes calculated from the average of particle_attributes within the control volume.
+			element calculate_average {
+			   empty
+			}
+	             },
+		     ## Option to set spawning caps for specific particle subgroups if one is dominant in a control volume.
+		     element subgroup_spawning_caps {
+		        ## Percentage of single subgroup required to be present for only that subgroup to spawn within a specific control volume.
+		        element percentage {
+			   real
+		        }
+		     }?
                   }?,
                   ## Particle subgroups arrays specified within a particle group. All subgroups utilize the same velocity field
                   ## and carry the same attributes. Subgroups can have different initial positions specified via a python
                   ## function of from a file.
                   element particle_subgroup {
                      attribute name { xsd:string },
-                     ## The number of particles prescribed by the python function.
-                     element number_of_particles {
-                        integer
-                     },
                      (
                         ##Initial position of particles
                         element initial_position {
-                           ## Python function prescribing dimensional vector input. Functions should be of the form:
+			   (
+                              ## Python function prescribing dimensional vector input. Functions should be of the form:
+                              ##
+                              ##  def val(t):
+                              ##     # Function code
+                              ##     return # Return value
+                              ##
+                              ## The return value must have length number_of_particles.
+                              ##
+                              ## *** IMPORTANT NOTE ***
+                              ##
+                              ## The t argument is not used here. To spawn with t dependence use initialise_during_simulation option below.
+                              element python {
+                                 python_code
+                              }|
+                              ## File containing the particle positions in binary form
+                              element from_file {
+			         (
+				    attribute file_name { xsd:string },
+				    element number_of_particles {
+				       integer
+				    }
+				 )
+                              }
+			   )
+			},
+			element initialise_during_simulation {
+			   ## Python function prescribing dimensional vector input. Functions should be of the form:
                            ##
                            ##  def val(t):
                            ##     # Function code
@@ -358,15 +415,11 @@ start =
                            ##
                            ## *** IMPORTANT NOTE ***
                            ##
-                           ## The t argument is for future use only - currently particle locations are only set at simulation start.
+                           ## This function will only be called after simulation start. To initialise starting positions use initial_position option above.
                            element python {
                               python_code
-                           }|
-                           ## File containing the particle positions in binary form
-                           element from_file {
-                              attribute file_name { xsd:string }
-                           }
-                        } 
+			   }
+			}?
                      ),
                      (
                         ##Define particle attributes.
@@ -377,7 +430,7 @@ start =
                                  attribute name { xsd:string },
 				 ## Do not output this attribute to file
 				 element exclude_from_output {
-				     empty
+				    empty
 				 }?,
                                  generic_scalar_particle_attribute_choice
 			      }|
@@ -389,7 +442,7 @@ start =
 				 },
 				 ## Do not output this attribute to file
 				 element exclude_from_output {
-				     empty
+				    empty
 				 }?,
                                  generic_scalar_particle_attribute_choice
 			      }|
@@ -441,16 +494,13 @@ start =
                   }+
                }+
             )*,
-            (
-               ## By default Fluidity will fail if a particle has left the domain.
-               element fail_outside_domain {
-                  empty
-               }|
-               ## Enable to write NaN values to particle output if a particle has left the domain.
-               element write_nan_outside_domain {
+            ## Options for particles being advected outside the computational domain.
+	    element moving_outside_domain {
+               ## By default Fluidity will delete particles if they move outside the domain.
+               element delete {
                   empty
                }
-            ),
+	    },
             ## Enable to let particles move with the domain if mesh_movement is enabled.
             element move_with_mesh {
                empty

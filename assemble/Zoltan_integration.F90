@@ -2059,7 +2059,7 @@ module zoltan_integration
     integer :: old_local_element_number, new_local_element_number, old_universal_element_number
     integer, allocatable :: ndets_being_sent(:)
     real, allocatable :: send_buff(:,:), recv_buff(:,:)
-    logical do_broadcast
+    logical :: do_broadcast, sent
     integer, dimension(3) :: attribute_size
     integer :: total_attributes
     type(element_type), pointer :: shape
@@ -2081,7 +2081,6 @@ module zoltan_integration
              attribute_size(1)=size(detector%attributes)
              attribute_size(2)=size(detector%old_attributes)
              attribute_size(3)=size(detector%old_fields)
-             total_attributes=sum(attribute_size)
           end if
        end if
        do while (associated(detector))
@@ -2130,6 +2129,17 @@ module zoltan_integration
           deallocate(ndets_being_sent)
           cycle
        end if
+       i=1
+       sent=.false.
+       do while (sent.eqv..false.)
+          if (ndets_being_sent(i)>0) then
+             call mpi_bcast(attribute_size, 3, getPINTEGER(), i-1, MPI_COMM_FEMTOOLS, ierr)
+             assert(ierr == MPI_SUCCESS)
+             total_attributes=sum(attribute_size)
+             sent=.true.
+          end if
+          i=i+1
+       end do
        ewrite(2,*) "Broadcast required, initialising..."
        
        ! Allocate memory for all the particles you're going to send
@@ -2323,12 +2333,7 @@ module zoltan_integration
        add_detector => detector
        detector => detector%next
 
-       ! update detector name if names are present on the list, otherwise det%name=id_number
-       if (allocated(detector_list_array(add_detector%list_id)%ptr%detector_names)) then
-          add_detector%name=detector_list_array(add_detector%list_id)%ptr%detector_names(add_detector%id_number)
-       else
-          add_detector%name=int2str(add_detector%id_number)
-       end if
+       add_detector%name=int2str(add_detector%id_number)
 
        ! move detector to the correct list
        call move(add_detector, zoltan_global_unpacked_detectors_list, detector_list_array(add_detector%list_id)%ptr)
