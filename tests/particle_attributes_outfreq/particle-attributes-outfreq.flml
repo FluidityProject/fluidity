@@ -55,9 +55,6 @@
   <particles>
     <particle_group name="Rhodri">
       <particle_subgroup name="Thomas">
-        <number_of_particles>
-          <integer_value rank="0">60</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -84,9 +81,6 @@
         </attributes>
       </particle_subgroup>
       <particle_subgroup name="Chris">
-        <number_of_particles>
-          <integer_value rank="0">100</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -133,9 +127,6 @@
         </dump_period_in_timesteps>
       </particle_io>
       <particle_subgroup name="Steph">
-        <number_of_particles>
-          <integer_value rank="0">80</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -156,7 +147,9 @@
         </attributes>
       </particle_subgroup>
     </particle_group>
-    <fail_outside_domain/>
+    <moving_outside_domain>
+      <delete/>
+    </moving_outside_domain>
     <lagrangian_timestepping>
       <subcycles>
         <integer_value rank="0">1</integer_value>

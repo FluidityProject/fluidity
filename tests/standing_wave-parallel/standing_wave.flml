@@ -22,7 +22,7 @@
             </bottom_depth>
             <sizing_function>
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
   import random
   return 100+random.random()*200.</string_value>
               </python>
@@ -173,7 +173,6 @@
           <real_value rank="1" dim1="dim" shape="3">5e5 5e4 -10</real_value>
         </location>
       </static_detector>
-      <fail_outside_domain/>
     </detectors>
   </io>
   <timestepping>
@@ -407,6 +406,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

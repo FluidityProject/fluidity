@@ -303,6 +303,9 @@ u_ref = sqrt(p/rho_g)</comment>
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -566,6 +569,9 @@ InternalEnergy needed for a Pressure of 1.013e5 = 205894.308943</comment>
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

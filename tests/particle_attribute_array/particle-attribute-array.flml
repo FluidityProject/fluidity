@@ -71,9 +71,6 @@
     <particle_group name="ArrayTest">
       <particle_io/>
       <particle_subgroup name="ArrayMeasure">
-        <number_of_particles>
-          <integer_value rank="0">1000</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -163,9 +160,6 @@
     <particle_group name="SingleTest">
       <particle_io/>
       <particle_subgroup name="Attributes">
-        <number_of_particles>
-          <integer_value rank="0">100</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -231,9 +225,6 @@
     </particle_group>
     <particle_group name="ComputeOnly">
       <particle_subgroup name="Strain">
-        <number_of_particles>
-          <integer_value rank="0">10</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -257,7 +248,9 @@
         </attributes>
       </particle_subgroup>
     </particle_group>
-    <fail_outside_domain/>
+    <moving_outside_domain>
+      <delete/>
+    </moving_outside_domain>
     <lagrangian_timestepping>
       <subcycles>
         <integer_value rank="0">1</integer_value>
