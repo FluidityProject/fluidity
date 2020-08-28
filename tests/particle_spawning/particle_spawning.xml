@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>Testing of particle spawning in serial</name>
+  <owner userid="cmath"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>        
+../../bin/fluidity -v3 -l particle-spawning.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="Min_particles" language="python">
+import numpy as np
+from fluidity_tools import stat_parser
+s = stat_parser("particle_attributes.stat")
+Min_particles= s['BoussinesqFluid']['Nparticles']['min'][-1]
+print ("min number",Min_particles)
+    </variable>
+    <variable name="Walltime" language="python">
+from fluidity_tools import stat_parser
+import numpy as np
+
+s = stat_parser('particle_attributes.stat')
+Walltime = s['ElapsedWallTime']["value"][-1]
+print ("Total wall time", Walltime)
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Minparticlecheck" language="python">
+assert Min_particles &gt; 19
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

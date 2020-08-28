@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>Testing of particle initialisation after simulation start in serial.</name>
+  <owner userid="cmath"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+../../bin/fluidity -v3 -l particle-initialise-after-start.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="attributes_error_1" language="python">
+import numpy as np
+import h5py
+
+f = h5py.File('particle_attributes.particles.Thomas.h5part', 'r')
+d = f['/Step#{}'.format(len(f)-1)]
+idx = np.argsort(d['id'])
+val = d['Chem1'][:][idx]
+
+attributes_error = np.zeros(11)
+for i in range(11):
+   attributes_error[i] = val[i] - 10
+
+attributes_error_1=abs(attributes_error).max()
+
+print ("max error",attributes_error_1)
+    </variable>
+    <variable name="attributes_error_2" language="python">
+import numpy as np
+import h5py
+
+f = h5py.File('particle_attributes.particles.Thomas.h5part', 'r')
+d = f['/Step#{}'.format(len(f)-1)]
+idx = np.argsort(d['id'])
+val = d['Chem1'][:][idx]
+
+attributes_error = np.zeros(11)
+for i in range(11,22):
+   attributes_error[i-11] = val[i] - 9
+
+attributes_error_2=abs(attributes_error).max()
+
+print ("max error",attributes_error_2)
+    </variable>
+    <variable name="attributes_error_3" language="python">
+import numpy as np
+import h5py
+
+f = h5py.File('particle_attributes.particles.Thomas.h5part', 'r')
+d = f['/Step#{}'.format(len(f)-1)]
+idx = np.argsort(d['id'])
+val = d['Chem1'][:][idx]
+
+attributes_error = np.zeros(11)
+for i in range(22,33):
+   attributes_error[i-22] = val[i] - 6
+
+attributes_error_3=abs(attributes_error).max()
+
+print ("max error",attributes_error_3)
+    </variable>
+    <variable name="Walltime" language="python">
+from fluidity_tools import stat_parser
+import numpy as np
+
+s = stat_parser('particle_attributes.stat')
+Walltime = s['ElapsedWallTime']["value"][-1]
+print ("Total wall time", Walltime)
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Maxattribteserror1" language="python">
+assert abs(attributes_error_1).max() &lt; 1.0e-5
+    </test>
+    <test name="Maxattribteserror2" language="python">
+assert abs(attributes_error_2).max() &lt; 1.0e-5
+    </test>
+    <test name="Maxattribteserror3" language="python">
+assert abs(attributes_error_3).max() &lt; 1.0e-5
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
