@@ -367,7 +367,7 @@ contains
           end if
 
           if (is_active_process) then
-            ! Read particles from options -- only if this process is currently active (as defined in flredecomp
+            ! Read particles from options -- only if this process is currently active (as defined in flredecomp)
             if (from_file) then
               call get_option(trim(subgroup_path) // "/initial_position/from_file/number_of_particles", sub_particles)
               call read_particles_from_file(sub_particles, subname, subgroup_path, &
