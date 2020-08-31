@@ -14,17 +14,18 @@ import numpy as np
 import h5py
 
 last_locations_error = np.zeros((3,100))
-X = np.fromfile('Xvals.txt',sep=' ')
-Y = np.fromfile('Yvals.txt',sep=' ')
-Z = 0.5*np.ones(np.shape(X))
+g = h5py.File('bench.dat', 'r')
+h = g['/Step#{}'.format(len(g)-1)]
+idy = np.argsort(h['id'])
+pos_bench = np.vstack([h[dim] for dim in ('x', 'y', 'z')])[:, idy]
 
 f = h5py.File('lagrangian_detectors.particles.Steve.h5part', 'r')
 d = f['/Step#{}'.format(len(f)-1)]
 idx = np.argsort(d['id'])
 pos = np.vstack([d[dim] for dim in ('x', 'y', 'z')])[:, idx]
-last_locations_error[0,:] = pos[0,:] - X[:]
-last_locations_error[1,:] = pos[1,:] - Y[:]
-last_locations_error[2,:] = pos[2,:] - Z[:]
+last_locations_error[0,:] = pos[0,:] - pos_bench[0,:]
+last_locations_error[1,:] = pos[1,:] - pos_bench[1,:]
+last_locations_error[2,:] = pos[2,:] - pos_bench[2,:]
     </variable>
   </variables>
   <pass_tests>
