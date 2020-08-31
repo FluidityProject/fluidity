@@ -2333,8 +2333,6 @@ module zoltan_integration
        add_detector => detector
        detector => detector%next
 
-       add_detector%name=int2str(add_detector%id_number)
-
        ! move detector to the correct list
        call move(add_detector, zoltan_global_unpacked_detectors_list, detector_list_array(add_detector%list_id)%ptr)
     end do

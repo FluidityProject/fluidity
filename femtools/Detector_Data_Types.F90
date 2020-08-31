@@ -80,8 +80,6 @@ module detector_data_types
   type detector_type
      !! Physical location of the detector.
      real, dimension(:), allocatable :: position
-     !! Name of the detector in input and output.
-     character(len=FIELD_NAME_LEN) :: name
      !! Element number in which the detector lies.
      integer :: element
      !! Local coordinates of the detector in that element.

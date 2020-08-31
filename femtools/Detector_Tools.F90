@@ -284,7 +284,6 @@ contains
     new_detector%position = old_detector%position
     new_detector%element = old_detector%element
     new_detector%id_number = old_detector%id_number
-    new_detector%name = old_detector%name
     new_detector%local_coords=old_detector%local_coords
       
   end subroutine detector_copy

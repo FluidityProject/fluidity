@@ -458,9 +458,6 @@ contains
                     global_to_local=ele_numbering_inverse,coordinates=xfield, attribute_size=attribute_size)
           end if
 
-          ! If there is a list of detector names, use it, otherwise set ID as name
-          detector_received%name=int2str(detector_received%id_number)
-
           call insert(detector_received, detector_list)           
        end do
     end do

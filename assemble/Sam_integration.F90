@@ -1580,7 +1580,6 @@ module sam_integration
         node%position = rreceive_data(i)%ptr((j - 1) * rdata_size + 1:(j - 1) * rdata_size + new_positions%dim)
         
         ! Recoverable data, not communicated
-        node%name = default_stat%detector_list%detector_names(node%id_number)
         allocate(node%local_coords(new_positions%dim + 1))
         
         call insert(node, default_stat%detector_list)

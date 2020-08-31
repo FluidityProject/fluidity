@@ -900,11 +900,9 @@ module particle_diagnostics
     real, dimension(:), allocatable :: node_coord
     real, dimension(:), allocatable :: weighted_attributes, weighted_old_attributes, weighted_old_fields
 
-    character(len=OPTION_PATH_LEN) :: name
-    character(len=OPTION_PATH_LEN) :: particle_name
     integer, dimension(:), allocatable :: node_numbers, ele_num_part
     integer, dimension(:), pointer :: ele_nums
-    integer :: id, name_len, tot_len, group_spawn, ele_spawn, proc_num
+    integer :: id, group_spawn, ele_spawn, proc_num
     integer :: j, i, k, l, m
     integer, dimension(3) :: attribute_size
     logical :: spawn_group, coords_set, rand_set
@@ -983,9 +981,6 @@ module particle_diagnostics
        if (associated(temp_part)) then
 
           id = particle_lists(group_arrays(j))%proc_part_count
-          name_len = len(int2str(id+1))+1 !id length + '_'
-          tot_len = len(trim(temp_part%name))
-          name = trim(temp_part%name(1:tot_len-name_len))
           attribute_size(1) = size(temp_part%attributes)
           attribute_size(2) = size(temp_part%old_attributes)
           attribute_size(3) = size(temp_part%old_fields)
@@ -996,11 +991,9 @@ module particle_diagnostics
        !Spawn particles
        particle => node_particles(j)%first
        do while(associated(particle))
-          particle_name = trim(name)//int2str(id+1)
           temp_part => null()
           call allocate(temp_part, size(particle%position), size(particle%local_coords), attribute_size)
 
-          temp_part%name = trim(particle_name)
           temp_part%id_number = id+1
           temp_part%list_id = particle%list_id
           temp_part%proc_id = proc_num
@@ -1149,9 +1142,7 @@ module particle_diagnostics
     real, dimension(:,:,:), allocatable :: ele_val
     real :: max_lcoord, ratio
 
-    character(len=OPTION_PATH_LEN) :: name
-    character(len=OPTION_PATH_LEN) :: particle_name
-    integer :: id, name_len, tot_len
+    integer :: id
     integer :: i, j, k, l, m, proc_num
     integer, dimension(3) :: attribute_size
     integer, dimension(:), allocatable :: remove_particles
@@ -1251,9 +1242,6 @@ module particle_diagnostics
        if (associated(temp_part)) then
 
           id = particle_lists(group_arrays(i))%proc_part_count
-          name_len = len(int2str(id+1))+1 !id length + '_'
-          tot_len = len(trim(temp_part%name))
-          name = trim(temp_part%name(1:tot_len-name_len))
           attribute_size(1) = size(temp_part%attributes)
           attribute_size(2) = size(temp_part%old_attributes)
           attribute_size(3) = size(temp_part%old_fields)
@@ -1275,10 +1263,8 @@ module particle_diagnostics
              !maximum particle threshold/4 * 1/number of surrounding elements * ratio
              !of particles in given CV to all surrounding CV's
              do l = 1,NINT((max_thresh/4.0)*(1.0/size(ele_nums))*ratio)
-                particle_name = trim(name)//int2str(id+1)
                 temp_part => null()
                 call allocate(temp_part, size(particle%position), size(particle%local_coords), attribute_size)
-                temp_part%name = trim(particle_name)
                 temp_part%id_number = id+1
                 temp_part%list_id = particle%list_id
                 temp_part%proc_id = proc_num

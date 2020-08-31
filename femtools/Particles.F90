@@ -429,7 +429,7 @@ contains
     !> Current simulation time
     real, intent(in) :: current_time
 
-    integer :: i, k, j, dim, id_number
+    integer :: i, k, j, dim
     integer :: particle_groups, particle_subgroups, list_counter, sub_particles
     integer, dimension(:), allocatable :: init_check
 
@@ -508,10 +508,9 @@ contains
 
              call get_option(trim(subgroup_path)//"/initialise_during_simulation/python", script)
 
-             id_number = particle_lists(list_counter)%proc_part_count
              call get_option(trim(subgroup_path) // "/name", subname)
              call read_particles_from_python(subname, subgroup_path, particle_lists(list_counter), list_counter, xfield, dim, &
-                  current_time, state, attr_counts, global, sub_particles, id_number=id_number, script=script)
+                  current_time, state, attr_counts, global, sub_particles, script=script)
 
              particle_lists(list_counter)%total_num_det = particle_lists(list_counter)%total_num_det + sub_particles
 
@@ -604,7 +603,7 @@ contains
        xfield, dim, &
        current_time, state, &
        attr_counts, global, &
-       n_particles, id_number, script)
+       n_particles, script)
 
     !> Name of the particles' subgroup
     character(len=FIELD_NAME_LEN), intent(in) :: subgroup_name
@@ -629,14 +628,11 @@ contains
     logical, intent(in), optional :: global
     !> Number of particles being initialized
     integer, intent(out) :: n_particles
-    !> ID number of last particle currently in list
-    integer, optional, intent(in) :: id_number
     !> Python script used by initialise_during_simulation
     character(len=PYTHON_FUNC_LEN), optional, intent(in) :: script
 
-    integer :: i, str_size, proc_num, stat
+    integer :: i, proc_num, stat
     character(len=PYTHON_FUNC_LEN) :: func
-    character(len=FIELD_NAME_LEN) :: fmt, particle_name
     real, allocatable, dimension(:,:) :: coords ! all particle coordinates, from python
     ! if we don't know how many particles we're getting, we need a C pointer
     type(c_ptr) :: coord_ptr
@@ -655,13 +651,6 @@ contains
     end if
     call get_option("/timestepping/timestep", dt)
 
-    !if (present(n_particles_in)) then
-    !  n_particles = n_particles_in
-    !  allocate(coords(dim, n_particles))
-    !  ! we are receiving an expected number of particles from python, so
-    !  ! use the usual routine
-    !  call set_detector_coords_from_python(coords, n_particles, func, current_time)
-    !else
     call set_detectors_from_python(func, len(func), dim, current_time, coord_ptr, n_particles, stat)
     call c_f_pointer(coord_ptr, coord_array_ptr, [dim, n_particles])
     allocate(coords(dim, n_particles))
@@ -669,24 +658,11 @@ contains
     coords = coord_array_ptr
 
     call deallocate_c_array(coord_ptr)
-    !end if
 
-    str_size = len_trim(int2str(n_particles))
-    fmt="(a,I"//int2str(str_size)//"."//int2str(str_size)//")"
-
-    if (present(id_number)) then
-       do i = 1, n_particles
-          write(particle_name, fmt) trim(subgroup_name)//"_", i+id_number
-          call create_single_particle(p_list, list_id, xfield, coords(:,i), &
-               i+id_number, proc_num, trim(particle_name), dim, attr_counts, global=global)
-       end do
-    else
-       do i = 1, n_particles
-          write(particle_name, fmt) trim(subgroup_name)//"_", i
-          call create_single_particle(p_list, list_id, xfield, coords(:,i), &
-               i, proc_num, trim(particle_name), dim, attr_counts, global=global)
-       end do
-    end if
+    do i = 1, n_particles
+       call create_single_particle(p_list, list_id, xfield, coords(:,i), &
+            proc_num, dim, attr_counts, global=global)
+    end do
 
     deallocate(coords)
   end subroutine read_particles_from_python
@@ -814,12 +790,11 @@ contains
     integer, intent(in), optional :: n_partitions
 
     integer :: i
-    integer :: ierr, str_size, commsize, rank, id(1), proc_id(1)
+    integer :: ierr, commsize, rank, id(1), proc_id(1)
     integer :: input_comm, world_group, input_group ! opaque MPI pointers
     integer :: particle_number
     real, allocatable, dimension(:) :: positions ! particle coordinates
     character(len=OPTION_PATH_LEN) :: particles_cp_filename
-    character(len=FIELD_NAME_LEN) :: particle_name, fmt
     integer(kind=8) :: h5_ierror, h5_id, h5_prop, view_start, view_end ! h5hut state
     integer(kind=8), dimension(:), allocatable :: npoints, part_counter ! number of points for each rank to read
     type(attr_vals_type), pointer :: attr_vals, old_attr_vals, old_field_vals ! scalar/vector/tensor arrays
@@ -842,9 +817,6 @@ contains
     call allocate(attr_vals, dim, attr_counts%attrs)
     call allocate(old_attr_vals, dim, attr_counts%old_attrs)
     call allocate(old_field_vals, dim, attr_counts%old_fields)
-
-    str_size = len_trim(int2str(n_particles))
-    fmt = "(a,I"//int2str(str_size)//"."//int2str(str_size)//")"
 
     ! set up the checkpoint file for reading
     call get_option(trim(subgroup_path) // "/initial_position/from_file/file_name", particles_cp_filename)
@@ -873,7 +845,6 @@ contains
 
     particle_number = 1
     do i = 1, npoints(rank+1)
-      write(particle_name, fmt) trim(subgroup_name)//"_", i
 
       ! set view to read this particle
       h5_ierror = h5pt_setview(h5_id, int(view_start + i - 1, 8), int(view_start + i - 1, 8))
@@ -895,8 +866,8 @@ contains
 
       ! don't use a global check for this particle
       call create_single_particle(p_list, list_id, xfield, &
-           positions, id(1), proc_id(1), trim(particle_name), dim, &
-           attr_counts, attr_vals, old_attr_vals, old_field_vals, global=.false., particle_number=particle_number)
+           positions, proc_id(1), dim, attr_counts, id(1), &
+           attr_vals, old_attr_vals, old_field_vals, global=.false., particle_number=particle_number)
       particle_number = particle_number + 1
     end do
 
@@ -933,8 +904,8 @@ contains
 
   !> Allocate a single particle, populate and insert it into the given list
   !! In parallel, first check if the particle would be local and only allocate if it is
-  subroutine create_single_particle(detector_list, list_id, xfield, position, id, proc_id, name, dim, &
-       attr_counts, attr_vals, old_attr_vals, old_field_vals, global, particle_number)
+  subroutine create_single_particle(detector_list, list_id, xfield, position, proc_id, dim, &
+       attr_counts, id, attr_vals, old_attr_vals, old_field_vals, global, particle_number)
     !> The detector list to hold the particle
     type(detector_linked_list), intent(inout) :: detector_list
     !> List ID of particle list
@@ -943,17 +914,15 @@ contains
     type(vector_field), pointer, intent(in) :: xfield
     !> Spatial position of the particle
     real, dimension(xfield%dim), intent(in) :: position
-    !> Unique ID number for this particle
-    integer, intent(in) :: id
     !> Procces ID on which this particle was created
     integer, intent(in) :: proc_id
-    !> The particle's name
-    character(len=*), intent(in) :: name
     !> Geometry dimension
     integer, intent(in) :: dim
     !> Counts of scalar, vector and tensor attributes, old attributes
     !! and old fields to store on the particle
     type(attr_counts_type), intent(in) :: attr_counts
+    !> Unique ID number for this particle
+    integer, intent(in), optional :: id
     !> If provided, initialise the particle's attributes directly
     type(attr_vals_type), intent(in), optional :: attr_vals, old_attr_vals, old_field_vals
     !> Whether to create this particle in a collective operation (true)
@@ -984,11 +953,16 @@ contains
        if (element<0) return
        if (.not.element_owned(xfield,element)) return
     else
-      ! In serial make sure the particle is in the domain
-      ! unless we have the write_nan_outside override
-      if (element<0 .and. .not.detector_list%write_nan_outside) then
-        ewrite(-1,*) "Dealing with particle ", id, " named: ", trim(name)
-        FLExit("Trying to initialise particle outside of computational domain")
+       ! In serial make sure the particle is in the domain
+       ! unless we have the write_nan_outside override
+       if (element<0 .and. .not.detector_list%write_nan_outside) then
+          if (present(id)) then
+             ewrite(-1,*) "Dealing with particle ", id, " proc_id:", proc_id
+             FLExit("Trying to initialise particle outside of computational domain")
+          else
+             ewrite(-1,*) "Dealing with particle ", detector_list%proc_part_count + 1, " proc_id:", proc_id
+             FLExit("Trying to initialise particle outside of computational domain")
+          end if
       end if
     end if
 
@@ -999,11 +973,14 @@ contains
     call insert(detector, detector_list)
 
     ! Populate particle
-    detector%name = name
     detector%position = position
     detector%element = element
     detector%local_coords = lcoords
-    detector%id_number = id
+    if (present(id)) then
+       detector%id_number = id
+    else
+       detector%id_number = detector_list%proc_part_count + 1
+    end if
     detector%proc_id = proc_id
     detector%list_id = list_id
     detector_list%proc_part_count = detector_list%proc_part_count + 1

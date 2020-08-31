@@ -1420,14 +1420,13 @@ contains
 
   end subroutine initialise_steady_state
 
-  subroutine create_single_detector(detector_list,xfield,position,id,proc_id,name)
+  subroutine create_single_detector(detector_list,xfield,position,id,proc_id)
     ! Allocate a single detector, populate and insert it into the given list
     ! In parallel, first check if the detector would be local and only allocate if it is
     type(detector_linked_list), intent(inout) :: detector_list
     type(vector_field), pointer :: xfield
     real, dimension(xfield%dim), intent(in) :: position
     integer, intent(in) :: id, proc_id
-    character(len=*), intent(in) :: name
 
     type(detector_type), pointer :: detector
     type(element_type), pointer :: shape
@@ -1436,7 +1435,6 @@ contains
 
     shape=>ele_shape(xfield,1)
     assert(xfield%dim+1==local_coord_count(shape))
-    detector_list%detector_names(id)=name
 
     ! Determine element and local_coords from position
     ! In parallel, global=.false. can often work because there will be
@@ -1452,7 +1450,7 @@ contains
        ! In serial make sure the detector is in the domain
        ! unless we have the write_nan_outside override
        if (element<0 .and. .not.detector_list%write_nan_outside) then
-          ewrite(-1,*) "Dealing with detector ", id, " named: ", trim(name)
+          ewrite(-1,*) "Dealing with detector ", id, " proc_id ",proc_id 
           FLExit("Trying to initialise detector outside of computational domain")
        end if
     end if
@@ -1467,7 +1465,6 @@ contains
     call insert(detector,detector_list)
 
     ! Populate detector
-    detector%name=name
     detector%position=position
     detector%element=element
     detector%local_coords=lcoords
@@ -1488,10 +1485,10 @@ contains
 
     integer :: column, i, j, k, phase, m, IERROR, field_count, totaldet_global
     integer :: static_dete, python_functions_or_files, total_dete, total_dete_groups
-    integer :: python_dete, ndete, dim, str_size, group_size, proc_num
+    integer :: python_dete, ndete, dim, group_size, proc_num
     integer(kind=8) :: h5_ierror
     integer, dimension(2) :: shape_option
-    character(len = 254) :: buffer, material_phase_name, fmt
+    character(len = 254) :: buffer, material_phase_name
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield, xfield
     real, allocatable, dimension(:,:) :: coords
@@ -1587,7 +1584,7 @@ contains
           default_stat%number_det_in_each_group(i)=1.0
 
           call create_single_detector(default_stat%detector_list, xfield, &
-                detector_location, i, proc_num, trim(detector_name))
+                detector_location, i, proc_num)
        end do
 
        k=static_dete+1
@@ -1597,8 +1594,6 @@ contains
 
           call get_option(trim(buffer)//"/name", funcnam)
           call get_option(trim(buffer)//"/number_of_detectors", ndete)
-          str_size=len_trim(int2str(ndete))
-          fmt="(a,I"//int2str(str_size)//"."//int2str(str_size)//")"
 
           default_stat%detector_group_names(i+static_dete) = trim(funcnam)
           default_stat%number_det_in_each_group(i+static_dete) = ndete
@@ -1611,10 +1606,8 @@ contains
              call set_detector_coords_from_python(coords, ndete, func, current_time)
 
              do j=1,ndete
-                write(detector_name, fmt) trim(funcnam)//"_", j
-
                 call create_single_detector(default_stat%detector_list, xfield, &
-                       coords(:,j), k, proc_num, trim(detector_name))
+                       coords(:,j), k, proc_num)
                 k=k+1
              end do
              deallocate(coords)
@@ -1633,10 +1626,9 @@ contains
 #endif
 
              do j=1,ndete
-                write(detector_name, fmt) trim(funcnam)//"_", j
                 read(default_stat%detector_file_unit) detector_location
                 call create_single_detector(default_stat%detector_list, xfield, &
-                      detector_location, k, proc_num, trim(detector_name))
+                      detector_location, k, proc_num)
                 k=k+1
              end do
           end if
@@ -1681,7 +1673,7 @@ contains
              if (default_stat%detector_group_names(j)==temp_name) then
                 read(default_stat%detector_checkpoint_unit) detector_location
                 call create_single_detector(default_stat%detector_list, xfield, &
-                      detector_location, i, proc_num, trim(temp_name))
+                      detector_location, i, proc_num)
              else
                 cycle
              end if
@@ -1697,14 +1689,11 @@ contains
 
              if (default_stat%detector_group_names(j)==temp_name) then
                 call get_option(trim(buffer)//"/number_of_detectors", ndete)
-                str_size=len_trim(int2str(ndete))
-                fmt="(a,I"//int2str(str_size)//"."//int2str(str_size)//")"
 
                 do m=1,default_stat%number_det_in_each_group(j)
-                   write(detector_name, fmt) trim(temp_name)//"_", m
                    read(default_stat%detector_checkpoint_unit) detector_location
                    call create_single_detector(default_stat%detector_list, xfield, &
-                          detector_location, k, proc_num, trim(detector_name))
+                          detector_location, k, proc_num)
                    k=k+1
                 end do
              else
