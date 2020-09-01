@@ -69,28 +69,6 @@
           </constant>
         </dump_period>
       </particle_io>
-      <particle_spawning>
-        <mesh name="CoordinateMesh"/>
-        <min_cv_threshhold>
-          <integer_value rank="0">20</integer_value>
-        </min_cv_threshhold>
-        <max_cv_threshhold>
-          <integer_value rank="0">80</integer_value>
-        </max_cv_threshhold>
-        <spawn_location>
-          <radius>
-            <real_value rank="0">0.3</real_value>
-          </radius>
-        </spawn_location>
-        <spawn_attributes>
-          <copy_parent_attributes/>
-        </spawn_attributes>
-        <subgroup_spawning_caps>
-          <percentage>
-            <real_value rank="0">99.9</real_value>
-          </percentage>
-        </subgroup_spawning_caps>
-      </particle_spawning>
       <particle_subgroup name="Circle">
         <initial_position>
           <python>

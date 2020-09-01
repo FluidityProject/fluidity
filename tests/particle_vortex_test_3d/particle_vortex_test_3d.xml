@@ -17,7 +17,7 @@ from fluidity_tools import stat_parser
 s = stat_parser("Sphere.stat")
 
 Max_cons = abs(1-(s['Normal']['MaterialVolumeFraction']['integral'][:]/s['Normal']['MaterialVolumeFraction']['integral'][0])).max()
-Max_conservation_error = Max_cons - 0.07658
+Max_conservation_error = Max_cons - 0.0381
 print ("Max cons error", Max_conservation_error)
     </variable>
     <variable name="Walltime" language="python">
@@ -31,7 +31,7 @@ print ("Total wall time", Walltime)
   </variables>
   <pass_tests>
     <test name="Maxconserror" language="python">
-assert abs(Max_conservation_error).max() &lt; 1.0e-5
+assert abs(Max_conservation_error).max() &lt; 1.0e-3
     </test>
   </pass_tests>
   <warn_tests>
