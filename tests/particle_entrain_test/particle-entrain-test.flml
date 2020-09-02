@@ -577,16 +577,16 @@
           <python>
             <string_value type="code" language="python" lines="20">def val(X,t):
   from math import erf, exp, sqrt, pi
-  import constants
-  
+  import setup_vals as constants
+
   u_0   = constants.u_0
   lda   = constants.lda
   Q     = constants.Q
   depth = X[1]
-  
+
   Tr    = 0.5 + (Q/(2.*sqrt(pi)) * sqrt(u_0/(depth + 1.)) * exp(-1. * ((X[0]**2 * u_0)/(4.*depth + 4.))))
   Ts    = 0.5 - (Q/(2.*sqrt(pi)) * sqrt(u_0/(2. - depth)) * exp(-1. * (((lda - X[0])**2 * u_0)/(8. - 4.*depth))))
-  
+
   if X[0] == 0:
     Tu    = 0.5
   else:
@@ -597,7 +597,7 @@
     Tl    = 1. - (0.5 * erf((depth/ 2.) * sqrt(u_0/(lda - X[0]))))
 
   T     = Tu + Tl + Tr + Ts - (3./2.)
-  
+
   T = min(T,1.0)
   T = max(T,0.0)
   return T</string_value>
@@ -629,7 +629,7 @@
               <isotropic>
                 <python>
                   <string_value type="code" language="python" lines="20">def val(X,t):
-  import constants
+  import setup_vals as constants
   kappa = constants.kappa
   return kappa</string_value>
                 </python>

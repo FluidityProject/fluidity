@@ -583,7 +583,7 @@
     T = (5-5*X[1])+0.05*sin(10*pi*X[1])*(1-cos(2/3*3*pi*X[0]))
   else:
     T = 0.5
-  
+
   T = min(T,1.0)
   T = max(T,0.0)
   return T</string_value>
@@ -615,7 +615,7 @@
               <isotropic>
                 <python>
                   <string_value type="code" language="python" lines="20">def val(X,t):
-  import constants
+  import setup_vals as constants
   kappa = constants.kappa
   return kappa</string_value>
                 </python>
