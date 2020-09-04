@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -429,7 +429,7 @@ contains
     !> Current simulation time
     real, intent(in) :: current_time
 
-    integer :: i, k, j, dim
+    integer :: i, k, j, dim, id_number
     integer :: particle_groups, particle_subgroups, list_counter, sub_particles
     integer, dimension(:), allocatable :: init_check
 
@@ -466,7 +466,7 @@ contains
     ! Allocate parameters from the coordinate field
     xfield => extract_vector_field(state(1), "Coordinate")
     call get_option("/geometry/dimension", dim)
-    
+
     list_counter = 1
 
     ewrite(2,*) "In initialise_particles_during_simulation"
@@ -508,9 +508,10 @@ contains
 
              call get_option(trim(subgroup_path)//"/initialise_during_simulation/python", script)
 
+             id_number = particle_lists(list_counter)%proc_part_count
              call get_option(trim(subgroup_path) // "/name", subname)
              call read_particles_from_python(subname, subgroup_path, particle_lists(list_counter), list_counter, xfield, dim, &
-                  current_time, state, attr_counts, global, sub_particles, script=script)
+                  current_time, state, attr_counts, global, sub_particles, id_number=id_number, script=script)
 
              particle_lists(list_counter)%total_num_det = particle_lists(list_counter)%total_num_det + sub_particles
 
@@ -603,7 +604,7 @@ contains
        xfield, dim, &
        current_time, state, &
        attr_counts, global, &
-       n_particles, script)
+       n_particles, id_number, script)
 
     !> Name of the particles' subgroup
     character(len=FIELD_NAME_LEN), intent(in) :: subgroup_name
@@ -628,6 +629,8 @@ contains
     logical, intent(in), optional :: global
     !> Number of particles being initialized
     integer, intent(out) :: n_particles
+    !> ID number of last particle currently in list
+    integer, optional, intent(in) :: id_number
     !> Python script used by initialise_during_simulation
     character(len=PYTHON_FUNC_LEN), optional, intent(in) :: script
 
@@ -659,10 +662,17 @@ contains
 
     call deallocate_c_array(coord_ptr)
 
-    do i = 1, n_particles
-       call create_single_particle(p_list, list_id, xfield, coords(:,i), &
-            proc_num, dim, attr_counts, global=global)
-    end do
+    if (present(id_number)) then
+       do i = 1, n_particles
+          call create_single_particle(p_list, list_id, xfield, coords(:,i), &
+               i+id_number, proc_num, dim, attr_counts, global=global)
+       end do
+    else
+       do i = 1, n_particles
+          call create_single_particle(p_list, list_id, xfield, coords(:,i), &
+               i, proc_num, dim, attr_counts, global=global)
+       end do
+    end if
 
     deallocate(coords)
   end subroutine read_particles_from_python
@@ -866,8 +876,8 @@ contains
 
       ! don't use a global check for this particle
       call create_single_particle(p_list, list_id, xfield, &
-           positions, proc_id(1), dim, attr_counts, id(1), &
-           attr_vals, old_attr_vals, old_field_vals, global=.false., particle_number=particle_number)
+           positions, id(1), proc_id(1), dim, &
+           attr_counts, attr_vals, old_attr_vals, old_field_vals, global=.false., particle_number=particle_number)
       particle_number = particle_number + 1
     end do
 
@@ -904,8 +914,8 @@ contains
 
   !> Allocate a single particle, populate and insert it into the given list
   !! In parallel, first check if the particle would be local and only allocate if it is
-  subroutine create_single_particle(detector_list, list_id, xfield, position, proc_id, dim, &
-       attr_counts, id, attr_vals, old_attr_vals, old_field_vals, global, particle_number)
+  subroutine create_single_particle(detector_list, list_id, xfield, position, id, proc_id, dim, &
+       attr_counts, attr_vals, old_attr_vals, old_field_vals, global, particle_number)
     !> The detector list to hold the particle
     type(detector_linked_list), intent(inout) :: detector_list
     !> List ID of particle list
@@ -914,6 +924,8 @@ contains
     type(vector_field), pointer, intent(in) :: xfield
     !> Spatial position of the particle
     real, dimension(xfield%dim), intent(in) :: position
+    !> Unique ID number for this particle
+    integer, intent(in) :: id
     !> Procces ID on which this particle was created
     integer, intent(in) :: proc_id
     !> Geometry dimension
@@ -921,8 +933,6 @@ contains
     !> Counts of scalar, vector and tensor attributes, old attributes
     !! and old fields to store on the particle
     type(attr_counts_type), intent(in) :: attr_counts
-    !> Unique ID number for this particle
-    integer, intent(in), optional :: id
     !> If provided, initialise the particle's attributes directly
     type(attr_vals_type), intent(in), optional :: attr_vals, old_attr_vals, old_field_vals
     !> Whether to create this particle in a collective operation (true)
@@ -956,13 +966,8 @@ contains
        ! In serial make sure the particle is in the domain
        ! unless we have the write_nan_outside override
        if (element<0 .and. .not.detector_list%write_nan_outside) then
-          if (present(id)) then
-             ewrite(-1,*) "Dealing with particle ", id, " proc_id:", proc_id
-             FLExit("Trying to initialise particle outside of computational domain")
-          else
-             ewrite(-1,*) "Dealing with particle ", detector_list%proc_part_count + 1, " proc_id:", proc_id
-             FLExit("Trying to initialise particle outside of computational domain")
-          end if
+          ewrite(-1,*) "Dealing with particle ", id, " proc_id:", proc_id
+          FLExit("Trying to initialise particle outside of computational domain")
       end if
     end if
 
@@ -976,14 +981,10 @@ contains
     detector%position = position
     detector%element = element
     detector%local_coords = lcoords
-    if (present(id)) then
-       detector%id_number = id
-    else
-       detector%id_number = detector_list%proc_part_count + 1
-    end if
+    detector%id_number = id
     detector%proc_id = proc_id
     detector%list_id = list_id
-    detector_list%proc_part_count = detector_list%proc_part_count + 1
+    detector_list%proc_part_count = max(detector_list%proc_part_count,id)
 
     ! allocate space to store all attributes on the particle
     allocate(detector%attributes(total_attributes(attr_counts%attrs, dim)))
@@ -1079,7 +1080,7 @@ contains
 
     type(detector_type), pointer :: particle
     character(len=OPTION_PATH_LEN) :: attr_key
-    
+
     real, allocatable, dimension(:,:) :: attribute_array
     real :: constant
     real, allocatable, dimension(:) :: vconstant
@@ -1102,7 +1103,7 @@ contains
     call get_option("/geometry/dimension", dim)
     allocate(vconstant(dim))
     allocate(tconstant(dim, dim))
-    
+
     particle => p_list%first
     allocate(attribute_array(size(particle%attributes),nparticles))
     attribute_array(:,:) = 0
@@ -1157,7 +1158,7 @@ contains
           attr_idx = attr_idx + dim**2
        end if
     end do
-    
+
     !Set constant attribute values
     particle => p_list%first
     do j = 1,nparticles
@@ -1167,7 +1168,7 @@ contains
     deallocate(vconstant)
     deallocate(tconstant)
     deallocate(attribute_array)
-    
+
   end subroutine initialise_constant_particle_attributes
 
   !> Update attributes and fields for every subgroup of every particle group
@@ -2148,7 +2149,7 @@ contains
        FLAbort("No particle groups exist")
        return
     end if
-    
+
     if (allocated(particle_lists)) then
        p_allocated = 1
        allocate(p_array(size(particle_lists)))
@@ -2158,7 +2159,7 @@ contains
     else
        p_allocated = 0
     end if
-    
+
   end subroutine get_particles
 
   subroutine get_particle_arrays(lgroup, group_arrays, group_attribute, lattribute)
@@ -2174,7 +2175,7 @@ contains
     integer :: i, j, k, l
 
     logical :: found_attribute
-    
+
     particle_groups = option_count("/particles/particle_group")
 
     found_attribute = .false.

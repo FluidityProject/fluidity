@@ -15,50 +15,22 @@ import numpy as np
 from numpy import zeros,fromfile,sqrt,sum,log10
 import h5py
 
+X=np.zeros(100,float)
+Y=np.zeros(100,float)
+f = open('Xvals.npy', "r")
+X_in= np.fromfile(f,dtype=np.float)
+f = open('Yvals.npy', "r")
+Y_in= np.fromfile(f,dtype=np.float)
+for i in range(0,100):
+    X[i]=X_in[i+10]
+    Y[i]=Y_in[i+10]
+
 last_locations_errora = zeros((2,100))
 f = h5py.File('lagrangian_2nd_A.particles.Chris.h5part', 'r')
 n = len(f)-1
 idx = np.argsort(f[f'/Step#{n}/id'])
-
-g = h5py.File('bench.dat', 'r')
-h = 80000
-idy = np.argsort(g[f'/Step#{h}/id'])
-
-dum1 = np.zeros(100)
-dum2 = np.zeros(100)
-dum3 = np.zeros(100)
-dum4 = np.zeros(100)
-dum5 = np.zeros(100)
-dum6 = np.zeros(100)
-dum7 = np.zeros(100)
-dum8 = np.zeros(100)
-for i in range(100):
-    if (f[f'/Step#{n}/proc_id'][:][idx][i]==1):
-        dum1[i] = f[f'/Step#{n}/x'][:][idx[i]]
-        dum2[i] = f[f'/Step#{n}/y'][:][idx[i]]
-    if (g[f'/Step#{h}/proc_id'][:][idy][i]==1):
-        dum3[i] = g[f'/Step#{h}/x'][:][idy[i]]
-        dum4[i] = g[f'/Step#{h}/y'][:][idy[i]]
-    if (f[f'/Step#{n}/proc_id'][:][idx][i]==2):
-        dum5[i] = f[f'/Step#{n}/x'][:][idx[i]]
-        dum6[i] = f[f'/Step#{n}/y'][:][idx[i]]
-    if (g[f'/Step#{h}/proc_id'][:][idy][i]==2):
-        dum7[i] = g[f'/Step#{h}/x'][:][idy[i]]
-        dum8[i] = g[f'/Step#{h}/y'][:][idy[i]]
-dum1 = dum1[dum1 != 0]
-dum2 = dum2[dum2 != 0]
-dum3 = dum3[dum3 != 0]
-dum4 = dum4[dum4 != 0]
-dum5 = dum5[dum5 != 0]
-dum6 = dum6[dum6 != 0]
-dum7 = dum7[dum7 != 0]
-dum8 = dum8[dum8 != 0]
-dummy1 = np.concatenate((dum1,dum5),axis=0)
-dummy2 = np.concatenate((dum2,dum6),axis=0)
-dummy3 = np.concatenate((dum3,dum7),axis=0)
-dummy4 = np.concatenate((dum4,dum8),axis=0)
-last_locations_errora[0,:] = dummy1 - dummy3
-last_locations_errora[1,:] = dummy2 - dummy4
+last_locations_errora[0,:] = f[f'/Step#{n}/x'][:][idx] - X[:]
+last_locations_errora[1,:] = f[f'/Step#{n}/y'][:][idx] - Y[:]
 
 lsa = sum(sqrt(last_locations_errora[0,:]**2 + last_locations_errora[1,:]**2)**2)
 l2_norm_a=sqrt(lsa)
@@ -67,26 +39,9 @@ last_locations_errorb = zeros((2,100))
 f = h5py.File('lagrangian_2nd_B.particles.Chris.h5part', 'r')
 n = len(f)-1
 idx = np.argsort(f[f'/Step#{n}/id'])
+last_locations_errorb[0,:] = f[f'/Step#{n}/x'][:][idx] - X[:]
+last_locations_errorb[1,:] = f[f'/Step#{n}/y'][:][idx] - Y[:]
 
-dum1 = np.zeros(100)
-dum2 = np.zeros(100)
-dum5 = np.zeros(100)
-dum6 = np.zeros(100)
-for i in range(100):
-    if (f[f'/Step#{n}/proc_id'][:][idx][i]==1):
-        dum1[i] = f[f'/Step#{n}/x'][:][idx[i]]
-        dum2[i] = f[f'/Step#{n}/y'][:][idx[i]]
-    if (f[f'/Step#{n}/proc_id'][:][idx][i]==2):
-        dum5[i] = f[f'/Step#{n}/x'][:][idx[i]]
-        dum6[i] = f[f'/Step#{n}/y'][:][idx[i]]
-dum1 = dum1[dum1 != 0]
-dum2 = dum2[dum2 != 0]
-dum5 = dum5[dum5 != 0]
-dum6 = dum6[dum6 != 0]
-dummy1 = np.concatenate((dum1,dum5),axis=0)
-dummy2 = np.concatenate((dum2,dum6),axis=0)
-last_locations_errorb[0,:] = dummy1 - dummy3
-last_locations_errorb[1,:] = dummy2 - dummy4
 lsb = sum(sqrt(last_locations_errorb[0,:]**2 + last_locations_errorb[1,:]**2)**2)
 l2_norm_b=sqrt(lsb)
 
@@ -98,50 +53,22 @@ import numpy as np
 from numpy import zeros,fromfile,sqrt,sum,log10
 import h5py
 
+X=np.zeros(100,float)
+Y=np.zeros(100,float)
+f = open('Xvals.npy', "r")
+X_in= np.fromfile(f,dtype=np.float)
+f = open('Yvals.npy', "r")
+Y_in= np.fromfile(f,dtype=np.float)
+for i in range(0,100):
+    X[i]=X_in[i+10]
+    Y[i]=Y_in[i+10]
+
 last_locations_errorb = zeros((2,100))
 f = h5py.File('lagrangian_2nd_B.particles.Chris.h5part', 'r')
 n = len(f)-1
 idx = np.argsort(f[f'/Step#{n}/id'])
-
-g = h5py.File('bench.dat', 'r')
-h = 80000
-idy = np.argsort(g[f'/Step#{h}/id'])
-
-dum1 = np.zeros(100)
-dum2 = np.zeros(100)
-dum3 = np.zeros(100)
-dum4 = np.zeros(100)
-dum5 = np.zeros(100)
-dum6 = np.zeros(100)
-dum7 = np.zeros(100)
-dum8 = np.zeros(100)
-for i in range(100):
-    if (f[f'/Step#{n}/proc_id'][:][idx][i]==1):
-        dum1[i] = f[f'/Step#{n}/x'][:][idx[i]]
-        dum2[i] = f[f'/Step#{n}/y'][:][idx[i]]
-    if (g[f'/Step#{h}/proc_id'][:][idy][i]==1):
-        dum3[i] = g[f'/Step#{h}/x'][:][idy[i]]
-        dum4[i] = g[f'/Step#{h}/y'][:][idy[i]]
-    if (f[f'/Step#{n}/proc_id'][:][idx][i]==2):
-        dum5[i] = f[f'/Step#{n}/x'][:][idx[i]]
-        dum6[i] = f[f'/Step#{n}/y'][:][idx[i]]
-    if (g[f'/Step#{h}/proc_id'][:][idy][i]==2):
-        dum7[i] = g[f'/Step#{h}/x'][:][idy[i]]
-        dum8[i] = g[f'/Step#{h}/y'][:][idy[i]]
-dum1 = dum1[dum1 != 0]
-dum2 = dum2[dum2 != 0]
-dum3 = dum3[dum3 != 0]
-dum4 = dum4[dum4 != 0]
-dum5 = dum5[dum5 != 0]
-dum6 = dum6[dum6 != 0]
-dum7 = dum7[dum7 != 0]
-dum8 = dum8[dum8 != 0]
-dummy1 = np.concatenate((dum1,dum5),axis=0)
-dummy2 = np.concatenate((dum2,dum6),axis=0)
-dummy3 = np.concatenate((dum3,dum7),axis=0)
-dummy4 = np.concatenate((dum4,dum8),axis=0)
-last_locations_errorb[0,:] = dummy1 - dummy3
-last_locations_errorb[1,:] = dummy2 - dummy4
+last_locations_errorb[0,:] = f[f'/Step#{n}/x'][:][idx] - X[:]
+last_locations_errorb[1,:] = f[f'/Step#{n}/y'][:][idx] - Y[:]
 
 lsb = sum(sqrt(last_locations_errorb[0,:]**2 + last_locations_errorb[1,:]**2)**2)
 l2_norm_b=sqrt(lsb)
@@ -150,26 +77,9 @@ last_locations_errorc = zeros((2,100))
 f = h5py.File('lagrangian_2nd_C.particles.Chris.h5part', 'r')
 n = len(f)-1
 idx = np.argsort(f[f'/Step#{n}/id'])
+last_locations_errorc[0,:] = f[f'/Step#{n}/x'][:][idx] - X[:]
+last_locations_errorc[1,:] = f[f'/Step#{n}/y'][:][idx] - Y[:]
 
-dum1 = np.zeros(100)
-dum2 = np.zeros(100)
-dum5 = np.zeros(100)
-dum6 = np.zeros(100)
-for i in range(100):
-    if (f[f'/Step#{n}/proc_id'][:][idx][i]==1):
-        dum1[i] = f[f'/Step#{n}/x'][:][idx[i]]
-        dum2[i] = f[f'/Step#{n}/y'][:][idx[i]]
-    if (f[f'/Step#{n}/proc_id'][:][idx][i]==2):
-        dum5[i] = f[f'/Step#{n}/x'][:][idx[i]]
-        dum6[i] = f[f'/Step#{n}/y'][:][idx[i]]
-dum1 = dum1[dum1 != 0]
-dum2 = dum2[dum2 != 0]
-dum5 = dum5[dum5 != 0]
-dum6 = dum6[dum6 != 0]
-dummy1 = np.concatenate((dum1,dum5),axis=0)
-dummy2 = np.concatenate((dum2,dum6),axis=0)
-last_locations_errorc[0,:] = dummy1 - dummy3
-last_locations_errorc[1,:] = dummy2 - dummy4
 lsc = sum(sqrt(last_locations_errorc[0,:]**2 + last_locations_errorc[1,:]**2)**2)
 l2_norm_c=sqrt(lsc)
 
@@ -181,50 +91,23 @@ import numpy as np
 from numpy import zeros,fromfile,sqrt,sum,log10
 import h5py
 
+X=np.zeros(100,float)
+Y=np.zeros(100,float)
+f = open('Xvals.npy', "r")
+X_in= np.fromfile(f,dtype=np.float)
+f = open('Yvals.npy', "r")
+Y_in= np.fromfile(f,dtype=np.float)
+for i in range(0,100):
+    X[i]=X_in[i+10]
+    Y[i]=Y_in[i+10]
+
 last_locations_errorc = zeros((2,100))
 f = h5py.File('lagrangian_2nd_C.particles.Chris.h5part', 'r')
 n = len(f)-1
 idx = np.argsort(f[f'/Step#{n}/id'])
+last_locations_errorc[0,:] = f[f'/Step#{n}/x'][:][idx] - X[:]
+last_locations_errorc[1,:] = f[f'/Step#{n}/y'][:][idx] - Y[:]
 
-g = h5py.File('bench.dat', 'r')
-h = 80000
-idy = np.argsort(g[f'/Step#{h}/id'])
-
-dum1 = np.zeros(100)
-dum2 = np.zeros(100)
-dum3 = np.zeros(100)
-dum4 = np.zeros(100)
-dum5 = np.zeros(100)
-dum6 = np.zeros(100)
-dum7 = np.zeros(100)
-dum8 = np.zeros(100)
-for i in range(100):
-    if (f[f'/Step#{n}/proc_id'][:][idx][i]==1):
-        dum1[i] = f[f'/Step#{n}/x'][:][idx[i]]
-        dum2[i] = f[f'/Step#{n}/y'][:][idx[i]]
-    if (g[f'/Step#{h}/proc_id'][:][idy][i]==1):
-        dum3[i] = g[f'/Step#{h}/x'][:][idy[i]]
-        dum4[i] = g[f'/Step#{h}/y'][:][idy[i]]
-    if (f[f'/Step#{n}/proc_id'][:][idx][i]==2):
-        dum5[i] = f[f'/Step#{n}/x'][:][idx[i]]
-        dum6[i] = f[f'/Step#{n}/y'][:][idx[i]]
-    if (g[f'/Step#{h}/proc_id'][:][idy][i]==2):
-        dum7[i] = g[f'/Step#{h}/x'][:][idy[i]]
-        dum8[i] = g[f'/Step#{h}/y'][:][idy[i]]
-dum1 = dum1[dum1 != 0]
-dum2 = dum2[dum2 != 0]
-dum3 = dum3[dum3 != 0]
-dum4 = dum4[dum4 != 0]
-dum5 = dum5[dum5 != 0]
-dum6 = dum6[dum6 != 0]
-dum7 = dum7[dum7 != 0]
-dum8 = dum8[dum8 != 0]
-dummy1 = np.concatenate((dum1,dum5),axis=0)
-dummy2 = np.concatenate((dum2,dum6),axis=0)
-dummy3 = np.concatenate((dum3,dum7),axis=0)
-dummy4 = np.concatenate((dum4,dum8),axis=0)
-last_locations_errorc[0,:] = dummy1 - dummy3
-last_locations_errorc[1,:] = dummy2 - dummy4
 lsc = sum(sqrt(last_locations_errorc[0,:]**2 + last_locations_errorc[1,:]**2)**2)
 l2_norm_c=sqrt(lsc)
 
@@ -232,26 +115,9 @@ last_locations_errord = zeros((2,100))
 f = h5py.File('lagrangian_2nd_D.particles.Chris.h5part', 'r')
 n = len(f)-1
 idx = np.argsort(f[f'/Step#{n}/id'])
+last_locations_errord[0,:] = f[f'/Step#{n}/x'][:][idx] - X[:]
+last_locations_errord[1,:] = f[f'/Step#{n}/y'][:][idx] - Y[:]
 
-dum1 = np.zeros(100)
-dum2 = np.zeros(100)
-dum5 = np.zeros(100)
-dum6 = np.zeros(100)
-for i in range(100):
-    if (f[f'/Step#{n}/proc_id'][:][idx][i]==1):
-        dum1[i] = f[f'/Step#{n}/x'][:][idx[i]]
-        dum2[i] = f[f'/Step#{n}/y'][:][idx[i]]
-    if (f[f'/Step#{n}/proc_id'][:][idx][i]==2):
-        dum5[i] = f[f'/Step#{n}/x'][:][idx[i]]
-        dum6[i] = f[f'/Step#{n}/y'][:][idx[i]]
-dum1 = dum1[dum1 != 0]
-dum2 = dum2[dum2 != 0]
-dum5 = dum5[dum5 != 0]
-dum6 = dum6[dum6 != 0]
-dummy1 = np.concatenate((dum1,dum5),axis=0)
-dummy2 = np.concatenate((dum2,dum6),axis=0)
-last_locations_errord[0,:] = dummy1 - dummy3
-last_locations_errord[1,:] = dummy2 - dummy4
 lsd = sum(sqrt(last_locations_errord[0,:]**2 + last_locations_errord[1,:]**2)**2)
 l2_norm_d=sqrt(lsd)
 

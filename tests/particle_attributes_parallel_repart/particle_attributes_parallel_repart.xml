@@ -86,32 +86,12 @@ import h5py
 f = h5py.File('particle_attributes_parallel.particles.Chris.h5part', 'r')
 n = len(f)-1
 idx = np.argsort(f[f'/Step#{n}/id'])
-att_chem5_1 = np.zeros(100)
-att_chem5_2 = np.zeros(100)
-for i in range(100):
-    if (f[f'/Step#{n}/proc_id'][:][idx][i]==2):
-        att_chem5_1[i] = f[f'/Step#{n}/Chem5'][:][idx[i]]
-    if (f[f'/Step#{n}/proc_id'][:][idx][i]==4):
-        att_chem5_2[i] = f[f'/Step#{n}/Chem5'][:][idx[i]]
-
+att_chem5 = f[f'/Step#{n}/Chem5'][:][idx]
 n = len(f)-2
 idx = np.argsort(f[f'/Step#{n}/id'])
-att_chem4_1 = np.zeros(100)
-att_chem4_2 = np.zeros(100)
-for i in range(100):
-    if (f[f'/Step#{n}/proc_id'][:][idx][i]==2):
-        att_chem4_1[i] = f[f'/Step#{n}/Chem4'][:][idx[i]]
-    if (f[f'/Step#{n}/proc_id'][:][idx][i]==4):
-        att_chem4_2[i] = f[f'/Step#{n}/Chem4'][:][idx[i]]
+att_chem4 = f[f'/Step#{n}/Chem4'][:][idx]
 
-att_chem5_1 = att_chem5_1[att_chem5_1 != 0]
-att_chem5_2 = att_chem5_2[att_chem5_2 != 0]
-att_chem4_1 = att_chem4_1[att_chem4_1 != 0]
-att_chem4_2 = att_chem4_2[att_chem4_2 != 0]
-
-att_error_1 = att_chem5_1 - att_chem4_1
-att_error_2 = att_chem5_2 - att_chem4_2
-attributes_error = np.concatenate((att_error_1,att_error_2),axis=0)
+attributes_error = att_chem5 - att_chem4
 attributes_error_5=abs(attributes_error).max()
 print ("max error",attributes_error_5)
     </variable>

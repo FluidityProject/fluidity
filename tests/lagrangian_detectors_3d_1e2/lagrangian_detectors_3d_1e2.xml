@@ -14,66 +14,17 @@ import numpy as np
 import h5py
 
 last_locations_error = np.zeros((3,100))
-g = h5py.File('bench.dat', 'r')
-h = len(g)-1
-idy = np.argsort(g[f'/Step#{h}/id'])
+X = np.fromfile('Xvals.txt',sep=' ')
+Y = np.fromfile('Yvals.txt',sep=' ')
+Z = 0.5*np.ones(np.shape(X))
 
 f = h5py.File('lagrangian_detectors.particles.Steve.h5part', 'r')
-n = len(f)-1
-idx = np.argsort(f[f'/Step#{n}/id'])
-
-pos_1x=np.zeros(100)
-pos_1y=np.zeros(100)
-pos_1z=np.zeros(100)
-pos_2x=np.zeros(100)
-pos_2y=np.zeros(100)
-pos_2z=np.zeros(100)
-pos_3x=np.zeros(100)
-pos_3y=np.zeros(100)
-pos_3z=np.zeros(100)
-pos_4x=np.zeros(100)
-pos_4y=np.zeros(100)
-pos_4z=np.zeros(100)
-for i in range(100):
-    if (f[f'/Step#{n}/proc_id'][:][idx][i]==1):
-        pos_1x[i] = f[f'/Step#{n}/x'][:][idx[i]]
-        pos_1y[i] = f[f'/Step#{n}/y'][:][idx[i]]
-        pos_1z[i] = f[f'/Step#{n}/z'][:][idx[i]]
-    if (g[f'/Step#{h}/proc_id'][:][idy][i]==1):
-        pos_2x[i] = g[f'/Step#{h}/x'][:][idy[i]]
-        pos_2y[i] = g[f'/Step#{h}/y'][:][idy[i]]
-        pos_2z[i] = g[f'/Step#{h}/z'][:][idy[i]]
-    if (f[f'/Step#{n}/proc_id'][:][idx][i]==2):
-        pos_3x[i] = f[f'/Step#{n}/x'][:][idx[i]]
-        pos_3y[i] = f[f'/Step#{n}/y'][:][idx[i]]
-        pos_3z[i] = f[f'/Step#{n}/z'][:][idx[i]]
-    if (g[f'/Step#{h}/proc_id'][:][idy][i]==2):
-        pos_4x[i] = g[f'/Step#{h}/x'][:][idy[i]]
-        pos_4y[i] = g[f'/Step#{h}/y'][:][idy[i]]
-        pos_4z[i] = g[f'/Step#{h}/z'][:][idy[i]]
-pos_1x = pos_1x[pos_1x != 0]
-pos_1y = pos_1y[pos_1y != 0]
-pos_1z = pos_1z[pos_1z != 0]
-pos_2x = pos_2x[pos_2x != 0]
-pos_2y = pos_2y[pos_2y != 0]
-pos_2z = pos_2z[pos_2z != 0]
-pos_3x = pos_3x[pos_3x != 0]
-pos_3y = pos_3y[pos_3y != 0]
-pos_3z = pos_3z[pos_3z != 0]
-pos_4x = pos_4x[pos_4x != 0]
-pos_4y = pos_4y[pos_4y != 0]
-pos_4z = pos_4z[pos_4z != 0]
-pos_x = np.concatenate((pos_3x,pos_1x))
-pos_y = np.concatenate((pos_3y,pos_1y))
-pos_z = np.concatenate((pos_3z,pos_1z))
-pos_bench_x = np.concatenate((pos_4x,pos_2x))
-pos_bench_y = np.concatenate((pos_4y,pos_2y))
-pos_bench_z = np.concatenate((pos_4z,pos_2z))
-
-last_locations_error[0,:] = pos_x - pos_bench_x
-last_locations_error[1,:] = pos_y - pos_bench_y
-last_locations_error[2,:] = pos_z - pos_bench_z
-
+d = f['/Step#{}'.format(len(f)-1)]
+idx = np.argsort(d['id'])
+pos = np.vstack([d[dim] for dim in ('x', 'y', 'z')])[:, idx]
+last_locations_error[0,:] = pos[0,:] - X[:]
+last_locations_error[1,:] = pos[1,:] - Y[:]
+last_locations_error[2,:] = pos[2,:] - Z[:]
     </variable>
   </variables>
   <pass_tests>
