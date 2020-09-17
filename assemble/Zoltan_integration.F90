@@ -2129,16 +2129,14 @@ module zoltan_integration
           deallocate(ndets_being_sent)
           cycle
        end if
-       i=1
-       sent=.false.
-       do while (sent.eqv..false.)
+       !Check if any are being sent
+       do i = 1, size(ndets_being_sent)
           if (ndets_being_sent(i)>0) then
              call mpi_bcast(attribute_size, 3, getPINTEGER(), i-1, MPI_COMM_FEMTOOLS, ierr)
              assert(ierr == MPI_SUCCESS)
              total_attributes=sum(attribute_size)
-             sent=.true.
+             exit
           end if
-          i=i+1
        end do
        ewrite(2,*) "Broadcast required, initialising..."
        

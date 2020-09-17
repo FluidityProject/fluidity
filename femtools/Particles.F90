@@ -305,6 +305,9 @@ contains
           ! Register this I/O list with a global list of detectors/particles
           call register_detector_list(particle_lists(list_counter))
 
+          !Set list id
+          particle_lists(list_counter)%id = list_counter
+
           ! Find number of attributes, old attributes, and names of each
           call attr_names_and_count(trim(subgroup_path) // "/attributes/scalar_attribute", &
                attr_names%s, old_attr_names%s, attr_names%sn, old_attr_names%sn, attr_write%s, &
@@ -321,6 +324,7 @@ contains
           particle_lists(list_counter)%attr_names = attr_names
           particle_lists(list_counter)%old_attr_names = old_attr_names
           particle_lists(list_counter)%attr_write = attr_write
+          
 
           ! If any attributes are from fields, we'll need to store old fields too
           store_old_fields = .false.
@@ -371,12 +375,12 @@ contains
             if (from_file) then
               call get_option(trim(subgroup_path) // "/initial_position/from_file/number_of_particles", sub_particles)
               call read_particles_from_file(sub_particles, subname, subgroup_path, &
-                   particle_lists(list_counter), list_counter, xfield, dim, &
+                   particle_lists(list_counter), xfield, dim, &
                    attr_counts, attr_names, old_attr_names, old_field_names, &
                    number_of_partitions)
             else
               call read_particles_from_python(subname, subgroup_path, &
-                   particle_lists(list_counter), list_counter, xfield, dim, &
+                   particle_lists(list_counter), xfield, dim, &
                    current_time, state, attr_counts, global, sub_particles)
             end if
           end if
@@ -510,7 +514,7 @@ contains
 
              id_number = particle_lists(list_counter)%proc_part_count
              call get_option(trim(subgroup_path) // "/name", subname)
-             call read_particles_from_python(subname, subgroup_path, particle_lists(list_counter), list_counter, xfield, dim, &
+             call read_particles_from_python(subname, subgroup_path, particle_lists(list_counter), xfield, dim, &
                   current_time, state, attr_counts, global, sub_particles, id_number=id_number, script=script)
 
              particle_lists(list_counter)%total_num_det = particle_lists(list_counter)%total_num_det + sub_particles
@@ -600,8 +604,7 @@ contains
 
   !> Initialise particles which are defined by a Python function
   subroutine read_particles_from_python(subgroup_name, subgroup_path, &
-       p_list, list_id, &
-       xfield, dim, &
+       p_list, xfield, dim, &
        current_time, state, &
        attr_counts, global, &
        n_particles, id_number, script)
@@ -612,8 +615,6 @@ contains
     character(len=OPTION_PATH_LEN), intent(in) :: subgroup_path
     !> Detector list to hold the particles
     type(detector_linked_list), intent(inout) :: p_list
-    !> List ID of particle list
-    integer :: list_id
     !> Coordinate vector field
     type(vector_field), pointer, intent(in) :: xfield
     !> Geometry dimension
@@ -634,7 +635,7 @@ contains
     !> Python script used by initialise_during_simulation
     character(len=PYTHON_FUNC_LEN), optional, intent(in) :: script
 
-    integer :: i, proc_num, stat
+    integer :: i, proc_num, stat, offset
     character(len=PYTHON_FUNC_LEN) :: func
     real, allocatable, dimension(:,:) :: coords ! all particle coordinates, from python
     ! if we don't know how many particles we're getting, we need a C pointer
@@ -657,23 +658,17 @@ contains
     call set_detectors_from_python(func, len(func), dim, current_time, coord_ptr, n_particles, stat)
     call c_f_pointer(coord_ptr, coord_array_ptr, [dim, n_particles])
     allocate(coords(dim, n_particles))
+    call deallocate_c_array(coord_ptr)
     if (n_particles==0) return
     coords = coord_array_ptr
 
-    call deallocate_c_array(coord_ptr)
-
-    if (present(id_number)) then
-       do i = 1, n_particles
-          call create_single_particle(p_list, list_id, xfield, coords(:,i), &
-               i+id_number, proc_num, dim, attr_counts, global=global)
-       end do
-    else
-       do i = 1, n_particles
-          call create_single_particle(p_list, list_id, xfield, coords(:,i), &
-               i, proc_num, dim, attr_counts, global=global)
-       end do
-    end if
-
+    offset = 0
+    if (present(id_number)) offset = id_number
+    do i = 1, n_particles
+       call create_single_particle(p_list, xfield, coords(:,i), &
+            i+offset, proc_num, dim, attr_counts, global=global)
+    end do
+ 
     deallocate(coords)
   end subroutine read_particles_from_python
 
@@ -768,7 +763,7 @@ contains
 
   !> Read particles in the given subgroup from a checkpoint file
   subroutine read_particles_from_file(n_particles, subgroup_name, subgroup_path, &
-       p_list, list_id, xfield, dim, &
+       p_list, xfield, dim, &
        attr_counts, attr_names, old_attr_names, old_field_names, &
        n_partitions)
     !> Number of particles in this subgroup
@@ -779,8 +774,6 @@ contains
     character(len=OPTION_PATH_LEN), intent(in) :: subgroup_path
     !> Detector list to hold the particles
     type(detector_linked_list), intent(inout) :: p_list
-    !> List ID of particle list
-    integer :: list_id
     !> Coordinate vector field
     type(vector_field), pointer, intent(in) :: xfield
     !> Geometry dimension
@@ -802,7 +795,6 @@ contains
     integer :: i
     integer :: ierr, commsize, rank, id(1), proc_id(1)
     integer :: input_comm, world_group, input_group ! opaque MPI pointers
-    integer :: particle_number
     real, allocatable, dimension(:) :: positions ! particle coordinates
     character(len=OPTION_PATH_LEN) :: particles_cp_filename
     integer(kind=8) :: h5_ierror, h5_id, h5_prop, view_start, view_end ! h5hut state
@@ -853,7 +845,6 @@ contains
     ! figure out our local offset into the file
     h5_ierror = h5pt_getview(h5_id, view_start, view_end)
 
-    particle_number = 1
     do i = 1, npoints(rank+1)
 
       ! set view to read this particle
@@ -875,10 +866,9 @@ contains
       call read_attrs(h5_id, dim, attr_counts%old_fields, old_field_names, old_field_vals, prefix="old%")
 
       ! don't use a global check for this particle
-      call create_single_particle(p_list, list_id, xfield, &
+      call create_single_particle(p_list, xfield, &
            positions, id(1), proc_id(1), dim, &
-           attr_counts, attr_vals, old_attr_vals, old_field_vals, global=.false., particle_number=particle_number)
-      particle_number = particle_number + 1
+           attr_counts, attr_vals, old_attr_vals, old_field_vals, global=.false.)
     end do
 
     ! reset proc_particle_count
@@ -914,12 +904,10 @@ contains
 
   !> Allocate a single particle, populate and insert it into the given list
   !! In parallel, first check if the particle would be local and only allocate if it is
-  subroutine create_single_particle(detector_list, list_id, xfield, position, id, proc_id, dim, &
-       attr_counts, attr_vals, old_attr_vals, old_field_vals, global, particle_number)
+  subroutine create_single_particle(detector_list, xfield, position, id, proc_id, dim, &
+       attr_counts, attr_vals, old_attr_vals, old_field_vals, global)
     !> The detector list to hold the particle
     type(detector_linked_list), intent(inout) :: detector_list
-    !> List ID of particle list
-    integer :: list_id
     !> Coordinate vector field
     type(vector_field), pointer, intent(in) :: xfield
     !> Spatial position of the particle
@@ -939,8 +927,6 @@ contains
     !! or for the local processor only (false).
     !! This affects the inquiry of the element owning the particle
     logical, intent(in), optional :: global
-    !> Dummy counter for particle number. Removes issues when reading from checkpoint with spawning/deleting
-    integer, intent(in), optional :: particle_number
 
     type(detector_type), pointer :: detector
     type(element_type), pointer :: shape
@@ -983,7 +969,7 @@ contains
     detector%local_coords = lcoords
     detector%id_number = id
     detector%proc_id = proc_id
-    detector%list_id = list_id
+    detector%list_id = detector_list%id
     detector_list%proc_part_count = max(detector_list%proc_part_count,id)
 
     ! allocate space to store all attributes on the particle

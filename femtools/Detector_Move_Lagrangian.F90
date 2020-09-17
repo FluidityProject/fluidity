@@ -365,7 +365,6 @@ contains
     integer :: neigh, proc_local_number, deleted_detectors
     logical :: make_delete
 
-    !make_delete=have_option("/particles/moving_outside_domain/delete") !have delete on by default
     deleted_detectors=0
     
     !Loop over all the detectors
@@ -413,17 +412,7 @@ contains
                    if (make_delete) then
                       ewrite(1,*) "WARNING: detector attempted to leave computational &
                            &domain; deleting detector, detector ID:", det0%id_number, "detector element:", det0%element
-                      if (associated(det0%previous)) then
-                         det0%previous%next => det0%next
-                      else
-                         detector_list%first => det0%next
-                      end if
-                      if (associated(det0%next)) then
-                         det0%next%previous => det0%previous
-                      else
-                         detector_list%last => det0%previous
-                      end if
-                      detector_list%length = detector_list%length -1
+                      call remove(det0, detector_list)
                       deleted_detectors=deleted_detectors+1
                       det_next => det0%next
                       call deallocate(det0)

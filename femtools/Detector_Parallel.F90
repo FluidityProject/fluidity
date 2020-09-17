@@ -191,11 +191,7 @@ contains
     end do
     call allmax(all_send_lists_empty)
     if (all_send_lists_empty/=0) then
-       if (present(positions)) then
           call exchange_detectors(state,detector_list,send_list_array, attribute_size, positions)
-       else
-          call exchange_detectors(state,detector_list,send_list_array, attribute_size)
-       end if
     end if
 
     ! Make sure send lists are empty and deallocate them
@@ -545,15 +541,12 @@ contains
     allocate(proc_set(getnprocs()))
     call mpi_allgather(val, 1, getPINTEGER(), proc_set, 1, getPINTEGER(), MPI_COMM_FEMTOOLS, ierr)
     assert(ierr == MPI_SUCCESS)
-    i=1
-    set=.false.
-    do while (set.eqv..false.)
+    do i = 1, size(proc_set)
        if (proc_set(i)==1) then
           call mpi_bcast(attribute_size, 3, getPINTEGER(), i-1, MPI_COMM_FEMTOOLS, ierr)
           assert(ierr == MPI_SUCCESS)
-          set=.true.
+          exit
        end if
-       i=i+1
     end do
     
     call distribute_detectors(state, detector_list, attribute_size, positions)

@@ -1525,7 +1525,6 @@ contains
 
     allocate(default_stat%detector_group_names(total_dete_groups))
     allocate(default_stat%number_det_in_each_group(total_dete_groups))
-    allocate(default_stat%detector_list%detector_names(total_dete))
 
     if (total_dete==0) return
 
@@ -2132,9 +2131,7 @@ contains
                 group_sum = group_sum + subgroup_tot(j)
              end do
              write(default_stat%diag_unit, trim(format), advance = "no") group_sum*1.0
-             do j = 1,size(particle_arrays)
-                write(default_stat%diag_unit, trim(format), advance = "no") subgroup_tot(j)*1.0
-             end do
+             write(default_stat%diag_unit, trim(format), advance = "no") subgroup_tot(:)*1.0
              deallocate(subgroup_tot)
              deallocate(particle_arrays)
           end do

@@ -107,8 +107,10 @@ internal_algorithm =
          attribute name { "from_particles" },
 	 attribute material_phase_support { "multiple" },
 	 (
+	    ## Particle group used for calculation of diagnostic.
             element particle_group {
 	       attribute name { xsd:string },
+	       ## Particle attribute used for calculation of diagnostic.
 	       element particle_attribute {
 	          attribute name { xsd:string }
 	       }
@@ -126,10 +128,13 @@ internal_algorithm =
             }
 	 )
       }|
+      ## This diagnostic is calculated from the number of particles present per
+      ## control volume, set within the Particle_Diagnostics.F90 routine.
       element algorithm {
          attribute name { "number_of_particles" },
 	 attribute material_phase_support { "multiple" },
 	 (
+	    ## Particle group used for calculation of diagnostic.
 	    element particle_group {
 	       attribute name { xsd:string }
 	    }

@@ -156,10 +156,12 @@ within the Particle_Diagnostics.F90 routine, and set via the ratio method.</a:do
         </attribute>
         <group>
           <element name="particle_group">
+            <a:documentation>Particle group used for calculation of diagnostic.</a:documentation>
             <attribute name="name">
               <data type="string"/>
             </attribute>
             <element name="particle_attribute">
+              <a:documentation>Particle attribute used for calculation of diagnostic.</a:documentation>
               <attribute name="name">
                 <data type="string"/>
               </attribute>
@@ -181,6 +183,8 @@ within the Particle_Diagnostics.F90 routine, and set via the ratio method.</a:do
         </group>
       </element>
       <element name="algorithm">
+        <a:documentation>This diagnostic is calculated from the number of particles present per
+control volume, set within the Particle_Diagnostics.F90 routine.</a:documentation>
         <attribute name="name">
           <value>number_of_particles</value>
         </attribute>
@@ -188,6 +192,7 @@ within the Particle_Diagnostics.F90 routine, and set via the ratio method.</a:do
           <value>multiple</value>
         </attribute>
         <element name="particle_group">
+          <a:documentation>Particle group used for calculation of diagnostic.</a:documentation>
           <attribute name="name">
             <data type="string"/>
           </attribute>

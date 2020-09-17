@@ -136,9 +136,6 @@ module detector_data_types
      type(rk_gs_parameters), pointer :: move_parameters => null()
      logical :: move_with_mesh = .false.
 
-     !! Optional array for detector names; names are held in read order
-     character(len = FIELD_NAME_LEN), dimension(:), allocatable :: detector_names
-
      !! List of scalar/vector fields to include in detector output
      type(stringlist), dimension(:), allocatable :: sfield_list
      type(stringlist), dimension(:), allocatable :: vfield_list
