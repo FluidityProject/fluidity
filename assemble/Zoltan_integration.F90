@@ -2060,7 +2060,6 @@ module zoltan_integration
     integer, allocatable :: ndets_being_sent(:)
     real, allocatable :: send_buff(:,:), recv_buff(:,:)
     logical :: do_broadcast, sent
-    integer, dimension(3) :: attribute_size
     integer :: total_attributes
     type(element_type), pointer :: shape
 
@@ -2073,16 +2072,10 @@ module zoltan_integration
        detector_list => detector_list_array(j)%ptr
        ewrite(2,*) "Length of detector list to be updated: ", detector_list%length
 
+       if (sum(detector_list%total_attributes)==0) return
+       
        detector => detector_list%first
-       if (associated(detector)) then
-          if (size(detector%attributes)<1) then
-             detector => null()
-          else
-             attribute_size(1)=size(detector%attributes)
-             attribute_size(2)=size(detector%old_attributes)
-             attribute_size(3)=size(detector%old_fields)
-          end if
-       end if
+       
        do while (associated(detector))
 
           old_local_element_number = detector%element
@@ -2132,9 +2125,9 @@ module zoltan_integration
        !Check if any are being sent
        do i = 1, size(ndets_being_sent)
           if (ndets_being_sent(i)>0) then
-             call mpi_bcast(attribute_size, 3, getPINTEGER(), i-1, MPI_COMM_FEMTOOLS, ierr)
+             call mpi_bcast(detector_list%total_attributes, 3, getPINTEGER(), i-1, MPI_COMM_FEMTOOLS, ierr)
              assert(ierr == MPI_SUCCESS)
-             total_attributes=sum(attribute_size)
+             total_attributes=sum(detector_list%total_attributes)
              exit
           end if
        end do
@@ -2146,7 +2139,7 @@ module zoltan_integration
        detector => detector_send_list%first
        do i=1,send_count
           ! Pack the particle information and delete from send_list (delete advances particle to detector%next)
-          call pack_detector(detector, send_buff(i,1:zoltan_global_ndata_per_det+total_attributes), zoltan_global_ndims, attribute_size=attribute_size)
+          call pack_detector(detector, send_buff(i,1:zoltan_global_ndata_per_det+total_attributes), zoltan_global_ndims, attribute_size=detector_list%total_attributes)
           call delete(detector, detector_send_list)
        end do
 
@@ -2173,8 +2166,8 @@ module zoltan_integration
                    
                    ! Allocate and unpack the particle
                    shape=>ele_shape(zoltan_global_new_positions,1)                     
-                   call allocate(detector, zoltan_global_ndims, local_coord_count(shape), attribute_size)
-                   call unpack_detector(detector, recv_buff(k, 1:zoltan_global_ndata_per_det+total_attributes), zoltan_global_ndims, attribute_size=attribute_size)
+                   call allocate(detector, zoltan_global_ndims, local_coord_count(shape), detector_list%total_attributes)
+                   call unpack_detector(detector, recv_buff(k, 1:zoltan_global_ndata_per_det+total_attributes), zoltan_global_ndims, attribute_size=detector_list%total_attributes)
                    
                    if (has_key(zoltan_global_uen_to_new_local_numbering, detector%element)) then 
                       new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, detector%element)

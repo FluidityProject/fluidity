@@ -1050,8 +1050,7 @@ contains
     if (particle_groups == 0) return
 
     do i = 1, size(particle_lists)
-      call move_lagrangian_detectors(state, particle_lists(i), dt, &
-           particle_lists(i)%total_attributes)
+      call move_lagrangian_detectors(state, particle_lists(i), dt)
     end do
 
     call profiler_toc("particle_advection")
@@ -1913,8 +1912,7 @@ contains
         if (present(number_of_partitions)) then
            !Don't call distribute detectors if in flredecomp
         else
-           call distribute_detectors(state(1),particle_lists(list_counter),attribute_size=particle_lists(list_counter)%total_attributes, &
-                positions = xfield)
+           call distribute_detectors(state(1),particle_lists(list_counter),positions = xfield)
         end if
         !Checkpoint particle group
         call checkpoint_particles_subgroup(state, prefix, postfix, cp_no, particle_lists(list_counter), &

@@ -1520,7 +1520,7 @@ contains
 
     total_dete = static_dete + python_dete
     default_stat%detector_list%total_num_det = total_dete
-
+    default_stat%detector_list%total_attributes(:) = 0
     total_dete_groups = static_dete + python_functions_or_files
 
     allocate(default_stat%detector_group_names(total_dete_groups))
@@ -1844,7 +1844,6 @@ contains
     integer, dimension(2) :: shape_option
     integer :: nodes, elements, surface_elements
     integer :: no_mixing_bins
-    integer, dimension(3):: attribute_size !array to hold attribute sizes
     integer, dimension(:), allocatable :: particle_arrays, subgroup_tot
     integer :: particle_groups, group_sum
     real :: fmin, fmax, fnorm2, fintegral, fnorm2_cv, fintegral_cv, surface_integral

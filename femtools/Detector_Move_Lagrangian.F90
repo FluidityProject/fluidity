@@ -163,11 +163,10 @@ contains
 
   end subroutine read_detector_move_options
 
-  subroutine move_lagrangian_detectors(state, detector_list, dt, attribute_size)
+  subroutine move_lagrangian_detectors(state, detector_list, dt)
     type(state_type), dimension(:), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     real, intent(in) :: dt
-    integer, dimension(3), optional, intent(in) :: attribute_size !Array to hold attribute sizes
 
     type(rk_gs_parameters), pointer :: parameters
     type(vector_field), pointer :: vfield, vfield_old, xfield
@@ -232,7 +231,7 @@ contains
 
              !This call serialises send_list_array, sends it, 
              !receives serialised receive_list_array, and unserialises that.
-             call exchange_detectors(state(1),detector_list, send_list_array, attribute_size)
+             call exchange_detectors(state(1),detector_list, send_list_array)
 
           end do detector_timestepping_loop
        end do RKstages_loop
@@ -244,7 +243,7 @@ contains
 
     ! Make sure all local detectors are owned and distribute the ones that 
     ! stoppped moving in a halo element
-    call distribute_detectors(state(1), detector_list, attribute_size)
+    call distribute_detectors(state(1), detector_list)
 
     ! This needs to be called after distribute_detectors because the exchange  
     ! routine serialises det%k and det%update_vector if it finds the RK-GS option

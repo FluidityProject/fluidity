@@ -813,7 +813,6 @@ module particle_diagnostics
     integer, dimension(:), pointer :: ele_nums
     integer :: id, group_spawn, ele_spawn, proc_num
     integer :: j, i, k, l, m
-    integer, dimension(3) :: attribute_size
     logical :: spawn_group, coords_set, rand_set
     real :: max_lcoord, rand_lcoord, sum_coords, rand_val
     real, dimension(:), allocatable :: rand_lcoords
@@ -888,11 +887,7 @@ module particle_diagnostics
        !Determine id, size and shape of spawned particle parameters
        temp_part => particle_lists(group_arrays(j))%last
        if (associated(temp_part)) then
-
           id = particle_lists(group_arrays(j))%proc_part_count
-          attribute_size(1) = size(temp_part%attributes)
-          attribute_size(2) = size(temp_part%old_attributes)
-          attribute_size(3) = size(temp_part%old_fields)
           allocate(node_coord(size(temp_part%local_coords)))
           allocate(node_numbers(size(temp_part%local_coords)))
        end if
@@ -901,7 +896,7 @@ module particle_diagnostics
        particle => node_particles(j)%first
        do while(associated(particle))
           temp_part => null()
-          call allocate(temp_part, size(particle%position), size(particle%local_coords), attribute_size)
+          call allocate(temp_part, size(particle%position), size(particle%local_coords), particle_lists(group_arrays(j))%total_attributes)
 
           temp_part%id_number = id+1
           temp_part%list_id = particle%list_id
@@ -1051,7 +1046,6 @@ module particle_diagnostics
 
     integer :: id
     integer :: i, j, k, l, m, proc_num
-    integer, dimension(3) :: attribute_size
     integer, dimension(:), allocatable :: remove_particles
     integer, dimension(:), allocatable :: length_group
 
@@ -1147,11 +1141,7 @@ module particle_diagnostics
     do i = 1,size(group_arrays)!Loop over particle groups
        temp_part => particle_lists(group_arrays(i))%last
        if (associated(temp_part)) then
-
           id = particle_lists(group_arrays(i))%proc_part_count
-          attribute_size(1) = size(temp_part%attributes)
-          attribute_size(2) = size(temp_part%old_attributes)
-          attribute_size(3) = size(temp_part%old_fields)
        end if
        if (.not. copy_parents) then !Weight surrounding attributes if not copying from parent
           weighted_attributes(i)%col(:) = weighted_attributes(i)%col(:)/length_group(i)
@@ -1174,7 +1164,7 @@ module particle_diagnostics
              !of particles in given CV to all surrounding CV's
              do l = 1,NINT((max_thresh/4.0)*(1.0/size(ele_nums))*ratio)
                 temp_part => null()
-                call allocate(temp_part, size(particle%position), size(particle%local_coords), attribute_size)
+                call allocate(temp_part, size(particle%position), size(particle%local_coords), particle_lists(group_arrays(i))%total_attributes)
                 temp_part%id_number = id+1
                 temp_part%list_id = particle%list_id
                 temp_part%proc_id = proc_num
