@@ -71,8 +71,7 @@ module particle_diagnostics
 
     character(len = OPTION_PATH_LEN) :: group_path, subgroup_path
     type(scalar_field), pointer :: s_field
-    logical :: diagnostic
-    integer :: i, k, j
+    integer :: i, j
     integer :: particle_groups, list_counter, particle_materials
     integer, dimension(:), allocatable :: particle_arrays
 
@@ -133,13 +132,11 @@ module particle_diagnostics
     !dependent on particles
     type(state_type), dimension(:), intent(inout) :: state
 
-    character(len = OPTION_PATH_LEN) :: group_path, subgroup_path, name
+    character(len = OPTION_PATH_LEN) :: name
     type(scalar_field), pointer :: s_field
     real :: current_time, dt
     integer :: i, k
-    integer :: dim, particle_groups, list_counter
-    type(detector_type), pointer :: particle
-    logical :: from_file
+    integer :: particle_groups
 
     ewrite(2,*) "In initialise_particle_diagnostics"
     !Check if there are particles
@@ -171,16 +168,14 @@ module particle_diagnostics
   subroutine update_particle_diagnostics(state, time, dt)
     !!Routine to loop over particle arrays and update particle attributes
     !!and diagnostic fields which depend on particles
-    use particles, only: particle_lists
     type(state_type), dimension(:), intent(inout) :: state
     real, intent(in) :: time
     real, intent(in) :: dt
     type(scalar_field), pointer :: s_field
-    type(detector_type), pointer :: particle
-    character(len = OPTION_PATH_LEN) :: group_path, subgroup_path, name
+    character(len = OPTION_PATH_LEN) :: name
 
     integer :: i, k
-    integer :: dim, particle_groups, list_counter, particle_materials
+    integer :: particle_groups
 
     !Check whether there are any particles.
     particle_groups = option_count("/particles/particle_group")
@@ -254,14 +249,8 @@ module particle_diagnostics
 
     type(state_type), dimension(:), intent(inout) :: state
 
-    character(len = OPTION_PATH_LEN) :: group_path, subgroup_path
     type(scalar_field), pointer :: s_field
-    logical :: diagnostic
     integer :: i, k
-    integer :: particle_groups, list_counter, particle_materials
-    integer, dimension(:), allocatable :: particle_arrays
-
-    type(detector_type), pointer :: particle
 
     !Initialise MaterialVolumeFraction fields dependent on particles
     do i = 1,size(state)
@@ -1140,9 +1129,7 @@ module particle_diagnostics
     !from adjacent CV's into this CV
     do i = 1,size(group_arrays)!Loop over particle groups
        temp_part => particle_lists(group_arrays(i))%last
-       if (associated(temp_part)) then
-          id = particle_lists(group_arrays(i))%proc_part_count
-       end if
+       id = particle_lists(group_arrays(i))%proc_part_count
        if (.not. copy_parents) then !Weight surrounding attributes if not copying from parent
           weighted_attributes(i)%col(:) = weighted_attributes(i)%col(:)/length_group(i)
           weighted_old_attributes(i)%col(:) = weighted_old_attributes(i)%col(:)/length_group(i)
@@ -1240,32 +1227,64 @@ module particle_diagnostics
     integer, intent(in) :: node_num
     integer, dimension(:), intent(in) :: node_numbers
 
-    integer, dimension(4,4) :: permutation = reshape([1,2,3,4, 2,1,3,4, 2,3,1,4, 2,3,4,1], [4,4])
-    integer, dimension(4) :: work
-    real :: tmp_res, rand_val
-    integer :: i, j
+    real :: rand_lcoord_2, rand_lcoord_3
+    integer :: i
 
-    max_lcoord = max(0.51, min(max_lcoord, 0.999))
-    ! set up the node coordinates to be permuted
-    ! looks like: [x, (1 - x) * rand(), (1 - x - y) * rand(), 1 - x - y - z]
-    ! depending on the number of coordinates
-    work(1) = max_lcoord
-    tmp_res = 1 - max_lcoord
-    do j = 2, size(node_coord) - 1
-       call random_number(rand_val)
-       work(j) = tmp_res * rand_val
-       tmp_res = tmp_res - work(j)
-    end do
-    work(size(node_coord)) = tmp_res
-    do i = 1, size(node_coord)
-       ! determine the node index corresponding to the
-       ! target node number
-       if (node_num /= node_numbers(i)) cycle
-       
-       ! set the coordinates according to the permutation for this index
-       do j = 1, size(node_coord)
-          node_coord(j) = work(permutation(i,j))
-       end do
+    if (max_lcoord<0.51) then
+       max_lcoord=0.51 !Ensures minimum lcoord is 0.51
+    end if
+    if (max_lcoord>0.999) then
+       max_lcoord=0.999 !Ensures maximum lcoord is 0.999
+    end if
+    do i = 1,size(node_coord)
+       if (node_num==node_numbers(i)) then
+          select case(size(node_coord))
+          case(2)
+             node_coord(:)=1-max_lcoord
+             node_coord(i)=max_lcoord
+          case(3)
+             rand_lcoord_2=(1-max_lcoord)*rand()
+             select case(i)
+             case(1)
+                node_coord(1)=max_lcoord !Will fall in this nodes CV
+                node_coord(2)=rand_lcoord_2
+                node_coord(3)=1-max_lcoord-rand_lcoord_2
+             case(2)
+                node_coord(1)=rand_lcoord_2
+                node_coord(2)=max_lcoord!Will fall in this nodes CV
+                node_coord(3)=1-max_lcoord-rand_lcoord_2
+             case(3)
+                node_coord(1)=rand_lcoord_2
+                node_coord(2)=1-max_lcoord-rand_lcoord_2
+                node_coord(3)=max_lcoord!Will fall in this nodes CV
+             end select
+          case(4)
+             rand_lcoord_2=(1-max_lcoord)*rand()
+             rand_lcoord_3=(1-max_lcoord-rand_lcoord_2)*rand()
+             select case(i)
+             case(1)
+                node_coord(1)=max_lcoord !Will fall in this nodes CV
+                node_coord(2)=rand_lcoord_2
+                node_coord(3)=rand_lcoord_3
+                node_coord(4)=1-max_lcoord-rand_lcoord_2-rand_lcoord_3
+             case(2)
+                node_coord(1)=rand_lcoord_2
+                node_coord(2)=max_lcoord !Will fall in this nodes CV
+                node_coord(3)=rand_lcoord_3
+                node_coord(4)=1-max_lcoord-rand_lcoord_2-rand_lcoord_3
+             case(3)
+                node_coord(1)=rand_lcoord_2
+                node_coord(2)=rand_lcoord_3
+                node_coord(3)=max_lcoord !Will fall in this nodes CV
+                node_coord(4)=1-max_lcoord-rand_lcoord_2-rand_lcoord_3
+             case(4)
+                node_coord(1)=rand_lcoord_2
+                node_coord(2)=rand_lcoord_3
+                node_coord(3)=1-max_lcoord-rand_lcoord_2-rand_lcoord_3
+                node_coord(4)=max_lcoord !Will fall in this nodes CV
+             end select
+          end select
+       end if
     end do
 
   end subroutine set_spawned_lcoords
