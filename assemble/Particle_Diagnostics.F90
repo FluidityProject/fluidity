@@ -1143,7 +1143,7 @@ module particle_diagnostics
           weighted_old_attributes(i)%col(:) = weighted_old_attributes(i)%col(:)/length_group(i)
           weighted_old_fields(i)%col(:) = weighted_old_fields(i)%col(:)/length_group(i)
        end if
-       !Duplicate parent particles infrom surrounding CV's weighting based on distance
+       !Duplicate parent particles in from surrounding CV's weighting based on distance
        do j = 1,size(ele_nums)!loop over surrounding elements
           do k = 1,xfield%dim+1!loop over nodes attached to element
              particle => node_particles(i, node_numbers(j,k))%first
@@ -1235,64 +1235,33 @@ module particle_diagnostics
     integer, intent(in) :: node_num
     integer, dimension(:), intent(in) :: node_numbers
 
-    real :: rand_lcoord_2, rand_lcoord_3
-    integer :: i
+    integer, dimension(4,4) :: permutation = reshape([1,2,3,4, 2,1,3,4, 2,3,1,4, 2,3,4,1], [4,4])
+    real, dimension(4) :: work
+    real :: tmp_res, rand_val
+    integer :: i, j
 
-    if (max_lcoord<0.51) then
-       max_lcoord=0.51 !Ensures minimum lcoord is 0.51
-    end if
-    if (max_lcoord>0.999) then
-       max_lcoord=0.999 !Ensures maximum lcoord is 0.999
-    end if
-    do i = 1,size(node_coord)
-       if (node_num==node_numbers(i)) then
-          select case(size(node_coord))
-          case(2)
-             node_coord(:)=1-max_lcoord
-             node_coord(i)=max_lcoord
-          case(3)
-             rand_lcoord_2=(1-max_lcoord)*rand()
-             select case(i)
-             case(1)
-                node_coord(1)=max_lcoord !Will fall in this nodes CV
-                node_coord(2)=rand_lcoord_2
-                node_coord(3)=1-max_lcoord-rand_lcoord_2
-             case(2)
-                node_coord(1)=rand_lcoord_2
-                node_coord(2)=max_lcoord!Will fall in this nodes CV
-                node_coord(3)=1-max_lcoord-rand_lcoord_2
-             case(3)
-                node_coord(1)=rand_lcoord_2
-                node_coord(2)=1-max_lcoord-rand_lcoord_2
-                node_coord(3)=max_lcoord!Will fall in this nodes CV
-             end select
-          case(4)
-             rand_lcoord_2=(1-max_lcoord)*rand()
-             rand_lcoord_3=(1-max_lcoord-rand_lcoord_2)*rand()
-             select case(i)
-             case(1)
-                node_coord(1)=max_lcoord !Will fall in this nodes CV
-                node_coord(2)=rand_lcoord_2
-                node_coord(3)=rand_lcoord_3
-                node_coord(4)=1-max_lcoord-rand_lcoord_2-rand_lcoord_3
-             case(2)
-                node_coord(1)=rand_lcoord_2
-                node_coord(2)=max_lcoord !Will fall in this nodes CV
-                node_coord(3)=rand_lcoord_3
-                node_coord(4)=1-max_lcoord-rand_lcoord_2-rand_lcoord_3
-             case(3)
-                node_coord(1)=rand_lcoord_2
-                node_coord(2)=rand_lcoord_3
-                node_coord(3)=max_lcoord !Will fall in this nodes CV
-                node_coord(4)=1-max_lcoord-rand_lcoord_2-rand_lcoord_3
-             case(4)
-                node_coord(1)=rand_lcoord_2
-                node_coord(2)=rand_lcoord_3
-                node_coord(3)=1-max_lcoord-rand_lcoord_2-rand_lcoord_3
-                node_coord(4)=max_lcoord !Will fall in this nodes CV
-             end select
-          end select
-       end if
+    max_lcoord = max(0.51, min(max_lcoord, 0.999))
+    ! set up the node coordinates to be permuted
+    ! looks like: [x, (1 - x) * rand(), (1 - x - y) * rand(), 1 - x - y - z]
+    ! depending on the number of coordinates
+    work(1) = max_lcoord
+    tmp_res = 1 - max_lcoord
+    do j = 2, size(node_coord) - 1
+       call random_number(rand_val)
+       work(j) = tmp_res * rand_val
+       tmp_res = tmp_res - work(j)
+    end do
+    work(size(node_coord)) = tmp_res
+    do i = 1, size(node_coord)
+       ! determine the node index corresponding to the
+       ! target node number
+       if (node_num /= node_numbers(i)) cycle
+       
+       ! set the coordinates according to the permutation for this index
+       do j = 1, size(node_coord)
+          node_coord(j) = work(permutation(j,i))
+       end do
+
     end do
 
   end subroutine set_spawned_lcoords
