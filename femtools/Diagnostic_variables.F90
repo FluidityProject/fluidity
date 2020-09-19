@@ -2130,7 +2130,9 @@ contains
                 group_sum = group_sum + subgroup_tot(j)
              end do
              write(default_stat%diag_unit, trim(format), advance = "no") group_sum*1.0
-             write(default_stat%diag_unit, trim(format), advance = "no") subgroup_tot(:)*1.0
+             do j = 1,size(particle_arrays)
+                write(default_stat%diag_unit, trim(format), advance = "no") subgroup_tot(j)*1.0
+             end do
              deallocate(subgroup_tot)
              deallocate(particle_arrays)
           end do

@@ -324,7 +324,6 @@ contains
           particle_lists(list_counter)%attr_names = attr_names
           particle_lists(list_counter)%old_attr_names = old_attr_names
           particle_lists(list_counter)%attr_write = attr_write
-          
 
           ! If any attributes are from fields, we'll need to store old fields too
           store_old_fields = .false.
@@ -658,10 +657,10 @@ contains
     call set_detectors_from_python(func, len(func), dim, current_time, coord_ptr, n_particles, stat)
     call c_f_pointer(coord_ptr, coord_array_ptr, [dim, n_particles])
     allocate(coords(dim, n_particles))
-    call deallocate_c_array(coord_ptr)
     if (n_particles==0) return
     coords = coord_array_ptr
 
+    call deallocate_c_array(coord_ptr)
     offset = 0
     if (present(id_number)) offset = id_number
     do i = 1, n_particles

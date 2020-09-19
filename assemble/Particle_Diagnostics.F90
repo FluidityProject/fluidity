@@ -174,7 +174,7 @@ module particle_diagnostics
     type(scalar_field), pointer :: s_field
     character(len = OPTION_PATH_LEN) :: name
 
-    integer :: i, k
+    integer :: i, k, particle_materials
     integer :: particle_groups
 
     !Check whether there are any particles.
@@ -187,8 +187,11 @@ module particle_diagnostics
 
     call profiler_tic("update_particle_diagnostic_fields")
 
-    !Update MaterialVolumeFraction fields
-    call initialise_particle_material_fields(state)
+    particle_materials = option_count("material_phase/scalar_field::MaterialVolumeFraction/diagnostic/algorithm::from_particles")
+    if (particle_materials.gt.0) then
+       !Update MultialVolumeFraction fields dependent on particles
+       call initialise_particle_material_fields(state)
+    end if
     
     !Update diagnostic fields with algorithm "from_particles" or "number_of_particles"
     do i = 1,size(state)
@@ -355,7 +358,12 @@ module particle_diagnostics
        return
     else
        !Particles are initialized, call subroutine to get relevant particle arrays and attributes
-       call get_particle_arrays(lgroup, group_arrays, group_attribute, lattribute=lattribute)
+       if (is_ratio) then
+          call get_particle_arrays(lgroup, group_arrays, group_attribute, lattribute=lattribute)
+       else
+          call get_particle_arrays(lgroup, group_arrays)
+       end if
+       
 
        !Allocate arrays to store summed attribute values and particle counts at nodes
        if (is_ratio) then

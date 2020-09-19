@@ -348,7 +348,7 @@ contains
           detector_list%first => detector%temp_next
        end if
 
-       if (associated(detector%next)) then
+       if (associated(detector%temp_next)) then
           detector%temp_next%temp_previous => detector%temp_previous
        else
           detector_list%last => detector%temp_previous
