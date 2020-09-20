@@ -488,6 +488,8 @@ module particle_diagnostics
 
     logical :: have_attribute_caps, have_radius, copy_parents
     integer :: min_thresh, max_thresh
+    integer, allocatable :: seed(:)
+    integer :: n
     real :: radius, cap_percent
 
     ewrite(2,*) "In particle_cv_check"
@@ -497,6 +499,12 @@ module particle_diagnostics
     particle_groups = option_count('/particles/particle_group')
 
     if (particle_groups==0) return
+    call random_seed(size = n)
+    allocate(seed(n))
+    do k = 1,n
+       seed(k) = k*n
+    end do
+    call random_seed(PUT=seed)
     do k = 1, particle_groups
        if (have_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning")) then
           !Get the mesh particles will be spawned to
@@ -1353,7 +1361,7 @@ module particle_diagnostics
 
     logical :: delete_group
     integer :: j
-    real :: random
+    real :: rand_val
 
     !Check ratio of each particle group present and which groups will be deleted
     delete_group = .true.
@@ -1375,8 +1383,8 @@ module particle_diagnostics
     do j = 1,size(group_arrays)
        particle =>node_particles(j)%first
        do while(associated(particle))
-          call random_number(random)
-          if (random>0.5) then !Delete the particle
+          call random_number(rand_val)
+          if (rand_val>0.5) then !Delete the particle
              !Remove from particle list
              call remove(particle,particle_lists(group_arrays(j)))
              temp_part =>particle%temp_next

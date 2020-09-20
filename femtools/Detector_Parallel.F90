@@ -190,7 +190,7 @@ contains
     end do
     call allmax(all_send_lists_empty)
     if (all_send_lists_empty/=0) then
-          call exchange_detectors(state,detector_list,send_list_array, positions)
+       call exchange_detectors(state,detector_list,send_list_array, positions)
     end if
 
     ! Make sure send lists are empty and deallocate them

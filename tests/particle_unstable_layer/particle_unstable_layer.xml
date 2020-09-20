@@ -17,7 +17,7 @@ from fluidity_tools import stat_parser
 s = stat_parser("2d_entrainment.stat")
 
 Max_rms = s['Bottom']['Velocity%magnitude']['l2norm'][:].max()
-Max_rms_error = Max_rms - 170.32
+Max_rms_error = Max_rms - 170.34
 print ("Max rms error", Max_rms_error)
     </variable>
     <variable name="sqr_ent_error" language="python">
