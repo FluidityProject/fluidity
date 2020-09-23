@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <testproblem>
-  <name>Testing of particle based multimaterial fields in parallel with checkpointing for a small resolution Rayleigh Taylor overturn case. Vrms velocity is tested against the maximum value from van Keken, and entrainment is tested against the diagnostics from a successful run.</name>
+  <name>Testing of particle based multimaterial fields in parallel for a small resolution Rayleigh Taylor overturn case with 10 fold viscosity. Vrms velocity is tested against the maximum value from van Keken, and entrainment is tested against the diagnostics from a successful run.</name>
   <owner userid="cmath"/>
   <tags>flml parallel</tags>
   <problem_definition length="medium" nprocs="4">
     <command_line>    
-mpiexec ../../bin/flredecomp -i 1 -o 4 particle-multimaterial-checkpoint particle-multimaterial-checkpoint-flredecomp;      
-mpiexec ../../bin/fluidity -v3 -l particle-multimaterial-checkpoint-flredecomp.flml
-mpiexec ../../bin/fluidity -v3 -l particle_attributes_5_checkpoint.flml
+mpiexec ../../bin/flredecomp -i 1 -o 4 particle-rayleigh-taylor-mu10 particle-rayleigh-taylor-mu10-flredecomp;      
+mpiexec ../../bin/fluidity -v3 -l particle-rayleigh-taylor-mu10-flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>
@@ -19,18 +18,18 @@ s = stat_parser("particle_attributes.stat")
 
 Max_rms = s['Buoyant']['Velocity%magnitude']['l2norm'][:].max()
 Max_rms = Max_rms * np.sqrt(1.0/0.9142)
-Max_rms_error = Max_rms - 0.00309
+Max_rms_error = Max_rms - 0.00915
 print ("Max rms error", Max_rms_error)
     </variable>
     <variable name="sqr_ent_error" language="python">
 from fluidity_tools import stat_parser
 import numpy as np
 
-s = stat_parser('particle_attributes_checkpoint.stat')
+s = stat_parser('particle_attributes.stat')
 b = stat_parser('bench.dat')
 sq_error=0
 
-for i in range(67):
+for i in range(200):
     ent_error = s['Buoyant']['Entrainment']['integral'][i]/(0.9142*0.2) - b['Buoyant']['Entrainment']['integral'][i]/(0.9142*0.2)
     sq_error = sq_error + ent_error**2
     
@@ -40,11 +39,9 @@ print ("Square Ent error", sqr_ent_error)
     <variable name="Walltime" language="python">
 from fluidity_tools import stat_parser
 import numpy as np
-s1 = stat_parser('particle_attributes.stat')
-s2 = stat_parser('particle_attributes_checkpoint.stat')
-Walltime1 = s1['ElapsedWallTime']["value"][-1]
-Walltime2 = s2['ElapsedWallTime']["value"][-1]
-Walltime = Walltime1 + Walltime2
+
+s = stat_parser('particle_attributes.stat')
+Walltime = s['ElapsedWallTime']["value"][-1]
 print ("Total wall time", Walltime)
     </variable>
   </variables>

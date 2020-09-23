@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <testproblem>
-  <name>Testing of particle based multimaterial fields in parallel for a small resolution thermal entrainment case. Vrms velocity is tested against the maximum value from van Keken, and entrainment is tested against the diagnostics from a successful run.</name>
+  <name>Testing of particle based multimaterial fields in parallel for a small resolution compositionally stratified stable layer case. Vrms velocity and entrainment values are tested against the diagnostics from a successful run.</name>
   <owner userid="cmath"/>
   <tags>flml parallel</tags>
   <problem_definition length="medium" nprocs="4">
     <command_line>    
-mpiexec ../../bin/flredecomp -i 1 -o 4 particle-entrain-test particle-entrain-test-flredecomp;      
-mpiexec ../../bin/fluidity -v3 -l particle-entrain-test-flredecomp.flml
+mpiexec ../../bin/flredecomp -i 1 -o 4 particle-stratified-stable-layer particle-stratified-stable-layer-flredecomp;      
+mpiexec ../../bin/fluidity -v3 -l particle-stratified-stable-layer-flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>
@@ -16,9 +16,8 @@ import numpy as np
 from fluidity_tools import stat_parser
 s = stat_parser("2d_entrainment.stat")
 
-Max_rms = s['Ambient']['Velocity%magnitude']['l2norm'][:].max()
-Max_rms = Max_rms
-Max_rms_error = Max_rms - 1371
+Max_rms = s['Bottom']['Velocity%magnitude']['l2norm'][:].max()
+Max_rms_error = Max_rms - 170.35
 print ("Max rms error", Max_rms_error)
     </variable>
     <variable name="sqr_ent_error" language="python">
@@ -29,8 +28,8 @@ s = stat_parser('2d_entrainment.stat')
 b = stat_parser('bench.dat')
 sq_error=0
 
-for i in range(200):
-    ent_error = s['Ambient']['Entrainment']['integral'][i] - b['Ambient']['Entrainment']['integral'][i]
+for i in range(190):
+    ent_error = s['Bottom']['Entrainment']['integral'][i] - b['Bottom']['Entrainment']['integral'][i]
     sq_error = sq_error + ent_error**2
     
 sqr_ent_error= sq_error
@@ -47,7 +46,7 @@ print ("Total wall time", Walltime)
   </variables>
   <pass_tests>
     <test name="Maxmrmserror" language="python">
-assert abs(Max_rms_error).max() &lt; 1.0e1
+assert abs(Max_rms_error).max() &lt; 1.0
     </test>
     <test name="Sqrenterror" language="python">
 assert sqr_ent_error &lt; 1.0e-3

@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <testproblem>
-  <name>Testing of particle based multimaterial fields in parallel for a small resolution prescribed vortex flow case. Conservation diagnostics are tested against those from a successful run.</name>
+  <name>Testing of particle based multimaterial fields in parallel for a small resolution prescribed vortex flow case. Vortex flow stretches particles from an initial circle of distinct compoisiton into a spiral, then reverses and reforms the initial circle. Conservation diagnostics are tested against those from a successful run.</name>
   <owner userid="cmath"/>
   <tags>flml parallel</tags>
   <problem_definition length="medium" nprocs="4">
     <command_line>    
-mpiexec ../../bin/flredecomp -i 1 -o 4 particle-vortex-test particle-vortex-test-flredecomp;      
-mpiexec ../../bin/fluidity -v3 -l particle-vortex-test-flredecomp.flml
+mpiexec ../../bin/flredecomp -i 1 -o 4 particle-prescribed-vortex-flow particle-prescribed-vortex-flow-flredecomp;      
+mpiexec ../../bin/fluidity -v3 -l particle-prescribed-vortex-flow-flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>
