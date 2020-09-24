@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">particle_rayleigh-taylor-mu10-12</string_value>
+    <string_value lines="1">particle_rayleigh-taylor-mu10-48</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -11,7 +11,7 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="square_12">
+      <from_file file_name="square_48">
         <format name="gmsh"/>
         <stat>
           <include_in_stat/>
@@ -107,9 +107,9 @@
   from numpy import arange,zeros,reshape,concatenate,cos,pi
   db=0.2
   lam=0.9142
-  a=70
-  b=70
-  c=3884
+  a=280
+  b=280
+  c=62575
   x=zeros(c,float)
   y=zeros(c,float)
   k=0
@@ -138,9 +138,9 @@
   from numpy import arange,zeros,reshape,concatenate,cos,pi
   db=0.2
   lam=0.9142
-  a=70
-  b=70
-  c=1016
+  a=280
+  b=280
+  c=15825
   x=zeros(c,float)
   y=zeros(c,float)
   k=0

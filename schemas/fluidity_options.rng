@@ -622,7 +622,7 @@ This function will only be called after simulation start. To initialise starting
           </zeroOrMore>
           <element name="moving_outside_domain">
             <a:documentation>Options for particles being advected outside the computational domain.</a:documentation>
-            <element name="delete">
+            <element name="delete_outside_domain">
               <a:documentation>By default Fluidity will delete particles if they move outside the domain.</a:documentation>
               <empty/>
             </element>

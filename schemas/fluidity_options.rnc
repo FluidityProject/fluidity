@@ -510,7 +510,7 @@ start =
             ## Options for particles being advected outside the computational domain.
 	    element moving_outside_domain {
                ## By default Fluidity will delete particles if they move outside the domain.
-               element delete {
+               element delete_outside_domain {
                   empty
                }
 	    },
