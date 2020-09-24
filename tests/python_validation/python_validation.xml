@@ -117,7 +117,6 @@ print("Failures: " + str(len(optionErrors)))</variable>
   </variables>
   <pass_tests/>
   <warn_tests>
-    <test name="Two python versions on machine" language="python">assert(len(python_versions)==2)</test>
     <test name="Options files validate" language="python">failures = []
 for filename, types in optionErrors.items():
   if not filename in ignoredOptionsFiles:

@@ -2,20 +2,15 @@
 
 """ 
 
-python2 python_validate.py [-p] [-f] [file1 file2 file3]
-
-or 
-
 python3 python_validate.py [-p] [-f] [file1 file2 file3]
 
 -f  (--fixup)  Automatically attempt to fix obvious python3 errors using reindent and 2to3.
 -p  (--pep8)   Run flake8 to test adherence to pep8 coding standards.
 
-Script to attempt to validate python files and code snippets in the Fluidity code base against python2 and python3 syntax.
+Script to attempt to validate python files and code snippets in the Fluidity code base against python3 syntax.
 
 """
 
-from __future__ import print_function
 import sys
 import os
 import ast
@@ -40,67 +35,25 @@ def flake8_snippet(name, snippet):
         except subprocess.CalledProcessError as err:
             print(err.output.decode("utf8"))
 
-def print_as_function(filename, add_future_import=False):
-    """Handrolled function to turn
-    print blah
-       into
-    print(blah)"""
-    lines = []
-
-    def isplit(line, indices):
-        return [line[i+1:j] for i, j in zip(indices, indices[1:]+[None])]
-
-    def split_comments(line):
-        tokens = tokenize.generate_tokens(io.StringIO(line).readline)
-        indices = [-1]
-        for _ in tokens:
-            if _[0] == tokenize.COMMENT:
-                return isplit(line.replace(_[1],''), indices), _[1]
-            if _[0] == tokenize.OP and _[1] == ';':
-                indices.append(_[2][1])
-                continue
-        return isplit(line, indices), ''
-
-    def sanitize(line):
-        if 'print ' in line:
-            return line.replace('print ', 'print(')+')'
-        else:
-            return line
-
-    with open(filename, 'r') as temp:
-        for line in temp.readlines():
-            if len(line.strip())==0 or line.strip()[0]=='#':
-                pass
-            if 'print ' in line:
-                line, comment = split_comments(line)
-                line = ';'.join([sanitize(_.strip('\n')) for _ in line])+comment+'\n'
-            lines.append(line)
-    with open(filename, 'w') as temp:
-        if add_future_import:
-            temp.write('from __future__ import print_function')
-        temp.writelines(lines)
 
 def fix_snippet(name, snippet):
     temp, temp_name = tempfile.mkstemp()
     os.write(temp, snippet.encode("utf8"))
     os.close(temp)
     #use the local reindent script to update to 4 spaces and no tabs
-    subprocess.call(['python2 -m reindent -n %s'%temp_name],
+    subprocess.call(['python3 -m reindent -n %s'%temp_name],
                     shell=True)
-    #run 2to3 to 
-    print_as_function(temp_name)
-    subprocess.call(['2to3 -x future -npw %s'%temp_name],
-                        shell=True)
     with open(temp_name, 'r') as temp:
         out = temp.read()
     os.remove(temp_name)
     if out == snippet:
         out == None
     return out
-    
+
 
 def get_name(element):
     return "/"+"/".join(reversed([element.tag]+[s.tag for s in element.iterancestors()]))
+
 
 def process_snippet(name, snippet):
     """Parse and validate a string containing a snippet of Python code.
@@ -108,8 +61,10 @@ def process_snippet(name, snippet):
     Return a Boolean.
 
     On failure, also print the string with line numbers.
-    """ 
+    """
+
     fail = False
+
     snippet = snippet.strip()
     try:
         ast.parse(snippet)
@@ -219,7 +174,7 @@ def main():
 
 def check_versions():
     versions = []
-    for ver in ("python2", "python3"):
+    for ver in ["python3"]:
         try:
             subprocess.check_output([ver+' --version'], shell=True)
             versions.append(ver)
