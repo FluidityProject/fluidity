@@ -107,10 +107,10 @@ internal_algorithm =
          attribute name { "from_particles" },
 	 attribute material_phase_support { "multiple" },
 	 (
-	    ## Particle group used for calculation of diagnostic.
+	    ## Particle group used for calculation of diagnostic field.
             element particle_group {
 	       attribute name { xsd:string },
-	       ## Particle attribute used for calculation of diagnostic.
+	       ## Particle attribute used for calculation of diagnostic field.
 	       element particle_attribute {
 	          attribute name { xsd:string }
 	       }

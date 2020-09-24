@@ -156,12 +156,12 @@ within the Particle_Diagnostics.F90 routine, and set via the ratio method.</a:do
         </attribute>
         <group>
           <element name="particle_group">
-            <a:documentation>Particle group used for calculation of diagnostic.</a:documentation>
+            <a:documentation>Particle group used for calculation of diagnostic field.</a:documentation>
             <attribute name="name">
               <data type="string"/>
             </attribute>
             <element name="particle_attribute">
-              <a:documentation>Particle attribute used for calculation of diagnostic.</a:documentation>
+              <a:documentation>Particle attribute used for calculation of diagnostic field.</a:documentation>
               <attribute name="name">
                 <data type="string"/>
               </attribute>
