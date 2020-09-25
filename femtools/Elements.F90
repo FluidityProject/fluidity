@@ -471,31 +471,6 @@ contains
     
   end function element_equal
 
-  subroutine extract_old_element(element, N, NLX, NLY, NLZ)
-    !!< Extract the shape function values from an old element.
-    type(element_type), intent(in) :: element
-    real, dimension(element%loc, element%ngi), intent(out) :: N, NLX, NLY
-    real, dimension(element%loc, element%ngi), intent(out), optional :: NLZ
-    
-    N=element%n
-    NLX=element%dn(:,:,1)
-    if (size(element%dn,3)>1) then
-       NLY=element%dn(:,:,2)
-    else
-       NLY=0.0
-    end if
-
-    if (present(NLZ)) then
-       if (size(element%dn,3)>2) then
-          NLZ=element%dn(:,:,3)
-       else
-          NLZ=0.0
-       end if
-    end if
-
-
-  end subroutine extract_old_element
-
   pure function eval_shape_node(shape, node,  l) result(eval_shape)
     ! Evaluate the shape function for node node local coordinates l
     real :: eval_shape
@@ -506,32 +481,76 @@ contains
     integer :: i
 
     eval_shape=1.0
-          
+
     do i=1,size(shape%spoly,1)
-       
-       ! Raw shape function
-       eval_shape=eval_shape*eval(shape%spoly(i,node), l(i))
-             
+
+      ! Raw shape function
+      eval_shape=eval_shape*eval(shape%spoly(i,node), l(i))
+
     end do
 
   end function eval_shape_node
 
-  pure function eval_shape_all_nodes(shape, l) result(eval_shape)
+  pure function eval_shape_all_nodes(shape, l) result(n)
     ! Evaluate the shape function for all locations at local coordinates l
     type(element_type), intent(in) :: shape
     real, dimension(size(shape%spoly,1)), intent(in) :: l
-    real, dimension(shape%loc) :: eval_shape
+    real, dimension(shape%loc) :: n
 
     integer :: i,j
 
-    eval_shape=1.0
+    ! for P0,P1 and P2 simplices we use explicitly written out
+    ! formulas for speed, all other cases are handled below
+
+    if (shape%numbering%family==FAMILY_SIMPLEX .and. &
+      shape%numbering%type==ELEMENT_LAGRANGIAN) then
+      select case (shape%degree)
+      case (0) ! P0 case
+        n(1) = 1.
+        return
+      case (1) ! P1 case
+        n = l
+        return
+      case (2) ! P2 case
+        select case (shape%dim)
+        case (1)
+          n(1) = l(1)*(2*l(1)-1)
+          n(2) = 4*l(1)*l(2)
+          n(3) = l(2)*(2*l(2)-1)
+        case (2)
+          n(1) = l(1)*(2*l(1)-1)
+          n(2) = 4*l(1)*l(2)
+          n(3) = l(2)*(2*l(2)-1)
+          n(4) = 4*l(1)*l(3)
+          n(5) = 4*l(2)*l(3)
+          n(6) = l(3)*(2*l(3)-1)
+        case (3)
+          n(1) = l(1)*(2*l(1)-1)
+          n(2) = 4*l(1)*l(2)
+          n(3) = l(2)*(2*l(2)-1)
+          n(4) = 4*l(1)*l(3)
+          n(5) = 4*l(2)*l(3)
+          n(6) = l(3)*(2*l(3)-1)
+          n(7) = 4*l(1)*l(4)
+          n(8) = 4*l(2)*l(4)
+          n(9) = 4*l(3)*l(4)
+          n(10) = l(4)*(2*l(4)-1)
+        end select
+        return
+      case default
+        ! fall through to slow case
+      end select
+    end if
+
+    ! generic slow case using polynomials
+    n=1.0
 
     do j=1,shape%loc
 
       do i=1,size(shape%spoly,1)
 
         ! Raw shape function
-        eval_shape(j)=eval_shape(j)*eval(shape%spoly(i,j), l(i))
+        n(j)=n(j)*eval(shape%spoly(i,j), l(i))
 
       end do
 

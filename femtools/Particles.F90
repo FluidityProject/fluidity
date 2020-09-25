@@ -528,7 +528,7 @@ contains
                 end if
              end if
           end do
-          call move_lagrangian_detectors(state, particle_lists(list_counter), dt, timestep, attribute_size)
+          call move_lagrangian_detectors(state, particle_lists(list_counter), dt, attribute_size)
           list_counter = list_counter + 1
        end do
     end do

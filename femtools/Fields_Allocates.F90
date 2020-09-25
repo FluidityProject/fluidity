@@ -61,7 +61,7 @@ implicit none
     & wrap_tensor_field
   public :: add_lists, extract_lists, add_nnlist, extract_nnlist, add_nelist, &
     & extract_nelist, add_eelist, extract_eelist, remove_lists, remove_nnlist, &
-    & remove_nelist, remove_eelist, extract_elements, remove_boundary_conditions,&
+    & remove_nelist, remove_eelist, extract_elements, remove_boundary_conditions, &
     & get_surface_coordinate
  public :: extract_surface_mesh
 
@@ -232,7 +232,7 @@ contains
 
     integer :: lfield_type
     integer :: stat
-    integer :: toloc, fromloc
+    integer :: toloc
 
     if (present(field_type)) then
       lfield_type = field_type
@@ -296,10 +296,8 @@ contains
         field%py_positions_same_mesh = .false.
         allocate(field%py_locweight(mesh%shape%loc, py_positions%mesh%shape%loc))
         do toloc=1,size(field%py_locweight,1)
-          do fromloc=1,size(field%py_locweight,2)
-            field%py_locweight(toloc,fromloc)=eval_shape(py_positions%mesh%shape, fromloc, &
+            field%py_locweight(toloc,:)=eval_shape(py_positions%mesh%shape, &
               local_coords(toloc, mesh%shape))
-          end do
         end do
       end if
 

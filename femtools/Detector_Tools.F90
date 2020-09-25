@@ -38,12 +38,13 @@ module detector_tools
   use integer_hash_table_module
   use parallel_tools
   use parallel_fields, only: element_owned
+  use transform_elements
   use fields
   use state_module, only: state_type, extract_scalar_field, aliased
   use field_options
   use detector_data_types
   use pickers
-  
+
   implicit none
   
   private

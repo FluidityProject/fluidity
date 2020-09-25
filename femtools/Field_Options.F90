@@ -438,7 +438,7 @@ contains
       end if
     end if
     
- end function get_diagnostic_coordinate_field
+  end function get_diagnostic_coordinate_field
   
   function get_coordinate_field(state, mesh) result (positions)
   !!< Returns a coordinate field for the given mesh, that has the same
