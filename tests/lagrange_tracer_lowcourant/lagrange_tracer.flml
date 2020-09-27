@@ -83,7 +83,7 @@
       </particle_subgroup>
     </particle_group>
     <moving_outside_domain>
-      <delete/>
+      <delete_outside_domain/>
     </moving_outside_domain>
     <lagrangian_timestepping>
       <subcycles>
