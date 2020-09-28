@@ -5108,6 +5108,7 @@ of the attribute array.</a:documentation>
  of the attribute array.
 
  E.g. if a function of the Temperature field and x position are required
+
  def val (X, t, dt, fields, n):
    for i in range(0,n):
        x = X[0]
@@ -5162,6 +5163,7 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
  of the attribute array, and the return value is a (n x dim) numpy array
 
  E.g. if Velocity field and positions vector are required
+
  def val (X, t, dt, fields, n):
    from numpy import zeros
    y = zeros(2,float)
@@ -5226,6 +5228,7 @@ or list of lists.</a:documentation>
  or list of lists.
 
  E.g. to calculate a tensor based off position and velocity:
+
  def val (X, t, dt, fields, n):
    from numpy import zeros
    dum = zeros((2,2),float)

@@ -3997,6 +3997,7 @@ generic_scalar_particle_attribute_array =
       ##  of the attribute array.
       ##
       ##  E.g. if a function of the Temperature field and x position are required
+      ##
       ##  def val (X, t, dt, fields, n):
       ##    for i in range(0,n):
       ##        x = X[0]
@@ -4047,6 +4048,7 @@ generic_vector_particle_attribute_array =
       ##  of the attribute array, and the return value is a (n x dim) numpy array
       ##
       ##  E.g. if Velocity field and positions vector are required
+      ##
       ##  def val (X, t, dt, fields, n):
       ##    from numpy import zeros
       ##    y = zeros(2,float)
@@ -4107,6 +4109,7 @@ generic_tensor_particle_attribute_array =
       ##  or list of lists.
       ##
       ##  E.g. to calculate a tensor based off position and velocity:
+      ##
       ##  def val (X, t, dt, fields, n):
       ##    from numpy import zeros
       ##    dum = zeros((2,2),float)
