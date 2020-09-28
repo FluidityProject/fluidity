@@ -343,6 +343,11 @@ module particle_diagnostics
 
     xfield=>extract_vector_field(states(1), "Coordinate")
 
+    nodes => ele_nodes(s_field, 1)
+    if (xfield%dim+1/=size(nodes)) then
+       FLAbort("Can only generate particle diagnostic fields for a P1CV mesh")
+    end if
+
     ! contribution of local particles to non-owned nodes are summed
     ! into the owner in the halo_accumulate calls below
     ! we might be safe to assume we only need to add into halo 1 nodes (as these

@@ -145,6 +145,16 @@
               <store_old_attribute/>
             </python_fields>
           </vector_attribute_array>
+          <vector_attribute_array name="VectorOldAttribute">
+            <dimension>
+              <integer_value rank="0">5</integer_value>
+            </dimension>
+            <python_fields>
+              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields,n):
+  import numpy as np
+  return np.zeros((n,2)) + np.arange(n)[:,None] + fields["old%VectorFieldAttribute"]</string_value>
+            </python_fields>
+          </vector_attribute_array>
           <tensor_attribute_array name="TensorArrayAttribute">
             <dimension>
               <integer_value rank="0">10</integer_value>
@@ -164,18 +174,9 @@
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields,n):
   import numpy as np
   return np.zeros((n,2,2)) + np.arange(n)[:,None,None] + fields["tenstest"]</string_value>
+              <store_old_attribute/>
             </python_fields>
           </tensor_attribute_array>
-          <vector_attribute_array name="VectorOldAttribute">
-            <dimension>
-              <integer_value rank="0">5</integer_value>
-            </dimension>
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields,n):
-  import numpy as np
-  return np.zeros((n,2)) + np.arange(n)[:,None] + fields["old%VectorFieldAttribute"]</string_value>
-            </python_fields>
-          </vector_attribute_array>
           <tensor_attribute_array name="TensorOldAttribute">
             <dimension>
               <integer_value rank="0">5</integer_value>
