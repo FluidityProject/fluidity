@@ -457,7 +457,7 @@ start =
 				 element exclude_from_output {
 				    empty
 				 }?,
-                                 generic_scalar_particle_attribute_choice
+                                 generic_scalar_particle_attribute_array
 			      }|
 			      ##Vector particle attribute.
 			      element vector_attribute {
@@ -478,7 +478,7 @@ start =
 				 element exclude_from_output {
 				     empty
 				 }?,
-                                 generic_vector_particle_attribute_choice
+                                 generic_vector_particle_attribute_array
 			      }|
 			      ##Tensor particle attribute.
 			      element tensor_attribute {
@@ -499,7 +499,7 @@ start =
 				 element exclude_from_output {
 				     empty
 				 }?,
-                                 generic_tensor_particle_attribute_choice
+                                 generic_tensor_particle_attribute_array
 			      }
 			   )+
                         }?
@@ -3945,6 +3945,175 @@ generic_tensor_particle_attribute_choice =
       ##    for i in range(0,2):
       ##       for j in range(0,2):
       ##          dum[i,j] = X[i]+fields["Velocity"][j]
+      ##    return dum
+      ##
+      ## Note: fields must contain the option particles/include_in_particles
+      ## to be accessible.
+      ## Old field or attribute values can be accessed with the prefix old%
+      ## if the store_old_attribute or store_old_field options are enabled.
+      element python_fields {
+         python_code,
+         ## Store attribute values from previous timestep on particles.
+         element store_old_attribute {
+            comment
+         }?
+      }|
+      ## File containing the particle attributes in binary form
+      element from_checkpoint_file {
+         attribute file_name { xsd:string },
+         ## The format of the input file containing field data.
+         element format {
+            element string_value {
+               "binary"
+            }
+         }
+      }
+   )
+
+generic_scalar_particle_attribute_array =
+   (
+      ## Constant value
+      element constant {
+         real
+      }|
+      ## Python function prescribing real input. Functions should be of the form:
+      ##
+      ##  def val(X, t, dt, n):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ## where X is a tuple of length geometry dimension and n is the dimension
+      ## of the attribute array.
+      element python {
+         python_code
+      }|
+      ## Python function prescribing real input. Functions should be of the form:
+      ##
+      ##  def val (X, t, dt, fields, n):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ##  where X is a tuple of length geometry dimension and n is the dimension
+      ##  of the attribute array.
+      ##
+      ##  E.g. if a function of the Temperature field and x position are required
+      ##  def val (X, t, dt, fields, n):
+      ##    for i in range(0,n):
+      ##        x = X[0]
+      ##        y = (x + fields["Temperature"])*(n+1)
+      ##    return y
+      ##
+      ## Note: fields must contain the option particles/include_in_particles
+      ## to be accessible.
+      ## Old field or attribute values can be accessed with the prefix old%
+      ## if the store_old_attribute or store_old_field options are enabled.
+      element python_fields {
+         python_code,
+         ## Store attribute values from previous timestep on particles.
+         element store_old_attribute {
+            comment
+         }?
+      }|
+      ## File containing the particle attributes in binary form
+      element from_checkpoint_file {
+         attribute file_name { xsd:string }
+      }
+   )
+
+generic_vector_particle_attribute_array =
+   (
+      ## Constant value
+      element constant {
+         real_dim_vector
+      }|
+      ## Python function prescribing real input. Functions should be of the form:
+      ##
+      ##  def val(X, t, dt):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ##  where X is a tuple of length geometry dimension, n is the dimension
+      ##  of the attribute array, and the return value is a (n x dim) numpy array
+      element python {
+         python_code
+      }|
+      ## Python function prescribing real input. Functions should be of the form:
+      ##
+      ##  def val (X, t, dt, fields, n):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ##  where X is a tuple of length geometry dimension, n is the dimension
+      ##  of the attribute array, and the return value is a (n x dim) numpy array
+      ##
+      ##  E.g. if Velocity field and positions vector are required
+      ##  def val (X, t, dt, fields, n):
+      ##    from numpy import zeros
+      ##    y = zeros(2,float)
+      ##    for i in range(0,2):
+      ##        for j in range(0,n):
+      ##            y[j,i] = (X[i] + fields["Velocity"][i])*(1+k)
+      ##    return y
+      ##
+      ## Note: fields must contain the option particles/include_in_particles
+      ## to be accessible.
+      ## Old field or attribute values can be accessed with the prefix old%
+      ## if the store_old_attribute or store_old_field options are enabled.
+      element python_fields {
+         python_code,
+         ## Store attribute values from previous timestep on particles.
+         element store_old_attribute {
+            comment
+         }?
+      }|
+      ## File containing the particle attributes in binary form
+      element from_checkpoint_file {
+         attribute file_name { xsd:string },
+         ## The format of the input file containing field data.
+         element format {
+            element string_value {
+               "binary"
+            }
+         }
+      }
+   )
+
+generic_tensor_particle_attribute_array =
+   (
+      ## Constant value
+      element constant {
+         real_dim_tensor
+      }|
+      ## Python function prescribing real input. Functions should be of the form:
+      ##
+      ##  def val(X, t, dt, n):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ## where X is a tuple of length geometry dimension, n is the dimension of
+      ## the attribute array, and the return value is a (n x dim x dim) numpy array
+      ## or list of lists.
+      element python {
+         python_code
+      }|
+      ## Python function prescribing real input. Functions should be of the form:
+      ##
+      ##  def val (X, t, dt, fields, n):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ##  where X is a tuple of length geometry dimension, n is the dimension of
+      ##  the attribute array, and the return value is a (dim x dim) numpy array
+      ##  or list of lists.
+      ##
+      ##  E.g. to calculate a tensor based off position and velocity:
+      ##  def val (X, t, dt, fields, n):
+      ##    from numpy import zeros
+      ##    dum = zeros((2,2),float)
+      ##    for i in range(0,2):
+      ##       for j in range(0,2):
+      ##           for k in range(0,n):
+      ##               dum[k,i,j] = (X[i]+fields["Velocity"][j])*(1+k)
       ##    return dum
       ##
       ## Note: fields must contain the option particles/include_in_particles
