@@ -590,7 +590,7 @@ contains
       to_write(i+single_count) = .not. have_option(trim(subkey)//"/exclude_from_output")
 
       if (have_option(trim(subkey)//"/python_fields/store_old_attribute")) then
-        old_names(old_i) = "Old" // trim(names(i+single_count))
+        old_names(old_i) = "old%" // trim(names(i+single_count))
         old_dims(old_i) = dims(i+single_count)
         old_i = old_i + 1
       end if
@@ -667,7 +667,7 @@ contains
        call create_single_particle(p_list, xfield, coords(:,i), &
             i+offset, proc_num, dim, attr_counts, global=global)
     end do
- 
+
     deallocate(coords)
   end subroutine read_particles_from_python
 
