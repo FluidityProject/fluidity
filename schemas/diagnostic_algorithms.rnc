@@ -118,7 +118,7 @@ internal_algorithm =
 	          ## Particle attribute_array used for calculation of diagnostic field.
 	          element particle_attribute_array {
 	             attribute name { xsd:string },
-		     ## Integer value corresponding to attribute position in array (starts from 1)..
+		     ## Integer value corresponding to attribute position in array (starts from 1).
 		     element integer_val {
 		        integer
 		     }
