@@ -621,7 +621,7 @@ contains
     real(kind=c_double), dimension(old_nfields(1)+dim*old_nfields(2)+dim**2*old_nfields(3),npart), intent(in) :: old_field_vals
     character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nattributes)), intent(in) :: old_att_names
     integer, dimension(sum(old_nattributes)), intent(in) :: old_att_dims
-    real(kind=c_double), dimension(old_nattributes(1)+dim*old_nattributes(2)+dim**2*old_nattributes(3),npart), intent(in) :: old_attributes
+    real(kind=c_double), dimension(:,:), intent(in) :: old_attributes
     real(kind=c_double), dimension(natt, npart), intent(out) :: result
     integer, intent(out) :: stat
 
@@ -665,7 +665,7 @@ contains
     real(kind=c_double), dimension(old_nfields(1)+dim*old_nfields(2)+dim**2*old_nfields(3),npart), intent(in) :: old_field_vals
     character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nattributes)), intent(in) :: old_att_names
     integer, dimension(sum(old_nattributes)), intent(in) :: old_att_dims
-    real(kind=c_double), dimension(old_nattributes(1)+dim*old_nattributes(2)+dim**2*old_nattributes(3),npart), intent(in) :: old_attributes
+    real(kind=c_double), dimension(:,:), intent(in) :: old_attributes
     real(kind=c_double), dimension(dim*natt,npart), intent(out) :: result
     integer, intent(out) :: stat
 
@@ -708,7 +708,7 @@ contains
     real(kind=c_double), dimension(old_nfields(1)+dim*old_nfields(2)+dim**2*old_nfields(3),npart), intent(in) :: old_field_vals
     character(kind=c_char), dimension(FIELD_NAME_LEN,sum(old_nattributes)), intent(in) :: old_att_names
     integer, dimension(sum(old_nattributes)), intent(in) :: old_att_dims
-    real(kind=c_double), dimension(old_nattributes(1)+dim*old_nattributes(2)+dim**2*old_nattributes(3),npart), intent(in) :: old_attributes
+    real(kind=c_double), dimension(:,:), intent(in) :: old_attributes
     real(kind=c_double), dimension(dim,dim,natt,npart), intent(out) :: result
     integer, intent(out) :: stat
 
