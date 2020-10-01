@@ -500,11 +500,36 @@ static inline void set_dict_from_fields(int i, int dim, int *nfields, int name_l
   }
 }
 
+static int count_all_atts(int dim, int *natts, int *att_dims)
+{
+  // count the number of attributes for a single particle, taking into account
+  // vector/tensor attributes, and array attributes
+
+  int count = 0;
+  // scalar
+  for (int i = 0; i < natts[0]; i++) {
+    int ad = att_dims[i];
+    count += ad > 0 ? ad : 1;
+  }
+  // vector
+  for (int i = 0; i < natts[1]; i++) {
+    int ad = att_dims[i + natts[0]];
+    count += dim * (ad > 0 ? ad : 1);
+  }
+  // tensor
+  for (int i = 0; i < natts[2]; i++) {
+    int ad = att_dims[i + natts[0] + natts[1]];
+    count += dim*dim * (ad > 0 ? ad : 1);
+  }
+
+  return count;
+}
+
 static void set_dict_from_old_atts(int i, int dim, int *natts, int name_len, char *_att_names,
 				   int *att_dims, double *_att_vals, PyObject *pNames)
 {
-  int all_atts = natts[0] + dim*natts[1] + dim*dim*natts[2];
-  double (*att_vals)[all_atts] = (double (*)[all_atts])_att_vals;
+  int all_atts = count_all_atts(dim, natts, att_dims);
+  double *att_vals = &_att_vals[i * all_atts];
   char (*att_names)[name_len] = (char (*)[name_len])_att_names;
 
   npy_intp dims[] = {0, dim, dim};
@@ -518,12 +543,12 @@ static void set_dict_from_old_atts(int i, int dim, int *natts, int name_len, cha
 
     if (ad == 0) {
       // non-array
-      pAtt = PyFloat_FromDouble(att_vals[i][ai++]);
+      pAtt = PyFloat_FromDouble(att_vals[ai++]);
     } else {
       dims[0] = ad;
       pAtt = PyArray_SimpleNew(1, dims, NPY_DOUBLE);
       for (int d = 0; d < ad; d++) {
-	*((double*)PyArray_GETPTR1((PyArrayObject*)pAtt, d)) = att_vals[i][ai + d];
+	*((double*)PyArray_GETPTR1((PyArrayObject*)pAtt, d)) = att_vals[ai + d];
       }
       ai += ad;
     }
@@ -539,7 +564,7 @@ static void set_dict_from_old_atts(int i, int dim, int *natts, int name_len, cha
       // non-array
       pAtt = PyArray_SimpleNew(1, dims+1, NPY_DOUBLE);
       for (int k = 0; k < dim; k++) {
-	*((double*)PyArray_GETPTR1((PyArrayObject*)pAtt, k)) = att_vals[i][ai + k];
+	*((double*)PyArray_GETPTR1((PyArrayObject*)pAtt, k)) = att_vals[ai + k];
       }
       ai += dim;
     } else {
@@ -547,7 +572,7 @@ static void set_dict_from_old_atts(int i, int dim, int *natts, int name_len, cha
       pAtt = PyArray_SimpleNew(2, dims, NPY_DOUBLE);
       for (int d = 0; d < ad; d++) {
 	for (int k = 0; k < dim; k++) {
-	  *((double*)PyArray_GETPTR2((PyArrayObject*)pAtt, d, k)) = att_vals[i][ai + k];
+	  *((double*)PyArray_GETPTR2((PyArrayObject*)pAtt, d, k)) = att_vals[ai + k];
 	}
 	ai += dim;
       }
@@ -565,7 +590,7 @@ static void set_dict_from_old_atts(int i, int dim, int *natts, int name_len, cha
       pAtt = PyArray_SimpleNew(2, dims+1, NPY_DOUBLE);
       for (int k = 0; k < dim; k++) {
 	for (int l = 0; l < dim; l++) {
-	  *((double*)PyArray_GETPTR2((PyArrayObject*)pAtt, l, k)) = att_vals[i][ai + l];
+	  *((double*)PyArray_GETPTR2((PyArrayObject*)pAtt, l, k)) = att_vals[ai + l];
 	}
 	ai += dim;
       }
@@ -575,7 +600,7 @@ static void set_dict_from_old_atts(int i, int dim, int *natts, int name_len, cha
       for (int d = 0; d < ad; d++) {
 	for (int k = 0; k < dim; k++) {
 	  for (int l = 0; l < dim; l++) {
-	    *((double*)PyArray_GETPTR3((PyArrayObject*)pAtt, d, l, k)) = att_vals[i][ai + l];
+	    *((double*)PyArray_GETPTR3((PyArrayObject*)pAtt, d, l, k)) = att_vals[ai + l];
 	  }
 	  ai += dim;
 	}
