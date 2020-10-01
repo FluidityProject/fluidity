@@ -2145,13 +2145,14 @@ contains
 
   end subroutine get_particles
 
-  subroutine get_particle_arrays(lgroup, group_arrays, group_attribute, lattribute)
+  subroutine get_particle_arrays(lgroup, group_arrays, group_attribute, att_n, lattribute)
     !Read in a particle group and attribute name or particle subgroup, send back numbers of particle arrays and particle attribute
 
     character(len=OPTION_PATH_LEN), intent(in) :: lgroup
     character(len=OPTION_PATH_LEN), optional, intent(in) :: lattribute
     integer, allocatable, dimension(:), intent(out) :: group_arrays
     integer, optional, intent(out) :: group_attribute
+    integer, optional, intent(in) :: att_n
 
     character(len=OPTION_PATH_LEN) :: group_name, attribute_name, subgroup_name
     integer :: particle_groups, array_counter, particle_subgroups, particle_attributes
@@ -2169,17 +2170,39 @@ contains
        if (trim(group_name)==trim(lgroup)) then
           allocate(group_arrays(particle_subgroups))
           if (present(lattribute)) then
-             particle_attributes = option_count("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup["//int2str(0)//"]/attributes/scalar_attribute")
-             do k = 1, particle_attributes
-                call get_option("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup["//int2str(0)// &
-                     "]/attributes/scalar_attribute["//int2str(k-1)//"]/name", attribute_name)
-                if (trim(attribute_name)==trim(lattribute)) then
-                   found_attribute = .true.
-                   group_attribute = k
+             if (att_n==0) then
+                particle_attributes = option_count("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup["//int2str(0)//"]/attributes/scalar_attribute")
+                do k = 1, particle_attributes
+                   call get_option("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup["//int2str(0)// &
+                        "]/attributes/scalar_attribute["//int2str(k-1)//"]/name", attribute_name)
+                   if (trim(attribute_name)==trim(lattribute)) then
+                      found_attribute = .true.
+                      group_attribute = k
+                   end if
+                end do
+                if (found_attribute.eqv..false.) then
+                   FLExit("Could not find particle attribute "//trim(lattribute)//" in particle group "//trim(lgroup)//". Check attribute is a scalar.")
+                end if 
+             else
+                particle_attributes = option_count("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup["//int2str(0)//"]/attributes/scalar_attribute_array")
+                l = 0
+                group_attribute = 0
+                do k = 1, particle_attributes
+                   call get_option("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup["//int2str(0)// &
+                        "]/attributes/scalar_attribute_array["//int2str(k-1)//"]/name", attribute_name)
+                   call get_option("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup["//int2str(0)// &
+                        "]/attributes/scalar_attribute_array["//int2str(k-1)//"]/dimension", l)
+                   if (trim(attribute_name)==trim(lattribute)) then
+                      found_attribute = .true.
+                      group_attribute = group_attribute + att_n
+                   else
+                      group_attribute = group_attribute + l
+                   end if
+                end do
+                if (found_attribute.eqv..false.) then
+                   FLExit("Could not find particle attribute "//trim(lattribute)//" in particle group "//trim(lgroup)//". Check attribute is a scalar.")
                 end if
-             end do
-             if (found_attribute.eqv..false.) then
-                FLExit("Could not find particle attribute "//trim(lattribute)//" in particle group "//trim(lgroup)//". Check attribute is a scalar.")
+                group_attribute = group_attribute + option_count("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup["//int2str(0)//"]/attributes/scalar_attribute")
              end if
           end if
           j=1

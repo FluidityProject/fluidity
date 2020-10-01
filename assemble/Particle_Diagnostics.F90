@@ -324,7 +324,7 @@ module particle_diagnostics
     integer :: element, node_number
     real, allocatable, dimension(:) :: local_crds
     integer, dimension(:), pointer :: nodes
-    integer :: nprocs
+    integer :: nprocs, att_n
     real :: att_value, ratio_val
 
     integer :: group_attribute
@@ -332,8 +332,15 @@ module particle_diagnostics
 
     call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/particle_group/name", lgroup)
     if (is_ratio) then
-       call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/particle_group/particle_attribute/name", lattribute)
-       ewrite(2,*) "Calculate diagnostic field from particle group: ", trim(lgroup), ", attribute: ", trim(lattribute)
+       if (have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/particle_group/particle_attribute")) then
+          call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/particle_group/particle_attribute/name", lattribute)
+          att_n=0
+          ewrite(2,*) "Calculate diagnostic field from particle group: ", trim(lgroup), ", attribute: ", trim(lattribute)
+       else if (have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/particle_group/particle_attribute_array")) then
+          call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/particle_group/particle_attribute_array/name", lattribute)
+          call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/particle_group/particle_attribute_array/integer_val", att_n)
+          ewrite(2,*) "Calculate diagnostic field from particle group: ", trim(lgroup), ", attribute_array: ", trim(lattribute), ", integer_val: ", att_n
+       end if
     else
        ewrite(2,*) "Calculate diagnostic field from number of particles on particle group: ", trim(lgroup)
     end if
@@ -364,7 +371,7 @@ module particle_diagnostics
     else
        !Particles are initialized, call subroutine to get relevant particle arrays and attributes
        if (is_ratio) then
-          call get_particle_arrays(lgroup, group_arrays, group_attribute, lattribute=lattribute)
+          call get_particle_arrays(lgroup, group_arrays, group_attribute, att_n=att_n, lattribute=lattribute)
        else
           call get_particle_arrays(lgroup, group_arrays)
        end if

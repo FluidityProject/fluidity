@@ -160,12 +160,24 @@ within the Particle_Diagnostics.F90 routine, and set via the ratio method.</a:do
             <attribute name="name">
               <data type="string"/>
             </attribute>
-            <element name="particle_attribute">
-              <a:documentation>Particle attribute used for calculation of diagnostic field.</a:documentation>
-              <attribute name="name">
-                <data type="string"/>
-              </attribute>
-            </element>
+            <choice>
+              <element name="particle_attribute">
+                <a:documentation>Particle attribute used for calculation of diagnostic field.</a:documentation>
+                <attribute name="name">
+                  <data type="string"/>
+                </attribute>
+              </element>
+              <element name="particle_attribute_array">
+                <a:documentation>Particle attribute_array used for calculation of diagnostic field.</a:documentation>
+                <attribute name="name">
+                  <data type="string"/>
+                </attribute>
+                <element name="integer_val">
+                  <a:documentation>Integer value corresponding to attribute position in array (starts from 1)..</a:documentation>
+                  <ref name="integer"/>
+                </element>
+              </element>
+            </choice>
           </element>
           <element name="interpolation">
             <a:documentation>Function used to interpolate particle values onto nodes.</a:documentation>
