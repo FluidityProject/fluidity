@@ -2059,7 +2059,7 @@ module zoltan_integration
     integer :: old_local_element_number, new_local_element_number, old_universal_element_number
     integer, allocatable :: ndets_being_sent(:)
     real, allocatable :: send_buff(:,:), recv_buff(:,:)
-    logical :: do_broadcast, sent
+    logical :: do_broadcast
     integer :: total_attributes
     type(element_type), pointer :: shape
 
@@ -2072,7 +2072,7 @@ module zoltan_integration
        detector_list => detector_list_array(j)%ptr
        ewrite(2,*) "Length of detector list to be updated: ", detector_list%length
 
-       if (sum(detector_list%total_attributes)==0) return
+       if (sum(detector_list%total_attributes)==0) cycle
        
        detector => detector_list%first
        
@@ -2122,16 +2122,10 @@ module zoltan_integration
           deallocate(ndets_being_sent)
           cycle
        end if
-       !Check if any are being sent
-       do i = 1, size(ndets_being_sent)
-          if (ndets_being_sent(i)>0) then
-             call mpi_bcast(detector_list%total_attributes, 3, getPINTEGER(), i-1, MPI_COMM_FEMTOOLS, ierr)
-             assert(ierr == MPI_SUCCESS)
-             total_attributes=sum(detector_list%total_attributes)
-             exit
-          end if
-       end do
+
        ewrite(2,*) "Broadcast required, initialising..."
+
+       total_attributes=sum(detector_list%total_attributes)
        
        ! Allocate memory for all the particles you're going to send
        allocate(send_buff(send_count,zoltan_global_ndata_per_det+total_attributes))
