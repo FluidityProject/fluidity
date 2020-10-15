@@ -4,6 +4,7 @@ import os
 import os.path
 import glob
 import time
+import shutil
 
 try:
   from junit_xml import TestSuite, TestCase
@@ -93,7 +94,7 @@ class UnitTestHarness:
                 self.tests.append(UnitTest(file))
 
     def clean(self):
-        os.system(f'rm -rf {self.cwd}/bin/tests')        
+        shutil.rmtree(os.path.join(self.cwd, 'bin/tests'))
 
     def run(self):
         passcount = 0
@@ -175,7 +176,7 @@ class UnitTestHarness:
             print("    Failures: %d; tests = %s" % (failcount, failtests))
 
         if self.xml_outfile != '':
-            fd = open(f'{self.cwd}/{self.xml_outfile}', 'w')
+            fd = open(os.path.join(self.cwd, self.xml_outfile), 'w')
             self.xml_parser.to_file(fd, [self.xml_parser])
             fd.close()
 
@@ -184,7 +185,7 @@ if __name__ == "__main__":
     import optparse
 
     parser = optparse.OptionParser()
-    parser.add_option('-d', '--dir', dest='dir', default='bin/tests', help='nittest binary location default bin/tests')
+    parser.add_option('-d', '--dir', dest='dir', default='bin/tests', help='unittest binary location default bin/tests')
     parser.add_option('-x', '--xml-output', dest='xml_outfile', default='', help='filename for xml output')
     parser.add_option('-c', '--clean', action='store_true', dest='clean', default = False)
     parser.add_option('--electricfence', action='store_true', dest='electricfence', default = False, help='link against electric fence lib')
