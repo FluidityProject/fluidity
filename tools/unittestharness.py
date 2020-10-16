@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import os
-import os.path
+import re
 import glob
 import time
 import shutil
@@ -83,6 +83,7 @@ class UnitTestHarness:
         self.xml_outfile = xml_outfile
         self.xml_reports = []
         self.cwd = os.getcwd()
+        self.dir = dir
 
         if dir[-1] == '/': dir = dir + "*"
         else: dir = dir + "/*"
@@ -113,7 +114,26 @@ class UnitTestHarness:
 
             # Discard relative path characters
             test_name = test.exe[2:]
-            classname = f'unittest.{test_name}'
+
+            # Get the location of the test
+            # If it is a symlink get its original location in a relative path
+            root_test_dir = ''
+            t_path = os.path.join(self.cwd, self.dir, test_name)
+            if os.path.islink(t_path):
+                t_path = os.readlink(t_path)
+
+            # This relies on the unittests being placed in a tests/ directory
+            root_test_dir = ''
+            # If symlink, path is relative, clean and extract substring between
+            # the last ./ and /tests/
+            try:
+                root_test_dir = re.search('.+/(.+?)/tests/', t_path).group(1)
+            # Not a symlink, so try and derive from binary dir location
+            except AttributeError:
+                root_test_dir = re.search('(.+?)/tests/', self.dir).group(1)
+            except:
+                root_test_dir = 'unknown-test-root'
+            classname = f'unittest.{root_test_dir}.{test_name}'
 
             if (P, W, F) == (0, 0, 0):
                 msg = "    WARNING: no output from test"
