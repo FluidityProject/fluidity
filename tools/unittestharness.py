@@ -28,8 +28,23 @@ except ImportError:
             pass
 
 
-def unitTestHarness(testsPath, xml_outfile):
-    tests = testsPath.glob('test*')
+def unitTestHarness(testsPath, unittest, from_file, xml_outfile):
+
+    tests = []
+    if unittest is not None:
+        tests = [testsPath / unittest]
+    elif from_file is not None:
+        # Does not verify that the test exists. It only parses it to a list.
+        # If the test does not exist, the unittestharness will simply skip it.
+        try:
+            with open(from_file, 'r') as f:
+                tests = [testsPath / t for t in f.read().splitlines()]
+        except IOError:
+            sys.stderr.write(f'Could not read file: {from_file}\n')
+            sys.exit(1)
+    else:
+        tests = testsPath.glob('test*')
+
     xmlParser = TestSuite('UnitTestHarness')
     # Pass, Warn and Fail are defined in femtools/Unittest_tools.F90
     # Make sure any change there is reflected here
@@ -118,6 +133,10 @@ parser = argparse.ArgumentParser(
     description='''Fluidity UnitTestHarness''')
 parser.add_argument('-d', '--dir', default='bin/tests', metavar='',
                     help="UnitTest binary location - defaults to 'bin/tests'")
+parser.add_argument("-t", "--test", dest="unittest",
+                    help="run a single unittest (by test name)", default=None)
+parser.add_argument("--from-file", dest="from_file", default=None,
+                    help="run tests listed in FROM_FILE (one test per line)")
 parser.add_argument('-x', '--xml-output', metavar='',
                     help='Where to store the xml output')
 parser.add_argument('-c', '--clean', action='store_true',
@@ -150,4 +169,4 @@ testsDir = pyPath / f'../{args.dir}'
 if args.clean and testsDir.is_dir():
     rmtree(testsDir)
 else:
-    unitTestHarness(testsDir, args.xml_output)
+    unitTestHarness(testsDir, args.unittest, args.from_file, args.xml_output)
