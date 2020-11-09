@@ -30,7 +30,7 @@ except ImportError:
 
 def unitTestHarness(testsPath, xml_outfile):
     tests = testsPath.glob('test*')
-    xmlParser = TestSuite('UnitTestHarness', [])
+    xmlParser = TestSuite('UnitTestHarness')
     # Pass, Warn and Fail are defined in femtools/Unittest_tools.F90
     # Make sure any change there is reflected here
     testsResults = {'Pass': Counter(), 'Warn': Counter(), 'Fail': Counter()}
@@ -44,15 +44,16 @@ def unitTestHarness(testsPath, xml_outfile):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         wallTime = time.process_time() - begin
 
-        className = f'unittest.{test.resolve().parts[-3]}.{test.name}'
+        testId = f'unittest.{test.resolve().parts[-3]}.{test.name}'
 
         if testProc.stderr:
             if re.search(r'^\s*error[:\s]', testProc.stderr,
                          re.IGNORECASE | re.MULTILINE):
                 print(f'ERROR: {test.name} failed')
                 errorList.append(test.name)
-                xmlEntry = TestCase('', className, wallTime)
-                xmlEntry.add_error_info(output=testProc.stderr)
+                xmlEntry = TestCase('', classname=testId,
+                                    elapsed_sec=wallTime, status='Error')
+                xmlEntry.add_error_info(message=testProc.stderr)
                 xmlParser.test_cases.append(xmlEntry)
                 continue
 
@@ -70,25 +71,29 @@ def unitTestHarness(testsPath, xml_outfile):
             try:
                 testMsg = re.search(r'(?<=\[).+(?=\])', testOutput).group()
             except AttributeError:
-                # Could be ugly in the case of a Warn or a Fail
-                testMsg = testOutput[6:]
+                testMsg = testOutput[6:].split('; error:')[0]
 
-            xmlEntry = TestCase(testMsg, className, wallTime)
+            xmlEntry = TestCase(testMsg, classname=testId,
+                                elapsed_sec=wallTime, status=testOutput[:4])
 
             try:
                 failMsg = re.search('(?<=error:).+', testOutput).group()
                 if not failMsg.lstrip():
                     failMsg += 'Empty message'
-                xmlEntry.add_failure_info(message=failMsg.lstrip())
+                if testOutput[:4] == 'Warn':
+                    xmlEntry.add_failure_info(message=failMsg.lstrip(),
+                                              failure_type='warning')
+                else:
+                    xmlEntry.add_failure_info(message=failMsg.lstrip())
             except AttributeError:
                 pass
 
             if testProc.stderr:
-                xmlEntry.add_error_info(output=testProc.stderr,
+                xmlEntry.add_error_info(message=testProc.stderr,
                                         error_type='warning')
 
             if otherOut:
-                xmlEntry.add_skipped_info(message=otherOut[:-1])
+                xmlEntry.stdout = otherOut[:-1]
                 otherOut = ''
 
             xmlParser.test_cases.append(xmlEntry)
@@ -101,6 +106,7 @@ def unitTestHarness(testsPath, xml_outfile):
 \t\t{list(testsResults['Fail'].keys())}\n
 \tErrors: {len(errorList)}
 \t\t{errorList}''')
+
     if xml_outfile is not None:
         with open(xml_outfile, 'w') as fid:
             xmlParser.to_file(fid, [xmlParser])
