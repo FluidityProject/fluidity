@@ -1,7 +1,7 @@
 pipeline {
     agent { 
         docker {
-            image "fluidity/baseimages:bionic-python3"
+            image "fluidity/baseimages:bionic"
             label 'dockerhost'
         } 
     }
