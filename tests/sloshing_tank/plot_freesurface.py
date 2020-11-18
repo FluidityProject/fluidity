@@ -5,7 +5,6 @@ import ana_sol
 
 import sys
 import math
-import commands
 import matplotlib.pyplot as plt
 import getopt
 
