@@ -494,7 +494,7 @@ endif
 
 unittest: build_unittest
 	@echo "RUN bin/tests"
-	@bin/unittestharness -d bin/tests -x unittest_results.xml
+	@bin/unittestharness -d bin/tests -x tests/test_results_unittests.xml
 
 bin/spud-preprocess:
 	@echo "Installing spudtools"

@@ -29,7 +29,6 @@ pipeline {
                 sh 'make unittest -j8' ;
                 sh 'make THREADS=8 test' ;
                 sh 'make THREADS=8 mediumtest'
-                junit 'unittest_results.xml'
                 junit 'tests/test_result*xml'
             }
         }
