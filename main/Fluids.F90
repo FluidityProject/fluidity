@@ -74,9 +74,8 @@ module fluids_module
   use sediment_diagnostics, only: calculate_sediment_flux
   use dqmom
   use diagnostic_fields_wrapper
-  use particle_diagnostics, only: initialise_particle_diagnostics, update_particle_diagnostics, &
-       initialise_constant_particle_diagnostics, initialise_particle_diagnostic_fields_post_adapt, &
-       particle_cv_check
+  use particle_diagnostics, only: calculate_diagnostic_fields_from_particles, calculate_particle_material_fields, &
+       initialise_constant_particle_diagnostics, particle_cv_check
   use checkpoint
   use goals
   use adaptive_timestepping
@@ -232,7 +231,7 @@ contains
     call get_option("/timestepping/nonlinear_iterations/tolerance", &
          & nonlinear_iteration_tolerance, default=0.0)
 
-    !Initialise positions of particles before adapt_at_first_timestep
+    ! Initialise positions of particles before adapt_at_first_timestep
     call initialise_particles(filename, state)
     
     if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
@@ -339,18 +338,20 @@ contains
     ! Initialise multimaterial fields:
     call initialise_diagnostic_material_properties(state)
 
-    !Spawn particles to specified meshes
+    ! Spawn particles to specified meshes
     call particle_cv_check(state)
 
-    !Initialise MVF fields based on particles:
+    ! Initialise MVF fields based on particles:
     call initialise_constant_particle_diagnostics(state)
+    call calculate_particle_material_fields(state)
     
     ! Calculate diagnostic variables:
     call calculate_diagnostic_variables(state)
     call calculate_diagnostic_variables_new(state)
 
-    !Initialise particle attributes and dependent fields
-    call initialise_particle_diagnostics(state)
+    ! Initialise particle attributes and dependent fields
+    call update_particle_attributes_and_fields(state, current_time, dt)
+    call calculate_diagnostic_fields_from_particles(state)
     
     ! This is mostly to ensure that the photosynthetic radiation
     ! has a non-zero value before the first adapt.
@@ -743,11 +744,13 @@ contains
 !          call melt_surf_calc(state(1))
 !       end if
 
-       !Call move and write particles
+       ! Call move and write particles
        call move_particles(state, dt)
        call initialise_particles_during_simulation(state, current_time)
        call particle_cv_check(state)
-       call update_particle_diagnostics(state, current_time, dt)
+       call update_particle_attributes_and_fields(state, current_time, dt)
+       call calculate_particle_material_fields(state)
+       call calculate_diagnostic_fields_from_particles(state)
        call write_particles_loop(state, timestep, current_time)
        
        ! calculate and write diagnostics before the timestep gets changed
@@ -994,7 +997,8 @@ contains
 
     !Diagnostic fields based on particles
     call particle_cv_check(state)
-    call initialise_particle_diagnostic_fields_post_adapt(state)
+    call calculate_particle_material_fields(state)
+    call calculate_diagnostic_fields_from_particles(state)
  
     ! Diagnostic fields
     call calculate_diagnostic_variables(state)

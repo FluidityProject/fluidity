@@ -253,9 +253,11 @@ contains
       
       do i = 1,size(state)
         sfield=>extract_scalar_field(state(i),'MaterialVolumeFraction',stat)
-        diagnostic=(have_option(trim(sfield%option_path)//'/diagnostic/algorithm::Internal'))
-        if ( (stat==0).and.(.not. aliased(sfield)).and.(.not.diagnostic)) then
-          call addto(sumvolumefractions, sfield)
+        if (stat==0) then 
+           diagnostic=(have_option(trim(sfield%option_path)//'/diagnostic/algorithm::Internal'))
+           if (.not. aliased(sfield) .and. .not. diagnostic) then
+              call addto(sumvolumefractions, sfield)
+           end if
         end if
       end do
       

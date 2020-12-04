@@ -105,6 +105,10 @@ module detector_data_types
      !! Pointers for detector linked lists
      TYPE (detector_type), POINTER :: next=> null()
      TYPE (detector_type), POINTER :: previous=> null()
+     !! Pointers to temporary linked lists used during spawning and deleting.
+     !! These lists are used to form temporary linked lists within Particle_Diagnostics.F90
+     !! Temporary linked lists are created per control volume to allow for easy looping
+     !! over particle within that control volume during spawning and deleting.
      TYPE (detector_type), POINTER :: temp_next => null()
      TYPE (detector_type), POINTER :: temp_previous => null()
   end type detector_type
@@ -142,7 +146,9 @@ module detector_data_types
      integer :: num_sfields = 0   ! Total number of scalar fields across all phases
      integer :: num_vfields = 0   ! Total number of vector fields across all phases
 
-     !! Total number of arrays stored for attributes and fields on a particle subgroup
+     !! Total number of parameters which are stored on particles. First dimension indicates
+     !! number of attributes stored, second dimension indicates number of old_attributes
+     !! stored, third dimension indicates number of old_fields stored.
      integer, dimension(3) :: total_attributes
      !! Whether attributes should be written or not
      type(attr_write_type) :: attr_write

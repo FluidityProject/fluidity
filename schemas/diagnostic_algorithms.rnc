@@ -105,9 +105,9 @@ internal_algorithm =
       ## within the Particle_Diagnostics.F90 routine, and set via the ratio method.
       element algorithm {
          attribute name { "from_particles" },
-	 attribute material_phase_support { "multiple" },
+         attribute material_phase_support { "multiple" },
 	 (
-	    ## Particle group used for calculation of diagnostic field.
+            ## Particle group used for calculation of diagnostic field.
             element particle_group {
 	       attribute name { xsd:string },
 	       (

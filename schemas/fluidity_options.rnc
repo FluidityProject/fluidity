@@ -266,18 +266,18 @@ start =
                }?
             }?
          },
-         ## Particle options. Lagrangian particles which move with a specified velocity field.
+         ## Options for particles, Lagrangian particles which move with a specified velocity field.
          ## In addition, particles can carry attributes, being properties of the particles. These attributes
          ## can be constant, or based on a python expression that depends on other attribute values, at the end
          ## of the previous timestep, or field values interpolated at the particle location. Attributes values
-	 ## can be interpolated back onto the (Eulerian) mesh through the diagnostic algorithm from_particles.
-	 ## Options can also be set to spawn and delete particles when the number of particles within a control
-	 ## volume either exceeds or falls below a specified threshold value.
+         ## can be interpolated back onto the (Eulerian) mesh through the diagnostic algorithm from_particles.
+         ## Options can also be set to spawn and delete particles when the number of particles within a control
+         ## volume either exceeds or falls below a specified threshold value.
          element particles {
             (
                ## Particle groups containing multiple particle arrays or subgroups. The particle group specifies
                ## particle IO options, as well as common attributes carried per particle subgroup for diagnostic
-	       ## calculations and spawning and deleting options.
+               ## calculations and spawning and deleting options.
                element particle_group {
                   attribute name { xsd:string },
 		  element particle_io {
@@ -326,7 +326,7 @@ start =
                       element wall_time_dump_period {
                           real
                       }?
-		  }?,
+                  }?,
                   ## Options for spawning and deleting particles based on the minimum and maximum limits of
 		  ## particles per control volume. Also contains options for the location of spawned particles,
 		  ## the calculation of their attribute values, and spawning caps per particle subgroup.
@@ -383,7 +383,7 @@ start =
 		     }?
                   }?,
                   ## Particle subgroup arrays specified within a particle group. Particle attribute values are specified per
-		  ## subgroup, although all subgroups should be set to carry the same attribute names if it is desired to calculate
+                  ## subgroup, although all subgroups should be set to carry the same attribute names if it is desired to calculate
 		  ## a diagnostic field from_particles. Subgroups can have different initial positions specified via a python
 		  ## function or from a file.
                   element particle_subgroup {
@@ -391,31 +391,27 @@ start =
                      (
                         ##Initial position of particles
                         element initial_position {
-			   (
-                              ## Python function prescribing dimensional vector input. Functions should be of the form:
-                              ##
-                              ##  def val(t):
-                              ##     # Function code
-                              ##     return # Return value
-                              ##
-                              ## The return value must have length number_of_particles.
-                              ##
-                              ## *** IMPORTANT NOTE ***
-                              ##
-                              ## The t argument is not used here. To spawn with t dependence use initialise_during_simulation option below.
-                              element python {
-                                 python_code
-                              }|
-                              ## File containing the particle positions in binary form
-                              element from_file {
-			         (
-				    attribute file_name { xsd:string },
-				    element number_of_particles {
-				       integer
-				    }
-				 )
+                           ## Python function prescribing dimensional vector input. Functions should be of the form:
+                           ##
+                           ##  def val(t):
+                           ##     # Function code
+                           ##     return # Return value
+                           ##
+                           ## The return value must have length number_of_particles.
+                           ##
+                           ## *** IMPORTANT NOTE ***
+                           ##
+                           ## The t argument is not used here. To spawn with t dependence use initialise_during_simulation option below.
+                           element python {
+                              python_code
+                           }|
+                           ## File containing the particle positions in binary form
+                           element from_file {
+                              attribute file_name { xsd:string },
+                              element number_of_particles {
+				 integer
                               }
-			   )
+                           }
 			},
 			element initialise_during_simulation {
 			   ## Python function prescribing dimensional vector input. Functions should be of the form:
@@ -428,7 +424,7 @@ start =
                            ##
                            ## *** IMPORTANT NOTE ***
                            ##
-                           ## This function will only be called after simulation start. To initialise starting positions use initial_position option above.
+                           ## This function will only be called after simulation start. To initialise starting positions use the initial_position option above.
                            element python {
                               python_code
 			   }
@@ -465,7 +461,7 @@ start =
 				 ## Do not output this attribute to file
 				 element exclude_from_output {
 				     empty
-				 }?,
+                                 }?,
                                  generic_vector_particle_attribute_choice
 			      }|
 			      ##Vector particle attribute array.
@@ -476,8 +472,8 @@ start =
 				 },
 				 ## Do not output this attribute to file
 				 element exclude_from_output {
-				     empty
-				 }?,
+                                    empty
+                                 }?,
                                  generic_vector_particle_attribute_array
 			      }|
 			      ##Tensor particle attribute.
@@ -485,8 +481,8 @@ start =
                                  attribute name { xsd:string },
 				 ## Do not output this attribute to file
 				 element exclude_from_output {
-				     empty
-				 }?,
+		                    empty
+                                 }?,
                                  generic_tensor_particle_attribute_choice
 		              }|
 			      ##Tensor particle attribute array.
@@ -508,7 +504,7 @@ start =
                }+
             )*,
             ## Options for particles being advected outside the computational domain.
-	    element moving_outside_domain {
+            element moving_outside_domain {
                ## By default Fluidity will delete particles if they move outside the domain.
                element delete_outside_domain {
                   empty

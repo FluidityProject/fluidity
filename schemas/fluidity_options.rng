@@ -327,7 +327,7 @@ NOTE: Requires -v2</a:documentation>
       </element>
       <optional>
         <element name="particles">
-          <a:documentation>Particle options. Lagrangian particles which move with a specified velocity field.
+          <a:documentation>Options for particles, Lagrangian particles which move with a specified velocity field.
 In addition, particles can carry attributes, being properties of the particles. These attributes
 can be constant, or based on a python expression that depends on other attribute values, at the end
 of the previous timestep, or field values interpolated at the particle location. Attributes values
@@ -513,7 +513,7 @@ The return value must have length number_of_particles.
 
 *** IMPORTANT NOTE ***
 
-This function will only be called after simulation start. To initialise starting positions use initial_position option above.</a:documentation>
+This function will only be called after simulation start. To initialise starting positions use the initial_position option above.</a:documentation>
                             <ref name="python_code"/>
                           </element>
                         </element>

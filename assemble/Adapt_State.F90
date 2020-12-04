@@ -62,8 +62,9 @@ module adapt_state_module
   use fefields
   use adaptive_timestepping
   use detector_parallel
+  use particles, only: update_particle_attributes_and_fields
   use diagnostic_variables
-  use particle_diagnostics, only: initialise_constant_particle_diagnostics, initialise_particle_diagnostics
+  use particle_diagnostics, only: initialise_constant_particle_diagnostics, calculate_diagnostic_fields_from_particles
   use checkpoint
   use edge_length_module
   use boundary_conditions_from_options
@@ -974,7 +975,7 @@ contains
     type(mesh_type), pointer :: old_mesh
     type(tensor_field) :: metric
     type(vector_field), pointer :: output_positions
-    real :: dt
+    real :: dt, current_time
 
     ewrite(1, *) "In adapt_state_first_timestep"
 
@@ -996,12 +997,14 @@ contains
       call calculate_diagnostic_variables_new(states)
 
       !Set particle attributes and dependent fields
-      call initialise_particle_diagnostics(states)
+      call get_option("/timestepping/timestep", dt)
+      call get_option("/timestepping/current_time", current_time)
+      call update_particle_attributes_and_fields(states, current_time, dt)
+      call calculate_diagnostic_fields_from_particles(states)
 
       call enforce_discrete_properties(states)
       if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then
         ! doing this here helps metric advection get the right amount of advection
-        call get_option("/timestepping/timestep", dt)
         call calc_cflnumber_field_based_dt(states, dt, force_calculation = .true.)
         call set_option("/timestepping/timestep", dt)
       end if
@@ -1178,7 +1181,7 @@ contains
         call get_registered_detector_lists(detector_list_array)
         ! Check if particle elements exist on this processor, pack to other processor if not
         do j = 1, size(detector_list_array)
-           call l2_halo_detectors(detector_list_array(j)%ptr, old_positions, states(1))
+           call distribute_detectors(states(1), detector_list_array(j)%ptr, old_positions)
         end do
 
       end if

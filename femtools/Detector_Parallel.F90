@@ -49,8 +49,7 @@ module detector_parallel
 
   public :: distribute_detectors, exchange_detectors, register_detector_list, &
             get_num_detector_lists, get_registered_detector_lists, &
-            deallocate_detector_list_array, sync_detector_coordinates, &
-            l2_halo_detectors
+            deallocate_detector_list_array, sync_detector_coordinates
 
   type(detector_list_ptr), dimension(:), allocatable, target, save :: detector_list_array
   integer :: num_detector_lists = 0
@@ -511,40 +510,5 @@ contains
     end if
 
   end subroutine sync_detector_coordinates
-
-  subroutine l2_halo_detectors(detector_list, positions, state)
-    !Routine to check if detectors exist within l2 halos
-    !pack and send detectors to other processor if they do
-
-    type(state_type), intent(in) :: state
-    type(detector_linked_list), intent(inout) :: detector_list
-    type(vector_field), intent(in) :: positions
-
-    type(detector_type), pointer :: detector
-    integer :: i, val, ierr
-    integer, dimension(:), allocatable :: proc_set
-    logical :: set
-
-    ewrite(2,*) "In l2_halo_detectors"
-    
-    detector => detector_list%first
-    val=0
-    if (associated(detector)) then
-       val=1
-    end if
-    allocate(proc_set(getnprocs()))
-    call mpi_allgather(val, 1, getPINTEGER(), proc_set, 1, getPINTEGER(), MPI_COMM_FEMTOOLS, ierr)
-    assert(ierr == MPI_SUCCESS)
-    do i = 1, size(proc_set)
-       if (proc_set(i)==1) then
-          call mpi_bcast(detector_list%total_attributes, 3, getPINTEGER(), i-1, MPI_COMM_FEMTOOLS, ierr)
-          assert(ierr == MPI_SUCCESS)
-          exit
-       end if
-    end do
-    
-    call distribute_detectors(state, detector_list, positions)
-
-  end subroutine l2_halo_detectors
 
 end module detector_parallel

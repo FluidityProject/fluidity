@@ -572,7 +572,7 @@ contains
 
   subroutine halo_accumulate_array_real_star(halo, real_data, block_size)
     !!< For nodes that are seen by one or more other processors (recv nodes on these processes)
-    !!< add the contributions they have stored for these recv nodes to the correpsonding entry
+    !!< add the contributions they have stored for these recv nodes to the corresponding entry
     !!< of the corresponding send node on the owner of the node. Note, that this is a reverse
     !!< communication pattern, where contributions from recv nodes are send to send nodes
     type(halo_type), intent(in) :: halo
