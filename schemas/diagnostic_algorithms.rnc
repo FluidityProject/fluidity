@@ -119,7 +119,7 @@ internal_algorithm =
 	          element particle_attribute_array {
 	             attribute name { xsd:string },
 		     ## Integer value corresponding to attribute position in array (starts from 1).
-		     element integer_value {
+		     element attribute_int {
 		        integer
 		     }
 	          }

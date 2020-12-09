@@ -225,8 +225,8 @@ module particle_diagnostics
           ewrite(2,*) "Calculate diagnostic field from particle group: ", trim(lgroup), ", attribute: ", trim(lattribute)
        else if (have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/particle_group/particle_attribute_array")) then
           call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/particle_group/particle_attribute_array/name", lattribute)
-          call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/particle_group/particle_attribute_array/integer_value", att_n)
-          ewrite(2,*) "Calculate diagnostic field from particle group: ", trim(lgroup), ", attribute_array: ", trim(lattribute), ", integer_value: ", att_n
+          call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/particle_group/particle_attribute_array/attribute_int", att_n)
+          ewrite(2,*) "Calculate diagnostic field from particle group: ", trim(lgroup), ", attribute_array: ", trim(lattribute), ", attribute_int: ", att_n
        end if
     else
        ewrite(2,*) "Calculate diagnostic field from number of particles on particle group: ", trim(lgroup)
