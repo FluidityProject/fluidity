@@ -797,9 +797,9 @@ module particle_diagnostics
              !randomly select local coords within input radius around parent particle
              !ensuring new particle falls within cv
              do while (.not. coords_set)
-                rand_lcoord=0
                 rand_set=.false.
                 do while (.not. rand_set)
+                   rand_lcoord=0
                    call random_number(rand_val)
                    k = 1 + floor(size(node_coord)*rand_val) !randomly select a local_coord to be sum of other coords
                    do i = 1,size(node_coord)
