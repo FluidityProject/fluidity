@@ -990,6 +990,14 @@ contains
       call copy_to_stored_values(states,"Iterated")
       call relax_to_nonlinear(states)
 
+      call enforce_discrete_properties(states)
+      if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then
+        ! doing this here helps metric advection get the right amount of advection
+        call get_option("/timestepping/timestep", dt)
+        call calc_cflnumber_field_based_dt(states, dt, force_calculation = .true.)
+        call set_option("/timestepping/timestep", dt)
+      end if
+
       !Set constant particle attributes and MVF fields based on particles
       call initialise_constant_particle_diagnostics(states)
 
@@ -997,17 +1005,9 @@ contains
       call calculate_diagnostic_variables_new(states)
 
       !Set particle attributes and dependent fields
-      call get_option("/timestepping/timestep", dt)
       call get_option("/timestepping/current_time", current_time)
       call update_particle_attributes_and_fields(states, current_time, dt)
       call calculate_diagnostic_fields_from_particles(states)
-
-      call enforce_discrete_properties(states)
-      if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then
-        ! doing this here helps metric advection get the right amount of advection
-        call calc_cflnumber_field_based_dt(states, dt, force_calculation = .true.)
-        call set_option("/timestepping/timestep", dt)
-      end if
 
       ! Form the new metric
       old_mesh => extract_mesh(states(1), topology_mesh_name)

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from math import log, sqrt, pi
 
 # List of constant values for simulations:

@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -31,11 +31,11 @@ module detector_data_types
 
   use fldebug
   use global_parameters, only : FIELD_NAME_LEN
-  
+
   implicit none
-  
+
   private
-  
+
   public :: detector_type, rk_gs_parameters, detector_linked_list, &
             detector_list_ptr, stringlist, attr_names_type, attr_write_type, field_phase_type, &
             allocate, deallocate
@@ -103,14 +103,14 @@ module detector_data_types
      !! Have we completed the search?
      logical :: search_complete
      !! Pointers for detector linked lists
-     TYPE (detector_type), POINTER :: next=> null()
-     TYPE (detector_type), POINTER :: previous=> null()
+     type (detector_type), pointer :: next=> null()
+     type (detector_type), pointer :: previous=> null()
      !! Pointers to temporary linked lists used during spawning and deleting.
      !! These lists are used to form temporary linked lists within Particle_Diagnostics.F90
      !! Temporary linked lists are created per control volume to allow for easy looping
      !! over particle within that control volume during spawning and deleting.
-     TYPE (detector_type), POINTER :: temp_next => null()
-     TYPE (detector_type), POINTER :: temp_previous => null()
+     type (detector_type), pointer :: temp_next => null()
+     type (detector_type), pointer :: temp_previous => null()
   end type detector_type
 
   ! Parameters for lagrangian detector movement

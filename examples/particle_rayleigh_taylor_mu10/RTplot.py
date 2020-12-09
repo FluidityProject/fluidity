@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # This sript plots up the RMS velocity:
 import matplotlib.pyplot as pylab
 import numpy

@@ -35,7 +35,7 @@ module particle_diagnostics
   use spud
   use parallel_tools, only: getnprocs, allsum, getprocno
   use elements, only: eval_shape
-  use fields_base, only: ele_val, ele_loc, node_val
+  use fields_base, only: ele_val, ele_loc, node_val, eval_field
   use parallel_fields, only: node_owned
   use fields_calculations, only: dot_product
   use fields
@@ -48,7 +48,7 @@ module particle_diagnostics
   use detector_tools, only: temp_list_insert, insert, allocate, deallocate, temp_list_deallocate, &
        & remove, temp_list_remove
   use particles, only : get_particle_arrays, initialise_constant_particle_attributes, &
-       & update_particle_attributes_and_fields, get_particle_arrays
+       & update_particle_attributes_and_fields, get_particle_arrays, particle_lists
   use multimaterial_module, only: calculate_sum_material_volume_fractions
 
   implicit none
@@ -65,7 +65,6 @@ module particle_diagnostics
     !subroutine to initialise constant particle attributes and
     !MVF fields if 'from_particles'
 
-    use particles, only: particle_lists
     type(state_type), dimension(:), intent(inout) :: state
 
     character(len = OPTION_PATH_LEN) :: group_path, subgroup_path
@@ -76,7 +75,7 @@ module particle_diagnostics
 
     type(detector_type), pointer :: particle
 
-    ewrite(2,*) "In initialise_constant_particle_diagnostics"
+    ewrite(1,*) "In initialise_constant_particle_diagnostics"
 
     !Check if there are particles
     particle_groups = option_count("/particles/particle_group")
@@ -120,7 +119,7 @@ module particle_diagnostics
     integer :: i, k
     integer :: particle_groups
 
-    ewrite(2,*) "In calculate_diagnostic_fields_from_particles"
+    ewrite(1,*) "In calculate_diagnostic_fields_from_particles"
     !Check if there are particles
     particle_groups = option_count("/particles/particle_group")
 
@@ -147,54 +146,8 @@ module particle_diagnostics
           end if
        end do
     end do
-    
+
   end subroutine calculate_diagnostic_fields_from_particles
-
-  subroutine update_particle_diagnostics(state, time, dt)
-    !!Routine to loop over particle arrays and update particle attributes
-    !!and diagnostic fields which depend on particles
-    type(state_type), dimension(:), intent(inout) :: state
-    real, intent(in) :: time
-    real, intent(in) :: dt
-    type(scalar_field), pointer :: s_field
-    character(len = OPTION_PATH_LEN) :: name
-
-    integer :: i, k, particle_materials
-    integer :: particle_groups
-
-    !Check whether there are any particles.
-    particle_groups = option_count("/particles/particle_group")
-
-    if (particle_groups==0) return
-
-    !Update particle attributes
-    call update_particle_attributes_and_fields(state, time, dt)
-
-    call profiler_tic("update_particle_diagnostic_fields")
-
-    particle_materials = option_count("/material_phase/scalar_field::MaterialVolumeFraction/diagnostic/algorithm::from_particles")
-    if (particle_materials>0) then
-       !Update MaterialVolumeFraction fields dependent on particles
-       call calculate_particle_material_fields(state)
-    end if
-
-    !Update diagnostic fields with algorithm "from_particles" or "number_of_particles"
-    do i = 1,size(state)
-       do k = 1,scalar_field_count(state(i))
-          s_field => extract_scalar_field(state(i),k)
-          if (have_option(trim(s_field%option_path)//"/diagnostic/algorithm::from_particles")) then
-             call get_option(trim(s_field%option_path)//"/name", name)
-             if (name=="MaterialVolumeFraction") cycle
-             call calculate_field_from_particles(state, i, s_field)
-          else if (have_option(trim(s_field%option_path)//"/diagnostic/algorithm::number_of_particles")) then
-             call calculate_field_from_particles(state, i, s_field)
-          end if
-       end do
-    end do
-
-    call profiler_toc("update_particle_diagnostic_fields")
-
-  end subroutine update_particle_diagnostics
 
   subroutine calculate_particle_material_fields(state)
     !subroutine to initialise MVF fields from particles
@@ -232,14 +185,12 @@ module particle_diagnostics
 
   subroutine calculate_field_from_particles(states, state_index, s_field)
 
-    !!Calculate s_field using the ratio method from particles if is_ratio is true
-    !!First determine which particle groups/subgroups/attributes are being used
-    !!Then determine the closest node for each particle and store attribute values
-    !!Finally use the ratio method to calculate field values and place on
+    !!Calculate s_field using the ratio method, or from the number of particles present
+    !!If using the ratio method first determine which particle groups/subgroups/attributes
+    !!are being used, then determine the closest node for each particle and store attribute
+    !!values. Finally use the ratio method to calculate field values and place on
     !!Diagnostic scalar field
-    !!If is_ratio is false, calculates number of particles on each node
 
-    use particles, only: particle_lists
     type(state_type), dimension(:), target, intent(inout) :: states
     integer, intent(in) :: state_index
     type(scalar_field), intent(inout) :: s_field
@@ -257,32 +208,29 @@ module particle_diagnostics
     integer :: nprocs, att_n
     real :: att_value, ratio_val
     character(len= OPTION_PATH_LEN) :: lmethod
-    logical :: is_ratio
+    logical :: from_particles
 
     integer :: group_attribute
     integer, allocatable, dimension(:) :: group_arrays
 
     call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/name", lmethod, default = "from_particles")
 
-    is_ratio = trim(lmethod)=="from_particles"
+    from_particles = trim(lmethod)=="from_particles"
 
     call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/particle_group/name", lgroup)
-    if (is_ratio) then
+    if (from_particles) then
        if (have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/particle_group/particle_attribute")) then
           call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/particle_group/particle_attribute/name", lattribute)
           att_n=0
           ewrite(2,*) "Calculate diagnostic field from particle group: ", trim(lgroup), ", attribute: ", trim(lattribute)
        else if (have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/particle_group/particle_attribute_array")) then
           call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/particle_group/particle_attribute_array/name", lattribute)
-          call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/particle_group/particle_attribute_array/integer_val", att_n)
-          ewrite(2,*) "Calculate diagnostic field from particle group: ", trim(lgroup), ", attribute_array: ", trim(lattribute), ", integer_val: ", att_n
+          call get_option(trim(complete_field_path(s_field%option_path))// "/algorithm/particle_group/particle_attribute_array/integer_value", att_n)
+          ewrite(2,*) "Calculate diagnostic field from particle group: ", trim(lgroup), ", attribute_array: ", trim(lattribute), ", integer_value: ", att_n
        end if
     else
        ewrite(2,*) "Calculate diagnostic field from number of particles on particle group: ", trim(lgroup)
     end if
-
-    !Initialize field as 0
-    s_field%val = 0
 
     xfield=>extract_vector_field(states(1), "Coordinate")
 
@@ -303,7 +251,7 @@ module particle_diagnostics
 
     if (.not. allocated(particle_lists)) return !Particles not yet setup, Initial field value will be 0
     !Particles are initialized, call subroutine to get relevant particle arrays and attributes
-    if (is_ratio) then
+    if (from_particles) then
        call get_particle_arrays(lgroup, group_arrays, group_attribute, att_n=att_n, lattribute=lattribute)
     else
        call get_particle_arrays(lgroup, group_arrays)
@@ -311,14 +259,14 @@ module particle_diagnostics
 
 
     !Allocate arrays to store summed attribute values and particle counts at nodes
-    if (is_ratio) then
+    if (from_particles) then
        allocate(node_values(node_count(s_field)))
        node_values = 0
     end if
     allocate(node_part_count(node_count(s_field)))
     node_part_count = 0
 
-    if (is_ratio .and. have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/interpolation/weighted_distance")) then
+    if (from_particles .and. have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/interpolation/weighted_distance")) then
        !Calculate node values from attributes with the weighted_distance interpolation algorithm
        !Loop over particle arrays
        do i = 1,size(group_arrays)
@@ -345,9 +293,9 @@ module particle_diagnostics
           end if
        end do
 
-    else if (.not. is_ratio .or. have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/interpolation/nearest_neighbour")) then
+    else if (.not. from_particles .or. have_option(trim(complete_field_path(s_field%option_path))// "/algorithm/interpolation/nearest_neighbour")) then
        !Calculate node values from attributes with the nearest neighbour interpolation algorithm
-       !or for the case where we are simply counting the number of particles (if not is_ratio)
+       !or for the case where we are simply counting the number of particles (if not from_particles)
 
        !Loop over particle arrays
        do i = 1,size(group_arrays)
@@ -359,14 +307,14 @@ module particle_diagnostics
              !Get element, local_crds and attribute value of each particle
              element = particle%element
              local_crds = particle%local_coords
-             if (is_ratio) then
+             if (from_particles) then
                 att_value = particle%attributes(group_attribute)
              end if
              !Find nodes for specified element
              nodes => ele_nodes(s_field, element)
              ! work out nearest node based on max. local coordinate
              node_number = nodes(maxloc(local_crds, dim=1))
-             if (is_ratio) then
+             if (from_particles) then
                 !Store particle attribute value on closest node
                 node_values(node_number) = node_values(node_number) + att_value
              end if
@@ -383,23 +331,25 @@ module particle_diagnostics
 
     if (nprocs>1) then
        call halo_accumulate(halo, node_part_count)
-       if (is_ratio) then
+       if (from_particles) then
           call halo_accumulate(halo, node_values)
        end if
     end if
 
-    if (is_ratio) then
+    if (from_particles) then
        !Store value on field (if node has at least one particle)
        where (node_part_count/=0)
           !Determine field value from ratio method
           s_field%val = node_values/node_part_count
+       elsewhere
+          s_field%val = 0
        end where
     else
        !Store number of particles on field
        s_field%val = node_part_count
     end if
 
-    if (is_ratio) then
+    if (from_particles) then
        deallocate(node_values)
     end if
     deallocate(node_part_count)
@@ -431,7 +381,7 @@ module particle_diagnostics
     integer :: n
     real :: radius, cap_percent
 
-    ewrite(2,*) "In particle_cv_check"
+    ewrite(1,*) "In particle_cv_check"
 
     call profiler_tic("particles_spawn_delete")
     !Check if there are particles
@@ -455,24 +405,15 @@ module particle_diagnostics
           call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/max_cv_threshhold", max_thresh)
 
           !Check option for where particles should be spawned within a control volume.
-          if (have_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawn_location/radius")) then
-             have_radius=.true.
-             call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawn_location/radius", radius)
-          else
-             have_radius=.false.
-          end if
+          have_radius = have_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawn_location/radius")
+          if (have_radius) call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawn_location/radius", radius)
 
           !Check option for what algorithm particle_attributes should be calculated with
-          if (have_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawn_attributes/copy_parent_attributes")) then
-             copy_parents=.true.
-          else
-             copy_parents=.false.
-          end if
+          copy_parents = have_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/spawn_attributes/copy_parent_attributes")
 
           !Check option on whether certain particle subgroup spawning should be capped if one subgroup is dominant
-          have_attribute_caps= .false.
-          if (have_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/subgroup_spawning_caps")) then
-             have_attribute_caps=.true.
+          have_attribute_caps = have_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/subgroup_spawning_caps")
+          if (have_attribute_caps) then
              call get_option("/particles/particle_group["//int2str(k-1)//"]/particle_spawning/subgroup_spawning_caps/percentage", cap_percent)
           end if
 
@@ -493,14 +434,14 @@ module particle_diagnostics
   end subroutine particle_cv_check
 
   subroutine spawn_delete_particles(states, mesh, group_arrays, max_thresh, min_thresh, have_radius, radius, copy_parents, cap_percent)
-    use particles, only: particle_lists
+
     !Subroutine to calculate the number of particles in each control volume, and call spawning
     !or deleting routines if threshold limits are broken
     !> Model state structure
     type(state_type), dimension(:), target, intent(in) :: states
     !> Model mesh
     type (mesh_type), intent(in) :: mesh
-    !> Number of particle arrays present
+    !> Indicies in particle_lists present
     integer, dimension(:), intent(in) :: group_arrays
     !> Minimum and maximum control volume particle thresholds
     integer, intent(in) :: min_thresh, max_thresh
@@ -525,11 +466,13 @@ module particle_diagnostics
     type(vector_field), pointer :: xfield
     integer :: i, j, mult
 
+    !Counters to determine the new total number of particles in the relevant linked_list per processor
     integer, allocatable, dimension(:) :: summed_particles, add_particles, remove_particles
+    !Temporary particle counter to determine how many particles have been spawned per group per control volume
     real, dimension(:), allocatable :: temp_part_count
     integer :: total_particles
 
-    ewrite(2,*) "In spawn_delete_particles"
+    ewrite(1,*) "In spawn_delete_particles"
 
     !Get initial fields and number of processors
     xfield=>extract_vector_field(states(1), "Coordinate")
@@ -538,6 +481,7 @@ module particle_diagnostics
        halo => mesh%halos(2)
     end if
     !Get number of nodes on the mesh
+    !NOTE: this has the potential to be very memory intensive, and we should consider improving this data structure
     allocate(node_particles(size(group_arrays),node_count(mesh)))
     allocate(node_part_count(node_count(mesh)))
     node_part_count = 0
@@ -556,7 +500,7 @@ module particle_diagnostics
           !Find nodes for specified element
           nodes => ele_nodes(mesh, element)
 
-          ! work out nearest node based on max. local coordinate
+          !work out nearest node based on max. local coordinate
           node_number = nodes(maxloc(local_crds, dim=1))
 
           !Increase particle count for this node by 1
@@ -614,9 +558,8 @@ module particle_diagnostics
     if (nprocs>1) then
        call halo_accumulate(halo, temp_part_count)
     end if
-    !Update node particle counter and reset dummy counter
+    !Add number of spawned particles on each CV to particle count
     node_part_count = node_part_count(:) + temp_part_count(:)
-    temp_part_count = 0
 
     !Loop over all nodes
     do i = 1,node_count(mesh)
@@ -624,19 +567,12 @@ module particle_diagnostics
        !Delete particles if threshold is broken
        if (node_part_count(i)>(2*max_thresh)) then
           mult = nint(node_part_count(i)*1.0/max_thresh)
-          call multi_delete_particles(mult, temp_part_count(i), node_particles(:,i), group_arrays, summed_particles, cap_percent)
+          call multi_delete_particles(mult, node_particles(:,i), group_arrays, summed_particles, cap_percent)
        else if (node_part_count(i)>max_thresh) then
-          call delete_particles(temp_part_count(i), node_particles(:,i), group_arrays, remove_particles, cap_percent)
+          call delete_particles(node_particles(:,i), group_arrays, remove_particles, cap_percent=cap_percent)
           summed_particles=summed_particles-remove_particles
        end if
     end do
-
-    !Update halos
-    if (nprocs>1) then
-       call halo_accumulate(halo, temp_part_count)
-    end if
-    !Update node particle counter
-    node_part_count(:) = node_part_count(:) + temp_part_count(:)
 
     !Update particle_list parameters
     do j=1,size(group_arrays)
@@ -674,7 +610,7 @@ module particle_diagnostics
     type(detector_linked_list), intent(inout), dimension(:) :: node_particles
     !> Array counting particles on all nodes
     real, intent(inout) :: node_part_count
-    !> Number of particle arrays present
+    !> Indicies in particle_lists present
     integer, intent(in), dimension(:) :: group_arrays
     !> Current node number we are working on
     integer, intent(in) :: node_num
@@ -724,12 +660,11 @@ module particle_diagnostics
   subroutine spawn_particles(node_part_count, node_particles, group_arrays, xfield, add_particles, node_num, have_radius, radius, copy_parents, cap_percent)
     !Subroutine to spawn particles in a control volume based off the parent particles present
 
-    use particles, only: particle_lists
     !> Linked list of particles which exist on this node
     type(detector_linked_list), intent(inout), dimension(:) :: node_particles
     !> Array counting particles on all nodes
     real, intent(inout) :: node_part_count
-    !> Number of particle arrays present
+    !> Indicies in particle_lists present
     integer, intent(in), dimension(:) :: group_arrays
     !> Current node number we are working on
     integer, intent(in) :: node_num
@@ -751,12 +686,12 @@ module particle_diagnostics
     type(detector_type), pointer :: temp_part
 
     real, dimension(:), allocatable :: node_coord
-    real, dimension(:), allocatable :: weighted_attributes, weighted_old_attributes, weighted_old_fields
+    real, dimension(:), allocatable :: average_attributes, average_old_attributes, average_old_fields
 
     integer, dimension(:), allocatable :: node_numbers, ele_num_part
     integer, dimension(:), pointer :: ele_nums
     integer :: id, group_spawn, ele_spawn, proc_num
-    integer :: j, i, k, l, m
+    integer :: j, i, k, l, m, dim
     logical :: spawn_group, coords_set, rand_set
     real :: max_lcoord, rand_lcoord, sum_coords, rand_val
     real, dimension(:), allocatable :: rand_lcoords
@@ -768,6 +703,8 @@ module particle_diagnostics
     if (present(cap_percent)) then
        spawn_group = .false.
        do i=1,size(group_arrays)
+          !Check if a particle group makes up >= cap_percent of the total particles in the current control volume
+          assert(cap_percent>50)
           if ((((node_particles(i)%length*1.0)/sum(node_particles(:)%length)*1.0)*100)>=cap_percent) then
              spawn_group = .true.
              group_spawn = i
@@ -803,28 +740,28 @@ module particle_diagnostics
        if (present(cap_percent)) then
           if (j/=group_spawn) cycle
        end if
-       !Calculated weighted attribute parameters based on existing particles if
+       !Calculated average attribute parameters based on existing particles if
        !not copying parent attributes when spawning
        if (.not. copy_parents) then
           particle => node_particles(j)%first
           if (associated(particle)) then
-             allocate(weighted_attributes(size(particle%attributes)))
-             allocate(weighted_old_attributes(size(particle%old_attributes)))
-             allocate(weighted_old_fields(size(particle%old_fields)))
-             weighted_attributes = 0
-             weighted_old_attributes = 0
-             weighted_old_fields = 0
+             allocate(average_attributes(size(particle%attributes)))
+             allocate(average_old_attributes(size(particle%old_attributes)))
+             allocate(average_old_fields(size(particle%old_fields)))
+             average_attributes = 0
+             average_old_attributes = 0
+             average_old_fields = 0
           end if
           do while(associated(particle))
-             weighted_attributes = weighted_attributes + particle%attributes
-             weighted_old_attributes = weighted_old_attributes + particle%old_attributes
-             weighted_old_fields = weighted_old_fields + particle%old_fields
+             average_attributes = average_attributes + particle%attributes
+             average_old_attributes = average_old_attributes + particle%old_attributes
+             average_old_fields = average_old_fields + particle%old_fields
              particle => particle%temp_next
           end do
-          if (allocated(weighted_attributes)) then
-             weighted_attributes = weighted_attributes/node_particles(j)%length
-             weighted_old_attributes = weighted_old_attributes/node_particles(j)%length
-             weighted_old_fields = weighted_old_fields/node_particles(j)%length
+          if (allocated(average_attributes)) then
+             average_attributes = average_attributes/node_particles(j)%length
+             average_old_attributes = average_old_attributes/node_particles(j)%length
+             average_old_fields = average_old_fields/node_particles(j)%length
           end if
        end if
 
@@ -835,6 +772,8 @@ module particle_diagnostics
           allocate(node_coord(size(temp_part%local_coords)))
           allocate(node_numbers(size(temp_part%local_coords)))
        end if
+
+       dim = size(node_coord)-1
 
        !Spawn particles
        particle => node_particles(j)%first
@@ -862,28 +801,20 @@ module particle_diagnostics
                 rand_set=.false.
                 do while (.not. rand_set)
                    call random_number(rand_val)
-                   k = 1 + FLOOR(size(node_coord)*rand_val) !randomly select a local_coord to be sum of other coords
+                   k = 1 + floor(size(node_coord)*rand_val) !randomly select a local_coord to be sum of other coords
                    do i = 1,size(node_coord)
                       if (node_numbers(i)==node_num) m=i
                       if (i==k) cycle
                       call random_number(rand_val)
-                      rand_lcoords(i) = (rand_val-0.5)*2*(radius/(size(node_coord)-1)) !perturb each free local_coord by +/- radius/dim
+                      rand_lcoords(i) = (rand_val-0.5)*2*(radius/dim) !perturb each free local_coord by +/- radius/dim
                       rand_lcoord = rand_lcoord + rand_lcoords(i)!sum local coord perturbations
                    end do
                    rand_lcoords(k) = -rand_lcoord !calculate final coord
-                   if (MAXVAL(rand_lcoords)>((radius/(size(node_coord)-1))*0.8)) then !Enforce the new particle to be at least rad/dim * 80% away
+                   if (maxval(rand_lcoords)>((radius/dim)*0.8)) then !Enforce the new particle to be at least rad/dim * 80% away
                       rand_set=.true.
                    end if
                 end do
                 node_coord(:) = particle%local_coords(:) + rand_lcoords(:) !add perturbation to spawned local_coordinates
-                if (sum(node_coord)/=1) then !ensure sum of local_coordinates = 1
-                   sum_coords=0
-                   do i = 1,size(node_coord)
-                      if (i==k) cycle
-                      sum_coords=sum_coords+node_coord(i)
-                   end do
-                   node_coord(k)=1-sum_coords
-                end if
                 coords_set=.true.
                 l = l + 1
                 if ((maxloc(node_coord, 1)/=m).or.node_coord(m)>1.0) then !Not within CV or element, try again
@@ -904,7 +835,7 @@ module particle_diagnostics
                !elements with fewer particles
                !randomly select adjacent element to node
                !Get ele numbers of adjacent elements
-             ele_spawn = MINLOC(ele_num_part, DIM=1)
+             ele_spawn = minloc(ele_num_part, DIM=1)
              temp_part%element = ele_nums(ele_spawn)
              node_numbers(:) = ele_nodes(xfield, ele_nums(ele_spawn))
              call random_number(rand_val)
@@ -915,7 +846,7 @@ module particle_diagnostics
           end if
 
           !Convert local particle coordinates to global coordinates
-          call local_to_global(xfield, temp_part%local_coords, temp_part%element, temp_part%position)
+          temp_part%position = eval_field(temp_part%element, xfield, temp_part%local_coords)
           !Copy parent particle attributes
           if (copy_parents) then
              !Copy parent particle attributes
@@ -923,9 +854,9 @@ module particle_diagnostics
              temp_part%old_attributes(:) = particle%old_attributes(:)
              temp_part%old_fields(:) = particle%old_fields(:)
           else
-             temp_part%attributes(:) = weighted_attributes(:)
-             temp_part%old_attributes(:) = weighted_old_attributes(:)
-             temp_part%old_fields(:) = weighted_old_fields(:)
+             temp_part%attributes(:) = average_attributes(:)
+             temp_part%old_attributes(:) = average_old_attributes(:)
+             temp_part%old_fields(:) = average_old_fields(:)
           end if
           node_part_count = node_part_count + 1
 
@@ -942,10 +873,10 @@ module particle_diagnostics
           deallocate(node_coord)
           deallocate(node_numbers)
        end if
-       if (allocated(weighted_attributes)) then
-          deallocate(weighted_attributes)
-          deallocate(weighted_old_attributes)
-          deallocate(weighted_old_fields)
+       if (allocated(average_attributes)) then
+          deallocate(average_attributes)
+          deallocate(average_old_attributes)
+          deallocate(average_old_fields)
        end if
     end do
     if (allocated(ele_num_part)) deallocate(ele_num_part)
@@ -955,12 +886,11 @@ module particle_diagnostics
   subroutine spawn_zero_particles(node_part_count, node_particles, group_arrays, xfield, add_particles, node_num, max_thresh, copy_parents)
     !Subroutine to spawn particles in a control volume with 0 'parent' particles in the CV
 
-    use particles, only: particle_lists
     !> Linked list of particles which exist on this node
     type(detector_linked_list), intent(inout), dimension(:,:) :: node_particles
     !> Array counting particles on all nodes
     real, intent(inout), dimension(:) :: node_part_count
-    !> Number of particle arrays present
+    !> Indicies in particle_lists present
     integer, intent(in), dimension(:) :: group_arrays
     !> Input position field
     type(vector_field), pointer, intent(in) :: xfield
@@ -993,16 +923,16 @@ module particle_diagnostics
     integer, dimension(:), allocatable :: remove_particles
     integer, dimension(:), allocatable :: length_group
 
-    !Variable arrays to calculated weighted attribute values when not
+    !Variable arrays to calculated average attribute values when not
     !copying attributes from parents
     type VarSizedArray
        real, allocatable :: col(:)
     end type VarSizedArray
-    type(VarSizedArray), allocatable :: weighted_attributes(:)
-    type(VarSizedArray), allocatable :: weighted_old_attributes(:)
-    type(VarSizedArray), allocatable :: weighted_old_fields(:)
+    type(VarSizedArray), allocatable :: average_attributes(:)
+    type(VarSizedArray), allocatable :: average_old_attributes(:)
+    type(VarSizedArray), allocatable :: average_old_fields(:)
 
-    ewrite(2,*) "In spawn_zero_particles"
+    ewrite(1,*) "In spawn_zero_particles"
 
     proc_num = getprocno()
     add_particles = 0
@@ -1020,23 +950,23 @@ module particle_diagnostics
        node_numbers(j,:) = ele_nodes(xfield,ele_nums(j))
     end do
 
-    !Initialise weighted attribute arrays based on particle attributes in
+    !Initialise average attribute arrays based on particle attributes in
     !surrounding elements if not copying parent attributes
     if (.not. copy_parents) then
-       allocate(weighted_attributes(size(group_arrays)))
-       allocate(weighted_old_attributes(size(group_arrays)))
-       allocate(weighted_old_fields(size(group_arrays)))
+       allocate(average_attributes(size(group_arrays)))
+       allocate(average_old_attributes(size(group_arrays)))
+       allocate(average_old_fields(size(group_arrays)))
        allocate(length_group(size(group_arrays)))
        length_group = 0
        do i = 1,size(group_arrays)
           temp_part => particle_lists(group_arrays(i))%last
           if (associated(temp_part)) then
-             allocate(weighted_attributes(i)%col(size(temp_part%attributes)))
-             allocate(weighted_old_attributes(i)%col(size(temp_part%old_attributes)))
-             allocate(weighted_old_fields(i)%col(size(temp_part%old_fields)))
-             weighted_attributes(i)%col(:)=0
-             weighted_old_attributes(i)%col(:)=0
-             weighted_old_fields(i)%col(:)=0
+             allocate(average_attributes(i)%col(size(temp_part%attributes)))
+             allocate(average_old_attributes(i)%col(size(temp_part%old_attributes)))
+             allocate(average_old_fields(i)%col(size(temp_part%old_fields)))
+             average_attributes(i)%col(:)=0
+             average_old_attributes(i)%col(:)=0
+             average_old_fields(i)%col(:)=0
           end if
        end do
     end if
@@ -1058,10 +988,10 @@ module particle_diagnostics
                 end do
                 distance(l) = SQRT(distance(l))
                 ele_val(i,j,k) = ele_val(i,j,k) + 1/distance(l)**2!store distance values for weighting
-                if (.not. copy_parents) then !copy attributes for weighting
-                   weighted_attributes(i)%col(:) = weighted_attributes(i)%col(:) + temp_part%attributes(:)
-                   weighted_old_attributes(i)%col(:) = weighted_old_attributes(i)%col(:) + temp_part%old_attributes(:)
-                   weighted_old_fields(i)%col(:) = weighted_old_fields(i)%col(:) + temp_part%old_fields(:)
+                if (.not. copy_parents) then !copy attributes to take average
+                   average_attributes(i)%col(:) = average_attributes(i)%col(:) + temp_part%attributes(:)
+                   average_old_attributes(i)%col(:) = average_old_attributes(i)%col(:) + temp_part%old_attributes(:)
+                   average_old_fields(i)%col(:) = average_old_fields(i)%col(:) + temp_part%old_fields(:)
                 end if
                 temp_part => temp_part%temp_next
              end do
@@ -1085,10 +1015,10 @@ module particle_diagnostics
     do i = 1,size(group_arrays)!Loop over particle groups
        temp_part => particle_lists(group_arrays(i))%last
        id = particle_lists(group_arrays(i))%proc_part_count
-       if (.not. copy_parents) then !Weight surrounding attributes if not copying from parent
-          weighted_attributes(i)%col(:) = weighted_attributes(i)%col(:)/length_group(i)
-          weighted_old_attributes(i)%col(:) = weighted_old_attributes(i)%col(:)/length_group(i)
-          weighted_old_fields(i)%col(:) = weighted_old_fields(i)%col(:)/length_group(i)
+       if (.not. copy_parents) then !take average of surrounding attributes if not copying from parent
+          average_attributes(i)%col(:) = average_attributes(i)%col(:)/length_group(i)
+          average_old_attributes(i)%col(:) = average_old_attributes(i)%col(:)/length_group(i)
+          average_old_fields(i)%col(:) = average_old_fields(i)%col(:)/length_group(i)
        end if
        !Duplicate parent particles in from surrounding CV's weighting based on distance
        do j = 1,size(ele_nums)!loop over surrounding elements
@@ -1096,15 +1026,15 @@ module particle_diagnostics
              particle => node_particles(i, node_numbers(j,k))%first
              if (node_numbers(j,k)==node_num) cycle !prevent from duplicating particles spawned in this routine
              if (.not. associated(particle)) cycle
-             if (SUM(ele_val(:,j,k))==0) then
+             if (sum(ele_val(:,j,k))==0) then
                 ratio=0
              else
-                ratio = ele_val(i,j,k)/SUM(ele_val(:,j,k))!determine ratio of particles in given CV to all surrounding CV's
+                ratio = ele_val(i,j,k)/sum(ele_val(:,j,k))!determine ratio of particles in given CV to all surrounding CV's
              end if
              !Spawn a number of particle from this CV based on given parameters:
              !maximum particle threshold/4 * 1/number of surrounding elements * ratio
              !of particles in given CV to all surrounding CV's
-             do l = 1,NINT((max_thresh/4.0)*(1.0/size(ele_nums))*ratio)
+             do l = 1,nint((max_thresh/4.0)*(1.0/size(ele_nums))*ratio)
                 temp_part => null()
                 call allocate(temp_part, size(particle%position), size(particle%local_coords), particle_lists(group_arrays(i))%total_attributes)
                 temp_part%id_number = id+1
@@ -1116,22 +1046,22 @@ module particle_diagnostics
                 max_lcoord=rand_val/(1/0.49)+0.51!lcoords for cv range from 0.51<x<1
                 node_coord(:)=1
                 node_coord(k)=0
-                do while (MINLOC(node_coord,DIM=1)==k)
+                do while (minloc(node_coord,DIM=1)==k)
                    call set_spawned_lcoords(max_lcoord, node_coord, node_num, node_numbers(j,:))
                 end do
                 temp_part%local_coords = node_coord
 
                 !Convert newly spawned particle's local coords to global coords
-                call local_to_global(xfield, temp_part%local_coords, temp_part%element, temp_part%position)
+                temp_part%position = eval_field(temp_part%element, xfield, temp_part%local_coords)
                 if (copy_parents) then
                    !Copy parent particle attributes
                    temp_part%attributes(:) = particle%attributes(:)
                    temp_part%old_attributes(:) = particle%old_attributes(:)
                    temp_part%old_fields(:) = particle%old_fields(:)
                 else
-                   temp_part%attributes(:) = weighted_attributes(i)%col(:)
-                   temp_part%old_attributes(:) = weighted_old_attributes(i)%col(:)
-                   temp_part%old_fields(:) = weighted_old_fields(i)%col(:)
+                   temp_part%attributes(:) = average_attributes(i)%col(:)
+                   temp_part%old_attributes(:) = average_old_attributes(i)%col(:)
+                   temp_part%old_fields(:) = average_old_fields(i)%col(:)
                 end if
 
                 node_part_count(node_num) = node_part_count(node_num) + 1
@@ -1155,7 +1085,7 @@ module particle_diagnostics
 
     !Call delete_particles if number of particles now exceeds the maximum threshold
     do while(node_part_count(node_num)>max_thresh)
-       call delete_particles(node_part_count(node_num), node_particles(:,node_num), group_arrays, remove_particles)
+       call delete_particles(node_particles(:,node_num), group_arrays, remove_particles, node_part_count=node_part_count(node_num))
        add_particles(:) = add_particles(:) - remove_particles(:)
     end do
 
@@ -1164,10 +1094,10 @@ module particle_diagnostics
     deallocate(node_numbers)
     deallocate(node_loc)
     deallocate(ele_val)
-    if (allocated(weighted_attributes)) then
-       deallocate(weighted_attributes)
-       deallocate(weighted_old_attributes)
-       deallocate(weighted_old_fields)
+    if (allocated(average_attributes)) then
+       deallocate(average_attributes)
+       deallocate(average_old_attributes)
+       deallocate(average_old_fields)
        deallocate(length_group)
     end if
 
@@ -1199,54 +1129,28 @@ module particle_diagnostics
        tmp_res = tmp_res - work(j)
     end do
     work(size(node_coord)) = tmp_res
-    do i = 1, size(node_coord)
+
+    do i = 1,size(node_coord)
        ! determine the node index corresponding to the
        ! target node number
-       if (node_num /= node_numbers(i)) cycle
-
-       ! set the coordinates according to the permutation for this index
-       do j = 1, size(node_coord)
-          node_coord(j) = work(permutation(j,i))
-       end do
-
+       if (node_num == node_numbers(i)) exit
+    end do
+    assert(i<=size(node_coord))
+    ! set the coordinates according to the permutation for this index
+    do j = 1, size(node_coord)
+       node_coord(j) = work(permutation(j,i))
     end do
 
   end subroutine set_spawned_lcoords
 
-  subroutine local_to_global(coordinates, l_coords, ele_number, global_coord)
-    !Subroutine to convert local coordinates within a specified element
-    !to global coordinates within the model domain
-
-    type(vector_field), pointer, intent(in) :: coordinates
-    real, dimension(:), intent(in) :: l_coords
-    integer, intent(in) :: ele_number
-    real, dimension(:), intent(inout) :: global_coord
-
-    integer :: i
-
-    real, dimension(coordinates%dim,coordinates%dim+1) :: coord_ele
-    real, dimension(coordinates%mesh%shape%loc) :: l_shape
-    real, dimension(coordinates%mesh%shape%quadrature%vertices) :: dum_lcoords
-
-    dum_lcoords = l_coords/sum(l_coords) ! You will already have this setup. Local coordinate array
-    l_shape = eval_shape(coordinates%mesh%shape, dum_lcoords) ! Evaluate shape function at local_coordinates
-    coord_ele=ele_val(coordinates, ele_number) ! global coordinate values of field at nodes of ele_number
-    do i=1,size(global_coord)
-       global_coord(i) = dot_product(l_shape,coord_ele(i,:)) ! should give global coordinates
-    enddo
-
-  end subroutine local_to_global
-
-  subroutine multi_delete_particles(mult, node_part_count, node_particles, group_arrays, summed_particles, cap_percent)
+  subroutine multi_delete_particles(mult, node_particles, group_arrays, summed_particles, cap_percent)
     !Subroutine to call delete particles multiple times based on the mult factor
     !calculated from the current number of particles and the maximum threshold
     !> Factor to determine number of delete_particle calls
     integer, intent(in) :: mult
     !> Linked list of particles which exist on this node
     type(detector_linked_list), intent(inout), dimension(:) :: node_particles
-    !> Array counting particles on all nodes
-    real, intent(inout) :: node_part_count
-    !> Number of particle arrays present
+    !> Indicies in particle_lists present
     integer, intent(in), dimension(:) :: group_arrays
     !> Array to sum deleted particles
     integer, dimension(:), intent(inout) :: summed_particles
@@ -1272,7 +1176,7 @@ module particle_diagnostics
     end do
 
     do i = 1,power
-       call delete_particles(node_part_count, node_particles, group_arrays, remove_particles, cap_percent)
+       call delete_particles(node_particles, group_arrays, remove_particles, cap_percent=cap_percent)
        summed_particles=summed_particles-remove_particles
     end do
 
@@ -1280,20 +1184,19 @@ module particle_diagnostics
 
   end subroutine multi_delete_particles
 
-  subroutine delete_particles(node_part_count, node_particles, group_arrays, remove_particles, cap_percent)
+  subroutine delete_particles(node_particles, group_arrays, remove_particles, cap_percent, node_part_count)
     !Subroutine to delete particles in a control volume based off the number of particles present
 
-    use particles, only: particle_lists
     !> Linked list of particles which exist on this node
     type(detector_linked_list), intent(inout), dimension(:) :: node_particles
-    !> Array counting particles on all nodes
-    real, intent(inout) :: node_part_count
-    !> Number of particle arrays present
+    !> Indicies in particle_lists present
     integer, intent(in), dimension(:) :: group_arrays
     !> Array to sum number of deleted particles per particle group
     integer, dimension(:), intent(inout) :: remove_particles
     !> Parameter to determine if spawning/deleting will be capped per group
     real, optional, intent(in) :: cap_percent
+    !> Array counting number of deleted particles
+    real, optional, intent(inout) :: node_part_count
 
     type(detector_type), pointer :: particle
     type(detector_type), pointer :: temp_part
@@ -1307,6 +1210,8 @@ module particle_diagnostics
     if (present(cap_percent)) then
        delete_group = .false.
        do j=1,size(group_arrays)
+          !Check if a particle group makes up >= cap_percent of the total particles in the current control volume
+          assert(cap_percent>50)
           if ((((node_particles(j)%length*1.0)/sum(node_particles(:)%length)*1.0)*100)>=cap_percent) then
              delete_group = .true.
           end if
@@ -1330,7 +1235,7 @@ module particle_diagnostics
              !Remove from temp list
              call temp_list_remove(particle,node_particles(j))
              remove_particles(j)=remove_particles(j)+1
-             node_part_count = node_part_count - 1
+             if (present(node_part_count)) node_part_count = node_part_count - 1
              call deallocate(particle)
           end if
           if (associated(particle)) then
