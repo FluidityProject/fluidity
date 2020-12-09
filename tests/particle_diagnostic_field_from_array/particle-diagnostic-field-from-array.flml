@@ -249,9 +249,9 @@
         <algorithm name="from_particles" material_phase_support="multiple">
           <particle_group name="Model">
             <particle_attribute_array name="InsideArray">
-              <integer_val>
+              <attribute_int>
                 <integer_value rank="0">2</integer_value>
-              </integer_val>
+              </attribute_int>
             </particle_attribute_array>
           </particle_group>
           <interpolation>
