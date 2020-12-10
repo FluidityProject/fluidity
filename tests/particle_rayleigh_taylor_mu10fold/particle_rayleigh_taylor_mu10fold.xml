@@ -6,8 +6,8 @@
   <tags>flml parallel</tags>
   <problem_definition length="medium" nprocs="4">
     <command_line>    
-mpiexec ../../bin/flredecomp -i 1 -o 4 particle-rayleigh-taylor-mu10 particle-rayleigh-taylor-mu10-flredecomp;      
-mpiexec ../../bin/fluidity -v3 -l particle-rayleigh-taylor-mu10-flredecomp.flml
+mpiexec ../../bin/flredecomp -i 1 -o 4 particle-rayleigh-taylor-mu10fold particle-rayleigh-taylor-mu10fold-flredecomp;      
+mpiexec ../../bin/fluidity -v3 -l particle-rayleigh-taylor-mu10fold-flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>
@@ -47,7 +47,7 @@ print ("Total wall time", Walltime)
   </variables>
   <pass_tests>
     <test name="Maxmrmserror" language="python">
-assert abs(Max_rms_error).max() &lt; 1.0e-5
+assert abs(Max_rms_error).max() &lt; 5.0e-4
     </test>
     <test name="Sqrenterror" language="python">
 assert sqr_ent_error &lt; 1.0e-3

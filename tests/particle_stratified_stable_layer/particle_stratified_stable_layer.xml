@@ -46,7 +46,7 @@ print ("Total wall time", Walltime)
   </variables>
   <pass_tests>
     <test name="Maxmrmserror" language="python">
-assert abs(Max_rms_error).max() &lt; 1.0
+assert abs(Max_rms_error).max() &lt; 1.0e-2
     </test>
     <test name="Sqrenterror" language="python">
 assert sqr_ent_error &lt; 1.0e-3
