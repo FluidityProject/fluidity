@@ -129,8 +129,7 @@ def unitTestHarness(tests, xml_outfile):
                 pass
 
             if testProc.stderr:
-                xmlEntry.add_error_info(message=testProc.stderr,
-                                        error_type='warning')
+                xmlEntry.stderr = testProc.stderr
 
             if otherOut:
                 xmlEntry.stdout = otherOut[:-1]
