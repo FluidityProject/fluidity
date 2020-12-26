@@ -133,7 +133,7 @@ class TestProblem:
         self.log("Running")
 
         run_time=0.0
-        start_time=time.clock()
+        start_time=time.perf_counter()
         wall_time=time.time()
 
         try:
@@ -151,7 +151,7 @@ class TestProblem:
         else:
           self.log(self.command_line)
           os.system("cd "+dir+"; "+self.command_line)
-          run_time=time.clock()-start_time
+          run_time=time.perf_counter()-start_time
 
         self.xml_reports.append(TestCase(self.name,
                                             '%s.%s'%(self.length,
