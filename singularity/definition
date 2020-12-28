@@ -1,0 +1,193 @@
+Bootstrap: library
+From: library/default/ubuntu:focal
+
+%setup
+
+%files
+    vtk9fixes.patch /opt
+    petsc314hack.patch /opt
+
+%post
+    # Set up the package and install environment
+    DEBIAN_FRONTEND=noninteractive
+    PYTHONPATH=${PYTHONPATH}:/opt/fluidity/python:/usr/local/lib/python3.8/site-packages
+    LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+
+    echo "deb http://archive.ubuntu.com/ubuntu/ focal universe" >> /etc/apt/sources.list
+    echo "deb http://archive.ubuntu.com/ubuntu/ focal-updates universe" >> /etc/apt/sources.list
+    echo "deb http://archive.ubuntu.com/ubuntu/ focal-security universe" >> /etc/apt/sources.list
+    echo "Europe/London" > /etc/timezone
+
+    apt-get -y update && apt-get -y dist-upgrade
+
+    # Install as many Fluidity dependencies as possible from system packages
+    apt-get install -y autoconf automake bison cmake flex g++ gfortran \
+         ghostscript git google-perftools libarpack2-dev libblas-dev \
+         libboost-python1.71.0 libexodusii-dev libgl-dev libglib2.0-dev \
+         libglu1-mesa libgmp10 liblapack-dev libmpfr6 libnetcdf-dev \
+         libnetcdff-dev libnetpbm10-dev libqhull-dev libtool libudunits2-dev \
+         libxcursor1 libxml2-utils m4 python3-dev python3-future python3-pip \
+         python3-junit.xml python3-lxml python3-matplotlib python3-numpy \
+         python3-scipy python3-sympy python3-uncertainties tcsh time trang \
+         transfig valgrind
+
+    # Install MPICH - replace with cluster MPI later here
+
+    apt-get -y install mpich
+
+    # Add an editor for debugging purposes
+
+    apt-get -y install vim
+
+    # Now move on to local package installs based on MPICH
+
+    # Set up the HDF5 build environment
+    HDF5_VERSION="1.10.6"
+
+    mkdir /build
+    cd /build
+    curl -L -k -s "https://www.hdfgroup.org/package/hdf5-1-10-6-tar-gz/?wpdmdl=14135&refresh=5e5d12fa8ca571583158010" | tar -zxf -
+    mkdir -p /build/hdf5-${HDF5_VERSION}-build
+    cd /build/hdf5-${HDF5_VERSION}-build
+
+    # Build HDF5
+
+    /build/hdf5-${HDF5_VERSION}/configure --enable-fortran --enable-parallel --prefix=/usr/local
+    make install
+
+    # Set up the PETSc build environment
+
+    PETSC_VERSION=3.14.2
+    PETSC_SOURCEDIR=/build/petsc-${PETSC_VERSION}
+    PETSC_ARCH=linux-gnu-c-opt
+    PETSC_DIR=${PETSC_SOURCEDIR}
+    mkdir -p ${PETSC_SOURCEDIR}
+    cd /build
+    curl -fsL http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-${PETSC_VERSION}.tar.gz | tar -zxf -
+    # For fortran-enabled builds, fetch maint separately
+    git clone -b maint https://bitbucket.org/petsc/petsc /build/maint
+    mkdir -p ${PETSC_SOURCEDIR}/bin
+    mv /build/maint/lib/petsc/bin/maint ${PETSC_SOURCEDIR}/bin
+    cd ${PETSC_SOURCEDIR}
+    sed -i 's/os.mkdir/os.makedirs/g' bin/maint/generatefortranstubs.py
+    PYTHONPATH=${PYTHONPATH}:${PETSC_SOURCEDIR}/bin/maint
+
+    # Interim debugging hack
+
+    find /usr/local -type d -exec chmod 777 '{}' \;
+
+    # Build PETSc
+
+    "./configure"\
+        "--with-shared-libraries" \
+        "--with-debugging=0" \
+        "--PETSC_ARCH=${PETSC_ARCH}" \
+        "--download-hypre=1" \
+        "--download-metis=1" \
+        "--download-ml=1" \
+        "--download-mumps=1" \
+        "--download-parmetis=1" \
+        "--download-triangle=1" \
+        "--download-ptscotch=1" \
+        "--download-suitesparse=1" \
+        "--download-ctetgen=1" \
+        "--download-chaco=1" \
+        "--download-scalapack=1" \
+        "--download-blacs=1" \
+        "--download-fblaslapack=1" \
+        "--known-mpi-shared-libraries=1" \
+        "--prefix=/usr/local" \
+        "--with-fortran-interfaces=1" \
+        "--with-zlib=1" \
+        "--with-hdf5=1" \
+        "--with-netcdf=1" \
+        "--with-valgrind=1"
+
+    make PETSC_DIR=${PWD} PETSC_ARCH=${PETSC_ARCH} all
+    make PETSC_DIR=${PWD} PETSC_ARCH=${PETSC_ARCH} install
+
+    # Fix PETSc library naming to Fluidity's requirements
+    ln -s /usr/local/lib/libfblas.a /usr/local/lib/libblas.a 
+    ln -s /usr/local/lib/libflapack.a /usr/local/lib/liblapack.a 
+
+    PETSC_DIR=/usr/local
+
+    # Set up the Zoltan build environment
+    ZOLTAN_VERSION=v3.83
+    ZOLTAN_SOURCEDIR=/build/Zoltan_${ZOLTAN_VERSION}
+    cd /build
+    curl -fsL https://raw.githubusercontent.com/sandialabs/Zoltan/main/zoltan_distrib_${ZOLTAN_VERSION}.tar.gz | tar -zxf -
+
+    # Build Zoltan
+
+    mkdir -p /build/zoltan-build
+    cd /build/zoltan-build
+
+    LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib \
+      LDFLAGS="-L/usr/local/lib" \
+      CPPFLAGS="-I/usr/local/include" \
+      ${ZOLTAN_SOURCEDIR}/configure \
+        --prefix=/usr/local \
+        --libdir=/usr/local/lib \
+        --enable-mpi \
+        --with-mpi-compilers \
+        --with-gnumake \
+        --enable-zoltan \
+        --enable-f90interface \
+        --enable-zoltan-cppdriver \
+        --disable-examples \
+        --with-parmetis \
+        --with-parmetis-libdir=/usr/local/lib \
+        --with-parmetis-incdir=/usr/local/include \
+        --with-scotch \
+        --with-scotch-libdir=/usr/local/lib \
+        --with-scotch-incdir=/usr/local/include || cat config.log
+
+    make install
+
+    # Set up VTK build environment
+    cd /build
+    curl -skL https://www.vtk.org/files/release/9.0/VTK-9.0.1.tar.gz | tar -zxf -
+
+    mkdir -p /build/vtk-build
+    cd /build/vtk-build
+
+    cmake -DVTK_USE_MPI=ON -DVTK_PYTHON_VERSION=3 -DModule_vtkParallelMPI=ON -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DVTK_WRAP_PYTHON=ON /build/VTK-9.0.1
+
+    make install
+
+    # Install GMSH2 from binary release:
+    cd /usr/local
+    curl -fsL https://gmsh.info/bin/Linux/gmsh-2.16.0-Linux64.tgz | tar --strip-components 1 -zxvvf - 
+
+    # Install h5py
+    #RUN python3 -m pip install --no-binary h5py h5py
+
+    # Install mpi4py
+    python3 -m pip install mpi4py
+
+    # Install spud
+    cd /build
+    git clone https://github.com/fluidityproject/spud.git
+    cd /build/spud
+
+    # Build and install
+    ./configure
+    make install
+
+    # Fluidity build 
+
+    cd /opt
+    git clone https://github.com/fluidityproject/fluidity.git
+    cd /opt/fluidity
+    git apply /opt/vtk9fixes.patch
+    git apply /opt/petsc314hack.patch
+    autoconf
+    cd /opt/fluidity/libadaptivity
+    autoconf
+    cd /opt/fluidity
+    ./configure --enable-2d-adaptivity
+    make
+    make fltools
+    make install
+tmb1@muggent:~/sing
