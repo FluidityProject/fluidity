@@ -198,7 +198,7 @@ start =
                      (
                         element location {
                            real_dim_vector
-			}
+                        }
                      )
                   }|
                   ## Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.
@@ -280,8 +280,8 @@ start =
                ## calculations and spawning and deleting options.
                element particle_group {
                   attribute name { xsd:string },
-		  element particle_io {
-		      (
+                  element particle_io {
+                     (
                           ## Period between dumps in time units.
                           element dump_period {
                               (
@@ -328,64 +328,64 @@ start =
                       }?
                   }?,
                   ## Options for spawning and deleting particles based on the minimum and maximum limits of
-		  ## particles per control volume. Also contains options for the location of spawned particles,
-		  ## the calculation of their attribute values, and spawning caps per particle subgroup.
-		  ## Defined per particle_group.
-		  element particle_spawning {
-		     ## Set the mesh which will be used for particle spawning. Currently only works for a P1CV mesh!
-	             mesh_choice,
-		     ## Minimum threshold number of particles per control volume.
-		     element min_cv_threshhold {
-			integer
-	             },
-	             ## Maximum threshold number of particles per control volume (recommended to be at least
-		     ## four times the minimum threshold).
-		     element max_cv_threshhold {
-			integer
-		     },
-		     ## Options for setting where particles will be spawned within the control volume.
-		     element spawn_location {
-	                ## Particles will spawn within a local_coordinate radius of the parent particle
-			## (ensuring they remain within the current element and control volume).
-			## Value is in local coordinates (recommended value 0.3).
-	                element radius {
-			   real
-	                }|
-			## Particles will spawn randomly within the control volume, prioritizing
-			## elements with the least number of particles.
-			element random {
-			   empty
-			}
-	             },
-		     ## Options for setting particle attributes when spawned.
-		     element spawn_attributes {
-	                ## Particles will spawn with attributes copied from the parent particle.
-			## Used when attributes are identical across the particle_subgroup.
-	                element copy_parent_attributes {
-			   empty
-	                }|
-			## Particles will spawn with attributes calculated from the average of
-			## particle_attributes within the control volume.
-			element calculate_average {
-			   empty
-			}
-	             },
-		     ## Option to set spawning caps for specific particle subgroups if one is dominant in a control volume.
-		     ## Allows the user to define the minimum percentage a particle subgroup must make up in a control volume
-		     ## in order for spawning of that subgroup to occur (recommended value 99%).
-		     ## Only ONE subgroup can be spawned per control volume when this option is set.
-		     element subgroup_spawning_caps {
-		        ## Percentage of single subgroup required to be present for only that subgroup to spawn within
-			## a specific control volume.
-		        element percentage {
-			   real
-		        }
-		     }?
+                  ## particles per control volume. Also contains options for the location of spawned particles,
+                  ## the calculation of their attribute values, and spawning caps per particle subgroup.
+                  ## Defined per particle_group.
+                  element particle_spawning {
+                     ## Set the mesh which will be used for particle spawning. Currently only works for a P1CV mesh!
+                     mesh_choice,
+                     ## Minimum threshold number of particles per control volume.
+                     element min_cv_threshhold {
+                        integer
+                     },
+                     ## Maximum threshold number of particles per control volume (recommended to be at least
+                     ## four times the minimum threshold).
+                     element max_cv_threshhold {
+                       integer
+                     },
+                     ## Options for setting where particles will be spawned within the control volume.
+                    element spawn_location {
+                        ## Particles will spawn within a local_coordinate radius of the parent particle
+                        ## (ensuring they remain within the current element and control volume).
+                        ## Value is in local coordinates (recommended value 0.3).
+                        element radius {
+                           real
+                        }|
+                        ## Particles will spawn randomly within the control volume, prioritizing
+                        ## elements with the least number of particles.
+                        element random {
+                           empty
+                        }
+                     },
+                     ## Options for setting particle attributes when spawned.
+                     element spawn_attributes {
+                        ## Particles will spawn with attributes copied from the parent particle.
+                        ## Used when attributes are identical across the particle_subgroup.
+                        element copy_parent_attributes {
+                           empty
+                        }|
+                        ## Particles will spawn with attributes calculated from the average of
+                        ## particle_attributes within the control volume.
+                        element calculate_average {
+                           empty
+                        }
+                     },
+                     ## Option to set spawning caps for specific particle subgroups if one is dominant in a control volume.
+                     ## Allows the user to define the minimum percentage a particle subgroup must make up in a control volume
+                     ## in order for spawning of that subgroup to occur (recommended value 99%).
+                     ## Only ONE subgroup can be spawned per control volume when this option is set.
+                     element subgroup_spawning_caps {
+                        ## Percentage of single subgroup required to be present for only that subgroup to spawn within
+                        ## a specific control volume.
+                        element percentage {
+                           real
+                        }
+                     }?
                   }?,
                   ## Particle subgroup arrays specified within a particle group. Particle attribute values are specified per
                   ## subgroup, although all subgroups should be set to carry the same attribute names if it is desired to calculate
-		  ## a diagnostic field from_particles. Subgroups can have different initial positions specified via a python
-		  ## function or from a file.
+                  ## a diagnostic field from_particles. Subgroups can have different initial positions specified via a python
+                  ## function or from a file.
                   element particle_subgroup {
                      attribute name { xsd:string },
                      (
@@ -409,12 +409,12 @@ start =
                            element from_file {
                               attribute file_name { xsd:string },
                               element number_of_particles {
-				 integer
+                                 integer
                               }
                            }
-			},
-			element initialise_during_simulation {
-			   ## Python function prescribing dimensional vector input. Functions should be of the form:
+                        },
+                        element initialise_during_simulation {
+                           ## Python function prescribing dimensional vector input. Functions should be of the form:
                            ##
                            ##  def val(t):
                            ##     # Function code
@@ -427,77 +427,77 @@ start =
                            ## This function will only be called after simulation start. To initialise starting positions use the initial_position option above.
                            element python {
                               python_code
-			   }
-			}?
+                           }
+                        }?
                      ),
                      (
                         ##Define particle attributes.
                         element attributes {
-			   (
-			      ##Scalar particle attribute.
-			      element scalar_attribute {
+                           (
+                              ##Scalar particle attribute.
+                              element scalar_attribute {
                                  attribute name { xsd:string },
-				 ## Do not output this attribute to file
-				 element exclude_from_output {
-				    empty
-				 }?,
+                                 ## Do not output this attribute to file
+                                 element exclude_from_output {
+                                    empty
+                                  }?,
                                  generic_scalar_particle_attribute_choice
-			      }|
-			      ##Scalar particle attribute array.
-			      element scalar_attribute_array {
+                              }|
+                              ##Scalar particle attribute array.
+                              element scalar_attribute_array {
                                  attribute name { xsd:string },
-				 element dimension {
-				    integer
-				 },
-				 ## Do not output this attribute to file
-				 element exclude_from_output {
-				    empty
-				 }?,
+                                 element dimension {
+                                    integer
+                                 },
+                                 ## Do not output this attribute to file
+                                 element exclude_from_output {
+                                    empty
+                                  }?,
                                  generic_scalar_particle_attribute_array
-			      }|
-			      ##Vector particle attribute.
-			      element vector_attribute {
+                              }|
+                              ##Vector particle attribute.
+                              element vector_attribute {
                                  attribute name { xsd:string },
-				 ## Do not output this attribute to file
-				 element exclude_from_output {
-				     empty
+                                 ## Do not output this attribute to file
+                                 element exclude_from_output {
+                                    empty
                                  }?,
                                  generic_vector_particle_attribute_choice
-			      }|
-			      ##Vector particle attribute array.
-			      element vector_attribute_array {
+                              }|
+                              ##Vector particle attribute array.
+                              element vector_attribute_array {
                                  attribute name { xsd:string },
-				 element dimension {
-				    integer
-				 },
-				 ## Do not output this attribute to file
-				 element exclude_from_output {
+                                 element dimension {
+                                    integer
+                                 },
+                                 ## Do not output this attribute to file
+                                 element exclude_from_output {
                                     empty
                                  }?,
                                  generic_vector_particle_attribute_array
-			      }|
-			      ##Tensor particle attribute.
-			      element tensor_attribute {
+                              }|
+                              ##Tensor particle attribute.
+                              element tensor_attribute {
                                  attribute name { xsd:string },
-				 ## Do not output this attribute to file
-				 element exclude_from_output {
-		                    empty
+                                 ## Do not output this attribute to file
+                                 element exclude_from_output {
+                                    empty
                                  }?,
                                  generic_tensor_particle_attribute_choice
-		              }|
-			      ##Tensor particle attribute array.
-			      element tensor_attribute_array {
+                              }|
+                              ##Tensor particle attribute array.
+                              element tensor_attribute_array {
                                  attribute name { xsd:string },
-				 element dimension {
-				    integer
-				 },
-				 ## Do not output this attribute to file
-				 element exclude_from_output {
-				     empty
-				 }?,
+                                 element dimension {
+                                    integer
+                                 },
+                                 ## Do not output this attribute to file
+                                 element exclude_from_output {
+                                    empty
+                                 }?,
                                  generic_tensor_particle_attribute_array
-			      }
-			   )+
+                              }
+                           )+
                         }?
                      )
                   }+
@@ -509,12 +509,12 @@ start =
                element delete_outside_domain {
                   empty
                }
-	    },
+            },
             ## Enable to let particles move with the domain if mesh_movement is enabled.
             element move_with_mesh {
                empty
             }?,
-	    ## Lagrangian timestepping options for particle advection.
+            ## Lagrangian timestepping options for particle advection.
             lagrangian_timestepping
          }?,
          ## Options dealing with time discretisation
