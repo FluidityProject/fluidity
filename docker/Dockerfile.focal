@@ -1,0 +1,37 @@
+FROM ubuntu:focal
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update
+RUN apt-get -y dist-upgrade
+
+RUN apt-get -y install gnupg
+
+RUN echo "deb http://ppa.launchpad.net/fluidity-core/ppa/ubuntu focal main" > /etc/apt/sources.list.d/fluidity-core-ppa-focal.list
+
+# Import the Launchpad PPA public key
+RUN gpg --keyserver keyserver.ubuntu.com --recv 0D45605A33BAC3BE
+RUN gpg --export --armor 33BAC3BE | apt-key add -
+RUN apt-get update
+
+# Install Fluidity development environment
+RUN echo "Europe/London" > /etc/timezone
+
+RUN apt-get -y install fluidity-dev
+
+# Install texlive sufficient for 'make manual'
+RUN apt-get -y install texlive-pstricks texlive texlive-latex-extra texlive-science
+
+ENV LD_LIBRARY_PATH /usr/lib/petscdir/3.12/lib
+ENV LDFLAGS -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi
+ENV CPPFLAGS "-I/usr/include/hdf5/openmpi -I/usr/include"
+ENV OMPI_MCA_btl_vader_single_copy_mechanism none
+
+# Add a Fluidity user who will be the default user for this container
+# Make sure the user has a userid matching the host system
+# -- pass this as an argument at build time
+ARG userid=1000
+RUN adduser --disabled-password --gecos "" -u $userid fluidity
+
+USER fluidity
+WORKDIR /home/fluidity
