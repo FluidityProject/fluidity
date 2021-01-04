@@ -5,6 +5,7 @@
 
 import argparse
 from collections import Counter
+from inspect import cleandoc
 import os
 from pathlib import Path
 import re
@@ -14,182 +15,198 @@ import sys
 from time import process_time
 
 
-def printResults(testsResults, errorList, skipList):
-    print(f'''
-###########
-# Results #
-###########
+def display_results(tests_results, error_list, skip_list):
+    print(cleandoc(f"""
+                   ###########
+                   # Results #
+                   ###########
 
-\tPasses: {sum(testsResults['Pass'].values())}\n
-\tWarnings: {sum(testsResults['Warn'].values())}
-\t\t{list(testsResults['Warn'].keys())}\n
-\tFailures: {sum(testsResults['Fail'].values())}
-\t\t{list(testsResults['Fail'].keys())}\n
-\tErrors: {len(errorList)}
-\t\t{errorList}\n
-\tSkipped: {len(errorList)}
-\t\t{skipList}''')
-
-
-def unitTestHarnessNO(tests):
-    testsResults = {'Pass': Counter(), 'Warn': Counter(), 'Fail': Counter()}
-    errorList, skipList = [], []
-
-    for test in tests:
-        print(f'\t{test.name}: Running')
-        testProc = subprocess.run(
-            './' + test.name, shell=True, cwd=test.parent, encoding='utf-8',
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        if re.search(r'^\s*error[:\s]', testProc.stderr,
-                     re.IGNORECASE | re.MULTILINE):
-            print(f'ERROR: {test.name} failed')
-            errorList.append(test.name)
-            continue
-        elif ': not found' in testProc.stderr:
-            print(f'WARNING: {test.name} not found')
-            skipList.append(test.name)
-            continue
-
-        for testOutput in testProc.stdout.splitlines():
-            try:
-                testsResults[testOutput[:4]][test.name] += 1
-            except KeyError:
-                print(testOutput.lstrip())
-                continue
-
-            print(f'\t\t{testOutput}')
-
-    printResults(testsResults, errorList, skipList)
+                   \tPasses: {sum(tests_results['Pass'].values())}\n
+                   \tWarnings: {sum(tests_results['Warn'].values())}
+                   \t\t{list(tests_results['Warn'].keys())}\n
+                   \tFailures: {sum(tests_results['Fail'].values())}
+                   \t\t{list(tests_results['Fail'].keys())}\n
+                   \tErrors: {len(error_list)}
+                   \t\t{error_list}\n
+                   \tSkipped: {len(skip_list)}
+                   \t\t{skip_list}"""))
 
 
-def unitTestHarness(tests, xml_outfile):
-    xmlParser = TestSuite('UnitTestHarness')
-    testsResults = {'Pass': Counter(), 'Warn': Counter(), 'Fail': Counter()}
-    errorList, skipList = [], []
+def unittest_harness_no_output(tests):
+    tests_results = {'Pass': Counter(), 'Warn': Counter(), 'Fail': Counter()}
+    error_list, skip_list = [], []
 
     for test in tests:
-        print(f'\t{test.name}: Running')
-        begin = process_time()
-        testProc = subprocess.run(
-            './' + test.name, shell=True, cwd=test.parent, encoding='utf-8',
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        wallTime = process_time() - begin
+        print(f'\t-> New test: {test.name}')
 
-        testId = f'unittest.{test.resolve().parts[-3]}.{test.name}'
-
-        if re.search(r'^\s*error[:\s]', testProc.stderr,
-                     re.IGNORECASE | re.MULTILINE):
-            print(f'ERROR: {test.name} failed')
-            errorList.append(test.name)
-            xmlEntry = TestCase('', classname=testId,
-                                elapsed_sec=wallTime, status='Error')
-            xmlEntry.add_error_info(message=testProc.stderr)
-            xmlParser.test_cases.append(xmlEntry)
-            continue
-        elif ': not found' in testProc.stderr:
+        if (tests_dir / test.name).is_file() is False:
             print(f'WARNING: {test.name} not found')
-            skipList.append(test.name)
-            xmlEntry = TestCase('', classname=test.name,
-                                elapsed_sec=wallTime, status='Skipped')
-            xmlEntry.add_skipped_info(message='Not found')
-            xmlParser.test_cases.append(xmlEntry)
+            skip_list.append(test.name)
             continue
 
-        otherOut = ''
-        for testOutput in testProc.stdout.splitlines():
+        try:
+            test_proc = subprocess.run(
+                './' + test.name, capture_output=True, shell=True,
+                cwd=test.parent, check=True, encoding='utf-8')
+        except subprocess.CalledProcessError as test_error:
+            print(f'ERROR: {test.name} exited with a non-zero exit code.')
+            print(f'Exit status: {test_error.returncode}')
+            print(f'Output: {test_error.output}')
+            print(f'Stderr output: {test_error.stderr}')
+            error_list.append(test.name)
+            continue
+
+        for test_output in test_proc.stdout.splitlines():
             try:
-                testsResults[testOutput[:4]][test.name] += 1
+                tests_results[test_output[:4]][test.name] += 1
             except KeyError:
-                print(testOutput.lstrip())
-                otherOut += testOutput.lstrip() + '\n'
+                print(f'\t\t\t{test_output.lstrip()}')
                 continue
 
-            print(f'\t\t{testOutput}')
+            print(f'\t\t{test_output}')
+
+    display_results(tests_results, error_list, skip_list)
+
+
+def unittest_harness(tests, xml_outfile):
+    xml_parser = TestSuite('unittest_harness')
+    tests_results = {'Pass': Counter(), 'Warn': Counter(), 'Fail': Counter()}
+    error_list, skip_list = [], []
+
+    for test in tests:
+        print(f'\t-> New test: {test.name}')
+
+        if (tests_dir / test.name).is_file() is False:
+            print(f'WARNING: {test.name} not found')
+            skip_list.append(test.name)
+            xml_entry = TestCase('', classname=test.name,
+                                 elapsed_sec='None', status='Skipped')
+            xml_entry.add_skipped_info(message='Not found')
+            xml_parser.test_cases.append(xml_entry)
+            continue
+
+        test_id = f'unittest.{test.resolve().parts[-3]}.{test.name}'
+
+        try:
+            begin = process_time()
+            test_proc = subprocess.run(
+                './' + test.name, capture_output=True, shell=True,
+                cwd=test.parent, check=True, encoding='utf-8')
+            wall_time = process_time() - begin
+        except subprocess.CalledProcessError as test_error:
+            print(f'ERROR: {test.name} exited with a non-zero exit code.')
+            print(f'Exit status: {test_error.returncode}')
+            print(f'Output: {test_error.output}')
+            print(f'Stderr output: {test_error.stderr}')
+            error_list.append(test.name)
+            xml_entry = TestCase('', classname=test_id,
+                                 elapsed_sec=process_time() - begin,
+                                 status='Error')
+            xml_entry.add_error_info(message=test_error.stderr)
+            xml_parser.test_cases.append(xml_entry)
+            continue
+
+        other_out = ''
+        for test_output in test_proc.stdout.splitlines():
+            try:
+                tests_results[test_output[:4]][test.name] += 1
+            except KeyError:
+                print(f'\t\t\t{test_output.lstrip()}')
+                other_out += test_output.lstrip() + '\n'
+                continue
+
+            print(f'\t\t{test_output}')
 
             try:
-                testMsg = re.search(r'(?<=\[).+(?=\])', testOutput).group()
+                # Look for the test output message enclosed between brackets
+                test_msg = re.search(r'(?<=\[).+(?=\])', test_output).group()
             except AttributeError:
-                testMsg = testOutput[6:].split('; error:')[0]
+                # If brackets are missing, extract output message
+                # independently of an eventual error message
+                test_msg = test_output[6:].split('; error:')[0]
 
-            xmlEntry = TestCase(testMsg, classname=testId,
-                                elapsed_sec=wallTime,
-                                status=testOutput[:4])
+            xml_entry = TestCase(test_msg, classname=test_id,
+                                 elapsed_sec=wall_time,
+                                 status=test_output[:4])
 
             try:
-                failMsg = re.search('(?<=error:).+', testOutput).group()
-                if not failMsg.lstrip():
-                    failMsg += 'Empty message'
-                if testOutput[:4] == 'Warn':
-                    xmlEntry.add_failure_info(message=failMsg.lstrip(),
-                                              failure_type='warning')
+                fail_msg = re.search('(?<=error:).+', test_output).group()
+                if not fail_msg.lstrip():
+                    fail_msg += 'Empty message'
+                if test_output[:4] == 'Warn':
+                    xml_entry.add_failure_info(message=fail_msg.lstrip(),
+                                               failure_type='warning')
                 else:
-                    xmlEntry.add_failure_info(message=failMsg.lstrip())
+                    xml_entry.add_failure_info(message=fail_msg.lstrip())
             except AttributeError:
                 pass
 
-            if testProc.stderr:
-                xmlEntry.stderr = testProc.stderr
+            if test_proc.stderr:
+                xml_entry.stderr = test_proc.stderr
 
-            if otherOut:
-                xmlEntry.stdout = otherOut[:-1]
-                otherOut = ''
+            if other_out:
+                xml_entry.stdout = other_out[:-1]
+                other_out = ''
 
-            xmlParser.test_cases.append(xmlEntry)
+            xml_parser.test_cases.append(xml_entry)
 
-    printResults(testsResults, errorList, skipList)
+    display_results(tests_results, error_list, skip_list)
 
     with open(xml_outfile, 'w') as fid:
-        xmlParser.to_file(fid, [xmlParser])
+        xml_parser.to_file(fid, [xml_parser])
 
 
-def updateEnvVar(envVar, envPath):
+def add_path_to_environment_variable(env_var, env_path):
     try:
-        if str(envPath) not in os.environ[envVar]:
-            os.environ[envVar] += f':{envPath}'
+        if str(env_path) not in os.environ[env_var]:
+            os.environ[env_var] += f':{env_path}'
     except KeyError:
-        os.environ[envVar] = str(envPath)
+        os.environ[env_var] = str(env_path)
 
 
-parser = argparse.ArgumentParser(description='''Fluidity UnitTestHarness''')
+parser = argparse.ArgumentParser(description='Fluidity Unittest Harness')
 parser.add_argument('-d', '--dir', default='bin/tests', metavar='',
-                    help="""directory where to look for UnitTest binary(ies) -
+                    help="""directory where to look for unittest binary(ies) -
                             defaults to '%(default)s'""")
 parser.add_argument('-t', '--test', metavar='',
-                    help='''single UnitTest to run - should match an existing
-                            UnitTest within --dir''')
+                    help="""single unittest to run - should match an existing
+                            unittest within --dir""")
 parser.add_argument('-f', '--from-file', metavar='',
-                    help='''file containing UnitTests to run - expects one test
-                            entry per line''')
+                    help="""file containing unittests to run - expects one test
+                            entry per line""")
 parser.add_argument('-x', '--xml-output', metavar='',
-                    help='''filename where to write the xml output - junit_xml
-                            is required to generate the xml output''')
+                    help="""filename where to write the xml output - junit_xml
+                            is required to generate the xml output""")
 parser.add_argument('-c', '--clean', action='store_true',
                     help='remove the directory provided through --dir')
 parser.add_argument('--efence', action='store_true',
                     help='links against libefence')
 args = parser.parse_args()
 
-pyPath = (Path(sys.argv[0]).parent / '../python').resolve()
-updateEnvVar('PYTHONPATH', pyPath)
-updateEnvVar('LD_LIBRARY_PATH', (pyPath / '../lib').resolve())
+fluidity_root = Path(sys.argv[0]).resolve().parent.parent
+add_path_to_environment_variable('PYTHONPATH', fluidity_root / 'python')
+add_path_to_environment_variable('PYTHONPATH', fluidity_root / 'lib')
 if args.efence:
-    updateEnvVar('LD_PRELOAD', Path('/usr/lib/libefence.so.0.0'))
+    add_path_to_environment_variable('LD_PRELOAD',
+                                     Path('/usr/lib/libefence.so.0.0'))
 # os.environ['EF_DISABLE_BANNER'] = '1'
 
-testsDir = pyPath / f'../{args.dir}'
-assert testsDir.is_dir(), f'{testsDir.resolve()} is not a valid directory'
+if args.dir == 'bin/tests':
+    tests_dir = fluidity_root / args.dir
+else:
+    tests_dir = Path(args.dir).resolve()
+assert tests_dir.is_dir(), f'{tests_dir} is not a valid directory'
 
 if args.clean:
-    rmtree(testsDir)
+    rmtree(tests_dir)
 else:
     if args.test:
-        tests = [testsDir / args.test]
+        tests = [tests_dir / args.test]
     elif args.from_file:
         with open(args.from_file, 'r') as fid:
-            tests = [testsDir / testName.rstrip() for testName in fid]
+            tests = [tests_dir / test_name.rstrip() for test_name in fid]
     else:
-        tests = testsDir.glob('test*')
+        tests = tests_dir.glob('test*')
     if args.xml_output:
         from junit_xml import TestSuite, TestCase
         if sys.version_info.major == 3 and sys.version_info.minor >= 8:
@@ -200,6 +217,6 @@ else:
             from pkg_resources import get_distribution
             assert float(get_distribution('junit_xml').version) >= 1.9, (
                 'Please update junit_xml')
-        unitTestHarness(tests, args.xml_output)
+        unittest_harness(tests, args.xml_output)
     else:
-        unitTestHarnessNO(tests)
+        unittest_harness_no_output(tests)
