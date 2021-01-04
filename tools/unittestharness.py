@@ -46,8 +46,9 @@ def unittest_harness_no_output(tests):
 
         try:
             test_proc = subprocess.run(
-                './' + test.name, capture_output=True, shell=True,
-                cwd=test.parent, check=True, encoding='utf-8')
+                './' + test.name, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, shell=True, cwd=test.parent,
+                check=True, encoding='utf-8')
         except subprocess.CalledProcessError as test_error:
             print(f'ERROR: {test.name} exited with a non-zero exit code.')
             print(f'Exit status: {test_error.returncode}')
@@ -90,8 +91,9 @@ def unittest_harness(tests, xml_outfile):
         try:
             begin = process_time()
             test_proc = subprocess.run(
-                './' + test.name, capture_output=True, shell=True,
-                cwd=test.parent, check=True, encoding='utf-8')
+                './' + test.name, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, shell=True, cwd=test.parent,
+                check=True, encoding='utf-8')
             wall_time = process_time() - begin
         except subprocess.CalledProcessError as test_error:
             print(f'ERROR: {test.name} exited with a non-zero exit code.')
