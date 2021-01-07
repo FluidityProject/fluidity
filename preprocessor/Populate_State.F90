@@ -3711,10 +3711,10 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
     end do
     
     diagnosticvolumefraction_count = option_count(&
-                &'/material_phase/scalar_field::MaterialVolumeFraction/diagnostic')
+                &'/material_phase/scalar_field::MaterialVolumeFraction/diagnostic/algorithm::Internal')
     if(diagnosticvolumefraction_count>1) then
       ewrite(-1,*) diagnosticvolumefraction_count, 'diagnostic MaterialVolumeFractions.'
-      FLExit("Only 1 diagnostic MaterialVolumeFraction is allowed")
+      FLExit("Only 1 internal diagnostic MaterialVolumeFraction is allowed")
     end if
 
     density_count = option_count('/material_phase/&

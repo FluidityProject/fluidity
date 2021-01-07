@@ -47,14 +47,10 @@ D2_tracer = f['/Step#0/Water%Tracer'][det_id[0]]
       assert(solvers_converged)
     </test>
     <test name="D1 final position" language="python">
-assert abs(D1_position[0,:] - 0.0).all() &lt; 1e-12
+assert abs(D1_position[0,:] - 0.1).all() &lt; 1e-12
     </test>
     <test name="D2 final position" language="python">
 assert abs(D2_position[0,:] - 0.25).all() &lt; 1e-12
-    </test>
-    <test name="tracer at D1" language="python">
-from numpy import isnan
-assert isnan(D1_tracer)
     </test>
     <test name="tracer at D2" language="python">
 assert abs(D2_tracer + 0.35) &lt; 1e-12

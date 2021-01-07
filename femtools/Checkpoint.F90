@@ -43,8 +43,8 @@ module checkpoint
   use halos
   use mesh_files
   use detector_data_types
-  use diagnostic_variables
   use particles, only : checkpoint_particles_loop
+  use diagnostic_variables
 
   implicit none
 

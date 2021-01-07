@@ -17,8 +17,8 @@ import h5py
 
 f = h5py.File('particle_attributes.particles.ArrayMeasure.h5part', 'r')
 n = len(f)-1
-array = np.zeros((10,1000))
-array_error = np.zeros((10,1000))
+array = np.zeros((10,966))
+array_error = np.zeros((10,966))
 for i in range (0,10):
    array[i,:] = f[f'/Step#{n}/ArrayAttribute'+str(i+1)][:]
    array_error[i,:] =  np.sqrt((array[i,:]-i)**2)
@@ -33,8 +33,8 @@ import h5py
 
 f = h5py.File('particle_attributes.particles.ArrayMeasure.h5part', 'r')
 n = len(f)-1
-array = np.zeros((5,1000))
-array_error = np.zeros((5,1000))
+array = np.zeros((5,966))
+array_error = np.zeros((5,966))
 for i in range (0,5):
    array[i,:] = f[f'/Step#{n}/ArrayFieldAttribute'+str(i+1)][:]
    array_error[i,:] =  np.sqrt((array[i,:]-i-4)**2)
@@ -49,9 +49,9 @@ import h5py
 
 f = h5py.File('particle_attributes.particles.ArrayMeasure.h5part', 'r')
 n = len(f)-1
-array1 = np.zeros((10,1000))
-array2 = np.zeros((10,1000))
-array_error = np.zeros((10,1000))
+array1 = np.zeros((10,966))
+array2 = np.zeros((10,966))
+array_error = np.zeros((10,966))
 for i in range (0,10):
    array1[i,:] = f[f'/Step#{n}/VectorArrayAttribute'+str(i+1)+'_0'][:]
    array2[i,:] = f[f'/Step#{n}/VectorArrayAttribute'+str(i+1)+'_1'][:]
@@ -67,9 +67,9 @@ import h5py
 
 f = h5py.File('particle_attributes.particles.ArrayMeasure.h5part', 'r')
 n = len(f)-1
-array1 = np.zeros((5,1000))
-array2 = np.zeros((5,1000))
-array_error = np.zeros((5,1000))
+array1 = np.zeros((5,966))
+array2 = np.zeros((5,966))
+array_error = np.zeros((5,966))
 for i in range (0,5):
    array1[i,:] = f[f'/Step#{n}/VectorFieldAttribute'+str(i+1)+'_0'][:]
    array2[i,:] = f[f'/Step#{n}/VectorFieldAttribute'+str(i+1)+'_1'][:]
@@ -85,11 +85,11 @@ import h5py
 
 f = h5py.File('particle_attributes.particles.ArrayMeasure.h5part', 'r')
 n = len(f)-1
-array1 = np.zeros((10,1000))
-array2 = np.zeros((10,1000))
-array3 = np.zeros((10,1000))
-array4 = np.zeros((10,1000))
-array_error = np.zeros((10,1000))
+array1 = np.zeros((10,966))
+array2 = np.zeros((10,966))
+array3 = np.zeros((10,966))
+array4 = np.zeros((10,966))
+array_error = np.zeros((10,966))
 for i in range (0,10):
    array1[i,:] = f[f'/Step#{n}/TensorArrayAttribute'+str(i+1)+'_0'][:]
    array2[i,:] = f[f'/Step#{n}/TensorArrayAttribute'+str(i+1)+'_1'][:]
@@ -107,11 +107,11 @@ import h5py
 
 f = h5py.File('particle_attributes.particles.ArrayMeasure.h5part', 'r')
 n = len(f)-1
-array1 = np.zeros((5,1000))
-array2 = np.zeros((5,1000))
-array3 = np.zeros((5,1000))
-array4 = np.zeros((5,1000))
-array_error = np.zeros((5,1000))
+array1 = np.zeros((5,966))
+array2 = np.zeros((5,966))
+array3 = np.zeros((5,966))
+array4 = np.zeros((5,966))
+array_error = np.zeros((5,966))
 for i in range (0,5):
    array1[i,:] = f[f'/Step#{n}/TensorFieldAttribute'+str(i+1)+'_0'][:]
    array2[i,:] = f[f'/Step#{n}/TensorFieldAttribute'+str(i+1)+'_1'][:]

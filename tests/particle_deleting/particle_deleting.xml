@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>Testing of particle deleting in serial</name>
+  <owner userid="cmath"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>        
+../../bin/fluidity -v3 -l particle-deleting.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="Max_particles" language="python">
+import numpy as np
+from fluidity_tools import stat_parser
+s = stat_parser("particle_attributes.stat")
+Max_particles= s['BoussinesqFluid']['Nparticles']['max'][-1]
+print ("max number",Max_particles)
+    </variable>
+    <variable name="Walltime" language="python">
+from fluidity_tools import stat_parser
+import numpy as np
+
+s = stat_parser('particle_attributes.stat')
+Walltime = s['ElapsedWallTime']["value"][-1]
+print ("Total wall time", Walltime)
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Maxparticlecheck" language="python">
+assert Max_particles &lt; 21
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

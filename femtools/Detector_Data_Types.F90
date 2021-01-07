@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -31,16 +31,14 @@ module detector_data_types
 
   use fldebug
   use global_parameters, only : FIELD_NAME_LEN
-  
+
   implicit none
-  
+
   private
-  
+
   public :: detector_type, rk_gs_parameters, detector_linked_list, &
             detector_list_ptr, stringlist, attr_names_type, attr_write_type, field_phase_type, &
-            STATIC_DETECTOR, LAGRANGIAN_DETECTOR, allocate, deallocate
-
-  integer, parameter :: STATIC_DETECTOR=1, LAGRANGIAN_DETECTOR=2
+            allocate, deallocate
 
   type stringlist
     !!< Container type for a list of strings.
@@ -82,14 +80,10 @@ module detector_data_types
   type detector_type
      !! Physical location of the detector.
      real, dimension(:), allocatable :: position
-     !! Name of the detector in input and output.
-     character(len=FIELD_NAME_LEN) :: name
      !! Element number in which the detector lies.
      integer :: element
      !! Local coordinates of the detector in that element.
      real, dimension(:), allocatable :: local_coords
-     !! Whether the detector is static or Lagrangian.
-     integer :: type = STATIC_DETECTOR
      !! Identification number indicating the order in which the detectors are read
      integer :: id_number
      !! Identification number indicating parent processor when detector was created
@@ -109,8 +103,14 @@ module detector_data_types
      !! Have we completed the search?
      logical :: search_complete
      !! Pointers for detector linked lists
-     TYPE (detector_type), POINTER :: next=> null()
-     TYPE (detector_type), POINTER :: previous=> null()
+     type (detector_type), pointer :: next=> null()
+     type (detector_type), pointer :: previous=> null()
+     !! Pointers to temporary linked lists used during spawning and deleting.
+     !! These lists are used to form temporary linked lists within Particle_Diagnostics.F90
+     !! Temporary linked lists are created per control volume to allow for easy looping
+     !! over particle within that control volume during spawning and deleting.
+     type (detector_type), pointer :: temp_next => null()
+     type (detector_type), pointer :: temp_previous => null()
   end type detector_type
 
   ! Parameters for lagrangian detector movement
@@ -140,16 +140,15 @@ module detector_data_types
      type(rk_gs_parameters), pointer :: move_parameters => null()
      logical :: move_with_mesh = .false.
 
-     !! Optional array for detector names; names are held in read order
-     character(len = FIELD_NAME_LEN), dimension(:), allocatable :: detector_names
-
      !! List of scalar/vector fields to include in detector output
      type(stringlist), dimension(:), allocatable :: sfield_list
      type(stringlist), dimension(:), allocatable :: vfield_list
      integer :: num_sfields = 0   ! Total number of scalar fields across all phases
      integer :: num_vfields = 0   ! Total number of vector fields across all phases
 
-     !! Total number of arrays stored for attributes and fields on a particle subgroup
+     !! Total number of parameters which are stored on particles. First dimension indicates
+     !! number of attributes stored, second dimension indicates number of old_attributes
+     !! stored, third dimension indicates number of old_fields stored.
      integer, dimension(3) :: total_attributes
      !! Whether attributes should be written or not
      type(attr_write_type) :: attr_write

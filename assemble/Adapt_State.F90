@@ -44,6 +44,7 @@ module adapt_state_module
   use parallel_fields
   use intersection_finder_module
   use fields
+  use profiler
   use state_module
   use vtk_interfaces
   use halos
@@ -61,7 +62,9 @@ module adapt_state_module
   use fefields
   use adaptive_timestepping
   use detector_parallel
+  use particles, only: update_particle_attributes_and_fields
   use diagnostic_variables
+  use particle_diagnostics, only: initialise_constant_particle_diagnostics, calculate_diagnostic_fields_from_particles
   use checkpoint
   use edge_length_module
   use boundary_conditions_from_options
@@ -972,7 +975,7 @@ contains
     type(mesh_type), pointer :: old_mesh
     type(tensor_field) :: metric
     type(vector_field), pointer :: output_positions
-    real :: dt
+    real :: dt, current_time
 
     ewrite(1, *) "In adapt_state_first_timestep"
 
@@ -987,9 +990,6 @@ contains
       call copy_to_stored_values(states,"Iterated")
       call relax_to_nonlinear(states)
 
-      call calculate_diagnostic_variables(states)
-      call calculate_diagnostic_variables_new(states)
-
       call enforce_discrete_properties(states)
       if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then
         ! doing this here helps metric advection get the right amount of advection
@@ -997,6 +997,17 @@ contains
         call calc_cflnumber_field_based_dt(states, dt, force_calculation = .true.)
         call set_option("/timestepping/timestep", dt)
       end if
+
+      !Set constant particle attributes and MVF fields based on particles
+      call initialise_constant_particle_diagnostics(states)
+
+      call calculate_diagnostic_variables(states)
+      call calculate_diagnostic_variables_new(states)
+
+      !Set particle attributes and dependent fields
+      call get_option("/timestepping/current_time", current_time)
+      call update_particle_attributes_and_fields(states, current_time, dt)
+      call calculate_diagnostic_fields_from_particles(states)
 
       ! Form the new metric
       old_mesh => extract_mesh(states(1), topology_mesh_name)
@@ -1165,6 +1176,16 @@ contains
       ! been deallocated
       call tag_references()
 
+      !Check if particle lists are initialised
+      if (get_num_detector_lists()>0) then
+        call get_registered_detector_lists(detector_list_array)
+        ! Check if particle elements exist on this processor, pack to other processor if not
+        do j = 1, size(detector_list_array)
+           call distribute_detectors(states(1), detector_list_array(j)%ptr, old_positions)
+        end do
+
+      end if
+
       ! Generate a new mesh field based on the current mesh field and the input
       ! metric
       if (.not. vertical_only) then
@@ -1211,11 +1232,11 @@ contains
 
       if (get_num_detector_lists()>0) then
         ! Update detector element and local_coords for every detector in all lists
-        call get_registered_detector_lists(detector_list_array)
+        call profiler_tic("find_particles_mesh_adapt")
         do j = 1, size(detector_list_array)
            call search_for_detectors(detector_list_array(j)%ptr, new_positions)
         end do
-
+        call profiler_toc("find_particles_mesh_adapt")
 #ifdef DDEBUG
         ! Sanity check that all local detectors are owned
         call get_registered_detector_lists(detector_list_array)

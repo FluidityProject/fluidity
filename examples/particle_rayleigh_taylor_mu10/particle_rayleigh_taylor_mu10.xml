@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<testproblem>
+  <name>Particle-rayleigh-taylor-mu10</name>
+  <owner userid="cmath"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity -v2 -l particle-rayleigh-taylor-mu10-24.flml; fluidity -v2 -l particle-rayleigh-taylor-mu10-48.flml </command_line>
+  </problem_definition>
+<variables>
+
+<variable name="Max_rms_24" language="python">
+import numpy as np
+from fluidity_tools import stat_parser
+s = stat_parser("particle_rayleigh-taylor-mu10-24.stat")
+
+Max_rms = s['Buoyant']['Velocity%magnitude']['l2norm'][:].max()
+Max_rms = Max_rms * np.sqrt(1.0/0.9142)
+Max_rms_24 = Max_rms
+</variable>
+
+<variable name="Max_rms_48" language="python">
+import numpy as np
+from fluidity_tools import stat_parser
+s = stat_parser("particle_rayleigh-taylor-mu10-48.stat")
+
+Max_rms = s['Buoyant']['Velocity%magnitude']['l2norm'][:].max()
+Max_rms = Max_rms * np.sqrt(1.0/0.9142)
+Max_rms_48 = Max_rms
+</variable>
+
+<variable name="Sqr_entrainment_error_24" language="python">
+from fluidity_tools import stat_parser
+import numpy as np
+
+s = stat_parser('particle_rayleigh-taylor-mu10-24.stat')
+b = stat_parser('bench-24.dat')
+sq_error=0
+
+for i in range(200):
+    ent_error = s['Buoyant']['Entrainment']['integral'][i]/(0.9142*0.2) - b['Buoyant']['Entrainment']['integral'][i]/(0.9142*0.2)
+    sq_error = sq_error + ent_error**2
+
+Sqr_entrainment_error_24= sq_error
+
+</variable>
+
+<variable name="Sqr_entrainment_error_48" language="python">
+from fluidity_tools import stat_parser
+import numpy as np
+
+s = stat_parser('particle_rayleigh-taylor-mu10-48.stat')
+b = stat_parser('bench-48.dat')
+sq_error=0
+
+for i in range(200):
+    ent_error = s['Buoyant']['Entrainment']['integral'][i]/(0.9142*0.2) - b['Buoyant']['Entrainment']['integral'][i]/(0.9142*0.2)
+    sq_error = sq_error + ent_error**2
+
+Sqr_entrainment_error_48= sq_error
+</variable>
+
+</variables>
+
+<pass_tests>
+
+<test name="Max RMS velocity 24x24: Max_rms_24 - 0.00915 .lt. 1.0e-5" language="python">
+assert(abs(Max_rms_24-0.00915) &lt; 1.0e-3)
+</test>
+
+<test name="Square entrainment error  24x24: Sqrr_entrainment_error_24 .lt. 1.0e-3" language="python">
+assert(abs(Sqr_entrainment_error_24) &lt; 1.0e-3)
+</test>
+
+<test name="Max RMS velocity 48x48: Max_rms_48 - 0.00915 .lt. 1.0e-5" language="python">
+assert(abs(Max_rms_48-0.00915) &lt; 1.0e-3)
+</test>
+
+<test name="Square entrainment error  48x48: Sqrr_entrainment_error_48 .lt. 1.0e-3" language="python">
+assert(abs(Sqr_entrainment_error_48) &lt; 1.0e-3)
+</test>
+
+</pass_tests>
+<warn_tests> </warn_tests>
+
+</testproblem>

@@ -48,6 +48,7 @@ examples plots are created and put in the directory.
   \ref{sec:hokkaido-nansei-oki_tsunami} Hokkaido-Nansei-Oki tsunami  & \texttt{hokkaido-nansei-oki\_tsunami/} & 4 & 1.5 hr. \\
   \ref{sec:tephra_settling} Tephra settling & \texttt{tephra\_settling/} & 1 & 1 hr. \\
   \ref{sec:stokes_square_convection} Stokes square convection & \texttt{stokes\_square\_convection/} & 1 & 15 min. \\
+  \ref{sec:particle_rayleigh_taylor_mu10} Particle Rayleigh-Taylor instability with 10-fold viscosity contrast & \texttt{particle\_rayleigh\_taylor\_mu10/} & 15 min & 1.5 hr. \\
   \hline
 \end{tabular}
 \caption{Estimated run times (wall time) for the examples. For parallel examples this is using
@@ -1508,6 +1509,72 @@ To explore the Stokes functionality of \fluidity, the following variations on th
 \item Verify that results do indeed converge towards the benchmark values at higher resolution.
 \item Alter the initial condition for temperature to verify that, excluding the location of upwelling flow at $x=0$ or $x=1$, results are insensitive to this initial condition. 
 \item Change the Rayleigh number to $Ra = 1 \times 10^{4}$ and compare your results to Case 1b from \citet{blankenbach1989}.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% Particle Rayleigh Taylor Instability Mu10 %%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Particle Rayleigh-Taylor instability with 10-fold viscosity contrast}
+\label{sec:particle_rayleigh_taylor_mu10}
+
+\subsection{Overview}
+
+In this example we compare the implemented particle scheme within \fluidity{} with a well--established two--dimensional Rayleigh--Taylor instability benchmark case \citep{vankeken1997comparison}. Fluidity's results from this, and similar cases, will be published in (Mathews et al., in prep), where the implementation of, and parameters used in, the active particle scheme are also discussed. 
+
+
+\subsection{Problem Specification}
+
+The specific example considered is a 2-D isothermal Rayleigh--Taylor instability with an aspect ratio of $\lambda = 0.9142$ (e.g. Fig. \ref{fig:rayleigh_taylor_initial_condition}). The case is initialized with a chemically buoyant layer of thickness $d_b = 0.2$ underlying a thicker chemically dense layer. An initial deflection across the layer boundary is set as $w = 0.02cos(\frac{\pi x}{\lambda})$, and a viscosity contrast is specified between the layers, with the viscosity of the dense layer being $\eta_a$, and the buoyant layer being $\eta_b$. For the example provided here, the viscosity ratio of the two materials is equal to $\frac{\eta_b}{\eta_a}=0.1$. The case has a thermal Rayleigh number ($Ra$) of 0, and a compositional Rayleigh number ($Rb$) of 1, and is run until t=2000 time units. Boundary conditions are free--slip at the sides, and no--slip at the top and base of the model. The material volume fraction field for each material phase is calculated as a diagnostic field from particles, with particle positions initialized above and below the material boundary described above.
+
+The example incorporates two cases, on uniform, structures meshes, where the domain is subdivided into $24 \times 24$ and $48 \times 48$ elements, respectively. The initial number of particles also differs between the two cases, with the models initialized with approximately 20 particles per control volume. Particle spawning and deleting are enabled for this case, utilizing a minimum threshold of 10, and a maximum threshold of 40 particles per control--volume. For direct comparison with the benchmark solutions, the RMS velocity ($V_{RMS}$) and relative entrainment $e$ of the buoyant layer above a set height of $d_e = 0.2$ are calculated, with particle--in--cell and marker--chain results from \citet{vankeken1997comparison} also included. The RMS velocity is defined as:
+
+\begin{equation}
+    V_{rms} = \sqrt{\frac{1}{V}\int_V\mid\mid\bf{v}\mid\mid^{2}},
+\end{equation}
+
+\medskip \noindent where $V$ is the area of the computational domain. The relative entrainment  $e$ of the buoyant layer above a set height of $d_e = 0.2$ is given by:
+
+\begin{equation}
+    e = \frac{1}{\lambda d_b}\int_{d_e}^1\Gamma_b dV,
+\end{equation}
+
+\medskip \noindent where $\Gamma_b$ represents the volume fraction of buoyant material.
+
+\begin{figure}[t]
+	\centering
+	      \includegraphics[width=0.60\columnwidth]{./examples_images/particle_rayleigh_taylor_mu10/Initial_condition.png}
+   \caption{Initial condition of Rayleigh--Taylor instability case, where colour represents non-dimensional density ranging from -1 (buoyant material $\eta_{b}$) to 0 (dense material $\eta_{d}$).}
+   \label{fig:rayleigh_taylor_initial_condition}
+\end{figure}
+
+\subsection{Results}
+
+Results are presented in Figures \ref{fig:rayleigh_taylor_materials} and \ref{fig:rayleigh_taylor_graphs}. The final solution shows the bulk of the buoyant material has stabilized towards the top of the simulation domain, and small instabilities at the base generate additional plumes that rise as the model evolves. $V_{RMS}$ results display an initial peak at $t\approx 100$ time units, which is consistent with particle--in--cell and marker--chain results from \citet{vankeken1997comparison}. $e$ diagnostics are also fairly consistent between the solution and published results, rising rapidly until $t\approx 100$ before flatennin out with minimal entrainment after $t = 400$ time units.
+
+\begin{figure}[t]
+	\centering
+	      \includegraphics[width=0.60\columnwidth]{./examples_images/particle_rayleigh_taylor_mu10/Final_materials.png}
+   \caption{Final compositional field for the $48 \times 48$ element Rayleigh--Taylor instability case, at t = 2000 time units. Colour represents non-dimensional density ranging from -1 (buoyant material $\eta_{b}$) to 0 (dense material $\eta_{d}$).}
+   \label{fig:rayleigh_taylor_materials}
+\end{figure}
+
+\begin{figure}[t]
+	\centering
+	      \includegraphics[width=0.70\columnwidth]{./examples_images/particle_rayleigh_taylor_mu10/Graphs.png}
+   \caption{Diagnostic results from the variable viscosity Rayleigh-Taylor instability case. Hyphenated number indicates mesh resolution. Marker-chain (VK chain) and particle-in-cell (VK particle) results from Fig. 5 of \citet{vankeken1997comparison} is also displayed. a) RMS velocity diagnostics and b) relative entrainment of material diagnostics show up until $t=1000$ time units.}
+   \label{fig:rayleigh_taylor_graphs}
+\end{figure}
+
+
+\subsection{Exercises}
+To explore the Particle functionality of \fluidity, the following variations on this example would be constructive learning exercises:
+\begin{itemize}
+\item Verify that results do indeed converge towards the benchmark values at higher resolution.
+\item Alter the number of particles in the model (along with the minimum and maximum cv threshold values) to determine the affects of particle density on the result.
+\item Change the viscosity contrast between the material phases to 1 or 100. Compare your results to Figs. 2-7 from \citet{vankeken1997comparison}.
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

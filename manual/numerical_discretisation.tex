@@ -2302,4 +2302,13 @@ The final position T of the particle can thus be evaluated with a fixed number o
   \label{fig:guided_search_menthod}
 \end{figure}
 
+\section{Utilizing Particles for Multi-Material Simulations}
+\label{sec:particles_multi_material}
+
+Particle attributes can be interpolated onto a Eulerian mesh, allowing modelling of multi-material simulations based on particles. To do this, particles are initialized with attribute values of 1 or 0 (where a value of 1 represents one material, and a value of 0 represents another material). These attributes are then transferred onto a dual control-volume mesh through a weighted distance interpolation algorithm. The nodes of the mesh then record the ratio of these attribute values, as:
+
+\begin{equation}
+P_{ratio}=\frac{\sum P_{value}}{N_{particles}},
+\end{equation}
+\noindent where $P_{value}$ represents individual attribute values transferred to a node, $N_{particles}$ represents the total number of particles transferring attributes to the same node, and $P_{ratio}$ represents the ratio value for that node, which determines the ratio of one material property relative to another. This allows particle attributes to determine various properties of a material, such as density and/or viscosity.
 

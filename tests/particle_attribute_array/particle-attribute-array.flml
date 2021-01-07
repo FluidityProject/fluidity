@@ -71,9 +71,6 @@
     <particle_group name="ArrayTest">
       <particle_io/>
       <particle_subgroup name="ArrayMeasure">
-        <number_of_particles>
-          <integer_value rank="0">1000</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -113,6 +110,17 @@
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields,n):
   import numpy as np
   return np.arange(n) + fields["tenstest"][1,1]</string_value>
+              <store_old_attribute/>
+            </python_fields>
+          </scalar_attribute_array>
+          <scalar_attribute_array name="ArrayOldAttribute">
+            <dimension>
+              <integer_value rank="0">5</integer_value>
+            </dimension>
+            <python_fields>
+              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields,n):
+  import numpy as np
+  return np.arange(n) + fields["old%ArrayFieldAttribute"]</string_value>
             </python_fields>
           </scalar_attribute_array>
           <vector_attribute_array name="VectorArrayAttribute">
@@ -134,6 +142,17 @@
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields,n):
   import numpy as np
   return np.zeros((n,2)) + np.arange(n)[:,None] + fields["vectest"][1]</string_value>
+              <store_old_attribute/>
+            </python_fields>
+          </vector_attribute_array>
+          <vector_attribute_array name="VectorOldAttribute">
+            <dimension>
+              <integer_value rank="0">5</integer_value>
+            </dimension>
+            <python_fields>
+              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields,n):
+  import numpy as np
+  return np.zeros((n,2)) + np.arange(n)[:,None] + fields["old%VectorFieldAttribute"]</string_value>
             </python_fields>
           </vector_attribute_array>
           <tensor_attribute_array name="TensorArrayAttribute">
@@ -155,6 +174,17 @@
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields,n):
   import numpy as np
   return np.zeros((n,2,2)) + np.arange(n)[:,None,None] + fields["tenstest"]</string_value>
+              <store_old_attribute/>
+            </python_fields>
+          </tensor_attribute_array>
+          <tensor_attribute_array name="TensorOldAttribute">
+            <dimension>
+              <integer_value rank="0">5</integer_value>
+            </dimension>
+            <python_fields>
+              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields,n):
+  import numpy as np
+  return np.zeros((n,2,2)) + np.arange(n)[:,None,None] + fields["old%TensorFieldAttribute"]</string_value>
             </python_fields>
           </tensor_attribute_array>
         </attributes>
@@ -163,9 +193,6 @@
     <particle_group name="SingleTest">
       <particle_io/>
       <particle_subgroup name="Attributes">
-        <number_of_particles>
-          <integer_value rank="0">100</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -231,9 +258,6 @@
     </particle_group>
     <particle_group name="ComputeOnly">
       <particle_subgroup name="Strain">
-        <number_of_particles>
-          <integer_value rank="0">10</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -257,7 +281,9 @@
         </attributes>
       </particle_subgroup>
     </particle_group>
-    <fail_outside_domain/>
+    <moving_outside_domain>
+      <delete_outside_domain/>
+    </moving_outside_domain>
     <lagrangian_timestepping>
       <subcycles>
         <integer_value rank="0">1</integer_value>

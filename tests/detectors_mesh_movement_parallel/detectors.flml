@@ -38,7 +38,7 @@
     <detectors>
       <static_detector name="D1">
         <location>
-          <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.1 0.1</real_value>
         </location>
       </static_detector>
       <static_detector name="D2">
@@ -46,7 +46,6 @@
           <real_value rank="1" dim1="dim" shape="2">0.25 0.25</real_value>
         </location>
       </static_detector>
-      <write_nan_outside_domain/>
     </detectors>
   </io>
   <timestepping>

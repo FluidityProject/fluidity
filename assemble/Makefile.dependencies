@@ -37,13 +37,15 @@ Adapt_State.o ../include/adapt_state_module.mod: Adapt_State.F90 \
    ../include/metric_assemble.mod ../include/metric_tools.mod \
    ../include/mpi_interfaces.mod ../include/node_boundary.mod \
    ../include/parallel_fields.mod ../include/parallel_tools.mod \
+   ../include/particle_diagnostics.mod ../include/particles.mod \
    ../include/pickers.mod ../include/populate_state_module.mod \
-   ../include/project_metric_to_surface_module.mod ../include/quadrature.mod \
-   ../include/reference_counting.mod ../include/reserve_state_module.mod \
-   ../include/sam_integration.mod ../include/sparse_tools.mod \
-   ../include/state_module.mod ../include/tictoc.mod \
-   ../include/timeloop_utilities.mod ../include/vtk_interfaces.mod \
-   ../include/write_gmsh.mod ../include/zoltan_integration.mod
+   ../include/profiler.mod ../include/project_metric_to_surface_module.mod \
+   ../include/quadrature.mod ../include/reference_counting.mod \
+   ../include/reserve_state_module.mod ../include/sam_integration.mod \
+   ../include/sparse_tools.mod ../include/state_module.mod \
+   ../include/tictoc.mod ../include/timeloop_utilities.mod \
+   ../include/vtk_interfaces.mod ../include/write_gmsh.mod \
+   ../include/zoltan_integration.mod
 
 ../include/adapt_state_prescribed_module.mod: Adapt_State_Prescribed.o
 	@true
@@ -627,6 +629,20 @@ OceanSurfaceForcing.o ../include/oceansurfaceforcing.mod: \
    ../include/futils.mod ../include/global_parameters.mod \
    ../include/parallel_fields.mod ../include/parallel_tools.mod \
    ../include/state_module.mod ../include/transform_elements.mod
+
+../include/particle_diagnostics.mod: Particle_Diagnostics.o
+	@true
+
+Particle_Diagnostics.o ../include/particle_diagnostics.mod: \
+   Particle_Diagnostics.F90 ../include/detector_data_types.mod \
+   ../include/detector_tools.mod ../include/elements.mod ../include/fdebug.h \
+   ../include/field_options.mod ../include/fields.mod \
+   ../include/fields_base.mod ../include/fields_calculations.mod \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/halos.mod \
+   ../include/multimaterial_module.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/particles.mod \
+   ../include/pickers.mod ../include/profiler.mod ../include/state_module.mod
 
 ../include/petsc_solve_state_module.mod: Petsc_Solve_State.o
 	@true
