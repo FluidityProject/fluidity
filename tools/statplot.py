@@ -93,8 +93,8 @@ class StatplotWindow(Gtk.Window):
     def CreateCombo(store):
         comboBox = Gtk.ComboBox.new_with_model_and_entry(store)
         comboBox.set_entry_text_column(0)
-        comboBox.set_margin_left(100)
-        comboBox.set_margin_right(100)
+        comboBox.set_margin_start(100)
+        comboBox.set_margin_end(100)
         comboBox.set_wrap_width(3)
         return comboBox
 
