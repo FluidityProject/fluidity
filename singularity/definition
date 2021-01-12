@@ -181,7 +181,8 @@ From: library/default/ubuntu:focal
     git clone https://github.com/fluidityproject/fluidity.git
     cd /opt/fluidity
     git apply /opt/vtk9fixes.patch
-    git apply /opt/petsc314hack.patch
+    ## PETSc hack no longer needed as of merged PR #298
+    #git apply /opt/petsc314hack.patch
     autoconf
     cd /opt/fluidity/libadaptivity
     autoconf
