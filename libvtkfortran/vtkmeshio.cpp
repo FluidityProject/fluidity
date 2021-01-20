@@ -48,6 +48,14 @@
 #include "vtkmeshio.h"
 
 
+// deal with changes to GetCellPoints interface in vtk9
+#if VTK_MAJOR_VERSION >= 9
+#define GetCellPointer const vtkIdType
+#else
+#define GetCellPointer vtkIdType
+#endif
+
+
 using namespace std;
 
 void AddToFront(vtkIdType *front, vtkIdType i)
@@ -87,7 +95,7 @@ char FaceCutType(vtkUnstructuredGrid *dataSet, int *hexcut,
                         vtkIdType i,vtkIdList *fcpts)
 {
     vtkIdType npts;
-    vtkIdType *pts;
+    GetCellPointer *pts;
     int locpos[4];
     int fcid=0,maxpos=0,d1=0,d2=0;
     dataSet->GetCellPoints(i,npts,pts);
@@ -342,7 +350,7 @@ REAL CheckTetVol(vtkIdType p1, vtkIdType p2, vtkIdType p3, vtkIdType p4,
   return (REAL) vol;
 }
 
-int AddOneLine(vtkIdType *pts, int cellcnt, int *ENLBas, int *ENList,
+int AddOneLine(GetCellPointer *pts, int cellcnt, int *ENLBas, int *ENList,
                REAL *X, REAL *Y, REAL *Z )
 {
   if( ENLBas != NULL && ENList != NULL ) {
@@ -354,7 +362,7 @@ int AddOneLine(vtkIdType *pts, int cellcnt, int *ENLBas, int *ENList,
   return cellcnt+1;
 }
 
-int AddOneAnything(vtkIdType *pts, int cellcnt, int *ENLBas, int *ENList,
+int AddOneAnything(GetCellPointer *pts, int cellcnt, int *ENLBas, int *ENList,
                REAL *X, REAL *Y, REAL *Z, int nloc)
 // general version only works for elements that don't need reordering
 {
@@ -367,7 +375,7 @@ int AddOneAnything(vtkIdType *pts, int cellcnt, int *ENLBas, int *ENList,
   return cellcnt+1;
 }
 
-int AddOneTri(vtkIdType *pts, int cellcnt, int *ENLBas, int *ENList,
+int AddOneTri(GetCellPointer *pts, int cellcnt, int *ENLBas, int *ENList,
               REAL *X, REAL *Y, REAL *Z )
 {
   if( ENLBas != NULL && ENList != NULL ) {
@@ -379,7 +387,7 @@ int AddOneTri(vtkIdType *pts, int cellcnt, int *ENLBas, int *ENList,
   return cellcnt+1;
 }
 
-int AddOneQuad(vtkIdType *pts, int cellcnt, int *ENLBas, int *ENList,
+int AddOneQuad(GetCellPointer *pts, int cellcnt, int *ENLBas, int *ENList,
                REAL *X, REAL *Y, REAL *Z )
 {
   if( ENLBas != NULL && ENList != NULL ) {
@@ -394,7 +402,7 @@ int AddOneQuad(vtkIdType *pts, int cellcnt, int *ENLBas, int *ENList,
   return cellcnt+1;
 }
 
-int AddOneHexa(vtkIdType *pts, int cellcnt, int *ENLBas, int *ENList,
+int AddOneHexa(GetCellPointer *pts, int cellcnt, int *ENLBas, int *ENList,
                REAL *X, REAL *Y, REAL *Z )
 {
   if( ENLBas != NULL && ENList != NULL ) {
@@ -411,7 +419,7 @@ int AddOneHexa(vtkIdType *pts, int cellcnt, int *ENLBas, int *ENList,
   return cellcnt+1;
 }
 
-int AddOneWedge(vtkIdType *pts, int cellcnt, int *ENLBas, int *ENList,
+int AddOneWedge(GetCellPointer *pts, int cellcnt, int *ENLBas, int *ENList,
                 REAL *X, REAL *Y, REAL *Z )
 {
   if( ENLBas != NULL && ENList != NULL ) {
@@ -614,7 +622,7 @@ int readVTKFile(const char * const filename,
   
   {
     vtkIdType npts;
-    vtkIdType *pts;
+    GetCellPointer *pts;
     dataSet->GetCellPoints(0,npts,pts);
     if(npts==8 && onlytets!=0) ntets = 6*ncells;
   }
@@ -771,7 +779,7 @@ int readVTKFile(const char * const filename,
 //      printf("3D element types: TET=%d  WEDGE=%d  HEX=%d\n",VTK_TETRA,VTK_WEDGE,VTK_HEXAHEDRON);
       for(vtkIdType i=0; i<ncells; i++) {
         vtkIdType npts=0, ct;
-        vtkIdType *pts;
+        GetCellPointer *pts;
         ct = dataSet->GetCellType(i);
         dataSet->GetCellPoints(i,npts,pts);
         if( npts == 2 ) {
@@ -850,7 +858,7 @@ int readVTKFile(const char * const filename,
       used[i] = 0;
     for(vtkIdType i=0; i<ncells; i++) {
       vtkIdType npts=0, ct;
-      vtkIdType *pts;
+      GetCellPointer *pts;
       ct = dataSet->GetCellType(i);
       dataSet->GetCellPoints(i,npts,pts);
       if( curdim == 1 ) {
@@ -886,11 +894,12 @@ int readVTKFile(const char * const filename,
       // renumber the cell data
       for(vtkIdType i=0; i<ncells; i++) {
         vtkIdType npts;
-        vtkIdType *pts;
+        GetCellPointer *pts;
+	vtkIdType upts[20];
         dataSet->GetCellPoints(i,npts,pts);
         for(vtkIdType j=0; j<npts; j++)
-          pts[j] = used[pts[j]]-1;
-        dataSet->ReplaceCell(i,npts,pts);
+          upts[j] = used[pts[j]]-1;
+        dataSet->ReplaceCell(i,npts,upts);
       }
     }
     {
@@ -1001,7 +1010,7 @@ int readVTKFile(const char * const filename,
 //    printf("Counting allowable %dd cells...\n",*ndim);
     for(vtkIdType i=0; i<ncells; i++){
       vtkIdType npts;
-      vtkIdType *pts;
+      GetCellPointer *pts;
       dataSet->GetCellPoints(i,npts,pts);
       if( curdim == 3 ) {
         if( npts == 4 ) {
@@ -1051,7 +1060,7 @@ int readVTKFile(const char * const filename,
       ENLBS[0] = 0;
       for(vtkIdType i=0; i<ncells; i++){
         vtkIdType npts;
-        vtkIdType *pts;
+        GetCellPointer *pts;
         dataSet->GetCellPoints(i,npts,pts);
         if( curdim == 3 ) {
           if( npts == 4 ) {
@@ -1135,7 +1144,7 @@ int readVTKFile(const char * const filename,
         hexcut[k*6] = 0;
       for(vtkIdType k=0; k<ncells; k++){
         vtkIdType npts;
-        vtkIdType *pts;
+        GetCellPointer *pts;
         vtkIdType i = NextFrontCell(front);
         dataSet->GetCellPoints(i,npts,pts);
         assert(npts==8);
