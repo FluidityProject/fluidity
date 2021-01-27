@@ -53,6 +53,11 @@ contains
 
     should_output = .false.
 
+    if (have_option(trim(option_path) // "/exclude_from_output")) then
+      ! this group will never be output
+      return
+    end if
+
     if (.not. CS%last_times_initialised) then
       ! if the last_dump*_time variables have not been initialised, assume there should be output
 

@@ -93,7 +93,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -138,7 +138,7 @@
         <no_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="CoordinateMesh"/>
@@ -158,12 +158,12 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </value>
         <output/>
@@ -173,9 +173,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Parent" rank="0">
+    <scalar_field rank="0" name="Parent">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
@@ -197,7 +200,7 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prognostic>
         <mesh name="TemperatureMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -240,7 +243,7 @@
         </initial_condition>
         <boundary_conditions name="All">
           <surface_ids>
-            <integer_value shape="3" rank="1">333 444 666</integer_value>
+            <integer_value rank="1" shape="3">333 444 666</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <from_field parent_field_name="Parent"/>

@@ -222,7 +222,6 @@
           <real_value rank="1" dim1="dim" shape="2">11995.3281128037 -1545.62044906958</real_value>
         </location>
       </static_detector>
-      <fail_outside_domain/>
     </detectors>
   </io>
   <timestepping>
@@ -264,6 +263,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -284,6 +286,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
     <scalar_field rank="0" name="Tracer">

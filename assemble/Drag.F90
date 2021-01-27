@@ -202,7 +202,7 @@ subroutine drag_surface(bigm, rhs, state, density)
                face_shape(velocity, sele), coefficient*face_detwei*density_face_gi)
                
             do k=1, velocity%dim
-               Call addto(bigm, k, k, faceglobalnodes, faceglobalnodes, &
+               call addto(bigm, k, k, faceglobalnodes, faceglobalnodes, &
                   dt*theta*drag_mat)
                call addto(rhs, k, faceglobalnodes, &
                   -matmul(drag_mat, face_val(old_velocity, k, sele)))

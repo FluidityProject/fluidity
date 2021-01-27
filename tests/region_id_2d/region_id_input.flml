@@ -89,23 +89,23 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="lower_mesh">
           <region_ids>
-            <integer_value shape="2" rank="1">34 35</integer_value>
+            <integer_value rank="1" shape="2">34 35</integer_value>
           </region_ids>
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 1.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 1.0</real_value>
           </constant>
         </value>
         <value name="upper_mesh">
           <region_ids>
-            <integer_value shape="2" rank="1">32 33</integer_value>
+            <integer_value rank="1" shape="2">32 33</integer_value>
           </region_ids>
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 1.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 1.0</real_value>
           </constant>
         </value>
         <output/>
@@ -115,9 +115,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="MaterialVolumeFraction" rank="0">
+    <scalar_field rank="0" name="MaterialVolumeFraction">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -159,7 +162,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
 	if(X[1]&gt;X[0]+0.25):
 		return 0.0
 	else:
@@ -168,7 +171,7 @@
         </initial_condition>
         <boundary_conditions name="incoming_vfrac">
           <surface_ids>
-            <integer_value shape="1" rank="1">27</integer_value>
+            <integer_value rank="1" shape="1">27</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -179,7 +182,7 @@
         </boundary_conditions>
         <boundary_conditions name="base_vfrac">
           <surface_ids>
-            <integer_value shape="1" rank="1">22</integer_value>
+            <integer_value rank="1" shape="1">22</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -204,7 +207,7 @@
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -226,12 +229,12 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Regions" rank="0">
+    <scalar_field rank="0" name="Regions">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="region_35">
           <region_ids>
-            <integer_value shape="1" rank="1">35</integer_value>
+            <integer_value rank="1" shape="1">35</integer_value>
           </region_ids>
           <constant>
             <real_value rank="0">35</real_value>
@@ -239,7 +242,7 @@
         </value>
         <value name="region_36">
           <region_ids>
-            <integer_value shape="1" rank="1">34</integer_value>
+            <integer_value rank="1" shape="1">34</integer_value>
           </region_ids>
           <constant>
             <real_value rank="0">36</real_value>
@@ -247,7 +250,7 @@
         </value>
         <value name="region_37">
           <region_ids>
-            <integer_value shape="1" rank="1">33</integer_value>
+            <integer_value rank="1" shape="1">33</integer_value>
           </region_ids>
           <constant>
             <real_value rank="0">37</real_value>
@@ -255,7 +258,7 @@
         </value>
         <value name="region_38">
           <region_ids>
-            <integer_value shape="1" rank="1">32</integer_value>
+            <integer_value rank="1" shape="1">32</integer_value>
           </region_ids>
           <constant>
             <real_value rank="0">38</real_value>
@@ -271,12 +274,12 @@
         </particles>
       </prescribed>
     </scalar_field>
-    <tensor_field name="MaterialViscosity" rank="2">
+    <tensor_field rank="2" name="MaterialViscosity">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="lower_mesh">
           <region_ids>
-            <integer_value shape="2" rank="1">34 35</integer_value>
+            <integer_value rank="1" shape="2">34 35</integer_value>
           </region_ids>
           <isotropic>
             <constant>
@@ -286,7 +289,7 @@
         </value>
         <value name="upper_mesh">
           <region_ids>
-            <integer_value shape="2" rank="1">32 33</integer_value>
+            <integer_value rank="1" shape="2">32 33</integer_value>
           </region_ids>
           <isotropic>
             <constant>
@@ -295,6 +298,9 @@
           </isotropic>
         </value>
         <output/>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </tensor_field>
   </material_phase>
@@ -308,10 +314,10 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <aliased material_phase_name="Water" field_name="Velocity"/>
     </vector_field>
-    <scalar_field name="MaterialVolumeFraction" rank="0">
+    <scalar_field rank="0" name="MaterialVolumeFraction">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -331,12 +337,12 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <tensor_field name="MaterialViscosity" rank="2">
+    <tensor_field rank="2" name="MaterialViscosity">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="lower_mesh">
           <region_ids>
-            <integer_value shape="2" rank="1">34 35</integer_value>
+            <integer_value rank="1" shape="2">34 35</integer_value>
           </region_ids>
           <isotropic>
             <constant>
@@ -346,7 +352,7 @@
         </value>
         <value name="upper_mesh">
           <region_ids>
-            <integer_value shape="2" rank="1">32 33</integer_value>
+            <integer_value rank="1" shape="2">32 33</integer_value>
           </region_ids>
           <isotropic>
             <constant>
@@ -355,6 +361,9 @@
           </isotropic>
         </value>
         <output/>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </tensor_field>
   </material_phase>
@@ -370,14 +379,14 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.025 0.0 0.0 0.025</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">0.025 0.0 0.0 0.025</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.4 0.0 0.0 0.4</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">0.4 0.0 0.0 0.4</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

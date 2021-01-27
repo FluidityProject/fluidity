@@ -78,7 +78,6 @@
           </format>
         </from_file>
       </detector_array>
-      <fail_outside_domain/>
     </detectors>
   </io>
   <timestepping>
@@ -110,6 +109,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
     <scalar_field rank="0" name="Tracer">

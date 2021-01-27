@@ -60,7 +60,7 @@ module surface_integrals
   public :: calculate_surface_integral, gradient_normal_surface_integral, &
     & normal_surface_integral, surface_integral, surface_gradient_normal, &
     & surface_normal_distance_sele, surface_weighted_normal, &
-    wall_stress
+    wall_stress, calculate_surface_l2norm, surface_l2norm
   public :: diagnostic_body_drag, diagnostic_body_torque
   
   interface integrate_over_surface_element
@@ -73,6 +73,16 @@ module surface_integrals
   interface calculate_surface_integral
     module procedure calculate_surface_integral_scalar, &
       & calculate_surface_integral_vector
+  end interface
+
+  interface calculate_surface_l2norm
+    module procedure calculate_surface_l2norm_scalar, &
+      & calculate_surface_l2norm_vector
+  end interface
+
+  interface surface_l2norm
+    module procedure surface_l2norm_scalar, &
+      & surface_l2norm_vector
   end interface
 
 contains
@@ -100,11 +110,7 @@ contains
     integral = 0.0   
     
     do i = 1, surface_element_count(s_field)    
-      if(present(surface_ids)) then
-        integrate_over_element = integrate_over_surface_element(s_field, i, surface_ids)
-      else
-        integrate_over_element = integrate_over_surface_element(s_field, i)
-      end if
+      integrate_over_element = integrate_over_surface_element(s_field, i, surface_ids=surface_ids)
       
       if(integrate_over_element) then
         if(present_and_true(normalise)) then
@@ -171,11 +177,7 @@ contains
     end if
     integral = 0.0   
     do i = 1, surface_element_count(v_field)
-      if(present(surface_ids)) then
-        integrate_over_element = integrate_over_surface_element(v_field, i, surface_ids)
-      else
-        integrate_over_element = integrate_over_surface_element(v_field, i)
-      end if
+      integrate_over_element = integrate_over_surface_element(v_field, i, surface_ids=surface_ids)
       
       if(integrate_over_element) then
         if(present_and_true(normalise)) then
@@ -264,11 +266,7 @@ contains
     integral = 0.0   
     
     do i = 1, surface_element_count(s_field)
-      if(present(surface_ids)) then
-        integrate_over_element = integrate_over_surface_element(s_field, i, surface_ids)
-      else
-        integrate_over_element = integrate_over_surface_element(s_field, i)
-      end if
+      integrate_over_element = integrate_over_surface_element(s_field, i, surface_ids=surface_ids)
       
       if(integrate_over_element) then
         if(present_and_true(normalise)) then
@@ -574,6 +572,134 @@ contains
     
   end subroutine weighted_normal_surface_integral_face
   
+function surface_l2norm_scalar(s_field, positions, surface_ids, normalise) result(integral)
+    !!< Calculate the L2 norm over the surface of the mesh.
+    !!< surface elements integrated over are defined by
+    !!< integrate_over_surface_element(...). If normalise is present and true,
+    !!< the result is divided by the sqrt of the surface area
+
+    type(scalar_field), intent(in) :: s_field
+    type(vector_field), target, intent(in) :: positions
+    integer, dimension(:), optional, intent(in) :: surface_ids
+    logical, optional, intent(in) :: normalise
+
+    real :: integral
+
+    integer :: i
+    real :: area, face_area, face_integral
+
+    if(present_and_true(normalise)) then
+      area = 0.0
+    end if
+    integral = 0.0
+
+    do i = 1, surface_element_count(s_field)
+      if (integrate_over_surface_element(s_field, i, surface_ids=surface_ids)) then
+        if(present_and_true(normalise)) then
+          call surface_l2norm_scalar_face(s_field, i, positions, face_integral, area = face_area)
+          area = area + face_area
+        else
+          call surface_l2norm_scalar_face(s_field, i, positions, face_integral)
+        end if
+        integral = integral + face_integral
+      end if
+    end do
+
+    call allsum(integral, communicator = halo_communicator(s_field))
+
+    if(present_and_true(normalise)) then
+      call allsum(area, communicator = halo_communicator(s_field))
+      integral = integral / area
+    end if
+
+    integral = sqrt(integral)
+
+  end function surface_l2norm_scalar
+
+  subroutine surface_l2norm_scalar_face(s_field, face, positions, integral, area)
+    type(scalar_field), intent(in) :: s_field
+    type(vector_field), intent(in) :: positions
+    integer, intent(in) :: face
+    real, intent(out) :: integral
+    real, optional, intent(out) :: area
+
+    real, dimension(face_ngi(s_field, face)) :: detwei
+
+    assert(face_ngi(s_field, face) == face_ngi(positions, face))
+
+    call transform_facet_to_physical(positions, face, detwei)
+
+    integral = dot_product(face_val_at_quad(s_field, face)**2, detwei)
+    if(present(area)) then
+      area = sum(detwei)
+    end if
+
+  end subroutine surface_l2norm_scalar_face
+
+  function surface_l2norm_vector(v_field, positions, surface_ids, normalise) result(integral)
+    !!< Calculate the L2 norm over the surface of the mesh.
+    !!< surface elements integrated over are defined by
+    !!< integrate_over_surface_element(...). If normalise is present and true,
+    !!< the result is divided by the sqrt of the surface area
+
+    type(vector_field), intent(in) :: v_field
+    type(vector_field), target, intent(in) :: positions
+    integer, dimension(:), optional, intent(in) :: surface_ids
+    logical, optional, intent(in) :: normalise
+
+    real :: integral
+
+    integer :: i
+    real :: area, face_area, face_integral
+
+    if(present_and_true(normalise)) then
+      area = 0.0
+    end if
+    integral = 0.0
+
+    do i = 1, surface_element_count(v_field)
+      if (integrate_over_surface_element(v_field, i, surface_ids=surface_ids)) then
+        if(present_and_true(normalise)) then
+          call surface_l2norm_vector_face(v_field, i, positions, face_integral, area = face_area)
+          area = area + face_area
+        else
+          call surface_l2norm_vector_face(v_field, i, positions, face_integral)
+        end if
+        integral = integral + face_integral
+      end if
+    end do
+
+    call allsum(integral, communicator = halo_communicator(v_field))
+
+    if(present_and_true(normalise)) then
+      call allsum(area, communicator = halo_communicator(v_field))
+      integral = integral / area
+    end if
+
+    integral = sqrt(integral)
+
+  end function surface_l2norm_vector
+
+  subroutine surface_l2norm_vector_face(v_field, face, positions, integral, area)
+    type(vector_field), intent(in) :: v_field
+    type(vector_field), intent(in) :: positions
+    integer, intent(in) :: face
+    real, intent(out) :: integral
+    real, optional, intent(out) :: area
+
+    real, dimension(face_ngi(v_field, face)) :: detwei
+
+    assert(face_ngi(v_field, face) == face_ngi(positions, face))
+
+    call transform_facet_to_physical(positions, face, detwei)
+
+    integral = sum(matmul(face_val_at_quad(v_field, face)**2, detwei))
+    if(present(area)) then
+      area = sum(detwei)
+    end if
+
+  end subroutine surface_l2norm_vector_face
+
   function surface_normal_distance_sele(positions, sele, ele) result(h)
     ! calculate wall-normal element size
     type(vector_field), intent(in) :: positions
@@ -643,11 +769,7 @@ contains
     
     logical :: integrate_over_element
 
-    if(present(surface_ids)) then
-      integrate_over_element = integrate_over_surface_element(s_field%mesh, face_number, surface_ids)
-    else
-      integrate_over_element = integrate_over_surface_element(s_field%mesh, face_number)
-    end if
+    integrate_over_element = integrate_over_surface_element(s_field%mesh, face_number, surface_ids=surface_ids)
     
   end function integrate_over_surface_element_scalar
   
@@ -661,11 +783,7 @@ contains
     
     logical :: integrate_over_element
     
-    if(present(surface_ids)) then
-      integrate_over_element = integrate_over_surface_element(v_field%mesh, face_number, surface_ids)
-    else
-      integrate_over_element = integrate_over_surface_element(v_field%mesh, face_number)
-    end if
+    integrate_over_element = integrate_over_surface_element(v_field%mesh, face_number, surface_ids=surface_ids)
     
   end function integrate_over_surface_element_vector
   
@@ -679,11 +797,7 @@ contains
     
     logical :: integrate_over_element
     
-    if(present(surface_ids)) then
-      integrate_over_element = integrate_over_surface_element(t_field%mesh, face_number, surface_ids)
-    else
-      integrate_over_element = integrate_over_surface_element(t_field%mesh, face_number)
-    end if
+    integrate_over_element = integrate_over_surface_element(t_field%mesh, face_number, surface_ids=surface_ids)
 
   end function integrate_over_surface_element_tensor
 
@@ -1053,50 +1167,32 @@ contains
     
   end subroutine torque_on_surface
   
-  function calculate_surface_integral_scalar(s_field, positions, index) result(integral)
+  function calculate_surface_integral_scalar(s_field, positions, option_path) result(integral)
     !!< Calculates a surface integral for the specified scalar field based upon
     !!< options defined in the options tree
     
     type(scalar_field), intent(in) :: s_field
     type(vector_field), intent(in) :: positions
-    integer, optional, intent(in) :: index
+    character(len=*), intent(in) :: option_path
     
     real :: integral
     
     character(len = real_format_len() + 4) :: format_buffer
-    character(len = FIELD_NAME_LEN) :: integral_name
-    character(len = OPTION_PATH_LEN) :: path, integral_type
-    integer :: lindex, max_index
+    character(len = FIELD_NAME_LEN) :: integral_name, integral_type
     integer, dimension(2) :: shape
     integer, dimension(:), allocatable :: surface_ids
     logical :: normalise
     
-    if(present(index)) then
-      lindex = index
-    else
-      lindex = 0
-    end if
-    
-    path = trim(complete_field_path(s_field%option_path)) // "/stat/surface_integral"
-    
-    max_index = option_count(trim(path)) - 1
-    if(lindex < 0 .or. lindex > max_index) then
-      ewrite(-1, "(a,i0,a,i0)") "Index: ", lindex, " - Max index: ", max_index
-      FLAbort("Invalid option path index when calculating surface integral")
-    end if
-    
-    path = trim(path) // "[" // int2str(lindex) // "]"
-    
-    if(have_option(trim(path) // "/surface_ids")) then
-      shape = option_shape(trim(path) // "/surface_ids")
+    if(have_option(trim(option_path) // "/surface_ids")) then
+      shape = option_shape(trim(option_path) // "/surface_ids")
       assert(shape(1) >= 0)
       allocate(surface_ids(shape(1)))
-      call get_option(trim(path) // "/surface_ids", surface_ids)
+      call get_option(trim(option_path) // "/surface_ids", surface_ids)
     end if
     
-    normalise = have_option(trim(path) // "/normalise")
+    normalise = have_option(trim(option_path) // "/normalise")
     
-    call get_option(trim(path) // "/type", integral_type)
+    call get_option(trim(option_path) // "/type", integral_type)
     select case(trim(integral_type))
       case("value")
         if(allocated(surface_ids)) then
@@ -1118,7 +1214,7 @@ contains
       deallocate(surface_ids)
     end if
     
-    call get_option(trim(path) // "/name", integral_name)
+    call get_option(trim(option_path) // "/name", integral_name)
     if(normalise) then
       ewrite(2, *) "Normalised surface integral of type " // trim(integral_type) // " for field " // trim(s_field%name) // ":"
     else
@@ -1129,50 +1225,32 @@ contains
     
   end function calculate_surface_integral_scalar
   
-  function calculate_surface_integral_vector(v_field, positions, index) result(integral)
+  function calculate_surface_integral_vector(v_field, positions, option_path) result(integral)
     !!< Calculates a surface integral for the specified vector field based upon
     !!< options defined in the options tree
     
     type(vector_field), intent(in) :: v_field
     type(vector_field), intent(in) :: positions
-    integer, optional, intent(in) :: index
+    character(len=*), intent(in) :: option_path
     
     real :: integral
     
     character(len = real_format_len() + 4) :: format_buffer
-    character(len = FIELD_NAME_LEN) :: integral_name
-    character(len = OPTION_PATH_LEN) :: path, integral_type
-    integer :: lindex, max_index
+    character(len = FIELD_NAME_LEN) :: integral_name, integral_type
     integer, dimension(2) :: shape
     integer, dimension(:), allocatable :: surface_ids
     logical :: normalise
     
-    if(present(index)) then
-      lindex = index
-    else
-      lindex = 0
-    end if
-    
-    path = trim(complete_field_path(v_field%option_path)) // "/stat/surface_integral"
-    
-    max_index = option_count(trim(path)) - 1
-    if(lindex < 0 .or. lindex > max_index) then
-      ewrite(-1, "(a,i0,a,i0)") "Index: ", lindex, " - Max index: ", max_index
-      FLAbort("Invalid option path index when calculating surface integral")
-    end if
-    
-    path = trim(path) // "[" // int2str(lindex) // "]"
-    
-    if(have_option(trim(path) // "/surface_ids")) then
-      shape = option_shape(trim(path) // "/surface_ids")
+    if(have_option(trim(option_path) // "/surface_ids")) then
+      shape = option_shape(trim(option_path) // "/surface_ids")
       assert(shape(1) >= 0)
       allocate(surface_ids(shape(1)))
-      call get_option(trim(path) // "/surface_ids", surface_ids)
+      call get_option(trim(option_path) // "/surface_ids", surface_ids)
     end if
     
-    normalise = have_option(trim(path) // "/normalise")
+    normalise = have_option(trim(option_path) // "/normalise")
     
-    call get_option(trim(path) // "/type", integral_type)
+    call get_option(trim(option_path) // "/type", integral_type)
     select case(trim(integral_type))
       case("normal")
         if(allocated(surface_ids)) then
@@ -1188,7 +1266,7 @@ contains
       deallocate(surface_ids)
     end if
     
-    call get_option(trim(path) // "/name", integral_name)
+    call get_option(trim(option_path) // "/name", integral_name)
     if(normalise) then
       ewrite(2, *) "Normalised surface integral of type " // trim(integral_type) // " for field " // trim(v_field%name) // ":"
     else
@@ -1299,5 +1377,98 @@ contains
     integral=shape_rhs(face_shape,sqrt(sum(dudn**2,1))*detwei)
     
   end subroutine wall_stress_surface_integral_face
+
+  function calculate_surface_l2norm_scalar(s_field, positions, option_path) result(integral)
+    !!< Calculates a surface integral for the specified scalar field based upon
+    !!< options defined in the options tree
+    
+    type(scalar_field), intent(in) :: s_field
+    type(vector_field), intent(in) :: positions
+    character(len=*), intent(in) :: option_path
+    
+    real :: integral
+    
+    character(len = real_format_len() + 4) :: format_buffer
+    character(len = FIELD_NAME_LEN) :: integral_name
+    integer, dimension(2) :: shape
+    integer, dimension(:), allocatable :: surface_ids
+    logical :: normalise
+    
+    if(have_option(trim(option_path) // "/surface_ids")) then
+      shape = option_shape(trim(option_path) // "/surface_ids")
+      assert(shape(1) >= 0)
+      allocate(surface_ids(shape(1)))
+      call get_option(trim(option_path) // "/surface_ids", surface_ids)
+    end if
+    
+    normalise = have_option(trim(option_path) // "/normalise")
+    
+    if(allocated(surface_ids)) then
+      integral = surface_l2norm(s_field, positions, surface_ids = surface_ids, normalise = normalise)
+    else
+      integral = surface_l2norm(s_field, positions, normalise = normalise)
+    end if
+    
+    if(allocated(surface_ids)) then
+      deallocate(surface_ids)
+    end if
+    
+    call get_option(trim(option_path) // "/name", integral_name)
+    if(normalise) then
+      ewrite(2, *) "Normalised surface l2norm of field " // trim(s_field%name) // ":"
+    else
+      ewrite(2, *) "Surface l2norm of field " // trim(s_field%name) // ":"
+    end if
+    format_buffer = "(a," // real_format() // ")"
+    ewrite(2, format_buffer) trim(integral_name) // " = ", integral
+    
+  end function calculate_surface_l2norm_scalar
+  
+  function calculate_surface_l2norm_vector(v_field, positions, option_path) result(integral)
+    !!< Calculates a surface integral for the specified vector field based upon
+    !!< options defined in the options tree
+    
+    type(vector_field), intent(in) :: v_field
+    type(vector_field), intent(in) :: positions
+    character(len=*), intent(in) :: option_path
+    
+    real :: integral
+    
+    character(len = real_format_len() + 4) :: format_buffer
+    character(len = FIELD_NAME_LEN) :: integral_name
+    integer, dimension(2) :: shape
+    integer, dimension(:), allocatable :: surface_ids
+    logical :: normalise
+    
+    if(have_option(trim(option_path) // "/surface_ids")) then
+      shape = option_shape(trim(option_path) // "/surface_ids")
+      assert(shape(1) >= 0)
+      allocate(surface_ids(shape(1)))
+      call get_option(trim(option_path) // "/surface_ids", surface_ids)
+    end if
+    
+    normalise = have_option(trim(option_path) // "/normalise")
+    
+    if(allocated(surface_ids)) then
+      integral = surface_l2norm(v_field, positions, surface_ids = surface_ids, normalise = normalise)
+    else
+      integral = surface_l2norm(v_field, positions, normalise = normalise)
+    end if
+    
+    if(allocated(surface_ids)) then
+      deallocate(surface_ids)
+    end if
+    
+    call get_option(trim(option_path) // "/name", integral_name)
+    if(normalise) then
+      ewrite(2, *) "Normalised surface integral of field " // trim(v_field%name) // ":"
+    else
+      ewrite(2, *) "Surface integral of field " // trim(v_field%name) // ":"
+    end if
+    format_buffer = "(a," // real_format() // ")"
+    ewrite(2, format_buffer) trim(integral_name) // " = ", integral
+    
+  end function calculate_surface_l2norm_vector
+
 
 end module surface_integrals

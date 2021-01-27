@@ -93,12 +93,12 @@
     </finish_time>
   </timestepping>
   <material_phase name="fluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="1" dim1="dim" rank="1">0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="1">0.0</real_value>
           </constant>
         </value>
         <output/>
@@ -108,9 +108,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="CVMassMatrix" rank="0">
+    <scalar_field rank="0" name="CVMassMatrix">
       <diagnostic>
         <algorithm name="control_volume_mass_matrix" material_phase_support="single"/>
         <mesh name="CGP2"/>
@@ -130,7 +133,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="FELumpedMassMatrix" rank="0">
+    <scalar_field rank="0" name="FELumpedMassMatrix">
       <diagnostic>
         <algorithm name="finite_element_lumped_mass_matrix" material_phase_support="single"/>
         <mesh name="CGP2"/>
@@ -150,10 +153,10 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="ElementVolume" rank="0">
+    <scalar_field rank="0" name="ElementVolume">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="code" language="python">coord = states["fluid"].vector_fields["Coordinate"]
+          <string_value type="code" language="python" lines="20">coord = states["fluid"].vector_fields["Coordinate"]
 
 for ele in range(field.element_count):
    
@@ -180,10 +183,10 @@ for ele in range(field.element_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="SumCVMassMatrix" rank="0">
+    <scalar_field rank="0" name="SumCVMassMatrix">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="code" language="python">cvmass = states["fluid"].scalar_fields["CVMassMatrix"]
+          <string_value type="code" language="python" lines="20">cvmass = states["fluid"].scalar_fields["CVMassMatrix"]
 
 sum_cvmass = sum(cvmass.val)
 
@@ -208,10 +211,10 @@ for ele in range(field.element_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="SumFELumpedMassMatrix" rank="0">
+    <scalar_field rank="0" name="SumFELumpedMassMatrix">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="code" language="python">felmass = states["fluid"].scalar_fields["FELumpedMassMatrix"]
+          <string_value type="code" language="python" lines="20">felmass = states["fluid"].scalar_fields["FELumpedMassMatrix"]
 
 sum_felmass = sum(felmass.val)
 

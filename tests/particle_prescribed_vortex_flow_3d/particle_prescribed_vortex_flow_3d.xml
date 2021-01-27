@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>Testing of particle based multimaterial fields in parallel for a small resolution prescribed vortex flow case in 3-D. Vortex flow stretches particles from an initial sphere of distinct compoisiton into a spiral, then reverses and reforms the initial sphere. Conservation diagnostics are tested against those from a successful run.</name>
+  <owner userid="cmath"/>
+  <tags>flml parallel</tags>
+  <problem_definition length="medium" nprocs="4">
+    <command_line>    
+mpiexec ../../bin/flredecomp -i 1 -o 4 particle-prescribed-vortex-flow-3d particle-prescribed-vortex-flow-3d-flredecomp;      
+mpiexec ../../bin/fluidity -v3 -l particle-prescribed-vortex-flow-3d-flredecomp.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="Max_conservation_error" language="python">
+import numpy as np
+from fluidity_tools import stat_parser
+s = stat_parser("Sphere.stat")
+
+Max_cons = abs(1-(s['Normal']['MaterialVolumeFraction']['integral'][:]/s['Normal']['MaterialVolumeFraction']['integral'][0])).max()
+Max_conservation_error = Max_cons - 0.0388
+print ("Max cons error", Max_conservation_error)
+    </variable>
+    <variable name="Walltime" language="python">
+from fluidity_tools import stat_parser
+import numpy as np
+
+s = stat_parser('Sphere.stat')
+Walltime = s['ElapsedWallTime']["value"][-1]
+print ("Total wall time", Walltime)
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Maxconserror" language="python">
+assert abs(Max_conservation_error).max() &lt; 5.0e-3
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
+
+   

@@ -48,12 +48,12 @@
     </finish_time>
   </timestepping>
   <material_phase name="Fluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </value>
         <output/>
@@ -63,13 +63,16 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="SurfaceDivergence" rank="0">
+    <scalar_field rank="0" name="SurfaceDivergence">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="surface_horizontal_divergence" source_field_name="SurfaceField">
+        <algorithm name="surface_horizontal_divergence" material_phase_support="single" source_field_name="SurfaceField" source_field_type="vector">
           <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value rank="1" shape="1">1</integer_value>
           </surface_ids>
         </algorithm>
         <mesh name="CoordinateMesh"/>
@@ -89,12 +92,12 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="SurfaceField" rank="1">
+    <vector_field rank="1" name="SurfaceField">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
   if X[0]==X[1]:
     return [X[0],0.0]
   else:
@@ -108,6 +111,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
   </material_phase>

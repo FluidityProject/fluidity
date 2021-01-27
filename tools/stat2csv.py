@@ -131,7 +131,7 @@ def ExtractData(input, labelPrefix = ""):
   return data
       
 data = ExtractData(s)
-labels = data.keys()
+labels = list(data)
 
 # Open the output file for writing
 if useStdout:

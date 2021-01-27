@@ -4,7 +4,6 @@ import vtktools
 import sys
 import math
 import re 
-import commands
 import matplotlib.pyplot as plt
 import getopt
 

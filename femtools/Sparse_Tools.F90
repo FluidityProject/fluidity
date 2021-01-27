@@ -419,10 +419,6 @@ module sparse_tools
      module procedure sparsity_is_symmetric
   end interface
 
-  interface is_sorted
-    module procedure sparsity_is_sorted
-  end interface
-
   interface write_minmax
     module procedure csr_write_minmax, block_csr_write_minmax
   end interface
@@ -446,7 +442,7 @@ module sparse_tools
        & addto_diag, set_diag,  set, val, ival, dense, dense_i, wrap, matmul, matmul_addto, matmul_T,&
        & matrix2file, mmwrite, mmread, transpose, sparsity_sort,&
        & sparsity_merge, scale, set_inactive, get_inactive_mask, &
-       & reset_inactive, has_solver_cache, destroy_solver_cache, is_symmetric, is_sorted, &
+       & reset_inactive, has_solver_cache, destroy_solver_cache, is_symmetric, sparsity_is_sorted, &
        & write_minmax
        
   public :: posinm

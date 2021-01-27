@@ -60,9 +60,6 @@
   <particles>
     <particle_group name="Rhodri">
       <particle_subgroup name="Thomas">
-        <number_of_particles>
-          <integer_value rank="0">60</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -73,33 +70,30 @@
           </python>
         </initial_position>
         <attributes>
-          <attribute name="Chem1">
+          <scalar_attribute name="Chem1">
             <constant>
               <real_value rank="0">5</real_value>
             </constant>
-          </attribute>
-          <attribute name="Chem2">
+          </scalar_attribute>
+          <scalar_attribute name="Chem2">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   x=X[0]
-  y=fields["OldTemperature"]
+  y=fields["old%Temperature"]
   return y</string_value>
               <store_old_attribute/>
             </python_fields>
-          </attribute>
-          <attribute name="Chem3">
+          </scalar_attribute>
+          <scalar_attribute name="Chem3">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  y=fields["OldChem2"]
+  y=fields["old%Chem2"]
   return y</string_value>
             </python_fields>
-          </attribute>
+          </scalar_attribute>
         </attributes>
       </particle_subgroup>
       <particle_subgroup name="Chris">
-        <number_of_particles>
-          <integer_value rank="0">100</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -110,15 +104,15 @@
           </python>
         </initial_position>
         <attributes>
-          <attribute name="Chem1">
+          <scalar_attribute name="Chem1">
             <python>
               <string_value type="code" language="python" lines="20">def val(X,t,dt):
   x=X[0]
   y=x+t
   return y</string_value>
             </python>
-          </attribute>
-          <attribute name="Chem2">
+          </scalar_attribute>
+          <scalar_attribute name="Chem2">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   x=X[0]
@@ -126,22 +120,19 @@
   return z</string_value>
               <store_old_attribute/>
             </python_fields>
-          </attribute>
-          <attribute name="Chem3">
+          </scalar_attribute>
+          <scalar_attribute name="Chem3">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  y=fields["OldChem2"]
+  y=fields["old%Chem2"]
   return y</string_value>
             </python_fields>
-          </attribute>
+          </scalar_attribute>
         </attributes>
       </particle_subgroup>
     </particle_group>
     <particle_group name="Cian">
       <particle_subgroup name="Steph">
-        <number_of_particles>
-          <integer_value rank="0">80</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -152,21 +143,18 @@
           </python>
         </initial_position>
         <attributes>
-          <attribute name="Chem4">
+          <scalar_attribute name="Chem4">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  z=fields["Temperature"]-fields["OldTemperature"]
+  z=fields["Temperature"]-fields["old%Temperature"]
   return z</string_value>
             </python_fields>
-          </attribute>
+          </scalar_attribute>
         </attributes>
       </particle_subgroup>
     </particle_group>
     <particle_group name="Angus">
       <particle_subgroup name="BMW">
-        <number_of_particles>
-          <integer_value rank="0">100</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -177,25 +165,27 @@
           </python>
         </initial_position>
         <attributes>
-          <attribute name="Time">
+          <scalar_attribute name="Time">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   time = t
   return time</string_value>
               <store_old_attribute/>
             </python_fields>
-          </attribute>
-          <attribute name="dt">
+          </scalar_attribute>
+          <scalar_attribute name="dt">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  dt = t - fields["OldTime"]
+  dt = t - fields["old%Time"]
   return dt</string_value>
             </python_fields>
-          </attribute>
+          </scalar_attribute>
         </attributes>
       </particle_subgroup>
     </particle_group>
-    <fail_outside_domain/>
+    <moving_outside_domain>
+      <delete_outside_domain/>
+    </moving_outside_domain>
     <lagrangian_timestepping>
       <subcycles>
         <integer_value rank="0">1</integer_value>
@@ -240,6 +230,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -263,6 +256,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
     <scalar_field rank="0" name="Temperature">

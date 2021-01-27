@@ -72,13 +72,16 @@ assert abs(D2_position[0,-1] - 1.25) &lt; 1e-12
 assert abs(D3_position[0,-1] - 1.4) &lt; 1e-12
     </test>
     <test name="tracer at D1" language="python">
-assert abs(D1_tracer - 0.1).all() &lt; 1e-12
+import numpy as np
+np.testing.assert_allclose(D1_tracer, 0.1, rtol=0., atol=1e-12)
     </test>
     <test name="tracer at D2" language="python">
-assert abs(D2_tracer - 0.25).all() &lt; 1e-12
+import numpy as np
+np.testing.assert_allclose(D2_tracer, 0.25, rtol=0., atol=1e-12)
     </test>
     <test name="tracer at D3" language="python">
-assert abs(D3_tracer - 0.4).all() &lt; 1e-12
+import numpy as np
+np.testing.assert_allclose(D3_tracer, 0.4, rtol=0., atol=1e-12)
     </test>
   </pass_tests>
   <warn_tests>

@@ -89,7 +89,7 @@ implicit none
   end interface
 
   interface dot_product
-    module procedure dot_product_scalar, dot_product_vector
+    module procedure dot_product_vector
   end interface dot_product
 
   interface outer_product
@@ -104,7 +104,7 @@ implicit none
 
   public :: mean, maxval, minval, sum, norm2, field_stats, field_cv_stats,&
 	 field_integral, fields_integral, function_val_at_quad,&
-	 dot_product, outer_product, norm2_difference, magnitude,&
+         dot_product, outer_product, norm2_difference, magnitude,&
 	 magnitude_tensor, merge_meshes, distance, divergence_field_stats,&
 	 field_con_stats, function_val_at_quad_scalar, trace, mesh_integral
     
@@ -667,35 +667,12 @@ implicit none
     end do
   end subroutine trace
 
-  function dot_product_scalar(fieldA, fieldB) result(val)
-    type(scalar_field), intent(in) :: fieldA, fieldB
+  function dot_product_vector(fieldA, fieldB, X) result(val)
+    type(vector_field), intent(in) :: fieldA, fieldB, X
     real :: val
     integer :: i
 
-    if (.not. associated(fieldA%mesh%refcount, fieldB%mesh%refcount)) then
-      ewrite(-1,*) "Hello! dot_product_scalar here."
-      ewrite(-1,*) "I couldn't be bothered remapping the fields,"
-      ewrite(-1,*) "even though this is perfectly possible."
-      ewrite(-1,*) "Code this up to remap the fields to continue!"
-      FLAbort("Programmmer laziness detected")
-    end if
-
-    if (fieldA%field_type == FIELD_TYPE_NORMAL .and. fieldB%field_type == FIELD_TYPE_NORMAL) then
-      val = dot_product(fieldA%val, fieldB%val)
-    else if (fieldA%field_type == FIELD_TYPE_CONSTANT .and. fieldB%field_type == FIELD_TYPE_CONSTANT) then
-      val = fieldA%val(1) * fieldB%val(1) * node_count(fieldA)
-    else
-      val = 0.0
-      do i=1,node_count(fieldA)
-        val = val + node_val(fieldA, i) * node_val(fieldB, i)
-      end do
-    end if
-  end function dot_product_scalar
-
-  function dot_product_vector(fieldA, fieldB) result(val)
-    type(vector_field), intent(in) :: fieldA, fieldB
-    real, dimension(fieldA%dim) :: val
-    integer :: i, d
+    integer :: ele
 
     assert(fieldA%dim==fieldB%dim)
 
@@ -707,20 +684,19 @@ implicit none
       FLAbort("Programmmer laziness detected")
     end if
 
-    if ((fieldA%field_type == FIELD_TYPE_NORMAL) .and. &
-        (fieldB%field_type == FIELD_TYPE_NORMAL)) then
-       do d=1,fieldA%dim
-          val(d) = dot_product(fieldA%val(d,:), fieldB%val(d,:))
-       end do
-    else if (fieldA%field_type == FIELD_TYPE_CONSTANT .and. fieldB%field_type == FIELD_TYPE_CONSTANT) then
-       do d=1,fieldA%dim
-          val(d) = fieldA%val(d,1) * fieldB%val(d,1) * node_count(fieldA)
-       end do
+    if (fieldA%field_type == FIELD_TYPE_CONSTANT .and. fieldB%field_type == FIELD_TYPE_CONSTANT) then
+       val = dot_product(fieldA%val(:,1), fieldB%val(:,1)) * mesh_integral(X)
     else
-       val = 0.0
-       do i=1,node_count(fieldA)
-          val = val + node_val(fieldA, i) * node_val(fieldB, i)
+       val = 0
+
+       do ele=1, element_count(fieldA)
+         if(element_owned(fieldA, ele)) then
+           val = val + dot_integral_element(fieldA, fieldB, X, ele)
+         end if
        end do
+
+       call allsum(val)
+
     end if
   end function dot_product_vector
 

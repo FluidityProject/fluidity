@@ -70,9 +70,6 @@
   <particles>
     <particle_group name="DtTest">
       <particle_subgroup name="DtMeasure">
-        <number_of_particles>
-          <integer_value rank="0">1</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -87,26 +84,28 @@
           </python>
         </initial_position>
         <attributes>
-          <attribute name="DtVal">
+          <scalar_attribute name="DtVal">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
   x = dt
   return x</string_value>
               <store_old_attribute/>
             </python_fields>
-          </attribute>
-          <attribute name="Dtchange">
+          </scalar_attribute>
+          <scalar_attribute name="Dtchange">
             <python_fields>
               <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  oldDT = fields["OldDtVal"]
+  oldDT = fields["old%DtVal"]
   x = dt - oldDT
   return x</string_value>
             </python_fields>
-          </attribute>
+          </scalar_attribute>
         </attributes>
       </particle_subgroup>
     </particle_group>
-    <fail_outside_domain/>
+    <moving_outside_domain>
+      <delete_outside_domain/>
+    </moving_outside_domain>
     <lagrangian_timestepping>
       <subcycles>
         <integer_value rank="0">1</integer_value>
@@ -158,6 +157,9 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
   </material_phase>
