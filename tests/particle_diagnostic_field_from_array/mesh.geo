@@ -1,0 +1,16 @@
+size = 0.05;
+Point(1) = {0, 0, 0, size};
+Point(2) = {1, 0, 0, size};
+Point(3) = {1, 1, 0, size};
+Point(4) = {0, 1, 0, size};
+Line(1) = {1, 2};
+Line(2) = {2, 3};
+Line(3) = {3, 4};
+Line(4) = {4, 1};
+Line Loop(7) = {1, 2, 3, 4};
+Plane Surface(7) = {7};
+Physical Line(8) = {1};
+Physical Line(9) = {2};
+Physical Line(10) = {3};
+Physical Line(11) = {4};
+Physical Surface(12) = {7};

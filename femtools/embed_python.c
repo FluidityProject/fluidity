@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 USA
 */
 
-
+#include <stdlib.h>
 
 #include "confdefs.h"
 #include "string.h"
@@ -44,6 +44,10 @@ USA
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
 #endif
+
+void deallocate_c_array(void *ptr) {
+  free(ptr);
+}
 
 int eval_user_func(char *function, int function_len, PyObject *pLocals, PyObject **pFunc) {
   PyObject *pMain, *pGlobals, *pCode;
@@ -496,11 +500,36 @@ static inline void set_dict_from_fields(int i, int dim, int *nfields, int name_l
   }
 }
 
+static int count_all_atts(int dim, int *natts, int *att_dims)
+{
+  // count the number of attributes for a single particle, taking into account
+  // vector/tensor attributes, and array attributes
+
+  int count = 0;
+  // scalar
+  for (int i = 0; i < natts[0]; i++) {
+    int ad = att_dims[i];
+    count += ad > 0 ? ad : 1;
+  }
+  // vector
+  for (int i = 0; i < natts[1]; i++) {
+    int ad = att_dims[i + natts[0]];
+    count += dim * (ad > 0 ? ad : 1);
+  }
+  // tensor
+  for (int i = 0; i < natts[2]; i++) {
+    int ad = att_dims[i + natts[0] + natts[1]];
+    count += dim*dim * (ad > 0 ? ad : 1);
+  }
+
+  return count;
+}
+
 static void set_dict_from_old_atts(int i, int dim, int *natts, int name_len, char *_att_names,
 				   int *att_dims, double *_att_vals, PyObject *pNames)
 {
-  int all_atts = natts[0] + dim*natts[1] + dim*dim*natts[2];
-  double (*att_vals)[all_atts] = (double (*)[all_atts])_att_vals;
+  int all_atts = count_all_atts(dim, natts, att_dims);
+  double *att_vals = &_att_vals[i * all_atts];
   char (*att_names)[name_len] = (char (*)[name_len])_att_names;
 
   npy_intp dims[] = {0, dim, dim};
@@ -514,12 +543,12 @@ static void set_dict_from_old_atts(int i, int dim, int *natts, int name_len, cha
 
     if (ad == 0) {
       // non-array
-      pAtt = PyFloat_FromDouble(att_vals[i][ai++]);
+      pAtt = PyFloat_FromDouble(att_vals[ai++]);
     } else {
       dims[0] = ad;
       pAtt = PyArray_SimpleNew(1, dims, NPY_DOUBLE);
       for (int d = 0; d < ad; d++) {
-	*((double*)PyArray_GETPTR1((PyArrayObject*)pAtt, d)) = att_vals[i][ai + d];
+	*((double*)PyArray_GETPTR1((PyArrayObject*)pAtt, d)) = att_vals[ai + d];
       }
       ai += ad;
     }
@@ -535,7 +564,7 @@ static void set_dict_from_old_atts(int i, int dim, int *natts, int name_len, cha
       // non-array
       pAtt = PyArray_SimpleNew(1, dims+1, NPY_DOUBLE);
       for (int k = 0; k < dim; k++) {
-	*((double*)PyArray_GETPTR1((PyArrayObject*)pAtt, k)) = att_vals[i][ai + k];
+	*((double*)PyArray_GETPTR1((PyArrayObject*)pAtt, k)) = att_vals[ai + k];
       }
       ai += dim;
     } else {
@@ -543,7 +572,7 @@ static void set_dict_from_old_atts(int i, int dim, int *natts, int name_len, cha
       pAtt = PyArray_SimpleNew(2, dims, NPY_DOUBLE);
       for (int d = 0; d < ad; d++) {
 	for (int k = 0; k < dim; k++) {
-	  *((double*)PyArray_GETPTR2((PyArrayObject*)pAtt, d, k)) = att_vals[i][ai + k];
+	  *((double*)PyArray_GETPTR2((PyArrayObject*)pAtt, d, k)) = att_vals[ai + k];
 	}
 	ai += dim;
       }
@@ -561,7 +590,7 @@ static void set_dict_from_old_atts(int i, int dim, int *natts, int name_len, cha
       pAtt = PyArray_SimpleNew(2, dims+1, NPY_DOUBLE);
       for (int k = 0; k < dim; k++) {
 	for (int l = 0; l < dim; l++) {
-	  *((double*)PyArray_GETPTR2((PyArrayObject*)pAtt, l, k)) = att_vals[i][ai + l];
+	  *((double*)PyArray_GETPTR2((PyArrayObject*)pAtt, l, k)) = att_vals[ai + l];
 	}
 	ai += dim;
       }
@@ -571,7 +600,7 @@ static void set_dict_from_old_atts(int i, int dim, int *natts, int name_len, cha
       for (int d = 0; d < ad; d++) {
 	for (int k = 0; k < dim; k++) {
 	  for (int l = 0; l < dim; l++) {
-	    *((double*)PyArray_GETPTR3((PyArrayObject*)pAtt, d, l, k)) = att_vals[i][ai + l];
+	    *((double*)PyArray_GETPTR3((PyArrayObject*)pAtt, d, l, k)) = att_vals[ai + l];
 	  }
 	  ai += dim;
 	}
@@ -765,6 +794,62 @@ void set_tensor_particles_from_python_fields_array(char *function, int function_
 			       old_natts, old_att_names, old_att_dims, old_atts,
 			       stat, result_dims, (void**)&result,
 			       set_tensor_result_double_array, &natt);
+}
+
+void set_detectors_from_python_unknown(char *function, int function_len, int dim, double t,
+               double **result_ptr, int *n, int *stat)
+{
+  PyObject *pFunc, *pLocals, *pArgs, *pResult;
+  pLocals = PyDict_New();
+
+  // borrow locals, returns a string from the locals dictionary
+  if (eval_user_func(function, function_len, pLocals, &pFunc)) {
+    *stat = -1;
+    return;
+  }
+
+  pArgs = PyTuple_New(1);
+  // tuple steals refs
+  PyTuple_SetItem(pArgs, 0, PyFloat_FromDouble(t));
+
+  pResult = PyObject_CallObject(pFunc, pArgs);
+  if (PyErr_Occurred()) {
+    PyErr_Print();
+    *stat = -1;
+    return;
+  }
+
+  // get the number of particles returned by the function
+  *n = PySequence_Length(pResult);
+  // allocate the result array
+  *result_ptr = (double *)malloc(*n * dim * sizeof(double));
+  // cast to 2D array for easier working -- result[n_particles][dim]
+  double (*result)[dim] = (double (*)[dim])(*result_ptr);
+
+  // copy into result array
+  for (int i = 0; i < *n; i++) {
+    PyObject *pResultItem = PySequence_GetItem(pResult, i);
+
+    for (int j = 0; j < dim; j++) {
+      PyObject *pX = PySequence_GetItem(pResultItem, j);
+      result[i][j] = PyFloat_AsDouble(pX);
+
+      if (PyErr_Occurred()) {
+        PyErr_Print();
+        *stat = -1;
+        return;
+      }
+
+      Py_DECREF(pX);
+    }
+
+    Py_DECREF(pResultItem);
+  }
+
+  Py_DECREF(pResult);
+  Py_DECREF(pArgs);
+  Py_DECREF(pLocals);
+  *stat = 0;
 }
 
 

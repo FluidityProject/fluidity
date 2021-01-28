@@ -60,7 +60,6 @@
           </format>
         </from_file>
       </detector_array>
-      <fail_outside_domain/>
     </detectors>
   </io>
   <timestepping>

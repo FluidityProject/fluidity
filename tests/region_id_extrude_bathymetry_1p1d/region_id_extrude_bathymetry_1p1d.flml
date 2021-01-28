@@ -222,7 +222,6 @@
           <real_value rank="1" dim1="dim" shape="2">11995.3281128037 -1545.62044906958</real_value>
         </location>
       </static_detector>
-      <fail_outside_domain/>
     </detectors>
   </io>
   <timestepping>

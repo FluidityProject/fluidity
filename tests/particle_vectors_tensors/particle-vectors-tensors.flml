@@ -70,9 +70,6 @@
   <particles>
     <particle_group name="TempTest">
       <particle_subgroup name="TempMeasure">
-        <number_of_particles>
-          <integer_value rank="0">50625</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -111,9 +108,6 @@
     </particle_group>
     <particle_group name="PosTest">
       <particle_subgroup name="PosMeasure">
-        <number_of_particles>
-          <integer_value rank="0">90000</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -270,7 +264,9 @@
         </attributes>
       </particle_subgroup>
     </particle_group>
-    <fail_outside_domain/>
+    <moving_outside_domain>
+      <delete_outside_domain/>
+    </moving_outside_domain>
     <lagrangian_timestepping>
       <subcycles>
         <integer_value rank="0">1</integer_value>

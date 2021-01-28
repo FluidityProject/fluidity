@@ -55,9 +55,6 @@
   <particles>
     <particle_group name="Particles">
       <particle_subgroup name="Singl_Lagr_1">
-        <number_of_particles>
-          <integer_value rank="0">1</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -69,9 +66,6 @@
         </initial_position>
       </particle_subgroup>
       <particle_subgroup name="Singl_Lagr_2">
-        <number_of_particles>
-          <integer_value rank="0">1</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -83,9 +77,6 @@
         </initial_position>
       </particle_subgroup>
       <particle_subgroup name="Singl_Lagr_3">
-        <number_of_particles>
-          <integer_value rank="0">1</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -97,9 +88,6 @@
         </initial_position>
       </particle_subgroup>
       <particle_subgroup name="Steve">
-        <number_of_particles>
-          <integer_value rank="0">100</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -111,7 +99,9 @@
         </initial_position>
       </particle_subgroup>
     </particle_group>
-    <fail_outside_domain/>
+    <moving_outside_domain>
+      <delete_outside_domain/>
+    </moving_outside_domain>
     <lagrangian_timestepping>
       <subcycles>
         <integer_value rank="0">1</integer_value>

@@ -1865,6 +1865,7 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
     PCType:: pctype, hypretype
     MatSolverType:: matsolvertype
     PetscErrorCode:: ierr
+    integer :: n_local, first_local
     
     call get_option(trim(option_path)//'/name', pctype)
 
@@ -1927,9 +1928,9 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
       call PCSetup(pc, ierr)
       
       if (pctype==PCBJACOBI) then
-        call PCBJACOBIGetSubKSP(pc, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, subksp, ierr)
+        call PCBJACOBIGetSubKSP(pc, n_local, first_local, subksp, ierr)
       else
-        call PCASMGetSubKSP(pc, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, subksp, ierr)
+        call PCASMGetSubKSP(pc, n_local, first_local, subksp, ierr)
       end if
 
       call KSPGetPC(subksp, subpc, ierr)
@@ -1952,7 +1953,7 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
        call PCSetType(pc, PCBJACOBI, ierr)
        ! need to call this before the subpc can be retrieved:
        call PCSetup(pc, ierr)
-       call PCBJACOBIGetSubKSP(pc, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, subksp, ierr)
+       call PCBJACOBIGetSubKSP(pc, n_local, first_local, subksp, ierr)
        call KSPGetPC(subksp, subpc, ierr)
        call PCSetType(subpc, pctype, ierr)
 

@@ -27,7 +27,8 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/meshmovement.mod ../include/momentum_diagnostic_fields.mod \
    ../include/momentum_equation.mod ../include/multimaterial_module.mod \
    ../include/multiphase_module.mod ../include/parallel_tools.mod \
-   ../include/particles.mod ../include/populate_state_module.mod \
+   ../include/particle_diagnostics.mod ../include/particles.mod \
+   ../include/populate_state_module.mod \
    ../include/populate_sub_state_module.mod ../include/qmesh_module.mod \
    ../include/reference_counting.mod ../include/reserve_state_module.mod \
    ../include/sediment_diagnostics.mod ../include/signal_vars.mod \

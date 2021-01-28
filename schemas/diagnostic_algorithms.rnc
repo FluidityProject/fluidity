@@ -100,6 +100,55 @@ internal_algorithm =
       element algorithm {
          attribute name { "Internal" },
          attribute material_phase_support { "multiple" }
+      }|
+      ## This diagnostic is derived from particle attributes, it is calculated
+      ## within the Particle_Diagnostics.F90 routine, and set via the ratio method.
+      element algorithm {
+         attribute name { "from_particles" },
+         attribute material_phase_support { "multiple" },
+         (
+            ## Particle group used for calculation of diagnostic field.
+            element particle_group {
+               attribute name { xsd:string },
+               (
+                  ## Particle attribute used for calculation of diagnostic field.
+                  element particle_attribute {
+                     attribute name { xsd:string }
+                  }|
+                  ## Particle attribute_array used for calculation of diagnostic field.
+                  element particle_attribute_array {
+                     attribute name { xsd:string },
+                     ## Integer value corresponding to attribute position in array (starts from 1).
+                     element attribute_index {
+                        integer
+                     }
+                  }
+               )
+            },
+            ## Function used to interpolate particle values onto nodes.
+            element interpolation {
+               ## Weighted distribution of particle values between all nodes of the current particle element.
+               element weighted_distance {
+                  empty
+               }|
+               ## Transfers particle values only to the closest node.
+               element nearest_neighbour {
+                  empty
+               }
+            }
+         )
+      }|
+      ## This diagnostic is calculated from the number of particles present per
+      ## control volume, set within the Particle_Diagnostics.F90 routine.
+      element algorithm {
+         attribute name { "number_of_particles" },
+         attribute material_phase_support { "multiple" },
+         (
+            ## Particle group used for calculation of diagnostic.
+            element particle_group {
+               attribute name { xsd:string }
+            }
+         )
       }
    )
 legacy_internal_algorithm =

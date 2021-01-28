@@ -56,15 +56,11 @@
           <real_value rank="1" dim1="dim" shape="2">0.0 0.5</real_value>
         </location>
       </static_detector>
-      <fail_outside_domain/>
     </detectors>
   </io>
   <particles>
     <particle_group name="Detectors">
       <particle_subgroup name="Steve">
-        <number_of_particles>
-          <integer_value rank="0">100</integer_value>
-        </number_of_particles>
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
@@ -76,7 +72,9 @@
         </initial_position>
       </particle_subgroup>
     </particle_group>
-    <fail_outside_domain/>
+    <moving_outside_domain>
+      <delete_outside_domain/>
+    </moving_outside_domain>
     <lagrangian_timestepping>
       <subcycles>
         <integer_value rank="0">1</integer_value>
