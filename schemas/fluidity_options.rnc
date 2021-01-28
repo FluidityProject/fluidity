@@ -11,6 +11,7 @@ include "prognostic_field_options.rnc"
 include "prescribed_field_options.rnc"
 include "spatial_discretisation.rnc"
 include "temporal_discretisation.rnc"
+include "embedded_models.rnc"
 include "flredecomp.rnc"
 include "multiphase_interaction.rnc"
 include "equation_of_state.rnc"
@@ -198,6 +199,36 @@ start =
                      (
                         element location {
                            real_dim_vector
+                     }|
+                        ## File containing the detectors positions in binary form
+                        element from_checkpoint_file {
+                           attribute file_name { xsd:string },
+                           ## The format of the input file containing field data.
+                           element format {
+                             element string_value {
+                                 "binary"
+                             }
+                           }
+                        }
+                     )
+                  }|
+                  ## A single lagrangian detector
+                  element lagrangian_detector {
+                     attribute name { xsd:string },
+                     (
+                     ## This is the initial location of a detector that moves with the fluid velocity.
+                        element location {
+                           real_dim_vector
+                     }|
+                        ## File containing the detectors positions in binary form
+                        element from_checkpoint_file {
+                           attribute file_name { xsd:string },
+                           ## The format of the input file containing field data.
+                           element format {
+                             element string_value {
+                                 "binary"
+                             }
+                           }
                         }
                      )
                   }|
@@ -211,6 +242,10 @@ start =
                      (
                         ## Create fixed detectors.
                         element static {
+                           empty
+                        }|
+                        ## Create detectors which move with the fluid velocity.
+                        element lagrangian {
                            empty
                         }
                      ),
@@ -237,6 +272,16 @@ start =
                              element string_value {
                                  "binary"
                              }
+                           }
+                        }|
+                        ## File containing the detectors positions in binary form
+                        element from_checkpoint_file {
+                           attribute file_name { xsd:string },
+                           ## The format of the input file containing field data.
+                           element format {
+                              element string_value {
+                                 "binary"
+                              }
                            }
                         }
                      )
@@ -283,10 +328,15 @@ start =
 		     }
                   }
                ),
+               ## Enable to write detector output in binary format
+               element binary_output {
+                  comment
+               }?,
                ## Enable to let detectors move with the domain if mesh_movement is enabled.
                element move_with_mesh {
                   empty
-               }?
+               }?,
+               lagrangian_timestepping?
             }?, 
             ## Options to create even more output in the logs:
             ##
@@ -1846,6 +1896,7 @@ start =
          }?, 
          biology?,
          forcing?,
+         embedded_models?,
          flredecomp?,
          multiphase_interaction?,
          element population_balance_continuous_phase_name{ string }?

@@ -12,6 +12,7 @@
   <include href="prescribed_field_options.rng"/>
   <include href="spatial_discretisation.rng"/>
   <include href="temporal_discretisation.rng"/>
+  <include href="embedded_models.rng"/>
   <include href="flredecomp.rng"/>
   <include href="multiphase_interaction.rng"/>
   <include href="equation_of_state.rng"/>
@@ -246,9 +247,47 @@ checkpoints may be overwritten.</a:documentation>
                   <attribute name="name">
                     <data type="string"/>
                   </attribute>
-                  <element name="location">
-                    <ref name="real_dim_vector"/>
-                  </element>
+                  <choice>
+                    <element name="location">
+                      <ref name="real_dim_vector"/>
+                    </element>
+                    <element name="from_checkpoint_file">
+                      <a:documentation>File containing the detectors positions in binary form</a:documentation>
+                      <attribute name="file_name">
+                        <data type="string"/>
+                      </attribute>
+                      <element name="format">
+                        <a:documentation>The format of the input file containing field data.</a:documentation>
+                        <element name="string_value">
+                          <value>binary</value>
+                        </element>
+                      </element>
+                    </element>
+                  </choice>
+                </element>
+                <element name="lagrangian_detector">
+                  <a:documentation>A single lagrangian detector</a:documentation>
+                  <attribute name="name">
+                    <data type="string"/>
+                  </attribute>
+                  <choice>
+                    <element name="location">
+                      <a:documentation>This is the initial location of a detector that moves with the fluid velocity.</a:documentation>
+                      <ref name="real_dim_vector"/>
+                    </element>
+                    <element name="from_checkpoint_file">
+                      <a:documentation>File containing the detectors positions in binary form</a:documentation>
+                      <attribute name="file_name">
+                        <data type="string"/>
+                      </attribute>
+                      <element name="format">
+                        <a:documentation>The format of the input file containing field data.</a:documentation>
+                        <element name="string_value">
+                          <value>binary</value>
+                        </element>
+                      </element>
+                    </element>
+                  </choice>
                 </element>
                 <element name="detector_array">
                   <a:documentation>Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.</a:documentation>
@@ -259,10 +298,16 @@ checkpoints may be overwritten.</a:documentation>
                     <a:documentation>The number of detectors prescribed by the python function.</a:documentation>
                     <ref name="integer"/>
                   </element>
-                  <element name="static">
-                    <a:documentation>Create fixed detectors.</a:documentation>
-                    <empty/>
-                  </element>
+                  <choice>
+                    <element name="static">
+                      <a:documentation>Create fixed detectors.</a:documentation>
+                      <empty/>
+                    </element>
+                    <element name="lagrangian">
+                      <a:documentation>Create detectors which move with the fluid velocity.</a:documentation>
+                      <empty/>
+                    </element>
+                  </choice>
                   <choice>
                     <element name="python">
                       <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
@@ -279,6 +324,18 @@ The t argument is for future use only - currently detector locations are only se
                       <ref name="python_code"/>
                     </element>
                     <element name="from_file">
+                      <a:documentation>File containing the detectors positions in binary form</a:documentation>
+                      <attribute name="file_name">
+                        <data type="string"/>
+                      </attribute>
+                      <element name="format">
+                        <a:documentation>The format of the input file containing field data.</a:documentation>
+                        <element name="string_value">
+                          <value>binary</value>
+                        </element>
+                      </element>
+                    </element>
+                    <element name="from_checkpoint_file">
                       <a:documentation>File containing the detectors positions in binary form</a:documentation>
                       <attribute name="file_name">
                         <data type="string"/>
@@ -340,10 +397,19 @@ Lagrangian detectors.</a:documentation>
               </element>
             </choice>
             <optional>
+              <element name="binary_output">
+                <a:documentation>Enable to write detector output in binary format</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
+            <optional>
               <element name="move_with_mesh">
                 <a:documentation>Enable to let detectors move with the domain if mesh_movement is enabled.</a:documentation>
                 <empty/>
               </element>
+            </optional>
+            <optional>
+              <ref name="lagrangian_timestepping"/>
             </optional>
           </element>
         </optional>
@@ -2450,6 +2516,9 @@ while a factor of 1 represents a connected domain.</a:documentation>
       </optional>
       <optional>
         <ref name="forcing"/>
+      </optional>
+      <optional>
+        <ref name="embedded_models"/>
       </optional>
       <optional>
         <ref name="flredecomp"/>
@@ -6631,6 +6700,24 @@ Adapting to this field is not recommended</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>SolidConcentration</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
         <a:documentation>This scalar field is meant to replace DENTRAF.
 Basically, if you use new options, DENTRAF is no longer needed
 No repointing is done from this field to DENTRAF.</a:documentation>
@@ -6643,6 +6730,82 @@ No repointing is done from this field to DENTRAF.</a:documentation>
         <element name="diagnostic">
           <ref name="internal_algorithm"/>
           <ref name="velocity_mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Add field to be used by Solid_configuration to 
+Visualize the solids and MaterialVolumeFraction together</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>VisualizeSolidFluid</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="velocity_mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Add field to be used by Solid_configuration to 
+Visualize the solid_Concentration</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>VisualizeSolid</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="velocity_mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Add field to be used by Solid_configuration to 
+map  the solid_Concentration from particle mesh to 
+the fluid mesh.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>ParticleScalar</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Add field to be used by Explicit_ALE to 
+visualize functional values before iterations start.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>FunctionalBegin</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Add field to be used by Explicit_ALE to 
+visualize functional values at each iteration.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>FunctionalIter</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="mesh_choice"/>
           <ref name="diagnostic_scalar_field"/>
         </element>
       </element>
@@ -7778,6 +7941,97 @@ Field must be in this material_phase.</a:documentation>
         </choice>
       </element>
       <element name="vector_field">
+        <a:documentation>Solid Velocity field.  Used to generate the momentum source </a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>SolidVelocity</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="mesh_choice"/>
+          <ref name="diagnostic_vector_field"/>
+        </element>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Same as Solid Velocity field but it is on the Particle mesh.
+It is used to map the velocities coming from an external program like
+FEMDEM or DEM to the fluid mesh. </a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>ParticleVector</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="mesh_choice"/>
+          <ref name="diagnostic_vector_field"/>
+        </element>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Same as Solid Velocity field but it is on the Particle mesh.
+It is used to map the velocities coming from an external program like
+FEMDEM or DEM to the fluid mesh. </a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>ParticleForce</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="mesh_choice"/>
+          <ref name="diagnostic_vector_field"/>
+        </element>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Same as Solid Velocity field but it is on the Particle mesh.
+It is used to map the velocities coming from an external program like
+FEMDEM or DEM to the fluid mesh. </a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>SolidForce</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="velocity_mesh_choice"/>
+          <ref name="diagnostic_vector_field"/>
+        </element>
+      </element>
+      <element name="vector_field">
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>VelocityPlotForSolids</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="velocity_mesh_choice"/>
+          <ref name="diagnostic_vector_field"/>
+        </element>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Same as Solid Velocity field but it is on the Particle mesh.
+It is used to map the velocities coming from an external program like
+FEMDEM or DEM to the fluid mesh. </a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>FunctionalGradient</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="velocity_mesh_choice"/>
+          <ref name="diagnostic_vector_field"/>
+        </element>
+      </element>
+      <element name="vector_field">
         <a:documentation>LinearMomentum field.
  p = \rho*u 
 (where p is the linear momentum, \rho the density and u the velocity)</a:documentation>
@@ -8158,6 +8412,111 @@ in a multimaterial simulation.</a:documentation>
                  )
              }
     -->
+  </define>
+  <!--
+    Select the type of dynamic control to be used
+    Note: DEM and FEMDEM require the respective libraries
+    to be compiled.
+  -->
+  <define name="input_solid_dynamics_choice">
+    <choice>
+      <element name="dynamic_type">
+        <a:documentation>Obtain values from point and radius file.
+
+First line of file is free to use (for comments)
+Second line must contain the number of particles
+Third and fourth line are again for comments. 
+Following lines include 10 columns, corresponding to 
+the particle's x, y, and z positions, followed by the radius, then
+velocities in x, y, and z directions, followed by angular velocities
+in the x, y, and z directions.</a:documentation>
+        <attribute name="name">
+          <value>from_input_file</value>
+        </attribute>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+      </element>
+      <element name="dynamic_type">
+        <a:documentation>Two python scripts must be provided. The script is cycled over each particle.
+One script for particle position (output is tuple of position coords)
+Second script is for particle radius (output is tuple of position coords)
+Third script is for particle translational velocity.
+Fourth script is for particle angular velocity. (Note: particles 
+have a no slip boundary condition at the surface, so this angular velocity
+WILL matter to the flow.)
+Python functions should be of the form:
+ def val(X, t):
+   Function code
+   return # Return value
+where X is a tuple of length geometry dimension.
+   X[0] contains the number of the particle (in real format)</a:documentation>
+        <attribute name="name">
+          <value>python_script</value>
+        </attribute>
+      </element>
+      <element name="dynamic_type">
+        <attribute name="name">
+          <value>use_simple_dynamics</value>
+        </attribute>
+        <element name="set_bottom">
+          <ref name="real"/>
+        </element>
+        <element name="set_xmin">
+          <ref name="real"/>
+        </element>
+        <element name="set_ymin">
+          <ref name="real"/>
+        </element>
+        <element name="set_zmin">
+          <ref name="real"/>
+        </element>
+        <element name="set_xmax">
+          <ref name="real"/>
+        </element>
+        <element name="set_ymax">
+          <ref name="real"/>
+        </element>
+        <element name="set_zmax">
+          <ref name="real"/>
+        </element>
+      </element>
+      <element name="dynamic_type">
+        <a:documentation>Using y3D to model dynamics. Filename of input file for y3D must
+be specified.</a:documentation>
+        <attribute name="name">
+          <value>use_y3D</value>
+        </attribute>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+      </element>
+      <element name="dynamic_type">
+        <a:documentation>Using femdem 2D to model dynamics. Filename of input file must
+be specified.</a:documentation>
+        <attribute name="name">
+          <value>use_2Dfemdem</value>
+        </attribute>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+      </element>
+      <element name="dynamic_type">
+        <a:documentation>Using femdem 3D to model dynamics. Filename of input file must
+be specified.</a:documentation>
+        <attribute name="name">
+          <value>use_3Dfemdem</value>
+        </attribute>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+        <element name="quad2lin">
+          <attribute name="file_name">
+            <data type="string"/>
+          </attribute>
+        </element>
+      </element>
+    </choice>
   </define>
   <define name="cap_option">
     <element name="cap_values">
