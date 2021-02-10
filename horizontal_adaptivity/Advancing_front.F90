@@ -83,6 +83,7 @@ module hadapt_advancing_front
     allocate(bottom_surface_ids(ele_count(h_mesh)))
     allocate(top_surface_ids(ele_count(h_mesh)))
     allocate(extruded_region_ids(ele_count(h_mesh)))
+    extruded_region_ids = 0
 
     allocate(hanging_node(node_count(h_mesh)))
     allocate(column_size(node_count(h_mesh)))
