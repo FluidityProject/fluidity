@@ -1196,13 +1196,12 @@ contains
 
     type(mesh_type), pointer :: external_mesh
     character(len=OPTION_PATH_LEN) :: mesh_path
-    character(len=FIELD_NAME_LEN) :: mesh_name, mesh_format
+    character(len=FIELD_NAME_LEN) :: parent_mesh_name, mesh_format
     integer :: i, nmeshes, stat
     logical :: include_in_stat
 
     
     nmeshes = option_count("/geometry/mesh")
-    mesh_name = ''
     do i = 0, nmeshes-1
        mesh_path="/geometry/mesh["//int2str(i)//"]"
        if(have_option(trim(mesh_path)//"/from_mesh/extrude")) exit
@@ -1218,11 +1217,8 @@ contains
     call get_option(trim(external_mesh%option_path) // "/from_file/format/name", mesh_format)
     include_in_stat = have_option(trim(external_mesh%option_path)//"/from_file/stat/include_in_stat")
 
-    ! delete option paths of all parent meshes
-    call get_option(trim(mesh_path)//"/from_mesh/mesh/name", mesh_name)
-    call remove_mesh_options_and_parents(state, mesh_name)
-    !! external_mesh is a pointer to the mesh in state, so should have its option_path removed by now
-    assert(external_mesh%option_path=='')
+    ! parent mesh needs removing, but this is done at the end
+    call get_option(trim(mesh_path)//"/from_mesh/mesh/name", parent_mesh_name)
 
     ! we switch include_in_stat under the new from_file if either the original external mesh
     ! or the extruded mesh have it - again, we need to check here, before the from_mesh/ options are removed
@@ -1252,6 +1248,13 @@ contains
     if (stat /= SPUD_NEW_KEY_WARNING) then
       FLAbort("Failed to set stat option. Spud error code is: "//int2str(stat))
     end if
+
+    ! remove parent mesh (and any of its parents)
+    ! this needs to be done last because removing this mesh first might
+    ! invalidate mesh_path which is indexed by number
+    call remove_mesh_options_and_parents(state, parent_mesh_name)
+    !! external_mesh is a pointer to the mesh in state, so should have its option_path removed by now
+    assert(external_mesh%option_path=='')
 
   end subroutine remove_non_extruded_mesh_options
 
