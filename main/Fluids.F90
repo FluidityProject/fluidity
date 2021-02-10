@@ -320,6 +320,25 @@ contains
     !    they will be updated (inside the call)
     call move_mesh_free_surface(state, initialise=.true.)
 
+    !! initialise laplacian smoothing if necessary
+    if (have_option("/mesh_adaptivity/mesh_movement/laplacian_smoothing")) then
+       call move_mesh_initialise_laplacian_smoothing(state)
+    end if
+
+    if (have_option("/mesh_adaptivity/mesh_movement/lineal_smoothing")) then
+       call move_mesh_initialise_lineal_smoothing(state)
+    end if
+
+    if (have_option("/mesh_adaptivity/mesh_movement/lineal_torsional_smoothing")) then
+       call move_mesh_initialise_lineal_torsional_smoothing(state)
+    end if
+
+    if (have_option("/mesh_adaptivity/mesh_movement/centroid_relaxer")) then
+       call move_mesh_initialise_centroid_relaxer(state)
+    end if
+
+    call add_surface_positions(state(1))
+
     call run_diagnostics(state)
 
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
