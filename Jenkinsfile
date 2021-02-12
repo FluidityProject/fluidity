@@ -26,7 +26,7 @@ pipeline {
         }
         stage('Testing') {       
             steps { 
-                sh 'make unittest' ;
+                sh 'make unittest -j8' ;
                 sh 'make THREADS=8 test' ;
                 sh 'make THREADS=8 mediumtest'
                 junit 'tests/test_result*xml'
