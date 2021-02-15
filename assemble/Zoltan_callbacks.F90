@@ -11,7 +11,7 @@ module zoltan_callbacks
   use fldebug
   use data_structures
   use mpi_interfaces
-  use parallel_tools, only: getrank, getnprocs, getprocno, MPI_COMM_FEMTOOLS
+  use parallel_tools, only: getrank, getnprocs, getprocno, MPI_COMM_FEMTOOLS, MPI_COMM_NONEMPTY
   use sparse_tools
   use element_numbering
   use elements
@@ -126,7 +126,7 @@ contains
     assert(num_gid_entries == 1)
     assert(num_lid_entries == 1)
 
-    count = zoltan_global_zz_halo%nowned_nodes
+    count = halo_nowned_nodes(zoltan_global_zz_halo)
     assert(count == num_obj)
 
     do node=1,count
@@ -180,8 +180,8 @@ contains
     assert(num_gid_entries == 1)
     assert(num_lid_entries == 1)
     assert(wgt_dim == 1)
-    
-    count = zoltan_global_zz_halo%nowned_nodes
+
+    count = halo_nowned_nodes(zoltan_global_zz_halo)    
     assert(count == num_obj)
     
     my_num_edges = sum(num_edges(1:num_obj))
@@ -207,14 +207,14 @@ contains
           ! find global ids for each neighbour
           nbor_global_id(head:head+size(neighbours)-1) = halo_universal_number(zoltan_global_zz_halo, neighbours)
           ! find owning proc for each neighbour
-          nbor_procs(head:head+size(neighbours)-1) = halo_node_owners(zoltan_global_zz_halo, neighbours) - 1
+          nbor_procs(head:head+size(neighbours)-1) = global_proc_no(halo_node_owners(zoltan_global_zz_halo, neighbours)) - 1
           head = head + size(neighbours)
        end do
        ierr = ZOLTAN_OK
        return
     else
        call MPI_ALLREDUCE(my_num_edges,total_num_edges,1,MPI_INTEGER,MPI_SUM, &
-            MPI_COMM_FEMTOOLS,err)
+            MPI_COMM_NONEMPTY,err)
     end if
     
     head = 1
@@ -236,7 +236,7 @@ contains
        nbor_global_id(head:head+size(neighbours)-1) = halo_universal_number(zoltan_global_zz_halo, neighbours)
        
        ! find owning proc for each neighbour
-       nbor_procs(head:head+size(neighbours)-1) = halo_node_owners(zoltan_global_zz_halo, neighbours) - 1
+       nbor_procs(head:head+size(neighbours)-1) = global_proc_no(halo_node_owners(zoltan_global_zz_halo, neighbours))-1
        
        ! get elements associated with current node
        my_nelist => row_m_ptr(zoltan_global_zz_nelist, local_ids(node))
@@ -293,10 +293,10 @@ contains
     my_min_weight = minval(ewgts(1:head-1))
 
     ! calculate global maximum edge weight
-    call MPI_ALLREDUCE(my_max_weight,max_weight,1,MPI_REAL,MPI_MAX, MPI_COMM_FEMTOOLS,err)
+    call MPI_ALLREDUCE(my_max_weight,max_weight,1,MPI_REAL,MPI_MAX, MPI_COMM_NONEMPTY,err)
 
     ! calculate global minimum edge weight
-    call MPI_ALLREDUCE(my_min_weight,min_weight,1,MPI_REAL,MPI_MIN, MPI_COMM_FEMTOOLS,err)
+    call MPI_ALLREDUCE(my_min_weight,min_weight,1,MPI_REAL,MPI_MIN, MPI_COMM_NONEMPTY,err)
 
     ! calculate the local 90th percentile edge weight   
     ninety_weight = max_weight * 0.90
@@ -421,7 +421,7 @@ contains
       buf(head:head+row_length(zoltan_global_zz_sparsity_two, node)-1) = halo_universal_number(zoltan_global_zz_halo, row_m_ptr(zoltan_global_zz_sparsity_two, node))
       head = head + row_length(zoltan_global_zz_sparsity_two, node)
 
-      buf(head:head+row_length(zoltan_global_zz_sparsity_two, node)-1) = halo_node_owners(zoltan_global_zz_halo, row_m_ptr(zoltan_global_zz_sparsity_two, node))
+      buf(head:head+row_length(zoltan_global_zz_sparsity_two, node)-1) = global_proc_no(halo_node_owners(zoltan_global_zz_halo, row_m_ptr(zoltan_global_zz_sparsity_two, node)))
       head = head + row_length(zoltan_global_zz_sparsity_two, node)
 
       buf(head) = row_length(zoltan_global_zz_nelist, node)
@@ -503,7 +503,7 @@ contains
           universal_number = halo_universal_number(zoltan_global_zz_halo, neighbours(j))
           call insert(zoltan_global_new_nodes, universal_number, changed=changed)
           if (changed) then ! so it is a halo node
-             old_owner = halo_node_owner(zoltan_global_zz_halo, neighbours(j)) - 1
+             old_owner = global_proc_no(halo_node_owner(zoltan_global_zz_halo, neighbours(j))) - 1
              assert(old_owner < getnprocs())
              if (old_owner == rank) then
                 call insert(halo_nodes_we_currently_own, neighbours(j))

@@ -5,6 +5,7 @@ module zoltan_integration
 
 #ifdef HAVE_ZOLTAN
   use spud
+  use iso_c_binding
   use fldebug
   use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name,&
       FIELD_NAME_LEN
@@ -104,7 +105,7 @@ module zoltan_integration
     real :: load_imbalance_tolerance
     logical :: flredecomp
     real :: minimum_quality
-    integer :: flredecomp_input_procs = -1, flredecomp_target_procs = -1
+    integer :: flredecomp_input_procs = -1, flredecomp_target_procs = -1, ierr
 
     ewrite(1,*) "In zoltan_drive"
 
@@ -142,6 +143,13 @@ module zoltan_integration
 
     zoltan_global_field_weighted_partitions = &
      have_option(trim(zoltan_global_base_option_path) // "/field_weighted_partitions")
+
+    if (.not. allocated(global_proc_no)) then
+       allocate(global_proc_no(getnprocs(MPI_COMM_NONEMPTY)))
+       call MPI_ALLGATHER(getprocno(MPI_COMM_WORLD),1,MPI_INTEGER, &
+            global_proc_no,1,MPI_INTEGER, &
+            MPI_COMM_NONEMPTY,ierr)
+    end if
 
     call setup_module_variables(states, final_adapt_iteration, zz, flredecomp)
 
@@ -225,7 +233,8 @@ module zoltan_integration
 
     call reconstruct_enlist
     call reconstruct_senlist
-    call reconstruct_halo(zz)
+    call reconstruct_halo(zz, flredecomp, flredecomp_input_procs, &
+         flredecomp_target_procs)
     
     if(zoltan_global_migrate_extruded_mesh) then
       zoltan_global_new_positions_m1d = zoltan_global_new_positions ! save a reference to the horizontal mesh you've just load balanced
@@ -268,7 +277,8 @@ module zoltan_integration
 
       call reconstruct_enlist
       call reconstruct_senlist
-      call reconstruct_halo(zz)
+      call reconstruct_halo(zz, flredecomp, flredecomp_input_procs, &
+           flredecomp_target_procs)
 
       if (.not. verify_consistent_local_element_numbering(zoltan_global_new_positions%mesh) ) then
         ewrite(-1,*) "For the extruded mesh, the local element numbering of elements in the halo region" // &
@@ -370,7 +380,7 @@ module zoltan_integration
     
     zoltan_global_zz_nelist => extract_nelist(zoltan_global_zz_mesh)
     
-    zz => Zoltan_Create(halo_communicator(zoltan_global_zz_mesh))
+    zz => Zoltan_Create(MPI_COMM_FEMTOOLS)
     
     nhalos = halo_count(zoltan_global_zz_mesh)
     assert(nhalos == 2)
@@ -398,7 +408,7 @@ module zoltan_integration
        call insert(zoltan_global_old_local_numbering_to_uen, i, halo_universal_number(zoltan_global_zz_ele_halo, i))
     end do
     
-    allocate(zoltan_global_receives(halo_proc_count(zoltan_global_zz_halo)))
+    allocate(zoltan_global_receives(getnprocs(MPI_COMM_FEMTOOLS)))
     do i=1,size(zoltan_global_receives)
        call allocate(zoltan_global_receives(i))
     end do
@@ -861,6 +871,7 @@ module zoltan_integration
     integer :: min_num_nodes_after_balance, total_num_nodes_before_balance, total_num_nodes_after_balance
     integer :: num_empty_partitions, empty_partition
     character (len = 10) :: string_load_imbalance_tolerance
+    logical :: flag
 
     ewrite(1,*) 'in zoltan_load_balance'
 
@@ -930,10 +941,16 @@ module zoltan_integration
     else
 
        min_num_nodes_after_balance = 0
-       do while (min_num_nodes_after_balance == 0)
-          
+       flag =.true.
+       do while (min_num_nodes_after_balance == 0 .and. flag)
+
           ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
              &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
+       ierr = Zoltan_LB_Partition(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
+          & p1_import_local_ids, p1_import_procs, import_to_part, p1_num_export, p1_export_global_ids,  &
+          & p1_export_local_ids, p1_export_procs, export_to_part)          
+!          ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
+!             &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
           assert(ierr == ZOLTAN_OK)
           
           ! calculate how many owned nodes we'd have after doing the planned load balancing
@@ -970,7 +987,8 @@ module zoltan_integration
                 assert(ierr == MPI_SUCCESS)
                 
                 if (min_num_nodes_after_balance == 0) then
-                   FLAbort("Could not stop Zoltan creating empty partitions.")
+                   ewrite(-1,*) "Could not stop Zoltan creating empty partitions."
+                   flag = .false.
                 else
                    ewrite(-1,*) 'Load balancing was carried out without edge-weighting being applied. Mesh may not be of expected quality.'
                 end if
@@ -1203,7 +1221,7 @@ module zoltan_integration
           universal_number = halo_universal_number(zoltan_global_zz_halo, neighbours(j))
           call insert(zoltan_global_new_nodes, universal_number, changed=changed)
           if (changed) then
-             old_owner = halo_node_owner(zoltan_global_zz_halo, neighbours(j)) - 1
+             old_owner = global_proc_no(halo_node_owner(zoltan_global_zz_halo, neighbours(j))) - 1
              if (old_owner == rank) then
                 call insert(halo_nodes_we_currently_own, neighbours(j))
              else
@@ -1626,7 +1644,7 @@ module zoltan_integration
     ewrite(1,*) "Exiting reconstruct_senlist"
   end subroutine reconstruct_senlist
 
-  subroutine reconstruct_halo(zz)
+  subroutine reconstruct_halo(zz, flredecomp, input_procs, target_procs)
     ! At this point, the receives sets have been populated with all
     ! the universal node numbers we need to receive from each process.
     ! So, we are going to use zoltan to invert this to compute
@@ -1636,22 +1654,28 @@ module zoltan_integration
     ! l2e halo. 
     ! Supply the peeps with jeeps, brick apiece, capiche?
 
-    type(zoltan_struct), pointer, intent(in) :: zz    
+    type(zoltan_struct), pointer, intent(in) :: zz
+    logical, intent(in) :: flredecomp
+    integer, intent(in) :: input_procs, target_procs
 
-    integer :: num_import, num_export
+    integer :: num_import, num_export, nprocs
     integer, dimension(:), pointer :: import_global_ids, import_local_ids, import_procs
     integer, dimension(:), pointer :: export_global_ids, export_local_ids, export_procs, export_to_part
-    integer :: ierr, i, head
+    integer :: ierr, i, j, head
     type(integer_set), dimension(size(zoltan_global_receives)) :: sends
     integer, dimension(size(zoltan_global_receives)) :: nreceives, nsends
+    integer, dimension(:), allocatable :: nonempty
     integer, dimension(ele_count(zoltan_global_new_positions)) :: ele_renumber_permutation
     integer, dimension(node_count(zoltan_global_new_positions)) :: node_renumber_permutation
     integer :: universal_element_number, old_new_local_element_number, new_new_local_element_number
     integer :: universal_node_number, old_new_local_node_number, new_new_local_node_number
     
     integer, dimension(ele_count(zoltan_global_new_positions)) :: old_new_region_ids
-    
+    integer (c_int) :: comm
+
     ewrite(1,*) "In reconstruct_halo"
+
+    allocate(nonempty(getnprocs(MPI_COMM_FEMTOOLS)))
     
     num_import = 0
     do i=1,size(zoltan_global_receives)
@@ -1709,19 +1733,46 @@ module zoltan_integration
     
     ! Allocate the halo and such
     ! We had to grow dreads to change our description, two cops is on a milkbox, missin'
-    
+    call reset_next_mpi_tag()
     allocate(zoltan_global_new_positions%mesh%halos(2))
+    if (allocated(global_proc_no)) deallocate(global_proc_no)
+
+    if (flredecomp .and. input_procs>target_procs) then
+       allocate(global_proc_no(input_procs))
+       global_proc_no = [(i,i=1,input_procs)]
+       nprocs = input_procs
+       comm = MPI_COMM_FEMTOOLS
+       nonempty = 1
+       ! In this context we don't need to worry about nonempty partitions
+       call split_communicator(MPI_COMM_FEMTOOLS, MPI_COMM_NONEMPTY, .true.)
+    else
+       call split_communicator(MPI_COMM_FEMTOOLS, MPI_COMM_NONEMPTY,&
+            node_count(zoltan_global_new_positions)>0)
+       allocate(global_proc_no(getnprocs(MPI_COMM_NONEMPTY)))
+       call MPI_ALLGATHER(getprocno(MPI_COMM_WORLD),1,MPI_INTEGER, &
+            global_proc_no,1,MPI_INTEGER, &
+            MPI_COMM_NONEMPTY,ierr)
+       nprocs = getnprocs(MPI_COMM_NONEMPTY)
+       comm = MPI_COMM_NONEMPTY
+       call MPI_Allgather(merge(1,0,node_count(zoltan_global_new_positions)>0), 1, MPI_INT,&
+         nonempty, 1,  MPI_INT, MPI_COMM_FEMTOOLS, ierr)
+    end if
+
     call allocate(zoltan_global_new_positions%mesh%halos(2), &
-         nsends = nsends, &
-         nreceives = nreceives, &
+         nsends = pack(nsends, nonempty == nonempty(getprocno(MPI_COMM_FEMTOOLS))), &
+         nreceives = pack(nreceives, nonempty == nonempty(getprocno(MPI_COMM_FEMTOOLS))), &
+         nprocs = nprocs, &
          name = halo_name(zoltan_global_zz_halo), &
-         communicator = halo_communicator(zoltan_global_zz_halo), &
+         communicator = comm, &
          nowned_nodes = key_count(zoltan_global_new_nodes) - num_import, &
          data_type = halo_data_type(zoltan_global_zz_halo))
 
+    j=1
     do i=1,size(zoltan_global_receives)
-       call set_halo_sends(zoltan_global_new_positions%mesh%halos(2), i, fetch(zoltan_global_universal_to_new_local_numbering, set2vector(sends(i))))
-       call set_halo_receives(zoltan_global_new_positions%mesh%halos(2), i, fetch(zoltan_global_universal_to_new_local_numbering, set2vector(zoltan_global_receives(i))))
+       if (nonempty(i) == 0)  cycle
+       call set_halo_sends(zoltan_global_new_positions%mesh%halos(2), j, fetch(zoltan_global_universal_to_new_local_numbering, set2vector(sends(i))))
+       call set_halo_receives(zoltan_global_new_positions%mesh%halos(2), j, fetch(zoltan_global_universal_to_new_local_numbering, set2vector(zoltan_global_receives(i))))
+       j=j+1
     end do
 
     ! Now derive all the other halos ...
@@ -1775,6 +1826,7 @@ module zoltan_integration
     end do
       
     call reorder_element_numbering(zoltan_global_new_positions)
+
     
     ewrite(1,*) "Exiting reconstruct_halo"
     
@@ -2205,7 +2257,7 @@ module zoltan_integration
     integer :: old_ele
     integer, dimension(:), pointer :: old_local_nodes, nodes
     type(element_type), pointer :: eshape
-    type(integer_set), dimension(halo_proc_count(zoltan_global_zz_halo)) :: sends
+    type(integer_set), dimension(:), allocatable :: sends
     integer :: i, j, new_owner, universal_element_number
     type(integer_set) :: self_sends
     integer :: num_import, num_export
@@ -2226,6 +2278,8 @@ module zoltan_integration
     type(detector_type), pointer :: detector => null(), add_detector => null()
 
     ewrite(1,*) 'in transfer_fields'
+
+    allocate(sends(getnprocs(MPI_COMM_FEMTOOLS)))
     
     do i=1,size(sends)
        call allocate(sends(i))

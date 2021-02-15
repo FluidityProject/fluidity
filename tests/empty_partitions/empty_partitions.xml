@@ -1,0 +1,73 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<testproblem>
+  <name>empty_partitions</name>
+  <owner userid="jrper"/>
+  <tags>flml parallel</tags>
+  <problem_definition length = "short" nprocs = "4">
+    <command_line>make clean-run-debug; mpiexec fluidity -l empty_partitions.flml; mpiexec fluidity -l empty_partitions_2_checkpoint.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+    <variable name = "timesteps" language = "python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("empty_partitions.stat")
+timesteps = len(s["ElapsedTime"]["value"])
+    </variable>
+    <variable name = "checkpoint_timesteps" language = "python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("empty_partitions_checkpoint.stat")
+checkpoint_timesteps = len(s["ElapsedTime"]["value"])
+    </variable>
+   <variable name = "owners" language = "python">
+import vtk
+reader=vtk.vtkXMLPUnstructuredGridReader()
+reader.SetFileName("empty_partitions_1.pvtu")
+reader.Update()
+V = reader.GetOutput()
+owners = 0
+o = []
+for i in range(V.GetNumberOfPoints()):
+  O = V.GetPointData().GetArray("NodeOwner").GetValue(i)
+  if O not in o:
+    o.append(O)
+    owners += 1
+    </variable>
+   <variable name = "final_owners" language = "python">
+import vtk
+reader=vtk.vtkXMLPUnstructuredGridReader()
+reader.SetFileName("empty_partitions_4.pvtu")
+reader.Update()
+V = reader.GetOutput()
+final_owners = 0
+o = []
+for i in range(V.GetNumberOfPoints()):
+  O = V.GetPointData().GetArray("NodeOwner").GetValue(i)
+  if O not in o:
+    o.append(O)
+    final_owners += 1
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
+    <test name = "Simulation completed" language = "python">
+assert(timesteps == 4)
+    </test>
+    <test name = "Checkpoint completed" language = "python">
+assert(checkpoint_timesteps == 2)
+    </test>
+    <test name = "Have empty partitions" language = "python">
+assert(owners &lt; 4)
+    </test>
+    <test name = "Have no empty partitions at end" language = "python">
+assert(final_owners == 4)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

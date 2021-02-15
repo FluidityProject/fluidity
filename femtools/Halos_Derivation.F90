@@ -1493,7 +1493,68 @@ contains
     nhalos = size(mesh%halos)
     old_halo => mesh%halos(nhalos)
     ele_halo => mesh%element_halos(size(mesh%element_halos))
-    new_halo = expand_halo(mesh, old_halo)
+
+    has_surface_mesh = .false.
+    if (associated(mesh%faces)) then
+      if (associated(mesh%faces%boundary_ids)) then
+        has_surface_mesh = .true.
+      end if
+    end if
+
+    if (halo_proc_count(old_halo) == 1) then
+       call allocate(new_mesh, node_count(mesh), element_count(mesh), &
+            mesh%shape, name=mesh%name)
+       nhalos = size(mesh%halos)
+       allocate(new_mesh%halos(nhalos+1))
+       do i=1, nhalos
+          new_mesh%halos(i) = mesh%halos(i)
+          call incref(new_mesh%halos(i))
+       end do
+       new_mesh%halos(nhalos+1) = mesh%halos(nhalos)
+       call incref(new_mesh%halos(nhalos+1))
+       new_mesh%option_path = mesh%option_path
+       do ele=1, element_count(mesh)
+          call set_ele_nodes(new_mesh, ele, ele_nodes(mesh, ele))
+       end do
+
+       if (has_surface_mesh) then
+          snloc = mesh%faces%shape%loc
+          allocate(sndgln(1:surface_element_count(mesh)*snloc))
+          allocate(boundary_ids(1:surface_element_count(mesh)))
+          if (has_discontinuous_internal_boundaries(mesh)) then
+             allocate(element_owners(1:size(boundary_ids)))
+          end if
+      ! first copy element from trusted (see above) existing surface facets
+          do i=1, unique_surface_element_count(mesh)
+             ele = face_ele(mesh, i)
+             lface = local_face_number(mesh, i)
+             ufid = halo_universal_number(ele_halo, ele)*nfaces + lface
+             sndgln((i-1)*snloc+1:i*snloc) = face_global_nodes(mesh, i)
+             boundary_ids(i) = surface_element_id(mesh, i)
+             if (has_discontinuous_internal_boundaries(mesh)) then
+                element_owners(i) = ele
+             end if
+          end do
+          if (has_discontinuous_internal_boundaries(mesh)) then
+             call add_faces(new_mesh, sndgln=sndgln, boundary_ids=boundary_ids, element_owner=element_owners)
+          else
+             call add_faces(new_mesh, sndgln=sndgln, boundary_ids=boundary_ids, &
+                  allow_duplicate_internal_facets=.true.)
+          end if
+          allocate(new_mesh%element_halos(nhalos+1))
+          call derive_element_halo_from_node_halo(new_mesh, &
+               & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
+
+          if (associated(mesh%region_ids)) then
+             ! now we can simply copy and halo update the region ids
+             allocate(new_mesh%region_ids(1:element_count(mesh)))
+             new_mesh%region_ids(1:element_count(mesh)) = mesh%region_ids
+          end if
+       end if
+       return
+    end if
+
+    new_halo = expand_halo(mesh, old_halo)    
 
     ! map from universal node id to global node id
     call create_global_to_universal_numbering(new_halo)
@@ -1514,13 +1575,6 @@ contains
     ! 2) its nodes (by uid)
     ! if associated(mesh%faces): 3) the surface ids of adjacent facets
     ele_info_size = 1+nloc
-
-    has_surface_mesh = .false.
-    if (associated(mesh%faces)) then
-      if (associated(mesh%faces%boundary_ids)) then
-        has_surface_mesh = .true.
-      end if
-    end if
 
     if (has_surface_mesh) then
       snloc = mesh%faces%shape%loc

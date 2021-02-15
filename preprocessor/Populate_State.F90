@@ -271,18 +271,14 @@ contains
             case ("triangle", "gmsh", "exodusii")
               ! Get mesh dimension if present
               call get_option(trim(mesh_path)//"/from_file/dimension", mdim, stat)
+              if(stat/=0) call get_option("/geometry/dimension", mdim)
               ! Read mesh
-              if(stat==0) then
-                 position=read_mesh_files(trim(mesh_file_name), &
-                      quad_degree=quad_degree, &
-                      quad_family=quad_family, mdim=mdim, &
-                      format=mesh_file_format)
-              else
-                 position=read_mesh_files(trim(mesh_file_name), &
-                      quad_degree=quad_degree, &
-                      quad_family=quad_family, &
-                      format=mesh_file_format)
-              end if
+
+              position=read_mesh_files(trim(mesh_file_name), &
+                   quad_degree=quad_degree, &
+                   quad_family=quad_family, mdim=mdim, &
+                   format=mesh_file_format)
+
               ! After successfully reading in an ExodusII mesh, change the option
               ! mesh file format to "gmsh", as the write routines for ExodusII are currently
               ! not implemented. Thus, checkpoints etc are dumped as gmsh mesh files
@@ -431,6 +427,9 @@ contains
             if (no_active_processes == 1) then
               call create_empty_halo(position)
             else
+              call reset_next_mpi_tag()
+              call split_communicator(MPI_COMM_FEMTOOLS, MPI_COMM_NONEMPTY, &
+                   node_count(position)>0)
               call read_halos(mesh_file_name, position)              
             end if
             ! Local element ordering needs to be consistent between processes, otherwise

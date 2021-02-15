@@ -206,7 +206,7 @@ contains
 
     ! Sanity check.
     if (numNodes==0) then
-       FLAbort("write_gmsh_nodes(): no nodes to write out")
+       ewrite(-1,*) "write_gmsh_nodes(): no nodes to write out"
     end if
 
     ! header line: nodes, dim, no attributes, no boundary markers
@@ -231,9 +231,9 @@ contains
        end if
     end do
 
-    if( useBinaryGMSH) then
+    if( useBinaryGMSH ) then
        ! Write newline character
-       write(fd) char(10)
+       if (numNodes>0) write(fd) char(10)
 
        call ascii_formatting(fd, lfilename, "write")
     end if
@@ -278,7 +278,12 @@ contains
 
     ! Sanity check.
     if (numGMSHElems==0) then
-       FLAbort("write_gmsh_faces_and_elements(): none of either!")
+       ewrite(-1,*) "write_gmsh_faces_and_elements(): none of either!"
+       call ascii_formatting(fd, lfilename, "write")
+       write(fd, "(A)") "$Elements"
+       write(fd, "(A)") "0"
+       write(fd, "(A)") "$EndElements"
+       return
     end if
 
 
@@ -421,7 +426,7 @@ contains
        deallocate(lnodelist)
     end do
 
-    if(useBinaryGMSH) then
+    if(useBinaryGMSH .and. numElements>0) then
        write(fd, err=301) newLineChar
     end if
     

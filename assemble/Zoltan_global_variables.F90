@@ -39,6 +39,7 @@ module zoltan_global_variables
   type(scalar_field), save, pointer, public :: zoltan_global_max_edge_weight_on_node
   logical, save, public :: zoltan_global_output_edge_weights = .false.
   type(csr_sparsity), save, pointer, public :: zoltan_global_zz_nelist
+  integer, dimension(:), save, public, allocatable :: global_proc_no
 
   ! Needed for zoltan_cb_pack_node_sizes
   ! - added vector_field to use fields

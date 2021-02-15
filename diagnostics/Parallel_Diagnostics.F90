@@ -58,7 +58,7 @@ contains
     integer :: i, j
     type(element_type), pointer :: shape
 
-    assert(ele_count(s_field) > 0)
+    assert(ele_count(s_field) >= 0)
     shape => ele_shape(s_field, 1)
     if(shape%degree /= 0) then
       FLExit("element_halo diagnostic requires a degree 0 mesh")
@@ -81,7 +81,7 @@ contains
     type(element_type), pointer :: shape
     type(halo_type), pointer :: ele_halo
 
-    assert(ele_count(s_field) > 0)
+    assert(ele_count(s_field) >= 0)
     shape => ele_shape(s_field, 1)
     if(shape%degree /= 0) then
       FLExit("element_halo_ownership diagnostic requires a degree 0 mesh")
@@ -107,7 +107,7 @@ contains
     type(element_type), pointer :: shape
     type(halo_type), pointer :: ele_halo
 
-    assert(ele_count(s_field) > 0)
+    assert(ele_count(s_field) >= 0)
     shape => ele_shape(s_field, 1)
     if(shape%degree /= 0) then
       FLExit("element_universal_numbering diagnostic requires a degree 0 mesh")

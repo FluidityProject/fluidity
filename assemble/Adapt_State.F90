@@ -28,6 +28,7 @@
 #include "fdebug.h"
 
 module adapt_state_module
+  use iso_c_binding
   use spud
   use fldebug
   use global_parameters, only : OPTION_PATH_LEN, periodic_boundary_option_path, adaptivity_mesh_name, adaptivity_mesh_name, domain_bbox, topology_mesh_name, FIELD_NAME_LEN
@@ -1074,8 +1075,11 @@ contains
     type(detector_type), pointer :: detector => null()
 
     real :: global_min_quality, quality_tolerance
+    integer (c_int) :: MPI_COMM_SAVE 
 
     ewrite(1, *) "In adapt_state_internal"
+
+    MPI_COMM_SAVE=MPI_COMM_NONEMPTY
 
     nullify(node_ownership)
 
@@ -1188,7 +1192,7 @@ contains
 
       ! Generate a new mesh field based on the current mesh field and the input
       ! metric
-      if (.not. vertical_only) then
+      if (.not. vertical_only .and. node_count(old_positions)>0) then
         call adapt_mesh(old_positions, metric, new_positions, node_ownership = node_ownership, &
           & force_preserve_regions=initialise_fields)
       else
@@ -1463,6 +1467,8 @@ contains
     if(isparallel()) then
       call compute_domain_statistics(states)
     end if
+
+    call free_communicator(MPI_COMM_SAVE)
 
     ewrite(1, *) "Exiting adapt_state_internal"
 
