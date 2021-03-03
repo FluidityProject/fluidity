@@ -130,9 +130,9 @@ Parallel_Diagnostics.o ../include/parallel_diagnostics.mod: \
 	@true
 
 Python_Diagnostics.o ../include/python_diagnostics.mod: Python_Diagnostics.F90 \
-   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/python_state.mod \
-   ../include/state_module.mod
+   ../include/checkpoint.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/python_state.mod ../include/state_module.mod
 
 ../include/simple_diagnostics.mod: Simple_Diagnostics.o
 	@true
