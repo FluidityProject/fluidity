@@ -1511,30 +1511,31 @@ Optional Packages:
                           specify the path to libnuma, e.g. -L/usr/lib -lnuma
 
 Some influential environment variables:
+  CC          C compiler command
+  CFLAGS      C compiler flags
+  CPP         C preprocessor
+  CPPFLAGS    (Objective) C/C++ preprocessor flags, e.g. -I<include dir> if
+              you have headers in a nonstandard directory <include dir>
+  CXX         C++ compiler command
+  CXXCPP      C++ preprocessor
+  CXXFLAGS    C++ compiler flags
   F77         Fortran 77 compiler command
+  FC          Fortran compiler command
+  FCFLAGS     Fortran compiler flags
   FFLAGS      Fortran 77 compiler flags
   LDFLAGS     linker flags, e.g. -L<lib dir> if you have libraries in a
               nonstandard directory <lib dir>
   LIBS        libraries to pass to the linker, e.g. -l<library>
-  FC          Fortran compiler command
-  FCFLAGS     Fortran compiler flags
-  CC          C compiler command
-  CFLAGS      C compiler flags
-  CPPFLAGS    (Objective) C/C++ preprocessor flags, e.g. -I<include dir> if
-              you have headers in a nonstandard directory <include dir>
-  CXX         C++ compiler command
-  CXXFLAGS    C++ compiler flags
-  CPP         C preprocessor
+  MPICC       C compiler command for MPI programs
+  MPICXX      C++ compiler command for MPI programs
+  MPIF77      Fortran 77 compiler command for MPI programs
+  MPIF90      Fortran 90 compiler command for MPI programs
+  PETSC_DIR   Base directory of the PETSc install to be used, e.g. /usr/lib/petscdir/3.8.3
   PYTHON_VERSION
               The installed Python version to use, for example '2.3'. This
               string will be appended to the Python interpreter canonical
               name.
-  MPICC       C compiler command for MPI programs
-  MPIF90      Fortran 90 compiler command for MPI programs
-  MPIF77      Fortran 77 compiler command for MPI programs
-  MPICXX      C++ compiler command for MPI programs
   XMKMF       Path to xmkmf, Makefile generator for X Window System
-  CXXCPP      C++ preprocessor
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
