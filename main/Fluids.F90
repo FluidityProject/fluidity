@@ -421,26 +421,6 @@ contains
 
        call tic(TICTOC_ID_TIMESTEP)
 
-       if( &
-            ! Do not dump at the start of the simulation (this is handled by write_state call earlier)
-            & current_time > simulation_start_time &
-            ! Do not dump at the end of the simulation (this is handled by later write_state call)
-            & .and. current_time < finish_time &
-            ! Test write_state conditions
-            & .and. do_write_state(current_time, timestep) &
-            & ) then
-
-          !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-          ! Regular during run state dump.
-          !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-
-          ! Intermediate dumps
-          if(do_checkpoint_simulation(dump_no)) then
-             call checkpoint_simulation(state, cp_no = dump_no)
-          end if
-          call write_state(dump_no, state)
-       end if
-
        ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
 
        call copy_to_stored_values(state,"Old")
@@ -785,6 +765,26 @@ contains
 
        end if
 
+       if( &
+            ! Do not dump at the start of the simulation (this is handled by write_state call earlier)
+            & current_time > simulation_start_time &
+            ! Do not dump at the end of the simulation (this is handled by later write_state call)
+            & .and. .not. simulation_completed(current_time, timestep+1) &
+            ! Test write_state conditions
+            & .and. do_write_state(current_time, timestep) &
+            & ) then
+
+          !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+          ! Regular during run state dump.
+          !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+          ! Intermediate dumps
+          if(do_checkpoint_simulation(dump_no)) then
+             call checkpoint_simulation(state, cp_no = dump_no)
+          end if
+          call write_state(dump_no, state)
+       end if
+
        call toc(TICTOC_ID_TIMESTEP)
        call tictoc_report(2, TICTOC_ID_TIMESTEP)
        call tictoc_clear(TICTOC_ID_TIMESTEP)
@@ -839,6 +839,8 @@ contains
     ! *** END OF TIMESTEP LOOP ***
     ! ****************************
 
+    ! Do not perform a dump if the timeloop exited because of the final_timestep
+    ! condition. That would result into the final timestep being output twice.
     ! Checkpoint at end, if enabled
     if(have_option("/io/checkpointing/checkpoint_at_end")) then
        call checkpoint_simulation(state, cp_no = dump_no)
