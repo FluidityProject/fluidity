@@ -122,9 +122,18 @@ fi
 if $FC -v 2>&1 | grep 'gcc version'; then
   USING_GFORTRAN="yes"
   GFORTRAN_VERSION=$($FC -v 2>&1 | grep 'gcc version' | awk '{print $3}')
+  # note this flag is needed for gfortran>=10 due to stricter interface checking
+  # (see https://gcc.gnu.org/gcc-10/porting_to.html)
+  # we only want to disable this check selectively (netcdf interface)
+  # as it is generally useful
+  AX_COMPARE_VERSION(["$GFORTRAN_VERSION"], [ge], 10,
+                     [FCFLAGS_ALLOW_ARGUMENT_MISMATCH="-fallow-argument-mismatch"],
+                     [FCFLAGS_ALLOW_ARGUMENT_MISMATCH=""])
 else
   USING_GFORTRAN="no"
+  FCFLAGS_ALLOW_ARGUMENT_MISMATCH=""
 fi
+AC_SUBST(FCFLAGS_ALLOW_ARGUMENT_MISMATCH)
 
 # How to specify where .mod files are placed.
 if test "$FC" = "ifort"; then
