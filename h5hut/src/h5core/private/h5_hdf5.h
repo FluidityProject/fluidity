@@ -1293,7 +1293,7 @@ hdf5_close_file (
 			hid_t object_id = obj_id_list [i];
 			h5_debug ("Open object: %lld", (long long)object_id);
 			H5O_info_t object_info;
-			if (H5Oget_info (object_id, &object_info) < 0)
+			if (H5Oget_info1 (object_id, &object_info) < 0)
 				continue;
 			switch (object_info.type) {
 			case H5O_TYPE_GROUP:

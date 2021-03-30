@@ -110,10 +110,10 @@ iter_op_get_obj_type (
 			        name);
 			return H5O_TYPE_UNKNOWN;
 		}
-		herr = H5Oget_info(obj_id, &objinfo);
+		herr = H5Oget_info1(obj_id, &objinfo);
 	}
 	else { // H5L_TYPE_HARD
-		herr = H5Oget_info_by_name(g_id, name, &objinfo, H5P_DEFAULT);
+		herr = H5Oget_info_by_name1(g_id, name, &objinfo, H5P_DEFAULT);
 	}
 
 	if (herr < 0) {
