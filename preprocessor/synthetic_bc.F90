@@ -38,6 +38,7 @@ use transform_elements
 use fetools
 use fields
 use state_module
+use mpi_interfaces
 
 implicit none
 
@@ -99,7 +100,6 @@ contains
       character(len=OPTION_PATH_LEN)       :: bc_path_i
 
 #ifdef HAVE_MPI
-      INCLUDE 'mpif.h'
       INTEGER IERR
 #endif
 
