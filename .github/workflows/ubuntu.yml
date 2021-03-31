@@ -1,0 +1,177 @@
+name: Build and Test
+
+on: 
+  push:
+    branches:
+      - gcc10-fixes
+
+jobs:
+
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [ "Build Bionic", "Build Focal", "Build Groovy" ]
+        include:
+        
+          - name: "Build Bionic"
+            release: bionic
+    
+          - name: "Build Focal"
+            release: focal
+    
+          - name: "Build Groovy"
+            release: groovy
+    
+    steps:
+
+      - name: Check Out Repo 
+        uses: actions/checkout@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+          
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: docker/actions/Dockerfile.actions.${{ matrix.release }}
+          push: true
+          tags: fluidity/actions:${{ matrix.release }}-${{ github.sha }}
+
+  testing:
+
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runson }}
+    needs: build
+    if: always()
+    timeout-minutes: ${{ matrix.timeout }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [ "Unit Bionic", "Short Bionic", "Unit Focal", "Short Focal", "Medium Focal", "Unit Groovy", "Short Groovy", "Medium Groovy" ]
+        include:
+        
+          - name: "Unit Bionic"
+            release: bionic
+            command: "make unittest"
+            output: "test_results_unittests.xml"
+            runson: ubuntu-latest
+            timeout: 60
+          
+          - name: "Short Bionic"
+            release: bionic
+            command: "make test"
+            output: "test_results.xml"
+            runson: ubuntu-latest
+            timeout: 60
+
+          - name: "Medium Bionic"
+            release: bionic
+            command: "make THREADS=8 mediumtest"
+            output: "test_results_medium.xml"
+            runson: self-hosted
+            timeout: 1440
+
+          - name: "Unit Focal"
+            release: focal
+            command: "make unittest"
+            output: "test_results_unittests.xml"
+            runson: ubuntu-latest
+            timeout: 60
+          
+          - name: "Short Focal"
+            release: focal
+            command: "make test"
+            output: "test_results.xml"
+            runson: ubuntu-latest
+            timeout: 60
+
+          - name: "Medium Focal"
+            release: focal
+            command: "make THREADS=8 mediumtest"
+            output: "test_results_medium.xml"
+            runson: self-hosted
+            timeout: 1440
+
+          - name: "Unit Groovy"
+            release: groovy
+            command: "make unittest"
+            output: "test_results_unittests.xml"
+            runson: ubuntu-latest
+            timeout: 60
+          
+          - name: "Short Groovy"
+            release: groovy
+            command: "make test"
+            output: "test_results.xml"
+            runson: ubuntu-latest
+            timeout: 60
+
+          - name: "Medium Groovy"
+            release: groovy
+            command: "make THREADS=8 mediumtest"
+            output: "test_results_medium.xml"
+            runson: self-hosted
+            timeout: 1440
+
+    steps:
+
+      - uses: colpal/actions-clean@v1
+        if: ${{ always() }}
+    
+      - name: ${{ matrix.name }}
+        run: |
+         chmod 777 .
+         docker pull fluidity/actions:${{ matrix.release }}-${{ github.sha }}
+         docker run -v $PWD:/host fluidity/actions:${{ matrix.release }}-${{ github.sha }} /bin/bash -c "${{ matrix.command }} && cp -v tests/${{ matrix.output }} /host/${{ matrix.release }}-${{ matrix.output}}"
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ${{ matrix.release }}-${{ matrix.output }}
+
+      - uses: colpal/actions-clean@v1
+        if: ${{ always() }}
+
+  JUnit:
+
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    if: always()
+    needs: testing
+
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [ "JUnit Bionic", "JUnit Focal", "JUnit Groovy" ]
+          
+        include:
+        
+          - name: "JUnit Bionic"
+            release: bionic
+    
+          - name: "JUnit Focal"
+            release: focal
+    
+          - name: "JUnit Groovy"
+            release: groovy
+    
+    steps:
+
+      - uses: actions/download-artifact@v2
+
+      - name: ${{ matrix.name }}
+        uses: mikepenz/action-junit-report@v2
+        with:
+          report_paths: '**/${{ matrix.release }}-test*.xml'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: Test report ${{ matrix.release }}
+          fail_on_failure: true
