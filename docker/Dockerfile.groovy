@@ -1,7 +1,7 @@
 # DockerFile for a Fludity development container
 
-# Use a Bionic base image
-FROM ubuntu:bionic
+# Use a Groovy base image
+FROM ubuntu:groovy
 
 # This DockerFile is looked after by
 MAINTAINER Tim Greaves
@@ -13,7 +13,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
      apt-get -y dist-upgrade && \
      apt-get -y install gnupg dirmngr && \
-     echo "deb http://ppa.launchpad.net/fluidity-core/ppa/ubuntu bionic main" > /etc/apt/sources.list.d/fluidity-core-ppa-bionic.list && \
+     echo "deb http://ppa.launchpad.net/fluidity-core/ppa/ubuntu groovy main" > /etc/apt/sources.list.d/fluidity-core-ppa-groovy.list && \
      gpg --keyserver keyserver.ubuntu.com --recv 0D45605A33BAC3BE && \
      gpg --export --armor 33BAC3BE | apt-key add - && \
      apt-get update && \
@@ -22,16 +22,7 @@ RUN apt-get update && \
      rm -rf /var/cache/apt && \
      rm -rf /var/lib/apt/lists
 
-
-RUN apt-get update && \
-     apt-get -y install python3-pip && \
-     rm -rf /var/cache/apt && \
-     rm -rf /var/lib/apt/lists
-
-RUN python3 -m pip install --upgrade junit-xml
-
-ENV PETSC_DIR /usr/lib/petscdir/3.8.3
-ENV LD_LIBRARY_PATH /usr/lib/petscdir/3.8.3/linux-gnu-c-opt/lib
+ENV PETSC_DIR /usr/lib/petscdir/3.13
 ENV LDFLAGS -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi
 ENV CPPFLAGS -I/usr/include/hdf5/openmpi
 ENV OMPI_MCA_btl_vader_single_copy_mechanism none
