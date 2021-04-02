@@ -12,6 +12,8 @@ RUN chown -R fluidity /home/fluidity
 
 USER fluidity
 
+ENV FCFLAGS="-I/usr/include"
+
 RUN ./configure --enable-2d-adaptivity
 RUN make
 RUN make fltools
