@@ -55,6 +55,9 @@ jobs:
 
       - uses: actions/download-artifact@v2
 
+      - name: find results file
+        run: find .
+
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v2
         with:
