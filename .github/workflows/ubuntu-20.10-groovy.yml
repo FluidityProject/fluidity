@@ -33,15 +33,11 @@ jobs:
     
       - name: ${{ matrix.name }}
         run: |
-         mkdir results
-         chmod 777 results
-         cd results
          wget https://raw.githubusercontent.com/FluidityProject/fluidity/gcc10-fixes-debug-actions/.github/workflows/test_results.xml
 
       - uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.output }}
-          path: results/${{ matrix.output }}
+          path: ${{ matrix.output }}
 
 
   JUnit:
@@ -55,24 +51,11 @@ jobs:
 
       - uses: actions/download-artifact@v2
 
-      - name: find results file
-        run: find .
-
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v2
         with:
-          report_paths: results/test_results.xml
+          report_paths: '**/test*.xml'
           github_token: ${{ secrets.GITHUB_TOKEN }}
           check_name: Report One
           fail_on_failure: true
-
-      - name: Publish Test Report
-        uses: mikepenz/action-junit-report@v2
-        with:
-          report_paths: results/test_results.xml
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          check_name: Report Two
-          fail_on_failure: true
-
-
 
