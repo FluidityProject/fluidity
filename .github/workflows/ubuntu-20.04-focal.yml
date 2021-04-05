@@ -62,9 +62,10 @@ jobs:
     
       - name: ${{ matrix.name }}
         run: |
-         chmod 777 .
+         mkdir results
+         chmod 777 results
          docker pull ${{ env.container }}
-         docker run -v $PWD:/host ${{ env.container }} /bin/bash -c "${{ matrix.command }} && cp -v tests/${{ matrix.output }} /host"
+         docker run -v $PWD/results:/host ${{ env.container }} /bin/bash -c "${{ matrix.command }} && cp -v tests/${{ matrix.output }} /host"
 
       - uses: actions/upload-artifact@v2
         with:
