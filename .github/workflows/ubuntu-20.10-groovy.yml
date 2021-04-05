@@ -35,8 +35,8 @@ jobs:
         run: |
          mkdir results
          chmod 777 results
-         docker pull fluidity/actions:groovy-ad0ad4e59b1d87ad1f67047e66e92efe4edeb135
-         docker run -v $PWD/results:/host fluidity/actions:groovy-ad0ad4e59b1d87ad1f67047e66e92efe4edeb135 /bin/bash -c "${{ matrix.command }} && cp -v tests/${{ matrix.output }} /host"
+         cd results
+         wget https://raw.githubusercontent.com/FluidityProject/fluidity/gcc10-fixes-debug-actions/.github/workflows/test_results.xml
 
       - uses: actions/upload-artifact@v2
         with:
