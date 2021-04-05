@@ -3,7 +3,7 @@
   <name>heat_2d_dg</name>
   <owner userid="wence"/>
   <tags>flml parallel zoltan<comment>zoltan tag added since test generates empty partitions with libsam.  -jrper</comment></tags>
-  <problem_definition length="short" nprocs="8">
+  <problem_definition length="medium" nprocs="8">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 8 -v -l heat heat_flredecomp &amp;&amp;
       mpiexec ../../bin/fluidity -l heat_flredecomp.flml</command_line>
   </problem_definition>

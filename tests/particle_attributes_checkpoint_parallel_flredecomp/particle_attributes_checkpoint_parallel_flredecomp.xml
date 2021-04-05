@@ -4,7 +4,7 @@
   <name>Testing of particle attribute parameters in serial with checkpointing</name>
   <owner userid="cmath"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="4">
+  <problem_definition length="medium" nprocs="4">
     <command_line>
 mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l particle-attributes P4_particle-attributes &amp;&amp;
 mpiexec ../../bin/fluidity -v3 -l P4_particle-attributes.flml &amp;&amp;

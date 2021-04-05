@@ -3,7 +3,7 @@
   <name>lagrangian_detectors_oscillating_rotation</name>
   <owner userid="drhodrid"/>
   <tags>flml parallel zoltan</tags>
-  <problem_definition length="short" nprocs="4">
+  <problem_definition length="medium" nprocs="4">
     <command_line>
 mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian-detectors-oscillating-rotation lagrangian-detectors-oscillating-rotation-flredecomp;
 mpiexec ../../bin/fluidity -v3 -l lagrangian-detectors-oscillating-rotation-flredecomp.flml
