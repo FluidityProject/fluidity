@@ -86,7 +86,7 @@ jobs:
         run: |
          chmod 777 .
          docker pull ${{ env.container }}
-         docker run -v $PWD/results:/host ${{ env.container }} /bin/bash -c "${{ matrix.command }} && cp -v tests/test_results_medium.xml /host/focal-test_results_medium.xml"
+         docker run -v $PWD/results:/host ${{ env.container }} /bin/bash -c "make mediumtest && cp -v tests/test_results_medium.xml /host/focal-test_results_medium.xml"
 
       - uses: actions/upload-artifact@v2
         with:
