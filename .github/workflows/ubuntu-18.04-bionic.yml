@@ -64,12 +64,29 @@ jobs:
         run: |
          chmod 777 .
          docker pull ${{ env.container }}
-         docker run -v $PWD:/host ${{ env.container }} /bin/bash -c "${{ matrix.command }} && cp -v tests/${{ matrix.output }} /host"
-         
+         docker run -v $PWD:/host ${{ env.container }} /bin/bash -c "${{ matrix.command }} && cp -v tests/${{ matrix.output }} /host/bionic-${{ matrix.output }}"
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: bionic-${{ matrix.output }}
+
+
+  JUnit:
+
+    name: JUnit publishing
+    runs-on: ubuntu-latest
+    if: always()
+    needs: testing
+
+    steps:
+
+      - uses: actions/download-artifact@v2
+
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v2
         with:
-          report_paths: ${{ matrix.output }}
+          report_paths: '**/bionic-test*.xml'
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          check_name: ${{ matrix.name }} test report
-          fail_on_failure: false
+          check_name: Bionic test report
+          fail_on_failure: true
+
