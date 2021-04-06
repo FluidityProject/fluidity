@@ -102,7 +102,7 @@ jobs:
 
   remote-testing:
 
-    name: "Medium Bionic"
+    name: ${{ matrix.name }}
     runs-on: self-hosted
     needs: build
     timeout-minutes: 1440
@@ -142,7 +142,7 @@ jobs:
       
   JUnit:
 
-    name: JUnit publishing Bionic
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     if: always()
     needs: [ github-testing, remote-testing ]
