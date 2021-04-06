@@ -102,13 +102,11 @@ jobs:
           
           - name: "Short Bionic"
             release: bionic
-            command: "make unittest"
             command: "make test"
             output: "test_results.xml"
 
           - name: "Unit Focal"
             release: focal
-            command: "make unittest"
             command: "make unittest"
             output: "test_results_unittests.xml"
           
