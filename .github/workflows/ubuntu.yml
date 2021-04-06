@@ -1,4 +1,4 @@
-name: Focal Testing
+name: Build and Test
 
 on: 
   push:
