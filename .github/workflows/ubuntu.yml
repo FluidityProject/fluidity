@@ -51,6 +51,7 @@ jobs:
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     needs: build
+    if: always()
   
     strategy:
       fail-fast: false
@@ -105,6 +106,7 @@ jobs:
     name: ${{ matrix.name }}
     runs-on: self-hosted
     needs: build
+    if: always()
     timeout-minutes: 1440
 
     strategy:
