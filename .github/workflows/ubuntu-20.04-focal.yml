@@ -76,6 +76,7 @@ jobs:
     name: "Medium"
     runs-on: self-hosted
     needs: build
+    timeout-minutes: 1440
     
     steps:
 

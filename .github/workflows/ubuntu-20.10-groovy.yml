@@ -34,7 +34,7 @@ jobs:
           push: true
           tags: ${{ env.container }}
 
-  testing:
+  github-testing:
 
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
@@ -64,19 +64,44 @@ jobs:
         run: |
          chmod 777 .
          docker pull ${{ env.container }}
-         docker run -v $PWD:/host ${{ env.container }} /bin/bash -c "${{ matrix.command }} && cp -v tests/${{ matrix.output }} /host/groovy-${{ matrix.output }}"
+         docker run -v $PWD:/host ${{ env.container }} /bin/bash -c "${{ matrix.command }} && cp -v tests/${{ matrix.output }} /host/groovy-${{ matrix.output}}"
 
       - uses: actions/upload-artifact@v2
         with:
           path: groovy-${{ matrix.output }}
 
 
+  remote-testing:
+
+    name: "Medium"
+    runs-on: self-hosted
+    needs: build
+    timeout-minutes: 1440
+    
+    steps:
+
+      - uses: colpal/actions-clean@v1
+        if: ${{ always() }}
+    
+      - name: ${{ matrix.name }}
+        run: |
+         chmod 777 .
+         docker pull ${{ env.container }}
+         docker run -v $PWD/results:/host ${{ env.container }} /bin/bash -c "make mediumtest && cp -v tests/test_results_medium.xml /host/groovy-test_results_medium.xml"
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: groovy-test_results_medium.xml
+
+      - uses: colpal/actions-clean@v1
+        if: ${{ always() }}
+      
   JUnit:
 
     name: JUnit publishing
     runs-on: ubuntu-latest
     if: always()
-    needs: testing
+    needs: [ github-testing, remote-testing ]
 
     steps:
 
@@ -89,4 +114,3 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           check_name: Groovy test report
           fail_on_failure: true
-
