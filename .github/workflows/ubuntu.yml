@@ -3,7 +3,7 @@ name: Focal Testing
 on: 
   push:
     branches:
-      - gcc10-fixes
+      - gcc10-fixes-debug-actions
 
 jobs:
 
