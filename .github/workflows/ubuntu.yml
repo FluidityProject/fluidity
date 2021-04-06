@@ -46,50 +46,87 @@ jobs:
           push: true
           tags: fluidity/actions:${{ matrix.release }}-${{ github.sha }}
 
-  github-testing:
+  testing:
 
     name: ${{ matrix.name }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runson }}
     needs: build
     if: always()
-  
+    timeout-minutes: ${{ matrix.timeout }}
+
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Unit Groovy", "Short Groovy", "Unit Bionic", "Short Bionic", "Unit Focal", "Short Focal" ]
+        name: [ "Unit Bionic", "Short Bionic", "Unit Focal", "Short Focal", "Medium Focal", "Unit Groovy", "Short Groovy", "Medium Groovy" ]
         include:
         
           - name: "Unit Bionic"
             release: bionic
             command: "make unittest"
             output: "test_results_unittests.xml"
+            runson: ubuntu-latest
+            timeout: 60
           
           - name: "Short Bionic"
             release: bionic
             command: "make test"
             output: "test_results.xml"
+            runson: ubuntu-latest
+            timeout: 60
+
+          - name: "Medium Bionic"
+            release: bionic
+            command: "make mediumtest"
+            output: "test_results_medium.xml"
+            runson: self-hosted
+            timeout: 1440
 
           - name: "Unit Focal"
             release: focal
             command: "make unittest"
             output: "test_results_unittests.xml"
+            runson: ubuntu-latest
+            timeout: 60
           
           - name: "Short Focal"
             release: focal
             command: "make test"
             output: "test_results.xml"
+            runson: ubuntu-latest
+            timeout: 60
+
+          - name: "Medium Focal"
+            release: focal
+            command: "make mediumtest"
+            output: "test_results_medium.xml"
+            runson: self-hosted
+            timeout: 1440
 
           - name: "Unit Groovy"
             release: groovy
             command: "make unittest"
             output: "test_results_unittests.xml"
+            runson: ubuntu-latest
+            timeout: 60
           
           - name: "Short Groovy"
             release: groovy
             command: "make test"
             output: "test_results.xml"
+            runson: ubuntu-latest
+            timeout: 60
+
+          - name: "Medium Groovy"
+            release: groovy
+            command: "make mediumtest"
+            output: "test_results_medium.xml"
+            runson: self-hosted
+            timeout: 1440
 
     steps:
+
+      - uses: colpal/actions-clean@v1
+        if: ${{ always() }}
     
       - name: ${{ matrix.name }}
         run: |
@@ -101,53 +138,15 @@ jobs:
         with:
           path: ${{ matrix.release }}-${{ matrix.output }}
 
-  remote-testing:
-
-    name: ${{ matrix.name }}
-    runs-on: self-hosted
-    needs: build
-    if: always()
-    timeout-minutes: 1440
-
-    strategy:
-      fail-fast: false
-      matrix:
-        name: [ "Medium Bionic", "Medium Focal", "Medium Groovy" ]
-        include:
-        
-          - name: "Medium Bionic"
-            release: bionic
-    
-          - name: "Medium Focal"
-            release: focal
-    
-          - name: "Medium Groovy"
-            release: groovy
-    
-    steps:
-
       - uses: colpal/actions-clean@v1
         if: ${{ always() }}
-    
-      - name: ${{ matrix.name }}
-        run: |
-         chmod 777 .
-         docker pull fluidity/actions:${{ matrix.release }}-${{ github.sha }}
-         docker run -v $PWD/results:/host fluidity/actions:${{ matrix.release }}-${{ github.sha }} /bin/bash -c "make mediumtest && cp -v tests/test_results_medium.xml /host/${{ matrix.release }}-test_results_medium.xml"
 
-      - uses: actions/upload-artifact@v2
-        with:
-          path: ${{ matrix.release }}-test_results_medium.xml
-
-      - uses: colpal/actions-clean@v1
-        if: ${{ always() }}
-      
   JUnit:
 
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     if: always()
-    needs: [ github-testing, remote-testing ]
+    needs: testing
 
     strategy:
       fail-fast: false
