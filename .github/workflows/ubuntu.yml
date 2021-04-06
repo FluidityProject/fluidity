@@ -7,10 +7,25 @@ on:
 
 jobs:
 
-  build-bionic:
-  
+  build:
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [ "Build Bionic", "Build Focal", "Build Groovy" ]
+        include:
+        
+          - name: "Build Bionic"
+            release: bionic
+    
+          - name: "Build Focal"
+            release: focal
+    
+          - name: "Build Groovy"
+            release: groovy
+    
     steps:
 
       - name: Check Out Repo 
@@ -27,72 +42,20 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: docker/actions/Dockerfile.actions.bionic
+          file: docker/actions/Dockerfile.actions.${{ matrix.release }}
           push: true
-          tags: fluidity/actions:bionic-${{ github.sha }}
-
-  build-focal:
-  
-    runs-on: ubuntu-latest
-
-    steps:
-
-      - name: Check Out Repo 
-        uses: actions/checkout@v2
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
-          
-      - name: Build and push
-        id: docker_build
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: docker/actions/Dockerfile.actions.focal
-          push: true
-          tags: fluidity/actions:focal-${{ github.sha }}
-
-  build-groovy:
-  
-    runs-on: ubuntu-latest
-
-    steps:
-
-      - name: Check Out Repo 
-        uses: actions/checkout@v2
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
-          
-      - name: Build and push
-        id: docker_build
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: docker/actions/Dockerfile.actions.groovy
-          push: true
-          tags: fluidity/actions:groovy-${{ github.sha }}
+          tags: fluidity/actions:${{ matrix.release }}-${{ github.sha }}
 
   github-testing:
 
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
-    needs: build-${{ matrix.release }}
+    needs: build
   
     strategy:
-
       fail-fast: false
-
       matrix:
-
         name: [ "Unit Groovy", "Short Groovy", "Unit Bionic", "Short Bionic", "Unit Focal", "Short Focal" ]
-          
         include:
         
           - name: "Unit Bionic"
@@ -141,17 +104,13 @@ jobs:
 
     name: "Medium Bionic"
     runs-on: self-hosted
-    needs: build-${{ matrix.release }}
+    needs: build
     timeout-minutes: 1440
 
     strategy:
-
       fail-fast: false
-
       matrix:
-
         name: [ "Medium Bionic", "Medium Focal", "Medium Groovy" ]
-          
         include:
         
           - name: "Medium Bionic"
@@ -189,11 +148,8 @@ jobs:
     needs: [ github-testing, remote-testing ]
 
     strategy:
-
       fail-fast: false
-
       matrix:
-
         name: [ "JUnit Bionic", "JUnit Focal", "JUnit Groovy" ]
           
         include:
