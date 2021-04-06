@@ -1,0 +1,321 @@
+name: Focal Testing
+
+on: 
+  push:
+    branches:
+      - gcc10-fixes
+
+jobs:
+
+  build-bionic:
+  
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Check Out Repo 
+        uses: actions/checkout@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+          
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: docker/actions/Dockerfile.actions.bionic
+          push: true
+          tags: fluidity/actions:bionic-${{ github.sha }}
+
+  build-focal:
+  
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Check Out Repo 
+        uses: actions/checkout@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+          
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: docker/actions/Dockerfile.actions.focal
+          push: true
+          tags: fluidity/actions:focal-${{ github.sha }}
+
+  build-groovy:
+  
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Check Out Repo 
+        uses: actions/checkout@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+          
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: docker/actions/Dockerfile.actions.groovy
+          push: true
+          tags: fluidity/actions:groovy-${{ github.sha }}
+
+  github-testing-bionic:
+
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    needs: build-bionic
+  
+    strategy:
+
+      fail-fast: false
+
+      matrix:
+
+        name: [ "Unit Bionic", "Short Bionic"]
+          
+        include:
+        
+          - name: "Unit Bionic"
+            command: "make unittest"
+            output: "test_results_unittests.xml"
+          
+          - name: "Short Bionic"
+            command: "make test"
+            output: "test_results.xml"
+
+    steps:
+    
+      - name: ${{ matrix.name }}
+        run: |
+         chmod 777 .
+         docker pull fluidity/actions:bionic-${{ github.sha }}
+         docker run -v $PWD:/host fluidity/actions:bionic-${{ github.sha }} /bin/bash -c "${{ matrix.command }} && cp -v tests/${{ matrix.output }} /host/bionic-${{ matrix.output}}"
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: bionic-${{ matrix.output }}
+
+  github-testing-focal:
+
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    needs: build-focal
+  
+    strategy:
+
+      fail-fast: false
+
+      matrix:
+
+        name: [ "Unit Focal", "Short Focal"]
+          
+        include:
+        
+          - name: "Unit Focal"
+            command: "make unittest"
+            output: "test_results_unittests.xml"
+          
+          - name: "Short Focal"
+            command: "make test"
+            output: "test_results.xml"
+
+    steps:
+    
+      - name: ${{ matrix.name }}
+        run: |
+         chmod 777 .
+         docker pull fluidity/actions:focal-${{ github.sha }}
+         docker run -v $PWD:/host fluidity/actions:focal-${{ github.sha }} /bin/bash -c "${{ matrix.command }} && cp -v tests/${{ matrix.output }} /host/focal-${{ matrix.output}}"
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: focal-${{ matrix.output }}
+
+  github-testing-groovy:
+
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    needs: build-groovy
+  
+    strategy:
+
+      fail-fast: false
+
+      matrix:
+
+        name: [ "Unit Groovy", "Short Groovy"]
+          
+        include:
+        
+          - name: "Unit Groovy"
+            command: "make unittest"
+            output: "test_results_unittests.xml"
+          
+          - name: "Short Groovy"
+            command: "make test"
+            output: "test_results.xml"
+
+    steps:
+    
+      - name: ${{ matrix.name }}
+        run: |
+         chmod 777 .
+         docker pull fluidity/actions:groovy-${{ github.sha }}
+         docker run -v $PWD:/host fluidity/actions:groovy-${{ github.sha }} /bin/bash -c "${{ matrix.command }} && cp -v tests/${{ matrix.output }} /host/groovy-${{ matrix.output}}"
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: groovy-${{ matrix.output }}
+
+  remote-testing-bionic:
+
+    name: "Medium"
+    runs-on: self-hosted
+    needs: build-bionic
+    timeout-minutes: 1440
+    
+    steps:
+
+      - uses: colpal/actions-clean@v1
+        if: ${{ always() }}
+    
+      - name: Medium Bionic
+        run: |
+         chmod 777 .
+         docker pull fluidity/actions:bionic-${{ github.sha }}
+         docker run -v $PWD/results:/host fluidity/actions:bionic-${{ github.sha }} /bin/bash -c "make mediumtest && cp -v tests/test_results_medium.xml /host/bionic-test_results_medium.xml"
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: bionic-test_results_medium.xml
+
+      - uses: colpal/actions-clean@v1
+        if: ${{ always() }}
+      
+  remote-testing-focal:
+
+    name: "Medium"
+    runs-on: self-hosted
+    needs: build-focal
+    timeout-minutes: 1440
+    
+    steps:
+
+      - uses: colpal/actions-clean@v1
+        if: ${{ always() }}
+    
+      - name: Medium Focal
+        run: |
+         chmod 777 .
+         docker pull fluidity/actions:focal-${{ github.sha }}
+         docker run -v $PWD/results:/host fluidity/actions:focal-${{ github.sha }} /bin/bash -c "make mediumtest && cp -v tests/test_results_medium.xml /host/focal-test_results_medium.xml"
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: focal-test_results_medium.xml
+
+      - uses: colpal/actions-clean@v1
+        if: ${{ always() }}
+      
+
+  remote-testing-groovy:
+
+    name: "Medium"
+    runs-on: self-hosted
+    needs: build-groovy
+    timeout-minutes: 1440
+    
+    steps:
+
+      - uses: colpal/actions-clean@v1
+        if: ${{ always() }}
+    
+      - name: Medium Groovy
+        run: |
+         chmod 777 .
+         docker pull fluidity/actions:groovy-${{ github.sha }}
+         docker run -v $PWD/results:/host fluidity/actions:groovy-${{ github.sha }} /bin/bash -c "make mediumtest && cp -v tests/test_results_medium.xml /host/groovy-test_results_medium.xml"
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: groovy-test_results_medium.xml
+
+      - uses: colpal/actions-clean@v1
+        if: ${{ always() }}
+      
+  JUnit-bionic:
+
+    name: JUnit publishing Bionic
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [ github-testing-bionic, remote-testing-bionic ]
+
+    steps:
+
+      - uses: actions/download-artifact@v2
+
+      - name: Bionic Test Report
+        uses: mikepenz/action-junit-report@v2
+        with:
+          report_paths: '**/bionic-test*.xml'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: Bionic test report
+          fail_on_failure: true
+
+  JUnit-focal:
+
+    name: JUnit publishing Focal
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [ github-testing-focal, remote-testing-focal ]
+
+    steps:
+
+      - uses: actions/download-artifact@v2
+
+      - name: Focal Test Report
+        uses: mikepenz/action-junit-report@v2
+        with:
+          report_paths: '**/focal-test*.xml'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: Focal test report
+          fail_on_failure: true
+
+  JUnit-groovy:
+
+    name: JUnit publishing Groovy
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [ github-testing-groovy, remote-testing-groovy ]
+
+    steps:
+
+      - uses: actions/download-artifact@v2
+
+      - name: Groovy Test Report
+        uses: mikepenz/action-junit-report@v2
+        with:
+          report_paths: '**/groovy-test*.xml'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: Groovy test report
+          fail_on_failure: true
