@@ -100,7 +100,7 @@ jobs:
         with:
           path: ${{ matrix.release }}-${{ matrix.output }}
 
-  remote-testing-bionic:
+  remote-testing:
 
     name: "Medium Bionic"
     runs-on: self-hosted
