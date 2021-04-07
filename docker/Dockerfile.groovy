@@ -28,6 +28,9 @@ ENV CPPFLAGS -I/usr/include/hdf5/openmpi
 ENV OMPI_MCA_btl_vader_single_copy_mechanism none
 ENV OMPI_MCA_rmaps_base_oversubscribe 1
 
+WORKDIR /usr/local
+RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-2.16.0-Linux64.tgz | tar --strip-components=1 -zxf -
+
 # Add a Fluidity user who will be the default user for this container
 # Make sure the user has a userid matching the host system
 # -- pass this as an argument at build time
