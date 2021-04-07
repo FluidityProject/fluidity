@@ -57,7 +57,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Unit Bionic", "Short Bionic", "Unit Focal", "Short Focal", "Medium Focal", "Unit Groovy", "Short Groovy", "Medium Groovy" ]
+        name: [ "Unit Bionic", "Short Bionic", "Medium Bionic", "Unit Focal", "Short Focal", "Medium Focal", "Unit Groovy", "Short Groovy", "Medium Groovy" ]
         include:
         
           - name: "Unit Bionic"
