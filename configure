@@ -14971,7 +14971,6 @@ fi
 LDFLAGS="$LDFLAGS $HDF5_LDFLAGS"
 
 # Some changes are necesary in H5hut source to build with HDF5 >= 1.12
-# These appear to break 1.8 so only apply at 1.10 and above.
 
 
 
@@ -14991,7 +14990,7 @@ LDFLAGS="$LDFLAGS $HDF5_LDFLAGS"
                      -e 's/[^0-9]//g'`
 
 
-  ax_compare_version_B=`echo "1.10" | sed -e 's/\([0-9]*\)/Z\1Z/g' \
+  ax_compare_version_B=`echo "1.12" | sed -e 's/\([0-9]*\)/Z\1Z/g' \
                      -e 's/Z\([0-9]\)Z/Z0\1Z/g' \
                      -e 's/Z\([0-9][0-9]\)Z/Z0\1Z/g' \
                      -e 's/Z\([0-9][0-9][0-9]\)Z/Z0\1Z/g' \
@@ -15010,6 +15009,8 @@ x$ax_compare_version_B" | sed 's/^ *//' | sort -r | sed "s/x${ax_compare_version
 
 
 if test "$PATCH_H5hut" = "yes" ; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: HDF5 >= 1.12 detected; applying patches to h5hut." >&5
+$as_echo "$as_me: HDF5 >= 1.12 detected; applying patches to h5hut." >&6;}
     sed -i -e 's/H5Oget_info(/H5Oget_info1(/' h5hut/test/testframe.c h5hut/src/h5core/private/h5_hdf5.c
     sed -i -e 's/H5Oget_info (/H5Oget_info1 (/' h5hut/src/h5core/private/h5_hdf5.h
     sed -i -e 's/H5Oget_info_by_name(/H5Oget_info_by_name1(/' h5hut/src/h5core/private/h5_hdf5.c
