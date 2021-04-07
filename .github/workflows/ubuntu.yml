@@ -49,79 +49,30 @@ jobs:
   testing:
 
     name: ${{ matrix.name }}
-    runs-on: ${{ matrix.runson }}
+    runs-on: ubuntu-latest
     needs: build
     if: always()
-    timeout-minutes: ${{ matrix.timeout }}
 
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Unit Bionic", "Short Bionic", "Medium Bionic", "Unit Focal", "Short Focal", "Medium Focal", "Unit Groovy", "Short Groovy", "Medium Groovy" ]
+        name: [ "Medium Bionic", "Medium Focal", "Medium Groovy" ]
         include:
         
-          - name: "Unit Bionic"
-            release: bionic
-            command: "make unittest"
-            output: "test_results_unittests.xml"
-            runson: ubuntu-latest
-            timeout: 60
-          
-          - name: "Short Bionic"
-            release: bionic
-            command: "make test"
-            output: "test_results.xml"
-            runson: ubuntu-latest
-            timeout: 60
-
           - name: "Medium Bionic"
             release: bionic
-            command: "make THREADS=8 mediumtest"
+            command: "make THREADS=2 mediumtest"
             output: "test_results_medium.xml"
-            runson: self-hosted
-            timeout: 1440
-
-          - name: "Unit Focal"
-            release: focal
-            command: "make unittest"
-            output: "test_results_unittests.xml"
-            runson: ubuntu-latest
-            timeout: 60
-          
-          - name: "Short Focal"
-            release: focal
-            command: "make test"
-            output: "test_results.xml"
-            runson: ubuntu-latest
-            timeout: 60
 
           - name: "Medium Focal"
             release: focal
-            command: "make THREADS=8 mediumtest"
+            command: "make THREADS=2 mediumtest"
             output: "test_results_medium.xml"
-            runson: self-hosted
-            timeout: 1440
-
-          - name: "Unit Groovy"
-            release: groovy
-            command: "make unittest"
-            output: "test_results_unittests.xml"
-            runson: ubuntu-latest
-            timeout: 60
-          
-          - name: "Short Groovy"
-            release: groovy
-            command: "make test"
-            output: "test_results.xml"
-            runson: ubuntu-latest
-            timeout: 60
 
           - name: "Medium Groovy"
             release: groovy
-            command: "make THREADS=8 mediumtest"
+            command: "make THREADS=2 mediumtest"
             output: "test_results_medium.xml"
-            runson: self-hosted
-            timeout: 1440
 
     steps:
 
