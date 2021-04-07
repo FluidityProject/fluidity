@@ -1481,6 +1481,18 @@ if test "$with_hdf5" = "no"; then
 fi
 LDFLAGS="$LDFLAGS $HDF5_LDFLAGS"
 
+# Some changes are necesary in H5hut source to build with HDF5 >= 1.12
+# These appear to break 1.8 so only apply at 1.10 and above.
+AX_COMPARE_VERSION(["$HDF5_VERSION"], [ge], 1.10,
+                     [PATCH_H5hut="yes"],
+                     [PATCH_H5hut="no"])
+
+if test "$PATCH_H5hut" = "yes" ; then
+    sed -i -e 's/H5Oget_info(/H5Oget_info1(/' h5hut/test/testframe.c h5hut/src/h5core/private/h5_hdf5.c
+    sed -i -e 's/H5Oget_info (/H5Oget_info1 (/' h5hut/src/h5core/private/h5_hdf5.h
+    sed -i -e 's/H5Oget_info_by_name(/H5Oget_info_by_name1(/' h5hut/src/h5core/private/h5_hdf5.c
+fi
+
 #************H5hut***********
 if test -d h5hut; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
