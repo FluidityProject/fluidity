@@ -76,7 +76,7 @@ jobs:
 
           - name: "Medium Bionic"
             release: bionic
-            command: "make mediumtest"
+            command: "make THREADS=8 mediumtest"
             output: "test_results_medium.xml"
             runson: self-hosted
             timeout: 1440
@@ -97,7 +97,7 @@ jobs:
 
           - name: "Medium Focal"
             release: focal
-            command: "make mediumtest"
+            command: "make THREADS=8 mediumtest"
             output: "test_results_medium.xml"
             runson: self-hosted
             timeout: 1440
@@ -118,7 +118,7 @@ jobs:
 
           - name: "Medium Groovy"
             release: groovy
-            command: "make mediumtest"
+            command: "make THREADS=8 mediumtest"
             output: "test_results_medium.xml"
             runson: self-hosted
             timeout: 1440
