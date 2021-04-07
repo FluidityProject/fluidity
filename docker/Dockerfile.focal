@@ -28,6 +28,7 @@ ENV PETSC_DIR /usr/lib/petscdir/3.12
 ENV LDFLAGS -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi
 ENV CPPFLAGS -I/usr/include/hdf5/openmpi
 ENV OMPI_MCA_btl_vader_single_copy_mechanism none
+ENV OMPI_MCA_rmaps_base_oversubscribe 1
 
 # Add a Fluidity user who will be the default user for this container
 # Make sure the user has a userid matching the host system
