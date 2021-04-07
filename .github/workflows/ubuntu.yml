@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Build Bionic", "Build Focal" ]
+        name: [ "Build Bionic", "Build Focal", "Build Groovy" ]
         include:
         
           - name: "Build Bionic"
@@ -22,6 +22,9 @@ jobs:
     
           - name: "Build Focal"
             release: focal
+    
+          - name: "Build Groovy"
+            release: groovy
     
     steps:
 
