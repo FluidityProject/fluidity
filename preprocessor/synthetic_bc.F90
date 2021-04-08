@@ -33,12 +33,12 @@ use fldebug
 use spud
 use global_parameters, only: dt, option_path_len
 use elements
+use mpi_interfaces
 use parallel_tools
 use transform_elements
 use fetools
 use fields
 use state_module
-use mpi_interfaces
 
 implicit none
 
