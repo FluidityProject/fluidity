@@ -106,9 +106,6 @@ jobs:
 
     steps:
 
-      - uses: colpal/actions-clean@v1
-        if: ${{ always() }}
-    
       - name: ${{ matrix.name }}
         run: |
          chmod 777 .
@@ -118,9 +115,6 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           path: ${{ matrix.release }}-${{ matrix.output }}
-
-      - uses: colpal/actions-clean@v1
-        if: ${{ always() }}
 
   JUnit:
 
