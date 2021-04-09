@@ -56,22 +56,37 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Medium Bionic", "Medium Focal", "Medium Groovy" ]
+        name: [ "Short Bionic", "Short Focal", "Short Groovy", "Medium Bionic", "Medium Focal", "Medium Groovy" ]
         include:
         
+          - name: "short Bionic"
+            release: bionic
+            command: "make THREADS=2 test"
+            output: "test_results.xml"
+
+          - name: "Short Focal"
+            release: focal
+            command: "make THREADS=2 test"
+            output: "test_results.xml"
+
+          - name: "Short Groovy"
+            release: groovy
+            command: "make THREADS=2 test"
+            output: "test_results.xml"
+
           - name: "Medium Bionic"
             release: bionic
-            command: "make THREADS=8 mediumtest"
+            command: "make THREADS=2 mediumtest"
             output: "test_results_medium.xml"
 
           - name: "Medium Focal"
             release: focal
-            command: "make THREADS=8 mediumtest"
+            command: "make THREADS=2 mediumtest"
             output: "test_results_medium.xml"
 
           - name: "Medium Groovy"
             release: groovy
-            command: "make THREADS=8 mediumtest"
+            command: "make THREADS=2 mediumtest"
             output: "test_results_medium.xml"
 
     steps:

@@ -3,7 +3,7 @@
   <name>q1p0 navier stokes spatial convergence test</name>
   <owner userid="skramer"/>
   <tags>flml</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
 <!--    <command_line>fluidity MMS_A.flml &gt; MMS_A.log; fluidity
 MMS_B.flml &gt; MMS_B.log; fluidity MMS_C.flml &gt; MMS_C.log; fluidity
 -v3 MMS_D.flml &gt; MMS_D.log</command_line>-->

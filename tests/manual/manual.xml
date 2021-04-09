@@ -2,7 +2,7 @@
 <testproblem>
   <name>Fluidity_manual_test<comment>Checks the manual log for undefined references and citations.</comment></name>
   <owner userid="dham"/>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>true<comment>Do nothing. The test is all in the regexp searches below.</comment></command_line>
   </problem_definition>
   <variables>
