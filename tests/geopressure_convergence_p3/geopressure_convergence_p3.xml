@@ -3,7 +3,7 @@
   <name>Geopressure convergence test (P3)</name>
   <owner userid="piggt01"/>
   <tags>flml</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>make clean-run; rm -f 8.log 16.log 32.log 64.log;
 fluidity -v2 geopressure_8.flml &gt; 8.log;
 fluidity -v2 geopressure_16.flml &gt; 16.log;
