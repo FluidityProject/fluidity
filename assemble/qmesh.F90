@@ -175,7 +175,7 @@ contains
       
       call allocate(edge_len, metric%mesh, "Desired edge lengths")
       call get_edge_lengths(metric, edge_len)
-      call vtk_write_fields("final_metric", adapt_count, position_field, position_field%mesh, sfields=(/edge_len/), tfields=(/metric/))
+      call vtk_write_fields("final_metric", adapt_count, position_field, metric%mesh, sfields=(/edge_len/), tfields=(/metric/))
       call deallocate(edge_len)
       
       adapt_count = adapt_count + 1

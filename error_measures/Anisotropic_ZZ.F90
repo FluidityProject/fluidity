@@ -85,13 +85,13 @@ module anisotropic_zz_module
       call compute_anisotropic_zz_metric(field_s, positions, tmp_metric)
       if (debug_metric) then
         call get_edge_lengths(tmp_metric, edgelen)
-        call vtk_write_fieldS(trim("azz_metric_unbounded") // trim(buf), adaptcnt, positions, positions%mesh, &
+        call vtk_write_fieldS(trim("azz_metric_unbounded") // trim(buf), adaptcnt, positions, metric%mesh, &
                               sfields=(/field_s, edgelen/), tfields=(/tmp_metric/))
       end if
       call bound_metric(tmp_metric, state(1))
       if (debug_metric) then
         call get_edge_lengths(tmp_metric, edgelen)
-        call vtk_write_fieldS(trim("azz_metric_bounded") // trim(buf), adaptcnt, positions, positions%mesh, &
+        call vtk_write_fieldS(trim("azz_metric_bounded") // trim(buf), adaptcnt, positions, metric%mesh, &
                               sfields=(/field_s, edgelen/), tfields=(/tmp_metric/))
       end if
       call merge_tensor_fields(metric, tmp_metric)

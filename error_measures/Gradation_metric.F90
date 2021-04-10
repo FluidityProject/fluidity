@@ -246,7 +246,7 @@ module gradation_metric
 
     if (debug_metric) then
       call get_edge_lengths(error_metric, edgelen)
-      call vtk_write_fields(trim("gradation_metric"), adaptcnt, positions, positions%mesh, &
+      call vtk_write_fields(trim("gradation_metric"), adaptcnt, positions, error_metric%mesh, &
                              sfields=(/edgelen/), tfields=(/error_metric/))
       call deallocate(edgelen)
       adaptcnt = adaptcnt + 1

@@ -1701,7 +1701,7 @@ contains
         call allocate(edge_lengths, metric%mesh, "EdgeLengths")
         call get_edge_lengths(metric, edge_lengths)
         call vtk_write_fields('horizontal_metric', adaptcnt, &
-          old_positions, old_positions%mesh, &
+          old_positions, metric%mesh, &
           sfields=(/ edge_lengths /), tfields=(/ metric /) )
         adaptcnt=adaptcnt+1
         call deallocate(edge_lengths)

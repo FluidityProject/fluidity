@@ -153,8 +153,8 @@ module interpolation_metric
     end if
 
     if (debug_metric) then
-      call allocate(edgelen, positions%mesh, "Desired edge lengths")
-      call allocate(aspect_ratios, positions%mesh, "Metric aspect ratio")
+      call allocate(edgelen, error_metric%mesh, "Desired edge lengths")
+      call allocate(aspect_ratios, error_metric%mesh, "Metric aspect ratio")
     endif
 
     ewrite(2,*) "++: Forming interpolation metric"
@@ -171,7 +171,7 @@ module interpolation_metric
 
     if (debug_metric) then
       call get_edge_lengths(error_metric, edgelen)
-      call vtk_write_fields(trim("interpolation_metric_hessian_1"), adaptcnt, positions, positions%mesh, &
+      call vtk_write_fields(trim("interpolation_metric_hessian_1"), adaptcnt, positions, error_metric%mesh, &
                             sfields=(/fields_list(1), edgelen/), tfields=(/error_metric/))
     endif
 
@@ -181,7 +181,7 @@ module interpolation_metric
     if (debug_metric) then
       call get_edge_lengths(error_metric, edgelen)
       call get_aspect_ratios(error_metric, aspect_ratios)
-      call vtk_write_fields(trim("interpolation_metric_metric_1"), adaptcnt, positions, positions%mesh, &
+      call vtk_write_fields(trim("interpolation_metric_metric_1"), adaptcnt, positions, error_metric%mesh, &
                             sfields=(/fields_list(1), edgelen, aspect_ratios/), tfields=(/error_metric/))
     endif
 
@@ -199,7 +199,7 @@ module interpolation_metric
 
       if (debug_metric) then
         call get_edge_lengths(tmp_tensor, edgelen)
-        call vtk_write_fields(trim("interpolation_metric_hessian_") // trim(buf), adaptcnt, positions, positions%mesh, &
+        call vtk_write_fields(trim("interpolation_metric_hessian_") // trim(buf), adaptcnt, positions, error_metric%mesh, &
                               sfields=(/fields_list(i), edgelen/), tfields=(/tmp_tensor/))
       endif
 
@@ -209,7 +209,7 @@ module interpolation_metric
       if (debug_metric) then
         call get_edge_lengths(tmp_tensor, edgelen)
         call get_aspect_ratios(tmp_tensor, aspect_ratios)
-        call vtk_write_fields(trim("interpolation_metric_metric_") // trim(buf), adaptcnt, positions, positions%mesh, &
+        call vtk_write_fields(trim("interpolation_metric_metric_") // trim(buf), adaptcnt, positions, error_metric%mesh, &
                               sfields=(/fields_list(i), edgelen, aspect_ratios/), tfields=(/tmp_tensor/))
       endif
 
@@ -219,7 +219,7 @@ module interpolation_metric
       if (debug_metric) then
         call get_edge_lengths(error_metric, edgelen)
         call get_aspect_ratios(error_metric, aspect_ratios)
-        call vtk_write_fields(trim("interpolation_metric_merge_") // trim(buf), adaptcnt, positions, positions%mesh, &
+        call vtk_write_fields(trim("interpolation_metric_merge_") // trim(buf), adaptcnt, positions, error_metric%mesh, &
                               sfields=(/fields_list(i), edgelen, aspect_ratios/), tfields=(/error_metric/))
       endif
     end do
@@ -238,7 +238,7 @@ module interpolation_metric
    if (debug_metric) then
      call get_edge_lengths(error_metric, edgelen)
      call get_aspect_ratios(error_metric, aspect_ratios)
-     call vtk_write_fields(trim("interpolation_metric_final"), adaptcnt, positions, positions%mesh, &
+     call vtk_write_fields(trim("interpolation_metric_final"), adaptcnt, positions, error_metric%mesh, &
                               sfields=(/edgelen, aspect_ratios/), tfields=(/error_metric/))
      call deallocate(edgelen)
      call deallocate(aspect_ratios)

@@ -281,12 +281,12 @@ module project_metric_to_surface_module
       
       call get_edge_lengths(tmp_metric, edge_lengths)
       call vtk_write_fields('bathymetric_metric', adaptcnt, &
-        surface_positions, surface_positions%mesh, &
+        surface_positions, tmp_metric%mesh, &
         sfields=(/ edge_lengths /), tfields=(/ tmp_metric /) )
 
       call get_edge_lengths(surface_metric, edge_lengths)
       call vtk_write_fields('initial_horizontal_metric', adaptcnt, &
-        surface_positions, surface_positions%mesh, &
+        surface_positions, surface_metric%mesh, &
         sfields=(/ edge_lengths /), tfields=(/ surface_metric /) )
         
       adaptcnt=adaptcnt+1

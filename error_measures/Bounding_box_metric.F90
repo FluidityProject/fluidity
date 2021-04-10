@@ -79,7 +79,7 @@ module bounding_box_metric
     if (debug_metric) then
       call allocate(edgelen, error_metric%mesh, "Desired edge lengths")
       call get_edge_lengths(error_metric, edgelen)
-      call vtk_write_fields("bounding_box", adaptcnt, positions, positions%mesh, &
+      call vtk_write_fields("bounding_box", adaptcnt, positions, error_metric%mesh, &
                             sfields=(/edgelen/), tfields=(/error_metric, max_metric/))
       call deallocate(edgelen)
     endif
