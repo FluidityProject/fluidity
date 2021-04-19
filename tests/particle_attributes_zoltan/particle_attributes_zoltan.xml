@@ -2,7 +2,7 @@
 
 <testproblem>
   <name>Testing of particle attribute parameters in parallel with zoltan adaptivity enabled</name>
-  <owner userid="cmath"/>
+  <owner userid="drhodrid"/>
   <tags>flml parallel zoltan</tags>
   <problem_definition length="medium" nprocs="4">
     <command_line>

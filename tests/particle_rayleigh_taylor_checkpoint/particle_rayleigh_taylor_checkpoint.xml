@@ -2,7 +2,7 @@
 
 <testproblem>
   <name>Testing of particle based multimaterial fields in parallel with checkpointing for a small resolution Rayleigh Taylor overturn case. Vrms velocity is tested against the maximum value from van Keken, and entrainment is tested against the diagnostics from a successful run.</name>
-  <owner userid="cmath"/>
+  <owner userid="drhodrid"/>
   <tags>flml parallel</tags>
   <problem_definition length="short" nprocs="4">
     <command_line>    
