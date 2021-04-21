@@ -17,3 +17,6 @@ ENV FCFLAGS="-I/usr/include"
 RUN ./configure --enable-2d-adaptivity
 RUN make
 RUN make fltools
+RUN make makefiles
+RUN test -z "$(git status --porcelain */Makefile.dependencies)"
+RUN make manual
