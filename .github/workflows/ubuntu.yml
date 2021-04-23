@@ -109,7 +109,7 @@ jobs:
 
     steps:
 
-      - name: ${{ matrix.name }}
+      - name: ${{ matrix.name }} Testing
         run: |
          chmod 777 .
          docker pull fluidity/actions:${{ matrix.release }}-${{ github.sha }}
@@ -119,7 +119,7 @@ jobs:
         with:
           path: ${{ matrix.release }}-${{ matrix.output }}
 
-      - name: ${{ matrix.name }}
+      - name: ${{ matrix.name }} JUnit
         uses: mikepenz/action-junit-report@v2
         with:
           report_paths: ${{ matrix.release }}-${{ matrix.output }}
