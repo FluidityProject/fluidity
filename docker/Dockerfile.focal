@@ -25,7 +25,7 @@ RUN apt-get update && \
 RUN python3 -m pip install --upgrade junit-xml
 
 WORKDIR /usr/local
-RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-2.16.0-Linux64.tgz | tar --strip-components=1 -zxf -
+RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-4.8.3-Linux64.tgz | tar --strip-components=1 -zxf -
 
 ENV PETSC_DIR /usr/lib/petscdir/3.12
 ENV LDFLAGS -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi
