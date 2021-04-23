@@ -119,37 +119,10 @@ jobs:
         with:
           path: ${{ matrix.release }}-${{ matrix.output }}
 
-  JUnit:
-
-    name: ${{ matrix.name }}
-    runs-on: ubuntu-latest
-    if: always()
-    needs: testing
-
-    strategy:
-      fail-fast: false
-      matrix:
-        name: [ "JUnit Bionic", "JUnit Focal", "JUnit Groovy" ]
-          
-        include:
-        
-          - name: "JUnit Bionic"
-            release: bionic
-    
-          - name: "JUnit Focal"
-            release: focal
-    
-          - name: "JUnit Groovy"
-            release: groovy
-    
-    steps:
-
-      - uses: actions/download-artifact@v2
-
       - name: ${{ matrix.name }}
         uses: mikepenz/action-junit-report@v2
         with:
-          report_paths: '**/${{ matrix.release }}-test*.xml'
+          report_paths: ${{ matrix.release }}-${{ matrix.output }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          check_name: Test report ${{ matrix.release }}
+          check_name: Test report ${{ matrix.name }}
           fail_on_failure: true
