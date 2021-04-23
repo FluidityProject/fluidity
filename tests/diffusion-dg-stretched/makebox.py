@@ -25,6 +25,5 @@ def generate_meshfile(name,layers,width):
     open(name+".geo",'w').write(geo)
 
     os.system("gmsh -2 "+name+".geo")
-    os.system("../../bin/gmsh2triangle -2 "+name+".msh")
 
 
