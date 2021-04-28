@@ -45,34 +45,6 @@ import fluidity.diagnostics.utils as utils
 def VtkSupport():
   return "vtk" in globals()
 
-def ToVtkNodeOrder(nodes, type):
-  """
-  Permute default node ordering into VTK node ordering
-  """
-    
-  newNodes = nodes
-  
-  if type.GetElementTypeId() == elements.ELEMENT_QUAD:
-    newNodes = copy.deepcopy(nodes)
-    newNodes[3] = nodes[2]
-    newNodes[2] = nodes[3]
-      
-  return newNodes
-  
-def FromVtkNodeOrder(nodes, type):
-  """
-  Permute VTK node ordering into default node ordering
-  """
-    
-  newNodes = nodes
-  
-  if type.GetElementTypeId() == elements.ELEMENT_QUAD:
-    newNodes = copy.deepcopy(nodes)
-    newNodes[2] = nodes[3]
-    newNodes[3] = nodes[2]
-      
-  return newNodes
-
 if VtkSupport():
   VTK_UNKNOWN = None
   VTK_EMPTY_CELL = vtk.vtkEmptyCell().GetCellType()
