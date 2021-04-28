@@ -11,7 +11,7 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="ar2">
+      <from_file file_name="mesh/ar2">
         <format name="gmsh"/>
         <stat>
           <include_in_stat/>
@@ -404,17 +404,29 @@
         </temporal_discretisation>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="gamg"/>
+          <preconditioner name="fieldsplit">
+            <fieldsplit_type name="symmetric_multiplicative"/>
+            <iterative_method name="preonly"/>
+            <preconditioner name="hypre">
+              <hypre_type name="boomeramg"/>
+            </preconditioner>
+            <relative_error>
+              <real_value rank="0">1.0e-12</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-12</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
-          <multigrid_near_null_space>
-            <all_components/>
-            <all_rotations/>
-          </multigrid_near_null_space>
           <never_ignore_solver_failures/>
           <diagnostics>
             <monitors/>

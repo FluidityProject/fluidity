@@ -1,8 +1,8 @@
 input: default
 default: clean
-	gmsh -2 -bin ar2.geo -o ar2.msh
+	gmsh -2 -bin mesh/ar2.geo
 clean:
-	rm -rf *.msh *.halo *.vtu *.pvtu *.log* *.err* *.stat blob_[012] *.particles.* *flredecomp* 2d_entrainment_? *~ 2d_entrainment_?_* *checkpoint* 2d_entrainment_?? __pycache__
+	rm -rf mesh/*.msh *.halo *.vtu *.pvtu *.log* *.err* *.stat blob_[012] *.particles.* *flredecomp* 2d_entrainment_? *~ 2d_entrainment_?_* *checkpoint* 2d_entrainment_?? __pycache__
 
 logs:
 	mpirun -n 4 ../../bin/fluidity -v3 -l particle-attributes.flml
