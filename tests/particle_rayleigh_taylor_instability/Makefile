@@ -1,8 +1,8 @@
 input: default
 default: clean
-	gmsh -2 -bin square.geo -o square.msh
+	gmsh -2 -bin mesh/square.geo
 clean: 
-	rm -rf *.msh *.halo *.vtu *.pvtu *.log* *.err* *.stat blob_[012] *.particles.* *flredecomp* particle_attributes_? *~ particle_attributes_?_* *checkpoint* particle_attributes_??
+	rm -rf mesh/*.msh *.halo *.vtu *.pvtu *.log* *.err* *.stat blob_[012] *.particles.* *flredecomp* particle_attributes_? *~ particle_attributes_?_* *checkpoint* particle_attributes_?? particle_attributes_???
 
 logs: 
 	mpirun -n 4 ../../bin/fluidity -v3 -l particle-attributes.flml

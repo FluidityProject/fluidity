@@ -11,7 +11,7 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="square">
+      <from_file file_name="mesh/square">
         <format name="gmsh"/>
         <stat>
           <include_in_stat/>
@@ -184,7 +184,7 @@
       <real_value rank="0">0.001</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">2000.0</real_value>
+      <real_value rank="0">1000.0</real_value>
     </finish_time>
     <adaptive_timestep>
       <requested_cfl>
