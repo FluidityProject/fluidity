@@ -17,11 +17,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Build Bionic" ]
+        name: [ "Build Focal" ]
         include:
         
-          - name: "Build Bionic"
-            release: bionic
+          - name: "Build Focal"
+            release: focal
     
     steps:
 
@@ -60,8 +60,8 @@ jobs:
       - name: ${{ matrix.name }} Testing
         run: |
          chmod 777 .
-         docker pull fluidity/actions:bionic-${{ github.sha }}
-         docker run -v $PWD:/host fluidity/actions:bionic-${{ github.sha }} /bin/bash -c "bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && cp -v test_results_${{ matrix.name }}.xml /host"
+         docker pull fluidity/actions:focal-${{ github.sha }}
+         docker run -v $PWD:/host fluidity/actions:focal-${{ github.sha }} /bin/bash -c "git clone https://github.com/fluidityproject/longtests && bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && cp -v test_results_${{ matrix.name }}.xml /host"
 
       - uses: actions/upload-artifact@v2
         with:
