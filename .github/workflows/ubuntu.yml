@@ -127,3 +127,46 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           check_name: Test report ${{ matrix.name }}
           fail_on_failure: true
+
+  longtesting:
+
+    name: longtest-${{ matrix.name }}
+    runs-on: ubuntu-latest
+    needs: build
+    if: always()
+
+    strategy:
+      fail-fast: false
+      matrix:
+        name: ["mphase_tephra_settling_2d_adaptive",
+               "gyre_parallel",
+               "Stokes_square_convection_1e4_vv_p1p1",
+               "Stokes_square_convection_1e4_p1p1_Ra_Test",
+               "Stokes_square_convection_1e4_vv_gauss_p2p1", 
+               "viscous_fs_drunkensailor",
+               "cylinder-3d-drag",
+               "viscosity_2d_p0_adaptive_parallel",
+               "circle-2d-drag",
+               "mphase_tephra_settling_3d",
+               "tidal_diagnostics"]
+
+    steps:
+
+      - name: ${{ matrix.name }} Longtesting
+        run: |
+         chmod 777 .
+         docker pull fluidity/actions:focal-${{ github.sha }}
+         docker run -v $PWD:/host fluidity/actions:bionic-${{ github.sha }} /bin/bash -c "git clone https://github.com/fluidityproject/longtests && bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && cp -v test_results_${{ matrix.name }}.xml /host"
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: test_results_${{ matrix.name }}.xml
+          name: tests_xml_outputs
+
+      - name: ${{ matrix.name }} JUnit
+        uses: mikepenz/action-junit-report@v2
+        with:
+          report_paths: test_results_${{ matrix.name }}.xml
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: Longtest report ${{ matrix.name }}
+          fail_on_failure: true
