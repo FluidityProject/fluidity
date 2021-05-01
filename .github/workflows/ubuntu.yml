@@ -61,7 +61,6 @@ jobs:
                 "lock_exchange_2d_Lagrangian_paths", 
                 "mphase_tephra_settling_salinity", 
                 "spherical_benchmark_no_slip_p2bp1dg", 
-                "mphase_mms_p2p1_compressible", 
                 "lagrangian_detectors_3d_2e5", 
                 "explicit-hyperc-shear", 
                 "medp1dgp2", 
@@ -84,9 +83,7 @@ jobs:
                 "spherical_benchmark_no_slip", 
                 "wetting_and_drying_balzano1_dg_parallel", 
                 "backward_facing_step_2d", 
-                "backward_facing_step_3d", 
                 "driven_cavity", 
-                "flow_past_sphere_Re1000", 
                 "lock_exchange"
               ]
 
