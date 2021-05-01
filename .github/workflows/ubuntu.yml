@@ -54,8 +54,7 @@ jobs:
       fail-fast: false
       matrix:
         name: [
-                "saltfinger2d_adaptive", 
-                "water_collapse_2d_valgrind", 
+                "saltfinger2d_adaptive",
                 "spherical_benchmark_free_slip", 
                 "gls-StationPapa", 
                 "lock_exchange_2d_Lagrangian_paths", 
@@ -64,7 +63,6 @@ jobs:
                 "lagrangian_detectors_3d_2e5", 
                 "explicit-hyperc-shear", 
                 "medp1dgp2", 
-                "sphere-3D-drag-Re1000", 
                 "coarse-corner", 
                 "spherical_benchmark_free_slip_p2bp1dg", 
                 "Stokes_mms_p1dg_p2", 
@@ -73,7 +71,6 @@ jobs:
                 "Stokes_subduction_zone_vanKeken2008_TwoB",
                 "mphase_rans_p1dgp2_cv_bubble_column_2D", 
                 "lock_exchange_3d_parallel", 
-                "mphase_mms_p0p1cv_periodic", 
                 "explicit-hyperc-superman", 
                 "Stokes_subduction_zone_vanKeken2008_OneA", 
                 "Stommel_tracer_advection", 
@@ -84,7 +81,10 @@ jobs:
                 "wetting_and_drying_balzano1_dg_parallel", 
                 "backward_facing_step_2d", 
                 "driven_cavity", 
-                "lock_exchange"
+                "lock_exchange",
+                "hokkaido-nansei-oki_tsunami",
+                "mms_ns_p2lp1_supg_steady_compressible",
+                "particle_entrainment_of_dense_layer"
               ]
 
 
