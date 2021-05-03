@@ -6,7 +6,8 @@ import csv
 
 # does a linear interpolation of the input data
 def get_measurement(mea_filename, t):
-  reader = csv.reader(open(mea_filename, 'rb'), delimiter=',')
+ with open(mea_filename) as csvfile:
+  reader = csv.reader(csvfile, delimiter=',')
  
   data=[]
   for (time, gauge1, gauge2, gauge3) in reader:

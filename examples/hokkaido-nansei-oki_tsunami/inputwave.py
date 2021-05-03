@@ -1,6 +1,7 @@
 import csv
 def val(X, t):
-        InputWaveReader = csv.reader(open('raw_data/InputWave.csv', 'rb'), delimiter='\t')
+    with open('raw_data/InputWave.csv') as csvfile:
+        InputWaveReader = csv.reader(csvfile, delimiter='\t')
         data=[]
         for (time, heigth) in InputWaveReader:
                 data.append((float(time), float(heigth)))
