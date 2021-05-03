@@ -16,8 +16,8 @@ import numpy as np
 from fluidity_tools import stat_parser
 s = stat_parser("2d_entrainment.stat")
 
-max_rms = s['Buoyant']['Velocity%magnitude']['l2norm'][:].max()
-max_rms = max_rms * np.sqrt(1.0/0.9142)
+max_rms = s['Ambient']['Velocity%magnitude']['l2norm'][:].max()
+max_rms = max_rms * np.sqrt(1.0/2)
 print ("Max RMS Velocity", max_rms)
     </variable>
     <variable name="max_ent" language="python">
@@ -26,7 +26,8 @@ import numpy as np
 
 s = stat_parser("2d_entrainment.stat")
 
-max_ent = s['Buoyant']['Entrainment']['integral'][:].max()/(0.9142*0.2)
+max_ent = s['Ambient']['Entrainment']['integral'][:].max()
+max_ent = max_ent * (1/(2*0.2))
 print ("Max Entrainment", max_ent)
     </variable>    
     <variable name="Walltime" language="python">
@@ -40,10 +41,10 @@ print ("Total wall time", Walltime)
   </variables>
   <pass_tests>
     <test name="Max RMS close to 560" language="python">
-assert abs(max_rms-560) &lt; 20
+assert abs(max_rms-560) &lt; 10
     </test>
-    <test name="Max entrainment less than 0.02" language="python">
-assert max_ent &lt; 0.02
+    <test name="Max entrainment less than 0.006" language="python">
+assert max_ent &lt; 0.006
     </test>
   </pass_tests>
   <warn_tests>
