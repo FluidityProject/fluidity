@@ -71,7 +71,16 @@ jobs:
                 "wetting_and_drying_balzano1_dg_parallel", 
                 "backward_facing_step_2d", 
                 "lock_exchange",
-                "particle_entrainment_of_dense_layer"
+                "particle_entrainment_of_dense_layer",
+                "spherical_benchmark_free_slip",
+                "spherical_benchmark_free_slip_p2bp1dg",
+                "spherical_benchmark_no_slip",
+                "spherical_benchmark_no_slip_p2bp1dg",
+                "spherical_benchmark_smooth_free_slip",
+                "spherical_benchmark_smooth_no_slip",
+                "driven_cavity",
+                "hokkaido-nansei-oki_tsunami"
+
               ]
 
 
