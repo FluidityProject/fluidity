@@ -35,7 +35,7 @@ Field[1].F = "1./<NN>";
 def generate_meshfile(name,NN):
 
     with open(name+".geo",'w') as file:
-      file.write(meshtemplate.replace('<NN>',str( NN)))
+        file.write(meshtemplate.replace('<NN>',str( NN)))
 
     os.system("gmsh -2 "+name+".geo")
 
