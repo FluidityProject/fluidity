@@ -138,7 +138,7 @@ def mixing(flmlname):
   # find indicies of selected bounds for plotting
   index_plot = []
   for b in [-0.5,-0.25, 0.0,0.25,0.5]:
-    index_plot.append(pylab.find(numpy.array([abs(val - b) for val in bounds]) < 1E-6)[0]) 
+    index_plot.append(numpy.nonzero(numpy.ravel(numpy.array([abs(val - b) for val in bounds]) < 1E-6))[0]) 
   
   time = []
   volume_fraction = []
