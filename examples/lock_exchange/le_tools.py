@@ -117,8 +117,8 @@ def GetAverageRange(X, lower_lim, domainheight):
 #
 # get range of X for averaging such that lower_lim<X<h0
   try: 
-    start_val = pylab.find(numpy.array(X)>lower_lim)[0]
-    end_val = pylab.find(numpy.array(X)>0.4-domainheight)[0]
+    start_val = numpy.where(numpy.array(X)>lower_lim)[0]
+    end_val = numpy.where(numpy.array(X)>0.4-domainheight)[0]
     average = True
   except IndexError: 
     start_val = 0 
@@ -171,7 +171,7 @@ def GetstatFiles(directory):
     time_0 = stat_0['ElapsedTime']['value']
     stat_1 = stat_parser(stat_files[i+1])
     time_1 = stat_1['ElapsedTime']['value']
-    try: time_index_end.append(pylab.find(numpy.array(time_0)>=time_1[0])[0])
+    try: time_index_end.append(numpy.nonzero(numpy.ravel(numpy.array(time_0)>=time_1[0]))[0])
     except IndexError: time_index_end.append(len(time_0)) 
 
   stat = stat_parser(stat_files[-1])
