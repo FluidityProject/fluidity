@@ -16,8 +16,7 @@ import numpy as np
 from fluidity_tools import stat_parser
 s = stat_parser("circle.stat")
 
-Max_cons = abs(1-(s['Normal']['MaterialVolumeFraction']['integral'][:]/s['Normal']['MaterialVolumeFraction']['integral'][0])).max()
-Max_conservation_error = Max_cons - 0.0712
+Max_conservation_error = abs(1-(s['Normal']['MaterialVolumeFraction']['integral'][:]/s['Normal']['MaterialVolumeFraction']['integral'][0])).max()
 print ("Max cons error", Max_conservation_error)
     </variable>
     <variable name="Walltime" language="python">
@@ -30,8 +29,8 @@ print ("Total wall time", Walltime)
     </variable>
   </variables>
   <pass_tests>
-    <test name="Maxconserror" language="python">
-assert abs(Max_conservation_error).max() &lt; 5.0e-3
+    <test name="Maxconserror less than 0.01" language="python">
+assert abs(Max_conservation_error).max() &lt; 0.01
     </test>
   </pass_tests>
   <warn_tests>

@@ -11,7 +11,7 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="ar2">
+      <from_file file_name="mesh/ar2">
         <format name="gmsh"/>
         <stat>
           <include_in_stat/>
