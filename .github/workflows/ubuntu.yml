@@ -212,7 +212,13 @@ jobs:
                "open_ocean_deep_convection-parallel",
                "mms_rans_p2p1_keps_linearmomentum",
                "Stommel_tracer_advection",
-               "particle_stratified_stable_layer"
+               "particle_stratified_stable_layer",
+               "spherical_benchmark_free_slip",
+               "spherical_benchmark_free_slip_p2ebp1dg",
+               "spherical_benchmark_no_slip",
+               "spherical_benchmark_no_slip_p2bp1dg",
+               "spherical_benchmark_smooth_free_slip",
+               "spherical_benchmark_smooth_no_slip"
                ## Tests still failing and in need of fixing
                #"Stokes_mms_p1dg_p2",
                #"Stokes_subduction_zone_vanKeken2008_OneA",
@@ -232,14 +238,8 @@ jobs:
                #"saltfinger2d_adaptive",
                #"square-convection-1e6",
                #"wetting_and_drying_balzano1_dg_parallel"
-               #"spherical_benchmark_free_slip",
-               #"spherical_benchmark_free_slip_p2ebp1dg",
-               #"spherical_benchmark_no_slip",
-               #"spherical_benchmark_no_slip_p2bp1dg",
-               #"spherical_benchmark_smooth_free_slip",
-               #"spherical_benchmark_smooth_no_slip",
-               #"driven_cavity",
                #"hokkaido-nansei-oki_tsunami"
+               #"driven_cavity",
               ]
 
     steps:
