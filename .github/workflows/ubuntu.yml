@@ -212,10 +212,7 @@ jobs:
                "open_ocean_deep_convection-parallel",
                "mms_rans_p2p1_keps_linearmomentum",
                "Stommel_tracer_advection",
-               "particle_rayleigh_taylor_mu10fold",
-               "particle_rayleigh_taylor_instability",
-               "particle_stratified_stable_layer",
-               "particle_entrainment_of_dense_layer"
+               "particle_stratified_stable_layer"
                ## Tests still failing and in need of fixing
                #"Stokes_mms_p1dg_p2",
                #"Stokes_subduction_zone_vanKeken2008_OneA",
@@ -236,7 +233,7 @@ jobs:
                #"square-convection-1e6",
                #"wetting_and_drying_balzano1_dg_parallel"
                #"spherical_benchmark_free_slip",
-               #"spherical_benchmark_free_slip_p2bp1dg",
+               #"spherical_benchmark_free_slip_p2ebp1dg",
                #"spherical_benchmark_no_slip",
                #"spherical_benchmark_no_slip_p2bp1dg",
                #"spherical_benchmark_smooth_free_slip",
@@ -251,7 +248,7 @@ jobs:
         run: |
          chmod 777 .
          docker pull fluidity/actions:focal-${{ github.sha }}
-         docker run -v $PWD:/host fluidity/actions:bionic-${{ github.sha }} /bin/bash -c "git clone https://github.com/fluidityproject/longtests && bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && cp -v test_results_${{ matrix.name }}.xml /host"
+         docker run -v $PWD:/host fluidity/actions:focal-${{ github.sha }} /bin/bash -c "git clone https://github.com/fluidityproject/longtests && bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && cp -v test_results_${{ matrix.name }}.xml /host"
 
       - uses: actions/upload-artifact@v2
         with:
