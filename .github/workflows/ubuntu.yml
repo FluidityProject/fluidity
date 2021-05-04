@@ -55,7 +55,7 @@ jobs:
       matrix:
         name: [
                 #"saltfinger2d_adaptive",
-                "gls-StationPapa", 
+                #"gls-StationPapa", 
                 #"lock_exchange_2d_Lagrangian_paths", 
                 #"lagrangian_detectors_3d_2e5", 
                 #"explicit-hyperc-shear", 
@@ -69,11 +69,11 @@ jobs:
                 #"Stokes_subduction_zone_vanKeken2008_OneA", 
                 #"square-convection-1e6", 
                 #"wetting_and_drying_balzano1_dg_parallel", 
-                "backward_facing_step_2d", 
-                "lock_exchange",
+                #"backward_facing_step_2d", 
+                "lock_exchange"
                 #"particle_entrainment_of_dense_layer",
                 #"driven_cavity",
-                "hokkaido-nansei-oki_tsunami"
+                #"hokkaido-nansei-oki_tsunami"
 
               ]
 
