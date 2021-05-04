@@ -214,7 +214,7 @@ jobs:
                "Stommel_tracer_advection",
                "particle_stratified_stable_layer",
                "spherical_benchmark_free_slip",
-               "spherical_benchmark_free_slip_p2ebp1dg",
+               "spherical_benchmark_free_slip_p2bp1dg",
                "spherical_benchmark_no_slip",
                "spherical_benchmark_no_slip_p2bp1dg",
                "spherical_benchmark_smooth_free_slip",
