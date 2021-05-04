@@ -6,27 +6,28 @@ import csv
 
 # does a linear interpolation of the input data
 def get_measurement(mea_filename, t):
-  reader = csv.reader(open(mea_filename, 'rb'), delimiter=',')
- 
-  data=[]
-  for (time, gauge1, gauge2, gauge3) in reader:
-    data.append((float(time), float(gauge1), float(gauge2), float(gauge3)))
-
-  for i in range(1,len(data)):
-    if data[i][0]<t:
-      continue
-    # interpolate the three gauge stations
-    t1=data[max(0,i-1)][0]
-    t2=data[i][0]
-    gauges=[]
-    for g in range(3):
-      h1=data[max(0,i-1)][g+1]/100 # Convert from cm to m
-      h2=data[i][g+1]/100 # Convert from cm to m
-      gauges.append(h1*(t-t2)/(t1-t2)+h2*(t-t1)/(t2-t1))
-    return gauges
-
-  print("Warning: simulation time t=", t, " is outside the available data (", data[0][0], ", ", data[-1][0], "). Using last available waterheigth...")
-  return [data[-1][1], data[-1][2], data[-1][2]]
+  with open(mea_filename) as csvfile:
+    reader = csv.reader(csvfile, delimiter=',')
+   
+    data=[]
+    for (time, gauge1, gauge2, gauge3) in reader:
+      data.append((float(time), float(gauge1), float(gauge2), float(gauge3)))
+  
+    for i in range(1,len(data)):
+      if data[i][0]<t:
+        continue
+      # interpolate the three gauge stations
+      t1=data[max(0,i-1)][0]
+      t2=data[i][0]
+      gauges=[]
+      for g in range(3):
+        h1=data[max(0,i-1)][g+1]/100 # Convert from cm to m
+        h2=data[i][g+1]/100 # Convert from cm to m
+        gauges.append(h1*(t-t2)/(t1-t2)+h2*(t-t1)/(t2-t1))
+      return gauges
+  
+    print("Warning: simulation time t=", t, " is outside the available data (", data[0][0], ", ", data[-1][0], "). Using last available waterheigth...")
+    return [data[-1][1], data[-1][2], data[-1][2]]
 
 
 def gage_error_integral(detector_filename):
