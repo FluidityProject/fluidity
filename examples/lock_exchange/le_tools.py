@@ -117,8 +117,8 @@ def GetAverageRange(X, lower_lim, domainheight):
 #
 # get range of X for averaging such that lower_lim<X<h0
   try: 
-    start_val = numpy.nonzero(numpy.ravel(numpy.array(X)>lower_lim))[0]
-    end_val = numpy.nonzero(numpy.ravel(numpy.array(X)>0.4-domainheight))[0]
+    start_val = numpy.where(numpy.array(X)>lower_lim)[0]
+    end_val = numpy.where(numpy.array(X)>0.4-domainheight)[0]
     average = True
   except IndexError: 
     start_val = 0 
