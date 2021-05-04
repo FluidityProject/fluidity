@@ -69,7 +69,7 @@ jobs:
                 #"Stokes_subduction_zone_vanKeken2008_OneA", 
                 #"square-convection-1e6", 
                 #"wetting_and_drying_balzano1_dg_parallel", 
-                #"backward_facing_step_2d", 
+                "backward_facing_step_2d", 
                 "lock_exchange",
                 #"particle_entrainment_of_dense_layer",
                 #"driven_cavity",
