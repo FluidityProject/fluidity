@@ -30,7 +30,7 @@ print ("Total wall time", Walltime)
   </variables>
   <pass_tests>
     <test name="Maxconserror less than 0.01" language="python">
-assert abs(Max_conservation_error).max() &lt; 0.01
+assert abs(Max_conservation_error).max() &lt; 0.015
     </test>
   </pass_tests>
   <warn_tests>
