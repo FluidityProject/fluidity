@@ -61,15 +61,15 @@ jobs:
                 #"medp1dgp2", 
                 #"coarse-corner", 
                 #"Stokes_mms_p1dg_p2", 
-                #explicit-hyperc-shear-adapt"
+                #"explicit-hyperc-shear-adapt"
                 #"Stokes_subduction_zone_vanKeken2008_TwoB",
                 #"lock_exchange_3d_parallel", 
-                #"explicit-hyperc-superman"
+                "explicit-hyperc-superman"
                 #"Stokes_subduction_zone_vanKeken2008_OneA", 
                 #"square-convection-1e6", 
                 #"wetting_and_drying_balzano1_dg_parallel", 
                 #"lock_exchange"
-                "particle_entrainment_of_dense_layer"
+                #"particle_entrainment_of_dense_layer"
                 #"driven_cavity",
                 #"hokkaido-nansei-oki_tsunami"
 
