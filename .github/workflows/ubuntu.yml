@@ -218,16 +218,16 @@ jobs:
                "spherical_benchmark_no_slip",
                "spherical_benchmark_no_slip_p2bp1dg",
                "spherical_benchmark_smooth_free_slip",
-               "spherical_benchmark_smooth_no_slip"
+               "spherical_benchmark_smooth_no_slip",
+               "backward_facing_step_2d",
+               "explicit-hyperc-shear",
+               "explicit-hyperc-shear-adapt",
+               "explicit-hyperc-superman"
                ## Tests still failing and in need of fixing
                #"Stokes_mms_p1dg_p2",
                #"Stokes_subduction_zone_vanKeken2008_OneA",
                #"Stokes_subduction_zone_vanKeken2008_TwoB",
-               #"backward_facing_step_2d",
                #"coarse-corner",
-               #"explicit-hyperc-shear",
-               #"explicit-hyperc-shear-adapt",
-               #"explicit-hyperc-superman",
                #"gls-StationPapa",
                #"lagrangian_detectors_3d_2e5",
                #"lock_exchange",
