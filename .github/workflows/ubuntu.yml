@@ -56,8 +56,8 @@ jobs:
         name: [
                 #"saltfinger2d_adaptive",
                 "gls-StationPapa"
-                #"lock_exchange_2d_Lagrangian_paths", 
                 #"lagrangian_detectors_3d_2e5", 
+                #"lock_exchange_2d_Lagrangian_paths", 
                 #"medp1dgp2", 
                 #"coarse-corner", 
                 #"Stokes_mms_p1dg_p2", 
