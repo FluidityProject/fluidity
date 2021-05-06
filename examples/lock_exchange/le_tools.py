@@ -171,7 +171,7 @@ def GetstatFiles(directory):
     time_0 = stat_0['ElapsedTime']['value']
     stat_1 = stat_parser(stat_files[i+1])
     time_1 = stat_1['ElapsedTime']['value']
-    try: time_index_end.append(numpy.nonzero(numpy.ravel(numpy.array(time_0)>=time_1[0]))[0])
+    try: time_index_end.append(numpy.where(numpy.array(time_0)>=time_1[0])[0])
     except IndexError: time_index_end.append(len(time_0)) 
 
   stat = stat_parser(stat_files[-1])
