@@ -1126,7 +1126,7 @@ contains
     end do
     
     call MatCreateAIJ(MPI_COMM_SELF, nprows, npcols, nprows, npcols, &
-      PETSC_NULL_INTEGER, nnz, 0, PETSC_NULL_INTEGER, M, ierr)
+      0, nnz, 0, PETSC_NULL_INTEGER, M, ierr)
     call MatSetup(M, ierr)
       
     call MatSetOption(M, MAT_USE_INODES, PETSC_FALSE, ierr)
@@ -1302,7 +1302,7 @@ contains
     end do
 
     call MatCreateAIJ(MPI_COMM_FEMTOOLS, nrowsp, ncolsp, nrows, ncols, &
-      PETSC_NULL_INTEGER, d_nnz, PETSC_NULL_INTEGER, o_nnz, M, ierr)
+      0, d_nnz, 0, o_nnz, M, ierr)
     call MatSetup(M, ierr)
       
     if (.not. present_and_true(use_inodes)) then

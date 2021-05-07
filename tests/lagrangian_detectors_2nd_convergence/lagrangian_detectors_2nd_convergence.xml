@@ -2,7 +2,7 @@
 
 <testproblem>
   <name>lagrangian_2nd_order</name>
-  <owner userid="cmath2"/>
+  <owner userid="drhodrid"/>
   <tags>flml parallel zoltan</tags>
   <problem_definition length="medium" nprocs="4">
     <command_line>

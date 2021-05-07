@@ -119,6 +119,7 @@ VTK_Cache.o ../include/vtk_cache_module.mod: VTK_Cache.F90 ../include/fdebug.h \
 synthetic_bc.o ../include/synthetic_bc.mod: synthetic_bc.F90 \
    ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
    ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/parallel_tools.mod \
-   ../include/state_module.mod ../include/transform_elements.mod
+   ../include/global_parameters.mod ../include/mpi_interfaces.mod \
+   ../include/parallel_tools.mod ../include/state_module.mod \
+   ../include/transform_elements.mod
 

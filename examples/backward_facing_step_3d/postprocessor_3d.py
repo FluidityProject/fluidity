@@ -19,9 +19,8 @@ def get_filelist(sample, start):
     list = [l for l in list if 'checkpoint' not in l]
     vtu_nos = [float(s.split('_')[-1].split('.')[0]) for s in list]
     vals = zip(vtu_nos, list)
-    vals.sort()
-    unzip = lambda l:tuple(apply(zip,l))
-    vtu_nos, list = unzip(vals)
+    unzip = lambda l:tuple(zip(*l))
+    vtu_nos, list = unzip(sorted(vals))
     shortlist = []
 
     for file in list:

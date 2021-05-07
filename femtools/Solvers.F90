@@ -1712,9 +1712,7 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
          FLAbort("Need petsc_numbering for monitor")
        end if
        call petsc_monitor_setup(petsc_numbering, max_its)
-       ! NOTE: there doesn't seem to be a clean way to provide NULL to the void *mctx
-       ! argument in for fortran interface to PETSc v3.8 - PETSC_NULL_KSP does get translated to NULL
-       call KSPMonitorSet(ksp, MyKSPMonitor, PETSC_NULL_KSP, &
+       call KSPMonitorSet(ksp, MyKSPMonitor, vf, &
             &                     PETSC_NULL_FUNCTION, ierr)
     end if
 
@@ -2406,7 +2404,8 @@ end subroutine petsc_monitor_destroy
 subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
 !! The monitor function that gets called each iteration of petsc_solve
 !! (if petsc_solve_callback_setup is called)
-  PetscInt, intent(in) :: n,dummy
+  PetscInt, intent(in) :: n
+  PetscObject, intent(in):: dummy
   KSP, intent(in) :: ksp
   PetscErrorCode, intent(out) :: ierr
   

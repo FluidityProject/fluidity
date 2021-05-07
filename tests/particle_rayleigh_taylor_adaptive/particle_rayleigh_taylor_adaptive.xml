@@ -2,9 +2,9 @@
 
 <testproblem>
   <name>Testing of particle based multimaterial fields in parallel with an adaptive mesh for a small resolution Rayleigh Taylor overturn case. Vrms velocity is tested against the maximum value from van Keken.</name>
-  <owner userid="cmath"/>
+  <owner userid="drhodrid"/>
   <tags>flml parallel zoltan</tags>
-  <problem_definition length="medium" nprocs="4">
+  <problem_definition length="short" nprocs="4">
     <command_line>    
 mpiexec ../../bin/flredecomp -i 1 -o 4 particle-rayleigh-taylor-adaptive particle-rayleigh-taylor-adaptive-flredecomp;      
 mpiexec ../../bin/fluidity -v3 -l particle-rayleigh-taylor-adaptive-flredecomp.flml
