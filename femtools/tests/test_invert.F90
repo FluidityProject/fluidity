@@ -75,7 +75,7 @@ subroutine test_invert
   do i=1,5
     write(buf,'(i0)') i
     fail = .false.; warn = .false.
-    mat = random_symmetric_matrix(10)
+    mat = random_posdef_matrix(10)
     inv = mat; call invert(inv)
     tmp = matmul(mat, inv)
     tmp = tmp - id

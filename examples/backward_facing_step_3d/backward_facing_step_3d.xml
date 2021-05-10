@@ -5,7 +5,7 @@
   <owner userid="jbull"/>
   <tags>flml 3dadapt</tags>
   <!-- uses flml - uses 3d adaptivity -->
-  <problem_definition length="long" nprocs="8">
+  <problem_definition length="vlong" nprocs="8">
     <command_line>mpiexec flredecomp -i 1 -o 8 -v -l backward_facing_step_3d backward_facing_step_3d_flredecomp &amp;&amp;
 mpiexec fluidity -v2 -l backward_facing_step_3d_flredecomp.flml</command_line>
   </problem_definition>

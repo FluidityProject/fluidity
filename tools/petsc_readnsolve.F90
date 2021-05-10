@@ -368,6 +368,9 @@ contains
       
       universal_nodes=petsc_numbering%universal_length
       
+      ! Escape division by zero in mod() by exiting prior to evaluation
+      if (universal_nodes==0) FLExit("Cannot have 0 nodes in specified mesh")
+
       ! and compare it with the size of the PETSc vector
       if (universal_nodes==n) then
         

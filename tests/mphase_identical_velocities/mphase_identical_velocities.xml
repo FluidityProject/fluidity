@@ -6,7 +6,7 @@
   <owner userid="ctj10"/>
   <tags>flml</tags>
   
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>make run</command_line>
     <!-- 2D test case to check that the two velocity fields are identical, and are the same as the single-phase case. -->
     <!-- This is basically a stripped-down copy of the driven_cavity example (see examples/driven_cavity), -->

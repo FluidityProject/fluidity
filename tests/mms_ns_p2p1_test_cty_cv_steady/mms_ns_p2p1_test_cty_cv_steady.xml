@@ -3,7 +3,7 @@
   <name>p2p1_test_cty_cv navier stokes spatial convergence test</name>
   <owner userid="btollit"/>
   <tags>flml cg_press_test_cty_cv</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>
 fluidity -v1 -l MMS_A.flml
 fluidity -v1 -l MMS_B.flml

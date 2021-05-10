@@ -1,4 +1,4 @@
-size = 0.05;
+size = 0.015;
 Point(1) = {0, 0, 0, size};
 Point(2) = {1, 0, 0, size};
 Point(3) = {1, 1, 0, size};

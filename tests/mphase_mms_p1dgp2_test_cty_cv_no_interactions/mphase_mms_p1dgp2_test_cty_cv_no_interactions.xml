@@ -3,7 +3,7 @@
   <name>mphase_mms_p1dgp2_test_cty_cv_no_interactions</name>
   <owner userid="btollit"/>
   <tags>flml cg_press_test_cty_cv</tags>  
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>
 make run
     </command_line>

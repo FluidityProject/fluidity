@@ -3,7 +3,7 @@
   <name>cylindrical_benchmark_freeslip_p2bp1dg</name>
   <owner userid="cwilson"/>
   <tags>assess</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>for i in A B C; do
   fluidity -v2 -l cylindrical_${i}.flml;
   mv fluidity.log-0 fluidity.${i}.log-0;

@@ -3,7 +3,7 @@
   <name>Geopressure convergence test</name>
   <owner userid="piggt01"/>
   <tags>flml parallel zoltan<comment>zoltan tag added due to issue with python imports with libsam and flredecomp.</comment></tags>
-  <problem_definition length="medium" nprocs="2">
+  <problem_definition length="short" nprocs="2">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l geopressure_8 geopressure_8_flredecomp &amp;&amp;
 	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l geopressure_16 geopressure_16_flredecomp &amp;&amp;
 	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l geopressure_32 geopressure_32_flredecomp &amp;&amp;

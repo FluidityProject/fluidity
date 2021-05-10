@@ -2,7 +2,7 @@
 
 <testproblem>
   <name>Testing of dt variable for particle attributes</name>
-  <owner userid="cmath"/>
+  <owner userid="drhodrid"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>        

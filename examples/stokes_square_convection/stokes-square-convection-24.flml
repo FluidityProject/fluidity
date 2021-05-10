@@ -144,7 +144,7 @@
               <inner_matrix name="FullMomentumMatrix">
                 <solver>
                   <iterative_method name="cg"/>
-                  <preconditioner name="mg"/>
+                  <preconditioner name="gamg"/>
                   <relative_error>
                     <real_value rank="0">1.0e-8</real_value>
                   </relative_error>
@@ -263,7 +263,7 @@
         </temporal_discretisation>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="mg"/>
+          <preconditioner name="gamg"/>
           <relative_error>
             <real_value rank="0">1.0e-8</real_value>
           </relative_error>

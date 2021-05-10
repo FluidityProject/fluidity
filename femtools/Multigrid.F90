@@ -853,7 +853,7 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
     onnz=0
     
     call MatCreateAIJ(MPI_COMM_FEMTOOLS, nrows, ncols, PETSC_DECIDE, PETSC_DECIDE, &
-      PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, P, ierr)
+      0, dnnz, 0, onnz, P, ierr)
     call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
       
     ! get base for coarse node/cluster numbering
@@ -862,7 +862,7 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
     coarse_base=coarse_base-1
   else
     call MatCreateAIJ(MPI_COMM_SELF, nrows, ncols, nrows, ncols, &
-      PETSC_NULL_INTEGER, dnnz, 0, PETSC_NULL_INTEGER, P, ierr)
+      0, dnnz, 0, PETSC_NULL_INTEGER, P, ierr)
     call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
     ! subtract 1 from each cluster no to get petsc 0-based numbering
     coarse_base=-1
