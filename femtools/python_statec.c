@@ -412,6 +412,7 @@ void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
   PyObject *pname = PyString_FromString(namec);
   PyDict_SetItemString(pDict,"n",pname);
   PyObject *poptionp = PyString_FromString(opc);
+  if (!poptionp) poptionp = PyString_FromString("");
   PyDict_SetItemString(pDict,"op",poptionp);
 
   PyRun_SimpleString("n = n.strip()");
