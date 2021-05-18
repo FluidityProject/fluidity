@@ -127,6 +127,11 @@ contains
        allocate(new_detector%attributes(attribute_size(1)))
        allocate(new_detector%old_attributes(attribute_size(2)))
        allocate(new_detector%old_fields(attribute_size(3)))
+    else
+       ! match the behaviour of create_single_detector, with empty attribute arrays
+       allocate(new_detector%attributes(0))
+       allocate(new_detector%old_attributes(0))
+       allocate(new_detector%old_fields(0))
     end if
       
     assert(associated(new_detector))
@@ -585,7 +590,15 @@ contains
        if (.not. allocated(detector%position)) then
           allocate(detector%position(ndims))
        end if
-       
+
+       ! ensure we at least allocate the attributes to be empty
+       ! to match the behaviour of create_single_detector
+       if (.not. allocated(detector%attributes)) then
+          allocate(detector%attributes(0))
+          allocate(detector%old_attributes(0))
+          allocate(detector%old_fields(0))
+       end if
+
        ! Basic fields: ndims+4
        detector%position = buff(1:ndims)
        detector%element = buff(ndims+1)
