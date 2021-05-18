@@ -62,9 +62,9 @@ jobs:
                 #"Stokes_mms_p1dg_p2", 
                 #"Stokes_subduction_zone_vanKeken2008_TwoB",
                 #"lock_exchange_3d_parallel"
-                #"Stokes_subduction_zone_vanKeken2008_OneA", 
+                "Stokes_subduction_zone_vanKeken2008_OneA"
                 #"square-convection-1e6", 
-                "wetting_and_drying_balzano1_dg_parallel"
+                #"wetting_and_drying_balzano1_dg_parallel"
                 #"lock_exchange"
                 #"driven_cavity",
                 #"hokkaido-nansei-oki_tsunami"
