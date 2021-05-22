@@ -1081,24 +1081,20 @@ contains
        ! packing the detectors in that element
        do j=1,zoltan_global_ndets_in_ele(i)
           !check attribute sizes
-          if (size(detector%attributes)>=1) then
-             attribute_size(1)=size(detector%attributes)
-             attribute_size(2)=size(detector%old_attributes)
-             attribute_size(3)=size(detector%old_fields)
-          else
-             attribute_size(1)=0
-             attribute_size(2)=0
-             attribute_size(3)=0
-          end if
+          attribute_size(1) = size(detector%attributes)
+          attribute_size(2) = size(detector%old_attributes)
+          attribute_size(3) = size(detector%old_fields)
+
           total_attributes = sum(attribute_size)
           !pack attribute sizes
           do k = 1,3
-             rbuf(rhead)=attribute_size(k)
-             rhead=rhead+1
+            rbuf(rhead)=attribute_size(k)
+            rhead=rhead+1
           end do
+
           !pack the detector
           call pack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1+total_attributes), &
-               zoltan_global_ndims, attribute_size=attribute_size)
+               zoltan_global_ndims, attribute_size_in=attribute_size)
           ! keep a pointer to the detector to delete
           detector_to_delete => detector
           ! move on our iterating pointer so it's not left on a deleted node
@@ -1272,7 +1268,8 @@ contains
              
              ! unpack detector information 
              call unpack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1+total_attributes), zoltan_global_ndims, &
-                    global_to_local=zoltan_global_uen_to_new_local_numbering, coordinates=zoltan_global_new_positions, attribute_size=attribute_size)
+                    global_to_local=zoltan_global_uen_to_new_local_numbering, coordinates=zoltan_global_new_positions, &
+                    attribute_size_in=attribute_size)
 
              ! Make sure the unpacked detector is in this element
              assert(new_local_element_number==detector%element)
