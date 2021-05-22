@@ -1257,7 +1257,6 @@ contains
           do det=1,ndetectors_in_ele
              ! allocate a detector
              shape=>ele_shape(zoltan_global_new_positions,1)
-             call allocate(detector, zoltan_global_ndims, local_coord_count(shape))
 
              ! determine particle attribute size
              do k = 1,3
@@ -1265,8 +1264,10 @@ contains
                 rhead = rhead + 1
              end do
              total_attributes = sum(attribute_size)
-             
-             ! unpack detector information 
+
+             call allocate(detector, zoltan_global_ndims, local_coord_count(shape), attribute_size=attribute_size)
+
+             ! unpack detector information
              call unpack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1+total_attributes), zoltan_global_ndims, &
                     global_to_local=zoltan_global_uen_to_new_local_numbering, coordinates=zoltan_global_new_positions, &
                     attribute_size_in=attribute_size)
