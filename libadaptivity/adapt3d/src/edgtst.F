@@ -347,6 +347,28 @@ C
       IF( FNCDIF .LT. ALWAYS ) GOTO 501
       IF( AVEDIF .LT. ALWAYS ) GOTO 501
       if( fncdif+fncorg .le. dotop ) goto 501
+
+
+c if we get here, the edge-split is feasible
+      if(min(fncdif, avedif)>-abs(MINCHG)) then
+C feasible, but does not give enough improvement to be acceptible by
+C adapt1, so let's try to move it immediately:
+        call move_new_node_test(
+     :                   SIZBIG, MAXBIG, SIZNOD, MXNODS, MAXEDE, IERR,
+     :                   BIGLST, NODLST,
+     :                   ENLBAS, ENLIST, NELBAS, NELIST, EELIST,
+     :                   SZENLS, SZNELS, NNOD,   NELM,
+     :                   NODX,   NODY,   NODZ,   ORGMTX,
+     :                   NDPTRS,
+     :                   NUMEDE, SURFAC, INTRNL,
+     :                   FNCDIF, FNCORG,
+     :                   AVEDIF, AVEORG,
+     :                   BSTX,  BSTY,  BSTZ,  BSTINE,
+     :                   BSTXA, BSTYA, BSTZA, BSTINA,
+     :                   ALWAYS, DOTOP, MINCHG,
+     :                   INOD, NOD1, NOD2, IEDG)
+        if (ierr/=0) return
+      end if
 C
  301  IF( .NOT. ED2FC ) GOTO 401
 C

@@ -63,7 +63,7 @@ OBJS = Debug.o AdaptProgress.o write_log.o adapt1.o  addedg.o  addele.o  addfac.
 		shredg.o  shwhst.o  shwtim.o  spledg.o  stchfr.o  stfrfl.o \
 		stfrgm.o  stndfl.o  mtetin.o  tetvol.o  undstt.o  vals3d.o \
 		invrse.o  chkint.o  assval.o  nwcnel.o  wchfac.o  chgeds.o \
-		Adaptivity.o expected_elements.o Flag_Handling.o
+		Adaptivity.o expected_elements.o Flag_Handling.o move_new_node_test.o
 
 .SUFFIXES: .F .F90 .c .o .a
 
