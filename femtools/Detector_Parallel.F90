@@ -236,7 +236,7 @@ contains
 
                    ! Pack the first detector from the bcast_list
                    detector=>detector_bcast_list%first
-                   call pack_detector(detector, send_buff(1:ndata_per_det), xfield%dim,attribute_size=detector_list%total_attributes)
+                   call pack_detector(detector, send_buff(1:ndata_per_det), xfield%dim, attribute_size_in=detector_list%total_attributes)
                    call delete(detector, detector_bcast_list)
 
                    ! Broadcast the detectors you want to send
@@ -257,7 +257,7 @@ contains
                       shape=>ele_shape(xfield,1)
                       detector=>null()
                       call allocate(detector, xfield%dim, local_coord_count(shape), detector_list%total_attributes)
-                      call unpack_detector(detector, send_buff(1:ndata_per_det), xfield%dim, attribute_size=detector_list%total_attributes)
+                      call unpack_detector(detector, send_buff(1:ndata_per_det), xfield%dim, attribute_size_in=detector_list%total_attributes)
                       call insert(detector, lost_detectors_list)
                    end if
 
@@ -275,7 +275,7 @@ contains
                    shape=>ele_shape(xfield,1)
                    detector=>null()
                    call allocate(detector, xfield%dim, local_coord_count(shape),detector_list%total_attributes )
-                   call unpack_detector(detector, recv_buff(1:ndata_per_det), xfield%dim, attribute_size=detector_list%total_attributes)
+                   call unpack_detector(detector, recv_buff(1:ndata_per_det), xfield%dim, attribute_size_in=detector_list%total_attributes)
 
                    ! Try to find the detector position locally
                    call picker_inquire(xfield, detector%position, detector%element, detector%local_coords, global=.false.)
@@ -395,9 +395,11 @@ contains
              detector%element = halo_universal_number(ele_halo, detector%element)
 
              if (have_update_vector) then
-                call pack_detector(detector, send_buffer(target_proc)%ptr(j,1:det_size), dim, nstages=n_stages, attribute_size=detector_list%total_attributes)
+                call pack_detector(detector, send_buffer(target_proc)%ptr(j,1:det_size), dim, nstages=n_stages, &
+                     attribute_size_in=detector_list%total_attributes)
              else
-                call pack_detector(detector, send_buffer(target_proc)%ptr(j,1:det_size), dim, attribute_size=detector_list%total_attributes)
+                call pack_detector(detector, send_buffer(target_proc)%ptr(j,1:det_size), dim, &
+                     attribute_size_in=detector_list%total_attributes)
              end if
 
              ! delete also advances detector
@@ -444,11 +446,13 @@ contains
           ! Unpack routine uses ele_numbering_inverse to translate universal element 
           ! back to local detector element
           if (have_update_vector) then
-             call unpack_detector(detector_received,recv_buffer(receive_proc)%ptr(j,1:det_size),dim,&
-                    global_to_local=ele_numbering_inverse,coordinates=xfield,nstages=n_stages, attribute_size=detector_list%total_attributes)
+             call unpack_detector(detector_received,recv_buffer(receive_proc)%ptr(j,1:det_size),dim, &
+                    global_to_local=ele_numbering_inverse,coordinates=xfield,nstages=n_stages, &
+                    attribute_size_in=detector_list%total_attributes)
           else
-             call unpack_detector(detector_received,recv_buffer(receive_proc)%ptr(j,1:det_size),dim,&
-                    global_to_local=ele_numbering_inverse,coordinates=xfield, attribute_size=detector_list%total_attributes)
+             call unpack_detector(detector_received,recv_buffer(receive_proc)%ptr(j,1:det_size),dim, &
+                    global_to_local=ele_numbering_inverse,coordinates=xfield, &
+                    attribute_size_in=detector_list%total_attributes)
           end if
 
           call insert(detector_received, detector_list)           

@@ -47,16 +47,15 @@ module zoltan_detectors
     ! loop through all registered detector lists
     call get_registered_detector_lists(detector_list_array)
     do det_list = 1, size(detector_list_array)
-
        ! search through all the local detectors in this list
        detector => detector_list_array(det_list)%ptr%first
+
        !Set up particle attribute parameters
-       total_attributes=0
+       total_attributes = 0
        if (associated(detector)) then
-          if (size(detector%attributes)>=1) then
-             total_attributes = size(detector%attributes) + size(detector%old_attributes) + size(detector%old_fields)
-          end if
+          total_attributes = size(detector%attributes) + size(detector%old_attributes) + size(detector%old_fields)
        end if
+
        detector_loop: do while (associated(detector))
           ! store the list ID with the detector, so we can map the detector back when receiving it
           detector%list_id=det_list
