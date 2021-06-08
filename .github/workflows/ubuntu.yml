@@ -226,6 +226,7 @@ jobs:
                "coarse-corner",
                "gls-StationPapa",
                "medp1dgp2",
+               "Stokes_mms_p1dg_p2",
                "Stokes_subduction_zone_vanKeken2008_OneA",
                "Stokes_subduction_zone_vanKeken2008_TwoB",
                "lagrangian_detectors_3d_2e5",
@@ -233,11 +234,9 @@ jobs:
                "square-convection-1e6",
                "wetting_and_drying_balzano1_dg_parallel"
                ## Tests still failing and in need of fixing
-               #"Stokes_mms_p1dg_p2",
                #"lock_exchange",
                #"lock_exchange_3d_parallel",
                #"saltfinger2d_adaptive",
-               #"hokkaido-nansei-oki_tsunami"
                #"driven_cavity",
               ]
 
