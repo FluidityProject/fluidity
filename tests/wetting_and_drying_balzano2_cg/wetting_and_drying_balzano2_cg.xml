@@ -3,7 +3,7 @@
   <name>balzano2_2plus1</name>
   <owner userid="sf1409"/>
   <problem_definition length="medium" nprocs="1">
-    <command_line>fluidity balzano2_2plus1.flml; ./plotfs_detec.py --file=balzano2_2plus1.detectors -w --save=fluidity; ./plotfs_detec.py --file=balzano2_2plus1.detectors --save=fluidity</command_line>
+    <command_line>fluidity balzano2_2plus1.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">
