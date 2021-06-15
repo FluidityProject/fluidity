@@ -42,7 +42,7 @@ jobs:
       fail-fast: false
       matrix:
         release: [bionic, focal, groovy]
-        output: test_results_unittests.xml
+        output: [test_results_unittests.xml]
 
     steps:
       - name: Testing ${{ matrix.release }}
@@ -132,7 +132,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release: focal
+        release: [focal]
         test-xml: ${{fromJSON(needs.get-lists.outputs.longtest-matrix)}}
 
     steps:
