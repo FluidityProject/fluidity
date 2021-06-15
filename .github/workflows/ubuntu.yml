@@ -34,7 +34,7 @@ jobs:
           tags: fluidity/actions:${{ matrix.release }}-${{ github.sha }}
 
   unittest:
-    name: Unit tests: ${{ matrix.release }}
+    name: Unit tests - ${{ matrix.release }}
     runs-on: ubuntu-latest
     needs: build
 
@@ -90,7 +90,7 @@ jobs:
             $(echo $(cat github_longtests.json))\""
 
   test:
-    name: Tests: ${{ matrix.release }}
+    name: Tests - ${{ matrix.release }}
     runs-on: ubuntu-latest
     needs: get-lists
 
@@ -125,7 +125,7 @@ jobs:
           fail_on_failure: true
 
   longtest:
-    name: Longtests: ${{ matrix.release }}
+    name: Longtests - ${{ matrix.release }}
     runs-on: ubuntu-latest
     needs: get-lists
 
