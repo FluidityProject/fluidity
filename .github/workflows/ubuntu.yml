@@ -76,6 +76,8 @@ jobs:
       test-matrix: ${{ steps.set-matrices.outputs.test-matrix }}
       longtest-matrix: ${{ steps.set-matrices.outputs.longtest-matrix }}
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
       - name: Generate JSON files
         id: set-matrices
         run: "tools/testharness.py --just-list --github github_tests.json
