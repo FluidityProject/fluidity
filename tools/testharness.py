@@ -79,7 +79,7 @@ def filter_tests(xml_files):
         length_condition = (
             (args.length == "any"
              and prob_length in ["special", "long", "vlong"])
-            or (args.length != "any" and prob_length != args.length))
+            or (args.length != "any" and prob_length not in args.length))
         nprocs_condition = (
             (args.parallel == "parallel" and prob_nprocs <= 1)
             or (args.parallel == "serial" and prob_nprocs != 1))
@@ -197,8 +197,9 @@ def process_error(test_xml, process_interpreter, stdout, stderr):
     if process_interpreter == "Shell":
         error_list.append(test_xml.stem)
         xml_entry.status = "Error"
-        xml_entry.add_error_info(message="Shell script failed.",
-                                 output=f"\n{stderr}")
+        xml_entry.add_error_info(
+            message=f"{test_xml.stem}: Shell script failed.",
+            output=f"\n{stderr}")
         if tests[test_xml]["running_proc"].returncode == 0:
             tests[test_xml]["running_proc"].returncode = "Failed command"
     # Errors/Failures generated in Python variables/tests
@@ -209,8 +210,9 @@ def process_error(test_xml, process_interpreter, stdout, stderr):
                in ["IndentationError", "SyntaxError", "TabError"]):
             error_list.append(test_xml.stem)
             xml_entry.status = "Error"
-            xml_entry.add_error_info(message="Parsing failed",
-                                     output=f"\n{stderr}")
+            xml_entry.add_error_info(
+                message=f"{test_xml.stem}: Parsing failed",
+                output=f"\n{stderr}")
         # Failure(s) within actual test(s)
         elif any(f"# {kind} Test" in stdout for kind in ["Pass", "Warn"]):
             # Identify unsuccessful Python tests through stdout
@@ -239,7 +241,7 @@ def process_error(test_xml, process_interpreter, stdout, stderr):
                     "line " + line_nb, f"'{python_failure_line}'")
                 failure_type = "failure" if "Pass" in test_type else "warning"
                 xml_entry.add_failure_info(
-                    message=f"Test '{test_name}' failed",
+                    message=f"{test_xml.stem}: Test '{test_name}' failed",
                     output=f"\n{traceback}", failure_type=failure_type)
         else:  # Error within variable
             error_list.append(test_xml.stem)
@@ -250,8 +252,9 @@ def process_error(test_xml, process_interpreter, stdout, stderr):
                                        f"'{python_failure_line}'")
             var_name = list(re.finditer(r"(?<=^#\sVariable:\s).+", stdout,
                                         re.MULTILINE))[-1].group()
-            xml_entry.add_error_info(message=f"Variable '{var_name}' failed.",
-                                     output=f"\n{traceback}")
+            xml_entry.add_error_info(
+                message=f"{test_xml.stem}: Variable '{var_name}' failed.",
+                output=f"\n{traceback}")
         if tests[test_xml]["running_proc"].returncode == 0:
             tests[test_xml]["running_proc"].returncode = "Python exception"
     xml_parser.test_cases.append(xml_entry)
@@ -364,11 +367,11 @@ def task_run_tests(test_xml):
 parser = ArgumentParser(description="Fluidity Test Harness")
 parser.add_argument("-c", "--clean", action="store_true",
                     help="call 'make clean' for each included test")
-parser.add_argument("-e", "--exclude-tags", metavar="", nargs="*", default=[],
-                    help="tags indicating tests that are excluded")
+parser.add_argument("-e", "--exclude-tags", metavar="", action="append",
+                    default=[], help="tags indicating tests that are excluded")
 parser.add_argument("-f", "--file", metavar="",
-                    help="single test to run - expects a *.xml filename")
-parser.add_argument("-l", "--length", default="any", metavar="",
+                    help="single test to run - expects XML filename")
+parser.add_argument("-l", "--length", metavar="", action="append",
                     help="""test length to be run; must be either short,
                     medium, long, vlong, special or any - defaults to
                     '%(default)s'""")
@@ -377,23 +380,28 @@ parser.add_argument("-n", "--nprocs", type=int, metavar="",
 parser.add_argument("-p", "--parallelism", dest="parallel", default="any",
                     metavar="", help="""parallelism of problem; must be either
                     serial, parallel or any - defaults to '%(default)s'""")
-parser.add_argument("-t", "--tags", metavar="", nargs="*", default=[],
+parser.add_argument("-t", "--tags", metavar="", action="append", default=[],
                     help="tags indicating tests that are included")
 parser.add_argument("-v", "--valgrind", action="store_true",
-                    help="Enable Valgrind")
+                    help="enable Valgrind")
 parser.add_argument("-x", "--xml-output", metavar="",
                     help="XML output filename")
 parser.add_argument("--from-file", metavar="", help="""path to a file
                     containing a list of tests to run (one *.xml filename per
                     line)""")
+parser.add_argument("--github", metavar="", help="""filename (expects JSON) to
+                    store the tests to run on GitHub Actions""")
 parser.add_argument("--just-list", action="store_true",
-                    help="""Prints the list of tests that would be included in
+                    help="""prints the list of tests that would be included in
                     the run given the provided arguments""")
 args = parser.parse_args()
 
-if args.length not in ["short", "medium", "long", "vlong", "special", "any"]:
+if args.length is None:
+    args.length = "any"
+elif set(args.length).difference(["short", "medium", "long", "vlong",
+                                  "special"]):
     parser.error("""Specify length as either of short, medium, long, vlong, \
-special or any.""")
+or special.""")
 if args.parallel not in ["serial", "parallel", "any"]:
     parser.error("Specify parallelism as either of serial, parallel or any.")
 
@@ -424,6 +432,10 @@ if args.just_list:
     print("*** Found tests that match the input criteria")
     for test_xml in sorted(tests.keys()):
         print(f"\t-> {test_xml.stem}")
+    if args.github:
+        import json
+        with open(args.github, "w") as fid:
+            json.dump([test.name for test in tests.keys()], fid)
 elif args.clean:
     print("*** Cleaning")
     for test_xml in tests.keys():
