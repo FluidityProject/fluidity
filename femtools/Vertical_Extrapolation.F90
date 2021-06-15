@@ -258,11 +258,12 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   !! 2D horizontal surface are used.
   !! This version takes multiple from_fields at the same time and extrapolates
   !! to to_fields, such that the surface search only has to be done once. This 
-  !! will only work if all the from_fields are on the same mesh, and on all the 
-  !! to_field are on the same (possibly a different) mesh.
+  !! will only work if all the to_fields are on the same mesh
+  !! (which can be different than the from_fields meshes)
   type(scalar_field), dimension(:), intent(in):: from_fields
-  !! Resulting extrapolated field. May be the same field or a field on
-  !! a different mesh (different degree).
+  !! Resulting extrapolated field. May be the same fields or a fields on
+  !! a different mesh (different degree) than from_fields, but all 
+  !! to_fields need to be on the same mesh
   type(scalar_field), dimension(:), intent(inout):: to_fields
   !! positions, and upward normal vector on the whole domain
   type(vector_field), target, intent(inout):: positions
@@ -277,16 +278,19 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   !! the same surface_element_list should again be provided.
   character(len=*), optional, intent(in):: surface_name
 
+  type(vector_field):: from_positions
+  type(scalar_field):: from_field
+  type(mesh_type):: to_mesh
   character(len=FIELD_NAME_LEN):: lsurface_name
   real, dimension(:,:), allocatable:: loc_coords
   integer, dimension(:), allocatable:: seles
   integer i, j, to_nodes, face
+  logical parallel_not_extruded
 
   assert(size(from_fields)==size(to_fields))
   assert(element_count(from_fields(1))==element_count(to_fields(1)))
   do i=2, size(to_fields)
      assert(to_fields(1)%mesh==to_fields(i)%mesh)
-     assert(from_fields(1)%mesh==from_fields(i)%mesh)
   end do
   
   to_nodes=nowned_nodes(to_fields(1))
@@ -298,21 +302,50 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   else
     lsurface_name="TempSurfaceName"
   end if
+
+  parallel_not_extruded = IsParallel() .and. option_count('/geometry/mesh/from_mesh/extrude')==0
+  if (parallel_not_extruded) then
+    from_positions = get_vertically_extended_positions(positions, surface_element_list, surface_name)
+    if (.not. (to_fields(1)%mesh == positions%mesh)) then
+      ewrite(0, *) "Need to vertically extrapolate to: ", trim(to_fields(1)%mesh%name)
+      ewrite(0,*) "which is different from coordinate mesh: ", trim(positions%mesh%name)
+      FLExit("This is not supported")
+    end if
+    to_mesh = from_positions%mesh
+    do i=1, size(from_fields)
+    if (.not. (from_fields(1)%mesh == positions%mesh)) then
+        ewrite(0, *) "Need to vertically extrapolate to: ", trim(to_fields(1)%mesh%name)
+        ewrite(0,*) "which is different from coordinate mesh: ", trim(positions%mesh%name)
+        FLExit("This is not supported")
+      end if
+    end do
+    call allocate(from_field, to_mesh, "VerticallyExtendedFromField")
+  else
+    from_positions = positions
+    to_mesh = to_fields(1)%mesh
+  end if
   
-  ! project the positions of to_fields(1)%mesh into the horizontal plane
+  ! project the positions of to_mesh into the horizontal plane
   ! and returns 'seles' (facet numbers) and loc_coords
   ! to tell where these projected nodes are found in the surface mesh
-  call horizontal_picker(to_fields(1)%mesh, positions, vertical_normal, &
+  call horizontal_picker(to_mesh, from_positions, vertical_normal, &
       surface_element_list, lsurface_name, &
       seles, loc_coords)
   
   ! interpolate using the returned faces and loc_coords
   do i=1, size(to_fields)
+    if (parallel_not_extruded) then
+      call remap_field(from_fields(i), from_field)
+      call halo_update(from_field)
+    else
+      from_field = from_fields(i)
+    end if
+
     do j=1, to_nodes
       face=seles(j)
       call set(to_fields(i), j, &
-           dot_product( eval_shape( face_shape(from_fields(i), face), loc_coords(:,j) ), &
-             face_val( from_fields(i), face ) ))
+           dot_product( eval_shape( face_shape(from_field, face), loc_coords(:,j) ), &
+             face_val( from_field, face ) ))
      end do
   end do
     
@@ -320,6 +353,10 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
     do i=1, size(to_fields)
       call halo_update(to_fields(i))
     end do
+  end if
+
+  if (parallel_not_extruded) then
+    call deallocate(from_field)
   end if
   
   if (.not. present(surface_name)) then
@@ -663,6 +700,16 @@ real, dimension(size(xyz)-1):: xy
   xy(1) = xy(1) + sign(3*i*GNOMONIC_BOX_WIDTH, xyz(i))
     
 end function map2horizontal_sphere
+
+function get_vertically_extended_positions(positions, surface_element_list, surface_name) result(extended_positions)
+  type(vector_field), intent(inout):: positions
+  integer, dimension(:), intent(in):: surface_element_list
+  character(len=*), intent(in):: surface_name
+  type(vector_field):: extended_positions
+
+  extended_positions=positions
+
+end function get_vertically_extended_positions
 
 function VerticalProlongationOperator(mesh, positions, vertical_normal, &
   surface_element_list, surface_mesh)
