@@ -59,12 +59,12 @@ jobs:
         with:
           path: ${{ matrix.release }}-${{ matrix.output }}
           name: xml_outputs
-      - name: JUnit report: ${{ matrix.name }}
+      - name: JUnit report for ${{ matrix.name }}
         uses: mikepenz/action-junit-report@v2
         with:
           report_paths: ${{ matrix.release }}-${{ matrix.output }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          check_name: Unittest report: ${{ matrix.release }}
+          check_name: Unittest report for ${{ matrix.release }}
           fail_on_failure: true
 
   get-lists:
@@ -116,12 +116,12 @@ jobs:
         with:
           path: ${{ matrix.release }}-${{ matrix.test-xml }}
           name: xml_outputs
-      - name: JUnit report: ${{ matrix.name }}
+      - name: JUnit report for ${{ matrix.name }}
         uses: mikepenz/action-junit-report@v2
         with:
           report_paths: ${{ matrix.release }}-${{ matrix.test-xml }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          check_name: Report: ${{ matrix.test-xml }} on ${{ matrix.release }}
+          check_name: Report for ${{ matrix.test-xml }} on ${{ matrix.release }}
           fail_on_failure: true
 
   longtest:
@@ -152,10 +152,10 @@ jobs:
         with:
           path: ${{ matrix.release }}-${{ matrix.test-xml }}
           name: xml_outputs
-      - name: JUnit report: ${{ matrix.name }}
+      - name: JUnit report for ${{ matrix.name }}
         uses: mikepenz/action-junit-report@v2
         with:
           report_paths: ${{ matrix.release }}-${{ matrix.test-xml }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          check_name: Report: ${{ matrix.test-xml }} on ${{ matrix.release }}
+          check_name: Report for ${{ matrix.test-xml }} on ${{ matrix.release }}
           fail_on_failure: true
