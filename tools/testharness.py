@@ -30,7 +30,6 @@ except ImportError:  # Provide dummy classes in the absence of junit_xml
     class TestSuite(object):
         def __init__(self, *args, **kwargs):
             self.test_cases = []
-            pass
 
         def to_file(self, *args, **kwargs):
             print("WARNING: junit_xml required to produce an XML output file.")
@@ -433,6 +432,7 @@ if args.just_list:
     print("*** Found tests that match the input criteria")
     for test_xml in sorted(tests.keys()):
         print(f"\t-> {test_xml.stem}")
+    print(len(tests.keys()))
     if args.github:
         import json
         with open(args.github, "w") as fid:
