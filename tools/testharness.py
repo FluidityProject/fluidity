@@ -29,6 +29,7 @@ try:
 except ImportError:  # Provide dummy classes in the absence of junit_xml
     class TestSuite(object):
         def __init__(self, *args, **kwargs):
+            self.test_cases = []
             pass
 
         def to_file(self, *args, **kwargs):
