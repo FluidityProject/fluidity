@@ -4,9 +4,11 @@ module fefields
 
   use fldebug
   use data_structures
+  use mpi_interfaces
   use element_numbering
   use elements, only: element_type
   use parallel_tools
+  use parallel_fields
   use sparse_tools
   use transform_elements, only: transform_to_physical, element_volume
   use fetools, only: shape_shape, shape_rhs, shape_vector_rhs
@@ -851,5 +853,128 @@ contains
     end if
 
   end subroutine generate_subdomain_halos
+
+function create_parallel_redundant_mesh(mesh) result (redundant_mesh)
+  type(mesh_type), intent(inout):: mesh
+  type(mesh_type):: redundant_mesh
+
+  type(halo_type), pointer :: halo
+  integer, dimension(:), allocatable :: nodes, owned_elements
+  integer, dimension(:), allocatable :: eles_per_proc, eles_displs
+  integer, dimension(:), allocatable :: nodes_per_proc, nsends
+  integer, dimension(:), allocatable :: nodes_to_send, nodes_to_recv
+  integer, dimension(:, :), allocatable :: eles_send_buf, eles_recv_buf
+  integer nowned_eles, nloc, nprocs, procno
+  integer comm, ierr
+  integer i, j, node_offset, ele_offset, send_count
+
+    nowned_eles = 0
+    nloc = ele_loc(mesh, 1)
+    nprocs = getnprocs()
+    procno = getprocno()
+    comm = MPI_COMM_FEMTOOLS
+    allocate(nodes(1:nloc), owned_elements(1:halo_nowned_nodes(mesh%element_halos(1))))
+    do i=1, element_count(mesh)
+      if(element_owner(mesh, i) == procno) then
+        nowned_eles = nowned_eles+1
+        owned_elements(nowned_eles) = i
+      end if
+    end do
+    assert(nowned_eles==size(owned_elements))
+
+    allocate(eles_per_proc(nprocs))
+    call mpi_allgather(nowned_eles, 1, MPI_INTEGER, &
+      eles_per_proc, 1, MPI_INTEGER, comm, ierr)
+    assert(ierr == MPI_SUCCESS)
+
+    allocate(eles_send_buf(nloc, nowned_eles))
+    do i=1, nowned_eles
+      eles_send_buf(:,i) = ele_nodes(mesh, i)
+    end do
+
+    allocate(eles_recv_buf(nloc, sum(eles_per_proc)), eles_displs(nprocs+1))
+    ! displacements where in eles_recv_buf to put each bit of the recv'd surface mesh
+    ! (indexed from 0 - would be nice if they'd actually tell you these things in the docs!)
+    j = 0
+    do i=1, nprocs
+      eles_displs(i) = j
+      j = j + eles_per_proc(i)*nloc
+    end do
+    ! extra entry nprocs+1 for convenience:
+    eles_displs(i) = j
+    assert(j == size(eles_recv_buf))
+
+    call mpi_allgatherv(eles_send_buf, nloc*nowned_eles, MPI_INTEGER, &
+      eles_recv_buf, eles_per_proc, eles_displs, MPI_INTEGER, comm, ierr)
+
+    ! convert to 1-based indexing:
+    eles_displs = eles_displs + 1
+
+    ! nodes per processor - this will be used later as n/o recv nodes, so we don't count our own
+    do i=1, nprocs
+      if (i==procno) then
+        nodes_per_proc(i) = 0
+      else
+        nodes_per_proc(i) = maxval(eles_recv_buf(:, eles_displs(i):eles_displs(i)-1))
+      end if
+    end do
+
+    call allocate(redundant_mesh, node_count(mesh) + sum(nodes_per_proc), size(eles_recv_buf, 2), mesh%shape, &
+      name="Verticallyredundant"//trim(mesh%name))
+    do i=1, size(owned_elements)
+      call set_ele_nodes(redundant_mesh, i, ele_nodes(mesh, owned_elements(i)))
+    end do
+
+    node_offset = node_count(mesh)
+    ele_offset = size(owned_elements)
+
+    allocate(nodes_per_proc(nprocs))
+    do i=1, nprocs
+      if (i==procno) cycle
+      do j=eles_displs(i), eles_displs(i+1)-1
+        ele_offset = ele_offset + 1
+        call set_ele_nodes(redundant_mesh, ele_offset, eles_recv_buf(:, j)+node_offset)
+      end do
+      node_offset = node_offset + nodes_per_proc(i)
+    end do
+    assert(node_offset==node_count(redundant_mesh))
+    assert(ele_offset==element_count(redundant_mesh))
+
+    allocate(redundant_mesh%halos(1))
+    halo => redundant_mesh%halos(1)
+    allocate(nsends(1:nprocs))
+
+    ! n/o nodes to send to each other process based on max node number in owned elements
+    send_count = maxval(eles_send_buf)
+    nsends = send_count
+    ! but we don't send it (and recv) these to (from) ourself
+    nodes_per_proc(procno) = 0
+    nsends(procno) = 0
+
+    call allocate(halo, nsends, nodes_per_proc, &
+      name="ParallelRedundant"//trim(mesh%halos(1)%name), &
+      communicator=comm, data_type=HALO_TYPE_CG_NODE)
+
+    allocate(nodes_to_send(1:send_count))
+    allocate(nodes_to_recv(1:node_count(redundant_mesh)-node_count(mesh)))
+    nodes_to_send = (/ (i, i=1, send_count) /)
+    nodes_to_recv = (/ (i, i=node_count(mesh)+1, node_count(redundant_mesh)) /)
+    node_offset = 1
+    do i=1, nprocs
+      if (i==procno) cycle
+      call set_halo_sends(halo, i, nodes_to_send)
+      call set_halo_receives(halo, i, nodes_to_recv(node_offset:node_offset+nodes_per_proc(i)-1))
+      node_offset = node_offset + nodes_per_proc(i)
+    end do
+    
+    assert(trailing_receives_consistent(halo))
+    assert(halo_valid_for_communication(halo))
+    call create_global_to_universal_numbering(halo)
+    call create_ownership(halo)
+
+
+
+end function create_parallel_redundant_mesh
+
 
 end module fefields
