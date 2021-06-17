@@ -367,19 +367,22 @@ def task_run_tests(test_xml):
 parser = ArgumentParser(description="Fluidity Test Harness")
 parser.add_argument("-c", "--clean", action="store_true",
                     help="call 'make clean' for each included test")
+# action="extend", nargs=1 can be used with Python >= 3.8
 parser.add_argument("-e", "--exclude-tags", metavar="", action="append",
                     default=[], help="tags indicating tests that are excluded")
 parser.add_argument("-f", "--file", metavar="",
                     help="single test to run - expects XML filename")
+# action="extend", nargs=1 can be used with Python >= 3.8
 parser.add_argument("-l", "--length", metavar="", action="append",
                     help="""test length to be run; must be either short,
-                    medium, long, vlong, special or any - defaults to
+                    medium, long, vlong or special - defaults to
                     '%(default)s'""")
 parser.add_argument("-n", "--nprocs", type=int, metavar="",
                     help="targeted number of cores")
 parser.add_argument("-p", "--parallelism", dest="parallel", default="any",
                     metavar="", help="""parallelism of problem; must be either
                     serial, parallel or any - defaults to '%(default)s'""")
+# action="extend", nargs=1 can be used with Python >= 3.8
 parser.add_argument("-t", "--tags", metavar="", action="append", default=[],
                     help="tags indicating tests that are included")
 parser.add_argument("-v", "--valgrind", action="store_true",
@@ -389,8 +392,8 @@ parser.add_argument("-x", "--xml-output", metavar="",
 parser.add_argument("--from-file", metavar="", help="""path to a file
                     containing a list of tests to run (one *.xml filename per
                     line)""")
-parser.add_argument("--github", metavar="", help="""filename (expects JSON) to
-                    store the tests to run on GitHub Actions""")
+parser.add_argument("--github", metavar="", help="""filename (expects
+                    JSON) to store the tests to run on GitHub Actions""")
 parser.add_argument("--just-list", action="store_true",
                     help="""prints the list of tests that would be included in
                     the run given the provided arguments""")
@@ -432,7 +435,7 @@ if args.just_list:
     print("*** Found tests that match the input criteria")
     for test_xml in sorted(tests.keys()):
         print(f"\t-> {test_xml.stem}")
-    print(len(tests.keys()))
+    print(f"{len(tests.keys())} tests found.")
     if args.github:
         import json
         with open(args.github, "w") as fid:
@@ -479,7 +482,7 @@ Keep the following in mind:
 --log-file=test.log {tests[test_xml]["command"]}"""
 
     core_avail = len(sched_getaffinity(0))
-    if args.nprocs:
+    if args.nprocs is not None:
         core_avail = min(args.nprocs, core_avail)
     error_list, failure_list, warning_list = [], [], []
 
@@ -504,17 +507,18 @@ Keep the following in mind:
         with open(args.xml_output, "w") as fid:
             xml_parser.to_file(fid, [xml_parser])
 
-    if error_list:
-        print("Summary of test problems that produced errors:")
-        for test in error_list:
-            print(f"-> {test}")
-    if failure_list:
-        print("Summary of test problems that produced failures:")
-        for test in failure_list:
-            print(f"-> {test}")
-    if warning_list:
-        print("Summary of test problems that produced warnings:")
-        for test in warning_list:
-            print(f"-> {test}")
+    if any([error_list, failure_list, warning_list]):
+        if error_list:
+            print("Summary of test problems that produced errors:")
+            for test in error_list:
+                print(f"-> {test}")
+        if failure_list:
+            print("Summary of test problems that produced failures:")
+            for test in failure_list:
+                print(f"-> {test}")
+        if warning_list:
+            print("Summary of test problems that produced warnings:")
+            for test in warning_list:
+                print(f"-> {test}")
     else:
         print("Test suite completed successfully.")
