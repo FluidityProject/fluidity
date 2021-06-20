@@ -39,11 +39,14 @@ use elements
 use parallel_tools
 use spud
 use data_structures
+use halos_base
+use halos_derivation
 use sparse_tools
 use transform_elements
 use fetools
 use parallel_fields
 use fields
+use fefields
 use state_module
 use boundary_conditions
 use dynamic_bin_sort_module
@@ -258,19 +261,19 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   !! 2D horizontal surface are used.
   !! This version takes multiple from_fields at the same time and extrapolates
   !! to to_fields, such that the surface search only has to be done once. This 
-  !! will only work if all the to_fields are on the same mesh
-  !! (which can be different than the from_fields meshes)
-  type(scalar_field), dimension(:), intent(in):: from_fields
+  !! will only work if all the from_fields are on the same mesh, and all the 
+  !! to_fields are on the same (possibly a different) mesh.
+  type(scalar_field), dimension(:), intent(in), target :: from_fields
   !! Resulting extrapolated field. May be the same fields or a fields on
   !! a different mesh (different degree) than from_fields, but all 
   !! to_fields need to be on the same mesh
-  type(scalar_field), dimension(:), intent(inout):: to_fields
+  type(scalar_field), dimension(:), intent(inout), target :: to_fields
   !! positions, and upward normal vector on the whole domain
   type(vector_field), target, intent(inout):: positions
   type(vector_field), target, intent(in):: vertical_normal
 
   !! the surface elements (faces numbers) that make up the surface
-  integer, dimension(:), intent(in):: surface_element_list
+  integer, dimension(:), intent(in), target :: surface_element_list
   !! If provided the projected surface mesh onto horizontal coordinates 
   !! and its associated rtree/pickers are cached under this name and 
   !! attached to the 'positions'. In this case when called again with
@@ -278,38 +281,50 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   !! the same surface_element_list should again be provided.
   character(len=*), optional, intent(in):: surface_name
 
+  type(vector_field), pointer :: horizontal_positions
+  type(mesh_type), pointer:: to_mesh, from_mesh
   character(len=FIELD_NAME_LEN):: lsurface_name
-  real, dimension(:,:), allocatable:: loc_coords
-  integer, dimension(:), allocatable:: seles
+  real, dimension(:,:), allocatable:: loc_coords, horizontal_coordinate
+  integer, dimension(:), pointer:: horizontal_mesh_list
+  integer, dimension(:), allocatable:: eles
   integer i, j, to_nodes, face
+  logical parallel_not_extruded
 
   assert(size(from_fields)==size(to_fields))
   assert(element_count(from_fields(1))==element_count(to_fields(1)))
+  to_mesh => to_fields(1)%mesh
+  from_mesh => from_fields(1)%mesh
   do i=2, size(to_fields)
-     assert(to_fields(1)%mesh==to_fields(i)%mesh)
+     assert(to_fields(i)%mesh==to_mesh)
+     assert(from_fields(i)%mesh==from_mesh)
   end do
   
-  to_nodes=nowned_nodes(to_fields(1))
+  to_nodes=nowned_nodes(to_mesh)
   ! local coordinates is one more than horizontal coordinate dim
-  allocate( seles(to_nodes), loc_coords(1:positions%dim, 1:to_nodes) )
+  allocate( eles(to_nodes), loc_coords(1:positions%dim, 1:to_nodes) )
   
   if (present(surface_name)) then
     lsurface_name=surface_name
   else
     lsurface_name="TempSurfaceName"
   end if
-  
-  ! project the positions of to_fields(1)%mesh into the horizontal plane
-  ! and returns 'seles' (facet numbers) and loc_coords
-  ! to tell where these projected nodes are found in the surface mesh
-  call horizontal_picker(to_fields(1)%mesh, positions, vertical_normal, &
-      surface_element_list, lsurface_name, &
-      seles, loc_coords)
+
+  parallel_not_extruded = IsParallel() .and. option_count('/geometry/mesh/from_mesh/extrude')==0
+
+  call get_horizontal_positions(positions, surface_element_list, &
+      vertical_normal, lsurface_name, &
+      horizontal_positions, horizontal_mesh_list)
+
+  call create_horizontal_owned_nodal_coordinates(to_mesh, positions, vertical_normal, horizontal_coordinate)
+
+  call picker_inquire(horizontal_positions, horizontal_coordinate, &
+    eles, loc_coords, global=.false. )
   
   ! interpolate using the returned faces and loc_coords
+  assert(.not. parallel_not_extruded)
   do i=1, size(to_fields)
     do j=1, to_nodes
-      face=seles(j)
+      face=horizontal_mesh_list(eles(j))
       call set(to_fields(i), j, &
            dot_product( eval_shape( face_shape(from_fields(i), face), loc_coords(:,j) ), &
              face_val( from_fields(i), face ) ))
@@ -344,7 +359,7 @@ subroutine horizontal_picker(mesh, positions, vertical_normal, &
   !! upward normal vector on the whole domain
   type(vector_field), target, intent(in):: vertical_normal
   !! the surface elements (faces numbers) that make up the surface
-  integer, dimension(:), intent(in):: surface_element_list
+  integer, dimension(:), target, intent(in):: surface_element_list
   !! The projected surface mesh onto horizontal coordinates 
   !! and its associated rtree/pickers are cached under this name and 
   !! attached to the 'positions'. When called again with
@@ -358,21 +373,58 @@ subroutine horizontal_picker(mesh, positions, vertical_normal, &
   integer, dimension(:), intent(out):: seles
   real, dimension(:,:), intent(out):: loc_coords
   
-  type(vector_field):: mesh_positions
   type(vector_field), pointer:: horizontal_positions
   integer, dimension(:), pointer:: horizontal_mesh_list
   real, dimension(:,:), allocatable:: horizontal_coordinate
-  real, dimension(vertical_normal%dim):: normal_vector
-  integer:: i, stat, nodes
+  integer:: i
   
+  call create_horizontal_owned_nodal_coordinates(mesh, positions, vertical_normal, horizontal_coordinate)
+
+  call get_horizontal_positions(positions, surface_element_list, &
+      vertical_normal, surface_name, &
+      horizontal_positions, horizontal_mesh_list)
+    
+  call picker_inquire(horizontal_positions, horizontal_coordinate, &
+    seles, loc_coords, global=.false. )
+    
+  ! in the spherical case some of the surface elements may be duplicated
+  ! within horizontal positions, the returned seles should refer to entries
+  ! in surface_element_list however - also check for nodes not found
+  do i=1, size(seles)
+    if (seles(i)<0) then
+      if (mesh==positions%mesh) then
+        ewrite(-1,*) "For node with coordinate", node_val(positions, i)
+      else
+        ewrite(-1,*) "For node with horizontal coordinate", horizontal_coordinate(:, i)
+      end if
+      ewrite(-1,*) "no top surface node was found."
+      FLAbort("Something wrong with the geometry.")
+    else
+      seles(i) = horizontal_mesh_list(seles(i))
+    end if
+  end do
+
+end subroutine horizontal_picker
+
+subroutine create_horizontal_owned_nodal_coordinates(mesh, positions, vertical_normal, horizontal_coordinate)
+  !! creates array of the horizontal coordinates of the owned nodes in mesh
+
+  type(mesh_type), intent(in):: mesh
+  !! a valid positions field for the whole domain, not necessarily on 'mesh'
+  type(vector_field), intent(inout):: positions
+  !! upward normal vector on the whole domain
+  type(vector_field), target, intent(in):: vertical_normal
+  !! return array of dimension positions%dim-1 x nowned_nodes(mesh)
+  real, dimension(:, :), allocatable, intent(out) :: horizontal_coordinate
+
+  type(vector_field):: mesh_positions
+  real, dimension(vertical_normal%dim):: normal_vector
+  integer nodes, stat, i
+
   assert(.not. mesh_periodic(positions))
   
-  ! search only the first owned nodes
   nodes=nowned_nodes(mesh)
-  
-  assert( size(seles)==nodes )
-  assert(size(loc_coords,1)==positions%dim)
-  assert( size(loc_coords,2)==nodes )
+  allocate( horizontal_coordinate(1:positions%dim-1, 1:nodes) )
   
   if (mesh==positions%mesh) then
     mesh_positions=positions
@@ -399,8 +451,6 @@ subroutine horizontal_picker(mesh, positions, vertical_normal, &
   end if
   
   
-  ! create an array of the horizontally projected coordinates of the 'mesh' nodes
-  allocate( horizontal_coordinate(1:positions%dim-1, 1:nodes) )
   if (have_option('/geometry/spherical_earth')) then
     do i=1, nodes
       horizontal_coordinate(:,i) = map2horizontal_sphere(node_val(mesh_positions, i))
@@ -413,30 +463,10 @@ subroutine horizontal_picker(mesh, positions, vertical_normal, &
       horizontal_coordinate(:,i) = map2horizontal(node_val(mesh_positions, i), normal_vector)
     end do
   end if
-    
-  call get_horizontal_positions(positions, surface_element_list, &
-      vertical_normal, surface_name, &
-      horizontal_positions, horizontal_mesh_list)
-    
-  call picker_inquire(horizontal_positions, horizontal_coordinate, &
-    seles, loc_coords, global=.false. )
-    
-  ! in the spherical case some of the surface elements may be duplicated
-  ! within horizontal positions, the returned seles should refer to entries
-  ! in surface_element_list however - also check for nodes not found
-  do i=1, size(seles)
-    if (seles(i)<0) then
-      ewrite(-1,*) "For node with coordinate", node_val(mesh_positions, i)
-      ewrite(-1,*) "no top surface node was found."
-      FLAbort("Something wrong with the geometry.")
-    else
-      seles(i) = horizontal_mesh_list(seles(i))
-    end if
-  end do
-    
+
   call deallocate(mesh_positions)
 
-end subroutine horizontal_picker
+end subroutine create_horizontal_owned_nodal_coordinates
   
 subroutine get_horizontal_positions(positions, surface_element_list, vertical_normal, surface_name, &
   horizontal_positions, horizontal_mesh_list)
@@ -445,7 +475,7 @@ subroutine get_horizontal_positions(positions, surface_element_list, vertical_no
 ! as a surface field attached to a dummy boundary condition under the name surface_name
   type(vector_field), intent(inout):: positions
   type(vector_field), intent(in):: vertical_normal
-  integer, dimension(:), intent(in):: surface_element_list
+  integer, dimension(:), target, intent(in):: surface_element_list
   character(len=*), intent(in):: surface_name
   
   ! Returns the horizontal positions on a horizontal mesh, this mesh
@@ -479,15 +509,16 @@ subroutine create_horizontal_positions(positions, surface_element_list, vertical
 ! by 'surface_element_list'. This "boundary condition" will be stored under the name 'surface_name'
   type(vector_field), intent(inout):: positions
   type(vector_field), intent(in):: vertical_normal
-  integer, dimension(:), intent(in):: surface_element_list
+  integer, dimension(:), target, intent(in):: surface_element_list
   character(len=*), intent(in):: surface_name
     
+  type(vector_field) :: surface_positions, horizontal_positions
   type(mesh_type), pointer:: surface_mesh
-  type(vector_field):: horizontal_positions, surface_positions
-  type(vector_boundary_condition), pointer :: last_bc
-  integer, dimension(:), pointer:: surface_node_list, surface_element_map
-  real, dimension(vertical_normal%dim):: normal_vector
-  integer:: i, node, nobcs
+  type(mesh_type) :: redundant_mesh
+  real, dimension(vertical_normal%dim) :: normal_vector
+  integer, dimension(:), pointer:: surface_node_list, element_list, reduced_surface_element_list
+  integer:: i
+  logical parallel_not_extruded
   
   call add_boundary_condition_surface_elements(positions, &
     name=surface_name, type="verticalextrapolation", &
@@ -496,61 +527,83 @@ subroutine create_horizontal_positions(positions, surface_element_list, vertical
   ! and surface_node_list a mapping between nodes in surface_mesh and nodes in positions%mesh
   call get_boundary_condition(positions, name=surface_name, &
     surface_mesh=surface_mesh, surface_node_list=surface_node_list)
+
+  parallel_not_extruded = IsParallel() .and. option_count('/geometry/mesh/from_mesh/extrude')==0
     
+  if (parallel_not_extruded) then
+    call generate_surface_mesh_halos(positions%mesh, surface_mesh, surface_node_list)
+    ! create redundant version of surface mesh with massive halo that represent the entire global surface mesh
+    ! reduced_surface_element_list contains those elements in surface_mesh that are owned and these are the
+    ! first size(reduced_surface_element_list) elements in reduced_mesh. These selected elements are returned
+    ! in element_list
+    redundant_mesh = create_parallel_redundant_mesh(surface_mesh, element_list=element_list)
+    ! element_list contains the entries in surface_element_list that are owned and have been used to create redundant_mesh
+    ! so surface_element_list(element_list) contains the corresponding facet nos in positions%mesh
+    ! we remove the bc and recreate it with this reduced list, so we can access the list on a next call
+    call remove_boundary_condition(positions, surface_name)
+    call add_boundary_condition_surface_elements(positions, surface_name, &
+      "_internal", surface_element_list(element_list))
+    deallocate(element_list)
+    ! re-obtain bc info based on the new reduced surface mesh
+    call get_boundary_condition(positions, surface_name, surface_mesh=surface_mesh, &
+         surface_node_list=surface_node_list, surface_element_list=reduced_surface_element_list)
+
+    call allocate(surface_positions, positions%dim, redundant_mesh, "VerticalExtrapolationSurfaceCoordinate")
+    ! the owned nodes in the redundant mesh are all the nodes in the (reduced) surface mesh
+    ! even if they were not owned (receive *nodes*) in positions%mesh
+    assert(halo_nowned_nodes(redundant_mesh%halos(1)) == size(surface_node_list))
+    ! their value can be set by remapping only going through reduced_surface_element_list, which are the
+    ! first size(reduced_surface_element_list) elements in redundant_mesh, i.e. we only go through a subset of
+    ! the elements of surface_positions
+    call remap_field_to_surface(positions, surface_positions, reduced_surface_element_list)
+    ! the rest of the elements are (surface) elements owned by other processes, the nodes in these elements are
+    ! all considered owned by these other processes. To simplify, nodes are duplicated if contained in elements 
+    ! owned by different processes. All these receive nodes are updated in the following halo update in which all processes send
+    ! their owned nodes (according to redundant_mesh) to *all* other processes 
+    call halo_update(surface_positions)
+
+    assert(.false.)
+  else
+    call allocate(surface_positions, positions%dim, surface_mesh, "VerticalExtrapolationSurfaceCoordinate")
+    call remap_field_to_surface(positions, surface_positions, surface_element_list)
+    reduced_surface_element_list => surface_element_list
+  end if
+
   if (have_option('/geometry/spherical_earth')) then
     call allocate(surface_positions, dim=positions%dim, mesh=surface_mesh, &
       name="TempSurfacePositions")
     call remap_field_to_surface(positions, surface_positions, surface_element_list)
     call create_horizontal_positions_sphere(surface_positions, &
-      horizontal_positions, surface_element_map, surface_name)
+      horizontal_positions, element_list, surface_name)
 
-    call deallocate(surface_mesh)
-    ! surface_mesh is a pointer, so this replaces the original surface_mesh with the new surface_mesh
-    ! with duplicated facets for facets that occur in multiple coordinate domains
-    surface_mesh = horizontal_positions%mesh
-    call incref(surface_mesh)
-
-    ! now we need to fix its surface_element_list
-    ! we have surface_element_map which maps from elements in surface_positions to entries
-    ! in the original surface_element_list, which in turn maps to facets in the positions%mesh
-    ! the new surface_element_list is therefore simply a composition of these two maps
-
-    nobcs = size(positions%bc%boundary_condition)
-    last_bc => positions%bc%boundary_condition(nobcs)
-    deallocate(last_bc%surface_element_list)
-    allocate(last_bc%surface_element_list(1:size(surface_element_map)))
-    last_bc%surface_element_list = surface_element_list(surface_element_map)
-    deallocate(surface_element_map)
-
-    ! similarly, reconstruct the surface_node_list (although I'm not sure we use this)
-    deallocate(last_bc%surface_node_list)
-    allocate(last_bc%surface_node_list(1:node_count(surface_positions)))
-    do i=1, element_count(surface_positions)
-      last_bc%surface_node_list(ele_nodes(surface_positions, i)) = face_global_nodes(positions, surface_element_list(i))
-    end do
-
-    call deallocate(surface_positions)
+    call remove_boundary_condition(positions, surface_name)
+    call add_boundary_condition_surface_elements(positions, surface_name, &
+        "_internal", reduced_surface_element_list(element_list))
+    deallocate(element_list)
     
   else
 
     ! flat case
 
-    assert(vertical_normal%field_type==FIELD_TYPE_CONSTANT)
-    normal_vector=node_val(vertical_normal, 1)
+      assert(vertical_normal%field_type==FIELD_TYPE_CONSTANT)
+      normal_vector=node_val(vertical_normal, 1)
 
-    call allocate(horizontal_positions, dim=positions%dim-1, mesh=surface_mesh, &
-      name=trim(surface_name)//"HorizontalCoordinate" )
-    do i=1, size(surface_node_list)
-      node=surface_node_list(i)
-      call set(horizontal_positions, i, &
-          map2horizontal(node_val(positions, node), normal_vector))
-    end do
+      call allocate(horizontal_positions, dim=positions%dim-1, mesh=surface_positions%mesh, &
+        name=trim(surface_name)//"HorizontalCoordinate" )
+      do i=1, node_count(surface_positions)
+        call set(horizontal_positions, i, &
+            map2horizontal(node_val(surface_positions, i), normal_vector))
+      end do
   end if
 
   call insert_surface_field(positions, name=surface_name, &
     surface_field=horizontal_positions)
     
+  call deallocate(surface_positions)
   call deallocate(horizontal_positions)
+  if (parallel_not_extruded) then
+    call deallocate(redundant_mesh)
+  end if
 
 end subroutine create_horizontal_positions
 

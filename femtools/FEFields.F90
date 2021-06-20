@@ -30,7 +30,7 @@ module fefields
   private
   public :: compute_lumped_mass, compute_mass, compute_projection_matrix, add_source_to_rhs, &
             compute_lumped_mass_on_submesh, compute_cv_mass, project_field
-  public :: create_subdomain_mesh
+  public :: create_subdomain_mesh, create_parallel_redundant_mesh
 
 contains
   
@@ -854,12 +854,14 @@ contains
 
   end subroutine generate_subdomain_halos
 
-function create_parallel_redundant_mesh(mesh) result (redundant_mesh)
+function create_parallel_redundant_mesh(mesh, element_list) result (redundant_mesh)
   type(mesh_type), intent(inout):: mesh
   type(mesh_type):: redundant_mesh
+  integer, dimension(:), pointer, optional:: element_list
 
   type(halo_type), pointer :: halo
-  integer, dimension(:), allocatable :: nodes, owned_elements
+  integer, dimension(:), pointer :: owned_elements
+  integer, dimension(:), allocatable :: nodes
   integer, dimension(:), allocatable :: eles_per_proc, eles_displs
   integer, dimension(:), allocatable :: nodes_per_proc, nsends
   integer, dimension(:), allocatable :: nodes_to_send, nodes_to_recv
@@ -972,7 +974,11 @@ function create_parallel_redundant_mesh(mesh) result (redundant_mesh)
     call create_global_to_universal_numbering(halo)
     call create_ownership(halo)
 
-
+    if (present(element_list)) then
+      element_list => owned_elements
+    else
+      deallocate(owned_elements)
+    end if
 
 end function create_parallel_redundant_mesh
 
