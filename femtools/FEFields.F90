@@ -8,8 +8,8 @@ module fefields
   use element_numbering
   use elements, only: element_type
   use parallel_tools
-  use parallel_fields
   use sparse_tools
+  use parallel_fields
   use transform_elements, only: transform_to_physical, element_volume
   use fetools, only: shape_shape, shape_rhs, shape_vector_rhs
   use fields

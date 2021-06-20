@@ -45,9 +45,9 @@ module free_surface_module
   use state_module
   use sparse_matrices_fields
   use boundary_conditions
-  use vertical_extrapolation_module
   use halos
   use field_options
+  use vertical_extrapolation_module
   use physics_from_options
   use coordinates
   use tidal_module, only: calculate_diagnostic_equilibrium_pressure

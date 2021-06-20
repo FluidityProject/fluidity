@@ -40,18 +40,18 @@ use parallel_tools
 use spud
 use data_structures
 use halos_base
-use halos_derivation
 use sparse_tools
+use halos_derivation
 use transform_elements
 use fetools
 use parallel_fields
 use fields
-use fefields
 use state_module
+use vtk_interfaces
+use fefields
 use boundary_conditions
 use dynamic_bin_sort_module
 use pickers
-use vtk_interfaces
 implicit none
 
 interface VerticalExtrapolation
