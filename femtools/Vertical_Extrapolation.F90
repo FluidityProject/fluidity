@@ -39,7 +39,10 @@ use elements
 use parallel_tools
 use spud
 use data_structures
+use halo_data_types
 use halos_base
+use halos_ownership
+use halos_derivation
 use sparse_tools
 use halos_derivation
 use transform_elements
@@ -285,7 +288,7 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   type(mesh_type), pointer:: to_mesh, from_mesh
   character(len=FIELD_NAME_LEN):: lsurface_name
   real, dimension(:,:), allocatable:: loc_coords, horizontal_coordinate
-  integer, dimension(:), pointer:: horizontal_mesh_list
+  integer, dimension(:), pointer:: horizontal_surface_element_list
   integer, dimension(:), allocatable:: eles
   integer i, j, to_nodes, face
   logical parallel_not_extruded
@@ -313,23 +316,29 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
 
   call get_horizontal_positions(positions, surface_element_list, &
       vertical_normal, lsurface_name, &
-      horizontal_positions, horizontal_mesh_list)
+      horizontal_positions, horizontal_surface_element_list)
 
   call create_horizontal_owned_nodal_coordinates(to_mesh, positions, vertical_normal, horizontal_coordinate)
 
   call picker_inquire(horizontal_positions, horizontal_coordinate, &
     eles, loc_coords, global=.false. )
   
-  ! interpolate using the returned faces and loc_coords
-  assert(.not. parallel_not_extruded)
-  do i=1, size(to_fields)
-    do j=1, to_nodes
-      face=horizontal_mesh_list(eles(j))
-      call set(to_fields(i), j, &
-           dot_product( eval_shape( face_shape(from_fields(i), face), loc_coords(:,j) ), &
-             face_val( from_fields(i), face ) ))
-     end do
-  end do
+  if (parallel_not_extruded) then
+    call vertical_interpolate_parallel(positions, eles, loc_coords, to_fields, from_fields, lsurface_name)
+  else
+    ! interpolate directly from from_fields face values
+    ! eles are element numbers inf horizontal_positions%mesh which is a surface mesh
+    ! with potentially duplicated facets (on sphere) - horizontal_surface_element_list maps these
+    ! element numbers to facet numbers of the full mesh
+    do i=1, size(to_fields)
+      do j=1, to_nodes
+        face=horizontal_surface_element_list(eles(j))
+        call set(to_fields(i), j, &
+             dot_product( eval_shape( face_shape(from_fields(i), face), loc_coords(:,j) ), &
+               face_val( from_fields(i), face ) ))
+       end do
+    end do
+  end if
     
   if (IsParallel()) then
     do i=1, size(to_fields)
@@ -342,6 +351,61 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   end if
   
 end subroutine VerticalExtrapolationMultiple
+
+subroutine vertical_interpolate_parallel(positions, eles, loc_coords, to_fields, from_fields, surface_name)
+  !! positions, and upward normal vector on the whole domain
+  type(vector_field), target, intent(inout):: positions
+  integer, dimension(:), intent(in):: eles
+  real, dimension(:, :), intent(in):: loc_coords
+  type(scalar_field), dimension(:), intent(inout), target :: to_fields
+  type(scalar_field), dimension(:), intent(in), target :: from_fields
+  character(len=*), intent(in):: surface_name
+
+  integer, dimension(:), pointer :: reduced_surface_element_list, surface_node_list
+  type(scalar_field) :: redundant_field
+  type(mesh_type), pointer:: to_mesh, from_mesh
+  type(mesh_type):: surface_mesh, redundant_mesh
+  integer i, j, ele, stat
+
+  assert(size(from_fields)==size(to_fields))
+  assert(element_count(from_fields(1))==element_count(to_fields(1)))
+  to_mesh => to_fields(1)%mesh
+  from_mesh => from_fields(1)%mesh
+  do i=2, size(to_fields)
+     assert(to_fields(i)%mesh==to_mesh)
+     assert(from_fields(i)%mesh==from_mesh)
+  end do
+
+  call get_boundary_condition(positions, name=surface_name, &
+      surface_element_list=reduced_surface_element_list)
+
+  redundant_field = extract_scalar_surface_field(positions, surface_name, trim(from_mesh%name)//"RedundantField", stat=stat)
+  if (stat/=0) then
+    call create_surface_mesh(surface_mesh, surface_node_list, &
+      from_mesh, reduced_surface_element_list, name=trim(from_mesh%name)//"SurfaceMesh")
+    redundant_mesh = create_parallel_redundant_mesh(surface_mesh)
+    call allocate(redundant_field, redundant_mesh, name=trim(positions%mesh%name)//"RedundantField")
+    call insert_surface_field(positions, surface_name, redundant_field)
+    call decref(redundant_field)
+    call deallocate(redundant_mesh)
+    if (have_option('/geometry/spherical_earth')) then
+      ! need to implement re-duplication of facets
+      FLExit("Parallel, vertical extrapolation (ocean boundaries) on the sphere without extrusion not yet implemented")
+    end if
+  end if
+
+  do i=1, size(from_fields)
+    call remap_field_to_surface(from_fields(i), redundant_field, reduced_surface_element_list)
+    call halo_update(redundant_field)
+    do j=1, size(eles)
+      ele = eles(j)
+      call set(to_fields(i), j, &
+           dot_product( eval_shape( ele_shape(redundant_field, ele), loc_coords(:,j) ), &
+             ele_val(redundant_field, ele) ))
+    end do
+  end do
+
+end subroutine vertical_interpolate_parallel
   
 subroutine horizontal_picker(mesh, positions, vertical_normal, &
   surface_element_list, surface_name, &
@@ -509,17 +573,21 @@ subroutine create_horizontal_positions(positions, surface_element_list, vertical
 ! by 'surface_element_list'. This "boundary condition" will be stored under the name 'surface_name'
   type(vector_field), intent(inout):: positions
   type(vector_field), intent(in):: vertical_normal
-  integer, dimension(:), target, intent(in):: surface_element_list
+  integer, dimension(:), intent(in):: surface_element_list
   character(len=*), intent(in):: surface_name
     
   type(vector_field) :: surface_positions, horizontal_positions
+  type(scalar_field) :: redundant_scalar_field
   type(mesh_type), pointer:: surface_mesh
-  type(mesh_type) :: redundant_mesh
+  type(mesh_type) :: redundant_mesh, redundant_sphere_mesh
+  type(halo_type), pointer:: halo
   real, dimension(vertical_normal%dim) :: normal_vector
   integer, dimension(:), pointer:: surface_node_list, element_list, reduced_surface_element_list
-  integer:: i
+  integer, dimension(:), allocatable:: nodes, owned_elements
+  integer:: i, j, sele
+  integer:: nprocs, owner, procno, nowned
   logical parallel_not_extruded
-  
+
   call add_boundary_condition_surface_elements(positions, &
     name=surface_name, type="verticalextrapolation", &
     surface_element_list=surface_element_list)
@@ -529,24 +597,34 @@ subroutine create_horizontal_positions(positions, surface_element_list, vertical
     surface_mesh=surface_mesh, surface_node_list=surface_node_list)
 
   parallel_not_extruded = IsParallel() .and. option_count('/geometry/mesh/from_mesh/extrude')==0
-    
+
   if (parallel_not_extruded) then
-    call generate_surface_mesh_halos(positions%mesh, surface_mesh, surface_node_list)
-    ! create redundant version of surface mesh with massive halo that represent the entire global surface mesh
-    ! reduced_surface_element_list contains those elements in surface_mesh that are owned and these are the
-    ! first size(reduced_surface_element_list) elements in reduced_mesh. These selected elements are returned
-    ! in element_list
-    redundant_mesh = create_parallel_redundant_mesh(surface_mesh, element_list=element_list)
-    ! element_list contains the entries in surface_element_list that are owned and have been used to create redundant_mesh
-    ! so surface_element_list(element_list) contains the corresponding facet nos in positions%mesh
-    ! we remove the bc and recreate it with this reduced list, so we can access the list on a next call
+    allocate(nodes(1: surface_mesh%shape%loc), owned_elements(1:element_count(surface_mesh)))
+    nprocs = getnprocs()
+    procno = getprocno()
+    halo => positions%mesh%halos(2)
+    nowned = 0
+    do i=1, element_count(surface_mesh)
+      sele = surface_element_list(i)
+      nodes = face_global_nodes(positions, sele)
+      owner = nprocs
+      do j=1, face_loc(positions, sele)
+        owner = min(owner, halo_node_owner(halo, nodes(j)))
+      end do
+      if (owner/=procno) cycle
+      nowned = nowned + 1
+      owned_elements(nowned) = i
+    end do
+
     call remove_boundary_condition(positions, surface_name)
     call add_boundary_condition_surface_elements(positions, surface_name, &
-      "_internal", surface_element_list(element_list))
-    deallocate(element_list)
+      "_internal", surface_element_list(owned_elements(1:nowned)))
     ! re-obtain bc info based on the new reduced surface mesh
     call get_boundary_condition(positions, surface_name, surface_mesh=surface_mesh, &
          surface_node_list=surface_node_list, surface_element_list=reduced_surface_element_list)
+
+    ! create redundant version of surface mesh with massive halo that represent the entire global surface mesh
+    redundant_mesh = create_parallel_redundant_mesh(surface_mesh)
 
     call allocate(surface_positions, positions%dim, redundant_mesh, "VerticalExtrapolationSurfaceCoordinate")
     ! the owned nodes in the redundant mesh are all the nodes in the (reduced) surface mesh
@@ -562,11 +640,9 @@ subroutine create_horizontal_positions(positions, surface_element_list, vertical
     ! their owned nodes (according to redundant_mesh) to *all* other processes 
     call halo_update(surface_positions)
 
-    assert(.false.)
   else
     call allocate(surface_positions, positions%dim, surface_mesh, "VerticalExtrapolationSurfaceCoordinate")
     call remap_field_to_surface(positions, surface_positions, surface_element_list)
-    reduced_surface_element_list => surface_element_list
   end if
 
   if (have_option('/geometry/spherical_earth')) then
@@ -576,11 +652,24 @@ subroutine create_horizontal_positions(positions, surface_element_list, vertical
     call create_horizontal_positions_sphere(surface_positions, &
       horizontal_positions, element_list, surface_name)
 
-    call remove_boundary_condition(positions, surface_name)
-    call add_boundary_condition_surface_elements(positions, surface_name, &
-        "_internal", reduced_surface_element_list(element_list))
+    if (.not. parallel_not_extruded) then
+      call remove_boundary_condition(positions, surface_name)
+      call add_boundary_condition_surface_elements(positions, surface_name, &
+          "_internal", surface_element_list(element_list))
+    else
+      call allocate(redundant_sphere_mesh, node_count(redundant_mesh), element_count(horizontal_positions), &
+        surface_mesh%shape, name=redundant_mesh%name)
+      do i=1, element_count(horizontal_positions)
+        call set_ele_nodes(redundant_sphere_mesh, i, ele_nodes(redundant_mesh, element_list(i)))
+      end do
+      allocate(redundant_sphere_mesh%halos(1))
+      redundant_sphere_mesh%halos(1) = redundant_mesh%halos(1)
+      call incref(redundant_sphere_mesh%halos(1))
+      call deallocate(redundant_mesh)
+      redundant_mesh = redundant_sphere_mesh
+    end if
     deallocate(element_list)
-    
+
   else
 
     ! flat case
@@ -601,7 +690,11 @@ subroutine create_horizontal_positions(positions, surface_element_list, vertical
     
   call deallocate(surface_positions)
   call deallocate(horizontal_positions)
+
   if (parallel_not_extruded) then
+    call allocate(redundant_scalar_field, redundant_mesh, name=trim(positions%mesh%name)//"RedundantField")
+    call insert_surface_field(positions, surface_name, redundant_scalar_field)
+    call deallocate(redundant_scalar_field)
     call deallocate(redundant_mesh)
   end if
 

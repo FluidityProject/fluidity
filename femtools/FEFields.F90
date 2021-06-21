@@ -854,49 +854,38 @@ contains
 
   end subroutine generate_subdomain_halos
 
-function create_parallel_redundant_mesh(mesh, element_list) result (redundant_mesh)
+function create_parallel_redundant_mesh(mesh) result (redundant_mesh)
   type(mesh_type), intent(inout):: mesh
   type(mesh_type):: redundant_mesh
-  integer, dimension(:), pointer, optional:: element_list
 
   type(halo_type), pointer :: halo
-  integer, dimension(:), pointer :: owned_elements
-  integer, dimension(:), allocatable :: nodes
   integer, dimension(:), allocatable :: eles_per_proc, eles_displs
   integer, dimension(:), allocatable :: nodes_per_proc, nsends
   integer, dimension(:), allocatable :: nodes_to_send, nodes_to_recv
   integer, dimension(:, :), allocatable :: eles_send_buf, eles_recv_buf
-  integer nowned_eles, nloc, nprocs, procno
+  integer neles, nloc, nprocs, procno
   integer comm, ierr
   integer i, j, node_offset, ele_offset, send_count
 
-    nowned_eles = 0
+    neles = element_count(mesh)
     nloc = ele_loc(mesh, 1)
     nprocs = getnprocs()
     procno = getprocno()
     comm = MPI_COMM_FEMTOOLS
-    allocate(nodes(1:nloc), owned_elements(1:halo_nowned_nodes(mesh%element_halos(1))))
-    do i=1, element_count(mesh)
-      if(element_owner(mesh, i) == procno) then
-        nowned_eles = nowned_eles+1
-        owned_elements(nowned_eles) = i
-      end if
-    end do
-    assert(nowned_eles==size(owned_elements))
 
     allocate(eles_per_proc(nprocs))
-    call mpi_allgather(nowned_eles, 1, MPI_INTEGER, &
+    call mpi_allgather(neles, 1, MPI_INTEGER, &
       eles_per_proc, 1, MPI_INTEGER, comm, ierr)
     assert(ierr == MPI_SUCCESS)
 
-    allocate(eles_send_buf(nloc, nowned_eles))
-    do i=1, nowned_eles
+    allocate(eles_send_buf(nloc, neles))
+    do i=1, neles
       eles_send_buf(:,i) = ele_nodes(mesh, i)
     end do
 
     allocate(eles_recv_buf(nloc, sum(eles_per_proc)), eles_displs(nprocs+1))
     ! displacements where in eles_recv_buf to put each bit of the recv'd surface mesh
-    ! (indexed from 0 - would be nice if they'd actually tell you these things in the docs!)
+    ! (indexed from 0 - would be nice if they'd actually tell you these things in the mpi docs!)
     j = 0
     do i=1, nprocs
       eles_displs(i) = j
@@ -906,31 +895,43 @@ function create_parallel_redundant_mesh(mesh, element_list) result (redundant_me
     eles_displs(i) = j
     assert(j == size(eles_recv_buf))
 
-    call mpi_allgatherv(eles_send_buf, nloc*nowned_eles, MPI_INTEGER, &
-      eles_recv_buf, eles_per_proc, eles_displs, MPI_INTEGER, comm, ierr)
+    call mpi_allgatherv(eles_send_buf, nloc*neles, MPI_INTEGER, &
+      eles_recv_buf, nloc*eles_per_proc, eles_displs, MPI_INTEGER, comm, ierr)
+    assert(ierr == MPI_SUCCESS)
 
-    ! convert to 1-based indexing:
-    eles_displs = eles_displs + 1
+    ! convert from 0-based index in flattened eles_recv_buf
+    ! to 1-based index for 2nd dim of eles_recv_buf(:, :)
+    eles_displs = eles_displs/nloc + 1
 
     ! nodes per processor - this will be used later as n/o recv nodes, so we don't count our own
+    allocate(nodes_per_proc(1:nprocs))
     do i=1, nprocs
       if (i==procno) then
         nodes_per_proc(i) = 0
+      else if (eles_displs(i+1)>eles_displs(i)) then
+        nodes_per_proc(i) = maxval(eles_recv_buf(:, eles_displs(i):eles_displs(i+1)-1))
       else
-        nodes_per_proc(i) = maxval(eles_recv_buf(:, eles_displs(i):eles_displs(i)-1))
+        nodes_per_proc(i) = 0
       end if
     end do
 
-    call allocate(redundant_mesh, node_count(mesh) + sum(nodes_per_proc), size(eles_recv_buf, 2), mesh%shape, &
+    ! n/o nodes to send to each other process based on max node number in elements
+    ! (typically the same as node_count(mesh), but we could have spurious nodes)
+    if (neles>0) then
+      send_count = maxval(eles_send_buf)
+    else
+      send_count = 0
+    end if
+
+    call allocate(redundant_mesh, send_count + sum(nodes_per_proc), size(eles_recv_buf, 2), mesh%shape, &
       name="Verticallyredundant"//trim(mesh%name))
-    do i=1, size(owned_elements)
-      call set_ele_nodes(redundant_mesh, i, ele_nodes(mesh, owned_elements(i)))
+    do i=1, neles
+      call set_ele_nodes(redundant_mesh, i, ele_nodes(mesh, i))
     end do
 
-    node_offset = node_count(mesh)
-    ele_offset = size(owned_elements)
+    node_offset = send_count
+    ele_offset = neles
 
-    allocate(nodes_per_proc(nprocs))
     do i=1, nprocs
       if (i==procno) cycle
       do j=eles_displs(i), eles_displs(i+1)-1
@@ -946,21 +947,20 @@ function create_parallel_redundant_mesh(mesh, element_list) result (redundant_me
     halo => redundant_mesh%halos(1)
     allocate(nsends(1:nprocs))
 
-    ! n/o nodes to send to each other process based on max node number in owned elements
-    send_count = maxval(eles_send_buf)
+    ! send all "owned" nodes (owned nodes in redudant_mesh which is based on max. node number in owned elements of mesh)
     nsends = send_count
     ! but we don't send it (and recv) these to (from) ourself
     nodes_per_proc(procno) = 0
     nsends(procno) = 0
 
-    call allocate(halo, nsends, nodes_per_proc, &
-      name="ParallelRedundant"//trim(mesh%halos(1)%name), &
+    call allocate(halo, nsends, nodes_per_proc, nowned_nodes=send_count, &
+      name="ParallelRedundant"//trim(mesh%name)//"Halo", &
       communicator=comm, data_type=HALO_TYPE_CG_NODE)
 
     allocate(nodes_to_send(1:send_count))
-    allocate(nodes_to_recv(1:node_count(redundant_mesh)-node_count(mesh)))
+    allocate(nodes_to_recv(1:node_count(redundant_mesh)-send_count))
     nodes_to_send = (/ (i, i=1, send_count) /)
-    nodes_to_recv = (/ (i, i=node_count(mesh)+1, node_count(redundant_mesh)) /)
+    nodes_to_recv = (/ (i, i=send_count+1, node_count(redundant_mesh)) /)
     node_offset = 1
     do i=1, nprocs
       if (i==procno) cycle
@@ -971,14 +971,8 @@ function create_parallel_redundant_mesh(mesh, element_list) result (redundant_me
     
     assert(trailing_receives_consistent(halo))
     assert(halo_valid_for_communication(halo))
-    call create_global_to_universal_numbering(halo)
     call create_ownership(halo)
-
-    if (present(element_list)) then
-      element_list => owned_elements
-    else
-      deallocate(owned_elements)
-    end if
+    call create_global_to_universal_numbering(halo)
 
 end function create_parallel_redundant_mesh
 
