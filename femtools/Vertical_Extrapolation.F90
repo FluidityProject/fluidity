@@ -266,6 +266,7 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   !! to to_fields, such that the surface search only has to be done once. This 
   !! will only work if all the from_fields are on the same mesh, and all the 
   !! to_fields are on the same (possibly a different) mesh.
+  !! (also works with 1D surface mesh and 2D fields of course)
   type(scalar_field), dimension(:), intent(in), target :: from_fields
   !! Resulting extrapolated field. May be the same fields or a fields on
   !! a different mesh (different degree) than from_fields, but all 
@@ -353,10 +354,14 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
 end subroutine VerticalExtrapolationMultiple
 
 subroutine vertical_interpolate_parallel(positions, eles, loc_coords, to_fields, from_fields, surface_name)
-  !! positions, and upward normal vector on the whole domain
+  !!< In parallel, without extrusion we use a redudant surface mesh (i.e. each process sees the entire
+  !!< global surface mesh). This requires us to first gather the values on this redundant surface mesh
+  !!< from all other processes that own parts of the surface mesh
   type(vector_field), target, intent(inout):: positions
+  !! result of picker enquire in the horizontal_positions mesh
   integer, dimension(:), intent(in):: eles
   real, dimension(:, :), intent(in):: loc_coords
+  !! to_field, from_fields and surface_name as passed into VerticalExtrapolationMultiple above
   type(scalar_field), dimension(:), intent(inout), target :: to_fields
   type(scalar_field), dimension(:), intent(in), target :: from_fields
   character(len=*), intent(in):: surface_name
@@ -376,16 +381,23 @@ subroutine vertical_interpolate_parallel(positions, eles, loc_coords, to_fields,
      assert(from_fields(i)%mesh==from_mesh)
   end do
 
+  ! reduced_surface_element_list is a subset of surface_element_list passed into VerticalExtrapolationMultiple
+  ! as it only contains "owned" surface elements
   call get_boundary_condition(positions, name=surface_name, &
       surface_element_list=reduced_surface_element_list)
 
+  ! pick up any previous created scalar field on a redundant version of the surface_mesh derived from from_mesh
   redundant_field = extract_scalar_surface_field(positions, surface_name, trim(from_mesh%name)//"RedundantField", stat=stat)
   if (stat/=0) then
+    ! if not yet created, do it now
     call create_surface_mesh(surface_mesh, surface_node_list, &
       from_mesh, reduced_surface_element_list, name=trim(from_mesh%name)//"SurfaceMesh")
     redundant_mesh = create_parallel_redundant_mesh(surface_mesh)
-    call allocate(redundant_field, redundant_mesh, name=trim(positions%mesh%name)//"RedundantField")
+    call deallocate(surface_mesh)
+    ! store a field under the magic name (which encodes from from_mesh%name) for reuse in subs. calls
+    call allocate(redundant_field, redundant_mesh, name=trim(from_mesh%name)//"RedundantField")
     call insert_surface_field(positions, surface_name, redundant_field)
+    ! change to redundant_field to borrowed reference (as if we'd extracted in the first place)
     call decref(redundant_field)
     call deallocate(redundant_mesh)
     if (have_option('/geometry/spherical_earth')) then
@@ -395,8 +407,13 @@ subroutine vertical_interpolate_parallel(positions, eles, loc_coords, to_fields,
   end if
 
   do i=1, size(from_fields)
+    ! this remap uses the fact that the first elements of redundant_field (the owned elements)
+    ! are the same as those of the reduced_surface_element_list based surface_mesh
+    ! (we don't actually need to remap, this is just for convenience)
     call remap_field_to_surface(from_fields(i), redundant_field, reduced_surface_element_list)
+    ! now the owned part of redundant_field is filled in, sent it to all other processes:
     call halo_update(redundant_field)
+    ! this is now straight-forward interpolation in the redudant mesh
     do j=1, size(eles)
       ele = eles(j)
       call set(to_fields(i), j, &
@@ -406,7 +423,7 @@ subroutine vertical_interpolate_parallel(positions, eles, loc_coords, to_fields,
   end do
 
 end subroutine vertical_interpolate_parallel
-  
+
 subroutine horizontal_picker(mesh, positions, vertical_normal, &
   surface_element_list, surface_name, &
   seles, loc_coords)
@@ -471,7 +488,7 @@ subroutine horizontal_picker(mesh, positions, vertical_normal, &
 end subroutine horizontal_picker
 
 subroutine create_horizontal_owned_nodal_coordinates(mesh, positions, vertical_normal, horizontal_coordinate)
-  !! creates array of the horizontal coordinates of the owned nodes in mesh
+  !!< creates array of the horizontal coordinates of the owned nodes in mesh
 
   type(mesh_type), intent(in):: mesh
   !! a valid positions field for the whole domain, not necessarily on 'mesh'
@@ -687,7 +704,7 @@ subroutine create_horizontal_positions(positions, surface_element_list, vertical
 
   call insert_surface_field(positions, name=surface_name, &
     surface_field=horizontal_positions)
-    
+
   call deallocate(surface_positions)
   call deallocate(horizontal_positions)
 

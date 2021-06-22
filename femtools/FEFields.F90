@@ -805,7 +805,7 @@ contains
     type(mesh_type), intent(inout) :: subdomain_mesh
     integer, dimension(:) :: node_list, inverse_node_list 
 
-    integer :: nhalos, communicator, nprocs, procno, ihalo, inode, iproc, nowned_nodes
+    integer :: nhalos, communicator, nprocs, procno, ihalo, iproc, nowned_nodes
 
     ewrite(1, *) "In generate_subdomain_halos"
 
@@ -854,18 +854,42 @@ contains
 
   end subroutine generate_subdomain_halos
 
-function create_parallel_redundant_mesh(mesh) result (redundant_mesh)
-  type(mesh_type), intent(inout):: mesh
-  type(mesh_type):: redundant_mesh
+  function create_parallel_redundant_mesh(mesh) result (redundant_mesh)
+    !!< Creates a global mesh that is redundant, i.e. each process sees the entire
+    !!< mesh, constructed by gathering all local input meshes together. The global mesh
+    !!< is equiped with a halo structure in which each process owns the nodes associated
+    !!< with their input mesh. Since each input mesh is sent to each other process, to form
+    !!< part of their copy of the entire global mesh, on a halo update a process will send
+    !!< values for its owned nodes to all other processes.
+    !!< Although the global redundant mesh is the same on all processes, the node and element numbering
+    !!< is not. The first nodes and elements of the redundant mesh correspond to the node and element numbers
+    !!< of the input mesh (so we have trailing receives). The input mesh is treated as a completely local
+    !!< mesh, i.e. any global/halo structure it has is ignored, and each node and element is treated as unique
+    !!< and not associated with any nodes/elements of input meshes on other processes.
+    !!< The output redundant mesh only caries a single, nodal halo, in which all nodes associated with the input mesh
+    !!< are owned (send) nodes, and all other nodes are receives. In this way a simple halo_update(field) suffices
+    !!< to share all field values with all processes, where field is defined on the redundant_mesh. The send values of
+    !!< field can first be set by copying over the values from another field defined on the local input mesh (using
+    !!< the shared node numbering), or through a remap (using the shared element numbering).
+    !!< It should be clear that setting up this redundant mesh structure, and communicating through halo updates on it
+    !!< can be extremely expensive and will not in general scale very well - for small meshes such as a surface mesh
+    !!< this might still be feasible.
 
-  type(halo_type), pointer :: halo
-  integer, dimension(:), allocatable :: eles_per_proc, eles_displs
-  integer, dimension(:), allocatable :: nodes_per_proc, nsends
-  integer, dimension(:), allocatable :: nodes_to_send, nodes_to_recv
-  integer, dimension(:, :), allocatable :: eles_send_buf, eles_recv_buf
-  integer neles, nloc, nprocs, procno
-  integer comm, ierr
-  integer i, j, node_offset, ele_offset, send_count
+    !! Local input mesh. Treated as independent on each process, ignoring any halos
+    type(mesh_type), intent(inout):: mesh
+    !! Output global redudant mesh
+    type(mesh_type):: redundant_mesh
+
+    type(halo_type), pointer :: halo
+    integer, dimension(:), allocatable :: eles_per_proc, eles_displs
+    integer, dimension(:), allocatable :: nodes_per_proc, nsends
+    integer, dimension(:), allocatable :: nodes_to_send, nodes_to_recv
+    integer, dimension(:, :), allocatable :: eles_send_buf, eles_recv_buf
+    integer neles, nloc, nprocs, procno
+    integer comm, ierr
+    integer i, j, node_offset, ele_offset, send_count
+
+    ewrite(1,*) "Entering create_parallel_redundant_mesh for input mesh ", trim(mesh%name)
 
     neles = element_count(mesh)
     nloc = ele_loc(mesh, 1)
@@ -873,11 +897,13 @@ function create_parallel_redundant_mesh(mesh) result (redundant_mesh)
     procno = getprocno()
     comm = MPI_COMM_FEMTOOLS
 
+    ! exchange element numbers with all other processes
     allocate(eles_per_proc(nprocs))
     call mpi_allgather(neles, 1, MPI_INTEGER, &
       eles_per_proc, 1, MPI_INTEGER, comm, ierr)
     assert(ierr == MPI_SUCCESS)
 
+    ! our local mesh to be sent to everyone
     allocate(eles_send_buf(nloc, neles))
     do i=1, neles
       eles_send_buf(:,i) = ele_nodes(mesh, i)
@@ -916,7 +942,7 @@ function create_parallel_redundant_mesh(mesh) result (redundant_mesh)
     end do
 
     ! n/o nodes to send to each other process based on max node number in elements
-    ! (typically the same as node_count(mesh), but we could have spurious nodes)
+    ! (typically the same as node_count(mesh), but we could have spurious isolated nodes)
     if (neles>0) then
       send_count = maxval(eles_send_buf)
     else
@@ -968,13 +994,12 @@ function create_parallel_redundant_mesh(mesh) result (redundant_mesh)
       call set_halo_receives(halo, i, nodes_to_recv(node_offset:node_offset+nodes_per_proc(i)-1))
       node_offset = node_offset + nodes_per_proc(i)
     end do
-    
+
     assert(trailing_receives_consistent(halo))
     assert(halo_valid_for_communication(halo))
     call create_ownership(halo)
     call create_global_to_universal_numbering(halo)
 
-end function create_parallel_redundant_mesh
-
+  end function create_parallel_redundant_mesh
 
 end module fefields
