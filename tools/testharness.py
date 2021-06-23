@@ -142,7 +142,7 @@ try:
     print("--- Success")
 except AssertionError:
     from traceback import print_exc
-    print(f"--- {assertion_status} !!!")
+    print("--- {assertion_status} !!!")
     print_exc()
 except Exception:
     from traceback import print_exc
@@ -218,8 +218,13 @@ def process_error(test_xml, process_interpreter, stdout, stderr):
         # Failure(s) within actual test(s)
         elif any(f"# {kind} Test" in stdout for kind in ["Pass", "Warn"]):
             # Identify unsuccessful Python tests through stdout
+            r"""
             regex = (r"(?<=^#\s)" ".+"
                      "(?=(\n[^#]+|\n.{0,}#(?! Pass Test| Warn Test).{0,}){0,}"
+                     "\n--- (Error|Failure|Warning))")
+            """
+            regex = (r"(?<=^#\s)" ".+"
+                     "(?=(\n^[^#].+|\n^#(?! Pass Test| Warn Test).+){0,}"
                      "\n--- (Error|Failure|Warning))")
             failed_tests = [match.group().split(": ") for match
                             in re.finditer(regex, stdout, re.MULTILINE)]
