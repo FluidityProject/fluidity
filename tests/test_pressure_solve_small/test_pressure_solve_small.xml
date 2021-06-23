@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>test_pressure_solve_small</name>
-  <owner userid="colin"/>
+  <owner userid="colin" />
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>test_pressure_solve -filename cube_unstructured_small -exact_solution exact.py -epsilon 0.001 -vl_as -vl -no_vl -vl_as_wsor
  </command_line>
   </problem_definition>

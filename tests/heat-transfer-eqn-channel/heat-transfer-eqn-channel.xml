@@ -1,10 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Control volume equation test</name>
-  <owner userid="cwilson"/>
+  <owner userid="cwilson" />
   <tags>flml</tags>
-    <problem_definition length="short" nprocs="1">
+    <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v2 -l channel_flow_input.flml || true &amp;&amp; fluidity  channel_flow_1_checkpoint.flml </command_line>
   </problem_definition>  
   <variables>  

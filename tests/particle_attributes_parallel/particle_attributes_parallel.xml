@@ -1,10 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Testing of particle attribute parameters in parallel</name>
-  <owner userid="drhodrid"/>
+  <owner userid="drhodrid" />
   <tags>flml parallel</tags>
-  <problem_definition length="medium" nprocs="4">
+  <problem_definition length="short" nprocs="4">
     <command_line>
 mpiexec ../../bin/flredecomp -i 1 -o 4 particle-attributes-parallel particle-attributes-parallel-flredecomp;
 mpiexec ../../bin/fluidity -v3 -l particle-attributes-parallel-flredecomp.flml

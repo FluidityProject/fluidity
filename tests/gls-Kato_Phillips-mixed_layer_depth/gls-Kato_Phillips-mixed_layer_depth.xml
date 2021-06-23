@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>gls-Kato_Phillips-mixed_layer_depth-k_epsilon</name>
-  <owner userid="jhill1"/>
+  <owner userid="jhill1" />
   <tags>flml gls</tags>
     <problem_definition length="medium" nprocs="1">
         <command_line>
@@ -42,14 +42,7 @@ KWCB_MLD = mld_calc.MLD(filelist)
   </variables>    
 
   <pass_tests> 
-    <!-- 
-    #### This test disabled as it is failing on bionic, and the maintainer
-    ####   doesn't currently have time to debug the failure. Reference
-    ####   discussion in PR #238; revert this change as part of the fix
-    ####   to the test when the maintainer has time to debug it.
-    <test name="Final time equals 10 hours for Gen GL" language="python">
-assert FinalTimeGenGL &gt; 35900
-    </test> -->
+    
     <test name="Final time equals 10 hours for k-w CB" language="python">
 assert FinalTimeKWCB &gt; 35900
     </test>

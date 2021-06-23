@@ -1,7 +1,7 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Periodic 2+1 adaptivity</name>
-  <owner userid="pfarrell"/>
+  <owner userid="pfarrell" />
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>../../bin/periodise periodic_2plus1_adaptivity.flml; fluidity -v2 -l periodic_2plus1_adaptivity_periodised.flml</command_line>
@@ -31,5 +31,5 @@ import fluidity_tools
 fluidity_tools.compare_variable(consistent_max, 1.0, 1.0e-10)
     </test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

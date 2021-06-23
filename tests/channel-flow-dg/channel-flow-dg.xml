@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>channel-flow-dg</name>
-  <owner userid="dham"/>
+  <owner userid="dham" />
   <problem_definition length="short" nprocs="1">
     <command_line>cp ./src/chan4.msh ./channel.msh; fluidity -v3 -l channel_viscous.flml; cp fluidity.log-0 channel-flow-dg-4.log-0; cp fluidity.err-0 channel-flow-dg-4.err-0; cp channel-flow-dg.stat channel-flow-dg-4.stat; cp ./src/chan8.msh ./channel.msh; fluidity -v3 -l channel_viscous.flml; cp fluidity.log-0 channel-flow-dg-8.log-0; cp fluidity.err-0 channel-flow-dg-8.err-0; cp channel-flow-dg.stat channel-flow-dg-8.stat; cp ./src/chan16.msh ./channel.msh; fluidity -v3 -l channel_viscous.flml; cp fluidity.log-0 channel-flow-dg-16.log-0; cp fluidity.err-0 channel-flow-dg-16.err-0; cp channel-flow-dg.stat channel-flow-dg-16.stat</command_line>
   </problem_definition>

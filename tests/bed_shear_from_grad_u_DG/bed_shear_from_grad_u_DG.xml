@@ -1,12 +1,11 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>bed_shear_from_grad_u_DG</name>
-  <owner userid="sp911"/>
+  <owner userid="sp911" />
   <tags>flml bed_shear_stress test</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity bed_shear_from_grad_u_DG.flml; fluidity grad_u_DG.flml</command_line>
-    <!-- check bed shear stress is as expected for very simple set up -->
+    
 </problem_definition>
   <variables>   
     <variable name="bed_shear_test_passed" language="python">
@@ -41,11 +40,11 @@ grad_u_test_passed = diff.sum() &lt; 1e-6
     </variable>  
   </variables>
   <pass_tests>
-    <!-- max shear stress is within 0.001% of 1 -->
+    
     <test name="shear stress is as expected" language="python">
 assert(bed_shear_test_passed == True)
     </test>
-    <!-- divergence of velocity is within 0.001% of 1 -->
+    
     <test name="integral of velocity divergence = surface integral of n.u" language="python">
 assert(grad_u_test_passed == True)
     </test>

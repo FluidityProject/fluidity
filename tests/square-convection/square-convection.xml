@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Square convection (Adaptive CG-test version)</name>
-  <owner userid="rhodrid"/>
+  <owner userid="rhodrid" />
   <tags>flml 2dadapt</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>make clean-run-debug; make clean-checkpoint; fluidity -v2 -l square-convection.flml; cd checkpoint; make; fluidity -v2 -l square-convection_50_checkpoint.flml; cd ..</command_line>
   </problem_definition>
   <variables>
@@ -129,7 +129,7 @@ pickup_final_vtudiff = vtktools.VtuDiff(vtu1, vtu2)
     </variable>
   </variables>
   <pass_tests>
-<!--Crash tests-->
+
     <test name="Simulation completed" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(times[-1], 0.5, 1.0e-6)
@@ -141,8 +141,7 @@ assert(solvers_converged)
 print(max(max_cfl_numbers))
 assert(max(max_cfl_numbers) &lt;= 4.0 * 1.2)
 </test>
-<!--Benchmark tests. Testing against benchmark values from:
-  G. de Vahl Davis and I. P. Jones, Natural Convection In A Square Cavity: A Comparison Exercise, Int. J. for Num. Meth. in Fluids, vol. 3, 227-248 (1983)-->
+
     <test name="Mid-line umax benchmark" language="python">
 import fluidity_tools
 max_val = final_mid_line_u[0]
@@ -201,7 +200,7 @@ fluidity_tools.compare_variable(min_val[1], 0.692, 0.03)
 assert(abs(max_val[0] - 0.092) &lt; 0.1)
 fluidity_tools.compare_variable(max_val[1], 1.505, 0.01)
 </test>
-<!--Checkpoint and recovery tests-->
+
     <test name="Final checkpoint created" language="python">
 for key in final_checkpoint_test.keys():
   assert(final_checkpoint_test[key])

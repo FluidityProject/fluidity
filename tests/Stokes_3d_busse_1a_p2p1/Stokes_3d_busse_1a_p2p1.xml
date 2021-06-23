@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Stokes-3d-busse-1a-p2p1</name>
-  <owner userid="rhodrid"/>
+  <owner userid="rhodrid" />
   <tags>flml</tags>
 
   <problem_definition length="short" nprocs="1">
@@ -46,8 +46,3 @@ assert(abs(rms_vel-41.0) &lt; 0.1)
 </warn_tests>
 
 </testproblem>
-
-
-
-
-

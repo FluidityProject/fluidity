@@ -1,13 +1,12 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>biology_6_component_parallel</name>
-  <owner userid="jhill1"/>
+  <owner userid="jhill1" />
   <tags>flml biology parallel</tags>
   <problem_definition length="short" nprocs="2">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l biology_conservation_parallel biology_conservation_parallel_flredecomp &amp;&amp;
 mpiexec ../../bin/fluidity -v2 -l biology_conservation_parallel_flredecomp.flml; ../../bin/fluidity -v2 -l biology_conservation.flml</command_line>
-    <!-- PZNDAC model running in a water column not solving for any physics. No sinking of detritus, so everything conserved -->
+    
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">
@@ -103,8 +102,7 @@ PhotoRadiationParallel=d["water"]["PhotosyntheticRadiation"]["integral"][0]
       <test name="Check photosyntetic radiation is the same from serial to parallel" language="python">
           assert( (abs(PhotoRadiationParallel - PhotoRadiationSerial)/PhotoRadiationSerial) &lt; 1e-4)
       </test>
-<!-- Note that Chlorophyll mass is already contained in the Phytoplankton, so
-     we don't need to consider it in the mass balance              -->
+
       <test name="Total in water column conserved" language="python">
 before = nutrients1 + detritus1 + phytoplankton1 + zooplankton1 + ammonium1
 after = nutrients2 + detritus2 + phytoplankton2 + zooplankton2 + ammonium2

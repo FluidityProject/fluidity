@@ -1,10 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>diagnostic_time_averaged_scalar</name>
-  <owner userid="jhill1"/>
+  <owner userid="jhill1" />
   <tags>flml diagnostic</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity time_averaged_scalar.flml </command_line>
   </problem_definition>
   <variables>
@@ -31,7 +30,7 @@ FinalTimeAveraged = s["Fluid"]["TimeAveraged"]["max"][-1]
     <test name="Final daily averaged value is correct" language="python">
 assert abs(FinalDailyAveragedVal-100.0) &lt; 1e-5
     </test>
-<!-- This converges to the correct average - 10 days it's nearly there...-->
+
      <test name="Final daily averaged value is correct" language="python">
 assert abs(FinalTimeAveraged-100.0) &lt; 0.5
      </test>

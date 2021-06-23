@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>p1cv element gradient diffusion equation spatial convergence test</name>
-  <owner userid="cwilson"/>
+  <owner userid="cwilson" />
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v1 MMS_A_cv.flml &gt; MMS_A.log; fluidity -v1 MMS_B_cv.flml &gt; MMS_B.log; fluidity -v1 MMS_C_cv.flml &gt; MMS_C.log; fluidity -v1 MMS_D_cv.flml &gt; MMS_D.log; fluidity -v1 MMS_E_cv.flml &gt; MMS_E.log</command_line>
   </problem_definition>
   <variables>
@@ -92,26 +92,7 @@ de_ratio = d_error / e_error
 de_ratio_inf = d_error_inf / e_error_inf
 de_convergence_gal_stat = [log(de_ratio, 2), log(de_ratio_inf, 2)]
 </variable>
-<!--    <variable name="ef_convergence_gal_stat" language="python">
-from fluidity_tools import stat_parser as stat
-from math import log
 
-e_error = stat("MMS_E_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
-f_error = stat("MMS_F_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
-
-e_error_inf = stat("MMS_E_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
-f_error_inf = stat("MMS_F_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
-
-print e_error
-print f_error
-
-print e_error_inf
-print f_error_inf
-
-ef_ratio = e_error / f_error
-ef_ratio_inf = e_error_inf / f_error_inf
-ef_convergence_gal_stat = [log(ef_ratio, 2), log(ef_ratio_inf, 2)]
-    </variable>-->
     <variable name="a_finish_time" language="python">
 from fluidity_tools import stat_parser as stat
 a_finish_time = stat("MMS_A_cv.stat")["ElapsedTime"]["value"][-1]
@@ -132,10 +113,7 @@ d_finish_time = stat("MMS_D_cv.stat")["ElapsedTime"]["value"][-1]
 from fluidity_tools import stat_parser as stat
 e_finish_time = stat("MMS_E_cv.stat")["ElapsedTime"]["value"][-1]
     </variable>
-<!--    <variable name="f_finish_time" language="python">
-from fluidity_tools import stat_parser as stat
-f_finish_time = stat("MMS_F_cv.stat")["ElapsedTime"]["value"][-1]
-    </variable>-->
+
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">
@@ -153,9 +131,7 @@ assert(abs(cd_convergence_gal_stat[0]-1.8) &lt; 0.2)
     <test name="de_convergence_stat: L2 order in [1.9,2.3]" language="python">
 assert(abs(de_convergence_gal_stat[0]-2.1) &lt; 0.2)
     </test>
-<!--    <test name="ef_convergence_stat: L2 order in [1.8,2.2]" language="python">
-assert(abs(ef_convergence_gal_stat[0]-2.0) &lt; 0.2)
-    </test>-->
+
     <test name="checking A finished in less than 4.0" language="python">
 assert(a_finish_time-4.0 &lt; 1.E-10)
     </test>
@@ -171,9 +147,7 @@ assert(d_finish_time-4.0 &lt; 1.E-10)
     <test name="checking E finished in less than 4.0" language="python">
 assert(e_finish_time-4.0 &lt; 1.E-10)
     </test>
-<!--    <test name="checking F finished in less than 4.0" language="python">
-assert(f_finish_time-4.0 &lt; 1.E-10)
-    </test>-->
+
   </pass_tests>
   <warn_tests>
   </warn_tests>

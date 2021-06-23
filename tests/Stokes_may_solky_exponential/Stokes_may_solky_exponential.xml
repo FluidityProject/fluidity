@@ -1,9 +1,9 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Stokes-may-exponential</name>
-  <owner userid="rhodrid"/>
+  <owner userid="rhodrid" />
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v2 -l Stokes-may-solky-exponential-gamg.flml; mv fluidity.log-0 log_gamg; fluidity -v2 -l Stokes-may-solky-exponential-fs.flml; mv fluidity.log-0 log_fs; fluidity -v2 -l Stokes-may-solky-exponential-mg.flml; mv fluidity.log-0 log_mg; fluidity -v2 -l Stokes-may-solky-exponential-sor.flml; mv fluidity.log-0 log_sor</command_line>
   </problem_definition>
 
@@ -65,8 +65,3 @@ assert(abs(DeltaU_iterations_SOR - 170) &lt; 5)
 </warn_tests>
 
 </testproblem>
-
-
-
-
-

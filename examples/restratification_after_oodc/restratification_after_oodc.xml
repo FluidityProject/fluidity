@@ -1,10 +1,8 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>restratification<comment> 3d fixed layered mesh simulation of the restratification following open ocean deep convection.
 </comment></name>
-  <owner userid="fpm08"/>
+  <owner userid="fpm08" />
   <tags>flml </tags>
     <problem_definition length="vlong" nprocs="64">
     <command_line>mpiexec flredecomp -i 1 -o 64 -v -l restratification_after_oodc restratification_after_oodc_flredecomp &amp;&amp;

@@ -1,12 +1,11 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>photosynthetic_radiation</name>
-  <owner userid="jhill1"/>
+  <owner userid="jhill1" />
   <tags>flml biology par</tags>
   <problem_definition length="short" nprocs="2">
     <command_line>mpiexec flredecomp -i 1 -o 2 photosynthetic_radiation photosynthetic_radiation_flredecomp &amp;&amp; mpiexec fluidity photosynthetic_radiation_flredecomp.flml </command_line>
-    <!-- Calculate the amount of light in the ocean. This version is DG. -->
+    
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">

@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Tracer conservation when moving the mesh</name>
-  <owner userid="piggott"/>
+  <owner userid="piggott" />
   <tags>flml</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l sloshing_tank_tracer.flml</command_line>
   </problem_definition>
   <variables>
@@ -114,10 +114,7 @@ assert(beta0tracerdgibp1icbp_cons_error &gt; 1.E-8)</test>
 assert(beta0tracerdgibp2icbp_cons_error &gt; 1.E-8)</test>
     <test name="beta0 cv conservation error" language="python">
 assert(beta0tracercv_cons_error &gt; 1.E-6)</test>
-<!--    <test name="momu cg conservation error" language="python">
-assert(abs(momucg_cons_error) &lt; 1.E-6)</test>
-    <test name="momv cg conservation error" language="python">
-assert(abs(momvcg_cons_error) &lt; 1.E-6)</test>-->
+
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

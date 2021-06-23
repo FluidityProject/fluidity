@@ -1,12 +1,11 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>sinking_velocity</name>
-  <owner userid="dham"/>
+  <owner userid="dham" />
   <tags>flml</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity  sinking_velocity.flml </command_line>
-    <!-- Check that the sinking velocity term works. -->
+    
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">

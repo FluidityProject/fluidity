@@ -2,7 +2,7 @@
 <testproblem>
   <name>water collapse example<comment>Runs a 2d, low resolution (for speed) simulation of the water collapse simulation performed by Zhou, Z. Q., Kat, J. O. De, &amp; Buchner, B. 1999. A nonlinear 3-D approach to simulate green water dynamics on deck. In: Report No. 82000-NSH, vol. 7. (see also Park, I. R., Kim, K. S., Kim, J., &amp; Van, S. H. 2009. A volume-of-fluid method for incompressible free surface flows. International Journal for Numerical Methods in Fluids.)
 </comment></name>
-  <owner userid="cwilson"/>
+  <owner userid="cwilson" />
   <tags>flml 2dadapt<comment>- uses flml
 - uses 2d adaptivity</comment></tags>
   <problem_definition length="long" nprocs="1">
@@ -40,5 +40,5 @@ assert max(maxdivergence, mindivergence) &lt; 1.E-5
     <test name="min_volume_fraction_bound" language="python">assert abs(minvfrac) &lt; 1.E-10</test>
     <test name="no_nodes" language="python">assert nodesend &gt; nodesstart</test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

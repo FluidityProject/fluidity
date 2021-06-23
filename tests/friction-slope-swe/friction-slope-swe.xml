@@ -1,7 +1,7 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>friction-slope-swe</name>
-  <owner userid="skramer"/>
+  <owner userid="skramer" />
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l friction.flml</command_line>
   </problem_definition>

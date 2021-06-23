@@ -76,9 +76,11 @@ def filter_tests(xml_files):
         except AttributeError:  # If no tags are present, assign an empty list
             xml_tags = []
         # Define conditions the test must meet
+        # Do we want to keep this condition, or do we want to have "any"
+        # correspond to all tests when length is not given (and only run the
+        # provided lengths when length is given)?
         length_condition = (
-            (args.length == "any"
-             and prob_length in ["special", "long", "vlong"])
+            (args.length == "any" and prob_length in ["long", "vlong"])
             or (args.length != "any" and prob_length not in args.length))
         nprocs_condition = (
             (args.parallel == "parallel" and prob_nprocs <= 1)
@@ -374,9 +376,8 @@ parser.add_argument("-f", "--file", metavar="",
                     help="single test to run - expects XML filename")
 # action="extend", nargs=1 can be used with Python >= 3.8
 parser.add_argument("-l", "--length", metavar="", action="append",
-                    help="""test length to be run; must be either short,
-                    medium, long, vlong or special - defaults to
-                    '%(default)s'""")
+                    help="""test length to be run; must be either vshort,
+                    short, medium, long or vlong""")
 parser.add_argument("-n", "--nprocs", type=int, metavar="",
                     help="targeted number of cores")
 parser.add_argument("-p", "--parallelism", dest="parallel", default="any",
@@ -401,10 +402,10 @@ args = parser.parse_args()
 
 if args.length is None:
     args.length = "any"
-elif set(args.length).difference(["short", "medium", "long", "vlong",
-                                  "special"]):
-    parser.error("""Specify length as either of short, medium, long, vlong, \
-or special.""")
+elif set(args.length).difference(["vshort", "short", "medium", "long",
+                                  "vlong"]):
+    parser.error("""Specify length as either of vshort, short, medium, long, \
+or vlong.""")
 if args.parallel not in ["serial", "parallel", "any"]:
     parser.error("Specify parallelism as either of serial, parallel or any.")
 

@@ -1,8 +1,7 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Testing of particle based multimaterial fields in parallel with checkpointing for a small resolution Rayleigh Taylor overturn case. Vrms velocity is tested against the maximum value from van Keken, and entrainment is tested against the diagnostics from a successful run.</name>
-  <owner userid="drhodrid"/>
+  <owner userid="drhodrid" />
   <tags>flml parallel</tags>
   <problem_definition length="medium" nprocs="8">
     <command_line>    
@@ -52,5 +51,3 @@ assert max_ent &lt; 0.5
   <warn_tests>
   </warn_tests>
 </testproblem>
-
-   

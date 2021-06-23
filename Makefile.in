@@ -385,7 +385,7 @@ clean-debian:
 
 clean-test:
 	@echo "    CLEAN tests"
-	@cd tests; ../tools/testharness.py --clean >/dev/null
+	@tools/testharness.py --clean >/dev/null
 	@cd tests/data; $(MAKE) clean
 
 clean-unittest:
@@ -405,10 +405,8 @@ clean-unittest:
 	@cd ocean_forcing/tests;   $(MAKE) clean
 
 clean-all-tests: clean-test
-	@echo "    CLEAN parallel/special/long tests"
-	@PYTHONPATH=python tools/testharness.py --length=special --clean >/dev/null
-	@PYTHONPATH=python tools/testharness.py --length=long --clean >/dev/null
-	@PYTHONPATH=python tools/testharness.py --length=vlong --clean >/dev/null
+	@echo "    CLEAN long and vlong tests"
+	@tools/testharness.py --length=long --length=vlong --clean >/dev/null
 
 distclean: clean
 	@echo "    DISTCLEAN"
@@ -450,7 +448,7 @@ distclean: clean
 	@rm -f Makefile > /dev/null
 
 test: fltools bin/$(FLUIDITY)
-	@cd tests; ../bin/testharness -x shorttests.xml -l short $(EXCLUDE_TAGS) -n $(CORES)
+	@cd tests; ../bin/testharness -x shorttests.xml -l vshort -l short $(EXCLUDE_TAGS) -n $(CORES)
 
 mediumtest: fltools bin/$(FLUIDITY) manual spudtools
 	@cd tests; ../bin/testharness -x mediumtests.xml -l medium $(EXCLUDE_TAGS) -n $(CORES)

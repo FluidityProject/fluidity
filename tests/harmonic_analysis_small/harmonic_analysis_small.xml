@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>harmonic_analysis_simple</name>
-  <owner userid="sf1409"/>
+  <owner userid="sf1409" />
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity harmonic_analysis_simple.flml</command_line>
   </problem_definition>
   <variables>

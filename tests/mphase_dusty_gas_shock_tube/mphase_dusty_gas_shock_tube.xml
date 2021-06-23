@@ -1,12 +1,11 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
 
-  <!-- A 1D gas-solid shock tube problem. The setup is the same as the one given in the paper by Miura & Glass (1982).  -->
-  <!-- This test uses results at approximately t = 3.77e-4 seconds (normalised time of tau = 4 in the paper by Miura & Glass (1982)). -->
+  
+  
    
   <name>mphase_dusty_gas_shock_tube</name>
-  <owner userid="ctj10"/>
+  <owner userid="ctj10" />
   <tags>flml</tags>
   
   <problem_definition length="short" nprocs="1">
@@ -99,7 +98,7 @@ vals = []
 for i in range(nnodes):
    if( (positions[i]/0.0271002710027 &gt; -10.0) and (positions[i]/0.0271002710027 &lt; 10.0) ):
       assert abs(air_velocity[i,0]/286.980353992) &lt; 0.9
-      <!-- -1.0e-9 is needed to deal with small under-shoots -->
+      
       assert abs(air_velocity[i,0]/286.980353992) &gt; -1.0e-12
     </test>
     
@@ -123,7 +122,7 @@ for i in range(nnodes):
     
     <test name="Normalised Pressure is in [1.0, 10.0] for normalised x in [-10, 10]" language="python">
 nnodes = len(pressure)
-<!-- Note: values of 0.9 and 10.1 have been used instead of 1.0 and 10.0 because of small over-shoots/under-shoots -->
+
 vals = []
 for i in range(nnodes):
    if( (positions[i]/0.0271002710027 &gt; -10.0) and (positions[i]/0.0271002710027 &lt; 10.0) ):

@@ -1,9 +1,9 @@
-<?xml version = "1.0" encoding = "UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Prescribed adaptivity with a number of function spaces</name>
-  <owner userid="ipanourgias"/>
+  <owner userid="ipanourgias" />
   <tags>flml</tags>
-  <problem_definition length = "short" nprocs = "1">
+  <problem_definition length="short" nprocs="1">
     <command_line>make clean-run-debug; fluidity -v2 -l prescribed_adaptivity.flml</command_line>
   </problem_definition>
   <variables>
@@ -12,17 +12,17 @@ import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-    <variable name = "timesteps" language = "python">
+    <variable name="timesteps" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("prescribed_adaptivity.stat")
 timesteps = len(s["ElapsedTime"]["value"])
     </variable>
-    <variable name = "nodes" language = "python">
+    <variable name="nodes" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("prescribed_adaptivity.stat")
 nodes = s["CoordinateMesh"]["nodes"]
     </variable>
-    <variable name = "tracer_integrals" language = "python">
+    <variable name="tracer_integrals" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("prescribed_adaptivity.stat")
 tracer_integrals = []
@@ -34,10 +34,10 @@ for i in range(1, 7):
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>
-    <test name = "Simulation completed" language = "python">
+    <test name="Simulation completed" language="python">
 assert(timesteps == 8)
     </test>
-    <test name = "Mesh adaptivity" language = "python">
+    <test name="Mesh adaptivity" language="python">
 assert(nodes[0] == 45)
 assert(nodes[1] == 45)
 assert(nodes[2] == 142)
@@ -47,7 +47,7 @@ assert(nodes[5] == 3435)
 assert(nodes[6] == 13462)
 assert(nodes[7] == 20947)
     </test>
-    <test name = "Conservative projection" language = "python">
+    <test name="Conservative projection" language="python">
 import fluidity_tools
 for integrals in tracer_integrals:
   fluidity_tools.compare_variables(integrals[1:], [integrals[0] for i in range(len(integrals) - 1)], 1.0e-10)

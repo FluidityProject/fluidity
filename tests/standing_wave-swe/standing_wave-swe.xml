@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Standing free surface wave in channel using P1DG-P2.</name>
-  <owner userid="skramer"/>
+  <owner userid="skramer" />
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v3 -l  standing_wave.flml</command_line>
   </problem_definition>
   <variables>
@@ -53,5 +53,5 @@ fs_integral_range=fsi.max()-fsi.min()<comment>Horizontal integral of free surfac
 assert fs_integral_max&lt;area*1e-5</test>
     <test name="fs_integral_range_zero" language="python">assert fs_integral_range&lt;1.0</test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Control volume, multi-material flow test</name>
-  <owner userid="cwilson"/>
+  <owner userid="cwilson" />
   <tags>flml solidity 2dadapt</tags>
     <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l 5material-droplet.flml </command_line>

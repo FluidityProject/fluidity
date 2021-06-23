@@ -1,7 +1,7 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>heat_2d_dg</name>
-  <owner userid="wence"/>
+  <owner userid="wence" />
   <tags>flml parallel zoltan<comment>zoltan tag added since test generates empty partitions with libsam.  -jrper</comment></tags>
   <problem_definition length="short" nprocs="8">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 8 -v -l heat heat_flredecomp &amp;&amp;
@@ -23,5 +23,5 @@ tracer_error = s["Water"]["ScalarAbsoluteDifference"]["max"][-1]-9.9e-5</variabl
     <test name="tracer integral is 1.0" language="python">assert abs(tracer_integral - 1.0) &lt; 1e-3</test>
     <test name="tracer error compared with serial run" language="python">assert abs(tracer_error) &lt; 5.e-9</test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

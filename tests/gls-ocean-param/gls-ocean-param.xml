@@ -1,11 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>gls-ocean-param</name>
-  <owner userid="jhill1"/>
+  <owner userid="jhill1" />
   <tags>flml gls</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
       <command_line>mpiexec fluidity gls-StationPapa-orig.flml;
                     mpiexec fluidity gls-StationPapa-param.flml;
       </command_line>

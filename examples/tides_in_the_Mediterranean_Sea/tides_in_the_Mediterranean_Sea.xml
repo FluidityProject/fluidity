@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>tides in the Mediterranean Sea</name>
-  <owner userid="ajm02"/>
+  <owner userid="ajm02" />
   <tags>flml</tags>
   <problem_definition length="vlong" nprocs="48">
     <command_line>mpiexec flredecomp -i 1 -o 48 -l med med_flredecomp &amp;&amp;

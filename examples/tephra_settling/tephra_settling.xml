@@ -1,17 +1,15 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
    
   <name>tephra_settling</name>
-  <owner userid="ctj10"/>
+  <owner userid="ctj10" />
   <tags>flml</tags>
   
   <problem_definition length="long" nprocs="1">
     <command_line>mpiexec fluidity -v2 -l tephra_settling.flml</command_line>
-    <!-- This is a 2D simulation of the formation of density currents. We consider a -->
-    <!-- body of water with a constant inflow of (denser) tephra at the top boundary. -->
-    <!-- Density currents/plumes should eventually form when the bulk density is large enough. -->
+    
+    
+    
   </problem_definition>
   
   <variables>

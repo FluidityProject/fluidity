@@ -1,7 +1,7 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Transient population balance using direct quadrature method of moments (N=2) for a homogeneous case with breakage and aggregation (McCoy and Madras (2003))</name>
-  <owner userid="gb812"/>
+  <owner userid="gb812" />
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>fluidity popbal_homog_N2.flml</command_line>
@@ -30,5 +30,5 @@ moment3_maxerror_t_5s = s["fluid"]["diff_m3"]["max"][-1]</variable>
     <test name="moment2 max percent error at 5s less than 0.003" language="python">assert moment2_maxerror_t_5s &lt; 0.003</test>
     <test name="moment3 max percent error at 5s less than 0.01" language="python">assert moment3_maxerror_t_5s &lt; 0.01</test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

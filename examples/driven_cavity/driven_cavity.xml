@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>driven_cavity</name>
-  <owner userid="piggt01"/>
-  <problem_definition length="long" nprocs="1">
+  <owner userid="piggt01" />
+  <problem_definition length="vlong" nprocs="1">
     <command_line>make run</command_line>
   </problem_definition>
   <variables>

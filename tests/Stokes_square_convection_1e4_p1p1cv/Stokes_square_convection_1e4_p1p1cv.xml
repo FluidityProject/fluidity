@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>p1p1cv-Stokes-square-convection-1e4</name>
-  <owner userid="rhodrid"/>
+  <owner userid="rhodrid" />
 
   <tags>flml</tags>
 
@@ -56,8 +56,3 @@ assert(max_div &lt; 0.0002)
 </warn_tests>
 
 </testproblem>
-
-
-
-
-

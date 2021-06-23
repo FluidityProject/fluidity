@@ -1,8 +1,8 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Test layered extrusion</name>
-  <owner userid="skramer"/>
-  <problem_definition length="short" nprocs="1">
+  <owner userid="skramer" />
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v2 -l  analytic_layered.flml</command_line>
   </problem_definition>
   <variables>
@@ -42,5 +42,5 @@ integral += pi * ((Rt**2-Rm2**2) + (Rm1**2-Rb**2)) * (9+10+15+16) / 8.0
 integral += pi * (Rm2**2-Rm1**2) * 2.0 / 2.0
 assert(abs(region_id_integral-integral)&lt;5e-2)</test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

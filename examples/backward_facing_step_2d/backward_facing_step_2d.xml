@@ -1,11 +1,11 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
    <name>Backward-facing step 2D example</name>
-   <!--Runs a reference and kepsilon 2D backward-facing step problems.-->
-   <!-- this seems to be a fragile test. Anyone with experience of BFS think of a better one-->   
-  <owner userid="asc"/>
+   
+      
+  <owner userid="asc" />
   <tags>flml</tags>
-  <!-- uses flml -->
+  
   <problem_definition length="long" nprocs="8">
     <command_line>cd simulation &amp;&amp; mpiexec flredecomp -i 1 -o 8 -v -l backward_facing_step_2d backward_facing_step_2d_flredecomp &amp;&amp; mpiexec fluidity -v2 -l backward_facing_step_2d_flredecomp.flml &amp;&amp; cd ..</command_line>
   </problem_definition>
@@ -39,5 +39,5 @@ print(abs(kepsilon_reattachment_length[-1,0]/kepsilon_reattachment_length[-2,0]-
 assert(abs(kepsilon_reattachment_length[-1,0]/kepsilon_reattachment_length[-2,0]-1.0) &lt; 0.25)
 </test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

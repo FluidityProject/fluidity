@@ -1,8 +1,7 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Parallel periodic channel with wind-forcing and quadratic bottom drag.</name>
-  <owner userid="amcvicar"/>
+  <owner userid="amcvicar" />
   <tags>flml zoltan parallel</tags>
   <problem_definition length="short" nprocs="4">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 4 channel_parallel_periodised channel_parallel_periodised_flredecomp &amp;&amp;

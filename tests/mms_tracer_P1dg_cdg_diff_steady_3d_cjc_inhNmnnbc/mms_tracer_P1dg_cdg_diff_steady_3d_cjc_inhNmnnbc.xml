@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>channel-flow-dg</name>
-  <owner userid="avdis01"/>
+  <owner userid="avdis01" />
   <problem_definition length="short" nprocs="1">
     <command_line>./generate_mesh 5; fluidity cdg_cjc.flml; cp cdg.stat cdg-5.stat; cp cdg_1.vtu cdg-5.vtu; ./generate_mesh 10; fluidity cdg_cjc.flml; cp cdg.stat cdg-10.stat; cp cdg_1.vtu cdg-10.vtu; ./generate_mesh 20; fluidity cdg_cjc.flml; cp cdg.stat cdg-20.stat; cp cdg_1.vtu cdg-20.vtu; ./generate_mesh 30; fluidity cdg_cjc.flml; cp cdg.stat cdg-30.stat; cp cdg_1.vtu cdg-30.vtu</command_line>
   </problem_definition>

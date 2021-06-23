@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Control volume, multi-material flow test</name>
-  <owner userid="cwilson"/>
+  <owner userid="cwilson" />
   <tags>flml solidity</tags>
-    <problem_definition length="short" nprocs="1">
+    <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v2 -l 3material-droplet.flml </command_line>
   </problem_definition>  
   <variables>  

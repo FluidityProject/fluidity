@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Multimaterial adaptivity and interpolation test</name>
-  <owner userid="cwilson"/>
+  <owner userid="cwilson" />
   <tags>flml 2dadapt zoltan parallel</tags>
   <problem_definition length="short" nprocs="2">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-interpolation mmat-interpolation_flredecomp &amp;&amp;

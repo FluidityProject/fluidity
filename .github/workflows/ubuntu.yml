@@ -88,7 +88,7 @@ jobs:
           docker pull fluidity/actions:${{ matrix.release }}-${{ github.sha }}
 
           docker run -v $PWD:/host fluidity/actions:${{ matrix.release }}-${{ github.sha }} \
-          /bin/bash -c \"make CORES=0 test && cp -v tests/${{ matrix.output }} \
+          /bin/bash -c \"make CORES=2 test && cp -v tests/${{ matrix.output }} \
           /host/${{ matrix.release }}-${{ matrix.output }}\""
       - name: Upload artifact
         uses: actions/upload-artifact@v2
@@ -129,11 +129,10 @@ jobs:
           pip install junit_xml
       - name: Generate JSON files
         id: set-matrices
-        run: "git clone https://github.com/fluidityproject/longtests
+        # run: "git clone https://github.com/fluidityproject/longtests
+        run: "tools/testharness.py -l medium --just-list --github mediumtests.json
 
-          tools/testharness.py -l medium --just-list --github mediumtests.json
-
-          tools/testharness.py -l long -l vlong --just-list --github longtests.json
+          tools/testharness.py -l long --just-list --github longtests.json
 
           echo \"::set-output name=mediumtest-matrix::$(echo $(cat mediumtests.json))\"
 
@@ -148,7 +147,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release: [bionic, focal, groovy]
+        release: [focal, groovy]
         test-xml: ${{fromJSON(needs.get-lists.outputs.mediumtest-matrix)}}
 
     steps:
@@ -184,25 +183,24 @@ jobs:
       matrix:
         release: [focal]
         test-xml: ${{fromJSON(needs.get-lists.outputs.longtest-matrix)}}
-        exclude:
-          - release: focal
-            test-xml: tides_in_the_Mediterranean_Sea.xml
-          - release: focal
-            test-xml: flow_past_sphere_Re1000.xml
-          - release: focal
-            test-xml: driven_cavity.xml
-          - release: focal
-            test-xml: backward_facing_step_3d.xml
 
     steps:
       - name: Testing
+        # run: "chmod 777 .
+        #
+        #   docker pull fluidity/actions:${{ matrix.release }}-${{ github.sha }}
+        #
+        #   docker run -v $PWD:/host fluidity/actions:${{ matrix.release }}-${{ github.sha }} \
+        #   /bin/bash -c \"git clone https://github.com/fluidityproject/longtests \
+        #   && bin/testharness -l long -f ${{ matrix.test-xml }} \
+        #   -x ${{ matrix.release }}-${{ matrix.test-xml }} \
+        #   && cp -v ${{ matrix.release }}-${{ matrix.test-xml }} /host\""
         run: "chmod 777 .
 
           docker pull fluidity/actions:${{ matrix.release }}-${{ github.sha }}
 
           docker run -v $PWD:/host fluidity/actions:${{ matrix.release }}-${{ github.sha }} \
-          /bin/bash -c \"git clone https://github.com/fluidityproject/longtests \
-          && bin/testharness -l long -l vlong -f ${{ matrix.test-xml }} \
+          /bin/bash -c \"bin/testharness -l long -f ${{ matrix.test-xml }} \
           -x ${{ matrix.release }}-${{ matrix.test-xml }} \
           && cp -v ${{ matrix.release }}-${{ matrix.test-xml }} /host\""
       - name: Upload artifact

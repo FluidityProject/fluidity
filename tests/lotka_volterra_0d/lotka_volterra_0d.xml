@@ -1,12 +1,11 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>lotka_volterra</name>
-  <owner userid="dham"/>
+  <owner userid="dham" />
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity  lotka_volterra.flml</command_line>
-    <!-- Symmetric predator-prey problem. Zooplankton and Phytoplankton should both form stable cycles with maxmima at 20.0 -->
+    
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Geopressure convergence test (P3)</name>
-  <owner userid="piggt01"/>
+  <owner userid="piggt01" />
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>make clean-run; rm -f 8.log 16.log 32.log 64.log;

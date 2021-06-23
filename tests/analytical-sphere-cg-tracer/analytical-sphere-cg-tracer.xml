@@ -1,7 +1,7 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>spherical segment - spherical cooridnate mapping - P1CG tracers<comment>Tests the exact coordinate mapping on the sphere, with P1CG tracers. This is a stay-idle test, velocities should be near zero.</comment></name>
-  <owner userid="avdis01"/>
+  <owner userid="avdis01" />
   <tags>zoltan</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>mpiexec -n 2 fluidity -v3 -l  sphericalSegment_flredecomp.flml</command_line>

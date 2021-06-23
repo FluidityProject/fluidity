@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>wind_stratification</name>
-  <owner userid="skramer"/>
+  <owner userid="skramer" />
   <tags>flml</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v3 -l channel.flml</command_line>
   </problem_definition>
   <variables>
@@ -56,5 +56,5 @@ assert 0.8e-4&lt;s['final_max']&lt;1.2e-4 and -1.2e-4&lt;s['final_min']&lt;-0.8e
     <test name="free_surface_bounds" language="python">assert -0.2&lt;fs_stats['min']&lt;-0.1 and 0.25&lt;fs_stats['max']&lt;0.35</test>
     <test name="up_down_regions" language="python">assert regions['up']&lt;5e5 and regions['down']&gt;5e5<comment>This fails currently for CDG without penalty parameter</comment></test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

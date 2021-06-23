@@ -1,7 +1,7 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>extrude_adapt3d_parallel</name>
-  <owner userid="skramer"/>
+  <owner userid="skramer" />
   <problem_definition length="short" nprocs="2">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 box box_flredecomp &amp;&amp;
 mpiexec ../../bin/fluidity -v2 -l box_flredecomp.flml &amp;&amp;

@@ -1,12 +1,11 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>circular_duct</name>
-  <owner userid="cjc1"/>
+  <owner userid="cjc1" />
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v2 -l circular_duct.flml </command_line>
-    <!-- 3D Circular duct test for p1dg-p2 with CDG viscosity -->
+    
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">

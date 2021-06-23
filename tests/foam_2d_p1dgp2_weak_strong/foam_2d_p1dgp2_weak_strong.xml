@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>2d square unstructured mesh p1dgp2 foam drainage test with weak bcs for velocity and strong for pressure</name>
-  <owner userid="pbritopa"/>
+  <owner userid="pbritopa" />
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>fluidity drainage_a.flml -l -v1 &gt; drainage_a.log</command_line>
@@ -78,5 +78,5 @@ print(a_final_change_vel)
     <test name="a_error_vel_y: L2 order between 9.5E-07 and 1.5E-06" language="python">assert(abs(a_error_vel[1][0]-1.0E-6) &lt; 1.0E-07)
     </test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

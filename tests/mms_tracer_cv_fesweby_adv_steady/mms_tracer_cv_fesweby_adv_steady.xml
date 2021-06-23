@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>p1cv advection equation spatial convergence test using a FE face value with the Sweby limiter</name>
-  <owner userid="btollit"/>
+  <owner userid="btollit" />
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v1 -l MMS_A_cv.flml; fluidity -v1 -l MMS_B_cv.flml; fluidity -v1 -l MMS_C_cv.flml; fluidity -v1 -l MMS_D_cv.flml</command_line>

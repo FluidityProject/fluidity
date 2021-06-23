@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>balzano1_2plus1</name>
-  <owner userid="sf1409"/>
+  <owner userid="sf1409" />
   <tags>parallel zoltan</tags>
   <problem_definition length="medium" nprocs="4">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l balzano1_2plus1 balzano1_2plus1_flredecomp;

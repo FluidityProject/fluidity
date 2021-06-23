@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Geostrophic interpolation with geopressure preconditioning</name>
-  <owner userid="cjc1"/>
+  <owner userid="cjc1" />
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>make clean-run; fluidity -v2 -l balanced.flml</command_line>
   </problem_definition>
   <variables>
@@ -45,5 +45,5 @@ print(maxval)
 assert maxval &lt; 1.0e2
 </test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

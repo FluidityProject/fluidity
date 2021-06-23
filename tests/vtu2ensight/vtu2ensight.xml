@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>vtu2ensight conversion test</name>
-  <owner userid="ffm10"/>
+  <owner userid="ffm10" />
   <tags>tool</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>../../bin/vtu2ensight -i 0 16ele</command_line>
   </problem_definition>
   <variables>

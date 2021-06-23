@@ -1,8 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>MMS test of partial stress form for P1DGP2 with bassi-rebay viscosity scheme</name>
-  <owner userid="sp911"/>
+  <owner userid="sp911" />
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity MMS_A.flml &gt; MMS_A.log; fluidity MMS_B.flml &gt; MMS_B.log; fluidity MMS_C.flml &gt; MMS_C.log; fluidity MMS_D.flml &gt; MMS_D.log</command_line>

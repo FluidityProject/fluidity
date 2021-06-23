@@ -1,8 +1,7 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>gyre_2d -- gyre on beta plane in proper 2d, uses "new navsto", and a P1DG-P2 discretisation</name>
-  <owner userid="asc"/>
+  <owner userid="asc" />
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v3 -l gyre.flml</command_line>
