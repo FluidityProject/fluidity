@@ -799,6 +799,10 @@ contains
 
           if(do_adapt_mesh(current_time, timestep)) then
 
+             if (have_option("/mesh_adaptivity/mesh_movement/free_surface")) then
+               call set_vector_field_in_state(state(1), "Coordinate", "OriginalCoordinate")
+             end if
+
              call pre_adapt_tasks(sub_state)
 
              call qmesh(state, metric_tensor)
@@ -966,6 +970,20 @@ contains
        call populate_sub_state(state,sub_state)
     end if
 
+    ! Ocean boundaries (needs to happen before move_mesh_free_surface(). If the mesh is moved this will then be called again)
+    if (has_scalar_field(state(1), "DistanceToTop")) then
+      if (.not. have_option('/geometry/ocean_boundaries')) then
+         ! Leaving this an FLAbort as there's a check up above when initilising.
+         ! If we get this error after adapting, then something went very wrong!
+         FLAbort("There are no top and bottom boundary markers.")
+      end if
+      call CalculateTopBottomDistance(state(1))
+    end if
+
+    if (have_option("/mesh_adaptivity/mesh_movement/free_surface")) then
+      call move_mesh_free_surface(state, initialise=.true.)
+    end if
+
     ! Discrete properties
     call enforce_discrete_properties(state)
 
@@ -983,16 +1001,6 @@ contains
             call calc_cflnumber_field_based_dt(state, dt, force_calculation = .true.)
             call set_option("/timestepping/timestep", dt)
         end if
-    end if
-
-    ! Ocean boundaries
-    if (has_scalar_field(state(1), "DistanceToTop")) then
-      if (.not. have_option('/geometry/ocean_boundaries')) then
-         ! Leaving this an FLAbort as there's a check up above when initilising.
-         ! If we get this error after adapting, then something went very wrong!
-         FLAbort("There are no top and bottom boundary markers.")
-      end if
-      call CalculateTopBottomDistance(state(1))
     end if
 
     !Diagnostic fields based on particles
