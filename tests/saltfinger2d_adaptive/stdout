@@ -1,0 +1,22 @@
+rm -fr saltfinger-2d_* unstructured-2.* *.stat *.msh *.halo
+rm -rf *flredecomp*
+cp src/unstructured-2.geo .
+gmsh -2 -algo del2d unstructured-2.geo
+Info    : Running 'gmsh -2 -algo del2d unstructured-2.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:09 2021
+Info    : Reading 'unstructured-2.geo'...
+Info    : Done reading 'unstructured-2.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Line)
+Info    : Meshing curve 2 (Line)
+Info    : Meshing curve 3 (Line)
+Info    : Meshing curve 4 (Line)
+Info    : Done meshing 1D (0.0021 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 6 (Plane, Delaunay)
+Info    : Done meshing 2D (48.1297 s)
+Info    : 662338 vertices 1324678 elements
+Info    : Writing 'unstructured-2.msh'...
+Info    : Done writing 'unstructured-2.msh'
+Info    : Stopped on Wed Jun 16 18:17:06 2021

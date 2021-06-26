@@ -1,0 +1,8 @@
+rm -f *.stat *.steady_state*
+rm -f *.d.* *.vtu
+rm -f *halo
+rm -f *.poly
+rm -f matrixdump* *.log* *.err*
+rm -rf flow_past_a_square_*
+rm -f nohup.out
+rm -rf *flredecomp*

@@ -1,0 +1,27 @@
+rm -f *.stat *.steady_state*
+rm -f *.d.* *.vtu
+rm -f *.msh *.halo
+rm -f *.poly
+rm -f matrixdump* *.log* *.err*
+rm -rf mphase_tephra_settling_2d_adaptive_*
+rm -rf *flredecomp*
+**********Creating 2D mesh
+gmsh -2 -o mphase_tephra_settling_2d_adaptive.msh src/mphase_tephra_settling_2d_adaptive.geo
+Info    : Running 'gmsh -2 -o mphase_tephra_settling_2d_adaptive.msh src/mphase_tephra_settling_2d_adaptive.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:07 2021
+Info    : Reading 'src/mphase_tephra_settling_2d_adaptive.geo'...
+Info    : Done reading 'src/mphase_tephra_settling_2d_adaptive.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Line)
+Info    : Meshing curve 2 (Line)
+Info    : Meshing curve 3 (Line)
+Info    : Meshing curve 4 (Line)
+Info    : Done meshing 1D (0.000828 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 6 (Plane, Delaunay)
+Info    : Done meshing 2D (3.57478 s)
+Info    : 44951 vertices 89904 elements
+Info    : Writing 'mphase_tephra_settling_2d_adaptive.msh'...
+Info    : Done writing 'mphase_tephra_settling_2d_adaptive.msh'
+Info    : Stopped on Wed Jun 16 18:16:13 2021

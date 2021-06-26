@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testproblem>
+  <name>Testing of particle based multimaterial fields in parallel for a small resolution thermal entrainment case. Vrms velocity is tested against the maximum value from van Keken, and entrainment is tested against the diagnostics from a successful run.</name>
+  <owner userid="cmath" />
+  <tags>flml parallel</tags>
+  <problem_definition length="vlong" nprocs="8">
+    <command_line>    
+mpiexec ../../bin/flredecomp -i 1 -o 8 particle-entrainment-of-dense-layer particle-entrainment-of-dense-layer-flredecomp;      
+mpiexec ../../bin/fluidity -v3 -l particle-entrainment-of-dense-layer-flredecomp.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="max_rms" language="python">
+import numpy as np
+from fluidity_tools import stat_parser
+s = stat_parser("2d_entrainment.stat")
+
+max_rms = s['Ambient']['Velocity%magnitude']['l2norm'][:].max()
+max_rms = max_rms * np.sqrt(1.0/2)
+print ("Max RMS Velocity", max_rms)
+    </variable>
+    <variable name="max_ent" language="python">
+from fluidity_tools import stat_parser
+import numpy as np
+
+s = stat_parser("2d_entrainment.stat")
+
+max_ent = s['Ambient']['Entrainment']['integral'][:].max()
+max_ent = max_ent * (1/(2*0.2))
+print ("Max Entrainment", max_ent)
+    </variable>    
+    <variable name="Walltime" language="python">
+from fluidity_tools import stat_parser
+import numpy as np
+
+s = stat_parser('2d_entrainment.stat')
+Walltime = s['ElapsedWallTime']["value"][-1]
+print ("Total wall time", Walltime)
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Max RMS close to 560" language="python">
+assert abs(max_rms-560) &lt; 10
+    </test>
+    <test name="Max entrainment less than 0.004" language="python">
+assert max_ent &lt; 0.004
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

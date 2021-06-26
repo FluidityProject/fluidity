@@ -1,0 +1,50 @@
+rm -f  *.msh *.poly *.vtu *.s  *.stat *.log-0 *.err-0 matrixdump* *log *err
+gmsh -3 -o nemo_layers_1000m.msh nemo_layers_1000m.geo
+Info    : Running 'gmsh -3 -o nemo_layers_1000m.msh nemo_layers_1000m.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:11 2021
+Info    : Reading 'nemo_layers_1000m.geo'...
+Info    : Done reading 'nemo_layers_1000m.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (extruded)
+Info    : Meshing curve 2 (extruded)
+Info    : Meshing curve 3 (extruded)
+Info    : Meshing curve 4 (extruded)
+Info    : Meshing curve 7 (extruded)
+Info    : Meshing curve 8 (extruded)
+Info    : Meshing curve 9 (extruded)
+Info    : Meshing curve 10 (extruded)
+Info    : Meshing curve 12 (extruded)
+Info    : Meshing curve 13 (extruded)
+Info    : Meshing curve 17 (extruded)
+Info    : Meshing curve 21 (extruded)
+Info    : Done meshing 1D (9.8e-05 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 5 (extruded)
+Info    : Meshing surface 14 (extruded)
+Info    : Meshing surface 18 (extruded)
+Info    : Meshing surface 22 (extruded)
+Info    : Meshing surface 26 (extruded)
+Info    : Meshing surface 27 (extruded)
+Info    : Done meshing 2D (0.000387 s)
+Info    : Meshing 3D...
+Info    : Meshing volume 1 (extruded)
+Info    : Subdividing extruded mesh
+Info    : Swapping 0
+Info    : Remeshing surface 5
+Info    : Meshing surface 5 (extruded)
+Info    : Remeshing surface 14
+Info    : Meshing surface 14 (extruded)
+Info    : Remeshing surface 18
+Info    : Meshing surface 18 (extruded)
+Info    : Remeshing surface 22
+Info    : Meshing surface 22 (extruded)
+Info    : Remeshing surface 26
+Info    : Meshing surface 26 (extruded)
+Info    : Done meshing 3D (0 s)
+Info    : Optimizing 3D mesh...
+Info    : Done optimizing 3D mesh (0 s)
+Info    : 148 vertices 668 elements
+Info    : Writing 'nemo_layers_1000m.msh'...
+Info    : Done writing 'nemo_layers_1000m.msh'
+Info    : Stopped on Wed Jun 16 18:16:11 2021

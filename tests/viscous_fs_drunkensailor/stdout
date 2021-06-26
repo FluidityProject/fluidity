@@ -1,0 +1,20 @@
+rm -rf src/*.msh *.stat *.vtu *.pvtu *.log-0 *.err-0 *checkpoint *.convergence *.dat nohup.* fluidity* *parallel* *.pyc viscous_fs_drunkensailor_implicit_*
+gmsh -bin -2 src/square.geo
+Info    : Running 'gmsh -bin -2 src/square.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:12 2021
+Info    : Reading 'src/square.geo'...
+Info    : Done reading 'src/square.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (extruded)
+Info    : Meshing curve 2 (extruded)
+Info    : Meshing curve 3 (extruded)
+Info    : Meshing curve 4 (extruded)
+Info    : Done meshing 1D (9.5e-05 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 5 (extruded)
+Info    : Done meshing 2D (0.006991 s)
+Info    : 1681 vertices 3364 elements
+Info    : Writing 'src/square.msh'...
+Info    : Done writing 'src/square.msh'
+Info    : Stopped on Wed Jun 16 18:16:12 2021

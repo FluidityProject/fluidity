@@ -1,0 +1,130 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testproblem>
+  <name>gls-MixedLayer</name>
+  <owner userid="jhill1" />
+  <tags>flml gls</tags>
+    <problem_definition length="long" nprocs="1">
+        <command_line>mpiexec fluidity -v1 -l gls-MixedLayer-kw.flml;
+                      mpiexec fluidity -v1 -l gls-MixedLayer-gen.flml;
+                      mpiexec fluidity -v1 -l gls-MixedLayer-ke.flml;
+                      mpiexec fluidity -v1 -l gls-MixedLayer-kkl.flml;
+                      mpiexec fluidity -v1 -l gls-MixedLayer-ke_p1dgp2.flml;
+        </command_line>
+  </problem_definition>  
+  <variables>  
+    <variable name="KE_MLD" language="python">
+import glob
+import sys
+sys.path.append("gls-MixedLayer")
+import mld_calc
+ 
+filelist = glob.glob("gls-MixedLayer-ke*.vtu")
+KE_MLD = mld_calc.MLD(filelist,'ke')
+    </variable>    
+    <variable name="KW_MLD" language="python">
+import glob
+import sys
+sys.path.append("gls-MixedLayer")
+import mld_calc
+ 
+filelist = glob.glob("gls-MixedLayer-kw*.vtu")
+KW_MLD = mld_calc.MLD(filelist,'kw')
+    </variable> 
+    <variable name="GEN_MLD" language="python">
+import glob
+import sys
+sys.path.append("gls-MixedLayer")
+import mld_calc
+ 
+filelist = glob.glob("gls-MixedLayer-gen*.vtu")
+GEN_MLD = mld_calc.MLD(filelist,'gen')
+    </variable> 
+
+    <variable name="KKL_MLD" language="python">
+import glob
+import sys
+sys.path.append("gls-MixedLayer")
+import mld_calc
+ 
+filelist = glob.glob("gls-MixedLayer-kkl*.vtu")
+KKL_MLD = mld_calc.MLD(filelist,'gen')
+    </variable> 
+
+    <variable name="KE_MLD_P1DGP2" language="python">
+import glob
+import sys
+sys.path.append("gls-MixedLayer")
+import mld_calc
+ 
+filelist = glob.glob("gls-MixedLayer-p1dgp2*.vtu")
+KE_MLD_P1DGP2 = mld_calc.MLD(filelist,'p1dgp2')
+    </variable> 
+
+    <variable name="FinalTimeKE" language="python">
+import fluidity_tools
+FinalTimeKE = fluidity_tools.stat_parser("gls-MixedLayer-ke.stat")['ElapsedTime']['value'][-1]
+    </variable>  
+    <variable name="FinalTimeKW" language="python">
+import fluidity_tools
+FinalTimeKW = fluidity_tools.stat_parser("gls-MixedLayer-kw.stat")['ElapsedTime']['value'][-1]
+    </variable>  
+    <variable name="FinalTimeGEN" language="python">
+import fluidity_tools
+FinalTimeGEN = fluidity_tools.stat_parser("gls-MixedLayer-gen.stat")['ElapsedTime']['value'][-1]
+    </variable>    
+    <variable name="FinalTimeKKL" language="python">
+import fluidity_tools
+FinalTimeKKL = fluidity_tools.stat_parser("gls-MixedLayer-kkl.stat")['ElapsedTime']['value'][-1]
+    </variable>
+    <variable name="FinalTimeKE_P1DGP2" language="python">
+import fluidity_tools
+FinalTimeKE_P1DGP2 = fluidity_tools.stat_parser("gls-MixedLayer-p1dgp2.stat")['ElapsedTime']['value'][-1]
+    </variable>
+
+</variables>
+<pass_tests> 
+
+    <test name="Check mixed layed depth is within 2.25 metres of experimentally fitted values. K-epsilon" language="python">
+from numpy import array, all
+print(( array(KE_MLD[1]) - array(KE_MLD[2]) ))
+assert (all( abs(array(KE_MLD[1]) - array(KE_MLD[2]) ) &lt; 2.25))
+    </test>
+    <test name="Check mixed layed depth is within 2.25 metres of experimentally fitted values. Gen" language="python">
+from numpy import array, all
+print(( array(GEN_MLD[1]) - array(GEN_MLD[2]) ))
+assert (all( abs(array(GEN_MLD[1]) - array(GEN_MLD[2]) ) &lt; 2.25))
+    </test>
+    <test name="Check mixed layed depth is within 2.25 metres of experimentally fitted values. K-omega" language="python">
+from numpy import array, all
+print(( array(KW_MLD[1]) - array(KW_MLD[2]) ))
+assert (all( abs(array(KW_MLD[1]) - array(KW_MLD[2]) ) &lt; 2.25))
+    </test>   
+    <test name="Check mixed layed depth is within 2.25 metres of experimentally fitted values. K-KL" language="python">
+from numpy import array, all
+print(( array(KKL_MLD[1]) - array(KKL_MLD[2]) ))
+assert (all( abs(array(KKL_MLD[1]) - array(KKL_MLD[2]) ) &lt; 2.25))
+    </test>
+    <test name="Check mixed layed depth is within 2.25 metres of experimentally fitted values. K-E_p1DGp2" language="python">
+from numpy import array, all
+print(( array(KE_MLD_P1DGP2[1]) - array(KE_MLD_P1DGP2[2]) ))
+assert (all( abs(array(KE_MLD_P1DGP2[1]) - array(KE_MLD_P1DGP2[2]) ) &lt; 2.25))
+    </test>
+
+    <test name="Check for correct runtime (10 hours) KE" language="python">
+assert FinalTimeKE &gt; 35900
+    </test>
+    <test name="Check for correct runtime (10 hours) KW" language="python">
+assert FinalTimeKW &gt; 35900
+    </test>
+    <test name="Check for correct runtime (10 hours) GEN" language="python">
+assert FinalTimeGEN &gt; 35900
+    </test>
+    <test name="Check for correct runtime (10 hours) KKL" language="python">
+assert FinalTimeKKL &gt; 35900
+    </test>
+    <test name="Check for correct runtime (10 hours) KE_P1DGP2" language="python">
+assert FinalTimeKE_P1DGP2 &gt; 35900
+    </test>
+
+  </pass_tests>
+</testproblem>

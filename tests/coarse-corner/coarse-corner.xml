@@ -1,0 +1,145 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testproblem>
+  <name>Coarse corner (Parallel adaptivity test)</name>
+  <owner userid="pef" />
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="4">
+    <command_line>
+mpiexec flredecomp -i 1 -o 4 -v -l coarse-corner coarse-corner_flredecomp &amp;&amp;
+mpiexec fluidity -v2 -l coarse-corner_flredecomp.flml;
+cd checkpoint;
+cp -r ../*6_checkpoint* .
+./change_options
+mpiexec fluidity -v2 -l coarse-corner_6_checkpoint.flml;
+cd ..</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="log_n_lines" language="python">
+import os
+files = os.listdir("./")
+log_n_lines = {}
+for file in files:
+  if file.startswith("fluidity.log-"):
+    fileHandle = open(file)
+    log = fileHandle.read()
+    logSplit = log.split("\n")
+    print(file + ":")
+    for line in logSplit[-10:]:
+      print(line)
+    log_n_lines[file] = len(logSplit)
+    fileHandle.close()
+    </variable>
+    <variable name="error_log_n_lines" language="python">
+import os
+files = os.listdir("./")
+error_log_n_lines = {}
+for file in files:
+  if file.startswith("fluidity.err-"):
+    fileHandle = open(file)
+    errorLog = fileHandle.read()
+    print(file + ":")
+    print(errorLog)
+    error_log_n_lines[file] = len(errorLog.split("\n"))
+    fileHandle.close()
+    </variable>
+    <variable name="times" language="python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("coarse-corner.stat")
+times = s["ElapsedTime"]["value"]
+    </variable>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+    </variable>
+    <variable name="surface_area" language="python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("coarse-corner.stat")
+surface_area = s["BoussinesqFluid"]["ValueSurfaceIntTest"]["surface_integral%ValueWholeMesh"]
+    </variable>
+    <variable name="gradient_normal_surface_integral" language="python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("coarse-corner.stat")
+gradient_normal_surface_integral = s["BoussinesqFluid"]["GradientNormalSurfaceIntTest"]["surface_integral%GradientNormalWholeMesh"]
+    </variable>
+    <variable name="node_counts" language="python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("coarse-corner.stat")
+node_counts = s["CoordinateMesh"]["nodes"]
+    </variable>
+    <variable name="final_checkpoint_test" language="python">
+import os
+final_checkpoint_test = {}
+final_checkpoint_test["coarse-corner_PressureMesh_6_checkpoint.pvtu"] = True
+final_checkpoint_test["coarse-corner_VelocityMesh_6_checkpoint.pvtu"] = True
+for i in range(4):
+  final_checkpoint_test["coarse-corner_CoordinateMesh_6_checkpoint_" + str(i) + ".msh"] = True
+  final_checkpoint_test["coarse-corner_CoordinateMesh_6_checkpoint_" + str(i) + ".halo"] = True
+  final_checkpoint_test["coarse-corner_PressureMesh_6_checkpoint/coarse-corner_PressureMesh_6_checkpoint_" + str(i) + ".vtu"] = True
+  final_checkpoint_test["coarse-corner_VelocityMesh_6_checkpoint/coarse-corner_VelocityMesh_6_checkpoint_" + str(i) + ".vtu"] = True
+final_checkpoint_test["coarse-corner_6_checkpoint.flml"] = True
+for key in final_checkpoint_test.keys():
+  try:
+    os.stat(key)
+  except:
+    final_checkpoint_test[key] = False
+    </variable>
+    <variable name="picked_up_start_time" language="python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("checkpoint/coarse-corner.stat")
+picked_up_start_time = s["ElapsedTime"]["value"][0] - s["dt"]["value"][0]
+    </variable>
+    <variable name="picked_up_timesteps" language="python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("checkpoint/coarse-corner.stat")
+picked_up_timesteps = len(s["ElapsedTime"]["value"])
+    </variable>
+    <variable name="picked_up_solvers_converged" language="python">
+import os
+files = os.listdir("./checkpoint")
+picked_up_solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+    <test name="Simulation completed" language="python">
+import fluidity_tools
+fluidity_tools.compare_variable(times[len(times) - 1], 6.0, 1.0e-6)
+    </test>
+    <test name="Correct initial node count" language="python">
+import fluidity_tools
+assert(node_counts[0] == 1331)
+    </test>
+    <test name="Correct surface area" language="python">
+import fluidity_tools
+fluidity_tools.compare_variables(surface_area, [600.0 for i in range(len(surface_area))], 1.0e-6)
+    </test>
+    <test name="Zero gradient normal surface integral" language="python">
+abs_surface_integral = [abs(surface_integral) for surface_integral in gradient_normal_surface_integral]
+print(max(abs_surface_integral))
+assert(max(abs_surface_integral) &lt; 0.01)
+    </test>
+    <test name="Final checkpoint created" language="python">
+for key in final_checkpoint_test.keys():
+  assert(final_checkpoint_test[key])
+    </test>
+    <test name="Picked up simulation started from correct time" language="python">
+import fluidity_tools
+fluidity_tools.compare_variable(picked_up_start_time, times[len(times) - 1], 1.0e-6)
+    </test>
+    <test name="Picked up simulation completed" language="python">
+assert(picked_up_timesteps == 1)
+    </test>
+    <test name="Picked up solvers converged" language="python">
+assert(picked_up_solvers_converged)
+    </test>
+  </pass_tests>
+  <warn_tests>
+    <test name="Expected final node count" language="python">
+import fluidity_tools
+fluidity_tools.compare_variable(node_counts[-1], 8500, 0.3)
+    </test>
+  </warn_tests>
+</testproblem>

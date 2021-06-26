@@ -1,0 +1,30 @@
+rm -f  *.vtu *.stat src/*.msh *.msh *halo *.detectors fluidity.* *.dat *Parallel* *.pyc
+rm -R -f vanKekenTwoB_*
+gmsh -2 -optimize src/Subduction_Mesh.geo
+Info    : Running 'gmsh -2 -optimize src/Subduction_Mesh.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:08 2021
+Info    : Reading 'src/Subduction_Mesh.geo'...
+Info    : Done reading 'src/Subduction_Mesh.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Line)
+Info    : Meshing curve 2 (Line)
+Info    : Meshing curve 3 (Line)
+Info    : Meshing curve 4 (Line)
+Info    : Meshing curve 5 (Line)
+Info    : Meshing curve 7 (Line)
+Info    : Meshing curve 9 (Line)
+Info    : Meshing curve 10 (Line)
+Info    : Meshing curve 11 (Line)
+Info    : Meshing curve 14 (Line)
+Info    : Done meshing 1D (0.060472 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 23 (Plane, Delaunay)
+Info    : Meshing surface 26 (Plane, Delaunay)
+Info    : Meshing surface 29 (Plane, Delaunay)
+Info    : Done meshing 2D (2.15436 s)
+Info    : 28183 vertices 57049 elements
+Info    : Writing 'src/Subduction_Mesh.msh'...
+Info    : Done writing 'src/Subduction_Mesh.msh'
+Info    : Stopped on Wed Jun 16 18:16:12 2021
+cp src/Subduction_Mesh.msh .

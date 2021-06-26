@@ -1,0 +1,81 @@
+rm -f *.vtu *.stat *.s *.log src/*.msh *.msh  *checkpoint*
+gmsh -2 src/MMS_A.geo
+Info    : Running 'gmsh -2 src/MMS_A.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:18 2021
+Info    : Reading 'src/MMS_A.geo'...
+Info    : Done reading 'src/MMS_A.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Circle)
+Info    : Meshing curve 2 (Circle)
+Info    : Meshing curve 3 (Line)
+Info    : Meshing curve 4 (Line)
+Info    : Done meshing 1D (0.000727 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 6 (Plane, Delaunay)
+Info    : Done meshing 2D (0.012065 s)
+Info    : 182 vertices 365 elements
+Info    : Writing 'src/MMS_A.msh'...
+Info    : Done writing 'src/MMS_A.msh'
+Info    : Stopped on Wed Jun 16 18:16:18 2021
+gmsh -2 src/MMS_B.geo
+Info    : Running 'gmsh -2 src/MMS_B.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:18 2021
+Info    : Reading 'src/MMS_B.geo'...
+Info    : Done reading 'src/MMS_B.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Circle)
+Info    : Meshing curve 2 (Circle)
+Info    : Meshing curve 3 (Line)
+Info    : Meshing curve 4 (Line)
+Info    : Done meshing 1D (0.000573 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 6 (Plane, Delaunay)
+Info    : Done meshing 2D (0.041402 s)
+Info    : 670 vertices 1341 elements
+Info    : Writing 'src/MMS_B.msh'...
+Info    : Done writing 'src/MMS_B.msh'
+Info    : Stopped on Wed Jun 16 18:16:19 2021
+gmsh -2 src/MMS_C.geo
+Info    : Running 'gmsh -2 src/MMS_C.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:19 2021
+Info    : Reading 'src/MMS_C.geo'...
+Info    : Done reading 'src/MMS_C.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Circle)
+Info    : Meshing curve 2 (Circle)
+Info    : Meshing curve 3 (Line)
+Info    : Meshing curve 4 (Line)
+Info    : Done meshing 1D (0.00103 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 6 (Plane, Delaunay)
+Info    : Done meshing 2D (0.120674 s)
+Info    : 2572 vertices 5145 elements
+Info    : Writing 'src/MMS_C.msh'...
+Info    : Done writing 'src/MMS_C.msh'
+Info    : Stopped on Wed Jun 16 18:16:19 2021
+gmsh -2 src/MMS_D.geo
+Info    : Running 'gmsh -2 src/MMS_D.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:19 2021
+Info    : Reading 'src/MMS_D.geo'...
+Info    : Done reading 'src/MMS_D.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Circle)
+Info    : Meshing curve 2 (Circle)
+Info    : Meshing curve 3 (Line)
+Info    : Meshing curve 4 (Line)
+Info    : Done meshing 1D (0.00091 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 6 (Plane, Delaunay)
+Info    : Done meshing 2D (0.675396 s)
+Info    : 9973 vertices 19947 elements
+Info    : Writing 'src/MMS_D.msh'...
+Info    : Done writing 'src/MMS_D.msh'
+Info    : Stopped on Wed Jun 16 18:16:20 2021
+cp src/MMS_A.msh .
+cp src/MMS_B.msh .
+cp src/MMS_C.msh .
+cp src/MMS_D.msh .

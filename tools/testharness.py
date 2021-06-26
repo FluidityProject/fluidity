@@ -141,13 +141,17 @@ try:
 {indent(test_str.strip(), "    ")}
     print("--- Success")
 except AssertionError:
+    from sys import stderr
     from traceback import print_exc
     print("--- {assertion_status} !!!")
     print_exc()
+    print("~~~ End of Traceback ~~~", file=stderr)
 except Exception:
+    from sys import stderr
     from traceback import print_exc
     print("--- Error !!!")
-    print_exc()"""
+    print_exc()
+    print("~~~ End of Traceback ~~~", file=stderr)"""
 
 
 def poll_processes(running_procs, core_counter, serial, return_list,
@@ -218,18 +222,15 @@ def process_error(test_xml, process_interpreter, stdout, stderr):
         # Failure(s) within actual test(s)
         elif any(f"# {kind} Test" in stdout for kind in ["Pass", "Warn"]):
             # Identify unsuccessful Python tests through stdout
-            r"""
-            regex = (r"(?<=^#\s)" ".+"
-                     "(?=(\n[^#]+|\n.{0,}#(?! Pass Test| Warn Test).{0,}){0,}"
-                     "\n--- (Error|Failure|Warning))")
-            """
             regex = (r"(?<=^#\s)" ".+"
                      "(?=(\n^[^#].+|\n^#(?! Pass Test| Warn Test).+){0,}"
                      "\n--- (Error|Failure|Warning))")
             failed_tests = [match.group().split(": ") for match
                             in re.finditer(regex, stdout, re.MULTILINE)]
             # Split stderr into individual tracebacks
-            tracebacks = re.split(r"\W(?=Traceback)", stderr)
+            regex = "(^Traceback).+(\n.+)+?(?=\n~~~ End of Traceback ~~~)"
+            tracebacks = [match.group() for match in re.finditer(
+                            regex, stderr, re.MULTILINE)]
             flag_pass, flag_warn = True, True
             for traceback, (test_type, test_name) in zip(tracebacks,
                                                          failed_tests):
@@ -242,7 +243,8 @@ def process_error(test_xml, process_interpreter, stdout, stderr):
                     xml_entry.status = ("Warning" if flag_pass
                                         else "Failure and Warning")
                     flag_warn = False
-                line_nb = re.search(r"(?<=, line )\d+", traceback).group()
+                line_nb = re.search(r"(?<=, line )\d+(?=, in )",
+                                    traceback).group()
                 python_failure_line = python_lines[int(line_nb) - 1][4:]
                 traceback = traceback.replace(
                     "line " + line_nb, f"'{python_failure_line}'")
@@ -253,10 +255,13 @@ def process_error(test_xml, process_interpreter, stdout, stderr):
         else:  # Error within variable
             error_list.append(test_xml.stem)
             xml_entry.status = "Error"
-            line_nb = re.search(r"(?<=, line )\d+", stderr).group()
-            python_failure_line = python_lines[int(line_nb) - 1]
-            traceback = stderr.replace("line " + line_nb,
-                                       f"'{python_failure_line}'")
+            regex = "(^Traceback).+(\n.+)+?(?=\n~~~ End of Traceback ~~~)"
+            traceback = re.search(regex, stderr, re.MULTILINE).group()
+            line_nb = re.search(r"(?<=, line )\d+(?=, in )",
+                                traceback).group()
+            python_failure_line = python_lines[int(line_nb) - 1][4:]
+            traceback = traceback.replace(
+                "line " + line_nb, f"'{python_failure_line}'")
             var_name = list(re.finditer(r"(?<=^#\sVariable:\s).+", stdout,
                                         re.MULTILINE))[-1].group()
             xml_entry.add_error_info(

@@ -1,0 +1,51 @@
+rm -f  *.msh *.poly *.vtu *.s  *.stat *.log-0 *.err-0 matrixdump* src/*.msh
+gmsh -3 ./src/channel_3d.geo
+Info    : Running 'gmsh -3 ./src/channel_3d.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:12 2021
+Info    : Reading './src/channel_3d.geo'...
+Info    : Done reading './src/channel_3d.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Line)
+Info    : Meshing curve 2 (extruded)
+Info    : Meshing curve 3 (extruded)
+Info    : Meshing curve 4 (extruded)
+Info    : Meshing curve 7 (extruded)
+Info    : Meshing curve 8 (extruded)
+Info    : Meshing curve 9 (extruded)
+Info    : Meshing curve 10 (extruded)
+Info    : Meshing curve 12 (extruded)
+Info    : Meshing curve 13 (extruded)
+Info    : Meshing curve 17 (extruded)
+Info    : Meshing curve 21 (extruded)
+Info    : Done meshing 1D (0.000412 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 5 (extruded)
+Info    : Meshing surface 14 (extruded)
+Info    : Meshing surface 18 (extruded)
+Info    : Meshing surface 22 (extruded)
+Info    : Meshing surface 26 (extruded)
+Info    : Meshing surface 27 (extruded)
+Info    : Done meshing 2D (0.007796 s)
+Info    : Meshing 3D...
+Info    : Meshing volume 1 (extruded)
+Info    : Subdividing extruded mesh
+Info    : Swapping 0
+Info    : Remeshing surface 5
+Info    : Meshing surface 5 (extruded)
+Info    : Remeshing surface 14
+Info    : Meshing surface 14 (extruded)
+Info    : Remeshing surface 18
+Info    : Meshing surface 18 (extruded)
+Info    : Remeshing surface 22
+Info    : Meshing surface 22 (extruded)
+Info    : Remeshing surface 26
+Info    : Meshing surface 26 (extruded)
+Info    : Done meshing 3D (0.034912 s)
+Info    : Optimizing 3D mesh...
+Info    : Done optimizing 3D mesh (0.000186 s)
+Info    : 1782 vertices 8732 elements
+Info    : Writing './src/channel_3d.msh'...
+Info    : Done writing './src/channel_3d.msh'
+Info    : Stopped on Wed Jun 16 18:16:12 2021
+cp src/channel_3d.msh .

@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testproblem>
+  <name>vanKeken2008-Benchmark(2b)</name>
+  <owner userid="rhodrid" />
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="8">
+    <command_line>mpiexec flredecomp -i 1 -o 8 Stokes-subduction-zone-vanKeken2008-TwoB Parallel-NP8-Stokes-subduction-zone-vanKeken2008-TwoB ; mpiexec fluidity -v2 -l Parallel-NP8-Stokes-subduction-zone-vanKeken2008-TwoB.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="Temperature6060" language="python">
+import h5py
+import numpy as np
+f = h5py.File("vanKekenTwoB.detectors.h5part", "r")
+d = f["/Step#{}".format(len(f) - 1)]
+det_id, = np.where(d["id"][:] == f.attrs["Temperature6060%ids"][0])
+Temperature6060 = d["Fluid%Temperature"][det_id[0]] - 273.
+    </variable>
+    <variable name="TL2SLAB" language="python">
+import numpy as np
+import h5py
+
+f = h5py.File("vanKekenTwoB.detectors.h5part", "r")
+tslab_ids = f.attrs["TSlab%ids"]
+d = f["/Step#{}".format(len(f) - 1)]
+s = np.zeros(len(f))
+
+for i in range(len(f)):
+  ids = np.where(f["/Step#{}/id".format(i)][:] == tslab_ids[:,None])[1]
+  s[i] = np.sum(f["/Step#{}/Fluid%Temperature".format(i)][:][ids] ** 2)
+
+TL2SLAB = np.sqrt(s/36)
+    <comment>Computes the L2 Temperature norm in 36 equidistant points along the slab, close to the wedge corner.</comment></variable>
+    <variable name="TL2WEDGE" language="python">
+import numpy as np
+import h5py
+
+f = h5py.File("vanKekenTwoB.detectors.h5part", "r")
+twedge_ids = f.attrs["TWedge%ids"]
+d = f["/Step#{}".format(len(f) - 1)]
+s = np.zeros(len(f))
+
+for i in range(len(f)):
+  ids = np.where(f["/Step#{}/id".format(i)][:] == twedge_ids[:,None])[1]
+  s[i] = np.sum(f["/Step#{}/Fluid%Temperature".format(i)][:][ids] ** 2)
+
+TL2WEDGE = np.sqrt(s/78)
+    <comment>Computes the L2 Temperature norm for 78 points in the wedge corner.</comment></variable>
+    <variable name="max_load_imbalance" language="python">
+from check_partitions import *
+max_load_imbalance = calculate_partition_weights()
+      <comment>Checks flredecomp field weighted partition functionality</comment>
+    </variable>
+
+  </variables>
+  <pass_tests>
+    <test name="At point 6060, 580 .lt. T .lt. 585 " language="python">assert ( Temperature6060 &gt; 580. )
+assert ( Temperature6060 &lt; 585. )</test>
+    <test name="585 .lt. Integral of T at slab wedge interface .lt. 610 " language="python">assert ( ( TL2SLAB[-1]-273. ) &gt; 585. )
+assert ( ( TL2SLAB[-1]-273. ) &lt; 610. )</test>
+    <test name="995 .lt. Integral of T in wedge corner .lt. 1005" language="python">assert ( ( TL2WEDGE[-1]-273. ) &gt; 995. )
+assert ( ( TL2WEDGE[-1]-273. ) &lt; 1005. )</test>
+    <test name="maximum load imbalance .lt. 1.4 " language="python">
+      assert ( max_load_imbalance &lt; 1.4 )
+    </test>
+  </pass_tests>
+</testproblem>

@@ -1,0 +1,1723 @@
+Fluidity command line:
+ fluidity -v2 -l MMS_A.flml 
+Environment variables relevant for fluidity:
+PETSC_OPTIONS = -mg_levels_esteig_ksp_type cg -ksp_chebyshev_esteig_random -mg_levels_esteig_ksp_max_it 30 -pc_gamg_square_graph 100
+fluidity_options/
+  simulation_name/
+    __value/
+     <value>: MMS_A
+      lines: 1
+  problem_type/
+    __value/
+     <value>: fluids
+      lines: 1
+  geometry/
+    dimension/
+      __value/
+       <value>: 2 
+        rank: 0
+    mesh::CoordinateMesh/
+      name: CoordinateMesh
+      from_mesh/
+        mesh::InputMesh/
+          name: InputMesh
+        stat/
+          exclude_from_stat: NULL
+    mesh::VelocityMesh/
+      name: VelocityMesh
+      from_mesh/
+        mesh::InputMesh/
+          name: InputMesh
+        mesh_continuity/
+          __value: discontinuous
+        stat/
+          exclude_from_stat: NULL
+    mesh::PressureMesh/
+      name: PressureMesh
+      from_mesh/
+        mesh::InputMesh/
+          name: InputMesh
+        mesh_shape/
+          polynomial_degree/
+            __value/
+             <value>: 2 
+              rank: 0
+        stat/
+          exclude_from_stat: NULL
+    mesh::InputMesh/
+      name: InputMesh
+      from_file/
+        file_name: MMS_A
+        format::gmsh/
+          name: gmsh
+        stat/
+          include_in_stat: NULL
+    quadrature/
+      degree/
+        __value/
+         <value>: 4 
+          rank: 0
+  io/
+    dump_format/
+      __value: vtk
+    dump_period/
+      constant/
+        __value/
+         <value>: 15 
+          rank: 0
+    output_mesh::VelocityMesh/
+      name: VelocityMesh
+    checkpointing/
+      checkpoint_period_in_dumps/
+        __value/
+         <value>: 10000 
+          rank: 0
+      checkpoint_at_end: NULL
+    stat: NULL
+  timestepping/
+    current_time/
+      __value/
+       <value>: 0 
+        rank: 0
+    timestep/
+      __value/
+       <value>: 0.00726733 
+        rank: 0
+      comment: gives a max cfl number of 0.1
+    finish_time/
+      __value/
+       <value>: 10 
+        rank: 0
+      comment: 10.0
+    steady_state/
+      tolerance/
+        __value/
+         <value>: 1e-08 
+          rank: 0
+        infinity_norm: NULL
+  physical_parameters: NULL
+  material_phase::NS/
+    name: NS
+    equation_of_state/
+      fluids/
+        linear/
+          reference_density/
+            __value/
+             <value>: 1 
+              rank: 0
+    scalar_field::Pressure/
+      name: Pressure
+      rank: 0
+      prognostic/
+        mesh::PressureMesh/
+          name: PressureMesh
+        spatial_discretisation/
+          continuous_galerkin/
+            remove_stabilisation_term: NULL
+        scheme/
+          poisson_pressure_solution/
+            __value/
+             <value>: never
+              lines: 1
+          use_projection_method/
+            full_schur_complement/
+              inner_matrix::FullMomentumMatrix/
+                name: FullMomentumMatrix
+              preconditioner_matrix::DiagonalSchurComplement/
+                name: DiagonalSchurComplement
+        solver/
+          iterative_method::fgmres/
+            name: fgmres
+          preconditioner::jacobi/
+            name: jacobi
+          relative_error/
+            __value/
+             <value>: 1e-07 
+              rank: 0
+          max_iterations/
+            __value/
+             <value>: 1000 
+              rank: 0
+          remove_null_space: NULL
+          never_ignore_solver_failures: NULL
+          diagnostics/
+            monitors: NULL
+        output/
+          include_previous_time_step: NULL
+        stat: NULL
+        convergence/
+          include_in_convergence: NULL
+        detectors/
+          exclude_from_detectors: NULL
+        particles/
+          exclude_from_particles: NULL
+        steady_state/
+          include_in_steady_state: NULL
+        consistent_interpolation: NULL
+    scalar_field::Density/
+      name: Density
+      rank: 0
+      diagnostic/
+        algorithm::Internal/
+          name: Internal
+          material_phase_support: multiple
+        mesh::VelocityMesh/
+          name: VelocityMesh
+        output: NULL
+        stat: NULL
+        convergence/
+          include_in_convergence: NULL
+        detectors/
+          include_in_detectors: NULL
+        particles/
+          exclude_from_particles: NULL
+        steady_state/
+          include_in_steady_state: NULL
+    vector_field::Velocity/
+      name: Velocity
+      rank: 1
+      prognostic/
+        mesh::VelocityMesh/
+          name: VelocityMesh
+        equation::LinearMomentum/
+          name: LinearMomentum
+        spatial_discretisation/
+          discontinuous_galerkin/
+            mass_terms/
+              exclude_mass_terms: NULL
+            viscosity_scheme/
+              bassi_rebay: NULL
+              tensor_form: NULL
+            advection_scheme/
+              none: NULL
+              integrate_advection_by_parts/
+                twice: NULL
+            buoyancy: NULL
+          conservative_advection/
+            __value/
+             <value>: 0 
+              rank: 0
+        temporal_discretisation/
+          theta/
+            __value/
+             <value>: 1 
+              rank: 0
+          relaxation/
+            __value/
+             <value>: 1 
+              rank: 0
+        solver/
+          iterative_method::cg/
+            name: cg
+          preconditioner::eisenstat/
+            name: eisenstat
+          relative_error/
+            __value/
+             <value>: 1e-07 
+              rank: 0
+          max_iterations/
+            __value/
+             <value>: 10000 
+              rank: 0
+          never_ignore_solver_failures: NULL
+          diagnostics/
+            monitors: NULL
+        initial_condition::WholeMesh/
+          name: WholeMesh
+          constant/
+            __value/
+             <value>: 0 0 
+              rank: 1
+              shape: 2
+              dim1: dim
+        boundary_conditions::all_sides/
+          name: all_sides
+          surface_ids/
+            __value/
+             <value>: 7 8 9 10 
+              rank: 1
+              shape: 4
+          type::dirichlet/
+            name: dirichlet
+            apply_weakly: NULL
+            align_bc_with_cartesian/
+              x_component/
+                python/
+                  __value/
+                   <value>: def val(X,t):
+   from math import sin, cos
+   # Shear rotation about origin.
+   u = sin(X[0])*cos(X[1])
+   return u
+                    type: code
+                    language: python
+                    lines: 20
+              y_component/
+                python/
+                  __value/
+                   <value>: def val(X,t):
+   from math import sin, cos
+   # Shear rotation about origin.
+   v = -1.0*cos(X[0])*sin(X[1])
+   return v
+                    type: code
+                    language: python
+                    lines: 20
+        tensor_field::Viscosity/
+          name: Viscosity
+          rank: 2
+          prescribed/
+            value::WholeMesh/
+              name: WholeMesh
+              isotropic/
+                constant/
+                  __value/
+                   <value>: 0.7 
+                    rank: 0
+            output: NULL
+            particles/
+              exclude_from_particles: NULL
+        vector_field::Source/
+          name: Source
+          rank: 1
+          prescribed/
+            value::WholeMesh/
+              name: WholeMesh
+              python/
+                __value/
+                 <value>: def val(XX, t):
+   from math import sin,cos
+   nu = 0.7;
+   adv = 0.0;
+   beta = 0.0;
+   mass = 0.0;
+   rho = 1.0;
+   x = XX[0];
+   y = XX[1];
+   Su = adv*rho*(cos(x)*sin(x)*sin(y)**2 + cos(x)*sin(x)*cos(y)**2) + 2*nu*sin(x)*cos(y) - sin(x)*cos(y)
+   Sv = adv*rho*(sin(x)**2*cos(y)*sin(y) + cos(x)**2*cos(y)*sin(y)) - 2*nu*cos(x)*sin(y) - cos(x)*sin(y)
+   return (Su, Sv)
+                  type: code
+                  language: python
+                  lines: 20
+                comment: u(x,y,rho,beta,nu,adv,mass,t) = sin(x)*cos(y)
+v(x,y,rho,beta,nu,adv,masst) = -cos(x)*sin(y)
+p(x,y,rho,beta,nu,adv,mass,t) = cos(x)*cos(y)
+
+u_t = diff(u,t)
+v_t = diff(v,t)
+
+u_x = diff(u,x)
+u_y = diff(u,y)
+v_x = diff(v,x)
+v_y = diff(v,y)
+
+p_x = diff(p,x)
+p_y = diff(p,y)
+
+u_xx = diff(u_x,x)
+u_yy = diff(u_y,y)
+v_xx = diff(v_x,x)
+v_yy = diff(v_y,y)
+
+mass*rho*u_t + adv*rho*(u*u_x+v*u_y + beta*(u*u_x + u*v_y)) + p_x - nu*u_xx - nu*u_yy
+mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nu*v_xx - nu*v_yy
+            output: NULL
+            stat/
+              include_in_stat: NULL
+            detectors/
+              exclude_from_detectors: NULL
+            particles/
+              exclude_from_particles: NULL
+        output/
+          include_previous_time_step: NULL
+        stat/
+          include_in_stat: NULL
+          previous_time_step/
+            exclude_from_stat: NULL
+          nonlinear_field/
+            exclude_from_stat: NULL
+        convergence/
+          include_in_convergence: NULL
+        detectors/
+          include_in_detectors: NULL
+        particles/
+          exclude_from_particles: NULL
+        steady_state/
+          include_in_steady_state: NULL
+        consistent_interpolation: NULL
+    scalar_field::CFLNumber/
+      name: CFLNumber
+      rank: 0
+      diagnostic/
+        algorithm::Internal/
+          name: Internal
+          material_phase_support: multiple
+        mesh::VelocityMesh/
+          name: VelocityMesh
+        output: NULL
+        stat: NULL
+        convergence/
+          include_in_convergence: NULL
+        detectors/
+          include_in_detectors: NULL
+        particles/
+          exclude_from_particles: NULL
+        steady_state/
+          include_in_steady_state: NULL
+    scalar_field::PressureAnalytical/
+      name: PressureAnalytical
+      rank: 0
+      prescribed/
+        mesh::PressureMesh/
+          name: PressureMesh
+        value::WholeMesh/
+          name: WholeMesh
+          python/
+            __value/
+             <value>: def val(X,t):
+   from math import cos
+   p = cos(X[0])*cos(X[1])
+   return p
+              type: code
+              language: python
+              lines: 20
+        output: NULL
+        stat: NULL
+        detectors/
+          exclude_from_detectors: NULL
+        particles/
+          exclude_from_particles: NULL
+    scalar_field::ScalarAbsoluteDifference/
+      name: ScalarAbsoluteDifference
+      rank: 0
+      diagnostic/
+        field_name_a: PressureAnalytical
+        field_name_b: Pressure
+        algorithm::Internal/
+          name: Internal
+          material_phase_support: multiple
+        mesh::PressureMesh/
+          name: PressureMesh
+        output: NULL
+        stat: NULL
+        convergence/
+          include_in_convergence: NULL
+        detectors/
+          include_in_detectors: NULL
+        particles/
+          exclude_from_particles: NULL
+        steady_state/
+          include_in_steady_state: NULL
+        relative_to_average: NULL
+    scalar_field::FiniteElementDivergence/
+      name: FiniteElementDivergence
+      rank: 0
+      diagnostic/
+        field_name: Velocity
+        algorithm::Internal/
+          name: Internal
+          material_phase_support: multiple
+          legacy: true
+        mesh::PressureMesh/
+          name: PressureMesh
+        integrate_divergence_by_parts: NULL
+        solver/
+          iterative_method::cg/
+            name: cg
+          preconditioner::sor/
+            name: sor
+          relative_error/
+            __value/
+             <value>: 1e-10 
+              rank: 0
+          max_iterations/
+            __value/
+             <value>: 10000 
+              rank: 0
+          never_ignore_solver_failures: NULL
+          diagnostics/
+            monitors: NULL
+        output: NULL
+        stat: NULL
+        convergence/
+          include_in_convergence: NULL
+        detectors/
+          include_in_detectors: NULL
+        particles/
+          exclude_from_particles: NULL
+        steady_state/
+          include_in_steady_state: NULL
+    vector_field::VelocityAnalytical/
+      name: VelocityAnalytical
+      rank: 1
+      prescribed/
+        mesh::VelocityMesh/
+          name: VelocityMesh
+        value::WholeMesh/
+          name: WholeMesh
+          python/
+            __value/
+             <value>: def val(X,t):
+   from math import sin, cos
+   # Shear rotation about origin.
+   return (sin(X[0])*cos(X[1]), -1.0*cos(X[0])*sin(X[1]))
+              type: code
+              language: python
+              lines: 20
+        output: NULL
+        stat/
+          include_in_stat: NULL
+        detectors/
+          exclude_from_detectors: NULL
+        particles/
+          exclude_from_particles: NULL
+    vector_field::VectorAbsoluteDifference/
+      name: VectorAbsoluteDifference
+      rank: 1
+      diagnostic/
+        field_name_a: VelocityAnalytical
+        field_name_b: Velocity
+        algorithm::Internal/
+          name: Internal
+          material_phase_support: multiple
+        mesh::VelocityMesh/
+          name: VelocityMesh
+        output: NULL
+        stat/
+          include_in_stat: NULL
+        convergence/
+          include_in_convergence: NULL
+        detectors/
+          include_in_detectors: NULL
+        particles/
+          exclude_from_particles: NULL
+        steady_state/
+          include_in_steady_state: NULL
+Revision: testharness:68ec40081346d1dab836f23b92742315a9c72430 (debugging)
+Compile date: Jun 10 2021 12:25:29
+OpenMP Support			no
+Adaptivity support		yes
+2D adaptivity support		yes
+3D MBA support			no
+CGAL support			no
+MPI support			yes
+Double precision		yes
+NetCDF support			yes
+Signal handling support		yes
+Stream I/O support		yes
+PETSc support			yes
+Hypre support			yes
+ARPACK support			no
+Python support			yes
+Numpy support			yes
+VTK support			yes
+Zoltan support			yes
+Memory diagnostics		yes
+FEMDEM support			no
+Hyperlight support		no
+libsupermesh support		no
+/home/thomas/Softwares/fluidity/python/fluidity/state_types.py
+fluidity.state_types imported successfully; location: 
+ Calling fluids from mainfl
+ Checking checkpointing options
+ Finished checking checkpointing options
+ Checking output options
+ Finished checking output options.
+ Checking diagnostic fields related options
+ Finished checking diagnostic fields related options
+ Checking mesh options.
+ There are           4 meshes.
+ Done with problem type choice
+ Checking interpolation algorithm selection options
+ Finished checking interpolation algorithm selection options
+ Checking momentum discretisation options
+ Finished checking momentum discretisation options
+ Checking CG advection-diffusion options
+ Finished checking CG advection-diffusion options
+ Checking k-epsilon options
+ Checking simulation completion options
+ Finished checking simulation completion options
+ in dqmom_check_options
+ Finished dqmom_check_options
+ Options sanity check successful
+ In populate_state
+ In initialise_ocean_forcing_readers
+ Exiting initialise_ocean_forcing_readers
+ There are           4 meshes.
+ Opening MMS_A.msh for reading.
+ Adding element-element list to mesh CoordinateMesh
+ Adding node-element list to mesh CoordinateMesh
+ Using the new makeeelist
+ Number of surface elements:           36
+ Number of unique surface elements:           36
+ Inside get_coplanar_ids
+ Adding node-element list to mesh SurfaceCoordinateMesh
+ Before merge_surface_ids, n/o local coplanes:           4
+ In merge_surface_ids
+ Surface id stats for mesh InputMesh
+ Surface id,  n/o surface elements,       surface area
+         7                      9     3.141592654E+00
+         8                      9     3.141592654E+00
+         9                      9     3.141592654E+00
+        10                      9     3.141592654E+00
+ Total number of surface elements:          36
+Total surface area:     1.256637061E+01
+ Transferring element-element list to mesh VelocityMesh
+ SUBROUTINE POSINM()
+ Constructing lMatrix using linked-lists
+ Compressing matrix
+ subroutine compress_sparsity
+ END subroutine compress_sparsity
+ END SUBROUTINE POSINM
+ Transferring element-element list to mesh PressureMesh
+ domain_bbox - dim, range =           1   0.0000000000000000        3.1415926535897931     
+ domain_bbox - dim, range =           2   0.0000000000000000        3.1415926535897931     
+ domain_volume =   9.8696044010893544     
+ In allocate_and_insert_scalar_field, field is: Pressure
+ Is field prognostic?  T
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  F
+ Pressure is on mesh PressureMesh
+     Inserting children of: /material_phase[0]/scalar_field::Pressure/prognostic
+     Inserting children of: /material_phase[0]/scalar_field::Pressure/prognostic/spatial_discretisation/inner_element
+ In allocate_and_insert_scalar_field, field is: Density
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ Density is on mesh VelocityMesh
+     Inserting children of: /material_phase[0]/scalar_field::Density/diagnostic
+     Inserting children of: /material_phase[0]/scalar_field::Density/diagnostic/spatial_discretisation/inner_element
+ In allocate_and_insert_scalar_field, field is: CFLNumber
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ CFLNumber is on mesh VelocityMesh
+     Inserting children of: /material_phase[0]/scalar_field::CFLNumber/diagnostic
+     Inserting children of: /material_phase[0]/scalar_field::CFLNumber/diagnostic/spatial_discretisation/inner_element
+ In allocate_and_insert_scalar_field, field is: PressureAnalytical
+ Is field prognostic?  F
+ Is field prescribed?  T
+ Is field constant?  F
+ Is field diagnostic?  F
+ PressureAnalytical is on mesh PressureMesh
+     Inserting children of: /material_phase[0]/scalar_field::PressureAnalytical/prescribed
+     Inserting children of: /material_phase[0]/scalar_field::PressureAnalytical/prescribed/spatial_discretisation/inner_element
+ In allocate_and_insert_scalar_field, field is: ScalarAbsoluteDifference
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ ScalarAbsoluteDifference is on mesh PressureMesh
+     Inserting children of: /material_phase[0]/scalar_field::ScalarAbsoluteDifference/diagnostic
+     Inserting children of: /material_phase[0]/scalar_field::ScalarAbsoluteDifference/diagnostic/spatial_discretisation/inner_element
+ In allocate_and_insert_scalar_field, field is: FiniteElementDivergence
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ FiniteElementDivergence is on mesh PressureMesh
+     Inserting children of: /material_phase[0]/scalar_field::FiniteElementDivergence/diagnostic
+     Inserting children of: /material_phase[0]/scalar_field::FiniteElementDivergence/diagnostic/spatial_discretisation/inner_element
+ In allocate_and_insert_vector_field, field is: Velocity
+ Is field prognostic?  T
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  F
+ Velocity is on mesh VelocityMesh
+     Inserting children of: /material_phase[0]/vector_field::Velocity/prognostic
+ In allocate_and_insert_vector_field, field is: VelocitySource
+ Is field prognostic?  F
+ Is field prescribed?  T
+ Is field constant?  F
+ Is field diagnostic?  F
+ VelocitySource is on mesh VelocityMesh
+     Inserting children of: /material_phase[0]/vector_field::Velocity/prognostic/vector_field::Source/prescribed
+     Inserting children of: /material_phase[0]/vector_field::Velocity/prognostic/vector_field::Source/prescribed/spatial_discretisation/inner_element
+ In allocate_and_insert_tensor_field, field is: Viscosity
+ Is field prescribed?  T
+ Is field diagnostic?  F
+ Is field constant?  T
+     Inserting children of: /material_phase[0]/vector_field::Velocity/prognostic/tensor_field::Viscosity/prescribed
+     Inserting children of: /material_phase[0]/vector_field::Velocity/prognostic/tensor_field::Viscosity/prescribed/spatial_discretisation/inner_element
+     Inserting children of: /material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/inner_element
+ In allocate_and_insert_vector_field, field is: VelocityAnalytical
+ Is field prognostic?  F
+ Is field prescribed?  T
+ Is field constant?  F
+ Is field diagnostic?  F
+ VelocityAnalytical is on mesh VelocityMesh
+     Inserting children of: /material_phase[0]/vector_field::VelocityAnalytical/prescribed
+     Inserting children of: /material_phase[0]/vector_field::VelocityAnalytical/prescribed/spatial_discretisation/inner_element
+ In allocate_and_insert_vector_field, field is: VectorAbsoluteDifference
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ VectorAbsoluteDifference is on mesh VelocityMesh
+     Inserting children of: /material_phase[0]/vector_field::VectorAbsoluteDifference/diagnostic
+     Inserting children of: /material_phase[0]/vector_field::VectorAbsoluteDifference/diagnostic/spatial_discretisation/inner_element
+ In initialise_prognostic_fields
+ In set_prescribed_field_values
+ In populate_boundary_conditions
+ In set_boundary_conditions
+ In set_dirichlet_consistent
+ For TICTOC_ID_IO_READ
+ Time =    8.9028599904850125E-003
+ Exiting populate_state
+ Checking dependencies for diagnostic fields in state: NS
+ Checking dependencies for diagnostic scalar field: Density
+ Checking dependencies for diagnostic scalar field: CFLNumber
+ Checking dependencies for diagnostic scalar field: ScalarAbsoluteDifference
+ Checking dependencies for diagnostic scalar field: FiniteElementDivergence
+ Checking dependencies for diagnostic vector field: VectorAbsoluteDifference
+ In initialise_particles
+ In allocate_and_insert_auxilliary_fields
+ In enforce_discrete_properties
+ Processing fields in state NS
+   Considering algorithm solenoidal
+ Exiting enforce_discrete_properties
+ In dqmom_calculate_abscissa
+ Exiting dqmom_calculate_abscissa
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ % Some quantities associated with the initial set-up of this problem. %
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ -
+ The time step (DT) is:                                    7.2673325013204136E-003
+ The end time (LTIME) is set to:                           10.000000000000000     
+ This corresponds to this many time steps in simulation:   1376.0207061095778     
+ -
+ The maximum volume of element in the mesh is:   7.2626486662006648E-002
+ The minimum volume of element in the mesh is:   2.8394097318630778E-002
+ The ratio of max to min volumes is:             2.5578022730221748     
+ The following material phases and their contents are in existence
+State: NS
+Meshes: 
+ +InputMesh
+ +CoordinateMesh
+ +VelocityMesh
+ +PressureMesh
+Halos: 
+ none
+Scalar fields: 
+ +Pressure (Pressure)  on PressureMesh
+ +Density (Density)  on VelocityMesh
+ +CFLNumber (CFLNumber)  on VelocityMesh
+ +PressureAnalytical (PressureAnalytical)  on PressureMesh
+ +ScalarAbsoluteDifference (ScalarAbsoluteDifference)  on PressureMesh
+ +FiniteElementDivergence (FiniteElementDivergence)  on PressureMesh
+ +OldPressure (OldPressure)  on PressureMesh
+ +IteratedPressure (IteratedPressure)  on PressureMesh
+ +OldDensity (OldDensity)  on VelocityMesh
+ +IteratedDensity (IteratedDensity)  on VelocityMesh
+ +OldCFLNumber (OldCFLNumber)  on VelocityMesh
+ +IteratedCFLNumber (IteratedCFLNumber)  on VelocityMesh
+ +OldPressureAnalytical (OldPressureAnalytical)  on PressureMesh
+ +IteratedPressureAnalytical (IteratedPressureAnalytical)  on PressureMesh
+ +OldScalarAbsoluteDifference (OldScalarAbsoluteDifference)  on PressureMesh
+ +IteratedScalarAbsoluteDifference (IteratedScalarAbsoluteDifference)  on PressureMesh
+ +OldFiniteElementDivergence (OldFiniteElementDivergence)  on PressureMesh
+ +IteratedFiniteElementDivergence (IteratedFiniteElementDivergence)  on PressureMesh
+ +Time (Time)  on CoordinateMesh
+Vector fields: 
+ +InputMeshCoordinate (InputMeshCoordinate)  on InputMesh
+ +Coordinate (Coordinate)  on CoordinateMesh
+ +Velocity (Velocity)  on VelocityMesh
+ +VelocitySource (VelocitySource)  on VelocityMesh
+ +VelocityAnalytical (VelocityAnalytical)  on VelocityMesh
+ +VectorAbsoluteDifference (VectorAbsoluteDifference)  on VelocityMesh
+ +OldVelocity (OldVelocity)  on VelocityMesh
+ +IteratedVelocity (IteratedVelocity)  on VelocityMesh
+ +NonlinearVelocity (NonlinearVelocity)  on VelocityMesh
+ +OldVelocitySource (OldVelocitySource)  on VelocityMesh
+ +IteratedVelocitySource (IteratedVelocitySource)  on VelocityMesh
+ +OldVelocityAnalytical (OldVelocityAnalytical)  on VelocityMesh
+ +IteratedVelocityAnalytical (IteratedVelocityAnalytical)  on VelocityMesh
+ +OldVectorAbsoluteDifference (OldVectorAbsoluteDifference)  on VelocityMesh
+ +IteratedVectorAbsoluteDifference (IteratedVectorAbsoluteDifference)  on VelocityMesh
+ +OriginalCoordinate (OriginalCoordinate)  on CoordinateMesh
+ +OldCoordinate (OldCoordinate)  on CoordinateMesh
+ +IteratedCoordinate (IteratedCoordinate)  on CoordinateMesh
+ +GridVelocity (GridVelocity)  on CoordinateMesh
+Tensor fields: 
+ +Viscosity (Viscosity)  on VelocityMesh
+CSR sparsities: 
+ none
+CSR Matrices: 
+ none
+Block CSR Matrices: 
+ none
+ In particle_cv_check
+ In initialise_constant_particle_diagnostics
+ In calculate_diagnostic_variables
+ In assemble_divergence_matrix_cg
+ Divergence is integrated by parts:  T
+ Exiting assemble_divergence_matrix_cg
+ Assembling matrix.
+ Number of rows ==          449
+ Matrix assembly completed.
+ Using solver options defined at: /material_phase[0]/scalar_field::FiniteElementDivergence/diagnostic/solver
+ Inside setup_ksp_from_options
+ pc_type: sor
+ ksp_type:cg
+ ksp_max_it, ksp_atol, ksp_rtol, ksp_dtol:        10000   0.0000000000000000        1.0000000000000000E-010   10000.000000000000     
+ startfromzero: F
+ FiniteElementDivergence CPU time spent in PETSc setup:    4.1020000000000501E-003
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ FiniteElementDivergence CPU time spent in solver:    5.2399999999996894E-004
+ FiniteElementDivergence MFlops counted by Petsc:   0.29979099999999997     
+ FiniteElementDivergence MFlops/sec:    572.12022900766749     
+FiniteElementDivergence PETSc reason of convergence: 2
+FiniteElementDivergence PETSc n/o iterations: 11
+ In calculate_perturbation_density
+ In dqmom_calculate_moments
+ Exiting dqmom_calculate_moments
+ In dqmom_calculate_statistics
+ Exiting dqmom_calculate_statistics
+ Exiting calculate_diagnostic_variables
+ In calculate_diagnostic_variables
+ Calculating diagnostic field: NS::Density
+ Calculating diagnostic field: NS::CFLNumber
+ Calculating diagnostic field: NS::ScalarAbsoluteDifference
+ Calculating diagnostic field: NS::FiniteElementDivergence
+ Calculating diagnostic field: NS::VectorAbsoluteDifference
+ Exiting calculate_diagnostic_variables
+ In calculate_diagnostic_fields_from_particles
+ In initialise_diagnostics
+ Registered diagnostics:
+ In initialise_detectors
+ Exiting initialise_diagnostics
+ do_checkpoint returning .false.
+ In write_state
+ Writing output 0 to vtu
+ In vtk_write_state_new_options
+ Writing using mesh VelocityMesh
+Writing 8 scalar field(s)
+Writing 5 vector field(s)
+Writing 1 tensor field(s)
+ Exiting vtk_write_state_new_options
+ Exiting write_state
+ In write_particles_loop
+ ********************
+ *** NEW TIMESTEP ***
+ ********************
+ Current simulation time:    0.0000000000000000     
+ Timestep number:            1
+ Timestep size (dt):    7.2673325013204136E-003
+ simulation_completed returning .false.
+ steady_state_tolerance,nonlinear_iterations:   1.0000000000000000E-008           1
+ In set_boundary_conditions
+ In set_prescribed_field_values
+ In enforce_discrete_properties
+ Processing fields in state NS
+   Considering algorithm solenoidal
+ Exiting enforce_discrete_properties
+ ###################
+ Start of another nonlinear iteration; ITS,nonlinear_iterations=           1           1
+ ###################
+Considering scalar field 1 of 5
+ Considering scalar field Density in state NS
+ Finished field Density in state NS
+Considering scalar field 2 of 5
+ Considering scalar field CFLNumber in state NS
+ Finished field CFLNumber in state NS
+Considering scalar field 3 of 5
+ Considering scalar field PressureAnalytical in state NS
+ Finished field PressureAnalytical in state NS
+Considering scalar field 4 of 5
+ Considering scalar field ScalarAbsoluteDifference in state NS
+ Finished field ScalarAbsoluteDifference in state NS
+Considering scalar field 5 of 5
+ Considering scalar field FiniteElementDivergence in state NS
+ Finished field FiniteElementDivergence in state NS
+ Entering solve_momentum
+ Entering get_pressure_options
+ Entering get_phase_submaterials
+ Number of sub-materials =            1
+ Exiting get_phase_submaterials
+ Entering calculate_momentum_diagnostics
+ Entering calculate_diagnostic_phase_volume_fraction
+ Exiting calculate_diagnostic_phase_volume_fraction
+ In calculate_perturbation_density
+ Exiting calculate_momentum_diagnostics
+ Min, max of u "Velocity%1" =    0.0000000000000000        0.0000000000000000     
+ Min, max of u "Velocity%2" =    0.0000000000000000        0.0000000000000000     
+ Entering get_velocity_options
+ Min, max of p "Pressure" =    0.0000000000000000        0.0000000000000000     
+ Min, max of density "Density" =    1.0000000000000000        1.0000000000000000     
+ In construct_momentum_dg
+ Include advection?  F
+ Min, max of source "VelocitySource%1" =  -0.39392310120490792       0.39392310120505447     
+ Min, max of source "VelocitySource%2" =   -2.3635386072294478        2.3635386072303275     
+ Min, max of buoyancy "VelocityBuoyancyDensity" =    0.0000000000000000        0.0000000000000000     
+ Min, max of viscosity "Viscosity%1,1" =   0.69999999999999996       0.69999999999999996     
+ Min, max of viscosity "Viscosity%1,2" =    0.0000000000000000        0.0000000000000000     
+ Min, max of viscosity "Viscosity%2,1" =    0.0000000000000000        0.0000000000000000     
+ Min, max of viscosity "Viscosity%2,2" =   0.69999999999999996       0.69999999999999996     
+ partial stress?  F
+ Min, max of inverse_mass "InverseMassMatrix%1,1" =    0.0000000000000000        6.9338797035688389E-310
+ Min, max of inverse_mass "InverseMassMatrix%2,2" =    0.0000000000000000        6.9338797035688389E-310
+ Min, max of rhs "MomentumRHS%1" =   -2.2966562967423867        2.4756210540374495     
+ Min, max of rhs "MomentumRHS%2" =   -2.4527339062308031        2.7002639499797816     
+ Exiting construct_momentum_dg
+ In assemble_divergence_matrix_cg
+ Divergence is integrated by parts:  T
+ Exiting assemble_divergence_matrix_cg
+ Min, max of ct_m(istate)%ptr "VelocityDivergenceMatrix%1,1" =  -0.12854044628208700       0.12854044628208700     
+ Min, max of ct_m(istate)%ptr "VelocityDivergenceMatrix%1,2" =  -0.12694114692200359       0.12694114692200359     
+ Min, max of ctp_m(istate)%ptr "VelocityDivergenceMatrix%1,1" =  -0.12854044628208700       0.12854044628208700     
+ Min, max of ctp_m(istate)%ptr "VelocityDivergenceMatrix%1,2" =  -0.12694114692200359       0.12694114692200359     
+ Min, max of ct_rhs(istate) "DivergenceRHS" =   -2.7639480366078171E-017   2.7639480366225611E-017
+ Entering assemble_diagonal_schur
+ Min, max of inner_m_diagonal "Diagonal_inner_m%1" =    7.5572668075541824E-003   1.6159996135679068E-002
+ Min, max of inner_m_diagonal "Diagonal_inner_m%2" =    7.5572668075541824E-003   1.6159996135679068E-002
+ Entering mult_div_invvector_div_T
+ Min, max of schur_diagonal_matrix "PressurePoissonMatrix" =   -2.0595713598726784        6.7732097493337049     
+ Entering advance_velocity
+ size(vector_in) =          449
+ size(mat,1) =          449
+ size(vector_out) =          618
+ size(mat,2) =          618
+ size(vector_in) =          449
+ size(mat,1) =          449
+ size(vector_out) =          618
+ size(mat,2) =          618
+ note that delta_u = ct_m^T*p at this stage
+ Min, max of delta_u "DeltaU%1" =    0.0000000000000000        0.0000000000000000     
+ Min, max of delta_u "DeltaU%2" =    0.0000000000000000        0.0000000000000000     
+ Using solver options defined at: /material_phase[0]/vector_field::Velocity/prognostic/solver
+ Inside setup_ksp_from_options
+ pc_type: eisenstat
+ ksp_type:cg
+ ksp_max_it, ksp_atol, ksp_rtol, ksp_dtol:        10000   0.0000000000000000        9.9999999999999995E-008   10000.000000000000     
+ startfromzero: F
+ DeltaU CPU time spent in PETSc setup:    1.6760000000000108E-003
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ DeltaU CPU time spent in solver:    3.6599999999999966E-003
+ DeltaU MFlops counted by Petsc:    2.8032889999999999     
+ DeltaU MFlops/sec:    765.92595628415381     
+DeltaU PETSc reason of convergence: 2
+DeltaU PETSc n/o iterations: 40
+ Min, max of delta_u "DeltaU%1" =   -136.40864031518095        136.88009022882383     
+ Min, max of delta_u "DeltaU%2" =   -153.93438038394558        154.81476023163111     
+ Min, max of u "Velocity%1" =  -0.99132694522344056       0.99475312850360220     
+ Min, max of u "Velocity%2" =   -1.1186923256348673        1.1250903387154598     
+ Entering assemble_projection
+ Min, max of kmk_rhs "KMKRHS" =    0.0000000000000000        0.0000000000000000     
+ Min, max of temp_projec_rhs "TempProjectionRHS" =   -1.5548447905892864E-002   1.6407641594111150E-002
+ Min, max of projec_rhs "ProjectionRHS" =   -1.5548447905892864E-002   1.6407641594111150E-002
+ Entering correct_pressure
+ Entering Full Projection Solve:
+ Inner matrix of Schur complement: BIG_m                                                                                                
+ Note: startfromzero hard-coded to .true.
+ Ignoring setting from solver option.
+ Entering PETSc setup for Full Projection Solve
+ Inside petsc_solve_(block_)csr, solving for: Pressure
+ Are we using an auxiliary matrix:  F
+ Building Schur complement
+ Reusing the ksp from the initial velocity solve
+ Inside setup_ksp_from_options
+ pc_type: eisenstat
+ ksp_type:cg
+ ksp_max_it, ksp_atol, ksp_rtol, ksp_dtol:        10000   0.0000000000000000        9.9999999999999995E-008   10000.000000000000     
+ startfromzero: T
+ Attaching nullspace to matrix
+ Inside setup_ksp_from_options
+ pc_type: jacobi
+ ksp_type:fgmres
+ ksp_max_it, ksp_atol, ksp_rtol, ksp_dtol:         1000   0.0000000000000000        9.9999999999999995E-008   10000.000000000000     
+ startfromzero: T
+ Create RHS and solution Vectors in PETSc Format
+ RHS assembly completed.
+ Entering Core PETSc Solve
+ Entering solver.
+ Projecting nullspace from RHS
+ Out of solver.
+ DeltaP CPU time spent in solver:   0.13871800000000012     
+ DeltaP MFlops counted by Petsc:    116.92409900000000     
+ DeltaP MFlops/sec:    842.89060540088451     
+DeltaP PETSc reason of convergence: 2
+DeltaP PETSc n/o iterations: 38
+ Copying PETSc solution vector into designated Fluidity array
+ Destroying all PETSc objects
+ Leaving PETSc_solve_full_projection
+ Min, max of delta_p "DeltaP" =   -7.2618970760869525E-003   7.2592679521625326E-003
+ Min, max of p "Pressure" =  -0.99925207423322471       0.99889030133733170     
+ correct_velocity_cg
+ size(vector_in) =          449
+ size(mat,1) =          449
+ size(vector_out) =          618
+ size(mat,2) =          618
+ size(vector_in) =          449
+ size(mat,1) =          449
+ size(vector_out) =          618
+ size(mat,2) =          618
+ Using solver options defined at: /material_phase[0]/vector_field::Velocity/prognostic/solver
+ Reusing ksp from a previous solve
+ Inside setup_ksp_from_options
+ pc_type: eisenstat
+ ksp_type:cg
+ ksp_max_it, ksp_atol, ksp_rtol, ksp_dtol:        10000   0.0000000000000000        9.9999999999999995E-008   10000.000000000000     
+ startfromzero: F
+ Delta_U2 CPU time spent in PETSc setup:    1.6889999999998295E-003
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Delta_U2 CPU time spent in solver:    3.6550000000001859E-003
+ Delta_U2 MFlops counted by Petsc:    3.0700210000000001     
+ Delta_U2 MFlops/sec:    839.95102599174936     
+Delta_U2 PETSc reason of convergence: 2
+Delta_U2 PETSc n/o iterations: 44
+ Min, max of u "Velocity%1" =  -0.99544576326720502       0.99483088387854801     
+ Min, max of u "Velocity%2" =  -0.99400403072293397       0.99316692170545451     
+ Entering finalise_state
+ In dqmom_apply_min_weight
+ Exiting dqmom_apply_min_weight
+ In dqmom_calculate_abscissa
+ Exiting dqmom_calculate_abscissa
+ In dqmom_calculate_moments
+ Exiting dqmom_calculate_moments
+ In dqmom_calculate_statistics
+ Exiting dqmom_calculate_statistics
+ In calculate_sediment_bedload
+ In move_particles
+ In particle_cv_check
+ In calculate_diagnostic_fields_from_particles
+ In write_particles_loop
+ In calculate_diagnostic_variables
+ In assemble_divergence_matrix_cg
+ Divergence is integrated by parts:  T
+ Exiting assemble_divergence_matrix_cg
+ Assembling matrix.
+ Number of rows ==          449
+ Matrix assembly completed.
+ Using solver options defined at: /material_phase[0]/scalar_field::FiniteElementDivergence/diagnostic/solver
+ Inside setup_ksp_from_options
+ pc_type: sor
+ ksp_type:cg
+ ksp_max_it, ksp_atol, ksp_rtol, ksp_dtol:        10000   0.0000000000000000        1.0000000000000000E-010   10000.000000000000     
+ startfromzero: F
+ FiniteElementDivergence CPU time spent in PETSc setup:    2.5330000000001185E-003
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ FiniteElementDivergence CPU time spent in solver:    4.9399999999977240E-004
+ FiniteElementDivergence MFlops counted by Petsc:   0.32425900000000002     
+ FiniteElementDivergence MFlops/sec:    656.39473684240772     
+FiniteElementDivergence PETSc reason of convergence: 2
+FiniteElementDivergence PETSc n/o iterations: 12
+ In calculate_perturbation_density
+ In dqmom_calculate_moments
+ Exiting dqmom_calculate_moments
+ In dqmom_calculate_statistics
+ Exiting dqmom_calculate_statistics
+ Exiting calculate_diagnostic_variables
+ In calculate_diagnostic_variables
+ Calculating diagnostic field: NS::Density
+ Calculating diagnostic field: NS::CFLNumber
+ Calculating diagnostic field: NS::ScalarAbsoluteDifference
+ Calculating diagnostic field: NS::FiniteElementDivergence
+ Calculating diagnostic field: NS::VectorAbsoluteDifference
+ Exiting calculate_diagnostic_variables
+ In write_diagnostics
+ Registered diagnostics:
+ In write_detectors
+ In set_dirichlet_consistent
+ Entering test_and_write_steady_state
+ NS::Pressure  0.99925207423322471     
+ NS::Density   0.0000000000000000     
+ NS::CFLNumber   3.5943012160062425E-002
+ NS::ScalarAbsoluteDifference  0.99907118778527826     
+ NS::FiniteElementDivergence   5.5388669454557711E-007
+ NS::Velocity  0.99560935939703921     
+ NS::Velocity           1  0.99544576326720502     
+ NS::Velocity           2  0.99400403072293397     
+ NS::VectorAbsoluteDifference  0.98318794508430751     
+ NS::VectorAbsoluteDifference           1  0.98451395847064693     
+ NS::VectorAbsoluteDifference           2  0.98388646073466579     
+ maxchange =   0.99925207423322471     
+ Exiting test_and_write_steady_state
+ For TICTOC_ID_TIMESTEP (excluding time in mesh adaptivity, if applicable)
+ Time =   0.32401179202133790     
+ simulation_completed returning .false.
+ ********************
+ *** NEW TIMESTEP ***
+ ********************
+ Current simulation time:    7.2673325013204136E-003
+ Timestep number:            2
+ Timestep size (dt):    7.2673325013204136E-003
+ simulation_completed returning .false.
+ do_write_state returning .false.
+ steady_state_tolerance,nonlinear_iterations:   1.0000000000000000E-008           1
+ In set_boundary_conditions
+ In set_prescribed_field_values
+ In enforce_discrete_properties
+ Processing fields in state NS
+   Considering algorithm solenoidal
+ Exiting enforce_discrete_properties
+ ###################
+ Start of another nonlinear iteration; ITS,nonlinear_iterations=           1           1
+ ###################
+Considering scalar field 1 of 5
+ Considering scalar field Density in state NS
+ Finished field Density in state NS
+Considering scalar field 2 of 5
+ Considering scalar field CFLNumber in state NS
+ Finished field CFLNumber in state NS
+Considering scalar field 3 of 5
+ Considering scalar field PressureAnalytical in state NS
+ Finished field PressureAnalytical in state NS
+Considering scalar field 4 of 5
+ Considering scalar field ScalarAbsoluteDifference in state NS
+ Finished field ScalarAbsoluteDifference in state NS
+Considering scalar field 5 of 5
+ Considering scalar field FiniteElementDivergence in state NS
+ Finished field FiniteElementDivergence in state NS
+ Entering solve_momentum
+ Entering get_pressure_options
+ Entering get_phase_submaterials
+ Number of sub-materials =            1
+ Exiting get_phase_submaterials
+ Entering calculate_momentum_diagnostics
+ Entering calculate_diagnostic_phase_volume_fraction
+ Exiting calculate_diagnostic_phase_volume_fraction
+ In calculate_perturbation_density
+ Exiting calculate_momentum_diagnostics
+ Min, max of u "Velocity%1" =  -0.99544576326720502       0.99483088387854801     
+ Min, max of u "Velocity%2" =  -0.99400403072293397       0.99316692170545451     
+ Entering get_velocity_options
+ Min, max of p "Pressure" =  -0.99925207423322471       0.99889030133733170     
+ Min, max of density "Density" =    1.0000000000000000        1.0000000000000000     
+ In construct_momentum_dg
+ Include advection?  F
+ Min, max of source "VelocitySource%1" =  -0.39392310120490792       0.39392310120505447     
+ Min, max of source "VelocitySource%2" =   -2.3635386072294478        2.3635386072303275     
+ Min, max of buoyancy "VelocityBuoyancyDensity" =    0.0000000000000000        0.0000000000000000     
+ Min, max of viscosity "Viscosity%1,1" =   0.69999999999999996       0.69999999999999996     
+ Min, max of viscosity "Viscosity%1,2" =    0.0000000000000000        0.0000000000000000     
+ Min, max of viscosity "Viscosity%2,1" =    0.0000000000000000        0.0000000000000000     
+ Min, max of viscosity "Viscosity%2,2" =   0.69999999999999996       0.69999999999999996     
+ partial stress?  F
+ Min, max of inverse_mass "InverseMassMatrix%1,1" =   -5.5651553267279325E-020   8.6800930212633792E+217
+ Min, max of inverse_mass "InverseMassMatrix%2,2" =   -5.5651553267279325E-020   8.6800930212633792E+217
+ Min, max of rhs "MomentumRHS%1" =   -2.1494509128376332E-002   2.1047986866026498E-002
+ Min, max of rhs "MomentumRHS%2" =   -1.8055617233119471E-002   1.8812318345232379E-002
+ Exiting construct_momentum_dg
+ In assemble_divergence_matrix_cg
+ Divergence is integrated by parts:  T
+ Exiting assemble_divergence_matrix_cg
+ Min, max of ct_m(istate)%ptr "VelocityDivergenceMatrix%1,1" =  -0.12854044628208700       0.12854044628208700     
+ Min, max of ct_m(istate)%ptr "VelocityDivergenceMatrix%1,2" =  -0.12694114692200359       0.12694114692200359     
+ Min, max of ctp_m(istate)%ptr "VelocityDivergenceMatrix%1,1" =  -0.12854044628208700       0.12854044628208700     
+ Min, max of ctp_m(istate)%ptr "VelocityDivergenceMatrix%1,2" =  -0.12694114692200359       0.12694114692200359     
+ Min, max of ct_rhs(istate) "DivergenceRHS" =   -2.7639480366078171E-017   2.7639480366225611E-017
+ Entering assemble_diagonal_schur
+ Min, max of inner_m_diagonal "Diagonal_inner_m%1" =    7.5572668075541824E-003   1.6159996135679068E-002
+ Min, max of inner_m_diagonal "Diagonal_inner_m%2" =    7.5572668075541824E-003   1.6159996135679068E-002
+ Entering mult_div_invvector_div_T
+ Min, max of schur_diagonal_matrix "PressurePoissonMatrix" =   -2.0595713598726784        6.7732097493337049     
+ Entering advance_velocity
+ size(vector_in) =          449
+ size(mat,1) =          449
+ size(vector_out) =          618
+ size(mat,2) =          618
+ size(vector_in) =          449
+ size(mat,1) =          449
+ size(vector_out) =          618
+ size(mat,2) =          618
+ note that delta_u = ct_m^T*p at this stage
+ Min, max of delta_u "DeltaU%1" =   -2.1047918007690923E-002   2.1494505224367071E-002
+ Min, max of delta_u "DeltaU%2" =   -1.8812307183298200E-002   1.8055648554632250E-002
+ Using solver options defined at: /material_phase[0]/vector_field::Velocity/prognostic/solver
+ Inside setup_ksp_from_options
+ pc_type: eisenstat
+ ksp_type:cg
+ ksp_max_it, ksp_atol, ksp_rtol, ksp_dtol:        10000   0.0000000000000000        9.9999999999999995E-008   10000.000000000000     
+ startfromzero: F
+ DeltaU CPU time spent in PETSc setup:    1.7439999999995237E-003
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ DeltaU CPU time spent in solver:    3.9089999999997183E-003
+ DeltaU MFlops counted by Petsc:    3.1382490000000001     
+ DeltaU MFlops/sec:    802.82655410596738     
+DeltaU PETSc reason of convergence: 2
+DeltaU PETSc n/o iterations: 45
+ Min, max of delta_u "DeltaU%1" =   -8.1446180304929725E-005   8.2989030931627730E-005
+ Min, max of delta_u "DeltaU%2" =   -9.0628853459440693E-005   1.0092970761397984E-004
+ Min, max of u "Velocity%1" =  -0.99544574659404905       0.99483100909216049     
+ Min, max of u "Velocity%2" =  -0.99400415930171981       0.99316703824483210     
+ Entering assemble_projection
+ Min, max of kmk_rhs "KMKRHS" =    0.0000000000000000        0.0000000000000000     
+ Min, max of temp_projec_rhs "TempProjectionRHS" =   -5.6308249335793037E-008   6.4573704336781668E-008
+ Min, max of projec_rhs "ProjectionRHS" =   -5.6308249335793037E-008   6.4573704336781668E-008
+ Entering correct_pressure
+ Entering Full Projection Solve:
+ Inner matrix of Schur complement: BIG_m                                                                                                
+ Note: startfromzero hard-coded to .true.
+ Ignoring setting from solver option.
+ Entering PETSc setup for Full Projection Solve
+ Inside petsc_solve_(block_)csr, solving for: Pressure
+ Are we using an auxiliary matrix:  F
+ Building Schur complement
+ Reusing the ksp from the initial velocity solve
+ Inside setup_ksp_from_options
+ pc_type: eisenstat
+ ksp_type:cg
+ ksp_max_it, ksp_atol, ksp_rtol, ksp_dtol:        10000   0.0000000000000000        9.9999999999999995E-008   10000.000000000000     
+ startfromzero: T
+ Attaching nullspace to matrix
+ Inside setup_ksp_from_options
+ pc_type: jacobi
+ ksp_type:fgmres
+ ksp_max_it, ksp_atol, ksp_rtol, ksp_dtol:         1000   0.0000000000000000        9.9999999999999995E-008   10000.000000000000     
+ startfromzero: T
+ Create RHS and solution Vectors in PETSc Format
+ RHS assembly completed.
+ Entering Core PETSc Solve
+ Entering solver.
+ Projecting nullspace from RHS
+ Out of solver.
+ DeltaP CPU time spent in solver:   0.13379299999999983     
+ DeltaP MFlops counted by Petsc:    111.45059800000000     
+ DeltaP MFlops/sec:    833.00769098532919     
+DeltaP PETSc reason of convergence: 2
+DeltaP PETSc n/o iterations: 36
+ Copying PETSc solution vector into designated Fluidity array
+ Destroying all PETSc objects
+ Leaving PETSc_solve_full_projection
+ Min, max of delta_p "DeltaP" =   -1.3369038767590097E-008   1.0237718923652747E-008
+ Min, max of p "Pressure" =  -0.99925178261612568       0.99889018952663278     
+ correct_velocity_cg
+ size(vector_in) =          449
+ size(mat,1) =          449
+ size(vector_out) =          618
+ size(mat,2) =          618
+ size(vector_in) =          449
+ size(mat,1) =          449
+ size(vector_out) =          618
+ size(mat,2) =          618
+ Using solver options defined at: /material_phase[0]/vector_field::Velocity/prognostic/solver
+ Reusing ksp from a previous solve
+ Inside setup_ksp_from_options
+ pc_type: eisenstat
+ ksp_type:cg
+ ksp_max_it, ksp_atol, ksp_rtol, ksp_dtol:        10000   0.0000000000000000        9.9999999999999995E-008   10000.000000000000     
+ startfromzero: F
+ Delta_U2 CPU time spent in PETSc setup:    1.7000000000000348E-003
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Delta_U2 CPU time spent in solver:    3.8950000000004259E-003
+ Delta_U2 MFlops counted by Petsc:    3.0700210000000001     
+ Delta_U2 MFlops/sec:    788.19537869054284     
+Delta_U2 PETSc reason of convergence: 2
+Delta_U2 PETSc n/o iterations: 44
+ Min, max of u "Velocity%1" =  -0.99544576356935788       0.99483096194845433     
+ Min, max of u "Velocity%2" =  -0.99400405457409613       0.99316690366591986     
+ Entering finalise_state
+ In dqmom_apply_min_weight
+ Exiting dqmom_apply_min_weight
+ In dqmom_calculate_abscissa
+ Exiting dqmom_calculate_abscissa
+ In dqmom_calculate_moments
+ Exiting dqmom_calculate_moments
+ In dqmom_calculate_statistics
+ Exiting dqmom_calculate_statistics
+ In calculate_sediment_bedload
+ In move_particles
+ In particle_cv_check
+ In calculate_diagnostic_fields_from_particles
+ In write_particles_loop
+ In calculate_diagnostic_variables
+ In assemble_divergence_matrix_cg
+ Divergence is integrated by parts:  T
+ Exiting assemble_divergence_matrix_cg
+ Assembling matrix.
+ Number of rows ==          449
+ Matrix assembly completed.
+ Using solver options defined at: /material_phase[0]/scalar_field::FiniteElementDivergence/diagnostic/solver
+ Inside setup_ksp_from_options
+ pc_type: sor
+ ksp_type:cg
+ ksp_max_it, ksp_atol, ksp_rtol, ksp_dtol:        10000   0.0000000000000000        1.0000000000000000E-010   10000.000000000000     
+ startfromzero: F
+ FiniteElementDivergence CPU time spent in PETSc setup:    2.9140000000005273E-003
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ FiniteElementDivergence CPU time spent in solver:    5.5799999999983640E-004
+ FiniteElementDivergence MFlops counted by Petsc:   0.32425900000000002     
+ FiniteElementDivergence MFlops/sec:    581.10931899658613     
+FiniteElementDivergence PETSc reason of convergence: 2
+FiniteElementDivergence PETSc n/o iterations: 12
+ In calculate_perturbation_density
+ In dqmom_calculate_moments
+ Exiting dqmom_calculate_moments
+ In dqmom_calculate_statistics
+ Exiting dqmom_calculate_statistics
+ Exiting calculate_diagnostic_variables
+ In calculate_diagnostic_variables
+ Calculating diagnostic field: NS::Density
+ Calculating diagnostic field: NS::CFLNumber
+ Calculating diagnostic field: NS::ScalarAbsoluteDifference
+ Calculating diagnostic field: NS::FiniteElementDivergence
+ Calculating diagnostic field: NS::VectorAbsoluteDifference
+ Exiting calculate_diagnostic_variables
+ In write_diagnostics
+ Registered diagnostics:
+ In write_detectors
+ In set_dirichlet_consistent
+ Entering test_and_write_steady_state
+ NS::Pressure   1.8396074165094589E-006
+ NS::Density   0.0000000000000000     
+ NS::CFLNumber   8.2175177201077032E-009
+ NS::ScalarAbsoluteDifference   1.9295106165606590E-006
+ NS::FiniteElementDivergence   5.5388722187315832E-007
+ NS::Velocity   2.7976462901868615E-007
+ NS::Velocity           1   3.0210765275540119E-007
+ NS::Velocity           2   2.8640425631110134E-007
+ NS::VectorAbsoluteDifference   3.0301800023509184E-007
+ NS::VectorAbsoluteDifference           1   3.0210765275540119E-007
+ NS::VectorAbsoluteDifference           2   2.8640425631110134E-007
+ maxchange =    1.9295106165606590E-006
+ Exiting test_and_write_steady_state
+ For TICTOC_ID_TIMESTEP (excluding time in mesh adaptivity, if applicable)
+ Time =   0.38750455700210296     
+ simulation_completed returning .false.
+ ********************
+ *** NEW TIMESTEP ***
+ ********************
+ Current simulation time:    1.4534665002640827E-002
+ Timestep number:            3
+ Timestep size (dt):    7.2673325013204136E-003
+ simulation_completed returning .false.
+ do_write_state returning .false.
+ steady_state_tolerance,nonlinear_iterations:   1.0000000000000000E-008           1
+ In set_boundary_conditions
+ In set_prescribed_field_values
+ In enforce_discrete_properties
+ Processing fields in state NS
+   Considering algorithm solenoidal
+ Exiting enforce_discrete_properties
+ ###################
+ Start of another nonlinear iteration; ITS,nonlinear_iterations=           1           1
+ ###################
+Considering scalar field 1 of 5
+ Considering scalar field Density in state NS
+ Finished field Density in state NS
+Considering scalar field 2 of 5
+ Considering scalar field CFLNumber in state NS
+ Finished field CFLNumber in state NS
+Considering scalar field 3 of 5
+ Considering scalar field PressureAnalytical in state NS
+ Finished field PressureAnalytical in state NS
+Considering scalar field 4 of 5
+ Considering scalar field ScalarAbsoluteDifference in state NS
+ Finished field ScalarAbsoluteDifference in state NS
+Considering scalar field 5 of 5
+ Considering scalar field FiniteElementDivergence in state NS
+ Finished field FiniteElementDivergence in state NS
+ Entering solve_momentum
+ Entering get_pressure_options
+ Entering get_phase_submaterials
+ Number of sub-materials =            1
+ Exiting get_phase_submaterials
+ Entering calculate_momentum_diagnostics
+ Entering calculate_diagnostic_phase_volume_fraction
+ Exiting calculate_diagnostic_phase_volume_fraction
+ In calculate_perturbation_density
+ Exiting calculate_momentum_diagnostics
+ Min, max of u "Velocity%1" =  -0.99544576356935788       0.99483096194845433     
+ Min, max of u "Velocity%2" =  -0.99400405457409613       0.99316690366591986     
+ Entering get_velocity_options
+ Min, max of p "Pressure" =  -0.99925178261612568       0.99889018952663278     
+ Min, max of density "Density" =    1.0000000000000000        1.0000000000000000     
+ In construct_momentum_dg
+ Include advection?  F
+ Min, max of source "VelocitySource%1" =  -0.39392310120490792       0.39392310120505447     
+ Min, max of source "VelocitySource%2" =   -2.3635386072294478        2.3635386072303275     
+ Min, max of buoyancy "VelocityBuoyancyDensity" =    0.0000000000000000        0.0000000000000000     
+ Min, max of viscosity "Viscosity%1,1" =   0.69999999999999996       0.69999999999999996     
+ Min, max of viscosity "Viscosity%1,2" =    0.0000000000000000        0.0000000000000000     
+ Min, max of viscosity "Viscosity%2,1" =    0.0000000000000000        0.0000000000000000     
+ Min, max of viscosity "Viscosity%2,2" =   0.69999999999999996       0.69999999999999996     
+ partial stress?  F
+ Min, max of inverse_mass "InverseMassMatrix%1,1" =    0.0000000000000000        6.9338797034803024E-310
+ Min, max of inverse_mass "InverseMassMatrix%2,2" =    0.0000000000000000        6.9338797034803024E-310
+ Min, max of rhs "MomentumRHS%1" =   -2.1494513168589351E-002   2.1047961738924117E-002
+ Min, max of rhs "MomentumRHS%2" =   -1.8055645222927234E-002   1.8812367428912891E-002
+ Exiting construct_momentum_dg
+ In assemble_divergence_matrix_cg
+ Divergence is integrated by parts:  T
+ Exiting assemble_divergence_matrix_cg
+ Min, max of ct_m(istate)%ptr "VelocityDivergenceMatrix%1,1" =  -0.12854044628208700       0.12854044628208700     
+ Min, max of ct_m(istate)%ptr "VelocityDivergenceMatrix%1,2" =  -0.12694114692200359       0.12694114692200359     
+ Min, max of ctp_m(istate)%ptr "VelocityDivergenceMatrix%1,1" =  -0.12854044628208700       0.12854044628208700     
+ Min, max of ctp_m(istate)%ptr "VelocityDivergenceMatrix%1,2" =  -0.12694114692200359       0.12694114692200359     
+ Min, max of ct_rhs(istate) "DivergenceRHS" =   -2.7639480366078171E-017   2.7639480366225611E-017
+ Entering assemble_diagonal_schur
+ Min, max of inner_m_diagonal "Diagonal_inner_m%1" =    7.5572668075541824E-003   1.6159996135679068E-002
+ Min, max of inner_m_diagonal "Diagonal_inner_m%2" =    7.5572668075541824E-003   1.6159996135679068E-002
+ Entering mult_div_invvector_div_T
+ Min, max of schur_diagonal_matrix "PressurePoissonMatrix" =   -2.0595713598726784        6.7732097493337049     
+ Entering advance_velocity
+ size(vector_in) =          449
+ size(mat,1) =          449
+ size(vector_out) =          618
+ size(mat,2) =          618
+ size(vector_in) =          449
+ size(mat,1) =          449
+ size(vector_out) =          618
+ size(mat,2) =          618
+ note that delta_u = ct_m^T*p at this stage
+ Min, max of delta_u "DeltaU%1" =   -2.1047961738930296E-002   2.1494513168590128E-002
+ Min, max of delta_u "DeltaU%2" =   -1.8812367428916142E-002   1.8055645222926901E-002
+ Using solver options defined at: /material_phase[0]/vector_field::Velocity/prognostic/solver
+ Inside setup_ksp_from_options
+ pc_type: eisenstat
+ ksp_type:cg
+ ksp_max_it, ksp_atol, ksp_rtol, ksp_dtol:        10000   0.0000000000000000        9.9999999999999995E-008   10000.000000000000     
+ startfromzero: F
+ DeltaU CPU time spent in PETSc setup:    1.3380000000000614E-003
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ DeltaU CPU time spent in solver:    3.6510000000005149E-003
+ DeltaU MFlops counted by Petsc:    3.0042650000000002     
+ DeltaU MFlops/sec:    822.86086003822959     
+DeltaU PETSc reason of convergence: 2
+DeltaU PETSc n/o iterations: 43
+ Min, max of delta_u "DeltaU%1" =   -2.8005927110880942E-012   3.6592883529632967E-012
+ Min, max of delta_u "DeltaU%2" =   -3.6399551949233218E-012   4.5355027945096353E-012
+ Min, max of u "Velocity%1" =  -0.99544576356935655       0.99483096194846732     
+ Min, max of u "Velocity%2" =  -0.99400405457409757       0.99316690366592519     
+ Entering assemble_projection
+ Min, max of kmk_rhs "KMKRHS" =    0.0000000000000000        0.0000000000000000     
+ Min, max of temp_projec_rhs "TempProjectionRHS" =   -9.8324126618365426E-015   3.9968028886505635E-015
+ Min, max of projec_rhs "ProjectionRHS" =   -9.8324126618365426E-015   3.9968028886505635E-015
+ Entering correct_pressure
+ Entering Full Projection Solve:
+ Inner matrix of Schur complement: BIG_m                                                                                                
+ Note: startfromzero hard-coded to .true.
+ Ignoring setting from solver option.
+ Entering PETSc setup for Full Projection Solve
+ Inside petsc_solve_(block_)csr, solving for: Pressure
+ Are we using an auxiliary matrix:  F
+ Building Schur complement
+ Reusing the ksp from the initial velocity solve
+ Inside setup_ksp_from_options
+ pc_type: eisenstat
+ ksp_type:cg
+ ksp_max_it, ksp_atol, ksp_rtol, ksp_dtol:        10000   0.0000000000000000        9.9999999999999995E-008   10000.000000000000     
+ startfromzero: T
+ Attaching nullspace to matrix
+ Inside setup_ksp_from_options
+ pc_type: jacobi
+ ksp_type:fgmres
+ ksp_max_it, ksp_atol, ksp_rtol, ksp_dtol:         1000   0.0000000000000000        9.9999999999999995E-008   10000.000000000000     
+ startfromzero: T
+ Create RHS and solution Vectors in PETSc Format
+ RHS assembly completed.
+ Entering Core PETSc Solve
+ Entering solver.
+ Projecting nullspace from RHS
+ Out of solver.
+ DeltaP CPU time spent in solver:   0.14236799999999983     
+ DeltaP MFlops counted by Petsc:    120.36695800000000     
+ DeltaP MFlops/sec:    845.46357327489432     
+DeltaP PETSc reason of convergence: 2
+DeltaP PETSc n/o iterations: 39
+ Copying PETSc solution vector into designated Fluidity array
+ Destroying all PETSc objects
+ Leaving PETSc_solve_full_projection
+ Min, max of delta_p "DeltaP" =   -1.5421836839089354E-014   4.0404586376619650E-015
+ Min, max of p "Pressure" =  -0.99925178261637104       0.99889018952639486     
+ correct_velocity_cg
+ size(vector_in) =          449
+ size(mat,1) =          449
+ size(vector_out) =          618
+ size(mat,2) =          618
+ size(vector_in) =          449
+ size(mat,1) =          449
+ size(vector_out) =          618
+ size(mat,2) =          618
+ Using solver options defined at: /material_phase[0]/vector_field::Velocity/prognostic/solver
+ Reusing ksp from a previous solve
+ Inside setup_ksp_from_options
+ pc_type: eisenstat
+ ksp_type:cg
+ ksp_max_it, ksp_atol, ksp_rtol, ksp_dtol:        10000   0.0000000000000000        9.9999999999999995E-008   10000.000000000000     
+ startfromzero: F
+ Delta_U2 CPU time spent in PETSc setup:    1.7030000000000101E-003
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Delta_U2 CPU time spent in solver:    3.6049999999998583E-003
+ Delta_U2 MFlops counted by Petsc:    3.0030290000000002     
+ Delta_U2 MFlops/sec:    833.01775312069856     
+Delta_U2 PETSc reason of convergence: 2
+Delta_U2 PETSc n/o iterations: 43
+ Min, max of u "Velocity%1" =  -0.99544576356935965       0.99483096194845333     
+ Min, max of u "Velocity%2" =  -0.99400405457409247       0.99316690366591642     
+ Entering finalise_state
+ In dqmom_apply_min_weight
+ Exiting dqmom_apply_min_weight
+ In dqmom_calculate_abscissa
+ Exiting dqmom_calculate_abscissa
+ In dqmom_calculate_moments
+ Exiting dqmom_calculate_moments
+ In dqmom_calculate_statistics
+ Exiting dqmom_calculate_statistics
+ In calculate_sediment_bedload
+ In move_particles
+ In particle_cv_check
+ In calculate_diagnostic_fields_from_particles
+ In write_particles_loop
+ In calculate_diagnostic_variables
+ In assemble_divergence_matrix_cg
+ Divergence is integrated by parts:  T
+ Exiting assemble_divergence_matrix_cg
+ Assembling matrix.
+ Number of rows ==          449
+ Matrix assembly completed.
+ Using solver options defined at: /material_phase[0]/scalar_field::FiniteElementDivergence/diagnostic/solver
+ Inside setup_ksp_from_options
+ pc_type: sor
+ ksp_type:cg
+ ksp_max_it, ksp_atol, ksp_rtol, ksp_dtol:        10000   0.0000000000000000        1.0000000000000000E-010   10000.000000000000     
+ startfromzero: F
+ FiniteElementDivergence CPU time spent in PETSc setup:    2.8579999999998051E-003
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ FiniteElementDivergence CPU time spent in solver:    5.2599999999980440E-004
+ FiniteElementDivergence MFlops counted by Petsc:   0.32425900000000002     
+ FiniteElementDivergence MFlops/sec:    616.46197718654093     
+FiniteElementDivergence PETSc reason of convergence: 2
+FiniteElementDivergence PETSc n/o iterations: 12
+ In calculate_perturbation_density
+ In dqmom_calculate_moments
+ Exiting dqmom_calculate_moments
+ In dqmom_calculate_statistics
+ Exiting dqmom_calculate_statistics
+ Exiting calculate_diagnostic_variables
+ In calculate_diagnostic_variables
+ Calculating diagnostic field: NS::Density
+ Calculating diagnostic field: NS::CFLNumber
+ Calculating diagnostic field: NS::ScalarAbsoluteDifference
+ Calculating diagnostic field: NS::FiniteElementDivergence
+ Calculating diagnostic field: NS::VectorAbsoluteDifference
+ Exiting calculate_diagnostic_variables
+ In write_diagnostics
+ Registered diagnostics:
+ In write_detectors
+ In set_dirichlet_consistent
+ Entering test_and_write_steady_state
+ NS::Pressure   2.1220802892685242E-012
+ NS::Density   0.0000000000000000     
+ NS::CFLNumber   2.6749435999562365E-015
+ NS::ScalarAbsoluteDifference   1.8804402479588589E-012
+ NS::FiniteElementDivergence   1.2217978328613853E-012
+ NS::Velocity   7.5384143372048129E-014
+ NS::Velocity           1   8.0713213890248880E-014
+ NS::Velocity           2   9.7810648469476291E-014
+ NS::VectorAbsoluteDifference   9.2415658459188421E-014
+ NS::VectorAbsoluteDifference           1   8.0713213890248880E-014
+ NS::VectorAbsoluteDifference           2   9.7810648469476291E-014
+ maxchange =    2.1220802892685242E-012
+ Exiting test_and_write_steady_state
+ Checkpointing simulation
+ Checkpointing mesh InputMesh
+ Checkpointing vector field Velocity in state NSon the VelocityMesh
+ Updating initial conditions for Velocity
+ Checkpointing scalar field Pressure in state NSon the PressureMesh
+ Updating initial conditions for Pressure
+ Checkpointing options tree
+ In write_state
+ Writing output 1 to vtu
+ In vtk_write_state_new_options
+ Writing using mesh VelocityMesh
+Writing 8 scalar field(s)
+Writing 5 vector field(s)
+Writing 1 tensor field(s)
+ Exiting vtk_write_state_new_options
+ Exiting write_state
+ Printing references before final deallocation
+ Printing out all currently allocated references:
+ mesh_type PressureMeshDGSurfaceMesh has reference count 1
+ and id 9
+ csr_matrix PressurePoissonMatrix has reference count 1
+ and id 3
+ csr_sparsity PressureMeshVelocityMeshDoubleSparsity has reference count 2
+ and id 10
+ block_csr_matrix VelocityDivergenceMatrix has reference count 1
+ and id 3
+ csr_sparsity PressureMeshVelocityMeshSparsity has reference count 2
+ and id 9
+ mesh_type VelocityMeshDGSurfaceMesh has reference count 1
+ and id 8
+ scalar_field Time has reference count 1
+ and id 14
+ vector_field GridVelocity has reference count 1
+ and id 18
+ vector_field OldVectorAbsoluteDifference has reference count 1
+ and id 17
+ vector_field OldVelocity has reference count 1
+ and id 16
+ scalar_field OldFiniteElementDivergence has reference count 1
+ and id 13
+ scalar_field OldScalarAbsoluteDifference has reference count 1
+ and id 12
+ scalar_field OldCFLNumber has reference count 1
+ and id 11
+ scalar_field OldDensity has reference count 1
+ and id 10
+ scalar_field OldPressure has reference count 1
+ and id 9
+ vector_field value has reference count 1
+ and id 13
+ mesh_type all_sidesMesh has reference count 2
+ and id 7
+ vector_field VectorAbsoluteDifference has reference count 2
+ and id 6
+ vector_field VelocityAnalytical has reference count 3
+ and id 5
+ tensor_field Viscosity has reference count 1
+ and id 1
+ vector_field VelocitySource has reference count 3
+ and id 4
+ vector_field Velocity has reference count 3
+ and id 3
+ scalar_field FiniteElementDivergence has reference count 2
+ and id 6
+ scalar_field ScalarAbsoluteDifference has reference count 2
+ and id 5
+ scalar_field PressureAnalytical has reference count 3
+ and id 4
+ scalar_field CFLNumber has reference count 2
+ and id 3
+ scalar_field Density has reference count 2
+ and id 2
+ scalar_field Pressure has reference count 2
+ and id 1
+ mesh_type PressureMesh has reference count 8
+ and id 6
+ mesh_type SurfacePressureMesh has reference count 1
+ and id 5
+ element_type  has reference count 3
+ and id 8
+ element_type  has reference count 1
+ and id 7
+ quadrature_type  has reference count 3
+ and id 5
+ quadrature_type  has reference count 1
+ and id 4
+ mesh_type VelocityMesh has reference count 12
+ and id 4
+ mesh_type SurfaceVelocityMesh has reference count 1
+ and id 3
+ element_type  has reference count 4
+ and id 5
+ element_type  has reference count 1
+ and id 4
+ quadrature_type  has reference count 3
+ and id 3
+ vector_field Coordinate has reference count 4
+ and id 2
+ csr_sparsity NEListSparsity has reference count 1
+ and id 3
+ mesh_type SurfaceCoordinateMesh has reference count 1
+ and id 2
+ element_type  has reference count 2
+ and id 3
+ element_type  has reference count 1
+ and id 2
+ quadrature_type  has reference count 3
+ and id 2
+ csr_matrix CoordinateMeshFaceList has reference count 3
+ and id 1
+ csr_sparsity EEListSparsity has reference count 4
+ and id 2
+ csr_sparsity NEListSparsity has reference count 1
+ and id 1
+ vector_field Coordinate has reference count 1
+ and id 1
+ mesh_type CoordinateMesh has reference count 6
+ and id 1
+ quadrature_type  has reference count 2
+ and id 1
+ Removing node-element list from mesh CoordinateMesh
+ Removing element-element list from mesh CoordinateMesh
+ Removing node-element list from mesh SurfaceCoordinateMesh
+ Removing element-element list from mesh VelocityMesh
+ Removing element-element list from mesh PressureMesh
+ Printing references after final deallocation
+ Printing out all currently allocated references:
+ There are no references left.
+ No registered memory in use.
+ Exited fluids
+ For TICTOC_ID_SIMULATION
+ Time =    1.3136666859791148     
+/fluidity :: 1.99068
+/material_phase[0]/scalar_field::FiniteElementDivergence::field2petsc :: 0.00016472
+/material_phase[0]/scalar_field::FiniteElementDivergence::petsc2field :: 5.3196e-05
+/material_phase[0]/scalar_field::FiniteElementDivergence::petsc_setup :: 0.012535
+/material_phase[0]/scalar_field::FiniteElementDivergence::solve :: 0.00247322
+/material_phase[0]/scalar_field::Pressure::assembly :: 0.0290546
+/material_phase[0]/scalar_field::Pressure::petsc2field :: 4.7532e-05
+/material_phase[0]/scalar_field::Pressure::solve :: 0.447101
+/material_phase[0]/vector_field::Velocity::assembly :: 0.102261
+/material_phase[0]/vector_field::Velocity::element_loop :: 0.0735921
+/material_phase[0]/vector_field::Velocity::element_loop-omp_overhead :: 0.000107613
+/material_phase[0]/vector_field::Velocity::field2petsc :: 0.000344261
+/material_phase[0]/vector_field::Velocity::petsc2field :: 0.000115613
+/material_phase[0]/vector_field::Velocity::petsc_setup :: 0.0100064
+/material_phase[0]/vector_field::Velocity::solve :: 0.0229511
+::petsc2field :: 0.000108465
+I/O :: 0.263426
+assembly_loop :: 0.117708
+construct_momentum_dg :: 0.0782321
+finalisation_loop :: 0.000557736
+momentum_diagnostics :: 0.00253451
+particle_advection :: 0
+particles_spawn_delete :: 0
+velocity_correction_loop :: 0.0187631
+velocity_solve_loop :: 0.0206194

@@ -1,0 +1,7 @@
+# Variable: cur_xforce
+# Variable: exact_xforce
+# Pass Test: relative drag force difference (5%).
+0.387761342300745
+--- Success
+# Warn Test: relative drag force difference (3.5%).
+--- Success

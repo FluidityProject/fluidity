@@ -1,0 +1,9 @@
+Submitted by agarcias (a.garcia-sagrado@imperial.ac.uk)
+
+This test calculates the new positions of 300 Lagrangian particles (Lagrangian detectors) as they move with the flow: 100 of the particles have been distributed vertically along the interface of the lock exchange. Another 100 particles have been distributed along another vertical line, this time in the region on the right of the interface and the rest 100 particles along another vertical line, in the region on the left of the interface.
+
+If at the end of the calculation not a single Lagrangian detector has been converted into a static one, meaning that no ambiguity has been found when moving the detectors from element to element, then the test passes.
+
+Important:
+If you are interested in the Lagrangian paths then you should run this test with a smaller time step (recommended time step=0.01) in order to get more accurate paths.
+ 

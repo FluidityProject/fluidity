@@ -1,0 +1,83 @@
+rm -f *.vtu *.stat *.s *.log *_A* *_B* *_C* *_D* src/*A.* src/*B.* src/*C.* src/*D.* matrix* *~ mms_rans_p2p1_keps.py *.pyc
+./copy_script
+creating set A with n_ele=8
+creating set B with n_ele=16
+creating set C with n_ele=32
+creating set D with n_ele=64
+setting flml timestep values
+gmsh -2 -bin src/MMS_A.geo
+Info    : Running 'gmsh -2 -bin src/MMS_A.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:06 2021
+Info    : Reading 'src/MMS_A.geo'...
+Info    : Done reading 'src/MMS_A.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (extruded)
+Info    : Meshing curve 2 (extruded)
+Info    : Meshing curve 3 (extruded)
+Info    : Meshing curve 4 (extruded)
+Info    : Done meshing 1D (4e-05 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 5 (extruded)
+Info    : Done meshing 2D (0.000212 s)
+Info    : 81 vertices 164 elements
+Info    : Writing 'src/MMS_A.msh'...
+Info    : Done writing 'src/MMS_A.msh'
+Info    : Stopped on Wed Jun 16 18:16:06 2021
+gmsh -2 -bin src/MMS_B.geo
+Info    : Running 'gmsh -2 -bin src/MMS_B.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:07 2021
+Info    : Reading 'src/MMS_B.geo'...
+Info    : Done reading 'src/MMS_B.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (extruded)
+Info    : Meshing curve 2 (extruded)
+Info    : Meshing curve 3 (extruded)
+Info    : Meshing curve 4 (extruded)
+Info    : Done meshing 1D (5.1e-05 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 5 (extruded)
+Info    : Done meshing 2D (0.000654 s)
+Info    : 289 vertices 580 elements
+Info    : Writing 'src/MMS_B.msh'...
+Info    : Done writing 'src/MMS_B.msh'
+Info    : Stopped on Wed Jun 16 18:16:07 2021
+gmsh -2 -bin src/MMS_C.geo
+Info    : Running 'gmsh -2 -bin src/MMS_C.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:07 2021
+Info    : Reading 'src/MMS_C.geo'...
+Info    : Done reading 'src/MMS_C.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (extruded)
+Info    : Meshing curve 2 (extruded)
+Info    : Meshing curve 3 (extruded)
+Info    : Meshing curve 4 (extruded)
+Info    : Done meshing 1D (5.2e-05 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 5 (extruded)
+Info    : Done meshing 2D (0.004413 s)
+Info    : 1089 vertices 2180 elements
+Info    : Writing 'src/MMS_C.msh'...
+Info    : Done writing 'src/MMS_C.msh'
+Info    : Stopped on Wed Jun 16 18:16:07 2021
+gmsh -2 -bin src/MMS_D.geo
+Info    : Running 'gmsh -2 -bin src/MMS_D.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:08 2021
+Info    : Reading 'src/MMS_D.geo'...
+Info    : Done reading 'src/MMS_D.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (extruded)
+Info    : Meshing curve 2 (extruded)
+Info    : Meshing curve 3 (extruded)
+Info    : Meshing curve 4 (extruded)
+Info    : Done meshing 1D (0.000155 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 5 (extruded)
+Info    : Done meshing 2D (0.02388 s)
+Info    : 4225 vertices 8452 elements
+Info    : Writing 'src/MMS_D.msh'...
+Info    : Done writing 'src/MMS_D.msh'
+Info    : Stopped on Wed Jun 16 18:16:08 2021

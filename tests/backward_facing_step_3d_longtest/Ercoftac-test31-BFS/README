@@ -1,0 +1,28 @@
+1) File name convention:  filename.nnn
+   nnn = streamwise nodal (cell center) location
+  
+   nnn = 181  --->  x/h = -3.0
+   nnn = 360  --->  x/h = 4.0
+   nnn = 411  --->  x/h = 6.0
+   nnn = 513  --->  x/h = 10.0
+   nnn = 641  --->  x/h = 15.0
+   nnn = 744  --->  x/h = 19.0
+
+2) Files "x.nnn" contain U, V, u'(rms), v'(rms), w'(rms), u'v'.  
+   File header explains the data columns.
+
+   All quantities are nomalized to U0, where U0 is the mean inlet 
+   free stream velocity.
+
+3) Files "r**.nnn" contain Reynolds stress budgets.
+
+   r11.nnn  --->  Streamwise component (u'u')
+   r22.nnn  --->  Vertical component (v'v')
+   r33.nnn  --->  Spanwise component (w'w')
+   r12.nnn  --->  Reynolds shear stress component (u'v')
+   rkk.nnn  --->  Turbulent kinetic energy
+
+   All quantities are nomalized to U0^3/h.
+
+4) File "stat.info" contains additional information at each streamwise 
+   location (u_tau, Cf, etc...).

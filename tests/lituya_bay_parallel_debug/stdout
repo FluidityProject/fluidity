@@ -1,0 +1,27 @@
+rm -f *.stat *.log* *.err* *.msh *.halo *.convergence *.pvtu matrixdump*
+rm -f src/inletslice.msh
+rm -rf *_checkpoint* 
+rm -f landslide_*/*.vtu
+rm -rf landslide_? landslide_??
+rm -rf *flredecomp*
+gmsh -2 src/inletslice.geo
+Info    : Running 'gmsh -2 src/inletslice.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:16 2021
+Info    : Reading 'src/inletslice.geo'...
+Info    : Done reading 'src/inletslice.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Line)
+Info    : Meshing curve 2 (Line)
+Info    : Meshing curve 3 (Line)
+Info    : Meshing curve 4 (Line)
+Info    : Meshing curve 5 (Line)
+Info    : Done meshing 1D (0.002187 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 7 (Plane, Delaunay)
+Info    : Done meshing 2D (10.054 s)
+Info    : 146076 vertices 292155 elements
+Info    : Writing 'src/inletslice.msh'...
+Info    : Done writing 'src/inletslice.msh'
+Info    : Stopped on Wed Jun 16 18:16:28 2021
+cp src/inletslice.msh .

@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testproblem>
+  <name>circle-2d-drag</name>
+  <owner userid="pfarrell" />
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>mpiexec fluidity -v3 -l  circle-2d-drag.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="cur_xforce" language="python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("circle-2d-drag.stat")
+cur_xforce = s["0"]["Velocity"]["force_circle%1"][-1]
+    </variable>
+    <variable name="exact_xforce" language="python">
+exact_xforce = 0.01116 # the force in x direction from literature
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="relative drag force difference (5%)." language="python">
+print((100.0*abs(cur_xforce - exact_xforce)/exact_xforce))
+assert(abs(cur_xforce - exact_xforce)/exact_xforce &lt; 0.05)
+    </test>
+  </pass_tests>
+  <warn_tests>
+    <test name="relative drag force difference (3.5%)." language="python">
+assert(abs(cur_xforce - exact_xforce)/exact_xforce &lt; 0.035)
+    </test>
+  </warn_tests>
+</testproblem>
