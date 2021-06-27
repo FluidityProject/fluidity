@@ -255,13 +255,10 @@ def process_error(test_xml, process_interpreter, stdout, stderr):
         else:  # Error within variable
             error_list.append(test_xml.stem)
             xml_entry.status = "Error"
-            regex = "(^Traceback).+(\n.+)+?(?=\n~~~ End of Traceback ~~~)"
-            traceback = re.search(regex, stderr, re.MULTILINE).group()
-            line_nb = re.search(r"(?<=, line )\d+(?=, in )",
-                                traceback).group()
-            python_failure_line = python_lines[int(line_nb) - 1][4:]
-            traceback = traceback.replace(
-                "line " + line_nb, f"'{python_failure_line}'")
+            line_nb = re.search(r"(?<=, line )\d+(?=, in )", stderr).group()
+            python_failure_line = python_lines[int(line_nb) - 1]
+            traceback = stderr.replace("line " + line_nb,
+                                       f"'{python_failure_line}'")
             var_name = list(re.finditer(r"(?<=^#\sVariable:\s).+", stdout,
                                         re.MULTILINE))[-1].group()
             xml_entry.add_error_info(

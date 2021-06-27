@@ -1,4 +1,7 @@
 input:	clean
+	gmsh -2 src/MMS_A.geo
+	gmsh -2 src/MMS_B.geo
+	gmsh -2 src/MMS_C.geo
 	./copy_script
 
 run:

@@ -1,4 +1,5 @@
 input: clean
+	gmsh -2 src/circle.geo
 	cp src/circle.msh .
 
 clean:

@@ -1,4 +1,5 @@
 input: clean
+	gmsh -2 src/square.geo
 	cp src/square.msh .
 
 clean:

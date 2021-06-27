@@ -1,4 +1,5 @@
 input: clean
+	gmsh -3 src/channel_3d.geo
 	cp src/channel_3d.msh .
 
 clean: 
