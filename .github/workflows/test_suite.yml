@@ -1,0 +1,217 @@
+name: Build and Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+
+    name: Build ${{ matrix.release }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        release: [bionic, focal, groovy]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: docker/actions/Dockerfile.actions.${{ matrix.release }}
+          push: true
+          tags: fluidity/actions:${{ matrix.release }}-${{ github.sha }}
+
+  unittest:
+
+    name: Unit tests - ${{ matrix.release }}
+    runs-on: ubuntu-latest
+    needs: build
+
+    strategy:
+      fail-fast: false
+      matrix:
+        release: [bionic, focal, groovy]
+        output: [unittests.xml]
+
+    steps:
+      - name: Testing
+        run: "chmod 777 .
+
+          docker pull fluidity/actions:${{ matrix.release }}-${{ github.sha }}
+
+          docker run -v $PWD:/host fluidity/actions:${{ matrix.release }}-${{ github.sha }} \
+          /bin/bash -c \"make unittest && cp -v tests/${{ matrix.output }} \
+          /host/${{ matrix.release }}-${{ matrix.output }}\""
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          path: ${{ matrix.release }}-${{ matrix.output }}
+          name: xml_outputs
+      - name: JUnit report
+        uses: mikepenz/action-junit-report@v2
+        with:
+          report_paths: ${{ matrix.release }}-${{ matrix.output }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: Unit tests report for ${{ matrix.release }}
+          fail_on_failure: true
+
+  shorttest:
+
+    name: Short tests - ${{ matrix.release }}
+    runs-on: ubuntu-latest
+    needs: build
+
+    strategy:
+      fail-fast: false
+      matrix:
+        release: [bionic, focal, groovy]
+        output: [shorttests.xml]
+
+    steps:
+      - name: Testing
+        run: "chmod 777 .
+
+          docker pull fluidity/actions:${{ matrix.release }}-${{ github.sha }}
+
+          docker run -v $PWD:/host fluidity/actions:${{ matrix.release }}-${{ github.sha }} \
+          /bin/bash -c \"make CORES=2 test && cp -v tests/${{ matrix.output }} \
+          /host/${{ matrix.release }}-${{ matrix.output }}\""
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          path: ${{ matrix.release }}-${{ matrix.output }}
+          name: xml_outputs
+      - name: JUnit report
+        uses: mikepenz/action-junit-report@v2
+        with:
+          report_paths: ${{ matrix.release }}-${{ matrix.output }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: Short tests report for ${{ matrix.release }}
+          fail_on_failure: true
+
+  get-lists:
+
+    name: Generate JSON files that contain tests to be executed
+    runs-on: ubuntu-latest
+
+    outputs:
+      mediumtest-matrix: ${{ steps.set-matrices.outputs.mediumtest-matrix }}
+      longtest-matrix: ${{ steps.set-matrices.outputs.longtest-matrix }}
+
+    strategy:
+      matrix:
+        python-version: [3.8]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install junit_xml
+      - name: Generate JSON files
+        id: set-matrices
+        # run: "git clone https://github.com/fluidityproject/longtests
+        run: "tools/testharness.py -l medium --just-list --github mediumtests.json
+
+          tools/testharness.py -l long --just-list --github longtests.json
+
+          echo \"::set-output name=mediumtest-matrix::$(echo $(cat mediumtests.json))\"
+
+          echo \"::set-output name=longtest-matrix::$(echo $(cat longtests.json))\""
+
+  mediumtest:
+
+    name: Medium test - ${{ matrix.test-xml }} on ${{ matrix.release }}
+    runs-on: ubuntu-latest
+    needs: [build, get-lists]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        release: [focal]
+        test-xml: ${{fromJSON(needs.get-lists.outputs.mediumtest-matrix)}}
+
+    steps:
+      - name: Testing
+        run: "chmod 777 .
+
+          docker pull fluidity/actions:${{ matrix.release }}-${{ github.sha }}
+
+          docker run -v $PWD:/host fluidity/actions:${{ matrix.release }}-${{ github.sha }} \
+          /bin/bash -c \"bin/testharness -f ${{ matrix.test-xml }} \
+          -x ${{ matrix.release }}-${{ matrix.test-xml }} \
+          && cp -v ${{ matrix.release }}-${{ matrix.test-xml }} /host\""
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          path: ${{ matrix.release }}-${{ matrix.test-xml }}
+          name: xml_outputs
+      - name: JUnit report
+        uses: mikepenz/action-junit-report@v2
+        with:
+          report_paths: ${{ matrix.release }}-${{ matrix.test-xml }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: Report for medium test ${{ matrix.test-xml }} on ${{ matrix.release }}
+          fail_on_failure: true
+
+  longtest:
+    name: Long test - ${{ matrix.test-xml }} on ${{ matrix.release }}
+    runs-on: ubuntu-latest
+    needs: [build, get-lists]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        release: [focal]
+        test-xml: ${{fromJSON(needs.get-lists.outputs.longtest-matrix)}}
+
+    steps:
+      - name: Testing
+        # run: "chmod 777 .
+        #
+        #   docker pull fluidity/actions:${{ matrix.release }}-${{ github.sha }}
+        #
+        #   docker run -v $PWD:/host fluidity/actions:${{ matrix.release }}-${{ github.sha }} \
+        #   /bin/bash -c \"git clone https://github.com/fluidityproject/longtests \
+        #   && bin/testharness -l long -f ${{ matrix.test-xml }} \
+        #   -x ${{ matrix.release }}-${{ matrix.test-xml }} \
+        #   && cp -v ${{ matrix.release }}-${{ matrix.test-xml }} /host\""
+        run: "chmod 777 .
+
+          docker pull fluidity/actions:${{ matrix.release }}-${{ github.sha }}
+
+          docker run -v $PWD:/host fluidity/actions:${{ matrix.release }}-${{ github.sha }} \
+          /bin/bash -c \"bin/testharness -l long -f ${{ matrix.test-xml }} \
+          -x ${{ matrix.release }}-${{ matrix.test-xml }} \
+          && cp -v ${{ matrix.release }}-${{ matrix.test-xml }} /host\""
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          path: ${{ matrix.release }}-${{ matrix.test-xml }}
+          name: xml_outputs
+      - name: JUnit report
+        uses: mikepenz/action-junit-report@v2
+        with:
+          report_paths: ${{ matrix.release }}-${{ matrix.test-xml }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: Report for long test ${{ matrix.test-xml }} on ${{ matrix.release }}
+          fail_on_failure: true

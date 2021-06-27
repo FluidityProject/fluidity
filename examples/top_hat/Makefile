@@ -2,16 +2,16 @@ include envcheck.mk
 
 preprocess: envcheck
 	@echo **********Generating a 1D mesh for the [0,3] interval:
-	${BINPREFIX}interval --dx=0.025 --reverse 0 3 line
-	${BINPREFIX}interval --dx=0.025 --reverse 0 3 line
+	interval --dx=0.025 --reverse 0 3 line
+	interval --dx=0.025 --reverse 0 3 line
 
 run: envcheck
 	@echo **********Running the Continuous Galerkin version of this example:
-	${BINPREFIX}fluidity -v2 -l top_hat_cg.flml
+	fluidity -v2 -l top_hat_cg.flml
 	@echo **********Running the Discontinuous Galerkin version of this example:
-	${BINPREFIX}fluidity -v2 -l top_hat_dg.flml
+	fluidity -v2 -l top_hat_dg.flml
 	@echo **********Running the Control Volumes version of this example:
-	${BINPREFIX}fluidity -v2 -l top_hat_cv.flml
+	fluidity -v2 -l top_hat_cv.flml
 
 postprocess: envcheck
 	@echo **********Calling visualise.py
