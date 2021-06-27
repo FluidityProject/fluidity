@@ -1,10 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>1 material column under gravity using CG pressure with continuity tested with the CV dual</name>
   <owner userid="btollit"/>
   <tags>flml cg_press_test_cty_cv</tags>
-    <problem_definition length="short" nprocs="1">
+    <problem_definition length="vshort" nprocs="1">
     <command_line>
 fluidity gravity-col-press_cg_test_cty_cv_p0p1_2d.flml
 fluidity gravity-col-press_cg_test_cty_cv_p1dgp2_2d.flml

@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>p1p1-cg structured-mesh inverse Helmholtz filter convergence test</name>
   <owner userid="jbull"/>
@@ -508,76 +507,76 @@ d_zdiff = stat("MMS_D_structured.stat")["NS"]["ZeroFilterDifference%magnitude"][
     </variable>
   </variables>
   <pass_tests>
-    <test name="ab_convergence_vel_f_x: L2 order > 1.5" language="python">
+    <test name="ab_convergence_vel_f_x: L2 order &gt; 1.5" language="python">
 assert(ab_convergence_vel_f[0][0] &gt; 1.5)
     </test>
-    <test name="ab_convergence_vel_f_y: L2 order > 1.5" language="python">
+    <test name="ab_convergence_vel_f_y: L2 order &gt; 1.5" language="python">
 assert(ab_convergence_vel_f[1][0] &gt; 1.5)
     </test>
-    <test name="bc_convergence_vel_f_x: L2 order > 1.8" language="python">
+    <test name="bc_convergence_vel_f_x: L2 order &gt; 1.8" language="python">
 assert(bc_convergence_vel_f[0][0] &gt; 1.8)
     </test>
-    <test name="bc_convergence_vel_f_y: L2 order > 1.8" language="python">
+    <test name="bc_convergence_vel_f_y: L2 order &gt; 1.8" language="python">
 assert(bc_convergence_vel_f[1][0] &gt; 1.8)
     </test>
-    <test name="cd_convergence_vel_f_x: L2 order > 1.9" language="python">
+    <test name="cd_convergence_vel_f_x: L2 order &gt; 1.9" language="python">
 assert(cd_convergence_vel_f[0][0] &gt; 1.9)
     </test>
-    <test name="cd_convergence_vel_f_y: L2 order > 1.9" language="python">
+    <test name="cd_convergence_vel_f_y: L2 order &gt; 1.9" language="python">
 assert(cd_convergence_vel_f[1][0] &gt; 1.9)
     </test>
-    <test name="ab_convergence_vel_if_x: L2 order > 1.6" language="python">
+    <test name="ab_convergence_vel_if_x: L2 order &gt; 1.6" language="python">
 assert(ab_convergence_vel_if[0][0] &gt; 1.6)
     </test>
-    <test name="ab_convergence_vel_if_y: L2 order > 1.6" language="python">
+    <test name="ab_convergence_vel_if_y: L2 order &gt; 1.6" language="python">
 assert(ab_convergence_vel_if[1][0] &gt; 1.6)
     </test>
-    <test name="bc_convergence_vel_if_x: L2 order > 1.8" language="python">
+    <test name="bc_convergence_vel_if_x: L2 order &gt; 1.8" language="python">
 assert(bc_convergence_vel_if[0][0] &gt; 1.8)
     </test>
-    <test name="bc_convergence_vel_if_y: L2 order > 1.8" language="python">
+    <test name="bc_convergence_vel_if_y: L2 order &gt; 1.8" language="python">
 assert(bc_convergence_vel_if[1][0] &gt; 1.8)
     </test>
-    <test name="cd_convergence_vel_if_x: L2 order > 1.9" language="python">
+    <test name="cd_convergence_vel_if_x: L2 order &gt; 1.9" language="python">
 assert(cd_convergence_vel_if[0][0] &gt; 1.9)
     </test>
-    <test name="cd_convergence_vel_if_y: L2 order > 1.9" language="python">
+    <test name="cd_convergence_vel_if_y: L2 order &gt; 1.9" language="python">
 assert(cd_convergence_vel_if[1][0] &gt; 1.9)
     </test>
-    <test name="ab_convergence_vel_ml_x: L2 order > 1.4" language="python">
+    <test name="ab_convergence_vel_ml_x: L2 order &gt; 1.4" language="python">
 assert(ab_convergence_vel_mlf[0][0] &gt; 1.4)
     </test>
-    <test name="ab_convergence_vel_ml_y: L2 order > 1.4" language="python">
+    <test name="ab_convergence_vel_ml_y: L2 order &gt; 1.4" language="python">
 assert(ab_convergence_vel_mlf[1][0] &gt; 1.4)
     </test>
-    <test name="bc_convergence_vel_ml_x: L2 order > 1.5" language="python">
+    <test name="bc_convergence_vel_ml_x: L2 order &gt; 1.5" language="python">
 assert(bc_convergence_vel_mlf[0][0] &gt; 1.5)
     </test>
-    <test name="bc_convergence_vel_ml_y: L2 order > 1.5" language="python">
+    <test name="bc_convergence_vel_ml_y: L2 order &gt; 1.5" language="python">
 assert(bc_convergence_vel_mlf[1][0] &gt; 1.5)
     </test>
-    <test name="cd_convergence_vel_ml_x: L2 order > 1.5" language="python">
+    <test name="cd_convergence_vel_ml_x: L2 order &gt; 1.5" language="python">
 assert(cd_convergence_vel_mlf[0][0] &gt; 1.5)
     </test>
-    <test name="cd_convergence_vel_ml_y: L2 order > 1.5" language="python">
+    <test name="cd_convergence_vel_ml_y: L2 order &gt; 1.5" language="python">
 assert(cd_convergence_vel_mlf[1][0] &gt; 1.5)
     </test>
-    <test name="ab_convergence_isocomm: L2 order > 1.4" language="python">
+    <test name="ab_convergence_isocomm: L2 order &gt; 1.4" language="python">
 assert(ab_convergence_isocomm[0][0] &gt; 1.4)
     </test>
-    <test name="ab_convergence_anisocomm: L2 order > 1.4" language="python">
+    <test name="ab_convergence_anisocomm: L2 order &gt; 1.4" language="python">
 assert(ab_convergence_anisocomm[0][0] &gt; 1.4)
     </test>
-    <test name="bc_convergence_isocomm: L2 order > 1.4" language="python">
+    <test name="bc_convergence_isocomm: L2 order &gt; 1.4" language="python">
 assert(bc_convergence_isocomm[0][0] &gt; 1.4)
     </test>
-    <test name="bc_convergence_anisocomm: L2 order > 1.4" language="python">
+    <test name="bc_convergence_anisocomm: L2 order &gt; 1.4" language="python">
 assert(bc_convergence_anisocomm[0][0] &gt; 1.4)
     </test>
-    <test name="cd_convergence_isocomm: L2 order > 1.4" language="python">
+    <test name="cd_convergence_isocomm: L2 order &gt; 1.4" language="python">
 assert(cd_convergence_isocomm[0][0] &gt; 1.4)
     </test>
-    <test name="cd_convergence_anisocomm: L2 order > 2.2" language="python">
+    <test name="cd_convergence_anisocomm: L2 order &gt; 2.2" language="python">
 assert(cd_convergence_anisocomm[0][0] &gt; 2.2)
     </test>
     <test name="checking zero-filtered vel A with tolerance 1.0e-07" language="python">
@@ -592,26 +591,25 @@ assert(c_zdiff &lt; 1.E-7)
     <test name="checking zero-filtered vel D with tolerance 1.0e-07" language="python">
 assert(d_zdiff &lt; 1.E-7)
     </test>
-    <test name="ab_convergence_vel_x: L2 order > 2.2" language="python">
+    <test name="ab_convergence_vel_x: L2 order &gt; 2.2" language="python">
 assert(ab_convergence_vel[0][0] &gt; 2.2)
     </test>
-    <test name="ab_convergence_vel_y: L2 order > 1.6" language="python">
+    <test name="ab_convergence_vel_y: L2 order &gt; 1.6" language="python">
 assert(ab_convergence_vel[1][0] &gt; 1.6)
     </test>
-    <test name="bc_convergence_vel_x: L2 order > 2.2" language="python">
+    <test name="bc_convergence_vel_x: L2 order &gt; 2.2" language="python">
 assert(bc_convergence_vel[0][0] &gt; 2.2)
     </test>
-    <test name="bc_convergence_vel_y: L2 order > 1.7" language="python">
+    <test name="bc_convergence_vel_y: L2 order &gt; 1.7" language="python">
 assert(bc_convergence_vel[1][0] &gt; 1.7)
     </test>
-    <test name="cd_convergence_vel_x: L2 order > 2.1" language="python">
+    <test name="cd_convergence_vel_x: L2 order &gt; 2.1" language="python">
 assert(cd_convergence_vel[0][0] &gt; 2.1)
     </test>
-    <test name="cd_convergence_vel_y: L2 order > 1.7" language="python">
+    <test name="cd_convergence_vel_y: L2 order &gt; 1.7" language="python">
 assert(cd_convergence_vel[1][0] &gt; 1.7)
     </test>
   </pass_tests>
   <warn_tests>
   </warn_tests>
 </testproblem>
-

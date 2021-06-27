@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Tracer conservation when moving the mesh</name>
   <owner userid="piggott"/>
   <tags>flml</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l sloshing_tank_tracer.flml</command_line>
   </problem_definition>
   <variables>

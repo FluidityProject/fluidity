@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testproblem>
+  <name>vanKeken2008-Benchmark(1a)</name>
+  <owner userid="rhodrid"/>
+  <tags>flml</tags>
+  <problem_definition length="long" nprocs="1">
+    <command_line>mpiexec fluidity -v2 -l Stokes-subduction-zone-vanKeken2008-OneA.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="Temperature6060" language="python">
+import h5py
+import numpy as np
+f = h5py.File("vanKekenOneA.detectors.h5part", "r")
+d = f["/Step#{}".format(len(f) - 1)]
+det_id, = np.where(d["id"][:] == f.attrs["Temperature6060%ids"][0])
+Temperature6060 = d["Fluid%Temperature"][det_id[0]] - 273.
+    </variable>
+    <variable name="TL2SLAB" language="python">
+import numpy as np
+import h5py
+
+f = h5py.File("vanKekenOneA.detectors.h5part", "r")
+tslab_ids = f.attrs["TSlab%ids"]
+d = f["/Step#{}".format(len(f) - 1)]
+s = np.zeros(len(f))
+
+for i in range(len(f)):
+  ids = np.where(f["/Step#{}/id".format(i)][:] == tslab_ids[:,None])[1]
+  s[i] = np.sum(f["/Step#{}/Fluid%Temperature".format(i)][:][ids] ** 2)
+
+TL2SLAB = np.sqrt(s/36)
+    <comment>Computes the L2 Temperature norm in 36 equidistant points along the slab, close to the wedge corner.</comment></variable>
+    <variable name="TL2WEDGE" language="python">
+import numpy as np
+import h5py
+
+f = h5py.File("vanKekenOneA.detectors.h5part", "r")
+twedge_ids = f.attrs["TWedge%ids"]
+d = f["/Step#{}".format(len(f) - 1)]
+s = np.zeros(len(f))
+
+for i in range(len(f)):
+  ids = np.where(f["/Step#{}/id".format(i)][:] == twedge_ids[:,None])[1]
+  s[i] = np.sum(f["/Step#{}/Fluid%Temperature".format(i)][:][ids] ** 2)
+
+TL2WEDGE = np.sqrt(s/78)
+    <comment>Computes the L2 Temperature norm for 78 points in the wedge corner.</comment></variable>
+  </variables>
+  <pass_tests>
+    <test name="BenchmarkTemp_at_6060_approached" language="python">assert ( Temperature6060 &gt; 370. )
+assert ( Temperature6060 &lt; 400. )</test>
+    <test name="BenchmarkTemp_in_boundary_approached" language="python">assert ( ( TL2SLAB[-1]-273. ) &gt; 475. )
+assert ( ( TL2SLAB[-1]-273. ) &lt; 510. )</test>
+    <test name="BenchmarkTemp_in_wedge_approached" language="python">assert ( ( TL2WEDGE[-1]-273. ) &gt; 835. )
+assert ( ( TL2WEDGE[-1]-273. ) &lt; 855. )</test>
+  </pass_tests>
+</testproblem>

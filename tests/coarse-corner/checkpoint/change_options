@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+
+import sys
+
+file_name = "coarse-corner_6_checkpoint.flml"
+
+try:
+  with open(file_name) as flml_file:
+    flml_options = flml_file.readlines()
+except:
+  sys.stderr.write("Error: change_options failed to read options file\n")
+  sys.exit(1)
+
+for i in range(len(flml_options))[:len(flml_options) - 1]:
+  line = flml_options[i]
+  if "<simulation_name>" in line:
+    # Change the simulation name
+    flml_options[i + 1] = "        <string_value lines=\"1\">coarse-corner</string_value>\n"
+  elif "<timestepping>" in line:
+    # One extra timestep from checkpoint
+    flml_options[i] = "    <timestepping><final_timestep><integer_value rank=\"0\">1</integer_value></final_timestep>\n"
+  elif "<finish_time>" in line:
+    # Disable finish by finish_time
+    flml_options[i + 1] = "            <real_value rank=\"0\">1.0e6</real_value>\n"
+        
+for i in range(len(flml_options)):
+  if "<checkpointing>" in flml_options[i]:
+    # Remove checkpointing options
+    while not "</checkpointing>" in flml_options[i] and i < len(flml_options):
+      flml_options[i] = ""
+      i += 1
+    if i < len(flml_options):
+      flml_options[i] = ""
+    break
+
+try:
+  with open(file_name, "w") as flml_file:
+    flml_file.writelines(flml_options)
+except:
+  sys.stderr.write("Error: change_options failed to write options file\n")
+  sys.exit(1)

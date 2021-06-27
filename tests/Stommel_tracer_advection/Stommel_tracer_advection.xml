@@ -1,0 +1,250 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Calculate wave speed in sloshing deep water tank
+  -->
+<testproblem>
+  <name>Stommel streamfunction tracer advection. Advect a passive scalar in a velocity field obtained from Stommel's streamfunciton, i.e. with a western boundary current which stretches the tracer field and makes the problem quite hard.</name>
+  <owner userid="piggott"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>mpiexec fluidity -v3 Stommel2_A.flml &gt; Stommel2_A.log 2&gt;&amp;1; mpiexec fluidity -v3 Stommel2_adapt-A.flml &gt; Stommel2_adapt-A.log 2&gt;&amp;1;</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="Fixed_error_norm" language="python">
+from numpy import sqrt,pi,exp,sin,array,size,abs,max,amax,dot,zeros,reshape,transpose,arange
+import vtktools
+import scipy.integrate
+
+
+def IC(X):
+  from math import exp
+  L = 1.e6
+  T =  10.0*exp(-((X[0] - 2.*L/3.)**2 + (X[1] - L/3.)**2)/(2.*(L/12.5)**2))
+  return T  
+
+
+def func(X, t):
+  from math import exp, sin, cos
+  ##L=1.e6; F=0.1; rho=1000.0; H=200.0; gamma=1.e-6;
+  ##A = F*L/(pi*gamma*rho*H) 
+  A = 159154.94309189534
+  ##alpha = beta/gamma
+  ##1/alpha = 100km=1e5; alpha = 1.e-5
+  ##beta=1e-11
+  ##zplus = -alpha/2 + sqrt((alpha**2)/4 + (pi/L)**2)
+  zplus = 9.0504906000698326e-07
+  ##zminus = -alpha/2 - sqrt((alpha**2)/4 + (pi/L)**2)
+  zminus = -1.0905049060006982e-05  
+  ##p=(1-exp(L*zminus))/(exp(L*zplus)-exp(L*zminus))  
+  p =  0.40451761482981791
+  ## q = 1-p
+  q = 0.59548238517018204
+  ## pi/L = 3.1415926535897933e-06
+  ##psi = A*sin(3.1415926535897933e-06*y)*(p*exp(x*zplus) + q*exp(x*zminus) - 1.0)
+  ## u = d psi/d y
+  ## A*pi/L = 0.5
+  u = 0.5*cos(3.1415926535897933e-06*X[1])*(p*exp(X[0]*zplus) + q*exp(X[0]*zminus) - 1.0)
+  ## v = -d psi/d x
+  v = -A*sin(3.1415926535897933e-06*X[1])*(p*zplus*exp(X[0]*zplus) + q*zminus*exp(X[0]*zminus))
+  return [-u,-v]  ## as we're going backwards
+
+
+def function_analytical(x,y,t_start,t_end):
+  from math import exp
+  L = 1.e6
+  pos = scipy.integrate.odeint(func, [x, y], [t_start, t_end])
+#  print("Departure point:",pos[-1,:])
+  Analytical = 10.0*exp(-((pos[-1,0] - 2.*L/3.)**2 + (pos[-1,1] - L/3.)**2)/(2.*(L/12.5)**2))
+#  print("Analytical solution:",Analytical)
+  return Analytical
+
+
+def function_tetvol(X,Y,Z):
+  X12 = X[1] - X[0]; X13 = X[2] - X[0]; X14 = X[3] - X[0]
+  Y12 = Y[1] - Y[0]; Y13 = Y[2] - Y[0]; Y14 = Y[3] - Y[0]
+  Z12 = Z[1] - Z[0]; Z13 = Z[2] - Z[0]; Z14 = Z[3] - Z[0]   
+  VOL = X12*( Y13*Z14 - Y14*Z13 ) + X13*( Y14*Z12 - Y12*Z14 ) + X14*( Y12*Z13 - Y13*Z12 )
+  return abs(VOL/6)
+
+
+def function_trivol(X,Y):
+  a = sqrt( (X[1] - X[0])**2 + (Y[1] - Y[0])**2) 
+  b = sqrt( (X[2] - X[0])**2 + (Y[2] - Y[0])**2)
+  c = sqrt( (X[2] - X[1])**2 + (Y[2] - Y[1])**2)
+  s = 0.5*(a+b+c)
+  VOL = sqrt(s*(s-a)*(s-b)*(s-c))
+  return abs(VOL/2)
+
+
+file = 'Stommel2_A_20.vtu'
+time = 1.e7
+ug=vtktools.vtu(file)
+ug.GetFieldNames()
+n = ug.ugrid.GetNumberOfPoints()
+
+
+temp=ug.GetScalarField('Temperature')
+
+t_start = 0.0
+t_end = float(time)
+
+pos=ug.GetLocations()
+x=pos[:,0]; y=pos[:,1]; z=pos[:,2]
+
+psi=zeros(size(x), float)
+for i in range(len(x)):
+#  print("Arrival point,i:",x[i],y[i],i)
+  psi[i] = function_analytical(x[i],y[i],t_start,t_end)
+
+
+NE=ug.ugrid.GetNumberOfCells()
+ML=zeros(size(x), float)
+for ele in range(NE):
+  ndglno=ug.GetCellPoints(ele)
+  trivol=function_trivol(x[ndglno],y[ndglno])
+  for nod in ndglno:
+    ML[nod] = ML[nod] + trivol/3
+
+
+err = abs(psi - temp)
+norm1 = dot(ML,err)
+norm2 = dot(ML,err**2)
+snorm2 = sqrt(abs(norm2))
+normaliseL2 = sqrt(abs(dot(ML,psi**2)))
+##print(norm1)
+##print(snorm2)
+##print(amax(err))
+print(n,snorm2/normaliseL2)
+
+Fixed_error_norm = snorm2/normaliseL2
+    </variable>
+    <variable name="Adapt_error_norm" language="python">
+from numpy import sqrt,pi,exp,sin,array,size,abs,max,amax,dot,zeros,reshape,transpose,arange
+import vtktools
+import scipy.integrate
+
+
+def IC(X):
+  from math import exp
+  L = 1.e6
+  T =  10.0*exp(-((X[0] - 2.*L/3.)**2 + (X[1] - L/3.)**2)/(2.*(L/12.5)**2))
+  return T  
+
+
+def func(X, t):
+  from math import exp, sin, cos
+  ##L=1.e6; F=0.1; rho=1000.0; H=200.0; gamma=1.e-6;
+  ##A = F*L/(pi*gamma*rho*H) 
+  A = 159154.94309189534
+  ##alpha = beta/gamma
+  ##1/alpha = 100km=1e5; alpha = 1.e-5
+  ##beta=1e-11
+  ##zplus = -alpha/2 + sqrt((alpha**2)/4 + (pi/L)**2)
+  zplus = 9.0504906000698326e-07
+  ##zminus = -alpha/2 - sqrt((alpha**2)/4 + (pi/L)**2)
+  zminus = -1.0905049060006982e-05  
+  ##p=(1-exp(L*zminus))/(exp(L*zplus)-exp(L*zminus))  
+  p =  0.40451761482981791
+  ## q = 1-p
+  q = 0.59548238517018204
+  ## pi/L = 3.1415926535897933e-06
+  ##psi = A*sin(3.1415926535897933e-06*y)*(p*exp(x*zplus) + q*exp(x*zminus) - 1.0)
+  ## u = d psi/d y
+  ## A*pi/L = 0.5
+  u = 0.5*cos(3.1415926535897933e-06*X[1])*(p*exp(X[0]*zplus) + q*exp(X[0]*zminus) - 1.0)
+  ## v = -d psi/d x
+  v = -A*sin(3.1415926535897933e-06*X[1])*(p*zplus*exp(X[0]*zplus) + q*zminus*exp(X[0]*zminus))
+  return [-u,-v]  ## as we're going backwards
+
+
+def function_analytical(x,y,t_start,t_end):
+  from math import exp
+  L = 1.e6
+  pos = scipy.integrate.odeint(func, [x, y], [t_start, t_end])
+#  print("Departure point:",pos[-1,:])
+  Analytical = 10.0*exp(-((pos[-1,0] - 2.*L/3.)**2 + (pos[-1,1] - L/3.)**2)/(2.*(L/12.5)**2))
+#  print("Analytical solution:",Analytical)
+  return Analytical
+
+
+def function_tetvol(X,Y,Z):
+  X12 = X[1] - X[0]; X13 = X[2] - X[0]; X14 = X[3] - X[0]
+  Y12 = Y[1] - Y[0]; Y13 = Y[2] - Y[0]; Y14 = Y[3] - Y[0]
+  Z12 = Z[1] - Z[0]; Z13 = Z[2] - Z[0]; Z14 = Z[3] - Z[0]   
+  VOL = X12*( Y13*Z14 - Y14*Z13 ) + X13*( Y14*Z12 - Y12*Z14 ) + X14*( Y12*Z13 - Y13*Z12 )
+  return abs(VOL/6)
+
+
+def function_trivol(X,Y):
+  a = sqrt( (X[1] - X[0])**2 + (Y[1] - Y[0])**2) 
+  b = sqrt( (X[2] - X[0])**2 + (Y[2] - Y[0])**2)
+  c = sqrt( (X[2] - X[1])**2 + (Y[2] - Y[1])**2)
+  s = 0.5*(a+b+c)
+  VOL = sqrt(s*(s-a)*(s-b)*(s-c))
+  return abs(VOL/2)
+
+
+file = 'Stommel2_adapt-A_20.vtu'
+time = 1.e7
+ug=vtktools.vtu(file)
+ug.GetFieldNames()
+n = ug.ugrid.GetNumberOfPoints()
+
+temp=ug.GetScalarField('Temperature')
+
+t_start = 0.0
+t_end = float(time)
+
+pos=ug.GetLocations()
+x=pos[:,0]; y=pos[:,1]; z=pos[:,2]
+
+psi=zeros(size(x), float)
+for i in range(len(x)):
+#  print("Arrival point,i:",x[i],y[i],i)
+  psi[i] = function_analytical(x[i],y[i],t_start,t_end)
+
+
+NE=ug.ugrid.GetNumberOfCells()
+ML=zeros(size(x), float)
+for ele in range(NE):
+  ndglno=ug.GetCellPoints(ele)
+  trivol=function_trivol(x[ndglno],y[ndglno])
+  for nod in ndglno:
+    ML[nod] = ML[nod] + trivol/3
+
+
+err = abs(psi - temp)
+norm1 = dot(ML,err)
+norm2 = dot(ML,err**2)
+snorm2 = sqrt(abs(norm2))
+normaliseL2 = sqrt(abs(dot(ML,psi**2)))
+##print(norm1)
+##print(snorm2)
+##print(amax(err))
+print(n,snorm2/normaliseL2)
+
+Adapt_error_norm = snorm2/normaliseL2
+    </variable>
+    <variable name="Adapt_node_count" language="python">
+import vtktools
+file = 'Stommel2_adapt-A_20.vtu'
+ug=vtktools.vtu(file)
+Adapt_node_count = ug.ugrid.GetNumberOfPoints()
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Check that the normalised L2 norm of the error on the fixed mesh is less than 0.55." language="python">
+print(Fixed_error_norm)
+assert(Fixed_error_norm &lt; 0.55)
+    </test>
+    <test name="Check that the normalised L2 norm of the error on the adaptive mesh is less than 0.25." language="python">
+print(Adapt_error_norm)
+assert(Adapt_error_norm &lt; 0.25)
+    </test>
+    <test name="Check that number of nodes in the adaptive case is less than 1000." language="python">
+print(Adapt_node_count)
+assert(Adapt_node_count &lt; 1000)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

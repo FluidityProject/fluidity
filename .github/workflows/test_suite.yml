@@ -3,7 +3,7 @@ name: Build and Test
 on:
   push:
     branches:
-      - main
+      - testharnessClean
   pull_request:
     branches:
       - main
@@ -147,7 +147,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release: [focal]
+        release: [focal, groovy]
         test-xml: ${{fromJSON(needs.get-lists.outputs.mediumtest-matrix)}}
 
     steps:

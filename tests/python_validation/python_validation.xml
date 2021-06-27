@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>FLML validation (python version)</name>
   <owner userid="jrper"/>
   <tags>flml python_validation</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>true</command_line>
   </problem_definition>
   <variables>

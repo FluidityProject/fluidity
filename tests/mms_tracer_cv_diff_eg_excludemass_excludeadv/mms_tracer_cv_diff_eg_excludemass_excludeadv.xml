@@ -3,7 +3,7 @@
   <name>p1cv element gradient diffusion equation spatial convergence test</name>
   <owner userid="cwilson"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v1 MMS_A_cv.flml &gt; MMS_A.log; fluidity -v1 MMS_B_cv.flml &gt; MMS_B.log; fluidity -v1 MMS_C_cv.flml &gt; MMS_C.log; fluidity -v1 MMS_D_cv.flml &gt; MMS_D.log; fluidity -v1 MMS_E_cv.flml &gt; MMS_E.log</command_line>
   </problem_definition>
   <variables>

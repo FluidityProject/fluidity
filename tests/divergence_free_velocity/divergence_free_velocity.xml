@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Checks that velocity is divergence free</name>
   <owner userid="sf1409"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v2 -l divergence_free_velocity.flml</command_line>
   </problem_definition>
   <variables>

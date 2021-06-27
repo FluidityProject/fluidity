@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Testing of particle based multimaterial fields in parallel for a small resolution prescribed vortex flow case with the diagnostic field initialised from a particle attribute_array. Vortex flow stretches particles from an initial circle of distinct compoisiton into a spiral, then reverses and reforms the initial circle. Conservation diagnostics are tested against those from a successful run.</name>
   <owner userid="drhodrid"/>
@@ -36,5 +35,3 @@ assert abs(Max_conservation_error).max() &lt; 2.5e-2
   <warn_tests>
   </warn_tests>
 </testproblem>
-
-   

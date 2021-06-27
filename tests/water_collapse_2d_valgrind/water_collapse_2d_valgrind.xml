@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>water collapse 2d</name>
+  <owner userid="skramer"/>
+  <tags>flml</tags>
+    <problem_definition length="special" nprocs="1">
+    <command_line>mpiexec valgrind --gen-suppressions=all --tool=memcheck --leak-check=full -v --log-file=valgrind.out --show-reachable=yes --num-callers=50 --error-limit=no --suppressions=fluidity.supp --leak-resolution=high fluidity -v2 -l water_collapse.flml</command_line>
+  </problem_definition>
+  <variables>  
+    <variable name="mindivergence" language="python">
+from fluidity_tools import stat_parser as stat
+mindivergence= max(abs(stat("water_collapse.stat")["Dense"]["ControlVolumeDivergence"]["min"]))
+    </variable>
+    <variable name="minvfrac" language="python">
+from fluidity_tools import stat_parser as stat
+minvfrac= max(stat("water_collapse.stat")["Dense"]["MaterialVolumeFraction"]["min"])
+    </variable>
+    <!--<variable name="mindensity" language="python">
+from fluidity_tools import stat_parser as stat
+mindensity= max(stat("water_collapse.stat")["Dense"]["Density"]["min"])
+    </variable>-->
+    <variable name="maxdivergence" language="python">
+from fluidity_tools import stat_parser as stat
+maxdivergence= max(stat("water_collapse.stat")["Dense"]["ControlVolumeDivergence"]["max"])
+    </variable>
+    <variable name="maxvfrac" language="python">
+from fluidity_tools import stat_parser as stat
+maxvfrac = max(stat("water_collapse.stat")["Dense"]["MaterialVolumeFraction"]["max"])
+    </variable>
+    <!--    <variable name="maxdensity" language="python">
+from fluidity_tools import stat_parser as stat
+maxdensity= max(stat("water_collapse.stat")["Dense"]["Density"]["max"])
+    </variable>-->
+    <variable name="vfracintstart" language="python">
+from fluidity_tools import stat_parser as stat
+vfracintstart= stat("water_collapse.stat")["Dense"]["MaterialVolumeFraction"]["integral"][0]
+    </variable>
+    <variable name="vfracintend" language="python">
+from fluidity_tools import stat_parser as stat
+vfracintend= stat("water_collapse.stat")["Dense"]["MaterialVolumeFraction"]["integral"][-1]
+    </variable>
+    <variable name="nodesstart" language="python">
+from fluidity_tools import stat_parser as stat
+nodesstart= stat("water_collapse.stat")["CoordinateMesh"]["nodes"][0]
+    </variable>
+    <variable name="nodesend" language="python">
+from fluidity_tools import stat_parser as stat
+nodesend= stat("water_collapse.stat")["CoordinateMesh"]["nodes"][-1]
+    </variable>
+    <variable name="valgrind_output" language="python">
+def valgrind_int(x):
+  """Converts an integer in the output of valgrind to int, stripping out any commas"""
+  return int(x.replace(",",""))
+  
+print("-------------------------------------------------------------------------------------------------------------------------------------")
+print(" valgrind output:")
+print)
+
+for line in file("valgrind.out", "r"):
+  # omit last newline character:
+  print(line[:-1])
+print("-------------------------------------------------------------------------------------------------------------------------------------")
+
+f=file("valgrind.out", "r")
+valgrind_output={}
+for line in f:
+  if "ERROR SUMMARY" in line:
+    # take the bit between the first : and 'errors'
+    valgrind_output["memory_errors"]= \
+       valgrind_int(line.split(":")[1].split("errors")[0])
+  elif "LEAK SUMMARY" in line:
+    # take the info out of the next 3 lines:
+    valgrind_output["definitely_lost"]= \
+       valgrind_int(f.next().split(":")[1].split("bytes")[0])
+    valgrind_output["possibly_lost"]= \
+       valgrind_int(f.next().split(":")[1].split("bytes")[0])
+    valgrind_output["still_reachable"]= \
+       valgrind_int(f.next().split(":")[1].split("bytes")[0])
+    </variable>
+  </variables>    
+  <pass_tests>
+    <test name="check water was conserved" language="python">
+print('mass loss = ', abs(vfracintend-vfracintstart))
+assert abs(vfracintend-vfracintstart) &lt; max(maxdivergence, mindivergence)
+    </test>
+    <test name="check that reasonable tolerance is being used to test conservation" language="python">
+print('divergence tolerance = ', max(maxdivergence, mindivergence))
+assert max(maxdivergence, mindivergence) &lt; 1.E-5
+    </test>
+    <test name="check max volume fraction bound" language="python">
+assert abs(maxvfrac-1.0) &lt; 1.E-10
+    </test>
+    <test name="check min volume fraction bound" language="python">
+assert abs(minvfrac) &lt; 1.E-10
+    </test>
+    <test name="check no. nodes has increased" language="python">
+assert nodesend &gt; nodesstart
+    </test>
+    <test name="valgrind hasn't detected memory errors or leaks" language="python">
+assert valgrind_output.values()==[0,0,0,0]
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>sigma_layer_sphere_parallel</name>
   <owner userid="jhill1"/>
   <tags>flml zoltan</tags>
-  <problem_definition length="short" nprocs="2">
+  <problem_definition length="vshort" nprocs="2">
     <command_line>mpiexec flredecomp -i 1 -o 2  sphere_sigma  sphere_sigma_flredecomp;
                     mpiexec fluidity -v2 -l sphere_sigma_flredecomp.flml</command_line>
   </problem_definition>

@@ -1,10 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>column-parallel</name>
   <owner userid="jhill1"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="2">
+  <problem_definition length="vshort" nprocs="2">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l column-parallel column-parallel_flredecomp &amp;&amp;
 mpiexec ../../bin/fluidity -v1 -l column-parallel_flredecomp.flml</command_line>
   </problem_definition>

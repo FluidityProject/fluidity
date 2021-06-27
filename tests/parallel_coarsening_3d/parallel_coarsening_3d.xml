@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>parallel_coarsening_3d<comment>This tests 3D coarsening in parallel. We start from a uniform mesh of 30x30x30 in a cube, i.e. dx~0.033. There's no interpolation error specified, so it should just coarsen to a uniform mesh according to the maximum edge length of 0.1. This is run on 3 cores. On master this fails because of it failing to move around the halos sufficiently so that we can coarsen everywhere. With he new halo locking strategy that only locks a single row of elements this passes.</comment></name>
   <owner userid="skramer"/>

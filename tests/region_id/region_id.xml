@@ -3,7 +3,7 @@
   <name>region_id check</name>
   <owner userid="cwilson"/>
   <tags>flml</tags>
-    <problem_definition length="short" nprocs="1">
+    <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v2 -l region_id_input.flml </command_line>
   </problem_definition>  
   <variables>  

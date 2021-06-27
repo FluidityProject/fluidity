@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testproblem>
+  <name>Lock_exchange</name>
+  <owner userid="agarcias"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>mpiexec fluidity -v3 -l Lock_exchange_2d.flml </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="res" language="python">
+import numpy as np
+import h5py
+res = []
+for subgroup in ("interface", "left", "right"):
+  f = h5py.File(f"Lock_exchange_2d.particles.{subgroup}.h5part", "r")
+
+  ts1 = len(f) - 30
+  ts2 = len(f) - 1
+
+  ids = np.argsort(f[f"/Step#{ts1}/id"][:])
+  pos1 = np.vstack([f[f"/Step#{ts1}/{dim}"][:][ids] for dim in "xy"])
+  ids = np.argsort(f[f"/Step#{ts2}/id"][:])
+  pos2 = np.vstack([f[f"/Step#{ts2}/{dim}"][:][ids] for dim in "xy"])
+
+  res.append((pos1 == pos2).any())
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Check there is no Lagrangian detector that has been converted into static" language="python">
+     assert(res == [False, False, False])
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

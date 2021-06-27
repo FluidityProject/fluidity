@@ -1,5 +1,4 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>lock exchange<comment>Runs a 2d adaptive simulation of the lock exchange, following the set-up of Hartel et al., 2000, JFM. Has basic adaptivity settings so check with in 15% of Hartel values. Also basic checks on mixing stats.
   NOTE: This test copies the example flml file and edits it to run to 30 seconds to properly test the head speeds.

@@ -1,10 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>tracer_source_dg</name>
   <owner userid="dham"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity  tracer.flml </command_line>
     <!-- Trivial problem in which a source term is prescribed for a tracer. -->
   </problem_definition>

@@ -1,5 +1,4 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>add_src_directly_1d_2grp_hom_zerobc_eig_p1cg</name>
   <owner userid="btollit"/>

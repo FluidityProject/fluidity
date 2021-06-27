@@ -1,0 +1,79 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testproblem>
+  <name>Eddying DOME</name>
+  <owner userid="bricheno"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="4">
+    <command_line>mpiexec fluidity -v2 -l Eddying_TestCase.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="error_log_n_lines" language="python">
+import os
+files = os.listdir("./")
+error_log_n_lines = {}
+for file in files:
+  if file.startswith("fluidity.err-"):
+    fileHandle = open(file)
+    errorLog = fileHandle.read()
+    print(file + ":")
+    print(errorLog)
+    error_log_n_lines[file] = len(errorLog.split("\n"))
+    fileHandle.close()
+    </variable>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+    </variable>
+    <variable name="current_stat" language="python">
+import fluidity_tools
+current_stat = fluidity_tools.stat_parser("Eddying_TestCase.stat")
+    </variable>
+    <variable name="reference_stat" language="python">
+import fluidity_tools
+reference_stat = fluidity_tools.stat_parser("src/reference-9908.stat")
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Simulation completed" language="python">
+timesteps = len(current_stat["ElapsedTime"]["value"])
+print("Timesteps: " + str(timesteps))
+assert(timesteps == 10)
+    </test>
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+    <test name="CFL number constrained" language="python">
+max_cfl_numbers = current_stat["BoussinesqFluid"]["CFLNumber"]["max"]
+max_cfl = max(max_cfl_numbers)
+print("Max CFL number = ", max_cfl)
+assert(max_cfl &lt;= 2.0)
+    </test>
+    <test name="Temperature bounded" language="python">
+min_t = min(current_stat["BoussinesqFluid"]["Temperature"]["min"])
+max_t = max(current_stat["BoussinesqFluid"]["Temperature"]["max"])
+print("Min T = ", min_t)
+print("Max T = ", max_t)
+assert(abs(min_t - 0.0) &lt; 1.0e-6)
+assert(abs(max_t - 0.02) &lt; 1.0e-6)
+    </test>
+    <test name="Velocity l2norm regression (10%)" language="python">
+import fluidity_tools
+ref = reference_stat["BoussinesqFluid"]["Velocity%magnitude"]["l2norm"][-1]
+current = current_stat["BoussinesqFluid"]["Velocity%magnitude"]["l2norm"][-1]
+print("Reference Velocity%l2norm = " + str(ref))
+print("Current Velocity%l2norm = " + str(current))
+fluidity_tools.compare_variable(ref, current, 0.1)
+    </test>
+  </pass_tests>
+  <warn_tests>
+    <test name="Velocity l2norm regression (2%)" language="python">
+import fluidity_tools
+ref = reference_stat["BoussinesqFluid"]["Velocity%magnitude"]["l2norm"][-1]
+current = current_stat["BoussinesqFluid"]["Velocity%magnitude"]["l2norm"][-1]
+print("Reference Velocity%l2norm = " + str(ref))
+print("Current Velocity%l2norm = " + str(current))
+fluidity_tools.compare_variable(ref, current, 0.02)
+    </test>
+  </warn_tests>
+</testproblem>

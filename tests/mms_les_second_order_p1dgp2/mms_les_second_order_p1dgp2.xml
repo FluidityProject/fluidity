@@ -1,5 +1,4 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
 
   <name>mms_les_second_order_p2p1</name>

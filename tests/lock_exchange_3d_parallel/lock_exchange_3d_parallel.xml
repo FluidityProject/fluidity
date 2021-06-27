@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testproblem>
+  <name>lock exchange parallel test</name>
+  <owner userid="matt-piggott"/>
+  <tags>flml</tags>
+    <problem_definition length="vlong" nprocs="16">
+    <command_line>mpiexec flredecomp -i 1 -o 16 -v -l lock_exchange_3d_parallel lock_exchange_3d_parallel_flredecomp &amp;&amp;
+mpiexec fluidity -v3 -l lock_exchange_3d_parallel_flredecomp.flml</command_line>
+  </problem_definition>  
+  <variables> 
+ <variable name="results_head_position" language="python">
+
+import vtk
+import vtktools
+import glob
+import sys
+import os
+import scipy.optimize
+import numpy
+
+######################################### 
+
+def get_filelist():
+
+    def key(s):
+        return int(s.split('_')[-1].split('.')[0])
+   
+    list = glob.glob("*.pvtu")
+    list = [l for l in list if 'check' not in l]
+    vtu_nos = [float(s.split('_')[-1].split('.')[0]) for s in list]
+    vals = zip(vtu_nos, list)
+    unzip = lambda l:tuple(apply(zip,l))
+    vtu_nos, list = unzip(sorted(vals))
+
+    return list
+    
+######################################### 
+
+def get_head_position(file):
+
+  data = vtktools.vtu(file)    
+
+  reader = vtk.vtkXMLPUnstructuredGridReader();
+  reader.SetFileName(file)
+  reader.Update()
+  data = reader.GetOutput()
+  data.GetPointData().SetActiveScalars("Temperature")
+  bbox = data.GetBounds()
+  centre = (bbox[3]+bbox[2])/2.0
+  plane = vtk.vtkPlane()
+  plane.SetOrigin(0.0, centre, 0.0)
+  plane.SetNormal(0.0, 1.0, 0.0)
+  cutter = vtk.vtkCutter()
+  cutter.SetCutFunction(plane)
+  if vtk.vtkVersion.GetVTKMajorVersion() &lt;= 5:
+    cutter.SetInput(data)
+  else:
+    cutter.SetInputData(data)
+  cutter.Update()
+  contour = vtk.vtkContourFilter ()
+  if vtk.vtkVersion.GetVTKMajorVersion() &lt;= 5:
+    contour.SetInput(cutter.GetOutput())
+  else:
+    contour.SetInputData(cutter.GetOutput())
+  contour.SetValue(0, 0.0)
+  contour.Update()
+  polydata = contour.GetOutput()
+  bounding_box = polydata.GetBounds()
+  (minx, maxx) = bounding_box[0:2]
+  X_top = -1.*minx; X_bottom = maxx
+
+  return [X_top,X_bottom]
+ 
+######################################### 
+
+filelist = get_filelist()
+results_head_position = get_head_position(filelist[-1])
+    </variable>
+ </variables>    
+ <pass_tests> 
+    <test name="Position of head at bottom (no slip) boundary" language="python">
+print((results_head_position[1]))
+assert(results_head_position[1] &gt; 0.0)
+    </test>
+    <test name="Position of head at top (free slip) boundary" language="python">
+print((results_head_position[0]))
+assert(results_head_position[0] &gt; 0.0)
+    </test>
+    <test name="Check free slip head has propagated further than no slip head" language="python">
+assert(results_head_position[0] &gt; results_head_position[1])
+    </test>
+  </pass_tests>
+</testproblem>

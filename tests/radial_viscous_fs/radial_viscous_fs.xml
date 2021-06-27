@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>radial-viscous-free-surface<comment>This tests that the normals used in the free surface boundary condition are purely in the radial direction. The test case prescribes a purely rotational velocity field at the surface boundary, with a free-slip base. The free surface height should therefore be zero. If radial directions are not purely orthogonal to the prescribed tangential velocities, this is not the case.</comment></name>
   <owner userid="rhodrid"/>
@@ -40,8 +40,3 @@ assert(abs_free_surface &lt; 5e4)
 </warn_tests>
 
 </testproblem>
-
-
-
-
-

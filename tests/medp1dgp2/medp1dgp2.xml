@@ -1,0 +1,68 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- The point of this test is to check the large ocean options with surface forcing. The mesh
+     is coarse, with a short time. The forcing should induce some small velocities and lower
+     the surface temperature
+     -->
+<testproblem>
+  <name>medp1dgp2</name>
+  <owner userid="jhill1"/>
+  <tags>flml</tags>
+  <problem_definition length="vlong" nprocs="4">
+    <command_line>mpiexec flredecomp -i 1 -o 4 -v -l med med_flredecomp &amp;&amp;
+mpiexec fluidity -v2 -l med_flredecomp.flml</command_line>
+  </problem_definition>
+
+<variables>  
+
+<variable name="max_depth" language="python">
+import fluidity_tools
+s=fluidity_tools.stat_parser('med.stat')
+max_depth=max(s["Fields"]["DistanceToBottom"]["max"])
+</variable>
+
+<variable name="elapsed_time" language="python">
+import fluidity_tools
+s=fluidity_tools.stat_parser('med.stat')
+elapsed_time=max(s["ElapsedTime"]["value"])
+</variable>
+
+<variable name="max_vel" language="python">
+import fluidity_tools
+s=fluidity_tools.stat_parser('med.stat')
+max_vel=max(s["Fields"]["Velocity%magnitude"]["max"])
+</variable>
+
+<variable name="int_temp_diff" language="python">
+import fluidity_tools
+s=fluidity_tools.stat_parser('med.stat')
+int_temp_diff=(s["Fields"]["Temperature"]["l2norm"][-1] - s["Fields"]["Temperature"]["l2norm"][0])
+</variable>
+
+</variables>
+
+<pass_tests>
+
+<test name="DepthCheck:" language="python">
+assert(max_depth &lt; 5000)
+assert(max_depth &gt; 3000)
+</test>
+
+<test name="RunCheck:" language="python">
+assert(elapsed_time &gt; 20000)
+</test>
+
+<test name="VelocityCheck:" language="python">
+assert(max_vel &lt; 0.002)
+assert(max_vel &gt; 0.001)
+</test>
+
+<test name="TemperatureCheck:" language="python">
+assert(int_temp_diff &lt; 0.0)
+</test>
+
+</pass_tests>                                                                                                                                                                                                
+
+<warn_tests>
+</warn_tests>
+
+</testproblem>

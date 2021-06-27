@@ -1,0 +1,121 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testproblem>
+  <name>p1p1-Stokes-square-convection-1e4-Ra-Test</name>
+  <owner userid="rhodrid"/>
+
+  <tags>flml</tags>
+
+  <problem_definition length="medium" nprocs="1">
+    <command_line>mpiexec fluidity -v2 -l Stokes-square-convection-1e4-p1p1-grav.flml ; mv fluidity.log-0 fluidity.log-grav ; mv fluidity.err-0 fluidity.err-grav ;  mpiexec fluidity -v2 -l Stokes-square-convection-1e4-p1p1-texp.flml ; mv fluidity.log-0 fluidity.log-texp ; mv fluidity.err-0 fluidity.err-texp  ;  mpiexec fluidity -v2 -l Stokes-square-convection-1e4-p1p1-dens.flml; mv fluidity.log-0 fluidity.log-dens ; mv fluidity.err-0 fluidity.err-dens  ;  mpiexec fluidity -v2 -l Stokes-square-convection-1e4-p1p1-temp.flml ; mv fluidity.log-0 fluidity.log-temp ; mv fluidity.err-0 fluidity.err-temp  ;  mpiexec fluidity -v2 -l Stokes-square-convection-1e4-p1p1-visc.flml ; mpiexec fluidity -v2 -l Stokes-square-convection-1e4-p1p1-diff.flml ; mv fluidity.log-0 fluidity.log-diff ; mv fluidity.err-0 fluidity.err-diff  </command_line>
+  </problem_definition>
+
+<variables>  
+
+<variable name="nu_top_grav" language="python">
+from fluidity_tools import stat_parser as stat
+nu_top_grav = abs(stat("stokes-1e4-p1p1-grav.stat")["Fluid"]["Temperature"]["surface_integral%TopH"][-1])
+</variable>
+<variable name="rms_vel_grav" language="python">
+from fluidity_tools import stat_parser as stat
+rms_vel_grav= stat("stokes-1e4-p1p1-grav.stat")["Fluid"]["Velocity%magnitude"]["l2norm"][-1]
+</variable>
+
+<variable name="nu_top_dens" language="python">
+from fluidity_tools import stat_parser as stat
+nu_top_dens = abs(stat("stokes-1e4-p1p1-dens.stat")["Fluid"]["Temperature"]["surface_integral%TopH"][-1])
+</variable>
+<variable name="rms_vel_dens" language="python">
+from fluidity_tools import stat_parser as stat
+rms_vel_dens= stat("stokes-1e4-p1p1-dens.stat")["Fluid"]["Velocity%magnitude"]["l2norm"][-1]
+</variable>
+
+<variable name="nu_top_texp" language="python">
+from fluidity_tools import stat_parser as stat
+nu_top_texp = abs(stat("stokes-1e4-p1p1-texp.stat")["Fluid"]["Temperature"]["surface_integral%TopH"][-1])
+</variable>
+<variable name="rms_vel_texp" language="python">
+from fluidity_tools import stat_parser as stat
+rms_vel_texp = stat("stokes-1e4-p1p1-texp.stat")["Fluid"]["Velocity%magnitude"]["l2norm"][-1]
+</variable>
+
+<variable name="nu_top_temp" language="python">
+from fluidity_tools import stat_parser as stat
+nu_top_temp = abs(stat("stokes-1e4-p1p1-temp.stat")["Fluid"]["Temperature"]["surface_integral%TopH"][-1])
+nu_top_temp = nu_top_temp / 10000.
+</variable>
+<variable name="rms_vel_temp" language="python">
+from fluidity_tools import stat_parser as stat
+rms_vel_temp = stat("stokes-1e4-p1p1-temp.stat")["Fluid"]["Velocity%magnitude"]["l2norm"][-1]
+</variable>
+
+<variable name="nu_top_visc" language="python">
+from fluidity_tools import stat_parser as stat
+nu_top_visc = abs(stat("stokes-1e4-p1p1-visc.stat")["Fluid"]["Temperature"]["surface_integral%TopH"][-1])
+</variable>
+<variable name="rms_vel_visc" language="python">
+from fluidity_tools import stat_parser as stat
+rms_vel_visc = stat("stokes-1e4-p1p1-visc.stat")["Fluid"]["Velocity%magnitude"]["l2norm"][-1]
+</variable>
+
+<variable name="nu_top_diff" language="python">
+from fluidity_tools import stat_parser as stat
+nu_top_diff = abs(stat("stokes-1e4-p1p1-diff.stat")["Fluid"]["Temperature"]["surface_integral%TopH"][-1])
+</variable>
+<variable name="rms_vel_diff" language="python">
+from fluidity_tools import stat_parser as stat
+rms_vel_diff = stat("stokes-1e4-p1p1-diff.stat")["Fluid"]["Velocity%magnitude"]["l2norm"][-1]
+rms_vel_diff = rms_vel_diff * 10000.
+</variable>
+
+</variables>
+
+<pass_tests>
+
+<test name="Surface Nusselt Number Validity: 4.7 .lt. Nu .lt. 5.3" language="python">
+assert(abs(nu_top_grav-5.0) &lt; 0.30)
+</test>
+<test name="RMS Velocity Validity: 43.0 .lt. V_RMS .lt. 44.0" language="python">
+assert(abs(rms_vel_grav-43.5) &lt; 0.5)
+</test>
+
+<test name="Surface Nusselt Number Validity: 4.7 .lt. Nu .lt. 5.3" language="python">
+assert(abs(nu_top_dens-5.0) &lt; 0.30)
+</test>
+<test name="RMS Velocity Validity: 43.0 .lt. V_RMS .lt. 44.0" language="python">
+assert(abs(rms_vel_dens-43.5) &lt; 0.5)
+</test>
+
+<test name="Surface Nusselt Number Validity: 4.7 .lt. Nu .lt. 5.3" language="python">
+assert(abs(nu_top_texp-5.0) &lt; 0.30)
+</test>
+<test name="RMS Velocity Validity: 43.0 .lt. V_RMS .lt. 44.0" language="python">
+assert(abs(rms_vel_texp-43.5) &lt; 0.5)
+</test>
+
+<test name="Surface Nusselt Number Validity: 4.7 .lt. Nu .lt. 5.3" language="python">
+assert(abs(nu_top_temp-5.0) &lt; 0.30)
+</test>
+<test name="RMS Velocity Validity: 43.0 .lt. V_RMS .lt. 44.0" language="python">
+assert(abs(rms_vel_temp-43.5) &lt; 0.5)
+</test>
+
+<test name="Surface Nusselt Number Validity: 4.7 .lt. Nu .lt. 5.3" language="python">
+assert(abs(nu_top_visc-5.0) &lt; 0.30)
+</test>
+<test name="RMS Velocity Validity: 43.0 .lt. V_RMS .lt. 44.0" language="python">
+assert(abs(rms_vel_visc-43.5) &lt; 0.5)
+</test>
+
+<test name="Surface Nusselt Number Validity: 4.7 .lt. Nu .lt. 5.3" language="python">
+assert(abs(nu_top_diff-5.0) &lt; 0.30)
+</test>
+<test name="RMS Velocity Validity: 43.0 .lt. V_RMS .lt. 44.0" language="python">
+assert(abs(rms_vel_diff-43.5) &lt; 0.5)
+</test>
+
+</pass_tests>                                                                                                                                                                                                
+
+<warn_tests>
+</warn_tests>
+
+</testproblem>

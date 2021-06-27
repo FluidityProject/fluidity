@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Transient population balance using direct quadrature method of moments (N=2) for 2d mesh using P1 CG with ADAPTIVITY</name>
   <owner userid="gb812"/>

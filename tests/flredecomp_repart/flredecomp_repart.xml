@@ -1,8 +1,8 @@
-<?xml version = "1.0" encoding = "UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>flredecomp_repart</name>
   <owner userid="agibson"/>
-  <problem_definition length = "short" nprocs = "4">
+  <problem_definition length="vshort" nprocs="4">
     <command_line>
       make clean-run
       mpiexec -np 2 ../../bin/flredecomp -i 1 -o 2 -v -l test test_flredecomp
@@ -10,7 +10,7 @@
     </command_line>
   </problem_definition>
   <variables>
-    <variable name = "partitions" language = "python">
+    <variable name="partitions" language="python">
 import fluidity.diagnostics.gmshtools as gmshtools
 partitions = []
 for i in range(4):
@@ -18,7 +18,7 @@ for i in range(4):
     </variable>
   </variables>
   <pass_tests>
-    <test name = "Equal sized partitions (owned nodes)" language = "python">
+    <test name="Equal sized partitions (owned nodes)" language="python">
 import fluidity_tools
 nodeCounts = []
 for partition in partitions:

@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>p2p1-Stokes-square-convection-1e4</name>
   <owner userid="rhodrid"/>
   <tags>flml</tags>
 
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v2 -l Stokes-square-convection-1e4-p2p1.flml</command_line>
   </problem_definition>
 
@@ -93,8 +93,3 @@ assert(abs(q_one-0.585) &lt; 0.015)
 </warn_tests>
 
 </testproblem>
-
-
-
-
-

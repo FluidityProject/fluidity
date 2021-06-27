@@ -2,7 +2,7 @@
 <testproblem>
   <name>region_id_extrude_bathymetry_1p1d</name>
   <owner userid="cwilson"/>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v2 -l region_id_extrude_bathymetry_1p1d.flml</command_line>
   </problem_definition>
   <variables>

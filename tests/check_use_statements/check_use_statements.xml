@@ -2,7 +2,7 @@
 <testproblem>
   <name>check_use_statements</name>
   <owner userid="jrper"/>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>:</command_line>
   </problem_definition>
   <variables>

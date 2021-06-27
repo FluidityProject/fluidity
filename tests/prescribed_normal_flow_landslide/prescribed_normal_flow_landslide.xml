@@ -1,8 +1,8 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>PrescribedLandslide</name>
   <owner userid="jhill1"/>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>../../bin/fluidity Storegga_2d_presc.flml; ../../bin/fluidity Storegga_2d.flml</command_line>
   </problem_definition>
   <variables>

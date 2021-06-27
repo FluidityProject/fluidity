@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>viscous_fs_simpletopbottom</name>
   <owner userid="cwilson"/>
   <tags>flml</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l viscous_fs_simpletopbottom_E.flml; fluidity -v2 -l viscous_fs_simpletopbottom_F.flml; fluidity -v2 -l viscous_fs_simpletopbottom_G.flml; fluidity -v2 -l viscous_fs_simpletopbottom_H.flml; fluidity -v2 -l viscous_fs_simpletopbottom_I.flml</command_line>
   </problem_definition>
   <variables>
