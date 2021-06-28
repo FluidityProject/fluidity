@@ -57,7 +57,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">125</integer_value>
+        <integer_value rank="0">115</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="PressureMesh"/>
@@ -79,7 +79,7 @@
     </timestep>
     <finish_time>
       <real_value rank="0">7.7562793868126416</real_value>
-      <comment>corresponds to 2010 timesteps (looks like half of Rudman)</comment>
+      <comment>corresponds to about 1860 timesteps (looks like half of Rudman)</comment>
     </finish_time>
     <adaptive_timestep>
       <requested_cfl>

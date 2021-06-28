@@ -182,8 +182,9 @@ def poll_processes(running_procs, core_counter, serial, return_list,
             current_test["stderr"] += f"{task_string}\n{stderr}\n"
             # Deal with successful processes
             if ("No rule to make target 'input'" in stderr
-                or (status == 0 and "Traceback" not in stderr
-                    and "/bin/bash" not in stderr)):
+                or (status == 0
+                    and all(x not in stderr for x in ["Traceback", "/bin/bash",
+                                                      "MPI_ABORT"]))):
                 return_list.append(running_xml)
             else:  # Deal with errors
                 process_error(running_xml, process_interpreter, stdout,
@@ -225,7 +226,7 @@ def process_error(test_xml, process_interpreter, stdout, stderr):
             regex = (r"(?<=^#\s)" ".+"
                      "(?=(\n^[^#].+|\n^#(?! Pass Test| Warn Test).+){0,}"
                      "\n--- (Error|Failure|Warning))")
-            failed_tests = [match.group().split(": ") for match
+            failed_tests = [match.group().split(": ", maxsplit=1) for match
                             in re.finditer(regex, stdout, re.MULTILINE)]
             # Split stderr into individual tracebacks
             regex = "(^Traceback).+(\n.+)+?(?=\n~~~ End of Traceback ~~~)"
