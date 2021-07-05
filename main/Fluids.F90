@@ -800,7 +800,15 @@ contains
           if(do_adapt_mesh(current_time, timestep)) then
 
              if (have_option("/mesh_adaptivity/mesh_movement/free_surface")) then
+               ! move back the mesh to its original position, so we have a regular domain with flat surface to adapt
+               ! after the adapt, we move the mesh back by reapplying the free-surface based mesh movement using
+               ! the interpolated free surface
                call set_vector_field_in_state(state(1), "Coordinate", "OriginalCoordinate")
+               call IncrementEventCounter(EVENT_MESH_MOVEMENT)
+               ! Move the detectors along inside their elements (updating physical coordinate but fixing local coordinate)
+               ! When the elements are transformed back after the adapt, we do this again so that the detectors are back at their
+               ! position before the adapt (exactly if the mesh movement is affine)
+               call sync_detector_coordinates(state(1), reinterpolate_all=.true.)
              end if
 
              call pre_adapt_tasks(sub_state)
@@ -981,7 +989,10 @@ contains
     end if
 
     if (have_option("/mesh_adaptivity/mesh_movement/free_surface")) then
+      ! reapply mesh movement according to interpolated free surface
       call move_mesh_free_surface(state, initialise=.true.)
+      ! also move detectors back by reinterpolating their physical position from their local coordinates
+      call sync_detector_coordinates(state(1), reinterpolate_all=.true.)
     end if
 
     ! Discrete properties

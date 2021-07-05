@@ -30,7 +30,7 @@
 module detector_parallel
   use spud
   use fldebug
-  use futils, only: int2str
+  use futils, only: int2str, present_and_true
   use integer_hash_table_module
   use mpi_interfaces
   use elements
@@ -476,10 +476,16 @@ contains
 
   end subroutine exchange_detectors
 
-  subroutine sync_detector_coordinates(state)
-    ! Re-synchronise the physical and parametric coordinates 
+  subroutine sync_detector_coordinates(state, reinterpolate_all)
+    ! Re-synchronise the physical and local (parametric) coordinates
     ! of all detectors detectors in all lists after mesh movement.
     type(state_type), intent(in) :: state
+    ! if present and true, assume the local coordinates corresponds to the correct detector position
+    ! and reinterpolate the physical detector%position from the Coordinate field
+    ! if false (default), this is done only for those detector lists with the move_with_mesh option which
+    ! thereby automatically move with the mesh, for detectors in other lists we assume the _physical_ coordinates
+    ! are correct and we search which element they are located in and recompute the local coordinates
+    logical, optional, intent(in) :: reinterpolate_all
 
     type(detector_list_ptr), dimension(:), pointer :: detector_list_array => null()
     type(vector_field), pointer :: coordinate_field => null()
@@ -494,7 +500,7 @@ contains
 
           ! In order to let detectors drift with the mesh
           ! we update det%position from the parametric coordinates
-          if (detector_list_array(i)%ptr%move_with_mesh) then
+          if (present_and_true(reinterpolate_all) .or. detector_list_array(i)%ptr%move_with_mesh) then
              detector=>detector_list_array(i)%ptr%first
              do while (associated(detector)) 
                 detector%position=detector_value(coordinate_field, detector)
@@ -502,8 +508,9 @@ contains
              end do
           ! By default update detector element and local_coords from position
           else
+             ! local search first
              call search_for_detectors(detector_list_array(i)%ptr, coordinate_field)
-
+             ! in parallel, change ownership and search those not found locally:
              call distribute_detectors(state, detector_list_array(i)%ptr)
           end if
        end do

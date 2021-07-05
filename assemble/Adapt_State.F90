@@ -1235,19 +1235,17 @@ contains
         call profiler_tic("find_particles_mesh_adapt")
         do j = 1, size(detector_list_array)
            call search_for_detectors(detector_list_array(j)%ptr, new_positions)
-        end do
-        call profiler_toc("find_particles_mesh_adapt")
-#ifdef DDEBUG
-        ! Sanity check that all local detectors are owned
-        call get_registered_detector_lists(detector_list_array)
-        do j = 1, size(detector_list_array)
+
+           ! Sanity check that all local detectors are owned
            detector=>detector_list_array(j)%ptr%first
            do k = 1, detector_list_array(j)%ptr%length
-              assert(detector%element>0)
+              if (detector%element<0) then
+                FLAbort("Lost one of the detectors during an adapt")
+              end if
               detector=>detector%next
            end do
         end do
-#endif
+        call profiler_toc("find_particles_mesh_adapt")
       end if
 
       ! Then reallocate all fields
