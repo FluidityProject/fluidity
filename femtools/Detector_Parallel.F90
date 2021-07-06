@@ -307,7 +307,8 @@ contains
 
   end subroutine distribute_detectors
 
-  subroutine exchange_detectors(state, detector_list, send_list_array, positions)
+  subroutine exchange_detectors(state, detector_list, send_list_array, positions, &
+      include_update_vector)
     ! This subroutine serialises send_list_array, sends it, 
     ! receives serialised detectors from all procs and unpacks them.
     type(state_type), intent(in) :: state
@@ -316,6 +317,9 @@ contains
     ! in the largest element halo
     type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
     type(vector_field), optional, target, intent(in) :: positions
+    ! if present and true also exchange the detectors' update vector and k matrix
+    logical, intent(in), optional :: include_update_vector
+
 
     type(detector_buffer), dimension(:), allocatable :: send_buffer, recv_buffer
     type(detector_type), pointer :: detector, detector_received
@@ -353,20 +357,15 @@ contains
        FLAbort("Exchanging detectors requires halo_level > 0")
     end if
 
-    ! Get buffer size, depending on whether RK-GS parameters are still allocated
-    if (.not.present(positions)) then
-       have_update_vector=associated(detector_list%move_parameters)
-       if(have_update_vector) then
-          n_stages=detector_list%move_parameters%n_stages
-          det_size=detector_buffer_size(dim,have_update_vector,n_stages, attribute_size=detector_list%total_attributes)
-       else
-          det_size=detector_buffer_size(dim,have_update_vector, attribute_size=detector_list%total_attributes)
-       end if
+    ! Get buffer size, depending on whether RK update vector and K matrix need sending
+    have_update_vector = present_and_true(include_update_vector)
+    if (have_update_vector) then
+       n_stages=detector_list%move_parameters%n_stages
+       det_size=detector_buffer_size(dim,have_update_vector,n_stages, attribute_size=detector_list%total_attributes)
     else
-       have_update_vector=.false.
        det_size=detector_buffer_size(dim,have_update_vector, attribute_size=detector_list%total_attributes)
     end if
-    
+
     ! Send to all procs
     allocate(send_buffer(nprocs))
     do target_proc=1, nprocs
@@ -451,7 +450,7 @@ contains
                     global_to_local=ele_numbering_inverse,coordinates=xfield, attribute_size=detector_list%total_attributes)
           end if
 
-          call insert(detector_received, detector_list)           
+          call insert(detector_received, detector_list)
        end do
     end do
 
