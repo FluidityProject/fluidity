@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - solenoidal_full_schur
   pull_request:
     branches:
       - main
