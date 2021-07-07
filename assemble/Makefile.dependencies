@@ -350,7 +350,7 @@ Full_Projection.o ../include/full_projection.mod: Full_Projection.F90 \
    ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod \
    ../include/data_structures.mod ../include/elements.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/fldebug.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/halos.mod \
    ../include/multigrid.mod ../include/parallel_tools.mod \
    ../include/petsc_legacy.h ../include/petsc_solve_state_module.mod \
