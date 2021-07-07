@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - solenoidal_full_schur
+      - cianwilson/solenoidal_full_schur
   pull_request:
     branches:
       - main
