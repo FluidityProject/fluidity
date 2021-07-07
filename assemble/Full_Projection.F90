@@ -77,7 +77,7 @@
       ! as DiagonalSchurComplement, this comes in as C(Big_m_id)C, where Big_M_id is the inverse diagonal of the full 
       ! momentum matrix. If preconditioner is set to ScaledPressureMassMatrix, this comes in as the pressure mass matrix,
       ! scaled by the inverse of viscosity.
-      type(csr_matrix), intent(inout) :: pmat
+      type(csr_matrix), pointer, intent(inout) :: pmat
       type(vector_field), intent(in) :: velocity ! used to retrieve strong diricihlet bcs
       ! state, and inner_mesh are used to setup mg preconditioner of inner solve
       type(state_type), intent(in):: state
@@ -189,7 +189,7 @@
       ! Fluidity RHS:
       type(scalar_field), intent(inout) :: rhs
       ! Preconditioner matrix:
-      type(csr_matrix), intent(inout) :: preconditioner_matrix
+      type(csr_matrix), pointer, intent(inout) :: preconditioner_matrix
       ! Stabilization matrix:
       type(csr_matrix), optional, intent(in) :: auxiliary_matrix
       ! Option paths:
@@ -224,7 +224,7 @@
       integer, dimension(:,:), pointer :: save_gnn2unn
       type(integer_set), dimension(velocity%dim):: boundary_row_set      
       integer reference_node, i, rotation_stat, ref_stat
-      logical parallel, have_auxiliary_matrix, have_preconditioner_matrix
+      logical parallel, have_auxiliary_matrix
 
       logical :: apply_reference_node, apply_reference_node_from_coordinates, reference_node_owned
 
@@ -295,7 +295,7 @@
            halo=div_matrix_comp%sparsity%column_halo)
       call allocate(petsc_numbering_p, &
            nnodes=block_size(div_matrix_comp,1), nfields=1, &
-           halo=preconditioner_matrix%sparsity%row_halo, ghost_nodes=ghost_nodes)
+           halo=div_matrix_comp%sparsity%row_halo, ghost_nodes=ghost_nodes)
 
            ! - why is this using the row halo of the preconditioner matrix when there might be rows missing?
            ! - same question about the nnodes use of the rows of the block of the divergence matrix?
@@ -439,13 +439,7 @@
           inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true.)
       ! leaving out petsc_numbering and mesh, so "iteration_vtus" monitor won't work!
 
-      ! FIXME: broken logic here, shouldn't depend on option path
-      ! Assemble preconditioner matrix in petsc format (if required):
-      have_preconditioner_matrix=.not.(have_option(trim(option_path)//&
-              "/prognostic/scheme/use_projection_method&
-              &/full_schur_complement/preconditioner_matrix::NoPreconditionerMatrix"))
-
-      if(have_preconditioner_matrix) then
+      if(associated(preconditioner_matrix)) then
          pmat=csr2petsc(preconditioner_matrix, petsc_numbering_p, petsc_numbering_p)
       else
          pmat=A
@@ -472,7 +466,7 @@
       call MatDestroy(G_t_comp,ierr) ! Destroy Compressible Divergence Operator.
       call MatDestroy(G_t_incomp, ierr) ! Destroy Incompressible Divergence Operator.
       call MatDestroy(G, ierr) ! Destroy Gradient Operator (i.e. transpose of incompressible div).
-      if(have_preconditioner_matrix) call MatDestroy(pmat,ierr) ! Destroy preconditioning matrix.
+      if(associated(preconditioner_matrix)) call MatDestroy(pmat,ierr) ! Destroy preconditioning matrix.
       if(have_auxiliary_matrix) call MatDestroy(S,ierr) ! Destroy stabilization matrix
       
       call deallocate( petsc_numbering_u )

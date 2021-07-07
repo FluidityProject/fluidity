@@ -416,7 +416,7 @@ module solenoidal_interpolation_module
         call petsc_solve_full_projection(lagrange, ctp_m, field_mass, ct_m, &
                                          projec_rhs, pschur, v_field, &
                                          local_state, v_field%mesh, &
-                                         option_path=trim(l_option_path)//"/lagrange_multiplier",&
+                                         option_path=trim(l_option_path)//"/lagrange_multiplier", &
                                          inner_option_path=trim(l_option_path)//&
                                                            "/interpolated_field/continuous/full_schur_complement/inner_matrix[0]",&
                                          auxiliary_matrix=schur_aux)
@@ -424,7 +424,7 @@ module solenoidal_interpolation_module
         call petsc_solve_full_projection(lagrange, ctp_m, field_mass, ct_m, &
                                          projec_rhs, pschur, v_field, &
                                          local_state, v_field%mesh, &
-                                         option_path=trim(l_option_path)//"/lagrange_multiplier",&
+                                         option_path=trim(l_option_path)//"/lagrange_multiplier", &
                                          inner_option_path=trim(l_option_path)//&
                                                            "/interpolated_field/continuous/full_schur_complement/inner_matrix[0]")
       end if
@@ -437,7 +437,9 @@ module solenoidal_interpolation_module
     end if
     
     if(full_schur) then
-      call correct_velocity_cg(v_field, field_mass, ct_m, lagrange, local_state)
+      call correct_velocity_cg(v_field, field_mass, ct_m, lagrange, local_state, &
+                               option_path=trim(l_option_path)//&
+                                          "/interpolated_field/continuous/full_schur_complement/inner_matrix[0]")
     else if(assemble_lumped_mass) then
       call correct_masslumped_velocity(v_field, inverse_field_lumped_mass_vector, ct_m, lagrange)
     else if(discontinuous) then

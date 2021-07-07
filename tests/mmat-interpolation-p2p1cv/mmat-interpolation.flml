@@ -154,16 +154,15 @@ will get cut off by final_timestep</comment>
                 <full_schur_complement>
                   <inner_matrix name="FullMassMatrix">
                     <solver>
-                      <iterative_method name="preonly"/>
-                      <preconditioner name="lu">
-                        <factorization_package name="mumps"/>
-                      </preconditioner>
+                      <iterative_method name="cg"/>
+                      <preconditioner name="sor"/>
                       <relative_error>
-                        <real_value rank="0">1.e-6</real_value>
+                        <real_value rank="0">1E-10</real_value>
                       </relative_error>
                       <max_iterations>
-                        <integer_value rank="0">100</integer_value>
+                        <integer_value rank="0">10000</integer_value>
                       </max_iterations>
+                      <start_from_zero/>
                       <never_ignore_solver_failures/>
                       <diagnostics>
                         <monitors/>
@@ -183,13 +182,16 @@ will get cut off by final_timestep</comment>
               </spatial_discretisation>
               <update_scalar_field name="Lambda"/>
               <solver>
-                <iterative_method name="cg"/>
-                <preconditioner name="sor"/>
+                <iterative_method name="gmres"/>
+                <preconditioner name="none"/>
                 <relative_error>
-                  <real_value rank="0">1.E-10</real_value>
+                  <real_value rank="0">1.E-8</real_value>
                 </relative_error>
+                <absolute_error>
+                  <real_value rank="0">1e-16</real_value>
+                </absolute_error>
                 <max_iterations>
-                  <integer_value rank="0">10000</integer_value>
+                  <integer_value rank="0">1000</integer_value>
                 </max_iterations>
                 <never_ignore_solver_failures/>
                 <diagnostics>

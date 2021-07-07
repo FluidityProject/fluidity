@@ -2574,7 +2574,7 @@
 
     end subroutine correct_masslumped_velocity
 
-    subroutine correct_velocity_cg(u, mass, ct_m, delta_p, state)
+    subroutine correct_velocity_cg(u, mass, ct_m, delta_p, state, option_path)
       !!< Given the pressure correction delta_p, correct the velocity.
       !!<
       !!< U_new = U_old + M_l^{-1} * C * delta_P
@@ -2583,6 +2583,7 @@
       type(block_csr_matrix), intent(in) :: ct_m
       type(scalar_field), intent(in) :: delta_p
       type(state_type), intent(in) :: state
+      character(len=*), optional, intent(in) :: option_path
 
       ! Correction to u one dimension at a time.
       type(vector_field) :: delta_u1, delta_u2
@@ -2591,13 +2592,17 @@
 
       call allocate(delta_u1, u%dim, u%mesh, "Delta_U1")
       call allocate(delta_u2, u%dim, u%mesh, "Delta_U2")
-      delta_u2%option_path = trim(delta_p%option_path)//&
-                                  &"/prognostic/scheme/use_projection_method"//&
-                                  &"/full_schur_complement/inner_matrix[0]"
-      if (.not. have_option(trim(delta_u2%option_path)//"/solver")) then
-        ! inner solver options are optional (for FullMomemtumMatrix), if not
-        ! present use the same as those for the initial velocity solve
-        delta_u2%option_path = u%option_path
+      if(present(option_path)) then
+        delta_u2%option_path = option_path
+      else
+        delta_u2%option_path = trim(delta_p%option_path)//&
+                                    &"/prognostic/scheme/use_projection_method"//&
+                                    &"/full_schur_complement/inner_matrix[0]"
+        if (.not. have_option(trim(delta_u2%option_path)//"/solver")) then
+          ! inner solver options are optional (for FullMomemtumMatrix), if not
+          ! present use the same as those for the initial velocity solve
+          delta_u2%option_path = u%option_path
+        end if
       end if
       
       ! compute delta_u1=grad delta_p
