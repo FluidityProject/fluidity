@@ -8,6 +8,7 @@ module fefields
   use elements, only: element_type
   use parallel_tools
   use sparse_tools
+  use sparse_tools_petsc
   use transform_elements, only: transform_to_physical, element_volume
   use fetools, only: shape_shape, shape_rhs, shape_vector_rhs
   use fields
@@ -23,6 +24,10 @@ module fefields
 
   interface project_field
      module procedure project_scalar_field, project_vector_field
+  end interface
+  
+  interface compute_mass
+     module procedure compute_mass_csr, compute_mass_petsc_csr
   end interface
   
   private
@@ -211,7 +216,7 @@ contains
 
   end subroutine compute_lumped_mass
 
-  subroutine compute_mass(positions, mesh, mass, lumped_mass, density)
+  subroutine compute_mass_csr(positions, mesh, mass, lumped_mass, density)
     type(vector_field), intent(in) :: positions
     type(mesh_type), intent(in) :: mesh
     type(csr_matrix), intent(inout) :: mass
@@ -226,7 +231,7 @@ contains
 
     real, dimension(ele_ngi(mesh, 1)) :: density_gi
 
-    ewrite(1,*) 'In compute_mass'
+    ewrite(1,*) 'In compute_mass_csr'
 
     if(present(density)) then
       l_density => density
@@ -258,7 +263,63 @@ contains
       deallocate(l_density)
     end if
 
-  end subroutine compute_mass
+  end subroutine compute_mass_csr
+
+  subroutine compute_mass_petsc_csr(positions, mesh, mass, lumped_mass, density)
+    type(vector_field), intent(in) :: positions
+    type(mesh_type), intent(in) :: mesh
+    type(petsc_csr_matrix), intent(inout) :: mass
+    type(scalar_field), intent(inout), optional :: lumped_mass
+    type(scalar_field), intent(inout), target, optional :: density
+
+    integer :: ele, dimi
+    real, dimension(ele_ngi(mesh, 1)) :: detwei
+    type(element_type), pointer :: t_shape
+    real, dimension(ele_loc(mesh, 1), ele_loc(mesh, 1)) :: mass_matrix
+    type(scalar_field), pointer :: l_density
+
+    real, dimension(ele_ngi(mesh, 1)) :: density_gi
+
+    ewrite(1,*) 'In compute_mass_petsc_csr'
+
+    ! check our assumption below of a square matrix is valid
+    if(blocks(mass,1)/=blocks(mass,2)) then
+      FLAbort("compute_mass_petsc_csr assumes block square matrices")
+    end if
+
+    if(present(density)) then
+      l_density => density
+    else
+      allocate(l_density)
+      call allocate(l_density, mesh, name="LocalDensity", field_type=FIELD_TYPE_CONSTANT)
+      call set(l_density, 1.0)
+    end if
+
+    call zero(mass)
+    if(present(lumped_mass)) then
+      assert(lumped_mass%mesh==mesh)
+      call zero(lumped_mass)
+    end if
+
+    do ele=1,ele_count(mesh)
+      t_shape => ele_shape(mesh, ele)
+      density_gi = ele_val_at_quad(l_density, ele)
+      call transform_to_physical(positions, ele, detwei=detwei)
+      mass_matrix = shape_shape(t_shape, t_shape, detwei*density_gi)
+      do dimi=1,blocks(mass,1)
+        call addto(mass, dimi, dimi, ele_nodes(mesh, ele), ele_nodes(mesh,ele), mass_matrix)
+      end do
+      if(present(lumped_mass)) then
+        call addto(lumped_mass, ele_nodes(lumped_mass, ele), sum(mass_matrix, 2))
+      end if
+    end do
+
+    if(.not.present(density)) then
+      call deallocate(l_density)
+      deallocate(l_density)
+    end if
+
+  end subroutine compute_mass_petsc_csr
 
   subroutine compute_lumped_mass_on_submesh(state, lumped_mass, density, vfrac)
 

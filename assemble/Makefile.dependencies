@@ -732,11 +732,12 @@ Solenoidal_interpolation.o ../include/solenoidal_interpolation_module.mod: \
    ../include/divergence_matrix_cg.mod ../include/divergence_matrix_cv.mod \
    ../include/element_numbering.mod ../include/fdebug.h \
    ../include/fefields.mod ../include/fetools.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/interpolation_module.mod \
-   ../include/linked_lists.mod ../include/momentum_cg.mod \
-   ../include/momentum_dg.mod ../include/solvers.mod \
-   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/fields.mod ../include/fldebug.mod ../include/full_projection.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/interpolation_module.mod ../include/linked_lists.mod \
+   ../include/momentum_cg.mod ../include/momentum_dg.mod \
+   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
+   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
    ../include/sparsity_patterns.mod ../include/state_module.mod \
    ../include/supermesh_construction.mod ../include/tensors.mod \
    ../include/transform_elements.mod ../include/vector_tools.mod

@@ -780,7 +780,7 @@ The 'tensor' length scale uses the metric from the adaptivity process. Using thi
                   </element>
                   <element name="solver">
                     <a:documentation>Solver options are required for calculation of Helmholtz-smoothed velocity.</a:documentation>
-                    <ref name="linear_solver_options_sym"/>
+                    <ref name="linear_solver_options_sym_scalar"/>
                   </element>
                   <optional>
                     <element name="scalar_field">
@@ -1644,7 +1644,7 @@ Note that the default value is zero. </a:documentation>
           <optional>
             <element name="solver">
               <a:documentation>Solver options are necessary if you're not lumping your mass or if you're field isn't dg</a:documentation>
-              <ref name="linear_solver_options_sym"/>
+              <ref name="linear_solver_options_sym_scalar"/>
             </element>
           </optional>
           <optional>
@@ -1765,7 +1765,7 @@ the continuity equation is never integrated by parts.</a:documentation>
     <optional>
       <choice>
         <element name="reference_node">
-          <a:documentation>Reference node (Node at which pressure = 0.) Note that the node number must be less than the total number of nodes.
+          <a:documentation>Reference node (node at which pressure = 0). Note that the node number must be less than the total number of nodes.
 If running in parallel, the node number must be less than the total number of nodes of the first processor.
 ** Note - it is also an option to remove the null-space of the residual vector. This
 option is available under solvers</a:documentation>
@@ -1839,7 +1839,7 @@ Make sure you've not lumped your mass in the velocity spatial_discretisation if 
                 <element name="solver">
                   <a:documentation>Solver options to solve the inner (mass) matrix in the schur complement solve, also used
 to solve the correction solve afterwards.</a:documentation>
-                  <ref name="linear_solver_options_sym"/>
+                  <ref name="linear_solver_options_sym_scalar"/>
                 </element>
               </element>
               <element name="inner_matrix">
@@ -1915,7 +1915,7 @@ viscosity tensors.</a:documentation>
     </element>
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_sym"/>
+      <ref name="linear_solver_options_sym_scalar"/>
     </element>
     <zeroOrMore>
       <choice>
@@ -2047,7 +2047,7 @@ be used with the solver/remove_null_space option.</a:documentation>
     </optional>
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_sym"/>
+      <ref name="linear_solver_options_sym_scalar"/>
     </element>
     <zeroOrMore>
       <choice>
@@ -2118,7 +2118,7 @@ this only makes sense when excluding coriolis.</a:documentation>
   <define name="prognostic_vertical_balance_pressure_field">
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_sym"/>
+      <ref name="linear_solver_options_sym_scalar"/>
     </element>
     <oneOrMore>
       <element name="boundary_conditions">
@@ -2241,7 +2241,7 @@ Only required for continuous_galerkin spatial_discretisations!</a:documentation>
     </element>
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_sym"/>
+      <ref name="linear_solver_options_sym_scalar"/>
     </element>
     <oneOrMore>
       <choice>

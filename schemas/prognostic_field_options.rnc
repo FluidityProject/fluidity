@@ -644,7 +644,7 @@ prognostic_velocity_field =
                      element length_scale_type { 'scalar'|'tensor' },
                      ## Solver options are required for calculation of Helmholtz-smoothed velocity.
                      element solver {
-                        linear_solver_options_sym
+                        linear_solver_options_sym_scalar
                      },
                      ## Spatially varying Smagorinsky coefficient.
                      element scalar_field {
@@ -1332,7 +1332,7 @@ prognostic_velocity_field =
                 }?,
                 ## Solver options are necessary if you're not lumping your mass or if you're field isn't dg
                 element solver {
-                  linear_solver_options_sym
+                  linear_solver_options_sym_scalar
                 }?,
                 ## Choose whether the surface tension term in the momentum equation is integrated by parts or not
                 element integrate_by_parts {
@@ -1426,7 +1426,7 @@ prognostic_pressure_field =
          )
       },
       (
-         ## Reference node (Node at which pressure = 0.) Note that the node number must be less than the total number of nodes.
+         ## Reference node (node at which pressure = 0). Note that the node number must be less than the total number of nodes.
          ## If running in parallel, the node number must be less than the total number of nodes of the first processor.
          ## ** Note - it is also an option to remove the null-space of the residual vector. This
          ## option is available under solvers
@@ -1488,7 +1488,7 @@ prognostic_pressure_field =
                   ## Solver options to solve the inner (mass) matrix in the schur complement solve, also used
                   ## to solve the correction solve afterwards.
                   element solver {
-                    linear_solver_options_sym
+                    linear_solver_options_sym_scalar
                   }
                 }|
                 ## Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
@@ -1547,7 +1547,7 @@ prognostic_pressure_field =
       },
       ## Solver
       element solver {
-         linear_solver_options_sym
+         linear_solver_options_sym_scalar
       },
       (
          ## Initial condition for WholeMesh
@@ -1648,7 +1648,7 @@ prognostic_geostrophic_pressure_field =
       (
          ## Solver
          element solver {
-            linear_solver_options_sym
+            linear_solver_options_sym_scalar
          }
       ),
       (
@@ -1704,7 +1704,7 @@ prognostic_vertical_balance_pressure_field =
    (
       ## Solver
       element solver {
-         linear_solver_options_sym
+         linear_solver_options_sym_scalar
       },
       ## Apply a strong dirichlet boundary condition to VerticalBalancePressure.
       ## This is normally be a homogeneous bc on the top surface.
@@ -1815,7 +1815,7 @@ prognostic_foam_velocity_potential_field =
      (
          ## Solver
          element solver {
-            linear_solver_options_sym
+            linear_solver_options_sym_scalar
          }
       ),
       (
