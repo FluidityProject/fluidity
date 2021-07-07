@@ -152,8 +152,8 @@ module solenoidal_interpolation_module
     discontinuous = have_option(trim(l_option_path)//&
                                 "/interpolated_field/discontinuous")
 
-    if (dg) then
-      assert(discontinuous)
+    if (discontinuous.and..not.dg) then
+      FLExit("Using discontinuous solenoidal projection options but field is not discontinuous.")
     end if
     
     assemble_lumped_mass = have_option(trim(l_option_path)//&
@@ -313,7 +313,7 @@ module solenoidal_interpolation_module
     if(assemble_lumped_mass.and.lump_mass_on_submesh) then
       ! get the mass matrix lumped on the submesh
       call compute_lumped_mass_on_submesh(local_state, field_lumped_mass)
-    else if (discontinuous) then
+    else if (discontinuous.and..not.assemble_lumped_mass) then
       ! get the inverse discontinuous mass matrix
       call construct_inverse_mass_matrix_dg(inverse_field_mass, v_field, coordinate)
     end if
@@ -350,7 +350,7 @@ module solenoidal_interpolation_module
         call apply_dirichlet_conditions_inverse_mass(inverse_field_lumped_mass_vector, v_field)
 
         call assemble_masslumped_cmc(cmc_m, ctp_m, inverse_field_lumped_mass_vector, ct_m)
-      else if(dg) then
+      else if(discontinuous) then
         call assemble_cmc_dg(cmc_m, ctp_m, ct_m, inverse_field_mass)
       else
         FLExit("Not possible to not lump the mass if not dg or full_schur.")
