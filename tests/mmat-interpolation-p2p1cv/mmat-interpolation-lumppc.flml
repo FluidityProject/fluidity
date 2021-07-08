@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">mmat-interpolation</string_value>
+    <string_value lines="1">mmat-interpolation-lumppc</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">multimaterial</string_value>
@@ -154,13 +154,15 @@ will get cut off by final_timestep</comment>
                 <full_schur_complement>
                   <inner_matrix name="FullMassMatrix">
                     <solver>
-                      <iterative_method name="cg"/>
-                      <preconditioner name="sor"/>
+                      <iterative_method name="preonly"/>
+                      <preconditioner name="lu">
+                        <factorization_package name="mumps"/>
+                      </preconditioner>
                       <relative_error>
-                        <real_value rank="0">1E-10</real_value>
+                        <real_value rank="0">1E-12</real_value>
                       </relative_error>
                       <max_iterations>
-                        <integer_value rank="0">10000</integer_value>
+                        <integer_value rank="0">100</integer_value>
                       </max_iterations>
                       <start_from_zero/>
                       <never_ignore_solver_failures/>
@@ -169,7 +171,9 @@ will get cut off by final_timestep</comment>
                       </diagnostics>
                     </solver>
                   </inner_matrix>
-                  <preconditioner_matrix name="NoPreconditionerMatrix"/>
+                  <preconditioner_matrix name="LumpedSchurComplement">
+                    <lump_on_submesh/>
+                  </preconditioner_matrix>
                 </full_schur_complement>
               </continuous>
             </interpolated_field>
@@ -182,10 +186,10 @@ will get cut off by final_timestep</comment>
               </spatial_discretisation>
               <update_scalar_field name="Lambda"/>
               <solver>
-                <iterative_method name="gmres"/>
-                <preconditioner name="none"/>
+                <iterative_method name="fgmres"/>
+                <preconditioner name="jacobi"/>
                 <relative_error>
-                  <real_value rank="0">1.E-8</real_value>
+                  <real_value rank="0">1.E-6</real_value>
                 </relative_error>
                 <absolute_error>
                   <real_value rank="0">1e-16</real_value>
@@ -195,7 +199,9 @@ will get cut off by final_timestep</comment>
                 </max_iterations>
                 <never_ignore_solver_failures/>
                 <diagnostics>
-                  <monitors/>
+                  <monitors>
+                    <preconditioned_residual/>
+                  </monitors>
                 </diagnostics>
               </solver>
             </lagrange_multiplier>

@@ -4,7 +4,11 @@
   <owner userid="cwilson"/>
   <tags>flml 2dadapt</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity -v2 -l mmat-interpolation.flml &amp;&amp; mv fluidity.log-0 first.log &amp;&amp; mv fluidity.err-0 first.err &amp;&amp; ./change_options.py &amp;&amp; fluidity -v2 -l mmat-interpolation_2_checkpoint.flml &amp;&amp; mv fluidity.log-0 checkpoint.log &amp;&amp; mv fluidity.err-0 checkpoint.err </command_line>
+    <command_line>fluidity -v2 -l mmat-interpolation-nopc.flml &amp;&amp; mv fluidity.log-0 nopc.log &amp;&amp; mv fluidity.err-0 nopc.err &amp;&amp; 
+                  fluidity -v2 -l mmat-interpolation-masspc.flml &amp;&amp; mv fluidity.log-0 masspc.log &amp;&amp; mv fluidity.err-0 masspc.err &amp;&amp;
+                  fluidity -v2 -l mmat-interpolation-lumppc.flml &amp;&amp; mv fluidity.log-0 lumppc.log &amp;&amp; mv fluidity.err-0 lumppc.err &amp;&amp;
+                  fluidity -v2 -l mmat-interpolation-diagpc.flml &amp;&amp; mv fluidity.log-0 diagpc.log &amp;&amp; mv fluidity.err-0 diagpc.err 
+    </command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">
@@ -12,339 +16,656 @@ import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-    <variable name="material1integralstart" language="python"> 
+    <variable name="nopc_material1integralstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-material1integralstart = stat("mmat-interpolation.stat")["Material1"]["MaterialVolumeFraction"]["integral"][0]
+nopc_material1integralstart = stat("mmat-interpolation-nopc.stat")["Material1"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="material1integralend" language="python"> 
+    <variable name="nopc_material1integralend" language="python"> 
 from fluidity_tools import stat_parser as stat
-material1integralend = stat("mmat-interpolation.stat")["Material1"]["MaterialVolumeFraction"]["integral"][-1]
+nopc_material1integralend = stat("mmat-interpolation-nopc.stat")["Material1"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="material1maxstart" language="python"> 
+    <variable name="nopc_material1maxstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-material1maxstart = stat("mmat-interpolation.stat")["Material1"]["MaterialVolumeFraction"]["max"][0]
+nopc_material1maxstart = stat("mmat-interpolation-nopc.stat")["Material1"]["MaterialVolumeFraction"]["max"][0]
     </variable>
-    <variable name="material1maxend" language="python"> 
+    <variable name="nopc_material1maxend" language="python"> 
 from fluidity_tools import stat_parser as stat
-material1maxend = stat("mmat-interpolation.stat")["Material1"]["MaterialVolumeFraction"]["max"][-1]
+nopc_material1maxend = stat("mmat-interpolation-nopc.stat")["Material1"]["MaterialVolumeFraction"]["max"][-1]
     </variable>
-    <variable name="material1minstart" language="python"> 
+    <variable name="nopc_material1minstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-material1minstart = stat("mmat-interpolation.stat")["Material1"]["MaterialVolumeFraction"]["min"][0]
+nopc_material1minstart = stat("mmat-interpolation-nopc.stat")["Material1"]["MaterialVolumeFraction"]["min"][0]
     </variable>
-    <variable name="material1minend" language="python"> 
+    <variable name="nopc_material1minend" language="python"> 
 from fluidity_tools import stat_parser as stat
-material1minend = stat("mmat-interpolation.stat")["Material1"]["MaterialVolumeFraction"]["min"][-1]
+nopc_material1minend = stat("mmat-interpolation-nopc.stat")["Material1"]["MaterialVolumeFraction"]["min"][-1]
     </variable>
-    <variable name="material2integralstart" language="python"> 
+    <variable name="nopc_material2integralstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-material2integralstart = stat("mmat-interpolation.stat")["Material2"]["MaterialVolumeFraction"]["integral"][0]
+nopc_material2integralstart = stat("mmat-interpolation-nopc.stat")["Material2"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="material2integralend" language="python"> 
+    <variable name="nopc_material2integralend" language="python"> 
 from fluidity_tools import stat_parser as stat
-material2integralend = stat("mmat-interpolation.stat")["Material2"]["MaterialVolumeFraction"]["integral"][-1]
+nopc_material2integralend = stat("mmat-interpolation-nopc.stat")["Material2"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="material3integralstart" language="python"> 
+    <variable name="nopc_material3integralstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-material3integralstart = stat("mmat-interpolation.stat")["Material3"]["MaterialVolumeFraction"]["integral"][0]
+nopc_material3integralstart = stat("mmat-interpolation-nopc.stat")["Material3"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="material3integralend" language="python"> 
+    <variable name="nopc_material3integralend" language="python"> 
 from fluidity_tools import stat_parser as stat
-material3integralend = stat("mmat-interpolation.stat")["Material3"]["MaterialVolumeFraction"]["integral"][-1]
+nopc_material3integralend = stat("mmat-interpolation-nopc.stat")["Material3"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="material3maxstart" language="python"> 
+    <variable name="nopc_material3maxstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-material3maxstart = stat("mmat-interpolation.stat")["Material3"]["MaterialVolumeFraction"]["max"][0]
+nopc_material3maxstart = stat("mmat-interpolation-nopc.stat")["Material3"]["MaterialVolumeFraction"]["max"][0]
     </variable>
-    <variable name="material3maxend" language="python"> 
+    <variable name="nopc_material3maxend" language="python"> 
 from fluidity_tools import stat_parser as stat
-material3maxend = stat("mmat-interpolation.stat")["Material3"]["MaterialVolumeFraction"]["max"][-1]
+nopc_material3maxend = stat("mmat-interpolation-nopc.stat")["Material3"]["MaterialVolumeFraction"]["max"][-1]
     </variable>
-    <variable name="material3minstart" language="python"> 
+    <variable name="nopc_material3minstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-material3minstart = stat("mmat-interpolation.stat")["Material3"]["MaterialVolumeFraction"]["min"][0]
+nopc_material3minstart = stat("mmat-interpolation-nopc.stat")["Material3"]["MaterialVolumeFraction"]["min"][0]
     </variable>
-    <variable name="material3minend" language="python"> 
+    <variable name="nopc_material3minend" language="python"> 
 from fluidity_tools import stat_parser as stat
-material3minend = stat("mmat-interpolation.stat")["Material3"]["MaterialVolumeFraction"]["min"][-1]
+nopc_material3minend = stat("mmat-interpolation-nopc.stat")["Material3"]["MaterialVolumeFraction"]["min"][-1]
     </variable>
-    <variable name="divergenceminstart" language="python"> 
+    <variable name="nopc_divergenceminstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-divergenceminstart = stat("mmat-interpolation.stat")["Material1"]["ControlVolumeDivergence"]["min"][0]
+nopc_divergenceminstart = stat("mmat-interpolation-nopc.stat")["Material1"]["ControlVolumeDivergence"]["min"][0]
     </variable>
-    <variable name="divergenceminend" language="python"> 
+    <variable name="nopc_divergenceminend" language="python"> 
 from fluidity_tools import stat_parser as stat
-divergenceminend = stat("mmat-interpolation.stat")["Material1"]["ControlVolumeDivergence"]["min"][-1]
+nopc_divergenceminend = stat("mmat-interpolation-nopc.stat")["Material1"]["ControlVolumeDivergence"]["min"][-1]
     </variable>
-    <variable name="divergencemaxstart" language="python"> 
+    <variable name="nopc_divergencemaxstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-divergencemaxstart = stat("mmat-interpolation.stat")["Material1"]["ControlVolumeDivergence"]["max"][0]
+nopc_divergencemaxstart = stat("mmat-interpolation-nopc.stat")["Material1"]["ControlVolumeDivergence"]["max"][0]
     </variable>
-    <variable name="divergencemaxend" language="python"> 
+    <variable name="nopc_divergencemaxend" language="python"> 
 from fluidity_tools import stat_parser as stat
-divergencemaxend = stat("mmat-interpolation.stat")["Material1"]["ControlVolumeDivergence"]["max"][-1]
+nopc_divergencemaxend = stat("mmat-interpolation-nopc.stat")["Material1"]["ControlVolumeDivergence"]["max"][-1]
     </variable>
-    <variable name="cflmaxstart" language="python"> 
+    <variable name="nopc_cflmaxstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-cflmaxstart = stat("mmat-interpolation.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][0]
+nopc_cflmaxstart = stat("mmat-interpolation-nopc.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][0]
     </variable>
-    <variable name="cflmaxend" language="python"> 
+    <variable name="nopc_cflmaxend" language="python"> 
 from fluidity_tools import stat_parser as stat
-cflmaxend = stat("mmat-interpolation.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][-1]
+nopc_cflmaxend = stat("mmat-interpolation-nopc.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][-1]
     </variable>
-    <variable name="lambdamaxstart" language="python"> 
+    <variable name="nopc_lambdamaxstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-lambdamaxstart = stat("mmat-interpolation.stat")["Material1"]["Lambda"]["max"][0]
+nopc_lambdamaxstart = stat("mmat-interpolation-nopc.stat")["Material1"]["Lambda"]["max"][0]
     </variable>
-    <variable name="lambdamaxend" language="python"> 
+    <variable name="nopc_lambdamaxend" language="python"> 
 from fluidity_tools import stat_parser as stat
-lambdamaxend = stat("mmat-interpolation.stat")["Material1"]["Lambda"]["max"][-1]
+nopc_lambdamaxend = stat("mmat-interpolation-nopc.stat")["Material1"]["Lambda"]["max"][-1]
     </variable>
-    <variable name="lambdaminstart" language="python"> 
+    <variable name="nopc_lambdaminstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-lambdaminstart = stat("mmat-interpolation.stat")["Material1"]["Lambda"]["min"][0]
+nopc_lambdaminstart = stat("mmat-interpolation-nopc.stat")["Material1"]["Lambda"]["min"][0]
     </variable>
-    <variable name="lambdaminend" language="python"> 
+    <variable name="nopc_lambdaminend" language="python"> 
 from fluidity_tools import stat_parser as stat
-lambdaminend = stat("mmat-interpolation.stat")["Material1"]["Lambda"]["min"][-1]
+nopc_lambdaminend = stat("mmat-interpolation-nopc.stat")["Material1"]["Lambda"]["min"][-1]
     </variable>
-    <variable name="material1integralstart_checkpoint" language="python"> 
+    <variable name="nopc_absolutedifference" language="python"> 
 from fluidity_tools import stat_parser as stat
-material1integralstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["MaterialVolumeFraction"]["integral"][0]
+nopc_absolutedifference = stat("mmat-interpolation-nopc.stat")["Material3"]["ScalarAbsoluteDifference"]["max"][1]
     </variable>
-    <variable name="material1integralend_checkpoint" language="python"> 
+    <variable name="masspc_material1integralstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-material1integralend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["MaterialVolumeFraction"]["integral"][-1]
+masspc_material1integralstart = stat("mmat-interpolation-masspc.stat")["Material1"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="material1maxstart_checkpoint" language="python"> 
+    <variable name="masspc_material1integralend" language="python"> 
 from fluidity_tools import stat_parser as stat
-material1maxstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["MaterialVolumeFraction"]["max"][0]
+masspc_material1integralend = stat("mmat-interpolation-masspc.stat")["Material1"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="material1maxend_checkpoint" language="python"> 
+    <variable name="masspc_material1maxstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-material1maxend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["MaterialVolumeFraction"]["max"][-1]
+masspc_material1maxstart = stat("mmat-interpolation-masspc.stat")["Material1"]["MaterialVolumeFraction"]["max"][0]
     </variable>
-    <variable name="material1minstart_checkpoint" language="python"> 
+    <variable name="masspc_material1maxend" language="python"> 
 from fluidity_tools import stat_parser as stat
-material1minstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["MaterialVolumeFraction"]["min"][0]
+masspc_material1maxend = stat("mmat-interpolation-masspc.stat")["Material1"]["MaterialVolumeFraction"]["max"][-1]
     </variable>
-    <variable name="material1minend_checkpoint" language="python"> 
+    <variable name="masspc_material1minstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-material1minend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["MaterialVolumeFraction"]["min"][-1]
+masspc_material1minstart = stat("mmat-interpolation-masspc.stat")["Material1"]["MaterialVolumeFraction"]["min"][0]
     </variable>
-    <variable name="material2integralstart_checkpoint" language="python"> 
+    <variable name="masspc_material1minend" language="python"> 
 from fluidity_tools import stat_parser as stat
-material2integralstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material2"]["MaterialVolumeFraction"]["integral"][0]
+masspc_material1minend = stat("mmat-interpolation-masspc.stat")["Material1"]["MaterialVolumeFraction"]["min"][-1]
     </variable>
-    <variable name="material2integralend_checkpoint" language="python"> 
+    <variable name="masspc_material2integralstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-material2integralend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material2"]["MaterialVolumeFraction"]["integral"][-1]
+masspc_material2integralstart = stat("mmat-interpolation-masspc.stat")["Material2"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="material3integralstart_checkpoint" language="python"> 
+    <variable name="masspc_material2integralend" language="python"> 
 from fluidity_tools import stat_parser as stat
-material3integralstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material3"]["MaterialVolumeFraction"]["integral"][0]
+masspc_material2integralend = stat("mmat-interpolation-masspc.stat")["Material2"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="material3integralend_checkpoint" language="python"> 
+    <variable name="masspc_material3integralstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-material3integralend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material3"]["MaterialVolumeFraction"]["integral"][-1]
+masspc_material3integralstart = stat("mmat-interpolation-masspc.stat")["Material3"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="material3maxstart_checkpoint" language="python"> 
+    <variable name="masspc_material3integralend" language="python"> 
 from fluidity_tools import stat_parser as stat
-material3maxstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material3"]["MaterialVolumeFraction"]["max"][0]
+masspc_material3integralend = stat("mmat-interpolation-masspc.stat")["Material3"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="material3maxend_checkpoint" language="python"> 
+    <variable name="masspc_material3maxstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-material3maxend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material3"]["MaterialVolumeFraction"]["max"][-1]
+masspc_material3maxstart = stat("mmat-interpolation-masspc.stat")["Material3"]["MaterialVolumeFraction"]["max"][0]
     </variable>
-    <variable name="material3minstart_checkpoint" language="python"> 
+    <variable name="masspc_material3maxend" language="python"> 
 from fluidity_tools import stat_parser as stat
-material3minstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material3"]["MaterialVolumeFraction"]["min"][0]
+masspc_material3maxend = stat("mmat-interpolation-masspc.stat")["Material3"]["MaterialVolumeFraction"]["max"][-1]
     </variable>
-    <variable name="material3minend_checkpoint" language="python"> 
+    <variable name="masspc_material3minstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-material3minend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material3"]["MaterialVolumeFraction"]["min"][-1]
+masspc_material3minstart = stat("mmat-interpolation-masspc.stat")["Material3"]["MaterialVolumeFraction"]["min"][0]
     </variable>
-    <variable name="divergenceminstart_checkpoint" language="python"> 
+    <variable name="masspc_material3minend" language="python"> 
 from fluidity_tools import stat_parser as stat
-divergenceminstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["ControlVolumeDivergence"]["min"][0]
+masspc_material3minend = stat("mmat-interpolation-masspc.stat")["Material3"]["MaterialVolumeFraction"]["min"][-1]
     </variable>
-    <variable name="divergenceminend_checkpoint" language="python"> 
+    <variable name="masspc_divergenceminstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-divergenceminend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["ControlVolumeDivergence"]["min"][-1]
+masspc_divergenceminstart = stat("mmat-interpolation-masspc.stat")["Material1"]["ControlVolumeDivergence"]["min"][0]
     </variable>
-    <variable name="divergencemaxstart_checkpoint" language="python"> 
+    <variable name="masspc_divergenceminend" language="python"> 
 from fluidity_tools import stat_parser as stat
-divergencemaxstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["ControlVolumeDivergence"]["max"][0]
+masspc_divergenceminend = stat("mmat-interpolation-masspc.stat")["Material1"]["ControlVolumeDivergence"]["min"][-1]
     </variable>
-    <variable name="divergencemaxend_checkpoint" language="python"> 
+    <variable name="masspc_divergencemaxstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-divergencemaxend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["ControlVolumeDivergence"]["max"][-1]
+masspc_divergencemaxstart = stat("mmat-interpolation-masspc.stat")["Material1"]["ControlVolumeDivergence"]["max"][0]
     </variable>
-    <variable name="cflmaxstart_checkpoint" language="python"> 
+    <variable name="masspc_divergencemaxend" language="python"> 
 from fluidity_tools import stat_parser as stat
-cflmaxstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][0]
+masspc_divergencemaxend = stat("mmat-interpolation-masspc.stat")["Material1"]["ControlVolumeDivergence"]["max"][-1]
     </variable>
-    <variable name="cflmaxend_checkpoint" language="python"> 
+    <variable name="masspc_cflmaxstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-cflmaxend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][-1]
+masspc_cflmaxstart = stat("mmat-interpolation-masspc.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][0]
     </variable>
-    <variable name="lambdamaxstart_checkpoint" language="python"> 
+    <variable name="masspc_cflmaxend" language="python"> 
 from fluidity_tools import stat_parser as stat
-lambdamaxstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["Lambda"]["max"][0]
+masspc_cflmaxend = stat("mmat-interpolation-masspc.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][-1]
     </variable>
-    <variable name="lambdamaxend_checkpoint" language="python"> 
+    <variable name="masspc_lambdamaxstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-lambdamaxend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["Lambda"]["max"][-1]
+masspc_lambdamaxstart = stat("mmat-interpolation-masspc.stat")["Material1"]["Lambda"]["max"][0]
     </variable>
-    <variable name="lambdaminstart_checkpoint" language="python"> 
+    <variable name="masspc_lambdamaxend" language="python"> 
 from fluidity_tools import stat_parser as stat
-lambdaminstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["Lambda"]["min"][0]
+masspc_lambdamaxend = stat("mmat-interpolation-masspc.stat")["Material1"]["Lambda"]["max"][-1]
     </variable>
-    <variable name="lambdaminend_checkpoint" language="python"> 
+    <variable name="masspc_lambdaminstart" language="python"> 
 from fluidity_tools import stat_parser as stat
-lambdaminend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["Lambda"]["min"][-1]
+masspc_lambdaminstart = stat("mmat-interpolation-masspc.stat")["Material1"]["Lambda"]["min"][0]
     </variable>
-    <variable name="absolutedifference" language="python"> 
+    <variable name="masspc_lambdaminend" language="python"> 
 from fluidity_tools import stat_parser as stat
-absolutedifference = stat("mmat-interpolation.stat")["Material3"]["ScalarAbsoluteDifference"]["max"][1]
+masspc_lambdaminend = stat("mmat-interpolation-masspc.stat")["Material1"]["Lambda"]["min"][-1]
+    </variable>
+    <variable name="masspc_absolutedifference" language="python"> 
+from fluidity_tools import stat_parser as stat
+masspc_absolutedifference = stat("mmat-interpolation-masspc.stat")["Material3"]["ScalarAbsoluteDifference"]["max"][1]
+    </variable>
+    <variable name="lumppc_material1integralstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_material1integralstart = stat("mmat-interpolation-lumppc.stat")["Material1"]["MaterialVolumeFraction"]["integral"][0]
+    </variable>
+    <variable name="lumppc_material1integralend" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_material1integralend = stat("mmat-interpolation-lumppc.stat")["Material1"]["MaterialVolumeFraction"]["integral"][-1]
+    </variable>
+    <variable name="lumppc_material1maxstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_material1maxstart = stat("mmat-interpolation-lumppc.stat")["Material1"]["MaterialVolumeFraction"]["max"][0]
+    </variable>
+    <variable name="lumppc_material1maxend" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_material1maxend = stat("mmat-interpolation-lumppc.stat")["Material1"]["MaterialVolumeFraction"]["max"][-1]
+    </variable>
+    <variable name="lumppc_material1minstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_material1minstart = stat("mmat-interpolation-lumppc.stat")["Material1"]["MaterialVolumeFraction"]["min"][0]
+    </variable>
+    <variable name="lumppc_material1minend" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_material1minend = stat("mmat-interpolation-lumppc.stat")["Material1"]["MaterialVolumeFraction"]["min"][-1]
+    </variable>
+    <variable name="lumppc_material2integralstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_material2integralstart = stat("mmat-interpolation-lumppc.stat")["Material2"]["MaterialVolumeFraction"]["integral"][0]
+    </variable>
+    <variable name="lumppc_material2integralend" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_material2integralend = stat("mmat-interpolation-lumppc.stat")["Material2"]["MaterialVolumeFraction"]["integral"][-1]
+    </variable>
+    <variable name="lumppc_material3integralstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_material3integralstart = stat("mmat-interpolation-lumppc.stat")["Material3"]["MaterialVolumeFraction"]["integral"][0]
+    </variable>
+    <variable name="lumppc_material3integralend" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_material3integralend = stat("mmat-interpolation-lumppc.stat")["Material3"]["MaterialVolumeFraction"]["integral"][-1]
+    </variable>
+    <variable name="lumppc_material3maxstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_material3maxstart = stat("mmat-interpolation-lumppc.stat")["Material3"]["MaterialVolumeFraction"]["max"][0]
+    </variable>
+    <variable name="lumppc_material3maxend" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_material3maxend = stat("mmat-interpolation-lumppc.stat")["Material3"]["MaterialVolumeFraction"]["max"][-1]
+    </variable>
+    <variable name="lumppc_material3minstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_material3minstart = stat("mmat-interpolation-lumppc.stat")["Material3"]["MaterialVolumeFraction"]["min"][0]
+    </variable>
+    <variable name="lumppc_material3minend" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_material3minend = stat("mmat-interpolation-lumppc.stat")["Material3"]["MaterialVolumeFraction"]["min"][-1]
+    </variable>
+    <variable name="lumppc_divergenceminstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_divergenceminstart = stat("mmat-interpolation-lumppc.stat")["Material1"]["ControlVolumeDivergence"]["min"][0]
+    </variable>
+    <variable name="lumppc_divergenceminend" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_divergenceminend = stat("mmat-interpolation-lumppc.stat")["Material1"]["ControlVolumeDivergence"]["min"][-1]
+    </variable>
+    <variable name="lumppc_divergencemaxstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_divergencemaxstart = stat("mmat-interpolation-lumppc.stat")["Material1"]["ControlVolumeDivergence"]["max"][0]
+    </variable>
+    <variable name="lumppc_divergencemaxend" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_divergencemaxend = stat("mmat-interpolation-lumppc.stat")["Material1"]["ControlVolumeDivergence"]["max"][-1]
+    </variable>
+    <variable name="lumppc_cflmaxstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_cflmaxstart = stat("mmat-interpolation-lumppc.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][0]
+    </variable>
+    <variable name="lumppc_cflmaxend" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_cflmaxend = stat("mmat-interpolation-lumppc.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][-1]
+    </variable>
+    <variable name="lumppc_lambdamaxstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_lambdamaxstart = stat("mmat-interpolation-lumppc.stat")["Material1"]["Lambda"]["max"][0]
+    </variable>
+    <variable name="lumppc_lambdamaxend" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_lambdamaxend = stat("mmat-interpolation-lumppc.stat")["Material1"]["Lambda"]["max"][-1]
+    </variable>
+    <variable name="lumppc_lambdaminstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_lambdaminstart = stat("mmat-interpolation-lumppc.stat")["Material1"]["Lambda"]["min"][0]
+    </variable>
+    <variable name="lumppc_lambdaminend" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_lambdaminend = stat("mmat-interpolation-lumppc.stat")["Material1"]["Lambda"]["min"][-1]
+    </variable>
+    <variable name="lumppc_absolutedifference" language="python"> 
+from fluidity_tools import stat_parser as stat
+lumppc_absolutedifference = stat("mmat-interpolation-lumppc.stat")["Material3"]["ScalarAbsoluteDifference"]["max"][1]
+    </variable>
+    <variable name="diagpc_material1integralstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_material1integralstart = stat("mmat-interpolation-diagpc.stat")["Material1"]["MaterialVolumeFraction"]["integral"][0]
+    </variable>
+    <variable name="diagpc_material1integralend" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_material1integralend = stat("mmat-interpolation-diagpc.stat")["Material1"]["MaterialVolumeFraction"]["integral"][-1]
+    </variable>
+    <variable name="diagpc_material1maxstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_material1maxstart = stat("mmat-interpolation-diagpc.stat")["Material1"]["MaterialVolumeFraction"]["max"][0]
+    </variable>
+    <variable name="diagpc_material1maxend" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_material1maxend = stat("mmat-interpolation-diagpc.stat")["Material1"]["MaterialVolumeFraction"]["max"][-1]
+    </variable>
+    <variable name="diagpc_material1minstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_material1minstart = stat("mmat-interpolation-diagpc.stat")["Material1"]["MaterialVolumeFraction"]["min"][0]
+    </variable>
+    <variable name="diagpc_material1minend" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_material1minend = stat("mmat-interpolation-diagpc.stat")["Material1"]["MaterialVolumeFraction"]["min"][-1]
+    </variable>
+    <variable name="diagpc_material2integralstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_material2integralstart = stat("mmat-interpolation-diagpc.stat")["Material2"]["MaterialVolumeFraction"]["integral"][0]
+    </variable>
+    <variable name="diagpc_material2integralend" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_material2integralend = stat("mmat-interpolation-diagpc.stat")["Material2"]["MaterialVolumeFraction"]["integral"][-1]
+    </variable>
+    <variable name="diagpc_material3integralstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_material3integralstart = stat("mmat-interpolation-diagpc.stat")["Material3"]["MaterialVolumeFraction"]["integral"][0]
+    </variable>
+    <variable name="diagpc_material3integralend" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_material3integralend = stat("mmat-interpolation-diagpc.stat")["Material3"]["MaterialVolumeFraction"]["integral"][-1]
+    </variable>
+    <variable name="diagpc_material3maxstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_material3maxstart = stat("mmat-interpolation-diagpc.stat")["Material3"]["MaterialVolumeFraction"]["max"][0]
+    </variable>
+    <variable name="diagpc_material3maxend" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_material3maxend = stat("mmat-interpolation-diagpc.stat")["Material3"]["MaterialVolumeFraction"]["max"][-1]
+    </variable>
+    <variable name="diagpc_material3minstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_material3minstart = stat("mmat-interpolation-diagpc.stat")["Material3"]["MaterialVolumeFraction"]["min"][0]
+    </variable>
+    <variable name="diagpc_material3minend" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_material3minend = stat("mmat-interpolation-diagpc.stat")["Material3"]["MaterialVolumeFraction"]["min"][-1]
+    </variable>
+    <variable name="diagpc_divergenceminstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_divergenceminstart = stat("mmat-interpolation-diagpc.stat")["Material1"]["ControlVolumeDivergence"]["min"][0]
+    </variable>
+    <variable name="diagpc_divergenceminend" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_divergenceminend = stat("mmat-interpolation-diagpc.stat")["Material1"]["ControlVolumeDivergence"]["min"][-1]
+    </variable>
+    <variable name="diagpc_divergencemaxstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_divergencemaxstart = stat("mmat-interpolation-diagpc.stat")["Material1"]["ControlVolumeDivergence"]["max"][0]
+    </variable>
+    <variable name="diagpc_divergencemaxend" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_divergencemaxend = stat("mmat-interpolation-diagpc.stat")["Material1"]["ControlVolumeDivergence"]["max"][-1]
+    </variable>
+    <variable name="diagpc_cflmaxstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_cflmaxstart = stat("mmat-interpolation-diagpc.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][0]
+    </variable>
+    <variable name="diagpc_cflmaxend" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_cflmaxend = stat("mmat-interpolation-diagpc.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][-1]
+    </variable>
+    <variable name="diagpc_lambdamaxstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_lambdamaxstart = stat("mmat-interpolation-diagpc.stat")["Material1"]["Lambda"]["max"][0]
+    </variable>
+    <variable name="diagpc_lambdamaxend" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_lambdamaxend = stat("mmat-interpolation-diagpc.stat")["Material1"]["Lambda"]["max"][-1]
+    </variable>
+    <variable name="diagpc_lambdaminstart" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_lambdaminstart = stat("mmat-interpolation-diagpc.stat")["Material1"]["Lambda"]["min"][0]
+    </variable>
+    <variable name="diagpc_lambdaminend" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_lambdaminend = stat("mmat-interpolation-diagpc.stat")["Material1"]["Lambda"]["min"][-1]
+    </variable>
+    <variable name="diagpc_absolutedifference" language="python"> 
+from fluidity_tools import stat_parser as stat
+diagpc_absolutedifference = stat("mmat-interpolation-diagpc.stat")["Material3"]["ScalarAbsoluteDifference"]["max"][1]
     </variable>
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>
-    <test name="check material1 was conserved" language="python">
-print('mass loss = ', abs(material1integralstart-material1integralend))
-assert abs(material1integralstart-material1integralend) &lt; max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend), 1.E-8)
+    <test name="nopc check material1 was conserved" language="python">
+print('mass loss = ', abs(nopc_material1integralstart-nopc_material1integralend))
+assert abs(nopc_material1integralstart-nopc_material1integralend) &lt; max(abs(nopc_divergencemaxstart), abs(nopc_divergencemaxend), abs(nopc_divergenceminstart), abs(nopc_divergenceminend), 1.E-8)
 </test>
-    <test name="check material2 was conserved" language="python">
-print('mass loss = ', abs(material2integralstart-material2integralend))
-assert abs(material2integralstart-material2integralend) &lt; max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend), 1.E-8)
+    <test name="nopc check material2 was conserved" language="python">
+print('mass loss = ', abs(nopc_material2integralstart-nopc_material2integralend))
+assert abs(nopc_material2integralstart-nopc_material2integralend) &lt; max(abs(nopc_divergencemaxstart), abs(nopc_divergencemaxend), abs(nopc_divergenceminstart), abs(nopc_divergenceminend), 1.E-8)
 </test>
-    <test name="check material3 was conserved" language="python">
-print('mass loss = ', abs(material3integralstart-material3integralend))
-assert abs(material3integralstart-material3integralend) &lt; max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend), 1.E-8)
+    <test name="nopc check material3 was conserved" language="python">
+print('mass loss = ', abs(nopc_material3integralstart-nopc_material3integralend))
+assert abs(nopc_material3integralstart-nopc_material3integralend) &lt; max(abs(nopc_divergencemaxstart), abs(nopc_divergencemaxend), abs(nopc_divergenceminstart), abs(nopc_divergenceminend), 1.E-8)
 </test>
-    <test name="check that reasonable tolerance is being used to test conservation" language="python">
-print('divergence tolerance = ', max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend)))
-assert max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend)) &lt; 1.E-8
+    <test name="nopc check that reasonable tolerance is being used to test conservation" language="python">
+print('divergence tolerance = ', max(abs(nopc_divergencemaxstart), abs(nopc_divergencemaxend), abs(nopc_divergenceminstart), abs(nopc_divergenceminend)))
+assert max(abs(nopc_divergencemaxstart), abs(nopc_divergencemaxend), abs(nopc_divergenceminstart), abs(nopc_divergenceminend)) &lt; 1.E-4
 </test>
-    <test name="check material1 max bound was conserved" language="python">
-assert abs(material1maxstart-material1maxend) &lt; 1.E-10
+    <test name="nopc check material1 max bound was conserved" language="python">
+assert abs(nopc_material1maxstart-nopc_material1maxend) &lt; 1.E-10
     </test>
-    <test name="check material3 max was conserved" language="python">
-assert abs(material3maxstart-material3maxend) &lt; 1.E-10
+    <test name="nopc check material3 max was conserved" language="python">
+assert abs(nopc_material3maxstart-nopc_material3maxend) &lt; 1.E-10
     </test>
-    <test name="check material1 min bound was conserved" language="python">
-assert abs(material1minstart-material1minend) &lt; 1.E-10
+    <test name="nopc check material1 min bound was conserved" language="python">
+assert abs(nopc_material1minstart-nopc_material1minend) &lt; 1.E-10
     </test>
-    <test name="check material3 min bound was conserved" language="python">
-assert abs(material3minstart-material3minend) &lt; 1.E-10
+    <test name="nopc check material3 min bound was conserved" language="python">
+assert abs(nopc_material3minstart-nopc_material3minend) &lt; 1.E-10
     </test>
-    <test name="check initial max divergence was zero" language="python">
-assert abs(divergencemaxstart) &lt; 1.E-8
+    <test name="nopc check initial max divergence was small" language="python">
+assert abs(nopc_divergencemaxstart) &lt; 1.E-4
     </test>
-    <test name="check initial min divergence was zero" language="python">
-assert abs(divergenceminstart) &lt; 1.E-8
+    <test name="nopc check initial min divergence was small" language="python">
+assert abs(nopc_divergenceminstart) &lt; 1.E-4
     </test>
-    <test name="check final max divergence was zero" language="python">
-assert abs(divergencemaxend) &lt; 1.E-8
+    <test name="nopc check final max divergence was small" language="python">
+assert abs(nopc_divergencemaxend) &lt; 1.E-4
     </test>
-    <test name="check final min divergence was zero" language="python">
-assert abs(divergenceminend) &lt; 1.E-8
+    <test name="nopc check final min divergence was small" language="python">
+assert abs(nopc_divergenceminend) &lt; 1.E-4
     </test>
-    <test name="check initial max cfl was 0.1" language="python">
-assert abs(cflmaxstart-0.1) &lt; 1.E-10
+    <test name="nopc check initial max cfl was 0.1" language="python">
+assert abs(nopc_cflmaxstart-0.1) &lt; 1.E-10
     </test>
-    <test name="check final max cfl was 0.1" language="python">
-assert abs(cflmaxend-0.1) &lt; 1.E-10
+    <test name="nopc check final max cfl was 0.1" language="python">
+assert abs(nopc_cflmaxend-0.1) &lt; 1.E-10
     </test>
-    <test name="check checkpointed material1 was conserved" language="python">
-print('mass loss = ', abs(material1integralstart_checkpoint-material1integralend_checkpoint))
-assert abs(material1integralstart_checkpoint-material1integralend_checkpoint) &lt; max(abs(divergencemaxstart_checkpoint), abs(divergencemaxend_checkpoint), abs(divergenceminstart_checkpoint), abs(divergenceminend_checkpoint), 1.E-8)
+    <test name="masspc check material1 was conserved" language="python">
+print('mass loss = ', abs(masspc_material1integralstart-masspc_material1integralend))
+assert abs(masspc_material1integralstart-masspc_material1integralend) &lt; max(abs(masspc_divergencemaxstart), abs(masspc_divergencemaxend), abs(masspc_divergenceminstart), abs(masspc_divergenceminend), 1.E-8)
 </test>
-    <test name="check checkpointed material2 was conserved" language="python">
-print('mass loss = ', abs(material2integralstart_checkpoint-material2integralend_checkpoint))
-assert abs(material2integralstart_checkpoint-material2integralend_checkpoint) &lt; max(abs(divergencemaxstart_checkpoint), abs(divergencemaxend_checkpoint), abs(divergenceminstart_checkpoint), abs(divergenceminend_checkpoint), 1.E-8)
+    <test name="masspc check material2 was conserved" language="python">
+print('mass loss = ', abs(masspc_material2integralstart-masspc_material2integralend))
+assert abs(masspc_material2integralstart-masspc_material2integralend) &lt; max(abs(masspc_divergencemaxstart), abs(masspc_divergencemaxend), abs(masspc_divergenceminstart), abs(masspc_divergenceminend), 1.E-8)
 </test>
-    <test name="check checkpointed material3 was conserved" language="python">
-print('mass loss = ', abs(material3integralstart_checkpoint-material3integralend_checkpoint))
-assert abs(material3integralstart_checkpoint-material3integralend_checkpoint) &lt; max(abs(divergencemaxstart_checkpoint), abs(divergencemaxend_checkpoint), abs(divergenceminstart_checkpoint), abs(divergenceminend_checkpoint), 1.E-8)
+    <test name="masspc check material3 was conserved" language="python">
+print('mass loss = ', abs(masspc_material3integralstart-masspc_material3integralend))
+assert abs(masspc_material3integralstart-masspc_material3integralend) &lt; max(abs(masspc_divergencemaxstart), abs(masspc_divergencemaxend), abs(masspc_divergenceminstart), abs(masspc_divergenceminend), 1.E-8)
 </test>
-    <test name="check that reasonable tolerance is being used to test checkpointed conservation" language="python">
-print('divergence tolerance = ', max(abs(divergencemaxstart_checkpoint), abs(divergencemaxend_checkpoint), abs(divergenceminstart_checkpoint), abs(divergenceminend_checkpoint)))
-assert max(abs(divergencemaxstart_checkpoint), abs(divergencemaxend_checkpoint), abs(divergenceminstart_checkpoint), abs(divergenceminend_checkpoint)) &lt; 1.E-8
+    <test name="masspc check that reasonable tolerance is being used to test conservation" language="python">
+print('divergence tolerance = ', max(abs(masspc_divergencemaxstart), abs(masspc_divergencemaxend), abs(masspc_divergenceminstart), abs(masspc_divergenceminend)))
+assert max(abs(masspc_divergencemaxstart), abs(masspc_divergencemaxend), abs(masspc_divergenceminstart), abs(masspc_divergenceminend)) &lt; 1.E-4
 </test>
-    <test name="check checkpointed material1 max bound was conserved" language="python">
-assert abs(material1maxstart_checkpoint-material1maxend_checkpoint) &lt; 1.E-10
+    <test name="masspc check material1 max bound was conserved" language="python">
+assert abs(masspc_material1maxstart-masspc_material1maxend) &lt; 1.E-10
     </test>
-    <test name="check checkpointed material3 max was conserved" language="python">
-assert abs(material3maxstart_checkpoint-material3maxend_checkpoint) &lt; 1.E-10
+    <test name="masspc check material3 max was conserved" language="python">
+assert abs(masspc_material3maxstart-masspc_material3maxend) &lt; 1.E-10
     </test>
-    <test name="check checkpointed material1 min bound was conserved" language="python">
-assert abs(material1minstart_checkpoint-material1minend_checkpoint) &lt; 1.E-10
+    <test name="masspc check material1 min bound was conserved" language="python">
+assert abs(masspc_material1minstart-masspc_material1minend) &lt; 1.E-10
     </test>
-    <test name="check checkpointed material3 min bound was conserved" language="python">
-assert abs(material3minstart_checkpoint-material3minend_checkpoint) &lt; 1.E-10
+    <test name="masspc check material3 min bound was conserved" language="python">
+assert abs(masspc_material3minstart-masspc_material3minend) &lt; 1.E-10
     </test>
-    <test name="check checkpointed initial max divergence was zero" language="python">
-assert abs(divergencemaxstart_checkpoint) &lt; 1.E-8
+    <test name="masspc check initial max divergence was small" language="python">
+assert abs(masspc_divergencemaxstart) &lt; 1.E-4
     </test>
-    <test name="check checkpointed initial min divergence was zero" language="python">
-assert abs(divergenceminstart_checkpoint) &lt; 1.E-8
+    <test name="masspc check initial min divergence was small" language="python">
+assert abs(masspc_divergenceminstart) &lt; 1.E-4
     </test>
-    <test name="check checkpointed final max divergence was zero" language="python">
-assert abs(divergencemaxend_checkpoint) &lt; 1.E-8
+    <test name="masspc check final max divergence was small" language="python">
+assert abs(masspc_divergencemaxend) &lt; 1.E-4
     </test>
-    <test name="check checkpointed final min divergence was zero" language="python">
-assert abs(divergenceminend_checkpoint) &lt; 1.E-8
+    <test name="masspc check final min divergence was small" language="python">
+assert abs(masspc_divergenceminend) &lt; 1.E-4
     </test>
-    <test name="check checkpointed initial max cfl was 0.1" language="python">
-assert abs(cflmaxstart_checkpoint-0.1) &lt; 1.E-10
+    <test name="masspc check initial max cfl was 0.1" language="python">
+assert abs(masspc_cflmaxstart-0.1) &lt; 1.E-10
     </test>
-    <test name="check checkpointed final max cfl was 0.1" language="python">
-assert abs(cflmaxend_checkpoint-0.1) &lt; 1.E-10
+    <test name="masspc check final max cfl was 0.1" language="python">
+assert abs(masspc_cflmaxend-0.1) &lt; 1.E-10
     </test>
-    <test name="check material1 was conserved during pickup" language="python">
-print('mass loss = ', abs(material1integralstart_checkpoint-material1integralend))
-assert abs(material1integralstart_checkpoint-material1integralend) &lt; max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend), 1.E-8)
+    <test name="lumppc check material1 was conserved" language="python">
+print('mass loss = ', abs(lumppc_material1integralstart-lumppc_material1integralend))
+assert abs(lumppc_material1integralstart-lumppc_material1integralend) &lt; max(abs(lumppc_divergencemaxstart), abs(lumppc_divergencemaxend), abs(lumppc_divergenceminstart), abs(lumppc_divergenceminend), 1.E-8)
 </test>
-    <test name="check material2 was conserved during pickup" language="python">
-print('mass loss = ', abs(material2integralstart_checkpoint-material2integralend))
-assert abs(material2integralstart_checkpoint-material2integralend) &lt; max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend), 1.E-8)
+    <test name="lumppc check material2 was conserved" language="python">
+print('mass loss = ', abs(lumppc_material2integralstart-lumppc_material2integralend))
+assert abs(lumppc_material2integralstart-lumppc_material2integralend) &lt; max(abs(lumppc_divergencemaxstart), abs(lumppc_divergencemaxend), abs(lumppc_divergenceminstart), abs(lumppc_divergenceminend), 1.E-8)
 </test>
-    <test name="check material3 was conserved during pickup" language="python">
-print('mass loss = ', abs(material3integralstart_checkpoint-material3integralend))
-assert abs(material3integralstart_checkpoint-material3integralend) &lt; max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend), 1.E-8)
+    <test name="lumppc check material3 was conserved" language="python">
+print('mass loss = ', abs(lumppc_material3integralstart-lumppc_material3integralend))
+assert abs(lumppc_material3integralstart-lumppc_material3integralend) &lt; max(abs(lumppc_divergencemaxstart), abs(lumppc_divergencemaxend), abs(lumppc_divergenceminstart), abs(lumppc_divergenceminend), 1.E-8)
 </test>
+    <test name="lumppc check that reasonable tolerance is being used to test conservation" language="python">
+print('divergence tolerance = ', max(abs(lumppc_divergencemaxstart), abs(lumppc_divergencemaxend), abs(lumppc_divergenceminstart), abs(lumppc_divergenceminend)))
+assert max(abs(lumppc_divergencemaxstart), abs(lumppc_divergencemaxend), abs(lumppc_divergenceminstart), abs(lumppc_divergenceminend)) &lt; 1.E-6
+</test>
+    <test name="lumppc check material1 max bound was conserved" language="python">
+assert abs(lumppc_material1maxstart-lumppc_material1maxend) &lt; 1.E-10
+    </test>
+    <test name="lumppc check material3 max was conserved" language="python">
+assert abs(lumppc_material3maxstart-lumppc_material3maxend) &lt; 1.E-10
+    </test>
+    <test name="lumppc check material1 min bound was conserved" language="python">
+assert abs(lumppc_material1minstart-lumppc_material1minend) &lt; 1.E-10
+    </test>
+    <test name="lumppc check material3 min bound was conserved" language="python">
+assert abs(lumppc_material3minstart-lumppc_material3minend) &lt; 1.E-10
+    </test>
+    <test name="lumppc check initial max divergence was small" language="python">
+assert abs(lumppc_divergencemaxstart) &lt; 1.E-6
+    </test>
+    <test name="lumppc check initial min divergence was small" language="python">
+assert abs(lumppc_divergenceminstart) &lt; 1.E-6
+    </test>
+    <test name="lumppc check final max divergence was small" language="python">
+assert abs(lumppc_divergencemaxend) &lt; 1.E-6
+    </test>
+    <test name="lumppc check final min divergence was small" language="python">
+assert abs(lumppc_divergenceminend) &lt; 1.E-6
+    </test>
+    <test name="lumppc check initial max cfl was 0.1" language="python">
+assert abs(lumppc_cflmaxstart-0.1) &lt; 1.E-10
+    </test>
+    <test name="lumppc check final max cfl was 0.1" language="python">
+assert abs(lumppc_cflmaxend-0.1) &lt; 1.E-10
+    </test>
+    <test name="diagpc check material1 was conserved" language="python">
+print('mass loss = ', abs(diagpc_material1integralstart-diagpc_material1integralend))
+assert abs(diagpc_material1integralstart-diagpc_material1integralend) &lt; max(abs(diagpc_divergencemaxstart), abs(diagpc_divergencemaxend), abs(diagpc_divergenceminstart), abs(diagpc_divergenceminend), 1.E-8)
+</test>
+    <test name="diagpc check material2 was conserved" language="python">
+print('mass loss = ', abs(diagpc_material2integralstart-diagpc_material2integralend))
+assert abs(diagpc_material2integralstart-diagpc_material2integralend) &lt; max(abs(diagpc_divergencemaxstart), abs(diagpc_divergencemaxend), abs(diagpc_divergenceminstart), abs(diagpc_divergenceminend), 1.E-8)
+</test>
+    <test name="diagpc check material3 was conserved" language="python">
+print('mass loss = ', abs(diagpc_material3integralstart-diagpc_material3integralend))
+assert abs(diagpc_material3integralstart-diagpc_material3integralend) &lt; max(abs(diagpc_divergencemaxstart), abs(diagpc_divergencemaxend), abs(diagpc_divergenceminstart), abs(diagpc_divergenceminend), 1.E-8)
+</test>
+    <test name="diagpc check that reasonable tolerance is being used to test conservation" language="python">
+print('divergence tolerance = ', max(abs(diagpc_divergencemaxstart), abs(diagpc_divergencemaxend), abs(diagpc_divergenceminstart), abs(diagpc_divergenceminend)))
+assert max(abs(diagpc_divergencemaxstart), abs(diagpc_divergencemaxend), abs(diagpc_divergenceminstart), abs(diagpc_divergenceminend)) &lt; 1.E-6
+</test>
+    <test name="diagpc check material1 max bound was conserved" language="python">
+assert abs(diagpc_material1maxstart-diagpc_material1maxend) &lt; 1.E-10
+    </test>
+    <test name="diagpc check material3 max was conserved" language="python">
+assert abs(diagpc_material3maxstart-diagpc_material3maxend) &lt; 1.E-10
+    </test>
+    <test name="diagpc check material1 min bound was conserved" language="python">
+assert abs(diagpc_material1minstart-diagpc_material1minend) &lt; 1.E-10
+    </test>
+    <test name="diagpc check material3 min bound was conserved" language="python">
+assert abs(diagpc_material3minstart-diagpc_material3minend) &lt; 1.E-10
+    </test>
+    <test name="diagpc check initial max divergence was small" language="python">
+assert abs(diagpc_divergencemaxstart) &lt; 1.E-6
+    </test>
+    <test name="diagpc check initial min divergence was small" language="python">
+assert abs(diagpc_divergenceminstart) &lt; 1.E-6
+    </test>
+    <test name="diagpc check final max divergence was small" language="python">
+assert abs(diagpc_divergencemaxend) &lt; 1.E-6
+    </test>
+    <test name="diagpc check final min divergence was small" language="python">
+assert abs(diagpc_divergenceminend) &lt; 1.E-6
+    </test>
+    <test name="diagpc check initial max cfl was 0.1" language="python">
+assert abs(diagpc_cflmaxstart-0.1) &lt; 1.E-10
+    </test>
+    <test name="diagpc check final max cfl was 0.1" language="python">
+assert abs(diagpc_cflmaxend-0.1) &lt; 1.E-10
+    </test>
   </pass_tests>
   <warn_tests>
-    <test name="check initial max lambda was updated" language="python">
-assert abs(lambdamaxstart) &gt; 1.E-7
+    <test name="nopc check initial max lambda was updated" language="python">
+assert abs(nopc_lambdamaxstart) &gt; 1.E-7
     </test>
-    <test name="check initial min lambda was updated" language="python">
-assert abs(lambdaminstart) &gt; 1.E-7
+    <test name="nopc check initial min lambda was updated" language="python">
+assert abs(nopc_lambdaminstart) &gt; 1.E-7
     </test>
-    <test name="check final max lambda was updated" language="python">
-assert abs(lambdamaxend) &gt; 1.E-7
+    <test name="nopc check final max lambda was updated" language="python">
+assert abs(nopc_lambdamaxend) &gt; 1.E-7
     </test>
-    <test name="check final min lambda was updated" language="python">
-assert abs(lambdaminend) &gt; 1.E-7
+    <test name="nopc check final min lambda was updated" language="python">
+assert abs(nopc_lambdaminend) &gt; 1.E-7
     </test>
-    <test name="check checkpointed initial max lambda is small (projection had to do very little)" language="python">
-assert abs(lambdamaxstart_checkpoint) &lt; 1.E-7
+    <test name="nopc check absolute difference isn't zero, i.e. aliased velocity is actually doing something" language="python">
+assert abs(nopc_absolutedifference) &gt; 1.E-7
     </test>
-    <test name="check checkpointed initial min lambda is small (projection had to do very little)" language="python">
-assert abs(lambdaminstart_checkpoint) &lt; 1.E-7
+    <test name="masspc check initial max lambda was updated" language="python">
+assert abs(masspc_lambdamaxstart) &gt; 1.E-7
     </test>
-    <test name="check checkpointed final max lambda was updated" language="python">
-assert abs(lambdamaxend_checkpoint) &gt; 1.E-7
+    <test name="masspc check initial min lambda was updated" language="python">
+assert abs(masspc_lambdaminstart) &gt; 1.E-7
     </test>
-    <test name="check checkpointed final min lambda was updated" language="python">
-assert abs(lambdaminend_checkpoint) &gt; 1.E-7
+    <test name="masspc check final max lambda was updated" language="python">
+assert abs(masspc_lambdamaxend) &gt; 1.E-7
     </test>
-    <test name="check absolute difference isn't zero, i.e. aliased velocity is actually doing something" language="python">
-assert abs(absolutedifference) &gt; 1.E-7
+    <test name="masspc check final min lambda was updated" language="python">
+assert abs(masspc_lambdaminend) &gt; 1.E-7
+    </test>
+    <test name="masspc check absolute difference isn't zero, i.e. aliased velocity is actually doing something" language="python">
+assert abs(masspc_absolutedifference) &gt; 1.E-7
+    </test>
+    <test name="lumppc check initial max lambda was updated" language="python">
+assert abs(lumppc_lambdamaxstart) &gt; 1.E-7
+    </test>
+    <test name="lumppc check initial min lambda was updated" language="python">
+assert abs(lumppc_lambdaminstart) &gt; 1.E-7
+    </test>
+    <test name="lumppc check final max lambda was updated" language="python">
+assert abs(lumppc_lambdamaxend) &gt; 1.E-7
+    </test>
+    <test name="lumppc check final min lambda was updated" language="python">
+assert abs(lumppc_lambdaminend) &gt; 1.E-7
+    </test>
+    <test name="lumppc check absolute difference isn't zero, i.e. aliased velocity is actually doing something" language="python">
+assert abs(lumppc_absolutedifference) &gt; 1.E-7
+    </test>
+    <test name="diagpc check initial max lambda was updated" language="python">
+assert abs(diagpc_lambdamaxstart) &gt; 1.E-7
+    </test>
+    <test name="diagpc check initial min lambda was updated" language="python">
+assert abs(diagpc_lambdaminstart) &gt; 1.E-7
+    </test>
+    <test name="diagpc check final max lambda was updated" language="python">
+assert abs(diagpc_lambdamaxend) &gt; 1.E-7
+    </test>
+    <test name="diagpc check final min lambda was updated" language="python">
+assert abs(diagpc_lambdaminend) &gt; 1.E-7
+    </test>
+    <test name="diagpc check absolute difference isn't zero, i.e. aliased velocity is actually doing something" language="python">
+assert abs(diagpc_absolutedifference) &gt; 1.E-7
     </test>
   </warn_tests>
 </testproblem>
