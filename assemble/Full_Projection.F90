@@ -293,17 +293,18 @@
            nnodes=block_size(div_matrix_comp,2), nfields=blocks(div_matrix_comp,2), &
            group_size=inner_m%row_numbering%group_size, &
            halo=div_matrix_comp%sparsity%column_halo)
-      call allocate(petsc_numbering_p, &
-           nnodes=block_size(div_matrix_comp,1), nfields=1, &
-           halo=div_matrix_comp%sparsity%row_halo, ghost_nodes=ghost_nodes)
-
-           ! - why is this using the row halo of the preconditioner matrix when there might be rows missing?
-           ! - same question about the nnodes use of the rows of the block of the divergence matrix?
-           ! - and how can ghost_nodes be appropriate for both this and the auxiliary_matrix?
-           ! this definitely appears to be inappropriate for the auxiliary matrix (hence there's a new one added
-           ! below) so two questions:
-           ! 1. is it definitely appropriate for all its other used (the divergence matrix and the pressure vectors)?
-           ! 2. can it be made appropriate for the auxiliary matrix at the same time as being appropriate for the current uses?
+      ! the preconditioner matrix might have a second order halo, which it will need if it's present
+      ! so let's use that if it's available to set up the petsc numbering
+      if(associated(preconditioner_matrix)) then
+        call allocate(petsc_numbering_p, &
+             nnodes=block_size(div_matrix_comp,1), nfields=1, &
+             halo=preconditioner_matrix%sparsity%row_halo, ghost_nodes=ghost_nodes)
+      else
+      ! if it's not available though we should default to the first order halo from the div matrix
+        call allocate(petsc_numbering_p, &
+             nnodes=block_size(div_matrix_comp,1), nfields=1, &
+             halo=div_matrix_comp%sparsity%row_halo, ghost_nodes=ghost_nodes)
+      end if
 
       ! the rows of the gradient matrix (ct_m^T) and columns of ctp_m 
       ! corresponding to dirichlet bcs have not been zeroed
