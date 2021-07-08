@@ -3,11 +3,15 @@
   <name>Multimaterial adaptivity and interpolation test</name>
   <owner userid="cwilson"/>
   <tags>flml 2dadapt</tags>
-  <problem_definition length="short" nprocs="1">
-    <command_line>fluidity -v2 -l mmat-interpolation-nopc.flml &amp;&amp; mv fluidity.log-0 nopc.log &amp;&amp; mv fluidity.err-0 nopc.err &amp;&amp; 
-                  fluidity -v2 -l mmat-interpolation-masspc.flml &amp;&amp; mv fluidity.log-0 masspc.log &amp;&amp; mv fluidity.err-0 masspc.err &amp;&amp;
-                  fluidity -v2 -l mmat-interpolation-lumppc.flml &amp;&amp; mv fluidity.log-0 lumppc.log &amp;&amp; mv fluidity.err-0 lumppc.err &amp;&amp;
-                  fluidity -v2 -l mmat-interpolation-diagpc.flml &amp;&amp; mv fluidity.log-0 diagpc.log &amp;&amp; mv fluidity.err-0 diagpc.err 
+  <problem_definition length="short" nprocs="2">
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-interpolation-nopc mmat-interpolation-nopc-flredecomp &amp;&amp;
+                  mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-interpolation-masspc mmat-interpolation-masspc-flredecomp &amp;&amp;
+                  mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-interpolation-lumppc mmat-interpolation-lumppc-flredecomp &amp;&amp;
+                  mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-interpolation-diagpc mmat-interpolation-diagpc-flredecomp &amp;&amp;
+                  mpiexec ../../bin/fluidity -v2 -l mmat-interpolation-nopc-flredecomp.flml &amp;&amp; mv fluidity.log-0 nopc.log-0 &amp;&amp; mv fluidity.err-0 nopc.err-0 &amp;&amp; 
+                  mpiexec ../../bin/fluidity -v2 -l mmat-interpolation-masspc-flredecomp.flml &amp;&amp; mv fluidity.log-0 masspc.log-0 &amp;&amp; mv fluidity.err-0 masspc.err-0 &amp;&amp;
+                  mpiexec ../../bin/fluidity -v2 -l mmat-interpolation-lumppc-flredecomp.flml &amp;&amp; mv fluidity.log-0 lumppc.log-0 &amp;&amp; mv fluidity.err-0 lumppc.err-0 &amp;&amp;
+                  mpiexec ../../bin/fluidity -v2 -l mmat-interpolation-diagpc-flredecomp.flml &amp;&amp; mv fluidity.log-0 diagpc.log-0 &amp;&amp; mv fluidity.err-0 diagpc.err-0 
     </command_line>
   </problem_definition>
   <variables>
