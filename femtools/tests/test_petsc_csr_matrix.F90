@@ -5,9 +5,7 @@ subroutine test_petsc_csr_matrix()
   use parallel_tools
   use petsc_tools
   use unittest_tools
-#ifdef HAVE_PETSC_MODULES
-  use petsc 
-#endif
+  use petsc
   implicit none
 #include "petsc_legacy.h"
   

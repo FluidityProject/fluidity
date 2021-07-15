@@ -108,9 +108,6 @@
 /* Define if you have the PETSc library. */
 #undef HAVE_PETSC
 
-/* Define if you have petsc fortran modules. */
-#undef HAVE_PETSC_MODULES
-
 /* If available, contains the Python version number currently in use. */
 #undef HAVE_PYTHON
 

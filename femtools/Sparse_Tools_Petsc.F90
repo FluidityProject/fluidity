@@ -37,9 +37,7 @@ module sparse_tools_petsc
   use parallel_tools
   use halo_data_types
   use halos_allocates
-#ifdef HAVE_PETSC_MODULES
   use petsc
-#endif
   use Sparse_Tools
   use fields_data_types
   use fields_base

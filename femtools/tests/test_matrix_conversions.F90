@@ -4,9 +4,7 @@ subroutine test_matrix_conversions
   use sparse_tools
   use petsc_tools
   use unittest_tools
-#ifdef HAVE_PETSC_MODULES
-  use petsc 
-#endif
+  use petsc
   implicit none
   
 #include "petsc_legacy.h"
