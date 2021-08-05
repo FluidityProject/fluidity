@@ -15,9 +15,7 @@
     use boundary_conditions
     use global_parameters, only: OPTION_PATH_LEN
     use free_surface_module
-#ifdef HAVE_PETSC_MODULES
-  use petsc 
-#endif
+    use petsc
     implicit none
 #include "petsc_legacy.h"
 

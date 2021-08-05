@@ -1,25 +1,18 @@
 #include "confdefs.h"
 #include "petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "petscfix.h"
-#include "petscis.h"
-#endif
 
 #include <string.h>
 
 extern "C" {
   void iscopyindices_(IS *is, PetscInt *iarray,PetscErrorCode *ierr);
   void petscobjectreference_(PetscObject obj, int *__ierr );
+  void pcmgsetlevels_nocomms_(PC *pc, PetscInt *levels, int *ierr);
 }
 
 // our own version of IsGetIndices, that just does a copy
 // to avoid silly fortran interface issues
 void iscopyindices_(IS *is, PetscInt *iarray,PetscErrorCode *ierr){
-#if PETSC_VERSION_MAJOR==3
   const PetscInt *iptr;
-#else
-  PetscInt *iptr;
-#endif
   PetscInt n;
   
   *ierr = ISGetIndices(*is, &iptr); if (*ierr) return;
@@ -55,6 +48,17 @@ extern void PetscRmPointer(void*);
 void petscobjectreference_(PetscObject obj, int *__ierr ){
 *__ierr = PetscObjectReference(
    (PetscObject)PetscToPointer((obj) ));
+}
+
+
+// This is a woraround bug in https://gitlab.com/petsc/petsc/-/issues/868
+// In 3.14 not only is it impossible to "fake" a NULL argument using PETSC_NULL_KSP
+// as we'd done previously, even if you do provide a comms filled with MPI_COMM_WORLD
+// that because MPI_COMM_WORLD==0 it is still mistaken for a NULL argument and hits the
+// bug in the petsc fortran wrapper for this routine
+// So instead we just write our own wrapper without the comms argument:
+void pcmgsetlevels_nocomms_(PC *pc, PetscInt *levels, int *ierr){
+  *ierr = PCMGSetLevels(*pc, *levels, NULL);
 }
 
 

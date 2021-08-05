@@ -236,9 +236,7 @@ subroutine petsc_solve_matrix_free(x, matrix, rhs)
   use petsc_tools
   use matrix_free_solvers
 
-#ifdef HAVE_PETSC_MODULES
   use petsc 
-#endif
   implicit none
 #include "petsc_legacy.h"
   type(scalar_field), intent(inout) :: x

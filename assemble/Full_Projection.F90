@@ -31,9 +31,7 @@
     use global_parameters
     use elements
     use spud
-#ifdef HAVE_PETSC_MODULES
     use petsc
-#endif
     use parallel_tools
     use data_structures
     use sparse_tools
@@ -359,11 +357,7 @@
       else
          ! workaround bug in petsc 3.8: missing CHKFORTRANNULLOBJECT, so PETSC_NULL_MAT isn't translated to C null
          ! this however seems to do the trick:
-#if PETSC_VERSION_MINOR>=8
          S%v = 0
-#else
-         S = PETSC_NULL_OBJECT
-#endif
          call MatCreateSchurComplement(inner_M%M,inner_M%M,G,G_t_comp,S,A,ierr)
       end if
       
