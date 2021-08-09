@@ -4,3 +4,4 @@ input:	clean
 	
 clean:
 	rm -f *.png *.vtu *.pvtu *.stat *.log* *.err* *.msh *_checkpoint* *.convergence *.detectors*
+	rm -rf matrixdump*

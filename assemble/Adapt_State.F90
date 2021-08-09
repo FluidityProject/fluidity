@@ -1239,7 +1239,7 @@ contains
            ! Sanity check that all local detectors are owned
            detector=>detector_list_array(j)%ptr%first
            do k = 1, detector_list_array(j)%ptr%length
-              if (detector%element<0) then
+              if (detector%element<=0) then
                 FLAbort("Lost one of the detectors during an adapt")
               end if
               detector=>detector%next

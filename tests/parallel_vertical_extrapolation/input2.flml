@@ -3,7 +3,7 @@
   <simulation_name>
     <string_value lines="1">output2</string_value>
     <comment>Test basic vertical interpolation of free surface, distance to top and bottom, and mesh movement on fully unstructured (non-extruded) mesh in parallel.
-Using linear free surface expression that should vertically extrapolated exactly</comment>
+Using linear free surface expression that should be vertically extrapolated exactly</comment>
   </simulation_name>
   <problem_type>
     <string_value lines="1">stokes</string_value>

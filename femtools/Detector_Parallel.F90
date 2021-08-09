@@ -486,7 +486,7 @@ contains
     ! if present and true, assume the local coordinates corresponds to the correct detector position
     ! and reinterpolate the physical detector%position from the Coordinate field
     ! if false (default), this is done only for those detector lists with the move_with_mesh option which
-    ! thereby automatically move with the mesh, for detectors in other lists we assume the _physical_ coordinates
+    ! thereby automatically move with the mesh. For detectors in other lists we assume the _physical_ coordinates
     ! are correct and we search which element they are located in and recompute the local coordinates
     logical, optional, intent(in) :: reinterpolate_all
 
