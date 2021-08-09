@@ -785,7 +785,6 @@ with_femdem
 with_psmile
 with_netcdf
 with_exodusii
-enable_petsc_fortran_modules
 with_x
 enable_sam
 enable_dp
@@ -1463,12 +1462,6 @@ Optional Features:
   --enable-shared         Compile objects with -fPIC to enable the 'make
                           shared' target.
   --enable-verbose        turns on super verbosity
-  --disable-petsc-fortran-modules
-                          By default fluidity tries to use fortran modules
-                          provided with petsc. Use
-                          --disable-petsc-fortran-modules if these are known
-                          to be not functional (e.g. compiled with different
-                          compiler version)
   --enable-sam            use sam rather than zoltan for adaptive load
                           rebalancing
   --enable-dp=flag        compile with 64 bit floating point numbers (default)
@@ -6001,7 +5994,7 @@ then
     if test -z "$PYTHON_VERSION"; then
       # if PYTHON_VERSION is set we use python$PYTHON_VERSION as the python interpreter
       # if not, if there is no `python` in the path, or there is a `python` but its version is <3
-      # then use `python3` (by setting PETSC_VERSION=3).
+      # then use `python3` (by setting PYTHON_VERSION=3).
       # If there *is* a `python` of version 3, we use that
       # Extract the first word of "python", so it can be a program name with args.
 set dummy python; ac_word=$2
@@ -11793,11 +11786,6 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 fi
 
-# Check whether --enable-petsc-fortran-modules was given.
-if test "${enable_petsc_fortran_modules+set}" = set; then :
-  enableval=$enable_petsc_fortran_modules;
-fi
-
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for X" >&5
 $as_echo_n "checking for X... " >&6; }
 
@@ -12724,9 +12712,9 @@ fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: Detected PETSc version \"$PETSC_VERSION_MAJOR\".\"$PETSC_VERSION_MINOR\"" >&5
 $as_echo "$as_me: Detected PETSc version \"$PETSC_VERSION_MAJOR\".\"$PETSC_VERSION_MINOR\"" >&6;}
-# if major<3 or minor<4
-if test "0$PETSC_VERSION_MAJOR" -lt 3 -o "0$PETSC_VERSION_MINOR" -lt 4; then
-  as_fn_error $? "Fluidity needs PETSc version >=3.4" "$LINENO" 5
+# if major<3 or minor<8
+if test "0$PETSC_VERSION_MAJOR" -lt 3 -o "0$PETSC_VERSION_MINOR" -lt 8; then
+  as_fn_error $? "Fluidity needs PETSc version >=3.8" "$LINENO" 5
 fi
 
 ac_ext=${ac_fc_srcext-f}
@@ -12740,47 +12728,36 @@ ac_ext=F90
 # may need some extra flags for testing that we don't want to use in the end
 SAVE_FCFLAGS="$FCFLAGS"
 
-if test "$enable_petsc_fortran_modules" != "no" ; then
-  # now try if the petsc fortran modules work:
-  cat > conftest.$ac_ext <<_ACEOF
+# now try if the petsc fortran modules work:
+cat > conftest.$ac_ext <<_ACEOF
       program main
 
-                          use petsc
-                          integer :: ierr
-                          print*, "hello petsc"
-                          call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
+                        use petsc
+                        integer :: ierr
+                        print*, "hello petsc"
+                        call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
 
       end
 _ACEOF
 if ac_fn_fc_try_link "$LINENO"; then :
 
-              { $as_echo "$as_me:${as_lineno-$LINENO}: PETSc modules are working." >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: PETSc modules are working." >&5
 $as_echo "$as_me: PETSc modules are working." >&6;}
-
-$as_echo "#define HAVE_PETSC_MODULES 1" >>confdefs.h
-
-              FCFLAGS="$FCFLAGS -DHAVE_PETSC_MODULES"
 
 else
 
-              { $as_echo "$as_me:${as_lineno-$LINENO}: PETSc modules don't work, using headers instead." >&5
-$as_echo "$as_me: PETSc modules don't work, using headers instead." >&6;}
+            as_fn_error $? "PETSc fortran modules cannot be used. Either it the petsc*.mod files cannot be found, or petsc has been built using a different fortran compiler." "$LINENO" 5
 
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-elif test "0$PETSC_VERSION_MINOR" -ge 8; then
-  as_fn_error $? "PETSc v3.8 and newer requires petsc fortran modules. Do not use the --disable-petsc-fortran-modules option" "$LINENO" 5
-fi
 
 # now try a more realistic program, it's a stripped down
 # petsc tutorial - using the headers in the same way as we do in the code
 cat > conftest.$ac_ext <<_ACEOF
 
 program test_petsc
-#ifdef HAVE_PETSC_MODULES
   use petsc
-#endif
 implicit none
 #include "petsc_legacy.h"
       double precision  norm

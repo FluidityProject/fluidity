@@ -19,9 +19,7 @@
     use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN
     use free_surface_module
     use FLDebug
-#ifdef HAVE_PETSC_MODULES
-  use petsc
-#endif
+    use petsc
   implicit none
 #include "petsc_legacy.h"
 
@@ -307,9 +305,7 @@
        & exact_sol_filename, vl_as, vl_as_wsor, vl, no_vl, sor)
     use Fldebug
     use petsc_tools
-#ifdef HAVE_PETSC_MODULES
   use petsc
-#endif
   implicit none
 #include "petsc_legacy.h"
 

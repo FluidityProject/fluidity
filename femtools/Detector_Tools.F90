@@ -127,6 +127,11 @@ contains
        allocate(new_detector%attributes(attribute_size(1)))
        allocate(new_detector%old_attributes(attribute_size(2)))
        allocate(new_detector%old_fields(attribute_size(3)))
+    else
+       ! match the behaviour of create_single_detector, with empty attribute arrays
+       allocate(new_detector%attributes(0))
+       allocate(new_detector%old_attributes(0))
+       allocate(new_detector%old_fields(0))
     end if
       
     assert(associated(new_detector))
@@ -407,26 +412,27 @@ contains
     integer, intent(in), optional :: nstages
     integer :: detector_buffer_size, det_params
     integer, dimension(3), optional, intent(in) :: attribute_size !array to hold size of attributes
+
     det_params = 3 !size of basic detector fields: detector element, id_number and proc_id
+
+    ! common to everything is a position + basic fields
+    detector_buffer_size = ndims + det_params
+
     if (present(attribute_size)) then
-       if (have_update_vector) then
-          assert(present(nstages))
-          detector_buffer_size=(nstages+2)*ndims+det_params+sum(attribute_size)
-       else
-          detector_buffer_size=ndims+det_params+1+sum(attribute_size)
-       end if
+      detector_buffer_size = detector_buffer_size + sum(attribute_size)
+    end if
+
+    if (have_update_vector) then
+      ! update vector adds ndims + nstages*ndims
+      detector_buffer_size = detector_buffer_size + (nstages + 1)*ndims
     else
-       if (have_update_vector) then
-          assert(present(nstages))
-          detector_buffer_size=(nstages+2)*ndims+det_params
-       else
-          detector_buffer_size=ndims+det_params+1
-       end if 
+      ! otherwise, there's a list id
+      detector_buffer_size = detector_buffer_size + 1
     end if
 
   end function detector_buffer_size
 
-  subroutine pack_detector(detector,buff,ndims,nstages, attribute_size)
+  subroutine pack_detector(detector,buff,ndims,nstages, attribute_size_in)
     ! Packs (serialises) detector into buff
     ! Basic fields are: element, position, id_number and type
     ! If nstages is given, the detector is still moving
@@ -435,70 +441,62 @@ contains
     real, dimension(:), intent(out) :: buff
     integer, intent(in) :: ndims
     integer, intent(in), optional :: nstages
-    integer, dimension(3), optional, intent(in) :: attribute_size !array to hold size of attributes
-    integer :: det_params
-    assert(size(detector%position)==ndims)
+    integer, dimension(3), optional, intent(in) :: attribute_size_in
+
+    integer :: det_params, buf_pos
+    integer, dimension(3) :: attribute_size
+
+    assert(size(detector%position) == ndims)
+
     !Set size of basic detector fields: detector element, id_number, proc_id
     det_params = 3
-    !Check if this is a particle carrying attributes
-    if (present(attribute_size)) then
-       assert(size(buff)>=ndims+det_params+sum(attribute_size))
-       ! Basic fields: ndims+det_params
-       buff(1:ndims) = detector%position
-       buff(ndims+1) = detector%element
-       buff(ndims+2) = detector%id_number
-       buff(ndims+3) = detector%proc_id
-       if (attribute_size(1).ne.0) then
-          buff(ndims+det_params+1:ndims+det_params+attribute_size(1)) = detector%attributes
-       end if
-       if (attribute_size(2).ne.0) then
-          buff(ndims+det_params+1+attribute_size(1):ndims+det_params+attribute_size(1)+attribute_size(2)) &
-               = detector%old_attributes
-       end if
-       if (attribute_size(3).ne.0) then
-          buff(ndims+det_params+1+attribute_size(1)+attribute_size(2):ndims+det_params+sum(attribute_size)) &
-               = detector%old_fields
-       end if
-       ! Lagrangian advection fields: (nstages+1)*ndims
-       if (present(nstages)) then
-          assert(size(buff)==(nstages+2)*ndims+det_params+sum(attribute_size))
-          assert(allocated(detector%update_vector))
-          assert(allocated(detector%k))
-          
-          buff(ndims+det_params+1+sum(attribute_size):2*ndims+det_params &
-               +sum(attribute_size)) = detector%update_vector
-          buff(2*ndims+det_params+1+sum(attribute_size):(nstages+2)*ndims &
-               +det_params+sum(attribute_size)) = reshape(detector%k,(/nstages*ndims/))
-       else
-          assert(size(buff)==ndims+det_params+1+sum(attribute_size))
-          buff(ndims+det_params+1+sum(attribute_size)) = detector%list_id
-       end if
-    else
-       assert(size(buff)>=ndims+det_params)
+    attribute_size(:) = 0
 
-       ! Basic fields: ndims+det_params
-       buff(1:ndims) = detector%position
-       buff(ndims+1) = detector%element
-       buff(ndims+2) = detector%id_number
-       buff(ndims+3) = detector%proc_id
-
-       ! Lagrangian advection fields: (nstages+1)*ndims
-       if (present(nstages)) then
-          assert(size(buff)==(nstages+2)*ndims+det_params)
-          assert(allocated(detector%update_vector))
-          assert(allocated(detector%k))
-          
-          buff(ndims+det_params+1:2*ndims+det_params) = detector%update_vector
-          buff(2*ndims+det_params+1:(nstages+2)*ndims+det_params) = reshape(detector%k,(/nstages*ndims/))
-       else
-          assert(size(buff)==ndims+det_params+1)
-          buff(ndims+det_params+1) = detector%list_id
-       end if
+    if (present(attribute_size_in)) then
+      attribute_size = attribute_size_in
     end if
-    
+
+    ! ensure buffer is big enough to receive this detector
+    assert(size(buff) >= ndims + det_params + sum(attribute_size))
+
+    ! Basic fields: ndims+det_params
+    buff(1:ndims) = detector%position
+    buff(ndims+1) = detector%element
+    buff(ndims+2) = detector%id_number
+    buff(ndims+3) = detector%proc_id
+
+    buf_pos = ndims + det_params
+
+    if (attribute_size(1) /= 0) then
+       buff(buf_pos + 1:buf_pos + attribute_size(1)) = detector%attributes
+       buf_pos = buf_pos + attribute_size(1)
+    end if
+    if (attribute_size(2) /= 0) then
+       buff(buf_pos + 1:buf_pos + attribute_size(2)) = detector%old_attributes
+       buf_pos = buf_pos + attribute_size(2)
+    end if
+    if (attribute_size(3) /= 0) then
+       buff(buf_pos + 1:buf_pos + attribute_size(3)) = detector%old_fields
+       buf_pos = buf_pos + attribute_size(3)
+    end if
+
+    ! Lagrangian advection fields: (nstages+1)*ndims
+    if (present(nstages)) then
+       assert(size(buff) == (nstages+2)*ndims + det_params + sum(attribute_size))
+       assert(allocated(detector%update_vector))
+       assert(allocated(detector%k))
+
+       buff(buf_pos + 1:buf_pos + ndims) = detector%update_vector
+       buf_pos = buf_pos + ndims
+
+       buff(buf_pos + 1:buf_pos + nstages*ndims) = reshape(detector%k, (/nstages*ndims/))
+    else
+       assert(size(buff) == ndims + det_params + sum(attribute_size) + 1)
+       buff(buf_pos + 1) = detector%list_id
+    end if
   end subroutine pack_detector
 
-  subroutine unpack_detector(detector,buff,ndims,global_to_local,coordinates,nstages,attribute_size)
+  subroutine unpack_detector(detector,buff,ndims,global_to_local,coordinates,nstages,attribute_size_in)
     ! Unpacks the detector from buff and fills in the blanks
     type(detector_type), pointer :: detector
     real, dimension(:), intent(in) :: buff
@@ -506,132 +504,95 @@ contains
     type(integer_hash_table), intent(in), optional :: global_to_local
     type(vector_field), intent(in), optional :: coordinates
     integer, intent(in), optional :: nstages
-    integer, dimension(3), optional, intent(in) :: attribute_size !array to hold size of attributes
+    integer, dimension(3), optional, intent(in) :: attribute_size_in
 
-    integer :: det_params
+    integer :: det_params, buf_pos
+    integer, dimension(3) :: attribute_size
     !Set size of basic detector fields, being detector element, id_number
     det_params = 3
-    
-    !Check if this is a particle carrying attributes
-    if (present(attribute_size)) then
+    attribute_size(:) = 0
 
-       if (.not. allocated(detector%position)) then
-          allocate(detector%position(ndims))
-       end if
-       if (.not. allocated(detector%attributes)) then
-          allocate(detector%attributes(attribute_size(1)))
-          allocate(detector%old_attributes(attribute_size(2)))
-          allocate(detector%old_fields(attribute_size(3)))
-       end if
-       ! Basic fields: ndims+4
-       detector%position = buff(1:ndims)
-       detector%element = buff(ndims+1)
-       detector%id_number = buff(ndims+2)
-       detector%proc_id = buff(ndims+3)
-       if (attribute_size(1)/=0) then  
-          detector%attributes = buff(ndims+det_params+1:ndims+det_params+attribute_size(1))
-       end if
-       if (attribute_size(2)/=0) then  
-          detector%old_attributes = buff(ndims+det_params+1+attribute_size(1):ndims+det_params+attribute_size(1) &
-               +attribute_size(2))
-       end if
-       if (attribute_size(3)/=0) then  
-          detector%old_fields = buff(ndims+det_params+1+attribute_size(1)+attribute_size(2):ndims+det_params+ &
-               sum(attribute_size))
-       end if
-       
-       ! Reconstruct element number if global-to-local mapping is given
-       if (present(global_to_local)) then
-          assert(has_key(global_to_local, detector%element))
-          detector%element=fetch(global_to_local,detector%element)
-          
-       ! Update local coordinates if coordinate field is given
-          if (present(coordinates)) then
-             if (.not. allocated(detector%local_coords)) then
-                allocate(detector%local_coords(local_coord_count(ele_shape(coordinates,1))))
-             end if
-             detector%local_coords=local_coords(coordinates,detector%element,detector%position)
-          end if
-       end if
-       
-       ! Lagrangian advection fields: (nstages+1)*ndims
-       if (present(nstages)) then
-          assert(size(buff)==(nstages+2)*ndims+det_params+sum(attribute_size))
-          
-          ! update_vector, dimension(ndim)
-          if (.not. allocated(detector%update_vector)) then
-             allocate(detector%update_vector(ndims))
-          end if
-          detector%update_vector = buff(ndims+det_params+1+sum(attribute_size) &
-               :2*ndims+det_params+sum(attribute_size))
-          
-          ! k, dimension(nstages:ndim)
-          if (.not. allocated(detector%k)) then
-             allocate(detector%k(nstages,ndims))
-          end if
-          detector%k = reshape(buff(2*ndims+det_params+1+sum(attribute_size):(nstages+2) &
-               *ndims+det_params+sum(attribute_size)),(/nstages,ndims/))
-          
-          ! If update_vector still exists, we're not done moving
-          detector%search_complete=.false.
-       else
-          assert(size(buff)==ndims+det_params+1+sum(attribute_size))
-          
-          detector%list_id = buff(ndims+det_params+1+sum(attribute_size))
-          detector%search_complete=.true.
-       end if
-    else
+    ! we default to assuming there are no attributes,
+    ! but this can be overridden by the caller
+    if (present(attribute_size_in)) then
+      attribute_size = attribute_size_in
+    end if
 
-       if (.not. allocated(detector%position)) then
-          allocate(detector%position(ndims))
-       end if
-       
-       ! Basic fields: ndims+4
-       detector%position = buff(1:ndims)
-       detector%element = buff(ndims+1)
-       detector%id_number = buff(ndims+2)
-       detector%proc_id = buff(ndims+3)
-       
-       ! Reconstruct element number if global-to-local mapping is given
-       if (present(global_to_local)) then
-          assert(has_key(global_to_local, detector%element))
-          detector%element=fetch(global_to_local,detector%element)
-          
-       ! Update local coordinates if coordinate field is given
-          if (present(coordinates)) then
-             if (.not. allocated(detector%local_coords)) then
-                allocate(detector%local_coords(local_coord_count(ele_shape(coordinates,1))))
-             end if
-             detector%local_coords=local_coords(coordinates,detector%element,detector%position)
+    ! allocate some arrays that we might not have
+    ! set up beforehand
+    if (.not. allocated(detector%position)) then
+       allocate(detector%position(ndims))
+    end if
+
+    if (.not. allocated(detector%attributes)) then
+       allocate(detector%attributes(attribute_size(1)))
+       allocate(detector%old_attributes(attribute_size(2)))
+       allocate(detector%old_fields(attribute_size(3)))
+    end if
+
+    ! Basic fields: ndims+4
+    detector%position = buff(1:ndims)
+    detector%element = buff(ndims+1)
+    detector%id_number = buff(ndims+2)
+    detector%proc_id = buff(ndims+3)
+
+    buf_pos = ndims + det_params
+
+    ! unpack attributes if necessary
+    if (attribute_size(1) /= 0) then
+       detector%attributes = buff(buf_pos + 1:buf_pos + attribute_size(1))
+       buf_pos = buf_pos + attribute_size(1)
+    end if
+    if (attribute_size(2) /= 0) then
+       detector%old_attributes = buff(buf_pos + 1:buf_pos + attribute_size(2))
+       buf_pos = buf_pos + attribute_size(2)
+    end if
+    if (attribute_size(3) /= 0) then
+       detector%old_fields = buff(buf_pos + 1:buf_pos + attribute_size(3))
+       buf_pos = buf_pos + attribute_size(3)
+    end if
+
+    ! Reconstruct element number if global-to-local mapping is given
+    if (present(global_to_local)) then
+       assert(has_key(global_to_local, detector%element))
+       detector%element=fetch(global_to_local,detector%element)
+
+    ! Update local coordinates if coordinate field is given
+       if (present(coordinates)) then
+          if (.not. allocated(detector%local_coords)) then
+             allocate(detector%local_coords(local_coord_count(ele_shape(coordinates,1))))
           end if
-       end if
-       
-       ! Lagrangian advection fields: (nstages+1)*ndims
-       if (present(nstages)) then
-          assert(size(buff)==(nstages+2)*ndims+det_params)
-          
-          ! update_vector, dimension(ndim)
-          if (.not. allocated(detector%update_vector)) then
-             allocate(detector%update_vector(ndims))
-          end if
-          detector%update_vector = buff(ndims+det_params+1:2*ndims+det_params)
-          
-          ! k, dimension(nstages:ndim)
-          if (.not. allocated(detector%k)) then
-             allocate(detector%k(nstages,ndims))
-          end if
-          detector%k = reshape(buff(2*ndims+det_params+1:(nstages+2)*ndims+det_params),(/nstages,ndims/))
-          
-          ! If update_vector still exists, we're not done moving
-          detector%search_complete=.false.
-       else
-          assert(size(buff)==ndims+det_params+1)
-          
-          detector%list_id = buff(ndims+det_params+1)
-          detector%search_complete=.true.
+          detector%local_coords=local_coords(coordinates,detector%element,detector%position)
        end if
     end if
-   
+
+    ! Lagrangian advection fields: (nstages+1)*ndims
+    if (present(nstages)) then
+       assert(size(buff) == (nstages+2)*ndims + det_params + sum(attribute_size))
+
+       ! update_vector, dimension(ndim)
+       if (.not. allocated(detector%update_vector)) then
+          allocate(detector%update_vector(ndims))
+       end if
+       detector%update_vector = buff(buf_pos + 1:buf_pos + ndims)
+       buf_pos = buf_pos + ndims
+
+       ! k, dimension(nstages:ndim)
+       if (.not. allocated(detector%k)) then
+          allocate(detector%k(nstages,ndims))
+       end if
+       detector%k = reshape(buff(buf_pos + 1:buf_pos + nstages*ndims), &
+          (/nstages,ndims/))
+
+       ! If update_vector still exists, we're not done moving
+       detector%search_complete=.false.
+    else
+       assert(size(buff) == ndims + det_params + sum(attribute_size) + 1)
+
+       detector%list_id = buff(buf_pos + 1)
+       detector%search_complete = .true.
+    end if
+
   end subroutine unpack_detector
 
   function detector_value_scalar(sfield, detector) result(value)
