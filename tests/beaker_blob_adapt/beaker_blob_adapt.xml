@@ -19,9 +19,11 @@ fs_integral_max=abs(fsi).max()</variable>
 stat=fluidity_tools.stat_parser('beaker_blob.stat');
 volume=-stat['Water']['GravityDirection%2']['integral']
 volume_integral_change=abs(volume.max())</variable>
-    <variable name="fs_centre" language="python">import fluidity_tools
-det=fluidity_tools.stat_parser('beaker_blob.detectors')
-fsl=det['Water']['FreeSurface']['TopMiddle']
+    <variable name="fs_centre" language="python">import h5py
+import numpy as np
+det=h5py.File('beaker_blob.detectors.h5part', 'r')
+tm_id = det.attrs['TopMiddle%ids'][0]-1
+fsl=np.asarray([det[f'/Step#{n}/Water%FreeSurface'][tm_id] for n in range(len(det))])
 fs_centre={}
 fs_centre['min']=fsl.min()</variable>
     <variable name="blob_integral_change" language="python">import fluidity_tools
