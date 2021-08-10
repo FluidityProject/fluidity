@@ -223,25 +223,28 @@ contains
   !!< that weakly enforces the kinematic boundary condition.
   !!<
   !!< The free surface is combined in with the pressure field such that
-  !!< *at* the free surface p=g rho0 \eta. This has the advantage of combining
+  !!< *at* the free surface p=g \Delta rho \eta. This has the advantage of combining
   !!< the pressure gradient and free surface gradient terms in the momentum
   !!< equation. It solves the continuity equation directly coupled with
   !!< the free surface.
-  !!< With this approach all pressures are considered at the integer time 
+  !!< With this approach all pressures are considered at the integer time
   !!< levels, i.e. we apply a theta weighting for the pressure gradient term
   !!< in the momentum equation:
-  !!<   M (u^n+1-u^n) - dt C p^{n+theta_pressure_gradient} + ... = 0
+  !!<   M (u^n+1-u^n) - dt C p^{n+theta_pg} + ... = 0
   !!< We're solving the continuity equation:
-  !!<   C^T u^{n+theta_divergence}+ M_fs p^{n+1}-p^n = 0
+  !!<   C^T u^{n+theta_div}+ alpha M_fs p^{n+1}-p^n = 0
   !!< which leads to a projection equation of:
-  !!<   ( C^T M^-1 C dt dp + coef M_fs ) phi = 
-  !!<     theta_divergence C^T u* + (1-theta_divergence) C^T u^n - 
+  !!<   ( C^T M^-1 C dt dp + coef M_fs ) phi =
+  !!<     theta_div C^T u* + (1-theta_div) C^T u^n -
   !!<     alpha M_fs (p*-p^n)
-  !!< where M_fs is the free surface integral of M_i M_j, 
-  !!< alpha=1/(g dt), coef=alpha/(theta_divergence theta_pressure_gradient dt)
-  !!< and phi=dp theta_divergence theta_pressure_gradient dt. Note however,
-  !!< that dp in the routine stands for phi, see correct_pressure in 
-  !!< Momentum_Equation.F90
+  !!< where M_fs is the free surface integral of M_i M_j,
+  !!< alpha=1/(g dt), coef=alpha/(theta_div theta_pg dt)
+  !!< and phi=dp theta_div theta_pg dt and dp=p^n+1-p^*
+  !!< Notes:
+  !!< - the above is slightly misleading because with a prognostic f.s. we only apply theta weighting
+  !!< to the free surface (not interior pressure), but for the purposes of this routine we can ignore that
+  !!< - the above assumes \Delta rho=1 but should be included in alpha M_fs (divided by). For 
+  !!< this will be included in the mass matrix, otherwise we apply it as an overall factor 1/\Delta rho
   
     type(state_type), intent(inout) :: state
     type(csr_matrix), intent(inout) :: cmc
@@ -413,10 +416,6 @@ contains
           else
             delta_rho = rho0
           end if
-          if (move_mesh .and. delta_rho/=1.0) then
-            ! Someone needs to go through the maths to see where we should divide by delta_rho
-            FLExit("Free surface with a density difference that is not 1.0 and mesh movement not supported")
-          end if
 
           alpha=1.0/g/dt                        ! delta_rho included in alpha and coeff within element loop
           coef = alpha/(theta_pressure_gradient*theta_divergence*dt)
@@ -573,7 +572,7 @@ contains
            assert(.not. variable_density)
            call addto(rhs, nodes, &
                 -(matmul(mass_ele, top_pressures) &
-                -matmul(mass_ele_old, old_top_pressures))*alpha/rho0)
+                -matmul(mass_ele_old, old_top_pressures))*alpha/delta_rho)
         end if
         if (have_wd .and. present(rhs)) then
            call addto(rhs, nodes, &
