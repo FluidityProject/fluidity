@@ -41,9 +41,9 @@ use spud
 use data_structures
 use halo_data_types
 use halos_base
+use sparse_tools
 use halos_ownership
 use halos_derivation
-use sparse_tools
 use halos_derivation
 use transform_elements
 use fetools
