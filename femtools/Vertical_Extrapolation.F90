@@ -370,7 +370,7 @@ subroutine vertical_interpolate_parallel(positions, eles, loc_coords, to_fields,
   type(scalar_field) :: redundant_field
   type(mesh_type), pointer:: to_mesh, from_mesh
   type(mesh_type):: surface_mesh, redundant_mesh
-  integer i, j, ele, stat
+  integer i, j, ele
 
   assert(size(from_fields)==size(to_fields))
   assert(element_count(from_fields(1))==element_count(to_fields(1)))
@@ -387,8 +387,7 @@ subroutine vertical_interpolate_parallel(positions, eles, loc_coords, to_fields,
       surface_element_list=reduced_surface_element_list)
 
   ! pick up any previous created scalar field on a redundant version of the surface_mesh derived from from_mesh
-  redundant_field = extract_scalar_surface_field(positions, surface_name, trim(from_mesh%name)//"RedundantField", stat=stat)
-  if (stat/=0) then
+  if (.not. has_scalar_surface_field(positions, surface_name, trim(from_mesh%name)//"RedundantField")) then
     ! if not yet created, do it now
     call create_surface_mesh(surface_mesh, surface_node_list, &
       from_mesh, reduced_surface_element_list, name=trim(from_mesh%name)//"SurfaceMesh")
@@ -404,6 +403,8 @@ subroutine vertical_interpolate_parallel(positions, eles, loc_coords, to_fields,
       ! need to implement re-duplication of facets
       FLExit("Parallel, vertical extrapolation (ocean boundaries) on the sphere without extrusion not yet implemented")
     end if
+  else
+    redundant_field = extract_scalar_surface_field(positions, surface_name, trim(from_mesh%name)//"RedundantField")
   end if
 
   do i=1, size(from_fields)
