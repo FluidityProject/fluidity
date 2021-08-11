@@ -639,7 +639,37 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
-        <consistent_interpolation/>
+        <galerkin_projection>
+          <continuous>
+            <bounded name="Diffuse">
+              <boundedness_iterations>
+                <integer_value rank="0">10</integer_value>
+              </boundedness_iterations>
+              <bounds>
+                <upper_bound>
+                  <real_value rank="0">1</real_value>
+                </upper_bound>
+                <lower_bound>
+                  <real_value rank="0">0</real_value>
+                </lower_bound>
+              </bounds>
+            </bounded>
+            <solver>
+              <iterative_method name="cg"/>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1e-7</real_value>
+              </relative_error>
+              <max_iterations>
+                <integer_value rank="0">200</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+          </continuous>
+        </galerkin_projection>
       </prognostic>
     </scalar_field>
     <tensor_field rank="2" name="MaterialViscosity">
