@@ -16,19 +16,14 @@
         <extrude>
           <regions name="WholeMesh">
             <bottom_depth>
-              <python>
-                <string_value type="code" language="python" lines="20">def val(X,t):
-
-  region_depth = -1.0
-  return region_depth</string_value>
-              </python>
+              <constant>
+                <real_value rank="0">-1.0</real_value>
+              </constant>
             </bottom_depth>
             <sizing_function>
-              <python>
-                <string_value type="code" language="python" lines="20">def val(X,t):
-  res = 0.01
-  return res</string_value>
-              </python>
+              <constant>
+                <real_value rank="0">0.05</real_value>
+              </constant>
             </sizing_function>
             <minimum_bottom_layer_fraction>
               <real_value rank="0">1e-3</real_value>
@@ -171,6 +166,7 @@
           <real_value rank="1" dim1="dim" shape="2">0.5 0.0</real_value>
         </location>
       </static_detector>
+      <move_with_mesh/>
     </detectors>
   </io>
   <timestepping>
