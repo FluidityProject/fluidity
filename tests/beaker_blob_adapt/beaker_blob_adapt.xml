@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
   <name>Dense blob in a beaker falling under gravity.  Combining linear momentum+mesh movement+mesh adaptivity to sanity check free surface behaviour.</name>
-  <owner userid="bsnelling"/>
+  <owner userid="skramer"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v3 -l  beaker_blob_adapt.flml<comment>mpiexec flredecomp -i 1 -o 4 beaker_blob beaker_blob_parallel;
