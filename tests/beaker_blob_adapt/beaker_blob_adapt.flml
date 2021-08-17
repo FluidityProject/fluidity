@@ -172,6 +172,7 @@
           <real_value rank="1" dim1="dim" shape="2">0.5 0.0</real_value>
         </location>
       </static_detector>
+      <move_with_mesh/>
     </detectors>
   </io>
   <timestepping>
