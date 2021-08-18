@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Dense blob in a beaker falling under gravity.  Combining linear momentum+mesh movement+mesh adaptivity to sanity check free surface behaviour.</name>
+  <owner userid="skramer"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v3 -l  beaker_blob_adapt.flml<comment>mpiexec flredecomp -i 1 -o 4 beaker_blob beaker_blob_parallel;
+mpiexec fluidity -v3 -l  beaker_blob_parallel.flml</comment></command_line>
+  </problem_definition>
+  <variables>
+    <variable name="solvers_converged" language="python">import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+    <variable name="fs_integral_max" language="python">import fluidity_tools
+stat=fluidity_tools.stat_parser('beaker_blob.stat');
+fsi=stat['Water']['FreeSurface']['integral']
+fs_integral_max=abs(fsi).max()</variable>
+    <variable name="max_volume" language="python">import fluidity_tools
+stat=fluidity_tools.stat_parser('beaker_blob.stat');
+volume=-stat['Water']['GravityDirection%2']['integral']
+max_volume=abs(volume.max())</variable>
+    <variable name="fs_centre" language="python">import h5py
+import numpy as np
+det=h5py.File('beaker_blob.detectors.h5part', 'r')
+tm_id = det.attrs['TopMiddle%ids'][0]-1
+fsl=np.asarray([det[f'/Step#{n}/Water%FreeSurface'][tm_id] for n in range(len(det))])
+fs_centre={}
+fs_centre['min']=fsl.min()</variable>
+    <variable name="blob_integral_change" language="python">import fluidity_tools
+stat=fluidity_tools.stat_parser('beaker_blob.stat');
+volume=-stat['Blob']['MaterialVolumeFraction']['integral']
+blob_integral_change=abs(volume.max())-abs(volume.min())</variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">assert(solvers_converged)</test>
+    <test name="fs_integral_max_zero" language="python">assert fs_integral_max&lt;1e-5</test>
+    <test name="max_volume_zero" language="python">assert max_volume&lt;1. + 1e-6</test>
+    <test name="fs_centre" language="python">assert abs(fs_centre['min'] + 0.0025) &lt; 5e-4</test>
+    <test name="blob_integral_change" language="python">assert abs(blob_integral_change)&lt;1.0e-04 </test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>

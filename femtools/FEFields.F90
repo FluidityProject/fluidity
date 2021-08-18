@@ -4,10 +4,12 @@ module fefields
 
   use fldebug
   use data_structures
+  use mpi_interfaces
   use element_numbering
   use elements, only: element_type
   use parallel_tools
   use sparse_tools
+  use parallel_fields
   use transform_elements, only: transform_to_physical, element_volume
   use fetools, only: shape_shape, shape_rhs, shape_vector_rhs
   use fields
@@ -28,7 +30,7 @@ module fefields
   private
   public :: compute_lumped_mass, compute_mass, compute_projection_matrix, add_source_to_rhs, &
             compute_lumped_mass_on_submesh, compute_cv_mass, project_field
-  public :: create_subdomain_mesh
+  public :: create_subdomain_mesh, create_parallel_redundant_mesh
 
 contains
   
@@ -803,7 +805,7 @@ contains
     type(mesh_type), intent(inout) :: subdomain_mesh
     integer, dimension(:) :: node_list, inverse_node_list 
 
-    integer :: nhalos, communicator, nprocs, procno, ihalo, inode, iproc, nowned_nodes
+    integer :: nhalos, communicator, nprocs, procno, ihalo, iproc, nowned_nodes
 
     ewrite(1, *) "In generate_subdomain_halos"
 
@@ -851,5 +853,153 @@ contains
     end if
 
   end subroutine generate_subdomain_halos
+
+  function create_parallel_redundant_mesh(mesh) result (redundant_mesh)
+    !!< Creates a global mesh that is redundant, i.e. each process sees the entire
+    !!< mesh, constructed by gathering all local input meshes together. The global mesh
+    !!< is equiped with a halo structure in which each process owns the nodes associated
+    !!< with their input mesh. Since each input mesh is sent to each other process, to form
+    !!< part of their copy of the entire global mesh, on a halo update a process will send
+    !!< values for its owned nodes to all other processes.
+    !!< Although the global redundant mesh is the same on all processes, the node and element numbering
+    !!< is not. The first nodes and elements of the redundant mesh correspond to the node and element numbers
+    !!< of the input mesh (so we have trailing receives). The input mesh is treated as a completely local
+    !!< mesh, i.e. any global/halo structure it has is ignored, and each node and element is treated as unique
+    !!< and not associated with any nodes/elements of input meshes on other processes.
+    !!< The output redundant mesh only caries a single, nodal halo, in which all nodes associated with the input mesh
+    !!< are owned (send) nodes, and all other nodes are receives. In this way a simple halo_update(field) suffices
+    !!< to share all field values with all processes, where field is defined on the redundant_mesh. The send values of
+    !!< field can first be set by copying over the values from another field defined on the local input mesh (using
+    !!< the shared node numbering), or through a remap (using the shared element numbering).
+    !!< It should be clear that setting up this redundant mesh structure, and communicating through halo updates on it
+    !!< can be extremely expensive and will not in general scale very well - for small meshes such as a surface mesh
+    !!< this might still be feasible.
+
+    !! Local input mesh. Treated as independent on each process, ignoring any halos
+    type(mesh_type), intent(inout):: mesh
+    !! Output global redudant mesh
+    type(mesh_type):: redundant_mesh
+
+    type(halo_type), pointer :: halo
+    integer, dimension(:), allocatable :: eles_per_proc, eles_displs
+    integer, dimension(:), allocatable :: nodes_per_proc, nsends
+    integer, dimension(:), allocatable :: nodes_to_send, nodes_to_recv
+    integer, dimension(:, :), allocatable :: eles_send_buf, eles_recv_buf
+    integer neles, nloc, nprocs, procno
+    integer comm, ierr
+    integer i, j, node_offset, ele_offset, send_count
+
+    ewrite(1,*) "Entering create_parallel_redundant_mesh for input mesh ", trim(mesh%name)
+
+    neles = element_count(mesh)
+    nloc = ele_loc(mesh, 1)
+    nprocs = getnprocs()
+    procno = getprocno()
+    comm = MPI_COMM_FEMTOOLS
+
+    ! exchange element numbers with all other processes
+    allocate(eles_per_proc(nprocs))
+    call mpi_allgather(neles, 1, MPI_INTEGER, &
+      eles_per_proc, 1, MPI_INTEGER, comm, ierr)
+    assert(ierr == MPI_SUCCESS)
+
+    ! our local mesh to be sent to everyone
+    allocate(eles_send_buf(nloc, neles))
+    do i=1, neles
+      eles_send_buf(:,i) = ele_nodes(mesh, i)
+    end do
+
+    allocate(eles_recv_buf(nloc, sum(eles_per_proc)), eles_displs(nprocs+1))
+    ! displacements where in eles_recv_buf to put each bit of the recv'd surface mesh
+    ! (indexed from 0 - would be nice if they'd actually tell you these things in the mpi docs!)
+    j = 0
+    do i=1, nprocs
+      eles_displs(i) = j
+      j = j + eles_per_proc(i)*nloc
+    end do
+    ! extra entry nprocs+1 for convenience:
+    eles_displs(i) = j
+    assert(j == size(eles_recv_buf))
+
+    call mpi_allgatherv(eles_send_buf, nloc*neles, MPI_INTEGER, &
+      eles_recv_buf, nloc*eles_per_proc, eles_displs, MPI_INTEGER, comm, ierr)
+    assert(ierr == MPI_SUCCESS)
+
+    ! convert from 0-based index in flattened eles_recv_buf
+    ! to 1-based index for 2nd dim of eles_recv_buf(:, :)
+    eles_displs = eles_displs/nloc + 1
+
+    ! nodes per processor - this will be used later as n/o recv nodes, so we don't count our own
+    allocate(nodes_per_proc(1:nprocs))
+    do i=1, nprocs
+      if (i==procno) then
+        nodes_per_proc(i) = 0
+      else if (eles_displs(i+1)>eles_displs(i)) then
+        nodes_per_proc(i) = maxval(eles_recv_buf(:, eles_displs(i):eles_displs(i+1)-1))
+      else
+        nodes_per_proc(i) = 0
+      end if
+    end do
+
+    ! n/o nodes to send to each other process based on max node number in elements
+    ! (typically the same as node_count(mesh), but we could have spurious isolated nodes)
+    if (neles>0) then
+      send_count = maxval(eles_send_buf)
+    else
+      send_count = 0
+    end if
+
+    call allocate(redundant_mesh, send_count + sum(nodes_per_proc), size(eles_recv_buf, 2), mesh%shape, &
+      name="Verticallyredundant"//trim(mesh%name))
+    do i=1, neles
+      call set_ele_nodes(redundant_mesh, i, ele_nodes(mesh, i))
+    end do
+
+    node_offset = send_count
+    ele_offset = neles
+
+    do i=1, nprocs
+      if (i==procno) cycle
+      do j=eles_displs(i), eles_displs(i+1)-1
+        ele_offset = ele_offset + 1
+        call set_ele_nodes(redundant_mesh, ele_offset, eles_recv_buf(:, j)+node_offset)
+      end do
+      node_offset = node_offset + nodes_per_proc(i)
+    end do
+    assert(node_offset==node_count(redundant_mesh))
+    assert(ele_offset==element_count(redundant_mesh))
+
+    allocate(redundant_mesh%halos(1))
+    halo => redundant_mesh%halos(1)
+    allocate(nsends(1:nprocs))
+
+    ! send all "owned" nodes (owned nodes in redudant_mesh which is based on max. node number in owned elements of mesh)
+    nsends = send_count
+    ! but we don't send it (and recv) these to (from) ourself
+    nodes_per_proc(procno) = 0
+    nsends(procno) = 0
+
+    call allocate(halo, nsends, nodes_per_proc, nowned_nodes=send_count, &
+      name="ParallelRedundant"//trim(mesh%name)//"Halo", &
+      communicator=comm, data_type=HALO_TYPE_CG_NODE)
+
+    allocate(nodes_to_send(1:send_count))
+    allocate(nodes_to_recv(1:node_count(redundant_mesh)-send_count))
+    nodes_to_send = (/ (i, i=1, send_count) /)
+    nodes_to_recv = (/ (i, i=send_count+1, node_count(redundant_mesh)) /)
+    node_offset = 1
+    do i=1, nprocs
+      if (i==procno) cycle
+      call set_halo_sends(halo, i, nodes_to_send)
+      call set_halo_receives(halo, i, nodes_to_recv(node_offset:node_offset+nodes_per_proc(i)-1))
+      node_offset = node_offset + nodes_per_proc(i)
+    end do
+
+    assert(trailing_receives_consistent(halo))
+    assert(halo_valid_for_communication(halo))
+    call create_ownership(halo)
+    call create_global_to_universal_numbering(halo)
+
+  end function create_parallel_redundant_mesh
 
 end module fefields

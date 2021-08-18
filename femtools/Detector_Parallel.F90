@@ -30,7 +30,7 @@
 module detector_parallel
   use spud
   use fldebug
-  use futils, only: int2str
+  use futils, only: int2str, present_and_true
   use integer_hash_table_module
   use mpi_interfaces
   use elements
@@ -307,7 +307,8 @@ contains
 
   end subroutine distribute_detectors
 
-  subroutine exchange_detectors(state, detector_list, send_list_array, positions)
+  subroutine exchange_detectors(state, detector_list, send_list_array, positions, &
+      include_update_vector)
     ! This subroutine serialises send_list_array, sends it, 
     ! receives serialised detectors from all procs and unpacks them.
     type(state_type), intent(in) :: state
@@ -316,6 +317,9 @@ contains
     ! in the largest element halo
     type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
     type(vector_field), optional, target, intent(in) :: positions
+    ! if present and true also exchange the detectors' update vector and k matrix
+    logical, intent(in), optional :: include_update_vector
+
 
     type(detector_buffer), dimension(:), allocatable :: send_buffer, recv_buffer
     type(detector_type), pointer :: detector, detector_received
@@ -353,20 +357,15 @@ contains
        FLAbort("Exchanging detectors requires halo_level > 0")
     end if
 
-    ! Get buffer size, depending on whether RK-GS parameters are still allocated
-    if (.not.present(positions)) then
-       have_update_vector=associated(detector_list%move_parameters)
-       if(have_update_vector) then
-          n_stages=detector_list%move_parameters%n_stages
-          det_size=detector_buffer_size(dim,have_update_vector,n_stages, attribute_size=detector_list%total_attributes)
-       else
-          det_size=detector_buffer_size(dim,have_update_vector, attribute_size=detector_list%total_attributes)
-       end if
+    ! Get buffer size, depending on whether RK update vector and K matrix need sending
+    have_update_vector = present_and_true(include_update_vector)
+    if (have_update_vector) then
+       n_stages=detector_list%move_parameters%n_stages
+       det_size=detector_buffer_size(dim,have_update_vector,n_stages, attribute_size=detector_list%total_attributes)
     else
-       have_update_vector=.false.
        det_size=detector_buffer_size(dim,have_update_vector, attribute_size=detector_list%total_attributes)
     end if
-    
+
     ! Send to all procs
     allocate(send_buffer(nprocs))
     do target_proc=1, nprocs
@@ -455,7 +454,7 @@ contains
                     attribute_size_in=detector_list%total_attributes)
           end if
 
-          call insert(detector_received, detector_list)           
+          call insert(detector_received, detector_list)
        end do
     end do
 
@@ -480,10 +479,16 @@ contains
 
   end subroutine exchange_detectors
 
-  subroutine sync_detector_coordinates(state)
-    ! Re-synchronise the physical and parametric coordinates 
+  subroutine sync_detector_coordinates(state, reinterpolate_all)
+    ! Re-synchronise the physical and local (parametric) coordinates
     ! of all detectors detectors in all lists after mesh movement.
     type(state_type), intent(in) :: state
+    ! if present and true, assume the local coordinates corresponds to the correct detector position
+    ! and reinterpolate the physical detector%position from the Coordinate field
+    ! if false (default), this is done only for those detector lists with the move_with_mesh option which
+    ! thereby automatically move with the mesh. For detectors in other lists we assume the _physical_ coordinates
+    ! are correct and we search which element they are located in and recompute the local coordinates
+    logical, optional, intent(in) :: reinterpolate_all
 
     type(detector_list_ptr), dimension(:), pointer :: detector_list_array => null()
     type(vector_field), pointer :: coordinate_field => null()
@@ -498,7 +503,7 @@ contains
 
           ! In order to let detectors drift with the mesh
           ! we update det%position from the parametric coordinates
-          if (detector_list_array(i)%ptr%move_with_mesh) then
+          if (present_and_true(reinterpolate_all) .or. detector_list_array(i)%ptr%move_with_mesh) then
              detector=>detector_list_array(i)%ptr%first
              do while (associated(detector)) 
                 detector%position=detector_value(coordinate_field, detector)
@@ -506,8 +511,9 @@ contains
              end do
           ! By default update detector element and local_coords from position
           else
+             ! local search first
              call search_for_detectors(detector_list_array(i)%ptr, coordinate_field)
-
+             ! in parallel, change ownership and search those not found locally:
              call distribute_detectors(state, detector_list_array(i)%ptr)
           end if
        end do
