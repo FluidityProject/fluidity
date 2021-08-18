@@ -33,7 +33,7 @@ blob_integral_change=abs(volume.max())-abs(volume.min())</variable>
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">assert(solvers_converged)</test>
-    <test name="fs_integral_max_zero" language="python">assert fs_integral_max&lt;2.6e-06</test>
+    <test name="fs_integral_max_zero" language="python">assert fs_integral_max&lt;1e-5</test>
     <test name="max_volume_zero" language="python">assert max_volume&lt;1. + 1e-6</test>
     <test name="fs_centre" language="python">assert abs(fs_centre['min'] + 0.0025) &lt; 5e-4</test>
     <test name="blob_integral_change" language="python">assert abs(blob_integral_change)&lt;1.0e-04 </test>
