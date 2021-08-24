@@ -371,7 +371,8 @@ FEFields.o ../include/fefields.mod: FEFields.F90 \
    ../include/data_structures.mod ../include/element_numbering.mod \
    ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
    ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
-   ../include/halos.mod ../include/parallel_tools.mod \
+   ../include/halos.mod ../include/mpi_interfaces.mod \
+   ../include/parallel_fields.mod ../include/parallel_tools.mod \
    ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
    ../include/state_module.mod ../include/transform_elements.mod
 
@@ -1325,9 +1326,11 @@ Vector_set.o ../include/vector_set.mod: Vector_set.F90
 Vertical_Extrapolation.o ../include/vertical_extrapolation_module.mod: \
    Vertical_Extrapolation.F90 ../include/boundary_conditions.mod \
    ../include/data_structures.mod ../include/dynamic_bin_sort_module.mod \
-   ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
-   ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/parallel_fields.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fefields.mod \
+   ../include/fetools.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/halo_data_types.mod \
+   ../include/halos_base.mod ../include/halos_derivation.mod \
+   ../include/halos_ownership.mod ../include/parallel_fields.mod \
    ../include/parallel_tools.mod ../include/pickers.mod \
    ../include/sparse_tools.mod ../include/state_module.mod \
    ../include/transform_elements.mod ../include/vtk_interfaces.mod

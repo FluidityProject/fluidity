@@ -801,9 +801,8 @@ contains
 
     ! If there's no $NodeData section, don't try to read in column IDs: return
     read(fd, iostat=fileState, fmt=*) charBuf
-    if( trim(charBuf) .ne. "$NodeData" .or. fileState .lt. 0 ) then
-       return
-    end if
+    if (fileState<0) return  ! end of file
+    if (trim(charBuf)/="$NodeData") return
 
     ! Sanity checking
     read(fd, *) numStringTags

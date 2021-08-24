@@ -439,9 +439,9 @@ AC_COMPUTE_INT(PETSC_VERSION_MAJOR, "PETSC_VERSION_MAJOR", [#include "petscversi
 AC_COMPUTE_INT(PETSC_VERSION_MINOR, "PETSC_VERSION_MINOR", [#include "petscversion.h"], 
   [AC_MSG_ERROR([Unknown petsc minor version])])
 AC_MSG_NOTICE([Detected PETSc version "$PETSC_VERSION_MAJOR"."$PETSC_VERSION_MINOR"])
-# if major<3 or minor<4
-if test "0$PETSC_VERSION_MAJOR" -lt 3 -o "0$PETSC_VERSION_MINOR" -lt 4; then
-  AC_MSG_ERROR([Fluidity needs PETSc version >=3.4])
+# if major<3 or minor<8
+if test "0$PETSC_VERSION_MAJOR" -lt 3 -o "0$PETSC_VERSION_MINOR" -lt 8; then
+  AC_MSG_ERROR([Fluidity needs PETSc version >=3.8])
 fi
 
 AC_LANG(Fortran)
@@ -451,35 +451,27 @@ ac_ext=F90
 # may need some extra flags for testing that we don't want to use in the end
 SAVE_FCFLAGS="$FCFLAGS"
 
-if test "$enable_petsc_fortran_modules" != "no" ; then
-  # now try if the petsc fortran modules work:
-  AC_LINK_IFELSE(
-          [AC_LANG_PROGRAM([],[[
-                          use petsc
-                          integer :: ierr
-                          print*, "hello petsc"
-                          call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
-                          ]])],
-          [
-              AC_MSG_NOTICE([PETSc modules are working.])
-              AC_DEFINE(HAVE_PETSC_MODULES,1,[Define if you have petsc fortran modules.] )
-              FCFLAGS="$FCFLAGS -DHAVE_PETSC_MODULES"
-          ],
-          [
-              AC_MSG_NOTICE([PETSc modules don't work, using headers instead.])
-          ])
-elif test "0$PETSC_VERSION_MINOR" -ge 8; then
-  AC_MSG_ERROR([PETSc v3.8 and newer requires petsc fortran modules. Do not use the --disable-petsc-fortran-modules option])
-fi
+# now try if the petsc fortran modules work:
+AC_LINK_IFELSE(
+        [AC_LANG_PROGRAM([],[[
+                        use petsc
+                        integer :: ierr
+                        print*, "hello petsc"
+                        call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
+                        ]])],
+        [
+            AC_MSG_NOTICE([PETSc modules are working.])
+        ],
+        [
+            AC_MSG_ERROR([PETSc fortran modules cannot be used. Either it the petsc*.mod files cannot be found, or petsc has been built using a different fortran compiler.])
+        ])
 
 # now try a more realistic program, it's a stripped down
 # petsc tutorial - using the headers in the same way as we do in the code
 AC_LINK_IFELSE(
 [AC_LANG_SOURCE([
 program test_petsc
-#ifdef HAVE_PETSC_MODULES
   use petsc
-#endif
 implicit none
 #include "petsc_legacy.h"
       double precision  norm

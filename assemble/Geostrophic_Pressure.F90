@@ -2428,7 +2428,7 @@ contains
     type(vector_field), pointer :: new_velocity, old_velocity
 
     do i = 1, size(new_states)
-      do j = 1, vector_field_count(old_states(i))
+      do j = 1, vector_field_count(new_states(i))
         new_velocity => extract_vector_field(new_states(i), j)
         if(have_option(trim(complete_field_path(new_velocity%option_path, stat = stat)) // "/geostrophic_interpolation")) then
           old_velocity => extract_vector_field(old_states(i), new_velocity%name)

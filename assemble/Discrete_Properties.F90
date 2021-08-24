@@ -58,7 +58,6 @@ contains
     type(state_type) :: alg_state
     
     integer :: state, state_cnt, mesh_i
-    integer :: mesh_cnt
 
     character(len=255), dimension(1), parameter :: algorithms = (/&
                        & "solenoidal" /)
@@ -71,7 +70,6 @@ contains
 
     ewrite(1, *) "In enforce_discrete_properties"
 
-    mesh_cnt = option_count("/geometry/mesh")
     alg_cnt = size(algorithms)
     state_cnt = size(states)
 
@@ -85,7 +83,7 @@ contains
         ! only actually care about one algorithm at the moment but for futureproofing we'll do this in a loop
         ewrite(2, *) "  Considering algorithm " // trim(algorithms(alg))
         
-        do mesh_i = 1, mesh_cnt
+        do mesh_i = 1, mesh_count(states(state))
           mesh => extract_mesh(states(state), mesh_i)
           call insert(alg_state, mesh, name=trim(mesh%name))
         end do
