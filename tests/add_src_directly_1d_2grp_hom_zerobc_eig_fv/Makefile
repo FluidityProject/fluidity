@@ -1,4 +1,4 @@
-SHELL = sh
+SHELL = bash
 
 SIM = add_src_directly_1d_2grp_hom_zerobc_eig_fv
 
@@ -47,4 +47,4 @@ clean:
 	rm -f first_timestep_adapted_mesh*
 	rm -f $(SIM)*.eig_iteration_convergence
 	rm -f $(SIM)*checkpoint*
-	rm -f $(SIM)_{BCD}.flml
+	rm -f $(SIM)_{B,C,D}.flml
