@@ -2172,7 +2172,7 @@ contains
 
   end subroutine allocate_and_insert_tensor_field
 
-  subroutine allocate_and_insert_children(path, state, parent_mesh, parent_name, &
+  recursive subroutine allocate_and_insert_children(path, state, parent_mesh, parent_name, &
        dont_allocate_prognostic_value_spaces)
     character(len=*), intent(in) :: path !! option_path including prescribed/prognostic
     type(state_type), intent(inout) :: state
