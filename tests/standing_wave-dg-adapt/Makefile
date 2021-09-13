@@ -5,7 +5,7 @@ input: clean
 
 clean:
 	rm -f $(PROJECT).stat
-	rm -f *.vtu *.detectors
+	rm -f *.vtu *.detectors *.h5part
 	rm -f fluidity.err-0 fluidity.log-0
 	rm -f *.ele *.face *.node *.msh \
 	matrixdump matrixdump.info
