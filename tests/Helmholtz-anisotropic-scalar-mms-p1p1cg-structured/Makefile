@@ -5,7 +5,7 @@ input:	clean
 	gmsh -2 -bin -algo frontal -o MMS_D_structured.msh src/MMS_D_structured.geo
 
 clean:
-	rm -f *.vtu *.msh *.stat fluidity.err-0 fluidity.log-0
+	rm -f *.vtu *.msh *.stat *.log* *.err*
 
 flmls:
 	@$(foreach M,B C D, \
