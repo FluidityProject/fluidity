@@ -8,3 +8,4 @@ clean:
 	rm -f *.msh *.halo
 	rm -f *.pvtu *.vtu
 	rm -f *flredecomp.flml
+	rm -rf sigma_layers_[0-9]

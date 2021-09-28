@@ -5,4 +5,5 @@ input: clean
 	mpirun -n 2 ../../bin/flredecomp -i 1 -o 2 sphericalSegment sphericalSegment_flredecomp
 
 clean:
-	rm -f  *.vtu *.stat *.msh *_flredecomp* matrixdump*
+	rm -f  *.log* *.err* *.vtu *.pvtu *.stat *.msh *_flredecomp* matrixdump*
+	rm -rf sphericalSegment_[0-9]

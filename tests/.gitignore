@@ -1,2 +1,4 @@
 ## Temporary files created for tests
 *.msh
+## Negate ignoring Makefiles
+!Makefile
