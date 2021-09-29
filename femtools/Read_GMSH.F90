@@ -342,6 +342,7 @@ contains
   ! Read through the head to decide whether binary or ASCII, and decide
   ! whether this looks like a GMSH mesh file or not. Also returns
   ! the version number if it is indeed a GMSH file.
+  ! Finally, skip if any $PhysicalNames are present in the header.
 
   subroutine read_header( fd, lfilename, gmshFormat, versionNumber )
     integer, intent(in) :: fd
@@ -351,7 +352,7 @@ contains
 
     character(len=longStringLen) :: charBuf
     character :: newlineChar
-    integer :: gmshFileType, gmshDataSize, one, i
+    integer :: gmshFileType, gmshDataSize, one, i, oldBufPos
     logical :: decimalVersion
 
     decimalVersion = .false.
@@ -393,15 +394,31 @@ contains
     end if
 
     ! GMSH binary format continues the integer 1, in binary.
-    if( gmshFileType == 1 ) then
+    if( gmshFileType == binaryFormat ) then
        call binary_formatting(fd, lfilename, "read")
        read(fd) one, newlineChar
        call ascii_formatting(fd, lfilename, "read")
     end if
 
+    inquire(fd, pos=oldBufPos)
     read(fd, *) charBuf
     if( trim(charBuf) .ne. "$EndMeshFormat" ) then
        FLExit("Error: can't find '$EndMeshFormat' (is this a GMSH mesh file?)")
+    end if
+
+    ! Skip ahead $PhysicalNames if present. Fluidity does not currently use them
+    ! If not simply rewind to old location.
+    read(fd, *) charBuf
+    if (trim(charBuf) == "$PhysicalNames") then
+      ! Regardless of file format this is an ASCII int
+      read(fd, *) one
+      ! Read all lines up until $EndPhysicalNames
+      do i=1, one+1
+         read(fd, *) charBuf
+      end do
+    else
+      rewind(fd)
+      read(fd, *, pos=oldBufPos) charBuf
     end if
 
     ! Done with error checking... set format (ie. ascii or binary)
