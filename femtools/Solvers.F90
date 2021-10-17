@@ -1672,14 +1672,14 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
        '/diagnostics/monitors/preconditioned_residual')) then
         call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, &
            PETSC_VIEWER_DEFAULT,vf,ierr)
-        call KSPMonitorSet(ksp, KSPMonitorDefault, vf, &
+        call KSPMonitorSet(ksp, KSPMonitorResidual, vf, &
            PetscViewerAndFormatDestroy, ierr)
     end if
     if (have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/true_residual')) then
         call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, &
            PETSC_VIEWER_DEFAULT,vf,ierr)
-        call KSPMonitorSet(ksp, KSPMonitorTrueResidualNorm, vf, &
+        call KSPMonitorSet(ksp, KSPMonitorTrueResidual, vf, &
            PetscViewerAndFormatDestroy, ierr)
     end if
 
