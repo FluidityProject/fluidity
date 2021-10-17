@@ -27,7 +27,7 @@ module write_state_module
             vtk_write_state_new_options
   
   ! Static variables set by update_dump_times and used by do_write_state
-  logical, save :: last_times_initialised = .false.
+  logical, save :: last_times_initialised = .false., time_as_metadata = .false.
   real, save :: last_dump_time
   real, save :: last_dump_cpu_time
   real, save :: last_dump_wall_time
@@ -41,6 +41,8 @@ contains
     !!< variables)
     
     call update_dump_times
+
+    time_as_metadata=have_option('/io/time_as_metadata')
   
   end subroutine initialise_write_state
 
@@ -249,6 +251,7 @@ contains
     type(scalar_field), dimension(:), allocatable :: lsfields
     type(vector_field), dimension(:), allocatable :: lvfields
     type(tensor_field), dimension(:), allocatable :: ltfields
+    type(scalar_field), dimension(:), allocatable :: metadata
     character(len = FIELD_NAME_LEN) :: field_name, mesh_name
     integer :: i, f, counter
     logical :: multi_state
@@ -359,6 +362,14 @@ contains
     ewrite(2, "(a,i0,a)") "Writing ", size(ltfields), " tensor field(s)"
     
     model_coordinate=>get_external_coordinate_field(state(1), model_mesh)
+
+    if (time_as_metadata) then
+       allocate(metadata(1))
+       metadata(1)=extract_scalar_field(state(1),"Time")
+       metadata%name = "TimeValue"
+    else
+       allocate(metadata(0))
+    end if
     
     call vtk_write_fields(filename, index, &
          model_coordinate, &
@@ -366,7 +377,9 @@ contains
          sfields=lsfields, &
          vfields=lvfields, &
          tfields=ltfields, &
-         write_region_ids=write_region_ids)
+         write_region_ids=write_region_ids, &
+         metadata = metadata &
+    )
          
     ewrite(1, *) "Exiting vtk_write_state_new_options"
     

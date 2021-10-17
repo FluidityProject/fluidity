@@ -264,6 +264,12 @@ start =
                element memory_diagnostics {
                   empty
                }?
+            }?,
+            ## include time as VTK FieldData with the name "TimeValue".
+            ## Paraview versions >= 5.5 will automatically use this to
+            ## set the time level.
+            element time_as_metadata {
+               empty
             }?
          },
          ## Options for particles, Lagrangian particles which move with a specified velocity field.

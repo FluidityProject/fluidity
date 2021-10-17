@@ -618,6 +618,100 @@ extern "C" {
   }
 
   /**
+     Writes integer field data values.
+     @param[in] vect Data array.
+     @param[in] vlen length of vect.
+     @param[in] name Variable name to be written to metadata.
+     @param[in] len Length of variable name.
+  */
+  void vtkwriteifd(int *vect, int *vlen, char *name, int *len){
+    string tag(name, *len);
+    vtkIntArray *newField = vtkIntArray::New();
+    newField->SetName( tag.c_str() );
+    newField->SetNumberOfComponents(1);
+    newField->SetNumberOfTuples(*vlen);
+
+    for(unsigned i=0; i<*vlen; i++)
+      newField->InsertValue(i, vect[i]);
+  
+    dataSet->GetFieldData()->AddArray(newField);
+  
+    newField->Delete();
+    return;
+  }
+
+  /**
+     Writes float field data values.
+     @param[in] vect Data array.
+     @param[in] vlen length of vect.
+     @param[in] name Variable name to be written to metadata.
+     @param[in] len Length of variable name.
+  */
+  void vtkwriteffd(float *vect, int *vlen, char *name, int *len){
+    string tag(name, *len);
+    vtkFloatArray *newField = vtkFloatArray::New();
+    newField->SetName( tag.c_str() );
+    newField->SetNumberOfComponents(1);
+    newField->SetNumberOfTuples(*vlen);
+
+    for(unsigned i=0; i<*vlen; i++)
+      newField->InsertValue(i, vect[i]);
+  
+    dataSet->GetFieldData()->AddArray(newField);
+  
+    newField->Delete();
+    return;
+  }
+
+  /**
+     Writes double field data values.
+     @param[in] vect Data array.
+     @param[in] vlen length of vect.
+     @param[in] name Variable name to be written to metadata.
+     @param[in] len Length of variable name.
+  */
+  void vtkwritedfd(double *vect, int *vlen, char *name, int *len){
+    string tag(name, *len);
+    vtkDoubleArray *newField = vtkDoubleArray::New();
+    newField->SetName( tag.c_str() );
+    newField->SetNumberOfComponents(1);
+    newField->SetNumberOfTuples(*vlen);
+
+    for(unsigned i=0; i<*vlen; i++)
+      newField->InsertValue(i, vect[i]);
+  
+    dataSet->GetFieldData()->AddArray(newField);
+  
+    newField->Delete();
+    return;
+  }
+
+
+  /**
+     Writes double field data values.
+     @param[in] vect Data array.
+     @param[in] vlen length of vect.
+     @param[in] name Variable name to be written to metadata.
+     @param[in] len Length of variable name.
+  */
+  void vtkwritecfd(char *vect, int *vlen, char *name, int *len){
+    string tag(name, *len);
+    vtkUnsignedCharArray *newField = vtkUnsignedCharArray::New();
+    newField->SetName( tag.c_str() );
+    newField->SetNumberOfComponents(1);
+    newField->SetNumberOfTuples(*vlen);
+
+    for(unsigned i=0; i<*vlen; i++)
+      newField->InsertValue(i, vect[i]);
+  
+    dataSet->GetFieldData()->AddArray(newField);
+  
+    newField->Delete();
+    return;
+  }
+  
+
+  /**
      Finish writing and close vtk file (serial).
    */
   void vtkclose(){

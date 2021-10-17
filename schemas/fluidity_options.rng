@@ -324,6 +324,14 @@ NOTE: Requires -v2</a:documentation>
             </optional>
           </element>
         </optional>
+        <optional>
+          <element name="time_as_metadata">
+            <a:documentation>include time as VTK FieldData with the name "TimeValue".
+Paraview versions &gt;= 5.5 will automatically use this to
+set the time level.</a:documentation>
+            <empty/>
+          </element>
+        </optional>
       </element>
       <optional>
         <element name="particles">
