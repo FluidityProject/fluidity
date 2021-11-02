@@ -1266,6 +1266,10 @@ if test -d libadaptivity ; then
     AC_MSG_NOTICE([Configuring libadaptivity])
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
 
+    if test "x$enable_debugging" = "xyes"; then
+      ADAPTIVITY_CONFIGURE_ENABLE_DEBUGGING="--enable-debugging"
+    fi
+
     pushd libadaptivity
     # We don't really want to use the same FFLAGS and LIBS as fluidity has
     # worked out, because they contain all sorts of fluidity-specific junk,
@@ -1276,7 +1280,7 @@ if test -d libadaptivity ; then
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
             FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" \
 	    CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" \
-            CPPFLAGS="${env_cppflags}" ./configure
+            CPPFLAGS="${env_cppflags}" ./configure $ADAPTIVITY_CONFIGURE_ENABLE_DEBUGGING
         if test "$?" -ne "0"; then
           AC_MSG_ERROR([Configuration of libadaptivity has failed.])
           exit -1
@@ -1285,7 +1289,7 @@ if test -d libadaptivity ; then
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
             FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" \
 	    CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" \
-	    CPPFLAGS="${env_cppflags}" ./configure --enable-dp=no
+	    CPPFLAGS="${env_cppflags}" ./configure --enable-dp=no $ADAPTIVITY_CONFIGURE_ENABLE_DEBUGGING
         if test "$?" -ne "0"; then
           AC_MSG_ERROR([Configuration of libadaptivity has failed.])
           exit -1
