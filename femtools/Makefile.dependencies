@@ -64,8 +64,9 @@ Boundary_Conditions.o ../include/boundary_conditions.mod: \
 ../include/cgal_tools.mod: CGAL_Tools.o
 	@true
 
-CGAL_Tools.o ../include/cgal_tools.mod: CGAL_Tools.F90 ../include/fdebug.h \
-   ../include/fields.mod ../include/fldebug.mod
+CGAL_Tools.o ../include/cgal_tools.mod: CGAL_Tools.F90 \
+   ../include/element_numbering.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/fldebug.mod
 
 ../include/cvtools.mod: CVTools.o
 	@true
