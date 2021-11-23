@@ -213,6 +213,7 @@ contains
     nullify(mesh%subdomain_mesh)
     nullify(mesh%refcount) ! Hack for gfortran component initialisation
     !                         bug.
+    mesh%option_path=empty_path
     mesh%periodic=.false.
     
     call addref(mesh)
