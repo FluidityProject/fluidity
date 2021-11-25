@@ -497,6 +497,9 @@ contains
        if(have_option(trim(tpath)//"/constant")) then
           call get_option(trim(tpath)//"/constant", const_array)
           call set(field, const_array)
+       else if(have_option(trim(tpath)//"/internal")) then
+          call get_option(trim(tpath)//"/internal", const_array)
+          call set(field, const_array)
        else if (have_option(trim(tpath)//"/python")) then
           call get_option(trim(tpath)//"/python", func)
           ! Get current time

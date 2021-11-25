@@ -266,7 +266,7 @@ module metric_assemble
     type(vector_field) :: oned_positions
     type(tensor_field) :: oned_metric
 
-    logical :: is_constant
+    logical :: is_constant, is_internal
     type(tensor_field) :: full_gamma, oned_gamma
     character(len=*), parameter :: gamma_path = "/mesh_adaptivity/hr_adaptivity/anisotropic_gradation/tensor_field::Gamma"
     character(len=*), parameter :: path = "/mesh_adaptivity/hr_adaptivity/"
@@ -274,6 +274,9 @@ module metric_assemble
     type(tensor_field) :: min_edge, max_edge
     type(tensor_field) :: min_bound, max_bound
     type(tensor_field) :: oned_min_bound, oned_max_bound
+
+    type(scalar_field), pointer :: Eta
+    integer :: dim
     
     if(.not.(use_anisotropic_gradation.or.use_gradation_metric)) return
 
@@ -299,11 +302,21 @@ module metric_assemble
       call initialise_field(full_gamma, gamma_path, full_positions)
       
       is_constant = (have_option(path // "/tensor_field::MinimumEdgeLengths/anisotropic_symmetric/constant"))
+      dim = mesh_dim(full_metric%mesh)
+      is_internal = (have_option(path // "/tensor_field::MinimumEdgeLengths/anisotropic_symmetric/internal"))
       if (is_constant) then
         call allocate(min_edge, full_metric%mesh, "MinimumEdgeLengths", field_type=FIELD_TYPE_CONSTANT)
         call initialise_field(min_edge, path // "/tensor_field::MinimumEdgeLengths", full_positions)
         call allocate(min_bound, full_metric%mesh, "MaxMetricEigenbound", field_type=FIELD_TYPE_CONSTANT)
         call set(min_bound, eigenvalue_from_edge_length(node_val(min_edge, 1)))
+      !!!!!!! ADDED
+      else if (is_internal) then  ! The internal case is initialised as a constant case to save memory as it is constant in space (not constant in time though!)
+        call allocate(min_edge, full_metric%mesh, "MinimumEdgeLengths", field_type=FIELD_TYPE_CONSTANT)
+        call initialise_field(min_edge, path // "/tensor_field::MinimumEdgeLengths", full_positions)
+        call allocate(min_bound, full_metric%mesh, "MaxMetricEigenbound", field_type=FIELD_TYPE_CONSTANT)
+        Eta => extract_scalar_field(state, "GridKolmogorovScaleEdgeLength")
+        call set(min_bound, get_matrix_identity(dim) * 100*minval(Eta%val, MASK = Eta%val .gt. 0))  !Should it be GridKolmogorovScaleEdgeLength or GridKolmogorovScale
+        ewrite(1,*) "Internal Minimum edge length in error", 100*minval(Eta%val, MASK = Eta%val .gt. 0)
       else
         call allocate(min_edge, full_metric%mesh, "MinimumEdgeLengths")
         call initialise_field(min_edge, path // "/tensor_field::MinimumEdgeLengths", full_positions)

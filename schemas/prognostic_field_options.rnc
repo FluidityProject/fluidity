@@ -89,6 +89,19 @@ scalar_boundary_conditions =
 )
 
 
+smagorinsky_constant = 
+   (
+      ##  Test of the smagorinsky coefficient schema
+      ##  TEST VERSION!!!!!
+      element smagorinsky_coefficient {
+         ##  Literature symbol: Cs
+         ##  Suggested value: 0.1
+         input_choice_real
+      }      
+   )
+
+
+
 robin_bc_scalar = 
    (
       ##  A robin boundary condition of the form
@@ -114,7 +127,6 @@ robin_bc_scalar =
          }
       }      
    )
-
 
 prognostic_scalar_field =
    (
@@ -553,12 +565,32 @@ prognostic_velocity_field =
                element les_model {
                   ## Similar to the original Smagorinsky model
                   element second_order {
-                     ## Literature symbol: Cs
-                     ##
-                     ## Suggested value: 0.1
+		     ##  Test of the smagorinsky coefficient schema
+      		     ##  TEST VERSION!!!!!
                      element smagorinsky_coefficient {
-                        real
-                     },
+                	(
+                     	element constant {
+                     		real
+                   	}|
+                   ## Python function prescribing real input. Functions should be of the form:
+                   ##
+                   ##  def val(t):
+                   ##     # Function code
+                   ##     return # Return value
+                   ##
+                   ## 
+                   	element python {
+                     		python_code
+                   	}|
+			element diagnostic {
+               			(
+                  		scalar_python_diagnostic_algorithm |
+                  		internal_algorithm
+               			),
+               		diagnostic_scalar_field_no_adapt
+           		}
+                	)  
+               	},
                      ## The 'scalar' length scale is the cube root of the element's volume in 3D. In 2D, it is the square root of the element's area. Using this will result in an isotropic eddy viscosity tensor.
                      ##
                      ## The 'tensor' length scale uses the metric from the adaptivity process. Using this will result in an anisotropic eddy viscosity tensor.
@@ -949,12 +981,7 @@ prognostic_velocity_field =
                ## Large-eddy simulation (LES) models. Currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless.
                ## Also restricted to the Bassi-Rebay viscosity scheme which must be in partial stress form
                element les_model{
-                  ## literature symbol: Cs
-                  ##
-                  ## suggested value 0.1
-                  element smagorinsky_coefficient {
-                    real
-                  },
+                  smagorinsky_constant,
                   ## In adaptive simulations you may want to prescribe a filter width to use throught the domain
                   element scalar_field {
                      attribute rank { "0" },

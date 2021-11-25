@@ -123,6 +123,16 @@ a boundary when solving the advection-diffusion equation.</a:documentation>
       </choice>
     </element>
   </define>
+  <define name="smagorinsky_constant">
+    <element name="smagorinsky_coefficient">
+      <a:documentation> Test of the smagorinsky coefficient schema
+ TEST VERSION!!!!!</a:documentation>
+      <ref name="input_choice_real">
+        <a:documentation> Literature symbol: Cs
+ Suggested value: 0.1</a:documentation>
+      </ref>
+    </element>
+  </define>
   <define name="robin_bc_scalar">
     <element name="type">
       <a:documentation> A robin boundary condition of the form
@@ -672,10 +682,30 @@ where N_a and N_b are shape functions of the ath and bth node respectively and m
                 <element name="second_order">
                   <a:documentation>Similar to the original Smagorinsky model</a:documentation>
                   <element name="smagorinsky_coefficient">
-                    <a:documentation>Literature symbol: Cs
+                    <a:documentation> Test of the smagorinsky coefficient schema
+ TEST VERSION!!!!!</a:documentation>
+                    <choice>
+                      <element name="constant">
+                        <ref name="real"/>
+                      </element>
+                      <element name="python">
+                        <a:documentation>Python function prescribing real input. Functions should be of the form:
 
-Suggested value: 0.1</a:documentation>
-                    <ref name="real"/>
+ def val(t):
+    # Function code
+    return # Return value
+
+</a:documentation>
+                        <ref name="python_code"/>
+                      </element>
+                      <element name="diagnostic">
+                        <choice>
+                          <ref name="scalar_python_diagnostic_algorithm"/>
+                          <ref name="internal_algorithm"/>
+                        </choice>
+                        <ref name="diagnostic_scalar_field_no_adapt"/>
+                      </element>
+                    </choice>
                   </element>
                   <element name="length_scale_type">
                     <a:documentation>The 'scalar' length scale is the cube root of the element's volume in 3D. In 2D, it is the square root of the element's area. Using this will result in an isotropic eddy viscosity tensor.
@@ -1158,12 +1188,7 @@ twice.</a:documentation>
             <element name="les_model">
               <a:documentation>Large-eddy simulation (LES) models. Currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless.
 Also restricted to the Bassi-Rebay viscosity scheme which must be in partial stress form</a:documentation>
-              <element name="smagorinsky_coefficient">
-                <a:documentation>literature symbol: Cs
-
-suggested value 0.1</a:documentation>
-                <ref name="real"/>
-              </element>
+              <ref name="smagorinsky_constant"/>
               <optional>
                 <element name="scalar_field">
                   <a:documentation>In adaptive simulations you may want to prescribe a filter width to use throught the domain</a:documentation>

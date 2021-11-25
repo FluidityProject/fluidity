@@ -103,6 +103,24 @@ contains
          end if
        end if
 
+       ! This field depends on GridReynoldsNumber
+       s_field => extract_scalar_field(state(i), "GridKolmogorovScale", stat)
+       if(stat == 0) then
+         if(recalculate(trim(s_field%option_path))) then
+           call calculate_diagnostic_variable(state(i), "GridKolmogorovScale", &
+             & s_field)
+         end if
+       end if
+
+       ! This field depends on GridKolmogorovScale
+       s_field => extract_scalar_field(state(i), "GridKolmogorovScaleEdgeLength", stat)
+       if(stat == 0) then
+         if(recalculate(trim(s_field%option_path))) then
+           call calculate_diagnostic_variable(state(i), "GridKolmogorovScaleEdgeLength", &
+             & s_field)
+         end if
+       end if 
+
        s_field => extract_scalar_field(state(i), "GridPecletNumber", stat)
        if(stat == 0) then
          if(recalculate(trim(s_field%option_path))) then

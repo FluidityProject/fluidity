@@ -2982,10 +2982,12 @@ contains
     type(tensor_field) :: min_eigen, max_eigen
     character(len=*), parameter :: path = &
     & "/mesh_adaptivity/hr_adaptivity/"
-    logical :: is_constant
+    logical :: is_constant, is_internal
     type(mesh_type), pointer :: mesh
     type(vector_field), pointer :: X
-    integer :: node
+    integer :: node, dim
+
+    type(scalar_field), pointer :: Eta
 
     if (.not. have_option(path)) then
       return
@@ -2996,19 +2998,30 @@ contains
     ! CoordinateMesh.
     !mesh => get_external_mesh((/state/))
     mesh => extract_mesh(state, trim(topology_mesh_name))
-
+    dim = mesh_dim(mesh)
     if (.not. have_option(path // "/tensor_field::MinimumEdgeLengths")) then
       ewrite(-1,*) "Warning: adaptivity turned on, but no edge length limits available?"
       return
     end if
 
     is_constant = (have_option(path // "/tensor_field::MinimumEdgeLengths/anisotropic_symmetric/constant"))
+    is_internal = (have_option(path // "/tensor_field::MinimumEdgeLengths/anisotropic_symmetric/internal"))
     if (is_constant) then
       call allocate(min_edge, mesh, "MinimumEdgeLengths", field_type=FIELD_TYPE_CONSTANT)
       call initialise_field(min_edge, path // "/tensor_field::MinimumEdgeLengths", X)
       call allocate(max_eigen, mesh, "MaxMetricEigenbound", field_type=FIELD_TYPE_CONSTANT)
       call set(max_eigen, eigenvalue_from_edge_length(node_val(min_edge, 1)))
-    else
+      ewrite(1,*) "Internal Minimum edge length", eigenvalue_from_edge_length(node_val(min_edge, 1))
+
+    else if (is_internal) then  ! The internal case is initialised as a constant case to save memory as it is constant in space (not constant in time though!)
+      call allocate(min_edge, mesh, "MinimumEdgeLengths", field_type=FIELD_TYPE_CONSTANT)
+      call initialise_field(min_edge, path // "/tensor_field::MinimumEdgeLengths", X)
+      call allocate(max_eigen, mesh, "MaxMetricEigenbound", field_type=FIELD_TYPE_CONSTANT)
+      Eta => extract_scalar_field(state, "GridKolmogorovScaleEdgeLength")
+      call set(max_eigen, get_matrix_identity(dim) * 100*minval(Eta%val, MASK = Eta%val .gt. 0))  !Should it be GridKolmogorovScaleEdgeLength or GridKolmogorovScale
+      ewrite(1,*) "Internal Minimum edge length", 100*minval(Eta%val, MASK = Eta%val .gt. 0)
+
+    else  !INCLUDE AN ELSEIF WITH AN "INTERNAL" OPTION THAT CALLS A FUNCTION WHICH CALCULATES THE LENGTHS FROM KOLMOGOROV FIELD
       call allocate(min_edge, mesh, "MinimumEdgeLengths")
       call initialise_field(min_edge, path // "/tensor_field::MinimumEdgeLengths", X)
       call allocate(max_eigen, mesh, "MaxMetricEigenbound")

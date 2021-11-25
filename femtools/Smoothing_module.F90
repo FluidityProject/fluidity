@@ -12,6 +12,7 @@ module smoothing_module
   use sparsity_patterns
   use solvers
   use boundary_conditions, only: apply_dirichlet_conditions
+  use vector_tools  !For eigendecomposition in function length_scale_tensor
   implicit none
 
   private
@@ -19,6 +20,7 @@ module smoothing_module
   public :: smooth_scalar, smooth_vector, smooth_tensor
   public :: anisotropic_smooth_scalar, anisotropic_smooth_vector, anisotropic_smooth_tensor
   public :: length_scale_scalar, length_scale_tensor
+  public :: mixing_length_reference_scale, length_scale_coeff_scalar, length_scale_coeff_tensor
 
 contains
 
@@ -598,18 +600,21 @@ contains
 
   end function length_scale_scalar
   
-  function length_scale_tensor(du_t, shape) result(t)
+  function length_scale_tensor(du_t, shape) result(M_inv)
     !! Computes a length scale tensor to be used in LES (units are in length^2)
     !! derivative of velocity shape function (nloc x ngi x dim)
     real, dimension(:,:,:), intent(in):: du_t
     !! the resulting tensor (dim x dim x ngi)
-    real, dimension(size(du_t,3),size(du_t,3),size(du_t,2)) :: t
+    real, dimension(size(du_t,3),size(du_t,3),size(du_t,2)) :: t, L, M_inv
     !! for a simplex if degree==1 the tensor is the same for all gaussian points
     type(element_type), intent(in):: shape
 
     real, dimension(size(t,1), size(t,2)):: M
     real r
     integer gi, loc, i, dim, nloc, compute_ngi
+
+    real, dimension(size(t, 1), size(t, 1)) :: evecs
+    real, dimension(size(t, 1)) :: evals
 
     t=0.0
     nloc=size(du_t,1)
@@ -628,12 +633,13 @@ contains
           ! eigenvalues of metric
           M=outer_product( du_t(loc,gi,:), du_t(loc,gi,:) )
           ! determinant of M
-          r=sum( (/ ( M(i,i), i=1, dim) /) )
+          !r=sum( (/ ( M(i,i), i=1, dim) /) )
           ! M^-1 = 1/det(M)*adj(M) = 1/det(M)*M
           if (.not. r==0.0) then
-             t(:,:,gi)=t(:,:,gi)+M/(r**2)
+             t(:,:,gi)=t(:,:,gi)+M   ! /(r**2)
           end if
        end do
+
     end do
 
     ! copy the rest
@@ -641,6 +647,210 @@ contains
        t(:,:,gi)=t(:,:,1)
     end do
 
+    ! call eigendecomposition_symmetric(t, evecs, evals)
+
+
+    ! Calculate the inverse of the metric by inverting the eigenvalues
+    do gi=1, shape%ngi
+       call eigendecomposition_symmetric(t(:,:,gi), evecs, evals)
+       L = 0
+       do i=1, dim
+         ! calculate the lengths matrix as the inverse of the eigenvalues matrix
+         L(i,i,gi)= 1/evals(i) 
+       end do
+       M_inv(:,:,gi) = matmul(evecs,matmul(L(:,:,gi), transpose(evecs)))
+    end do
+
   end function length_scale_tensor
+
+
+  function length_scale_coeff_scalar(positions, ele, ele_wavenumber, integral_scale) result(l)
+    ! Computes a scalar mixing length scale for the dynamically adaptive LES
+    ! This mixing length is calculated applying the sigmoid function such that
+    ! at small scales the mixing length is close to 0 and at larger scales is close to 1
+    ! Preserves element volume. (units are in length^2)
+    !KEEP it as an independent function so different sigmoids can be tested
+    ! Function arguments:
+    type(vector_field), intent(in) :: positions
+    integer, intent(in) :: ele
+    real :: s, l, ele_wavenumber
+
+    !Local variables
+    real :: f, squared_filter_width, v
+    real, optional :: integral_scale
+    integer :: dim
+  
+    ! Assign integral scale a value if not provided. This should be fixed, possibly with an entry in the flml file.
+    if (.not.present(integral_scale)) then
+        integral_scale = 1.0
+    end if
+    ! Get the filter width in scalar form from length_scale_scalar.
+    ! The value calculated in that function is already squared, this is considered in furter calculations.
+    ! Thus the square root of this value is passed to the sigmoid as the sigmoid is s = f(filter_width)
+    ! and not s = f(filter_width**2)
+    squared_filter_width =  length_scale_scalar(positions, ele)
+    dim=positions%dim
+    v=element_volume(positions, ele)
+    v=v**(1./dim)  !!!!!!
+
+    ! get the logarithmic mean of integral and Kolmogorov scales
+    f = mixing_length_reference_scale(ele_wavenumber, integral_scale)
+
+     ! THIS IS THE SIGMOID!
+    !call get_option(trim(les_option_path)//"/dynamic_les/length_scale_type", sigmoid_function)
+    !select case(sigmoid_function)
+     !    case("exponential")
+     !        s = 1 - (f/(f + exp(squared_filter_width**(0.5)))) !change for actual functions
+     !    case("abs_value")
+             s = 1 - (f/(f + squared_filter_width**(0.5)))  ! The sigmoid involves the filter width
+    
+    l = s*squared_filter_width
+
+  end function length_scale_coeff_scalar
+
+          
+  function length_scale_coeff_tensor(du_t, shape, ele, ele_wavenumber) result(t) !result(iso_t)
+    ! Computes a scalar mixing length scale for the dynamically adaptive LES
+    ! This mixing length is calculated applying the sigmoid function such that
+    ! at small scales the mixing length is close to 0 and at larger scales is close to 1
+    ! Preserves element volume. (units are in length^2)
+    !KEEP it as an independent function so different sigmoids can be tested
+    ! Function arguments:
+    integer, intent(in) :: ele
+    !! derivative of velocity shape function (nloc x ngi x dim)
+    real, dimension(:,:,:), intent(in):: du_t
+    !! for a simplex if degree==1 the tensor is the same for all gaussian points
+    type(element_type), intent(in):: shape
+    !! Value of the Kolmogorov scale field
+    real :: ele_wavenumber
+    !! integral scale 
+    real :: integral_scale
+
+    !Local variables
+    !! logarithmic mean
+    real :: f
+    !! the metric and the resulting tensor (dim x dim x ngi)
+    real, dimension(size(du_t,3),size(du_t,3),size(du_t,2)) :: metric !, inner_term, L, inner_term_inv
+
+    
+    !! identity matrix
+    real, dimension(size(metric,1),size(metric,1))::  id, ele_metric, t, inner_term, L, inner_term_inv, iso_t
+
+    integer gi, i, dim, compute_ngi
+
+    !! metric eigenvalues and eigenvectors
+    real, dimension(size(t, 1), size(t, 1)) :: evecs
+    real, dimension(size(t, 1)) :: evals
+
+
+     dim=size(du_t,3)
+     if (.not.(shape%degree==1 .and. shape%numbering%family==FAMILY_SIMPLEX)) then
+      ! for non-linear compute on all gauss points
+      compute_ngi=shape%ngi
+    else
+      ! for linear: compute only the first and copy the rest
+      compute_ngi=1
+    end if
+
+    ! Assign integral scale a value if not provided. This should be fixed, possibly with an entry in the flml file.
+    !if (.not.present(integral_scale)) then
+        integral_scale = 1
+    !end if
+    ! Get the filter width in tensor form from length_scale_tensor.
+    ! The values calculated in that function is already squared, this is considered in furter calculations.
+    ! Thus the square root of this value is passed to the sigmoid as the sigmoid is s = f(filter_width)
+    ! and not s = f(filter_width**2)
+    metric = length_scale_tensor(du_t, shape)
+    !ewrite(1,*) "call mixing_length_reference_scale"
+    f = mixing_length_reference_scale(ele_wavenumber, integral_scale)
+    ! ewrite(1,*) "create identity"
+    ! form the identity matrix
+    id = 0.0
+    do gi=1, shape%ngi
+     do i=1,dim
+          id(i, i) = 1.0
+     end do
+    end do
+    !ewrite(1,*) "identity created"
+    
+
+    ! For P1 the same metric values have been copied on every quadrature point
+    ! (check length_scale_tensor function in this file), so let's take the first
+     ele_metric = metric(:,:,1)
+    ! ewrite(1,*) "ele_metric", ele_metric
+    ! ewrite(1,*) "size ele_metric", size(ele_metric)
+     
+     
+    ! invert the denominator
+        ! Calculate the inverse of the metric by inverting the eigenvalues
+    !do gi=1, shape%ngi  !actually only once for P1 (see length scale tensor function )
+     !ewrite(1,*) "before loop"
+     !ewrite(1,*) "id", id
+    ! ewrite(1,*) "size id", size(id)
+
+       inner_term = f*id + ele_metric
+       !ewrite(1,*) "f", f
+     
+       !ewrite(1,*) "inner_term", inner_term
+     !ewrite(1,*) "size inner_term", size(inner_term)
+       call eigendecomposition_symmetric(inner_term(:,:), evecs, evals)
+       L = 0
+       do i=1, dim
+         L(i,i) = 1/evals(i) 
+       end do
+       !ewrite(1,*) "end section"
+       inner_term_inv = matmul(evecs,matmul(L(:,:), transpose(evecs)))
+       t = matmul(ele_metric, matmul(inner_term_inv, ele_metric))
+    !end do
+
+    !TEST
+    !ENFORCE DIAGONAL EDDY VISCOSITY
+     !iso_t = 0.0
+    !do gi=1, shape%ngi
+    ! do i=1,dim
+    !      iso_t(i, i) = t(i, i)
+    ! end do
+    !end do
+    
+
+    !do gi=compute_ngi+1, shape%ngi
+    !   t(:,:,gi)=t(:,:,1)
+    !end do
+    
+  end function length_scale_coeff_tensor
+
+
+  function mixing_length_reference_scale(ele_wavenumber, integral_scale) result(s)
+    ! Computes a THE REFERENCE SCALE FROM A LOGARITHMIC MEAN for the dynamically adaptive LES
+    ! This mixing length is calculated applying the sigmoid function such that
+    ! at small scales the mixing length is close to 0 and at larger scales is close to 1
+    ! Preserves element volume. (units are in length^2)
+    !KEEP it as an independent function so different sigmoids can be tested
+    ! This value is used in both scalar and tensor length scale approaches 
+
+    ! Function arguments:
+    real :: s, ele_wavenumber, integral_scale  ! ele_wavenumber is the Kolmogorov scale at current element
+                              ! The optional part for integral_scale was sorted in the function that calls this one, so at this point it should be defined
+
+    ! Local Variables:
+    real :: ele_scale
+    real, parameter :: PI=4.0*atan(1.0)
+     !ewrite(1,*) "mixing_length_reference_scale"
+     if (ele_wavenumber ==0.0) then
+          s = 1.0
+     else
+          ele_scale = PI/ele_wavenumber  !This should come from the Kolmogorov scale field. NO, the Kolmogorov scale fiel is better in wavenumber for visualisation
+     
+     !ewrite(1,*) "ele_scale", ele_scale
+     
+    ! Logarithmic mean of integral and Kolmogorov scales
+    
+    s = (integral_scale-ele_scale)/(log10(integral_scale)-log10(ele_scale))
+    endif
+     !ewrite(1,*) "Logarithmic mean", s   
+  end function mixing_length_reference_scale
+
+
+  
 
 end module smoothing_module

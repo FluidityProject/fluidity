@@ -11,7 +11,7 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="channel">
+      <from_file file_name="chan16">
         <format name="gmsh"/>
         <stat>
           <include_in_stat/>
@@ -47,13 +47,13 @@
         <mesh name="CoordinateMesh"/>
         <periodic_boundary_conditions name="EndsMeet">
           <physical_boundary_ids>
-            <integer_value rank="1" shape="1">1</integer_value>
+            <integer_value shape="1" rank="1">1</integer_value>
           </physical_boundary_ids>
           <aliased_boundary_ids>
-            <integer_value rank="1" shape="1">2</integer_value>
+            <integer_value shape="1" rank="1">2</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value type="code" language="python" lines="20">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	result = list(X)
 	result[0]=result[0]-1.0
 	return result</string_value>
@@ -125,7 +125,7 @@
     </coriolis>
   </physical_parameters>
   <material_phase name="Water">
-    <scalar_field rank="0" name="Pressure">
+    <scalar_field name="Pressure" rank="0">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -162,16 +162,13 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field rank="1" name="Velocity">
+    <vector_field name="Velocity" rank="1">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -221,7 +218,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value type="code" language="python" lines="20">import channel_viscous
+            <string_value lines="20" type="code" language="python">import channel_viscous
 global sol
 sol=channel_viscous.solution(channel_viscous.forcing)
         
@@ -231,7 +228,7 @@ def val(X,t):
         </initial_condition>
         <boundary_conditions name="NoSlipWalls">
           <surface_ids>
-            <integer_value rank="1" shape="1">3</integer_value>
+            <integer_value shape="1" rank="1">3</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -259,16 +256,13 @@ def val(X,t):
               </isotropic>
             </value>
             <output/>
-            <particles>
-              <exclude_from_particles/>
-            </particles>
           </prescribed>
         </tensor_field>
         <vector_field name="Source" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value type="code" language="python" lines="20">def val(X,t):
+                <string_value lines="20" type="code" language="python">def val(X,t):
         import channel_viscous
         return channel_viscous.numeric_forcing(X)</string_value>
               </python>
@@ -280,9 +274,6 @@ def val(X,t):
             <detectors>
               <exclude_from_detectors/>
             </detectors>
-            <particles>
-              <exclude_from_particles/>
-            </particles>
           </prescribed>
         </vector_field>
         <output/>
@@ -307,10 +298,10 @@ def val(X,t):
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field rank="0" name="AnalyticUVelocitySolutionError">
+    <scalar_field name="AnalyticUVelocitySolutionError" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value type="code" language="python" lines="20">V=state.vector_fields["Velocity"]
+          <string_value lines="20" type="code" language="python">V=state.vector_fields["Velocity"]
 S=state.scalar_fields["AnalyticUVelocitySolution"]
 
 for n in range(field.node_count):
@@ -327,20 +318,17 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field rank="0" name="AnalyticUVelocitySolution">
+    <scalar_field name="AnalyticUVelocitySolution" rank="0">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="code" language="python" lines="20">import sys
+            <string_value lines="20" type="code" language="python">import sys
 sys.path.append(".")
 import channel_viscous
 
@@ -356,18 +344,15 @@ def val(X,t):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <do_not_recalculate/>
       </prescribed>
     </scalar_field>
-    <scalar_field rank="0" name="AnalyticPressureSolution">
+    <scalar_field name="AnalyticPressureSolution" rank="0">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="code" language="python" lines="20">import sys
+            <string_value lines="20" type="code" language="python">import sys
 sys.path.append(".")
 import channel_viscous
 
@@ -383,16 +368,13 @@ def val(X,t):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <do_not_recalculate/>
       </prescribed>
     </scalar_field>
-    <scalar_field rank="0" name="AnalyticPressureSolutionError">
+    <scalar_field name="AnalyticPressureSolutionError" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value type="code" language="python" lines="20">P=state.scalar_fields["Pressure"]
+          <string_value lines="20" type="code" language="python">P=state.scalar_fields["Pressure"]
 S=state.scalar_fields["AnalyticPressureSolution"]
 
 # Remove the arbitrary constant
@@ -412,9 +394,6 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
-        <particles>
-          <exclude_from_particles/>
-        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

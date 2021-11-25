@@ -174,6 +174,12 @@ contains
 
       case("GridReynoldsNumber")
         call calculate_grid_reynolds_number(state, d_field)
+      
+      case("GridKolmogorovScale") 
+        call calculate_grid_kolmogorov_scale_wavenumber(state, d_field, stat)
+
+      case("GridKolmogorovScaleEdgeLength")  
+        call calculate_kolmogorov_scale_edge_length(state, d_field, stat)
 
       case("GridPecletNumber")
         call calculate_grid_peclet_number(state, d_field)
@@ -189,7 +195,7 @@ contains
 
       case("IsopycnalCoordinate")
         call calculate_isopycnal_coordinate(state, d_field, stat)
-      
+              
       case("BackgroundPotentialEnergyDensity")
         call calculate_back_pe_density(state, d_field, stat)
       
@@ -3278,5 +3284,136 @@ contains
     call deallocate(coordinate_field)
    
    end subroutine calculate_diagnostic_coordinate_field
+
+
+   subroutine calculate_grid_kolmogorov_scale_wavenumber(State, K, stat)
+    
+    !! PENDING: UPDATE THE SCHEME FILES TO INCLUDE THIS
+    !! Now requires setting the field manually and ensuring the name is correct
+    !! Calculate the grid "relative" Kolmogorov scale as a field.
+    !!< You must have grid_reynolds_number
+    !!< You must have eddy_viscosity
+    type(state_type), intent(in) :: state
+    type(scalar_field), intent(inout) :: K
+    integer, intent(out), optional :: stat
+
+    type(scalar_field), pointer :: GRN
+    type(vector_field), pointer :: u
+    type(tensor_field), pointer :: viscosity, EddyViscosity
+    real :: node_viscosity, node_EddyViscosity, node_viscosity_ratio
+    integer :: i, lstat
+
+    logical :: have_eddy_visc
+    character(len=OPTION_PATH_LEN) :: EddyViscosity_option_path
+
+
+    !Check if grid_reynolds_number is a field in this state
+    GRN => extract_scalar_field(state, "GridReynoldsNumber", lstat)
+    if (lstat /= 0) then
+      if (present(stat)) then
+        stat = lstat
+        ewrite(1,*) "Found GridReynoldsNumber"
+      else
+        ewrite(-1,*) "Please include GridReynoldsNumber field on the same mesh as Velocity field"
+        FLExit("Couldn't find GridReynoldsNumber field in this state.")
+      end if
+    end if
+
+    !Check if viscosity is a field in this state
+    viscosity => extract_tensor_field(state, "Viscosity", lstat)
+    if (lstat /= 0) then
+      if (present(stat)) then
+        stat = lstat
+        ewrite(1,*) "Found Viscosity"
+      else
+        FLExit("Couldn't find Viscosity field in this state.")
+      end if
+    end if
+
+    !Check if Eddy Viscosity is a field in this state
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Extend to DG
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    u => extract_vector_field(state, "Velocity")
+    EddyViscosity_option_path=(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                 &"/continuous_galerkin/les_model/second_order/tensor_field::EddyViscosity")
+    have_eddy_visc = have_option(EddyViscosity_option_path)
+    !ewrite(1,*) "have eddy viscosity", have_eddy_visc 
+    if (have_option(EddyViscosity_option_path)) then
+      EddyViscosity => extract_tensor_field(state,"EddyViscosity")
+    else
+      ewrite(-1,*) "EddyViscosity field must be enabled on Velocity options path"// &
+                     "Velocity > spatial_discretisation > continuous_galerkin > les_model > second_order"
+      FLExit("Please include EddyViscosity field on the same mesh as Velocity field")
+      FLExit("EddyViscosity field must be enabled on Velocity options path Velocity > spatial_discretisation > continuous_galerkin > les_model >")
+    endif
+
+    ! Check if required fields are on the same mesh
+    if(.not. EddyViscosity%mesh == viscosity%mesh) then
+      FLExit("Viscosity and EddyViscosity must be on the same mesh")
+    end if
+
+    if(.not. GRN%mesh == viscosity%mesh) then
+      FLExit("GridReynoldsNumber and EddyViscosity must be on the same mesh")
+    end if   
+
+    call zero(K)
+
+    do i = 1, node_count(K)
+      node_viscosity = norm2(node_val(viscosity, i))
+      node_EddyViscosity = norm2(node_val(EddyViscosity, i))
+      node_viscosity_ratio = node_EddyViscosity/node_viscosity
+      !ewrite(-1,*) "Kolmogorov scale", node_viscosity_ratio
+      ! Sagaut, Pierre. Large eddy simulation for incompressible flows: an introduction. Springer Science & Business Media, 2006.
+      call set(K, i, 1.0/(node_val(GRN, i)**(-0.5)*(1+node_viscosity_ratio)**(-0.25)))
+    end do
+
+  end subroutine calculate_grid_kolmogorov_scale_wavenumber
+
+
+  subroutine calculate_kolmogorov_scale_edge_length(State, min_len, stat)
+    
+    !! PENDING: UPDATE THE SCHEME FILES TO INCLUDE THIS
+    !! Now requires setting the field manually and ensuring the name is correct
+    !! Calculate the edge length for Kolmogorov scale as a field.
+
+    type(state_type), intent(in) :: state
+    type(scalar_field), intent(inout) :: min_len
+    integer, intent(out), optional :: stat
+
+    type(scalar_field), pointer :: Eta
+    integer :: i, lstat
+    real, parameter :: PI=4.0*atan(1.0)
+    
+
+    !Check if GridKolmogorovScale is a field in this state
+    !!!!!! REMEMBER TO CHANGE THE FIELD NAMES!!!!
+    Eta => extract_scalar_field(state, "GridKolmogorovScale", lstat)
+    if (lstat /= 0) then
+      if (present(stat)) then
+        stat = lstat
+        ewrite(1,*) "Found GridKolmogorovScale"
+      else
+        FLExit("Couldn't find GridKolmogorovScale field in this state.")
+      end if
+    end if
+
+
+    if(.not. min_len%mesh == Eta%mesh) then
+      FLExit("GridKolmogorovScale must be on the same mesh as this field")
+    end if   
+
+    call zero(min_len)
+
+    do i = 1, node_count(Eta)
+      if (node_val(Eta, i)<1.0) then
+      !call get_option(trim(tpath)//"/internal", const_array)
+        call set(min_len, i, 1.0)
+      else
+        call set(min_len, i, PI/node_val(Eta, i))
+      end if
+    end do
+
+  end subroutine calculate_kolmogorov_scale_edge_length
    
 end module diagnostic_fields

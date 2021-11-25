@@ -31,7 +31,7 @@
 
     use spud
     use fldebug
-    use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, &
+    use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, PYTHON_FUNC_LEN, timestep, &
          COLOURING_CG1
 #ifdef _OPENMP
     use omp_lib
@@ -71,6 +71,21 @@
     use rotated_boundary_conditions
     use edge_length_module
     use colouring
+    use embed_python
+
+    use futils  ! for writting files
+
+    !!!!
+   use global_parameters, only : OPTION_PATH_LEN, timestep
+   use spud
+   use state_module  
+   use fields
+   use parallel_tools
+   use signal_vars
+   use fldebug
+
+   ! FETCH modules   
+
 
     implicit none
 
@@ -258,6 +273,15 @@
 
       ! for all LES models:
       character(len=OPTION_PATH_LEN) :: les_option_path
+      ! Added to allow python option for smagorinsky_coefficient in second_order
+      ! this also requires to include PYTHON_FUNC_LEN in use global parameters (line 34)
+      character(len=PYTHON_FUNC_LEN) :: func
+      real :: h
+      !type(scalar_field), pointer             :: smagorinsky_coefficient_field
+      !real, dimension(ele_ngi(u, ele))             :: les_smagorinsky_coefficient_gi
+      !character(len=OPTION_PATH_LEN) :: les_option_path
+      type(scalar_field), pointer    :: scfield
+
       ! For 4th order:
       type(tensor_field):: grad_u
       ! For Germano Dynamic LES:
@@ -444,8 +468,49 @@
          wale=have_option(trim(les_option_path)//"/wale")
          dynamic_les=have_option(trim(les_option_path)//"/dynamic_les")
          if (les_second_order) then
-            call get_option(trim(les_option_path)//"/second_order/smagorinsky_coefficient", &
-                 smagorinsky_coefficient)
+
+            if (have_option(trim(les_option_path) // "/second_order/smagorinsky_coefficient/constant")) then
+              call get_option(trim(les_option_path) // "/second_order/smagorinsky_coefficient/constant", smagorinsky_coefficient)
+              ewrite(2,*) "Constant Smagorinsky coefficient"
+              scfield => dummyscalar
+            else if (have_option(trim(les_option_path) // "/second_order/smagorinsky_coefficient/python")) then
+              call get_option(trim(les_option_path) // "/second_order/smagorinsky_coefficient/python", func)
+              !ewrite(2,*) "", func
+              h=1.0
+              !In order to call real_from_pytho it is necesary to load the corresponding module: use embed_python (see line 74)
+              call real_from_python(func, h, smagorinsky_coefficient) !h seems to be a dummy variable
+              ewrite(2,*) "Smagorinsky coefficient from phyton"
+              ewrite(2,*) "Smagorinsky coefficient= ", smagorinsky_coefficient
+              scfield => dummyscalar
+            
+
+            !NEW call the option of the smagorinsky coefficient as a diagnostic field (internal) This requires a scalar field in the same state
+            ! called SmagorinskyCoefficient, which is python diagnostic field
+            !have_eddy_visc = have_option(trim(les_option_path)//"/second_order/tensor_field::EddyViscosity")
+            else if (have_option(trim(les_option_path) // "/second_order/smagorinsky_coefficient/diagnostic")) then  !DIAGNOSTIC
+               ! Initialise the eddy viscosity field. Calling this subroutine works because
+               ! you can't have 2 different types of LES model for the same material phase.
+               !call allocate( smagorinsky_coefficient_field, u%mesh, "VelocityGradient")
+              
+               !Allocate the field for being applied later (Similar to what happens to constant case by:
+               !call get_option(trim(les_option_path) // "/second_order/smagorinsky_coefficient/constant", smagorinsky_coefficient))
+              ewrite(2,*) "Smagorinsky coefficient diagnostic"
+              scfield => extract_scalar_field(state, "SmagorinskyCoefficient")
+               !les_smagorinsky_coefficient_gi = ele_val_at_quad(scfield, ele)
+               
+               !smagorinsky_coefficient_field => extract_scalar_field(state, "SmagorinskyCoefficient")
+               !call allocate(smagorinsky_coefficient_field)
+               !call les_init_diagnostic_fields(state, have_eddy_visc, .false., .false.)
+               
+               !have_coeff = .true. ! LETS TRY DISABLING THIS
+            
+            else
+              FLAbort("Smagorinsky coefficient undefined")
+            
+            end if
+
+            !call get_option(trim(les_option_path)//"/second_order/smagorinsky_coefficient", &
+            !     smagorinsky_coefficient)
                
             call get_option(trim(les_option_path)//"/second_order/length_scale_type", length_scale_type)
 
@@ -453,8 +518,10 @@
             if(have_eddy_visc) then
                ! Initialise the eddy viscosity field. Calling this subroutine works because
                ! you can't have 2 different types of LES model for the same material phase.
-               call les_init_diagnostic_fields(state, have_eddy_visc, .false., .false.)
+               !!!!!!!call les_init_diagnostic_fields(state, have_eddy_visc, .false., have_coeff)
+               call les_init_diagnostic_fields(state, have_eddy_visc, .false., .false.)  !Originally the last argument corresponding to have_coeff is set to false as this is not an option in a second order model
             end if
+
          end if
          if (les_fourth_order) then
             call get_option(trim(les_option_path)//"/fourth_order/smagorinsky_coefficient", &
@@ -518,6 +585,7 @@
       else
          les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.
          fnu => dummyvector; tnu => dummyvector; leonard => dummytensor; strainprod => dummytensor
+         scfield => dummyscalar  ! Added for consistency
       end if
       
 
@@ -744,7 +812,7 @@
               swe_bottom_drag, old_pressure, p, &
               assemble_ct_matrix_here, depth, &
               alpha_u_field, abs_wd, temperature, nvfrac, &
-              supg_element(thread_num+1))
+              supg_element(thread_num+1), scfield)
       end do element_loop
       !$OMP END DO
 
@@ -1200,7 +1268,7 @@
                                             gp, surfacetension, &
                                             swe_bottom_drag, old_pressure, p, &
                                             assemble_ct_matrix_here, depth, &
-                                            alpha_u_field, abs_wd, temperature, nvfrac, supg_shape)
+                                            alpha_u_field, abs_wd, temperature, nvfrac, supg_shape, scfield) !scfield added following same procedure...
 
       !!< Assembles the local element matrix contributions and places them in big_m
       !!< and rhs for the continuous galerkin momentum equations
@@ -1276,6 +1344,10 @@
       logical, dimension(u%dim, u%dim) :: block_mask ! control whether the off diagonal entries are used
       integer :: dim, i, j
       type(element_type) :: test_function
+
+
+      ! Field for the New model with smagorinsky coefficient diagnostic field
+      type(scalar_field), intent(in) :: scfield
 
       if(move_mesh) then
         ! we've assumed the following in the declarations
@@ -1443,7 +1515,7 @@
       ! Viscous terms
       if(have_viscosity .or. have_les) then
         call add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, viscosity, grad_u, &
-           fnu, tnu, leonard, strainprod, alpha, gamma, du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, density, nvfrac)
+           fnu, tnu, leonard, strainprod, alpha, gamma, du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, density, nvfrac, scfield)
       end if
       
       ! Coriolis terms
@@ -2078,7 +2150,7 @@
       
     subroutine add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, viscosity, grad_u, &
         fnu, tnu, leonard, strainprod, alpha, gamma, &
-         du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, density, nvfrac)
+         du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, density, nvfrac, scfield) !scfield added as argument to follow same procedure as other LES models (e.g leonard tensor as arg)
       type(state_type), intent(inout) :: state
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
@@ -2110,7 +2182,7 @@
       ! Non-linear PhaseVolumeFraction
       type(scalar_field), intent(in) :: nvfrac
 
-      integer                                                                        :: dim, dimj, gi, iloc
+      integer                                                                        :: dim, dimj, gi, iloc, node
       real, dimension(u%dim, ele_loc(u, ele))                                        :: nu_ele
       real, dimension(u%dim, u%dim, ele_ngi(u, ele))                                 :: viscosity_gi
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele))                :: viscosity_mat
@@ -2123,6 +2195,23 @@
       real, dimension(ele_ngi(u, ele)), intent(in)                                   :: detwei
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout)                         :: rhs_addto
+
+
+      type(vector_field), pointer :: ele_coords
+      integer, dimension(:), pointer  :: elem_nodes
+      real, dimension(x%dim) :: x_coord
+      real, dimension(x%dim, ele_loc(u,ele)) :: elem
+      
+
+      !ADDED FOR SMAGORINSKY COEFFICIENT SCALAR FIELD OPTION
+      
+      character(len=OPTION_PATH_LEN) :: les_option_path
+      type(scalar_field), intent(in)    :: scfield
+      ! Local quantity specific FOR SMAGORINSKY COEFFICIENT SCALAR FIELD OPTION
+      real, dimension(ele_ngi(u, ele))             :: les_smagorinsky_coefficient_gi
+      type(scalar_field), pointer :: E
+      real :: ele_wavenumber, integral_scale
+      real, dimension(x%dim, x%dim)  :: les_length_scale_tensor
 
 
       if (have_viscosity .AND. .not.(have_temperature_dependent_viscosity)) then
@@ -2150,6 +2239,8 @@
          nu_ele = ele_val(nu, ele)
          les_tensor_gi = 0.0
          les_scalar_gi = 0.0
+         les_option_path=(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                 &"/continuous_galerkin/les_model")
 
          ! WALE model
          if (wale) then
@@ -2168,8 +2259,29 @@
             ! It's included here for LinearMomentum flow simulations.
             density_gi = ele_val_at_quad(density, ele)
             
+            ! In the traditional second order simulations the smagorinsky coefficient will be a real defined in
+            ! the flml file.
+            ! This new option requires a Smagorisky coefficient field which will be applied locally 
+            if (have_option(trim(les_option_path) // "/second_order/smagorinsky_coefficient/diagnostic")) then
+            !  scfield => extract_scalar_field(state, "SmagorinskyCoefficient") !This is commented as scfield was extracted at line 492
+              les_smagorinsky_coefficient_gi = ele_val_at_quad(scfield, ele)
+            end if
+
+
             select case(length_scale_type)
                case("scalar")
+
+                  ! INCLUDE NEW CASE OR IF CODITIONED BY have_option(dynamically adaptive)
+                      ! now the Kolmogorov scale: (this should be done before calling this function and passed as an argument)
+                      !E=>extract_scalar_field(state, "KolmogorovScale")
+
+                      ! Take the mean of the scale for the whole element
+                      !ele_wavenumber = sum(ele_val_at_quad(E,ele))/size(ele_val_at_quad(E,ele))
+                      ! Now call the function for the damped mixing length > positions corresponds to the x variable in this subroutine
+                      !les_scalar_gi = length_scale_coeff(positions, ele, ele_wavenumber, integral_scale)
+                      ! in this case les_scalar_gi becomes a constant value for all gi at current element
+
+                  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                   ! Length scale is the cube root of the element's volume in 3D.
                   ! In 2D, it is the square root of the element's area.
                   les_scalar_gi = length_scale_scalar(x, ele)
@@ -2177,19 +2289,72 @@
                      ! The factor of 4 arises here because the filter width separating resolved 
                      ! and unresolved scales is assumed to be twice the local element size, 
                      ! which is squared in the viscosity model.
+
+                    !NEW!!!
+                     if (have_option(trim(les_option_path) // "/second_order/smagorinsky_coefficient/diagnostic")) then
+
+                     les_tensor_gi(:,:,gi) = 4.0*les_scalar_gi(gi)*&
+                        density_gi(gi)*les_coef_gi(gi)*les_smagorinsky_coefficient_gi(gi)**2 !Not squared as is calculated in the form C = Cs^2
+                     else
+                      !ORIGINALLY ONLY THESE TWO LINES< NO IF BLOCK!!!!
                      les_tensor_gi(:,:,gi) = 4.0*les_scalar_gi(gi)*&
                         density_gi(gi)*les_coef_gi(gi)*(smagorinsky_coefficient**2)
+                     end if
+
                   end do
                case("tensor")
                   ! This uses a tensor length scale metric from the adaptivity process
                   ! to better handle anisotropic elements.
+                  
+                  !ewrite(1,*) "in test print information"
+                  !BLOCK FOR PRINTING OUT ON SCRREN ELEMENT AND METRIC DATA
+                  !allocate(ele_coords)
+                  !ele_coords => extract_vector_field(state, "Coordinate")  !ele_coords is a field which contains the coordinates, state is an INTENT(IN) arg in the parent subroutine
+                  !ewrite(1,*) "got ele_coords"
+
+                  !Extract the cartesian coordinates of the node.
+
+                  !ewrite(1,*) "element= ", ele
+
+                  !ewrite(1,*) "elem_val=", ele_val(ele_coords, ele)
+                  
+
                   les_tensor_gi = length_scale_tensor(du_t, ele_shape(u, ele))
+                  E=>extract_scalar_field(state, "GridKolmogorovScale") 
+                  !E=>extract_scalar_field(state, "IsopycnalCoordinate")
+                  
+                  ele_wavenumber = maxval(ele_val(E, ele))
+
+                  !ewrite(1,*) "time to check"
+                  !ewrite(1,*) "element", ele
+                  !ewrite(1,*) "element wavenumber", ele_wavenumber
+                  
+                  les_length_scale_tensor = length_scale_coeff_tensor(du_t, ele_shape(u, ele), ele, ele_wavenumber)
+                  
+                  !!shape_nu = ele_shape(nu, ele)
+                  !ewrite(2,*) "length_scale_tensor= ", les_tensor_gi
+
+                  !!!!ewrite(1,*) "In write file"
+                  !deallocate(ele_coords)
+                  !!!!call  write_metric_file(state, ele, les_tensor_gi)
                   do gi = 1, size(les_coef_gi)
                      ! The factor of 4 arises here because the filter width separating resolved 
                      ! and unresolved scales is assumed to be twice the local element size, 
                      ! which is squared in the viscosity model.
+
+                     !NEW!!!
+                     if (have_option(trim(les_option_path) // "/second_order/smagorinsky_coefficient/diagnostic")) then
+
+                     les_tensor_gi(:,:,gi) = les_length_scale_tensor(:,:)*&  !INTRODUCE A NEW CONDITION TO APPLY C ONLY WHERE THE METRIC IS BIGGER THAN SOME VALUE
+                        density_gi(gi)*les_coef_gi(gi) !Not squared as is calculated in the form C = Cs^2
+                     !les_tensor_gi(:,:,gi) = 4.0*les_tensor_gi(:,:,gi)*&  !INTRODUCE A NEW CONDITION TO APPLY C ONLY WHERE THE METRIC IS BIGGER THAN SOME VALUE
+                     !   density_gi(gi)*les_coef_gi(gi)*les_smagorinsky_coefficient_gi(gi)**2 !Not squared as is calculated in the form C = Cs^2
+                     else
+                      !ORIGINALLY ONLY THESE TWO LINES< NO IF BLOCK!!!!
                      les_tensor_gi(:,:,gi) = 4.0*les_tensor_gi(:,:,gi)*&
                         density_gi(gi)*les_coef_gi(gi)*(smagorinsky_coefficient**2)
+                     end if
+
                   end do
                case default
                   FLExit("Unknown length scale type")
@@ -2788,5 +2953,65 @@
       call mult(rhs, kmk, pressure)
       call scale(rhs, dt)
     end subroutine add_kmk_rhs
+
+
+    subroutine write_metric_file(state, ele, metric)
+      
+      type(state_type), intent(inout) :: state
+      integer, intent(in) :: ele
+      real, dimension(:, :, :), intent(in) :: metric
+
+      !local variables
+      type(vector_field), pointer :: ele_coords
+
+      
+      !!< Write entries to the eig iteration convergence file in statplot format
+
+      ewrite(1,*) "in test print information"
+                  !BLOCK FOR PRINTING OUT ON SCRREN ELEMENT AND METRIC DATA
+                  !allocate(ele_coords)
+      ele_coords => extract_vector_field(state, "Coordinate")  !ele_coords is a field which contains the coordinates, state is an INTENT(IN) arg in the parent subroutine
+      ewrite(1,*) "got ele_coords"
+
+      !Extract the cartesian coordinates of the node.
+
+      ewrite(1,*) "element= ", ele
+
+      ewrite(1,*) "elem_val=", ele_val(ele_coords, ele)
+                  
+      !shape_nu = ele_shape(nu, ele)
+      ewrite(2,*) "length_scale_tensor= ", metric
+
+      ewrite(1,*) "Finished!"
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!
+      
+
+      
+      ! local variables
+      !character(len = 2 + real_format_len(padding = 1) + 1) :: format      
+      
+      ! Only the first process should write convergence info
+      !first_process: if (getprocno() == 1) then
+         
+         !format = '(' // real_format(padding = 1) // ')'         
+         
+         write(1,'(a,i0)',advance = 'no') ' ',ele
+         
+         write(1,*) ele
+
+         write(1,*) ele_val(ele_coords, ele)
+
+         write(1,*) metric
+         
+         ! Write end of line
+         write(1,'(a)') ''
+         
+         ! flush the output file
+         flush(1)
+         
+      !end if first_process
+            
+   end subroutine write_metric_file
 
   end module momentum_cg
