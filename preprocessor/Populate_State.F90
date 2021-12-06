@@ -414,8 +414,11 @@ contains
           ! as the mesh name.
           call get_option(trim(mesh_path)//"/name", mesh%name)
           
-          ! Set mesh option path.
-          mesh%option_path = mesh_path
+          ! Set mesh option path - do not use mesh_path, as we sometimes
+          ! remove meshes (see remove_non_extruded_mesh_options()) and
+          ! this changes the numbering of the other meshes
+          ! thus we need a name-based option path
+          mesh%option_path = trim("/geometry/mesh::") // trim(mesh%name)
           
           ! Copy those changes back to the descriptor under position%mesh
           position%mesh=mesh
@@ -529,6 +532,10 @@ contains
               
           ! Get mesh name.
           call get_option(trim(mesh_path)//"/name", mesh_name)
+          ! now reassemble option path based on name
+          ! this is because if we remove meshes (as in remove_non_extruded_mesh_options())
+          ! it renumbers the remaining meshes
+          mesh_path = "/geometry/mesh::" // trim(mesh_name)
 
           call insert_derived_mesh(trim(mesh_path), &
                                    trim(mesh_name), &
