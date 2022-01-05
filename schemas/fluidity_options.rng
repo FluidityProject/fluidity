@@ -535,7 +535,16 @@ This function will only be called after simulation start. To initialise starting
                                   <empty/>
                                 </element>
                               </optional>
-                              <ref name="generic_scalar_particle_attribute_choice"/>
+                              <optional>
+                                <element name="value_on_spawn">
+                                  <a:documentation>Attribute value on particle spawn (at the beginning of, or during the simulation)</a:documentation>
+                                  <ref name="generic_scalar_particle_attribute_choice"/>
+                                </element>
+                              </optional>
+                              <element name="value_on_advection">
+                                <a:documentation>Attribute value at each timestep after advection occurs</a:documentation>
+                                <ref name="generic_scalar_particle_attribute_choice"/>
+                              </element>
                             </element>
                             <element name="scalar_attribute_array">
                               <a:documentation>Scalar particle attribute array.</a:documentation>
@@ -551,7 +560,16 @@ This function will only be called after simulation start. To initialise starting
                                   <empty/>
                                 </element>
                               </optional>
-                              <ref name="generic_scalar_particle_attribute_array"/>
+                              <optional>
+                                <element name="value_on_spawn">
+                                  <a:documentation>Attribute value on particle spawn (at the beginning of, or during the simulation)</a:documentation>
+                                  <ref name="generic_scalar_particle_attribute_array"/>
+                                </element>
+                              </optional>
+                              <element name="value_on_advection">
+                                <a:documentation>Attribute value at each timestep after advection occurs</a:documentation>
+                                <ref name="generic_scalar_particle_attribute_array"/>
+                              </element>
                             </element>
                             <element name="vector_attribute">
                               <a:documentation>Vector particle attribute.</a:documentation>
@@ -564,7 +582,16 @@ This function will only be called after simulation start. To initialise starting
                                   <empty/>
                                 </element>
                               </optional>
-                              <ref name="generic_vector_particle_attribute_choice"/>
+                              <optional>
+                                <element name="value_on_spawn">
+                                  <a:documentation>Attribute value on particle spawn (at the beginning of, or during the simulation)</a:documentation>
+                                  <ref name="generic_vector_particle_attribute_choice"/>
+                                </element>
+                              </optional>
+                              <element name="value_on_advection">
+                                <a:documentation>Attribute value at each timestep after advection occurs</a:documentation>
+                                <ref name="generic_vector_particle_attribute_choice"/>
+                              </element>
                             </element>
                             <element name="vector_attribute_array">
                               <a:documentation>Vector particle attribute array.</a:documentation>
@@ -580,7 +607,16 @@ This function will only be called after simulation start. To initialise starting
                                   <empty/>
                                 </element>
                               </optional>
-                              <ref name="generic_vector_particle_attribute_array"/>
+                              <optional>
+                                <element name="value_on_spawn">
+                                  <a:documentation>Attribute value on particle spawn (at the beginning of, or during the simulation)</a:documentation>
+                                  <ref name="generic_vector_particle_attribute_array"/>
+                                </element>
+                              </optional>
+                              <element name="value_on_advection">
+                                <a:documentation>Attribute value at each timestep after advection occurs</a:documentation>
+                                <ref name="generic_vector_particle_attribute_array"/>
+                              </element>
                             </element>
                             <element name="tensor_attribute">
                               <a:documentation>Tensor particle attribute.</a:documentation>
@@ -593,7 +629,16 @@ This function will only be called after simulation start. To initialise starting
                                   <empty/>
                                 </element>
                               </optional>
-                              <ref name="generic_tensor_particle_attribute_choice"/>
+                              <optional>
+                                <element name="value_on_spawn">
+                                  <a:documentation>Attribute value on particle spawn (at the beginning of, or during the simulation)</a:documentation>
+                                  <ref name="generic_tensor_particle_attribute_choice"/>
+                                </element>
+                              </optional>
+                              <element name="value_on_advection">
+                                <a:documentation>Attribute value at each timestep after advection occurs</a:documentation>
+                                <ref name="generic_tensor_particle_attribute_choice"/>
+                              </element>
                             </element>
                             <element name="tensor_attribute_array">
                               <a:documentation>Tensor particle attribute array.</a:documentation>
@@ -609,7 +654,16 @@ This function will only be called after simulation start. To initialise starting
                                   <empty/>
                                 </element>
                               </optional>
-                              <ref name="generic_tensor_particle_attribute_array"/>
+                              <optional>
+                                <element name="value_on_spawn">
+                                  <a:documentation>Attribute value on particle spawn (at the beginning of, or during the simulation)</a:documentation>
+                                  <ref name="generic_tensor_particle_attribute_array"/>
+                                </element>
+                              </optional>
+                              <element name="value_on_advection">
+                                <a:documentation>Attribute value at each timestep after advection occurs</a:documentation>
+                                <ref name="generic_tensor_particle_attribute_array"/>
+                              </element>
                             </element>
                           </choice>
                         </oneOrMore>
@@ -913,13 +967,13 @@ file.</a:documentation>
               </optional>
               <optional>
                 <element name="GLS">
-                  <a:documentation>This is the generic length scale (vertical turbulence mixed layer) model, 
+                  <a:documentation>This is the generic length scale (vertical turbulence mixed layer) model,
 based here on Warner et al 2005, Ocean Modelling 8:81-113,
 which is itself based on the works of Umlauf and Burchard 2003.
 
 The GLS model encodes four individual turbulence closure models which can be chosen via 'option' below.
 
-You will need to make sure that DistanceToTop and DistanceToBottom fields (under geometry/ocean_boundaries) 
+You will need to make sure that DistanceToTop and DistanceToBottom fields (under geometry/ocean_boundaries)
 are switched on, as well as PerturbationDensity.</a:documentation>
                   <element name="option">
                     <a:documentation>The base GLS option:
@@ -1012,7 +1066,7 @@ Make sure the ocean geometry settings are enabled for this option</a:documentati
 Value should be &gt;=0 and &lt; 1. 0 is no relaxation (i.e. always use the
 most up-to-date value) and 0.9 would represent making the current value
 be 0.9*old_value + 0.1*new_value. Default is 0.0
-If being used with adaptivity, ensure you switch on interpolation of the 
+If being used with adaptivity, ensure you switch on interpolation of the
 GLSVerticalDiffusivity and GLSVerticalViscosity fields. You will seg fault
 otherwise.</a:documentation>
                       <ref name="real"/>
@@ -1021,7 +1075,7 @@ otherwise.</a:documentation>
                   <optional>
                     <element name="ocean_parameterisation">
                       <a:documentation>Add extra parameterisation for internal wave breaking at base of MLD. This
-is based on the same parameterisation in NEMO and smooths the TKE down 
+is based on the same parameterisation in NEMO and smooths the TKE down
 the water column based on an exponential function
 Set the two parameters: % of TKE to smooth down and length scale to do this over</a:documentation>
                       <element name="lengthscale">
@@ -1055,7 +1109,7 @@ Set the two parameters: % of TKE to smooth down and length scale to do this over
                     </choice>
                   </element>
                   <element name="scalar_field">
-                    <a:documentation>Generic second equation used in GLS. 
+                    <a:documentation>Generic second equation used in GLS.
 Make sure that the Diffusivity tensor field in here is set to diagnostic/internal.</a:documentation>
                     <attribute name="rank">
                       <value>0</value>
@@ -1779,7 +1833,7 @@ affect the result</a:documentation>
                   </element>
                   <element name="max_damping_value">
                     <a:documentation>Limit the maximum value of damping function values. This helps stability when using low_Re number
-boundary conditions. If not using low_Re boundaries this will have no effect. 
+boundary conditions. If not using low_Re boundaries this will have no effect.
 Recommended value (default): 10.0</a:documentation>
                     <ref name="real"/>
                   </element>
@@ -1850,8 +1904,8 @@ Recommended value (default): 1.3.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <element name="sigma_p">
-                    <a:documentation>The Schmidt number (ratio of viscous diffusion rate to momentum diffusion rate) for 
-massive scalar fields, or Prandtl number (ratio of viscous diffusion rate to thermal diffusion rate) 
+                    <a:documentation>The Schmidt number (ratio of viscous diffusion rate to momentum diffusion rate) for
+massive scalar fields, or Prandtl number (ratio of viscous diffusion rate to thermal diffusion rate)
 for thermal fields. This is used to calculate the turbulent buoyancy term.
 Recommended value (default): 1.0.</a:documentation>
                     <ref name="real"/>
@@ -1868,9 +1922,9 @@ the k-epsilon model
                       <ref name="real"/>
                     </element>
                     <element name="source_term_implementation">
-                      <a:documentation>Each term in the k and epsilon equations can be implemented as either a 
-source or as an absorbtion term. See the manual under 
-'Parameterisations/Turbulent flow modelling and simulation/Reynolds Averaged Navier Stokes (RANS) Modelling/Standard k − ε Turbulence Model/Time Discretisation and Coupling' 
+                      <a:documentation>Each term in the k and epsilon equations can be implemented as either a
+source or as an absorbtion term. See the manual under
+'Parameterisations/Turbulent flow modelling and simulation/Reynolds Averaged Navier Stokes (RANS) Modelling/Standard k − ε Turbulence Model/Time Discretisation and Coupling'
 for more information.</a:documentation>
                       <element name="production_term">
                         <choice>
@@ -1893,10 +1947,10 @@ for more information.</a:documentation>
                     </element>
                   </element>
                   <element name="mass_terms">
-                    <a:documentation>The source terms in the k-epsilon model are calculated before the field is 
+                    <a:documentation>The source terms in the k-epsilon model are calculated before the field is
 solved. The process requires inversion of a mass matrix. This element contains
 options for defining how this is done. For P1 meshes mass lumping can be used,
-for other discretisations the mass matrix can not be easily inverted and so a 
+for other discretisations the mass matrix can not be easily inverted and so a
 solve must be carried out, with solver options specified.</a:documentation>
                     <choice>
                       <element name="lump_mass">
@@ -1911,7 +1965,7 @@ solve must be carried out, with solver options specified.</a:documentation>
                   </element>
                   <optional>
                     <element name="debugging_options">
-                      <a:documentation>produce vtu output of individual kk and eps source terms and set prescribed 
+                      <a:documentation>produce vtu output of individual kk and eps source terms and set prescribed
 source terms for k and epsilon fields (for mms tests)</a:documentation>
                       <element name="source_term_output_fields">
                         <a:documentation>output fields for each of the source terms in the k-epsilon model</a:documentation>
@@ -2065,12 +2119,12 @@ a low-Re boundary condition</a:documentation>
                       </optional>
                       <optional>
                         <element name="zero_reynolds_stress_tensor">
-                          <a:documentation>Enabling this option disables feedback from the k-epsilon model back into 
-the rest of the model. Reynolds stress tensor is set to zero by zeroing 
+                          <a:documentation>Enabling this option disables feedback from the k-epsilon model back into
+the rest of the model. Reynolds stress tensor is set to zero by zeroing
 EddyViscosity and the added source term, based on k, in the momentum equation.
 Hence, Viscosity will always stay as the BackgroundViscosity,
-diffusivities will remain at the relevant BackgroundDiffusivity, and the 
-momentum equation will be as if there were no turbulence model present. 
+diffusivities will remain at the relevant BackgroundDiffusivity, and the
+momentum equation will be as if there were no turbulence model present.
 
 ScalarEddyViscosity is still calculated as normal.</a:documentation>
                           <empty/>
@@ -2222,15 +2276,15 @@ via a compressible equation of state.</a:documentation>
               </optional>
               <optional>
                 <element name="effective_conductivity">
-                  <a:documentation>If this is the fluid phase, 
-the effective conductivity is required 
+                  <a:documentation>If this is the fluid phase,
+the effective conductivity is required
 for the inter-phase heat transfer term.</a:documentation>
                   <ref name="real"/>
                 </element>
               </optional>
               <optional>
                 <element name="specific_heat">
-                  <a:documentation>The specific heat (at constant volume) is required 
+                  <a:documentation>The specific heat (at constant volume) is required
 for the inter-phase heat transfer term.</a:documentation>
                   <ref name="real"/>
                 </element>
@@ -2279,7 +2333,7 @@ for the inter-phase heat transfer term.</a:documentation>
                     <ref name="real_dim_vector"/>
                   </element>
                   <element name="head_flux">
-                    <a:documentation>Python function val(h) takes the head h (=free_surface_point_1-free_surface_point_2) and returns the total flux through turbine (in m^3/s). A return value 
+                    <a:documentation>Python function val(h) takes the head h (=free_surface_point_1-free_surface_point_2) and returns the total flux through turbine (in m^3/s). A return value
 of 0.0 will deactivate the turbine model which results in the dirichlet conditions prescribed at these boundaries.
 A flux value will be outflow for boundary_condition_name_1 and inflow for boundary_condition_name_2 and therefore sign(h)==sign(val(h)) should be true to achieve stability.</a:documentation>
                     <ref name="python_code"/>
@@ -2291,16 +2345,16 @@ A flux value will be outflow for boundary_condition_name_1 and inflow for bounda
                     <a:documentation>Model type</a:documentation>
                     <element name="penalty">
                       <element name="factor">
-                        <a:documentation>Python function val(h) takes the pressure jump h and returns the flux factor between 0 and 1. A return value 
-of 0.0 will deactivate the turbine model which results in the dirichlet conditions prescribed at these boundaries 
+                        <a:documentation>Python function val(h) takes the pressure jump h and returns the flux factor between 0 and 1. A return value
+of 0.0 will deactivate the turbine model which results in the dirichlet conditions prescribed at these boundaries
 while a factor of +INF represents a connected domain.</a:documentation>
                         <ref name="python_code"/>
                       </element>
                     </element>
                     <element name="dg">
                       <element name="factor">
-                        <a:documentation>Python function val(h) takes the pressure jump h and returns the flux factor between 0 and 1. A return value 
-of 0.0 will deactivate the turbine model which results in the dirichlet conditions prescribed at these boundaries 
+                        <a:documentation>Python function val(h) takes the pressure jump h and returns the flux factor between 0 and 1. A return value
+of 0.0 will deactivate the turbine model which results in the dirichlet conditions prescribed at these boundaries
 while a factor of 1 represents a connected domain.</a:documentation>
                         <ref name="python_code"/>
                       </element>
@@ -2358,7 +2412,7 @@ while a factor of 1 represents a connected domain.</a:documentation>
       <a:documentation/>
       <choice>
         <element name="calculate_initial_conditions_from_moments">
-          <a:documentation>Determine initial weighted_abscissa and weights using the PD algorithm and the 
+          <a:documentation>Determine initial weighted_abscissa and weights using the PD algorithm and the
 initial conditions set in the diagnostic moment fields.
 
 In this case it does not matter what is set in the weighted_abscissa and weights
@@ -2369,7 +2423,7 @@ fields initial conditions option</a:documentation>
           <a:documentation>Use initial conditions set in the weighted_abscissa and weights prognostic
 fields
 
-In this case it does not matter what is set in the moment field initial conditions 
+In this case it does not matter what is set in the moment field initial conditions
 options</a:documentation>
           <empty/>
         </element>
@@ -2512,11 +2566,11 @@ options</a:documentation>
       <element name="adv_diff_source_term_interpolation">
         <a:documentation>This option only works if you are using a continuous mesh for the population balance scalar fields.
 A DG mesh will use inverse mass calculated at element level.
-In the population balance DQMOM algorithm all sources for the 
-advection-diffusion equations are calculated at the quadrature points first 
-and then interpolated back to the nodal points. 
-For a continuous mesh, this interpolation is made by inverting the mass matrix. 
-Mass lumping is fairly quick and can be used with 1st order continuous meshes. 
+In the population balance DQMOM algorithm all sources for the
+advection-diffusion equations are calculated at the quadrature points first
+and then interpolated back to the nodal points.
+For a continuous mesh, this interpolation is made by inverting the mass matrix.
+Mass lumping is fairly quick and can be used with 1st order continuous meshes.
 But the error is high for higher order continuous meshes and full mass matrix should be used.</a:documentation>
         <choice>
           <element name="use_mass_lumping">
@@ -2829,7 +2883,7 @@ requires a distinct name for the options dictionary.</a:documentation>
         </optional>
       </element>
       <element name="population_balance_source_terms">
-        <a:documentation>Source terms for the population balance equation like growth, 
+        <a:documentation>Source terms for the population balance equation like growth,
 breakage, aggegation and internal dispersion</a:documentation>
         <optional>
           <element name="growth">
@@ -2910,7 +2964,7 @@ breakage, aggegation and internal dispersion</a:documentation>
                   <empty/>
                 </element>
                 <element name="mcCoy_madras_2003">
-                  <a:documentation>McCoy and Madras (2003) used P(v|v') = 2/v' for v&lt;v' and 0 otherwise, where v stands for volume. 
+                  <a:documentation>McCoy and Madras (2003) used P(v|v') = 2/v' for v&lt;v' and 0 otherwise, where v stands for volume.
 When written in terms of particle diameter, this converts to P(x|x')=(6x^2)/x'^3 for x&lt;x' and 0 otherwise.</a:documentation>
                   <empty/>
                 </element>
@@ -2928,11 +2982,11 @@ for the abscissa and weight transport equations. This requires inversion
 of a matrix that has terms that are a function of the weighted abscissa.
 If any two abscissa happen to lie very close to one another this can cause
 this matrix to be ill-conditioned which can cause large errors or solver
-failures when attempting to invert the matrix. There several options for 
+failures when attempting to invert the matrix. There several options for
 evading this problem:
 
 (a) Set the abscissa and weight source terms to zero at the offending vertex.
-(b) Perturbate the weighted absciss used to construct the matrix until the 
+(b) Perturbate the weighted absciss used to construct the matrix until the
 matrix is no longer ill conditioned and can be inverted.
 (c) Use the source terms of neighbouring cells (not implemented)</a:documentation>
         <element name="required_condition_number">
@@ -2946,12 +3000,12 @@ matrix is no longer ill conditioned and can be inverted.
           </element>
           <element name="perturbate">
             <element name="perturbation">
-              <a:documentation>The amount to perturbate the weighted abscissa. The values are 
+              <a:documentation>The amount to perturbate the weighted abscissa. The values are
 iteratively perturbated by rand(-1,1)*perturbation until the matrix
 exceeds the required condition number. Too low a value can cause
 very long run times but a higher value will lead to larger errors.
-After every ten perturbations at any one grid location a message is 
-printed to the log file noting the difficulties in solving the linear 
+After every ten perturbations at any one grid location a message is
+printed to the log file noting the difficulties in solving the linear
 system.
 Recommended value of 1e-7</a:documentation>
               <ref name="real"/>
@@ -2976,7 +3030,7 @@ weight of approx 1e-10 is used.</a:documentation>
       </optional>
       <optional>
         <element name="scaling_factor_Dia">
-          <a:documentation>Scaling factor to be used for the Sauter Mean Diameter / Mean Diameter calculated in the 
+          <a:documentation>Scaling factor to be used for the Sauter Mean Diameter / Mean Diameter calculated in the
 statistics. It is useful in a non-dimensional implementation of the PBE.</a:documentation>
           <ref name="real"/>
         </element>
@@ -2984,17 +3038,17 @@ statistics. It is useful in a non-dimensional implementation of the PBE.</a:docu
       <optional>
         <element name="submerged_specific_gravity">
           <a:documentation>This is the submerged specific gravity, R, of this population balance
-as a function of internal coordinate, Z. 
+as a function of internal coordinate, Z.
 It will be used in the equation of state.
 
 R(Z) = (rho_c(Z) - rho_a)/(rho_a)
 
-Where: rho_c(Z) is the density of the dispersed phase and rho_a is 
+Where: rho_c(Z) is the density of the dispersed phase and rho_a is
 the ambient fluid density
 
 Must be given as a python function in the form:
 
- def R(Z): 
+ def R(Z):
     # Function code
     return # Return value of R</a:documentation>
           <ref name="python_code"/>
@@ -3012,12 +3066,12 @@ Must be given as a python function in the form:
       </optional>
       <optional>
         <element name="apply_source_as_absorption">
-          <a:documentation>This will apply all source terms for the weights and weighted_abscissa scalar 
+          <a:documentation>This will apply all source terms for the weights and weighted_abscissa scalar
 fields as absorption terms.</a:documentation>
           <optional>
             <element name="include_sponge_region">
-              <a:documentation>For including a sponge region for weights and weighted_abscissas (which are 
-applied as absorption terms) a sponge field is defined which will be analogous to 
+              <a:documentation>For including a sponge region for weights and weighted_abscissas (which are
+applied as absorption terms) a sponge field is defined which will be analogous to
 an absorption term. This field is zero everywhere except where a large absorption
 is present. </a:documentation>
               <element name="sponge_scalar_field_name">
@@ -3031,12 +3085,12 @@ be defined the the same material phase.</a:documentation>
       </optional>
       <optional>
         <element name="apply_source_as_absorption_for_negative_source_only">
-          <a:documentation>This will apply selected source terms for the weights and weighted_abscissa scalar 
+          <a:documentation>This will apply selected source terms for the weights and weighted_abscissa scalar
 fields as absorption terms wherever the source is negative.</a:documentation>
           <optional>
             <element name="include_sponge_region">
-              <a:documentation>For including a sponge region for weights and weighted_abscissas (which are 
-applied as absorption terms) a sponge field is defined which will be analogous to 
+              <a:documentation>For including a sponge region for weights and weighted_abscissas (which are
+applied as absorption terms) a sponge field is defined which will be analogous to
 an absorption term. This field is zero everywhere except where a large absorption
 is present. </a:documentation>
               <element name="sponge_scalar_field_name">
@@ -3057,7 +3111,7 @@ be defined the the same material phase.</a:documentation>
         <element name="scalar_field">
           <a:documentation>A single sediment field with discrete characteristics
 
-Notes: 
+Notes:
 
 - a sinking velocity is required for sediment fields, this can be set for each
 sediment field under prognostic/SinkingVelocity
@@ -3080,7 +3134,7 @@ field
             <ref name="velocity_mesh_choice"/>
             <ref name="prognostic_scalar_field"/>
             <element name="scalar_field">
-              <a:documentation>Sediment bedload diagnostic which records the sediment 
+              <a:documentation>Sediment bedload diagnostic which records the sediment
 deposited through the prescribed boundary.
 
 The units are in unit distances as a depth of sediment.
@@ -3113,7 +3167,7 @@ The units are in unit distances as a depth of sediment.
                   <ref name="prognostic_scalar_field"/>
                   <optional>
                     <element name="disable_calculation">
-                      <a:documentation>Disables calculation of change to bedload due to 
+                      <a:documentation>Disables calculation of change to bedload due to
 erosion/deposition (generally only used for mms testing):</a:documentation>
                       <empty/>
                     </element>
@@ -3122,7 +3176,7 @@ erosion/deposition (generally only used for mms testing):</a:documentation>
               </group>
             </element>
             <element name="scalar_field">
-              <a:documentation>Sediment bedload diagnostic which records the sediment 
+              <a:documentation>Sediment bedload diagnostic which records the sediment
 deposited through the prescribed boundary.
 
 The units are in unit distances/second.</a:documentation>
@@ -3173,12 +3227,12 @@ The units are in unit distances as a depth of sediment.</a:documentation>
             </optional>
             <optional>
               <element name="scalar_field">
-                <a:documentation>This is the unhindered sinking velocity of the sediment particles. 
+                <a:documentation>This is the unhindered sinking velocity of the sediment particles.
 
-With the sinking velocity field set to diagnostic, this field is used, along with the sediment 
-concentration, to calculate the hindered sinking velocity of sediment particles. 
+With the sinking velocity field set to diagnostic, this field is used, along with the sediment
+concentration, to calculate the hindered sinking velocity of sediment particles.
 
-This uses the equation developed by Richardson and Zaki [1954]. 
+This uses the equation developed by Richardson and Zaki [1954].
 
 If the 'SinkingVelocity' is not set to diagnostic, this field will not be used.
 
@@ -3199,7 +3253,7 @@ This should be on the same mesh as the associated SinkingVelocity field.</a:docu
               </element>
             </optional>
             <element name="submerged_specific_gravity">
-              <a:documentation>This is the submerged specific gravity, R, of this sediment. 
+              <a:documentation>This is the submerged specific gravity, R, of this sediment.
 It will be used with the sediment concentration in the equation
 of state, as well as in erosion algorithms.
 
@@ -3224,7 +3278,7 @@ Diameter must be specified here or under each sediment class.</a:documentation>
             <optional>
               <element name="erodability">
                 <a:documentation>Erodability of the sediment grain. A value of one means that only the
-critical shear stress is used to determine if a grain can be put into 
+critical shear stress is used to determine if a grain can be put into
 suspension. A value of zero means these grains can never be resuspended.
 Default is 1.</a:documentation>
                 <ref name="real"/>
@@ -3242,7 +3296,7 @@ criterion.</a:documentation>
         </element>
       </zeroOrMore>
       <element name="scalar_field">
-        <a:documentation>The median sediment diameter in the active layer of the bed. 
+        <a:documentation>The median sediment diameter in the active layer of the bed.
 Required for some reentrainment algorithms.</a:documentation>
         <attribute name="rank">
           <value>0</value>
@@ -3283,7 +3337,7 @@ bed. Required for some reentrainment algorithms</a:documentation>
         <element name="tensor_field">
           <a:documentation>ZeroSedimentConcentrationViscosity field:
 
-Field for the viscosity of this a fluid with zero 
+Field for the viscosity of this a fluid with zero
 concentration of sediment.
 Required if using a diagnostic viscosity
 in a sediment problem where sediment concentration
@@ -3588,7 +3642,7 @@ quadrature not the number of surface gauss points</a:documentation>
         <optional>
           <element name="controlvolume_surface_degree">
             <a:documentation>Sets the degree of quadrature on each quadrilateral
-face of the control volume. 
+face of the control volume.
 
 Defaults to 1 if
 unselected which is the same as pre-new options
@@ -3616,11 +3670,11 @@ family_grundmann_moeller allows for degree up to
       </element>
       <optional>
         <element name="disable_geometric_data_cache">
-          <a:documentation>This causes the change of variables associated with each element in 
-the mesh to be stored rather than calculated every time it is used. 
-This should speed up computations at a cost of some memory. 
+          <a:documentation>This causes the change of variables associated with each element in
+the mesh to be stored rather than calculated every time it is used.
+This should speed up computations at a cost of some memory.
 
-The cache is automatically regenerated after mesh movement or 
+The cache is automatically regenerated after mesh movement or
 adaptivity and is automatically disabled for non-linear positions fields.</a:documentation>
           <empty/>
         </element>
@@ -3703,7 +3757,7 @@ i.e. the free surface or rigid lid.</a:documentation>
     <element name="lagrangian_timestepping">
       <element name="subcycles">
         <a:documentation>Number of subdivisions of the timestep
-increase this if you are not happy with your 
+increase this if you are not happy with your
 detector trajectory accuracy, or if particles
 are jumping out of the domain a lot</a:documentation>
         <ref name="integer"/>
@@ -3825,13 +3879,13 @@ guided search particle tracking</a:documentation>
       <a:documentation>Three options for calculation of bed shear stress are available:</a:documentation>
       <choice>
         <element name="drag_coefficient">
-          <a:documentation>density*drag_coeff*|u|*u 
+          <a:documentation>density*drag_coeff*|u|*u
 This is calculated at all boundaries</a:documentation>
           <ref name="real"/>
         </element>
         <element name="velocity_gradient">
           <a:documentation>nu * (grad(u) + grad(u).T)
-This uses the velocity gradient at the boundaries to calculate the 
+This uses the velocity gradient at the boundaries to calculate the
 bed shear stress. Valid for non parameterised velocity boundaries.</a:documentation>
           <empty/>
         </element>
@@ -4071,7 +4125,7 @@ If off then fluidity computes the tangent.  </a:documentation>
           <element name="debugging_mode">
             <a:documentation>this will calculate the determinant of the
 rotation matrix for every boundary node
-and dump a vtu with the node 
+and dump a vtu with the node
 normals and tangenials 1/2</a:documentation>
             <empty/>
           </element>
@@ -4153,7 +4207,7 @@ stress condition, which includes a viscosity term. When using
 this option a prognostic FreeSurface field is required.</a:documentation>
               <optional>
                 <element name="explicit">
-                  <a:documentation>Treat the free surface evolution equation separately from the momentum equation.  
+                  <a:documentation>Treat the free surface evolution equation separately from the momentum equation.
 i.e. stagger the solves.
 
 Requires a prognostic FreeSurface field.</a:documentation>
@@ -4189,8 +4243,8 @@ normal_stress=0) we apply p=p_external (resp. normal_stress=p_external) where p_
           </optional>
           <optional>
             <element name="surface_stabilisation">
-              <a:documentation>This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far. 
-Note: Once activated, the stabilisation term will occur in all free surface areas in the domain. 
+              <a:documentation>This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far.
+Note: Once activated, the stabilisation term will occur in all free surface areas in the domain.
 IN DEVELOPMENT</a:documentation>
               <element name="scale_factor">
                 <a:documentation>Scale factor for the surface stabilisation.</a:documentation>
@@ -4244,7 +4298,7 @@ Replaces windy.dat and windy.py</a:documentation>
             <a:documentation>Wind forcing with user specified wind stress
 
 &lt;b&gt; Note that the stress needs to be specified
-using the same density units as the reference_density 
+using the same density units as the reference_density
 under equation of state.&lt;/b&gt;So if you use the recommended
 non-dimensional value of 1.0 for reference_density and
 your calculated stress is in kg m^-1s^-2 and the dimensional
@@ -4276,14 +4330,14 @@ Suggested value: 4.0e-4</a:documentation>
               <ref name="input_choice_real"/>
             </element>
             <element name="density_air">
-              <a:documentation>Density of air. 
+              <a:documentation>Density of air.
 
 &lt;b&gt;Note that you have to specify
-this density in the same units as the 
+this density in the same units as the
 reference_density under equation of state.&lt;/b&gt;
 So with a typicial value of rho_air=1.3 kgm^-3
-and rho_water=1000 kgm^-3, if you fill in the 
-recommended (non-dimensional) value of 1.0 for 
+and rho_water=1000 kgm^-3, if you fill in the
+recommended (non-dimensional) value of 1.0 for
 reference_density, this field needs to be 1.3e-3.</a:documentation>
               <ref name="real"/>
             </element>
@@ -4332,7 +4386,7 @@ Note: Positive points out of the domain, negative into the domain.</a:documentat
         <ref name="input_choice_real_bc_component"/>
       </element>
       <element name="type">
-        <a:documentation>Flux boundary condition. 
+        <a:documentation>Flux boundary condition.
 
 Weakly enforces a flux across a boundary</a:documentation>
         <attribute name="name">
@@ -4425,7 +4479,7 @@ used in the nonlinear iteration.
         <element name="debugging_vtus">
           <a:documentation>Write out some extra debugging vtu files that can be used
 to analyse what goes on in the pressure projection steps.
-WARNING: this may create a huge amount of vtu files, as 
+WARNING: this may create a huge amount of vtu files, as
 multiple files are written per nonlinear iteration.</a:documentation>
           <empty/>
         </element>
@@ -4722,7 +4776,7 @@ during nonlinear iterations
 (if /timestepping/nonlinear_iterations and
 /timestepping/nonlinear_iterations/tolerance are
 enabled).
-Also specifies whether the field is added to the 
+Also specifies whether the field is added to the
 convergence file (if /io/convergence_file is enabled).</a:documentation>
       <choice>
         <element name="include_in_convergence">
@@ -4747,7 +4801,7 @@ during nonlinear iterations
 (if /timestepping/nonlinear_iterations and
 /timestepping/nonlinear_iterations/tolerance are
 enabled).
-Also specifies whether the field is added to the 
+Also specifies whether the field is added to the
 convergence file (if /io/convergence_file is enabled).</a:documentation>
       <choice>
         <element name="include_in_convergence">
@@ -4759,7 +4813,7 @@ enabled) and file (if /io/convergence_file is enabled)</a:documentation>
           <ref name="comment"/>
         </element>
         <element name="exclude_components_from_convergence">
-          <a:documentation>Include just the magnitude of this field 
+          <a:documentation>Include just the magnitude of this field
 in convergence testing
 (if /timestepping/nonlinear_iterations and
 /timestepping/nonlinear_iterations/tolerance are
@@ -4810,7 +4864,7 @@ in steady state testing
           <ref name="comment"/>
         </element>
         <element name="exclude_components_from_steady_state">
-          <a:documentation>Include just the magnitude of this field 
+          <a:documentation>Include just the magnitude of this field
 in steady state testing
 (if /timestepping/steady_state is
 enabled)
@@ -4857,7 +4911,7 @@ i.e. excluding the components</a:documentation>
     </element>
   </define>
   <!--
-    Detector output defaults on for prognostic and diagnostic fields, 
+    Detector output defaults on for prognostic and diagnostic fields,
     off for prescribed.
   -->
   <define name="prognostic_detector_options">
@@ -4946,7 +5000,8 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
-            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <a:documentation>Store attribute values from previous timestep on particles.
+Irrelevant for "value_on_spawn".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
@@ -4999,7 +5054,8 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
-            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <a:documentation>Store attribute values from previous timestep on particles.
+Irrelevant for "value_on_spawn".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
@@ -5061,7 +5117,8 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
-            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <a:documentation>Store attribute values from previous timestep on particles.
+Irrelevant for "value_on_spawn".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
@@ -5122,7 +5179,8 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
-            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <a:documentation>Store attribute values from previous timestep on particles.
+Irrelevant for "value_on_spawn".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
@@ -5179,7 +5237,8 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
-            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <a:documentation>Store attribute values from previous timestep on particles.
+Irrelevant for "value_on_spawn".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
@@ -5245,7 +5304,8 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
-            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <a:documentation>Store attribute values from previous timestep on particles.
+Irrelevant for "value_on_spawn".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
@@ -5408,7 +5468,7 @@ field, without the no_normal_stress_option.
 It gives you a full dimensional field (constant over the vertical)
 of the free surface elevation.
 
-* equation type ShallowWater for Velocity. It simply divides 
+* equation type ShallowWater for Velocity. It simply divides
 Pressure by g, the gravitational constant.</a:documentation>
             <ref name="internal_algorithm"/>
             <ref name="pressure_mesh_choice">
@@ -5542,7 +5602,7 @@ of the wetting and drying alpha coefficient.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>If enabled, decomposes Pressure by solving for the balanced part of 
+        <a:documentation>If enabled, decomposes Pressure by solving for the balanced part of
 Pressure using a "geopressure" solver:
 
   f = - grad p_gp + g
@@ -5620,7 +5680,7 @@ for vbp.</a:documentation>
         <a:documentation>FoamVelocityPotential field:
 
 Required in foam flow simulations where the foam velocity is not a
-prescribed field. It solves Laplace's equation for a scalar potential, 
+prescribed field. It solves Laplace's equation for a scalar potential,
 (the foam velocity is then obtained as the gradient of the potential).</a:documentation>
         <attribute name="rank">
           <value>0</value>
@@ -5810,7 +5870,7 @@ for fields within the same material_phase.</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
-        <a:documentation>Calculate the stream function of 2D incompressible flow. Note 
+        <a:documentation>Calculate the stream function of 2D incompressible flow. Note
 that this *only* makes sense for proper 2D (not pseudo-2D) simulations.
 Requires a continuous mesh.</a:documentation>
         <attribute name="rank">
@@ -6075,7 +6135,7 @@ lambda = 1.71/(bubble_radius)^2</a:documentation>
         </choice>
       </element>
       <!--
-        
+
         Insert new prescribed scalar fields here using the template:
                element scalar_field {
                    attribute rank { "0" },
@@ -6090,11 +6150,11 @@ lambda = 1.71/(bubble_radius)^2</a:documentation>
                       }
                    )
                }
-        
+
         - - Last is a list of fields that are primarily diagnostic,
            but can be aliased. An example is Tidal Range.
         - - The list is in order of most frequently used.
-        
+
       -->
       <element name="___Diagnostic_Fields_Below___">
         <a:documentation>Diagnostic scalar fields below this</a:documentation>
@@ -6220,7 +6280,7 @@ c.f. Winters 1995, Journal of Fluid Mechanics</a:documentation>
         <a:documentation>Richardson Number:
 
  Ri = \frac{N^2}{(\frac{\partial u}{\partial z})^2 + (\frac{\partial u}{\partial z})^2}
-with 
+with
  N^2 = -\frac{g}{\rho_0}\frac{\partial \rho}{\partial z}
 
 Limitations:
@@ -6342,7 +6402,7 @@ calculated in a discontinuous function space.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>The equilibrium pressure perturbation 
+        <a:documentation>The equilibrium pressure perturbation
 
 Further details to be added
 Currently a test field</a:documentation>
@@ -6364,7 +6424,7 @@ Currently a test field</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>The equilibrium pressure perturbation 
+        <a:documentation>The equilibrium pressure perturbation
 
 Further details to be added
 Currently a test field</a:documentation>
@@ -6450,7 +6510,7 @@ No repointing is done from this field to DENTRAF.</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
-        <a:documentation>add a MaterialVolume scalar_field to calculate the spatially varying 
+        <a:documentation>add a MaterialVolume scalar_field to calculate the spatially varying
 volume of a material (requires a MaterialVolumeFraction)</a:documentation>
         <attribute name="rank">
           <value>0</value>
@@ -6470,7 +6530,7 @@ volume of a material (requires a MaterialVolumeFraction)</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>add a MaterialMass scalar_field to calculate the spatially varying 
+        <a:documentation>add a MaterialMass scalar_field to calculate the spatially varying
 mass of a material (requires a MaterialVolumeFraction and either a
 MaterialDensity field or a reference_density in a linear eos)</a:documentation>
         <attribute name="rank">
@@ -6534,7 +6594,7 @@ of state of this material.</a:documentation>
       </element>
       <element name="scalar_field">
         <a:documentation>Calculates the BulkMaterialPressure based on the MaterialDensity
-and MaterialVolumeFraction (and MaterialInternalEnergy if appropriate) 
+and MaterialVolumeFraction (and MaterialInternalEnergy if appropriate)
 for the equation of state of all materials.</a:documentation>
         <attribute name="rank">
           <value>0</value>
@@ -6605,7 +6665,7 @@ This assumes that the viscosity used is the dynamic viscosity.</a:documentation>
 Peclet Number Pe = U*dx/2*diffusivity
 
 Also see the test case 'grid_peclet_number'
-if you wish to see the effect of changing the 
+if you wish to see the effect of changing the
 diffusivity on a 1D, cg-discretised tracer-field
 
 Adapting to this field is not recommended</a:documentation>
@@ -6688,9 +6748,9 @@ where rho is the Density scalar field
 
 BE AWARE OF WHAT IS IN THE DENSITY SCALAR FIELD
 
-In the Boussinesq approximation 
+In the Boussinesq approximation
 rho -&gt; rho_0 (reference density)
-to get this use the square of the 
+to get this use the square of the
 L2norm of the velocity field
 from the stat file and multiply by
 1/2*rho_0 in post-processing</a:documentation>
@@ -6789,7 +6849,7 @@ Limitations:
   PE_b = rho*g*z_star
 
 where rho is the Density scalar field and
-z_star is the isopycnal coordinate. 
+z_star is the isopycnal coordinate.
 
 
 BE AWARE OF WHAT IS IN THE DENSITY SCALAR FIELD
@@ -7192,8 +7252,8 @@ Sums up the divergence of each phase's apparent velocity, i.e. \sum{ div(vfrac*u
           </optional>
           <optional>
             <element name="test_with_cv_dual">
-              <a:documentation>Test the divergence operator with the CV dual function space. 
-This is useful if the pressure is solved with a CV discretisation 
+              <a:documentation>Test the divergence operator with the CV dual function space.
+This is useful if the pressure is solved with a CV discretisation
 or with a CG but with the continuity tested with the CV dual. </a:documentation>
               <ref name="comment"/>
             </element>
@@ -7302,11 +7362,11 @@ representation of velocity and an les model have been selected.</a:documentation
         </choice>
       </element>
       <!--
-        
+
         - - List of fields that are primarily prognostic,
            but can be aliased.
         - - The list is in order of most frequently used.
-        
+
       -->
       <element name="___Prognostic_fields_below___">
         <a:documentation>Prescribed vector fields below this</a:documentation>
@@ -7327,11 +7387,11 @@ associated with buoyancy. Requires a discontinuous mesh.</a:documentation>
         </element>
       </element>
       <!--
-        
+
         - - List of fields that are primarily prescribed,
            but can be aliased.
         - - The list is in order of most frequently used.
-        
+
       -->
       <element name="___Prescribed_fields_below___">
         <a:documentation>Prescribed vector fields below this</a:documentation>
@@ -7340,7 +7400,7 @@ associated with buoyancy. Requires a discontinuous mesh.</a:documentation>
       <element name="vector_field">
         <a:documentation>MaterialVelocity field.  Used to impose a velocity on a material
 in combination with the imposed_material_velocity_absorption_algorithm
-for VelocityAbsorption and imposed_material_velocity_source_algorithm 
+for VelocityAbsorption and imposed_material_velocity_source_algorithm
 for VelocitySource.</a:documentation>
         <attribute name="rank">
           <value>1</value>
@@ -7359,7 +7419,7 @@ for VelocitySource.</a:documentation>
         </choice>
       </element>
       <!--
-        
+
         Insert new prescribed vector fields here using the template:
                element vector_field {
                    attribute rank { "1" },
@@ -7374,11 +7434,11 @@ for VelocitySource.</a:documentation>
                       }
                    )
                }
-        
+
         - - Last is a list of fields that are primarily diagnostic,
            but can be aliased. An example is Tidal Range.
         - - The list is in order of most frequently used.
-        
+
       -->
       <element name="___Diagnostic_Fields_Below___">
         <a:documentation>Diagnostic vector fields below this</a:documentation>
@@ -7444,9 +7504,9 @@ Field must be in this material_phase.</a:documentation>
         </choice>
       </element>
       <element name="vector_field">
-        <a:documentation>Foam Velocity field. 
-Required for simulations of foam flow and liquid drainage in foams. 
-If diagnostic, a FoamVelocityPotential field is required, 
+        <a:documentation>Foam Velocity field.
+Required for simulations of foam flow and liquid drainage in foams.
+If diagnostic, a FoamVelocityPotential field is required,
 and the Foam Velocity is obtained by taking its gradient.</a:documentation>
         <attribute name="rank">
           <value>1</value>
@@ -7474,7 +7534,7 @@ and the Foam Velocity is obtained by taking its gradient.</a:documentation>
       </element>
       <element name="vector_field">
         <a:documentation>Foam Liquid Content times Velocity field.
-Its surface integral gives the liquid 
+Its surface integral gives the liquid
 volumetric flow in the flowing foam </a:documentation>
         <attribute name="rank">
           <value>1</value>
@@ -7582,7 +7642,7 @@ Field must be in this material_phase.</a:documentation>
       </element>
       <element name="vector_field">
         <a:documentation>LinearMomentum field.
- p = \rho*u 
+ p = \rho*u
 (where p is the linear momentum, \rho the density and u the velocity)</a:documentation>
         <attribute name="rank">
           <value>1</value>
@@ -7672,7 +7732,7 @@ Assumes both fields are on the same mesh as the AbsoluteDifference field.</a:doc
       <element name="vector_field">
         <a:documentation>Bed Shear Stress
 
-This diagnostic vector field is only calculated over surface elements/nodes, 
+This diagnostic vector field is only calculated over surface elements/nodes,
 interior nodes will have zero value.</a:documentation>
         <attribute name="rank">
           <value>1</value>
@@ -7863,11 +7923,11 @@ algorithm option).</a:documentation>
         </choice>
       </element>
       <!--
-        
+
         - - Second is a list of tensor fields that are primarily prescribed,
            but can be aliased.
         - - The list is in order of most frequently used.
-        
+
       -->
       <element name="___Prescribed_fields_below___">
         <a:documentation>Prescribed scalar fields below this</a:documentation>
@@ -7901,7 +7961,7 @@ in a multimaterial simulation.</a:documentation>
         </choice>
       </element>
       <!--
-        
+
         Insert new prescribed tensor fields here using the template:
                element tensor_field {
                    attribute rank { "2" },
@@ -7916,11 +7976,11 @@ in a multimaterial simulation.</a:documentation>
                       }
                    )
                }|
-        
+
         - - Last is a list of fields that are primarily diagnostic,
            but can be aliased.
         - - The list is in order of most frequently used.
-        
+
       -->
       <element name="___Diagnostic_Fields_Below___">
         <a:documentation>Diagnostic tensor fields below this</a:documentation>
@@ -8000,8 +8060,8 @@ Defaults to -huge(0.0)*epsilon(0.0) if not set.</a:documentation>
     </choice>
   </define>
   <!--
-    cv limiter options that 
-    have NO reliance on any CFL field. 
+    cv limiter options that
+    have NO reliance on any CFL field.
   -->
   <define name="limiter_options_excluding_cfl">
     <choice>
@@ -8072,7 +8132,7 @@ simplex element meshes and to a locally_bound_upwind_value for cube
 element meshes.
 
 This method projects the upwind value from a point in the element just
-upwind of the node pair straddling the face.  It is otherwise known as 
+upwind of the node pair straddling the face.  It is otherwise known as
 anisotropic limiting.
 This is only available on simplex meshes as it involes a search around
 the donor node to find the upwind element.</a:documentation>
@@ -8365,10 +8425,10 @@ divided by the total volume of the domain</a:documentation>
         </element>
       </choice>
       <element name="mixing_bin_bounds">
-        <a:documentation>The values of the bounds of the bins 
-e.g. the values -1.5 0.0 1.5 2.0 will return 4 bins 
+        <a:documentation>The values of the bounds of the bins
+e.g. the values -1.5 0.0 1.5 2.0 will return 4 bins
 and the fraction of the field in each bin with,
--1.5&lt;=field&lt;0.0, 0.0&lt;=field&lt;1.5, 1.5&lt;=field&lt;2.0, 2.0&lt;=field, 
+-1.5&lt;=field&lt;0.0, 0.0&lt;=field&lt;1.5, 1.5&lt;=field&lt;2.0, 2.0&lt;=field,
 will be calculated.  </a:documentation>
         <choice>
           <element name="constant">
@@ -8588,7 +8648,7 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
               </optional>
               <optional>
                 <element name="scalar_field">
-                  <a:documentation>Temperature of the far field, which is "melt_LayerLength" away from the ice. 
+                  <a:documentation>Temperature of the far field, which is "melt_LayerLength" away from the ice.
 This variable feeds into the three equations. </a:documentation>
                   <attribute name="rank">
                     <value>0</value>
@@ -8622,7 +8682,7 @@ This variable feeds into the three equations. </a:documentation>
               </optional>
               <optional>
                 <element name="scalar_field">
-                  <a:documentation>Pressure used in the three equations. 
+                  <a:documentation>Pressure used in the three equations.
 We need to use the pressure at the ice-ocean interface.</a:documentation>
                   <attribute name="rank">
                     <value>0</value>
@@ -8768,7 +8828,7 @@ the ERA-40 reanalysis (http://data-portal.ecmwf.int/data/d/era40_daily/)</a:docu
               <choice>
                 <element name="type">
                   <a:documentation>Bulk formulae from Large and Yeager (2004)
-Large, W. G. &amp; Yeager, S. G. Diurnal to decadal global forcing 
+Large, W. G. &amp; Yeager, S. G. Diurnal to decadal global forcing
 for ocean and sea-ice models: The data sets and flux climatologies. NCAR TR.</a:documentation>
                   <attribute name="name">
                     <value>NCAR</value>
@@ -8776,8 +8836,8 @@ for ocean and sea-ice models: The data sets and flux climatologies. NCAR TR.</a:
                   <empty/>
                 </element>
                 <element name="type">
-                  <a:documentation>Bulk formulae from Fairall et al (2003). 
-Bulk Parameterization of Air–Sea Fluxes: Updates and 
+                  <a:documentation>Bulk formulae from Fairall et al (2003).
+Bulk Parameterization of Air–Sea Fluxes: Updates and
 Verification for the COARE Algorithm Journal of Climate, 2003, 16, 571-591</a:documentation>
                   <attribute name="name">
                     <value>COARE</value>
@@ -9111,13 +9171,13 @@ that uses a constant beta value</a:documentation>
           <a:documentation>A simple model of phytoplankton, zooplankton, general nutrient and detritus. </a:documentation>
           <choice>
             <element name="source_and_sink_algorithm">
-              <a:documentation>Python code specifying the source and sink relationships 
-between the biological tracers. This is usually achieved by 
+              <a:documentation>Python code specifying the source and sink relationships
+between the biological tracers. This is usually achieved by
 importing fluidity.ocean_biology and calling a scheme from there. </a:documentation>
               <ref name="python_code"/>
             </element>
             <element name="disable_sources_and_sinks">
-              <a:documentation>Do not calculate sources and sinks. 
+              <a:documentation>Do not calculate sources and sinks.
 This option is generally only useful for testing. </a:documentation>
               <empty/>
             </element>
@@ -9143,15 +9203,15 @@ This option is generally only useful for testing. </a:documentation>
           </element>
         </element>
         <element name="six_component">
-          <a:documentation>6 component biology model, which models Nitrates, Ammonium, 
+          <a:documentation>6 component biology model, which models Nitrates, Ammonium,
 Phytoplankton, Zooplankton, Detritus and Chlorophyll.
 
 These fields must be enabled in the material phase
 
 Based on the equations in
-Popova, E. E.; Coward, A. C.; Nurser, G. A.; de Cuevas, B.; Fasham, M. J. R. &amp; Anderson, T. R. 
-Mechanisms controlling primary and new production in a global ecosystem model - Part I: 
-Validation of the biological simulation Ocean Science, 2006, 2, 249-266. 
+Popova, E. E.; Coward, A. C.; Nurser, G. A.; de Cuevas, B.; Fasham, M. J. R. &amp; Anderson, T. R.
+Mechanisms controlling primary and new production in a global ecosystem model - Part I:
+Validation of the biological simulation Ocean Science, 2006, 2, 249-266.
 DOI: 10.5194/os-2-249-2006</a:documentation>
           <choice>
             <element name="source_and_sink_algorithm">
@@ -9391,7 +9451,7 @@ Automatic when projecting a discontinuous field</a:documentation>
                 <element name="test_divergence_with_cv_dual">
                   <a:documentation>Test the divergence equation with the control volume dual mesh
 of the finite element lagrange multiplier mesh.
-This will make the lagrange multiplier matrix non symmetric which must be 
+This will make the lagrange multiplier matrix non symmetric which must be
 considered when selecting the lagrange multiplier  solver options.</a:documentation>
                   <ref name="comment"/>
                 </element>

@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -47,7 +47,7 @@ module detector_tools
   use pickers
 
   implicit none
-  
+
   private
 
   public :: insert, allocate, deallocate, copy, move, move_all, remove, &
@@ -108,15 +108,15 @@ module detector_tools
      module procedure detector_value_scalar, detector_value_vector
   end interface
 
-contains 
+contains
 
   subroutine detector_allocate_from_params(new_detector, ndims, local_coord_count, attribute_size)
     type(detector_type),  pointer, intent(out) :: new_detector
     integer, intent(in) :: ndims, local_coord_count
     integer, dimension(3), optional, intent(in) :: attribute_size !array to hold size of attributes
-      
+
     assert(.not. associated(new_detector))
-      
+
     ! allocate the memory for the new detector
     if (.not. associated(new_detector)) then
        allocate(new_detector)
@@ -133,32 +133,32 @@ contains
        allocate(new_detector%old_attributes(0))
        allocate(new_detector%old_fields(0))
     end if
-      
+
     assert(associated(new_detector))
-      
+
   end subroutine detector_allocate_from_params
-    
+
   subroutine detector_allocate_from_detector(new_detector, old_detector)
     type(detector_type), pointer, intent(in) :: old_detector
     type(detector_type),  pointer, intent(out) :: new_detector
-      
+
     integer :: ndims, local_coord_count
     integer, dimension(3) :: attribute_size !array to hold size of attributes
-      
+
     ndims = size(old_detector%position)
     local_coord_count = size(old_detector%local_coords)
     attribute_size(1) = size(old_detector%attributes)
     attribute_size(2) = size(old_detector%old_attributes)
     attribute_size(3) = size(old_detector%old_fields)
-      
+
     ! allocate the memory for the new detector
     call detector_allocate_from_params(new_detector, ndims, local_coord_count, attribute_size)
-      
+
   end subroutine detector_allocate_from_detector
-    
+
   subroutine detector_deallocate(detector)
     type(detector_type), pointer :: detector
-      
+
     if(associated(detector)) then
        if(allocated(detector%local_coords)) then
           deallocate(detector%local_coords)
@@ -211,7 +211,7 @@ contains
 
     ! Deallocate move_parameters
     parameters => detector_list%move_parameters
-    if (associated(parameters)) then 
+    if (associated(parameters)) then
        if (allocated(parameters%timestep_weights)) then
           deallocate(parameters%timestep_weights)
        end if
@@ -224,7 +224,7 @@ contains
 
   subroutine temp_list_deallocate(detector_list)
     ! Removes all detectors from the temporary list
-    
+
     type(detector_linked_list), pointer :: detector_list
     type(detector_type), pointer :: detector
     type(detector_type), pointer :: temp_detector
@@ -239,18 +239,18 @@ contains
     end do
 
   end subroutine temp_list_deallocate
-    
+
   subroutine detector_copy(new_detector, old_detector)
     ! Copies all the information from the old detector to
     ! the new detector
     type(detector_type), pointer, intent(in) :: old_detector
     type(detector_type),  pointer :: new_detector
-      
+
     new_detector%position = old_detector%position
     new_detector%element = old_detector%element
     new_detector%id_number = old_detector%id_number
     new_detector%local_coords=old_detector%local_coords
-      
+
   end subroutine detector_copy
 
   subroutine insert_into_detector_list(detector, current_list)
@@ -259,8 +259,8 @@ contains
     type(detector_type), pointer :: detector
 
     if (current_list%length == 0) then
-       current_list%first => detector 
-       current_list%last => detector 
+       current_list%first => detector
+       current_list%last => detector
        current_list%first%previous => null()
        current_list%last%next => null()
        current_list%length = 1
@@ -282,8 +282,8 @@ contains
     type(detector_type), pointer :: detector
 
     if (current_list%length == 0) then
-       current_list%first => detector 
-       current_list%last => detector 
+       current_list%first => detector
+       current_list%last => detector
        current_list%first%temp_previous => null()
        current_list%last%temp_next => null()
        current_list%length = 1
@@ -298,7 +298,7 @@ contains
   end subroutine temp_list_insert
 
   subroutine remove_detector_from_list(detector, detector_list)
-    !! Removes the detector from the list, 
+    !! Removes the detector from the list,
     !! but does not deallocated it
     type(detector_linked_list), intent(inout) :: detector_list
     type(detector_type), pointer :: detector
@@ -351,13 +351,13 @@ contains
   end subroutine temp_list_remove
 
   subroutine delete_detector(detector, detector_list)
-    ! Removes and deallocates the given detector 
+    ! Removes and deallocates the given detector
     ! and outputs the next detector in the list as detector
     type(detector_type), pointer :: detector
     type(detector_linked_list), intent(inout), optional :: detector_list
-    
+
     type(detector_type), pointer :: temp_detector
-    
+
     if (present(detector_list)) then
        temp_detector => detector
        detector => detector%next
@@ -366,7 +366,7 @@ contains
     else
        call deallocate(detector)
     end if
-      
+
   end subroutine delete_detector
 
   subroutine move_detector(detector, from_list, to_list)
@@ -376,7 +376,7 @@ contains
     type(detector_linked_list), intent(inout) :: to_list
 
     call remove(detector, from_list)
-    call insert(detector, to_list)  
+    call insert(detector, to_list)
 
   end subroutine move_detector
 
@@ -388,19 +388,19 @@ contains
 
     do while (associated(from_list%first))
        detector => from_list%first
-       call move(detector, from_list, to_list)   
+       call move(detector, from_list, to_list)
     end do
 
   end subroutine move_all_detectors
 
   subroutine delete_all_detectors(detector_list)
-    ! Remove and deallocate all detectors in a list   
+    ! Remove and deallocate all detectors in a list
     type(detector_linked_list), intent(inout) :: detector_list
     type(detector_type), pointer :: detector
 
     detector => detector_list%first
     do while (associated(detector))
-       call delete(detector,detector_list) 
+       call delete(detector,detector_list)
     end do
 
   end subroutine delete_all_detectors
@@ -600,7 +600,7 @@ contains
     real :: value
     type(scalar_field), intent(in) :: sfield
     type(detector_type), intent(in) :: detector
-    
+
     assert(detector%element>0)
     value = eval_field(detector%element, sfield, detector%local_coords)
 
@@ -611,7 +611,7 @@ contains
     type(vector_field), intent(in) :: vfield
     type(detector_type), intent(in) :: detector
     real, dimension(vfield%dim) :: value
-    
+
     assert(detector%element>0)
     value = eval_field(detector%element, vfield, detector%local_coords)
 
@@ -619,15 +619,15 @@ contains
 
   subroutine set_detector_coords_from_python(values, ndete, func, time)
     !!< Given a list of positions and a time, evaluate the python function
-    !!< specified in the string func at those points. 
+    !!< specified in the string func at those points.
     real, dimension(:,:), target, intent(inout) :: values
     !! Func may contain any python at all but the following function must
     !! be defined:
     !!  def val(t)
-    !! where t is the time. The result must be a float. 
+    !! where t is the time. The result must be a float.
     character(len=*), intent(in) :: func
     real :: time
-    
+
     real, dimension(:), pointer :: lvx,lvy,lvz
     real, dimension(0), target :: zero
     integer :: stat, dim, ndete
@@ -649,6 +649,7 @@ contains
          lvx, lvy, lvz, stat)
 
     if (stat/=0) then
+      ! FIX ME - Does not print
       ewrite(-1, *) "Python error, Python string was:"
       ewrite(-1 , *) trim(func)
       FLExit("Dying")
@@ -774,6 +775,7 @@ contains
            size(attributes,2), lvx, lvy, lvz, time, dt, attributes, stat)
     end if
     if (stat/=0) then
+      ! FIX ME - Does not print
       ewrite(-1, *) "Python error, Python string was:"
       ewrite(-1 , *) trim(func)
       FLExit("Dying")
@@ -784,7 +786,7 @@ contains
   !! specified in the string func at that location.
   subroutine set_particle_scalar_attribute_from_python_fields(particle_list, state, positions, lcoords, ele, natt, &
        attributes, old_attr_names, old_attr_counts, old_attr_Dims, old_attributes, field_names, field_counts, old_field_names, &
-       old_field_counts, func, time, dt, is_array)
+       old_field_counts, func, time, dt, is_array, first_newly_init_part)
     !! Particle list for which to evaluate the function
     type(detector_linked_list), intent(in) :: particle_list
     !! Model state structure
@@ -828,6 +830,8 @@ contains
     real, intent(in) :: dt
     !! Whether this is an array-valued attribute
     logical, intent(in) :: is_array
+    !> Pointer to the first newly initialised particle
+    type(detector_type), pointer, optional :: first_newly_init_part
 
     ! locals
     integer :: i, j, field_idx
@@ -867,7 +871,12 @@ contains
          field_vals, dim)
 
     ! copy old fields off particles
-    particle => particle_list%first
+    if (present(first_newly_init_part)) then
+      particle => first_newly_init_part
+    else
+      particle => particle_list%first
+    end if
+
     do i = 1, nparts
       old_field_vals(:,i) = particle%old_fields(:)
       particle => particle%next
@@ -877,9 +886,10 @@ contains
          lvx, lvy, lvz, time, dt, field_counts, field_names, field_vals, old_field_counts, old_field_names, &
          old_field_vals, old_attr_counts, old_attr_names, old_attr_dims, old_attributes, is_array, attributes, stat)
     if (stat/=0) then
-       ewrite(-1, *) "Python error, Python string was:"
-       ewrite(-1 , *) trim(func)
-       FLExit("Dying")
+      ! FIX ME - Does not print
+      ewrite(-1, *) "Python error, Python string was:"
+      ewrite(-1 , *) trim(func)
+      FLExit("Dying")
     end if
 
     deallocate(field_vals)
@@ -936,6 +946,7 @@ contains
             size(attributes,2), lvx, lvy, lvz, time, dt, attributes, stat)
     end if
     if (stat/=0) then
+      ! FIX ME - Does not print
       ewrite(-1, *) "Python error, Python string was:"
       ewrite(-1 , *) trim(func)
       FLExit("Dying")
@@ -946,7 +957,7 @@ contains
   !! specified in the string func at that location.
   subroutine set_particle_vector_attribute_from_python_fields(particle_list, state, positions, lcoords, ele, natt, &
        attributes, old_attr_names, old_attr_counts, old_attr_dims, old_attributes, field_names, field_counts, old_field_names, &
-       old_field_counts, func, time, dt, is_array)
+       old_field_counts, func, time, dt, is_array, first_newly_init_part)
     !! Particle list for which to evaluate the function
     type(detector_linked_list), intent(in) :: particle_list
     !! Model state structure
@@ -990,6 +1001,8 @@ contains
     real, intent(in) :: dt
     !! Whether this is an array-valued attribute
     logical, intent(in) :: is_array
+    !> Pointer to the first newly initialised particle
+    type(detector_type), pointer, optional :: first_newly_init_part
 
     ! locals
     integer :: i, j, field_idx
@@ -1029,7 +1042,12 @@ contains
          field_vals, dim)
 
     ! copy old fields off particles
-    particle => particle_list%first
+    if (present(first_newly_init_part)) then
+      particle => first_newly_init_part
+    else
+      particle => particle_list%first
+    end if
+
     do i = 1, nparts
       old_field_vals(:,i) = particle%old_fields(:)
       particle => particle%next
@@ -1039,6 +1057,7 @@ contains
          lvx, lvy, lvz, time, dt, field_counts, field_names, field_vals, old_field_counts, old_field_names, &
          old_field_vals, old_attr_counts, old_attr_names, old_attr_dims, old_attributes, is_array, attributes, stat)
     if (stat/=0) then
+      ! FIX ME - Does not print
       ewrite(-1, *) "Python error, Python string was:"
       ewrite(-1 , *) trim(func)
       FLExit("Dying")
@@ -1102,6 +1121,7 @@ contains
             nparts, lvx, lvy, lvz, time, dt, tensor_res, stat)
     end if
     if (stat/=0) then
+      ! FIX ME - Does not print
       ewrite(-1, *) "Python error, Python string was:"
       ewrite(-1 , *) trim(func)
       FLExit("Dying")
@@ -1115,7 +1135,7 @@ contains
   !! specified in the string func at that location.
   subroutine set_particle_tensor_attribute_from_python_fields(particle_list, state, positions, lcoords, ele, natt, &
        attributes, old_attr_names, old_attr_counts, old_attr_dims, old_attributes, field_names, field_counts, old_field_names, &
-       old_field_counts, func, time, dt, is_array)
+       old_field_counts, func, time, dt, is_array, first_newly_init_part)
     !! Particle list for which to evaluate the function
     type(detector_linked_list), intent(in) :: particle_list
     !! Model state structure
@@ -1159,6 +1179,8 @@ contains
     real, intent(in) :: dt
     !! Whether this is an array-valued attribute
     logical, intent(in) :: is_array
+    !> Pointer to the first newly initialised particle
+    type(detector_type), pointer, optional :: first_newly_init_part
 
     ! locals
     integer :: i, j, field_idx
@@ -1199,7 +1221,12 @@ contains
          field_vals, dim)
 
     ! copy old fields off particles
-    particle => particle_list%first
+    if (present(first_newly_init_part)) then
+      particle => first_newly_init_part
+    else
+      particle => particle_list%first
+    end if
+
     do i = 1, nparts
       old_field_vals(:,i) = particle%old_fields(:)
       particle => particle%next
@@ -1211,6 +1238,7 @@ contains
          lvx, lvy, lvz, time, dt, field_counts, field_names, field_vals, old_field_counts, old_field_names, &
          old_field_vals, old_attr_counts, old_attr_names, old_attr_dims, old_attributes, is_array, tensor_res, stat)
     if (stat/=0) then
+      ! FIX ME - Does not print
        ewrite(-1, *) "Python error, Python string was:"
        ewrite(-1 , *) trim(func)
        FLExit("Dying")

@@ -91,17 +91,18 @@
         </initial_position>
         <attributes>
           <scalar_attribute name="TempFlag">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  if (t!=0):
-    if (abs(fields["Temperature"]-fields["old%Temperature"])&gt;0.00001):
-      a = 1
-    else:
-      a = 0
-  else:
-    a = 0
-  return a</string_value>
-            </python_fields>
+            <value_on_spawn>
+              <constant>
+                <real_value rank="0">0</real_value>
+              </constant>
+            </value_on_spawn>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
+    from numpy import sign
+    return abs(sign(fields["Temperature"] - fields["old%Temperature"]))</string_value>
+              </python_fields>
+            </value_on_advection>
           </scalar_attribute>
         </attributes>
       </particle_subgroup>
@@ -129,137 +130,136 @@
         </initial_position>
         <attributes>
           <scalar_attribute name="Xval">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  x = X[0]
-  return x</string_value>
-              <store_old_attribute/>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
+    return X[0]</string_value>
+                <store_old_attribute/>
+              </python_fields>
+            </value_on_advection>
           </scalar_attribute>
           <scalar_attribute name="Yval">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  y = X[1]
-  return y</string_value>
-              <store_old_attribute/>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
+    return X[1]</string_value>
+                <store_old_attribute/>
+              </python_fields>
+            </value_on_advection>
           </scalar_attribute>
           <scalar_attribute name="Xflag">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  if (t!=0):
-    x = X[0]
-    oldx = fields["old%Xval"]
-    a=0
-    if (x&gt;oldx):
-      a = 1
-    if (x&lt;oldx):
-      a = -1
-  else:
-    a = 0
-  return a</string_value>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
+    from numpy import sign
+    return sign(X[0] - fields["old%Xval"])</string_value>
+              </python_fields>
+            </value_on_advection>
           </scalar_attribute>
           <scalar_attribute name="Yflag">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  if (t!=0):
-    y = X[1]
-    oldy = fields["old%Yval"]
-    a=0
-    if (y&gt;oldy):
-      a = 1
-    if (y&lt;oldy):
-      a = -1
-  else:
-    a = 0
-  return a</string_value>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
+    from numpy import sign
+    return sign(X[1] - fields["old%Yval"])</string_value>
+              </python_fields>
+            </value_on_advection>
           </scalar_attribute>
           <scalar_attribute name="Vectest1">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
- return fields["vectest"][0]</string_value>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
+    return fields["vectest"][0]</string_value>
+              </python_fields>
+            </value_on_advection>
           </scalar_attribute>
           <scalar_attribute name="Vectest2">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  return fields["vectest"][1]</string_value>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
+    return fields["vectest"][1]</string_value>
+              </python_fields>
+            </value_on_advection>
           </scalar_attribute>
           <scalar_attribute name="Tenstest1">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
- return fields["tenstest"][0][0]</string_value>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
+    return fields["tenstest"][0, 0]</string_value>
+              </python_fields>
+            </value_on_advection>
           </scalar_attribute>
           <scalar_attribute name="Tenstest2">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
- return fields["tenstest"][0][1]</string_value>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
+    return fields["tenstest"][0, 1]</string_value>
+              </python_fields>
+            </value_on_advection>
           </scalar_attribute>
           <scalar_attribute name="Tenstest3">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
- return fields["tenstest"][1][0]</string_value>
-              <store_old_attribute/>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
+    return fields["tenstest"][1, 0]</string_value>
+                <store_old_attribute/>
+              </python_fields>
+            </value_on_advection>
           </scalar_attribute>
           <scalar_attribute name="Tenstest4">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
- return fields["tenstest"][1][1]</string_value>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
+    return fields["tenstest"][1, 1]</string_value>
+              </python_fields>
+            </value_on_advection>
           </scalar_attribute>
           <scalar_attribute name="OldTens3">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
- return fields["old%Tenstest3"]</string_value>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
+    return fields["old%Tenstest3"]</string_value>
+              </python_fields>
+            </value_on_advection>
           </scalar_attribute>
           <vector_attribute name="FullVec1">
-            <constant>
-              <real_value rank="1" dim1="dim" shape="2">1 2</real_value>
-            </constant>
+            <value_on_advection>
+              <constant>
+                <real_value rank="1" dim1="dim" shape="2">1 2</real_value>
+              </constant>
+            </value_on_advection>
           </vector_attribute>
           <vector_attribute name="FullVec2">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  y=[0,0]
-  for i in range(0,2):
-    y[i] = i
-  return y</string_value>
-            </python_fields>
+            <value_on_advection>
+              <python>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt):
+    return [0, 1]</string_value>
+              </python>
+            </value_on_advection>
           </vector_attribute>
           <vector_attribute name="FullVec3">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  from numpy import zeros
-  y=zeros(2,float)
-  for i in range(0,2):
-    y[i] = fields["vectest"][i]
-  return y</string_value>
-              <store_old_attribute/>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
+    return fields["vectest"]</string_value>
+                <store_old_attribute/>
+              </python_fields>
+            </value_on_advection>
           </vector_attribute>
           <tensor_attribute name="FullTens">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  from numpy import zeros
-  y = zeros((2,2),float)
-  for i in range(0,2):
-    for j in range(0,2):
-      y[i,j]=fields["tenstest"][i,j]
-  return y</string_value>
-              <store_old_attribute/>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
+    return fields["tenstest"]</string_value>
+              </python_fields>
+            </value_on_advection>
           </tensor_attribute>
           <tensor_attribute name="FullTens2">
-            <constant>
-              <real_value symmetric="false" rank="2" dim1="dim" dim2="dim" shape="2 2">1 2 3 4</real_value>
-            </constant>
+            <value_on_advection>
+              <constant>
+                <real_value symmetric="false" rank="2" dim1="dim" dim2="dim" shape="2 2">1 2 3 4</real_value>
+              </constant>
+            </value_on_advection>
           </tensor_attribute>
         </attributes>
       </particle_subgroup>

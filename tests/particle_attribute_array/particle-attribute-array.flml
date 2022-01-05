@@ -95,97 +95,112 @@
             <dimension>
               <integer_value rank="0">10</integer_value>
             </dimension>
-            <python>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,n):
-  import numpy as np
-  r = np.arange(n)
-  return r</string_value>
-            </python>
+            <value_on_advection>
+              <python>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, n):
+    from numpy import arange
+    return arange(n)</string_value>
+              </python>
+            </value_on_advection>
           </scalar_attribute_array>
           <scalar_attribute_array name="ArrayFieldAttribute">
             <dimension>
               <integer_value rank="0">5</integer_value>
             </dimension>
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields,n):
-  import numpy as np
-  return np.arange(n) + fields["tenstest"][1,1]</string_value>
-              <store_old_attribute/>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields, n):
+    from numpy import arange
+    return arange(n) + fields["tenstest"][1, 1]</string_value>
+                <store_old_attribute/>
+              </python_fields>
+            </value_on_advection>
           </scalar_attribute_array>
           <scalar_attribute_array name="ArrayOldAttribute">
             <dimension>
               <integer_value rank="0">5</integer_value>
             </dimension>
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields,n):
-  import numpy as np
-  return np.arange(n) + fields["old%ArrayFieldAttribute"]</string_value>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields, n):
+    from numpy import arange
+    return arange(n) + fields["old%ArrayFieldAttribute"]</string_value>
+              </python_fields>
+            </value_on_advection>
           </scalar_attribute_array>
           <vector_attribute_array name="VectorArrayAttribute">
             <dimension>
               <integer_value rank="0">10</integer_value>
             </dimension>
-            <python>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,n):
-  import numpy as np
-  r = np.arange(n)
-  return np.zeros((n,2)) + r[:,None]</string_value>
-            </python>
+            <value_on_advection>
+              <python>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, n):
+    from numpy import arange, tile
+    return tile(arange(n), (2, 1)).T</string_value>
+              </python>
+            </value_on_advection>
           </vector_attribute_array>
           <vector_attribute_array name="VectorFieldAttribute">
             <dimension>
               <integer_value rank="0">5</integer_value>
             </dimension>
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields,n):
-  import numpy as np
-  return np.zeros((n,2)) + np.arange(n)[:,None] + fields["vectest"][1]</string_value>
-              <store_old_attribute/>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields, n):
+    from numpy import arange, tile
+    return tile(arange(n), (2, 1)).T + fields["vectest"][1]</string_value>
+                <store_old_attribute/>
+              </python_fields>
+            </value_on_advection>
           </vector_attribute_array>
           <vector_attribute_array name="VectorOldAttribute">
             <dimension>
               <integer_value rank="0">5</integer_value>
             </dimension>
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields,n):
-  import numpy as np
-  return np.zeros((n,2)) + np.arange(n)[:,None] + fields["old%VectorFieldAttribute"]</string_value>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields, n):
+    from numpy import arange, tile
+    return tile(arange(n), (2, 1)).T + fields["old%VectorFieldAttribute"]</string_value>
+              </python_fields>
+            </value_on_advection>
           </vector_attribute_array>
           <tensor_attribute_array name="TensorArrayAttribute">
             <dimension>
               <integer_value rank="0">10</integer_value>
             </dimension>
-            <python>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,n):
-  import numpy as np
-  r = np.arange(n)
-  return np.zeros((n,2,2)) + r[:,None,None]</string_value>
-            </python>
+            <value_on_advection>
+              <python>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, n):
+    from numpy import arange, tile
+    return tile(arange(n), (2, 2, 1)).T</string_value>
+              </python>
+            </value_on_advection>
           </tensor_attribute_array>
           <tensor_attribute_array name="TensorFieldAttribute">
             <dimension>
               <integer_value rank="0">5</integer_value>
             </dimension>
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields,n):
-  import numpy as np
-  return np.zeros((n,2,2)) + np.arange(n)[:,None,None] + fields["tenstest"]</string_value>
-              <store_old_attribute/>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields, n):
+    from numpy import arange, tile
+    return tile(arange(n), (2, 2, 1)).T + fields["tenstest"]</string_value>
+                <store_old_attribute/>
+              </python_fields>
+            </value_on_advection>
           </tensor_attribute_array>
           <tensor_attribute_array name="TensorOldAttribute">
             <dimension>
               <integer_value rank="0">5</integer_value>
             </dimension>
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields,n):
-  import numpy as np
-  return np.zeros((n,2,2)) + np.arange(n)[:,None,None] + fields["old%TensorFieldAttribute"]</string_value>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields, n):
+    from numpy import arange, tile
+    return tile(arange(n), (2, 2, 1)).T + fields["old%TensorFieldAttribute"]</string_value>
+              </python_fields>
+            </value_on_advection>
           </tensor_attribute_array>
         </attributes>
       </particle_subgroup>
@@ -214,44 +229,55 @@
         </initial_position>
         <attributes>
           <scalar_attribute name="ScalarAttribute">
-            <python>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt):
-  return 1</string_value>
-            </python>
+            <value_on_advection>
+              <constant>
+                <real_value rank="0">1</real_value>
+              </constant>
+            </value_on_advection>
           </scalar_attribute>
           <scalar_attribute name="ScalarFieldAttribute">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  return fields["Temperature"]</string_value>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
+    return fields["Temperature"]</string_value>
+              </python_fields>
+            </value_on_advection>
           </scalar_attribute>
           <vector_attribute name="VectorAttribute">
-            <python>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt):
-  import numpy as np
-  return np.random.rand(2)</string_value>
-            </python>
+            <value_on_advection>
+              <python>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt):
+    from numpy.random import default_rng
+    return default_rng().random(2)</string_value>
+              </python>
+            </value_on_advection>
           </vector_attribute>
           <vector_attribute name="VectorFieldAttribute">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  import numpy as np
-  return np.random.rand(2) + fields["Temperature"]</string_value>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
+    from numpy.random import default_rng
+    return default_rng().random(2) + fields["Temperature"]</string_value>
+              </python_fields>
+            </value_on_advection>
           </vector_attribute>
           <tensor_attribute name="TensorAttribute">
-            <python>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt):
-  import numpy as np
-  return np.random.rand(2,2)</string_value>
-            </python>
+            <value_on_advection>
+              <python>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt):
+    from numpy.random import default_rng
+    return default_rng().random((2, 2))</string_value>
+              </python>
+            </value_on_advection>
           </tensor_attribute>
           <tensor_attribute name="TensorFieldAttribute">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  import numpy as np
-  return np.random.rand(2,2) + fields["Temperature"]</string_value>
-            </python_fields>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
+    from numpy.random import default_rng
+    return default_rng().random((2, 2)) + fields["Temperature"]</string_value>
+              </python_fields>
+            </value_on_advection>
           </tensor_attribute>
         </attributes>
       </particle_subgroup>
@@ -271,12 +297,13 @@
               <integer_value rank="0">10</integer_value>
             </dimension>
             <exclude_from_output/>
-            <python>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,n):
-  import numpy as np
-  r = np.arange(n)
-  return r</string_value>
-            </python>
+            <value_on_advection>
+              <python>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, n):
+    from numpy import arange
+    return arange(n)</string_value>
+              </python>
+            </value_on_advection>
           </scalar_attribute_array>
         </attributes>
       </particle_subgroup>

@@ -58,42 +58,41 @@
         <initial_position>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
-  from numpy import arange,zeros,reshape,concatenate
-  if (t==0):
-    x = 0.25+0.5*arange(0,11.)/11.
-    y = zeros(11) + 0.5
-    a = reshape(concatenate((x,y)),(2,11)).T
-  return a</string_value>
+    from numpy import column_stack, linspace, ones
+    x = 0.25 + 0.5 * linspace(0, 1, 11)
+    y = 0.5 * ones(11)
+    return column_stack((x, y))</string_value>
           </python>
         </initial_position>
         <initialise_during_simulation>
           <python>
             <string_value type="code" language="python" lines="20">def val(t):
-  from numpy import arange,zeros,reshape,concatenate
-  if (t&gt;0.15 and t&lt;0.25):
-    x = 0.25+0.5*arange(0,11.)/11.
-    y = 0.25+0.5*arange(0,11.)/11.
-    a = reshape(concatenate((x,y)),(2,11)).T
-  elif (t&gt;0.45 and t&lt;0.55):
-    x = zeros(11) + 0.5
-    y = 0.25+0.5*arange(0,11.)/11.
-    a = reshape(concatenate((x,y)),(2,11)).T
-  else:
-    a = zeros([0,0])
-  return a</string_value>
+    from numpy import column_stack, linspace, ones
+    if 0.15 &lt; t &lt; 0.25:
+        x = 0.25 + 0.5 * linspace(0, 1, 11)
+        return column_stack((x, x))
+    elif 0.45 &lt; t &lt; 0.55:
+        x = 0.5 * ones(11)
+        y = 0.25 + 0.5 * linspace(0, 1, 11)
+        return column_stack((x, y))
+    else:
+        return []</string_value>
           </python>
         </initialise_during_simulation>
         <attributes>
           <scalar_attribute name="Chem1">
-            <python_fields>
-              <string_value type="code" language="python" lines="20">def val(X,t,dt,fields):
-  if (t==0):
-    y = 0
-  else:
-    y = fields['old%Chem1'] + 1
-  return y</string_value>
-              <store_old_attribute/>
-            </python_fields>
+            <value_on_spawn>
+              <constant>
+                <real_value rank="0">0</real_value>
+              </constant>
+            </value_on_spawn>
+            <value_on_advection>
+              <python_fields>
+                <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
+    return fields['old%Chem1'] + 1</string_value>
+                <store_old_attribute/>
+              </python_fields>
+            </value_on_advection>
           </scalar_attribute>
         </attributes>
       </particle_subgroup>

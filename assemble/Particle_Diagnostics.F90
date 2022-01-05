@@ -48,16 +48,15 @@ module particle_diagnostics
   use detector_tools, only: temp_list_insert, insert, allocate, deallocate, temp_list_deallocate, &
        & remove, temp_list_remove
   use particles, only : get_particle_arrays, initialise_constant_particle_attributes, &
-       & update_particle_attributes_and_fields, get_particle_arrays, particle_lists
+       & particle_lists
   use multimaterial_module, only: calculate_sum_material_volume_fractions
 
   implicit none
 
   private
 
-  public :: update_particle_attributes_and_fields, calculate_particle_material_fields, &
-       & calculate_diagnostic_fields_from_particles, initialise_constant_particle_diagnostics, &
-       & particle_cv_check
+  public :: calculate_particle_material_fields, calculate_diagnostic_fields_from_particles, &
+       & initialise_constant_particle_diagnostics, particle_cv_check
 
   contains
 
@@ -127,24 +126,24 @@ module particle_diagnostics
 
     !Initialise diagnostic fields generated from particles
     do i = 1,size(state)
-       do k = 1,scalar_field_count(state(i))
-          s_field => extract_scalar_field(state(i),k)
-          if (have_option(trim(s_field%option_path)//"/diagnostic/algorithm::from_particles")) then
-             call get_option(trim(s_field%option_path)//"/name", name)
-             if (name=="MaterialVolumeFraction") cycle
-             call calculate_field_from_particles(state, i, s_field)
-          end if
-       end do
+      do k = 1,scalar_field_count(state(i))
+        s_field => extract_scalar_field(state(i),k)
+        if (have_option(trim(s_field%option_path)//"/diagnostic/algorithm::from_particles")) then
+          call get_option(trim(s_field%option_path)//"/name", name)
+          if (name=="MaterialVolumeFraction") cycle
+          call calculate_field_from_particles(state, i, s_field)
+        end if
+      end do
     end do
 
     !Initialise fields based on number of particles if present
     do i = 1,size(state)
-       do k = 1,scalar_field_count(state(i))
-          s_field => extract_scalar_field(state(i),k)
-          if (have_option(trim(s_field%option_path)//"/diagnostic/algorithm::number_of_particles")) then
-             call calculate_field_from_particles(state, i, s_field)
-          end if
-       end do
+      do k = 1,scalar_field_count(state(i))
+        s_field => extract_scalar_field(state(i),k)
+        if (have_option(trim(s_field%option_path)//"/diagnostic/algorithm::number_of_particles")) then
+          call calculate_field_from_particles(state, i, s_field)
+        end if
+      end do
     end do
 
   end subroutine calculate_diagnostic_fields_from_particles

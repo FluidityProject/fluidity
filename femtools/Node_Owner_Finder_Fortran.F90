@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -41,33 +41,33 @@ module node_owner_finder
   use fields
 
   implicit none
-  
+
   private
-  
+
   public :: node_owner_finder_reset, cnode_owner_finder_set_input, &
     & cnode_owner_finder_find, cnode_owner_finder_query_output, &
     & cnode_owner_finder_get_output
   public :: node_owner_finder_set_input, node_owner_finder_find
   public :: out_of_bounds_tolerance, rtree_tolerance
   public :: ownership_predicate
-    
+
   !! If a test node is more than this distance (in ideal space) outside of a
   !! test element in ownership tests, then the test element cannot own the test
   !! node
   real, parameter :: out_of_bounds_tolerance = 0.1
   !! Factor by which element bounding boxes are expanded in setting up the rtree
   real, parameter :: rtree_tolerance = 0.1
-  
+
   interface node_owner_finder_reset
     subroutine cnode_owner_finder_reset(id)
       implicit none
       integer, intent(in) :: id
     end subroutine cnode_owner_finder_reset
   end interface node_owner_finder_reset
-    
+
   interface cnode_owner_finder_set_input
     module procedure node_owner_finder_set_input_sp
-  
+
     subroutine cnode_owner_finder_set_input(id, positions, enlist, dim, loc, nnodes, nelements)
       use iso_c_binding, only: c_double
       implicit none
@@ -80,15 +80,15 @@ module node_owner_finder
       integer, dimension(nelements * loc), intent(in) :: enlist
     end subroutine cnode_owner_finder_set_input
   end interface cnode_owner_finder_set_input
-  
+
   interface node_owner_finder_set_input
     module procedure node_owner_finder_set_input_positions
   end interface node_owner_finder_set_input
-    
+
   interface cnode_owner_finder_find
     module procedure node_owner_finder_find_sp
-  
-    subroutine cnode_owner_finder_find(id, position, dim) 
+
+    subroutine cnode_owner_finder_find(id, position, dim)
       use iso_c_binding, only: c_double
       implicit none
       integer, intent(in) :: id
@@ -96,7 +96,7 @@ module node_owner_finder
       real(kind = c_double), dimension(dim), intent(in) :: position
     end subroutine cnode_owner_finder_find
   end interface cnode_owner_finder_find
-  
+
   interface node_owner_finder_find
     module procedure node_owner_finder_find_single_position, &
       & node_owner_finder_find_multiple_positions, &
@@ -106,7 +106,7 @@ module node_owner_finder
       & node_owner_finder_find_node_tolerance, &
       & node_owner_finder_find_nodes_tolerance
   end interface node_owner_finder_find
-    
+
   interface cnode_owner_finder_query_output
     subroutine cnode_owner_finder_query_output(id, nelms)
       implicit none
@@ -114,7 +114,7 @@ module node_owner_finder
       integer, intent(out) :: nelms
     end subroutine cnode_owner_finder_query_output
   end interface cnode_owner_finder_query_output
-    
+
   interface cnode_owner_finder_get_output
     subroutine cnode_owner_finder_get_output(id, ele_id, index)
       implicit none
@@ -123,11 +123,11 @@ module node_owner_finder
       integer, intent(in) :: index
     end subroutine cnode_owner_finder_get_output
   end interface cnode_owner_finder_get_output
-  
+
   interface ownership_predicate
     module procedure ownership_predicate_position, ownership_predicate_node
   end interface ownership_predicate
-  
+
 contains
 
   subroutine node_owner_finder_set_input_sp(id, positions, enlist, dim, loc, nnodes, nelements)
@@ -138,48 +138,48 @@ contains
     integer, intent(in) :: nelements
     real(kind = c_float), dimension(nnodes * dim), intent(in) :: positions
     integer, dimension(nelements * loc), intent(in) :: enlist
-    
+
     call cnode_owner_finder_set_input(id, real(positions, kind = c_double), enlist, dim, loc, nnodes, nelements)
-    
+
   end subroutine node_owner_finder_set_input_sp
-  
+
   subroutine node_owner_finder_set_input_positions(id, positions)
     !!< Generate a new node owner finder for the supplied positions. Returns the
     !!< node owner finder ID in id.
-  
+
     integer, intent(out) :: id
     type(vector_field), intent(in) :: positions
-    
+
     integer :: i
     real, dimension(:), allocatable :: lpositions
-    
+
     allocate(lpositions(node_count(positions) * positions%dim))
     do i = 1, node_count(positions)
       lpositions((i - 1) * positions%dim + 1:i * positions%dim) = node_val(positions, i)
     end do
-    
+
     call cnode_owner_finder_set_input(id, lpositions, positions%mesh%ndglno, positions%dim, ele_loc(positions, 1), node_count(positions), ele_count(positions))
-    
+
     deallocate(lpositions)
-    
+
   end subroutine node_owner_finder_set_input_positions
-  
+
   subroutine node_owner_finder_find_sp(id, position, dim)
     integer, intent(in) :: id
     integer, intent(in) :: dim
     real(kind = c_float), dimension(dim), intent(in) :: position
-    
+
     call cnode_owner_finder_find(id, real(position, kind = c_double), dim)
-    
+
   end subroutine node_owner_finder_find_sp
- 
+
   subroutine node_owner_finder_find_single_position(id, positions_a, position, ele_id, global)
     !!< For the node owner finder with ID id corresponding to positions
     !!< positions_a, find the element ID owning the given position.
     !!< This does not use ownership tolerances - instead, it determines the
     !!< "best" owning elements (those that are the smallest distance in ideal
     !!< space from test nodes).
-  
+
     integer, intent(in) :: id
     type(vector_field), intent(in) :: positions_a
     real, dimension(:), intent(in) :: position
@@ -190,7 +190,7 @@ contains
 
     integer, dimension(1) :: lele_id
 
-    call node_owner_finder_find(id, positions_a, spread(position, 2, 1), lele_id, global = global)
+    call node_owner_finder_find(id, positions_a, spread(position, 2, 1), lele_id, global=global)
     ele_id = lele_id(1)
 
   end subroutine node_owner_finder_find_single_position
@@ -201,7 +201,7 @@ contains
     !!< This does not use ownership tolerances - instead, it determines the
     !!< "best" owning elements (those that are the smallest distance in ideal
     !!< space from test nodes).
-    
+
     integer, intent(in) :: id
     type(vector_field), intent(in) :: positions_a
     real, dimension(:, :), intent(in) :: positions
@@ -209,7 +209,7 @@ contains
     !! If present and .false., do not perform a global ownership test across all
     !! processes
     logical, optional, intent(in) :: global
-   
+
     if(.not. present_and_false(global) .and. isparallel()) then
       call find_parallel()
     else
@@ -220,11 +220,11 @@ contains
 
     ! Separate serial and parallel versions, as in parallel we need to keep a
     ! record of the closest_misses
- 
+
     subroutine find_serial()
       integer :: closest_ele_id, i, j, nele_ids, possible_ele_id
       real :: closest_miss, miss
-      
+
       ele_ids = -1
       positions_loop: do i = 1, size(positions, 2)
         call cnode_owner_finder_find(id, positions(:, i), size(positions, 1))
@@ -249,7 +249,7 @@ contains
 
         ! We didn't find an owner, so choose the element with the closest miss
         ele_ids(i) = closest_ele_id
-          
+
       end do positions_loop
 
     end subroutine find_serial
@@ -267,7 +267,7 @@ contains
       allocate(closest_misses(size(positions, 2)))
       ! We don't tolerate very large ownership failures
       closest_misses = out_of_bounds_tolerance
-    
+
       positions_loop: do i = 1, size(positions, 2)
         call cnode_owner_finder_find(id, positions(:, i), size(positions, 1))
         call cnode_owner_finder_query_output(id, nele_ids)
@@ -276,7 +276,7 @@ contains
         possible_elements_loop: do j = 1, nele_ids
           call cnode_owner_finder_get_output(id, possible_ele_id, j)
           ! If this process does not own this possible_ele_id element then
-          ! don't consider it.  This filter is needed to make this subroutine work in
+          ! don't consider it. This filter is needed to make this subroutine work in
           ! parallel without having to use universal numbers, which aren't defined
           ! for all the meshes that use this subroutine.
           if(.not.element_owned(positions_a,possible_ele_id)) then
@@ -298,17 +298,17 @@ contains
 
         ! We didn't find an owner, so choose the element with the closest miss
         ele_ids(i) = closest_ele_id
-          
+
       end do positions_loop
-    
+
       ! Find which processes have the smallest miss for each coordinate
 #ifdef HAVE_MPI
       communicator = halo_communicator(positions_a)
       rank = getrank(communicator = communicator)
-            
+
       misses_send(1, :) = closest_misses
       misses_send(2, :) = float(rank)
-            
+
       call mpi_allreduce(misses_send, minlocs_recv, size(misses_send, 2), &
 #ifdef DOUBLEP
         & MPI_2DOUBLE_PRECISION, &
@@ -317,7 +317,7 @@ contains
 #endif
         & MPI_MINLOC, communicator, ierr)
       assert(ierr == MPI_SUCCESS)
-      
+
       do i = 1, size(minlocs_recv, 2)
         if(int(minlocs_recv(2, i)) /= rank) then
           ! Another processes has a smaller miss for this coordinate
@@ -328,19 +328,19 @@ contains
         ! on all processes.  This matches the find_serial(0) behaviour.
       end do
 #endif
-            
+      ewrite(2, *) "Here_12"
       deallocate(closest_misses)
 
     end subroutine find_parallel
-    
+
   end subroutine node_owner_finder_find_multiple_positions
- 
+
   subroutine node_owner_finder_find_single_position_tolerance(id, positions_a, position, ele_ids, ownership_tolerance)
     !!< For the node owner finder with ID id corresponding to positions
     !!< positions_a, find the element ID owning the given position using an
     !!< ownership tolerance. This performs a strictly local (this process)
     !!< ownership test.
-  
+
     integer, intent(in) :: id
     type(vector_field), intent(in) :: positions_a
     real, dimension(:), intent(in) :: position
@@ -359,13 +359,13 @@ contains
     !!< positions_a, find the element IDs owning the given positions using an
     !!< ownership tolerance. This performs a strictly local (this process)
     !!< ownership test.
-    
+
     integer, intent(in) :: id
     type(vector_field), intent(in) :: positions_a
     real, dimension(:, :), intent(in) :: positions
     type(integer_set), dimension(size(positions, 2)), intent(out) :: ele_ids
     real, intent(in) :: ownership_tolerance
-    
+
     integer ::  i, j, nele_ids, possible_ele_id
 
     ! Elements will be missed by the rtree query if ownership_tolerance is too
@@ -384,18 +384,18 @@ contains
           call insert(ele_ids(i), possible_ele_id)
         end if
       end do
-        
+
     end do positions_loop
 
   end subroutine node_owner_finder_find_multiple_positions_tolerance
-  
+
   subroutine node_owner_finder_find_node(id, positions_a, positions_b, ele_a, node_b, global)
     !!< For the node owner finder with ID id corresponding to positions
     !!< positions_a, find the element ID owning the given node in positions_b.
     !!< This does not use ownership tolerances - instead, it determines the
     !!< "best" owning elements (those that are the smallest distance in ideal
     !!< space from test nodes).
-    
+
     integer, intent(in) :: id
     type(vector_field), intent(in) :: positions_a
     type(vector_field), intent(in) :: positions_b
@@ -404,9 +404,9 @@ contains
     !! If present and .false., do not perform a global ownership test across all
     !! processes
     logical, optional, intent(in) :: global
-    
-    call node_owner_finder_find(id, positions_a, node_val(positions_b, node_b), ele_a, global = global)
-    
+
+    call node_owner_finder_find(id, positions_a, node_val(positions_b, node_b), ele_a, global=global)
+
   end subroutine node_owner_finder_find_node
 
   subroutine node_owner_finder_find_nodes(id, positions_a, positions_b, eles_a, global)
@@ -415,7 +415,7 @@ contains
     !!< This does not use ownership tolerances - instead, it determines the
     !!< "best" owning elements (those that are the smallest distance in ideal
     !!< space from test nodes).
-    
+
     integer, intent(in) :: id
     type(vector_field), intent(in) :: positions_a
     type(vector_field), intent(in) :: positions_b
@@ -433,27 +433,27 @@ contains
       lpositions(:, node_b) = node_val(positions_b, node_b)
     end do
 
-    call node_owner_finder_find(id, positions_a, lpositions, eles_a, global = global)
+    call node_owner_finder_find(id, positions_a, lpositions, eles_a, global=global)
 
     deallocate(lpositions)
 
   end subroutine node_owner_finder_find_nodes
-  
+
   subroutine node_owner_finder_find_node_tolerance(id, positions_a, positions_b, eles_a, node_b, ownership_tolerance)
     !!< For the node owner finder with ID id corresponding to positions
     !!< positions_a, find the element ID owning the given node in positions_b
     !!< using an ownership tolerance. This performs a strictly local (this
     !!< process) ownership test.
-    
+
     integer, intent(in) :: id
     type(vector_field), intent(in) :: positions_a
     type(vector_field), intent(in) :: positions_b
     type(integer_set), intent(out) :: eles_a
     integer, intent(in) :: node_b
     real, intent(in) :: ownership_tolerance
-    
+
     call node_owner_finder_find(id, positions_a, node_val(positions_b, node_b), eles_a, ownership_tolerance = ownership_tolerance)
-    
+
   end subroutine node_owner_finder_find_node_tolerance
 
   subroutine node_owner_finder_find_nodes_tolerance(id, positions_a, positions_b, eles_a, ownership_tolerance)
@@ -461,7 +461,7 @@ contains
     !!< positions_a, find the element ID owning the nodes in positions_b
     !!< using an ownership tolerance. This performs a strictly local (this
     !!< process) ownership test.
-    
+
     integer, intent(in) :: id
     type(vector_field), intent(in) :: positions_a
     type(vector_field), intent(in) :: positions_b
@@ -487,7 +487,7 @@ contains
     !!< Node ownership predicate. Returns .true. if the given position is
     !!< contained within element ele_a of positions_a to within tolerance
     !!< ownership_tolerance.
-  
+
     type(vector_field), intent(in) :: positions_a
     integer, intent(in) :: ele_a
     real, dimension(positions_a%dim), intent(in) :: position
@@ -498,16 +498,16 @@ contains
     !!< Return the coordinate (in ideal space) of the test position
     !!< in the test element
     real, dimension(positions_a%dim + 1), optional, intent(out) :: l_coords
-    
+
     logical :: owned
-    
+
     real :: lmiss
     real, dimension(positions_a%dim + 1) :: ll_coords
-   
+
     assert(ownership_tolerance >= 0.0)
 
     ll_coords = local_coords(positions_a, ele_a, position)
-    
+
     assert(ele_numbering_family(positions_a, ele_a) == FAMILY_SIMPLEX)
     if(any(ll_coords < 0.0)) then
       lmiss = -minval(ll_coords)
@@ -523,14 +523,14 @@ contains
     end if
 
     if(present(l_coords)) l_coords = ll_coords
-    
+
   end function ownership_predicate_position
 
   function ownership_predicate_node(positions_a, positions_b, ele_a, node_b, ownership_tolerance, miss, l_coords) result(owned)
     !!< Node ownership predicate. Returns .true. if the given node in
     !!< positions_b is contained within element ele_a of positions_a to within
     !!< tolerance ownership_tolerance.
-    
+
     type(vector_field), intent(in) :: positions_a
     type(vector_field), intent(in) :: positions_b
     integer, intent(in) :: ele_a
@@ -542,12 +542,12 @@ contains
     !!< Return the coordinate (in ideal space) of the test position
     !!< in the test element
     real, dimension(positions_a%dim + 1), optional, intent(out) :: l_coords
-    
+
     logical :: owned
-    
+
     owned = ownership_predicate(positions_a, ele_a, node_val(positions_b, node_b), ownership_tolerance, &
       & miss = miss, l_coords = l_coords)
-    
+
   end function ownership_predicate_node
 
 end module node_owner_finder

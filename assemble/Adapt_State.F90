@@ -359,7 +359,7 @@ contains
         call vtk_write_fields("mesh", 2, position=intermediate_positions, model=intermediate_positions%mesh)
         call vtk_write_surface_mesh("surface", 2, intermediate_positions)
       end if
-      
+
       ! Step e). Advance a front in the new mesh using the unwrapped nelist from the aliased boundary
       ! until the front contains no nodes on the boundary; this forms the new cut
       nelist => extract_nelist(unwrapped_positions_B)
@@ -1006,7 +1006,7 @@ contains
 
       !Set particle attributes and dependent fields
       call get_option("/timestepping/current_time", current_time)
-      call update_particle_attributes_and_fields(states, current_time, dt)
+      call update_particle_attributes_and_fields(states, current_time, dt, initial=.true.)
       call calculate_diagnostic_fields_from_particles(states)
 
       ! Form the new metric
@@ -1017,8 +1017,8 @@ contains
       ! Adapt state, initialising fields from the options tree rather than
       ! interpolating them
       call adapt_state(states, metric, initialise_fields = .true.)
-      
-      ! Population balance equation initialise - dqmom_init() helps to recalculate the abscissas and weights 
+
+      ! Population balance equation initialise - dqmom_init() helps to recalculate the abscissas and weights
       ! based on moment initial conditions (if provided)
       call dqmom_init(states)
     end do
@@ -1119,7 +1119,7 @@ contains
     else
        final_adapt_iteration = .false.
     end if
-    
+
     i = 1
 
     do while (.not. finished_adapting)
@@ -1328,7 +1328,7 @@ contains
 #ifdef DDEBUG
         ! Re-load-balance using zoltan
         my_num_detectors = default_stat%detector_list%length
-         
+
         call MPI_ALLREDUCE(my_num_detectors, total_num_detectors_before_zoltan, 1, getPINTEGER(), &
               MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
         assert(ierr == MPI_SUCCESS)
@@ -1378,14 +1378,14 @@ contains
           default_stat%zoltan_drive_call=.true.
 
         end if
-        
+
 #ifdef DDEBUG
         my_num_detectors = default_stat%detector_list%length
 
         call MPI_ALLREDUCE(my_num_detectors, total_num_detectors_after_zoltan, 1, getPINTEGER(), &
              MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
         assert(ierr == MPI_SUCCESS)
-        
+
         assert(total_num_detectors_before_zoltan == total_num_detectors_after_zoltan)
 #endif
 
@@ -1438,7 +1438,7 @@ contains
                   ewrite(-1,*) "quality_tolerance = ", quality_tolerance
                end if
             end if
-            
+
             final_adapt_iteration = .true.
          else
             ! Only check to allow an early exit if additional adapt iterations have been switched on
@@ -1520,7 +1520,7 @@ contains
     !!< Return the number of adapt / re-load-balance iterations
 
     integer :: adapt_iterations
-    
+
     integer :: adapt_iterations_default
 
     if(isparallel()) then
