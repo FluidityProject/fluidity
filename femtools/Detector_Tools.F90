@@ -649,6 +649,7 @@ contains
          lvx, lvy, lvz, stat)
 
     if (stat/=0) then
+      ! FIX ME - Does not print
       ewrite(-1, *) "Python error, Python string was:"
       ewrite(-1 , *) trim(func)
       FLExit("Dying")
@@ -774,6 +775,7 @@ contains
            size(attributes,2), lvx, lvy, lvz, time, dt, attributes, stat)
     end if
     if (stat/=0) then
+      ! FIX ME - Does not print
       ewrite(-1, *) "Python error, Python string was:"
       ewrite(-1 , *) trim(func)
       FLExit("Dying")
@@ -784,7 +786,7 @@ contains
   !! specified in the string func at that location.
   subroutine set_particle_scalar_attribute_from_python_fields(particle_list, state, positions, lcoords, ele, natt, &
        attributes, old_attr_names, old_attr_counts, old_attr_Dims, old_attributes, field_names, field_counts, old_field_names, &
-       old_field_counts, func, time, dt, is_array)
+       old_field_counts, func, time, dt, is_array, first_newly_init_part)
     !! Particle list for which to evaluate the function
     type(detector_linked_list), intent(in) :: particle_list
     !! Model state structure
@@ -828,6 +830,8 @@ contains
     real, intent(in) :: dt
     !! Whether this is an array-valued attribute
     logical, intent(in) :: is_array
+    !> Pointer to the first newly initialised particle
+    type(detector_type), pointer, optional :: first_newly_init_part
 
     ! locals
     integer :: i
@@ -864,7 +868,12 @@ contains
          field_vals, dim)
 
     ! copy old fields off particles
-    particle => particle_list%first
+    if (present(first_newly_init_part)) then
+      particle => first_newly_init_part
+    else
+      particle => particle_list%first
+    end if
+
     do i = 1, nparts
       old_field_vals(:,i) = particle%old_fields(:)
       particle => particle%next
@@ -874,9 +883,10 @@ contains
          lvx, lvy, lvz, time, dt, field_counts, field_names, field_vals, old_field_counts, old_field_names, &
          old_field_vals, old_attr_counts, old_attr_names, old_attr_dims, old_attributes, is_array, attributes, stat)
     if (stat/=0) then
-       ewrite(-1, *) "Python error, Python string was:"
-       ewrite(-1 , *) trim(func)
-       FLExit("Dying")
+      ! FIX ME - Does not print
+      ewrite(-1, *) "Python error, Python string was:"
+      ewrite(-1 , *) trim(func)
+      FLExit("Dying")
     end if
 
     deallocate(field_vals)
@@ -933,6 +943,7 @@ contains
             size(attributes,2), lvx, lvy, lvz, time, dt, attributes, stat)
     end if
     if (stat/=0) then
+      ! FIX ME - Does not print
       ewrite(-1, *) "Python error, Python string was:"
       ewrite(-1 , *) trim(func)
       FLExit("Dying")
@@ -943,7 +954,7 @@ contains
   !! specified in the string func at that location.
   subroutine set_particle_vector_attribute_from_python_fields(particle_list, state, positions, lcoords, ele, natt, &
        attributes, old_attr_names, old_attr_counts, old_attr_dims, old_attributes, field_names, field_counts, old_field_names, &
-       old_field_counts, func, time, dt, is_array)
+       old_field_counts, func, time, dt, is_array, first_newly_init_part)
     !! Particle list for which to evaluate the function
     type(detector_linked_list), intent(in) :: particle_list
     !! Model state structure
@@ -987,6 +998,8 @@ contains
     real, intent(in) :: dt
     !! Whether this is an array-valued attribute
     logical, intent(in) :: is_array
+    !> Pointer to the first newly initialised particle
+    type(detector_type), pointer, optional :: first_newly_init_part
 
     ! locals
     integer :: i
@@ -1023,7 +1036,12 @@ contains
          field_vals, dim)
 
     ! copy old fields off particles
-    particle => particle_list%first
+    if (present(first_newly_init_part)) then
+      particle => first_newly_init_part
+    else
+      particle => particle_list%first
+    end if
+
     do i = 1, nparts
       old_field_vals(:,i) = particle%old_fields(:)
       particle => particle%next
@@ -1033,6 +1051,7 @@ contains
          lvx, lvy, lvz, time, dt, field_counts, field_names, field_vals, old_field_counts, old_field_names, &
          old_field_vals, old_attr_counts, old_attr_names, old_attr_dims, old_attributes, is_array, attributes, stat)
     if (stat/=0) then
+      ! FIX ME - Does not print
       ewrite(-1, *) "Python error, Python string was:"
       ewrite(-1 , *) trim(func)
       FLExit("Dying")
@@ -1096,6 +1115,7 @@ contains
             nparts, lvx, lvy, lvz, time, dt, tensor_res, stat)
     end if
     if (stat/=0) then
+      ! FIX ME - Does not print
       ewrite(-1, *) "Python error, Python string was:"
       ewrite(-1 , *) trim(func)
       FLExit("Dying")
@@ -1109,7 +1129,7 @@ contains
   !! specified in the string func at that location.
   subroutine set_particle_tensor_attribute_from_python_fields(particle_list, state, positions, lcoords, ele, natt, &
        attributes, old_attr_names, old_attr_counts, old_attr_dims, old_attributes, field_names, field_counts, old_field_names, &
-       old_field_counts, func, time, dt, is_array)
+       old_field_counts, func, time, dt, is_array, first_newly_init_part)
     !! Particle list for which to evaluate the function
     type(detector_linked_list), intent(in) :: particle_list
     !! Model state structure
@@ -1153,6 +1173,8 @@ contains
     real, intent(in) :: dt
     !! Whether this is an array-valued attribute
     logical, intent(in) :: is_array
+    !> Pointer to the first newly initialised particle
+    type(detector_type), pointer, optional :: first_newly_init_part
 
     ! locals
     integer :: i
@@ -1190,7 +1212,12 @@ contains
          field_vals, dim)
 
     ! copy old fields off particles
-    particle => particle_list%first
+    if (present(first_newly_init_part)) then
+      particle => first_newly_init_part
+    else
+      particle => particle_list%first
+    end if
+
     do i = 1, nparts
       old_field_vals(:,i) = particle%old_fields(:)
       particle => particle%next
@@ -1202,6 +1229,7 @@ contains
          lvx, lvy, lvz, time, dt, field_counts, field_names, field_vals, old_field_counts, old_field_names, &
          old_field_vals, old_attr_counts, old_attr_names, old_attr_dims, old_attributes, is_array, tensor_res, stat)
     if (stat/=0) then
+      ! FIX ME - Does not print
        ewrite(-1, *) "Python error, Python string was:"
        ewrite(-1 , *) trim(func)
        FLExit("Dying")

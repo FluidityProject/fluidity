@@ -350,7 +350,7 @@ contains
     call calculate_diagnostic_variables_new(state)
 
     ! Initialise particle attributes and dependent fields
-    call update_particle_attributes_and_fields(state, current_time, dt)
+    call update_particle_attributes_and_fields(state, current_time, dt, initial=.true.)
     call calculate_diagnostic_fields_from_particles(state)
 
     ! This is mostly to ensure that the photosynthetic radiation
@@ -746,9 +746,9 @@ contains
 
        ! Call move and write particles
        call move_particles(state, dt)
-       call initialise_particles_during_simulation(state, current_time)
        call particle_cv_check(state)
        call update_particle_attributes_and_fields(state, current_time, dt)
+       call initialise_particles_during_simulation(state, current_time, dt)
        call calculate_particle_material_fields(state)
        call calculate_diagnostic_fields_from_particles(state)
        call write_particles_loop(state, timestep, current_time)

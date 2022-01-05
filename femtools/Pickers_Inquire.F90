@@ -91,7 +91,11 @@ contains
       coord = (/coordx/)
     end if
 
+<<<<<<< HEAD
     call picker_inquire(positions, coord, ele, local_coord = local_coord, global = global)
+=======
+    call picker_inquire(positions, coord, ele, local_coord = local_coord, global=global)
+>>>>>>> 3751673df (ENH: Allow for independent particle attribute values on spawn and advection; Update particle tests accordingly.)
 
     deallocate(coord)
 
@@ -244,9 +248,9 @@ contains
     assert(positions_a%dim == positions_b%dim)
 
     if(present(local_coord)) then
-      call picker_inquire(positions_a, node_val(positions_b, node_b), ele_a, local_coord = local_coord, global = global)
+      call picker_inquire(positions_a, node_val(positions_b, node_b), ele_a, local_coord = local_coord, global=global)
     else
-      call picker_inquire(positions_a, node_val(positions_b, node_b), ele_a, global = global)
+      call picker_inquire(positions_a, node_val(positions_b, node_b), ele_a, global=global)
     end if
 
   end subroutine picker_inquire_node
@@ -274,9 +278,9 @@ contains
     end do
 
     if(present(local_coords)) then
-      call picker_inquire(positions_a, lpositions, ele_as, local_coords = local_coords, global = global)
+      call picker_inquire(positions_a, lpositions, ele_as, local_coords = local_coords, global=global)
     else
-      call picker_inquire(positions_a, lpositions, ele_as, global = global)
+      call picker_inquire(positions_a, lpositions, ele_as, global=global)
     end if
 
     deallocate(lpositions)

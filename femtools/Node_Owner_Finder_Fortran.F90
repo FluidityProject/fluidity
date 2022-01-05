@@ -190,7 +190,7 @@ contains
 
     integer, dimension(1) :: lele_id
 
-    call node_owner_finder_find(id, positions_a, spread(position, 2, 1), lele_id, global = global)
+    call node_owner_finder_find(id, positions_a, spread(position, 2, 1), lele_id, global=global)
     ele_id = lele_id(1)
 
   end subroutine node_owner_finder_find_single_position
@@ -276,7 +276,7 @@ contains
         possible_elements_loop: do j = 1, nele_ids
           call cnode_owner_finder_get_output(id, possible_ele_id, j)
           ! If this process does not own this possible_ele_id element then
-          ! don't consider it.  This filter is needed to make this subroutine work in
+          ! don't consider it. This filter is needed to make this subroutine work in
           ! parallel without having to use universal numbers, which aren't defined
           ! for all the meshes that use this subroutine.
           if(.not.element_owned(positions_a,possible_ele_id)) then
@@ -328,7 +328,6 @@ contains
         ! on all processes.  This matches the find_serial(0) behaviour.
       end do
 #endif
-
       deallocate(closest_misses)
 
     end subroutine find_parallel
@@ -433,7 +432,7 @@ contains
       lpositions(:, node_b) = node_val(positions_b, node_b)
     end do
 
-    call node_owner_finder_find(id, positions_a, lpositions, eles_a, global = global)
+    call node_owner_finder_find(id, positions_a, lpositions, eles_a, global=global)
 
     deallocate(lpositions)
 
