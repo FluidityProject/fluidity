@@ -59,9 +59,9 @@ AC_ARG_WITH(blas_dir,
 
 case $with_blas_dir in
       yes | no | "") ;;
-     -L*) LDFLAGS="$LDFLAGS $with_blas_dir" 
+     -L*) LDFLAGS="$LDFLAGS $with_blas_dir"
 	      acx_blas_dir="$with_blas_dir" ;;
-      *) LDFLAGS="$LDFLAGS -L$with_blas_dir" 
+      *) LDFLAGS="$LDFLAGS -L$with_blas_dir"
 	      acx_blas_dir="-L$with_blas_dir" ;;
 esac
 
@@ -109,12 +109,12 @@ fi
 # Intel mkl BLAS. Unfortunately some of Intel's blas routines are
 # in their lapack library...
 if test $acx_blas_ok = no; then
-	AC_CHECK_LIB(mkl_def, $sgemm, 
+	AC_CHECK_LIB(mkl_def, $sgemm,
 	[acx_blas_ok=yes; acx_blas_libs="-lmkl_def -lm"],
 	[],[-lm])
 fi
 if test $acx_blas_ok = no; then
-	AC_CHECK_LIB(mkl_ipf, $sgemm, 
+	AC_CHECK_LIB(mkl_ipf, $sgemm,
 	[acx_blas_ok=yes; acx_blas_libs="-lmkl_ipf -lguide -lm"],
 	[],[-lguide -lm])
 fi
@@ -129,8 +129,8 @@ if test $acx_blas_ok = no; then
 	unset ac_cv_lib_mkl_def_sgemm
 	AC_CHECK_LIB(mkl_lapack, lsame, [
 	    acx_lapack_ok=yes;
-		AC_CHECK_LIB(mkl_def, $sgemm, 
-			[acx_blas_ok=yes; 
+		AC_CHECK_LIB(mkl_def, $sgemm,
+			[acx_blas_ok=yes;
 			acx_blas_libs="-lmkl_def -lmkl_lapack -lm -lpthread"],
 			[],[-lm -lpthread
 		])
@@ -152,7 +152,7 @@ fi
 
 # ia64-hp-hpux11.22 BLAS library?
 if test $acx_blas_ok = no; then
-        AC_CHECK_LIB(veclib, $sgemm, 
+        AC_CHECK_LIB(veclib, $sgemm,
 		[acx_blas_ok=yes; acx_blas_libs="-lveclib8"])
 fi
 
@@ -219,10 +219,10 @@ if test $acx_blas_ok = no; then
 	AC_CHECK_LIB(blas, $sgemm, [acx_blas_ok=yes; acx_blas_libs="-lblas"])
 fi
 
-# blas on SGI/CRAY 
+# blas on SGI/CRAY
 if test $acx_blas_ok = no; then
     unset ac_cv_lib_blas_sgemm
-	AC_CHECK_LIB(blas, $sgemm, 
+	AC_CHECK_LIB(blas, $sgemm,
 	[acx_blas_ok=yes; acx_blas_libs="-lblas -lcraylibs"],[],[-lcraylibs])
 fi
 
@@ -234,7 +234,7 @@ if test $acx_blas_ok = no; then
 	AC_MSG_RESULT($acx_blas_ok)
 	LIBS="$save_LIBS"
 fi
- 
+
 BLAS_LIBS="$acx_blas_libs"
 AC_SUBST(BLAS_LIBS)
 
@@ -261,7 +261,7 @@ dnl hold the requisite library linkages.
 dnl
 dnl To link with LAPACK, you should link with:
 dnl
-dnl 	$LAPACK_LIBS $BLAS_LIBS $LIBS 
+dnl 	$LAPACK_LIBS $BLAS_LIBS $LIBS
 dnl
 dnl in that order.  BLAS_LIBS is the output variable of the ACX_BLAS
 dnl macro, called automatically.  FLIBS is the output variable of the
@@ -308,9 +308,9 @@ AC_ARG_WITH(lapack_dir,
 
 case $with_lapack_dir in
       yes | no | "") ;;
-     -L*) LDFLAGS="$LDFLAGS $with_lapack_dir" 
+     -L*) LDFLAGS="$LDFLAGS $with_lapack_dir"
 	      acx_lapack_dir="$with_lapack_dir" ;;
-      *) LDFLAGS="$LDFLAGS -L$with_lapack_dir" 
+      *) LDFLAGS="$LDFLAGS -L$with_lapack_dir"
 	      acx_lapack_dir="-L$with_lapack_dir" ;;
 esac
 
@@ -347,7 +347,7 @@ if test $acx_lapack_ok = no; then
 if test "x$LAPACK_LIBS" != x; then
 	save_LIBS="$LIBS"; LIBS="$LAPACK_LIBS $LIBS"
 	AC_MSG_CHECKING([for $dsyev in $LAPACK_LIBS])
-	AC_TRY_LINK_FUNC($dsyev, [acx_lapack_ok=yes; 
+	AC_TRY_LINK_FUNC($dsyev, [acx_lapack_ok=yes;
 	     acx_lapack_libs=$LAPACK_LIBS])
 	AC_MSG_RESULT($acx_lapack_ok)
 	LIBS="$save_LIBS"
@@ -356,14 +356,14 @@ fi
 
 # Intel MKL LAPACK?
 if test $acx_lapack_ok = no; then
-	AC_CHECK_LIB(mkl_lapack, $dsyev, 
+	AC_CHECK_LIB(mkl_lapack, $dsyev,
 	[acx_lapack_ok=yes; acx_lapack_libs="-lmkl_lapack -lguide"],
 	[],[])
 fi
 
 # Sun sunperf?
 if test $acx_lapack_ok = no; then
-	AC_CHECK_LIB(sunperf, $dsyev, 
+	AC_CHECK_LIB(sunperf, $dsyev,
 	[acx_lapack_ok=yes; acx_lapack_libs="-lsunperf"],
 	[],[])
 fi
@@ -419,7 +419,7 @@ if test "x$PETSC_DIR" == "x"; then
   fi
 fi
 # Check again incase we failed.
-if test "x$PETSC_DIR" == "x"; then 
+if test "x$PETSC_DIR" == "x"; then
   AC_MSG_WARN( [No PETSC_DIR set - do you need to load a petsc module?] )
   AC_MSG_ERROR( [You need to set PETSC_DIR to point at your PETSc installation... exiting] )
 fi
@@ -434,9 +434,9 @@ CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS -I$PWD/include/"
 FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS -I$PWD/include/"
 
 # first check we have the right petsc version
-AC_COMPUTE_INT(PETSC_VERSION_MAJOR, "PETSC_VERSION_MAJOR", [#include "petscversion.h"], 
+AC_COMPUTE_INT(PETSC_VERSION_MAJOR, "PETSC_VERSION_MAJOR", [#include "petscversion.h"],
   [AC_MSG_ERROR([Unknown petsc major version])])
-AC_COMPUTE_INT(PETSC_VERSION_MINOR, "PETSC_VERSION_MINOR", [#include "petscversion.h"], 
+AC_COMPUTE_INT(PETSC_VERSION_MINOR, "PETSC_VERSION_MINOR", [#include "petscversion.h"],
   [AC_MSG_ERROR([Unknown petsc minor version])])
 AC_MSG_NOTICE([Detected PETSc version "$PETSC_VERSION_MAJOR"."$PETSC_VERSION_MINOR"])
 # if major<3 or minor<8
@@ -483,7 +483,7 @@ implicit none
       PetscScalar, dimension(1) :: v
       PetscScalar one,neg_one
       Vec         x,b,u
-      Mat         A 
+      Mat         A
       KSP         ksp
 
       call PetscInitialize(PETSC_NULL_CHARACTER,ierr)
@@ -500,12 +500,12 @@ implicit none
       call MatSetFromOptions(A,ierr)
 
       call MatGetOwnershipRange(A,Istart,Iend,ierr)
-      
+
       do 10, II0=Istart,Iend-1
         II = II0
         v = -1.0
         i = II0/n
-        j = II0 - i*n  
+        j = II0 - i*n
         if (i.gt.0) then
           JJ = II - n
           call MatSetValues(A,ione,II,ione,JJ,v,INSERT_VALUES,ierr)
@@ -729,29 +729,14 @@ variable to configure. See ``configure --help'' for reference.
 	fi
 
 	#
-	# Check if you have distutils, else fail
-	#
-	AC_MSG_CHECKING([for the distutils Python package])
-	ac_distutils_result=`$PYTHON -c "import distutils" 2>&1`
-	if test $? -eq 0; then
-		AC_MSG_RESULT([yes])
-	else
-		AC_MSG_RESULT([no])
-		AC_MSG_ERROR([cannot import Python module "distutils".
-Please check your Python installation. The error was:
-$ac_distutils_result])
-		PYTHON_VERSION=""
-	fi
-
-	#
 	# Check for Python include path
 	#
 	AC_MSG_CHECKING([for Python include path])
 	if test -z "$PYTHON_CPPFLAGS"; then
-		python_path=`$PYTHON -c "import distutils.sysconfig; \
-			print (distutils.sysconfig.get_python_inc ());"`
-		plat_python_path=`$PYTHON -c "import distutils.sysconfig; \
-			print (distutils.sysconfig.get_python_inc (plat_specific=1));"`
+		python_path=`$PYTHON -c "from sysconfig import get_path; \
+			print(get_path('include', scheme='posix_prefix'));"`
+		plat_python_path=`$PYTHON -c "from sysconfig import get_path; \
+			print(get_path('platinclude', scheme='posix_prefix'));"`
 		if test -n "${python_path}"; then
 			if test "${plat_python_path}" != "${python_path}"; then
 				python_path="-I$python_path -I$plat_python_path"
@@ -773,12 +758,8 @@ $ac_distutils_result])
 		# from the interpreter)
 		ac_python_version=`cat<<EOD | $PYTHON -
 
-# join all versioning strings, on some systems
-# major/minor numbers could be in different list elements
-from distutils.sysconfig import *
-e = get_config_var('VERSION')
-if e is not None:
-	print(e)
+from sysconfig import get_python_version
+print(get_python_version())
 EOD`
 
 		if test -z "$ac_python_version"; then
@@ -798,21 +779,17 @@ EOD`
 		ac_python_libdir=`cat<<EOD | $PYTHON -
 
 # There should be only one
-import distutils.sysconfig
-e = distutils.sysconfig.get_config_var('LIBDIR')
-if e is not None:
-	print (e)
+from sysconfig import get_config_var
+lib_dir = get_config_var('LIBDIR')
+if lib_dir is not None:
+	print(lib_dir)
 EOD`
 
 		# Now, for the library:
 		ac_python_library=`cat<<EOD | $PYTHON -
 
-import distutils.sysconfig
-c = distutils.sysconfig.get_config_vars()
-if 'LDVERSION' in c:
-	print ('python'+c[['LDVERSION']])
-else:
-	print ('python'+c[['VERSION']])
+from sysconfig import get_python_version
+print(f"python{get_python_version()}")
 EOD`
 
 		# This small piece shamelessly adapted from PostgreSQL python macro;
@@ -827,9 +804,9 @@ EOD`
 		else
 			# old way: use libpython from python_configdir
 			ac_python_libdir=`$PYTHON -c \
-			  "from distutils.sysconfig import get_python_lib as f; \
-			  import os; \
-			  print (os.path.join(f(plat_specific=1, standard_lib=1), 'config'));"`
+			  "from pathlib import PurePath; \
+				from sysconfig import get_path; \
+				print(PurePath(get_path('platstdlib')) / 'config');"`
 			PYTHON_LIBS="-L$ac_python_libdir -lpython$ac_python_version"
 		fi
 
@@ -848,8 +825,9 @@ EOD`
 	#
 	AC_MSG_CHECKING([for Python site-packages path])
 	if test -z "$PYTHON_SITE_PKG"; then
-		PYTHON_SITE_PKG=`$PYTHON -c "import distutils.sysconfig; \
-			print (distutils.sysconfig.get_python_lib(0,0));"`
+		PYTHON_SITE_PKG=`$PYTHON -c "from sysconfig import get_path; \
+			from pathlib import PurePath; \
+			print(PurePath(get_path('stdlib', scheme='posix_user')) / 'site-packages');"`
 	fi
 	AC_MSG_RESULT([$PYTHON_SITE_PKG])
 	AC_SUBST([PYTHON_SITE_PKG])
@@ -859,9 +837,8 @@ EOD`
 	#
 	AC_MSG_CHECKING(python extra libraries)
 	if test -z "$PYTHON_EXTRA_LIBS"; then
-	   PYTHON_EXTRA_LIBS=`$PYTHON -c "import distutils.sysconfig; \
-                conf = distutils.sysconfig.get_config_var; \
-                print (conf('LIBS') + ' ' + conf('SYSLIBS'))"`
+	   PYTHON_EXTRA_LIBS=`$PYTHON -c "from sysconfig import get_config_var; \
+                print(get_config_var('LIBS') + ' ' + get_config_var('SYSLIBS'))"`
 	fi
 	AC_MSG_RESULT([$PYTHON_EXTRA_LIBS])
 	AC_SUBST(PYTHON_EXTRA_LIBS)
@@ -871,9 +848,8 @@ EOD`
 	#
 	AC_MSG_CHECKING(python extra linking flags)
 	if test -z "$PYTHON_EXTRA_LDFLAGS"; then
-		PYTHON_EXTRA_LDFLAGS=`$PYTHON -c "import distutils.sysconfig; \
-			conf = distutils.sysconfig.get_config_var; \
-			print ('' if conf('PYTHONFRAMEWORK') else conf('LINKFORSHARED'))"`
+		PYTHON_EXTRA_LDFLAGS=`$PYTHON -c "from sysconfig import get_config_var; \
+			print('' if get_config_var('PYTHONFRAMEWORK') else get_config_var('LINKFORSHARED'))"`
 	fi
 	AC_MSG_RESULT([$PYTHON_EXTRA_LDFLAGS])
 	AC_SUBST(PYTHON_EXTRA_LDFLAGS)
