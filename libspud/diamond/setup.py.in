@@ -1,11 +1,10 @@
-from distutils.core import setup
-from distutils.extension import Extension
+from glob import glob
 import os
 import os.path
-import glob
+from setuptools import setup
 
 # There are a number of local hacks in this file, to deal with the multiple
-# ways in which setup.py is called by various scripts and packaging methods 
+# ways in which setup.py is called by various scripts and packaging methods
 # that interact with spud, enabling setuptools to grok their intentions.
 
 # In some cases, we will be passed a 'DESTDIR' from an upstream packagaing
@@ -48,15 +47,15 @@ plugin_data_files = []
 if sys.platform == 'darwin' and packaging:
 	for plugin in plugin_dirs:
   		plugin_data_files.append(("./plugins/" + plugin,
-		  glob.glob('plugins/' + plugin + '/*.py')))
+		  glob('plugins/' + plugin + '/*.py')))
 else:
 	for plugin in plugin_dirs:
 	  if prefix is None:
             plugin_data_files.append(("@prefix@/share/diamond/plugins/" + plugin,
-                                      glob.glob('plugins/' + plugin + '/*.py')))
+                                      glob('plugins/' + plugin + '/*.py')))
 	  else:
             plugin_data_files.append((prefix + "/share/diamond/plugins/" + plugin,
-                                      glob.glob('plugins/' + plugin + '/*.py')))
+                                      glob('plugins/' + plugin + '/*.py')))
 
 # Now parse the GUI directories
 gui_data_files = []
@@ -82,6 +81,6 @@ setup(
       packages = ['diamond'],
       package_dir = {'diamond': 'diamond'},
       scripts=["bin/diamond"],
+			# data_files is deprecated. It does not work with wheels, so it should be avoided.
       data_files = gui_data_files + plugin_data_files
      )
-

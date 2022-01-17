@@ -1,5 +1,5 @@
 #    Copyright (C) 2006 Imperial College London and others.
-#    
+#
 #    Please see the AUTHORS file in the main source directory for a full list
 #    of copyright holders.
 #
@@ -9,7 +9,7 @@
 #    Imperial College London
 #
 #    amcgsoftware@imperial.ac.uk
-#    
+#
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
 #    License as published by the Free Software Foundation,
@@ -47,6 +47,8 @@ datadir = @datadir@
 docdir = @docdir@/
 htmldir = @htmldir@/
 pdfdir = @pdfdir@/
+
+python_exec = python@PYTHON_VERSION@
 
 FC      = @FC@
 FCFLAGS = @FCFLAGS@
@@ -151,7 +153,7 @@ lib/libvtkfortran.a:
 ifeq (@SPUD_ONLY@,yes)
 	echo '    MAKE libspud'; $(MAKE) -C libspud && $(MAKE) -C libspud install-libspud
 else
-	echo '    MAKE libspud'; $(MAKE) -C libspud &&  $(MAKE) -C libspud install-libspud && cd libspud/python && python3 setup.py build && cd ../.. && cp libspud/python/build/lib*/libspud*.so python/
+	echo '    MAKE libspud'; $(MAKE) -C libspud &&  $(MAKE) -C libspud install-libspud && cd libspud/python && $(python_exec) setup.py build && cd ../.. && cp libspud/python/build/lib*/libspud*.so python/
 endif
 
 libfemtools: sub_system
@@ -190,14 +192,14 @@ static: fluidity_library
 
 shared: lib/shared/$(SLIB_FLUIDITY).1
 
-lib/shared/$(SLIB_FLUIDITY).1: fluidity_library 
+lib/shared/$(SLIB_FLUIDITY).1: fluidity_library
 	@echo "BUILD shared libfluidity"
 	@rm -rf tmp
 	@mkdir -p tmp lib/shared
 	@cp $(LIB_FLUIDITY) tmp
 	@cd tmp; ar x lib$(FLUIDITY).a; rm lib$(FLUIDITY).a; cd ..
 	@echo "    LD lib$(FLUIDITY).so"
-	@$(EVAL) $(LINKER) -shared -Wl,-soname,$(SLIB_FLUIDITY).1 -o lib/shared/$(SLIB_FLUIDITY).1 tmp/* -L./lib -lvtkfortran 
+	@$(EVAL) $(LINKER) -shared -Wl,-soname,$(SLIB_FLUIDITY).1 -o lib/shared/$(SLIB_FLUIDITY).1 tmp/* -L./lib -lvtkfortran
 	@rm -rf tmp
 	@cd lib/shared; ln -sf $(SLIB_FLUIDITY).1 $(SLIB_FLUIDITY); cd ../..
 
@@ -216,7 +218,7 @@ manual:
 python_build:
 ifeq (@HAVE_PYTHON@,yes)
 	@echo "    MAKE python"
-	@cd python; python3 setup.py build > build.log 2>&1
+	@cd python; $(python_exec) setup.py build > build.log 2>&1
 	@cd python/fluidity; find ../build/lib* -name '*.so' -exec ln -sf {} . \;
 endif
 
@@ -299,7 +301,7 @@ endif
 
 
 
-fldecomp: fluidity_library 
+fldecomp: fluidity_library
 	@echo "BUILD fldecomp"
 	@echo "    MKDIR bin"
 	@mkdir -p bin
@@ -381,9 +383,9 @@ endif
 
 clean-debian:
 	@echo "    CLEAN debian"
-	@cd debian; rm -rf files tmp fluidity python-fluidity *.substvars *.debhelper* 
+	@cd debian; rm -rf files tmp fluidity python-fluidity *.substvars *.debhelper*
 
-clean-test:      
+clean-test:
 	@echo "    CLEAN tests"
 	@cd tests; PYTHONPATH=../python ../tools/testharness.py --clean >/dev/null
 	@cd tests/data; $(MAKE) clean
@@ -404,7 +406,7 @@ clean-unittest:
 	@echo "    CLEAN ocean_forcing/tests"
 	@cd ocean_forcing/tests;   $(MAKE) clean
 
-clean-all-tests: clean-test     
+clean-all-tests: clean-test
 	@echo "    CLEAN parallel/special/long tests"
 	@PYTHONPATH=python tools/testharness.py --parallelism=parallel --clean >/dev/null
 	@PYTHONPATH=python tools/testharness.py --length=special --clean >/dev/null
@@ -465,7 +467,7 @@ spudtools:
 	@cd libspud ; $(MAKE) install-spudtools
 	@echo "    INSTALL spudtools"
 
-setuputs: 
+setuputs:
 	@echo "SETUP tests"
 	@echo "    RMDIR bin/tests"
 	@rm -rf bin/tests
@@ -543,14 +545,14 @@ endif
 	@cd diagnostics;   	../bin/create_makefile --exclude \
 	"Diagnostic_Fields_Interfaces.F90 Diagnostic_Fields_New.F90" $(TESTOPTS)
 	@cd diagnostics;   	$(MAKE) Diagnostic_Fields_Interfaces.o \
-	Diagnostic_Fields_New.o 
+	Diagnostic_Fields_New.o
 	@echo "    Generating main dependencies"
 	@cd main; ../bin/create_makefile --exclude test_coupler.F90 $(TESTOPTS)
 	@echo "    Cleaning up the mess"
 	$(MAKE) clean-light
 	@echo "    Congratulations, make makefiles succeeded!"
 
-install: default fltools 
+install: default fltools
 	@mkdir -p $(DESTDIR)$(bindir) $(DESTDIR)$(docdir)/fluidity
 	find bin/ -maxdepth 1 -type f -exec cp '{}' $(DESTDIR)$(bindir) \;
 	rm -f $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval
@@ -559,14 +561,14 @@ install: default fltools
 	cp -R schemas $(DESTDIR)$(datadir)/fluidity/
 	mkdir -p $(DESTDIR)$(datadir)/diamond/schemata
 	$(SED) 's/$${datadir}/$(subst /,\/,$(datadir))/g' schemas/flml.in > $(DESTDIR)$(datadir)/diamond/schemata/flml
-	cd python ; python3 setup.py install --root=$(shell echo ${DESTDIR} | sed 's/^$$/\//') --prefix="$(prefix)" $$FLUIDITY_PYTHON_INSTALL_ARGS
+	cd python ; $(python_exec) -m build ; $(python_exec) -m pip install dist/fluidity-0.1-py3-none-any.whl
 	cp -R examples $(DESTDIR)$(docdir)/fluidity
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec $(SED) -i "s/\.\.\/\.\.\/\.\.\/bin\///" '{}' \;
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec $(SED) -i "s/\.\.\/\.\.\/bin\///" '{}' \;
 	cd $(DESTDIR)$(docdir)/fluidity ; tar -czvf $(DESTDIR)$(docdir)/fluidity/examples.tar.gz examples/
 	rm -rf $(DESTDIR)$(docdir)/fluidity/examples/
 
-install-diamond: 
+install-diamond:
 	cd libspud; ./configure --prefix=@prefix@; cd ../..
 	cd libspud; $(MAKE) clean; cd ../..
 	cd libspud; $(MAKE) install-diamond; cd ../..
