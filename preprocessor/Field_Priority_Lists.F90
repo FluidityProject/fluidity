@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -38,7 +38,7 @@ module field_priority_lists
   use sediment, only: get_n_sediment_fields, get_sediment_item
 
   implicit none
-  
+
   !! Field name list for tracers (from 1 to NTSOL)
   character(len=FIELD_NAME_LEN), save, &
        dimension(:), allocatable :: field_name_list
@@ -53,8 +53,8 @@ module field_priority_lists
   private
   public :: field_name_list, field_list, field_optionpath_list,&
        & field_state_list, initialise_field_lists_from_options,&
-       & get_ntsol 
-       
+       & get_ntsol
+
 contains
 
   subroutine initialise_field_lists_from_options(state, ntsol)
@@ -62,7 +62,7 @@ contains
     integer, intent(in) :: ntsol
 
     logical, save:: initialised=.false.
-    integer :: nsol, nphases,nfields,ncars,p,f,i, tmpint
+    integer :: nsol, nphases, nfields, p, f, tmpint
     character(len=FIELD_NAME_LEN) :: tmpstring
     logical :: aliased, pressure
 
@@ -75,11 +75,11 @@ contains
         dimension(:), allocatable :: temp_field_optionpath_list
     !! State list for tracers (from 1 to NTSOL)
     integer, save, dimension(:), allocatable :: temp_field_state_list
-    
-    
+
+
     ! if called for the second time return immediately
     if (.not.initialised) then
-    
+
        allocate( field_name_list(ntsol), &
             field_state_list(ntsol), &
             field_optionpath_list(ntsol),&
@@ -91,7 +91,7 @@ contains
 
        nsol = 0
 
-       nphases = option_count('/material_phase')  
+       nphases = option_count('/material_phase')
        do p = 0, nphases-1
           nfields = option_count('/material_phase[' &
                //int2str(p)//']/scalar_field')
@@ -125,7 +125,7 @@ contains
              nfields = get_n_sediment_fields()
              do f = 1, nfields
                 nsol=nsol+1
-                
+
                 call get_sediment_item(state(p+1), f, temp_field_name_list(nsol))
                 temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
                      ']/sediment/scalar_field['//int2str(f-1)//']'
@@ -311,19 +311,19 @@ contains
             temp_field_optionpath_list )
 
        initialised = .true.
-       
+
     end if ! End of if(initialised)
 
     ! Point the list of fields. This has to be done every adapt as the
     ! field structures will be reallocated.
-    
+
     ! Note that we use borrowed references for this so as not to interfere
     ! with adaptivity.
     do f=1,ntsol
        field_list(f) = extract_scalar_field(state(field_state_list(f)),&
             &                               field_name_list(f))
     end do
-          
+
   end subroutine initialise_field_lists_from_options
 
   subroutine get_ntsol(ntsol)
@@ -334,7 +334,7 @@ contains
 
     ntsol = 0
 
-    nphases = option_count('/material_phase')  
+    nphases = option_count('/material_phase')
     do p = 0, nphases-1
        nfields = option_count('/material_phase[' &
             //int2str(p)//']/scalar_field')
@@ -349,7 +349,7 @@ contains
              ntsol = ntsol + 1
           end if
        end do
-    
+
        ! added as hack for now - but this whole set up of fields could be way better!
        ! prognostic pop balance fields - very limited applicability
        if (have_option('/material_phase['//int2str(p)//']/population_balance/')) then

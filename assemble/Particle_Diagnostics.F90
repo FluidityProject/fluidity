@@ -68,9 +68,8 @@ module particle_diagnostics
     type(state_type), dimension(:), intent(inout) :: state
 
     character(len = OPTION_PATH_LEN) :: group_path, subgroup_path
-    type(scalar_field), pointer :: s_field
     integer :: i, j
-    integer :: particle_groups, list_counter, particle_materials
+    integer :: particle_groups, list_counter
     integer, dimension(:), allocatable :: particle_arrays
 
     type(detector_type), pointer :: particle
@@ -199,14 +198,14 @@ module particle_diagnostics
     character(len=OPTION_PATH_LEN) :: lgroup, lattribute
     type(vector_field), pointer :: xfield
     type(detector_type), pointer :: particle
-    integer :: i, j
+    integer :: i
     real, allocatable, dimension(:) :: node_values
     real, allocatable, dimension(:) :: node_part_count ! real instead of integer, so we can use halo_accumulate
     integer :: element, node_number
     real, allocatable, dimension(:) :: local_crds
     integer, dimension(:), pointer :: nodes
     integer :: nprocs, att_n
-    real :: att_value, ratio_val
+    real :: att_value
     character(len= OPTION_PATH_LEN) :: lmethod
     logical :: from_particles
 
@@ -693,7 +692,7 @@ module particle_diagnostics
     integer :: id, group_spawn, ele_spawn, proc_num
     integer :: j, i, k, l, m, dim
     logical :: spawn_group, coords_set, rand_set
-    real :: max_lcoord, rand_lcoord, sum_coords, rand_val
+    real :: max_lcoord, rand_lcoord, rand_val
     real, dimension(:), allocatable :: rand_lcoords
 
     proc_num = getprocno()

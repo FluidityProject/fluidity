@@ -1,25 +1,25 @@
 /* Copyright (C) 2004- Imperial College London and others.
-   
+
    Please see the AUTHORS file in the main source directory for a full
    list of copyright holders.
-   
+
    Adrian Umpleby
    Applied Modelling and Computation Group
    Department of Earth Science and Engineering
    Imperial College London
-   
+
    adrian@imperial.ac.uk
-   
+
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
    License as published by the Free Software Foundation; either
    version 2.1 of the License.
-   
+
    This library is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    Lesser General Public License for more details.
-   
+
    You should have received a copy of the GNU Lesser General Public
    License along with this library; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -207,7 +207,7 @@ void CheckConnected(vtkUnstructuredGrid *dataSet, int *hexcut, const int kk,
       vtkIdList *nghbrs2=vtkIdList::New();
       nghbrs1->SetNumberOfIds(0);
       nghbrs2->SetNumberOfIds(0);
-      
+
       hexcut[i*6+k] = 0;
 
       if( f & 1 ) {
@@ -293,48 +293,48 @@ REAL CheckTetVol(vtkIdType p1, vtkIdType p2, vtkIdType p3, vtkIdType p4,
     r3[0] = X[p4];
     r3[1] = Y[p4];
     r3[2] = Z[p4];
-    
+
     double a1 = r1[0]-r0[0];
     double a2 = r1[1]-r0[1];
     double a3 = r1[2]-r0[2];
     double d10 = a1*a1 + a2*a2 + a3*a3;
     double dmin = d10;
-    
+
     double b1 = r2[0]-r0[0];
     double b2 = r2[1]-r0[1];
     double b3 = r2[2]-r0[2];
     double d20 = b1*b1 + b2*b2 + b3*b3;
     if( d20 < dmin ) dmin = d20;
-    
+
     double c1 = r3[0]-r0[0];
     double c2 = r3[1]-r0[1];
     double c3 = r3[2]-r0[2];
     double d30 = c1*c1 + c2*c2 + c3*c3;
     if( d30 < dmin ) dmin = d30;
-    
+
     double d1 = r2[0]-r1[0];
     double d2 = r2[1]-r1[1];
     double d3 = r2[2]-r1[2];
     double d21 = d1*d1 + d2*d2 + d3*d3;
     if( d21 < dmin ) dmin = d21;
-    
+
     double e1 = r3[0]-r1[0];
     double e2 = r3[1]-r1[1];
     double e3 = r3[2]-r1[2];
     double d31 = e1*e1 + e2*e2 + e3*e3;
     if( d31 < dmin ) dmin = d31;
-    
+
     double f1 = r3[0]-r2[0];
     double f2 = r3[1]-r2[1];
     double f3 = r3[2]-r2[2];
     double d32 = f1*f1 + f2*f2 + f3*f3;
     if( d32 < dmin ) dmin = d32;
-    
+
     dmin = dmin*sqrt(dmin)/50000;
 
     // volume = | r_a r_b r_c | / 6
     vol = (a1*(b2*c3 - b3*c2) - b1*(a2*c3 - a3*c2) + c1*(a2*b3 - a3*b2))/6.0;
-    
+
     if(fabs(vol)<=fabs(dmin)) {
       cerr<<"Found very small volume "<<vol<<" "<<d10<<" "<<d20<<" "<<d30<<" "<<d21<<" "<<d31<<" "<<d32<<" "<<dmin<<"\n";
       //printf("Found very small elem ",vol," ",d10," ",d20," ",d30," ",d21," ",d31," ",d32," ",dmin,"\n";
@@ -391,7 +391,7 @@ int AddOneTetra(vtkIdType p1, vtkIdType p2, vtkIdType p3, vtkIdType p4,
     maxvol = 0.0;
     return (int) ort;
   }
-  
+
   if( p1==p2 || p1==p3 || p1==p4 || p2==p3 || p2==p4 || p3==p4 ) {
     cerr<<"Found collapsed element: "<<p1<<" "<<p2<<" "<<p3<<" "<<p4<<"\n";
     return tetcnt;
@@ -448,7 +448,7 @@ int readVTKFile(const char * const filename,
     cerr<<"ERROR: Float has wrong size: "<<sizeof(float)<<endl;
     return -1;
   }
-  
+
   if( sizeof(double) != 8 ) {
     cerr<<"ERROR: Double has wrong size: "<<sizeof(double)<<endl;
     return -1;
@@ -538,7 +538,7 @@ int readVTKFile(const char * const filename,
     cerr<<"ERROR: Unstructured Grid data not found in file!\n";
     return -1;
   }
-  
+
   if( fieldlst==NULL ) {
     cerr<<"ERROR: Empty field list sent into readVTKFile!\n";
     return -1;
@@ -560,10 +560,10 @@ int readVTKFile(const char * const filename,
     lastfld = fieldlst;
     addall = 1;
   }
-  
+
   vtkIdType ntets = ncells;
   int numfld=0, numprops=0;
-  
+
   {
     vtkIdType npts;
     GetCellPointer *pts;
@@ -927,14 +927,14 @@ int readVTKFile(const char * const filename,
         }
         if( numfld > 0 )
           *Fields = &(NODF[0]);
-        if( numprops > 0 ) 
+        if( numprops > 0 )
           *Properties = &(ELMP[0]);
       }
       nnodes = nodcnt;
-    
+
     }
     free(used);
-    
+
     *X      = &(NODX[0]);
     *Y      = &(NODY[0]);
     *Z      = &(NODZ[0]);
@@ -1251,9 +1251,9 @@ int fgetvtksizes(char *fortname, int *namelen,
                   int *NDIM, int *maxlen )
 {
   int status=0;
-  int *ENLBAS=NULL, *ENLIST=NULL, *SNLIST=NULL;
+  int *ENLBAS=NULL, *ENLIST=NULL;
   REAL *X=NULL, *Y=NULL, *Z=NULL, *F=NULL, *P=NULL;
-  
+
   // the filename string passed down from Fortan needs terminating,
   // so make a copy and fiddle with it (remember to free it)
   char *filename = (char *)malloc(*namelen+3);
@@ -1316,7 +1316,7 @@ int freadvtkfile(char *fortname, int *namelen,
                   char *NAMES, int *maxlen )
 {
   int status=0;
-  
+
   // the filename string passed down from Fortan needs terminating
   // so make a copy and fiddle with it (remember to free it)
   char *filename = (char *)malloc(*namelen+3);
@@ -1362,7 +1362,7 @@ int freadvtkfile(char *fortname, int *namelen,
     if( l>*maxlen )
       l = *maxlen;
     for( int k=1; k<=newfld->ncomponents; k++) {
-      // copy characters into NAMES 
+      // copy characters into NAMES
       for( int i=0; i<l; i++ )
         NAMES[ipos+i] = thisname[i];
       j = l;
