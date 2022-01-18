@@ -6102,7 +6102,7 @@ fi
 $as_echo_n "checking for a version of Python >= '3.6'... " >&6; }
 		ac_supports_python_ver=`$PYTHON -c "from pkg_resources import parse_version; \
 			from sysconfig import get_python_version; \
-			print(parse_version(get_python_version()) > parse_version('3.6'))"`
+			print(parse_version(get_python_version()) >= parse_version('3.6'))"`
 		if test "$ac_supports_python_ver" = "True"; then
 		   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
