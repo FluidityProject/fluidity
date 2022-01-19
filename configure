@@ -5988,7 +5988,6 @@ if test "${enable_python+set}" = set; then :
   enableval=$enable_python;
 fi
 
-
 if test "x$enable_python" != "xno"
 then
     if test -z "$PYTHON_VERSION"; then
@@ -6032,24 +6031,18 @@ else
 $as_echo "no" >&6; }
 fi
 
-
-      if test "x$have_bare_python" = "xyes"; then
-        bare_python_is_two=`python -c "import sys; print(sys.version_info.major < 3)"`
-        if test "x$bare_python_is_two=xTrue"; then
-          PYTHON_VERSION=3
-        fi
-      else
-        PYTHON_VERSION=3
-      fi
+  if test "x$have_bare_python" = "xyes"; then
+    bare_python_is_two=`python -c "import sys; print(sys.version_info.major < 3)"`
+    if test "x$bare_python_is_two=xTrue"; then
+      PYTHON_VERSION=3
     fi
-    mycppflag=$CPPFLAGS
+  else
+    PYTHON_VERSION=3
+  fi
+fi
+mycppflag=$CPPFLAGS
 
-	#
-	# Allow the use of a (user set) custom python version
-	#
-
-
-	# Extract the first word of "python[$PYTHON_VERSION]", so it can be a program name with args.
+# Extract the first word of "python[$PYTHON_VERSION]", so it can be a program name with args.
 set dummy python$PYTHON_VERSION; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
 $as_echo_n "checking for $ac_word... " >&6; }
@@ -6118,6 +6111,8 @@ variable to configure. See \`\`configure --help'' for reference.
 		fi
 	fi
 
+	HAVE_PYTHON=yes
+
 	#
 	# Check for Python include path
 	#
@@ -6139,7 +6134,6 @@ $as_echo_n "checking for Python include path... " >&6; }
 	fi
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_CPPFLAGS" >&5
 $as_echo "$PYTHON_CPPFLAGS" >&6; }
-
 
 	#
 	# Check for Python library path
@@ -6164,13 +6158,6 @@ EOD`
 			fi
 		fi
 
-		# Make the versioning information available to the compiler
-
-cat >>confdefs.h <<_ACEOF
-#define HAVE_PYTHON "$ac_python_version"
-_ACEOF
-
-
 		# First, the library directory:
 		ac_python_libdir=`cat<<EOD | $PYTHON -
 
@@ -6184,8 +6171,8 @@ EOD`
 		# Now, for the library:
 		ac_python_library=`cat<<EOD | $PYTHON -
 
-from sysconfig import get_python_version
-print(f"python{get_python_version()}")
+from sysconfig import get_config_var
+print(f"python{get_config_var('LDVERSION')}")
 EOD`
 
 		# This small piece shamelessly adapted from PostgreSQL python macro;
@@ -6200,9 +6187,9 @@ EOD`
 		else
 			# old way: use libpython from python_configdir
 			ac_python_libdir=`$PYTHON -c \
-			  "from pathlib import PurePath; \
-				from sysconfig import get_path; \
-				print(PurePath(get_path('platstdlib')) / 'config');"`
+        "from pathlib import PurePath; \
+         from sysconfig import get_path; \
+         print(PurePath(get_path('platstdlib')) / 'config');"`
 			PYTHON_LIBS="-L$ac_python_libdir -lpython$ac_python_version"
 		fi
 
@@ -6216,7 +6203,6 @@ EOD`
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_LIBS" >&5
 $as_echo "$PYTHON_LIBS" >&6; }
 
-
 	#
 	# Check for site packages
 	#
@@ -6229,7 +6215,6 @@ $as_echo_n "checking for Python site-packages path... " >&6; }
 	fi
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_SITE_PKG" >&5
 $as_echo "$PYTHON_SITE_PKG" >&6; }
-
 
 	#
 	# libraries which must be linked in when embedding

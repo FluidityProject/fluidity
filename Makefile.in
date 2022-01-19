@@ -218,14 +218,14 @@ manual:
 python_build:
 ifeq (@HAVE_PYTHON@,yes)
 	@echo "    MAKE python"
-	@cd python; $(python_exec) setup.py build > build.log 2>&1
-	@cd python/fluidity; find ../build/lib* -name '*.so' -exec ln -sf {} . \;
+	@cd python; $(python_exec) -m build
+	$(python_exec) -m pip install --user --upgrade python/dist/fluidity-0.1-py3-none-any.whl
 endif
 
 python_clean:
 	@echo "    CLEAN python"
-	@cd python; rm -rf build
-	@cd python/fluidity; find . -type l -name '*.so' -exec rm -f {} \;
+	@cd python; rm -rf dist fluidity.egg-info
+	PYTHONPATH=@PYTHON_SITE_PKG@ $(python_exec) -m pip uninstall --yes fluidity
 
 .PHONY: scripts
 
@@ -447,7 +447,7 @@ distclean: clean
 	 include/spud_enums.h include/tinystr.h include/tinyxml.h	\
 	 include/version.h include/vtk.h				\
 	 preprocessor/check_options.F90 \
-	 preprocessor/register_diagnostics.F90 python/setup.py >	\
+	 preprocessor/register_diagnostics.F90 >	\
 	 /dev/null
 	@for i in `find ./*/ -name Makefile.in`; do rm -f `echo $$i | sed 's/.in$$//'`; done > /dev/null
 	@find ./ \( -name make.log \) -exec rm -f {} \; > /dev/null
@@ -552,7 +552,7 @@ endif
 	$(MAKE) clean-light
 	@echo "    Congratulations, make makefiles succeeded!"
 
-install: default fltools
+install:
 	@mkdir -p $(DESTDIR)$(bindir) $(DESTDIR)$(docdir)/fluidity
 	find bin/ -maxdepth 1 -type f -exec cp '{}' $(DESTDIR)$(bindir) \;
 	rm -f $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval
@@ -561,7 +561,6 @@ install: default fltools
 	cp -R schemas $(DESTDIR)$(datadir)/fluidity/
 	mkdir -p $(DESTDIR)$(datadir)/diamond/schemata
 	$(SED) 's/$${datadir}/$(subst /,\/,$(datadir))/g' schemas/flml.in > $(DESTDIR)$(datadir)/diamond/schemata/flml
-	cd python ; PYTHONPATH=@PYTHON_SITE_PKG@ $(python_exec) -m build ; PYTHONPATH=@PYTHON_SITE_PKG@ $(python_exec) -m pip install dist/fluidity-0.1-py3-none-any.whl
 	cp -R examples $(DESTDIR)$(docdir)/fluidity
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec $(SED) -i "s/\.\.\/\.\.\/\.\.\/bin\///" '{}' \;
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec $(SED) -i "s/\.\.\/\.\.\/bin\///" '{}' \;

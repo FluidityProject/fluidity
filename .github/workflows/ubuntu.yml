@@ -17,21 +17,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Build Bionic", "Build Focal", "Build Groovy" ]
+        name: [ "Build Bionic", "Build Focal" ]
         include:
-        
+
           - name: "Build Bionic"
             release: bionic
-    
+
           - name: "Build Focal"
             release: focal
-    
-          - name: "Build Groovy"
-            release: groovy
-    
+
     steps:
 
-      - name: Check Out Repo 
+      - name: Check Out Repo
         uses: actions/checkout@v2
 
       - name: Login to Docker Hub
@@ -39,7 +36,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
-          
+
       - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v2
@@ -59,14 +56,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Unit Bionic", "Short Bionic", "Medium Bionic", "Unit Focal", "Short Focal", "Medium Focal", "Unit Groovy", "Short Groovy", "Medium Groovy" ]
+        name: [ "Unit Bionic", "Short Bionic", "Medium Bionic", "Unit Focal", "Short Focal", "Medium Focal" ]
         include:
-        
+
           - name: "Unit Bionic"
             release: bionic
             command: "make unittest"
             output: "test_results_unittests.xml"
-          
+
           - name: "Short Bionic"
             release: bionic
             command: "make THREADS=2 test"
@@ -81,7 +78,7 @@ jobs:
             release: focal
             command: "make unittest"
             output: "test_results_unittests.xml"
-          
+
           - name: "Short Focal"
             release: focal
             command: "make THREADS=2 test"
@@ -89,21 +86,6 @@ jobs:
 
           - name: "Medium Focal"
             release: focal
-            command: "make THREADS=2 mediumtest"
-            output: "test_results_medium.xml"
-
-          - name: "Unit Groovy"
-            release: groovy
-            command: "make unittest"
-            output: "test_results_unittests.xml"
-          
-          - name: "Short Groovy"
-            release: groovy
-            command: "make THREADS=2 test"
-            output: "test_results.xml"
-
-          - name: "Medium Groovy"
-            release: groovy
             command: "make THREADS=2 mediumtest"
             output: "test_results_medium.xml"
 
@@ -143,7 +125,7 @@ jobs:
                "gyre_parallel",
                "Stokes_square_convection_1e4_vv_p1p1",
                "Stokes_square_convection_1e4_p1p1_Ra_Test",
-               "Stokes_square_convection_1e4_vv_gauss_p2p1", 
+               "Stokes_square_convection_1e4_vv_gauss_p2p1",
                "viscous_fs_drunkensailor",
                "cylinder-3d-drag",
                "viscosity_2d_p0_adaptive_parallel",

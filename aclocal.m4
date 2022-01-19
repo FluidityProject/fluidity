@@ -668,46 +668,6 @@ CPPFLAGS=$tmpCPPFLAGS
 AU_ALIAS([AC_PYTHON_DEVEL], [AX_PYTHON_DEVEL])
 AC_DEFUN([AX_PYTHON_DEVEL],[
 	#
-	# Allow the use of a (user set) custom python version
-	#
-	AC_ARG_VAR([PYTHON_VERSION],[The installed Python
-		version to use, for example '2.3'. This string
-		will be appended to the Python interpreter
-		canonical name.])
-
-	AC_PATH_PROG([PYTHON],[python[$PYTHON_VERSION]])
-	if test -z "$PYTHON"; then
-	   AC_MSG_ERROR([Cannot find python$PYTHON_VERSION in your system path])
-	   PYTHON_VERSION=""
-	fi
-
-	#
-	# Check for a version of Python >= 2.1.0
-	#
-	AC_MSG_CHECKING([for a version of Python >= '2.1.0'])
-	ac_supports_python_ver=`$PYTHON -c "import sys; \
-		ver = sys.version.split ()[[0]]; \
-		print (ver >= '2.1.0')"`
-	if test "$ac_supports_python_ver" != "True"; then
-		if test -z "$PYTHON_NOVERSIONCHECK"; then
-			AC_MSG_RESULT([no])
-			AC_MSG_FAILURE([
-This version of the AC@&t@_PYTHON_DEVEL macro
-doesn't work properly with versions of Python before
-2.1.0. You may need to re-run configure, setting the
-variables PYTHON_CPPFLAGS, PYTHON_LIBS, PYTHON_SITE_PKG,
-PYTHON_EXTRA_LIBS and PYTHON_EXTRA_LDFLAGS by hand.
-Moreover, to disable this check, set PYTHON_NOVERSIONCHECK
-to something else than an empty string.
-])
-		else
-			AC_MSG_RESULT([skip at user request])
-		fi
-	else
-		AC_MSG_RESULT([yes])
-	fi
-
-	#
 	# if the macro parameter ``version'' is set, honour it
 	#
 	if test -n "$1"; then
@@ -771,10 +731,6 @@ EOD`
 			fi
 		fi
 
-		# Make the versioning information available to the compiler
-		AC_DEFINE_UNQUOTED([HAVE_PYTHON], ["$ac_python_version"],
-                                   [If available, contains the Python version number currently in use.])
-
 		# First, the library directory:
 		ac_python_libdir=`cat<<EOD | $PYTHON -
 
@@ -788,8 +744,8 @@ EOD`
 		# Now, for the library:
 		ac_python_library=`cat<<EOD | $PYTHON -
 
-from sysconfig import get_python_version
-print(f"python{get_python_version()}")
+from sysconfig import get_config_var
+print(f"python{get_config_var('LDVERSION')}")
 EOD`
 
 		# This small piece shamelessly adapted from PostgreSQL python macro;
@@ -805,8 +761,8 @@ EOD`
 			# old way: use libpython from python_configdir
 			ac_python_libdir=`$PYTHON -c \
 			  "from pathlib import PurePath; \
-				from sysconfig import get_path; \
-				print(PurePath(get_path('platstdlib')) / 'config');"`
+				 from sysconfig import get_path; \
+				 print(PurePath(get_path('platstdlib')) / 'config');"`
 			PYTHON_LIBS="-L$ac_python_libdir -lpython$ac_python_version"
 		fi
 
