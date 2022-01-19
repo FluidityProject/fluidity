@@ -33,7 +33,7 @@ C ================================================================
       Logical flag
 
 C ================================================================
-      real  minXYP(2), maxXYP(2), scale, size
+      real  minXYP(2), maxXYP(2), scale
 
       real  refXYP(2), scaXYP(2)
       Common /rescale/refXYP, scaXYP
@@ -94,7 +94,7 @@ c         End do
 C ================================================================
       Subroutine scaleBack(XYPi, XYPo)
 C ================================================================
-C  Routine computes physical coordinates of point XYPi 
+C  Routine computes physical coordinates of point XYPi
 C ================================================================
       real  XYPi(2), XYPo(2)
 
@@ -108,9 +108,3 @@ C ================================================================
 
       Return
       End
-
-
-
-
-
-

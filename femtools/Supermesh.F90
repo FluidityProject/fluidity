@@ -25,7 +25,7 @@ module supermesh_construction
 #else
   interface cintersector_set_input
     module procedure intersector_set_input_sp
-  
+
     subroutine cintersector_set_input(nodes_A, nodes_B, ndim, loc)
       use iso_c_binding, only: c_double
       implicit none
@@ -34,7 +34,7 @@ module supermesh_construction
     end subroutine cintersector_set_input
   end interface cintersector_set_input
 
-  interface 
+  interface
     subroutine cintersector_drive
     end subroutine cintersector_drive
   end interface
@@ -48,7 +48,7 @@ module supermesh_construction
 
   interface cintersector_get_output
     module procedure intersector_get_output_sp
-  
+
     subroutine cintersector_get_output(nonods, totele, ndim, loc, nodes, enlist)
       use iso_c_binding, only: c_double
       implicit none
@@ -65,13 +65,13 @@ module supermesh_construction
     end subroutine cintersector_set_dimension
   end interface intersector_set_dimension
 
-  interface 
+  interface
     subroutine cintersector_set_exactness(exact)
       implicit none
       integer, intent(in) :: exact
     end subroutine cintersector_set_exactness
   end interface
-  
+
   ! I hope this is big enough ...
   real, dimension(1024), save :: nodes_tmp
 #endif
@@ -87,12 +87,12 @@ module supermesh_construction
 #ifdef HAVE_LIBSUPERMESH
   subroutine intersector_set_dimension(ndim)
     integer, intent(in) :: ndim
-    
+
     if(allocated(elements_c)) then
       if(size(elements_c, 1) == ndim) return
       deallocate(elements_c)
     end if
-    
+
     select case(ndim)
       case(1)
         allocate(elements_c(1, 2, 2))
@@ -103,7 +103,7 @@ module supermesh_construction
       case default
         FLAbort("Invalid dimension")
     end select
-    
+
   end subroutine intersector_set_dimension
 
   function intersect_elements(positions_A, ele_A, posB, shape, empty_intersection) result(intersection)
@@ -116,9 +116,9 @@ module supermesh_construction
     ! if not present and the intersection is empty, a valid 0-element mesh is returned
     ! this is an optimisation that avoids allocating lots of empty meshes inside supermesh loops
     logical, optional, intent(out) :: empty_intersection
-    
+
     type(vector_field) :: intersection
-    
+
     integer :: i, n_elements_c
     type(mesh_type) :: intersection_mesh
 
@@ -138,22 +138,22 @@ module supermesh_construction
     forall(i = 1:size(elements_c, 2) * n_elements_c)
       intersection_mesh%ndglno(i) = i
     end forall
-    
+
     call allocate(intersection, size(elements_c, 1), intersection_mesh, "IntersectionCoordinates")
     do i = 1, n_elements_c
       call set(intersection, ele_nodes(intersection, i), elements_c(:, :, i))
     end do
-    
+
     call deallocate(intersection_mesh)
-    
+
   contains
-  
+
     function reordered(element)
       ! dim x loc
       real, dimension(:, :), intent(in) :: element
-      
+
       real, dimension(size(element, 1), size(element, 2)) :: reordered
-      
+
       ! See toFluidityElementNodeOrdering in femtools/GMSH_Common.F90
       if(size(element, 1) == 2 .and. size(element, 2) == 4) then
         reordered = element(:, (/1, 2, 4, 3/))
@@ -162,7 +162,7 @@ module supermesh_construction
       else
         reordered = element
       end if
-    
+
     end function reordered
 
   end function intersect_elements
@@ -172,11 +172,11 @@ module supermesh_construction
     real(kind = c_float), dimension(ndim, loc), intent(in) :: nodes_B
     integer, intent(in) :: ndim
     integer, intent(in) :: loc
-    
+
     call cintersector_set_input(real(nodes_A, kind = c_double), real(nodes_B, kind = c_double), ndim, loc)
-  
+
   end subroutine intersector_set_input_sp
-  
+
   subroutine intersector_get_output_sp(nonods, totele, ndim, loc, nodes, enlist)
     integer, intent(in) :: nonods
     integer, intent(in) :: totele
@@ -184,12 +184,12 @@ module supermesh_construction
     integer, intent(in) :: loc
     real(kind = c_float), dimension(nonods * ndim), intent(out) :: nodes
     integer, dimension(totele * loc), intent(out) :: enlist
-    
+
     real(kind = c_double), dimension(size(nodes)) :: lnodes
-    
+
     call cintersector_get_output(nonods, totele, ndim, loc, lnodes, enlist)
-    nodes = lnodes
-    
+    nodes = transfer(lnodes, nodes)
+
   end subroutine intersector_get_output_sp
 
   function intersect_elements(positions_A, ele_A, posB, shape, empty_intersection) result(intersection)
@@ -233,7 +233,7 @@ module supermesh_construction
          empty_intersection = .false.
       end if
     end if
-    
+
     call allocate(intersection_mesh, nonods, totele, shape, "IntersectionMesh")
     intersection_mesh%continuity = -1
     call allocate(intersection, dim, intersection_mesh, "IntersectionCoordinates")
@@ -363,7 +363,7 @@ module supermesh_construction
     integer :: ele_C
     real, dimension(ele_ngi(supermesh, 1)) :: detwei_C
     integer, dimension(:), pointer :: nodes
-    integer :: node_C, i, j
+    integer :: node_C, i
 
     integer :: ele_A
     real, dimension(ele_loc(new_positions, ele_B)) :: local_coords
@@ -389,7 +389,7 @@ module supermesh_construction
       inversion_matrix_A = inversion_matrices_A(:, :, ele_A)
       do i=1,size(nodes)
         node_C = nodes(i)
-        
+
         local_coords(1:dim) = node_val(supermesh_positions_remapped, node_C); local_coords(dim+1) = 1.0
         local_coords = matmul(inversion_matrix_A, local_coords)
         old_values = ele_val(old_field, ele_A)

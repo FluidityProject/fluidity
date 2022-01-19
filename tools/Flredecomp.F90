@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -32,10 +32,10 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   & input_nprocs, target_nprocs) bind(c)
   !!< Peform a redecomposition of an input checkpoint with input_nprocs
   !!< processes to a new checkpoint with target_nprocs processes.
-  
+
   use checkpoint
   use fldebug
-  use global_parameters, only: is_active_process, no_active_processes, topology_mesh_name, OPTION_PATH_LEN
+  use global_parameters, only: is_active_process, no_active_processes, OPTION_PATH_LEN
   use parallel_tools
   use populate_state_module
   use particles
@@ -59,7 +59,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   integer(kind=c_size_t), value :: output_basename_len
   integer(kind=c_int), value :: input_nprocs
   integer(kind=c_int), value :: target_nprocs
-  
+
   interface
     subroutine check_options()
     end subroutine check_options
@@ -69,44 +69,43 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
     end subroutine python_init
 #endif
   end interface
-  
+
   character(len=input_basename_len):: input_base
   character(len=output_basename_len):: output_base
   character(len=OPTION_PATH_LEN) :: filename
   integer :: nprocs
   type(state_type), dimension(:), pointer :: state
-  type(vector_field) :: extruded_position
   logical :: any_field_from_file, write_extruded_mesh_only, input_extruded_mesh_from_file
   integer :: i, nstates
 #ifdef HAVE_ZOLTAN
   real(zoltan_float) :: ver
   integer(zoltan_int) :: ierr
 
-  ierr = Zoltan_Initialize(ver)  
+  ierr = Zoltan_Initialize(ver)
   assert(ierr == ZOLTAN_OK)
 #endif
-  
+
   ewrite(1, *) "In flredecomp"
 
 #ifdef HAVE_PYTHON
   call python_init()
 #endif
-  
+
   nprocs = getnprocs()
   ! now turn into proper fortran strings (is there an easier way to do this?)
-  do i=1, input_basename_len
+  do i=1, transfer(input_basename_len, i)
     input_base(i:i)=input_basename(i)
   end do
-  do i=1, output_basename_len
+  do i=1, transfer(output_basename_len, i)
     output_base(i:i)=output_basename(i)
   end do
-  
+
   ewrite(2, "(a)") "Input base name: " // trim(input_base)
   ewrite(2, "(a)") "Output base name: " // trim(output_base)
   ewrite(2, "(a,i0)") "Input number of processes: ", input_nprocs
   ewrite(2, "(a,i0)") "Target number of processes: ", target_nprocs
   ewrite(2, "(a,i0)") "Job number of processes: ", nprocs
-  
+
   ! Input check
   if(input_nprocs < 0) then
     FLExit("Input number of processes cannot be negative!")
@@ -119,7 +118,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
     ewrite(-1, *) "The target number of processes must be equal or less than the number of processes currently running."
     FLExit("Running on insufficient processes.")
   end if
-  
+
   ! Load the options tree
   call load_options(trim(input_base) // ".flml")
   if(.not. have_option("/simulation_name")) then
@@ -156,9 +155,9 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
 
   is_active_process = getprocno() <= input_nprocs
   no_active_processes = input_nprocs
-  
+
   ! ! Below is a (partial) copy of the first bit of populate_state
-  
+
   ! Find out how many states there are
   nstates=option_count("/material_phase")
   allocate(state(1:nstates))
@@ -167,9 +166,9 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   end do
 
   call initialise_ocean_forcing_readers
-  
+
   call insert_external_mesh(state, save_vtk_cache = .true.)
-  
+
   ! don't extrude if there isn't anything on the extruded mesh to migrate
   ! (ignoring the corner case where the from_file fields are only on horizontal meshes)
   ! extrusion may be time consuming and/or not fit on the input_nprocs
@@ -191,10 +190,10 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
        setup_output=.false., ignore_analytical=.true., number_of_partitions=input_nprocs)
 
   ! !  End populate_state calls
-    
+
   is_active_process = .true.
   no_active_processes = target_nprocs
-  
+
 #ifdef HAVE_ZOLTAN
   ! if we have an extruded mesh, we only need to migrate it if it's  picked up from file
   ! (we migrate regardless of whether the mesh extrusion could be redone of decomposition, as we don't
@@ -210,7 +209,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   call strip_level_2_halo(state, initialise_fields=.true.)
   call sam_drive(state, sam_options(target_nprocs), initialise_fields=.true.)
 #endif
-  
+
   if (write_extruded_mesh_only) then
     ! remove the horizontal meshes from the options tree, so they don't get checkpointed
     ! and make the extruded mesh the external from_file mesh
@@ -228,29 +227,29 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   do i = 1, size(state)
     call deallocate(state(i))
   end do
-    
+
   ewrite(1, *) "Exiting flredecomp"
-  
+
 contains
 
   function sam_options(target_nparts)
     !!< Return sam options array
-    
+
     integer, intent(in) :: target_nparts
 
     integer, dimension(10) :: sam_options
-    
+
     sam_options = 0
-    
+
     ! Target number of partitions - 0 indicates size of MPI_COMM_FEMTOOLS
     sam_options(1) = target_nparts
 
     ! Graph partitioning options:
-    sam_options(2) = 1    ! Clean partitioning to optimise the length of the 
+    sam_options(2) = 1    ! Clean partitioning to optimise the length of the
                           ! interface boundary.
     ! sam_options(2) = 2  ! Local diffusion
     ! sam_options(2) = 3  ! Directed diffusion
-    ! sam_options(2) = 4  ! Clean partitioning to optimise the length of the 
+    ! sam_options(2) = 4  ! Clean partitioning to optimise the length of the
                           ! interface boundary. This partitioning is then remapped
                           ! onto the original partitioning to maximise overlap and
                           ! therefore the volume of data migration.
@@ -266,5 +265,5 @@ contains
                        ! Restore the level 2 halo
 
   end function sam_options
-  
-end subroutine flredecomp  
+
+end subroutine flredecomp

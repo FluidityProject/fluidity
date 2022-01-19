@@ -585,11 +585,11 @@ int readVTKFile(const char * const filename,
     while( T != NULL ) {
       T = flds->GetArray(i);
       if( T == NULL )
-        0;
+        ;
       else {
         int k=T->GetNumberOfComponents();
         if(T->GetName()==NULL) {
-          0;
+          ;
         } else {
           unsigned int l = strlen(T->GetName());
           if( addall==0 ) {
@@ -608,14 +608,14 @@ int readVTKFile(const char * const filename,
             }
             if(gotfld==NULL)
               //printf(" (not in user's field list)\n");
-              0;
+              ;
             else if( gotfld->interperr>0.0 )
               //printf("\n");
-              0;
+              ;
               //cerr<<" (adapt err = "<<gotfld->interperr<<")\n";
             else if( gotfld->interperr==0.0 )
               //printf("\n");
-              0;
+              ;
               //cerr<<" (only for output)\n";
           } else {
             Field_Info *newfld=(Field_Info *)malloc(sizeof(Field_Info));
@@ -653,7 +653,7 @@ int readVTKFile(const char * const filename,
       P = props->GetArray(i);
       if( P == NULL )
         //printf("does not exist\n");
-        0;
+        ;
       else {
         int k=P->GetNumberOfComponents();
         //cerr<<"  type: "<<T->GetDataType();
@@ -661,7 +661,7 @@ int readVTKFile(const char * const filename,
         //printf("  components: %d",k);
         if(P->GetName()==NULL) {
           //printf("\n");
-          0;
+          ;
         } else {
           unsigned int l = strlen(P->GetName());
           if( addall==0 ) {
@@ -680,14 +680,14 @@ int readVTKFile(const char * const filename,
             }
             if(gotfld==NULL)
               //printf(" (not in user's field list)\n");
-              0;
+              ;
             else if( gotfld->interperr>0.0 )
               //printf("\n");
-              0;
+              ;
               //cerr<<" (adapt err = "<<gotfld->interperr<<")\n";
             else if( gotfld->interperr==0.0 )
               //printf("\n");
-              0;
+              ;
               //cerr<<" (only for output)\n";
           } else {
             Field_Info *newfld=(Field_Info *)malloc(sizeof(Field_Info));

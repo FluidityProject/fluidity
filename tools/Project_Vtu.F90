@@ -73,16 +73,16 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
 
   ewrite(1, *) "In project_vtu"
 
-  do i=1, input_filename_len
+  do i=1, transfer(input_filename_len, i)
     input_filename(i:i)=input_filename_(i)
   end do
-  do i=1, donor_basename_len
+  do i=1, transfer(donor_basename_len, i)
     donor_basename(i:i)=donor_basename_(i)
   end do
-  do i=1, target_basename_len
+  do i=1, transfer(target_basename_len, i)
     target_basename(i:i)=target_basename_(i)
   end do
-  do i=1, output_filename_len
+  do i=1, transfer(output_filename_len, i)
     output_filename(i:i)=output_filename_(i)
   end do
 

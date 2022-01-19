@@ -28,7 +28,7 @@ subroutine fldiag_add_diag(input_name_, input_name_len, &
     & meshfield_name_len, state_name_len
   integer(kind=c_int32_t), value :: outfield_rank
 
-  character(kind=c_char, len=1) :: input_name_(*), output_name_(*), outfield_name_(*), & 
+  character(kind=c_char, len=1) :: input_name_(*), output_name_(*), outfield_name_(*), &
     & meshfield_name_(*), state_name_(*)
 
   character(len = input_name_len) :: input_name
@@ -41,19 +41,19 @@ subroutine fldiag_add_diag(input_name_, input_name_len, &
   type(mesh_type), pointer :: mesh
   type(state_type), dimension(1) :: state
 
-  do i=1, input_name_len
+  do i=1, transfer(input_name_len, i)
     input_name(i:i)=input_name_(i)
   end do
-  do i=1, output_name_len
+  do i=1, transfer(output_name_len, i)
     output_name(i:i)=output_name_(i)
   end do
-  do i=1, outfield_name_len
+  do i=1, transfer(outfield_name_len, i)
     outfield_name(i:i)=outfield_name_(i)
   end do
-  do i=1, meshfield_name_len
+  do i=1, transfer(meshfield_name_len, i)
     meshfield_name(i:i)=meshfield_name_(i)
   end do
-  do i=1, state_name_len
+  do i=1, transfer(state_name_len, i)
     state_name(i:i)=state_name_(i)
   end do
 
@@ -84,7 +84,7 @@ subroutine fldiag_add_diag(input_name_, input_name_len, &
         if(rank >= 0 .and. rank /= i) then
           FLExit("Rank of calculated diagnostic field and existing field in input file do not match")
         end if
-        exit        
+        exit
       else if(i == 3) then
         FLExit("Failed to calculate diagnostic variable - try specifying the rank")
       end if

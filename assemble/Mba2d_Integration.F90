@@ -29,9 +29,9 @@ module mba2d_integration
   use surface_id_interleaving
   use adapt_integration
   implicit none
-  
+
   private
-  
+
   public :: adapt_mesh_mba2d, mba2d_integration_check_options
 
   contains
@@ -78,7 +78,7 @@ module mba2d_integration
     integer, dimension(:), pointer :: neighbours, faces
     type(halo_type), pointer :: old_halo, new_halo
     integer :: proc
-    
+
     ! Surface ID interleaving
     integer :: max_coplanar_id
     integer, dimension(:), allocatable :: boundary_ids, coplanar_ids, surface_ids, mba_boundary_ids
@@ -96,7 +96,7 @@ module mba2d_integration
 
     ! if we're parallel we'll need to reorder the region ids after the halo derivation
     integer, dimension(:), allocatable :: old_new_region_ids, renumber_permutation
-    
+
 !#define DUMP_HALO_INTERPOLATION
 #ifdef DUMP_HALO_INTERPOLATION
     type(mesh_type):: p0mesh
@@ -131,7 +131,7 @@ module mba2d_integration
     orig_stotel = unique_surface_element_count(xmesh)
     mxface = int(max((float(mxnods) / float(nonods)) * orig_stotel * 3.5, 10000.0))
     maxele = int(max((float(mxnods) / float(nonods)) * totele * 1.5, 10000.0))
-    maxp = mxnods * 1.2
+    maxp = transfer(mxnods * 1.2, maxp)
 
     allocate(pos(2, maxp))
     pos = 0.0
@@ -204,7 +204,7 @@ module mba2d_integration
     end if
 
     call deallocate(input_face_numbering_to_mba2d_numbering)
-    
+
     deallocate(surface_ids)
 
     ! If you fail this, you need to know the following.
@@ -237,7 +237,7 @@ module mba2d_integration
       call allocate(locked_field, p0mesh, "Locked")
 #endif
       nelist => extract_nelist(xmesh)
-    
+
       old_halo => xmesh%halos(nhalos)
 
       allocate(ife(totele))
@@ -265,7 +265,7 @@ module mba2d_integration
       nfe = 0
       allocate(ife(nfe))
     end if
-    
+
     ! construct list of nodes to be locked
     call get_locked_nodes(input_positions, locked_nodes)
     npv = count(boundcount > 1) + size(locked_nodes)
@@ -327,8 +327,8 @@ module mba2d_integration
 
     call relax_metric_locked_regions(tmp_metric, ife(1:nfe), input_positions)
 
-    maxWr = (4 * maxp + 10 * nonods + mxface + maxele)  * 1.5
-    maxWi = (6 * maxp + 10 * nonods + 19 * mxface + 11 * maxele + 12 * totele) * 1.5
+    maxWr = transfer((4 * maxp + 10 * nonods + mxface + maxele)  * 1.5, maxWr)
+    maxWi = transfer((6 * maxp + 10 * nonods + 19 * mxface + 11 * maxele + 12 * totele) * 1.5, maxWi)
     allocate(rW(maxWr))
     allocate(iW(maxWi))
 
@@ -342,7 +342,7 @@ module mba2d_integration
       ! we don't want to avoid boundary elements along the local domain
       ! boundaries, as the ragged boundary will usually have a lot of
       ! triangles with 2 faces on the boundary and we don't want to split
-      ! these up unnecessarily - unfortunately we can't only allow it 
+      ! these up unnecessarily - unfortunately we can't only allow it
       ! along local domain boundaries and forbid them on the global domain boundary
       status = 0 ! allow boundary elements
     else
@@ -395,7 +395,7 @@ module mba2d_integration
     new_mesh%shape%quadrature%refcount%tagged = .false.
     new_mesh%ndglno = reshape(IPE(:, 1:totele), (/size(new_mesh%ndglno)/))
     new_mesh%option_path = xmesh%option_path
-    
+
     if (.not. isparallel()) then
       allocate(new_sndgln(1:2,1:stotel), mba_boundary_ids(1:stotel))
       new_sndgln = ipf(1:2,1:stotel)
@@ -420,14 +420,14 @@ module mba2d_integration
         mba_boundary_ids(i) = ipf(4, fetch(physical_surface_ids, i))
         new_sndgln(1:2, i) = ipf(1:2, fetch(physical_surface_ids, i))
       end do
-      
+
       do i=1, stotel
         new_sndgln(1:2, i) = ipf(1:2, fetch(physical_surface_ids, i))
       end do
       call deallocate(physical_surface_ids)
     end if
 
-    ! add_faces might create extra (internal) surface elements, so we 
+    ! add_faces might create extra (internal) surface elements, so we
     ! use the combined boundary+coplanar ids first
     call add_faces(new_mesh, sndgln=reshape(new_sndgln, (/ 2*stotel /) ), &
       boundary_ids=mba_boundary_ids)
@@ -447,7 +447,7 @@ module mba2d_integration
       new_mesh%faces%coplanar_ids = coplanar_ids
     end if
     deallocate(boundary_ids, coplanar_ids)
-    
+
     if(have_option("/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions")&
                               .or.present_and_true(force_preserve_regions)) then
       allocate(new_mesh%region_ids(totele))
@@ -459,12 +459,12 @@ module mba2d_integration
     output_positions%option_path = input_positions%option_path
     call deallocate(new_mesh)
     call set_all(output_positions, pos(:, 1:nonods))
-    
+
     if(nhalos > 0) then
 
       allocate(output_positions%mesh%halos(nhalos))
       new_halo => output_positions%mesh%halos(nhalos)
-      
+
       ! halo is the same in terms of n/o sends and receives, name, ordering_type, etc.
       call allocate(new_halo, old_halo)
       ! except for n/o owned nodes
@@ -479,9 +479,9 @@ module mba2d_integration
         call set_halo_receives(new_halo, proc, ipv(j:j+halo_receive_count(new_halo, proc)-1))
         j = j + halo_receive_count(new_halo, proc)
       end do
-      
+
       allocate(renumber_permutation(totele))
-      
+
       if(nhalos == 2) then
         ! Derive remaining halos
         call derive_l1_from_l2_halo(output_positions%mesh, ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
@@ -496,14 +496,14 @@ module mba2d_integration
       else
         ! Reorder the nodes for trailing receives consistency
         call renumber_positions_trailing_receives(output_positions)
-        
+
         allocate(output_positions%mesh%element_halos(1))
         ! Reorder the elements for trailing receives consistency
         call derive_element_halo_from_node_halo(output_positions%mesh, &
           & ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
         call renumber_positions_elements_trailing_receives(output_positions, permutation=renumber_permutation)
       end if
-      
+
       if(have_option("/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions")&
                                 .or.present_and_true(force_preserve_regions)) then
         ! reorder the region_ids since all out elements have been jiggled about
@@ -514,9 +514,9 @@ module mba2d_integration
         end do
         deallocate(old_new_region_ids)
       end if
-      
+
       deallocate(renumber_permutation)
-      
+
 
 #ifdef DUMP_HALO
       call allocate(sends_sfield, output_positions%mesh, "Sends")
@@ -532,7 +532,7 @@ module mba2d_integration
           call set(receives_sfield, output_positions%mesh%halos(1)%receives(proc)%ptr(i), 1.0)
         end do
       end do
-      
+
       call vtk_write_fields("halo", position=output_positions, model=output_positions%mesh, sfields=(/sends_sfield, receives_sfield/))
 
       call deallocate(sends_sfield)
@@ -562,7 +562,7 @@ module mba2d_integration
     deallocate(rW)
     deallocate(iW)
     deallocate(tmp_metric)
-    
+
     ewrite(1, *) "Exiting adapt_mesh_mba2d"
 
 #else
@@ -573,7 +573,7 @@ module mba2d_integration
   subroutine relax_metric_locked_regions(metric, locked_elements, positions)
     ! in the locked regions (halo regions in parallel) and the region immediately
     ! adjacent to it, mba can't satisfy what we ask for in the metric
-    ! This tends to upset mba and sometimes leads it to give up altogether (leaving other regions 
+    ! This tends to upset mba and sometimes leads it to give up altogether (leaving other regions
     ! unadapted). Therefore we adjust the metric in the nodes of the locked regions to adhere to
     ! the locked elements (i.e. tell mba that the mesh is perfect there already). Directly adjacent to
     ! the locked region it will interpolate linearly between the overwritten metric and the metric we want,
@@ -609,16 +609,16 @@ module mba2d_integration
     end do
 
   end subroutine relax_metric_locked_regions
-  
+
   subroutine mba2d_integration_check_options
-    character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity"  
+    character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity"
     integer :: dim, stat
-    
+
     if(.not. have_option(base_path)) then
       ! Nothing to check
       return
     end if
-  
+
     call get_option("/geometry/dimension", dim, stat)
     if(stat /= SPUD_NO_ERROR) then
       ! This isn't the place to complain about this error
@@ -637,7 +637,7 @@ module mba2d_integration
         FLExit("libmba2d can only be used in 2D or 2+1D")
       end if
     end if
-  
+
   end subroutine mba2d_integration_check_options
 
 end module mba2d_integration

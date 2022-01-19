@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -33,7 +33,6 @@ subroutine Meshconv(c_input_basename, input_basename_len, c_input_mesh_format, i
   !!< Converts a mesh file of a given mesh format into the specified output mesh format.
 
   use fldebug
-  use global_parameters, only: OPTION_PATH_LEN, is_active_process, no_active_processes, topology_mesh_name
   use fields
   use parallel_tools, only: isparallel, parallel_filename, getnprocs
   use halos_registration, only: read_halos, write_halos
@@ -70,13 +69,13 @@ subroutine Meshconv(c_input_basename, input_basename_len, c_input_mesh_format, i
     FLExit("Meshconv must be run in serial when reading in an ExodusII mesh!")
   end if
   ! now turn into proper fortran strings (is there an easier way to do this?)
-  do i=1, input_basename_len
+  do i=1, transfer(input_basename_len, i)
     input_basename(i:i)=c_input_basename(i)
   end do
-  do i=1, input_mesh_format_len
+  do i=1, transfer(input_mesh_format_len, i)
     input_mesh_format(i:i)=c_input_mesh_format(i)
   end do
-  do i=1, output_mesh_format_len
+  do i=1, transfer(output_mesh_format_len, i)
     output_mesh_format(i:i)=c_output_mesh_format(i)
   end do
 

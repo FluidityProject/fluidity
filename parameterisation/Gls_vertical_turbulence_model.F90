@@ -73,7 +73,7 @@ module gls
   real, save               :: ct1,ctt
   real, save               :: cc2,cc3,cc4,cc5,cc6
   real, save               :: ct2,ct3,ct4,ct5
-  real, save               :: cPsi1,cPsi2,cPsi3,cPsi3_plus,cPsi3_minus
+  real, save               :: cPsi1,cPsi2,cPsi3_plus,cPsi3_minus
   real, save               :: relaxation
 
 

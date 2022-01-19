@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -61,27 +61,27 @@ subroutine project_to_continuous(vtuname_, vtuname_len, meshname_,&
   integer :: i, j, k
 
 ! now turn into proper fortran strings (is there an easier way to do this?)
-  do i=1, vtuname_len
+  do i=1, transfer(vtuname_len, i)
     vtuname(i:i)=vtuname_(i)
   end do
-  do i=1, meshname_len
+  do i=1, transfer(meshname_len, i)
     meshname(i:i)=meshname_(i)
   end do
 
   call vtk_read_state(vtuname, dg_state, quad_degree=6)
-  
+
   cg_coordinate= read_mesh_files(meshname, quad_degree=6, format="gmsh")
   cg_mesh=cg_coordinate%mesh
-  
+
   do i=1,size(dg_state%scalar_fields)
      dg_scalar=dg_state%scalar_fields(i)%ptr
      call allocate(cg_scalar, cg_mesh, name=dg_scalar%name)
-     
+
      ! Perform projection.
      call project_field(dg_scalar, cg_scalar, cg_coordinate)
 
      call insert(cg_state, cg_scalar, cg_scalar%name)
-     
+
      ! Drop the additional reference.
      call deallocate(cg_scalar)
   end do
@@ -89,11 +89,11 @@ subroutine project_to_continuous(vtuname_, vtuname_len, meshname_,&
   do i=1,size(dg_state%vector_fields)
      dg_vector=dg_state%vector_fields(i)%ptr
      call allocate(cg_vector, dg_vector%dim, cg_mesh, name=dg_vector%name)
-     
+
      call project_field(dg_vector, cg_vector, cg_coordinate)
 
      call insert(cg_state, cg_vector, cg_vector%name)
-     
+
      ! Drop the additional reference.
      call deallocate(cg_vector)
   end do
@@ -101,7 +101,7 @@ subroutine project_to_continuous(vtuname_, vtuname_len, meshname_,&
   do i=1,size(dg_state%tensor_fields)
      dg_tensor=dg_state%tensor_fields(i)%ptr
      call allocate(cg_tensor, cg_mesh, name=dg_tensor%name)
-     
+
      ! Perform projection.
      do j=1,cg_tensor%dim(1)
         do k=1,cg_tensor%dim(2)
@@ -112,7 +112,7 @@ subroutine project_to_continuous(vtuname_, vtuname_len, meshname_,&
      end do
 
      call insert(cg_state, cg_tensor, cg_tensor%name)
-     
+
      ! Drop the additional reference.
      call deallocate(cg_tensor)
   end do

@@ -55,13 +55,10 @@ implicit none
   private
   real, save                      :: c0, cI, L, TI, &
                                      a, b, gammaT, gammaS,Cd, dist_meltrate
-  integer, save                   :: nnodes,dimen
 
   type(vector_field), save        :: surface_positions
   type(vector_field), save        :: funky_positions
   type(integer_set), save         :: sf_nodes !Nodes at the surface
-  !BC
-  integer, dimension(:), pointer, save :: ice_element_list
   ! these are the fields and variables for the surface values
   type(scalar_field), save             :: ice_surfaceT,ice_surfaceS! these are used to populate the bcs
   public :: melt_surf_init, melt_allocate_surface, melt_surf_calc, melt_bc

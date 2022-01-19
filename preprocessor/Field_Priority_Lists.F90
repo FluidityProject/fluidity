@@ -328,7 +328,7 @@ contains
 
   subroutine get_ntsol(ntsol)
     integer, intent(out) :: ntsol
-    integer :: nphases,nfields,ncars,p,f
+    integer :: nphases, nfields, p, f
     character(len=FIELD_NAME_LEN) :: tmpstring
     logical :: aliased, pressure
 

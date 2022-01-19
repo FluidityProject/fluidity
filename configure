@@ -10772,7 +10772,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
     FCFLAGS="$old_fcflags"
 
     FFLAGS="-fbounds-check -Wall ${FFLAGS}"
-    FCFLAGS="-fbounds-check -Wall -Wimplicit-interface -Wno-surprising ${FCFLAGS}"
+    FCFLAGS="-fbounds-check -Wall -Wno-surprising -Wno-unused-function -Wno-unused-dummy-argument ${FCFLAGS}"
     CFLAGS="-fbounds-check -Wall ${CFLAGS}"
     CXXFLAGS="-fbounds-check -Wall ${CXXFLAGS}"
     if test "$DARWIN" = "no" ; then
@@ -18071,5 +18071,3 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: unrecognized options: $ac_unrecognized_opts" >&5
 printf "%s\n" "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
-
-

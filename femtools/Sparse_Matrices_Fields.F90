@@ -69,7 +69,7 @@ private
 public :: mult, mult_addto, mult_T, mult_T_addto, mult_diag, addto_diag,&
           extract_diagonal, mult_div_tensorinvscalar_div_t,&
           mult_div_tensorinvscalar_vector, mult_div_invscalar_div_t,&
-					mult_div_vector_div_t, mult_div_invvector_div_t
+          mult_div_vector_div_t, mult_div_invvector_div_t
 
 contains
 

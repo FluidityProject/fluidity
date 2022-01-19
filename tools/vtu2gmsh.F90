@@ -43,7 +43,7 @@ subroutine vtu2gmsh(filename_, filename_len) bind(c)
   type(state_type) :: state
   integer :: i
 
-  do i=1, filename_len
+  do i=1, transfer(filename_len, i)
     filename(i:i)=filename_(i)
   end do
 

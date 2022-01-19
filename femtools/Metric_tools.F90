@@ -45,17 +45,17 @@ module metric_tools
 
   private
   public :: edge_length_from_eigenvalue, eigenvalue_from_edge_length,&
-      aspect_ratio, metric_isotropic,  metric_spheroid, metric_ellipsoid,&
-	    get_adapt_opt, check_metric, check_basis, get_spheroid_index,&
-	    get_polar_index, norm, get_real_angle, get_angle_2d,&
-	    get_rotation_matrix, get_rotation_matrix_cross,&
-	    get_rotation_matrix_2d, get_rotation_matrix_3d,&
-	    get_matrix_identity, have_adapt_opt, simplex_tensor,&
-	    metric_from_edge_lengths, edge_lengths_from_metric,&
-	    apply_transform, absolutify_tensor, domain_length_scale,&
-	    get_angle, error_bound_name, project_to_subspace,&
-	    element_quality_p0, check_perm,&
-	    form_anisotropic_metric_from_isotropic_metric
+            aspect_ratio, metric_isotropic,  metric_spheroid, metric_ellipsoid,&
+            get_adapt_opt, check_metric, check_basis, get_spheroid_index,&
+            get_polar_index, norm, get_real_angle, get_angle_2d,&
+            get_rotation_matrix, get_rotation_matrix_cross,&
+            get_rotation_matrix_2d, get_rotation_matrix_3d,&
+            get_matrix_identity, have_adapt_opt, simplex_tensor,&
+            metric_from_edge_lengths, edge_lengths_from_metric,&
+            apply_transform, absolutify_tensor, domain_length_scale,&
+            get_angle, error_bound_name, project_to_subspace,&
+            element_quality_p0, check_perm,&
+            form_anisotropic_metric_from_isotropic_metric
 
   contains
 

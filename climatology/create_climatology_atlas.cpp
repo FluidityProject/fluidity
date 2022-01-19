@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     C.Pain@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -115,36 +115,36 @@ long lround(double x){
 int killworth_matrix_seasonal(double *A){
   for(size_t i=0;i<16;i++)
     A[i] = 0.0;
-  
+
   double l[] = {90.25, 91.0, 91.0, 92.0};
   for(size_t n=0;n<4;n++){
     double e = 0.25*l[n]/(l[(n+4-1)%4]+l[n]);
     double g = 0.25*l[n]/(l[n]+l[(n+1)%4]);
     double f = 1.0 - e - g;
-    
+
     A[n*4+(n+4-1)%4] = e;
     A[n*4+n]           = f;
     A[n*4+(n+1)%4]    = g;
   }
-  
+
   return 0;
 }
 
 int killworth_matrix_monthly(double *A){
   for(size_t i=0;i<144;i++)
     A[i] = 0.0;
-  
+
   double l[] = {31.0, 28.25, 31.0, 30.0, 31.0, 30.0, 31.0, 31.0, 30.0, 31.0, 30.0, 31.0};
   for(size_t n=0;n<12;n++){
     double e = 0.25*l[n]/(l[(n+12-1)%12]+l[n]);
     double g = 0.25*l[n]/(l[n]+l[(n+1)%12]);
     double f = 1.0 - e - g;
-    
+
     A[n*12+(n+12-1)%12] = e;
     A[n*12+n]           = f;
     A[n*12+(n+1)%12]    = g;
   }
-  
+
   return 0;
 }
 
@@ -170,17 +170,17 @@ int killworth_correction(deque< deque< vector<float> > >& variable, float &max_v
     cerr<<"ERROR: time not reckonised\n";
     exit(-1);
   }
-  
+
   //cout<<"again A="<<endl;
   //for(size_t ii=0;ii<n;ii++){
   //  for(size_t jj=0;jj<n;jj++)
   //    cout<<A[ii*n+jj]<<" ";
   //  cout<<endl;
   //}
- 
+
   max_v=-1000.0;
   min_v=1000.0;
-  
+
   vector<double> d(n);
   for(size_t k=0;k<nlevels;k++){
     for(size_t j=0; j<(size_t)jdim0; j++){
@@ -188,9 +188,9 @@ int killworth_correction(deque< deque< vector<float> > >& variable, float &max_v
     if(fabs(variable[0][k][j*idim0+i]-land_val)>1.0){
       for(size_t m=0;m<variable.size();m++)
         d[m] = variable[m][k][j*idim0+i];
-      
+
       kilworth_correction(A, d);
-      
+
       for(size_t m=0;m<variable.size();m++){
       if(d[m]>1000.0){
         cout<<"A="<<endl;
@@ -225,7 +225,7 @@ int diffuse_boundaries(deque< deque< vector<float> > > &dat, float minv, int ite
   for(deque< deque< vector<float> > >::iterator tdat=dat.begin(); tdat!=dat.end(); tdat++){
   // Iterate through levels
     for(size_t k=0;k<tdat->size();k++){
-    
+
     // Find which points are null
     vector<bool> null_points(idim0*jdim0, false);
     for(size_t j=0; j<(size_t)jdim0; j++){
@@ -236,15 +236,15 @@ int diffuse_boundaries(deque< deque< vector<float> > > &dat, float minv, int ite
           }
     }
       }
-    
+
     // Start diffusing
-    for(size_t its=0;its<iterations;its++){
-    for(size_t j=0; j<(size_t)jdim0; j++){ 
-       for(size_t i=0; i<(size_t)idim0; i++){
+    for(size_t its=0; its < (size_t) iterations; its++){
+    for(size_t j=0; j < (size_t) jdim0; j++){
+       for(size_t i=0; i < (size_t) idim0; i++){
       if(null_points[j*idim0+i]){
         float sum=(*tdat)[k][j*idim0+i];
         int npts=1;
-        
+
         if(j>0){
         sum+=(*tdat)[k][(j-1)*idim0+i];
         npts++;
@@ -260,7 +260,7 @@ int diffuse_boundaries(deque< deque< vector<float> > > &dat, float minv, int ite
 
         sum+=(*tdat)[k][j*idim0+(i+1)%idim0];
         npts++;
-        
+
         if(k>0){
         sum+=(*tdat)[k-1][j*idim0+i];
         npts++;
@@ -286,14 +286,14 @@ int write_netcdf_variable(int ncid, const int* dimids, const char* name, const c
 
   cout<<"Diffusing values into interior\n";
   diffuse_boundaries(variable, min_v, 1000);
-  
+
   cout<<"Writing out "<<name<<" with vals in the range "<<min_v<<" -> "<<max_v<<endl;
 
   // Put file into define mode
   ncredef(ncid);
-  
+
   int varid = ncvardef(ncid, name, NC_SHORT, 4, dimids);
-  
+
   ncattput(ncid, varid, "long_name",     NC_CHAR,  strlen(long_name), long_name);
   ncattput(ncid, varid, "units",         NC_CHAR,  strlen(units),     units);
   ncattput(ncid, varid, "_FillValue",    NC_SHORT, 1,                 &fillvalue);
@@ -302,17 +302,17 @@ int write_netcdf_variable(int ncid, const int* dimids, const char* name, const c
   // Packing algorithm
   float add_offset = (max_v + min_v)*0.5;
   ncattput(ncid, varid, "add_offset", NC_FLOAT, 1, &add_offset);
-  
+
   // 2^16
   float scale_factor = (max_v - min_v)/(65536 - 5);
   ncattput(ncid, varid, "scale_factor", NC_FLOAT, 1, &scale_factor);
-  
+
   // Finish defining metadata for salinity
   ncendef(ncid);
-  
+
   // Write out variable
   varid = ncvarid(ncid, name);
-  
+
   long start[]={0,0,0,0}, count[]={1,1,jdim0,idim0};
   vector<short> frame(idim0*jdim0);
   for(size_t m=0;m<variable.size();m++){
@@ -325,7 +325,7 @@ int write_netcdf_variable(int ncid, const int* dimids, const char* name, const c
       // values are still within bounds.
       float v = min(max_v, variable[m][k][j*idim0+i]);
       v = max(v, min_v);
-      
+
       frame[j*idim0+i] = lround((v - add_offset)/scale_factor);
     }
       ncvarput(ncid, varid, start, count, &(frame[0]));
@@ -342,7 +342,7 @@ int main(){
 #ifdef HAVE_LIBNETCDF
   // Start to write the climatology data
   int ncid = nccreate("climatology.nc", NC_CLOBBER);
-  
+
   //
   // Define the dimensions
   //
@@ -359,7 +359,7 @@ int main(){
   varid = ncvardef(ncid, "levels1", NC_FLOAT, 1, &levels1);
   ncattput(ncid, varid, "long_name", NC_CHAR, 22, "Bottom standard levels");
   ncattput(ncid, varid, "units", NC_CHAR, 6, "Meters");
-  
+
   int latitude = ncdimdef(ncid, "latitude",  jdim0);
   varid = ncvardef(ncid, "latitude", NC_FLOAT, 1, &latitude);
   ncattput(ncid, varid, "long_name", NC_CHAR, 16, "Degrees latitude");
@@ -382,32 +382,32 @@ int main(){
   markers.push_back(10.);
   markers.push_back(20.);
   markers.push_back(30.);
-  markers.push_back(50.); 
+  markers.push_back(50.);
   markers.push_back(75.);
-  markers.push_back(100.); 
-  markers.push_back(125.); 
-  markers.push_back(150.); 
-  markers.push_back(200.); 
-  markers.push_back(250.); 
-  markers.push_back(300.); 
-  markers.push_back(400.); 
+  markers.push_back(100.);
+  markers.push_back(125.);
+  markers.push_back(150.);
+  markers.push_back(200.);
+  markers.push_back(250.);
+  markers.push_back(300.);
+  markers.push_back(400.);
   markers.push_back(500.);
-  markers.push_back(600.); 
-  markers.push_back(700.); 
-  markers.push_back(800.); 
-  markers.push_back(900.); 
-  markers.push_back(1000.); 
-  markers.push_back(1100.); 
-  markers.push_back(1200.); 
-  markers.push_back(1300.); 
+  markers.push_back(600.);
+  markers.push_back(700.);
+  markers.push_back(800.);
+  markers.push_back(900.);
+  markers.push_back(1000.);
+  markers.push_back(1100.);
+  markers.push_back(1200.);
+  markers.push_back(1300.);
   markers.push_back(1400.);
   markers.push_back(1500.);
   count = markers.size();
   ncvarput(ncid, varid, &start, &count, &(markers[0]));
-  
+
   varid = ncvarid(ncid, "levels1");
   markers.clear();
-  markers.push_back(1750.); 
+  markers.push_back(1750.);
   markers.push_back(2000.);
   markers.push_back(2500.);
   markers.push_back(3000.);
@@ -418,24 +418,24 @@ int main(){
   markers.push_back(5500.);
   count = markers.size();
   ncvarput(ncid, varid, &start, &count, &(markers[0]));
-  
+
   varid = ncvarid(ncid, "latitude");
   markers.clear();
   for(int i=0;i<jdim0;i++)
     markers.push_back(-90.0 + i*0.25);
   count = markers.size();
   ncvarput(ncid, varid, &start, &count, &(markers[0]));
-  
+
   varid = ncvarid(ncid, "longitude");
   markers.clear();
   for(int i=0;i<idim0;i++)
     markers.push_back(i*0.25);
   count = markers.size();
   ncvarput(ncid, varid, &start, &count, &(markers[0]));
-      
+
   // Set up 12 monthly means
   deque< deque< vector<float> > > dat(12);
-  
+
   // Allocate 24 levels for each month
   for(size_t i=0;i<12;i++){
     dat[i].resize(24);
@@ -443,19 +443,19 @@ int main(){
     for(size_t j=0;j<24;j++)
       dat[i][j].resize(idim0*jdim0);
   }
-  
+
   // Monthly salinity
   const char *salinity_monthly[] = {"s001_v2","s002_v2","s003_v2","s004_v2","s005_v2","s006_v2",
                                     "s007_v2","s008_v2","s009_v2","s010_v2","s011_v2","s012_v2"};
-  
+
   for(int m=0;m<12;m++){
     FILE *fp;
-    
+
     if ((fp = fopen(salinity_monthly[m],"rb+\0")) == NULL)
       cerr<<"ERROR: UNABLE TO OPEN FILE\n";
-    
+
     cout<<"Reading file "<<salinity_monthly[m]<<endl;
-    
+
     // Read data
     for(size_t k=0; k<24; k++){
       // cout<<"Reading level "<<k<<endl;
@@ -467,7 +467,7 @@ int main(){
     }
     fclose(fp);
   }
-  
+
   dimids[0] = time0;
   dimids[1] = levels0;
   dimids[2] = latitude;
@@ -477,15 +477,15 @@ int main(){
   // Monthly temperature
   const char *temperature_monthly[] = {"t001_v2","t002_v2","t003_v2","t004_v2","t005_v2","t006_v2",
                                        "t007_v2","t008_v2","t009_v2","t010_v2","t011_v2","t012_v2"};
-    
+
   for(int m=0;m<12;m++){
     FILE *fp;
-    
+
     if ((fp = fopen(temperature_monthly[m],"rb+\0")) == NULL)
       cerr<<"ERROR: UNABLE TO OPEN FILE\n";
-    
+
     cout<<"Reading file "<<temperature_monthly[m]<<endl;
-    
+
     // Read data
     for(size_t k=0; k<24; k++){
       // cout<<"Reading level "<<k<<endl;
@@ -497,16 +497,16 @@ int main(){
     }
     fclose(fp);
   }
-  
+
   dimids[0] = time0;
   dimids[1] = levels0;
   dimids[2] = latitude;
   dimids[3] = longitude;
   write_netcdf_variable(ncid, dimids, "temperature_monthly", "Monthly mean in situ temperature", "Degrees Celsius", dat);
-  
+
   // Seasonal salinity
   dat.resize(4);
-  
+
   // Allocate 9 levels for each season
   for(size_t i=0;i<4;i++){
     dat[i].resize(9);
@@ -515,15 +515,15 @@ int main(){
       dat[i][j].resize(idim0*jdim0);
   }
   const char *salinity_seasonal[] = {"s013AV_v2","s014AV_v2","s015AV_v2","s016AV_v2"};
-    
+
   for(int m=0;m<4;m++){
     FILE *fp;
-    
+
     if ((fp = fopen(salinity_seasonal[m],"rb+\0")) == NULL)
       cerr<<"ERROR: UNABLE TO OPEN FILE\n";
-    
+
     cout<<"Reading file "<<salinity_seasonal[m]<<endl;
-    
+
     // Read data
     for(size_t k=0; k<33; k++){
       // cout<<"Reading level "<<k<<endl;
@@ -539,7 +539,7 @@ int main(){
     }
     fclose(fp);
   }
-  
+
   dimids[0] = time1;
   dimids[1] = levels1;
   dimids[2] = latitude;
@@ -548,15 +548,15 @@ int main(){
 
   // Seasonal temperature
   const char *temperature_seasonal[] = {"t013AV_v2","t014AV_v2","t015AV_v2","t016AV_v2"};
-    
+
   for(int m=0;m<4;m++){
     FILE *fp;
-    
+
     if ((fp = fopen(temperature_seasonal[m],"rb+\0")) == NULL)
       cerr<<"ERROR: UNABLE TO OPEN FILE\n";
-    
+
     cout<<"Reading file "<<temperature_seasonal[m]<<endl;
-    
+
     // Read data
     for(size_t k=0; k<33; k++){
       // cout<<"Reading level "<<k<<endl;
@@ -572,13 +572,13 @@ int main(){
     }
     fclose(fp);
   }
-  
+
   dimids[0] = time1;
   dimids[1] = levels1;
   dimids[2] = latitude;
   dimids[3] = longitude;
   write_netcdf_variable(ncid, dimids, "temperature_seasonal", "Seasonal mean temperature", "Degrees Celsius", dat);
-  
+
   ncclose(ncid);
 #else
   cerr<<"ERROR: No NetCDF support compiled.\n";

@@ -133,22 +133,6 @@ periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
          &    "/spatial_discretisation/inner_element" &
          /)
 
-
-  !! Dynamic paths that are searched for fields
-  !! This allows for searching for field within paths that may branch several times
-  !! The index of any particular path should be replaced with #
-  character(len=OPTION_PATH_LEN), dimension(6):: &
-         dynamic_paths = (/&
-         &    "/material_phase[#]/equation_of_state/fluids/linear/        ", &
-         &    "/material_phase[#]/population_balance[#]/abscissa/         ", &
-         &    "/material_phase[#]/population_balance[#]/weights/          ", &
-         &    "/material_phase[#]/population_balance[#]/weighted_abscissa/", &
-         &    "/material_phase[#]/population_balance[#]/moments/          ", &
-         &    "/material_phase[#]/population_balance[#]/statistics/       " &
-         /)
-
-  character(len=OPTION_PATH_LEN), dimension(:), allocatable :: field_locations
-
 contains
 
   subroutine populate_state(states)

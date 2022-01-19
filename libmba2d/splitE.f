@@ -63,7 +63,7 @@ C group (Local variables)
 
       Integer ip(4)
       Integer minClr
-      Logical flagFirst, ifXnode
+      Logical ifXnode
 
 C ====================================================
       flag = .FALSE.
@@ -126,9 +126,9 @@ c    &        HesP(1, iPa), detG(iPa), XYP(1, iPa),
 c    &        HesPs, detGs, XYPs,
 c    &        hStar, qEs(kE))
 
-         IPEs(1, kE) = iP1 
+         IPEs(1, kE) = iP1
          IPEs(2, kE) = iP2
-         IPEs(3, kE) = iPs 
+         IPEs(3, kE) = iPs
       End do
 
 
@@ -137,7 +137,7 @@ c     If(ifXnode(status, ANISmoothMesh)) Then
 c        flagFirst = .FALSE.
 c        Call updQE(XYP, lE, iEs, IPEs,
 c    &              HesP, rQuality, detG, hStar, qEs, flagFirst)
-c     End if 
+c     End if
 
 
 C ... update the grid
@@ -151,7 +151,7 @@ C!!!  next line simulates lstAdd
          Call eleAdd(nE, MaxE, IHolE)
 C!!!     3 next lines simulate lstAdd
          nE = nE + 1
-         iEs(n) = nE 
+         iEs(n) = nE
          qE(iEs(n)) = qEs(n)
          Call eleDel(iEs(n), IPE, IEE)
       End do
@@ -169,5 +169,3 @@ C!!!     3 next lines simulate lstAdd
 
  9000 Call errMes(1007, 'splitE', 'local parameter MaxS is small')
       End
-
-

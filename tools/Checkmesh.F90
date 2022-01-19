@@ -3,7 +3,7 @@
 subroutine checkmesh(filename_, filename_len) bind(c)
   !!< Checks the validity of the supplied mesh
 
-! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler 
+! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler
   use quadrature
   use element_numbering, only: FAMILY_SIMPLEX
   use elements
@@ -38,7 +38,7 @@ subroutine checkmesh(filename_, filename_len) bind(c)
   integer :: global_ele, global_nodes, global_sele, global_facets, i
   type(vector_field) :: positions
 
-  do i=1, filename_len
+  do i=1, transfer(filename_len, i)
     filename(i:i)=filename_(i)
   end do
 
@@ -51,7 +51,7 @@ subroutine checkmesh(filename_, filename_len) bind(c)
   print "(a)", "Read successful"
 
   call mesh_stats(positions%mesh, elements = global_ele, nodes = global_nodes, surface_elements = global_sele, facets=global_facets)
-  
+
   call print_mesh_statistics(positions)
 
   call check_node_connectivity(positions)
@@ -66,7 +66,7 @@ contains
 
   subroutine print_mesh_statistics(positions)
     !!< Print some statistics for the supplied mesh
-    
+
     type(vector_field), intent(in) :: positions
 
     type(ilist) :: seeds
@@ -103,46 +103,46 @@ contains
       print "(a,i0)", "Connectivity: ", seeds%length
     end if
     call deallocate(seeds)
-    
+
     call print_mesh_edge_statistics(positions)
     call print_mesh_volume_statistics(positions)
 
   end subroutine print_mesh_statistics
-  
+
   subroutine print_mesh_volume_statistics(positions)
     type(vector_field), intent(in) :: positions
-    
+
     integer :: i
     real :: domain_volume, domain_surface_area, max_volume, min_volume, volume
     real, dimension(:), allocatable :: detwei
-    
+
     domain_volume = 0.0
     min_volume = huge(0.0)
     max_volume = 0.0
     do i = 1, ele_count(positions)
       if(.not. element_owned(positions, i)) cycle
-    
+
       volume = element_volume(positions, i)
       domain_volume = domain_volume + volume
       min_volume = min(min_volume, volume)
       max_volume = max(max_volume, volume)
-    end do    
+    end do
     domain_surface_area = 0.0
     do i = 1, surface_element_count(positions)
       if(.not. surface_element_owned(positions, i)) cycle
-      
+
       allocate(detwei(face_ngi(positions, i)))
       call transform_facet_to_physical(positions, i, &
-        detwei_f = detwei)      
+        detwei_f = detwei)
       domain_surface_area = domain_surface_area + abs(sum(detwei))
       deallocate(detwei)
     end do
-    
+
     call allsum(domain_volume)
     call allmin(min_volume)
     call allmax(max_volume)
     call allsum(domain_surface_area)
-    
+
     print "(a," // rformat // ")", "Volume: ", domain_volume
     print "(a," // rformat // ")", "Surface area: ", domain_surface_area
     if(global_ele > 0) then
@@ -150,12 +150,12 @@ contains
       print "(a," // rformat // ")", "Max element volume: ", max_volume
       print "(a," // rformat // ")", "Ratio of max to min element volumes: ", max_volume / min_volume
     end if
-    
+
   end subroutine print_mesh_volume_statistics
-  
+
   subroutine print_mesh_edge_statistics(positions)
     type(vector_field), intent(in) :: positions
-    
+
     integer :: i, j
     integer, dimension(:), pointer :: nodes
     logical :: all_linear_simplices
@@ -167,11 +167,11 @@ contains
     real, dimension(positions%dim) :: evals
     real, dimension(positions%dim, positions%dim) :: edge_lengths, evecs
     type(element_type), pointer :: shape
-    
+
     if(global_ele == 0) then
       return
     end if
-    
+
     all_linear_simplices = .true.
     min_length = huge(0.0)
     max_length = 0.0
@@ -183,14 +183,14 @@ contains
         all_linear_simplices = .false.
         exit
       end if
-      
+
       nodes => ele_nodes(positions, i)
       select case(positions%dim)
         case(3)
           do j = 1, size(edge_nodes_3d, 1)
             edge_nodes = (/nodes(edge_nodes_3d(j, 1)), nodes(edge_nodes_3d(j, 2))/)
             length = sqrt(sum((node_val(positions, edge_nodes(2)) - node_val(positions, edge_nodes(1))) ** 2))
-            
+
             min_length = min(min_length, length)
             max_length = max(max_length, length)
           end do
@@ -198,53 +198,53 @@ contains
           do j = 1, size(edge_nodes_2d, 1)
             edge_nodes = (/nodes(edge_nodes_2d(j, 1)), nodes(edge_nodes_2d(j, 2))/)
             length = sqrt(sum((node_val(positions, edge_nodes(2)) - node_val(positions, edge_nodes(1))) ** 2))
-            
+
             min_length = min(min_length, length)
             max_length = max(max_length, length)
           end do
         case(1)
           edge_nodes = (/nodes(2), nodes(1)/)
           length = sqrt(sum((node_val(positions, edge_nodes(2)) - node_val(positions, edge_nodes(1))) ** 2))
-          
+
           min_length = min(min_length, length)
           max_length = max(max_length, length)
         case default
           ewrite(-1, *) "For dimension: ", positions%dim
           FLAbort("Invalid dimension")
       end select
-      
+
       edge_lengths = edge_lengths_from_metric(simplex_tensor(positions, i))
       call eigendecomposition_symmetric(edge_lengths, evecs, evals)
       anisotropy = maxval(evals) / minval(evals)
       min_anisotropy = min(min_anisotropy, anisotropy)
       max_anisotropy = max(max_anisotropy, anisotropy)
     end do
-    
+
     call alland(all_linear_simplices)
-    if(.not. all_linear_simplices) return    
+    if(.not. all_linear_simplices) return
     call allmin(min_length)
     call allmax(max_length)
     call allmin(min_anisotropy)
     call allmax(max_anisotropy)
-    
+
     print "(a," // rformat // ")", "Min edge length: ", min_length
     print "(a," // rformat // ")", "Max edge length: ", max_length
     print "(a," // rformat // ")", "Ratio of max to min edge lengths: ", max_length / min_length
     print "(a," // rformat // ")", "Min anisotropy: ", min_anisotropy
     print "(a," // rformat // ")", "Max anisotropy: ", max_anisotropy
-    
+
   end subroutine print_mesh_edge_statistics
-  
+
   subroutine check_node_connectivity(positions)
     !!< Check the nodal connectivity of the supplied mesh
-  
+
     type(vector_field), intent(in) :: positions
-  
+
     integer :: i
     logical, dimension(node_count(positions)) :: connected_node
-    
+
     print "(a)", "Checking nodal connectivity ..."
-    
+
     connected_node = .false.
     do i = 1, ele_count(positions)
       connected_node(ele_nodes(positions, i)) = .true.
@@ -259,7 +259,7 @@ contains
         end if
       end do
     end if
-  
+
   end subroutine check_node_connectivity
 
   subroutine check_elements(positions)
@@ -277,7 +277,7 @@ contains
       print "(a)", "Checking volume elements ..."
       min_volume = huge(0.0)
       all_ok = .true.
-      do i = 1, ele_count(positions)               
+      do i = 1, ele_count(positions)
         shape => ele_shape(positions, i)
         if(shape%degree == 1 .and. ele_numbering_family(shape) == FAMILY_SIMPLEX .and. positions%dim == 3) then
           volume = simplex_volume(positions, i)
@@ -295,11 +295,11 @@ contains
           call print_element(i, ele_val(positions, i), ele_nodes(positions, i))
           all_ok = .false.
         end if
-      end do 
-      
+      end do
+
       call alland(all_ok)
       call allmin(min_volume)
-      
+
       print "(a," // rformat // ")", "Min volume element volume: ", min_volume
       if(all_ok) then
         print "(a)", "All volume elements are non-degenerate"
@@ -310,7 +310,7 @@ contains
       print "(a)", "Checking surface elements ..."
       min_volume = huge(0.0)
       all_ok = .true.
-      do i = 1, surface_element_count(positions)      
+      do i = 1, surface_element_count(positions)
         allocate(detwei(face_ngi(positions, i)))
         call transform_facet_to_physical(positions, i, detwei_f = detwei)
         volume = abs(sum(detwei))
@@ -322,10 +322,10 @@ contains
           all_ok = .false.
         end if
       end do
-      
+
       call alland(all_ok)
       call allmin(min_volume)
-      
+
       print "(a," // rformat // ")", "Min surface element area: ", min_volume
       if(all_ok) then
         print "(a)", "All surface elements are non-degenerate"
@@ -333,12 +333,12 @@ contains
     end if
 
   end subroutine check_elements
-  
+
   subroutine check_volume_element_tangling(positions)
     !!< Check the supplied mesh for tangling of the volume elements
-    
+
     type(vector_field), intent(in) :: positions
-    
+
     integer :: dim, i, j, stat
     logical :: all_ok, intersection_found
     real :: ele_volume, intersection_volume
@@ -348,11 +348,11 @@ contains
     type(plane_type), dimension(4) :: planes_b
     type(tet_type) :: tet_a, tet_b
     type(vector_field) :: intersection
-    
+
     if(global_ele == 0) then
       return
     end if
-    
+
     print "(a)", "Checking volume elements for tangling ..."
 
     dim = positions%dim
@@ -368,7 +368,7 @@ contains
         tet_b%v = ele_val(positions, i)
         planes_b = get_planes(tet_b)
       end if
-      
+
       llnode => intersection_map(i)%firstnode
       intersection_found = .false.
       do while(associated(llnode))
@@ -410,15 +410,15 @@ contains
         llnode => llnode%next
       end do
     end do map_loop
-      
+
     call alland(all_ok)
-      
+
     if(all_ok) then
       print "(a)", "No volume element tangling"
     end if
 
     if(dim == 3) call finalise_tet_intersector()
-    
+
   end subroutine check_volume_element_tangling
 
   subroutine print_node(positions, number)
@@ -430,14 +430,14 @@ contains
     real, dimension(positions%dim) :: coord
 
     print "(a,i0)", "Node: ", number
-    
+
     print "(a)", "Coordinates:"
     coord = node_val(positions, number)
     format_buffer = "(" // trim(real_format()) // ")"
     do i = 1, size(coord)
       print trim(format_buffer), coord(i)
     end do
-    
+
   end subroutine print_node
 
   subroutine print_element(number, coords, numbering)
@@ -451,7 +451,7 @@ contains
     integer :: i
 
     print "(a,i0)", "Element: ", number
-    
+
     print "(a)", "Coordinates:"
     format_buffer = "(" // int2str(size(coords, 1)) // trim(real_format(padding = 1)) // ")"
     do i = 1, size(coords, 2)
