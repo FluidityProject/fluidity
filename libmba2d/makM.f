@@ -490,8 +490,7 @@ c ... fill in holes in edges
          End do
 
          IPF(1, kF) = 0
-         nF = nF - 1
- 200     End do
+200     nF = nF - 1
 
       icnt = 0
       Do n = 1, nF
@@ -544,8 +543,7 @@ c  ...   update auxiliary structures
 
 
          IPE(1, kE) = 0
-         nE = nE - 1
- 300     End do
+ 300     nE = nE - 1
 
       Return
       End

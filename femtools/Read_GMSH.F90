@@ -497,7 +497,7 @@ contains
     else
        call binary_formatting(fd, filename, "read")
        read(fd)  ltmp
-       numPoints = transfer(ltmp, numPoints)
+       numPoints = ltmp
        do i=1, 3
           read(fd)  ltmp
           numDim(i) = ltmp
@@ -535,11 +535,11 @@ contains
              read(charBuf, *, iostat=stat ) entityTag, bounds, numPhysicalTags, tags
           else
              read(fd) entityTag, bounds, ltmp
-             numPhysicalTags = transfer(ltmp, numPhysicalTags)
+             numPhysicalTags = ltmp
              allocate(tags(numPhysicalTags))
              read(fd) tags
              read(fd) ltmp
-             numBoundTags = transfer(ltmp, numBoundTags)
+             numBoundTags = ltmp
              allocate(boundObjects(numBoundTags))
              read(fd) boundObjects
              deallocate(boundObjects)
@@ -742,26 +742,26 @@ contains
 
     ! read in node data
     k = 0
-    do j=1, transfer(numEntities, j)
+    do j=1, numEntities
        read(fd) meta(1), meta(2), meta(3), numEntityNodes
        if (versionNumber%minor == 1) then
-          do i=k+1, k + transfer(numEntityNodes, k)
+          do i=k+1, k + numEntityNodes
              read(fd) ltmp
              nodes(i)%nodeID = ltmp
           end do
-          do i=k+1, k + transfer(numEntityNodes, k)
+          do i=k+1, k + numEntityNodes
              read(fd) nodes(i)%x
              ! Set column ID to -1: this will be changed later if $NodeData exists
              nodes(i)%columnID = -1
           end do
        else
-          do i= k+1, k + transfer(numEntityNodes, k)
+          do i= k+1, k + numEntityNodes
              read(fd) nodes(i)%nodeID, nodes(i)%x
              ! Set column ID to -1: this will be changed later if $NodeData exists
              nodes(i)%columnID = -1
           end do
        end if
-       k = k + transfer(numEntityNodes, k)
+       k = k + numEntityNodes
     end do
 
     ! Skip newline character when in binary mode
@@ -1109,7 +1109,7 @@ contains
        if (versionNumber%minor == 1) allocate(vltmp(numLocNodes+1))
 
        ! Read in elements in a particular entity block
-       do k = 1, transfer(numEntityElements, k)
+       do k = 1, numEntityElements
          e = e + 1
 
          allocate(allElements(e)%nodeIDs(numLocNodes))
@@ -1179,7 +1179,7 @@ contains
     call read_element_data_v4_common(fd)
 
     call binary_formatting(fd, filename, "read")
-    do i = 1, transfer(numAllElements, i)
+    do i = 1, numAllElements
       read (fd) e, id
       allElements(e)%tags(1) = id
     end do

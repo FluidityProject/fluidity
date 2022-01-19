@@ -75,13 +75,13 @@ subroutine supermesh_difference(vtu1_filename_, vtu1_filename_len, vtu2_filename
 
   ewrite(1, *) "In supermesh_difference"
 
-  do i=1, transfer(vtu1_filename_len, i)
+  do i=1, vtu1_filename_len
     vtu1_filename(i:i)=vtu1_filename_(i)
   end do
-  do i=1, transfer(vtu2_filename_len, i)
+  do i=1, vtu2_filename_len
     vtu2_filename(i:i)=vtu2_filename_(i)
   end do
-  do i=1, transfer(output_filename_len, i)
+  do i=1, output_filename_len
     output_filename(i:i)=output_filename_(i)
   end do
 

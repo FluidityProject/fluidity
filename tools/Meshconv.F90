@@ -69,13 +69,13 @@ subroutine Meshconv(c_input_basename, input_basename_len, c_input_mesh_format, i
     FLExit("Meshconv must be run in serial when reading in an ExodusII mesh!")
   end if
   ! now turn into proper fortran strings (is there an easier way to do this?)
-  do i=1, transfer(input_basename_len, i)
+  do i=1, input_basename_len
     input_basename(i:i)=c_input_basename(i)
   end do
-  do i=1, transfer(input_mesh_format_len, i)
+  do i=1, input_mesh_format_len
     input_mesh_format(i:i)=c_input_mesh_format(i)
   end do
-  do i=1, transfer(output_mesh_format_len, i)
+  do i=1, output_mesh_format_len
     output_mesh_format(i:i)=c_output_mesh_format(i)
   end do
 

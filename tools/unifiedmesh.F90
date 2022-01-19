@@ -38,13 +38,13 @@ subroutine unifiedmesh(filename1_, filename1_len, &
   type(mesh_type) :: accum_mesh
   type(vector_field) :: accum_positions
 
-  do i=1, transfer(filename1_len, i)
+  do i=1, filename1_len
     filename1(i:i)=filename1_(i)
   end do
-  do i=1, transfer(filename2_len, i)
+  do i=1, filename2_len
     filename2(i:i)=filename2_(i)
   end do
-  do i=1, transfer(output_len, i)
+  do i=1, output_len
     output(i:i)=output_(i)
   end do
 

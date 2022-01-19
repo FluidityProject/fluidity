@@ -61,10 +61,10 @@ subroutine project_to_continuous(vtuname_, vtuname_len, meshname_,&
   integer :: i, j, k
 
 ! now turn into proper fortran strings (is there an easier way to do this?)
-  do i=1, transfer(vtuname_len, i)
+  do i=1, vtuname_len
     vtuname(i:i)=vtuname_(i)
   end do
-  do i=1, transfer(meshname_len, i)
+  do i=1, meshname_len
     meshname(i:i)=meshname_(i)
   end do
 

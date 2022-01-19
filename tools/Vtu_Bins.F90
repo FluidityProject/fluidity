@@ -66,10 +66,10 @@ subroutine vtu_bins(input_filename_, input_filename_len, input_fieldname_, &
 
   ewrite(1, *) "In vtu_bins"
 
-  do i=1, transfer(input_filename_len, i)
+  do i=1, input_filename_len
     input_filename(i:i)=input_filename_(i)
   end do
-  do i=1, transfer(input_fieldname_len, i)
+  do i=1, input_fieldname_len
     input_fieldname(i:i)=input_fieldname_(i)
   end do
 
@@ -96,7 +96,7 @@ subroutine vtu_bins(input_filename_, input_filename_len, input_fieldname_, &
   rformat = real_format()
   rformatp = real_format(padding = 1)
   print "(a," // rformatp // ",a," // rformat // ")", "                      -inf - ", lbounds(1), " : ", (volume - integrals(1)) / volume
-  do i = 1, transfer(nbounds, i) - 1
+  do i = 1, nbounds - 1
     print "(" // rformatp // ",a," // rformatp // ",a," // rformat // ")", lbounds(i), " - ", lbounds(i + 1), " : ", (-integrals(i + 1) + integrals(i)) / volume
   end do
   print "(" // rformatp // "a," // rformat // ")", lbounds(nbounds), " -                        inf : ", (-integrals(nbounds + 1) + integrals(nbounds)) / volume

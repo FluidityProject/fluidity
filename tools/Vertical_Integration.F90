@@ -66,13 +66,13 @@ subroutine vertical_integration(target_basename_, target_basename_len, &
 
   ewrite(-1, *) "In vertical_integration"
 
-  do i=1, transfer(target_basename_len, i)
+  do i=1, target_basename_len
     target_basename(i:i)=target_basename_(i)
   end do
-  do i=1, transfer(integrated_filename_len, i)
+  do i=1, integrated_filename_len
     integrated_filename(i:i)=integrated_filename_(i)
   end do
-  do i=1, transfer(output_basename_len, i)
+  do i=1, output_basename_len
     output_basename(i:i)=output_basename_(i)
   end do
   ! Step 1: Read in the data

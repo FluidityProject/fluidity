@@ -43,7 +43,7 @@ subroutine gmsh2vtu(filename_, filename_len) bind(c)
   type(vector_field), target :: positions
   type(scalar_field) :: regions
 
-  do i=1, transfer(filename_len, i)
+  do i=1, filename_len
     filename(i:i)=filename_(i)
   end do
 

@@ -188,7 +188,7 @@ module supermesh_construction
     real(kind = c_double), dimension(size(nodes)) :: lnodes
 
     call cintersector_get_output(nonods, totele, ndim, loc, lnodes, enlist)
-    nodes = transfer(lnodes, nodes)
+    nodes = lnodes
 
   end subroutine intersector_get_output_sp
 

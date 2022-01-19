@@ -62,10 +62,10 @@ subroutine streamfunction_2d(input_basename_, input_basename_len, &
 
   ewrite(1, *) "In streamfunction_2d"
 
-  do i=1, transfer(input_basename_len, i)
+  do i=1, input_basename_len
     input_basename(i:i)=input_basename_(i)
   end do
-  do i=1, transfer(output_basename_len, i)
+  do i=1, output_basename_len
     output_basename(i:i)=output_basename_(i)
   end do
 

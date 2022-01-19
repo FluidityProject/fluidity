@@ -41,19 +41,19 @@ subroutine fldiag_add_diag(input_name_, input_name_len, &
   type(mesh_type), pointer :: mesh
   type(state_type), dimension(1) :: state
 
-  do i=1, transfer(input_name_len, i)
+  do i=1, input_name_len
     input_name(i:i)=input_name_(i)
   end do
-  do i=1, transfer(output_name_len, i)
+  do i=1, output_name_len
     output_name(i:i)=output_name_(i)
   end do
-  do i=1, transfer(outfield_name_len, i)
+  do i=1, outfield_name_len
     outfield_name(i:i)=outfield_name_(i)
   end do
-  do i=1, transfer(meshfield_name_len, i)
+  do i=1, meshfield_name_len
     meshfield_name(i:i)=meshfield_name_(i)
   end do
-  do i=1, transfer(state_name_len, i)
+  do i=1, state_name_len
     state_name(i:i)=state_name_(i)
   end do
 

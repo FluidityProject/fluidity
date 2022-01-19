@@ -38,7 +38,7 @@ subroutine checkmesh(filename_, filename_len) bind(c)
   integer :: global_ele, global_nodes, global_sele, global_facets, i
   type(vector_field) :: positions
 
-  do i=1, transfer(filename_len, i)
+  do i=1, filename_len
     filename(i:i)=filename_(i)
   end do
 

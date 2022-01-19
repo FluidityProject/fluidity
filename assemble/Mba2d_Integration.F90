@@ -131,7 +131,7 @@ module mba2d_integration
     orig_stotel = unique_surface_element_count(xmesh)
     mxface = int(max((float(mxnods) / float(nonods)) * orig_stotel * 3.5, 10000.0))
     maxele = int(max((float(mxnods) / float(nonods)) * totele * 1.5, 10000.0))
-    maxp = transfer(mxnods * 1.2, maxp)
+    maxp = mxnods * 1.2
 
     allocate(pos(2, maxp))
     pos = 0.0
@@ -327,8 +327,8 @@ module mba2d_integration
 
     call relax_metric_locked_regions(tmp_metric, ife(1:nfe), input_positions)
 
-    maxWr = transfer((4 * maxp + 10 * nonods + mxface + maxele)  * 1.5, maxWr)
-    maxWi = transfer((6 * maxp + 10 * nonods + 19 * mxface + 11 * maxele + 12 * totele) * 1.5, maxWi)
+    maxWr = (4 * maxp + 10 * nonods + mxface + maxele)  * 1.5
+    maxWi = (6 * maxp + 10 * nonods + 19 * mxface + 11 * maxele + 12 * totele) * 1.5
     allocate(rW(maxWr))
     allocate(iW(maxWi))
 

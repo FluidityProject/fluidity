@@ -93,10 +93,10 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
 
   nprocs = getnprocs()
   ! now turn into proper fortran strings (is there an easier way to do this?)
-  do i=1, transfer(input_basename_len, i)
+  do i=1, input_basename_len
     input_base(i:i)=input_basename(i)
   end do
-  do i=1, transfer(output_basename_len, i)
+  do i=1, output_basename_len
     output_base(i:i)=output_basename(i)
   end do
 

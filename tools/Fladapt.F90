@@ -80,10 +80,10 @@ subroutine fladapt(input_basename_, input_basename_len, &
   character(len=FIELD_NAME_LEN) :: mesh_format
 
   ! now turn into proper fortran strings (is there an easier way to do this?)
-  do i=1, transfer(input_basename_len, i)
+  do i=1, input_basename_len
     input_basename(i:i)=input_basename_(i)
   end do
-  do i=1, transfer(output_basename_len, i)
+  do i=1, output_basename_len
     output_basename(i:i)=output_basename_(i)
   end do
 
