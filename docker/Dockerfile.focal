@@ -22,8 +22,6 @@ RUN apt-get update && \
      rm -rf /var/cache/apt && \
      rm -rf /var/lib/apt/lists
 
-RUN python3 -m pip install --upgrade pip setuptools build pep517 wheel junit-xml
-
 WORKDIR /usr/local
 RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-4.8.3-Linux64.tgz | tar --strip-components=1 -zxf -
 
