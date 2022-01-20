@@ -18,6 +18,7 @@ USER fluidity
 
 ENV FCFLAGS="-I/usr/include"
 
+RUN apt -y install python3-venv
 RUN python3 -m pip install --upgrade pip setuptools build pep517 wheel junit-xml
 
 RUN ./configure --enable-2d-adaptivity
