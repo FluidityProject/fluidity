@@ -14,8 +14,3 @@ void report_test(const string& title, const bool& fail, const bool& warn, const 
   
   return;
 }
-
-void cget_nan(double *nan)
-{
-  *nan = std::numeric_limits<double>::quiet_NaN();
-}

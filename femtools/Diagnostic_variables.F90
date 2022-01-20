@@ -30,6 +30,7 @@
 module diagnostic_variables
   !!< A module to calculate and output diagnostics. This replaces the .s file.
   use iso_c_binding, only: c_long
+  use ieee_arithmetic, only: ieee_value, ieee_quiet_nan
   use fldebug
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, &
 & PYTHON_FUNC_LEN, integer_size, real_size
@@ -47,7 +48,6 @@ module diagnostic_variables
   use halos_base
   use halos_debug
   use halos_allocates
-  use ieee_arithmetic
   use sparse_tools
   use embed_python
   use fields_base
@@ -2557,7 +2557,6 @@ contains
     character(len=FIELD_NAME_LEN) :: vfield_name
     integer :: i, j, phase, check_no_det, totaldet_global, dim
     integer(kind=8) :: h5_ierror
-    real :: value
     integer, dimension(:), allocatable :: detector_ids
     real, dimension(:), allocatable :: detector_scalar_values
     real, dimension(:,:), allocatable :: detector_vector_values, positions
@@ -2640,7 +2639,7 @@ contains
                ! check this detector belongs to an element
                if (detector%element<0) then
                  if (detector_list%write_nan_outside) then
-                   call cget_nan(detector_scalar_values(j))
+                   detector_scalar_values(j) = ieee_value(0.0, ieee_quiet_nan)
                  else
                    FLExit("Trying to write detector that is outside of domain.")
                  end if
@@ -2675,8 +2674,7 @@ contains
              do j = 1, detector_list%length
                if (detector%element<0) then
                  if (detector_list%write_nan_outside) then
-                   call cget_nan(value)
-                   detector_vector_values(j,:) = value
+                   detector_vector_values(j,:) = ieee_value(0.0, ieee_quiet_nan)
                  else
                    FLExit("Trying to write detector that is outside of domain.")
                  end if

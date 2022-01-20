@@ -303,18 +303,17 @@ Diagnostic_variables.o ../include/diagnostic_variables.mod: \
    ../include/halos_base.mod ../include/halos_communications.mod \
    ../include/halos_debug.mod ../include/halos_derivation.mod \
    ../include/halos_numbering.mod ../include/halos_ownership.mod \
-   ../include/halos_registration.mod ../include/ieee_arithmetic.mod \
-   ../include/integer_hash_table_module.mod ../include/linked_lists.mod \
-   ../include/memory_diagnostics.mod ../include/meshdiagnostics.mod \
-   ../include/mixing_statistics.mod ../include/mpi_interfaces.mod \
-   ../include/parallel_fields.mod ../include/parallel_tools.mod \
-   ../include/particles.mod ../include/pickers.mod ../include/profiler.mod \
-   ../include/quadrature.mod ../include/solvers.mod \
-   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
-   ../include/state_fields_module.mod ../include/state_module.mod \
-   ../include/surface_integrals.mod ../include/unittest_tools.mod \
-   ../include/version.h ../include/vtk_interfaces.mod \
-   ../include/write_state_module.mod
+   ../include/halos_registration.mod ../include/integer_hash_table_module.mod \
+   ../include/linked_lists.mod ../include/memory_diagnostics.mod \
+   ../include/meshdiagnostics.mod ../include/mixing_statistics.mod \
+   ../include/mpi_interfaces.mod ../include/parallel_fields.mod \
+   ../include/parallel_tools.mod ../include/particles.mod \
+   ../include/pickers.mod ../include/profiler.mod ../include/quadrature.mod \
+   ../include/solvers.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns.mod ../include/state_fields_module.mod \
+   ../include/state_module.mod ../include/surface_integrals.mod \
+   ../include/unittest_tools.mod ../include/version.h \
+   ../include/vtk_interfaces.mod ../include/write_state_module.mod
 
 ../include/dynamic_bin_sort_module.mod: Dynamic_Bin_Sort.o
 	@true
@@ -430,10 +429,10 @@ Fields_Allocates.o ../include/fields_allocates.mod: Fields_Allocates.F90 \
    ../include/futils.mod ../include/global_numbering.mod \
    ../include/global_parameters.mod ../include/halo_data_types.mod \
    ../include/halos_allocates.mod ../include/halos_repair.mod \
-   ../include/ieee_arithmetic.mod ../include/memory_diagnostics.mod \
-   ../include/parallel_tools.mod ../include/pickers_deallocates.mod \
-   ../include/quadrature.mod ../include/shape_functions.mod \
-   ../include/sparse_tools.mod Reference_count_interface_mesh_type.F90 \
+   ../include/memory_diagnostics.mod ../include/parallel_tools.mod \
+   ../include/pickers_deallocates.mod ../include/quadrature.mod \
+   ../include/shape_functions.mod ../include/sparse_tools.mod \
+   Reference_count_interface_mesh_type.F90 \
    Reference_count_interface_scalar_field.F90 \
    Reference_count_interface_tensor_field.F90 \
    Reference_count_interface_vector_field.F90 Reference_count_mesh_type.F90 \
@@ -1047,8 +1046,8 @@ SampleNetCDF_fortran.o ../include/samplenetcdf.mod: SampleNetCDF_fortran.F90 \
 Shape_Functions.o ../include/shape_functions.mod: Shape_Functions.F90 \
    ../include/element_numbering.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fldebug.mod ../include/futils.mod \
-   ../include/ieee_arithmetic.mod ../include/polynomials.mod \
-   ../include/quadrature.mod ../include/superconvergence.mod
+   ../include/polynomials.mod ../include/quadrature.mod \
+   ../include/superconvergence.mod
 
 ../include/shape_functions_test.mod: Shape_Functions_Test.o
 	@true
@@ -1106,9 +1105,9 @@ Sparse_Tools.o ../include/sparse_tools.mod: Sparse_Tools.F90 \
    ../include/data_structures.mod ../include/fdebug.h ../include/fldebug.mod \
    ../include/futils.mod ../include/global_parameters.mod \
    ../include/halo_data_types.mod ../include/halos_allocates.mod \
-   ../include/ieee_arithmetic.mod ../include/memory_diagnostics.mod \
-   ../include/parallel_tools.mod ../include/petsc_legacy.h \
-   ../include/reference_counting.mod Reference_count_block_csr_matrix.F90 \
+   ../include/memory_diagnostics.mod ../include/parallel_tools.mod \
+   ../include/petsc_legacy.h ../include/reference_counting.mod \
+   Reference_count_block_csr_matrix.F90 \
    Reference_count_block_dynamic_csr_matrix.F90 Reference_count_csr_matrix.F90 \
    Reference_count_csr_sparsity.F90 Reference_count_dynamic_csr_matrix.F90 \
    Reference_count_interface_block_csr_matrix.F90 \
@@ -1294,7 +1293,7 @@ Unify_meshes.o ../include/unify_meshes_module.mod: Unify_meshes.F90 \
 	@true
 
 Unittest_tools.o ../include/unittest_tools.mod: Unittest_tools.F90 \
-   ../include/fdebug.h ../include/fldebug.mod ../include/ieee_arithmetic.mod \
+   ../include/fdebug.h ../include/fldebug.mod \
    ../include/reference_counting.mod ../include/sparse_tools.mod \
    ../include/vector_tools.mod
 
@@ -1369,12 +1368,6 @@ Write_Triangle.o ../include/write_triangle.mod: Write_Triangle.F90 \
    ../include/elements.mod ../include/fdebug.h ../include/field_options.mod \
    ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
    ../include/parallel_tools.mod ../include/state_module.mod
-
-../include/ieee_arithmetic.mod: ieee_arithmetic_dummy.o
-	@true
-
-ieee_arithmetic_dummy.o ../include/ieee_arithmetic.mod: \
-   ieee_arithmetic_dummy.F90 ../include/fdebug.h ../include/fldebug.mod
 
 ../include/python_state.mod: python_state.o
 	@true
