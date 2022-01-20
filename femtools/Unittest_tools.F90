@@ -5,7 +5,6 @@ module unittest_tools
   use fldebug
   use vector_tools
   use reference_counting
-  use ieee_arithmetic
   use sparse_tools
   implicit none
 
@@ -40,11 +39,6 @@ module unittest_tools
   interface fnequals
     module procedure fne_scalar, fne_array, fne_array_scalar, fne_matrix, fne_matrix_scalar
   end interface
-  
-  interface is_nan
-    module procedure is_nan_scalar, is_nan_vector, is_nan_tensor2, &
-      & is_nan_tensor3
-  end interface is_nan
   
   interface write_vector
     module procedure write_vector_real, write_vector_integer
@@ -434,61 +428,18 @@ module unittest_tools
 
   end function fgt
 
-  function is_nan_scalar(float1) result(nan)
-    !!< This function checks if float1 is NaN.
-    
-    real, intent(in) :: float1
-    
+  elemental function is_nan(x) result(nan)
+    !! Check if a number is NaN. Safe to use with aggressive optimisations.
+    !!
+    !! @note ieee_is_nan(val) or the older check val /= val are always
+    !! optimised to .false. whenever finite math optimisations are ebaled
+
+    real, intent(in) :: x
     logical :: nan
 
-    nan = ieee_is_nan(float1)
-    
-  end function is_nan_scalar
-  
-  function is_nan_vector(float1) result(nan)
-    !!< This function checks if float1 is NaN.
-    
-    real, dimension(:), intent(in) :: float1
-    
-    logical, dimension(size(float1)) :: nan
-    
-    integer :: i
-    
-    do i = 1, size(float1)
-      nan(i) = is_nan(float1(i))
-    end do
-    
-  end function is_nan_vector
-  
-  function is_nan_tensor2(float1) result(nan)
-    !!< This function checks if float1 is NaN.
-    
-    real, dimension(:, :), intent(in) :: float1
-    
-    logical, dimension(size(float1, 1), size(float1, 2)) :: nan
-    
-    integer :: i
-    
-    do i = 1, size(float1, 1)
-      nan(i, :) = is_nan(float1(i, :))
-    end do
-    
-  end function is_nan_tensor2
-  
-  function is_nan_tensor3(float1) result(nan)
-    !!< This function checks if float1 is NaN.
-    
-    real, dimension(:, :, :), intent(in) :: float1
-    
-    logical, dimension(size(float1, 1), size(float1, 2), size(float1, 3)) :: nan
-    
-    integer :: i
-    
-    do i = 1, size(float1, 1)
-      nan(i, :, :) = is_nan(float1(i, :, :))
-    end do
-    
-  end function is_nan_tensor3
+    nan = (.not. (x <= huge(x) .and. x >= -huge(x))) .and. (.not. abs(x) > huge(x))
+
+  end function is_nan
 
   function mat_is_symmetric(mat) result(symmetric)
     !!< This function checks if mat is a symmetric matrix.
