@@ -4,7 +4,7 @@ USER root
 
 RUN apt-get -y update && \
       apt-get -y dist-upgrade && \
-      apt-get -y install sudo && \
+      apt-get -y install sudo python3-venv && \
       rm -rf /var/cache/apt/archives && \
       rm -rf /var/lib/apt/lists
 
@@ -16,7 +16,6 @@ RUN chown -R fluidity /home/fluidity
 
 USER fluidity
 
-RUN apt-get -y install python3-venv
 RUN python3 -m pip install --upgrade pip setuptools build pep517 wheel junit-xml
 
 RUN ./configure --enable-2d-adaptivity
