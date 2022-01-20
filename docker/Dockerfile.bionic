@@ -28,7 +28,7 @@ RUN apt-get update && \
      rm -rf /var/lib/apt/lists
 
 WORKDIR /usr/local
-RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-4.8.3-Linux64.tgz | tar --strip-components=1 -zxf -
+RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-4.9.3-Linux64.tgz | tar --strip-components=1 -zxf -
 
 ENV PETSC_DIR /usr/lib/petscdir/3.8.3
 ENV LD_LIBRARY_PATH /usr/lib/petscdir/3.8.3/linux-gnu-c-opt/lib

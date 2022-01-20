@@ -24,3 +24,6 @@ RUN test -z "$(git status --porcelain */Makefile.dependencies)"
 RUN make
 RUN make fltools
 RUN make manual
+RUN echo CANBERRA
+RUN python3 -c "import fluidity.diagnostics; print('CANBERRA')"
+RUN echo CANBERRA
