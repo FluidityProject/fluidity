@@ -203,8 +203,7 @@ lib/shared/$(SLIB_FLUIDITY).1: fluidity_library
 	@rm -rf tmp
 	@cd lib/shared; ln -sf $(SLIB_FLUIDITY).1 $(SLIB_FLUIDITY); cd ../..
 
-fltools: fluidity_library
-	@$(MAKE) fldecomp
+fltools: fldecomp
 	@echo "BUILD fluidity tools"
 	@cd tools; $(MAKE)
 	@echo "    MAKE climatology"
@@ -219,7 +218,7 @@ python_build:
 ifeq (@HAVE_PYTHON@,yes)
 	@echo "    MAKE python"
 	@cd python; $(python_exec) -m build
-	$(python_exec) -m pip install --user --upgrade python/dist/fluidity-0.1-py3-none-any.whl
+	$(python_exec) -m pip install --upgrade python/dist/fluidity-0.1-py3-none-any.whl
 endif
 
 python_clean:
@@ -298,8 +297,6 @@ main/*.o
 ifeq (@HYPERLIGHT@,yes)
 	@$(AR) $(ARFLAGS) lib/libfluidity.a hyperlight/*.o
 endif
-
-
 
 fldecomp: fluidity_library
 	@echo "BUILD fldecomp"
@@ -447,8 +444,7 @@ distclean: clean
 	 include/spud_enums.h include/tinystr.h include/tinyxml.h	\
 	 include/version.h include/vtk.h				\
 	 preprocessor/check_options.F90 \
-	 preprocessor/register_diagnostics.F90 >	\
-	 /dev/null
+	 preprocessor/register_diagnostics.F90 > /dev/null
 	@for i in `find ./*/ -name Makefile.in`; do rm -f `echo $$i | sed 's/.in$$//'`; done > /dev/null
 	@find ./ \( -name make.log \) -exec rm -f {} \; > /dev/null
 	@rm -f Makefile > /dev/null

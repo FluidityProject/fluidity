@@ -6111,7 +6111,11 @@ variable to configure. See \`\`configure --help'' for reference.
 		fi
 	fi
 
+	# Make the versioning information available to the compiler
 	HAVE_PYTHON=yes
+cat >>confdefs.h <<_ACEOF
+#define HAVE_PYTHON "$HAVE_PYTHON"
+_ACEOF
 
 	#
 	# Check for Python include path
@@ -6210,8 +6214,7 @@ $as_echo "$PYTHON_LIBS" >&6; }
 $as_echo_n "checking for Python site-packages path... " >&6; }
 	if test -z "$PYTHON_SITE_PKG"; then
 		PYTHON_SITE_PKG=`$PYTHON -c "from sysconfig import get_path; \
-			from pathlib import PurePath; \
-			print(PurePath(get_path('stdlib', scheme='posix_user')) / 'site-packages');"`
+			print(get_path('platlib', scheme='posix_user'));"`
 	fi
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_SITE_PKG" >&5
 $as_echo "$PYTHON_SITE_PKG" >&6; }

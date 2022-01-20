@@ -18,7 +18,8 @@ USER fluidity
 
 ENV FCFLAGS="-I/usr/include"
 
-RUN python3 -m pip install --upgrade pip setuptools build pep517 wheel junit-xml
+# Python module 'assess' is required for some longtests
+RUN python3 -m pip install --upgrade pip setuptools build pep517 wheel assess junit-xml
 
 RUN ./configure --enable-2d-adaptivity
 RUN make makefiles
@@ -26,6 +27,3 @@ RUN test -z "$(git status --porcelain */Makefile.dependencies)"
 RUN make
 RUN make fltools
 RUN make manual
-
-# Python module 'assess' is required for some longtests
-RUN python3 -m pip install assess
