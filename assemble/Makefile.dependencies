@@ -842,7 +842,7 @@ Zoltan_global_variables.o ../include/zoltan_global_variables.mod: \
 
 Zoltan_integration.o ../include/zoltan_integration.mod: Zoltan_integration.F90 \
    ../include/adapt_integration.mod ../include/boundary_conditions.mod \
-   ../include/boundary_conditions_from_options.mod ../include/c_interfaces.mod \
+   ../include/boundary_conditions_from_options.mod \
    ../include/data_structures.mod ../include/detector_data_types.mod \
    ../include/detector_parallel.mod ../include/detector_tools.mod \
    ../include/element_numbering.mod ../include/elements.mod \

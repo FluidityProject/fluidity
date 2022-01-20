@@ -131,12 +131,6 @@ CV_Upwind_Values.o ../include/cv_upwind_values.mod: CV_Upwind_Values.F90 \
    ../include/state_module.mod ../include/transform_elements.mod \
    ../include/vector_tools.mod
 
-../include/c_interfaces.mod: C_Interfaces_Fortran.o
-	@true
-
-C_Interfaces_Fortran.o ../include/c_interfaces.mod: C_Interfaces_Fortran.F90 \
-   ../include/fdebug.h ../include/fldebug.mod
-
 ../include/checkpoint.mod: Checkpoint.o
 	@true
 
@@ -290,15 +284,14 @@ Diagnostic_Fields.o ../include/diagnostic_fields.mod: Diagnostic_Fields.F90 \
 	@true
 
 Diagnostic_variables.o ../include/diagnostic_variables.mod: \
-   Diagnostic_variables.F90 ../include/c_interfaces.mod \
-   ../include/data_structures.mod ../include/detector_data_types.mod \
-   ../include/detector_parallel.mod ../include/detector_tools.mod \
-   ../include/elements.mod ../include/embed_python.mod \
-   ../include/eventcounter.mod ../include/fdebug.h ../include/fefields.mod \
-   ../include/fetools.mod ../include/field_derivatives.mod \
-   ../include/field_options.mod ../include/fields.mod \
-   ../include/fields_base.mod ../include/fldebug.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/h5hut.mod \
+   Diagnostic_variables.F90 ../include/data_structures.mod \
+   ../include/detector_data_types.mod ../include/detector_parallel.mod \
+   ../include/detector_tools.mod ../include/elements.mod \
+   ../include/embed_python.mod ../include/eventcounter.mod ../include/fdebug.h \
+   ../include/fefields.mod ../include/fetools.mod \
+   ../include/field_derivatives.mod ../include/field_options.mod \
+   ../include/fields.mod ../include/fields_base.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod ../include/h5hut.mod \
    ../include/halo_data_types.mod ../include/halos_allocates.mod \
    ../include/halos_base.mod ../include/halos_communications.mod \
    ../include/halos_debug.mod ../include/halos_derivation.mod \
@@ -1094,8 +1087,8 @@ Solvers.o ../include/solvers.mod: Solvers.F90 ../include/element_numbering.mod \
 	@true
 
 Sparse_Matrices_Fields.o ../include/sparse_matrices_fields.mod: \
-   Sparse_Matrices_Fields.F90 ../include/c_interfaces.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/fldebug.mod ../include/sparse_tools.mod \
+   Sparse_Matrices_Fields.F90 ../include/fdebug.h ../include/fields.mod \
+   ../include/fldebug.mod ../include/sparse_tools.mod \
    ../include/sparse_tools_petsc.mod
 
 ../include/sparse_tools.mod: Sparse_Tools.o

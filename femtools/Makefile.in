@@ -98,7 +98,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   vtk_read_files.o State_Fields.o Unify_meshes.o Adaptive_interpolation.o \
   Wandzura_Quadrature.o Grundmann_Moeller_Quadrature.o Bound_field.o \
   Halos_Diagnostics.o Mixing_Statistics.o projections.o Memory_Diagnostics.o \
-  Sparse_Tools_Petsc.o C_Interfaces.o C_Interfaces_Fortran.o Tetrahedron_intersection.o \
+  Sparse_Tools_Petsc.o Tetrahedron_intersection.o \
   Node_Owner_Finder.o Node_Owner_Finder_Fortran.o Node_Ownership.o \
   Data_structures.o Data_structures_C.o Integer_set.o Integer_hash_table.o \
   CGAL_Tools_C.o CGAL_Tools.o \
