@@ -37,7 +37,7 @@ CC  = @CC@
 CFLAGS  = @CFLAGS@ -I../../include
 
 CXX = @CXX@ -I../../include
-CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I../../include 
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I../../include
 
 LDFLAGS  = @LDFLAGS@
 
@@ -57,9 +57,9 @@ unittest: $(TEST_BINARIES) data
 
 data:
 	cd ../../tests/data; \
-	gmsh -3 cube_prismatic.geo; \
+	gmsh -format msh2 -3 cube_prismatic.geo; \
 	../../bin/gmsh2triangle cube_prismatic.msh; \
-	gmsh -3 cube_unstructured.geo; \
+	gmsh -format msh2 -3 cube_unstructured.geo; \
 	../../bin/gmsh2triangle cube_unstructured.msh; \
 	cd -
 

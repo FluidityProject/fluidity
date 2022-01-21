@@ -45,7 +45,7 @@ mshfile = open(argv[0], 'r')
 
 # Header section
 assert mshfile.readline().strip() == "$MeshFormat"
-assert mshfile.readline().strip() == "4.1 0 8"
+assert mshfile.readline().strip() in ["2 0 8", "2.1 0 8", "2.2 0 8"]
 assert mshfile.readline().strip() == "$EndMeshFormat"
 
 # Nodes section
