@@ -54,7 +54,7 @@ jobs:
     if: always()
 
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         name: [ "Unit Bionic", "Short Bionic", "Medium Bionic", "Unit Focal", "Short Focal", "Medium Focal" ]
         include:
@@ -121,7 +121,6 @@ jobs:
       fail-fast: false
       matrix:
         name: [
-               "top_hat_cv",
                "mphase_tephra_settling_2d_adaptive",
                "gyre_parallel",
                "Stokes_square_convection_1e4_vv_p1p1",
