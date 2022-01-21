@@ -463,12 +463,15 @@ int readVTKFile(const char * const filename,
   if( strncmp(ext,".vtk",4)==0 ) {
     //printf("Reading from VTK file: %s\n",filename);
     read1 = vtkDataSetReader::New();
+
     if( read1==NULL ) {
       cerr<<"ERROR: Failed to read!\n";
       return -1;
     }
+
     read1->SetFileName(filename);
     filetype = read1->ReadOutputType();
+
     if( filetype == VTK_POLY_DATA )
       sprintf(typnam,"vtkPolyData");
     else if( filetype == VTK_STRUCTURED_POINTS )
@@ -497,12 +500,14 @@ int readVTKFile(const char * const filename,
           <<filetype<<" must be vktUnstructuredGrid\n";
       return -1;
     }
+
     if( strlen(typnam) != 3 ) { // length 3 was used above for VTK_UNSTRUCTURED_GRID
       cerr<<"ERROR: Cannot read file containing "<<typnam<<" must be vktUnstructuredGrid\n";
       return -1;
-    }else
+    } else
       dataSet = read1->GetUnstructuredGridOutput();
-      read1->Update();
+
+    read1->Update();
   } else if( strncmp(ext,".vtu",4)==0 ) {
     //printf("Reading from VTK XML file: %s\n",filename);
     read2 = vtkXMLUnstructuredGridReader::New();
@@ -801,9 +806,8 @@ int readVTKFile(const char * const filename,
     for(int i=0; i<nnodes; i++)
       used[i] = 0;
     for(vtkIdType i=0; i<ncells; i++) {
-      vtkIdType npts=0, ct;
+      vtkIdType npts=0;
       GetCellPointer *pts;
-      ct = dataSet->GetCellType(i);
       dataSet->GetCellPoints(i,npts,pts);
       if( curdim == 1 ) {
         if( npts != 2 ) npts = 0;
@@ -950,6 +954,7 @@ int readVTKFile(const char * const filename,
     int *ENLST = NULL, *ENLBS = NULL;
     int tetcnt = 0, szenls = 0, curdim = *ndim;
     // this zeros inside-out counter - what's returned may be rubbish
+    [[maybe_unused]]
     int iocnt=AddOneTetra(0,0,0,0,0,NULL,NULL,*X,*Y,*Z);
 //    printf("Counting allowable %dd cells...\n",*ndim);
     for(vtkIdType i=0; i<ncells; i++){
@@ -1056,6 +1061,7 @@ int readVTKFile(const char * const filename,
     if( onlyinfo != 0 ) npass = 1;
     for(int pass=0; pass<npass; pass++) {
       // this zeros inside-out counter - what's returned may be rubbish
+      [[maybe_unused]]
       int iocnt=AddOneTetra(0,0,0,0,0,NULL,NULL,*X,*Y,*Z);
       tetcnt = 0;
       val = 0;

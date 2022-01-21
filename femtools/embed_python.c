@@ -1514,9 +1514,9 @@ void string_from_python(char* function, int* function_len,
     fprintf(stderr, "In string_from_python\n");
     fprintf(stderr, "Warning: Truncating returned string\n");
     fflush(stderr);
-    memcpy((const char*) result, PyString_AsString(pResult), *result_len * sizeof(char));
-  }else{
-    memcpy((const char*) result, PyString_AsString(pResult), pResult_len * sizeof(char));
+    (const char*) memcpy(result, PyString_AsString(pResult), *result_len * sizeof(char));
+  } else{
+    (const char*) memcpy(result, PyString_AsString(pResult), pResult_len * sizeof(char));
     *result_len = pResult_len;
   }
 

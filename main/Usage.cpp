@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -35,7 +35,7 @@ using namespace Spud;
 
 map<string, string> fl_command_line_options;
 
-void print_version(ostream& stream){  
+void print_version(ostream& stream){
   stream<<"Revision: "<<__FLUIDITY_VERSION__
 #ifdef DDEBUG
       <<" (debugging)"
@@ -85,11 +85,11 @@ void print_version(ostream& stream){
       <<"no\n"
 #endif
       <<"NetCDF support\t\t\t"
-#ifdef HAVE_LIBNETCDF   
+#ifdef HAVE_LIBNETCDF
       <<"yes\n"
 #else
       <<"no\n"
-#endif 
+#endif
       <<"Signal handling support\t\t"
 #ifdef NSIGNAL
       <<"no\n"
@@ -177,9 +177,9 @@ void print_version(ostream& stream){
 void print_environment(){
 
   const char *relevant_variables[]={"PETSC_OPTIONS"};
-    
+
   int no_relevant_variables=1;
-  
+
   cout<<"Environment variables relevant for fluidity:\n";
   for(int i=0; i<1; i++) {
     char *env=getenv(relevant_variables[i]);
@@ -189,8 +189,8 @@ void print_environment(){
     }
   };
   if (no_relevant_variables)
-    cout<<" none\n";   
-  
+    cout<<" none\n";
+
 }
 
 void usage(char *cmd){
@@ -225,7 +225,7 @@ void ParseArguments(int argc, char** argv){
   int c;
   const char *shortopts = "hlpv::V";
 
-  // set opterr to nonzero to make getopt print error messages 
+  // set opterr to nonzero to make getopt print error messages
   opterr=1;
 
   while (true){
@@ -243,18 +243,18 @@ void ParseArguments(int argc, char** argv){
 
     case 'l':
       fl_command_line_options["log"] = "";
-      break;        
+      break;
     case 'p':
       fl_command_line_options["profile"] = "yes";
       break;
     case 'v':
       fl_command_line_options["verbose"] = (optarg == NULL) ? "1" : optarg;
-      break;  
-      
+      break;
+
     case 'V':
       fl_command_line_options["version"] = "";
       break;
-    
+
     case '?':
       // missing argument only returns ':' if the option string starts with ':'
       // but this seems to stop the printing of error messages by getopt?
@@ -271,13 +271,13 @@ void ParseArguments(int argc, char** argv){
       exit(-1);
     }
   }
-  
+
   // Help?
   if(fl_command_line_options.count("help")){
     usage(argv[0]);
     exit(0);
   }
-  
+
   // Version?
   if(fl_command_line_options.count("version")){
     print_version();
@@ -285,16 +285,16 @@ void ParseArguments(int argc, char** argv){
   }
 
   // Verbose?
-  {    
+  {
     int MyRank = 0;
-#ifdef HAVE_MPI  
+#ifdef HAVE_MPI
     int init_flag;
     MPI_Initialized(&init_flag);
     if(init_flag){
       MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
     }
 #endif
- 
+
     if(fl_command_line_options.count("verbose") == 0){
       verbosity = 0;
     }else{
@@ -305,7 +305,7 @@ void ParseArguments(int argc, char** argv){
       fl_command_line_options["profile"] = "yes";
     }
   }
-  
+
   // What to do with stdout/stderr?
   if(fl_command_line_options.count("log")){
     ostringstream debug_file, err_file;
@@ -321,14 +321,14 @@ void ParseArguments(int argc, char** argv){
       err_file << "-" << MyRank;
     }
 #endif
-  
+
     if(freopen(debug_file.str().c_str(), "w", stdout) == NULL)
-      perror("failed to redirect stdio for debugging"); 
-        
+      perror("failed to redirect stdio for debugging");
+
     if(freopen(err_file.str().c_str(), "w", stderr) == NULL)
       perror("failed to redirect stderr for debugging");
   }
-  
+
   // Find the filename if one is specified. Assuming that final
   // argument is simulation filename if it does not correspond to a
   // known option.
@@ -348,7 +348,7 @@ void ParseArguments(int argc, char** argv){
       exit(-1);
     }
   }
-  
+
   load_options(fl_command_line_options["xml"]);
   if(!have_option("/simulation_name")){
     cerr<<"ERROR: failed to find simulation name after loading options file\n";
@@ -357,7 +357,7 @@ void ParseArguments(int argc, char** argv){
   }
   OptionError stat = get_option("/simulation_name", fl_command_line_options["simulation_name"]);
   assert(stat == SPUD_NO_ERROR);
-  
+
   // now that we know the verbosity, and possibly redirected stdout,
   // we may print the given command line
   if(verbosity >= 2){
@@ -386,6 +386,7 @@ void PetscInit(int argc, char** argv){
   strncpy(petscargv[0], argv[0], strlen(argv[0]) + 1);
 
   static char help[] = "Use --help to see the help.\n\n";
+  [[maybe_unused]]
   PetscErrorCode ierr = PetscInitialize(&petscargc, &petscargv, NULL, help);
   // PetscInitializeFortran needs to be called when initialising PETSc from C, but calling it from Fortran
   // This sets all kinds of objects such as PETSC_NULL_OBJECT, PETSC_COMM_WORLD, etc., etc.
@@ -393,10 +394,9 @@ void PetscInit(int argc, char** argv){
   // CHKERRQ(ierr);
   signal(SIGSEGV, SIG_DFL);
   signal(SIGTRAP, SIG_DFL);
-  
+
   for(int i = 0; i < petscargc; i++)
     delete [] petscargv[i];
   delete [] petscargv;
 #endif
 }
-

@@ -221,6 +221,7 @@ int main(int argc, char** argv){
 
   cout<<"Converting from : "<<optionMap["incoord"]<<" to: "<<optionMap["outcoord"]<<endl;
 
+  [[maybe_unused]]
   int err = projections(npts, x, y, z, optionMap["incoord"], optionMap["outcoord"]);
 
   for(vtkIdType i=0;i<npts;i++){
