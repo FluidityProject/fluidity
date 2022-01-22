@@ -21,3 +21,5 @@ RUN test -z "$(git status --porcelain */Makefile.dependencies)"
 RUN make
 RUN make fltools
 RUN make manual
+
+RUN python3 -c "import sys; print(sys.path)"
