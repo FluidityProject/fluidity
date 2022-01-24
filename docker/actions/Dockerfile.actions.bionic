@@ -13,7 +13,7 @@ RUN chown -R fluidity /home/fluidity
 
 USER fluidity
 
-RUN python3 -m pip install --upgrade pip setuptools build pep517 wheel junit-xml
+RUN python3 -m pip install build junit-xml
 
 RUN ./configure --enable-2d-adaptivity
 RUN make makefiles
@@ -21,6 +21,3 @@ RUN test -z "$(git status --porcelain */Makefile.dependencies)"
 RUN make
 RUN make fltools
 RUN make manual
-
-RUN python3 -c "import fluidity; print(fluidity.__file__)"
-RUN python3 -c "import fluidity.diagnostics; print(fluidity.diagnostics.__file__)"

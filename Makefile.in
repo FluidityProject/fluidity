@@ -218,7 +218,7 @@ python_build:
 ifeq (@HAVE_PYTHON@,yes)
 	@echo "    MAKE python"
 	@cd python; $(python_exec) -m build
-	$(python_exec) -m pip install --upgrade python/dist/fluidity-0.1-py3-none-any.whl
+	$(python_exec) -m pip install --upgrade python/dist/fluidity*.whl
 endif
 
 python_clean:
