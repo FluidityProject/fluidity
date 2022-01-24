@@ -18,7 +18,7 @@ RUN apt-get update && \
     gpg --export --armor 33BAC3BE | apt-key add - && \
     apt-get update && \
     echo "Europe/London" > /etc/timezone && \
-    apt-get -y install fluidity-dev texlive-pstricks texlive texlive-latex-extra texlive-science python3-pip && \
+    apt-get -y install fluidity-dev texlive-pstricks texlive texlive-latex-extra texlive-science && \
     rm -rf /var/cache/apt && \
     rm -rf /var/lib/apt/lists
 
@@ -39,5 +39,3 @@ RUN adduser --disabled-password --gecos "" -u $userid fluidity
 
 USER fluidity
 WORKDIR /home/fluidity
-
-ENV PYTHONPATH `python3 -c "from sysconfig import get_path; print(get_path('platlib', 'posix_user'))"`

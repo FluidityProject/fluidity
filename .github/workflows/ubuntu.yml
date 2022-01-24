@@ -46,9 +46,9 @@ jobs:
           push: true
           tags: fluidity/actions:${{ matrix.release }}-${{ github.sha }}
 
-  testing:
+  single_test:
 
-    name: ${{ matrix.name }}
+    name: single_test-${{ matrix.name }}
     runs-on: ubuntu-latest
     needs: build
     if: always()
@@ -56,48 +56,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Unit Bionic", "Short Bionic", "Unit Focal", "Short Focal" ]
-        include:
-
-          - name: "Unit Bionic"
-            release: bionic
-            command: "make unittest"
-            output: "test_results_unittests.xml"
-
-          - name: "Short Bionic"
-            release: bionic
-            command: "make THREADS=2 test"
-            output: "test_results.xml"
-
-          - name: "Unit Focal"
-            release: focal
-            command: "make unittest"
-            output: "test_results_unittests.xml"
-
-          - name: "Short Focal"
-            release: focal
-            command: "make THREADS=2 test"
-            output: "test_results.xml"
+        name: [
+               "top_hat_cv"
+              ]
 
     steps:
 
-      - name: ${{ matrix.name }} Testing
+      - name: ${{ matrix.name }} Single_test
         run: |
          chmod 777 .
-         docker pull fluidity/actions:${{ matrix.release }}-${{ github.sha }}
-         docker run -v $PWD:/host fluidity/actions:${{ matrix.release }}-${{ github.sha }} \
-         /bin/bash -c "${{ matrix.command }} && \
-         cp -v tests/${{ matrix.output }} /host/${{ matrix.release }}-${{ matrix.output}}"
-
+         docker pull fluidity/actions:focal-${{ github.sha }}
+         docker run -v $PWD:/host -e "PYTHONPATH=/home/fluidity/.local/lib/python3.8/site-packages" \
+         fluidity/actions:focal-${{ github.sha }} \
+         /bin/bash -c "bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && \
+         cp -v test_results_${{ matrix.name }}.xml /host"
       - uses: actions/upload-artifact@v2
         with:
-          path: ${{ matrix.release }}-${{ matrix.output }}
+          path: test_results_${{ matrix.name }}.xml
           name: tests_xml_outputs
 
       - name: ${{ matrix.name }} JUnit
         uses: mikepenz/action-junit-report@v2
         with:
-          report_paths: ${{ matrix.release }}-${{ matrix.output }}
+          report_paths: test_results_${{ matrix.name }}.xml
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          check_name: Test report ${{ matrix.name }}
+          check_name: Single_test report ${{ matrix.name }}
           fail_on_failure: true
