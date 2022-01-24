@@ -11,25 +11,24 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Package updates and installs
 RUN apt-get update && \
-     apt-get -y dist-upgrade && \
-     apt-get -y install gnupg dirmngr && \
-     echo "deb http://ppa.launchpad.net/fluidity-core/ppa/ubuntu focal main" > /etc/apt/sources.list.d/fluidity-core-ppa-focal.list && \
-     gpg --keyserver keyserver.ubuntu.com --recv 0D45605A33BAC3BE && \
-     gpg --export --armor 33BAC3BE | apt-key add - && \
-     apt-get update && \
-     echo "Europe/London" > /etc/timezone && \
-     apt-get -y install fluidity-dev texlive-pstricks texlive texlive-latex-extra texlive-science python3-pip && \
-     rm -rf /var/cache/apt && \
-     rm -rf /var/lib/apt/lists
-
-RUN python3 -m pip install --upgrade junit-xml
+    apt-get -y dist-upgrade && \
+    apt-get -y install gnupg dirmngr && \
+    echo "deb http://ppa.launchpad.net/fluidity-core/ppa/ubuntu focal main" > /etc/apt/sources.list.d/fluidity-core-ppa-focal.list && \
+    gpg --keyserver keyserver.ubuntu.com --recv 0D45605A33BAC3BE && \
+    gpg --export --armor 33BAC3BE | apt-key add - && \
+    apt-get update && \
+    echo "Europe/London" > /etc/timezone && \
+    apt-get -y install fluidity-dev texlive-pstricks texlive texlive-latex-extra texlive-science && \
+    rm -rf /var/cache/apt && \
+    rm -rf /var/lib/apt/lists
 
 WORKDIR /usr/local
-RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-4.8.3-Linux64.tgz | tar --strip-components=1 -zxf -
+RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-4.9.3-Linux64.tgz | tar --strip-components=1 -zxf -
 
 ENV PETSC_DIR /usr/lib/petscdir/3.12
 ENV LDFLAGS -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi
 ENV CPPFLAGS -I/usr/include/hdf5/openmpi
+ENV FCFLAGS -I/usr/include
 ENV OMPI_MCA_btl_vader_single_copy_mechanism none
 ENV OMPI_MCA_rmaps_base_oversubscribe 1
 

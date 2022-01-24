@@ -3,20 +3,17 @@ FROM fluidity/baseimages:focal
 USER root
 
 RUN apt-get -y update && \
-      apt-get -y dist-upgrade && \
-      apt-get -y install sudo && \
-      rm -rf /var/cache/apt/archives && \
-      rm -rf /var/lib/apt/lists
-
-RUN adduser fluidity sudo
-RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+    apt-get -y dist-upgrade && \
+    apt-get -y install python3-pip python3-venv && \
+    rm -rf /var/cache/apt/archives && \
+    rm -rf /var/lib/apt/lists
 
 COPY . /home/fluidity
 RUN chown -R fluidity /home/fluidity
 
 USER fluidity
 
-ENV FCFLAGS="-I/usr/include"
+RUN python3 -m pip install --upgrade pip setuptools build pep517 wheel junit-xml
 
 RUN ./configure --enable-2d-adaptivity
 RUN make makefiles
@@ -25,5 +22,5 @@ RUN make
 RUN make fltools
 RUN make manual
 
-# Python module 'assess' is required for some longtests
-RUN python3 -m pip install assess
+RUN python3 -c "import fluidity; print(fluidity.__file__)"
+RUN python3 -c "import fluidity.diagnostics; print(fluidity.diagnostics.__file__)"
