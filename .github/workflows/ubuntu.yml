@@ -17,18 +17,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Build Bionic", "Build Focal" ]
+        name: [ Build Bionic, Build Focal ]
         include:
 
-          - name: "Build Bionic"
+          - name: Build Bionic
             release: bionic
 
-          - name: "Build Focal"
+          - name: Build Focal
             release: focal
 
     steps:
 
-      - name: Check Out Repo
+      - name: Checkout repository
         uses: actions/checkout@v2
 
       - name: Login to Docker Hub
@@ -64,8 +64,7 @@ jobs:
         run: |
          chmod 777 .
          docker pull fluidity/actions:${{ matrix.distro }}-${{ github.sha }}
-         docker run -v $PWD:/host -e "PYTHONPATH=/home/fluidity/.local/lib/python3.8/site-packages" \
-         fluidity/actions:${{ matrix.distro }}-${{ github.sha }} \
+         docker run -v $PWD:/host fluidity/actions:${{ matrix.distro }}-${{ github.sha }} \
          /bin/bash -c "bin/testharness -x test_results_${{ matrix.distro }}.xml -f top_hat_cv.xml && \
          cp -v test_results_${{ matrix.distro }}.xml /host"
       - uses: actions/upload-artifact@v2

@@ -129,7 +129,7 @@ class TestHarness:
               if xml_file == file:
                 p = etree.parse(os.path.join(subdir,xml_file))
                 prob_defn = p.findall("problem_definition")[0]
-                prob_nprocs = int(prob_defn.attrib["nprocs"])                
+                prob_nprocs = int(prob_defn.attrib["nprocs"])
                 testprob = regressiontest.TestProblem(filename=os.path.join(subdir, xml_file),
                                                       verbose=self.verbose, replace=self.modify_command_line(prob_nprocs), genpbs=genpbs)
                 self.tests.append((subdir, testprob))
@@ -157,7 +157,7 @@ class TestHarness:
                 working_set.append(xml_file)
             elif self.parallel == "any":
               working_set.append(xml_file)
-                
+
         def get_xml_file_tags(xml_file):
           p = etree.parse(xml_file)
           p_tags = p.findall("tags")
@@ -165,9 +165,9 @@ class TestHarness:
             xml_tags = p_tags[0].text.split()
           else:
             xml_tags = []
-          
+
           return xml_tags
-                
+
         # step 4. if there are any excluded tags, let's exclude tests that have
         # them
         if exclude_tags is not None:
@@ -219,7 +219,7 @@ class TestHarness:
 
     def decide_fluidity_command(self):
         bindir = os.environ["PATH"].split(':')[0]
-        
+
         for binaryBase in ["dfluidity", "fluidity"]:
           binary = binaryBase
           debugBinary = binaryBase + "-debug"
@@ -254,9 +254,9 @@ class TestHarness:
             #  if flucmd != debugBinary:
             #     print("Error: you really should compile with debugging for use with valgrind!")
             #     sys.exit(1)
-                
+
             return flucmd
-              
+
         return None
 
     def modify_command_line(self, nprocs):
@@ -310,7 +310,7 @@ class TestHarness:
                for i in range(len(threadlist),
                               max(0, options.thread_count-nprocs)):
                    # spin up enough new workers to fully subscribe thread count
-                   threadlist.append(multiprocessing.Process(target=self.threadrun, args=[serial_tests])) 
+                   threadlist.append(multiprocessing.Process(target=self.threadrun, args=[serial_tests]))
                    threadlist[-1].start()
                if nprocs==1:
                    # remaining tests are serial. Join the workers
@@ -369,7 +369,7 @@ class TestHarness:
                       count -= 1
 
                 if count == 0: break
-                time.sleep(60)                  
+                time.sleep(60)
         else:
           for t in self.tests:
             test = t[1]
@@ -386,7 +386,7 @@ class TestHarness:
         self.passcount = self.teststatus.count('P')
         self.failcount = self.teststatus.count('F')
         self.warncount = self.teststatus.count('W')
-        
+
         if self.failcount + self.warncount > 0:
             print()
             print("Summary of test problems with failures or warnings:")
@@ -394,7 +394,7 @@ class TestHarness:
                 if t.pass_status.count('F')+t.warn_status.count('W')>0:
                     print(t.filename+':', ''.join(t.pass_status+t.warn_status))
             print()
-        
+
         if self.passcount + self.failcount + self.warncount > 0:
             print("Passes:   %d" % self.passcount)
             print("Failures: %d" % self.failcount)
@@ -408,7 +408,7 @@ class TestHarness:
         if self.exit_fails:
             sys.exit(self.failcount)
 
-          
+
     def threadrun(self, queue):
         '''This is the portion of the loop which actually runs the
         tests. This is split out so that it can be threaded.
@@ -440,7 +440,7 @@ class TestHarness:
                              " is longer than the permitted 30s run time"%runtime)
                     self.teststatus += ['W']
                     test.pass_status = ['W']
-                    
+
             except:
                 self.log("Error: %s raised an exception while running:" % test.filename)
                 lines = traceback.format_exception( sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2] )
@@ -486,12 +486,8 @@ if __name__ == "__main__":
 
     if options.parallel not in ['serial', 'parallel', 'any']:
       parser.error("Specify parallelism as either serial, parallel or any.")
-    
+
     os.environ["PATH"] = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "bin")) + ":" + os.environ["PATH"]
-    try:
-      os.environ["PYTHONPATH"] = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "python")) + ":" + os.environ["PYTHONPATH"]
-    except KeyError:
-      os.putenv("PYTHONPATH", os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "python")))
     try:
       os.environ["LD_LIBRARY_PATH"] = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "lib")) + ":" + os.environ["LD_LIBRARY_PATH"]
     except KeyError:

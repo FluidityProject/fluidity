@@ -23,3 +23,4 @@ RUN make fltools
 RUN make manual
 
 RUN python3 -c "import fluidity; print(fluidity.__file__)"
+RUN python3 -c "import fluidity.diagnostics; print(fluidity.diagnostics.__file__)"
