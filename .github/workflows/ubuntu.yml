@@ -48,7 +48,7 @@ jobs:
 
   single_test:
 
-    name: single_test-${{ matrix.name }}
+    name: single_test-${{ matrix.distro }}
     runs-on: ubuntu-latest
     needs: build
     if: always()
@@ -63,9 +63,9 @@ jobs:
       - name: ${{ matrix.distro }} Single_test
         run: |
          chmod 777 .
-         docker pull fluidity/actions:focal-${{ github.sha }}
+         docker pull fluidity/actions:${{ matrix.distro }}-${{ github.sha }}
          docker run -v $PWD:/host -e "PYTHONPATH=/home/fluidity/.local/lib/python3.8/site-packages" \
-         fluidity/actions:focal-${{ github.sha }} \
+         fluidity/actions:${{ matrix.distro }}-${{ github.sha }} \
          /bin/bash -c "bin/testharness -x test_results_${{ matrix.distro }}.xml -f top_hat_cv.xml && \
          cp -v test_results_${{ matrix.distro }}.xml /host"
       - uses: actions/upload-artifact@v2
