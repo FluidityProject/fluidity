@@ -28,7 +28,6 @@ RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-4.9.3-Linux64.tgz | tar --strip-c
 ENV PETSC_DIR /usr/lib/petscdir/3.12
 ENV LDFLAGS -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi
 ENV CPPFLAGS -I/usr/include/hdf5/openmpi
-ENV FCFLAGS -I/usr/include
 ENV OMPI_MCA_btl_vader_single_copy_mechanism none
 ENV OMPI_MCA_rmaps_base_oversubscribe 1
 
