@@ -56,29 +56,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [
-               "top_hat_cv"
-              ]
+        distro: [bionic, focal]
 
     steps:
 
-      - name: ${{ matrix.name }} Single_test
+      - name: ${{ matrix.distro }} Single_test
         run: |
          chmod 777 .
          docker pull fluidity/actions:focal-${{ github.sha }}
          docker run -v $PWD:/host -e "PYTHONPATH=/home/fluidity/.local/lib/python3.8/site-packages" \
          fluidity/actions:focal-${{ github.sha }} \
-         /bin/bash -c "bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && \
-         cp -v test_results_${{ matrix.name }}.xml /host"
+         /bin/bash -c "bin/testharness -x test_results_${{ matrix.distro }}.xml -f top_hat_cv.xml && \
+         cp -v test_results_${{ matrix.distro }}.xml /host"
       - uses: actions/upload-artifact@v2
         with:
-          path: test_results_${{ matrix.name }}.xml
+          path: test_results_${{ matrix.distro }}.xml
           name: tests_xml_outputs
 
-      - name: ${{ matrix.name }} JUnit
+      - name: ${{ matrix.distro }} JUnit
         uses: mikepenz/action-junit-report@v2
         with:
-          report_paths: test_results_${{ matrix.name }}.xml
+          report_paths: test_results_${{ matrix.distro }}.xml
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          check_name: Single_test report ${{ matrix.name }}
+          check_name: Single_test report ${{ matrix.distro }}
           fail_on_failure: true
