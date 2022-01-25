@@ -1,20 +1,19 @@
-from distutils.core import setup
-from distutils.extension import Extension
-import os
-import os.path
-import glob
+from glob import glob
+from os import listdir
+from os.path import isdir, join
+from setuptools import setup
+from sys import argv, platform
 
 # There are a number of local hacks in this file, to deal with the multiple
-# ways in which setup.py is called by various scripts and packaging methods 
+# ways in which setup.py is called by various scripts and packaging methods
 # that interact with spud, enabling setuptools to grok their intentions.
 
 # In some cases, we will be passed a 'DESTDIR' from an upstream packagaing
 # system. This will be a local directory to install into, and act as local '/'
-# as far as all paths are concerned. Check for this, and fail nicely if not set.
+# as far as all paths are concerned. Check for this and fail nicely if not set.
 
 prefix = None
-import sys
-packaging=False
+packaging = False
 
 # We may also be given prefix, either as a configuration option (which will be
 # dealt with by substitutions later) or as a command line option. If a command
@@ -27,9 +26,9 @@ packaging=False
 # parsed if present, and supercedes any previous DESTDIR picked up from
 # environment.
 
-for i, arg in enumerate(sys.argv):
-  if "--prefix" in arg:
-    prefix = arg.split('=')[1]
+for i, arg in enumerate(argv):
+    if "--prefix" in arg:
+        prefix = arg.split('=')[1]
 
 # Given the above prefix possibilities, as well as root and DESTDIR, we need to
 # construct a list of data directories to be installed
@@ -43,45 +42,40 @@ for i, arg in enumerate(sys.argv):
 # on the command line in preference to the configure prefix.
 
 # First parse the plugin directories
-plugin_dirs = [dir for dir in os.listdir('plugins') if os.path.isdir(os.path.join('plugins', dir)) and dir[0] != '.']
+plugin_dirs = [dir for dir in listdir('plugins')
+               if isdir(join('plugins', dir)) and dir[0] != '.']
 plugin_data_files = []
-if sys.platform == 'darwin' and packaging:
-	for plugin in plugin_dirs:
-  		plugin_data_files.append(("./plugins/" + plugin,
-		  glob.glob('plugins/' + plugin + '/*.py')))
+if platform == 'darwin' and packaging:
+    for plugin in plugin_dirs:
+        plugin_data_files.append(("./plugins/" + plugin,
+                                  glob('plugins/' + plugin + '/*.py')))
 else:
-	for plugin in plugin_dirs:
-	  if prefix is None:
-            plugin_data_files.append(("@prefix@/share/diamond/plugins/" + plugin,
-                                      glob.glob('plugins/' + plugin + '/*.py')))
-	  else:
-            plugin_data_files.append((prefix + "/share/diamond/plugins/" + plugin,
-                                      glob.glob('plugins/' + plugin + '/*.py')))
+    for plugin in plugin_dirs:
+        if prefix is None:
+            plugin_data_files.append(
+                ("@prefix@/share/diamond/plugins/" + plugin,
+                 glob('plugins/' + plugin + '/*.py')))
+        else:
+            plugin_data_files.append(
+                (prefix + "/share/diamond/plugins/" + plugin,
+                 glob('plugins/' + plugin + '/*.py')))
 
 # Now parse the GUI directories
 gui_data_files = []
-if sys.platform == 'darwin' and packaging	:
-  gui_data_files.append(("./gui",
-    ["gui/gui.ui", "gui/diamond.svg", "gui/diamond.png"]))
+if platform == 'darwin' and packaging:
+    gui_data_files.append(
+        ("./gui", ["gui/gui.ui", "gui/diamond.svg", "gui/diamond.png"]))
 else:
-	if prefix is None:
-	  gui_data_files.append(("@prefix@/share/diamond/gui",
-		["gui/gui.ui", "gui/diamond.svg"]))
-	else:
-	  gui_data_files.append((prefix + "/share/diamond/gui",
-		["gui/gui.ui", "gui/diamond.svg"]))
+    if prefix is None:
+        gui_data_files.append(("@prefix@/share/diamond/gui",
+                               ["gui/gui.ui", "gui/diamond.svg"]))
+    else:
+        gui_data_files.append((prefix + "/share/diamond/gui",
+                               ["gui/gui.ui", "gui/diamond.svg"]))
 
 # We now have all the information we need; run setup.
-setup(
-      name='diamond',
-      version='1.0',
-      description="Fluidity preprocessor",
-      author = "The ICOM team",
-      author_email = "patrick.farrell@imperial.ac.uk",
-      url = "http://amcg.ese.ic.ac.uk",
-      packages = ['diamond'],
-      package_dir = {'diamond': 'diamond'},
-      scripts=["bin/diamond"],
-      data_files = gui_data_files + plugin_data_files
-     )
-
+setup(name='diamond', version='1.0', description="Fluidity preprocessor",
+      author="The ICOM team", author_email="patrick.farrell@imperial.ac.uk",
+      url="http://amcg.ese.ic.ac.uk", packages=['diamond'],
+      package_dir={'diamond': 'diamond'}, scripts=["bin/diamond"],
+      data_files=gui_data_files + plugin_data_files)

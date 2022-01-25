@@ -1455,7 +1455,6 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-debugging      turns on debugging flags
-  --enable-python         embed python in fluidity for generic functions.
   --enable-cgal           turns on use of the CGAL library
   --enable-openmp         turns on OpenMP support
   --disable-openmp        do not use OpenMP
@@ -5981,299 +5980,141 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
+# Python
 
-# Find python to link against.
-# Check whether --enable-python was given.
-if test "${enable_python+set}" = set; then :
-  enableval=$enable_python;
+# Form Python executable
+if test -z "$PYTHON_VERSION"; then
+  PYTHON_VERSION=3
 fi
+PYTHON=python$PYTHON_VERSION
 
-if test "x$enable_python" != "xno"
-then
-    if test -z "$PYTHON_VERSION"; then
-      # if PYTHON_VERSION is set we use python$PYTHON_VERSION as the python interpreter
-      # if not, if there is no `python` in the path, or there is a `python` but its version is <3
-      # then use `python3` (by setting PYTHON_VERSION=3).
-      # If there *is* a `python` of version 3, we use that
-      # Extract the first word of "python", so it can be a program name with args.
-set dummy python; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_have_bare_python+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$have_bare_python"; then
-  ac_cv_prog_have_bare_python="$have_bare_python" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_have_bare_python=""yes""
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-have_bare_python=$ac_cv_prog_have_bare_python
-if test -n "$have_bare_python"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_bare_python" >&5
-$as_echo "$have_bare_python" >&6; }
+# Verify Python executable works
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $PYTHON" >&5
+$as_echo_n "checking for $PYTHON... " >&6; }
+ac_python=`$PYTHON -c "print(True)"`
+if test "$ac_python" = "True"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+    $as_echo "yes" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
+    $as_echo "no" >&6; }
+  as_fn_error $? "Cannot find $PYTHON" "$LINENO" 5
 fi
 
-  if test "x$have_bare_python" = "xyes"; then
-    bare_python_is_two=`python -c "import sys; print(sys.version_info.major < 3)"`
-    if test "x$bare_python_is_two=xTrue"; then
-      PYTHON_VERSION=3
-    fi
-  else
-    PYTHON_VERSION=3
-  fi
-fi
-mycppflag=$CPPFLAGS
-
-# Extract the first word of "python[$PYTHON_VERSION]", so it can be a program name with args.
-set dummy python$PYTHON_VERSION; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_PYTHON+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $PYTHON in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_PYTHON="$PYTHON" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_PYTHON="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-PYTHON=$ac_cv_path_PYTHON
-if test -n "$PYTHON"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON" >&5
-$as_echo "$PYTHON" >&6; }
+# Check Python version is at least 3.6
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for a version of Python >= '3.6'" >&5
+  $as_echo_n "checking for a version of Python >= '3.6'... " >&6; }
+ac_supports_python_ver=`$PYTHON -c "from pkg_resources import parse_version; \
+from sysconfig import get_python_version; \
+print(parse_version(get_python_version()) >= parse_version('3.6'))"`
+if test "$ac_supports_python_ver" = "True"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+    $as_echo "yes" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
+    $as_echo "no" >&6; }
+	as_fn_error $? "Fluidity requires Python >= '3.6'. If you have it installed,
+but it isn't the default Python interpreter in your system path, please pass
+the PYTHON_VERSION variable to configure. See \`\`configure --help'' for
+reference. " "$LINENO" 5
 fi
 
-
-	if test -z "$PYTHON"; then
-	   as_fn_error $? "Cannot find python$PYTHON_VERSION in your system path" "$LINENO" 5
-	   PYTHON_VERSION=""
-	fi
-
-	#
-	# if the macro parameter ``version'' is set, honour it
-	#
-	if test -n ">= '3.6'"; then
-		{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for a version of Python >= '3.6'" >&5
-$as_echo_n "checking for a version of Python >= '3.6'... " >&6; }
-		ac_supports_python_ver=`$PYTHON -c "from pkg_resources import parse_version; \
-			from sysconfig import get_python_version; \
-			print(parse_version(get_python_version()) >= parse_version('3.6'))"`
-		if test "$ac_supports_python_ver" = "True"; then
-		   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-		else
-			{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-			as_fn_error $? "this package requires Python >= '3.6'.
-If you have it installed, but it isn't the default Python
-interpreter in your system path, please pass the PYTHON_VERSION
-variable to configure. See \`\`configure --help'' for reference.
-" "$LINENO" 5
-			PYTHON_VERSION=""
-		fi
-	fi
-
-	# Make the versioning information available to the compiler
-	HAVE_PYTHON=yes
+# Let the compiler know Python was found
+HAVE_PYTHON=yes
 cat >>confdefs.h <<_ACEOF
 #define HAVE_PYTHON "$HAVE_PYTHON"
 _ACEOF
 
-	#
-	# Check for Python include path
-	#
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Python include path" >&5
-$as_echo_n "checking for Python include path... " >&6; }
-	if test -z "$PYTHON_CPPFLAGS"; then
-		python_path=`$PYTHON -c "from sysconfig import get_path; \
-			print(get_path('include', scheme='posix_prefix'));"`
-		plat_python_path=`$PYTHON -c "from sysconfig import get_path; \
-			print(get_path('platinclude', scheme='posix_prefix'));"`
-		if test -n "${python_path}"; then
-			if test "${plat_python_path}" != "${python_path}"; then
-				python_path="-I$python_path -I$plat_python_path"
-			else
-				python_path="-I$python_path"
-			fi
-		fi
-		PYTHON_CPPFLAGS=$python_path
-	fi
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_CPPFLAGS" >&5
-$as_echo "$PYTHON_CPPFLAGS" >&6; }
+# Python include path
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Python include path" >&5
+  $as_echo_n "checking for Python include path... " >&6; }
+if test -z "$PYTHON_CPPFLAGS"; then
+  python_path=`$PYTHON -c "from sysconfig import get_path; \
+print(get_path('include', scheme='posix_prefix'));"`
+  plat_python_path=`$PYTHON -c "from sysconfig import get_path; \
+print(get_path('platinclude', scheme='posix_prefix'));"`
+  if test "${plat_python_path}" != "${python_path}"; then
+    python_path="-I$python_path -I$plat_python_path"
+  else
+    python_path="-I$python_path"
+  fi
+	PYTHON_CPPFLAGS=$python_path
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_CPPFLAGS" >&5
+  $as_echo "$PYTHON_CPPFLAGS" >&6; }
 
-	#
-	# Check for Python library path
-	#
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Python library path" >&5
-$as_echo_n "checking for Python library path... " >&6; }
-	if test -z "$PYTHON_LIBS"; then
-		# (makes two attempts to ensure we've got a version number
-		# from the interpreter)
-		ac_python_version=`cat<<EOD | $PYTHON -
-
-from sysconfig import get_python_version
-print(get_python_version())
-EOD`
-
-		if test -z "$ac_python_version"; then
-			if test -n "$PYTHON_VERSION"; then
-				ac_python_version=$PYTHON_VERSION
-			else
-				ac_python_version=`$PYTHON -c "from sys import version; \
-					print(version.rsplit('.', 3)[0])"`
-			fi
-		fi
-
-		# First, the library directory:
-		ac_python_libdir=`cat<<EOD | $PYTHON -
-
-# There should be only one
+# Python library path
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Python library path" >&5
+  $as_echo_n "checking for Python library path... " >&6; }
+if test -z "$PYTHON_LIBS"; then
+  ac_python_libdir=`cat<<EOD | $PYTHON -
 from sysconfig import get_config_var
-lib_dir = get_config_var('LIBDIR')
-if lib_dir is not None:
-	print(lib_dir)
+print(get_config_var('LIBDIR'))
 EOD`
-
-		# Now, for the library:
-		ac_python_library=`cat<<EOD | $PYTHON -
-
+  ac_python_bldlibrary=`cat<<EOD | $PYTHON -
 from sysconfig import get_config_var
-print(f"python{get_config_var('LDVERSION')}")
+print(get_config_var('BLDLIBRARY'))
 EOD`
+  PYTHON_LIBS="-L$ac_python_libdir $ac_python_bldlibrary"
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_LIBS" >&5
+  $as_echo "$PYTHON_LIBS" >&6; }
 
-		# This small piece shamelessly adapted from PostgreSQL python macro;
-		# credits goes to momjian, I think. I'd like to put the right name
-		# in the credits, if someone can point me in the right direction... ?
-		#
-		if test -n "$ac_python_libdir" -a -n "$ac_python_library"
-		then
-			# use the official shared library
-			ac_python_library=`echo "$ac_python_library" | sed "s/^lib//"`
-			PYTHON_LIBS="-L$ac_python_libdir -l$ac_python_library"
-		else
-			# old way: use libpython from python_configdir
-			ac_python_libdir=`$PYTHON -c \
-        "from pathlib import PurePath; \
-         from sysconfig import get_path; \
-         print(PurePath(get_path('platstdlib')) / 'config');"`
-			PYTHON_LIBS="-L$ac_python_libdir -lpython$ac_python_version"
-		fi
+# Python site packages
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Python site-packages path" >&5
+  $as_echo_n "checking for Python site-packages path... " >&6; }
+if test -z "$PYTHON_SITE_PKG"; then
+  PYTHON_SITE_PKG=`$PYTHON -c "from sysconfig import get_path; \
+print(get_path('platlib', scheme='posix_user'));"`
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_SITE_PKG" >&5
+  $as_echo "$PYTHON_SITE_PKG" >&6; }
 
-		if test -z "PYTHON_LIBS"; then
-			as_fn_error $? "
-  Cannot determine location of your Python DSO. Please check it was installed with
-  dynamic libraries enabled, or try setting PYTHON_LIBS by hand.
-			" "$LINENO" 5
-		fi
-	fi
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_LIBS" >&5
-$as_echo "$PYTHON_LIBS" >&6; }
+# Python libraries that must be linked in when embedding
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking Python extra libraries" >&5
+  $as_echo_n "checking Python extra libraries... " >&6; }
+if test -z "$PYTHON_EXTRA_LIBS"; then
+  PYTHON_EXTRA_LIBS=`$PYTHON -c "from sysconfig import get_config_var; \
+print(get_config_var('LIBS'))"`
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_EXTRA_LIBS" >&5
+  $as_echo "$PYTHON_EXTRA_LIBS" >&6; }
 
-	#
-	# Check for site packages
-	#
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Python site-packages path" >&5
-$as_echo_n "checking for Python site-packages path... " >&6; }
-	if test -z "$PYTHON_SITE_PKG"; then
-		PYTHON_SITE_PKG=`$PYTHON -c "from sysconfig import get_path; \
-			print(get_path('platlib', scheme='posix_user'));"`
-	fi
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_SITE_PKG" >&5
-$as_echo "$PYTHON_SITE_PKG" >&6; }
+# Python linking flags needed when embedding
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking Python extra linking flags" >&5
+  $as_echo_n "checking Python extra linking flags... " >&6; }
+if test -z "$PYTHON_EXTRA_LDFLAGS"; then
+  PYTHON_EXTRA_LDFLAGS=`$PYTHON -c "from sysconfig import get_config_var; \
+print(get_config_var('LINKFORSHARED'))"`
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_EXTRA_LDFLAGS" >&5
+  $as_echo "$PYTHON_EXTRA_LDFLAGS" >&6; }
 
-	#
-	# libraries which must be linked in when embedding
-	#
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking python extra libraries" >&5
-$as_echo_n "checking python extra libraries... " >&6; }
-	if test -z "$PYTHON_EXTRA_LIBS"; then
-	   PYTHON_EXTRA_LIBS=`$PYTHON -c "from sysconfig import get_config_var; \
-                print(get_config_var('LIBS') + ' ' + get_config_var('SYSLIBS'))"`
-	fi
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_EXTRA_LIBS" >&5
-$as_echo "$PYTHON_EXTRA_LIBS" >&6; }
-
-
-	#
-	# linking flags needed when embedding
-	#
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking python extra linking flags" >&5
-$as_echo_n "checking python extra linking flags... " >&6; }
-	if test -z "$PYTHON_EXTRA_LDFLAGS"; then
-		PYTHON_EXTRA_LDFLAGS=`$PYTHON -c "from sysconfig import get_config_var; \
-			print('' if get_config_var('PYTHONFRAMEWORK') else get_config_var('LINKFORSHARED'))"`
-	fi
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_EXTRA_LDFLAGS" >&5
-$as_echo "$PYTHON_EXTRA_LDFLAGS" >&6; }
-
-
-	#
-	# final check to see if everything compiles alright
-	#
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking consistency of all components of python development environment" >&5
-$as_echo_n "checking consistency of all components of python development environment... " >&6; }
-	# save current global flags
-	ac_save_LIBS="$LIBS"
-	ac_save_LDFLAGS="$LDFLAGS"
-	ac_save_CPPFLAGS="$CPPFLAGS"
-	LIBS="$ac_save_LIBS $PYTHON_LIBS $PYTHON_EXTRA_LIBS $PYTHON_EXTRA_LIBS"
-	LDFLAGS="$ac_save_LDFLAGS $PYTHON_EXTRA_LDFLAGS"
-	CPPFLAGS="$ac_save_CPPFLAGS $PYTHON_CPPFLAGS"
-	ac_ext=c
+# Python final check to see if everything compiles alright
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking consistency of all components of Python development environment" >&5
+  $as_echo_n "checking consistency of all components of Python development environment... " >&6; }
+# save current global flags
+ac_save_LIBS="$LIBS"
+ac_save_LDFLAGS="$LDFLAGS"
+ac_save_CPPFLAGS="$CPPFLAGS"
+LIBS="$ac_save_LIBS $PYTHON_LIBS $PYTHON_EXTRA_LIBS $PYTHON_EXTRA_LIBS"
+LDFLAGS="$ac_save_LDFLAGS $PYTHON_EXTRA_LDFLAGS"
+CPPFLAGS="$ac_save_CPPFLAGS $PYTHON_CPPFLAGS"
+ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-		#include <Python.h>
+#include <Python.h>
 #ifdef F77_DUMMY_MAIN
-
 #  ifdef __cplusplus
      extern "C"
 #  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
+  int F77_DUMMY_MAIN() { return 1; }
 #endif
 int
 main ()
@@ -6284,94 +6125,85 @@ Py_Initialize();
 }
 
 _ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
+if ac_fn_c_try_link "$LINENO"; then
   pythonexists=yes
 else
   pythonexists=no
 fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-	ac_ext=c
+rm -f core conftest.err conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-	# turn back to default flags
-	CPPFLAGS="$ac_save_CPPFLAGS"
-	LIBS="$ac_save_LIBS"
-	LDFLAGS="$ac_save_LDFLAGS"
+# turn back to default flags
+CPPFLAGS="$ac_save_CPPFLAGS"
+LIBS="$ac_save_LIBS"
+LDFLAGS="$ac_save_LDFLAGS"
 
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $pythonexists" >&5
-$as_echo "$pythonexists" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $pythonexists" >&5
+  $as_echo "$pythonexists" >&6; }
 
-        if test ! "x$pythonexists" = "xyes"; then
-	   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "
-  Could not link test program to Python. Maybe the main Python library has been
-  installed in some non-standard library path. If so, pass it to configure,
-  via the LIBS environment variable.
-  Example: ./configure LIBS=\"-L/usr/non-standard-path/python/lib\"
-  ============================================================================
-   ERROR!
-   You probably have to install the development version of the Python package
-   for your distribution.  The exact name of this package varies among them.
-  ============================================================================
+if test "x$pythonexists" != "xyes"; then
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+      $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+    as_fn_error $? "
+Could not link test program to Python. Maybe the main Python library has been
+installed in some non-standard library path. If so, pass it to configure,
+via the LIBS environment variable.
+Example: ./configure LIBS=\"-L/usr/non-standard-path/python/lib\"
+============================================================================
+ ERROR!
+ You probably have to install the development version of the Python package
+ for your distribution.  The exact name of this package varies among them.
+============================================================================
 
 See \`config.log' for more details" "$LINENO" 5; }
-	  PYTHON_VERSION=""
-	fi
-
-	#
-	# all done!
-	#
-
-    CPPFLAGS=$mycppflag
-    # Save variables...
-    if test "x$pythonexists" = "xyes";
-    then
-        if  test "$fcompiler" = "pgf90"; then
-            PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-Xlinker/}
-            PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-export-dynamic/}
-        fi
-        if test "x$enable_debugging" = "xyes"; then
-          export PYTHON_EXTRA_LDFLAGS=$(echo $PYTHON_EXTRA_LDFLAGS | sed -e 's/-O1/-O0/g' -e 's/-O2/-O0/g' -e 's/-O3/-O0/g')
-        fi
-        LIBS="$LIBS $PYTHON_LIBS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
-        CXXFLAGS="$CXXFLAGS $PYTHON_CPPFLAGS"
-        CPPFLAGS="$CPPFLAGS $PYTHON_CPPFLAGS"
-        CFLAGS="$CFLAGS $PYTHON_CPPFLAGS"
-    fi
-
-    # Additionally check for numpy
-    NUMPY=$($PYTHON -c 'import numpy; print(numpy.get_include())' 2>/dev/null)
-    if ! test -z "$NUMPY"; then
-	echo "Numpy is " $NUMPY
-	CXXFLAGS="$CXXFLAGS -DHAVE_NUMPY -I$NUMPY"
-        CPPFLAGS="$CPPFLAGS -DHAVE_NUMPY -I$NUMPY"
-        CFLAGS="$CFLAGS -DHAVE_NUMPY -I$NUMPY"
-        FFLAGS="$FFLAGS -DHAVE_NUMPY -I$NUMPY"
-        FCFLAGS="$FCFLAGS -DHAVE_NUMPY -I$NUMPY"
-    else
-	echo "Failed to locate Numpy"
-    fi
-    # check for the assess python package used in some tests
-    # (see https://github.com/stephankramer/assess/)
-    $PYTHON -c "import assess" 2>/dev/null
-    if test $? -eq 0;
-    then
-      HAVE_ASSESS=yes
-      { $as_echo "$as_me:${as_lineno-$LINENO}: Successfully imported assess python module" >&5
-$as_echo "$as_me: Successfully imported assess python module" >&6;}
-    else
-      HAVE_ASSESS=no
-      { $as_echo "$as_me:${as_lineno-$LINENO}: Failed to import (optional) python module assess" >&5
-$as_echo "$as_me: Failed to import (optional) python module assess" >&6;}
-    fi
-
 fi
 
+# Python final check all done!
+
+# Save variables...
+if test "x$pythonexists" = "xyes"; then
+  if  test "$fcompiler" = "pgf90"; then
+    PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-Xlinker/}
+    PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-export-dynamic/}
+  fi
+  if test "x$enable_debugging" = "xyes"; then
+    export PYTHON_EXTRA_LDFLAGS=$(echo $PYTHON_EXTRA_LDFLAGS | sed -e 's/-O1/-O0/g' -e 's/-O2/-O0/g' -e 's/-O3/-O0/g')
+  fi
+  LIBS="$LIBS $PYTHON_LIBS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
+  CXXFLAGS="$CXXFLAGS $PYTHON_CPPFLAGS"
+  CPPFLAGS="$CPPFLAGS $PYTHON_CPPFLAGS"
+  CFLAGS="$CFLAGS $PYTHON_CPPFLAGS"
+fi
+
+# Additionally check for numpy
+NUMPY=$($PYTHON -c 'import numpy; print(numpy.get_include())' 2>/dev/null)
+if ! test -z "$NUMPY"; then
+  echo "Numpy is " $NUMPY
+  CXXFLAGS="$CXXFLAGS -DHAVE_NUMPY -I$NUMPY"
+  CPPFLAGS="$CPPFLAGS -DHAVE_NUMPY -I$NUMPY"
+  CFLAGS="$CFLAGS -DHAVE_NUMPY -I$NUMPY"
+  FFLAGS="$FFLAGS -DHAVE_NUMPY -I$NUMPY"
+  FCFLAGS="$FCFLAGS -DHAVE_NUMPY -I$NUMPY"
+else
+  echo "Failed to locate Numpy"
+fi
+
+# Check for the assess Python package used in some tests
+# (see https://github.com/stephankramer/assess/)
+$PYTHON -c "import assess" 2>/dev/null
+if test $? -eq 0; then
+  HAVE_ASSESS=yes
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Successfully imported assess Python module" >&5
+    $as_echo "$as_me: Successfully imported assess Python module" >&6;}
+else
+  HAVE_ASSESS=no
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Failed to import (optional) Python module assess" >&5
+    $as_echo "$as_me: Failed to import (optional) Python module assess" >&6;}
+fi
 
 # Check whether --enable-cgal was given.
 if test "${enable_cgal+set}" = set; then :

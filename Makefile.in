@@ -48,8 +48,6 @@ docdir = @docdir@/
 htmldir = @htmldir@/
 pdfdir = @pdfdir@/
 
-python_exec = python@PYTHON_VERSION@
-
 FC      = @FC@
 FCFLAGS = @FCFLAGS@
 
@@ -153,7 +151,7 @@ lib/libvtkfortran.a:
 ifeq (@SPUD_ONLY@,yes)
 	echo '    MAKE libspud'; $(MAKE) -C libspud && $(MAKE) -C libspud install-libspud
 else
-	echo '    MAKE libspud'; $(MAKE) -C libspud &&  $(MAKE) -C libspud install-libspud && cd libspud/python && $(python_exec) setup.py build && cd ../.. && cp libspud/python/build/lib*/libspud*.so python/
+	echo '    MAKE libspud'; $(MAKE) -C libspud &&  $(MAKE) -C libspud install-libspud && cd libspud/python && @PYTHON@ setup.py build && cd ../.. && cp libspud/python/build/lib*/libspud*.so python/
 endif
 
 libfemtools: sub_system
@@ -217,14 +215,14 @@ manual:
 python_build:
 ifeq (@HAVE_PYTHON@,yes)
 	@echo "    MAKE python"
-	@cd python; $(python_exec) -m build
-	$(python_exec) -m pip install --upgrade python/dist/fluidity*.whl
+	@cd python; @PYTHON@ -m build
+	@PYTHON@ -m pip install --upgrade python/dist/fluidity*.whl
 endif
 
 python_clean:
 	@echo "    CLEAN python"
 	@cd python; rm -rf dist fluidity.egg-info
-	PYTHONPATH=@PYTHON_SITE_PKG@ $(python_exec) -m pip uninstall --yes fluidity
+	PYTHONPATH=@PYTHON_SITE_PKG@ @PYTHON@ -m pip uninstall --yes fluidity
 
 .PHONY: scripts
 
