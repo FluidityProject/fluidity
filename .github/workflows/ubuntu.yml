@@ -8,7 +8,7 @@ on:
 jobs:
 
   build:
-    name: Build ${{ matrix.distribution }}
+    name: Build - ${{ matrix.distribution }}
     runs-on: ubuntu-latest
 
     strategy:
@@ -35,8 +35,8 @@ jobs:
           push: true
           tags: fluidity/actions:${{ matrix.distribution }}-${{ github.sha }}
 
-  test:
-    name: Test ${{ matrix.distribution }}
+  unit-test:
+    name: Unit Tests - ${{ matrix.distribution }}
     runs-on: ubuntu-latest
     needs: build
 
@@ -44,27 +44,63 @@ jobs:
       fail-fast: false
       matrix:
         distribution: [bionic, focal]
+        output: [test_results_unittests.xml]
 
     steps:
-      - name: Run top_hat_cv
+      - name: Run tests
         run: |
-         chmod 777 .
-         docker pull fluidity/actions:${{ matrix.distribution }}-${{ github.sha }}
-         docker run -v $PWD:/host fluidity/actions:${{ matrix.distribution }}-${{ github.sha }} \
-         /bin/bash -c "bin/testharness -x test_results_${{ matrix.distribution }}.xml -f top_hat_cv.xml && \
-         cp -v test_results_${{ matrix.distribution }}.xml /host"
+          chmod 777 .
+          docker pull fluidity/actions:${{ matrix.distribution }}-${{ github.sha }}
+          docker run -v $PWD:/host fluidity/actions:${{ matrix.distribution }}-${{ github.sha }} \
+          /bin/bash -c "make unittest &&
+          cp -v tests/${{ matrix.output }} /host/${{ matrix.distribution }}-${{ matrix.output }}"
 
       - name: Upload test report
         uses: actions/upload-artifact@v2
         with:
-          path: test_results_${{ matrix.distribution }}.xml
-          name: tests_xml_outputs
+          path: ${{ matrix.distribution }}-${{ matrix.output }}
+          name: xml_outputs
 
       - name: Publish test report
         uses: mikepenz/action-junit-report@v2
         if: always()
         with:
-          report_paths: test_results_${{ matrix.distribution }}.xml
+          report_paths: ${{ matrix.distribution }}-${{ matrix.output }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          check_name: JUnit Test Report - ${{ matrix.distribution }}
+          check_name: JUnit Test Report - Unit Tests - ${{ matrix.distribution }}
+          fail_on_failure: true
+
+  short-test:
+    name: Short Tests - ${{ matrix.distribution }}
+    runs-on: ubuntu-latest
+    needs: build
+
+    strategy:
+      fail-fast: false
+      matrix:
+        distribution: [bionic, focal]
+        output: [test_results.xml]
+
+    steps:
+      - name: Run tests
+        run: |
+          chmod 777 .
+          docker pull fluidity/actions:${{ matrix.distribution }}-${{ github.sha }}
+          docker run -v $PWD:/host fluidity/actions:${{ matrix.distribution }}-${{ github.sha }} \
+          /bin/bash -c "make THREADS=2 test &&
+          cp -v tests/${{ matrix.output }} /host/${{ matrix.distribution }}-${{ matrix.output }}"
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v2
+        with:
+          path: ${{ matrix.distribution }}-${{ matrix.output }}
+          name: xml_outputs
+
+      - name: Publish test report
+        uses: mikepenz/action-junit-report@v2
+        if: always()
+        with:
+          report_paths: ${{ matrix.distribution }}-${{ matrix.output }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: JUnit Test Report - Short Tests - ${{ matrix.distribution }}
           fail_on_failure: true
