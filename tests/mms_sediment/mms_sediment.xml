@@ -1,8 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>p2lumpedp1 RANS k-epsilon spatial convergence test with strong bcs</name>
-  <owner userid="sparkinson"/>
+  <owner userid="sparkinson" />
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>fluidity MMS_A.flml &gt; MMS_A.log; fluidity MMS_B.flml &gt; MMS_B.log; fluidity MMS_C.flml &gt; MMS_C.log; fluidity MMS_D.flml &gt; MMS_D.log</command_line>

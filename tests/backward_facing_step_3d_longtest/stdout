@@ -1,0 +1,256 @@
+**********Cleaning the output from previous fluidity runs:
+rm -rf *.stat *.msh backward_facing_step_3d_*.pvtu backward_facing_step_3d_* *.log-* *.err-* matrixdump* *.halo
+rm -rf *flredecomp*
+make preprocess NPROCS=8
+make[1]: Entering directory '/home/thomas/Softwares/fluidity/longtests/backward_facing_step_3d_longtest'
+**********Generating the mesh using gmsh in 3d:
+gmsh -3 -optimize -o step3d.msh src/step3d.geo
+Info    : Running 'gmsh -3 -optimize -o step3d.msh src/step3d.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:08 2021
+Info    : Reading 'src/step3d.geo'...
+Info    : Done reading 'src/step3d.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Line)
+Info    : Meshing curve 2 (Line)
+Info    : Meshing curve 3 (Line)
+Info    : Meshing curve 4 (Line)
+Info    : Meshing curve 5 (Line)
+Info    : Meshing curve 6 (Line)
+Info    : Meshing curve 10 (Line)
+Info    : Meshing curve 11 (Line)
+Info    : Meshing curve 12 (Line)
+Info    : Meshing curve 13 (Line)
+Info    : Meshing curve 14 (Line)
+Info    : Meshing curve 15 (Line)
+Info    : Meshing curve 17 (Line)
+Info    : Meshing curve 18 (Line)
+Info    : Meshing curve 22 (Line)
+Info    : Meshing curve 26 (Line)
+Info    : Meshing curve 30 (Line)
+Info    : Meshing curve 34 (Line)
+Info    : Done meshing 1D (0.003511 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 8 (Plane, Delaunay)
+Info    : Meshing surface 19 (Ruled surface, MeshAdapt)
+Info    : Meshing surface 23 (Ruled surface, MeshAdapt)
+Info    : Meshing surface 27 (Ruled surface, MeshAdapt)
+Info    : Meshing surface 31 (Ruled surface, MeshAdapt)
+Info    : Meshing surface 35 (Ruled surface, MeshAdapt)
+Info    : Meshing surface 39 (Ruled surface, MeshAdapt)
+Info    : Meshing surface 40 (Plane, Delaunay)
+Info    : Done meshing 2D (17.4691 s)
+Info    : Meshing 3D...
+Info    : Delaunay Meshing 1 volumes with 1 connected components
+Info    : Meshing volume 1 (Delaunay)
+Delaunizing vertices...
+Delaunay seconds:  0.259825
+Creating surface mesh ...
+Surface mesh seconds:  0.092246
+Recovering boundaries...
+Boundary recovery seconds:  0.196303
+Removing exterior tetrahedra ...
+Exterior tets removal seconds:  0.020864
+Recovering Delaunayness...
+Delaunay recovery seconds:  0.084696
+Optimizing mesh...
+Optimization seconds:  0.039736
+
+Writing nodes.
+Writing elements.
+Writing faces.
+Writing edges.
+
+Output seconds:  0.064794
+Total running seconds:  0.763542
+
+Statistics:
+
+  Input points: 28386
+  Input facets: 56768
+  Input segments: 85152
+  Input holes: 0
+  Input regions: 0
+
+  Mesh points: 28391
+  Mesh tetrahedra: 88184
+  Mesh faces: 204752
+  Mesh edges: 144958
+  Mesh faces on facets: 56768
+  Mesh edges on segments: 85152
+  Steiner points inside domain: 5
+
+Info    : 28391 points 144958 edges and 56768 faces in the initial mesh
+Info    : Found region 1
+Info    : 0 points created - Worst tet radius is 97.5034 (PTS removed 0 0)
+Info    : 468 points created - Worst tet radius is 4.58935 (PTS removed 0 32)
+Info    : 967 points created - Worst tet radius is 3.72485 (PTS removed 0 33)
+Info    : 1466 points created - Worst tet radius is 3.3034 (PTS removed 0 34)
+Info    : 1966 points created - Worst tet radius is 3.02192 (PTS removed 0 34)
+Info    : 2466 points created - Worst tet radius is 2.81031 (PTS removed 0 34)
+Info    : 2966 points created - Worst tet radius is 2.65768 (PTS removed 0 34)
+Info    : 3465 points created - Worst tet radius is 2.53449 (PTS removed 0 35)
+Info    : 3965 points created - Worst tet radius is 2.44072 (PTS removed 0 35)
+Info    : 4464 points created - Worst tet radius is 2.35431 (PTS removed 0 36)
+Info    : 4964 points created - Worst tet radius is 2.2784 (PTS removed 0 36)
+Info    : 5464 points created - Worst tet radius is 2.21352 (PTS removed 0 36)
+Info    : 5964 points created - Worst tet radius is 2.15066 (PTS removed 0 36)
+Info    : 6463 points created - Worst tet radius is 2.10048 (PTS removed 0 37)
+Info    : 6963 points created - Worst tet radius is 2.0494 (PTS removed 0 37)
+Info    : 7462 points created - Worst tet radius is 2.00806 (PTS removed 0 38)
+Info    : 7962 points created - Worst tet radius is 1.96706 (PTS removed 0 38)
+Info    : 8461 points created - Worst tet radius is 1.92956 (PTS removed 0 39)
+Info    : 8961 points created - Worst tet radius is 1.89679 (PTS removed 0 39)
+Info    : 9461 points created - Worst tet radius is 1.86639 (PTS removed 0 39)
+Info    : 9961 points created - Worst tet radius is 1.83475 (PTS removed 0 39)
+Info    : 10461 points created - Worst tet radius is 1.80607 (PTS removed 0 39)
+Info    : 10961 points created - Worst tet radius is 1.78054 (PTS removed 0 39)
+Info    : 11460 points created - Worst tet radius is 1.75742 (PTS removed 0 40)
+Info    : 11959 points created - Worst tet radius is 1.73572 (PTS removed 0 41)
+Info    : 12459 points created - Worst tet radius is 1.71182 (PTS removed 0 41)
+Info    : 12959 points created - Worst tet radius is 1.69041 (PTS removed 0 41)
+Info    : 13459 points created - Worst tet radius is 1.66989 (PTS removed 0 41)
+Info    : 13958 points created - Worst tet radius is 1.65077 (PTS removed 0 42)
+Info    : 14458 points created - Worst tet radius is 1.63242 (PTS removed 0 42)
+Info    : 14958 points created - Worst tet radius is 1.6141 (PTS removed 0 42)
+Info    : 15457 points created - Worst tet radius is 1.59773 (PTS removed 0 43)
+Info    : 15957 points created - Worst tet radius is 1.58225 (PTS removed 0 43)
+Info    : 16457 points created - Worst tet radius is 1.56626 (PTS removed 0 43)
+Info    : 16957 points created - Worst tet radius is 1.55167 (PTS removed 0 43)
+Info    : 17457 points created - Worst tet radius is 1.53803 (PTS removed 0 43)
+Info    : 17957 points created - Worst tet radius is 1.52394 (PTS removed 0 43)
+Info    : 18457 points created - Worst tet radius is 1.51089 (PTS removed 0 43)
+Info    : 18957 points created - Worst tet radius is 1.49783 (PTS removed 0 43)
+Info    : 19457 points created - Worst tet radius is 1.48623 (PTS removed 0 43)
+Info    : 19957 points created - Worst tet radius is 1.47503 (PTS removed 0 43)
+Info    : 20457 points created - Worst tet radius is 1.46396 (PTS removed 0 43)
+Info    : 20957 points created - Worst tet radius is 1.45228 (PTS removed 0 43)
+Info    : 21457 points created - Worst tet radius is 1.44152 (PTS removed 0 43)
+Info    : 21957 points created - Worst tet radius is 1.43112 (PTS removed 0 43)
+Info    : 22456 points created - Worst tet radius is 1.42045 (PTS removed 0 44)
+Info    : 22956 points created - Worst tet radius is 1.41106 (PTS removed 0 44)
+Info    : 23456 points created - Worst tet radius is 1.40126 (PTS removed 0 44)
+Info    : 23956 points created - Worst tet radius is 1.39244 (PTS removed 0 44)
+Info    : 24456 points created - Worst tet radius is 1.38307 (PTS removed 0 44)
+Info    : 24956 points created - Worst tet radius is 1.37434 (PTS removed 0 44)
+Info    : 25456 points created - Worst tet radius is 1.36553 (PTS removed 0 44)
+Info    : 25956 points created - Worst tet radius is 1.35657 (PTS removed 0 44)
+Info    : 26455 points created - Worst tet radius is 1.34845 (PTS removed 0 45)
+Info    : 26955 points created - Worst tet radius is 1.34043 (PTS removed 0 45)
+Info    : 27455 points created - Worst tet radius is 1.33247 (PTS removed 0 45)
+Info    : 27955 points created - Worst tet radius is 1.32476 (PTS removed 0 45)
+Info    : 28455 points created - Worst tet radius is 1.31736 (PTS removed 0 45)
+Info    : 28955 points created - Worst tet radius is 1.3106 (PTS removed 0 45)
+Info    : 29455 points created - Worst tet radius is 1.30397 (PTS removed 0 45)
+Info    : 29955 points created - Worst tet radius is 1.2966 (PTS removed 0 45)
+Info    : 30455 points created - Worst tet radius is 1.28983 (PTS removed 0 45)
+Info    : 30955 points created - Worst tet radius is 1.28325 (PTS removed 0 45)
+Info    : 31455 points created - Worst tet radius is 1.27652 (PTS removed 0 45)
+Info    : 31955 points created - Worst tet radius is 1.2703 (PTS removed 0 45)
+Info    : 32455 points created - Worst tet radius is 1.26454 (PTS removed 0 45)
+Info    : 32955 points created - Worst tet radius is 1.2586 (PTS removed 0 45)
+Info    : 33455 points created - Worst tet radius is 1.25298 (PTS removed 0 45)
+Info    : 33955 points created - Worst tet radius is 1.24664 (PTS removed 0 45)
+Info    : 34455 points created - Worst tet radius is 1.24063 (PTS removed 0 45)
+Info    : 34955 points created - Worst tet radius is 1.23526 (PTS removed 0 45)
+Info    : 35455 points created - Worst tet radius is 1.22956 (PTS removed 0 45)
+Info    : 35955 points created - Worst tet radius is 1.22416 (PTS removed 0 45)
+Info    : 36455 points created - Worst tet radius is 1.21866 (PTS removed 0 45)
+Info    : 36955 points created - Worst tet radius is 1.21334 (PTS removed 0 45)
+Info    : 37455 points created - Worst tet radius is 1.20817 (PTS removed 0 45)
+Info    : 37954 points created - Worst tet radius is 1.20301 (PTS removed 0 46)
+Info    : 38454 points created - Worst tet radius is 1.19798 (PTS removed 0 46)
+Info    : 38954 points created - Worst tet radius is 1.19313 (PTS removed 0 46)
+Info    : 39454 points created - Worst tet radius is 1.18804 (PTS removed 0 46)
+Info    : 39953 points created - Worst tet radius is 1.18329 (PTS removed 0 47)
+Info    : 40453 points created - Worst tet radius is 1.17843 (PTS removed 0 47)
+Info    : 40953 points created - Worst tet radius is 1.17386 (PTS removed 0 47)
+Info    : 41453 points created - Worst tet radius is 1.16916 (PTS removed 0 47)
+Info    : 41953 points created - Worst tet radius is 1.16449 (PTS removed 0 47)
+Info    : 42453 points created - Worst tet radius is 1.15994 (PTS removed 0 47)
+Info    : 42953 points created - Worst tet radius is 1.15564 (PTS removed 0 47)
+Info    : 43453 points created - Worst tet radius is 1.15155 (PTS removed 0 47)
+Info    : 43953 points created - Worst tet radius is 1.14706 (PTS removed 0 47)
+Info    : 44453 points created - Worst tet radius is 1.14308 (PTS removed 0 47)
+Info    : 44953 points created - Worst tet radius is 1.13892 (PTS removed 0 47)
+Info    : 45453 points created - Worst tet radius is 1.13487 (PTS removed 0 47)
+Info    : 45953 points created - Worst tet radius is 1.13084 (PTS removed 0 47)
+Info    : 46453 points created - Worst tet radius is 1.12678 (PTS removed 0 47)
+Info    : 46953 points created - Worst tet radius is 1.12299 (PTS removed 0 47)
+Info    : 47453 points created - Worst tet radius is 1.11858 (PTS removed 0 47)
+Info    : 47953 points created - Worst tet radius is 1.11474 (PTS removed 0 47)
+Info    : 48453 points created - Worst tet radius is 1.11114 (PTS removed 0 47)
+Info    : 48953 points created - Worst tet radius is 1.10759 (PTS removed 0 47)
+Info    : 49453 points created - Worst tet radius is 1.10437 (PTS removed 0 47)
+Info    : 49953 points created - Worst tet radius is 1.1009 (PTS removed 0 47)
+Info    : 50453 points created - Worst tet radius is 1.09724 (PTS removed 0 47)
+Info    : 50953 points created - Worst tet radius is 1.09357 (PTS removed 0 47)
+Info    : 51453 points created - Worst tet radius is 1.09023 (PTS removed 0 47)
+Info    : 51953 points created - Worst tet radius is 1.08681 (PTS removed 0 47)
+Info    : 52452 points created - Worst tet radius is 1.08365 (PTS removed 0 48)
+Info    : 52952 points created - Worst tet radius is 1.08029 (PTS removed 0 48)
+Info    : 53452 points created - Worst tet radius is 1.07752 (PTS removed 0 48)
+Info    : 53952 points created - Worst tet radius is 1.07436 (PTS removed 0 48)
+Info    : 54452 points created - Worst tet radius is 1.07111 (PTS removed 0 48)
+Info    : 54951 points created - Worst tet radius is 1.0679 (PTS removed 0 49)
+Info    : 55451 points created - Worst tet radius is 1.06498 (PTS removed 0 49)
+Info    : 55950 points created - Worst tet radius is 1.06184 (PTS removed 0 50)
+Info    : 56450 points created - Worst tet radius is 1.05886 (PTS removed 0 50)
+Info    : 56950 points created - Worst tet radius is 1.05564 (PTS removed 0 50)
+Info    : 57450 points created - Worst tet radius is 1.05272 (PTS removed 0 50)
+Info    : 57950 points created - Worst tet radius is 1.04986 (PTS removed 0 50)
+Info    : 58450 points created - Worst tet radius is 1.04719 (PTS removed 0 50)
+Info    : 58949 points created - Worst tet radius is 1.04436 (PTS removed 0 51)
+Info    : 59449 points created - Worst tet radius is 1.04179 (PTS removed 0 51)
+Info    : 59949 points created - Worst tet radius is 1.03881 (PTS removed 0 51)
+Info    : 60449 points created - Worst tet radius is 1.03602 (PTS removed 0 51)
+Info    : 60949 points created - Worst tet radius is 1.03339 (PTS removed 0 51)
+Info    : 61449 points created - Worst tet radius is 1.03068 (PTS removed 0 51)
+Info    : 61949 points created - Worst tet radius is 1.02794 (PTS removed 0 51)
+Info    : 62449 points created - Worst tet radius is 1.02543 (PTS removed 0 51)
+Info    : 62949 points created - Worst tet radius is 1.02282 (PTS removed 0 51)
+Info    : 63449 points created - Worst tet radius is 1.02025 (PTS removed 0 51)
+Info    : 63949 points created - Worst tet radius is 1.01759 (PTS removed 0 51)
+Info    : 64449 points created - Worst tet radius is 1.01481 (PTS removed 0 51)
+Info    : 64949 points created - Worst tet radius is 1.01214 (PTS removed 0 51)
+Info    : 65449 points created - Worst tet radius is 1.00973 (PTS removed 0 51)
+Info    : 65949 points created - Worst tet radius is 1.00711 (PTS removed 0 51)
+Info    : 66449 points created - Worst tet radius is 1.00451 (PTS removed 0 51)
+Info    : 66949 points created - Worst tet radius is 1.0022 (PTS removed 0 51)
+Info    : 3D point insertion terminated (95796 points created):
+Info    :  - 394 Delaunay cavities modified for star shapeness
+Info    :  - 51 points could not be inserted
+Info    :  - 517954 tetrahedra created in 8.25252 sec. (62763 tets/sec.)
+Info    : Done meshing 3D (11.1242 s)
+Info    : Optimizing 3D mesh...
+Info    : Optimizing volume 1
+Info    : Opti : STARTS with  9.20000E+02 QBAD  3.53295E-03 QAVG  6.60882E-01
+Info    : Opti : 0.00 < QUAL < 0.10 :      1512 elements
+Info    : Opti : 0.10 < QUAL < 0.20 :      4989 elements
+Info    : Opti : 0.20 < QUAL < 0.30 :      9409 elements
+Info    : Opti : 0.30 < QUAL < 0.40 :     15947 elements
+Info    : Opti : 0.40 < QUAL < 0.50 :     32366 elements
+Info    : Opti : 0.50 < QUAL < 0.60 :     74908 elements
+Info    : Opti : 0.60 < QUAL < 0.70 :    142917 elements
+Info    : Opti : 0.70 < QUAL < 0.80 :    162273 elements
+Info    : Opti : 0.80 < QUAL < 0.90 :     68015 elements
+Info    : Opti : 0.90 < QUAL < 1.00 :      5618 elements
+Info    : Opti : (15376,0,856) =  9.20000E+02 QBAD  4.35999E-02 QAVG  6.76084E-01 (   0.692 sec)
+Info    : Opti : (15570,0,902) =  9.20000E+02 QBAD  4.35999E-02 QAVG  6.76230E-01 (   0.894 sec)
+Info    : Opti : no ill-shaped tets in the mesh ;-)
+Info    : Opti : 0.00 < QUAL < 0.10 :         1 elements
+Info    : Opti : 0.10 < QUAL < 0.20 :        10 elements
+Info    : Opti : 0.20 < QUAL < 0.30 :        57 elements
+Info    : Opti : 0.30 < QUAL < 0.40 :     15369 elements
+Info    : Opti : 0.40 < QUAL < 0.50 :     31310 elements
+Info    : Opti : 0.50 < QUAL < 0.60 :     74344 elements
+Info    : Opti : 0.60 < QUAL < 0.70 :    145900 elements
+Info    : Opti : 0.70 < QUAL < 0.80 :    164302 elements
+Info    : Opti : 0.80 < QUAL < 0.90 :     67694 elements
+Info    : Opti : 0.90 < QUAL < 1.00 :      5624 elements
+Info    : Done optimizing 3D mesh (2.16359 s)
+Info    : 95796 vertices 562591 elements
+Info    : Writing 'step3d.msh'...
+Info    : Done writing 'step3d.msh'
+Info    : Stopped on Wed Jun 16 18:16:45 2021
+make[1]: Leaving directory '/home/thomas/Softwares/fluidity/longtests/backward_facing_step_3d_longtest'

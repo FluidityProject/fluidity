@@ -1,12 +1,11 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>cdisk_2d_dg</name>
-  <owner userid="dham"/>
+  <owner userid="dham" />
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity  -v2 -l cdisk.flml </command_line>
-    <!-- Trivial 2D test case of uniform flow through a square. -->
+    
   </problem_definition>
   <variables>
     <variable name="conservation1" language="python">
@@ -36,7 +35,7 @@ y=s["Water"]["TracerMoment%2"]["integral"]
 xy=array([x,y]).T
 barycentre_angle = dot(xy[0], xy[1])
     </variable>
-    <variable name = "solvers_converged" language = "python">
+    <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
@@ -56,7 +55,7 @@ angle = acos(barycentre_angle/barycentre_radius_squared[0])
 dt = 2*pi/50
 assert abs(dt-angle)&lt; 5e-3
     </test>
-    <test name = "Solvers converged" language = "python">
+    <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
   </pass_tests>

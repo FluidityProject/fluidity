@@ -1,7 +1,7 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Transient population balance using direct quadrature method of moments (N=2) for 2d mesh using P1 CG</name>
-  <owner userid="gb812"/>
+  <owner userid="gb812" />
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v2 -l popbal_nonhomog_2d.flml</command_line>
@@ -42,5 +42,5 @@ moment3_maxerror_t_20s = s["fluid"]["ScalarAbsoluteDifference"]["max"][index_tim
     <test name="moment3 maxerror at 5s less than 0.005" language="python">assert moment3_maxerror_t_5s &lt; 0.005</test>
     <test name="moment3 maxerror at 20s less than 0.001" language="python">assert moment3_maxerror_t_20s &lt; 0.001</test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

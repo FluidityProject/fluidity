@@ -1,0 +1,36 @@
+rm -f Eddying_Detect_checkpoint_checkpoint_*
+rm -f Eddying_TestCase_?*.{p,}vtu
+rm -f Eddying_TestCase.{detectors,stat} tmpf*
+rm -f fluidity.err-?* fluidity.log-?*
+rm -f matrixdump matrixdump.info
+rm -f Eddying_TestCase_?*_checkpoint.flml
+rm -f Eddying_TestCase_?*_checkpoint_?*.{msh,halo}
+rm -f Eddying_TestCase_?*_?*_checkpoint.{pvtu,vtu}
+rm -f Eddying_TestCase_?*_checkpoint.{msh,halo}
+rm -f Eddying_TestCase_?*_checkpoint.vtu
+rm -f adapted_mesh_?*.vtu bounding_box_?*_?*.vtu final_metric_?*.vtu gmon.out gradation_metric_?*.vtu interpolation_metric_final_?*.vtu interpolation_metric_hessian_?*_?*.vtu interpolation_metric_merge_?*_?*.vtu interpolation_metric_metric_?*_?*.vtu metric_input_?*_?*.vtu
+tar -xvjf src/InputCheckpoint.tar.bz2
+Eddying_Detect_checkpoint_checkpoint_20_0.vtu
+Eddying_Detect_checkpoint_checkpoint_20_1.vtu
+Eddying_Detect_checkpoint_checkpoint_20_2.vtu
+Eddying_Detect_checkpoint_checkpoint_20_3.vtu
+Eddying_Detect_checkpoint_checkpoint_20_checkpoint.flml
+Eddying_Detect_checkpoint_checkpoint_20.pvtu
+Eddying_Detect_checkpoint_checkpoint_CoordinateMesh_20_checkpoint_0.halo
+Eddying_Detect_checkpoint_checkpoint_CoordinateMesh_20_checkpoint_0.msh
+Eddying_Detect_checkpoint_checkpoint_CoordinateMesh_20_checkpoint_1.halo
+Eddying_Detect_checkpoint_checkpoint_CoordinateMesh_20_checkpoint_1.msh
+Eddying_Detect_checkpoint_checkpoint_CoordinateMesh_20_checkpoint_2.halo
+Eddying_Detect_checkpoint_checkpoint_CoordinateMesh_20_checkpoint_2.msh
+Eddying_Detect_checkpoint_checkpoint_CoordinateMesh_20_checkpoint_3.halo
+Eddying_Detect_checkpoint_checkpoint_CoordinateMesh_20_checkpoint_3.msh
+Eddying_Detect_checkpoint_checkpoint_PressureMesh_20_checkpoint_0.vtu
+Eddying_Detect_checkpoint_checkpoint_PressureMesh_20_checkpoint_1.vtu
+Eddying_Detect_checkpoint_checkpoint_PressureMesh_20_checkpoint_2.vtu
+Eddying_Detect_checkpoint_checkpoint_PressureMesh_20_checkpoint_3.vtu
+Eddying_Detect_checkpoint_checkpoint_PressureMesh_20_checkpoint.pvtu
+Eddying_Detect_checkpoint_checkpoint_VelocityMesh_20_checkpoint_0.vtu
+Eddying_Detect_checkpoint_checkpoint_VelocityMesh_20_checkpoint_1.vtu
+Eddying_Detect_checkpoint_checkpoint_VelocityMesh_20_checkpoint_2.vtu
+Eddying_Detect_checkpoint_checkpoint_VelocityMesh_20_checkpoint_3.vtu
+Eddying_Detect_checkpoint_checkpoint_VelocityMesh_20_checkpoint.pvtu

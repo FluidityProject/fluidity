@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testproblem>
+  <name>flredecomp_long</name>
+  <owner userid="matt-piggott" />
+  <tags>flml</tags>
+  <problem_definition length="vlong" nprocs="8">
+    <command_line>mpiexec flredecomp -v -l -i 3 -o 8 CoarseCorner_1_checkpoint output8; mkdir flredecomp_out; mv flredecomp.err-* flredecomp.log-* flredecomp_out; mpiexec flredecomp -v -l -i 8 -o 4 output8 output4</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="output8_meshes" language="python">
+import glob
+    
+import fluidity.diagnostics.gmshtools as gmshtools
+
+output8_meshes = []
+for i in range(8):
+  output8_meshes.append(gmshtools.ReadMsh("output8_CoordinateMesh_"+str(i)+".msh"))
+    </variable>
+    <variable name="output4_meshes" language="python">
+import glob
+    
+import fluidity.diagnostics.gmshtools as gmshtools
+
+output4_meshes = []
+for i in range(4):
+  output4_meshes.append(gmshtools.ReadMsh("output4_CoordinateMesh_"+str(i)+".msh"))
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Empty error files flredecomp 3 to 8" language="python">
+import glob
+import os
+
+for logfile in glob.glob("flredecomp_out/*.err-*"):
+  assert os.stat(logfile)[6] == 0
+    </test>
+  <test name="Empty error files flredecomp 8 to 4" language="python">
+import glob
+import os
+
+for logfile in glob.glob("*.err-*"):
+  assert os.stat(logfile)[6] == 0
+    </test>
+    <test name="Equal sized partitions flredecomp 3 to 8 (nodes)" language="python">
+import fluidity_tools
+nodeCounts = []
+for partition in output8_meshes:
+  nodeCounts.append(partition.NodeCoordsCount())
+fluidity_tools.compare_variables([float(nodeCount) for nodeCount in nodeCounts[1:]], [float(nodeCounts[0]) for i in range(len(nodeCounts) - 1)], 0.5)
+    </test>
+    <test name="Equal sized partitions flredecomp 8 to 4 (nodes)" language="python">
+import fluidity_tools
+nodeCounts = []
+for partition in output4_meshes:
+  nodeCounts.append(partition.NodeCoordsCount())
+fluidity_tools.compare_variables([float(nodeCount) for nodeCount in nodeCounts[1:]], [float(nodeCounts[0]) for i in range(len(nodeCounts) - 1)], 0.25)
+    </test>    
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

@@ -2,7 +2,7 @@
 <testproblem>
 
   <name>mphase_mms_p1p1stabilised_no_interactions</name>
-  <owner userid="ctj10"/>
+  <owner userid="ctj10" />
   <tags>flml</tags>
   
   <problem_definition length="medium" nprocs="1">

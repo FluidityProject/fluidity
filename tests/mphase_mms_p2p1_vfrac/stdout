@@ -1,0 +1,6 @@
+rm -f *.vtu *.stat *.s *.log *_A* *_B* *_C* matrix* *~ mphase_mms_p2p1_vfrac.py *.pyc fluidity.*
+./copy_script
+creating set A
+creating set B
+creating set C
+setting flml timestep values

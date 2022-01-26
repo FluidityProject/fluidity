@@ -1,10 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!-- test zoltan output to ensure it's comparable to Sams -->
 <testproblem>
   <name>Two-dimensional backward facing step.</name>
-  <owner userid="jhill1"/>
+  <owner userid="jhill1" />
   <tags>flml zoltan parallel 2dadapt</tags>
-  <problem_definition length="short" nprocs="2">
+  <problem_definition length="vshort" nprocs="2">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l backward_facing_step_2d backward_facing_step_2d_flredecomp ;  mpiexec ../../bin/fluidity backward_facing_step_2d_flredecomp.flml </command_line>
   </problem_definition>
   <variables>
@@ -43,14 +42,7 @@ FinalNodeCountSam = fluidity_tools.stat_parser("backward_facing_step_2d_sam.stat
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>
-<!-- 
-     On the same machine the first two tests should be nearly exact. Because buildbot is not the machine
-     where the Sam tests were run, the output might well be a bit different. Therefore using % error even on the
-     time check. We don't want a red buildbot, do we?
 
-     BIG NOTE: I have loosened these tolerences a lot as Precise and Natty give different behaviour. Once
-     we drop Natty support, they can be tigthened back to 2%, 5% and 5% respectively
--->
       <test name="Final time within 10.0%" language="python">
 Err = (abs(FinalTime-FinalTimeSam) / FinalTimeSam) *100
 print(Err)

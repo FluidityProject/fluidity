@@ -1,8 +1,8 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>surface_horizontal_divergence</name>
-  <owner userid="jrper"/>
-  <problem_definition length="short" nprocs="1">
+  <owner userid="jrper" />
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v2 -l  surface_horizontal_divergence.flml</command_line>
   </problem_definition>
   <variables>

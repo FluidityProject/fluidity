@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Sloshing tank with analytical solution</name>
-  <owner userid="sf1409"/>
+  <owner userid="sf1409" />
   <tags>flml</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l sloshing_tank_p1p1.flml; fluidity -v2 -l sloshing_tank_p1dgp2.flml</command_line>
   </problem_definition>
   <variables>

@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>sigma_layer_sphere_parallel</name>
-  <owner userid="jhill1"/>
+  <owner userid="jhill1" />
   <tags>flml zoltan</tags>
-  <problem_definition length="short" nprocs="2">
+  <problem_definition length="vshort" nprocs="2">
     <command_line>mpiexec flredecomp -i 1 -o 2  sphere_sigma  sphere_sigma_flredecomp;
                     mpiexec fluidity -v2 -l sphere_sigma_flredecomp.flml</command_line>
   </problem_definition>
@@ -65,5 +65,5 @@ for i in range(0,len(dtb)):
     <test name="Depths at p3 are good" language="python">assert(abs(depths_p3[1] - (abs(depths_p3[0] - depths_p3[2]) / 2.)) &lt; 0.1)</test>
     <test name="Depths p1 is not same as p3" language="python">assert(abs(depths_p1[0] - depths_p3[0]) &gt; 500)</test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

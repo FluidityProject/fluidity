@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Geopressure convergence test (P1)</name>
-  <owner userid="piggt01"/>
+  <owner userid="piggt01" />
   <tags>flml parallel zoltan<comment>zoltan tag added due to issue with python imports with libsam and flredecomp -jrper</comment></tags>
   <problem_definition length="short" nprocs="2">
     <command_line>make clean-run; rm -f 8.log 16.log 32.log 64.log &amp;&amp;
@@ -45,5 +45,5 @@ fluidity_tools.compare_variable(convergence[1], 2.0, 0.005)
 fluidity_tools.compare_variable(convergence[2], 2.0, 0.002)
 </test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

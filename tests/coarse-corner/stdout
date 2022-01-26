@@ -1,0 +1,82 @@
+rm -f CoarseCorner.msh
+rm -f CoarseCorner_?*.msh CoarseCorner_?*.halo
+rm -f decomp.log decomp_err.log
+rm -f coarse-corner_?*.pvtu coarse-corner_?/coarse-corner_?*.vtu
+rm -rf coarse-corner_?
+rm -f coarse-corner.detectors coarse-corner.stat tmpf*
+rm -f fluidity.err-?* fluidity.log-?*
+rm -f matrixdump matrixdump.info
+rm -f coarse-corner_?*_checkpoint.flml
+rm -f coarse-corner_?*_checkpoint_?*.msh coarse-corner_?*_checkpoint_?*.halo
+rm -f coarse-corner_?*_?*_checkpoint.pvtu coarse-corner_?*_?*_checkpoint/coarse-corner_?*_?*_checkpoint.vtu
+rm -rf coarse-corner_?*_?*_checkpoint
+rm -f coarse-corner_?*_checkpoint.msh coarse-corner_?*_checkpoint.halo
+rm -f coarse-corner_?*_checkpoint.vtu
+rm -rf *flredecomp*
+rm -f adapted_mesh_?*.vtu bounding_box_?*_?*.vtu final_metric_?*.vtu gmon.out gradation_metric_?*.vtu interpolation_metric_final_?*.vtu interpolation_metric_hessian_?*_?*.vtu interpolation_metric_merge_?*_?*.vtu interpolation_metric_metric_?*_?*.vtu metric_input_?*_?*.vtu
+rm -f adapted_mesh.msh adapted_mesh.halo
+rm -f adapted_mesh_?*.msh adapted_mesh_?*.halo
+rm -f adapted_state_?*.pvtu adapted_state_?*.vtu
+make -C checkpoint clean
+make[1]: Entering directory '/home/thomas/Softwares/fluidity/longtests/coarse-corner/checkpoint'
+rm -f coarse-corner_?*_checkpoint.msh coarse-corner_?*_checkpoint.halo coarse-corner_?*_checkpoint.flml coarse-corner_?*_?*_checkpoint.vtu
+rm -f coarse-corner_?*.pvtu coarse-corner_?/coarse-corner_?*.vtu
+rm -rf coarse-corner_?
+rm -f coarse-corner.stat
+rm -f fluidity.err-?* fluidity.log-?* PI*
+rm -f coarse-corner_?*_checkpoint_?*.{msh,halo} coarse-corner_?*_checkpoint.flml coarse-corner_?*_?*_checkpoint.pvtu coarse-corner_?*_?*_checkpoint/coarse-corner_?*_?*_checkpoint.vtu
+rm -rf coarse-corner_?*_?_checkpoint*
+rm -f matrixdump matrixdump.info
+rm -f bounding_box_?*_?*.{pvtu,vtu} final_metric_?*.{pvtu,vtu} gradation_metric_?*.{pvtu,vtu} interpolation_metric_final_?*.{pvtu,vtu} interpolation_metric_hessian_?*_?*.{pvtu,vtu} interpolation_metric_merge_?*_?*.{pvtu,vtu} interpolation_metric_metric_?*_?*.{pvtu,vtu} metric_input_?*_?*.{pvtu,vtu}
+rm -f adapted_mesh_?*.{pvtu,vtu} {pre,post}_adapt_halos_?*.{msh,halo} {pre,post}_adapt_{linear,pressure}_mesh_?*_?*.{msh,halo}
+rm -f gmon.out
+make[1]: Leaving directory '/home/thomas/Softwares/fluidity/longtests/coarse-corner/checkpoint'
+gmsh -3 src/CoarseCorner.geo -o CoarseCorner.msh
+Info    : Running 'gmsh -3 src/CoarseCorner.geo -o CoarseCorner.msh' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:06 2021
+Info    : Reading 'src/CoarseCorner.geo'...
+Info    : Done reading 'src/CoarseCorner.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (extruded)
+Info    : Meshing curve 2 (extruded)
+Info    : Meshing curve 3 (extruded)
+Info    : Meshing curve 4 (extruded)
+Info    : Meshing curve 7 (extruded)
+Info    : Meshing curve 8 (extruded)
+Info    : Meshing curve 9 (extruded)
+Info    : Meshing curve 10 (extruded)
+Info    : Meshing curve 12 (extruded)
+Info    : Meshing curve 13 (extruded)
+Info    : Meshing curve 17 (extruded)
+Info    : Meshing curve 21 (extruded)
+Info    : Done meshing 1D (0.000163 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 5 (extruded)
+Info    : Meshing surface 14 (extruded)
+Info    : Meshing surface 18 (extruded)
+Info    : Meshing surface 22 (extruded)
+Info    : Meshing surface 26 (extruded)
+Info    : Meshing surface 27 (extruded)
+Info    : Done meshing 2D (0.002331 s)
+Info    : Meshing 3D...
+Info    : Meshing volume 1 (extruded)
+Info    : Subdividing extruded mesh
+Info    : Swapping 0
+Info    : Remeshing surface 5
+Info    : Meshing surface 5 (extruded)
+Info    : Remeshing surface 14
+Info    : Meshing surface 14 (extruded)
+Info    : Remeshing surface 18
+Info    : Meshing surface 18 (extruded)
+Info    : Remeshing surface 22
+Info    : Meshing surface 22 (extruded)
+Info    : Remeshing surface 26
+Info    : Meshing surface 26 (extruded)
+Info    : Done meshing 3D (0.03836 s)
+Info    : Optimizing 3D mesh...
+Info    : Done optimizing 3D mesh (0.000282 s)
+Info    : 1331 vertices 7328 elements
+Info    : Writing 'CoarseCorner.msh'...
+Info    : Done writing 'CoarseCorner.msh'
+Info    : Stopped on Wed Jun 16 18:16:07 2021

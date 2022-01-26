@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Control volume, multi-material surface integral pressure check</name>
-  <owner userid="cwilson"/>
+  <owner userid="cwilson" />
   <tags>flml parallel zoltan</tags>
   <problem_definition length="short" nprocs="2">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-balancepressure-p0p1cv-gpp2 mmat-balancepressure-p0p1cv-gpp2_flredecomp &amp;&amp;
@@ -156,5 +156,5 @@ assert abs(volfracend_p1dgp2_rhop1dg_vfracp1cv-volfrac0_p1dgp2_rhop1dg_vfracp1cv
     <test name="check divergence_p1dgp2_rhop1dg_vfracp1cv" language="python">assert max(abs(maxdivergence_p1dgp2_rhop1dg_vfracp1cv), abs(mindivergence_p1dgp2_rhop1dg_vfracp1cv)) &lt; 1e-9</test>
     <test name="Solvers converged" language="python">assert(solvers_converged)</test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

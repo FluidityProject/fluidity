@@ -2,16 +2,16 @@
 <testproblem>
    
   <name>mphase_three_layers</name>
-  <owner userid="ctj10"/>
+  <owner userid="ctj10" />
   <tags>flml</tags>
   
   <problem_definition length="short" nprocs="1">
     <command_line>make run</command_line>
-    <!-- 2D multi-phase test case to check that the volume fraction fields are behaving properly. -->
+    
    
-    <!-- The test case considers a square 2D domain filled with three incompressible fluids starting with zero velocity fields. -->
-    <!-- \rho_1 = 1.1, \rho_2 = 1.0, \rho_3 = 0.9) and the volume fraction of each phase is initially set to vfrac_1 = 0.33, -->
-    <!-- vfrac_2 = 0.33, vfrac_3 = 0.34 everywhere. The fluids should eventually form three distinct layers due to the density differences. -->
+    
+    
+    
   </problem_definition>
   
   <variables>
@@ -99,7 +99,7 @@ file.GetFieldNames()
 f3_vfrac = file.GetScalarField('Fluid3::PhaseVolumeFraction')
     </variable>
     
-    <!-- Using y co-ordinates only here -->
+    
     <variable name="positions" language="python">
 import vtktools
 

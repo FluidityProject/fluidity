@@ -1,0 +1,108 @@
+# Variable: ab_convergence_vel
+0.021403526918623753
+0.005766705555505553
+0.022942731791519747
+0.005566277583144709
+0.020083236873480653
+0.007076206410906102
+0.02451713723450441
+0.006436493312606035
+# Variable: ab_convergence_p
+0.029151297024700876
+0.01138319008773256
+0.04343846769501045
+0.031054378623486256
+# Variable: bc_convergence_vel
+0.005766705555505553
+0.001429844250330422
+0.005566277583144709
+0.0014262331008561419
+0.007076206410906102
+0.0019474803129802473
+0.006436493312606035
+0.0016924220126371403
+# Variable: bc_convergence_p
+0.01138319008773256
+0.004500402778950848
+0.031054378623486256
+0.010170111267619797
+# Variable: cd_convergence_vel
+0.001429844250330422
+0.000357542041242286
+0.0014262331008561419
+0.00035529835719564485
+0.0019474803129802473
+0.0005162380894901362
+0.0016924220126371403
+0.0005715527638424367
+# Variable: cd_convergence_p
+0.004500402778950848
+0.0020317517851733773
+0.010170111267619797
+0.00923275564977774
+# Variable: a_finish_time
+# Variable: b_finish_time
+# Variable: c_finish_time
+# Variable: d_finish_time
+# Variable: a_div
+# Variable: b_div
+# Variable: c_div
+# Variable: d_div
+# Variable: a_final_change_vel
+# Variable: b_final_change_vel
+# Variable: c_final_change_vel
+# Variable: d_final_change_vel
+# Variable: a_final_change_p
+# Variable: b_final_change_p
+# Variable: c_final_change_p
+# Variable: d_final_change_p
+# Pass Test: ab_convergence_vel_x: L2 order > 1.85
+--- Success
+# Pass Test: ab_convergence_vel_y: L2 order > 1.85
+--- Success
+# Pass Test: ab_convergence_p: L2 order > 1.1
+--- Success
+# Pass Test: bc_convergence_vel_x: L2 order > 1.85
+--- Success
+# Pass Test: bc_convergence_vel_y: L2 order > 1.85
+--- Success
+# Pass Test: bc_convergence_p: L2 order > 1.1
+--- Success
+# Pass Test: cd_convergence_vel_x: L2 order > 1.85
+--- Success
+# Pass Test: cd_convergence_vel_y: L2 order > 1.85
+--- Success
+# Pass Test: cd_convergence_p: L2 order > 1.1
+--- Success
+# Pass Test: checking A finished in less than 0.03
+--- Success
+# Pass Test: checking B finished in less than 0.03
+--- Success
+# Pass Test: checking C finished in less than 0.03
+--- Success
+# Pass Test: checking D finished in less than 0.03
+--- Success
+# Pass Test: checking steady state was reached in A vel
+--- Success
+# Pass Test: checking steady state was reached in B vel
+--- Success
+# Pass Test: checking steady state was reached in C vel
+--- Success
+# Pass Test: checking steady state was reached in D vel
+--- Success
+# Pass Test: checking divergence in A vel
+--- Success
+# Pass Test: checking divergence in B vel
+--- Success
+# Pass Test: checking divergence in C vel
+--- Success
+# Pass Test: checking divergence in D vel
+--- Success
+# Pass Test: checking steady state was reached in A p
+--- Success
+# Pass Test: checking steady state was reached in B p
+--- Success
+# Pass Test: checking steady state was reached in C p
+--- Success
+# Pass Test: checking steady state was reached in D p
+--- Success

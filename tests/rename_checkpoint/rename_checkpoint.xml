@@ -1,14 +1,14 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>rename_checkpoint</name>
-  <owner userid="jhill1"/>
+  <owner userid="jhill1" />
   <tags>tool</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
       <command_line>fluidity rename_cp.flml; 
                     fluidity rename_cp_all.flml; 
                     fluidity rename_checkpoint_5_checkpoint.flml;
                     rename_checkpoint rename_checkpoint 5 -s;</command_line>
-    <!-- Checks the the rename_checkpoint script performs correctly -->
+    
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">

@@ -1,0 +1,111 @@
+rm -rf *.msh *.halo *.vtu *.pvtu *.log* *.err* *.stat blob_[012] *.detectors *.dat lagrangian_detectors_? lagrangian_detectors_?? lagrangian_detectors_??? *flredecomp* *.pyc
+gmsh -3 -bin src/box.geo -o box.msh
+Info    : Running 'gmsh -3 -bin src/box.geo -o box.msh' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:11 2021
+Info    : Reading 'src/box.geo'...
+Info    : Done reading 'src/box.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Line)
+Info    : Meshing curve 2 (Line)
+Info    : Meshing curve 3 (Line)
+Info    : Meshing curve 4 (Line)
+Info    : Meshing curve 5 (Line)
+Info    : Meshing curve 6 (Line)
+Info    : Meshing curve 7 (Line)
+Info    : Meshing curve 8 (Line)
+Info    : Meshing curve 9 (Line)
+Info    : Meshing curve 10 (Line)
+Info    : Meshing curve 11 (Line)
+Info    : Meshing curve 12 (Line)
+Info    : Done meshing 1D (0.001835 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 14 (Plane, Delaunay)
+Info    : Meshing surface 16 (Plane, Delaunay)
+Info    : Meshing surface 18 (Plane, Delaunay)
+Info    : Meshing surface 20 (Plane, Delaunay)
+Info    : Meshing surface 22 (Plane, Delaunay)
+Info    : Meshing surface 24 (Plane, Delaunay)
+Info    : Done meshing 2D (0.102404 s)
+Info    : Meshing 3D...
+Info    : Delaunay Meshing 1 volumes with 1 connected components
+Info    : Meshing volume 32 (Delaunay)
+Delaunizing vertices...
+Delaunay seconds:  0.022534
+Creating surface mesh ...
+Surface mesh seconds:  0.006918
+Recovering boundaries...
+Boundary recovery seconds:  0.009469
+Removing exterior tetrahedra ...
+Exterior tets removal seconds:  0.000914
+Recovering Delaunayness...
+Delaunay recovery seconds:  0.006832
+Optimizing mesh...
+Optimization seconds:  0.008203
+
+Writing nodes.
+Writing elements.
+Writing faces.
+Writing edges.
+
+Output seconds:  0.003445
+Total running seconds:  0.05863
+
+Statistics:
+
+  Input points: 1556
+  Input facets: 3108
+  Input segments: 4662
+  Input holes: 0
+  Input regions: 0
+
+  Mesh points: 1557
+  Mesh tetrahedra: 4734
+  Mesh faces: 11022
+  Mesh edges: 7844
+  Mesh faces on facets: 3108
+  Mesh edges on segments: 4662
+  Steiner points inside domain: 1
+
+Info    : 1557 points 7844 edges and 3108 faces in the initial mesh
+Info    : Found region 32
+Info    : 0 points created - Worst tet radius is 6.75563 (PTS removed 0 0)
+Info    : 493 points created - Worst tet radius is 1.26944 (PTS removed 0 7)
+Info    : 993 points created - Worst tet radius is 1.03951 (PTS removed 0 7)
+Info    : 3D point insertion terminated (2690 points created):
+Info    :  - 1 Delaunay cavities modified for star shapeness
+Info    :  - 7 points could not be inserted
+Info    :  - 11827 tetrahedra created in 0.156211 sec. (75711 tets/sec.)
+Info    : Done meshing 3D (0.309455 s)
+Info    : Optimizing 3D mesh...
+Info    : Optimizing volume 32
+Info    : Opti : STARTS with  1.00000E+00 QBAD  3.36994E-03 QAVG  6.38023E-01
+Info    : Opti : 0.00 < QUAL < 0.10 :        51 elements
+Info    : Opti : 0.10 < QUAL < 0.20 :       122 elements
+Info    : Opti : 0.20 < QUAL < 0.30 :       235 elements
+Info    : Opti : 0.30 < QUAL < 0.40 :       409 elements
+Info    : Opti : 0.40 < QUAL < 0.50 :       832 elements
+Info    : Opti : 0.50 < QUAL < 0.60 :      2417 elements
+Info    : Opti : 0.60 < QUAL < 0.70 :      3411 elements
+Info    : Opti : 0.70 < QUAL < 0.80 :      3081 elements
+Info    : Opti : 0.80 < QUAL < 0.90 :      1183 elements
+Info    : Opti : 0.90 < QUAL < 1.00 :        86 elements
+Info    : Opti : (395,0,28) =  1.00000E+00 QBAD  1.08229E-01 QAVG  6.54399E-01 (   0.017 sec)
+Info    : Opti : (406,0,31) =  1.00000E+00 QBAD  1.12368E-01 QAVG  6.54836E-01 (   0.021 sec)
+Info    : Opti : (409,0,31) =  1.00000E+00 QBAD  2.28237E-01 QAVG  6.54926E-01 (   0.024 sec)
+Info    : Opti : no ill-shaped tets in the mesh ;-)
+Info    : Opti : 0.00 < QUAL < 0.10 :         0 elements
+Info    : Opti : 0.10 < QUAL < 0.20 :         0 elements
+Info    : Opti : 0.20 < QUAL < 0.30 :         8 elements
+Info    : Opti : 0.30 < QUAL < 0.40 :       385 elements
+Info    : Opti : 0.40 < QUAL < 0.50 :       810 elements
+Info    : Opti : 0.50 < QUAL < 0.60 :      2415 elements
+Info    : Opti : 0.60 < QUAL < 0.70 :      3465 elements
+Info    : Opti : 0.70 < QUAL < 0.80 :      3132 elements
+Info    : Opti : 0.80 < QUAL < 0.90 :      1191 elements
+Info    : Opti : 0.90 < QUAL < 1.00 :        83 elements
+Info    : Done optimizing 3D mesh (0.046658 s)
+Info    : 2690 vertices 14773 elements
+Info    : Writing 'box.msh'...
+Info    : Done writing 'box.msh'
+Info    : Stopped on Wed Jun 16 18:16:12 2021

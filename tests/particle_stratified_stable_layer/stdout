@@ -1,0 +1,24 @@
+rm -rf mesh/*.msh *.halo *.vtu *.pvtu *.log* *.err* *.stat blob_[012] *.particles.* *flredecomp* 2d_entrainment_? *~ 2d_entrainment_?_* *checkpoint* 2d_entrainment_?? __pycache__
+gmsh -2 -bin mesh/ar2.geo
+Info    : Running 'gmsh -2 -bin mesh/ar2.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:39:00 2021
+Info    : Reading 'mesh/ar2.geo'...
+Info    : Done reading 'mesh/ar2.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Line)
+Info    : Meshing curve 2 (Line)
+Info    : Meshing curve 3 (Line)
+Info    : Meshing curve 4 (Line)
+Info    : Meshing curve 5 (Line)
+Info    : Meshing curve 6 (Line)
+Info    : Meshing curve 7 (Line)
+Info    : Done meshing 1D (0.002254 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 9 (Plane, Delaunay)
+Info    : Meshing surface 11 (Plane, Delaunay)
+Info    : Done meshing 2D (3.11072 s)
+Info    : 39976 vertices 80256 elements
+Info    : Writing 'mesh/ar2.msh'...
+Info    : Done writing 'mesh/ar2.msh'
+Info    : Stopped on Wed Jun 16 18:39:04 2021

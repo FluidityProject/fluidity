@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>p1dgp2-test-cty-cv-rhop1dg multi-material flow test</name>
-  <owner userid="btollit"/>
+  <owner userid="btollit" />
   <tags>flml</tags>
     <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v1 -l 3material-droplet-p1dgp2-test-cty-cv-rhop1dg.flml </command_line>

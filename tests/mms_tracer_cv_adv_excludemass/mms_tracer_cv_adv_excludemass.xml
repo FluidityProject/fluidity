@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>p1cv advection equation spatial convergence test</name>
-  <owner userid="cwilson"/>
+  <owner userid="cwilson" />
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity  MMS_A_cv.flml &gt; MMS_A.log; fluidity  MMS_B_cv.flml &gt; MMS_B.log; fluidity  MMS_C_cv.flml &gt; MMS_C.log; fluidity  MMS_D_cv.flml &gt; MMS_D.log</command_line>
   </problem_definition>
   <variables>

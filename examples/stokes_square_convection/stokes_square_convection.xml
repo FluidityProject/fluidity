@@ -1,9 +1,9 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Stokes-square-convection</name>
-  <owner userid="rhodrid"/>
+  <owner userid="rhodrid" />
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v2 -l stokes-square-convection-24.flml; fluidity -v2 -l stokes-square-convection-48.flml </command_line>
   </problem_definition>
 <variables>  
@@ -52,8 +52,3 @@ assert(abs(RMS_48-193.0) &lt; 1.0)
 <warn_tests> </warn_tests>
 
 </testproblem>
-
-
-
-
-

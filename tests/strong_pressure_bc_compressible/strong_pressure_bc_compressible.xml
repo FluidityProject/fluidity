@@ -1,13 +1,11 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
    
   <name>strong_pressure_bc_compressible</name>
-  <owner userid="ctj10"/>
+  <owner userid="ctj10" />
   <tags>flml</tags>
   
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>make run</command_line>
   </problem_definition>
   

@@ -1,19 +1,17 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
    
   <name>mphase_inlet_velocity_bc_incompressible</name>
-  <owner userid="ctj10"/>
+  <owner userid="ctj10" />
   <tags>flml</tags>
   
   <problem_definition length="short" nprocs="1">
     <command_line>make run</command_line>
-    <!-- Check that we can do velocity inlet boundary conditions for incompressible multiphase flow. -->
-    <!-- A velocity of 0.1 is prescribed on the left for the Gas phase. The velocity is zero for both -->
-    <!-- phases on the right, and the left boundary is left open for the Particle phase. -->
-    <!-- By continuity, the velocity should be equal and opposite at the left boundary for the Particle phase -->
-    <!-- since we have a prescribed PhaseVolumeFraction of 0.5 for both phases. -->
+    
+    
+    
+    
+    
   </problem_definition>
   
   <variables>  

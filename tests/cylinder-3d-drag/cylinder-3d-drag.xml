@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testproblem>
+  <name>cylinder-3d-drag</name>
+  <owner userid="piggott" />
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>mpiexec fluidity -v3 -l  cylinder-3d-drag.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="drag_coefficient" language="python">
+import fluidity_tools
+import sys
+import os
+sys.path.append(os.getcwd())
+import f_to_c
+s = fluidity_tools.stat_parser("cylinder-3d-drag.stat")
+cur_xforce = s["0"]["Velocity"]["force_cylinder%1"][-1]
+drag_coefficient = f_to_c.f_to_c(cur_xforce)
+    </variable>
+    <variable name="exact_drag_coefficient" language="python">
+exact_drag_coefficient = 6.12 # the drag from Schafer (1996)
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="relative drag force difference (10%)." language="python">
+assert(abs(drag_coefficient - exact_drag_coefficient)/exact_drag_coefficient &lt; 0.1)
+    </test>
+  </pass_tests>
+  <warn_tests>
+    <test name="relative drag force difference (6.5%)." language="python">
+assert(abs(drag_coefficient - exact_drag_coefficient)/exact_drag_coefficient &lt; 0.065)
+    </test>
+  </warn_tests>
+</testproblem>

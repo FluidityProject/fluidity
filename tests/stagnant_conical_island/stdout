@@ -1,0 +1,68 @@
+rm -rf *_checkpoint*
+rm -f src/*.msh *.pvtu *.stat *.log-? *.err-? *.msh *.halo *.convergence *.detectors* matrixdump*
+rm -f */*.vtu
+rm -rf conical_island_*
+rm -rf *flredecomp*
+gmsh -2 src/2d_island.geo 
+Info    : Running 'gmsh -2 src/2d_island.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:07 2021
+Info    : Reading 'src/2d_island.geo'...
+Info    : Done reading 'src/2d_island.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Line)
+Info    : Meshing curve 2 (Line)
+Info    : Meshing curve 3 (Line)
+Info    : Meshing curve 4 (Line)
+Info    : Meshing curve 5 (Line)
+Info    : Meshing curve 7 (Line)
+Info    : Meshing curve 8 (Line)
+Info    : Meshing curve 9 (Line)
+Info    : Meshing curve 10 (Line)
+Info    : Meshing curve 11 (Line)
+Info    : Meshing curve 12 (Line)
+Info    : Meshing curve 13 (Line)
+Info    : Meshing curve 14 (Line)
+Info    : Meshing curve 15 (Line)
+Info    : Meshing curve 16 (Line)
+Info    : Meshing curve 17 (Line)
+Info    : Meshing curve 18 (Line)
+Info    : Meshing curve 19 (Line)
+Info    : Meshing curve 20 (Line)
+Info    : Meshing curve 21 (Line)
+Info    : Meshing curve 22 (Line)
+Info    : Meshing curve 23 (Line)
+Info    : Meshing curve 24 (Line)
+Info    : Meshing curve 25 (Line)
+Info    : Meshing curve 26 (Line)
+Info    : Meshing curve 27 (Line)
+Info    : Meshing curve 28 (Line)
+Info    : Meshing curve 29 (Line)
+Info    : Meshing curve 31 (Line)
+Info    : Meshing curve 32 (Line)
+Info    : Meshing curve 33 (Line)
+Info    : Meshing curve 54 (Line)
+Info    : Meshing curve 55 (Line)
+Info    : Meshing curve 56 (Line)
+Info    : Meshing curve 57 (Line)
+Info    : Done meshing 1D (0.318225 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 6 (Ruled surface, MeshAdapt)
+Info    : Meshing surface 30 (Ruled surface, MeshAdapt)
+Info    : Meshing surface 35 (Plane, Delaunay)
+Info    : Meshing surface 37 (Plane, Delaunay)
+Info    : Meshing surface 39 (Plane, Delaunay)
+Info    : Meshing surface 41 (Plane, Delaunay)
+Info    : Meshing surface 43 (Plane, Delaunay)
+Info    : Meshing surface 45 (Plane, Delaunay)
+Info    : Meshing surface 47 (Plane, Delaunay)
+Info    : Meshing surface 49 (Plane, Delaunay)
+Info    : Meshing surface 51 (Plane, Delaunay)
+Info    : Meshing surface 53 (Plane, Delaunay)
+Info    : Meshing surface 67 (Plane, Delaunay)
+Info    : Done meshing 2D (0.189736 s)
+Info    : 1316 vertices 2806 elements
+Info    : Writing 'src/2d_island.msh'...
+Info    : Done writing 'src/2d_island.msh'
+Info    : Stopped on Wed Jun 16 18:16:08 2021
+cp src/2d_island.msh .

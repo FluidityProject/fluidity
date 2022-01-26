@@ -1,9 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
-<!-- Drag calculation in 3D flow past sphere at Reynolds number 100 -->
 <testproblem>
   <name>flow_past_sphere_Re100</name>
-  <owner userid="piggt01"/>
+  <owner userid="piggt01" />
   <tags>flml</tags>
   <problem_definition length="long" nprocs="8">
     <command_line>mpiexec flredecomp -i 1 -o 8 -v -l flow_past_sphere_Re100 flow_past_sphere_Re100_flredecomp &amp;&amp;

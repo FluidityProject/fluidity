@@ -1,7 +1,7 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>project_vtu</name>
-  <owner userid="skramer"/>
+  <owner userid="skramer" />
   <problem_definition length="short" nprocs="1">
     <command_line>sed "s/INPUT/MMS_E/" prescribe.flml &gt; output.flml;
 fluidity -l output.flml;

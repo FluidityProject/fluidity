@@ -1,12 +1,11 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>biology_conservation_adapt</name>
-  <owner userid="jhill1"/>
+  <owner userid="jhill1" />
   <tags>flml biology</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity biology_conservation.flml</command_line>
-    <!-- Adaptive PZND model running in a water column not solving for any physics. Uses trick of not including
-         advection for bio feilds to they don't advect out of the domain. Adaptivity is 1D in vetical. -->
+    
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">

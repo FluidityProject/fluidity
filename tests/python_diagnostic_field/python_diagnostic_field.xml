@@ -1,12 +1,11 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>python_diagnostic_fields</name>
-  <owner userid="dham"/>
+  <owner userid="dham" />
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>export PYTHONPATH=$PWD/../../python:$PYTHONPATH; fluidity  python.flml </command_line>
-    <!-- Set a diagnostic field using embedded python code.  -->
+    
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">

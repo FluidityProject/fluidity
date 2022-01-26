@@ -1,0 +1,3 @@
+Warning : The '-optimize' option is now obsolete: Gmsh optimizes tetrahedral meshes by default
+Warning : Use '-optimize_threshold threshold' to control which elements are optimized
+Warning : Option '-optimize_threshold 0' leads to no optimization

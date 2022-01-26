@@ -1,0 +1,184 @@
+rm -f *.stat *.steady_state*
+rm -f *.d.* *.vtu
+rm -f *.msh *.halo
+rm -f *.poly
+rm -f matrixdump* *.log* *.err*
+rm -rf mphase_tephra_settling_3d_*
+rm -rf *flredecomp*
+**********Creating 3D mesh
+gmsh -3 -o mphase_tephra_settling_3d.msh src/mphase_tephra_settling_3d.geo
+Info    : Running 'gmsh -3 -o mphase_tephra_settling_3d.msh src/mphase_tephra_settling_3d.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:08 2021
+Info    : Reading 'src/mphase_tephra_settling_3d.geo'...
+Info    : Done reading 'src/mphase_tephra_settling_3d.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Line)
+Info    : Meshing curve 2 (Line)
+Info    : Meshing curve 3 (Line)
+Info    : Meshing curve 4 (Line)
+Info    : Meshing curve 5 (Line)
+Info    : Meshing curve 6 (Line)
+Info    : Meshing curve 7 (Line)
+Info    : Meshing curve 8 (Line)
+Info    : Meshing curve 9 (Line)
+Info    : Meshing curve 10 (Line)
+Info    : Meshing curve 11 (Line)
+Info    : Meshing curve 12 (Line)
+Info    : Done meshing 1D (0.002179 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 20 (Plane, Delaunay)
+Info    : Meshing surface 21 (Plane, Delaunay)
+Info    : Meshing surface 22 (Plane, Delaunay)
+Info    : Meshing surface 23 (Plane, Delaunay)
+Info    : Meshing surface 24 (Plane, Delaunay)
+Info    : Meshing surface 25 (Plane, Delaunay)
+Info    : Done meshing 2D (0.91696 s)
+Info    : Meshing 3D...
+Info    : Delaunay Meshing 1 volumes with 1 connected components
+Info    : Meshing volume 900 (Delaunay)
+Delaunizing vertices...
+Delaunay seconds:  0.197976
+Creating surface mesh ...
+Surface mesh seconds:  0.069888
+Recovering boundaries...
+Boundary recovery seconds:  0.126454
+Removing exterior tetrahedra ...
+Exterior tets removal seconds:  0.016619
+Recovering Delaunayness...
+Delaunay recovery seconds:  0.057554
+Optimizing mesh...
+Optimization seconds:  0.037359
+
+Writing nodes.
+Writing elements.
+Writing faces.
+Writing edges.
+
+Output seconds:  0.04071
+Total running seconds:  0.549268
+
+Statistics:
+
+  Input points: 13267
+  Input facets: 26530
+  Input segments: 39795
+  Input holes: 0
+  Input regions: 0
+
+  Mesh points: 13271
+  Mesh tetrahedra: 41348
+  Mesh faces: 95961
+  Mesh edges: 67883
+  Mesh faces on facets: 26530
+  Mesh edges on segments: 39795
+  Steiner points inside domain: 4
+
+Info    : 13271 points 67883 edges and 26530 faces in the initial mesh
+Info    : Found region 900
+Info    : 0 points created - Worst tet radius is 117.751 (PTS removed 0 0)
+Info    : 476 points created - Worst tet radius is 3.75159 (PTS removed 0 24)
+Info    : 976 points created - Worst tet radius is 3.01774 (PTS removed 0 24)
+Info    : 1476 points created - Worst tet radius is 2.67555 (PTS removed 0 24)
+Info    : 1976 points created - Worst tet radius is 2.44165 (PTS removed 0 24)
+Info    : 2476 points created - Worst tet radius is 2.28269 (PTS removed 0 24)
+Info    : 2976 points created - Worst tet radius is 2.15865 (PTS removed 0 24)
+Info    : 3476 points created - Worst tet radius is 2.06671 (PTS removed 0 24)
+Info    : 3976 points created - Worst tet radius is 1.98305 (PTS removed 0 24)
+Info    : 4476 points created - Worst tet radius is 1.90497 (PTS removed 0 24)
+Info    : 4976 points created - Worst tet radius is 1.83773 (PTS removed 0 24)
+Info    : 5476 points created - Worst tet radius is 1.78662 (PTS removed 0 24)
+Info    : 5976 points created - Worst tet radius is 1.73588 (PTS removed 0 24)
+Info    : 6476 points created - Worst tet radius is 1.69232 (PTS removed 0 24)
+Info    : 6976 points created - Worst tet radius is 1.65265 (PTS removed 0 24)
+Info    : 7476 points created - Worst tet radius is 1.61858 (PTS removed 0 24)
+Info    : 7976 points created - Worst tet radius is 1.58719 (PTS removed 0 24)
+Info    : 8476 points created - Worst tet radius is 1.55815 (PTS removed 0 24)
+Info    : 8976 points created - Worst tet radius is 1.53027 (PTS removed 0 24)
+Info    : 9476 points created - Worst tet radius is 1.5055 (PTS removed 0 24)
+Info    : 9976 points created - Worst tet radius is 1.48042 (PTS removed 0 24)
+Info    : 10476 points created - Worst tet radius is 1.45617 (PTS removed 0 24)
+Info    : 10976 points created - Worst tet radius is 1.43511 (PTS removed 0 24)
+Info    : 11476 points created - Worst tet radius is 1.41446 (PTS removed 0 24)
+Info    : 11976 points created - Worst tet radius is 1.39419 (PTS removed 0 24)
+Info    : 12476 points created - Worst tet radius is 1.37644 (PTS removed 0 24)
+Info    : 12976 points created - Worst tet radius is 1.3599 (PTS removed 0 24)
+Info    : 13476 points created - Worst tet radius is 1.34352 (PTS removed 0 24)
+Info    : 13976 points created - Worst tet radius is 1.32788 (PTS removed 0 24)
+Info    : 14476 points created - Worst tet radius is 1.31389 (PTS removed 0 24)
+Info    : 14976 points created - Worst tet radius is 1.29964 (PTS removed 0 24)
+Info    : 15476 points created - Worst tet radius is 1.28671 (PTS removed 0 24)
+Info    : 15976 points created - Worst tet radius is 1.27373 (PTS removed 0 24)
+Info    : 16476 points created - Worst tet radius is 1.26162 (PTS removed 0 24)
+Info    : 16976 points created - Worst tet radius is 1.24887 (PTS removed 0 24)
+Info    : 17476 points created - Worst tet radius is 1.23829 (PTS removed 0 24)
+Info    : 17976 points created - Worst tet radius is 1.22754 (PTS removed 0 24)
+Info    : 18476 points created - Worst tet radius is 1.21643 (PTS removed 0 24)
+Info    : 18976 points created - Worst tet radius is 1.20586 (PTS removed 0 24)
+Info    : 19476 points created - Worst tet radius is 1.19611 (PTS removed 0 24)
+Info    : 19976 points created - Worst tet radius is 1.1865 (PTS removed 0 24)
+Info    : 20476 points created - Worst tet radius is 1.17742 (PTS removed 0 24)
+Info    : 20976 points created - Worst tet radius is 1.1683 (PTS removed 0 24)
+Info    : 21476 points created - Worst tet radius is 1.15961 (PTS removed 0 24)
+Info    : 21976 points created - Worst tet radius is 1.15102 (PTS removed 0 24)
+Info    : 22476 points created - Worst tet radius is 1.1427 (PTS removed 0 24)
+Info    : 22976 points created - Worst tet radius is 1.13428 (PTS removed 0 24)
+Info    : 23476 points created - Worst tet radius is 1.12637 (PTS removed 0 24)
+Info    : 23976 points created - Worst tet radius is 1.11898 (PTS removed 0 24)
+Info    : 24476 points created - Worst tet radius is 1.11186 (PTS removed 0 24)
+Info    : 24976 points created - Worst tet radius is 1.10447 (PTS removed 0 24)
+Info    : 25476 points created - Worst tet radius is 1.09705 (PTS removed 0 24)
+Info    : 25976 points created - Worst tet radius is 1.08993 (PTS removed 0 24)
+Info    : 26476 points created - Worst tet radius is 1.08317 (PTS removed 0 24)
+Info    : 26976 points created - Worst tet radius is 1.07678 (PTS removed 0 24)
+Info    : 27476 points created - Worst tet radius is 1.07059 (PTS removed 0 24)
+Info    : 27976 points created - Worst tet radius is 1.0647 (PTS removed 0 24)
+Info    : 28476 points created - Worst tet radius is 1.05873 (PTS removed 0 24)
+Info    : 28976 points created - Worst tet radius is 1.05318 (PTS removed 0 24)
+Info    : 29476 points created - Worst tet radius is 1.04764 (PTS removed 0 24)
+Info    : 29976 points created - Worst tet radius is 1.04173 (PTS removed 0 24)
+Info    : 30476 points created - Worst tet radius is 1.036 (PTS removed 0 24)
+Info    : 30976 points created - Worst tet radius is 1.03078 (PTS removed 0 24)
+Info    : 31476 points created - Worst tet radius is 1.0256 (PTS removed 0 24)
+Info    : 31976 points created - Worst tet radius is 1.02038 (PTS removed 0 24)
+Info    : 32476 points created - Worst tet radius is 1.01554 (PTS removed 0 24)
+Info    : 32976 points created - Worst tet radius is 1.01028 (PTS removed 0 24)
+Info    : 33476 points created - Worst tet radius is 1.00581 (PTS removed 0 24)
+Info    : 33976 points created - Worst tet radius is 1.00083 (PTS removed 0 24)
+Info    : 3D point insertion terminated (47339 points created):
+Info    :  - 3 Delaunay cavities modified for star shapeness
+Info    :  - 24 points could not be inserted
+Info    :  - 258324 tetrahedra created in 5.38307 sec. (47988 tets/sec.)
+Info    : Done meshing 3D (7.08293 s)
+Info    : Optimizing 3D mesh...
+Info    : Optimizing volume 900
+Info    : Opti : STARTS with  6.30000E-02 QBAD  4.13746E-03 QAVG  6.64845E-01
+Info    : Opti : 0.00 < QUAL < 0.10 :       798 elements
+Info    : Opti : 0.10 < QUAL < 0.20 :      2436 elements
+Info    : Opti : 0.20 < QUAL < 0.30 :      4585 elements
+Info    : Opti : 0.30 < QUAL < 0.40 :      7694 elements
+Info    : Opti : 0.40 < QUAL < 0.50 :     14455 elements
+Info    : Opti : 0.50 < QUAL < 0.60 :     35979 elements
+Info    : Opti : 0.60 < QUAL < 0.70 :     71552 elements
+Info    : Opti : 0.70 < QUAL < 0.80 :     82810 elements
+Info    : Opti : 0.80 < QUAL < 0.90 :     35119 elements
+Info    : Opti : 0.90 < QUAL < 1.00 :      2896 elements
+Info    : Opti : (7575,0,391) =  6.30000E-02 QBAD  9.77840E-02 QAVG  6.80162E-01 (   0.352 sec)
+Info    : Opti : (7669,0,405) =  6.30000E-02 QBAD  1.80326E-01 QAVG  6.80300E-01 (   0.447 sec)
+Info    : Opti : (7672,0,407) =  6.30000E-02 QBAD  1.80326E-01 QAVG  6.80307E-01 (   0.570 sec)
+Info    : Opti : no ill-shaped tets in the mesh ;-)
+Info    : Opti : 0.00 < QUAL < 0.10 :         0 elements
+Info    : Opti : 0.10 < QUAL < 0.20 :         1 elements
+Info    : Opti : 0.20 < QUAL < 0.30 :        12 elements
+Info    : Opti : 0.30 < QUAL < 0.40 :      7308 elements
+Info    : Opti : 0.40 < QUAL < 0.50 :     13864 elements
+Info    : Opti : 0.50 < QUAL < 0.60 :     35759 elements
+Info    : Opti : 0.60 < QUAL < 0.70 :     73066 elements
+Info    : Opti : 0.70 < QUAL < 0.80 :     83879 elements
+Info    : Opti : 0.80 < QUAL < 0.90 :     34987 elements
+Info    : Opti : 0.90 < QUAL < 1.00 :      2858 elements
+Info    : Done optimizing 3D mesh (1.26754 s)
+Info    : 47339 vertices 278794 elements
+Info    : Writing 'mphase_tephra_settling_3d.msh'...
+Info    : Done writing 'mphase_tephra_settling_3d.msh'
+Info    : Stopped on Wed Jun 16 18:16:23 2021

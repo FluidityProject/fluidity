@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Advected top hat (DG)</name>
-  <owner userid="dham"/>
+  <owner userid="dham" />
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>make clean-run; fluidity -v2 -l top_hat_dg.flml</command_line>
   </problem_definition>
   <variables>

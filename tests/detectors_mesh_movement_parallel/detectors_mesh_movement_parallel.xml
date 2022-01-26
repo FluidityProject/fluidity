@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Static detectors in a moving mesh in parallel</name>
-  <owner userid="mlange"/>
+  <owner userid="mlange" />
   <tags>flml parallel</tags>
-  <problem_definition length="short" nprocs="2">
+  <problem_definition length="vshort" nprocs="2">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l detectors detectors_flredecomp &amp;&amp;
 mpiexec ../../bin/fluidity -v2 -l detectors_flredecomp.flml</command_line>
   </problem_definition>

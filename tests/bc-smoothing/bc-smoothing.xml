@@ -1,8 +1,8 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>bc-smoothing</name>
-  <owner userid="skramer"/>
-  <problem_definition length="short" nprocs="2">
+  <owner userid="skramer" />
+  <problem_definition length="vshort" nprocs="2">
     <command_line>mpiexec flredecomp -i 1 -o 2 smoothed_bcs smoothed_bcs_parallel &amp;&amp;
 mpiexec fluidity -v2 -l smoothed_bcs_parallel.flml</command_line>
   </problem_definition>

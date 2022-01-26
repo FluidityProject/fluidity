@@ -1,8 +1,8 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>turbine_dirichlet_3d</name>
-  <owner userid="sf1409"/>
-  <problem_definition length="short" nprocs="1">
+  <owner userid="sf1409" />
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity turbine_dirichlet_3d.flml</command_line>
   </problem_definition>
   <variables>

@@ -1,14 +1,13 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Control volume, multi-material surface integral pressure check</name>
-  <owner userid="cwilson"/>
+  <owner userid="cwilson" />
   <tags>flml solidity</tags>
-    <problem_definition length="short" nprocs="1">
+    <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v2 -l 2material_impact.flml || true &amp;&amp; fluidity 2material_impact_9_checkpoint.flml </command_line>
   </problem_definition>  
   <variables>  
-    <variable name = "solvers_converged" language = "python">
+    <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
@@ -33,22 +32,7 @@ vtu_diff=vtktools.VtuDiff(vtu,vtu_checkpoint)
 mat1vfrac=vtu_diff.GetScalarField("Material1::MaterialVolumeFraction")
 checkpointinitialmat1vfrac=max(mat1vfrac)
     </variable>    
-<!--    <variable name="checkpointinitialmat1dens" language="python">
-import vtktools
-vtu=vtktools.vtu('2material_impact_1.vtu')
-vtu_checkpoint=vtktools.vtu('2material_impact_checkpoint_0.vtu')
-vtu_diff=vtktools.VtuDiff(vtu,vtu_checkpoint)
-mat1dens=vtu_diff.GetScalarField("Material1::MaterialDensity")
-checkpointinitialmat1dens=max(mat1dens)
-    </variable>    
-    <variable name="checkpointinitialmat2dens" language="python">
-import vtktools
-vtu=vtktools.vtu('2material_impact_1.vtu')
-vtu_checkpoint=vtktools.vtu('2material_impact_checkpoint_0.vtu')
-vtu_diff=vtktools.VtuDiff(vtu,vtu_checkpoint)
-mat2dens=vtu_diff.GetScalarField("Material2::MaterialDensity")
-checkpointinitialmat2dens=max(mat2dens)
-    </variable>    -->
+
   </variables>
     <pass_tests>  
     <test name="check material mass is conserved" language="python">
@@ -57,15 +41,10 @@ checkpointinitialmat2dens=max(mat2dens)
     <test name="check checkpointing - volumefraction" language="python">
    assert abs(checkpointinitialmat1vfrac) &lt; 1e-10
     </test>    
-    <test name = "Solvers converged" language = "python">
+    <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
-<!--    <test name="check checkpointing - materialdensity1" language="python">
-   assert abs(checkpointinitialmat1dens) &lt; 1e-10
-    </test>    
-    <test name="check checkpointing - materialdensity2" language="python">
-   assert abs(checkpointinitialmat2dens) &lt; 1e-10
-    </test>    -->
+
   </pass_tests>
   <warn_tests>
   </warn_tests>

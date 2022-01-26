@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Control volume, multi-material surface integral pressure check</name>
-  <owner userid="cwilson"/>
+  <owner userid="cwilson" />
   <tags>flml</tags>
     <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 mmat-balancepressure-p0p1cv-gpp2.flml &gt; mmat-balancepressure-p0p1cv-gpp2.log &amp;&amp; fluidity -v2 mmat-balancepressure-p0p1cv-hpp2dg.flml &gt; mmat-balancepressure-p0p1cv-hpp2dg.log &amp;&amp; fluidity -v2 mmat-balancepressure-p0p1-rhop0-vfracp0.flml &gt; mmat-balancepressure-p0p1-rhop0-vfracp0.log &amp;&amp; fluidity -v2 mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.flml &gt; mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.log</command_line>

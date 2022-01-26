@@ -1,10 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>water collapse 2d</name>
-  <owner userid="cwilson"/>
+  <owner userid="cwilson" />
   <tags>flml 2dadapt</tags>
-    <problem_definition length="medium" nprocs="1">
+    <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l water_collapse.flml</command_line>
   </problem_definition>  
   <variables>  
@@ -21,10 +20,7 @@ mindivergence= max(abs(stat("water_collapse.stat")["Dense"]["ControlVolumeDiverg
 from fluidity_tools import stat_parser as stat
 minvfrac= max(stat("water_collapse.stat")["Dense"]["MaterialVolumeFraction"]["min"])
     </variable>
-    <!--<variable name="mindensity" language="python">
-from fluidity_tools import stat_parser as stat
-mindensity= max(stat("water_collapse.stat")["Dense"]["Density"]["min"])
-    </variable>-->
+    
     <variable name="maxdivergence" language="python">
 from fluidity_tools import stat_parser as stat
 maxdivergence= max(stat("water_collapse.stat")["Dense"]["ControlVolumeDivergence"]["max"])
@@ -33,10 +29,7 @@ maxdivergence= max(stat("water_collapse.stat")["Dense"]["ControlVolumeDivergence
 from fluidity_tools import stat_parser as stat
 maxvfrac = max(stat("water_collapse.stat")["Dense"]["MaterialVolumeFraction"]["max"])
     </variable>
-    <!--    <variable name="maxdensity" language="python">
-from fluidity_tools import stat_parser as stat
-maxdensity= max(stat("water_collapse.stat")["Dense"]["Density"]["max"])
-    </variable>-->
+    
     <variable name="vfracintstart" language="python">
 from fluidity_tools import stat_parser as stat
 vfracintstart= stat("water_collapse.stat")["Dense"]["MaterialVolumeFraction"]["integral"][0]

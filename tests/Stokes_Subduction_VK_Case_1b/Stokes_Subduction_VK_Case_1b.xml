@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Stokes-Subduction-VK-Case-1b</name>
-  <owner userid="rhodrid"/>
+  <owner userid="rhodrid" />
 
   <tags>flml</tags>
 
@@ -136,8 +136,3 @@ assert(abs(VERTICAL_GRADIENT_TWO-27.3) &lt; 0.3)
 </warn_tests>
 
 </testproblem>
-
-
-
-
-

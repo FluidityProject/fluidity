@@ -1,7 +1,7 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>flredecomp-2d-fieldweighted</name>
-  <owner userid="rhodrid"/>
+  <owner userid="rhodrid" />
   <tags>flml zoltan</tags>
   <problem_definition length="short" nprocs="16">
     <command_line>mpiexec flredecomp -i 1 -o 16 flredecomp-2d-fieldweighted Parallel-NP16-flredecomp-2d-fieldweighted</command_line>

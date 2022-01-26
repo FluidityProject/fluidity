@@ -1,7 +1,7 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Checks that velocity is divergence free with CG pressure and the continuity tested with the CV dual functions</name>
-  <owner userid="btollit"/>
+  <owner userid="btollit" />
   <tags>flml cg_press_test_cty_cv</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>

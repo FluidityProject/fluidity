@@ -1,10 +1,7 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
-<!-- Drag calculation in 2D flow past circle -->
-<!-- Checks the serial run against parallel against parallel adaptivity which can only be done with Zoltan -->
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>circle-2d-drag-zoltan</name>
-  <owner userid="jhill1"/>
+  <owner userid="jhill1" />
   <tags>flml zoltan parallel 2dadapt</tags>
   <problem_definition length="short" nprocs="3">
       <command_line>fluidity circle-2d-drag-serial.flml;

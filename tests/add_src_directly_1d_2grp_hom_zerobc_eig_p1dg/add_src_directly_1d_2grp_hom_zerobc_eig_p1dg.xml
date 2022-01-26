@@ -1,8 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>add_src_directly_1d_2grp_hom_zerobc_eig_p1dg</name>
-  <owner userid="btollit"/>
+  <owner userid="btollit" />
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
@@ -11,7 +10,7 @@
 ../../bin/fluidity add_src_directly_1d_2grp_hom_zerobc_eig_p1dg_C.flml 
 ../../bin/fluidity add_src_directly_1d_2grp_hom_zerobc_eig_p1dg_D.flml 
     </command_line>
-    <!-- Two field diffusion eigenvalue problem with one material, two groups no upscatter with all zero BC using a 1d geometry compared to PANTHER reference solution for the Eigenvalue and also the fine mesh linear dg solution for different mesh resolutions. This tests adding the src directly to the rhs. -->
+    
   </problem_definition>
   <variables>
     <variable name="Eigenvalue_A" language="python">

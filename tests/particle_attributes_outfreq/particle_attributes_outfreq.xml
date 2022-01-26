@@ -1,8 +1,7 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Testing of particle attribute parameters in serial</name>
-  <owner userid="drhodrid"/>
+  <owner userid="drhodrid" />
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>

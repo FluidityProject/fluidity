@@ -1,0 +1,2 @@
+rm -rf *.stat *.vtu *.msh *checkpoint* *convergence* *.log
+cp src/2d_square.msh .

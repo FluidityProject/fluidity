@@ -1,0 +1,3 @@
+ For field FiniteElementDivergence in state NS
+ Warning: Diagnostic field is deprecated
+ * Steady state has been attained, exiting the timestep loop

@@ -1,11 +1,11 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>biology_6_comopnent</name>
-  <owner userid="jhill1"/>
+  <owner userid="jhill1" />
   <tags>flml biology</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity biology_conservation.flml</command_line>
-    <!-- PZNDAC model running in a water column not solving for any physics. No sinking of detritus, so everything conserved -->
+    
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">
@@ -90,8 +90,7 @@ for i in range(0,nNodes-1):
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>
-<!-- Note that Chlorophyll mass is already contained in the Phytoplankton, so
-     we don't need to consider it in the mass balance              -->
+
       <test name="Total in water column conserved" language="python">
 before = nutrients1 + detritus1 + phytoplankton1 + zooplankton1 + ammonium1
 after = nutrients2 + detritus2 + phytoplankton2 + zooplankton2 + ammonium2

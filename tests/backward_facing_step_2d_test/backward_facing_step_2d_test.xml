@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Two-dimensional backward facing step.</name>
-  <owner userid="piggott"/>
+  <owner userid="piggott" />
   <tags>flml 2dadapt</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v3 -l backward_facing_step_2d.flml</command_line>

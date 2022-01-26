@@ -1,0 +1,182 @@
+rm -f *.msh *.halo *.vtu *.stat matrixdump* *log* *err*
+rm -rf oodc-unstructured-parallel_?*
+rm -rf *flredecomp*
+gmsh -3 -o oodc-unstructured.msh oodc-unstructured.geo 
+Info    : Running 'gmsh -3 -o oodc-unstructured.msh oodc-unstructured.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:07 2021
+Info    : Reading 'oodc-unstructured.geo'...
+Info    : Done reading 'oodc-unstructured.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Line)
+Info    : Meshing curve 2 (Line)
+Info    : Meshing curve 3 (Line)
+Info    : Meshing curve 4 (Line)
+Info    : Meshing curve 8 (extruded)
+Info    : Meshing curve 9 (extruded)
+Info    : Meshing curve 10 (extruded)
+Info    : Meshing curve 11 (extruded)
+Info    : Meshing curve 13 (extruded)
+Info    : Meshing curve 14 (extruded)
+Info    : Meshing curve 18 (extruded)
+Info    : Meshing curve 22 (extruded)
+Info    : Meshing curve 30 (extruded)
+Info    : Meshing curve 31 (extruded)
+Info    : Meshing curve 32 (extruded)
+Info    : Meshing curve 33 (extruded)
+Info    : Meshing curve 35 (extruded)
+Info    : Meshing curve 36 (extruded)
+Info    : Meshing curve 40 (extruded)
+Info    : Meshing curve 44 (extruded)
+Info    : Meshing curve 52 (extruded)
+Info    : Meshing curve 53 (extruded)
+Info    : Meshing curve 54 (extruded)
+Info    : Meshing curve 55 (extruded)
+Info    : Meshing curve 57 (extruded)
+Info    : Meshing curve 58 (extruded)
+Info    : Meshing curve 62 (extruded)
+Info    : Meshing curve 66 (extruded)
+Info    : Meshing curve 74 (extruded)
+Info    : Meshing curve 75 (extruded)
+Info    : Meshing curve 76 (extruded)
+Info    : Meshing curve 77 (extruded)
+Info    : Meshing curve 79 (extruded)
+Info    : Meshing curve 80 (extruded)
+Info    : Meshing curve 84 (extruded)
+Info    : Meshing curve 88 (extruded)
+Info    : Meshing curve 96 (extruded)
+Info    : Meshing curve 97 (extruded)
+Info    : Meshing curve 98 (extruded)
+Info    : Meshing curve 99 (extruded)
+Info    : Meshing curve 101 (extruded)
+Info    : Meshing curve 102 (extruded)
+Info    : Meshing curve 106 (extruded)
+Info    : Meshing curve 110 (extruded)
+Info    : Meshing curve 118 (extruded)
+Info    : Meshing curve 119 (extruded)
+Info    : Meshing curve 120 (extruded)
+Info    : Meshing curve 121 (extruded)
+Info    : Meshing curve 123 (extruded)
+Info    : Meshing curve 124 (extruded)
+Info    : Meshing curve 128 (extruded)
+Info    : Meshing curve 132 (extruded)
+Info    : Meshing curve 140 (extruded)
+Info    : Meshing curve 141 (extruded)
+Info    : Meshing curve 142 (extruded)
+Info    : Meshing curve 143 (extruded)
+Info    : Meshing curve 145 (extruded)
+Info    : Meshing curve 146 (extruded)
+Info    : Meshing curve 150 (extruded)
+Info    : Meshing curve 154 (extruded)
+Info    : Done meshing 1D (0 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 6 (Plane, Delaunay)
+Info    : Meshing surface 15 (extruded)
+Info    : Meshing surface 19 (extruded)
+Info    : Meshing surface 23 (extruded)
+Info    : Meshing surface 27 (extruded)
+Info    : Meshing surface 28 (extruded)
+Info    : Meshing surface 37 (extruded)
+Info    : Meshing surface 41 (extruded)
+Info    : Meshing surface 45 (extruded)
+Info    : Meshing surface 49 (extruded)
+Info    : Meshing surface 50 (extruded)
+Info    : Meshing surface 59 (extruded)
+Info    : Meshing surface 63 (extruded)
+Info    : Meshing surface 67 (extruded)
+Info    : Meshing surface 71 (extruded)
+Info    : Meshing surface 72 (extruded)
+Info    : Meshing surface 81 (extruded)
+Info    : Meshing surface 85 (extruded)
+Info    : Meshing surface 89 (extruded)
+Info    : Meshing surface 93 (extruded)
+Info    : Meshing surface 94 (extruded)
+Info    : Meshing surface 103 (extruded)
+Info    : Meshing surface 107 (extruded)
+Info    : Meshing surface 111 (extruded)
+Info    : Meshing surface 115 (extruded)
+Info    : Meshing surface 116 (extruded)
+Info    : Meshing surface 125 (extruded)
+Info    : Meshing surface 129 (extruded)
+Info    : Meshing surface 133 (extruded)
+Info    : Meshing surface 137 (extruded)
+Info    : Meshing surface 138 (extruded)
+Info    : Meshing surface 147 (extruded)
+Info    : Meshing surface 151 (extruded)
+Info    : Meshing surface 155 (extruded)
+Info    : Meshing surface 159 (extruded)
+Info    : Meshing surface 160 (extruded)
+Info    : Done meshing 2D (2.05625 s)
+Info    : Meshing 3D...
+Info    : Meshing volume 1 (extruded)
+Info    : Meshing volume 2 (extruded)
+Info    : Meshing volume 3 (extruded)
+Info    : Meshing volume 4 (extruded)
+Info    : Meshing volume 5 (extruded)
+Info    : Meshing volume 6 (extruded)
+Info    : Meshing volume 7 (extruded)
+Info    : Subdividing extruded mesh
+Info    : Swapping 0
+Info    : Remeshing surface 15
+Info    : Meshing surface 15 (extruded)
+Info    : Remeshing surface 19
+Info    : Meshing surface 19 (extruded)
+Info    : Remeshing surface 23
+Info    : Meshing surface 23 (extruded)
+Info    : Remeshing surface 27
+Info    : Meshing surface 27 (extruded)
+Info    : Remeshing surface 37
+Info    : Meshing surface 37 (extruded)
+Info    : Remeshing surface 41
+Info    : Meshing surface 41 (extruded)
+Info    : Remeshing surface 45
+Info    : Meshing surface 45 (extruded)
+Info    : Remeshing surface 49
+Info    : Meshing surface 49 (extruded)
+Info    : Remeshing surface 59
+Info    : Meshing surface 59 (extruded)
+Info    : Remeshing surface 63
+Info    : Meshing surface 63 (extruded)
+Info    : Remeshing surface 67
+Info    : Meshing surface 67 (extruded)
+Info    : Remeshing surface 71
+Info    : Meshing surface 71 (extruded)
+Info    : Remeshing surface 81
+Info    : Meshing surface 81 (extruded)
+Info    : Remeshing surface 85
+Info    : Meshing surface 85 (extruded)
+Info    : Remeshing surface 89
+Info    : Meshing surface 89 (extruded)
+Info    : Remeshing surface 93
+Info    : Meshing surface 93 (extruded)
+Info    : Remeshing surface 103
+Info    : Meshing surface 103 (extruded)
+Info    : Remeshing surface 107
+Info    : Meshing surface 107 (extruded)
+Info    : Remeshing surface 111
+Info    : Meshing surface 111 (extruded)
+Info    : Remeshing surface 115
+Info    : Meshing surface 115 (extruded)
+Info    : Remeshing surface 125
+Info    : Meshing surface 125 (extruded)
+Info    : Remeshing surface 129
+Info    : Meshing surface 129 (extruded)
+Info    : Remeshing surface 133
+Info    : Meshing surface 133 (extruded)
+Info    : Remeshing surface 137
+Info    : Meshing surface 137 (extruded)
+Info    : Remeshing surface 147
+Info    : Meshing surface 147 (extruded)
+Info    : Remeshing surface 151
+Info    : Meshing surface 151 (extruded)
+Info    : Remeshing surface 155
+Info    : Meshing surface 155 (extruded)
+Info    : Remeshing surface 159
+Info    : Meshing surface 159 (extruded)
+Info    : Done meshing 3D (9.24342 s)
+Info    : Optimizing 3D mesh...
+Info    : Done optimizing 3D mesh (0.030943 s)
+Info    : 122488 vertices 885044 elements
+Info    : Writing 'oodc-unstructured.msh'...
+Info    : Done writing 'oodc-unstructured.msh'
+Info    : Stopped on Wed Jun 16 18:16:24 2021

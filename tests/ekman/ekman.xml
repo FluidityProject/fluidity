@@ -1,8 +1,7 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>ekman</name>
-  <owner userid="skramer"/>
+  <owner userid="skramer" />
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v3 -l  ekman.flml</command_line>

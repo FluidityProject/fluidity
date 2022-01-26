@@ -1,0 +1,55 @@
+rm -f *.vtu *.stat *.log* *.err* src/*.msh *.msh *_checkpoint* *.convergence *.pvtu matrixdump*
+gmsh -3 src/inletslice.geo
+Info    : Running 'gmsh -3 src/inletslice.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:12 2021
+Info    : Reading 'src/inletslice.geo'...
+Info    : Done reading 'src/inletslice.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Line)
+Info    : Meshing curve 2 (Line)
+Info    : Meshing curve 3 (Line)
+Info    : Meshing curve 4 (Line)
+Info    : Meshing curve 5 (Line)
+Info    : Meshing curve 9 (extruded)
+Info    : Meshing curve 10 (extruded)
+Info    : Meshing curve 11 (extruded)
+Info    : Meshing curve 12 (extruded)
+Info    : Meshing curve 13 (extruded)
+Info    : Meshing curve 15 (extruded)
+Info    : Meshing curve 16 (extruded)
+Info    : Meshing curve 20 (extruded)
+Info    : Meshing curve 24 (extruded)
+Info    : Meshing curve 28 (extruded)
+Info    : Done meshing 1D (0.000682 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 7 (Plane, Delaunay)
+Info    : Meshing surface 17 (extruded)
+Info    : Meshing surface 21 (extruded)
+Info    : Meshing surface 25 (extruded)
+Info    : Meshing surface 29 (extruded)
+Info    : Meshing surface 33 (extruded)
+Info    : Meshing surface 34 (extruded)
+Info    : Done meshing 2D (0.02623 s)
+Info    : Meshing 3D...
+Info    : Meshing volume 1 (extruded)
+Info    : Subdividing extruded mesh
+Info    : Swapping 0
+Info    : Remeshing surface 17
+Info    : Meshing surface 17 (extruded)
+Info    : Remeshing surface 21
+Info    : Meshing surface 21 (extruded)
+Info    : Remeshing surface 25
+Info    : Meshing surface 25 (extruded)
+Info    : Remeshing surface 29
+Info    : Meshing surface 29 (extruded)
+Info    : Remeshing surface 33
+Info    : Meshing surface 33 (extruded)
+Info    : Done meshing 3D (0.025649 s)
+Info    : Optimizing 3D mesh...
+Info    : Done optimizing 3D mesh (0.000211 s)
+Info    : 1236 vertices 6442 elements
+Info    : Writing 'src/inletslice.msh'...
+Info    : Done writing 'src/inletslice.msh'
+Info    : Stopped on Wed Jun 16 18:16:12 2021
+cp src/inletslice.msh .

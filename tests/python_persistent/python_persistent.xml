@@ -1,9 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Python persistent variable</name>
-  <owner userid="dham"/>
+  <owner userid="dham" />
   <tags>flml</tags>
-  <problem_definition length = "short" nprocs = "1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>make clean-run-debug; fluidity -v2 -l python_persistent.flml</command_line>
   </problem_definition>
   <variables>
@@ -12,12 +12,12 @@ import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-    <variable name = "node_count" language = "python">
+    <variable name="node_count" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("python-persistent.stat")
 node_count = s["CoordinateMesh"]["nodes"][-1]
     </variable>
-    <variable name = "test_max" language = "python">
+    <variable name="test_max" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("python-persistent.stat")
 test_max = s["Test"]["Test"]["max"]
@@ -27,7 +27,7 @@ test_max = s["Test"]["Test"]["max"]
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>
-    <test name = "Persistent variable" language = "python">
+    <test name="Persistent variable" language="python">
 import fluidity_tools
 fluidity_tools.compare_variables(test_max, [node_count * float(i) for i in range(2, len(test_max) + 2)], 1.0e-6)
     </test>

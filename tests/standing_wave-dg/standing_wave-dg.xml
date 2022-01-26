@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Standing free surface wave in channel using P1DG-P2.</name>
-  <owner userid="skramer"/>
+  <owner userid="skramer" />
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v3 -l  standing_wave.flml</command_line>
   </problem_definition>
   <variables>
@@ -89,5 +89,5 @@ volume_integral_change=abs(volume-1.e14).max()</variable>
     <test name="fs_integral_max_zero" language="python">assert fs_integral_max&lt;5e-3</test>
     <test name="volume_integral_change_zero" language="python">assert volume_integral_change&lt;1000<comment>We're not actually moving the mesh. So this better pass! If you do move the mesh, you will need to go to P2 coordinates to avoid a remap from P2 free surface to mesh movement, to make this test pass.</comment></test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

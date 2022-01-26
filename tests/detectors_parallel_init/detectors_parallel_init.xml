@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>detectors_parallel_init</name>
-  <owner userid="mlange"/>
+  <owner userid="mlange" />
   <tags>flml zoltan<comment>zoltan tag added due to use of flredecomp options</comment></tags>
-  <problem_definition length="short" nprocs="2">
+  <problem_definition length="vshort" nprocs="2">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 detectors detectors_flredecomp &amp;&amp;
       mpiexec ../../bin/fluidity detectors_flredecomp.flml</command_line>
   </problem_definition>
@@ -31,5 +31,5 @@ assert max(abs(det_positions[:,1] - [0.0, 1.0])) &lt; 1.0e-6
 assert max(abs(det_positions[:,2] - [0.5, 0.5])) &lt; 1.0e-6
 assert max(abs(det_positions[:,3] - [1.0, 0.0])) &lt; 1.0e-6</test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

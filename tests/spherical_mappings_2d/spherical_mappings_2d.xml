@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Test of analytical mapping onto a sphere</name>
-  <owner userid="cwilson"/>
-  <problem_definition length="short" nprocs="1">
+  <owner userid="cwilson" />
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v3 -l  linear.flml; fluidity -v3 -l  analytic.flml; fluidity -v3 -l  super.flml; fluidity -v3 -l  super_analytic.flml</command_line>
   </problem_definition>
   <variables>
@@ -328,5 +328,5 @@ assert all(abs(super_analytic_gradient_inner_surfaceintegrals[1:]-super_analytic
 assert all(abs(super_analytic_gradient_outer_surfaceintegrals[1:]-super_analytic_gradient_outer_surfaceintegrals[0]) &lt; 1.e-6)
 </test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

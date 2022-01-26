@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>buoyancy_adjustment_two_element</name>
-  <owner userid="asc"/>
+  <owner userid="asc" />
   <tags>flml buoyancyadjustment</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v3 -l mix.flml</command_line>
   </problem_definition>
   <variables>
@@ -26,5 +26,5 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     <test name="final_stratification_min_max_equally_perturbed" language="python">assert abs(abs(mix_stats['density_final_max_deviation']) - abs(mix_stats['density_final_min_deviation']))&lt;mix_stats['density_final_deviation_diff']<comment>Check the buoyancy adjustment scheme has correctly mixed the temperature field.</comment></test>
     <test name="solvers_converged" language="python">assert solvers_converged</test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Standing free surface wave in channel using P1DG-P2.</name>
-  <owner userid="skramer"/>
+  <owner userid="skramer" />
   <tags>flml parallel zoltan</tags>
-  <problem_definition length="medium" nprocs="2">
+  <problem_definition length="short" nprocs="2">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l standing_wave standing_wave_flredecomp
 
 mpiexec ../../bin/fluidity -v3 -l  standing_wave_flredecomp.flml;
@@ -121,5 +121,5 @@ checkpoint_differences=dict([(name,abs(diff.GetField(name)).max()) for name in d
     <test name="checkpoint_differences_zero" language="python">assert len(checkpoint_differences.values())==7
 assert max(checkpoint_differences.values())&lt;1e-9<comment>For me it comes out as 0 exactly, but let's allow for some round off.</comment></test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

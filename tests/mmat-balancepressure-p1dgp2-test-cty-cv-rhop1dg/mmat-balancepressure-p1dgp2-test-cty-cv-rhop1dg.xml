@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>p1dgp2-test-cty-cv-rhop1dg, multi-material surface integral balance pressure check</name>
-  <owner userid="btollit"/>
+  <owner userid="btollit" />
   <tags>flml</tags>
-    <problem_definition length="short" nprocs="1">
+    <problem_definition length="vshort" nprocs="1">
     <command_line>
 fluidity -v2 mmat-balancepressure-p1dgp2-test-cty-cv-rhop1dg.flml &gt; mmat-balancepressure-p1dgp2-test-cty-cv-rhop1dg.log
     </command_line>

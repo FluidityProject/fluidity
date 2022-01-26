@@ -1,0 +1,63 @@
+rm -f *.vtu *.stat *.s *.log *_A* *_B* *_C* matrix* *~ mphase_mms_p2p1_compressible_ie_p1cv_heat_transfer.py *.pyc fluidity.*
+./copy_script
+creating set A with n_ele=
+creating set B with n_ele=
+creating set C with n_ele=
+setting flml timestep values
+gmsh -2 -bin src/MMS_A.geo
+Info    : Running 'gmsh -2 -bin src/MMS_A.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:13 2021
+Info    : Reading 'src/MMS_A.geo'...
+Info    : Done reading 'src/MMS_A.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Line)
+Info    : Meshing curve 2 (Line)
+Info    : Meshing curve 3 (Line)
+Info    : Meshing curve 4 (Line)
+Info    : Done meshing 1D (0.00061 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 6 (Plane, Delaunay)
+Info    : Done meshing 2D (0.004566 s)
+Info    : 77 vertices 156 elements
+Info    : Writing 'src/MMS_A.msh'...
+Info    : Done writing 'src/MMS_A.msh'
+Info    : Stopped on Wed Jun 16 18:16:13 2021
+gmsh -2 -bin src/MMS_B.geo
+Info    : Running 'gmsh -2 -bin src/MMS_B.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:13 2021
+Info    : Reading 'src/MMS_B.geo'...
+Info    : Done reading 'src/MMS_B.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Line)
+Info    : Meshing curve 2 (Line)
+Info    : Meshing curve 3 (Line)
+Info    : Meshing curve 4 (Line)
+Info    : Done meshing 1D (0.000638 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 6 (Plane, Delaunay)
+Info    : Done meshing 2D (0.016974 s)
+Info    : 271 vertices 544 elements
+Info    : Writing 'src/MMS_B.msh'...
+Info    : Done writing 'src/MMS_B.msh'
+Info    : Stopped on Wed Jun 16 18:16:13 2021
+gmsh -2 -bin src/MMS_C.geo
+Info    : Running 'gmsh -2 -bin src/MMS_C.geo' [Gmsh 3.0.6, 1 node, max. 1 thread]
+Info    : Started on Wed Jun 16 18:16:14 2021
+Info    : Reading 'src/MMS_C.geo'...
+Info    : Done reading 'src/MMS_C.geo'
+Info    : Finalized high order topology of periodic connections
+Info    : Meshing 1D...
+Info    : Meshing curve 1 (Line)
+Info    : Meshing curve 2 (Line)
+Info    : Meshing curve 3 (Line)
+Info    : Meshing curve 4 (Line)
+Info    : Done meshing 1D (0.000667 s)
+Info    : Meshing 2D...
+Info    : Meshing surface 6 (Plane, Delaunay)
+Info    : Done meshing 2D (0.066411 s)
+Info    : 1065 vertices 2132 elements
+Info    : Writing 'src/MMS_C.msh'...
+Info    : Done writing 'src/MMS_C.msh'
+Info    : Stopped on Wed Jun 16 18:16:14 2021

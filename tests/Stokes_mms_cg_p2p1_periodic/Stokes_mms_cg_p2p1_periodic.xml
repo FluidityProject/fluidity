@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>p2p1 stokes spatial convergence test</name>
-  <owner userid="rhodrid"/>
+  <owner userid="rhodrid" />
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 MMS_A.flml &gt;MMS_A.log &amp;&amp; 
@@ -267,5 +267,5 @@ for case in ['A','B','C','D']:
     <test name="checking for no nullspace disagreements in C" language="python">assert(number_of_nullspace_agreements['C']['disagrees']==0)</test>
     <test name="checking for no nullspace disagreements in D" language="python">assert(number_of_nullspace_agreements['D']['disagrees']==0)</test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

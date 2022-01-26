@@ -1,7 +1,7 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>parallel_coarsening_2d<comment>This tests coarsening in parallel. We start from a uniform mesh of 200x200 in a unit square box, i.e. dx~0.01. There's no interpolation error specified, so it should just coarsen to a uniform mesh according to the maximum edge length of 0.05. This is run on 5 cores. On master this fails because of it failing to move around the halos sufficiently so that we can coarsen everywhere. With he new halo locking strategy that only locks a single row of elements this passes.</comment></name>
-  <owner userid="skramer"/>
+  <owner userid="skramer" />
   <problem_definition length="short" nprocs="5">
     <command_line>mpiexec flredecomp -i 1 -o 5 coarsen coarsenp &amp;&amp;
 mpiexec fluidity -v2 -l coarsenp.flml</command_line>

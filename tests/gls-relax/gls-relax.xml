@@ -1,23 +1,16 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>gls-relax</name>
-  <owner userid="jhill1"/>
+  <owner userid="jhill1" />
   <tags>flml gls</tags>
-    <problem_definition length="short" nprocs="1">
+    <problem_definition length="vshort" nprocs="1">
         <command_line>fluidity -l -v2 gls-relax.flml;
                       cp fluidity.log-0 fluidity.log_relax.0;
                       fluidity -l -v2 gls-orig.flml;
                       cp fluidity.log-0 fluidity.log_orig.0;
         </command_line>
     </problem_definition>  
-  <!-- Only way to check the relax is actually working is to use the logs
-       and grep the first two instances of the min/max print outs of K_H and K_M
-       printed out during the init. The first print out will be zero for max/min
-       and the second can then be used to check everything has worked.
-       If we wait for a timestep or two, the changes in visc and diff affect the
-       GLS variables, which then affects the diff/visc and hence it becomes
-       tricky to work out the relax is what we expect.
-  -->
+  
   <variables>     
        <variable name="solvers_converged" language="python">
 import os

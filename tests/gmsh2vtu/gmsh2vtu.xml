@@ -1,8 +1,8 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>gmsh2vtu_test</name>
-  <owner userid="rhodrid"/>
-  <problem_definition length="short" nprocs="1">
+  <owner userid="rhodrid" />
+  <problem_definition length="vshort" nprocs="1">
     <command_line>../../bin/gmsh2vtu Subduction_Mesh</command_line>
   </problem_definition>
   <variables>
@@ -14,5 +14,5 @@ num_vtu_nodes = get_num_vtu_nodes()</variable>
   <pass_tests>
     <test name="Equal nodes" language="python">assert(num_gmsh_nodes == num_vtu_nodes)</test>
   </pass_tests>
-  <warn_tests/>
+  <warn_tests />
 </testproblem>

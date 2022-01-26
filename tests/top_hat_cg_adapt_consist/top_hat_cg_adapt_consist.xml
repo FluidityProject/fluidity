@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Advected top hat (CG with adaptivity, consistently projected)</name>
-  <owner userid="dham"/>
+  <owner userid="dham" />
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>make clean-run; fluidity -v2 -l top_hat_cg.flml</command_line>
   </problem_definition>
   <variables>
@@ -57,12 +57,7 @@ print("Max T = ", max_t)
 assert(min_t &gt; -0.15)
 assert(max_t &lt; 1.15)
 </test>
-<!--
-    <test name = "Conservative" language = "python">
-import fluidity_tools
-fluidity_tools.compare_variables(t_integrals[1:], [t_integrals[0] for i in range(len(t_integrals) - 1)], 5.0e-9)
-    </test>
--->
+
     <test name="Advected velocity" language="python">
 import fluidity_tools
 

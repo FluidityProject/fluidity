@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>tophat</name>
-  <owner userid="skramer"/>
-  <problem_definition length="long" nprocs="1">
+  <owner userid="skramer" />
+  <problem_definition length="short" nprocs="1">
     <command_line>mpiexec fluidity -v2 -l top_hat_cg.flml &amp;&amp; 
 mpiexec fluidity -v2 -l top_hat_dg.flml &amp;&amp;
 mpiexec fluidity -v2 -l top_hat_cv.flml</command_line>

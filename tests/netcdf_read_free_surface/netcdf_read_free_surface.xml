@@ -1,9 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>netcdf_read_free_surface</name>
-  <owner userid="asc"/>
+  <owner userid="asc" />
   <tags>flml netcdf</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v3 -l netcdf_read_free_surface.flml</command_line>
   </problem_definition>
   <variables>

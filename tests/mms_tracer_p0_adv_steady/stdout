@@ -1,0 +1,33 @@
+# Variable: ab_convergence_gal_stat
+0.06829898637982049
+0.04004922339791069
+0.4043532133242892
+0.30690537824817454
+# Variable: bc_convergence_gal_stat
+0.04004922339791069
+0.0203062763032611
+0.30690537824817454
+0.2148240532035628
+# Variable: cd_convergence_gal_stat
+0.0203062763032611
+0.010479397752279445
+0.2148240532035628
+0.09569841221294173
+# Variable: a_finish_time
+# Variable: b_finish_time
+# Variable: c_finish_time
+# Variable: d_finish_time
+# Pass Test: ab_convergence_stat: L2 order in [0.7,1.3]
+--- Success
+# Pass Test: bc_convergence_stat: L2 order in [0.7,1.3]
+--- Success
+# Pass Test: cd_convergence_stat: L2 order in [0.7,1.3]
+--- Success
+# Pass Test: checking A finished in less than 3.0
+--- Success
+# Pass Test: checking B finished in less than 2.0
+--- Success
+# Pass Test: checking C finished in less than 1.5
+--- Success
+# Pass Test: checking D finished in less than 1.5
+--- Success

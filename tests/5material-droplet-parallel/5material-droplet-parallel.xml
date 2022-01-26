@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Control volume, multi-material flow test</name>
-  <owner userid="cwilson"/>
+  <owner userid="cwilson" />
   <tags>flml solidity parallel</tags>
     <problem_definition length="short" nprocs="2">
       <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l 5material-droplet 5material-droplet_flredecomp &amp;&amp;
@@ -153,11 +153,7 @@ assert endtime &gt; 0.45
     <test name="check end timestep" language="python">
 assert abs(endtimestep-0.0025) &lt; 1.E-9
     </test>
-<!-- water has left the domain so this is not possible
-    <test name="check water volume fraction was conserved" language="python">
-print 'conservation error = ', abs(vfracintwater0-vfracintwater)
-assert abs(vfracintwater0-vfracintwater) &lt; max(maxdivergence, mindivergence)
-    </test>-->
+
     <test name="check droplet volume fraction was conserved" language="python">
 print('conservation error = ', abs(vfracintdrop0-vfracintdrop))
 assert abs(vfracintdrop0-vfracintdrop) &lt; max(maxdivergence, mindivergence)

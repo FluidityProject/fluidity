@@ -1,11 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!-- Test Synthetic Eddy Method...
--->
 <testproblem>
   <name>sem</name>
-  <owner userid="dpavlidis"/>
+  <owner userid="dpavlidis" />
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v3  sem.flml &gt; sem.log 2&gt;&amp;1</command_line>
   </problem_definition>
   <variables>

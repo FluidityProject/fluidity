@@ -1,8 +1,7 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>p2p1-cg inverse Helmholtz filter convergence test</name>
-  <owner userid="jbull"/>
+  <owner userid="jbull" />
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l MMS_A_structured.flml &amp;&amp; fluidity MMS_B_structured.flml &amp;&amp; fluidity MMS_C_structured.flml &amp;&amp; fluidity MMS_D_structured.flml</command_line>
@@ -387,62 +386,61 @@ cd_convergence_mlcomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
     </variable>
   </variables>
   <pass_tests>
-    <test name="ab_convergence_f: L2 order > 1.7" language="python">
+    <test name="ab_convergence_f: L2 order &gt; 1.7" language="python">
 assert(ab_convergence_f[0] &gt; 1.7)
     </test>
-    <test name="bc_convergence_f: L2 order > 1.9" language="python">
+    <test name="bc_convergence_f: L2 order &gt; 1.9" language="python">
 assert(bc_convergence_f[0] &gt; 1.9)
     </test>
-    <test name="cd_convergence_f: L2 order > 1.9" language="python">
+    <test name="cd_convergence_f: L2 order &gt; 1.9" language="python">
 assert(cd_convergence_f[0] &gt; 1.9)
     </test>
-    <test name="ab_convergence_if: L2 order > 1.7" language="python">
+    <test name="ab_convergence_if: L2 order &gt; 1.7" language="python">
 assert(ab_convergence_if[0] &gt; 1.7)
     </test>
-    <test name="bc_convergence_if: L2 order > 1.9" language="python">
+    <test name="bc_convergence_if: L2 order &gt; 1.9" language="python">
 assert(bc_convergence_if[0] &gt; 1.9)
     </test>
-    <test name="cd_convergence_if: L2 order > 1.9" language="python">
+    <test name="cd_convergence_if: L2 order &gt; 1.9" language="python">
 assert(cd_convergence_if[0] &gt; 1.9)
     </test>
-    <test name="ab_convergence_mlf: L2 order > 1.7" language="python">
+    <test name="ab_convergence_mlf: L2 order &gt; 1.7" language="python">
 assert(ab_convergence_mlf[0] &gt; 1.7)
     </test>
-    <test name="bc_convergence_mlf: L2 order > 1.9" language="python">
+    <test name="bc_convergence_mlf: L2 order &gt; 1.9" language="python">
 assert(bc_convergence_mlf[0] &gt; 1.9)
     </test>
-    <test name="cd_convergence_mlf: L2 order > 1.9" language="python">
+    <test name="cd_convergence_mlf: L2 order &gt; 1.9" language="python">
 assert(cd_convergence_mlf[0] &gt; 1.9)
     </test>
-    <test name="ab_convergence_isocomm: L2 order > 1.7" language="python">
+    <test name="ab_convergence_isocomm: L2 order &gt; 1.7" language="python">
 assert(ab_convergence_isocomm[0] &gt; 1.7)
     </test>
-    <test name="bc_convergence_isocomm: L2 order > 1.6" language="python">
+    <test name="bc_convergence_isocomm: L2 order &gt; 1.6" language="python">
 assert(bc_convergence_isocomm[0] &gt; 1.6)
     </test>
-    <test name="cd_convergence_isocomm: L2 order > 1.5" language="python">
+    <test name="cd_convergence_isocomm: L2 order &gt; 1.5" language="python">
 assert(cd_convergence_isocomm[0] &gt; 1.5)
     </test>
-    <test name="ab_convergence_anisocomm: L2 order > 1.7" language="python">
+    <test name="ab_convergence_anisocomm: L2 order &gt; 1.7" language="python">
 assert(ab_convergence_anisocomm[0] &gt; 1.7)
     </test>
-    <test name="bc_convergence_anisocomm: L2 order > 1.6" language="python">
+    <test name="bc_convergence_anisocomm: L2 order &gt; 1.6" language="python">
 assert(bc_convergence_anisocomm[0] &gt; 1.6)
     </test>
-    <test name="cd_convergence_anisocomm: L2 order > 1.5" language="python">
+    <test name="cd_convergence_anisocomm: L2 order &gt; 1.5" language="python">
 assert(cd_convergence_anisocomm[0] &gt; 1.5)
     </test>
-    <test name="ab_convergence_mlcomm: L2 order > 0.8" language="python">
+    <test name="ab_convergence_mlcomm: L2 order &gt; 0.8" language="python">
 assert(ab_convergence_mlcomm[0] &gt; 0.8)
     </test>
-    <test name="bc_convergence_mlcomm: L2 order > 0.7" language="python">
+    <test name="bc_convergence_mlcomm: L2 order &gt; 0.7" language="python">
 assert(bc_convergence_mlcomm[0] &gt; 0.7)
     </test>
-    <test name="cd_convergence_mlcomm: L2 order > 0.6" language="python">
+    <test name="cd_convergence_mlcomm: L2 order &gt; 0.6" language="python">
 assert(cd_convergence_mlcomm[0] &gt; 0.6)
     </test>
   </pass_tests>
   <warn_tests>
   </warn_tests>
 </testproblem>
-

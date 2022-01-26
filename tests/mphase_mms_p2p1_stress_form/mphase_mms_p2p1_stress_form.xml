@@ -2,7 +2,7 @@
 <testproblem>
 
   <name>mphase_mms_p2p1_stress_form</name>
-  <owner userid="ctj10"/>
+  <owner userid="ctj10" />
   <tags>flml</tags>
   
   <problem_definition length="short" nprocs="1">

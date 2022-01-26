@@ -1,16 +1,15 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>cv_mass_matrix_check_p1</name>
-  <owner userid="btollit"/>
+  <owner userid="btollit" />
   <tags>flml cv</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>
 ../../bin/fluidity cv_mass_matrix_check_p1_1d.flml 
 ../../bin/fluidity cv_mass_matrix_check_p1_2d.flml 
 ../../bin/fluidity cv_mass_matrix_check_p1_3d.flml 
     </command_line>
-    <!-- One/two/three dimensional problem for using p1 elements to soley check that the CV mass matrix is correct for one element.-->
+    
   </problem_definition>
   <variables>
     <variable name="element_volume_1d" language="python">
