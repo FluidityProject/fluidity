@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -29,6 +29,7 @@
 #include <iostream>
 #include <map>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "confdefs.h"
 
@@ -78,7 +79,7 @@ int main(int argc, char** argv){
   // Modified version of flredecomp argument parsing
   // Get any command line arguments
   // Reset optarg so we can detect changes
-  optarg = NULL;  
+  optarg = NULL;
   char c;
   map<char, string> args;
   while((c = getopt(argc, argv, "hv")) != -1){
@@ -104,14 +105,14 @@ int main(int argc, char** argv){
     Usage();
     exit(0);
   }
-  
+
   // Verbosity
   int verbosity = 0;
   if(args.count('v') > 0){
     verbosity = 3;
   }
   set_global_debug_level_fc(&verbosity);
-  
+
   // Input and output base names
   string input_basename, output_basename;
   if(argc > optind + 2){
@@ -124,7 +125,7 @@ int main(int argc, char** argv){
     Usage();
     exit(-1);
   }
-      
+
   size_t input_basename_len = input_basename.size();
   size_t output_basename_len = output_basename.size();
   streamfunction_2d(input_basename.c_str(), input_basename_len,
@@ -134,11 +135,11 @@ int main(int argc, char** argv){
   // Finalize the Python Interpreter
   python_end_();
 #endif
-  
+
 #ifdef HAVE_PETSC
   PetscFinalize();
 #endif
-  
+
 #ifdef HAVE_MPI
   MPI_Finalize();
 #endif
