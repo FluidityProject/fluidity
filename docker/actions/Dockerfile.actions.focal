@@ -13,7 +13,7 @@ RUN chown -R fluidity /home/fluidity
 
 USER fluidity
 
-RUN python3 -m pip install build junit-xml
+RUN python3 -m pip install assess build junit-xml
 
 ENV FCFLAGS -I/usr/include
 

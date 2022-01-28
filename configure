@@ -6013,7 +6013,7 @@ if test "$ac_supports_python_ver" = "True"; then
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
     $as_echo "no" >&6; }
-	as_fn_error $? "Fluidity requires Python >= '3.6'. If you have it installed,
+  as_fn_error $? "Fluidity requires Python >= '3.6'. If you have it installed,
 but it isn't the default Python interpreter in your system path, please pass
 the PYTHON_VERSION variable to configure. See \`\`configure --help'' for
 reference. " "$LINENO" 5
@@ -6038,7 +6038,7 @@ print(get_path('platinclude', scheme='posix_prefix'));"`
   else
     python_path="-I$python_path"
   fi
-	PYTHON_CPPFLAGS=$python_path
+  PYTHON_CPPFLAGS=$python_path
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_CPPFLAGS" >&5
   $as_echo "$PYTHON_CPPFLAGS" >&6; }
@@ -6047,14 +6047,16 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for Python library path" >&5
   $as_echo_n "checking for Python library path... " >&6; }
 if test -z "$PYTHON_LIBS"; then
-  ac_python_libdir=`cat<<EOD | $PYTHON -
+  ac_python_libdir=$(cat <<EOD | $PYTHON
 from sysconfig import get_config_var
 print(get_config_var('LIBDIR'))
-EOD`
-  ac_python_bldlibrary=`cat<<EOD | $PYTHON -
+EOD
+)
+  ac_python_bldlibrary=$(cat <<EOD | $PYTHON
 from sysconfig import get_config_var
 print(get_config_var('BLDLIBRARY'))
-EOD`
+EOD
+)
   PYTHON_LIBS="-L$ac_python_libdir $ac_python_bldlibrary"
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_LIBS" >&5
@@ -6093,7 +6095,7 @@ fi
 # Python final check to see if everything compiles alright
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking consistency of all components of Python development environment" >&5
   $as_echo_n "checking consistency of all components of Python development environment... " >&6; }
-# save current global flags
+# Save current global flags
 ac_save_LIBS="$LIBS"
 ac_save_LDFLAGS="$LDFLAGS"
 ac_save_CPPFLAGS="$CPPFLAGS"
@@ -6111,16 +6113,14 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 
 #include <Python.h>
 #ifdef F77_DUMMY_MAIN
-#  ifdef __cplusplus
-     extern "C"
-#  endif
+  #ifdef __cplusplus
+    extern "C"
+  #endif
   int F77_DUMMY_MAIN() { return 1; }
 #endif
-int
-main ()
+int main()
 {
-Py_Initialize();
-  ;
+  Py_Initialize();
   return 0;
 }
 
@@ -6137,7 +6137,7 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-# turn back to default flags
+# Turn back to default flags
 CPPFLAGS="$ac_save_CPPFLAGS"
 LIBS="$ac_save_LIBS"
 LDFLAGS="$ac_save_LDFLAGS"
@@ -6164,7 +6164,7 @@ fi
 
 # Python final check all done!
 
-# Save variables...
+# Save variables
 if test "x$pythonexists" = "xyes"; then
   if  test "$fcompiler" = "pgf90"; then
     PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-Xlinker/}
@@ -6179,7 +6179,7 @@ if test "x$pythonexists" = "xyes"; then
   CFLAGS="$CFLAGS $PYTHON_CPPFLAGS"
 fi
 
-# Additionally check for numpy
+# Additionally check for NumPy
 NUMPY=$($PYTHON -c 'import numpy; print(numpy.get_include())' 2>/dev/null)
 if ! test -z "$NUMPY"; then
   echo "Numpy is " $NUMPY
@@ -6192,8 +6192,7 @@ else
   echo "Failed to locate Numpy"
 fi
 
-# Check for the assess Python package used in some tests
-# (see https://github.com/stephankramer/assess/)
+# Check for the assess Python package used in some tests (https://github.com/stephankramer/assess)
 $PYTHON -c "import assess" 2>/dev/null
 if test $? -eq 0; then
   HAVE_ASSESS=yes
