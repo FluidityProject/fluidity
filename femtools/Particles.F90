@@ -1181,7 +1181,7 @@ contains
     type(state_type), dimension(:), intent(in) :: state
     real, intent(in) :: time
     real, intent(in) :: dt
-    logical, intent(in), optional :: initial
+    logical, optional :: initial
     character(len = OPTION_PATH_LEN) :: group_path, subgroup_path, particles_filename
 
     integer :: i, k
