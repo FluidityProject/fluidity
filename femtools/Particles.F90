@@ -1181,11 +1181,14 @@ contains
     type(state_type), dimension(:), intent(in) :: state
     real, intent(in) :: time
     real, intent(in) :: dt
-    logical, optional :: initial
+    logical, intent(in), optional :: initial
+
     character(len = OPTION_PATH_LEN) :: group_path, subgroup_path, particles_filename
 
     integer :: i, k
     integer :: particle_groups, particle_subgroups, list_counter
+
+    logical :: initial_aux
 
     ! Check whether there are any particles.
     particle_groups = option_count("/particles/particle_group")
@@ -1214,19 +1217,21 @@ contains
             if (index(particles_filename, 'checkpoint_particles') /= 0 &
                 .and. index(particles_filename, 'h5part') /= 0) then
               ! Assume this is a checkpoint
-              initial = .false.
+              initial_aux = .false.
             else
               ! Assume this is simulation start
-              initial = .true.
+              initial_aux = .true.
             end if
           ! Particles are initialised from Python: we are at simulation start
           else
-            initial = .true.
+            initial_aux = .true.
           end if
+        else
+          initial_aux = initial
         end if
 
         call update_particle_subgroup_attributes_and_fields( &
-          state, time, dt, subgroup_path, particle_lists(list_counter), initial=initial)
+          state, time, dt, subgroup_path, particle_lists(list_counter), initial=initial_aux)
         list_counter = list_counter + 1
       end do
     end do
