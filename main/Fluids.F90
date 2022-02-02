@@ -747,7 +747,7 @@ contains
        ! Call move and write particles
        call move_particles(state, dt)
        call particle_cv_check(state)
-       call update_particle_attributes_and_fields(state, current_time, dt)
+       call update_particle_attributes_and_fields(state, current_time, dt, initial=.false.)
        call initialise_particles_during_simulation(state, current_time, dt)
        call calculate_particle_material_fields(state)
        call calculate_diagnostic_fields_from_particles(state)

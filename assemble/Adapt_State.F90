@@ -1006,7 +1006,7 @@ contains
 
       !Set particle attributes and dependent fields
       call get_option("/timestepping/current_time", current_time)
-      call update_particle_attributes_and_fields(states, current_time, dt, initial=.true.)
+      call update_particle_attributes_and_fields(states, current_time, dt)
       call calculate_diagnostic_fields_from_particles(states)
 
       ! Form the new metric

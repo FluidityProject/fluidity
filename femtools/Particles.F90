@@ -529,8 +529,8 @@ contains
               first_newly_init_part => first_newly_init_part%next
             end if
             call update_particle_subgroup_attributes_and_fields( &
-              state, current_time, dt, subgroup_path, particle_lists(list_counter), &
-              initial=.true., first_newly_init_part=first_newly_init_part, nb_part_created=nb_part_created)
+              state, current_time, dt, subgroup_path, particle_lists(list_counter), initial=.true., &
+              first_newly_init_part=first_newly_init_part, nb_part_created=nb_part_created)
           end if
         end if
         list_counter = list_counter + 1
@@ -1182,7 +1182,7 @@ contains
     real, intent(in) :: time
     real, intent(in) :: dt
     logical, intent(in), optional :: initial
-    character(len = OPTION_PATH_LEN) :: group_path, subgroup_path
+    character(len = OPTION_PATH_LEN) :: group_path, subgroup_path, particles_filename
 
     integer :: i, k
     integer :: particle_groups, particle_subgroups, list_counter
@@ -1204,6 +1204,25 @@ contains
         if (particle_lists(list_counter)%length==0) then
           list_counter = list_counter + 1
           cycle
+        end if
+
+        ! If initial is not present, then we are in adapt_at_first_timestep
+        if (.not. present(initial)) then
+          ! If from_file exists, then it could be a checkpoint
+          if (have_option(trim(subgroup_path) // "/initial_position/from_file")) then
+            call get_option(trim(subgroup_path) // "/initial_position/from_file/file_name", particles_filename)
+            if (index(particles_filename, 'checkpoint_particles') /= 0 &
+                .and. index(particles_filename, 'h5part') /= 0) then
+              ! Assume this is a checkpoint
+              initial = .false.
+            else
+              ! Assume this is simulation start
+              initial = .true.
+            end if
+          ! Particles are initialised from Python: we are at simulation start
+          else
+            initial = .true.
+          end if
         end if
 
         call update_particle_subgroup_attributes_and_fields( &
@@ -1302,8 +1321,8 @@ contains
 
   !> Set particle attributes for a single subgroup
   subroutine update_particle_subgroup_attributes_and_fields( &
-        state, time, dt, subgroup_path, p_list, &
-        initial, first_newly_init_part, nb_part_created)
+        state, time, dt, subgroup_path, p_list, initial, &
+        first_newly_init_part, nb_part_created)
     !> Model state structure
     type(state_type), dimension(:), intent(in) :: state
     !> Current model time
@@ -1315,7 +1334,7 @@ contains
     !> Subgroup particle list
     type(detector_linked_list), intent(in) :: p_list
     !> Whether this is the first time attributes are having values filled
-    logical, intent(in), optional :: initial
+    logical, intent(in) :: initial
     !> Pointer to the first newly initialised particle
     type(detector_type), pointer, optional :: first_newly_init_part
     !> Number of particles to update
@@ -1423,10 +1442,8 @@ contains
         is_array = .true.
       end if
 
-      if (present(initial)) then
-        if (initial .and. have_option(trim(attr_key)//'/value_on_spawn')) then
-          value_attr_str = "/value_on_spawn"
-        end if
+      if (initial .and. have_option(trim(attr_key)//'/value_on_spawn')) then
+        value_attr_str = "/value_on_spawn"
       else
         value_attr_str = "/value_on_advection"
       end if
