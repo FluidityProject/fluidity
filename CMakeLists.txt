@@ -136,11 +136,14 @@ include_directories(
   ${Python3_INCLUDE_DIRS}
   ${NETCDF_INC_DIRS}
   ${SPUD_INCLUDE_DIR}
-  ${CMAKE_BINARY_DIR}/femtools
-  ${CMAKE_BINARY_DIR}/h5hut
-  ${CMAKE_BINARY_DIR}/include
-  ${CMAKE_BINARY_DIR}/libwm
+
+  ${CMAKE_SOURCE_DIR}/include
+
   ${CMAKE_BINARY_DIR}/libvtkfortran/include
+  ${CMAKE_BINARY_DIR}/femtools
+
+  ${CMAKE_SOURCE_DIR}/h5hut
+  ${CMAKE_SOURCE_DIR}/libwm
 )
 
 # Test for streaming IO
@@ -158,22 +161,24 @@ endif()
 file(REMOVE "${CMAKE_BINARY_DIR}/teststream.F90")
 
 add_custom_command(
-  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/register_diagnostics.F90
-  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/make_register_diagnostics.py
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/tools/make_register_diagnostics.py
+  OUTPUT ${CMAKE_SOURCE_DIR}/preprocessor/register_diagnostics.F90
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/make_register_diagnostics.py
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  DEPENDS ${CMAKE_SOURCE_DIR}/tools/make_register_diagnostics.py
   VERBATIM
 )
 add_custom_command(
-  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/check_options.F90
-  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/make_check_options.py
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/tools/make_check_options.py
+  OUTPUT ${CMAKE_SOURCE_DIR}/preprocessor/check_options.F90
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/make_check_options.py
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  DEPENDS ${CMAKE_SOURCE_DIR}/tools/make_check_options.py
   VERBATIM
 )
 add_custom_command(
-  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/diagnostics/Diagnostic_Fields_New.F90
-  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/make_diagnostic_fields.py
-  WORKING_DIRECTORY diagnostics
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/tools/make_diagnostic_fields.py
+  OUTPUT ${CMAKE_SOURCE_DIR}/diagnostics/Diagnostic_Fields_New.F90
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/make_diagnostic_fields.py
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/diagnostics
+  DEPENDS ${CMAKE_SOURCE_DIR}/tools/make_diagnostic_fields.py
   VERBATIM
 )
 
@@ -250,9 +255,9 @@ add_subdirectory(tools)
 # Build libfluidity.a and the fluidity binary
 add_library(fluidity STATIC ${LIB_SRCS}
   main/mainfl.F90 main/Fluids.F90 main/Usage.cpp
-  ${CMAKE_BINARY_DIR}/preprocessor/register_diagnostics.F90
-  ${CMAKE_BINARY_DIR}/preprocessor/check_options.F90
-  ${CMAKE_BINARY_DIR}/diagnostics/Diagnostic_Fields_New.F90)
+  ${CMAKE_SOURCE_DIR}/preprocessor/register_diagnostics.F90
+  ${CMAKE_SOURCE_DIR}/preprocessor/check_options.F90
+  ${CMAKE_SOURCE_DIR}/diagnostics/Diagnostic_Fields_New.F90)
 target_link_libraries(fluidity ${MPI_LIBRARIES} ${VTK_LIBRARIES})
 add_dependencies(fluidity vtkfortran)
 add_executable(fluidity-bin main.cpp)
