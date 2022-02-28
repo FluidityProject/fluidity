@@ -206,6 +206,7 @@ endif (${CMAKE_Fortran_COMPILER_ID} STREQUAL "GNU")
 set(FLUIDITY_PACKAGE_LIBS
   vtkfortran
   adaptivity
+  H5hutf
   ${MPI_LIBRARIES}
   ${VTK_LIBRARIES}
   ${PETSC_LIBRARIES}
@@ -239,7 +240,7 @@ add_subdirectory(error_measures)
 add_subdirectory(femtools)
 add_subdirectory(fldecomp)
 add_subdirectory(forward_interfaces)
-# add_subdirectory(h5hut)
+add_subdirectory(h5hut)
 add_subdirectory(horizontal_adaptivity)
 add_subdirectory(libadaptivity)
 add_subdirectory(libvtkfortran)
@@ -259,7 +260,7 @@ add_library(fluidity STATIC ${LIB_SRCS}
   ${CMAKE_SOURCE_DIR}/preprocessor/check_options.F90
   ${CMAKE_SOURCE_DIR}/diagnostics/Diagnostic_Fields_New.F90)
 target_link_libraries(fluidity ${MPI_LIBRARIES} ${VTK_LIBRARIES})
-add_dependencies(fluidity vtkfortran)
+add_dependencies(fluidity vtkfortran H5hutf)
 add_executable(fluidity-bin main.cpp)
 
 set_target_properties(fluidity-bin PROPERTIES OUTPUT_NAME fluidity)
