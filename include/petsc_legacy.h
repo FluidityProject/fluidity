@@ -16,3 +16,9 @@
 #ifndef PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE
 #define PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE PC_COMPOSITE_SYM_MULTIPLICATIVE
 #endif
+
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<15)
+#define PCCompositeAddPCType PCCompositeAddPC
+#define KSPMonitorResidual KSPMonitorDefault
+#define KSPMonitorTrueResidual KSPMonitorTrueResidualNorm
+#endif

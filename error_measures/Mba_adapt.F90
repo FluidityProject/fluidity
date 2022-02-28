@@ -32,18 +32,18 @@ module mba_adapt_module
     type(vector_field), pointer :: positions
 
     integer :: nonods, mxnods, stotel, mxface, totele, maxele
-    real, dimension(:, :), allocatable :: pos
+    real(4), dimension(:, :), allocatable :: pos
     integer, dimension(:, :), allocatable :: ipf
     integer, dimension(:, :), allocatable :: ipe
-    real, dimension(:, :), allocatable :: parcrv
+    real(4), dimension(:, :), allocatable :: parcrv
     integer, dimension(:), allocatable :: ipv
     integer, dimension(:), allocatable :: iFnc
     integer, dimension(:), allocatable :: lbE
-    real, dimension(:, :), allocatable :: tmp_metric
+    real(4), dimension(:, :), allocatable :: tmp_metric
     integer :: i, j
-    real :: rQuality
+    real(4) :: rQuality
     integer :: ierr, maxWr, maxWi
-    real, dimension(:), allocatable :: rW
+    real(4), dimension(:), allocatable :: rW
     integer, dimension(:), allocatable :: iW
     integer :: status
     type(state_type) :: new_state
@@ -140,7 +140,7 @@ module mba_adapt_module
          0, 0, ipv, ipv, lbE, &
          .true., status, &
          100, 30000, &
-         tmp_metric, 0.9, rQuality, &
+         tmp_metric, real(0.9, 4), rQuality, &
          maxWr, maxWi, rW, iW, &
          10, ierr)
 
@@ -191,7 +191,7 @@ module mba_adapt_module
 
     call vtk_write_state("new_state", 0, state=(/new_state/))
     call linear_interpolation(state, new_state)
-    
+
     deallocate(pos)
     deallocate(ipf)
     deallocate(ipe)
@@ -292,7 +292,7 @@ module mba_adapt_module
     type(vector_field), intent(in) :: positions
     integer, intent(in) :: face
     real, dimension(positions%dim, positions%dim-1) :: basis
-    
+
     real, dimension(positions%dim, face_loc(positions, face)) :: pos
     integer :: i, j
     real, dimension(positions%dim) :: tmp_vec

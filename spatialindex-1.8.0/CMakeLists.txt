@@ -3,7 +3,7 @@
 #
 # (based originally on the libLAS files copyright Mateusz Loskot)
 
-cmake_minimum_required(VERSION 2.6.0)
+cmake_minimum_required(VERSION 3.10)
 project(spatialindex)
 
 #------------------------------------------------------------------------------
@@ -63,7 +63,7 @@ check_function_exists(memcpy HAVE_MEMCPY)
 check_function_exists(bcopy HAVE_BCOPY)
 
 INCLUDE (CheckIncludeFiles)
-check_include_files(pthread.h HAVE_PTHREAD_H) 
+check_include_files(pthread.h HAVE_PTHREAD_H)
 
 
 if (HAVE_SRAND48)
@@ -244,4 +244,3 @@ set(SIDX_DATA_DIR ${SIDX_DATA_SUBDIR})
 
 add_subdirectory(src)
 add_subdirectory(test)
-
