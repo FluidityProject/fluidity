@@ -7,7 +7,7 @@ set(h5hutf_SOURCES
 set(h5hutf_SOURCES_PATH ${h5hutf_SOURCES})
 
 # get absolute paths for building interface file
-list(TRANSFORM h5hutf_SOURCES_PATH PREPEND ${CMAKE_BINARY_DIR}/h5hut/src/include/)
+list(TRANSFORM h5hutf_SOURCES_PATH PREPEND ${PROJECT_SOURCE_DIR}/src/include/)
 set(INTERFACE_FILE ${CMAKE_CURRENT_BINARY_DIR}/h5hut.f)
 add_custom_command(
   OUTPUT ${INTERFACE_FILE}
@@ -22,10 +22,10 @@ set(CMAKE_Fortran_FORMAT FREE)
 include(FortranCInterface)
 FortranCInterface_HEADER(FC.h MACRO_NAMESPACE "FC_")
 
-find_path(
+find_file(
   H5hutFILE H5hut.f90
   PATHS
-  ${CMAKE_BINARY_DIR}/h5hut/src/include/
+  ${PROJECT_SOURCE_DIR}/src/include/
 )
 
 add_library(H5hutf

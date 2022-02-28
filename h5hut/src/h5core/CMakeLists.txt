@@ -21,8 +21,10 @@ target_link_libraries(H5hut ${HDF5_LIBRARIES})
 # ensure we can see HDF5 headers
 target_include_directories(H5hut PUBLIC ${HDF5_INCLUDE_DIRS})
 
+configure_file(config.h.in config.h)
+
 # look for headers under current directory
-target_include_directories(H5hut PRIVATE ".")
+target_include_directories(H5hut PRIVATE "." ${CMAKE_CURRENT_BINARY_DIR})
 
 install(TARGETS H5hut
   ARCHIVE DESTINATION lib)

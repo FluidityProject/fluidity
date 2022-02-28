@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(H5hut)
+project(H5hut VERSION 2.0.0)
 
 option(USE_FORTRAN "Build Fortran library" ON)
 option(USE_PYTHON "Build Python interface" OFF)
