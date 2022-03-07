@@ -17,6 +17,7 @@ target_include_directories(vtkfortran
   PUBLIC
 	include
 	"${MPI_Fortran_INCLUDE_DIRS}"
+	"${VTK_INCLUDE_DIRS}"
 )
 target_link_libraries(vtkfortran
 	"${MPI_Fortran_LIBRARIES}"

@@ -205,36 +205,36 @@ target_sources(fluidity
 )
 
 set(ref_types
-  "block_csr_matrix; \
-  block_dynamic_csr_matrix; \
-  csr_matrix; \
-  csr_sparsity; \
-  dynamic_csr_matrix; \
-  element_type; \
-  halo_type; \
-  interface_block_csr_matrix; \
-  interface_block_dynamic_csr_matrix; \
-  interface_csr_matrix; \
-  interface_csr_sparsity; \
-  interface_dynamic_csr_matrix; \
-  interface_element_type; \
-  interface_halo_type; \
-  interface_mesh_type; \
-  interface_petsc_csr_matrix; \
-  interface_petsc_numbering_type; \
-  interface_picker_type; \
-  interface_quadrature_type; \
-  interface_scalar_field; \
-  interface_tensor_field; \
-  interface_vector_field; \
-  mesh_type; \
-  petsc_csr_matrix; \
-  petsc_numbering_type; \
-  picker_type; \
-  quadrature_type; \
-  scalar_field; \
-  tensor_field; \
-  vector_field"
+  block_csr_matrix
+  block_dynamic_csr_matrix
+  csr_matrix
+  csr_sparsity
+  dynamic_csr_matrix
+  element_type
+  halo_type
+  # interface_block_csr_matrix
+  # interface_block_dynamic_csr_matrix
+  # interface_csr_matrix
+  # interface_csr_sparsity
+  # interface_dynamic_csr_matrix
+  # interface_element_type
+  # interface_halo_type
+  # interface_mesh_type
+  # interface_petsc_csr_matrix
+  # interface_petsc_numbering_type
+  # interface_picker_type
+  # interface_quadrature_type
+  # interface_scalar_field
+  # interface_tensor_field
+  # interface_vector_field
+  mesh_type
+  petsc_csr_matrix
+  petsc_numbering_type
+  picker_type
+  quadrature_type
+  scalar_field
+  tensor_field
+  vector_field
 )
 
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/Refcount_templates.F90 Refcount_template)

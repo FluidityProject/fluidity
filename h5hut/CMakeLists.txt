@@ -6,7 +6,7 @@ option(USE_FORTRAN "Build Fortran library" ON)
 option(USE_PYTHON "Build Python interface" OFF)
 
 find_package(MPI REQUIRED COMPONENTS C)
-find_package(HDF5 REQUIRED COMPONENTS C)
+find_package(HDF5 REQUIRED)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 

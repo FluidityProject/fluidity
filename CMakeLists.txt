@@ -257,6 +257,7 @@ target_include_directories(fluidity
   ${SPUD_INCLUDE_DIR}
 
   ${libspatialindex_SOURCE_DIR}/include
+  ${libjudy_SOURCE_DIR}/src
 
   ${CMAKE_SOURCE_DIR}/include
   ${CMAKE_SOURCE_DIR}/h5hut/src/include
