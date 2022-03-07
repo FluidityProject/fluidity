@@ -5,25 +5,12 @@ project(fluidity
   LANGUAGES C CXX Fortran
 )
 
+option(HDF5_PREFER_PARALLEL "Prefer parallel HDF5" ON)
+
 include(ExternalProject)
 include(FetchContent)
 
 find_package(PkgConfig REQUIRED)
-
-macro(add_library_sources)
-  file(RELATIVE_PATH _relPath "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
-  foreach(_src ${ARGN})
-    if(_relPath)
-      list(APPEND LIB_SRCS "${_relPath}/${_src}")
-    else()
-      list(APPEND LIB_SRCS "${_src}")
-    endif()
-  endforeach()
-  if(_relPath)
-    # propagate LIB_SRCS to parent directory
-    set(LIB_SRCS ${LIB_SRCS} PARENT_SCOPE)
-  endif()
-endmacro()
 
 # Ensure that libraries and binaries end up in the right place
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -38,31 +25,69 @@ find_package(MPI REQUIRED)
 # Check for VTK
 find_package(VTK REQUIRED)
 
-# Check for BLAS
-find_package(BLAS REQUIRED)
-
 # Check for HDF5
-find_package(HDF5 REQUIRED)
+find_package(HDF5 REQUIRED COMPONENTS Fortran)
 
 # Check for Python 3
-find_package(Python3 COMPONENTS Interpreter Development NumPy REQUIRED)
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development NumPy)
+# # Check for assess Python package
+# execute_process(
+#   COMMAND ${Python3_EXECUTABLE} -c "import assess"
+#   RESULT_VARIABLE Python3_ASSESS
+# )
 
 # Check for PETSc
-pkg_search_module(PETSC PETSc REQUIRED)
+pkg_search_module(PETSC REQUIRED PETSc)
 message(STATUS "Found PETSc " ${PETSC_VERSION})
+
+# Check for Zoltan
+find_path(
+  ZOLTAN_INCLUDE_DIR
+  NAMES zoltan.mod
+  REQUIRED
+)
+find_library(
+  ZOLTAN_LIBRARY
+  NAMES zoltan
+  REQUIRED
+)
 
 # Check for NetCDF
 pkg_check_modules(NETCDF netcdf netcdf-fortran REQUIRED)
-find_library(NETCDF_LIB netcdf)
-find_library(NETCDFF_LIB netcdff)
-find_path(NETCDF_INCLUDE_DIR netcdf.inc)
+find_library(
+  NETCDF_LIBRARY
+  NAMES netcdf
+  REQUIRED
+)
+find_library(
+  NETCDFF_LIBRARY
+  NAMES netcdff
+  REQUIRED
+)
+find_path(
+  NETCDF_INCLUDE_DIR
+  NAMES netcdf.inc
+  REQUIRED
+)
 
 # Check for libspud
-find_library(SPUD_LIB spud REQUIRED)
-find_path(SPUD_INCLUDE_DIR spud.mod)
+find_library(
+  SPUD_LIBRARY
+  NAMES spud
+  REQUIRED
+)
+find_path(
+  SPUD_INCLUDE_DIR
+  NAMES spud.mod
+  REQUIRED
+)
 
 # Check for UDUNITS
-find_library(UDUNITS_LIB udunits2 REQUIRED)
+find_library(
+  UDUNITS_LIBRARY
+  NAMES udunits2
+  REQUIRED
+)
 
 # # Check for exodusii
 # if (USE_EXODUSII)
@@ -91,33 +116,6 @@ find_library(UDUNITS_LIB udunits2 REQUIRED)
 #    set(USE_CGAL OFF CACHE BOOL
 #       "Link to CGAL")
 # endif()
-
-# Add Zoltan
-ExternalProject_Add(libzoltan
-  PREFIX libzoltan
-  GIT_REPOSITORY https://github.com/sandialabs/Zoltan
-  GIT_TAG origin/main
-  CONFIGURE_COMMAND ../libzoltan/configure --prefix=<BINARY_DIR> --enable-f90interface --with-gnumake --with-scotch --with-scotch-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-scotch-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib --with-parmetis --with-parmetis-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-parmetis-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib
-  BUILD_COMMAND make everything
-  INSTALL_COMMAND make install
-  LOG_DOWNLOAD ON
-  LOG_CONFIGURE ON
-  LOG_BUILD ON
-  LOG_INSTALL ON
-)
-ExternalProject_Add_Step(libzoltan byproducts
-  COMMAND ""
-  DEPENDEES install
-  BYPRODUCTS <BINARY_DIR>/lib/libzoltan.a
-  WORKING_DIRECTORY <BINARY_DIR>
-  LOG ON
-)
-ExternalProject_Get_Property(libzoltan BINARY_DIR)
-set(libzoltan_BINARY_DIR ${BINARY_DIR})
-add_library(Zoltan STATIC IMPORTED)
-set_target_properties(Zoltan
-  PROPERTIES IMPORTED_LOCATION ${libzoltan_BINARY_DIR}/lib/libzoltan.a
-)
 
 # Add libspatialindex
 FetchContent_Declare(libspatialindex
@@ -206,6 +204,100 @@ else (${CMAKE_Fortran_COMPILER_ID} STREQUAL "GNU")
   set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -g")
 endif (${CMAKE_Fortran_COMPILER_ID} STREQUAL "GNU")
 
+# Build libfluidity.a
+add_library(fluidity STATIC
+  main/mainfl.F90
+  main/Fluids.F90
+  main/Usage.cpp
+)
+add_dependencies(fluidity
+  adaptivity
+  mba2d
+  spatialindex
+  vtkfortran
+
+  H5hutf
+  Judy
+)
+target_compile_definitions(fluidity
+  PUBLIC
+  DOUBLEP
+  HAVE_ADAPTIVITY
+  HAVE_BLAS
+  HAVE_HYPRE
+  HAVE_LIBNETCDF
+  HAVE_LIBNETCDFF
+  HAVE_MEMORY_STATS
+  # HAVE_MBA_2D
+  HAVE_MPI
+  HAVE_NUMPY
+  HAVE_PETSC
+  HAVE_PYTHON
+  HAVE_VTK
+  HAVE_ZOLTAN
+  PACKAGE_NAME=fluidity
+  PACKAGE_TARNAME=fluidity
+  SIGNAL
+  STREAM_IO
+
+  "${MPI_Fortran_COMPILE_DEFINITIONS}"
+  "${HDF5_Fortran_DEFINITIONS}"
+)
+target_include_directories(fluidity
+  PUBLIC
+  "${MPI_Fortran_INCLUDE_DIRS}"
+  "${HDF5_Fortran_INCLUDE_DIRS}"
+  "${Python3_INCLUDE_DIRS}"
+  "${Python3_NumPy_INCLUDE_DIRS}"
+
+  "${PETSC_INCLUDE_DIRS}"
+
+  ${ZOLTAN_INCLUDE_DIR}
+  ${NETCDF_INCLUDE_DIR}
+  ${SPUD_INCLUDE_DIR}
+
+  ${libspatialindex_SOURCE_DIR}/include
+
+  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/h5hut/src/include
+  ${CMAKE_SOURCE_DIR}/h5hut/src/h5core
+  ${CMAKE_SOURCE_DIR}/libwm
+
+  ${CMAKE_BINARY_DIR}/libadaptivity/include
+  ${CMAKE_BINARY_DIR}/libvtkfortran/include
+)
+target_link_libraries(fluidity
+  adaptivity
+  mba2d
+  spatialindex
+  vtkfortran
+
+  H5hutf
+  Judy
+
+  "${MPI_Fortran_LIBRARIES}"
+  "${VTK_LIBRARIES}"
+  "${HDF5_Fortran_LIBRARIES}"
+  "${Python3_LIBRARIES}"
+
+  "${PETSC_LINK_LIBRARIES}"
+  "${PETSC_LDFLAGS}"
+  -lblas
+  -llapack
+  -lmetis
+  -lml
+  -lparmetis
+  -lptscotch
+  -lscotch
+
+  ${ZOLTAN_LIBRARY}
+
+  ${NETCDF_LIBRARY}
+  ${NETCDFF_LIBRARY}
+  ${SPUD_LIBRARY}
+  ${UDUNITS_LIBRARY}
+)
+
 add_subdirectory(assemble)
 add_subdirectory(bathymetry)
 add_subdirectory(climatology)
@@ -229,100 +321,24 @@ add_subdirectory(sediments)
 add_subdirectory(tests)
 add_subdirectory(tools)
 
-add_definitions(
-  -DPACKAGE_NAME="fluidity"
-  -DPACKAGE_TARNAME="fluidity"
-  -DDOUBLEP
-  -DHAVE_ADAPTIVITY
-  -DHAVE_MEMORY_STATS=1
-  -DHAVE_MPI
-  -DHAVE_NUMPY
-  -DSIGNAL
-)
-
-# Build libfluidity.a
-add_library(fluidity STATIC
-  "${LIB_SRCS}"
-  main/mainfl.F90
-  main/Fluids.F90
-  main/Usage.cpp
-)
-
-target_include_directories(fluidity
-  PUBLIC
-  "${MPI_Fortran_INCLUDE_DIRS}"
-  "${VTK_INCLUDE_DIRS}"
-  "${BLAS_LINKER_FLAGS}"
-  "${HDF5_Fortran_INCLUDE_DIRS}"
-  "${Python3_INCLUDE_DIRS}"
-
-  "${PETSC_INCLUDE_DIRS}"
-
-  ${NETCDF_INCLUDE_DIR}
-  ${SPUD_INCLUDE_DIR}
-
-  ${libspatialindex_SOURCE_DIR}/include
-
-  ${CMAKE_SOURCE_DIR}/include
-
-  ${CMAKE_BINARY_DIR}/libadaptivity/include
-  ${CMAKE_BINARY_DIR}/libvtkfortran/include
-
-  ${CMAKE_SOURCE_DIR}/h5hut/src/include
-  ${CMAKE_SOURCE_DIR}/libwm
-)
-target_link_libraries(fluidity
-  Zoltan
-
-  "${MPI_Fortran_LIBRARIES}"
-  "${VTK_LIBRARIES}"
-  "${BLAS_LIBRARIES}"
-  "${HDF5_Fortran_LIBRARIES}"
-
-  "${PETSC_LINK_LIBRARIES}"
-)
-add_dependencies(fluidity
-  adaptivity
-  mba2d
-  vtkfortran
-
-  H5hutf
-  Zoltan
-)
-
 # Build the fluidity binary
-add_executable(fluidity-bin main.cpp)
+add_executable(fluidity-bin
+  main.cpp
+)
 set_target_properties(fluidity-bin
   PROPERTIES
   OUTPUT_NAME fluidity
 )
 target_link_libraries(fluidity-bin
-  adaptivity
   fluidity
-  mba2d
-  spatialindex
-  vtkfortran
-
-  H5hutf
-  Judy
-  Zoltan
-
-  "${MPI_Fortran_LIBRARIES}"
-  "${VTK_LIBRARIES}"
-  "${BLAS_LIBRARIES}"
-  "${HDF5_Fortran_LIBRARIES}"
-  "${Python3_LIBRARIES}"
-
-  -L${PETSC_LIBRARY_DIRS}
-
-  ${NETCDF_LIB}
-  ${NETCDFF_LIB}
-
-  ${SPUD_LIB}
-  ${UDUNITS_LIB}
+)
+target_link_options(fluidity-bin
+  PUBLIC
+  "${MPI_Fortran_COMPILE_OPTIONS}"
+  "${Python3_LINK_OPTIONS}"
 )
 
-# Execute unittests
+# Add unittests
 add_custom_target(unittest
   "${CMAKE_COMMAND}" "-E" "create_symlink" "${CMAKE_BINARY_DIR}/tests/data" "${CMAKE_BINARY_DIR}/bin/tests/data"
   COMMAND bin/unittestharness bin/tests

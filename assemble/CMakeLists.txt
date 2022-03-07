@@ -1,6 +1,76 @@
-file(GLOB lib_srcs RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.F90)
-add_library_sources(${lib_srcs})
-add_subdirectory(tests EXCLUDE_FROM_ALL)
+target_sources(fluidity
+  PRIVATE
+  Adapt_Integration.F90
+  Adaptivity_1D.F90
+  Adapt_State.F90
+  Adapt_State_Prescribed.F90
+  Adapt_State_Unittest.F90
+  Advection_Diffusion_CG.F90
+  Advection_Diffusion_DG.F90
+  Advection_Diffusion_FV.F90
+  Assemble_CMC.F90
+  Biology.F90
+  Burgers_Assembly.F90
+  Compressible_Projection.F90
+  Coriolis.F90
+  Diagnostic_Children.F90
+  Diagnostic_Fields_Matrices.F90
+  Diagnostic_fields_wrapper.F90
+  Discrete_Properties.F90
+  Divergence_Matrix_CG.F90
+  Divergence_Matrix_CV.F90
+  Drag.F90
+  Field_Equations_CV.F90
+  Foam_Drainage.F90
+  Foam_Flow.F90
+  Free_Surface.F90
+  Full_Projection.F90
+  Geostrophic_Pressure.F90
+  Gradient_Matrix_CG.F90
+  Hybridized_Helmholtz.F90
+  Hydrostatic_Pressure.F90
+  Interpolation_manager.F90
+  LES.F90
+  Manifold_Projections.F90
+  Mba2d_Integration.F90
+  Mba3d_Integration.F90
+  MeshMovement.F90
+  Momentum_CG.F90
+  Momentum_DG.F90
+  Momentum_Diagnostic_Fields.F90
+  Momentum_Equation.F90
+  Multimaterials.F90
+  Multiphase.F90
+  Node_Locking.F90
+  OceanSurfaceForcing.F90
+  Particle_Diagnostics.F90
+  Petsc_Solve_State.F90
+  Pressure_Dirichlet_BCS_CV.F90
+  Pseudo_supermesh.F90
+  qmesh.F90
+  Sam_integration.F90
+  Shallow_Water_Equations.F90
+  Slope_limiters_DG.F90
+  Solenoidal_interpolation.F90
+  State_Matrices.F90
+  Surface_Id_Interleaving.F90
+  Timeloop_utilities.F90
+  Turbine.F90
+  Upwind_Stabilisation.F90
+  Vertical_Balance_Pressure.F90
+  Vorticity_Diagnostics.F90
+  Zoltan_callbacks.F90
+  Zoltan_detectors.F90
+  Zoltan_global_variables.F90
+  Zoltan_integration.F90
+)
 
-set(unittests ${assemble_unittests};${unittests} PARENT_SCOPE)
-set(unittest_meshes_3d ${assemble_unittest_meshes_3d};${unittest_meshes_3d} PARENT_SCOPE)
+add_subdirectory(tests EXCLUDE_FROM_ALL)
+set(unittests
+  ${assemble_unittests};${unittests}
+  PARENT_SCOPE
+)
+set(unittest_meshes_3d
+  ${assemble_unittest_meshes_3d};${unittest_meshes_3d}
+  PARENT_SCOPE
+)

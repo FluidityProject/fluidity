@@ -1,1 +1,5 @@
-add_library_sources(Sediment.F90 Sediment_Diagnostics.F90)
+target_sources(fluidity
+  PRIVATE
+  Sediment_Diagnostics.F90
+  Sediment.F90
+)

@@ -1,1 +1,4 @@
-add_library_sources(DQMOM.F90)
+target_sources(fluidity
+  PRIVATE
+  DQMOM.F90
+)

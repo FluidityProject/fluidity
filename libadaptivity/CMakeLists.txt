@@ -1,26 +1,171 @@
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ../lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin)
 
-enable_language (Fortran)
+enable_language(Fortran)
 
-# Check for MPI
-find_package(MPI REQUIRED)
-file(GLOB lib_srcs RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} adapt3d/src/*.F adapt3d/src/*.F90 load_balance/src/*.cpp load_balance/src/*.F)
-
-list(REMOVE_ITEM lib_srcs load_balance/src/calculate_submeshes.cpp load_balance/src/metis.cpp load_balance/src/unn_t.cpp load_balance/src/vtkio.cpp)
+find_package(MPI REQUIRED COMPONENTS Fortran)
 
 set(CMAKE_Fortran_MODULE_DIRECTORY include)
-set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-line-length-none -ffixed-line-length-none -fdefault-real-8")
+set(CMAKE_Fortran_FLAGS
+	"${CMAKE_Fortran_FLAGS} -ffree-line-length-none -ffixed-line-length-none -fdefault-real-8"
+)
 
-add_definitions(-DHAVE_MPI -DUSING_DOUBLE_PRECISION=1)
+add_definitions(
+	-DHAVE_MPI
+	-DUSING_DOUBLE_PRECISION=1
+)
 
-add_library(adaptivity STATIC ${lib_srcs})
-target_include_directories(adaptivity BEFORE PUBLIC ${MPI_Fortran_INCLUDE_DIRS} include adapt3d/include load_balance/include)
-
-set_target_properties(
-	adaptivity
+add_library(adaptivity STATIC
+	adapt3d/src/adapt1.F
+	adapt3d/src/adaptmem.F
+	adapt3d/src/AdaptProgress.F90
+	adapt3d/src/addedg.F
+	adapt3d/src/addele.F
+	adapt3d/src/addfac.F
+	adapt3d/src/addnd.F
+	adapt3d/src/adfrnd.F
+	adapt3d/src/adptvy.F
+	adapt3d/src/angedg.F
+	adapt3d/src/angfac.F
+	adapt3d/src/assval.F
+	adapt3d/src/chgeds.F
+	adapt3d/src/chkfac.F
+	adapt3d/src/chkgmy.F
+	adapt3d/src/chkint.F
+	adapt3d/src/cmlced.F
+	adapt3d/src/cmneds.F
+	adapt3d/src/cmnnod.F
+	adapt3d/src/cnctel.F
+	adapt3d/src/cnctfc.F
+	adapt3d/src/Debug.F
+	adapt3d/src/dofacs.F
+	adapt3d/src/edg2fc.F
+	adapt3d/src/edg3nd.F
+	adapt3d/src/edg4nd.F
+	adapt3d/src/edgdst.F
+	adapt3d/src/edgeig.F
+	adapt3d/src/edgels.F
+	adapt3d/src/edgfnc.F
+	adapt3d/src/edginf.F
+	adapt3d/src/edgtst.F
+	adapt3d/src/elmdiv.F
+	adapt3d/src/elmeig.F
+	adapt3d/src/elmfnc.F
+	adapt3d/src/elminf.F
+	adapt3d/src/elmtst.F
+	adapt3d/src/elnods.F
+	adapt3d/src/elstst.F
+	adapt3d/src/expected_elements.F90
+	adapt3d/src/facinf.F
+	adapt3d/src/facnrm.F
+	adapt3d/src/fc2edg.F
+	adapt3d/src/fchsnd.F
+	adapt3d/src/fixeig.F
+	adapt3d/src/Flag_Handling.F
+	adapt3d/src/fndedg.F
+	adapt3d/src/fndelm.F
+	adapt3d/src/fndsrf.F
+	adapt3d/src/getflg.F
+	adapt3d/src/gethed.F
+	adapt3d/src/getmsh.F
+	adapt3d/src/getsiz.F
+	adapt3d/src/gtfrfl.F
+	adapt3d/src/gtndfl.F
+	adapt3d/src/hasedg.F
+	adapt3d/src/hasnod.F
+	adapt3d/src/inipwr.F
+	adapt3d/src/inirls.F
+	adapt3d/src/initim.F
+	adapt3d/src/initls.F
+	adapt3d/src/intfld.F
+	adapt3d/src/intrpl.F
+	adapt3d/src/invrse.F
+	adapt3d/src/lenedg.F
+	adapt3d/src/lisbig.F
+	adapt3d/src/lstels.F
+	adapt3d/src/lstfac.F
+	adapt3d/src/lstnds.F
+	adapt3d/src/lstout.F
+	adapt3d/src/minang.F
+	adapt3d/src/mk1ele.F
+	adapt3d/src/mkadpt.F
+	adapt3d/src/mkecls.F
+	adapt3d/src/mkfixd.F
+	adapt3d/src/mkfrnt.F
+	adapt3d/src/mkncls.F
+	adapt3d/src/mknels.F
+	adapt3d/src/mshout.F
+	adapt3d/src/mtetin.F
+	adapt3d/src/ndcnct.F
+	adapt3d/src/nodeig.F
+	adapt3d/src/nodfcs.F
+	adapt3d/src/nodmov.F
+	adapt3d/src/nodtst.F
+	adapt3d/src/nwcnel.F
+	adapt3d/src/nxtid.F
+	adapt3d/src/oppedg.F
+	adapt3d/src/ordnds.F
+	adapt3d/src/qlyout.F
+	adapt3d/src/rmfrnd.F
+	adapt3d/src/rmvedg.F
+	adapt3d/src/rmvele.F
+	adapt3d/src/rmvfac.F
+	adapt3d/src/rmvnd.F
+	adapt3d/src/rmvnxt.F
+	adapt3d/src/rspnse.F
+	adapt3d/src/second.F
+	adapt3d/src/sectlp.F
+	adapt3d/src/setflg.F
+	adapt3d/src/setgmy.F
+	adapt3d/src/shredg.F
+	adapt3d/src/shwhst.F
+	adapt3d/src/shwtim.F
+	adapt3d/src/spledg.F
+	adapt3d/src/stchfr.F
+	adapt3d/src/stfrfl.F
+	adapt3d/src/stfrgm.F
+	adapt3d/src/stndfl.F
+	adapt3d/src/tetvol.F
+	adapt3d/src/undstt.F
+	adapt3d/src/vals3d.F
+	adapt3d/src/wchfac.F
+	adapt3d/src/write_log.F
+	# load_balance/src/calculate_submeshes.cpp
+	load_balance/src/c++debuglog.cpp
+	load_balance/src/Element.cpp
+	load_balance/src/errorHandling.cpp
+	load_balance/src/exports.cpp
+	load_balance/src/fixate.cpp
+	load_balance/src/flstripH2.cpp
+	load_balance/src/fluidity_sam.cpp
+	load_balance/src/formHalo2.cpp
+	load_balance/src/functional_2d.cpp
+	load_balance/src/Graph.cpp
+	load_balance/src/graph_partitioning.cpp
+	load_balance/src/imports.cpp
+	load_balance/src/invent_pressure_mesh.cpp
+	load_balance/src/Mesh.cpp
+	# load_balance/src/metis.cpp
+	load_balance/src/MI5.cpp
+	load_balance/src/migrate.cpp
+	load_balance/src/mtetin.F
+	load_balance/src/Node.cpp
+	load_balance/src/packing.cpp
+	load_balance/src/ParMetis.cpp
+	load_balance/src/PressureNode.cpp
+	# load_balance/src/unn_t.cpp
+	# load_balance/src/vtkio.cpp
+)
+target_include_directories(adaptivity BEFORE
+	PUBLIC
+	"${MPI_Fortran_INCLUDE_DIRS}"
+	include
+	adapt3d/include
+	load_balance/include
+)
+set_target_properties(adaptivity
 	PROPERTIES
 	COMPILE_OPTIONS "${MPI_Fortran_COMPILE_OPTIONS}"
 	COMPILE_DEFINITIONS "${MPI_Fortran_COMPILE_DEFINITIONS}"
-	LINK_FLAGS "${MPI_Fortran_LINK_FLAGS}"
+	LINK_OPTIONS "${MPI_Fortran_LINK_FLAGS}"
 )
