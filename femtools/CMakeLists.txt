@@ -212,21 +212,6 @@ set(ref_types
   dynamic_csr_matrix
   element_type
   halo_type
-  # interface_block_csr_matrix
-  # interface_block_dynamic_csr_matrix
-  # interface_csr_matrix
-  # interface_csr_sparsity
-  # interface_dynamic_csr_matrix
-  # interface_element_type
-  # interface_halo_type
-  # interface_mesh_type
-  # interface_petsc_csr_matrix
-  # interface_petsc_numbering_type
-  # interface_picker_type
-  # interface_quadrature_type
-  # interface_scalar_field
-  # interface_tensor_field
-  # interface_vector_field
   mesh_type
   petsc_csr_matrix
   petsc_numbering_type
@@ -239,13 +224,13 @@ set(ref_types
 
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/Refcount_templates.F90 Refcount_template)
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/Refcount_interface_templates.F90 Refcount_interface_template)
-foreach(type IN LISTS ref_types)
-   message(STATUS "make reference counting code for ${type}")
+foreach(type ${ref_types})
+   message(STATUS "Generate reference counting code for ${type}")
    string(REPLACE "REFCOUNT_TYPE" ${type} TMP ${Refcount_template})
    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/Reference_count_${type}.F90 ${TMP})
    string(REPLACE "REFCOUNT_TYPE" ${type} TMP ${Refcount_interface_template})
    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/Reference_count_interface_${type}.F90 ${TMP})
 endforeach()
 
-add_subdirectory(tests EXCLUDE_FROM_ALL)
-set(unittests ${femtools_unittests};${unittests} PARENT_SCOPE)
+# add_subdirectory(tests EXCLUDE_FROM_ALL)
+# set(unittests ${femtools_unittests};${unittests} PARENT_SCOPE)

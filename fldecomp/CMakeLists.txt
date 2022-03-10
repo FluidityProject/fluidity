@@ -1,11 +1,2 @@
-add_executable(fldecomp
-  EXCLUDE_FROM_ALL
-  fldgmsh.cpp
-  fldmain.cpp
-  fldtriangle.cpp
-  partition.cpp
-)
-target_link_libraries(fldecomp
-  fluidity
-)
-add_definitions(-DHAVE_MPI)
+add_executable(fldecomp fldgmsh.cpp fldmain.cpp fldtriangle.cpp partition.cpp)
+target_link_libraries(fldecomp fluidity)

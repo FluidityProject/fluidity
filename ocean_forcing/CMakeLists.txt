@@ -21,5 +21,5 @@ target_sources(fluidity
   SampleNetCDF.cpp
 )
 
-add_subdirectory(tests EXCLUDE_FROM_ALL)
-set(unittests ${ocean_forcing_unittests};${unittests} PARENT_SCOPE)
+# add_subdirectory(tests EXCLUDE_FROM_ALL)
+# set(unittests ${ocean_forcing_unittests};${unittests} PARENT_SCOPE)

@@ -1,9 +1,3 @@
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ../lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ../lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin)
-
-enable_language(Fortran)
-
 add_library(mba2d STATIC
   ani2.f
   auxSE.f

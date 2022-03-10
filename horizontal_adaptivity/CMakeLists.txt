@@ -6,5 +6,5 @@ target_sources(fluidity
   Metric_based_extrude.F90
 )
 
-add_subdirectory(tests EXCLUDE_FROM_ALL)
-set(unittests ${horizontal_adaptivity_unittests};${unittests} PARENT_SCOPE)
+# add_subdirectory(tests EXCLUDE_FROM_ALL)
+# set(unittests ${horizontal_adaptivity_unittests};${unittests} PARENT_SCOPE)

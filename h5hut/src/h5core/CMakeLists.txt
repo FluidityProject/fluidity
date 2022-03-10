@@ -47,20 +47,10 @@ add_library(H5hut
   private/h5t_store_tetm.c
   private/h5t_store_trim.c
 )
-target_link_libraries(H5hut
-  "${MPI_C_LIBRARIES}"
-  "${HDF5_C_LIBRARIES}"
-)
 target_include_directories(H5hut
   PUBLIC
   "${MPI_C_INCLUDE_DIRS}"
   "${HDF5_C_INCLUDE_DIRS}"
-)
-target_include_directories(H5hut
-  PRIVATE
-  "."
   ${CMAKE_CURRENT_BINARY_DIR}
 )
-install(TARGETS H5hut
-  ARCHIVE
-)
+install(TARGETS H5hut ARCHIVE)

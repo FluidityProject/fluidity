@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -29,6 +29,7 @@
 #include <iostream>
 #include <map>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "confdefs.h"
 
@@ -88,7 +89,7 @@ int main(int argc, char** argv){
   // Modified version of flredecomp argument parsing
   // Get any command line arguments
   // Reset optarg so we can detect changes
-  optarg = NULL;  
+  optarg = NULL;
   char c;
   map<char, string> args;
   while((c = getopt(argc, argv, "b:dhp:s:t:v")) != -1){
@@ -114,14 +115,14 @@ int main(int argc, char** argv){
     Usage();
     exit(0);
   }
-  
+
   // Verbosity
   int verbosity = 0;
   if(args.count('v') > 0){
     verbosity = 3;
   }
   set_global_debug_level_fc(&verbosity);
-  
+
   // Options
   double bottom, sizing, top = 0.0;
   if(args.count('b') > 0){
@@ -137,7 +138,7 @@ int main(int argc, char** argv){
     cerr << "Sizing required" << endl;
     Usage();
     exit(-1);
-  }  
+  }
   if(args.count('t') > 0){
     top = atof(args['t'].c_str());
   }
@@ -146,7 +147,7 @@ int main(int argc, char** argv){
     result_degree = atoi(args['p'].c_str());
   }
   int result_continuity = args.count('d') > 0 ? -1 : (result_degree == 0 ? -1 : 0);
-  
+
   // Input / output
   string target_basename, integrated_filename, integrated_fieldname, output_basename;
   if(argc > optind + 3){
@@ -161,7 +162,7 @@ int main(int argc, char** argv){
     Usage();
     exit(-1);
   }
-      
+
   size_t target_basename_len = target_basename.size();
   size_t integrated_filename_len = integrated_filename.size();
   size_t output_basename_len = output_basename.size();
@@ -174,11 +175,11 @@ int main(int argc, char** argv){
   // Finalize the Python Interpreter
   python_end_();
 #endif
-  
+
 #ifdef HAVE_PETSC
   PetscFinalize();
 #endif
-  
+
 #ifdef HAVE_MPI
   MPI_Finalize();
 #endif

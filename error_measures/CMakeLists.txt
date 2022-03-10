@@ -26,5 +26,5 @@ target_sources(fluidity
 	Richardson_metric.F90
 )
 
-add_subdirectory(tests EXCLUDE_FROM_ALL)
-set(unittests ${error_measure_unittests}${unittests} PARENT_SCOPE)
+# add_subdirectory(tests EXCLUDE_FROM_ALL)
+# set(unittests ${error_measure_unittests}${unittests} PARENT_SCOPE)

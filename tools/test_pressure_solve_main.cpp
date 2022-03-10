@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <errno.h>
 #include <cstdlib>
 #include <iostream>
@@ -46,7 +47,7 @@ int main(int argc, char **argv){
   PetscErrorCode ierr = PetscInitialize(&argc, &argv, NULL, help);
   // PetscInitializeFortran needs to be called when initialising PETSc from C, but calling it from Fortran
   ierr = PetscInitializeFortran();
-  
+
   test_pressure_solve_();
   PetscFinalize();
 #ifdef HAVE_PYTHON
@@ -55,7 +56,7 @@ int main(int argc, char **argv){
 #endif
   return 0;
 #else
-  cerr << "ERROR: Not configured with PETSc, so test_pressure_solve is not gonna work!" << endl; 
+  cerr << "ERROR: Not configured with PETSc, so test_pressure_solve is not gonna work!" << endl;
   return 1;
 #endif
 

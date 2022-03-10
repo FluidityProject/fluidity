@@ -1,20 +1,3 @@
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ../lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin)
-
-enable_language(C CXX Fortran)
-
-find_package(MPI REQUIRED)
-
-set(CMAKE_Fortran_MODULE_DIRECTORY include)
-set(CMAKE_Fortran_FLAGS
-	"${CMAKE_Fortran_FLAGS} -ffree-line-length-none -ffixed-line-length-none -fdefault-real-8"
-)
-
-add_definitions(
-	-DHAVE_MPI
-	-DUSING_DOUBLE_PRECISION=1
-)
-
 add_library(adaptivity STATIC
 	adapt3d/src/adapt1.F
 	adapt3d/src/Adaptivity.cpp
@@ -132,47 +115,39 @@ add_library(adaptivity STATIC
 	adapt3d/src/wchfac.F
 	adapt3d/src/write_log.F
 	# load_balance/src/calculate_submeshes.cpp
-	# load_balance/src/c++debuglog.cpp
-	# load_balance/src/Element.cpp
-	# load_balance/src/errorHandling.cpp
+	load_balance/src/c++debuglog.cpp
+	load_balance/src/Element.cpp
+	load_balance/src/errorHandling.cpp
 	# load_balance/src/event2internal.c
 	# load_balance/src/event_migrate.c
-	# load_balance/src/exports.cpp
-	# load_balance/src/fixate.cpp
-	# load_balance/src/flstripH2.cpp
-	# load_balance/src/fluidity_sam.cpp
-	# load_balance/src/formHalo2.cpp
-	# load_balance/src/functional_2d.cpp
-	# load_balance/src/Graph.cpp
-	# load_balance/src/graph_partitioning.cpp
-	# load_balance/src/imports.cpp
-	# load_balance/src/invent_pressure_mesh.cpp
-	# load_balance/src/main.c
-	# load_balance/src/Mesh.cpp
+	load_balance/src/exports.cpp
+	load_balance/src/fixate.cpp
+	load_balance/src/flstripH2.cpp
+	load_balance/src/fluidity_sam.cpp
+	load_balance/src/formHalo2.cpp
+	load_balance/src/functional_2d.cpp
+	load_balance/src/Graph.cpp
+	load_balance/src/graph_partitioning.cpp
+	load_balance/src/imports.cpp
+	load_balance/src/invent_pressure_mesh.cpp
+	load_balance/src/main.c
+	load_balance/src/Mesh.cpp
 	# load_balance/src/metis.cpp
-	# load_balance/src/MI5.cpp
-	# load_balance/src/migrate.cpp
-	# load_balance/src/mtetin.F
-	# load_balance/src/Node.cpp
-	# load_balance/src/packing.cpp
-	# load_balance/src/ParMetis.cpp
-	# load_balance/src/PressureNode.cpp
+	load_balance/src/MI5.cpp
+	load_balance/src/migrate.cpp
+	load_balance/src/mtetin.F
+	load_balance/src/Node.cpp
+	load_balance/src/packing.cpp
+	load_balance/src/ParMetis.cpp
+	load_balance/src/PressureNode.cpp
 	# load_balance/src/unn_t.cpp
 	# load_balance/src/vtkio.cpp
 )
+target_compile_definitions(adaptivity PUBLIC HAVE_MPI HAVE_VTK)
 target_include_directories(adaptivity
 	PUBLIC
-	"${MPI_Fortran_INCLUDE_DIRS}"
-	"${MPI_C_INCLUDE_DIRS}"
-	"${MPI_CXX_INCLUDE_DIRS}"
-	${CMAKE_SOURCE_DIR}/include
 	include
 	adapt3d/include
 	load_balance/include
 )
-set_target_properties(adaptivity
-	PROPERTIES
-	COMPILE_OPTIONS "${MPI_C_COMPILE_OPTIONS};${MPI_CXX_COMPILE_OPTIONS};${MPI_Fortran_COMPILE_OPTIONS}"
-	COMPILE_DEFINITIONS "${MPI_C_COMPILE_DEFINITIONS};${MPI_CXX_COMPILE_DEFINITIONS};${MPI_Fortran_COMPILE_DEFINITIONS}"
-	LINK_OPTIONS "${MPI_C_LINK_FLAGS}${MPI_CXX_LINK_FLAGS};${MPI_Fortran_LINK_FLAGS}"
-)
+target_link_libraries(adaptivity "${VTK_LIBRARIES}")

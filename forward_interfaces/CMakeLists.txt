@@ -1,3 +1,1 @@
-target_sources(fluidity
-  PRIVATE Diagnostic_Fields_Wrapper_New.F90
-)
+target_sources(fluidity PRIVATE Diagnostic_Fields_Wrapper_New.F90)

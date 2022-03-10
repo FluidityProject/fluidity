@@ -1,6 +1,4 @@
-### This part copies the scripts to the ./bin folder
-
-set(local_scripts
+set(python_source_files
   clean_mayavi_mesh.py
   create_aligned_mesh.py
   create_makefile.py
@@ -41,68 +39,57 @@ set(local_scripts
   vtudiff.py
 )
 
-foreach(script IN LISTS local_scripts)
-    get_filename_component(script_name ${script} NAME_WE)
-    list(APPEND scripts ${script_name})
-    add_custom_target(${script_name} ALL
-      "${CMAKE_COMMAND}" "-E" copy "${CMAKE_CURRENT_SOURCE_DIR}/${script}" ${CMAKE_BINARY_DIR}/bin/${script_name})
+foreach(python_source_file ${python_source_files})
+    get_filename_component(name_we ${python_source_file} NAME_WE)
+    configure_file(${python_source_file} ../bin/${name_we})
 endforeach()
 
-### This part sets up targets for the other tests
-### Lists in CMake are semicolon seperated strings
+set(tools_source_files
+  Checkmesh
+  Differentiate_Vtu
+  Fladapt
+  fldiagnostics
+  Flredecomp
+  gmsh2vtu
+  Meshconv
+  periodise
+  petsc_readnsolve
+  Probe_Vtu
+  project_to_continuous
+  Project_Vtu
+  Streamfunction_2D
+  Supermesh_Difference
+  # test_laplacian
+  test_pressure_solve
+  triangle2vtu
+  unifiedmesh
+  Vertical_Integration
+  visualise_elements
+  vtkdiagnostic
+  vtkprojection
+  vtu2gmsh
+  vtu2triangle
+  Vtu_Bins
+)
 
-set(tools Vertical_Integration;fldiagnostics;Streamfunction_2D;Flredecomp;Meshconv;gmsh2vtu;vtu2gmsh;petsc_readnsolve;test_pressure_solve;project_to_continuous;unifiedmesh;Checkmesh;Project_Vtu;Probe_Vtu;Supermesh_Difference;Differentiate_Vtu;Vtu_Bins;Fladapt;)
-
-set(fortran_tools visualise_elements;periodise;)
-
-set(cpp_tools vtkprojection;vtkdiagnostic)
-
-foreach(tool IN LISTS tools)
-  add_executable(${tool} EXCLUDE_FROM_ALL ${tool}_main.cpp ${tool}.F90)
-  target_link_libraries(${tool}
-    fluidity
-  )
+foreach(tool ${tools_source_files})
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${tool}.F90
+  AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${tool}_main.cpp)
+    add_executable(${tool} ${tool}.F90 ${tool}_main.cpp)
+  elseif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${tool}.F90)
+    add_executable(${tool} ${tool}.F90)
+  else()
+    add_executable(${tool} ${tool}.cpp)
+  endif()
+  target_link_libraries(${tool} fluidity)
   string(TOLOWER ${tool} lc_tool)
-  set_target_properties(${tool}
-    PROPERTIES OUTPUT_NAME ${lc_tool}
-    LINKER_LANGUAGE CXX
-    COMPILE_OPTIONS "${MPI_Fortran_COMPILE_OPTIONS}"
-    COMPILE_DEFINITIONS "${MPI_Fortran_COMPILE_DEFINITIONS}"
-    LINK_OPTIONS "${MPI_Fortran_LINK_FLAGS}"
-  )
+  set_target_properties(${tool} PROPERTIES OUTPUT_NAME ${lc_tool})
+  list(APPEND tools_targets_list ${tool})
 endforeach()
 
-foreach(tool IN LISTS fortran_tools)
-  add_executable(${tool} EXCLUDE_FROM_ALL ${tool}.F90)
-  target_link_libraries(${tool}
-    fluidity
-  )
-endforeach()
+add_executable(test_laplacian_tool test_laplacian.F90)
+target_link_libraries(test_laplacian_tool fluidity)
+set_target_properties(test_laplacian_tool PROPERTIES OUTPUT_NAME test_laplacian)
+list(APPEND tools_targets_list test_laplacian_tool)
 
-
-### deal with tool with same name as test
-add_executable(test_laplacian_tool EXCLUDE_FROM_ALL test_laplacian.F90)
-target_link_libraries(test_laplacian_tool
-  fluidity
-)
-set_target_properties(test_laplacian_tool
-  PROPERTIES OUTPUT_NAME test_laplacian
-  COMPILE_OPTIONS "${MPI_Fortran_COMPILE_OPTIONS}"
-  COMPILE_DEFINITIONS "${MPI_Fortran_COMPILE_DEFINITIONS}"
-  LINK_OPTIONS "${MPI_Fortran_LINK_FLAGS}"
-)
-
-
-foreach(tool IN LISTS cpp_tools)
-  add_executable(${tool} EXCLUDE_FROM_ALL ${tool}.cpp)
-  target_link_libraries(${tool}
-    fluidity
-  )
-  set_target_properties(${tool}
-    PROPERTIES COMPILE_OPTIONS "${MPI_Fortran_COMPILE_OPTIONS}"
-    COMPILE_DEFINITIONS "${MPI_Fortran_COMPILE_DEFINITIONS}"
-    LINK_OPTIONS "${MPI_Fortran_LINK_FLAGS}"
-  )
-endforeach()
-
-set(tools ${tools};${fortran_tools};${cpp_tools};test_laplacian_tool PARENT_SCOPE)
+set(tools_targets "${tools_targets_list}" PARENT_SCOPE)

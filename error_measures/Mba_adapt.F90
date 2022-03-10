@@ -32,18 +32,18 @@ module mba_adapt_module
     type(vector_field), pointer :: positions
 
     integer :: nonods, mxnods, stotel, mxface, totele, maxele
-    real(4), dimension(:, :), allocatable :: pos
+    real, dimension(:, :), allocatable :: pos
     integer, dimension(:, :), allocatable :: ipf
     integer, dimension(:, :), allocatable :: ipe
-    real(4), dimension(:, :), allocatable :: parcrv
+    real, dimension(:, :), allocatable :: parcrv
     integer, dimension(:), allocatable :: ipv
     integer, dimension(:), allocatable :: iFnc
     integer, dimension(:), allocatable :: lbE
-    real(4), dimension(:, :), allocatable :: tmp_metric
+    real, dimension(:, :), allocatable :: tmp_metric
     integer :: i, j
-    real(4) :: rQuality
+    real :: rQuality
     integer :: ierr, maxWr, maxWi
-    real(4), dimension(:), allocatable :: rW
+    real, dimension(:), allocatable :: rW
     integer, dimension(:), allocatable :: iW
     integer :: status
     type(state_type) :: new_state
@@ -140,7 +140,7 @@ module mba_adapt_module
          0, 0, ipv, ipv, lbE, &
          .true., status, &
          100, 30000, &
-         tmp_metric, real(0.9, 4), rQuality, &
+         tmp_metric, 0.9, rQuality, &
          maxWr, maxWi, rW, iW, &
          10, ierr)
 

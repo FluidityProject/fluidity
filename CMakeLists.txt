@@ -5,31 +5,32 @@ project(fluidity
   LANGUAGES C CXX Fortran
 )
 
-option(HDF5_PREFER_PARALLEL "Prefer parallel HDF5" ON)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Set build type; \
+typical values include Debug, Release, RelWithDebInfo and MinSizeRel." FORCE
+  )
+endif()
 
-include(ExternalProject)
-include(FetchContent)
+set(CMAKE_PREFIX_PATH "$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}")
 
-find_package(PkgConfig REQUIRED)
-
-# Ensure that libraries and binaries end up in the right place
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/include)
 
-# Check for MPI
-find_package(MPI REQUIRED)
+option(HDF5_PREFER_PARALLEL "Look for parallel HDF5 first" ON)
+
+include(ExternalProject)
+include(FetchContent)
+
+find_package(PkgConfig REQUIRED)
 
 # Check for VTK
 find_package(VTK REQUIRED)
 
-# Check for HDF5
-find_package(HDF5 REQUIRED COMPONENTS Fortran)
-
 # Check for Python 3
-find_package(Python3 REQUIRED COMPONENTS Interpreter Development NumPy)
+find_package(Python3 REQUIRED Interpreter Development NumPy)
 # # Check for assess Python package
 # execute_process(
 #   COMMAND ${Python3_EXECUTABLE} -c "import assess"
@@ -37,70 +38,25 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter Development NumPy)
 # )
 
 # Check for PETSc
-pkg_search_module(PETSC REQUIRED PETSc)
-message(STATUS "Found PETSc " ${PETSC_VERSION})
+pkg_search_module(PETSC REQUIRED IMPORTED_TARGET PETSc)
+message(STATUS "Found PETSc ${PETSC_VERSION}")
 
 # Check for Zoltan
-find_path(
-  ZOLTAN_INCLUDE_DIR
-  NAMES zoltan.mod
-  REQUIRED
-)
-find_library(
-  ZOLTAN_LIBRARY
-  NAMES zoltan
-  REQUIRED
-)
+find_path(ZOLTAN_INCLUDE_DIR zoltan.mod REQUIRED)
+find_library(ZOLTAN_LIBRARY zoltan REQUIRED)
 
 # Check for NetCDF
-pkg_check_modules(NETCDF netcdf netcdf-fortran REQUIRED)
-find_library(
-  NETCDF_LIBRARY
-  NAMES netcdf
-  REQUIRED
-)
-find_library(
-  NETCDFF_LIBRARY
-  NAMES netcdff
-  REQUIRED
-)
-find_path(
-  NETCDF_INCLUDE_DIR
-  NAMES netcdf.inc
-  REQUIRED
-)
+pkg_check_modules(NETCDF REQUIRED netcdf netcdf-fortran)
 
-# Check for libspud
-find_library(
-  SPUD_LIBRARY
-  NAMES spud
-  REQUIRED
-)
-find_path(
-  SPUD_INCLUDE_DIR
-  NAMES spud.mod
-  REQUIRED
-)
+# Check for Spud
+find_path(SPUD_INCLUDE_DIR spud.mod REQUIRED)
+find_library(SPUD_LIBRARY spud REQUIRED)
 
 # Check for UDUNITS
-find_library(
-  UDUNITS_LIBRARY
-  NAMES udunits2
-  REQUIRED
-)
+find_library(UDUNITS_LIBRARY udunits2 REQUIRED)
 
-# # Check for exodusii
-# if (USE_EXODUSII)
-#    message(STATUS "link to exodusii")
-#    find_library(EXODUSII_LIB NAMES exoIIv2c exodus)
-#       set(USE_EXODUSII ON CACHE BOOL
-#       "include exodusii functionality")
-#    add_definitions(-DHAVE_EXODUSII=yes -DHAVE_LIBEXOIIV2C=1)
-# else()
-#    message(STATUS "No exodusii support")
-#    set(USE_EXODUSII OFF CACHE BOOL
-#       "Build and link exodusii")
-# endif()
+# Check for ExodusII
+find_library(EXODUSII_LIBRARY exoIIv2c REQUIRED)
 
 # # Check for CGAL
 # if (USE_CGAL)
@@ -145,10 +101,8 @@ ExternalProject_Add(libjudy
   LOG_TEST ON
 )
 ExternalProject_Add_Step(libjudy byproducts
-  COMMAND ""
   DEPENDEES install
   BYPRODUCTS <SOURCE_DIR>/lib/libJudy.a
-  WORKING_DIRECTORY <SOURCE_DIR>
   LOG ON
 )
 ExternalProject_Get_property(libjudy SOURCE_DIR)
@@ -162,206 +116,33 @@ set_target_properties(Judy
 add_custom_command(
   OUTPUT ${CMAKE_SOURCE_DIR}/preprocessor/register_diagnostics.F90
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/make_register_diagnostics.py
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   DEPENDS ${CMAKE_SOURCE_DIR}/tools/make_register_diagnostics.py
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   VERBATIM
 )
 add_custom_command(
   OUTPUT ${CMAKE_SOURCE_DIR}/preprocessor/check_options.F90
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/make_check_options.py
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   DEPENDS ${CMAKE_SOURCE_DIR}/tools/make_check_options.py
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   VERBATIM
 )
 add_custom_command(
   OUTPUT ${CMAKE_SOURCE_DIR}/diagnostics/Diagnostic_Fields_New.F90
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/make_diagnostic_fields.py
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/diagnostics
   DEPENDS ${CMAKE_SOURCE_DIR}/tools/make_diagnostic_fields.py
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/diagnostics
   VERBATIM
 )
 
-# FFLAGS depend on the compiler
-if (${CMAKE_Fortran_COMPILER_ID} STREQUAL "GNU")
-  # gfortran
-  set(CMAKE_Fortran_FLAGS_RELEASE "-funroll-all-loops  -O3")
-  set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -g")
-  set(CMAKE_Fortran_FLAGS
-  	"${CMAKE_Fortran_FLAGS} -frecord-marker=4 -ffree-line-length-none -ffixed-line-length-none -fdefault-real-8 -fdefault-double-8"
-  )
-elseif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-  # ifort (untested)
-  set(CMAKE_Fortran_FLAGS_RELEASE "-f77rtl -O3")
-  set(CMAKE_Fortran_FLAGS_DEBUG "-f77rtl -O0 -g")
-  set(CMAKE_Fortran_FLAGS
-  	"${CMAKE_Fortran_FLAGS} -ffastmath -frecord-marker=4 -extend_source -r8"
-  )
-else (${CMAKE_Fortran_COMPILER_ID} STREQUAL "GNU")
-  message("CMAKE_Fortran_COMPILER full path: " ${CMAKE_Fortran_COMPILER})
-  message("Fortran compiler: " ${CMAKE_Fortran_COMPILER_ID})
-  message("No optimized Fortran compiler flags are known, we just try -O2.")
-  set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
-  set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -g")
-endif (${CMAKE_Fortran_COMPILER_ID} STREQUAL "GNU")
-
-# Build libfluidity.a
-add_library(fluidity STATIC
-  main/mainfl.F90
-  main/Fluids.F90
-  main/Usage.cpp
-)
-add_dependencies(fluidity
-  adaptivity
-  mba2d
-  spatialindex
-  vtkfortran
-
-  H5hutf
-  Judy
-)
-target_compile_definitions(fluidity
-  PUBLIC
-  DOUBLEP
-  HAVE_ADAPTIVITY
-  HAVE_BLAS
-  HAVE_HYPRE
-  HAVE_LIBNETCDF
-  HAVE_LIBNETCDFF
-  HAVE_MEMORY_STATS
-  # HAVE_MBA_2D
-  HAVE_MPI
-  HAVE_NUMPY
-  HAVE_PETSC
-  HAVE_PYTHON
-  HAVE_VTK
-  HAVE_ZOLTAN
-  PACKAGE_NAME=fluidity
-  PACKAGE_TARNAME=fluidity
-  SIGNAL
-  STREAM_IO
-
-  "${MPI_Fortran_COMPILE_DEFINITIONS}"
-  "${HDF5_Fortran_DEFINITIONS}"
-)
-target_include_directories(fluidity
-  PUBLIC
-  "${MPI_Fortran_INCLUDE_DIRS}"
-  "${HDF5_Fortran_INCLUDE_DIRS}"
-  "${Python3_INCLUDE_DIRS}"
-  "${Python3_NumPy_INCLUDE_DIRS}"
-
-  "${PETSC_INCLUDE_DIRS}"
-
-  ${ZOLTAN_INCLUDE_DIR}
-  ${NETCDF_INCLUDE_DIR}
-  ${SPUD_INCLUDE_DIR}
-
-  ${libspatialindex_SOURCE_DIR}/include
-  ${libjudy_SOURCE_DIR}/src
-
-  ${CMAKE_SOURCE_DIR}/include
-  ${CMAKE_SOURCE_DIR}/h5hut/src/include
-  ${CMAKE_SOURCE_DIR}/h5hut/src/h5core
-  ${CMAKE_SOURCE_DIR}/libwm
-
-  ${CMAKE_BINARY_DIR}/libadaptivity/include
-  ${CMAKE_BINARY_DIR}/libvtkfortran/include
-)
-target_link_libraries(fluidity
-  adaptivity
-  mba2d
-  spatialindex
-  vtkfortran
-
-  H5hutf
-  Judy
-
-  "${MPI_Fortran_LIBRARIES}"
-  "${VTK_LIBRARIES}"
-  "${HDF5_Fortran_LIBRARIES}"
-  "${Python3_LIBRARIES}"
-
-  "${PETSC_LINK_LIBRARIES}"
-  "${PETSC_LDFLAGS}"
-  -lblas
-  -llapack
-  -lmetis
-  -lml
-  -lparmetis
-  -lptscotch
-  -lscotch
-
-  ${ZOLTAN_LIBRARY}
-
-  ${NETCDF_LIBRARY}
-  ${NETCDFF_LIBRARY}
-  ${SPUD_LIBRARY}
-  ${UDUNITS_LIBRARY}
-)
-
-add_subdirectory(assemble)
-add_subdirectory(bathymetry)
-add_subdirectory(climatology)
-add_subdirectory(debug)
-add_subdirectory(diagnostics)
-add_subdirectory(error_measures)
-add_subdirectory(femtools)
-add_subdirectory(fldecomp)
-add_subdirectory(forward_interfaces)
-add_subdirectory(h5hut)
-add_subdirectory(horizontal_adaptivity)
-add_subdirectory(libadaptivity)
-add_subdirectory(libmba2d)
-add_subdirectory(libvtkfortran)
-add_subdirectory(libwm)
-add_subdirectory(ocean_forcing)
-add_subdirectory(parameterisation)
-add_subdirectory(population_balance)
-add_subdirectory(preprocessor)
-add_subdirectory(sediments)
-add_subdirectory(tests)
-add_subdirectory(tools)
-
-# Build the fluidity binary
-add_executable(fluidity-bin
-  main.cpp
-)
-set_target_properties(fluidity-bin
-  PROPERTIES
-  OUTPUT_NAME fluidity
-)
-target_link_libraries(fluidity-bin
-  fluidity
-)
-target_link_options(fluidity-bin
-  PUBLIC
-  "${MPI_Fortran_COMPILE_OPTIONS}"
-  "${Python3_LINK_OPTIONS}"
-)
-
-# Add unittests
-add_custom_target(unittest
-  "${CMAKE_COMMAND}" "-E" "create_symlink" "${CMAKE_BINARY_DIR}/tests/data" "${CMAKE_BINARY_DIR}/bin/tests/data"
-  COMMAND bin/unittestharness bin/tests
-)
-add_dependencies(unittest ${unittests} unittestharness)
-foreach(mesh IN LISTS unittest_meshes_3d)
-  add_dependencies(unittest ${mesh})
-endforeach()
-
-add_custom_target(fltools DEPENDS ${tools} fldecomp)
-file(
-  WRITE "${CMAKE_BINARY_DIR}/include/confdefs.h"
+file(WRITE "${CMAKE_BINARY_DIR}/include/confdefs.h"
 "#define F77_FUNC(name,NAME) name ## _
 #define F77_FUNC_(name,NAME) name ## _"
 )
-file(
-  WRITE "${CMAKE_BINARY_DIR}/libvtkfortran/include/confdefs.h"
-"#define F77_FUNC(name,NAME) name ## _
-#define F77_FUNC_(name,NAME) name ## _"
-)
-file(
-  WRITE "${CMAKE_BINARY_DIR}/include/vtk.h"
+configure_file(include/confdefs.h libvtkfortran/include COPYONLY)
+configure_file(include/confdefs.h libadaptivity/include COPYONLY)
+
+file(WRITE "${CMAKE_BINARY_DIR}/include/vtk.h"
 "#ifndef VTK_H
 #define VTK_H
 
@@ -412,25 +193,160 @@ typedef float vtkFloatingPointType;
 #endif
 #endif"
 )
+configure_file(include/vtk.h libvtkfortran/include COPYONLY)
+configure_file(include/vtk.h libadaptivity/include COPYONLY)
 
-file(
-  COPY "${CMAKE_BINARY_DIR}/include/vtk.h"
-  DESTINATION "${CMAKE_BINARY_DIR}/libvtkfortran/include/"
+if(${CMAKE_Fortran_COMPILER_ID} STREQUAL "GNU")
+  set(CMAKE_Fortran_FLAGS_RELEASE "-funroll-all-loops -O3")
+  set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -g")
+  set(CMAKE_Fortran_FLAGS "-fbounds-check \
+-Wall -Wno-surprising -Wno-unused-function -Wno-unused-dummy-argument \
+-ffast-math \
+-frecord-marker=4 \
+-ffree-line-length-none -ffixed-line-length-none \
+-fdefault-real-8 -fdefault-double-8 \
+${CMAKE_Fortran_FLAGS}"
+  )
+elseif(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+  set(CMAKE_Fortran_FLAGS_RELEASE "-f77rtl -O3")
+  set(CMAKE_Fortran_FLAGS_DEBUG "-f77rtl -O0 -g")
+  set(CMAKE_Fortran_FLAGS "-ffastmath \
+-frecord-marker=4 \
+-extend_source \
+-r8 \
+${CMAKE_Fortran_FLAGS}"
+  )
+else()
+  message("CMAKE_Fortran_COMPILER full path: ${CMAKE_Fortran_COMPILER}")
+  message("Fortran compiler: ${CMAKE_Fortran_COMPILER_ID}")
+  message("No optimised Fortran compiler flags are known, we just try -O2.")
+  set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
+  set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -g")
+endif()
+
+configure_file(tools/version-info.in bin/version-info)
+execute_process(COMMAND
+  ${CMAKE_BINARY_DIR}/bin/version-info ${CMAKE_BINARY_DIR}/include/version.h
 )
 
-configure_file("tools/version-info.in" "bin/version-info")
-
-execute_process(
-  COMMAND
-  "${CMAKE_BINARY_DIR}/bin/version-info" "${CMAKE_BINARY_DIR}/include/version.h"
+# Build libfluidity.a
+add_library(fluidity STATIC main/mainfl.F90 main/Fluids.F90 main/Usage.cpp)
+add_dependencies(fluidity adaptivity mba2d spatialindex vtkfortran H5hutf Judy)
+target_compile_definitions(fluidity
+  PUBLIC
+  DOUBLEP
+  HAVE_ADAPTIVITY
+  HAVE_BLAS
+  HAVE_EXODUSII
+  HAVE_HYPRE
+  HAVE_LIBNETCDF
+  HAVE_LIBNETCDFF
+  HAVE_MEMORY_STATS
+  HAVE_MBA_2D
+  HAVE_MPI
+  HAVE_NUMPY
+  HAVE_PETSC
+  HAVE_PYTHON
+  HAVE_VTK
+  HAVE_ZOLTAN
+  PACKAGE_NAME=fluidity
+  PACKAGE_TARNAME=fluidity
+  SIGNAL
+  STREAM_IO
 )
+target_include_directories(fluidity
+  PUBLIC
+  "${VTK_INCLUDE_DIRS}"
+  "${Python3_INCLUDE_DIRS}"
+  "${Python3_NumPy_INCLUDE_DIRS}"
 
-add_custom_target(shorttest
-  COMMAND bin/testharness -l short
-)
-add_dependencies(shorttest fluidity-bin fltools)
+  "${PETSC_INCLUDE_DIRS}"
 
-add_custom_target(mediumtest
-  COMMAND ${CMAKE_BINARY_DIR}/bin/testharness -l medium
+  ${ZOLTAN_INCLUDE_DIR}
+  "${NETCDF_INCLUDE_DIRS}"
+  ${SPUD_INCLUDE_DIR}
+
+  ${libspatialindex_SOURCE_DIR}/include
+  ${libjudy_SOURCE_DIR}/src
+
+  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/h5hut/src/include
+  ${CMAKE_SOURCE_DIR}/h5hut/src/h5core
+  ${CMAKE_SOURCE_DIR}/libwm
+
+  ${CMAKE_BINARY_DIR}/libadaptivity/include
+  ${CMAKE_BINARY_DIR}/libvtkfortran/include
 )
-add_dependencies(mediumtest fluidity-bin fltools)
+target_link_libraries(fluidity
+  adaptivity
+  mba2d
+  spatialindex
+  vtkfortran
+
+  H5hutf
+  Judy
+
+  "${VTK_LIBRARIES}"
+  "${Python3_LIBRARIES}"
+
+  PkgConfig::PETSC
+  ${PETSC_STATIC_LDFLAGS}
+
+  ${ZOLTAN_LIBRARY}
+  ${NETCDF_STATIC_LDFLAGS}
+  ${SPUD_LIBRARY}
+  ${UDUNITS_LIBRARY}
+  ${EXODUSII_LIBRARY}
+)
+vtk_module_autoinit(TARGETS fluidity MODULES ${VTK_LIBRARIES})
+
+add_subdirectory(assemble)
+add_subdirectory(bathymetry)
+add_subdirectory(climatology)
+add_subdirectory(debug)
+add_subdirectory(diagnostics)
+add_subdirectory(error_measures)
+add_subdirectory(femtools)
+add_subdirectory(fldecomp)
+add_subdirectory(forward_interfaces)
+add_subdirectory(h5hut)
+add_subdirectory(horizontal_adaptivity)
+add_subdirectory(libadaptivity)
+add_subdirectory(libmba2d)
+add_subdirectory(libspud)
+add_subdirectory(libvtkfortran)
+add_subdirectory(libwm)
+add_subdirectory(ocean_forcing)
+add_subdirectory(parameterisation)
+add_subdirectory(population_balance)
+add_subdirectory(preprocessor)
+add_subdirectory(sediments)
+# add_subdirectory(tests)
+add_subdirectory(tools)
+
+# Build the fluidity binary
+add_executable(fluidity-bin main.cpp)
+set_target_properties(fluidity-bin PROPERTIES OUTPUT_NAME fluidity)
+target_link_libraries(fluidity-bin fluidity)
+
+# # Add unittests
+# add_custom_target(unittest
+#   "${CMAKE_COMMAND}" "-E" "create_symlink" "${CMAKE_BINARY_DIR}/tests/data" "${CMAKE_BINARY_DIR}/bin/tests/data"
+#   COMMAND bin/unittestharness bin/tests
+# )
+# add_dependencies(unittest ${unittests} unittestharness)
+# foreach(mesh IN LISTS unittest_meshes_3d)
+#   add_dependencies(unittest ${mesh})
+# endforeach()
+#
+# add_custom_target(fltools DEPENDS ${tools} fldecomp)
+#
+# add_custom_target(shorttest
+#   COMMAND bin/testharness -l short
+# )
+# add_dependencies(shorttest fluidity-bin fltools)
+#
+# add_custom_target(mediumtest
+#   COMMAND ${CMAKE_BINARY_DIR}/bin/testharness -l medium
+# )
+# add_dependencies(mediumtest fluidity-bin fltools)
