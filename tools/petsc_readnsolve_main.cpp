@@ -38,6 +38,7 @@ void usage(int argc, char **argv){
 
   char flml_extension[]=".flml";
   char *flml_file=NULL;
+  [[maybe_unused]]
   PetscErrorCode ierr;
   PetscBool      flg;
 
@@ -110,6 +111,7 @@ int main(int argc, char **argv){
 
 #ifdef HAVE_PETSC
   static char help[] = "Use -help to see the help.\n\n";
+  [[maybe_unused]]
   PetscErrorCode ierr = PetscInitialize(&argc, &argv, NULL, help);
   // PetscInitializeFortran needs to be called when initialising PETSc from C, but calling it from Fortran
   ierr = PetscInitializeFortran();

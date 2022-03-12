@@ -24,9 +24,7 @@ subroutine set_scalar_field_from_netcdf(field,path,position)
   type(scalar_field), intent(inout) :: field
   character(len=*), intent(in) :: path
   type(vector_field), intent(in) :: position
-  character(len=OPTION_PATH_LEN) :: field_name, format
-  real :: gravity_magnitude
-  integer :: stat
+  character(len=OPTION_PATH_LEN) :: format
 
   ! Are we getting data on a cartesian or lon-lat grid?
   on_sphere = have_option('/geometry/spherical_earth/')
@@ -39,7 +37,7 @@ subroutine set_scalar_field_from_netcdf(field,path,position)
     ! It is possible to manipulate imported netCDF data here.
     ! Note that the 'Free-surface height' format option is no longer supported.
     ! In this case the 'free_surface' node under pressure initial conditions should be used.
-    
+
     case ("raw")
       ewrite(3,*) "The data used to initialise field " // trim(field%name) // &
         ", has been treated as the raw values and not post-processed after import."
@@ -49,7 +47,7 @@ subroutine set_scalar_field_from_netcdf(field,path,position)
       ewrite(-1,*) "Please specify a valid format for initialiasing the field " // trim(field%name) // &
         ", at " // trim(path) // "/from_netcdf/format"
       FLAbort("Fatal error initialising a field from a netCDF file.")
-    
+
   end select
 
 end subroutine

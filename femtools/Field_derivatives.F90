@@ -37,7 +37,7 @@ module field_derivatives
       module procedure differentiate_field_lumped_single, differentiate_field_lumped_multiple, &
           differentiate_field_lumped_vector
     end interface
-    
+
     interface u_dot_nabla
       module procedure u_dot_nabla_scalar, &
         & u_dot_nabla_vector
@@ -63,17 +63,17 @@ module field_derivatives
       dg_ele_grad_at_quad, dg_ele_grad
 
     public :: compute_hessian_qf, compute_hessian_eqf, compute_hessian_var
-    
+
     contains
 
     function dg_ele_grad_scalar(field, ele, X, bc_value, bc_type) result (loc_grad)
       ! Return the element contritubtion to the grad matrix of (scalar)
-      ! field for element ele. X is the coordinate field, Optional 
+      ! field for element ele. X is the coordinate field, Optional
       ! arguments bc_value and bc_type allow for boundary information.
       ! Return the grad of field at the quadrature points of
       ! ele_number.
       !
-      ! N_i N_j grad_u = N_i delta u_h - 
+      ! N_i N_j grad_u = N_i delta u_h -
       !                  ({N_i} (u_h^-n^- + u_h^+n^+)) on internal faces -
       !                  (N_i (u_h - u_b) n) on weak dirichlet boundaries
       ! where: {x} = average of x over face
@@ -82,10 +82,10 @@ module field_derivatives
       ! (see Bassi et. al. 2005 - Discontinuous Galerkin solution of the Reynolds-averaged
       ! Navier–Stokes and k–x turbulence model equations, pg. 517
       type(scalar_field),intent(in) :: field
-      integer, intent(in) :: ele 
+      integer, intent(in) :: ele
       type(vector_field), intent(in) :: X
       type(scalar_field), intent(in), optional :: bc_value
-      integer, dimension(:), intent(in), optional :: bc_type   
+      integer, dimension(:), intent(in), optional :: bc_type
       real, dimension(mesh_dim(field), ele_loc(field, ele)) :: loc_grad
 
       ! variables for interior integral
@@ -107,7 +107,7 @@ module field_derivatives
       ! we can only compute for the L1 halo as we need values from adjacent elements
       assert( element_owned(field, ele) .or. element_neighbour_owned(field, ele) )
 
-      shape => ele_shape(field, ele) 
+      shape => ele_shape(field, ele)
       call transform_to_physical(X, ele, shape, dshape, detwei)
 
       ! Calculate grad within the element
@@ -164,7 +164,7 @@ module field_derivatives
       real, dimension(mesh_dim(field), face_loc(field, face)) :: face_rhs
       integer, dimension(face_loc(field, face))  :: lnodes
 
-      integer :: i, j
+      integer :: i
 
       face_rhs = 0.0
       vector = 0.0
@@ -173,25 +173,25 @@ module field_derivatives
       shape => face_shape(field, face)
       call transform_facet_to_physical(X, face, detwei_f=detwei, normal=normal)
 
-      if (face==face_2) then  
+      if (face==face_2) then
         ! boundary faces - need to apply weak dirichlet bc's
-        ! = - int_ v_h \cdot (u - u^b) n 
+        ! = - int_ v_h \cdot (u - u^b) n
         ! first check for weak-dirichlet bc
         ! if no bc_info is applied then assume not weak bc
         if (present(bc_type)) then
-          if (bc_type(face) == 1) then  
+          if (bc_type(face) == 1) then
             in_q = face_val_at_quad(field, face)
             in_bc_q = ele_val_at_quad(bc_value, face)
-            
+
             do i=1, mesh_dim(field)
               vector(i,:) = -1.0*(in_q(:) - in_bc_q(:))*normal(i,:)
             end do
-            face_rhs = shape_vector_rhs(shape, vector, detwei) 
+            face_rhs = shape_vector_rhs(shape, vector, detwei)
           end if
         end if
-      else    
+      else
         ! internal face
-        ! = int_ {v_h} \cdot J(x)  
+        ! = int_ {v_h} \cdot J(x)
         in_q = face_val_at_quad(field, face)
         in_q_2 = face_val_at_quad(field, face_2)
 
@@ -200,20 +200,20 @@ module field_derivatives
           !! test function at the interface.
           vector(i,:) = -0.5*(in_q(:) - in_q_2(:))*normal(i,:)
         end do
-        face_rhs = shape_vector_rhs(shape, vector, detwei) 
+        face_rhs = shape_vector_rhs(shape, vector, detwei)
       end if
 
       lnodes = face_local_nodes(field, face)
       loc_grad(:,lnodes) = loc_grad(:,lnodes) + face_rhs
 
     end subroutine dg_ele_grad_scalar_interface
-    
+
     function dg_ele_grad_vector(field, ele_number, X, bc_value, bc_type) result (loc_grad)
       ! Return the element contritubtion to the grad matrix of vector
-      ! field for element ele_number. X is the coordinate field, Optional 
+      ! field for element ele_number. X is the coordinate field, Optional
       ! arguments bc_value and bc_type allow for boundary information.
       !
-      ! N_i N_j grad_u = N_i delta u_h - 
+      ! N_i N_j grad_u = N_i delta u_h -
       !                  ({N_i} (u_h^-n^- + u_h^+n^+)) on internal faces -
       !                  (N_i (u_h - u_b) n) on weak dirichlet boundaries
       ! where: {x} = average of x over face
@@ -225,7 +225,7 @@ module field_derivatives
       integer, intent(in) :: ele_number
       type(vector_field), intent(in) :: X
       type(vector_field), intent(in), optional :: bc_value
-      integer, dimension(:,:), intent(in), optional :: bc_type   
+      integer, dimension(:,:), intent(in), optional :: bc_type
       real, dimension(mesh_dim(field), field%dim, ele_loc(field, ele_number)) :: loc_grad
 
       type(scalar_field) :: field_component, bc_component_value
@@ -243,12 +243,12 @@ module field_derivatives
       end do
 
     end function dg_ele_grad_vector
-    
+
     function dg_ele_grad_at_quad_scalar(field, ele_number, shape, X, bc_value, bc_type) result (quad_grad)
       ! Return the grad of field at the quadrature points of
-      ! ele_number. dn is the transformed element gradient. 
+      ! ele_number. dn is the transformed element gradient.
       ! including interface terms for dg discretisations based upon
-      ! N_i N_j grad_u = N_i delta u_h - 
+      ! N_i N_j grad_u = N_i delta u_h -
       !                  ({N_i} (u_h^-n^- + u_h^+n^+)) on internal faces -
       !                  (N_i (u_h - u_b) n) on weak dirichlet boundaries
       ! where: {x} = average of x over face
@@ -260,13 +260,10 @@ module field_derivatives
       integer, intent(in) :: ele_number
       type(vector_field), intent(in) :: X
       type(scalar_field), intent(in), optional :: bc_value
-      integer, dimension(:), intent(in), optional :: bc_type   
+      integer, dimension(:), intent(in), optional :: bc_type
       type(element_type), pointer, intent(in) :: shape
       real, dimension(mesh_dim(field), ele_loc(field, ele_number)) :: loc_grad
       real, dimension(mesh_dim(field), field%mesh%shape%ngi) :: quad_grad
-
-      type(scalar_field) :: field_component
-      integer :: j
 
       loc_grad = dg_ele_grad(field, ele_number, X, bc_value, bc_type)
 
@@ -274,12 +271,12 @@ module field_derivatives
       quad_grad = matmul(loc_grad, shape%n)
 
     end function dg_ele_grad_at_quad_scalar
-    
+
     function dg_ele_grad_at_quad_vector(field, ele_number, shape, X, bc_value, bc_type) result (quad_grad)
       ! Return the grad of field at the quadrature points of
-      ! ele_number. dn is the transformed element gradient. 
+      ! ele_number. dn is the transformed element gradient.
       ! including interface terms for dg discretisations based upon
-      ! N_i N_j grad_u = N_i delta u_h - 
+      ! N_i N_j grad_u = N_i delta u_h -
       !                  ({N_i} (u_h^-n^- + u_h^+n^+)) on internal faces -
       !                  (N_i (u_h - u_b) n) on weak dirichlet boundaries
       ! where: {x} = average of x over face
@@ -291,8 +288,8 @@ module field_derivatives
       integer, intent(in) :: ele_number
       type(vector_field), intent(in) :: X
       type(vector_field), intent(in), optional :: bc_value
-      integer, dimension(:,:), intent(in), optional :: bc_type    
-      type(element_type), pointer, intent(in) :: shape 
+      integer, dimension(:,:), intent(in), optional :: bc_type
+      type(element_type), pointer, intent(in) :: shape
       real, dimension(mesh_dim(field), field%dim, field%mesh%shape%ngi) :: quad_grad
 
       type(scalar_field) :: field_component, bc_component_value
@@ -344,7 +341,7 @@ module field_derivatives
       type(element_type) :: shape, x_shape
       logical :: already_processed
       type(mesh_type) :: mesh
-      
+
       integer :: level
       integer :: vset
 
@@ -359,11 +356,11 @@ module field_derivatives
       cnt = 0
       do i=1,size(derivatives)
         if (derivatives(i)) cnt = cnt + 1
-      end do 
+      end do
 
       assert(size(outfields) .ge. cnt)
 
-      call initialise_boundcount(infield%mesh, positions) 
+      call initialise_boundcount(infield%mesh, positions)
 
       ! FIXME: these lines assume (for efficiency reasons, since it's currently true)
       ! that each element of the mesh is the same.
@@ -458,7 +455,7 @@ module field_derivatives
 
       ! Boundary values aren't trustworthy on 2d domains, so set them from internal values
       call differentiate_boundary_correction(outfields, positions, shape, count(derivatives))
-      
+
       cnt = 0
       do i=1,size(derivatives)
          if (derivatives(i)) then
@@ -499,9 +496,9 @@ module field_derivatives
         !! required for dg gradient calculation
         allocate(bc_type(1:surface_element_count(infield)))
         call get_entire_boundary_condition(infield, (/"weakdirichlet"/), bc_value, bc_type)
-        
+
         call differentiate_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
-        
+
         call deallocate(bc_value)
         deallocate(bc_type)
       else
@@ -574,10 +571,8 @@ module field_derivatives
       type(scalar_field), dimension(infield%dim) :: pardiff
       type(scalar_field) :: component
 
-      real, dimension(t_field%dim(1),t_field%dim(2)) :: t
       logical, dimension(infield%dim) :: derivatives
       integer :: i, j
-      integer :: node
 
       !! Field over the entire surface mesh containing bc values:
       type(vector_field) :: bc_value
@@ -619,7 +614,7 @@ module field_derivatives
         call deallocate(bc_value)
         deallocate(bc_type, bc_component_type)
       end if
- 
+
     end subroutine grad_vector_tensor
 
     subroutine strain_rate(infield,positions,t_field)
@@ -649,19 +644,19 @@ module field_derivatives
         call differentiate_field(component, positions, derivatives, pardiff)
 
       end do
-      
-      ! Computing the final strain rate tensor      
+
+      ! Computing the final strain rate tensor
       do node=1,node_count(t_field)
            t=node_val(t_field, node)
-           call set(t_field, node, (t+transpose(t))/2) 
-      end do 
- 
+           call set(t_field, node, (t+transpose(t))/2)
+      end do
+
     end subroutine strain_rate
 
     subroutine differentiate_field_qf(infield, positions, derivatives, pardiff)
     !!< This routine computes the derivative using the QF (quadratic-fit)
     !!< approach described in:
-    !!< M.G. Vallet et al., Numerical comparison of some Hessian recovery techniques 
+    !!< M.G. Vallet et al., Numerical comparison of some Hessian recovery techniques
     !!< Int. J. Numer. Meth. Engng., in press
       type(scalar_field), intent(in), target :: infield
       type(vector_field), intent(in) :: positions
@@ -721,7 +716,7 @@ module field_derivatives
     subroutine compute_hessian_qf(infield, positions, hessian)
     !!< This routine computes the hessian using the QF (quadratic-fit)
     !!< approach described in:
-    !!< M.G. Vallet et al., Numerical comparison of some Hessian recovery techniques 
+    !!< M.G. Vallet et al., Numerical comparison of some Hessian recovery techniques
     !!< Int. J. Numer. Meth. Engng., in press
       type(scalar_field), intent(in), target :: infield
       type(vector_field), intent(in) :: positions
@@ -911,7 +906,7 @@ module field_derivatives
         r = dshape_outer_dshape(dt_t, dt_t, detwei)
         !r_ele = 0.5 * (tensormul(r, ele_val(infield, ele), 3) + tensormul(r, ele_val(infield, ele), 4))
         !r_ele = tensormul(r, ele_val(infield, ele), 4)
-        
+
         r_ele = 0.
         do i = 1,size(r,1)
            do j = 1,size(r,2)
@@ -952,7 +947,7 @@ module field_derivatives
       real, dimension(ele_ngi(pardiff(1), 1)) :: detwei
       real, dimension(ele_loc(pardiff(1), 1), ele_loc(pardiff(1), 1)) :: mass_matrix
       real, dimension(mesh_dim(pardiff(1))) :: old_val
-      
+
       logical :: has_neighbouring_interior_node
       type(patch_type) :: node_patch
       type(csr_sparsity), pointer :: nelist
@@ -982,7 +977,7 @@ module field_derivatives
               ! In words: find the row of the mass matrix corresponding to the node we're interested in,
               ! and stuff the integral of the shape functions into node_weights.
               call addto(node_weights, neighbour_nodes, mass_matrix(:, find(neighbour_nodes, node)))
-    
+
               ! Also: find out if the node has /any/ neighbouring interior nodes.
               if (.not. has_neighbouring_interior_node) then
                 do k=1,size(neighbour_nodes)
@@ -994,9 +989,9 @@ module field_derivatives
                 end do
               end if
             end do
-    
+
             ! Now that we have the weights, let us use them.
-    
+
             node_patch = get_patch_node(mesh, node)
             sum_weights = 0.0
             forall (j=1:count)
@@ -1017,7 +1012,7 @@ module field_derivatives
                 end do
               end if
             end do
-    
+
             if (sum_weights == 0.0) then
               forall (k=1:count)
                 pardiff(k)%val(node) = old_val(k)
@@ -1050,7 +1045,7 @@ module field_derivatives
       real, dimension(ele_ngi(hessian, 1)) :: detwei
       real, dimension(ele_loc(hessian, 1), ele_loc(hessian, 1)) :: mass_matrix
       real, dimension(hessian%dim(1), hessian%dim(2)) :: old_val
-      
+
       logical :: has_neighbouring_interior_node
       type(patch_type) :: node_patch
       type(csr_sparsity), pointer :: nelist
@@ -1079,7 +1074,7 @@ module field_derivatives
               ! In words: find the row of the mass matrix corresponding to the node we're interested in,
               ! and stuff the integral of the shape functions into node_weights.
               call addto(node_weights, neighbour_nodes, mass_matrix(:, find(neighbour_nodes, node)))
-    
+
               ! Also: find out if the node has /any/ neighbouring interior nodes.
               if (.not. has_neighbouring_interior_node) then
                 do k=1,size(neighbour_nodes)
@@ -1091,9 +1086,9 @@ module field_derivatives
                 end do
               end if
             end do
-    
+
             ! Now that we have the weights, let us use them.
-    
+
             node_patch = get_patch_node(mesh, node)
             sum_weights = 0.0
             old_val = hessian%val(:, :, node)
@@ -1110,7 +1105,7 @@ module field_derivatives
                                           hessian%val(:, :, nnode) * node_val(node_weights, nnode)
               end if
             end do
-    
+
             if (sum_weights == 0.0) then
               hessian%val(:, :, node) = old_val
             else
@@ -1200,11 +1195,11 @@ module field_derivatives
         derivatives(1) = .true. ; derivatives(2) = .true.
         call differentiate_field_spr(infield, positions, derivatives, pardiff, accuracy_at_cost)
 
-        temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 1, 1) 
+        temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 1, 1)
         temp_fields(2) = extract_scalar_field_from_tensor_field(hessian, 1, 2)
         derivatives(1) = .true. ; derivatives(2) = .false.
         call differentiate_field_spr(pardiff(1), positions, derivatives, temp_fields, accuracy_at_cost)
-        
+
         ! Now the state of hessian is
         ! [ d^2f/dx^2 d^2f/dydx ]
         ! [    ??         ??    ]
@@ -1331,7 +1326,7 @@ module field_derivatives
 
         ewrite(2,*) "+++: 2nd-order z derivatives computed"
       end if
-      
+
       do i=1,dim
         deallocate(pardiff(i)%val)
       end do
@@ -1420,7 +1415,7 @@ module field_derivatives
       do node=1,node_count(hessian)
         hess_ptr => hessian%val(:, :, node)
         hess_ptr = hess_ptr / node_val(lumped_mass_matrix, node)
-         
+
         ! Now we need to make it symmetric, see?
         do i=1,dim
           do j=i+1,dim
@@ -1468,7 +1463,7 @@ module field_derivatives
 
       call allocate(lumped_mass_matrix, mesh, "LumpedMassMatrix")
       call zero(lumped_mass_matrix)
-      
+
       do i=1, size(infields)
         if (compute(i)) then
           call allocate(gradient(i), positions%dim, mesh, "Gradient")
@@ -1481,7 +1476,7 @@ module field_derivatives
       do ele=1, element_count(mesh)
         call differentiate_field_ele(ele)
       end do
-        
+
       do i=1, size(infields)
         if (compute(i)) then
           k=0
@@ -1501,7 +1496,7 @@ module field_derivatives
       ! invert the lumped mass matrix
       call allocate(inverse_lumped_mass, mesh, "InverseLumpedMassMatrix")
       call invert(lumped_mass_matrix, inverse_lumped_mass)
-      
+
       ! compute pardiff=M^-1*pardiff
       do i=1, size(infields)
         do k=1, size(pardiff,1)
@@ -1518,35 +1513,35 @@ module field_derivatives
       call deallocate(inverse_lumped_mass)
 
       contains
-      
+
       subroutine differentiate_field_ele(ele)
         integer, intent(in):: ele
-      
+
         real, dimension(mesh_dim(mesh), ele_loc(mesh, ele), ele_loc(infields(1), ele)) :: r
         real, dimension(ele_ngi(mesh, ele)) :: detwei
         real, dimension(ele_loc(infields(1), ele), ele_ngi(infields(1), ele), mesh_dim(infields(1))) :: dt_t
         real, dimension(ele_loc(mesh, ele), ele_loc(mesh, ele)) :: mass_matrix
-        
+
         integer i
-        
+
         ! Compute detwei.
         call transform_to_physical(positions, ele, &
            ele_shape(infields(1), ele), dshape=dt_t, detwei=detwei)
 
         r = shape_dshape(ele_shape(mesh, ele), dt_t, detwei)
         do i=1, size(infields)
-          
+
           if (compute(i)) then
             call addto(gradient(i), ele_nodes(mesh, ele), &
                tensormul(r, ele_val(infields(i), ele), 3) )
           end if
 
         end do
-        
+
         ! Lump the mass matrix
         mass_matrix = shape_shape(ele_shape(mesh, ele), ele_shape(mesh, ele), detwei)
         call addto(lumped_mass_matrix, ele_nodes(mesh, ele), sum(mass_matrix, 2))
-        
+
       end subroutine differentiate_field_ele
 
     end subroutine differentiate_field_lumped_multiple
@@ -1557,13 +1552,13 @@ module field_derivatives
       type(vector_field), intent(in) :: positions
       logical, dimension(:), intent(in) :: derivatives
       type(scalar_field), dimension(:), intent(inout) :: pardiff
-        
+
       type(scalar_field), dimension(size(pardiff),1) :: pardiffs
-        
+
       pardiffs(:,1)=pardiff
-      
+
       call differentiate_field_lumped_multiple( (/ infield /), positions, derivatives, pardiffs)
-      
+
     end subroutine differentiate_field_lumped_single
 
     subroutine differentiate_field_lumped_vector(infield, positions, outfield)
@@ -1571,12 +1566,12 @@ module field_derivatives
       type(vector_field), intent(in), target :: infield
       type(vector_field), intent(in) :: positions
       type(tensor_field), intent(inout) :: outfield
-        
+
       logical, dimension( positions%dim ):: derivatives
       type(scalar_field), dimension( infield%dim ):: infields
       type(scalar_field), dimension( positions%dim, infield%dim ):: pardiffs
       integer i, j
-        
+
       derivatives=.true.
       do i=1, infield%dim
         infields(i)=extract_scalar_field(infield, i)
@@ -1584,11 +1579,11 @@ module field_derivatives
           pardiffs(j, i)=extract_scalar_field(outfield, j, i)
         end do
       end do
-        
+
       call differentiate_field_lumped_multiple( infields, positions, derivatives, pardiffs)
-      
+
     end subroutine differentiate_field_lumped_vector
-      
+
     subroutine differentiate_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
       type(scalar_field), intent(in), target :: infield
       type(vector_field), intent(in) :: positions
@@ -1630,7 +1625,7 @@ module field_derivatives
         call zero(pardiff(i))
         end if
       end if
-      
+
     end subroutine differentiate_field
 
     subroutine differentiate_discontinuous_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
@@ -1641,7 +1636,7 @@ module field_derivatives
 
       type(scalar_field), intent(in), optional :: bc_value
       integer, dimension(:), intent(in), optional :: bc_type
-      
+
       integer :: ele, i
 
       if (infield%field_type == FIELD_TYPE_CONSTANT) then
@@ -1657,36 +1652,26 @@ module field_derivatives
       do i=1, count(derivatives)
         assert(pardiff(i)%mesh%continuity<0)
       end do
-      
+
       ! calculate gradient
       do ele = 1, ele_count(infield)
         call calculate_grad_ele_dg(infield, positions, derivatives, pardiff, ele, bc_value, bc_type)
       end do
 
-    end subroutine differentiate_discontinuous_field    
+    end subroutine differentiate_discontinuous_field
 
     subroutine calculate_grad_ele_dg(infield, positions, derivatives, pardiff, ele, bc_value, bc_type)
       type(scalar_field), intent(in), target :: infield
       type(vector_field), intent(in) :: positions
       logical, dimension(:), intent(in) :: derivatives
-      type(scalar_field), dimension(:), intent(inout) :: pardiff  
+      type(scalar_field), dimension(:), intent(inout) :: pardiff
       integer, intent(in) :: ele
       type(scalar_field), intent(in), optional :: bc_value
-      integer, dimension(:), intent(in), optional :: bc_type    
-      
-      ! variables for interior integral
-      type(element_type), pointer :: shape
-      real, dimension(ele_loc(infield, ele), ele_ngi(infield, ele), positions%dim) :: dshape
-      real, dimension(ele_ngi(infield, ele)) :: detwei
-      real, dimension(positions%dim, ele_ngi(infield, ele)) :: grad_gi
+      integer, dimension(:), intent(in), optional :: bc_type
+
       real, dimension(positions%dim, ele_loc(infield, ele)) :: rhs
 
-      ! variables for surface integral
-      integer :: ni, ele_2, face, face_2, i
-      integer, dimension(:), pointer :: neigh
-
-      ! inverse mass
-      real, dimension(ele_loc(infield, ele), ele_loc(infield, ele)) :: inv_mass
+      integer :: i
 
       ! In parallel, we only construct the equations on elements we own, or
       ! those in the L1 halo.
@@ -1694,7 +1679,7 @@ module field_derivatives
         return
       end if
 
-      ! Get dg grad       
+      ! Get dg grad
       rhs = dg_ele_grad(infield, ele, positions, bc_value, bc_type)
 
       ! set pardiffs
@@ -1711,7 +1696,7 @@ module field_derivatives
       type(vector_field), intent(in) :: positions
       logical, dimension(:), intent(in) :: derivatives
       type(scalar_field), dimension(:), intent(inout) :: pardiff
-        
+
       type(element_type) xshape, inshape, dershape
       real, dimension(ele_loc(infield,1), ele_ngi(infield,1), size(derivatives)):: dinshape
       real, dimension(size(derivatives), size(derivatives), ele_ngi(infield,1)):: invJ
@@ -1720,7 +1705,7 @@ module field_derivatives
       real, dimension(size(derivatives), size(r), ele_loc(infield,1)):: Q
       real, dimension(ele_ngi(infield,1)):: detwei
       integer ele, gi, i, j
-      
+
       if (infield%field_type == FIELD_TYPE_CONSTANT) then
         do i=1,count(derivatives)
           if (derivatives(i)) then
@@ -1729,7 +1714,7 @@ module field_derivatives
         end do
         return
       end if
-      
+
       ! only works if all pardiff fields are discontinuous:
       do i=1, count(derivatives)
         assert(pardiff(i)%mesh%continuity<0)
@@ -1742,13 +1727,13 @@ module field_derivatives
         ewrite(0,*) "Error has occured in differentiate_field_discontinuous, with field, ", trim(infield%name)
         FLAbort("Shouldn't get here?")
       end if
-      
+
       xshape=ele_shape(positions, 1)
       inshape=ele_shape(infield, 1)
       dershape=ele_shape(pardiff(1), 1)
-      
+
       do ele=1, element_count(infield)
-        
+
          ! calculate the transformed derivative of the shape function
          call compute_inverse_jacobian( positions, ele, invJ, detwei=detwei)
          do gi=1, inshape%ngi
@@ -1756,11 +1741,11 @@ module field_derivatives
                dinshape(i,gi,:)=matmul(invJ(:,:,gi), inshape%dn(i,gi,:))
             end do
          end do
-           
+
          M=shape_shape(dershape, dershape, detwei)
          Q=shape_dshape(dershape, dinshape, detwei)
          call invert(M)
-         
+
          ! apply Galerkin projection M^{-1} Q \phi
          j=0
          do i=1, size(derivatives)
@@ -1770,11 +1755,11 @@ module field_derivatives
                call set(pardiff(j), ele_nodes(pardiff(j), ele), r)
             end if
         end do
-          
+
       end do
-      
+
     end subroutine differentiate_field_discontinuous
-      
+
     subroutine compute_hessian(infield, positions, hessian)
       type(scalar_field), intent(inout) :: infield
       type(vector_field), intent(in) :: positions
@@ -1807,7 +1792,7 @@ module field_derivatives
       integer :: i
       real :: w, a, b, c
       type(mesh_type) :: mesh
-      
+
       assert(positions%dim == 3)
 
       mesh = infield%mesh
@@ -1844,24 +1829,24 @@ module field_derivatives
       end do
 
     end subroutine curl
-    
+
   subroutine u_dot_nabla_scalar(v_field, in_field, positions, out_field)
     !!< Calculates (u dot nabla) in_field for scalar fields
-      
+
     type(vector_field), intent(in) :: v_field
     type(scalar_field), intent(in) :: in_field
     type(vector_field), intent(in) :: positions
     type(scalar_field), intent(inout) :: out_field
-    
+
     integer :: i
     real, dimension(positions%dim) :: grad_val_at_node, &
       & v_field_val_at_node
     type(vector_field) :: gradient
-    
+
     call allocate(gradient, positions%dim, in_field%mesh, "Gradient")
-    
+
     call grad(in_field, positions, gradient)
-    
+
     call zero(out_field)
     do i = 1, node_count(out_field)
       grad_val_at_node = node_val(gradient, i)
@@ -1869,14 +1854,14 @@ module field_derivatives
       call set(out_field, i, &
         & dot_product(v_field_val_at_node, grad_val_at_node))
     end do
-    
+
     call deallocate(gradient)
-    
+
   end subroutine u_dot_nabla_scalar
-  
+
   subroutine u_dot_nabla_vector(v_field, in_field, positions, out_field)
     !!< Calculates (u dot nabla) in_field for vector fields
-    
+
     type(vector_field), intent(in) :: v_field
     type(vector_field), intent(in) :: in_field
     type(vector_field), intent(in) :: positions
@@ -1891,7 +1876,7 @@ module field_derivatives
         & extract_scalar_field(in_field, i), positions, &
         & out_field_comp)
     end do
-    
+
   end subroutine u_dot_nabla_vector
 
 !    subroutine compute_hessian_eqf(infield, positions, hessian)
@@ -1966,7 +1951,7 @@ module field_derivatives
 
       call solve(A, b)
     end function get_quadratic_fit_eqf
-    
+
     subroutine compute_hessian_eqf(infield, positions, hessian)
       type(scalar_field), intent(in) :: infield
       type(vector_field), intent(in) :: positions
@@ -2045,7 +2030,7 @@ module field_derivatives
 
       call deallocate(derivative(1))
     end subroutine div
-    
+
     function insphere_tet(positions) result(centre)
       !! dim x loc
       real, dimension(3, 4), intent(in) :: positions

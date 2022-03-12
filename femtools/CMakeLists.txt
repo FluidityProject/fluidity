@@ -9,8 +9,6 @@ target_sources(fluidity
   CGAL_Tools_C.cpp
   CGAL_Tools.F90
   Checkpoint.F90
-  C_Interfaces.c
-  C_Interfaces_Fortran.F90
   Colouring.F90
   Conservative_interpolation.F90
   Coordinates.F90
@@ -74,8 +72,6 @@ target_sources(fluidity
   Halos_Ownership.F90
   Halos_Registration.F90
   Halos_Repair.F90
-  ieee_arithmetic_C99.c
-  ieee_arithmetic_dummy.F90
   Integer_hash_table.F90
   Integer_set.F90
   Interpolation.F90

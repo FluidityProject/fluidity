@@ -1,5 +1,5 @@
 !    Copyright (C) 2008 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -38,7 +38,7 @@ module timeloop_utilities
   use signal_vars
   use timers
   implicit none
-  
+
   private
 
   public :: copy_to_stored_values, copy_from_stored_values,&
@@ -52,7 +52,7 @@ contains
     character(len=*), intent(in) :: prefix
 
     integer :: s, f, stat
-    
+
     type(scalar_field) :: sfield, old_sfield
     type(vector_field) :: vfield, old_vfield
     type(tensor_field) :: tfield, old_tfield
@@ -103,7 +103,7 @@ contains
           end if
 
        end do
-       
+
        do f=1,tensor_field_count(state(s))
 
           tfield=extract_tensor_field(state(s), f)
@@ -112,12 +112,12 @@ contains
 
             old_tfield=extract_tensor_field(state(s), trim(prefix)//tfield%name,&
                 & stat=stat)
-  
+
             if ((stat==0).and.(.not.aliased(old_tfield))) then
               ! In this case there is an old field to be set.
-  
+
               call set(old_tfield, tfield)
-  
+
             end if
 
           end if
@@ -134,7 +134,7 @@ contains
     character(len=*), intent(in) :: prefix
 
     integer :: s, f, stat
-    
+
     type(scalar_field) :: sfield, old_sfield
     type(vector_field) :: vfield, old_vfield
     type(tensor_field) :: tfield, old_tfield
@@ -146,7 +146,7 @@ contains
           sfield=extract_scalar_field(state(s), f)
 
           if(.not.(have_option(trim(sfield%option_path)//"/prescribed"))) then
-             
+
              if(.not.aliased(sfield)) then
 
                 ! Special case: do not copy back pressure or density or geostrophic pressure
@@ -175,7 +175,7 @@ contains
           vfield=extract_vector_field(state(s), f)
 
           if(.not.(have_option(trim(vfield%option_path)//"/prescribed"))) then
-             
+
              if(.not.aliased(vfield)) then
 
                 ! Special case: do not copy back the coordinates or the gridvelocity
@@ -185,24 +185,24 @@ contains
 
                 old_vfield=extract_vector_field(state(s), trim(prefix)//vfield%name,&
                      & stat=stat)
-                
+
                 if ((stat==0).and.(.not.aliased(old_vfield))) then
                    ! In this case there is an old field to be set.
                    call set(vfield, old_vfield)
                 end if
-                
+
              end if
-             
+
           end if
 
        end do
-       
+
        do f=1,tensor_field_count(state(s))
 
           tfield=extract_tensor_field(state(s), f)
 
           if(.not.(have_option(trim(tfield%option_path)//"/prescribed"))) then
-             
+
              if(.not.aliased(tfield)) then
 
                 old_tfield=extract_tensor_field(state(s), trim(prefix)//tfield%name,&
@@ -255,7 +255,7 @@ contains
     type(vector_field) :: vfield, old_vfield, nl_vfield
     type(tensor_field) :: tfield, old_tfield, nl_tfield
 
-    !For projecting velocity to continuous 
+    !For projecting velocity to continuous
     type(vector_field) :: U_nl, pvelocity, X
     type(vector_field), pointer :: velocity
 
@@ -264,11 +264,11 @@ contains
        velocity=>extract_vector_field(state(s), "Velocity", stat)
        if(stat==0) then
           if (have_option(trim(velocity%option_path)//"/prognostic")) then
-             call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/relaxation", itheta, default=0.5)
+            call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/relaxation", itheta, default=0.5)
           else if (have_option(trim(velocity%option_path)//"/prescribed")) then
-             call get_option(trim(velocity%option_path)//"/prescribed/temporal_discretisation/relaxation", itheta, default=1.0)
+            call get_option(trim(velocity%option_path)//"/prescribed/temporal_discretisation/relaxation", itheta, default=1.0)
           else
-	     itheta = 0.5
+            itheta = 0.5
           end if
        else
          itheta = 0.5
@@ -287,7 +287,7 @@ contains
                 & stat=nl_stat)
 
             if ((old_stat==0).and.(nl_stat==0)) then
-            
+
               call set(nl_sfield, sfield, old_sfield, itheta)
 
             end if

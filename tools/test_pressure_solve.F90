@@ -2,9 +2,9 @@
   !! WE SOLVE MINUS LAPLACE EQUATION -- i.e. geometric Laplacian
   !! This is to make a positive definite matrix (instead of negative)
 #include "fdebug.h"
-  
+
   subroutine test_pressure_solve
-  
+
     use futils, only: free_unit
     use quadrature
     use unittest_tools
@@ -16,7 +16,7 @@
     use mesh_files
     use vtk_interfaces
     use boundary_conditions
-    use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN
+    use global_parameters, only: PYTHON_FUNC_LEN
     use free_surface_module
     use FLDebug
     use petsc
@@ -59,7 +59,7 @@
 
        call insert(state, positions, name="Coordinate")
        call insert(state, positions%mesh, "Coordinate_mesh")
-       
+
        call allocate(vertical_normal, mesh_dim(x_mesh), x_mesh, &
          field_type=FIELD_TYPE_CONSTANT, name="GravityDirection")
        call zero(vertical_normal)
@@ -82,9 +82,9 @@
        call insert(state, psi, "Psi")
        call insert(state, DistanceToTop,"DistanceToTop")
 
-       inquire(file=trim(exact_sol_filename),exist=file_exists)  
+       inquire(file=trim(exact_sol_filename),exist=file_exists)
        if (.not.file_exists) FLAbort('Couldnt find exact_sol_filename file')
-       unit=free_unit() 
+       unit=free_unit()
        open(unit, file=trim(exact_sol_filename), action="read",&
             & status="old")
        read(unit, '(a)', end=43) func
@@ -95,22 +95,21 @@
        end do
 43     func=trim(func)//achar(10)
        close(unit)
-       
+
        call allocate(exact,psi%mesh,name='Exact')
        call set_from_python_function(exact, trim(func), positions, 0.0)
-       
+
        positions%val(1,:) = positions%val(1,:)/eps0
        positions%val(2,:) = positions%val(2,:)/eps0
-       
+
        call insert(state,exact,'Exact')
-       
+
        call run_model(state,vl_as,vl_as_wsor,vl,no_vl,sor)
     end if
 
   end subroutine test_pressure_solve
 
   subroutine run_model(state,vl_as,vl_as_wsor,vl,no_vl,sor)
-    use global_parameters, only: PYTHON_FUNC_LEN
     use unittest_tools
     use sparse_tools
     use solvers
@@ -172,7 +171,7 @@
 
     call allocate(rhs, psi%mesh, "RHS")
     call zero(rhs)
-    
+
     call get_laplacian(A,positions,psi)
     !call set_reference_node(A, top_surface_node_list(1), rhs, 0.0)
     call set(A, top_surface_node_list(1),top_surface_node_list(1), INFINITY)
@@ -180,14 +179,14 @@
     call allocate(error, psi%mesh, "Error")
     call zero(error)
 
-    exact%val = exact%val - exact%val(top_surface_node_list(1)) 
+    exact%val = exact%val - exact%val(top_surface_node_list(1))
     exact%val(top_surface_node_list(1)) = 0.0
 
     call mult(rhs%val,A,exact%val)
 
     call zero(psi)
 
-    ! supplying the prolongator to petsc_solve makes 'mg' 
+    ! supplying the prolongator to petsc_solve makes 'mg'
     ! use the vertical_lumping option
     vprolongator = &
          vertical_prolongator_from_free_surface(state, psi%mesh)
@@ -196,7 +195,7 @@
          ksptype="cg", pctype="mg", &
          atol=1.0e-100, rtol=1.0e-20, max_its=10000, &
          start_from_zero=.true.)
-         
+
     call add_option(trim(psi%option_path)//'/solver/diagnostics/monitors/true_error', stat=stat)
 
     if(vl_as) then
@@ -208,7 +207,7 @@
             & internal_smoothing_option=INTERNAL_SMOOTHING_SEPARATE_SOR)
     end if
 
-    if(vl_as_wsor) then       
+    if(vl_as_wsor) then
        ewrite(1,*) 'with vertical lumping and internal smoother and wrapped &
             &sor'
        call petsc_solve_monitor_exact(exact, error_filename='with_vl_and_is_wrap_sor.dat')
@@ -277,12 +276,12 @@
     real, dimension(ele_loc(psi,ele), &
          ele_ngi(psi,ele), positions%dim) :: dshape_psi
     ! Coordinate transform * quadrature weights.
-    real, dimension(ele_ngi(positions,ele)) :: detwei    
+    real, dimension(ele_ngi(positions,ele)) :: detwei
     ! Node numbers of psi element.
     integer, dimension(:), pointer :: ele_psi
     ! Shape functions.
     type(element_type), pointer :: shape_psi
-    ! Local Laplacian matrix 
+    ! Local Laplacian matrix
     real, dimension(ele_loc(psi, ele), ele_loc(psi, ele)) :: psi_mat
     ! tensor
 
@@ -329,7 +328,7 @@
     eps0 = number_in
 
     call PetscOptionsGetString(PETSC_NULL_OPTIONS, PETSC_NULL_CHARACTER, '-exact_solution', exact_sol_filename, flag, ierr)
-    if (.not. flag) then 
+    if (.not. flag) then
        call usage()
     end if
 
@@ -346,15 +345,15 @@
   end subroutine pressure_solve_options
 
   subroutine usage()
-    use FLDebug    
+    use FLDebug
     ewrite(0,*) 'Usage: test_pressure_solve -filename <filename> &
          &-exact_solution <exact_solution_python_filename> -epsilon &
          &<epsilon> [options ...]'
     ewrite(0,*) 'Options:'
-    ewrite(0,*) '-vl_as' 
+    ewrite(0,*) '-vl_as'
     ewrite(0,*) '       Performs a solve using vertical lumping with additive &
          &smoother'
-    ewrite(0,*) '-vl_as_wsor' 
+    ewrite(0,*) '-vl_as_wsor'
     ewrite(0,*) '       Performs a solve using vertical lumping with additive &
          &smoother and wrapped sor'
     ewrite(0,*) '-vl'
@@ -364,5 +363,3 @@
     ewrite(0,*) '       Performs a solve using regular mg'
     stop
   end subroutine usage
-
-

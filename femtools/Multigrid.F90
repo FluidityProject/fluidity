@@ -13,15 +13,15 @@ use sparse_tools_petsc
 implicit none
 #include "petsc_legacy.h"
 
-!! Some parameters that change the behaviour of
+!! Some parameters that change the behaviour of 
 !! the smoothed aggregation method. All of
 !! of these can also be set as PETSC_options:
-!!
+!! 
 !! --mymg_maxlevels, --mymg_coarsesize, --mymg_epsilon and --mymg_omega
 !!
 !! maximum number of multigrid levels:
 integer, public, parameter:: MULTIGRID_MAXLEVELS_DEFAULT=25
-!! the maximum number of nodes at the coarsest level
+!! the maximum number of nodes at the coarsest level 
 !! (that is solved by a direct solver):
 !! in serial we use a direct solver:
 integer, public, parameter:: MULTIGRID_COARSESIZE_DEFAULT_SERIAL=5000
@@ -47,7 +47,7 @@ integer, private, parameter:: ISOLATED=0, COUPLED=-1
 integer, public, parameter :: &
      !No internal smoothing
      INTERNAL_SMOOTHING_NONE=0, &
-     !No SOR on outer level of the multigrids, whole PC wrapped in
+     !No SOR on outer level of the multigrids, whole PC wrapped in 
      !SOR sweeps
      INTERNAL_SMOOTHING_WRAP_SOR=1, &
      !SOR on outer level of the multigrids, no wrapping SOR
@@ -68,7 +68,7 @@ PetscReal, dimension(:), pointer, save :: surface_values => null()
 
 private
 public SetupSmoothedAggregation, SetupMultigrid, DestroyMultigrid
-
+  
 contains
 
 subroutine SetUpInternalSmoother(surface_node_list_in,matrix,pc, &
@@ -83,7 +83,7 @@ subroutine SetUpInternalSmoother(surface_node_list_in,matrix,pc, &
   type(csr_matrix) :: matrix_internal
   integer :: row,i, ierr, nsurface
   integer, dimension(:), pointer :: r_ptr
-
+  
   integer, dimension(:), allocatable :: surface_flag
   logical :: lno_top_smoothing
   ! these are used to point at things in csr_matrices so should be using
@@ -106,24 +106,24 @@ subroutine SetUpInternalSmoother(surface_node_list_in,matrix,pc, &
 
   call allocate(matrix_internal,matrix%sparsity)
   call set(matrix_internal,matrix)
-
+  
   !zero all surface columns in matrix_internal
   do row = 1, size(matrix,1)
      r_ptr => row_m_ptr(matrix_internal,row)
      r_val_ptr => row_val_ptr(matrix_internal,row)
-
+     
      if(any(surface_flag(r_ptr)==0)) then
         call set(matrix_internal,row,r_ptr,r_val_ptr*surface_flag(r_ptr))
      end if
   end do
-
+  
   !zero all surface row in matrix_internal
   !and put a 1 on the diagonal
   do i = 1, size(surface_node_list)
      row = surface_node_list(i)
      r_ptr => row_m_ptr(matrix_internal,row)
      r_val_ptr => row_val_ptr(matrix_internal,row)
-
+     
      call set(matrix_internal,row,r_ptr,0.0*r_val_ptr)
      call set(matrix_internal,row,row,1.0)
   end do
@@ -151,11 +151,11 @@ subroutine ApplySmoother(dummy,vec_in,vec_out,ierr_out)
   Vec, intent(inout) :: vec_out
   PetscErrorCode, intent(inout) :: ierr_out
   integer, intent(in) :: dummy
-
+  
   integer :: ierr
-
+  
   ierr_out=0
-
+  
   call PCApply(internal_smoother_pc,vec_in,vec_out, ierr)
 
   call VecSetValues(vec_out, size(surface_node_list), &
@@ -186,12 +186,12 @@ subroutine SetupMultigrid(prec, matrix, ierror, &
 !!< all options (vertical_lumping, internal_smoother)
 PC, intent(inout):: prec
 Mat, intent(in):: matrix
-!! ierror=0 upon succesful return, otherwise ierror=1 and everything
+!! ierror=0 upon succesful return, otherwise ierror=1 and everything 
 !! will be deallocated
 integer, intent(out):: ierror
 !! use external prolongator at the finest level
 type(petsc_csr_matrix), dimension(:), optional, intent(in):: external_prolongators
-!! if present, use additve smoother that solves the eliptic problem with
+!! if present, use additve smoother that solves the eliptic problem with 
 !! the solution of the last multigrid iteration at the top surface as
 !! dirichlet boundary condition
 integer, optional, dimension(:):: surface_node_list
@@ -202,7 +202,7 @@ integer :: linternal_smoothing_option
 
   PetscErrorCode ierr
   PC subprec, subsubprec
-
+  
   !! Get internal smoothing options
   linternal_smoothing_option = INTERNAL_SMOOTHING_NONE
   if(present(internal_smoothing_option)) then
@@ -227,10 +227,10 @@ integer :: linternal_smoothing_option
      call PCSetType(prec, PCCOMPOSITE, ierr)
      call PCCompositeSetType(prec, PC_COMPOSITE_MULTIPLICATIVE, ierr)
      ! consisting of outer SOR iterations and the composite PC
-     call PCCompositeAddPCType(prec, PCSOR, ierr)
-     call PCCompositeAddPCType(prec, PCCOMPOSITE, ierr)
-     call PCCompositeAddPCType(prec, PCSOR, ierr)
-
+     call PCCompositeAddPC(prec, PCSOR, ierr)     
+     call PCCompositeAddPC(prec, PCCOMPOSITE, ierr)
+     call PCCompositeAddPC(prec, PCSOR, ierr)
+     
      !set up the forward SOR
      call PCCompositeGetPC(prec, 0, subprec, ierr)
      call PCSORSetSymmetric(subprec,SOR_FORWARD_SWEEP,ierr)
@@ -242,16 +242,16 @@ integer :: linternal_smoothing_option
      call PCSORSetSymmetric(subprec,SOR_BACKWARD_SWEEP,ierr)
      call PCSORSetIterations(subprec,1,1,ierr)
      call PCSORSetOmega(subprec,real(1.0, kind = PetscReal_kind),ierr)
-
-     !set up the middle PC
+     
+     !set up the middle PC 
      call PCCompositeGetPC(prec, 1, subprec, ierr)
      !It is compositive additive
      call PCSetType(subprec, PCCOMPOSITE, ierr)
      call PCCompositeSetType(subprec, PC_COMPOSITE_ADDITIVE, ierr)
-     !consisting of the vertical lumped mg, and the internal smoother
+     !consisting of the vertical lumped mg, and the internal smoother 
      !which is a shell
-     call PCCompositeAddPCType(subprec, PCMG, ierr)
-     call PCCompositeAddPCType(subprec, PCSHELL, ierr)
+     call PCCompositeAddPC(subprec, PCMG, ierr)
+     call PCCompositeAddPC(subprec, PCSHELL, ierr)
      ! set up the vertical_lumped mg
      call PCCompositeGetPC(subprec, 0, subsubprec, ierr)
      call SetupSmoothedAggregation(subsubprec, matrix, ierror, &
@@ -273,10 +273,10 @@ integer :: linternal_smoothing_option
      !It is compositive additive
      call PCSetType(prec, PCCOMPOSITE, ierr)
      call PCCompositeSetType(prec, PC_COMPOSITE_ADDITIVE, ierr)
-     !consisting of the vertical lumped mg, and the internal smoother
+     !consisting of the vertical lumped mg, and the internal smoother 
      !which is a shell
-     call PCCompositeAddPCType(prec, PCMG, ierr)
-     call PCCompositeAddPCType(prec, PCSHELL, ierr)
+     call PCCompositeAddPC(prec, PCMG, ierr)
+     call PCCompositeAddPC(prec, PCSHELL, ierr)
      ! set up the vertical_lumped mg
      call PCCompositeGetPC(prec, 0, subprec, ierr)
      call SetupSmoothedAggregation(subprec, matrix, ierror, &
@@ -290,14 +290,14 @@ integer :: linternal_smoothing_option
   end select
 
 end subroutine SetupMultigrid
-
+  
 subroutine DestroyMultigrid(prec)
 PC, intent(inout):: prec
 
   PetscErrorCode ierr
   PCType pctype
   PC subprec
-
+  
   call PCGetType(prec, pctype, ierr)
   if (pctype==PCCOMPOSITE) then
     ! destroy the real mg
@@ -306,17 +306,17 @@ PC, intent(inout):: prec
     call PCCompositeGetPC(prec, 1, subprec, ierr)
     call DestroyInternalSmoother()
   end if
-
+  
 end subroutine DestroyMultigrid
 
 subroutine SetupSmoothedAggregation(prec, matrix, ierror, &
   external_prolongators,no_top_smoothing)
 !!< This subroutine sets up the preconditioner for using the smoothed
-!!< aggregation method (as described in Vanek et al.
+!!< aggregation method (as described in Vanek et al. 
 !!< Computing 56, 179-196 (1996).
 PC, intent(inout):: prec
 Mat, intent(in):: matrix
-!! ierror=0 upon succesful return, otherwise ierror=1 and everything
+!! ierror=0 upon succesful return, otherwise ierror=1 and everything 
 !! will be deallocated
 integer, intent(out):: ierror
 !! use external prolongator at the finest level
@@ -359,7 +359,7 @@ logical, intent(in), optional :: no_top_smoothing
 
     call SetSmoothedAggregationOptions(epsilon, epsilon_decay, omega, maxlevels, coarsesize, &
       nosmd, nosmu, clustersize)
-
+      
     ! In the following level i=1 is the original, fine, problem
     ! i=nolevels corresponds to the coarsest problem
     !
@@ -372,7 +372,7 @@ logical, intent(in), optional :: no_top_smoothing
     !       its transpose is the restriction between level i and level i+1
     allocate(matrices(1:maxlevels), prolongators(1:maxlevels-1), &
       contexts(1:maxlevels-1))
-
+      
     if (present(external_prolongators)) then
       no_external_prolongators=size(external_prolongators)
     else
@@ -401,7 +401,7 @@ logical, intent(in), optional :: no_top_smoothing
           ewrite(-1,*) "This may be caused by local partitions being too small"
         else
           ! in serial you may want to try something else automatically
-          ewrite(0,*) 'WARNING: mg preconditioner setup failed'
+          ewrite(0,*) 'WARNING: mg preconditioner setup failed'          
           ewrite(0,*) 'This probably means the matrix is not suitable for it.'
         end if
         do j=1+no_external_prolongators, i-1
@@ -414,28 +414,28 @@ logical, intent(in), optional :: no_top_smoothing
         ierror=1
         return
       end if
-
+      
       ! prolongator between i+1 and i, is restriction between i and i+1
       call MatGetLocalSize(prolongators(i), m, n, ierr)
       call MatPtAP(matrices(i), prolongators(i), MAT_INITIAL_MATRIX, real(1.0, kind = PetscReal_kind), &
         matrices(i+1), ierr)
-
+      
       call allmin(n)
       if (n<coarsesize) exit
     end do
-
+    
     if (forgetlastone) i=i-1
-
+    
     if (i<maxlevels) then
       nolevels=i+1
     else
       nolevels=i
     end if
-
+    
     ! NOTE: we use a wrapper around PCMGLEVELS defined in femtools/ISCopyIndices.cpp
     ! to deal with bug in https://gitlab.com/petsc/petsc/-/issues/868
     call PCMGSetLevels_nocomms(prec, nolevels, ierr)
-
+    
     if (lno_top_smoothing) then
       top_level=nolevels-2
       ! set smoother at finest level to "none"
@@ -444,31 +444,31 @@ logical, intent(in), optional :: no_top_smoothing
     else
       top_level=nolevels-1
     end if
-
+    
     if (nosmu<0 .and. nosmd<0) then
-
+      
       allocate(emin(1:nolevels-1), emax(1:nolevels))
-
+      
       call PowerMethod(matrices(1), eigval, eigvec)
       emax(1)=eigval
       call VecDestroy(eigvec, ierr)
-
+      
       ! loop over reverse index where 1 is fine and nolevels coarse:
       do ri=2, nolevels
         call PowerMethod(matrices(ri), eigval, eigvec)
         emax(ri)=eigval
-
+        
         Px = PETSC_NOTANULL_VEC
         call MatCreateVecs(prolongators(ri-1), PETSC_NULL_VEC, Px, ierr)
         call MatMult(prolongators(ri-1), eigvec, Px, ierr)
         call VecNorm(Px, NORM_2, Px2, ierr)
         emin(ri-1)=eigval/Px2**2.
         call VecDestroy(Px, ierr)
-
+        
         call VecDestroy(eigvec, ierr)
       end do
-
-
+      
+          
       ! loop over the 'PETSc' index where 0 is coarse and nolevels-1 is fine:
       do i=1, top_level
         ! reverse index where 1 is fine and nolevels coarse:
@@ -481,11 +481,11 @@ logical, intent(in), optional :: no_top_smoothing
         call SetupChebychevSmoother(ksp_smoother, matrices(ri), &
           emin(ri), emax(ri), -nosmd)
       end do
-
+        
       deallocate(emin, emax)
-
+      
     else if (nosmu>0 .and. nosmd>0) then
-
+    
       ! loop over the 'PETSc' index where 0 is coarse and nolevels-1 is fine:
       do i=1, top_level
         ! reverse index where 1 is fine and nolevels coarse:
@@ -505,20 +505,20 @@ logical, intent(in), optional :: no_top_smoothing
         else
           call SetupSORSmoother(ksp_smoother, matrices(ri), SOR_BACKWARD_SWEEP, nosmd)
         end if
-
+        
       end do
-
+      
     else
-
+    
       FLAbort("Can't combine chebychev and sor smoothing")
-
+      
     end if
-
+      
     ! loop over the 'PETSc' index where 0 is coarse and nolevels-1 is fine:
     do i=1, nolevels-1
       ! reverse index where 1 is fine and nolevels coarse:
       ri=nolevels-i
-
+      
       call PCMGSetInterpolation(prec, i, prolongators(ri), ierr)
       call PCMGSetRestriction(prec, i, prolongators(ri), ierr)
       ! This won't actually destroy them, as they are still refered to
@@ -527,9 +527,9 @@ logical, intent(in), optional :: no_top_smoothing
       if (ri>no_external_prolongators) then
         call MatDestroy(prolongators(ri), ierr)
       end if
-
+      
     end do
-
+    
     ! residual needs to be set if PCMG is used with KSPRICHARDSON
     lvec = PETSC_NOTANULL_VEC; rvec = PETSC_NOTANULL_VEC
     call MatCreateVecs(matrices(1), lvec, rvec, ierr)
@@ -551,28 +551,28 @@ logical, intent(in), optional :: no_top_smoothing
       call PCSetType(prec_smoother, PCLU, ierr)
       call KSPSetTolerances(ksp_smoother, 1.0e-100_PetscReal_kind, 1e-8_PetscReal_kind, 1e10_PetscReal_kind, 300, ierr)
     end if
-
+    
     ! destroy our references of the operators at levels 2 (==one but finest) up to coarsest
     do i=2, nolevels
       call MatDestroy(matrices(i), ierr)
     end do
-
+    
     deallocate(matrices, prolongators, contexts)
 
     ! succesful return
     ierror=0
-
+    
 end subroutine SetupSmoothedAggregation
-
+  
 subroutine SetupSORSmoother(ksp, matrix, sortype, iterations)
 KSP, intent(in):: ksp
 Mat, intent(in):: matrix
 MatSORType, intent(in):: sortype
 integer, intent(in):: iterations
-
+  
   PC:: pc
   PetscErrorCode:: ierr
-
+  
   call KSPSetType(ksp, KSPRICHARDSON, ierr)
   call KSPSetOperators(ksp, matrix, matrix, ierr)
   ! set 1 richardson iteration, as global iteration inside pcsor might be more efficient
@@ -580,7 +580,7 @@ integer, intent(in):: iterations
     PETSC_DEFAULT_REAL, PETSC_DEFAULT_REAL, &
     1, ierr)
   call KSPSetNormType(ksp, KSP_NORM_NONE, ierr)
-
+  
   call KSPGetPC(ksp, pc, ierr)
   call PCSetType(pc, PCSOR, ierr)
   call PCSORSetSymmetric(pc, sortype, ierr)
@@ -592,10 +592,10 @@ end subroutine SetupSORSmoother
 subroutine SetupNoneSmoother(ksp, matrix)
 KSP, intent(in):: ksp
 Mat, intent(in):: matrix
-
+  
   PC:: pc
   PetscErrorCode:: ierr
-
+  
   call KSPSetType(ksp, KSPRICHARDSON, ierr)
   call KSPSetOperators(ksp, matrix, matrix, ierr)
   call KSPSetTolerances(ksp, PETSC_DEFAULT_REAL, &
@@ -603,21 +603,21 @@ Mat, intent(in):: matrix
     0, ierr)
   call KSPRichardsonSetScale(ksp,real(0.0, kind = PetscReal_kind),ierr)
   call KSPSetNormType(ksp, KSP_NORM_NONE, ierr)
-
+  
   call KSPGetPC(ksp, pc, ierr)
   call PCSetType(pc,PCNONE,ierr)
-
+  
 end subroutine SetupNoneSmoother
-
+    
 subroutine SetupChebychevSmoother(ksp, matrix, emin, emax, iterations)
 KSP, intent(in):: ksp
 Mat, intent(in):: matrix
 PetscReal, intent(in):: emin, emax
 integer, intent(in):: iterations
-
+  
   PC:: pc
   PetscErrorCode:: ierr
-
+  
   call KSPSetType(ksp, KSPCHEBYSHEV, ierr)
   call KSPSetOperators(ksp, matrix, matrix, ierr)
   call KSPSetTolerances(ksp, PETSC_DEFAULT_REAL, &
@@ -630,7 +630,7 @@ integer, intent(in):: iterations
   call PCSetType(pc, PCNONE, ierr)
 
 end subroutine SetupChebychevSmoother
-
+  
 subroutine SetSmoothedAggregationOptions(epsilon, epsilon_decay, omega, maxlevels, &
   coarsesize, nosmd, nosmu, clustersize)
 PetscReal, intent(out):: epsilon, epsilon_decay, omega
@@ -685,7 +685,7 @@ integer, intent(out):: nosmd, nosmu, clustersize
     ewrite(2,*) 'multgrid options- n/o smoother its down (nosmd): ', nosmd
     ewrite(2,*) 'multgrid options- n/o smoother its up (nosmu): ', nosmu
     ewrite(2,*) 'multgrid options- maximum clustersize: ', clustersize
-
+    
 end subroutine SetSmoothedAggregationOptions
 
 function Prolongator(A, epsilon, omega, maxclustersize, cluster) result (P)
@@ -694,11 +694,11 @@ function Prolongator(A, epsilon, omega, maxclustersize, cluster) result (P)
 Mat:: P
 Mat, intent(in):: A
 !! strong connectivity criterion as in Vanek '96
-PetscReal, intent(in):: epsilon
+PetscReal, intent(in):: epsilon 
 !! overrelaxtion in jacobi-smoothed aggregation
 PetscReal, intent(in):: omega
 !! maximum size of clusters
-integer, intent(in):: maxclustersize
+integer, intent(in):: maxclustersize 
 !! 0 means only clustering as in Vanek '96
 !! if supplied returns cluster number each node is assigned to:
 integer, optional, dimension(:), intent(out):: cluster
@@ -711,7 +711,7 @@ integer, optional, dimension(:), intent(out):: cluster
   integer, dimension(:), allocatable:: findN, N, R
   integer:: nrows, nentries, ncols
   integer:: jc, ccnt, base, end_of_range
-
+    
   ! find out basic dimensions of A
   call MatGetLocalSize(A, nrows, ncols, ierr)
   ! use Petsc_Tools's MatGetInfo because of bug in earlier patch levels of petsc 3.0
@@ -720,9 +720,9 @@ integer, optional, dimension(:), intent(out):: cluster
   call MatGetOwnerShipRange(A, base, end_of_range, ierr)
   ! we decrease by 1, so base+i gives 0-based petsc index if i is the local fortran index:
   base=base-1
-
+  
   allocate(findN(1:nrows+1), N(1:nentries), R(1:nrows))
-
+     
   ! rescale the matrix: a_ij -> a_ij/sqrt(aii*ajj)
   ! ensure we don't pass PETSC_NULL_VEC
   diag = PETSC_NOTANULL_VEC; sqrt_diag = PETSC_NOTANULL_VEC
@@ -733,7 +733,7 @@ integer, optional, dimension(:), intent(out):: cluster
     ewrite(0,*) 'Multigrid preconditioner "mg" requires strictly positive diagonal'
     FLExit("Zero or negative value on the diagonal")
   end if
-
+  
   !
   call VecCopy(diag, sqrt_diag, ierr)
   call VecSqrtAbs(sqrt_diag, ierr)
@@ -742,11 +742,11 @@ integer, optional, dimension(:), intent(out):: cluster
   call VecCopy(sqrt_diag, inv_sqrt_diag, ierr)
   call VecReciprocal(inv_sqrt_diag, ierr)
   call MatDiagonalScale(A, inv_sqrt_diag, inv_sqrt_diag, ierr)
-
+  
   ! construct the strongly coupled neighbourhoods N_i around each node
   ! and use R to register isolated nodes i with N_i={i}
   call Prolongator_init(R, ccnt, findN, N, A, base, epsilon)
-
+  
   if (ccnt==0 .and. nrows>0) then
     ! all nodes are isolated, strongly diagonal dominant matrix
     ! we should solve by other means
@@ -763,53 +763,53 @@ integer, optional, dimension(:), intent(out):: cluster
   end if
 
   ! Step 1 - Startup aggregation
-  ! select some of the coupled neighbourhoods as an initial (incomplete)
+  ! select some of the coupled neighbourhoods as an initial (incomplete) 
   !   covering
   call Prolongator_step1(R, jc, findN, N, maxclustersize)
-
+  
   ! Step 2 - Enlarging the decomposition sets (aggregates)
   ! add remaining COUPLED but yet uncovered nodes to one of the aggregates
   call Prolongator_step2(R, findN, N, A, base)
-
+  
   ! Step 3 - Handling the remnants
   ! the remaining nodes, that are COUPLED but neither in the original covering
   ! or assigned in step 2, are assigned to new aggregates
   call Prolongator_step3(R, jc, findN, N)
-
+  
   ! jc is now the n/o aggregates, i.e. the n/o coarse nodes
   ! R(i) is now either the coarse node, fine node i is assigned to
   !             or ==ISOLATED
-
+  
   ewrite(3,*) 'Fine nodes: ', nrows
   ewrite(3,*) 'Isolated fine nodes: ', nrows-ccnt
   ewrite(3,*) 'Aggregates: ', jc
-
+  
   ! now scale a_ij -> a_ii^-1/2 * a_ij * ajj^1/2, i.e. starting from the
   ! original matrix: a_ij -> a_ii^-1 * a_ij
   call MatDiagonalScale(A, inv_sqrt_diag, sqrt_diag, ierr)
-
+  
   ! we now have all the stuff to create the prolongator
   call create_prolongator(P, nrows, jc, findN, N, R, A, base, omega)
-
+  
   ! now restore the original matrix
   ! unfortunately MatDiagonalScale is broken for one-sided scaling, i.e.
   ! supplying PETSC_NULL(_OBJECT) for one the vectors
   call VecDuplicate(diag, one, ierr)
   call VecSet(one, 1.0_PetscReal_kind, ierr)
   call MatDiagonalScale(A, diag, one, ierr)
-
+   
   if (present(cluster)) cluster=R
   deallocate(R, N, findN)
-
+  
   call VecDestroy(diag, ierr)
   call VecDestroy(sqrt_diag, ierr)
   call VecDestroy(inv_sqrt_diag, ierr)
   call VecDestroy(one, ierr)
-
+    
 end function Prolongator
 
 subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
-
+  
   Mat, intent(out):: P
   integer, intent(in):: nrows ! number of fine nodes
   integer, intent(in):: ncols ! number of clusters
@@ -818,16 +818,16 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
   Mat, intent(in):: A
   integer, intent(in):: base
   PetscReal, intent(in):: omega
-
+  
   PetscErrorCode:: ierr
   Vec:: rowsum_vec
   PetscReal, dimension(:), allocatable:: Arowsum
   PetscReal:: aij(1), rowsum
   integer, dimension(:), allocatable:: dnnz, onnz
   integer:: i, j, k, coarse_base, end_of_range
-
+  
   allocate(dnnz(1:nrows), Arowsum(1:nrows))
-
+  
   ! work out nnz in each row of the new prolongator
   dnnz=0
   do i=1, nrows
@@ -841,17 +841,17 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
     end do
     ! since we overestimate, we don't want to get > ncols
     dnnz(i)=min(dnnz(i), ncols)
-  end do
+  end do      
 
   if (IsParallel()) then
     ! for the moment the prolongator is completely local:
     allocate(onnz(1:nrows))
     onnz=0
-
+    
     call MatCreateAIJ(MPI_COMM_FEMTOOLS, nrows, ncols, PETSC_DECIDE, PETSC_DECIDE, &
       0, dnnz, 0, onnz, P, ierr)
     call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
-
+      
     ! get base for coarse node/cluster numbering
     call MatGetOwnerShipRangeColumn(P, coarse_base, end_of_range, ierr)
     ! subtract 1 to convert from 1-based fortran to 0 based petsc
@@ -864,12 +864,12 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
     coarse_base=-1
   end if
   call MatSetup(P, ierr)
-
+  
   rowsum_vec = PETSC_NOTANULL_VEC
   call MatCreateVecs(A, rowsum_vec, PETSC_NULL_VEC, ierr)
   call VecPlaceArray(rowsum_vec, Arowsum, ierr)
   call MatGetRowSum(A, rowsum_vec, ierr)
-
+    
   do i=1, nrows
     rowsum=0.0
     ! the filtered matrix only contains the entries in N_i:
@@ -887,12 +887,12 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
         1+omega*( rowsum-Arowsum(i) ), ADD_VALUES, ierr)
     end if
   end do
-
+    
   call MatAssemblyBegin(P, MAT_FINAL_ASSEMBLY, ierr)
   call MatAssemblyEnd(P, MAT_FINAL_ASSEMBLY, ierr)
-
+  
   call VecDestroy(rowsum_vec, ierr)
-
+    
 end subroutine create_prolongator
 
 subroutine Prolongator_init(R, ccnt, findN, N, A, base, epsilon)
@@ -909,12 +909,12 @@ PetscReal, intent(in):: epsilon
   integer, dimension(:), allocatable:: cols(:)
   PetscReal aij, eps_sqrt
   integer i, j, k, p, ncols
-
+  
   ! workspace for MatGetRow
   allocate( vals(1:size(N)), cols(1:size(n)) )
-
+  
   eps_sqrt=sqrt(epsilon)
-
+  
   ccnt=0 ! counts the coupled nodes, i.e. nodes that are not isolated
   p=1
   do i=1, size(R)
@@ -940,7 +940,7 @@ PetscReal, intent(in):: epsilon
     call MatRestoreRow(A, base+i, ncols, cols, vals, ierr)
   end do
   findN(i)=p
-
+  
 end subroutine Prolongator_init
 
 subroutine Prolongator_step1(R, jc, findN, N, maxclustersize)
@@ -949,12 +949,12 @@ integer, intent(out):: jc
 integer, dimension(:), intent(in):: findN, N
 integer, intent(in):: maxclustersize
   ! Step 1 - Startup aggregation
-  ! select some of the coupled neighbourhoods as an initial (incomplete)
+  ! select some of the coupled neighbourhoods as an initial (incomplete) 
   !   covering
-
+  
   integer, dimension(:), allocatable:: clustersize
   integer i, j
-
+  
   allocate(clustersize(1:size(R)))
   clustersize=0
   jc=0 ! count the covering sets, aka aggregates
@@ -983,7 +983,7 @@ integer, intent(in):: maxclustersize
     end if
   end do
   deallocate(clustersize)
-
+  
 end subroutine Prolongator_step1
 
 subroutine Prolongator_step2(R, findN, N, A, base)
@@ -997,7 +997,7 @@ integer, intent(in):: base
   PetscErrorCode:: ierr
   PetscReal:: maxc, aij(1)
   integer:: i, j, k, p
-
+  
   do i=1, size(R)
     if (R(i)==COUPLED) then
       ! find the strongest coupling in N_i that is assigned to one of the
@@ -1017,7 +1017,7 @@ integer, intent(in):: base
       end do
       ! remove i from R, register its assignment to aggregate k
       if (k/=0) then
-        R(i)=-k+COUPLED ! the assignment is temp. registered with a negative
+        R(i)=-k+COUPLED ! the assignment is temp. registered with a negative 
           ! number, so as not to actually change the aggregates of step 1
           ! before completion of step 2, the negative numbers should be below
           ! the value of COUPLED
@@ -1036,7 +1036,7 @@ integer, intent(inout):: jc
 integer, dimension(:), intent(in):: findN, N
 
   integer i, j, p
-
+  
   do i=1, size(R)
     if (R(i)==COUPLED) then
       ewrite(3,*) 'step3 action! ',i, ':', N(findN(i):findN(i+1)-1)
@@ -1054,7 +1054,7 @@ integer, dimension(:), intent(in):: findN, N
   end do
 
 end subroutine Prolongator_step3
-
+  
 subroutine PowerMethod(matrix, eigval, eigvec)
 Mat, intent(in):: matrix
 PetscReal, intent(out):: eigval
@@ -1068,43 +1068,43 @@ Vec, intent(out):: eigvec
   PetscReal:: rho_k, rho_kp1, norm2
   integer:: i
   PetscRandom:: pr
-
+  
   x_kp1 = PETSC_NOTANULL_VEC; x_k = PETSC_NOTANULL_VEC
   call MatCreateVecs(matrix, x_kp1, x_k, ierr)
-
+  
   ! initial guess
   call PetscRandomCreate(PETSC_COMM_WORLD, pr, ierr)
   call VecSetRandom(x_k, pr, ierr)
   call PetscRandomDestroy(pr, ierr)
 
   rho_k=0.0
-
+  
   do i=1, MAX_ITERATIONS
     call  MatMult(matrix, x_k, x_kp1, ierr)
     ! compute < x_k+1, x_k+1 > and < x_k+1, x_k >
     call VecMDot(x_kp1, 2, (/ x_kp1, x_k /), dot_prods, ierr)
     norm2=sqrt(dot_prods(1))
     rho_kp1=dot_prods(2)
-
+    
     call VecScale(x_kp1, 1.0_PetscReal_kind/norm2, ierr)
-
+    
     ! convergence criterium
-    if (abs(rho_kp1-rho_k)<TOLERANCE*rho_kp1) exit
-
+    if (abs(rho_kp1-rho_k)<TOLERANCE*rho_kp1) exit    
+    
     ! copy for next iteration
     call VecCopy(x_kp1, x_k, ierr)
     rho_k=rho_kp1
   end do
-
+  
   if (i>MAX_ITERATIONS) then
     FLAbort("PowerMethod failed to converge")
   end if
-
+  
   eigval=rho_kp1
   eigvec=x_kp1
-
-  call VecDestroy(x_k, ierr)
-
+  
+  call VecDestroy(x_k, ierr)  
+  
 end subroutine PowerMethod
 
 end module multigrid

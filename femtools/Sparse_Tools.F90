@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -35,23 +35,23 @@ module sparse_tools
   use Halo_data_types
   use halos_allocates
   use memory_diagnostics
-  use ieee_arithmetic
+  use, intrinsic :: ieee_arithmetic, only: ieee_quiet_nan, ieee_value
   use data_structures
   use petsc
-  
+
   implicit none
-  
+
 #include "petsc_legacy.h"
 
   private
-  
+
   type csr_sparsity
      !!< Encapsulating type for the sparsity patter of a sparse matrix.
 
      !! Findrm is the indices of the row starts in colm.
      integer, dimension(:), pointer :: findrm=>null()
      !! Centrm is the indices of the main diagonal in colm.
-     integer, dimension(:), pointer :: centrm=>null() 
+     integer, dimension(:), pointer :: centrm=>null()
      !! Colm is the list of matrix j values.
      integer, dimension(:), pointer :: colm=>null()
      !! Number of columns in matrix.
@@ -73,12 +73,12 @@ module sparse_tools
   type csr_sparsity_pointer
     type(csr_sparsity), pointer :: ptr => null()
   end type csr_sparsity_pointer
-    
+
   ! construct to avoid mem. leaks if people add an inactive array to a borrowed reference
   type logical_array_ptr
     logical, dimension(:), pointer :: ptr => null()
   end type
-  
+
   type csr_matrix
      !!< Encapsulating type for a sparse matrix.
 
@@ -93,7 +93,7 @@ module sparse_tools
      !! Flag to indicate value space has been externally supplied
      !! so it shouldn't be deallocated (only used for clone==.true.)
      logical :: external_val=.false.
-     !! for nodes with inactive%ptr(node)==.true. the rows and columns 
+     !! for nodes with inactive%ptr(node)==.true. the rows and columns
      !! will be left out of the matrix equation solved in petsc_solve()
      !! NOTE: %inactive should always be allocated for any allocated csr_matrix
      !! %inactive%ptr may not be allocated, in which case all nodes are "active"
@@ -113,7 +113,7 @@ module sparse_tools
   type csr_matrix_pointer
     type(csr_matrix), pointer :: ptr => null()
   end type csr_matrix_pointer
-  
+
   type block_csr_matrix
      !!< Encapsulating type for a matrix with block sparse structure. The
      !!< blocks are stored in row major order. For example:
@@ -122,16 +122,16 @@ module sparse_tools
      !!<  | B4 B5 B6 |
      !!<  | B7 B8 B9 |
      !!<  +----------+
-     
+
      !! The sparsity pattern for this matrix.
      type(csr_sparsity) :: sparsity
-     !! The values of the nonzero real entries. 
+     !! The values of the nonzero real entries.
      type(real_vector), dimension(:,:), pointer :: val=>null()
      !! Pointer to continuous memory if exists
      real, dimension(:), pointer :: contiguous_val=>null()
      !! The values of the nonzero integer entries.
      type(integer_vector), dimension(:,:), pointer :: ival=>null()
-     !! The number of rows and columns of blocks. 
+     !! The number of rows and columns of blocks.
      integer, dimension(2) :: blocks=(/0,0/)
      !! Flag to indicate whether a matrix was allocated or cloned.
      logical :: clone=.false.
@@ -160,10 +160,10 @@ module sparse_tools
 
   type dynamic_csr_matrix
      !!< Dynamically sized CSR matrix.
-     !! colm is the list of j values. In this case there is 1 colm per row. 
+     !! colm is the list of j values. In this case there is 1 colm per row.
      type(integer_vector), dimension(:), pointer :: colm=>null()
      !! The values of nonzero real entries
-     type(real_vector), dimension(:), pointer :: val=>null()     
+     type(real_vector), dimension(:), pointer :: val=>null()
      !! Number of columns in the matrix.
      integer :: columns
      !! Reference counting
@@ -174,7 +174,7 @@ module sparse_tools
 
   type block_dynamic_csr_matrix
      !!< A block matrix whose blocks are dynamically sized. Clearly the
-     !!< blocks generally have differing sparsities. 
+     !!< blocks generally have differing sparsities.
      type(dynamic_csr_matrix), dimension(:,:), pointer :: blocks=>null()
      !! Reference counting
      type(refcount_type), pointer :: refcount => null()
@@ -194,18 +194,18 @@ module sparse_tools
      INTEGER :: ID                !! id number of node
      TYPE (node), POINTER :: next !! next node
   END TYPE node
-  
+
   TYPE row
      !!< A matrix row comprising a linked list.
      TYPE (node), POINTER :: row
   END TYPE row
-  
+
   interface allocate
      module procedure allocate_csr_matrix, allocate_block_csr_matrix,&
           & allocate_dcsr_matrix, allocate_block_dcsr_matrix,&
           & allocate_csr_sparsity
   end interface
-  
+
   interface deallocate
      module procedure deallocate_csr_matrix, deallocate_block_csr_matrix,&
           & deallocate_dcsr_matrix, deallocate_block_dcsr_matrix,&
@@ -222,7 +222,7 @@ module sparse_tools
 
   interface size
      module procedure csr_size, block_csr_size, dcsr_size, block_dcsr_size,&
-          & sparsity_size 
+          & sparsity_size
   end interface
 
   interface block
@@ -237,7 +237,7 @@ module sparse_tools
      module procedure blocks_withdim, blocks_nodim, &
           &           dcsr_blocks_withdim, dcsr_blocks_nodim
   end interface
-  
+
   interface entries
      module procedure csr_entries, dcsr_entries, sparsity_entries
   end interface
@@ -246,7 +246,7 @@ module sparse_tools
      module procedure csr_pos, block_csr_pos, dcsr_pos, dcsr_pos_noadd, &
        csr_sparsity_pos
   end interface
-  
+
   private ::  pos
 
   interface row_m
@@ -258,7 +258,7 @@ module sparse_tools
      module procedure csr_row_m_ptr, block_csr_row_m_ptr, &
        dcsr_row_m_ptr, sparsity_row_m_ptr
   end interface
-  
+
   interface row_val
     module procedure csr_row_val, block_csr_row_val
   end interface
@@ -271,7 +271,7 @@ module sparse_tools
   interface row_ival_ptr
      module procedure csr_row_ival_ptr, block_csr_row_ival_ptr
   end interface
-  
+
   interface diag_val_ptr
      module procedure csr_diag_val_ptr
   end interface
@@ -311,7 +311,7 @@ module sparse_tools
           dcsr_set, dcsr_vset, dcsr_set_row, dcsr_set_col, csr_csr_set, &
           block_csr_vset, block_csr_bset, csr_rset, csr_block_csr_set
   end interface
-  
+
   interface set_diag
      module procedure csr_set_diag
   end interface
@@ -357,7 +357,7 @@ module sparse_tools
   interface mult_T_addto
      module procedure csr_mult_T_addto
   end interface
-    
+
   interface matmul
      module procedure csr_matmul, &
        block_csr_matmul, csr_sparsity_matmul
@@ -365,30 +365,30 @@ module sparse_tools
 
   interface matmul_addto
      module procedure csr_matmul_addto, block_csr_matmul_addto
-  end interface  
-  
+  end interface
+
   interface matmul_T
      module procedure dcsr_matmul_T, csr_matmul_T
   end interface
-    
+
   interface set_inactive
      module procedure csr_set_inactive_rows, csr_set_inactive_row
   end interface set_inactive
-    
+
   interface get_inactive_mask
      module procedure csr_get_inactive_mask
   end interface get_inactive_mask
-    
+
   interface matrix2file
      module procedure csr_matrix2file, dcsr_matrix2file,&
           & block_csr_matrix2file, block_dcsr_matrix2file, &
           & dense_matrix2file
   end interface
-  
+
   interface mmwrite
      module procedure csr_mmwrite, dcsr_mmwrite
   end interface
-    
+
   interface transpose
      module procedure csr_sparsity_transpose, csr_transpose, block_csr_transpose
   end interface
@@ -404,16 +404,16 @@ module sparse_tools
   interface reset_inactive
      module procedure csr_reset_inactive
   end interface
-    
+
   interface has_solver_cache
      module procedure csr_has_solver_cache, block_csr_has_solver_cache
-  end interface       
-    
+  end interface
+
   interface destroy_solver_cache
      module procedure csr_destroy_solver_cache, block_csr_destroy_solver_cache
   end interface
-  
-  interface is_symmetric 
+
+  interface is_symmetric
      module procedure sparsity_is_symmetric
   end interface
 
@@ -433,7 +433,7 @@ module sparse_tools
   ! maximum line length in MatrixMarket files
   integer, private, parameter :: MMmaxlinelen=1024
   character(len=*), parameter :: MMlineformat='(1024a)'
-  
+
   public :: allocate, deallocate, attach_block, &
        unclone, size, block, block_size, blocks, entries, row_m, row_val, &
        & row_m_ptr, row_val_ptr, row_ival_ptr, diag_val_ptr, row_length, zero, zero_row, addto,&
@@ -442,7 +442,7 @@ module sparse_tools
        & sparsity_merge, scale, set_inactive, get_inactive_mask, &
        & reset_inactive, has_solver_cache, destroy_solver_cache, is_symmetric, sparsity_is_sorted, &
        & write_minmax
-       
+
   public :: posinm
 
 contains
@@ -450,8 +450,8 @@ contains
   !! This subroutine works out the sparsity pattern of the matrix:
   !!     <--------- NNodes 1 ----------->
   !!     ^
-  !!     |      non-zero in row i,colume j iff these exists an element 
-  !!     |      index, k, where element k in mesh1 contains j and element 
+  !!     |      non-zero in row i,colume j iff these exists an element
+  !!     |      index, k, where element k in mesh1 contains j and element
   !!     |      k in mesh 2 contains i
   !!  NNodes 2
   !!     |
@@ -540,7 +540,7 @@ contains
                 DO WHILE ( ASSOCIATED(Current) )
                    IF(GLOBJ.EQ.Current%ID) THEN
                       ! Already have this node
-                      exit 
+                      exit
                    ELSE IF(.NOT.ASSOCIATED(Current%next)) THEN
                       ! End of list - insert this node
                       ALLOCATE(Current%next)
@@ -589,47 +589,47 @@ contains
     ewrite(2, *) "END SUBROUTINE POSINM"
     RETURN
   END SUBROUTINE posinm
-  
+
   subroutine row_insert(row_in, value, entries)
     ! Insert value into list.
     type(row), intent(inout) :: row_in
     integer, intent(in) :: value
     integer, intent(inout) :: entries
-    
+
     type(node), pointer :: list, current, next
-    
+
     list=>row_in%row
 
     ! Check if the list is initalised
     IF(List%ID.EQ.-1) THEN
        List%ID = value
-              
+
        return
     END IF
-    
+
     IF(value.LT.List%ID) THEN
        ! Insert at start of list
        ALLOCATE(Current)
        entries=entries+1
        Current%ID = value
        Current%next => List
-       
+
        row_in%row => Current
        List => row_in%row
-       
+
     ELSE
        Current => List
        DO WHILE ( ASSOCIATED(Current) )
           IF(value.EQ.Current%ID) THEN
              ! Already have this node
-             exit 
+             exit
           ELSE IF(.NOT.ASSOCIATED(Current%next)) THEN
              ! End of list - insert this node
              ALLOCATE(Current%next)
              entries=entries+1
              NULLIFY(Current%next%next)
              Current%next%ID = value
-                          
+
              exit
           ELSE IF(value.LT.Current%next%ID) THEN
              ! Insert new node here
@@ -638,13 +638,13 @@ contains
              Next%ID = value
              Next%next => Current%next
              Current%Next => Next
-             
+
              exit
           END IF
           Current => Current%next
        END DO
     END IF
-    
+
   end subroutine row_insert
 
   subroutine compress_sparsity(nnodes2, sparsity, ldiag,lmatrix, entries)
@@ -652,7 +652,7 @@ contains
     integer, intent(in)::nnodes2,entries
     logical, intent(in)::ldiag
     type(csr_sparsity), intent(inout) :: sparsity
-  
+
     TYPE(row), DIMENSION(:) ::lMatrix
 
     !local variables
@@ -666,7 +666,7 @@ contains
     PTR = 1
 
     DO IROW=1,NNodes2
-       
+
        sparsity%FINDRM(IROW) = PTR
 
        if (ldiag) then
@@ -717,15 +717,15 @@ contains
     integer blockstart
     type(block_csr_matrix), intent(in):: matrix
     integer, intent(in):: blocki, blockj
-      
+
     blockstart=((blocki-1)*matrix%blocks(2)+blockj-1)*size(matrix%sparsity%colm)+1
-    
+
   end function blockstart
 
   subroutine allocate_csr_sparsity(sparsity, rows, columns, entries, nnz, diag,&
        & name, stat)
     type(csr_sparsity), intent(out) :: sparsity
-    !! Rows is the number of rows. 
+    !! Rows is the number of rows.
     integer, intent(in) :: rows, columns
     !! Entries is the number of nonzero entries. Either 'entries' or 'nnz' is required
     integer, intent(in), optional :: entries
@@ -745,7 +745,7 @@ contains
     else
        ldiag=.true.
     end if
-    
+
     if(present(entries)) then
        lentries=entries
     else if (present(nnz)) then
@@ -766,14 +766,14 @@ contains
     allocate(sparsity%findrm(rows+1), sparsity%colm(lentries), stat=lstat)
     if (lstat/=0) goto 42
     totalmem=rows+1 + lentries
-    
+
     if (ldiag) then
        allocate(sparsity%centrm(rows), stat=lstat)
        if (lstat/=0) goto 42
        totalmem=totalmem + size(sparsity%centrm)
     else
        ! fix for 'old' gfortran bug:
-       nullify(sparsity%centrm) 
+       nullify(sparsity%centrm)
     end if
 
 42  if (present(stat)) then
@@ -788,7 +788,7 @@ contains
     call register_allocation("csr_sparsity", "integer", &
          totalmem, name=name)
 #endif
-    
+
     if (present(nnz)) then
       ! fill in %findrm from nnz:
       k=1
@@ -817,7 +817,7 @@ contains
 
     if (present(name)) then
        lname=name
-    else 
+    else
        lname=""
     end if
     matrix%name = lname
@@ -840,7 +840,7 @@ contains
     ! this is a temp. measure as long as gfortran does not do it automatically
     nullify(matrix%val)
     nullify(matrix%ival)
-    ! should always be allocated, so that matrix%inactive%ptr is the same for 
+    ! should always be allocated, so that matrix%inactive%ptr is the same for
     ! all references of the matrix:
     allocate(matrix%inactive)
     nullify(matrix%inactive%ptr)
@@ -876,7 +876,7 @@ contains
     end if
 
   end subroutine allocate_csr_matrix
-  
+
   subroutine deallocate_csr_sparsity(sparsity, stat)
     type(csr_sparsity), intent(inout) :: sparsity
     integer, intent(out), optional :: stat
@@ -894,7 +894,7 @@ contains
        totalmem=size(sparsity%findrm) + size(sparsity%colm)
        deallocate(sparsity%findrm, sparsity%colm, stat=lstat)
        if (lstat/=0) goto 42
-       
+
        ! centrm may legitimately not be allocated.
        if (associated(sparsity%centrm)) then
           totalmem=totalmem+size(sparsity%centrm)
@@ -942,7 +942,7 @@ contains
     end if
 
     call deallocate(matrix%sparsity)
-    
+
     if (.not. (matrix%clone .and. matrix%external_val)) then
       if (associated(matrix%val)) then
 #ifdef HAVE_MEMORY_STATS
@@ -965,20 +965,20 @@ contains
          if (lstat/=0) goto 42
       end if
     end if
-    
+
     if(can_have_inactive(matrix)) then
       if(has_inactive(matrix)) then
         deallocate(matrix%inactive%ptr, stat=lstat)
         if (lstat/=0) goto 42
       end if
       deallocate(matrix%inactive, stat=lstat)
-      if (lstat/=0) goto 42      
+      if (lstat/=0) goto 42
     end if
-    
+
     if (.not. associated(matrix%ksp)) then
       FLAbort("Attempt made to deallocate a non-allocated or damaged CSR matrix.")
     end if
-    
+
     if (matrix%ksp/=PETSC_NULL_KSP) then
       call KSPDestroy(matrix%ksp, lstat)
       if (lstat/=0) then
@@ -991,7 +991,7 @@ contains
       end if
     end if
     deallocate(matrix%ksp)
-    
+
 42  if (present(stat)) then
        stat=lstat
     else
@@ -999,7 +999,7 @@ contains
           FLAbort("Failed to deallocate matrix.")
        end if
     end if
-    
+
 
   end subroutine deallocate_csr_matrix
 
@@ -1029,7 +1029,7 @@ contains
       lname = ""
     end if
     matrix%name = lname
-    
+
     if(present_and_true(diagonal).and.(blocks(1)/=blocks(2))) then
       FLAbort("Attempt made to allocate a non-square diagonal block_csr_matrix!")
     end if
@@ -1044,12 +1044,12 @@ contains
 
     call incref(matrix%sparsity)
     matrix%blocks=blocks
-    
+
     allocate(matrix%val(blocks(1),blocks(2)), stat=lstat)
     if (lstat/=0) goto 42
 
     if (present_and_false(data)) then
-      
+
       ! no data to be allocated at all:
       do i=1, blocks(1)
         do j=1, blocks(2)
@@ -1057,17 +1057,17 @@ contains
         end do
       end do
       matrix%external_val=.true.
-        
+
     else if (matrix%diagonal) then
-      
+
       ! only allocate diagonal blocks
-      
+
       do i=1, blocks(1)
         do j=1, blocks(2)
           nullify(matrix%val(i,j)%ptr)
         end do
       end do
-        
+
       if (matrix%equal_diagonal_blocks) then
         allocate(matrix%val(1,1)%ptr(size(sparsity%colm)), stat=lstat)
 #ifdef HAVE_MEMORY_STATS
@@ -1089,9 +1089,9 @@ contains
         end do
       end if
       matrix%external_val=.false.
-      
+
     else
-    
+
       ! normal case: allocate all blocks
       do i=1,blocks(1)
          do j=1,blocks(2)
@@ -1104,9 +1104,9 @@ contains
          end do
       end do
       matrix%external_val=.false.
-        
+
     end if
-    
+
     ! always allocate to make sure all references see the same %ksp
     allocate(matrix%ksp)
     matrix%ksp=PETSC_NULL_KSP ! to indicate no ksp cache available
@@ -1116,7 +1116,7 @@ contains
        stat=lstat
     else
        if (lstat/=0) then
-          
+
           FLAbort("Failed to allocate matrix.")
        end if
     end if
@@ -1181,7 +1181,7 @@ contains
       deallocate(matrix%val, stat=lstat)
       if (lstat/=0) goto 42
     end if
-    
+
     if (.not. associated(matrix%ksp)) then
       FLAbort("Attempt made to deallocate a non-allocated or damaged CSR matrix.")
     end if
@@ -1197,7 +1197,7 @@ contains
       end if
     end if
     deallocate(matrix%ksp)
-    
+
     if (associated(matrix%ival)) then
       if (.not. (matrix%clone .and. matrix%external_val)) then
         if (matrix%equal_diagonal_blocks) then
@@ -1285,21 +1285,21 @@ contains
        if (lstat/=0) then
           FLAbort("Failed to allocate matrix.")
        end if
-    end if    
+    end if
 
   end subroutine allocate_dcsr_matrix
 
   subroutine deallocate_dcsr_matrix(matrix, stat)
     type(dynamic_csr_matrix), intent(inout) :: matrix
     integer, intent(out), optional :: stat
-    
+
     integer :: lstat, i
 
     call decref(matrix)
     if (has_references(matrix)) then
       goto 666
     end if
-    
+
     do i=1,size(matrix%colm)
 #ifdef DDEBUG
        matrix%val(i)%ptr=ieee_value(0.0, ieee_quiet_nan)
@@ -1316,7 +1316,7 @@ contains
        if (lstat/=0) then
           FLAbort("Failed to deallocate matrix.")
        end if
-    end if    
+    end if
 
   end subroutine deallocate_dcsr_matrix
 
@@ -1346,9 +1346,9 @@ contains
     call addref(matrix)
 
     allocate(matrix%blocks(blocks(1), blocks(2)), stat=lstat)
-    
+
     if (lstat/=0) goto 666
-    
+
     do i=1,blocks(1)
        do j=1,blocks(2)
           call allocate(matrix%blocks(i,j),rows(i),columns(j), stat=lstat)
@@ -1362,7 +1362,7 @@ contains
        if (lstat/=0) then
           FLAbort("Failed to allocate matrix.")
        end if
-    end if    
+    end if
 
   end subroutine allocate_block_dcsr_matrix
 
@@ -1385,17 +1385,17 @@ contains
     end do
 
     deallocate(matrix%blocks, stat=lstat)
-    
+
 666 if (present(stat)) then
        stat=lstat
     else
        if (lstat/=0) then
           FLAbort("Failed to deallocate matrix.")
        end if
-    end if    
+    end if
 
   end subroutine deallocate_block_dcsr_matrix
-        
+
   function csr_block(matrix, block_i, block_j) result (block_out)
     !!< Extract block block_i, block_j from matrix.
     !!< This is the only case where the returned matrix
@@ -1411,7 +1411,7 @@ contains
     block_out%clone=.true.
 
     block_out%sparsity=matrix%sparsity
-    
+
     if (associated(matrix%val)) then
        block_out%val => matrix%val(block_i,block_j)%ptr
        ! should only be deallocated in the deallocate() call for the orig. matrix
@@ -1422,13 +1422,13 @@ contains
        ! should only be deallocated in the deallocate() call for the orig. matrix
        block_out%external_val=.true.
     end if
-    
+
     ! "Borrowed" matrices cannot have inactive nodes
     nullify(block_out%inactive)
-    
+
     ! we can't unfortunately, as csr_blocks aren't always deallocated
     nullify(block_out%ksp)
-    
+
   end function csr_block
 
   function dcsr_block(matrix, block_i, block_j) result (block_out)
@@ -1436,7 +1436,7 @@ contains
     type(dynamic_csr_matrix) :: block_out
     type(block_dynamic_csr_matrix), intent(in) :: matrix
     integer, intent(in) :: block_i, block_j
-    
+
     block_out=matrix%blocks(block_i, block_j)
 
   end function dcsr_block
@@ -1486,11 +1486,11 @@ contains
     ! always allocate to make sure all references see the same %ksp
     allocate(matrix%ksp)
     matrix%ksp=PETSC_NULL_KSP ! to indicate no ksp cache available
-    
+
     ! Wrapped matrices can have inactive nodes
     allocate( matrix%inactive, stat=lstat )
     nullify( matrix%inactive%ptr )
-    
+
     if (present(stat)) then
        stat=lstat
     else
@@ -1517,7 +1517,7 @@ contains
     character(len=*), intent(in):: name
     integer, intent(out), optional :: stat
 
-    integer :: lstat, i, j, bs 
+    integer :: lstat, i, j, bs
 
     lstat=0
     matrix%clone=.true.
@@ -1527,7 +1527,7 @@ contains
     call addref(matrix)
     matrix%sparsity=sparsity
     call incref(sparsity)
-    
+
     matrix%blocks=blocks
     matrix%diagonal=.false.
 
@@ -1573,7 +1573,7 @@ contains
     ! always allocate to make sure all references see the same %ksp
     allocate(matrix%ksp)
     matrix%ksp=PETSC_NULL_KSP ! to indicate no ksp cache available
-    
+
     if (present(stat)) then
        stat=lstat
     else
@@ -1593,12 +1593,12 @@ contains
       FLAbort("Can't unclone this matrix as it is using externally stored values.")
     end if
     matrix%clone=.false.
-    
+
   end subroutine unclone_csr_matrix
 
   subroutine block_csr_attach_block(matrix, blocki, blockj, val)
     !!< Having cloned a csr matrix without data, insert val as one of the
-    !!< blocks.  
+    !!< blocks.
     type(block_csr_matrix), intent(inout) :: matrix
     integer, intent(in) :: blocki, blockj
     real, dimension(size(matrix%sparsity%colm)), intent(in), target :: val
@@ -1617,15 +1617,15 @@ contains
   end subroutine block_csr_attach_block
 
   function wrap_csr_sparsity(findrm, centrm, colm, name, &
-      row_halo, column_halo) result(sparsity) 
+      row_halo, column_halo) result(sparsity)
     !!< Wrap a csr_matrix around the sparsity pattern defined by the input
-    !!< arguments. 
+    !!< arguments.
     type(csr_sparsity) :: sparsity
     integer, dimension(:), intent(in), target :: findrm, colm
     integer, dimension(:), intent(in), target, optional :: centrm
     character(len=*), intent(in):: name
     type(halo_type), optional, intent(in):: row_halo, column_halo
-    
+
     sparsity%name=name
 
     sparsity%findrm=>findrm
@@ -1635,14 +1635,14 @@ contains
        sparsity%centrm=>null()
     end if
     sparsity%colm=>colm
-    
+
     nullify(sparsity%refcount)
     call addref(sparsity)
     sparsity%wrapped=.true.
-    
+
     ! Attempt to work out columns by voodoo. Not totally safe!
     sparsity%columns=maxval(colm)
-    
+
     if (present(row_halo)) then
        allocate(sparsity%row_halo)
        sparsity%row_halo=row_halo
@@ -1667,7 +1667,7 @@ contains
 
     shape(1)=size(sparsity%findrm)-1
     shape(2)=sparsity%columns
-    
+
     if (present(dim)) then
        sparsity_size=shape(dim)
     else
@@ -1696,13 +1696,13 @@ contains
 
     shape(1)=size(matrix%sparsity%findrm)-1
     shape(2)=matrix%sparsity%columns
-    
+
     if (.not.present(dim)) then
        block_csr_size = product(shape)*product(matrix%blocks)
     else
        block_csr_size = shape(dim)*matrix%blocks(dim)
     end if
-    
+
   end function block_csr_size
 
   pure function block_csr_block_size(matrix, dim) result (block_size)
@@ -1710,9 +1710,9 @@ contains
     integer :: block_size
     type(block_csr_matrix), intent(in) :: matrix
     integer, optional, intent(in) :: dim
-    
+
     block_size=sparsity_size(matrix%sparsity, dim)
-    
+
   end function block_csr_block_size
 
   pure function block_dcsr_block_size(matrix, block_i, block_j, dim) &
@@ -1722,9 +1722,9 @@ contains
     type(block_dynamic_csr_matrix), intent(in) :: matrix
     integer, intent(in) :: block_i, block_j
     integer, optional, intent(in) :: dim
-    
+
     block_size=size(matrix%blocks(block_i, block_j), dim)
-    
+
   end function block_dcsr_block_size
 
   pure function dcsr_size(matrix, dim)
@@ -1737,7 +1737,7 @@ contains
 
     shape(1)=size(matrix%colm)
     shape(2)=matrix%columns
-    
+
     if (present(dim)) then
        dcsr_size=shape(dim)
     else
@@ -1756,7 +1756,7 @@ contains
     integer :: i, j
 
     shape=0
-    
+
     do i=1,size(matrix%blocks,1)
        shape(1)=shape(1)+size(matrix%blocks(i,1),1)
     end do
@@ -1776,16 +1776,16 @@ contains
   pure function blocks_nodim(matrix)
   integer, dimension(2):: blocks_nodim
   type(block_csr_matrix), intent(in):: matrix
-    
+
     blocks_nodim=matrix%blocks
-    
+
   end function blocks_nodim
 
   pure function blocks_withdim(matrix, dim)
   integer blocks_withdim
   type(block_csr_matrix), intent(in):: matrix
   integer, intent(in):: dim
-    
+
     blocks_withdim=matrix%blocks(dim)
 
   end function blocks_withdim
@@ -1793,16 +1793,16 @@ contains
   pure function dcsr_blocks_nodim(matrix)
     integer, dimension(2):: dcsr_blocks_nodim
     type(block_dynamic_csr_matrix), intent(in):: matrix
-    
+
     dcsr_blocks_nodim=shape(matrix%blocks)
-    
+
   end function dcsr_blocks_nodim
-  
+
   pure function dcsr_blocks_withdim(matrix, dim)
     integer :: dcsr_blocks_withdim
     type(block_dynamic_csr_matrix), intent(in):: matrix
     integer, intent(in):: dim
-    
+
     dcsr_blocks_withdim=size(matrix%blocks,dim)
 
   end function dcsr_blocks_withdim
@@ -1831,7 +1831,7 @@ contains
     type(dynamic_csr_matrix), intent(in) :: matrix
 
     integer i, c
-    
+
     c=0
     do i=1, size(matrix,1)
       c=c+size(matrix%colm(i)%ptr)
@@ -1855,7 +1855,7 @@ contains
     type(csr_matrix), intent(in) :: matrix
     integer, intent(in) :: i
     integer, dimension(matrix%sparsity%findrm(i+1)-matrix%sparsity&
-         &%findrm(i)) :: csr_row_m 
+         &%findrm(i)) :: csr_row_m
 
     csr_row_m=matrix%sparsity%colm&
          (matrix%sparsity%findrm(i):matrix%sparsity%findrm(i+1)-1)
@@ -1873,7 +1873,7 @@ contains
   end function dcsr_row_m
 
   pure function block_csr_row_m(matrix, i)
-    !!< Return the m indices of the ith row of matrix. Since all rows in a 
+    !!< Return the m indices of the ith row of matrix. Since all rows in a
     !!< blockmatrix are the same, we do not have to specify the block
     type(block_csr_matrix), intent(in) :: matrix
     integer, intent(in) :: i
@@ -1906,7 +1906,7 @@ contains
   end function csr_row_m_ptr
 
   function block_csr_row_m_ptr(matrix, i)
-    !!< Return a pointer to the m indicies of the ith row of matrix. Since all 
+    !!< Return a pointer to the m indicies of the ith row of matrix. Since all
     !!< rows in a blockmatrix are the same, we do not have to specify the block
     type(block_csr_matrix), intent(in) :: matrix
     integer, intent(in) :: i
@@ -1915,7 +1915,7 @@ contains
     block_csr_row_m_ptr=>matrix%sparsity%colm(matrix%sparsity%findrm(i):matrix%sparsity%findrm(i+1)-1)
 
   end function block_csr_row_m_ptr
-  
+
   function dcsr_row_m_ptr(matrix, i)
     !!< Return a pointer to the m indices of the ith row of matrix.
     !!< For dynamic sparse matrices this remains valid until
@@ -1927,7 +1927,7 @@ contains
     dcsr_row_m_ptr => matrix%colm(i)%ptr
 
   end function dcsr_row_m_ptr
-  
+
   pure function csr_row_val(matrix, i)
     !!< Return the values of the ith row of matrix.
     type(csr_matrix), intent(in) :: matrix
@@ -1937,13 +1937,13 @@ contains
     csr_row_val=matrix%val( matrix%sparsity%findrm(i):matrix%sparsity%findrm(i+1)-1 )
 
   end function csr_row_val
-  
+
   pure function block_csr_row_val(matrix, blocki, blockj, i)
     !!< Return the values of the ith row of (blocki,blockj) of matrix.
     type(block_csr_matrix), intent(in) :: matrix
     integer, intent(in) :: blocki, blockj, i
     real, dimension(matrix%sparsity%findrm(i+1)-matrix%sparsity%findrm(i)) :: block_csr_row_val
-    
+
     if(.not.matrix%diagonal.or.(blocki==blockj)) then
       block_csr_row_val=matrix%val(blocki,blockj)%ptr( &
           matrix%sparsity%findrm(i):matrix%sparsity%findrm(i+1)-1)
@@ -1959,13 +1959,13 @@ contains
     integer, intent(in) :: blocki, i
     real, dimension((matrix%sparsity%findrm(i+1)-matrix%sparsity%findrm(i))&
          &*matrix%blocks(2)) :: block_csr_fullrow_val
-    
+
     integer :: blockj, k, rowlen
 
     block_csr_fullrow_val = 0.0
-    
+
     rowlen=matrix%sparsity%findrm(i+1)-matrix%sparsity%findrm(i)
-    
+
     k=1
     do blockj=1, matrix%blocks(2)
       if(.not.matrix%diagonal.or.(blocki==blockj)) then
@@ -1976,7 +1976,7 @@ contains
     end do
 
   end function block_csr_fullrow_val
-  
+
   function csr_row_val_ptr(matrix, i)
     !!< Return a pointer to the values of the ith row of matrix.
     type(csr_matrix), intent(in) :: matrix
@@ -2002,7 +2002,7 @@ contains
     type(block_csr_matrix), intent(in) :: matrix
     integer, intent(in) :: blocki, blockj, i
     real, dimension(:), pointer :: block_csr_row_val_ptr
-    
+
     if(matrix%diagonal.and.(blocki/=blockj)) then
       FLAbort("Attempting to retrieve values in an-off diagonal block of a diagonal block_csr_matrix!")
     end if
@@ -2085,52 +2085,52 @@ contains
     block_csr_block_row_length=matrix%sparsity%findrm(i+1)-matrix%sparsity%findrm(i)
 
   end function block_csr_block_row_length
-  
+
   subroutine csr_initialise_inactive(matrix)
     !!< Initialises the administration for registration of inactive rows.
     !!< All rows start out as active (i.e. not inactive)
     !!< May be called as many times as you like.
     type(csr_matrix), intent(inout):: matrix
-    
+
     if (.not. can_have_inactive(matrix)) then
       ewrite(1,*) "Matrix: ", trim(matrix%name)
       FLAbort("This matrix cannot have inactive rows set.")
     end if
-    
+
     if (.not. has_inactive(matrix)) then
       allocate( matrix%inactive%ptr(1:size(matrix,1)) )
       matrix%inactive%ptr=.false.
     end if
-    
+
   end subroutine csr_initialise_inactive
-  
+
   subroutine csr_reset_inactive(matrix)
     !!< Makes all rows "active" again
     type(csr_matrix), intent(inout):: matrix
-    
+
     if(has_inactive(matrix)) then
       deallocate( matrix%inactive%ptr )
     end if
-    
+
   end subroutine csr_reset_inactive
-  
-  
+
+
   subroutine csr_set_inactive_row(matrix, row)
     !!< Registers a single row to be "inactive" this can be used for
     !!< strong boundary conditions and reference nodes.
     type(csr_matrix), intent(inout):: matrix
     integer, intent(in):: row
     character(len=255) :: buf
-    
+
     call csr_initialise_inactive(matrix)
-    
+
     if (row > size(matrix%inactive%ptr)) then
       buf = "Error: attempting to set row " // int2str(row) // " to be inactive, but only " // &
           &  int2str(size(matrix%inactive%ptr)) // " rows. Check your reference pressure node?"
       FLExit(trim(buf))
     end if
     matrix%inactive%ptr(row)=.true.
-    
+
   end subroutine csr_set_inactive_row
 
   subroutine csr_set_inactive_rows(matrix, rows)
@@ -2138,103 +2138,103 @@ contains
     !!< strong boundary conditions and reference nodes.
     type(csr_matrix), intent(inout):: matrix
     integer, dimension(:), intent(in):: rows
-    
+
     call csr_initialise_inactive(matrix)
-    
+
     matrix%inactive%ptr(rows)=.true.
-    
+
   end subroutine csr_set_inactive_rows
-    
-  function csr_get_inactive_mask(matrix)  
+
+  function csr_get_inactive_mask(matrix)
     !!< Returns a pointer to a logical array that indicates inactive rows
     !!< May return a null pointer, in which case no rows are inactive
     logical, dimension(:), pointer:: csr_get_inactive_mask
     type(csr_matrix), intent(in):: matrix
-    
+
     if (associated(matrix%inactive)) then
       csr_get_inactive_mask => matrix%inactive%ptr
     else
       nullify(csr_get_inactive_mask)
     end if
-    
+
   end function csr_get_inactive_mask
-  
+
   pure function can_have_inactive(matrix)
     type(csr_matrix), intent(in) :: matrix
-    
+
     logical :: can_have_inactive
-    
+
     can_have_inactive = associated(matrix%inactive)
-    
+
   end function can_have_inactive
-  
+
   pure function has_inactive(matrix)
     type(csr_matrix), intent(in) :: matrix
-    
+
     logical :: has_inactive
-    
+
     if(can_have_inactive(matrix)) then
       has_inactive = associated(matrix%inactive%ptr)
     else
       has_inactive = .false.
     end if
-  
+
   end function has_inactive
-  
+
   function csr_has_solver_cache(matrix)
     logical :: csr_has_solver_cache
     type(csr_matrix), intent(in) :: matrix
-    
+
     if (associated(matrix%ksp)) then
       csr_has_solver_cache = matrix%ksp/=PETSC_NULL_KSP
     else
       ! this should only be possible for a csr_matrix returned from block()
       csr_has_solver_cache = .false.
     end if
-    
+
   end function csr_has_solver_cache
-  
+
   function block_csr_has_solver_cache(matrix)
     logical :: block_csr_has_solver_cache
     type(block_csr_matrix), intent(in) :: matrix
-    
+
     if (associated(matrix%ksp)) then
       block_csr_has_solver_cache = matrix%ksp/=PETSC_NULL_KSP
     else
       ! don't think this is possible, but hey
       block_csr_has_solver_cache = .false.
     end if
-    
+
   end function block_csr_has_solver_cache
-  
+
   subroutine csr_destroy_solver_cache(matrix)
     type(csr_matrix), intent(inout) :: matrix
-      
+
     integer:: ierr
-    
+
     if (.not. associated(matrix%ksp)) return
-    
+
     if (matrix%ksp/=PETSC_NULL_KSP) then
       call KSPDestroy(matrix%ksp, ierr)
     end if
     matrix%ksp=PETSC_NULL_KSP
-    
+
   end subroutine csr_destroy_solver_cache
-  
+
   subroutine block_csr_destroy_solver_cache(matrix)
     type(block_csr_matrix), intent(inout) :: matrix
-      
+
     integer:: ierr
-    
+
     if (.not. associated(matrix%ksp)) return
-    
+
     if (matrix%ksp/=PETSC_NULL_KSP) then
       call KSPDestroy(matrix%ksp, ierr)
     end if
     matrix%ksp=PETSC_NULL_KSP
-    
+
   end subroutine block_csr_destroy_solver_cache
-    
+
   subroutine csr_zero(matrix)
     !!< Zero the entries of a csr matrix.
     type(csr_matrix), intent(inout) :: matrix
@@ -2249,7 +2249,7 @@ contains
        deallocate(matrix%inactive%ptr)
        nullify(matrix%inactive%ptr)
     end if
-    
+
     ! this invalidates the solver context
     call destroy_solver_cache(matrix)
 
@@ -2294,13 +2294,13 @@ contains
 
     ! this invalidates the solver context
     call destroy_solver_cache(matrix)
-    
+
   end subroutine block_csr_zero
 
   subroutine dcsr_zero(matrix)
     !!< Zero the entries of a dynamic csr matrix.
     type(dynamic_csr_matrix), intent(inout) :: matrix
-    
+
     integer :: i
 
     do i=1,size(matrix,1)
@@ -2383,11 +2383,11 @@ contains
     end if
 
   end subroutine block_csr_zero_row
-  
+
   subroutine dcsr_zero_column(matrix,column)
     !!< Zero the entries of a dynamic csr matrix.
     type(dynamic_csr_matrix), intent(inout) :: matrix
-    integer, intent(in) :: column 
+    integer, intent(in) :: column
 
     integer, dimension(:), pointer :: row_ptr
     integer :: i,j
@@ -2417,7 +2417,7 @@ contains
     ! if save_pos is present, test to see if it's correct, if yes then return it
     ! if no, then carry on as normal but save the position and return it as save_pos
     integer, intent(inout), optional :: save_pos
-    
+
     integer, dimension(:), pointer :: row
     integer :: rowpos, base
     integer :: lower_pos, lower_j
@@ -2441,12 +2441,12 @@ contains
 
        ! Base is the last position in colm of the previous row.
        base=sparsity%findrm(i)-1
-       
+
        upper_pos=size(row)
        upper_j=row(upper_pos)
        lower_pos=1
        lower_j=row(1)
-       
+
        if (upper_j<j) then
           csr_sparsity_pos=0
           goto 42
@@ -2460,14 +2460,14 @@ contains
           csr_sparsity_pos=lower_pos+base
           goto 42
        end if
-       
+
        bisection_loop: do while (upper_pos-lower_pos>1)
           this_pos=(upper_pos+lower_pos)/2
           this_j=row(this_pos)
- 
+
           if(this_j == j) then
             csr_sparsity_pos=this_pos+base
-            goto 42         
+            goto 42
           else if(this_j > j) then
             ! this_j>j
             upper_j=this_j
@@ -2491,19 +2491,19 @@ contains
 !             lower_j=this_j
 !             lower_pos=this_pos
 !          end select
-          
+
        end do bisection_loop
 
        csr_sparsity_pos=0
 
     else
        ! Slower, more general case.
-    
+
        ! Under f2003 setting rowpos to zero is not required.
        rowpos=0
-       
+
        rowpos=minloc(row, 1, mask=(row==j))
-       
+
        if (rowpos==0) then
           ! i,j is not in matrix.
           csr_sparsity_pos=0
@@ -2528,13 +2528,13 @@ contains
   end function csr_pos
 
   function block_csr_pos(matrix, i, j, save_pos)
-    !!< Return the location in matrix of element (i,j) 
+    !!< Return the location in matrix of element (i,j)
     !!< in some block.
     integer :: block_csr_pos
     type(block_csr_matrix), intent(in) :: matrix
     integer, intent(in) :: i,j
     integer, intent(inout), optional :: save_pos
-    
+
     block_csr_pos = csr_sparsity_pos(matrix%sparsity, i, j, save_pos=save_pos)
 
   end function block_csr_pos
@@ -2562,7 +2562,7 @@ contains
     dcsr_pos_noadd=rowpos(1)
 
   end function dcsr_pos_noadd
-  
+
   function dcsr_pos(matrix, i, j, add)
     !!< Return the location in matrix of element (i,j)
     integer :: dcsr_pos
@@ -2597,7 +2597,7 @@ contains
        ! Lengthen the row by one place
        allocate(matrix%colm(i)%ptr(size(row)+1), &
             &   matrix% val(i)%ptr(size(row)+1))
-       
+
        ! Copy the old row in place
        if (rowpos(1)>0) then
           matrix%colm(i)%ptr(:rowpos(1))=row(:rowpos(1))
@@ -2615,7 +2615,7 @@ contains
 
        row=>matrix%colm(i)%ptr
        val=>matrix%val(i)%ptr
-       
+
        ! Insert the new location.
        row(rowpos(1)+1)=j
        val(rowpos(1)+1)=0.0
@@ -2636,7 +2636,7 @@ contains
     integer, intent(inout), optional :: save_pos
 
     integer :: mpos
-    
+
     if (val==0) return ! No point doing nothing.
 
     mpos = pos(matrix,i,j,save_pos=save_pos)
@@ -2660,7 +2660,7 @@ contains
     integer, intent(in) :: i,j
     integer, intent(in) :: val
     integer, intent(inout), optional :: save_pos
-    
+
     integer :: mpos
 
     mpos = pos(matrix,i,j,save_pos=save_pos)
@@ -2683,10 +2683,10 @@ contains
     integer, dimension(:), intent(in) :: i,j
     real, dimension(size(i),size(j)), intent(in) :: val
     logical, dimension(size(i), size(j)), intent(in), optional :: mask
-    
+
     integer :: iloc, jloc
     logical, dimension(size(i), size(j)) :: l_mask
-    
+
     if(present(mask)) then
       l_mask = mask
     else
@@ -2714,7 +2714,7 @@ contains
     if(matrix%diagonal.and.(blocki/=blockj)) then
       FLAbort("Attempting to set value in an off-diagonal block of a diagonal block_csr_matrix.")
     end if
-    
+
     mpos = pos(matrix, i, j, save_pos=save_pos)
 
     if (associated(matrix%val)) then
@@ -2737,7 +2737,7 @@ contains
     integer, dimension(:), intent(in) :: i,j
     real, dimension(size(i),size(j)), intent(in) :: val
     logical, dimension(size(i), size(j)), intent(in), optional :: mask
-    
+
     integer :: iloc, jloc
     logical, dimension(size(i), size(j)) :: l_mask
 
@@ -2750,7 +2750,7 @@ contains
     else
       l_mask = .true.
     end if
-    
+
     do iloc=1,size(i)
        do jloc=1,size(j)
           if(.not.l_mask(iloc, jloc)) cycle
@@ -2760,22 +2760,22 @@ contains
     end do
 
   end subroutine block_csr_vaddto
-  
+
   subroutine block_csr_blocks_addto(matrix, i, j, val, block_mask)
     !!< Add the (blocki, blockj, :, :) th matrix of val onto the (blocki, blockj) th
     !!< block of the block csr matrix, for all blocks of the block csr matrix.
-    
+
     type(block_csr_matrix), intent(inout) :: matrix
     integer, dimension(:), intent(in) :: i
     integer, dimension(:), intent(in) :: j
     real, dimension(matrix%blocks(1), matrix%blocks(2), size(i), size(j)), intent(in) :: val
     logical, dimension(matrix%blocks(1), matrix%blocks(2)), intent(in), optional :: block_mask
-    
+
     integer, dimension(size(i), size(j)) :: positions
     logical, dimension(matrix%blocks(1), matrix%blocks(2)) :: l_block_mask
-    
+
     integer :: blocki, blockj, iloc, jloc
-        
+
     if(present(block_mask)) then
       l_block_mask = block_mask
     else
@@ -2785,7 +2785,7 @@ contains
     ! this is optimised so that row searches are only done once
     ! we do however want to want to keep the block loops on the outside
     ! to improve data locality.
-    
+
     do iloc = 1, size(positions, 1)
       do jloc = 1, size(positions, 2)
         if (all(val(:, :, iloc, jloc)==0.0)) cycle
@@ -2812,29 +2812,29 @@ contains
   end subroutine block_csr_blocks_addto
 
   subroutine block_csr_baddto(matrix, blocki, blockj, mblock, scalar)
-    !!< Add csr_matrix to a block_csr_matrix, where the csr_matrix has the same 
+    !!< Add csr_matrix to a block_csr_matrix, where the csr_matrix has the same
     !!< sparsity (or a subset of it) as the blocks of the block_csr_matrix
     type(block_csr_matrix), intent(inout) :: matrix
     integer, intent(in) :: blocki,blockj
     type(csr_matrix), intent(in):: mblock
     !! if present add scalar*mblock:
     real, optional, intent(in):: scalar
-      
+
     real, pointer:: blockijval(:), val_ptr(:)
     integer, pointer:: col_ptr(:)
     real lscalar
     integer row, col
-      
+
     if(matrix%diagonal.and.(blocki/=blockj)) then
       FLAbort("Attempting to set value in an off-diagonal block of a diagonal block_csr_matrix.")
     end if
-  
+
     if (mblock%clone .or. matrix%clone) then
        ! if one of matrix and mblock is a clone of the other, or both are clones
        ! of the same original, we only have to copy the values:
        if (associated(matrix%sparsity%findrm, mblock%sparsity%findrm) .and. &
             associated(matrix%sparsity%colm, mblock%sparsity%colm)) then
-          
+
           blockijval => matrix%val(blocki, blockj)%ptr
           if (present(scalar)) then
              blockijval=blockijval+mblock%val*scalar
@@ -2844,14 +2844,14 @@ contains
           return
        end if
     end if
-    
+
     ! the safe way: all entries are add in one by one...
     if (present(scalar)) then
       lscalar=scalar
     else
       lscalar=1.0
     end if
-    
+
     do row=1, size(mblock,1)
       col_ptr => row_m_ptr(mblock, row)
       val_ptr => row_val_ptr(mblock, row)
@@ -2860,27 +2860,27 @@ contains
           val_ptr(col)*lscalar)
       end do
     end do
-  
+
   end subroutine block_csr_baddto
 
   subroutine block_csr_bset(matrix, blocki, blockj, mblock)
-    !!< Assign csr_matrix to a block_csr_matrix, where the csr_matrix has the same 
-    !!< sparsity 
+    !!< Assign csr_matrix to a block_csr_matrix, where the csr_matrix has the same
+    !!< sparsity
     type(block_csr_matrix), intent(inout) :: matrix
     integer, intent(in) :: blocki,blockj
     type(csr_matrix), intent(in):: mblock
-      
+
     real, pointer:: blockijval(:), val_ptr(:)
     integer, pointer:: col_ptr(:)
     integer row, col
-      
+
     if(matrix%diagonal.and.(blocki/=blockj)) then
       FLAbort("Attempting to set value in an off-diagonal block of a diagonal block_csr_matrix.")
     end if
 
     if (associated(matrix%sparsity%findrm, mblock%sparsity%findrm) .and. &
          associated(matrix%sparsity%colm, mblock%sparsity%colm)) then
-       
+
        blockijval => matrix%val(blocki, blockj)%ptr
        blockijval=mblock%val
        return
@@ -2900,9 +2900,9 @@ contains
     !!< Scale matrix by scale.
     type(csr_matrix), intent(inout) :: matrix
     real, intent(in) :: scale
-    
+
     matrix%val=matrix%val*scale
-    
+
   end subroutine csr_scale
 
   subroutine block_csr_scale(matrix, scale)
@@ -2921,22 +2921,22 @@ contains
   end subroutine block_csr_scale
 
   subroutine block_csr_bvaddto(matrixA, blocki, blockj, matrixB, scalar)
-    !!< Add all blocks of a block_csr_matrix to another block_csr_matrix, 
+    !!< Add all blocks of a block_csr_matrix to another block_csr_matrix,
     !!< where the same sparsity pattern but possibly more blocks
     type(block_csr_matrix), intent(inout) :: matrixA
     type(block_csr_matrix), intent(in):: matrixB
     ! The compiler on AIX has some unreasonable obkection to the blocks
-    ! function. 
+    ! function.
 !!$    integer, dimension(blocks(matrixB,1)), intent(in) :: blocki
 !!$    integer, dimension(blocks(matrixB,2)), intent(in) :: blockj
        integer, dimension(matrixB%blocks(1)), intent(in) :: blocki
        integer, dimension(matrixB%blocks(2)), intent(in) :: blockj
     !! if present add scalar*matrixB:
     real, optional, intent(in):: scalar
-      
+
     type(csr_matrix) blockij
     integer :: i, j
-    
+
     do i=1, size(blocki)
        do j=1, size(blockj)
           if(matrixB%diagonal.and.(i/=j)) then
@@ -2950,13 +2950,13 @@ contains
           call addto(matrixA, blocki(i), blockj(j), blockij, scalar=scalar)
        end do
     end do
-  
+
   end subroutine block_csr_bvaddto
 
   subroutine dcsr_addto(matrix, i, j, val)
     !!< Add val to matrix(i,j)
     type(dynamic_csr_matrix), intent(inout) :: matrix
-    integer, intent(in) :: i, j 
+    integer, intent(in) :: i, j
     real, intent(in) :: val
 
     integer :: rowpos
@@ -2964,7 +2964,7 @@ contains
     ! Because pos has side effects, it is a very good idea to call it
     ! before the assemble.
     rowpos=pos(matrix, i, j, add=.true.)
-    
+
     matrix%val(i)%ptr(rowpos)=matrix%val(i)%ptr(rowpos)+val
 
   end subroutine dcsr_addto
@@ -3019,11 +3019,11 @@ contains
   subroutine dcsr_vaddto(matrix, i, j, val)
     !!< Add val to matrix(i,j)
     type(dynamic_csr_matrix), intent(inout) :: matrix
-    integer, dimension(:), intent(in) :: i, j 
+    integer, dimension(:), intent(in) :: i, j
     real, dimension(size(i),size(j)), intent(in) :: val
 
     integer :: iloc, jloc
-    
+
     do iloc=1,size(i)
        do jloc=1,size(j)
           call addto(matrix, i(iloc), j(jloc), val(iloc,jloc))
@@ -3036,36 +3036,36 @@ contains
     !!< Add val to matrix(i,j)
     type(dynamic_csr_matrix), intent(inout) :: matrix
     integer, intent(in) :: i
-    integer, dimension(:), intent(in) :: j 
+    integer, dimension(:), intent(in) :: j
     real, dimension(size(j)), intent(in) :: val
 
     integer :: jloc
-    
+
     do jloc=1,size(j)
        call addto(matrix, i, j(jloc), val(jloc))
     end do
-    
+
   end subroutine dcsr_vaddto1
 
   subroutine dcsr_vaddto2(matrix, i, j, val)
     !!< Add val to matrix(i,j)
     type(dynamic_csr_matrix), intent(inout) :: matrix
-    integer, dimension(:), intent(in) :: i 
+    integer, dimension(:), intent(in) :: i
     integer, intent(in) :: j
     real, dimension(size(i)), intent(in) :: val
 
     integer :: iloc
-    
+
     do iloc=1,size(i)
        call addto(matrix, i(iloc), j, val(iloc))
     end do
-    
+
   end subroutine dcsr_vaddto2
 
   subroutine dcsr_set(matrix, i, j, val)
     !!< Add val to matrix(i,j)
     type(dynamic_csr_matrix), intent(inout) :: matrix
-    integer, intent(in) :: i, j 
+    integer, intent(in) :: i, j
     real, intent(in) :: val
 
     integer :: rowpos
@@ -3073,7 +3073,7 @@ contains
     ! Because pos has side effects, it is a very good idea to call it
     ! before the assemble.
     rowpos=pos(matrix, i, j, add=.true.)
-    
+
     matrix%val(i)%ptr(rowpos)=val
 
   end subroutine dcsr_set
@@ -3081,11 +3081,11 @@ contains
   subroutine dcsr_vset(matrix, i, j, val)
     !!< Add val to matrix(i,j)
     type(dynamic_csr_matrix), intent(inout) :: matrix
-    integer, dimension(:), intent(in) :: i, j 
+    integer, dimension(:), intent(in) :: i, j
     real, dimension(size(i),size(j)), intent(in) :: val
 
     integer :: iloc, jloc
-    
+
     do iloc=1,size(i)
        do jloc=1,size(j)
           call set(matrix, i(iloc), j(jloc), val(iloc,jloc))
@@ -3098,11 +3098,11 @@ contains
     !!< Add val to matrix(i,j)
     type(dynamic_csr_matrix), intent(inout) :: matrix
     integer, intent(in) :: i
-    integer, dimension(:), intent(in) :: j 
+    integer, dimension(:), intent(in) :: j
     real, dimension(size(j)), intent(in) :: val
 
     integer :: jloc
-    
+
     do jloc=1,size(j)
        call set(matrix, i, j(jloc), val(jloc))
     end do
@@ -3113,11 +3113,11 @@ contains
     !!< Add val to matrix(i,j)
     type(dynamic_csr_matrix), intent(inout) :: matrix
     integer, dimension(:), intent(in) :: i
-    integer, intent(in) :: j 
+    integer, intent(in) :: j
     real, dimension(size(i)), intent(in) :: val
 
     integer :: iloc
-    
+
     do iloc=1,size(i)
        call set(matrix, i(iloc), j, val(iloc))
     end do
@@ -3139,7 +3139,7 @@ contains
     else
       mpos = pos(matrix,i,i,save_pos=save_pos)
     end if
-    
+
     if (associated(matrix%val)) then
        if(present(scale)) then
          matrix%val(mpos)=matrix%val(mpos)+val*scale
@@ -3164,9 +3164,9 @@ contains
     integer, dimension(:), intent(in) :: i
     real, dimension(size(i)), intent(in) :: val
     real, intent(in), optional :: scale
-    
+
     integer :: iloc
-    
+
     do iloc=1,size(i)
           call addto_diag(matrix, i(iloc), val(iloc), scale=scale)
     end do
@@ -3223,13 +3223,13 @@ contains
     integer, dimension(:), intent(in) :: i
     real, dimension(size(i)), intent(in) :: val
     real, intent(in), optional :: scale
-    
+
     integer :: iloc
-    
+
     if(matrix%diagonal.and.(blocki/=blockj)) then
       FLAbort("Attempting to set value in an off-diagonal block of a diagonal block_csr_matrix.")
     end if
-    
+
     do iloc=1,size(i)
           call addto_diag(matrix, blocki, blockj, i(iloc), val(iloc), scale=scale)
     end do
@@ -3269,7 +3269,7 @@ contains
     integer :: row, i
     integer, dimension(:), pointer:: cols
     real, dimension(:), pointer :: vals
-#ifdef DDEBUG    
+#ifdef DDEBUG
     logical :: matrix_same_shape
 #endif
 
@@ -3280,7 +3280,7 @@ contains
        else
           assert((associated(out_matrix%val).and.associated(in_matrix%val)))
        end if
-       
+
        if(associated(out_matrix%val)) then
           out_matrix%val=in_matrix%val
        else if (associated(out_matrix%ival)) then
@@ -3294,9 +3294,9 @@ contains
        !is contained in out_matrix%sparsity
 #ifdef DDEBUG
        matrix_same_shape=size(out_matrix,1)==size(in_matrix,1)
-       assert(matrix_same_shape)       
+       assert(matrix_same_shape)
        matrix_same_shape=size(out_matrix,2)==size(in_matrix,2)
-       assert(matrix_same_shape)       
+       assert(matrix_same_shape)
 #endif
 
        if (associated(out_matrix%ival)) then
@@ -3308,7 +3308,7 @@ contains
        call zero(out_matrix)
 
        do row = 1, size(out_matrix,1)
-          cols => row_m_ptr(in_matrix, row)          
+          cols => row_m_ptr(in_matrix, row)
           vals => row_val_ptr(in_matrix, row)
           do i = 1, size(cols)
              call set(out_matrix,row,cols(i),vals(i))
@@ -3318,7 +3318,7 @@ contains
   end subroutine csr_csr_set
 
   subroutine csr_block_csr_set(out_matrix, in_matrix, blocki, blockj)
-    !!< Set out_matrix to (blocki, blockj) of in_matrix. This will 
+    !!< Set out_matrix to (blocki, blockj) of in_matrix. This will
     !!< only work if the matrices have the same sparsity.
     type(csr_matrix), intent(inout) :: out_matrix
     type(block_csr_matrix), intent(in) :: in_matrix
@@ -3331,7 +3331,7 @@ contains
 #ifdef DDEBUG
     logical :: matrix_same_shape
 #endif
-    
+
     if(in_matrix%sparsity%refcount%id==out_matrix%sparsity%refcount%id) then
        !Code for the same sparsity
        if (associated(out_matrix%ival)) then
@@ -3339,7 +3339,7 @@ contains
        else
           assert((associated(out_matrix%val).and.associated(in_matrix%val)))
        end if
-       
+
        if(associated(out_matrix%val)) then
           assert(associated(in_matrix%val(blocki,blockj)%ptr))
           out_matrix%val=in_matrix%val(blocki,blockj)%ptr
@@ -3376,17 +3376,17 @@ contains
           end do
        end do
     end if
-    
+
   end subroutine csr_block_csr_set
-  
+
   subroutine csr_vset(matrix, i, j, val)
     !!< Set val to matrix(i,j)
     type(csr_matrix), intent(inout) :: matrix
-    integer, dimension(:), intent(in) :: i, j 
+    integer, dimension(:), intent(in) :: i, j
     real, dimension(size(i),size(j)), intent(in) :: val
 
     integer :: iloc, jloc
-    
+
     do iloc=1,size(i)
        do jloc=1,size(j)
           call set(matrix, i(iloc), j(jloc), val(iloc,jloc))
@@ -3403,7 +3403,7 @@ contains
     real, dimension(size(j)), intent(in) :: val
 
     integer :: jloc
-    
+
     do jloc=1,size(j)
        call set(matrix, i, j(jloc), val(jloc))
     end do
@@ -3441,7 +3441,7 @@ contains
     real, dimension(size(i),size(j)), intent(in) :: val
 
     integer :: iloc, jloc
-    
+
     if(matrix%diagonal.and.(blocki/=blockj)) then
       FLAbort("Attempting to set value in an off-diagonal block of a diagonal block_csr_matrix.")
     end if
@@ -3462,7 +3462,7 @@ contains
     integer, intent(inout), optional :: save_pos
 
     integer :: mpos
-    
+
     if(matrix%diagonal.and.(blocki/=blockj)) then
       FLAbort("Attempting to set value in an off-diagonal block of a diagonal block_csr_matrix.")
     end if
@@ -3491,7 +3491,7 @@ contains
     integer, intent(inout), optional :: save_pos
 
     integer :: mpos
-    
+
     if(associated(matrix%sparsity%centrm)) then
       mpos = matrix%sparsity%centrm(i)
     else
@@ -3517,7 +3517,7 @@ contains
     type(csr_matrix), intent(in) :: matrix
     integer, intent(in) :: i,j
     integer, intent(inout), optional :: save_pos
-    
+
     integer :: mpos
 
     mpos=pos(matrix,i,j,save_pos=save_pos)
@@ -3542,14 +3542,14 @@ contains
     end if
 
   end function csr_val
-  
+
   function csr_ival(matrix, i, j, save_pos) result(val)
     !!< Return the value at  matrix(i,j)
     integer :: val
     type(csr_matrix), intent(in) :: matrix
     integer, intent(in) :: i,j
     integer, intent(inout), optional :: save_pos
-    
+
     integer :: mpos
 
     mpos=pos(matrix,i,j,save_pos=save_pos)
@@ -3582,9 +3582,9 @@ contains
     type(block_csr_matrix), intent(in) :: matrix
     integer, intent(in) :: blocki, blockj, i,j
     integer, intent(inout), optional :: save_pos
-    
+
     integer :: mpos
-    
+
     if(matrix%diagonal.and.(blocki/=blockj)) then
       FLAbort("Attempting to retrieve value in an off-diagonal block of a diagonal block_csr_matrix.")
     end if
@@ -3617,11 +3617,11 @@ contains
     real :: val
     type(dynamic_csr_matrix), intent(in) :: matrix
     integer, intent(in) :: i,j
-    
+
     integer :: mpos
 
     mpos=pos(matrix,i,j)
-    
+
     if (mpos/=0) then
        val=matrix%val(i)%ptr(mpos)
     else
@@ -3639,11 +3639,11 @@ contains
     integer :: i
 
     csr_dense_i=0
-    
+
     do i=1,size(matrix,1)
        csr_dense_i(i,row_m_ptr(matrix,i))=csr_row_ival_ptr(matrix,i)
     end do
-    
+
   end function csr_dense_i
 
   function csr_dense(matrix) result(dense)
@@ -3654,11 +3654,11 @@ contains
     integer :: i
 
     dense=0.0
-    
+
     do i=1,size(matrix,1)
        dense(i,row_m_ptr(matrix,i))=row_val_ptr(matrix,i)
     end do
-    
+
   end function csr_dense
 
   function block_csr_dense(matrix) result(dense)
@@ -3671,15 +3671,15 @@ contains
     dense=0.0
 
     do blocki=1,matrix%blocks(1)
-       
+
        blockstarti=(blocki-1)*block_size(matrix,1)
-       
+
        do blockj=1,matrix%blocks(2)
-       
+
           if(matrix%diagonal.and.(blocki/=blockj)) cycle
 
           blockstartj=(blockj-1)*block_size(matrix,2)
-               
+
           do i=1,block_size(matrix,1)
 
              dense(blockstarti+i,blockstartj+row_m_ptr(matrix,i))&
@@ -3688,22 +3688,22 @@ contains
 
        end do
     end do
-    
+
   end function block_csr_dense
-  
+
   function dcsr_dense(matrix)
     !!< Return the dense form of matrix. WARNING! THIS CAN EASILY BE HUGE!!!
     type(dynamic_csr_matrix), intent(in) :: matrix
     real, dimension(size(matrix,1), size(matrix,2)) :: dcsr_dense
 
     integer :: i
-    
+
     dcsr_dense=0
-    
+
     do i=1,size(matrix,1)
        dcsr_dense(i,matrix%colm(i)%ptr)=matrix%val(i)%ptr
     end do
-    
+
   end function dcsr_dense
 
   function block_dcsr_dense(matrix) result (dense)
@@ -3729,24 +3729,24 @@ contains
        do j=1,blocks(matrix,2)
 
           dense(sizes_i(i)+1:sizes_i(i+1),sizes_j(j)+1:sizes_j(j+1))=&
-               dcsr_dense(matrix%blocks(i,j)) 
+               dcsr_dense(matrix%blocks(i,j))
 
        end do
     end do
     ! call reset_debug_level() - This shouldn't be in the trunk!
 
   end function block_dcsr_dense
-  
+
   function dcsr2csr(dcsr) result (csr)
     !!< Given a dcsr matrix return a csr matrix. The dcsr matrix is left
-    !!< untouched. 
+    !!< untouched.
     type(dynamic_csr_matrix), intent(in) :: dcsr
     type(csr_matrix) :: csr
 
     integer :: rows, columns, nentries, i, rowptr, rowlen
     integer, dimension(1) :: rowpos
     type(csr_sparsity) :: sparsity
-    
+
     rows=size(dcsr,1)
     columns=size(dcsr,2)
     nentries=entries(dcsr)
@@ -3760,11 +3760,11 @@ contains
     call allocate(csr, sparsity, name=dcsr%name)
     ! Drop the excess reference
     call deallocate(sparsity)
-    
+
     rowptr=1
     do i=1,rows
        csr%sparsity%findrm(i)=rowptr
-       
+
        rowlen=size(dcsr%colm(i)%ptr)
 
        csr%sparsity%colm(rowptr:rowptr+rowlen-1)=dcsr%colm(i)%ptr
@@ -3779,44 +3779,44 @@ contains
 
        else
 !          ewrite(1,*) "Missing diagonal element"
-          
+
           csr%sparsity%centrm(i)=0
        end if
-       
+
        rowptr = rowptr + rowlen
 
     end do
 
     csr%sparsity%findrm(rows+1) = rowptr
-    
+
     ! dcsr rows are sorted (by construction in dcsr_rowpos_add)
     csr%sparsity%sorted_rows=.true.
-        
+
   end function dcsr2csr
 
   function csr2dcsr(csr) result (dcsr)
     !!< Given a csr matrix return a dcsr matrix. The csr matrix is left
-    !!< untouched. 
+    !!< untouched.
     type(csr_matrix), intent(in) :: csr
     type(dynamic_csr_matrix) :: dcsr
-    
+
     integer i, j, rows, columns
-    
+
     rows=size(csr,1)
     columns=size(csr,2)
 
     call allocate(dcsr, rows, columns)
-    
+
     do i=1,rows
-    
+
       do j=csr%sparsity%findrm(i), csr%sparsity%findrm(i+1)-1
-        
+
         call set(dcsr, i, csr%sparsity%colm(j), csr%val(j))
-        
+
       end do
-      
+
     end do
-    
+
   end function csr2dcsr
 
   subroutine csr_mult(vector_out,mat,vector_in)
@@ -3840,7 +3840,7 @@ contains
          vector_out(i) = vector_out(i) + mat%val(j) * vector_in(mat%sparsity%colm(j))
       end do
     end do
-   
+
   end subroutine csr_mult
 
   subroutine csr_mult_addto(vector_out,mat,vector_in)
@@ -3863,7 +3863,7 @@ contains
          vector_out(i) = vector_out(i) + mat%val(j) * vector_in(mat%sparsity%colm(j))
       end do
     end do
-   
+
   end subroutine csr_mult_addto
 
   subroutine dcsr_mult(m,v,mv)
@@ -3912,8 +3912,8 @@ contains
          vector_out(k) = vector_out(k) + mat%val(j) * vector_in(i)
       end do
     end do
-    
-  end subroutine csr_mult_T  
+
+  end subroutine csr_mult_T
 
   subroutine csr_mult_T_addto(vector_out,mat,vector_in)
     !!< Multiply the transpose of a csr_matrix by a vector,
@@ -3940,7 +3940,7 @@ contains
          vector_out(k) = vector_out(k) + mat%val(j) * vector_in(i)
       end do
     end do
-    
+
   end subroutine csr_mult_T_addto
 
   subroutine dcsr_mult_T(m,v,mv)
@@ -3965,9 +3965,9 @@ contains
 
   function dcsr_matmul_T(matrix1, matrix2, model,check) result (product)
     !!< Perform the matrix multiplication:
-    !!< 
+    !!<
     !!<     matrix1*matrix2^T
-    !!< 
+    !!<
     type(dynamic_csr_matrix), intent(in) :: matrix1, matrix2
     type(dynamic_csr_matrix) :: product
     type(dynamic_csr_matrix), intent(in), optional :: model
@@ -4000,7 +4000,7 @@ contains
     if(.not.present(model)) then
        size_hitlist = 0
 
-       !count the number of rows of matrix2 which contain an element 
+       !count the number of rows of matrix2 which contain an element
        !in the column
        do j = 1, size(matrix2,1)
           col=>matrix2%colm(j)%ptr
@@ -4144,7 +4144,7 @@ contains
        if(any(abs(productvec-m1m2tvec)>abs(productvec)*1.0e-8)) then
 
           ewrite(2,*) maxval(abs(productvec-m1m2tvec))
-          
+
           call dcsr_matrix2file('matrix1',matrix1)
           call dcsr_matrix2file('matrix2',matrix2)
           call dcsr_matrix2file('product',product)
@@ -4159,9 +4159,9 @@ contains
 
   function csr_matmul_T(matrix1, matrix2, model) result (product)
     !!< Perform the matrix multiplication:
-    !!< 
+    !!<
     !!<     matrix1*matrix2^T
-    !!< 
+    !!<
     !!< Only works on csr matrices with monotonic row entries in colm
     type(csr_matrix), intent(in) :: matrix1, matrix2
     type(csr_sparsity), intent(in), optional :: model
@@ -4186,8 +4186,8 @@ contains
 
        allocate( hitlist(size(matrix2,2)), size_hitlist(size(matrix2,2)) )
        size_hitlist = 0
-       
-       !count the number of rows of matrix2 which contain an element 
+
+       !count the number of rows of matrix2 which contain an element
        !in the column
        do j = 1, size(matrix2,1)
           col=>row_m_ptr(matrix2,j)
@@ -4195,13 +4195,13 @@ contains
              size_hitlist(col(k1)) = size_hitlist(col(k1)) + 1
           end do
        end do
-       
+
        do j = 1, size(matrix1,2)
           allocate( hitlist(j)%ptr(size_hitlist(j)) )
        end do
-       
+
        size_hitlist = 1
-       
+
        !make a list of rows of matrix2 which contain element i in the column
        do j = 1, size(matrix2,1)
           col=>row_m_ptr(matrix2,j)
@@ -4212,9 +4212,9 @@ contains
              end do
           end if
        end do
-       
+
        deallocate( size_hitlist )
-       
+
        call allocate(product_d, size(matrix1,1), size(matrix2,1))
        do i=1, size(matrix1,1)
           row=>row_m_ptr(matrix1, i)
@@ -4224,7 +4224,7 @@ contains
              end do
           end do
        end do
-       
+
        deallocate( hitlist )
 
        product = dcsr2csr(product_d)
@@ -4237,42 +4237,42 @@ contains
 
     call csr_matmul_t_preallocated&
          (matrix1, matrix2, product = product, set_sparsity = .not. present(model))
-    
+
   end function csr_matmul_T
-  
+
   subroutine csr_matmul_t_preallocated(matrix1, matrix2, product, set_sparsity)
     !!< Perform the matrix multiplication:
-    !!< 
+    !!<
     !!<     matrix1*matrix2^T
-    !!< 
+    !!<
     !!< Only works on csr matrices with monotonic row entries in colm. Returns
     !!< the result in the pre-allocated csr matrix product.
-    
+
     type(csr_matrix), intent(in) :: matrix1
     type(csr_matrix), intent(in) :: matrix2
     type(csr_matrix), intent(inout) :: product
     !! If present and .true., set the product sparsity as well as performing
     !! the product
     logical, optional, intent(in) :: set_sparsity
-    
+
     integer, dimension(:), pointer :: row, col, row_product
     real, dimension(:), pointer :: row_val, col_val
     integer :: i,j,k1,k2,jcol
     real :: entry0
     integer :: nentry0
     logical :: addflag, lset_sparsity
-    
+
     lset_sparsity = present_and_true(set_sparsity)
-    
+
     ewrite(2,*) 'adding in data'
 
     assert(size(matrix1,2)==size(matrix2,2))
     if(.not.matrix1%sparsity%sorted_rows.or..not.matrix2%sparsity%sorted_rows) then
       FLAbort("csr_matmul_T assumes sorted rows.")
     end if
-    
+
     call zero(product)
-    
+
     nentry0 = 0
 
     do i=1, size(matrix1,1)
@@ -4323,14 +4323,14 @@ contains
           end do
        end if
     end do
-    
+
   end subroutine csr_matmul_t_preallocated
-    
+
   function csr_sparsity_matmul(A, B) result (C)
     !!< Computes the sparsity of the matrix product:
-    !!< 
+    !!<
     !!<     C_ij = \sum_j A_ik * B_kj
-    !!< 
+    !!<
     type(csr_sparsity), intent(in) :: A, B
     type(csr_sparsity) :: C
 
@@ -4338,7 +4338,7 @@ contains
     integer, dimension(:), allocatable:: nnz
     integer, dimension(:), pointer:: rowA_i, rowB_k, rowC_i
     integer:: i, k
-    
+
     ! work out number of nonzeros per row of C
     allocate(nnz(size(A,1)))
     do i=1, size(A, 1)
@@ -4350,9 +4350,9 @@ contains
      end do
      nnz(i)=key_count(iset)
      call deallocate(iset)
-     
+
     end do
-     
+
     ! the sparsity for C
     call allocate(C, size(A,1), size(B,2), nnz=nnz, &
       name="matmul_"//trim(A%name)//"*"//trim(B%name))
@@ -4372,16 +4372,16 @@ contains
     end do
 
   end function csr_sparsity_matmul
-  
+
   function csr_matmul(A, B, model) result (C)
     !!< Perform the matrix multiplication:
-    !!< 
+    !!<
     !!<     C_ij = \sum_j A_ik * B_kj
-    !!< 
+    !!<
     type(csr_matrix), intent(in) :: A, B
     type(csr_sparsity), intent(in), optional :: model
     type(csr_matrix) :: C
-      
+
     type(csr_sparsity):: sparsity
 
     ewrite(1,*) 'Entering csr_matmul'
@@ -4389,7 +4389,7 @@ contains
     assert(size(A,2)==size(B,1))
 
     if(.not.present(model)) then
-       sparsity = csr_sparsity_matmul(A%sparsity, B%sparsity)         
+       sparsity = csr_sparsity_matmul(A%sparsity, B%sparsity)
        call allocate(C, sparsity)
     else
        call allocate(C, model)
@@ -4398,52 +4398,52 @@ contains
     C%name="matmul_"//trim(A%name)//"*"//trim(B%name)
 
     call csr_matmul_preallocated(A, B, product = C)
-    
+
   end function csr_matmul
-  
+
   subroutine csr_matmul_preallocated(A, B, product)
     !!< Perform the matrix multiplication:
-    !!< 
+    !!<
     !!<     A*B
-    !!< 
+    !!<
     !!< Returns the result in the pre-allocated csr matrix product.
-    
+
     type(csr_matrix), intent(in) :: A
     type(csr_matrix), intent(in) :: B
     ! we use intent(in) here as only the value space gets changed
     ! this allows eg. using block() as input
     type(csr_matrix), intent(inout) :: product
-    
+
     ewrite(1,*) 'Entering csr_matmul_preallocated'
-    
+
     call zero(product)
     call matmul_addto(A, B, product=product)
-      
+
   end subroutine csr_matmul_preallocated
-  
+
   subroutine csr_matmul_addto(A, B, product)
     !!< Perform the matrix multiplication:
-    !!< 
+    !!<
     !!<     C=C+A*B
-    !!< 
+    !!<
     !!< Returns the result in the pre-allocated csr matrix product.
-    
+
     type(csr_matrix), intent(in) :: A
     type(csr_matrix), intent(in) :: B
     type(csr_matrix), intent(inout) :: product
-    
+
     real, dimension(:), pointer:: A_i, B_k
     integer, dimension(:), pointer:: rowA_i, rowB_k
     integer:: i, j, k
-    
+
     ewrite(1,*) 'Entering csr_matmul_preallocated_addto'
 
     assert(size(A,2)==size(B,1))
     assert(size(product,1)==size(A,1))
     assert(size(product,2)==size(B,2))
-    
+
     ! perform C_ij=\sum_k A_ik B_kj
-    
+
     do i=1, size(A, 1)
      A_i => row_val_ptr(A, i)
      rowA_i => row_m_ptr(A, i)
@@ -4455,18 +4455,18 @@ contains
        end do
      end do
     end do
-      
+
   end subroutine csr_matmul_addto
-  
+
   function block_csr_matmul(A, B, model) result (C)
     !!< Perform the matrix multiplication:
-    !!< 
+    !!<
     !!<     C_ij = \sum_j A_ik * B_kj
-    !!< 
+    !!<
     type(block_csr_matrix), intent(in) :: A, B
     type(csr_sparsity), intent(in), optional :: model
     type(block_csr_matrix) :: C
-      
+
     type(csr_sparsity):: sparsity
 
     ewrite(1,*) 'Entering csr_matmul'
@@ -4475,7 +4475,7 @@ contains
     assert(blocks(A,2)==blocks(B,1))
 
     if(.not.present(model)) then
-       sparsity = csr_sparsity_matmul(A%sparsity, B%sparsity)         
+       sparsity = csr_sparsity_matmul(A%sparsity, B%sparsity)
        call allocate(C, sparsity, blocks=(/ blocks(A,1), blocks(B,2) /))
     else
        call allocate(C, model, blocks=(/ blocks(A,1), blocks(B,2) /))
@@ -4484,42 +4484,42 @@ contains
     C%name="matmul_"//trim(A%name)//"*"//trim(B%name)
 
     call block_csr_matmul_preallocated(A, B, product = C)
-    
+
   end function block_csr_matmul
-  
+
   subroutine block_csr_matmul_preallocated(A, B, product)
     !!< Perform the matrix multiplication:
-    !!< 
+    !!<
     !!<     A*B
-    !!< 
+    !!<
     !!< Returns the result in the pre-allocated csr matrix product.
-    
+
     type(block_csr_matrix), intent(in) :: A
     type(block_csr_matrix), intent(in) :: B
     type(block_csr_matrix), intent(inout) :: product
-    
+
     ewrite(1,*) 'Entering csr_matmul_preallocated'
-    
+
     call zero(product)
     call matmul_addto(A, B, product=product)
-      
+
   end subroutine block_csr_matmul_preallocated
-  
+
   subroutine block_csr_matmul_addto(A, B, product)
     !!< Perform the matrix multiplication:
-    !!< 
+    !!<
     !!<     C=C+A*B
-    !!< 
+    !!<
     !!< Returns the result in the pre-allocated csr matrix product.
-    
+
     type(block_csr_matrix), intent(in) :: A
     type(block_csr_matrix), intent(in) :: B
     type(block_csr_matrix), intent(inout) :: product
-    
+
     real, dimension(:), pointer:: A_i, B_k
     integer, dimension(:), pointer:: rowA_i, rowB_k
     integer:: blocki, blockj, blockk, i, j, k
-    
+
     ewrite(1,*) 'Entering csr_matmul_preallocated_addto'
 
     assert(size(A,2)==size(B,1))
@@ -4528,14 +4528,14 @@ contains
     assert(size(product,2)==size(B,2))
     assert(blocks(product,1)==blocks(A,1))
     assert(blocks(product,2)==blocks(B,2))
-    
+
     ! perform C_ij=C_ij+\sum_k A_ik B_kj
-    
+
     do blocki=1, blocks(A,1)
       do blockk=1, blocks(A,2)
         do blockj=1, blocks(B,2)
-        
-          
+
+
           do i=1, size(A, 1)
            A_i = row_val_ptr(A, blocki, blockk, i)
            rowA_i => row_m_ptr(A, i)
@@ -4547,30 +4547,30 @@ contains
              end do
            end do
           end do
-        
+
         end do
       end do
     end do
-      
+
   end subroutine block_csr_matmul_addto
-    
+
   function csr_sparsity_transpose(sparsity) result(sparsity_T)
   !!< Provides the transpose of the given sparsity
   type(csr_sparsity), intent(in):: sparsity
   type(csr_sparsity) sparsity_T
-    
+
     integer, dimension(:), allocatable:: rowlen
     integer, dimension(:), pointer:: cols
     integer i, j, row, col, count
     logical have_diag
-    
+
     have_diag=associated(sparsity%centrm)
-    
+
     ! just swap n/o rows and cols
     call allocate(sparsity_T, size(sparsity,2), size(sparsity,1), &
        entries=size(sparsity%colm), diag=have_diag, &
        name=trim(sparsity%name)//"Transpose")
-       
+
     ! Also swap the row and column halos if present.
     if (associated(sparsity%row_halo)) then
        allocate(sparsity_T%column_halo)
@@ -4592,7 +4592,7 @@ contains
         rowlen(col)=rowlen(col)+1
       end if
     end do
-      
+
     ! work out sparsity_T%findrm
     count=1
     do row=1, size(sparsity_T,1)
@@ -4600,7 +4600,7 @@ contains
       count=count+rowlen(row)
     end do
     sparsity_T%findrm(row)=count
-        
+
     rowlen=0 ! use rowlen again as counter
     do row=1, size(sparsity,1)
       cols => row_m_ptr(sparsity, row)
@@ -4614,17 +4614,17 @@ contains
     end do
     ! note that the above procedure inserts the entries in increasing order
     sparsity_T%sorted_rows=.true.
-    
+
     if (have_diag) then
       do row=1, size(sparsity_T%centrm)
         sparsity_T%centrm(row)=csr_sparsity_pos(sparsity_T, row, row)
-      end do      
+      end do
     end if
-    
+
   end function csr_sparsity_transpose
 
   function block_csr_transpose(block_A, symmetric_sparsity) result (block_AT)
-    type(block_csr_matrix), intent(in) :: block_A 
+    type(block_csr_matrix), intent(in) :: block_A
     ! If the sparsity is symmetric, don't create a new one
     logical, intent(in), optional :: symmetric_sparsity
 
@@ -4641,7 +4641,7 @@ contains
       call deallocate(sparsity)
     end if
 
-    do i = 1, blocks(block_A, 1) 
+    do i = 1, blocks(block_A, 1)
       do j = 1, blocks(block_A, 2)
         A = block(block_A, i, j)
         AT = transpose(A, symmetric_sparsity=symmetric_sparsity)
@@ -4649,7 +4649,7 @@ contains
         call deallocate(AT)
       end do
     end do
-     
+
   end function block_csr_transpose
 
   function csr_transpose(A, symmetric_sparsity) result (AT)
@@ -4658,19 +4658,19 @@ contains
     ! If the sparsity is symmetric, don't create a new one
     logical, intent(in), optional :: symmetric_sparsity
     type(csr_matrix) AT
-      
+
     type(csr_sparsity):: sparsity
     integer, dimension(:), allocatable:: rowlen
     integer, dimension(:), pointer:: cols
     real, dimension(:), pointer:: vals
     integer row, j, col
-   
+
     if (present_and_true(symmetric_sparsity) .and. .not. A%sparsity%sorted_rows) then
       FLAbort("csr_tranpose on symmetric sparsities works only with sorted_rows.")
     end if
 
-#ifdef DDEBUG 
-    ! Check that the supplied sparsity is indeed symmetric  
+#ifdef DDEBUG
+    ! Check that the supplied sparsity is indeed symmetric
     if (present_and_true(symmetric_sparsity)) then
       if (.not. is_symmetric(A%sparsity)) then
          FLAbort("The symmetric flag is supplied, but the sparsity is not symmetric.")
@@ -4705,26 +4705,26 @@ contains
          end if
       end do
     end do
-    
+
   end function csr_transpose
-  
+
   subroutine sparsity_sort(sparsity)
   !!< In-place sort of the rows of the given sparsity to increasing column index
   !!< Only for internal usage within sparsity creating routines. Should not be
   !!< called after any matrix has been based upon it.
   type(csr_sparsity), intent(inout):: sparsity
-    
+
     integer, dimension(:), pointer:: cols
     integer i, j, col
     logical sorted
-    
+
     if (associated(sparsity%refcount)) then
       if (sparsity%refcount%count>1) then
         ewrite(-1,*) "For health and safety reasons sparsities should not"
         FLAbort("be sorted after they are referenced.")
       end if
     end if
-    
+
     do i=1, size(sparsity,1)
        cols => row_m_ptr(sparsity, i)
        ! hurray for the bubble sort
@@ -4741,21 +4741,21 @@ contains
           if (sorted) exit
        end do
     end do
-      
+
     sparsity%sorted_rows=.true.
-    
+
   end subroutine sparsity_sort
 
   function sparsity_is_symmetric(sparsity) result(symmetric)
     !!< Checks if the given sparsity is symmetric
     type(csr_sparsity), intent(in):: sparsity
-    
+
     integer, dimension(:), pointer :: cols, colsT
     integer :: row, col
     logical :: symmetric
 
     if (.not. size(sparsity,1) == size(sparsity,2)) then
-      ! The dimensions dont even match 
+      ! The dimensions dont even match
       symmetric = .false.
       return
     end if
@@ -4778,42 +4778,42 @@ contains
   function sparsity_is_sorted(sparsity) result(sorted)
     !!< Checks if the rows of the given sparsity is sorted to increasing column index
     type(csr_sparsity), intent(in):: sparsity
-    
+
     integer, dimension(:), pointer:: cols
-    integer i, j 
+    integer i, j
     logical sorted
-    
+
     do i=1, size(sparsity,1)
        cols => row_m_ptr(sparsity, i)
        do j=1, size(cols)-1
           if (cols(j)>cols(j+1)) then
-             sorted=.false. 
+             sorted=.false.
              return
           end if
        end do
     end do
-      
+
     sorted=.true.
   end function sparsity_is_sorted
-  
+
   function sparsity_merge(sparsityA, sparsityB, name) result (sparsityC)
   !!< Merges sparsityA and sparsityB such that:
   !!< all (i,j) in either sparsityA or sparsityB are in sparsityC
     type(csr_sparsity), intent(in):: sparsityA, sparsityB
     character(len=*), optional, intent(in):: name
-    
+
     type(csr_sparsity) sparsityC
     integer, dimension(:), allocatable:: colm, findrm
     integer, dimension(:), pointer:: colsA, colsB
     integer i, k, k1, k2, colA, colB, count
     logical have_diag
-    
+
     if(.not.sparsityA%sorted_rows.or..not.sparsityB%sorted_rows) then
       FLAbort("sparsity_merge assumes sorted rows.")
     end if
-    
+
     assert( size(sparsityA,1)==size(sparsityB,1) )
-    
+
     ! allocate oversized, temp. sparsity:
     allocate( colm(1:size(sparsityA%colm)+size(sparsityB)), &
       findrm(1:size(sparsityA,1)+1) )
@@ -4848,7 +4848,7 @@ contains
                k2=k2+1
                if (k1>size(colsA) .or. k2>size(colsB)) exit
                colA=colsA(k1)
-               colB=colsB(k2)           
+               colB=colsB(k2)
              end if
            end do
          end if
@@ -4864,35 +4864,35 @@ contains
        end do
     end do
     findrm(i)=count+1
-      
+
     have_diag=associated(sparsityA%centrm) .or. associated(sparsityB%centrm)
     call allocate(sparsityC, size(sparsityA,1), &
        max(size(sparsityA,2), size(sparsityB,2)), &
        entries=count, diag=have_diag, name=name)
     sparsityC%findrm=findrm
     sparsityC%colm=colm(1:count)
-    
+
     if (have_diag) then
       do i=1, size(sparsityC,1)
         sparsityC%centrm(i)=csr_sparsity_pos(sparsityC, i, i)
-      end do      
+      end do
     end if
-    
+
     sparsityC%sorted_rows=.true.
-        
+
   end function sparsity_merge
 
-  
+
   subroutine csr_matrix2file(filename, matrix)
     !!< Write the dense form of matrix to filename.
     !!<
-    !!< WARNING! - The dense form of a sparse matrix can get bloody big. 
+    !!< WARNING! - The dense form of a sparse matrix can get bloody big.
     character(len=*), intent(in) :: filename
     type(csr_matrix), intent(in) :: matrix
 
     character(len=42) :: format
     integer :: unit
-    
+
     unit=free_unit()
 
     open(unit=unit, file=filename, action="write")
@@ -4908,13 +4908,13 @@ contains
   subroutine block_csr_matrix2file(filename, matrix)
     !!< Write the dense form of matrix to filename.
     !!<
-    !!< WARNING! - The dense form of a sparse matrix can get bloody big. 
+    !!< WARNING! - The dense form of a sparse matrix can get bloody big.
     character(len=*), intent(in) :: filename
     type(block_csr_matrix), intent(in) :: matrix
 
     character(len=42) :: format
     integer :: unit
-    
+
     unit=free_unit()
 
     open(unit=unit, file=filename, action="write")
@@ -4930,13 +4930,13 @@ contains
   subroutine dcsr_matrix2file(filename, matrix)
     !!< Write the dense form of matrix to filename.
     !!<
-    !!< WARNING! - The dense form of a sparse matrix can get bloody big. 
+    !!< WARNING! - The dense form of a sparse matrix can get bloody big.
     character(len=*), intent(in) :: filename
     type(dynamic_csr_matrix), intent(in) :: matrix
 
     character(len=42) :: format
     integer :: unit
-    
+
     unit=free_unit()
 
     open(unit=unit, file=filename, action="write")
@@ -4952,13 +4952,13 @@ contains
   subroutine block_dcsr_matrix2file(filename, matrix)
     !!< Write the dense form of matrix to filename.
     !!<
-    !!< WARNING! - The dense form of a sparse matrix can get bloody big. 
+    !!< WARNING! - The dense form of a sparse matrix can get bloody big.
     character(len=*), intent(in) :: filename
     type(block_dynamic_csr_matrix), intent(in) :: matrix
 
     character(len=42) :: format
     integer :: unit
-    
+
     unit=free_unit()
 
     open(unit=unit, file=filename, action="write")
@@ -4978,7 +4978,7 @@ contains
 
     character(len=42) :: format
     integer :: unit
-    
+
     unit=free_unit()
 
     open(unit=unit, file=filename, action="write")
@@ -4990,28 +4990,28 @@ contains
     close(unit)
 
   end subroutine dense_matrix2file
-  
+
   ! I/O routines to read/write matrices in MatrixMarket format
-  ! from http://math.nist.gov/MatrixMarket/formats.html:  
+  ! from http://math.nist.gov/MatrixMarket/formats.html:
   !-----------------------------------------------------------------------------------
   !   %%MatrixMarket matrix coordinate real general
   ! %=================================================================================
   ! %
-  ! % This ASCII file represents a sparse MxN matrix with L 
+  ! % This ASCII file represents a sparse MxN matrix with L
   ! % nonzeros in the following Matrix Market format:
   ! %
   ! % +----------------------------------------------+
   ! % |%%MatrixMarket matrix coordinate real general | <--- header line
   ! % |%                                             | <--+
   ! % |% comments                                    |    |-- 0 or more comment lines
-  ! % |%                                             | <--+         
+  ! % |%                                             | <--+
   ! % |    M  N  L                                   | <--- rows, columns, entries
   ! % |    I1  J1  A(I1, J1)                         | <--+
   ! % |    I2  J2  A(I2, J2)                         |    |
   ! % |    I3  J3  A(I3, J3)                         |    |-- L lines
   ! % |        . . .                                 |    |
   ! % |    IL JL  A(IL, JL)                          | <--+
-  ! % +----------------------------------------------+   
+  ! % +----------------------------------------------+
   ! %
   ! % Indices are 1-based, i.e. A(1,1) is the first element.
   ! %
@@ -5025,26 +5025,26 @@ contains
   !     4     4  -2.800e+02
   !     4     5   3.332e+01
   !     5     5   1.200e+01
-  ! 
+  !
   !-----------------------------------------------------------------------------------
 
   subroutine csr_mmwrite(filename, matrix)
     character(len=*), intent(in) :: filename
     type(csr_matrix), intent(in) :: matrix
-      
+
     real, dimension(:), pointer:: vals
     integer, dimension(:), pointer:: cols
     integer i, j, unit
-    
+
     unit=free_unit()
-    
+
     open(unit=unit, file=filename, action="write")
-    
+
     ! this will include a leading blank that we will overwrite in the end.
     write(unit, *) "%MatrixMarket matrix coordinate real general"
-      
+
     write(unit, *) size(matrix,1), size(matrix, 2), entries(matrix)
-    
+
     do i=1, size(matrix,1)
       cols => row_m_ptr(matrix, i)
       vals => row_val_ptr(matrix, i)
@@ -5052,7 +5052,7 @@ contains
         write(unit, *) i, cols(j), vals(j)
       end do
     end do
-    
+
     close(unit)
 
     ! overwrite leading blank with %
@@ -5062,25 +5062,25 @@ contains
     close(unit)
 
   end subroutine csr_mmwrite
-  
+
   subroutine dcsr_mmwrite(filename, matrix)
     character(len=*), intent(in) :: filename
     type(dynamic_csr_matrix), intent(in) :: matrix
-      
+
     real, dimension(:), pointer:: vals
     integer, dimension(:), pointer:: cols
     integer i, j, unit
-    
+
     unit=free_unit()
-    
+
     open(unit=unit, file=filename, action="write")
-   
+
     ! write header line
     ! this will include a leading blank that we will overwrite in the end.
     write(unit, *) "%MatrixMarket matrix coordinate real general"
-      
+
     write(unit, *) size(matrix,1), size(matrix, 2), entries(matrix)
-    
+
     do i=1, size(matrix,1)
       cols => row_m_ptr(matrix, i)
       vals => row_val_ptr(matrix, i)
@@ -5088,9 +5088,9 @@ contains
         write(unit, *) i, cols(j), vals(j)
       end do
     end do
-    
+
     close(unit)
-    
+
     ! overwrite leading blank with %
     open(unit=unit, file=filename, access='direct', form='formatted', recl=1, &
       action='write')
@@ -5102,15 +5102,15 @@ contains
   subroutine dcsr_mmread(filename, matrix)
     character(len=*), intent(in) :: filename
     type(dynamic_csr_matrix), intent(out) :: matrix
-      
+
     character(len=MMmaxlinelen) line
     integer unit, rows, cols, nnz, row, col
     real value
-      
+
     call mmreadheader(filename, unit, rows, cols, nnz)
-    
+
     call allocate(matrix, rows, cols)
-    
+
     do
       read(unit, fmt=MMlineformat) line
       if (len_trim(line)==0) cycle
@@ -5119,9 +5119,9 @@ contains
       nnz=nnz-1
       if (nnz==0) exit
     end do
-    
+
     close(unit)
-    
+
   end subroutine dcsr_mmread
 
   subroutine mmreadheader(filename, unit, rows, cols, nnz)
@@ -5130,25 +5130,25 @@ contains
   ! it says 'coordinate real general' (only thing we support right now)
     character(len=*), intent(in) :: filename
     integer, intent(out):: unit, rows, cols, nnz
-      
+
     character(len=*), parameter:: headerword(1:5)=(/ &
       '%%MatrixMarket', &
       'matrix        ', &
       'coordinate    ', &
       'real          ', &
       'general       ' /)
-    
+
     character(len=MMmaxlinelen) line
     integer i, j
-      
+
     unit=free_unit()
-    
+
     ewrite(2, *) 'Opening MatrixMarket file: ', trim(filename)
     open(unit=unit, file=filename, action="read")
-    
+
     ! read header line
     read(unit, fmt=MMlineformat) line
-    
+
     i=1
     j=1
     do
@@ -5156,7 +5156,7 @@ contains
         i=i+1
         cycle
       end if
-      
+
       if (i+len_trim(headerword(j))-1>len_trim(line) .or. &
         line(i:i+len_trim(headerword(j))-1)/=headerword(j)) then
         ewrite(-1,*) 'First line reads:'
@@ -5165,21 +5165,21 @@ contains
                       & "real general' format."
         FLAbort("MatrixMarket file cannot be generated.")
       end if
-      
+
       i=i+len_trim(headerword(j))
       j=j+1
       if (j>size(headerword)) exit
     end do
-    
+
     do
       read(unit, fmt=MMlineformat) line
       line=adjustl(line)
       if (len_trim(line)/=0 .and. line(1:1)/='%') exit
     end do
-    
+
     read(line, *) rows, cols, nnz
     ewrite(2,*) 'rows, cols, nnz: ', rows, cols, nnz
-    
+
   end subroutine mmreadheader
 
   subroutine csr_write_minmax(matrix, matrix_expression)
@@ -5211,7 +5211,7 @@ contains
       end do
     end do
 
-  end subroutine block_csr_write_minmax 
+  end subroutine block_csr_write_minmax
 
 #include "Reference_count_csr_matrix.F90"
 #include "Reference_count_csr_sparsity.F90"

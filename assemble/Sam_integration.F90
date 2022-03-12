@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation; either
@@ -40,7 +40,7 @@ module sam_integration
   use parallel_tools
   use memory_diagnostics
   use data_structures
-  use ieee_arithmetic
+  use, intrinsic :: ieee_arithmetic, only: ieee_quiet_nan, ieee_value
   use metric_tools
   use fields
   use state_module
@@ -60,8 +60,8 @@ module sam_integration
   use surface_id_interleaving
 
   implicit none
-  
-  interface 
+
+  interface
     !subroutine flstriph2(nnodes, nprivatenodes, nprocs, &
     !  & volumeenlist, nvolumeelems, nloc, &
     !  & surfaceenlist, surfaceids, nsurfaceelems, snloc, &
@@ -90,7 +90,7 @@ module sam_integration
     !  integer, intent(inout) :: nscatter
     !  integer, dimension(nscatter), intent(inout) :: scatter
     !end subroutine flstriph2
-  
+
     subroutine sam_init_c(dim, nonods, totele, stotel, &
                        & gather, atosen, &
                        & scater, atorec, &
@@ -121,7 +121,7 @@ module sam_integration
        integer, dimension(10), intent(in) :: options
        real, intent(in) :: MESTP1
      end subroutine sam_init_c
-   end interface 
+   end interface
 
    interface sam_migrate
      subroutine sam_migrate_c
@@ -147,7 +147,7 @@ module sam_integration
      subroutine sam_cleanup_c
      end subroutine sam_cleanup_c
    end interface sam_cleanup
-   
+
    interface sam_export_mesh
      subroutine sam_export_mesh_c(nonods, totele, stotel, nloc, snloc, nodx, nody, nodz, enlist, senlist, surfid)
        implicit none
@@ -160,7 +160,7 @@ module sam_integration
        integer, dimension(stotel), intent(out) :: surfid
      end subroutine sam_export_mesh_c
    end interface sam_export_mesh
-   
+
    interface sam_export_halo
      subroutine sam_export_halo_c(colgat, atosen, scater, atorec, ncolga, nscate, nprocs, pnodes, nnodes)
        implicit none
@@ -190,7 +190,7 @@ module sam_integration
        integer, intent(out) :: pnnodes
      end subroutine sam_export_phalo_c
    end interface sam_export_phalo
-   
+
    interface sam_add_field
      subroutine sam_add_field_c(field_data, nnodes)
        implicit none
@@ -206,7 +206,7 @@ module sam_integration
        real, dimension(nnodes), intent(out) :: field_data
      end subroutine sam_pop_field_c
    end interface sam_pop_field
-   
+
    interface sam_export_node_ownership
      subroutine sam_export_node_ownership_c(node_ownership, nnodes)
        implicit none
@@ -214,22 +214,22 @@ module sam_integration
        integer, dimension(nnodes), intent(out) :: node_ownership
      end subroutine sam_export_node_ownership_c
    end interface sam_export_node_ownership
-   
+
    private
-   
+
    public :: sam_drive, strip_level_2_halo, sam_integration_check_options
 
    contains
-   
+
      subroutine strip_level_2_halo(states, metric, external_mesh_name, initialise_fields)
        !!< Strip the level 2 halo from the supplied states and error metric.
        !!< Replaces flstriph2.
-       
+
        type(state_type), dimension(:), intent(inout) :: states
        type(tensor_field), optional, intent(inout) :: metric
        character(len=FIELD_NAME_LEN), optional, intent(in) :: external_mesh_name
        logical, optional, intent(in) :: initialise_fields
-       
+
        character(len = FIELD_NAME_LEN) :: linear_coordinate_field_name
        integer :: i, j, nlocal_dets, stat
        integer, dimension(:), allocatable :: renumber
@@ -243,9 +243,9 @@ module sam_integration
        type(state_type), dimension(:), allocatable :: interpolate_states
        type(tensor_field), pointer :: new_t_field
        type(tensor_field) :: new_metric
-       
+
        ewrite(1, *) "In strip_level_2_halo"
-       
+
        ! Find the external mesh. Must be linear and continuous.
        old_linear_mesh_ptr => get_external_mesh(states, external_mesh_name=external_mesh_name)
 
@@ -259,14 +259,14 @@ module sam_integration
           linear_coordinate_field_name = trim(old_linear_mesh%name) // "Coordinate"
        end if
        ewrite(2, *) "Mesh field: " // trim(linear_coordinate_field_name)
-       
+
        ! Extract the mesh field
        old_positions = extract_vector_field(states(1), linear_coordinate_field_name)
        call incref(old_positions)
        assert(old_positions%mesh == old_linear_mesh)
-       
+
        call initialise_boundcount(old_linear_mesh, old_positions)
-       
+
        ! Use select_fields_to_interpolate to reference all non-recoverable
        ! information in interpolate_states
        allocate(interpolate_states(size(states)))
@@ -276,53 +276,53 @@ module sam_integration
          ! it (it will be dealt with seperately)
          call remove_vector_field(interpolate_states(i), old_positions%name, stat)
        end do
-       
+
        ! Extract the level 1 and level 2 halos
        assert(associated(old_positions%mesh%halos))
        assert(size(old_positions%mesh%halos) >= 2)
        level_1_halo => old_positions%mesh%halos(1)
        call incref(level_1_halo)
        level_2_halo => old_positions%mesh%halos(2)
-       call incref(level_2_halo)       
+       call incref(level_2_halo)
 
        ! Deallocate all recoverable information
        do i = 1, size(states)
          call deallocate(states(i))
        end do
-       
+
        ! Find the nodes to keep
        allocate(keep(node_count(old_positions)))
        call find_nodes_to_keep(keep, level_1_halo, level_2_halo)
        call deallocate(level_2_halo)
-       
+
        ! Generate the renumbering map
        allocate(renumber(size(keep)))
        call create_renumbering_map(renumber, keep)
-       
+
        ewrite(2, *) "Stripping level 2 halo from the external mesh"
        call generate_stripped_linear_mesh(old_linear_mesh, new_linear_mesh, level_1_halo, keep, renumber)
        call insert(states, new_linear_mesh, new_linear_mesh%name)
-       
+
        ewrite(2, *) "Stripping level 2 halo from the mesh field"
        call allocate(new_positions, mesh_dim(new_linear_mesh), new_linear_mesh, old_positions%name)
        call generate_stripped_vector_field(old_positions, old_linear_mesh, new_positions, new_linear_mesh, keep)
        call insert(states, new_positions, new_positions%name)
        call deallocate(old_positions)
-       
+
        nlocal_dets = default_stat%detector_list%length
        call allsum(nlocal_dets)
        if(nlocal_dets > 0) call halo_transfer_detectors(old_linear_mesh, new_positions)
        call deallocate(new_positions)
-       
+
        ! Insert meshes from reserve states
        call restore_reserved_meshes(states)
        ! Next we recreate all derived meshes
        call insert_derived_meshes(states)
-       ! Then reallocate all fields 
+       ! Then reallocate all fields
        call allocate_and_insert_fields(states)
        ! Insert fields from reserve states
        call restore_reserved_fields(states)
-       
+
        ! Strip the level 2 halo from all fields in states
        do i = 1, size(interpolate_states)
          do j = 1, scalar_field_count(interpolate_states(i))
@@ -331,7 +331,7 @@ module sam_integration
            new_s_field => extract_scalar_field(states(i), interpolate_states(i)%scalar_fields(j)%ptr%name)
            call generate_stripped_scalar_field(interpolate_states(i)%scalar_fields(j)%ptr, old_linear_mesh, new_s_field, new_linear_mesh, keep)
          end do
-         
+
          do j = 1, vector_field_count(interpolate_states(i))
            assert(associated(interpolate_states(i)%vector_fields(j)%ptr))
            if(trim(interpolate_states(i)%vector_fields(j)%ptr%name) == trim(linear_coordinate_field_name)) cycle
@@ -339,7 +339,7 @@ module sam_integration
            new_v_field => extract_vector_field(states(i), interpolate_states(i)%vector_fields(j)%ptr%name)
            call generate_stripped_vector_field(interpolate_states(i)%vector_fields(j)%ptr, old_linear_mesh, new_v_field, new_linear_mesh, keep)
          end do
-         
+
          do j = 1, tensor_field_count(interpolate_states(i))
            assert(associated(interpolate_states(i)%tensor_fields(j)%ptr))
            ewrite(2, *) "Stripping level 2 halo from field " // trim(interpolate_states(i)%tensor_fields(j)%ptr%name) // " in state " // trim(states(i)%name)
@@ -347,12 +347,12 @@ module sam_integration
            call generate_stripped_tensor_field(interpolate_states(i)%tensor_fields(j)%ptr, old_linear_mesh, new_t_field, new_linear_mesh, keep)
          end do
        end do
-       
+
        do i = 1, size(interpolate_states)
          call deallocate(interpolate_states(i))
        end do
        deallocate(interpolate_states)
-       
+
        ewrite(2, *) "Renumbering level 1 halo"
        call renumber_halo(level_1_halo, renumber)
 #ifdef DDEBUG
@@ -361,7 +361,7 @@ module sam_integration
        end if
 #endif
        call deallocate(level_1_halo)
-       
+
        if(present(metric)) then
          ewrite(2, *) "Stripping level 2 halo from metric " // trim(metric%name)
          call allocate(new_metric, new_linear_mesh, metric%name)
@@ -374,14 +374,14 @@ module sam_integration
          call check_metric(metric)
 #endif
        end if
-       
+
        call deallocate(old_linear_mesh)
        call deallocate(new_linear_mesh)
 
        deallocate(keep)
        deallocate(renumber)
-       
-       ! The following is the same as the tail of populate_state:    
+
+       ! The following is the same as the tail of populate_state:
        ! Prescribed fields are recalculated
        call set_prescribed_field_values(states, exclude_interpolated=.true.)
        ! Add on the boundary conditions again
@@ -392,31 +392,31 @@ module sam_integration
        call set_dirichlet_consistent(states)
        ! Insert aliased fields in state
        call alias_fields(states)
-       
+
        if(no_reserved_meshes()) then
           ewrite(2, *) "Tagged references remaining:"
           call print_tagged_references(0)
        else
           ewrite(2, *) "There are reserved meshes, so skipping printing of references."
        end if
-              
+
        ewrite(1, *) "Exiting strip_level_2_halo"
-       
+
      end subroutine strip_level_2_halo
 
      subroutine find_nodes_to_keep(keep, level_1_halo, level_2_halo)
        !!< Set the keep array, deciding whether a node should be kept
-       
+
        logical, dimension(:), intent(out) :: keep
        type(halo_type), intent(in) :: level_1_halo
        type(halo_type), intent(in) :: level_2_halo
-       
+
        integer :: i, j
-       
+
        assert(size(keep) >= max_halo_node(level_1_halo))
        assert(size(keep) >= max_halo_node(level_2_halo))
        assert(halo_proc_count(level_1_halo) == halo_proc_count(level_2_halo))
-       
+
        keep = .true.
        do i = 1, halo_proc_count(level_2_halo)
          do j = 1, halo_receive_count(level_2_halo, i)
@@ -428,19 +428,19 @@ module sam_integration
            keep(halo_receive(level_1_halo, i, j)) = .true.
          end do
        end do
-       
+
      end subroutine find_nodes_to_keep
-     
+
      subroutine create_renumbering_map(renumber, keep)
        !!< Generate the map used for node renumbering when stripping the halo.
        !!< renumber is negative if the node is to be stripped, and forms
        !!< a consecutive list elsewhere.
-       
+
        integer, dimension(:), intent(out) :: renumber
        logical, dimension(size(renumber)), intent(in) :: keep
-       
+
        integer :: i, index
-       
+
        index = 0
        renumber = -1
        do i = 1, size(keep)
@@ -449,27 +449,27 @@ module sam_integration
            renumber(i) = index
          end if
        end do
-       
+
      end subroutine create_renumbering_map
-     
+
      subroutine generate_stripped_linear_mesh(input_linear_mesh, output_linear_mesh, level_1_halo, keep, renumber)
        !!< Generate a new mesh based on the input mesh, with nodes stripped
        !!< as specified by keep and renumber. output_linear_mesh is allocated
        !!< by this routine.
-       
+
        type(mesh_type), intent(in) :: input_linear_mesh
        type(mesh_type), intent(out) :: output_linear_mesh
        type(halo_type), intent(in) :: level_1_halo
        logical, dimension(:), intent(in) :: keep
        integer, dimension(size(keep)), intent(in) :: renumber
-       
+
        integer :: i, j, new_boundary_ids_size, new_coplanar_ids_size, new_nelms, new_ndglno_size, new_nnodes, new_region_ids_size, new_sndgln_size, nowned_nodes
        integer, dimension(:), allocatable :: sloc, new_boundary_ids, new_coplanar_ids, new_ndglno, new_region_ids, new_sndgln
        integer, dimension(:), pointer :: loc
        logical :: keep_element
        type(element_type) :: output_shape
        type(quadrature_type) :: output_quad
-       
+
        assert(size(keep) == node_count(input_linear_mesh))
        assert(trailing_receives_consistent(level_1_halo))
 
@@ -481,7 +481,7 @@ module sam_integration
        else
          new_nnodes = 0
        end if
-       
+
        ! Strip volume elements
        new_nelms = 0
        allocate(new_ndglno(size(input_linear_mesh%ndglno)))
@@ -521,7 +521,7 @@ module sam_integration
            end if
          end if
        end do volume_element_loop
-       
+
        ! Strip surface elements
        if(surface_element_count(input_linear_mesh) > 0) then
          allocate(new_sndgln(surface_element_count(input_linear_mesh) * face_loc(input_linear_mesh, 1)))
@@ -571,7 +571,7 @@ module sam_integration
            deallocate(sloc)
          end if
        end do surface_element_loop
-       
+
        ! Construct the new mesh
        output_quad = make_quadrature(ele_loc(input_linear_mesh, 1), mesh_dim(input_linear_mesh), degree = input_linear_mesh%shape%quadrature%degree)
        output_shape = make_element_shape(ele_loc(input_linear_mesh, 1), mesh_dim(input_linear_mesh), input_linear_mesh%shape%degree, output_quad)
@@ -601,7 +601,7 @@ module sam_integration
          output_linear_mesh%region_ids = new_region_ids(1:new_region_ids_size)
        end if
        output_linear_mesh%option_path = input_linear_mesh%option_path
-       
+
        allocate(output_linear_mesh%halos(1))
        output_linear_mesh%halos(1)=level_1_halo
        call incref(level_1_halo)
@@ -616,30 +616,30 @@ module sam_integration
        deallocate(new_coplanar_ids)
        deallocate(new_sndgln)
        deallocate(new_region_ids)
-       
+
      end subroutine generate_stripped_linear_mesh
-    
+
      subroutine generate_stripped_scalar_field(input_field, input_linear_mesh, output_field, output_linear_mesh, keep)
        !!< Generate a new field based on the input field, with nodes stripped
        !!< as specified by keep.
-       
+
        type(scalar_field), intent(in) :: input_field
        type(mesh_type), intent(inout) :: input_linear_mesh
        type(scalar_field), intent(inout) :: output_field
        type(mesh_type), intent(inout) :: output_linear_mesh
        logical, dimension(:), intent(in) :: keep
-      
+
        integer :: i, index
        type(scalar_field) :: input_linear_field, output_linear_field
-      
+
        assert(mesh_dim(input_field) == mesh_dim(output_field))
        assert(size(keep) == node_count(input_linear_mesh))
-       
+
        call allocate(input_linear_field, input_linear_mesh, input_field%name)
        call remap_field(input_field, input_linear_field)
-       
+
        call allocate(output_linear_field, output_linear_mesh, input_field%name)
-       
+
        index = 0
        do i = 1, node_count(input_linear_field)
          if(keep(i)) then
@@ -648,35 +648,35 @@ module sam_integration
            call set(output_linear_field, index, node_val(input_linear_field, i))
          end if
        end do
-       
+
        call remap_field(output_linear_field, output_field)
-       
+
        call deallocate(input_linear_field)
        call deallocate(output_linear_field)
-       
+
      end subroutine generate_stripped_scalar_field
-    
+
      subroutine generate_stripped_vector_field(input_field, input_linear_mesh, output_field, output_linear_mesh, keep)
        !!< Generate a new field based on the input field, with nodes stripped
        !!< as specified by keep.
-        
+
        type(vector_field), intent(in) :: input_field
        type(mesh_type), intent(in) :: input_linear_mesh
        type(vector_field), target, intent(inout) :: output_field
        type(mesh_type), intent(in) :: output_linear_mesh
        logical, dimension(:), intent(in) :: keep
-      
+
        integer :: i, index
        type(vector_field) :: input_linear_field, output_linear_field
-      
+
        assert(mesh_dim(input_field) == mesh_dim(output_field))
        assert(size(keep) == node_count(input_linear_mesh))
-       
+
        call allocate(input_linear_field, mesh_dim(input_linear_mesh), input_linear_mesh, input_field%name)
        call remap_field(input_field, input_linear_field)
-       
+
        call allocate(output_linear_field, mesh_dim(output_linear_mesh), output_linear_mesh, input_field%name)
-       
+
        index = 0
        do i = 1, node_count(input_linear_field)
          if(keep(i)) then
@@ -685,35 +685,35 @@ module sam_integration
            call set(output_linear_field, index, node_val(input_linear_field, i))
          end if
        end do
-       
+
        call remap_field(output_linear_field, output_field)
-       
+
        call deallocate(input_linear_field)
        call deallocate(output_linear_field)
-       
-     end subroutine generate_stripped_vector_field    
-    
+
+     end subroutine generate_stripped_vector_field
+
      subroutine generate_stripped_tensor_field(input_field, input_linear_mesh, output_field, output_linear_mesh, keep)
        !!< Generate a new field based on the input field, with nodes stripped
        !!< as specified by keep. output_field is allocated by this routine.
-       
+
        type(tensor_field), intent(in) :: input_field
        type(mesh_type), intent(in) :: input_linear_mesh
        type(tensor_field), intent(inout) :: output_field
        type(mesh_type), intent(in) :: output_linear_mesh
        logical, dimension(:), intent(in) :: keep
-      
+
        integer :: i, index
        type(tensor_field) :: input_linear_field, output_linear_field
-      
+
        assert(mesh_dim(input_field) == mesh_dim(output_field))
        assert(size(keep) == node_count(input_linear_mesh))
-       
+
        call allocate(input_linear_field, input_linear_mesh, input_field%name)
        call remap_field(input_field, input_linear_field)
-       
+
        call allocate(output_linear_field, output_linear_mesh, input_field%name)
-       
+
        index = 0
        do i = 1, node_count(input_linear_field)
          if(keep(i)) then
@@ -722,20 +722,20 @@ module sam_integration
            call set(output_linear_field, index, node_val(input_linear_field, i))
          end if
        end do
-       
+
        call remap_field(output_linear_field, output_field)
-       
+
        call deallocate(input_linear_field)
        call deallocate(output_linear_field)
-       
-     end subroutine generate_stripped_tensor_field  
-    
+
+     end subroutine generate_stripped_tensor_field
+
      subroutine renumber_halo(halo, renumber)
        !!< Renumber the supplied halo according to the specified renumbering.
-      
+
        type(halo_type), intent(inout) :: halo
        integer, dimension(:), intent(in) :: renumber
-      
+
        integer :: i, j, receive
 
        do i = 1, halo_proc_count(halo)
@@ -746,9 +746,9 @@ module sam_integration
            call set_halo_receive(halo, i, j, renumber(receive))
          end do
        end do
-       
+
        assert(halo_valid_for_communication(halo))
-      
+
      end subroutine renumber_halo
 
      subroutine sam_drive(states, options, metric, external_mesh_name, initialise_fields)
@@ -758,7 +758,7 @@ module sam_integration
        character(len=FIELD_NAME_LEN), intent(in), optional :: external_mesh_name
        ! if present and true: don't bother redistributing fields that can be reinitialised
        logical, intent(in), optional :: initialise_fields
-       
+
        type(state_type), dimension(size(states)) :: interpolate_states
 
        integer :: field, state
@@ -778,7 +778,7 @@ module sam_integration
 
        integer :: max_coplanar_id, nlocal_dets
        integer, dimension(:), allocatable :: boundary_ids, coplanar_ids
-       
+
        integer :: NNODP, NONODS, TOTELE, STOTEL, ncolga, nscate, pncolga, pnscate
        type(mesh_type) :: old_linear_mesh
        type(mesh_type), pointer :: linear_mesh
@@ -795,7 +795,7 @@ module sam_integration
 
        real, dimension(:,:), allocatable :: xyz
        real, dimension(:), allocatable :: value
-   
+
        integer :: stat
 
 
@@ -820,7 +820,7 @@ module sam_integration
          ! save memory.
          call incref(old_linear_mesh)
        end if
-       
+
        linear_mesh_name = old_linear_mesh%name
        linear_mesh_option_path = old_linear_mesh%option_path
        if(trim(linear_mesh_name) == "CoordinateMesh") then
@@ -909,7 +909,7 @@ module sam_integration
            call remove_tensor_field(interpolate_states(state), trim(namelist_t(state, field)))
          end do
        end do
-       
+
        if(present(metric)) then
          ! Add the metric
          call remap_field(metric, linear_t)
@@ -919,11 +919,11 @@ module sam_integration
        call deallocate(linear_s)
        call deallocate(linear_v)
        call deallocate(linear_t)
-       
+
        if(present(metric)) metric_name = metric%name
 
        ! Step 3. Deallocate.
-       
+
        ! Deallocate the states
        do state=1,size(states)
          call deallocate(states(state))
@@ -933,21 +933,21 @@ module sam_integration
          ! Deallocate the metric
          call deallocate(metric)
        end if
-       
+
        ! Step 4. Migrate.
        ewrite(1, *) "Calling sam_migrate from sam_drive"
        call tic(TICTOC_ID_DATA_MIGRATION)
        call sam_migrate
-       call toc(TICTOC_ID_DATA_MIGRATION) 
+       call toc(TICTOC_ID_DATA_MIGRATION)
        ewrite(1, *) "Exited sam_migrate"
 
        ! Step 5. Now, we need to reconstruct.
-       
+
        ! Query the statistics of the new mesh.
        ewrite(1, *) "Calling sam_query from sam_drive"
        call sam_query(nonods, totele, stotel, ncolga, nscate, pncolga, pnscate)
        ewrite(1, *) "Exited sam_query"
-       
+
        !!! sanity check
 
        if (nonods==0) then
@@ -958,10 +958,10 @@ module sam_integration
        allocate(linear_mesh)
        call allocate(linear_mesh, nonods, totele, linear_shape, linear_mesh_name)
        call deallocate(linear_shape)
-       call allocate(new_positions, dim, linear_mesh, linear_coordinate_field_name)         
+       call allocate(new_positions, dim, linear_mesh, linear_coordinate_field_name)
        call deallocate(linear_mesh)
        deallocate(linear_mesh)
-       linear_mesh => new_positions%mesh            
+       linear_mesh => new_positions%mesh
        allocate(surface_ids(stotel))
        allocate(senlist(stotel * snloc))
        ewrite(1, *) "Calling sam_export_mesh from sam_drive"
@@ -973,13 +973,13 @@ module sam_integration
        deallocate(xyz)
        ewrite(1, *) "Exited sam_export_mesh"
        linear_mesh%option_path = linear_mesh_option_path
-         
+
        if(nlocal_dets > 0) then
          ! Communicate the local detectors
          call sam_transfer_detectors(old_linear_mesh, new_positions)
          call deallocate(old_linear_mesh)
        end if
-       
+
        ! Add the surface mesh data
        allocate(boundary_ids(stotel))
        allocate(coplanar_ids(stotel))
@@ -1023,7 +1023,7 @@ module sam_integration
          assert(halo_verifies(linear_mesh%halos(1), new_positions))
        end if
 #endif
-      
+
        if(pncolga >= 0) then
          ! In "mixed formulation" export the level 2 halo
          assert(pnscate >= 0)
@@ -1051,33 +1051,33 @@ module sam_integration
          ! Derive the elements halo
          allocate(linear_mesh%element_halos(2))
          call derive_element_halo_from_node_halo(linear_mesh, &
-           & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)  
+           & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)
        else
          if(.not. serial_storage_halo(linear_mesh%halos(1))) then  ! Cannot derive halos in serial
            allocate(linear_mesh%element_halos(1))
            call derive_element_halo_from_node_halo(linear_mesh, &
              & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)
          else
-           allocate(linear_mesh%element_halos(0)) 
+           allocate(linear_mesh%element_halos(0))
          end if
        end if
 
        ! Insert the positions and linear mesh into all states
        call insert(states, linear_mesh, trim(linear_mesh_name))
        call insert(states, new_positions, trim(linear_coordinate_field_name))
-       
+
        ! Insert meshes from reserve state
        call restore_reserved_meshes(states)
        ! Next we recreate all derived meshes
        call insert_derived_meshes(states)
-       ! Then reallocate all fields 
+       ! Then reallocate all fields
        call allocate_and_insert_fields(states, dont_allocate_prognostic_value_spaces = .true.)
-       
+
        ! Now extract all fields in the reverse order we put them in
        call allocate(linear_s, linear_mesh, "LinearScalarField")
        call allocate(linear_v, dim, linear_mesh, "LinearVectorField")
        call allocate(linear_t, linear_mesh, "LinearTensorField")
-       
+
        if(present(metric)) then
          do component_i=dim,1,-1
            do component_j=dim,1,-1
@@ -1090,7 +1090,7 @@ module sam_integration
          call check_metric(metric)
 #endif
        end if
-       
+
        allocate(value(1:node_count(linear_mesh)))
        ! Extract field data from sam
        do state=size(states),1,-1
@@ -1147,11 +1147,11 @@ module sam_integration
        call deallocate(linear_s)
        call deallocate(linear_v)
        call deallocate(linear_t)
-       
+
        deallocate(namelist_s)
        deallocate(namelist_v)
        deallocate(namelist_t)
-       
+
        ! We're done with the new positions now so we may drop our reference
        call deallocate(new_positions)
 
@@ -1159,7 +1159,7 @@ module sam_integration
        ! aren't interpolated
        call allocate_remaining_fields(states)
 
-       ! The following is the same as the tail of populate_state:    
+       ! The following is the same as the tail of populate_state:
        ! Prescribed fields are recalculated
        call set_prescribed_field_values(states, exclude_interpolated=.true.)
        ! Add on the boundary conditions again
@@ -1170,18 +1170,18 @@ module sam_integration
        call set_dirichlet_consistent(states)
        ! Insert aliased fields in state
        call alias_fields(states)
-       
+
        ! Step 6. Cleanup
-       
+
        ewrite(1, *) "Calling sam_cleanup from sam_drive"
        call sam_cleanup
        ewrite(1, *) "Exited sam_cleanup"
-       
+
        call ewrite_load_imbalance(2, "Owned nodes:", nnodp)
        call ewrite_load_imbalance(2, "Total nodes:", nonods)
        call ewrite_load_imbalance(2, "Total elements:", totele)
 
-       call toc(TICTOC_ID_DATA_REMAP)       
+       call toc(TICTOC_ID_DATA_REMAP)
        ewrite(1, *) "Exiting sam_drive"
      end subroutine sam_drive
 
@@ -1191,7 +1191,7 @@ module sam_integration
 
        type(state_type), dimension(:), intent(inout) :: states
 
-       integer :: i, j, k
+       integer :: i, j
        type(scalar_field), pointer :: s_field
        type(tensor_field), pointer :: t_field
        type(vector_field), pointer :: v_field
@@ -1252,7 +1252,6 @@ module sam_integration
        integer, dimension(:), pointer :: ndglno
        integer, dimension(:), allocatable :: surfid, sndgln
        integer :: nloc, snloc
-       real, dimension(:), pointer :: x, y, z
        real, dimension(:), allocatable :: metric_handle
        integer :: nfields
        real, dimension(:), pointer :: fields
@@ -1265,7 +1264,7 @@ module sam_integration
        type(halo_type) :: halo
        type(mesh_type), pointer :: mesh
        type(vector_field), pointer :: positions
-       
+
        ewrite(1, *) "In sam_init"
 
        ! Extract the external mesh and mesh field
@@ -1282,14 +1281,14 @@ module sam_integration
        call getsndgln(mesh, sndgln)
        allocate(surfid(unique_surface_element_count(mesh)))
        call interleave_surface_ids(mesh, surfid, max_coplanar_id)
-       
+
        ! Extract the level 1 halo
-       nprocs = getnprocs()       
+       nprocs = getnprocs()
        if(halo_count(mesh) > 0) then
          halo = mesh%halos(1)
          assert(trailing_receives_consistent(halo))
          assert(halo_valid_for_communication(halo))
-         
+
          ! Copy the halo data into primitive data structures
          allocate(gather(halo_all_sends_count(halo)))
          allocate(atosen(halo_proc_count(halo) + 1))
@@ -1309,7 +1308,7 @@ module sam_integration
          atosen = 0
          atorec = 0
        end if
-       
+
        ! Form the metric
        allocate(metric_handle(dim * dim * nonods))
        if(present(metric)) then
@@ -1328,7 +1327,7 @@ module sam_integration
        nfields = 0
        dummy = 0
        fields => dummy
-       
+
        allocate(xyz(1:nonods,1:3))
        xyz(:,1:positions%dim)=transpose(positions%val)
        xyz(:,positions%dim+1:)=0.0
@@ -1347,7 +1346,7 @@ module sam_integration
                           & options, mestp1)
        deallocate(xyz)
        ewrite(1, *) "Exited sam_init_c"
-       
+
        deallocate(sndgln)
        deallocate(surfid)
        deallocate(gather)
@@ -1355,118 +1354,118 @@ module sam_integration
        deallocate(scater)
        deallocate(atorec)
        deallocate(metric_handle)
-       
+
        ewrite(1, *) "Exiting sam_init"
 
      end subroutine sam_init
 
      subroutine sam_add_field_scalar(field)
        type(scalar_field), intent(in) :: field
-       
+
        call sam_add_field(field%val, node_count(field))
-       
+
      end subroutine sam_add_field_scalar
 
      subroutine sam_add_field_vector(field)
        type(vector_field), intent(in) :: field
-       
+
        real, dimension(:), allocatable:: value
        integer :: i
-       
+
        allocate( value(1:node_count(field)) )
        do i=1,field%dim
          value=field%val(i,:)
          call sam_add_field(value, node_count(field))
        end do
-       
+
      end subroutine sam_add_field_vector
 
      subroutine sam_add_field_tensor(field)
        type(tensor_field), intent(in) :: field
-       
+
        integer :: i, j
-       
+
        do i=1,mesh_dim(field%mesh)
          do j=1,mesh_dim(field%mesh)
            call sam_add_field(field%val(i, j, :), node_count(field))
          end do
        end do
-       
+
      end subroutine sam_add_field_tensor
-     
+
   subroutine sam_transfer_detectors(old_mesh, new_positions)
     type(mesh_type), intent(in) :: old_mesh
     type(vector_field), intent(inout) :: new_positions
-    
+
     integer :: nnodes
     integer, dimension(:), allocatable :: node_ownership
-    
+
     nnodes = node_count(old_mesh)
     allocate(node_ownership(nnodes))
     call sam_export_node_ownership(node_ownership, nnodes)
     node_ownership = node_ownership + 1
-    
+
     call transfer_detectors(old_mesh, new_positions, node_ownership)
-    
+
     deallocate(node_ownership)
-  
+
   end subroutine sam_transfer_detectors
-  
+
   subroutine halo_transfer_detectors(old_mesh, new_positions)
     type(mesh_type), intent(in) :: old_mesh
     type(vector_field), intent(inout) :: new_positions
-  
+
     integer :: nhalos, nnodes
     integer, dimension(:), allocatable :: node_ownership
     type(halo_type), pointer :: halo
-    
+
     nhalos = halo_count(old_mesh)
     if(nhalos == 0) return
     halo => old_mesh%halos(nhalos)
-    
+
     nnodes = node_count(old_mesh)
     allocate(node_ownership(nnodes))
     call get_node_owners(halo, node_ownership)
-    
+
     call transfer_detectors(old_mesh, new_positions, node_ownership)
-    
+
     deallocate(node_ownership)
-    
+
   end subroutine halo_transfer_detectors
-     
+
   subroutine transfer_detectors(old_mesh, new_positions, node_ownership)
     type(mesh_type), intent(in) :: old_mesh
     type(vector_field), intent(inout) :: new_positions
     integer, dimension(node_count(old_mesh)) :: node_ownership
-    
+
     integer :: communicator, i, j, nhalos,  nprocs, &
       & owner, procno
     type(detector_type), pointer :: next_node, node
     type(halo_type), pointer :: halo
-    
+
     integer, parameter :: idata_size = 2
     integer :: rdata_size
-    
+
     integer, dimension(:), allocatable :: nsends, data_index
     type(integer_vector), dimension(:), allocatable :: isend_data
     type(real_vector), dimension(:), allocatable :: rsend_data
-    
+
     integer, dimension(:), allocatable :: nreceives
     type(integer_vector), dimension(:), allocatable :: ireceive_data
     type(real_vector), dimension(:), allocatable :: rreceive_data
-    
+
     integer :: ierr, tag
     integer, dimension(:), allocatable :: requests, statuses
-    
+
     nhalos = halo_count(old_mesh)
     if(nhalos == 0) return
     halo => old_mesh%halos(nhalos)
     communicator = halo_communicator(halo)
     procno = getprocno(communicator = communicator)
     nprocs = halo_proc_count(halo)
-    
+
     rdata_size = new_positions%dim
-    
+
     allocate(nsends(nprocs))
     nsends = 0
     node => default_stat%detector_list%first
@@ -1476,59 +1475,59 @@ module sam_integration
         if(owner /= procno) then
           nsends(owner) = nsends(owner) + 1
         end if
-      end if      
-    
+      end if
+
       node => node%next
     end do
-    
+
     allocate(isend_data(nprocs))
-    allocate(rsend_data(nprocs))    
+    allocate(rsend_data(nprocs))
     do i = 1, nprocs
       allocate(isend_data(i)%ptr(nsends(i) * idata_size))
       allocate(rsend_data(i)%ptr(nsends(i) * rdata_size))
     end do
-    
+
     allocate(data_index(nprocs))
     data_index = 0
     node => default_stat%detector_list%first
     do while(associated(node))
       next_node => node%next
-    
+
       if(node%element > 0) then
         owner = minval(node_ownership(ele_nodes(old_mesh, node%element)))
         if(owner /= procno) then
           ! Pack this node for sending
-          
+
           ! Integer data
           isend_data(owner)%ptr(data_index(owner) * idata_size + 1) = node%id_number
           ! Real data
           rsend_data(owner)%ptr(data_index(owner) * rdata_size + 1:data_index(owner) * rdata_size + new_positions%dim) = node%position
-                    
+
           data_index(owner) = data_index(owner) + 1
-                    
+
           ! Delete this node from the detector list
           call delete(node, default_stat%detector_list)
         end if
-      end if      
-    
+      end if
+
       node => next_node
     end do
     deallocate(data_index)
-    
+
     ewrite(2, *) "Detectors to be sent: ", sum(nsends)
-    
+
     allocate(nreceives(nprocs))
     nreceives = invert_comms_sizes(nsends, communicator = communicator)
-    
+
     ewrite(2, *) "Detectors to be received: ", sum(nreceives)
-    
+
     allocate(ireceive_data(nprocs))
     allocate(rreceive_data(nprocs))
     do i = 1, nprocs
       allocate(ireceive_data(i)%ptr(nreceives(i) * idata_size))
       allocate(rreceive_data(i)%ptr(nreceives(i) * rdata_size))
     end do
-    
+
     ! Set up non-blocking communications
     allocate(requests(nprocs * 4))
     requests = MPI_REQUEST_NULL
@@ -1542,7 +1541,7 @@ module sam_integration
         call mpi_isend(rsend_data(i)%ptr, nsends(i) * rdata_size, getpreal(), i - 1, tag, communicator, requests(i + nprocs), ierr)
         assert(ierr == MPI_SUCCESS)
       end if
-      
+
       ! Non-blocking receives
       if(nreceives(i) > 0) then
         call mpi_irecv(ireceive_data(i)%ptr, nreceives(i) * idata_size, getpinteger(), i - 1, tag, communicator, requests(i + 2 * nprocs), ierr)
@@ -1550,15 +1549,15 @@ module sam_integration
         call mpi_irecv(rreceive_data(i)%ptr, nreceives(i) * rdata_size, getpreal(), i - 1, tag, communicator, requests(i + 3 * nprocs), ierr)
         assert(ierr == MPI_SUCCESS)
       end if
-    end do   
-        
+    end do
+
     ! Wait for all non-blocking communications to complete
     allocate(statuses(MPI_STATUS_SIZE * size(requests)))
     call mpi_waitall(size(requests), requests, statuses, ierr)
     assert(ierr == MPI_SUCCESS)
     deallocate(statuses)
     deallocate(requests)
-    
+
     deallocate(nsends)
     do i = 1, nprocs
       deallocate(isend_data(i)%ptr)
@@ -1566,36 +1565,36 @@ module sam_integration
     end do
     deallocate(isend_data)
     deallocate(rsend_data)
-    
+
     do i = 1, nprocs
       do j = 1, nreceives(i)
         ! Unpack the node
         allocate(node)
-        
+
         ! Integer data
         node%id_number = ireceive_data(i)%ptr((j - 1) * idata_size + 1)
-                
+
         ! Real data
         allocate(node%position(new_positions%dim))
         node%position = rreceive_data(i)%ptr((j - 1) * rdata_size + 1:(j - 1) * rdata_size + new_positions%dim)
-        
+
         ! Recoverable data, not communicated
         allocate(node%local_coords(new_positions%dim + 1))
-        
+
         call insert(node, default_stat%detector_list)
       end do
-      
+
       deallocate(ireceive_data(i)%ptr)
       deallocate(rreceive_data(i)%ptr)
-    end do      
-    
+    end do
+
     deallocate(nreceives)
     deallocate(ireceive_data)
     deallocate(rreceive_data)
-    
+
     ! Update the detector element ownership data
     call search_for_detectors(default_stat%detector_list, new_positions)
-  
+
   end subroutine transfer_detectors
 
   function load_imbalance(count)
@@ -1607,17 +1606,17 @@ module sam_integration
     integer, intent(in) :: count
 
     real :: load_imbalance
-    
+
 #ifdef HAVE_MPI
     integer :: i, max_count, min_count, ierr
     integer, dimension(:), allocatable :: node_counts
     real :: mean
-    
+
     allocate(node_counts(getnprocs()))
-    
+
     call mpi_gather(count, 1, getpinteger(), node_counts, 1, getpinteger(), 0, MPI_COMM_FEMTOOLS, ierr)
     assert(ierr == MPI_SUCCESS)
-    
+
     if(getprocno() == 1) then
       max_count = node_counts(1)
       min_count = node_counts(1)
@@ -1630,41 +1629,41 @@ module sam_integration
       mean = mean / size(node_counts)
       load_imbalance = (max_count - mean) / mean
     end if
-    
+
     call mpi_bcast(load_imbalance, 1, getpreal(), 0, MPI_COMM_FEMTOOLS, ierr)
     assert(ierr == MPI_SUCCESS)
-    
+
     deallocate(node_counts)
-#else    
+#else
     load_imbalance = 0.0
 #endif
-    
+
   end function load_imbalance
-  
+
   subroutine ewrite_load_imbalance(debug_level, prefix, count)
     !!< ewrite the load imbalance at the supplied debug level, based upon the
     !!< supplied count for this process, adding a prefix.
-    
+
     integer, intent(in) :: debug_level
     character(len = *), intent(in) :: prefix
     integer, intent(in) :: count
-    
+
     integer :: max_count, min_count
     real :: mean, imbalance
-    
+
     if(debug_level > current_debug_level) return
-    
+
     max_count = count
     call allmax(max_count)
-    
+
     min_count = count
     call allmin(min_count)
-    
+
     mean = count
     call allmean(mean)
 
-    imbalance = load_imbalance(count)         
-    
+    imbalance = load_imbalance(count)
+
     if(getprocno() == 1) then
       ewrite(debug_level, *) prefix
       ewrite(debug_level, *) "Mean = ", mean
@@ -1672,7 +1671,7 @@ module sam_integration
       ewrite(debug_level, *) "Max. = ", max_count
       ewrite(debug_level, *) "Imbalance = ", imbalance
     end if
-  
+
   end subroutine ewrite_load_imbalance
 
   subroutine check_sam_linear_remap_validity(stat,name)
@@ -1682,7 +1681,7 @@ module sam_integration
 
     !! short circuit for the trivial case
     if (stat==0) return
-    
+
     ewrite(0,*) "For field ", trim(name)
 
     select case(stat)
@@ -1700,26 +1699,23 @@ module sam_integration
     FLExit("This discretisation is not supported in parallel with libsam. Please consider reconfiguring with Zoltan")
 
   end subroutine check_sam_linear_remap_validity
-  
+
   subroutine sam_integration_check_options
 
-    integer :: i
-    character (len=OPTION_PATH_LEN) :: continuity_var
-
     !!< Check libsam integration related options
-   
+
     if(.not. isparallel()) then
       ! Nothing to check
       return
-    end if       
-    
+    end if
+
 #ifndef HAVE_ZOLTAN
     ewrite(2, *) "Checking libsam integration related options"
 
     if( have_option("/flredecomp") ) then
        FLExit("Specification of flredecomp parameters in the options tree is not supported with libsam. Please remove or reconfigure with Zoltan")
     end if
-    
+
     if(have_option("/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions")) then
       FLExit("Preserving of mesh regions through adapts is not supported in parallel with libsam. Please reconfigure with Zoltan")
     end if

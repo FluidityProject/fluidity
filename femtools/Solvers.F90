@@ -471,8 +471,6 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
   !! with rotated bcs: matrix to transform from x,y,z aligned vectors to boundary aligned
   Mat, intent(in), optional:: rotation_matrix
 
-
-  KSP ksp
   Vec y, b
 
   character(len=OPTION_PATH_LEN) solver_option_path
@@ -1593,7 +1591,7 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
     PetscErrorCode ierr
     PetscObject vf
 
-    logical startfromzero, remove_null_space
+    logical startfromzero
 
     ewrite(1,*) "Inside setup_ksp_from_options"
 
@@ -1672,14 +1670,14 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
        '/diagnostics/monitors/preconditioned_residual')) then
         call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, &
            PETSC_VIEWER_DEFAULT,vf,ierr)
-        call KSPMonitorSet(ksp, KSPMonitorResidual, vf, &
+        call KSPMonitorSet(ksp, KSPMonitorDefault, vf, &
            PetscViewerAndFormatDestroy, ierr)
     end if
     if (have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/true_residual')) then
         call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, &
            PETSC_VIEWER_DEFAULT,vf,ierr)
-        call KSPMonitorSet(ksp, KSPMonitorTrueResidual, vf, &
+        call KSPMonitorSet(ksp, KSPMonitorTrueResidualNorm, vf, &
            PetscViewerAndFormatDestroy, ierr)
     end if
 

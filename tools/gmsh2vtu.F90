@@ -27,19 +27,19 @@
 
 subroutine gmsh2vtu(filename_, filename_len) bind(c)
   !!< Read in a gmsh mesh and output a vtu mesh.
-  
+
   use fields
   use read_gmsh
   use vtk_interfaces
   use iso_c_binding
   implicit none
-  
+
   integer(kind=c_size_t), value :: filename_len
   character(kind=c_char, len=1) :: filename_(*)
-  
+
   character(len=filename_len) :: filename
-  
-  integer :: stat, i
+
+  integer :: i
   type(vector_field), target :: positions
   type(scalar_field) :: regions
 
@@ -58,7 +58,7 @@ subroutine gmsh2vtu(filename_, filename_len) bind(c)
   else
     call vtk_write_fields(filename, position=positions, model=positions%mesh)
   end if
-  
+
   call deallocate(positions)
 
 end subroutine gmsh2vtu

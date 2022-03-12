@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -68,7 +68,7 @@ module diagnostic_fields
 
   public :: insert_diagnostic_field, calculate_diagnostic_variable
   public :: calculate_cfl_number, calculate_galerkin_projection
-  
+
   interface calculate_diagnostic_variable
      module procedure calculate_scalar_diagnostic_variable_single_state, &
           & calculate_scalar_diagnostic_variable_multiple_states, &
@@ -86,10 +86,10 @@ module diagnostic_fields
     module procedure calculate_galerkin_projection_scalar, calculate_galerkin_projection_vector, &
                      calculate_galerkin_projection_tensor
   end interface
-  
+
 
 contains
-  
+
   subroutine insert_diagnostic_field(state, d_field_name, &
     & d_field_mesh, d_field_rank, stat)
     !!< Insert a new diagnostic field of specified rank into state
@@ -168,7 +168,7 @@ contains
 
       case("DG_CourantNumber")
         call calculate_courant_number_DG(state, d_field, dt=dt)
-        
+
       case("CVMaterialDensityCFLNumber")
         call calculate_matdens_courant_number_cv(state, d_field, dt=dt)
 
@@ -189,31 +189,31 @@ contains
 
       case("IsopycnalCoordinate")
         call calculate_isopycnal_coordinate(state, d_field, stat)
-      
+
       case("BackgroundPotentialEnergyDensity")
         call calculate_back_pe_density(state, d_field, stat)
-      
+
       case("HorizontalStreamFunction")
         call calculate_horizontal_streamfunction(state, d_field)
-        
+
       case("StreamFunction")
         call calculate_stream_function_2d(state, d_field, stat)
-        
+
       CASE("MultiplyConnectedStreamFunction")
         call calculate_stream_function_multipath_2d(state, d_field)
 
       case("Time")
         call set(d_field, current_time)
-        
+
       case("VelocityDivergence")
         call calculate_velocity_divergence(state, d_field, stat)
 
       case("Speed")
         call calculate_speed(state, d_field, stat)
-     
+
       case("DiffusiveDissipation")
         call calculate_diffusive_dissipation(state, d_field, stat)
-      
+
       case("RichardsonNumber")
         call calculate_richardson_number_new(state, d_field)
 
@@ -222,7 +222,7 @@ contains
 
       case("GalerkinProjection")
         call calculate_galerkin_projection(state, d_field)
-       
+
       case("UniversalNumber")
         call calculate_universal_number(d_field)
 
@@ -240,16 +240,16 @@ contains
     end select
 
   end subroutine calculate_scalar_diagnostic_variable_single_state
-  
+
   subroutine calculate_scalar_diagnostic_variable_multiple_states(state, d_field_name, d_field, stat)
     !!< Calculate the specified scalar diagnostic field d_field_name from
     !!< the supplied states and return the field in d_field.
-    
+
     type(state_type), dimension(:), intent(in) :: state
     character(len = *), intent(in) :: d_field_name
     type(scalar_field), intent(inout) :: d_field
     integer, optional, intent(out) :: stat
-    
+
     select case(d_field_name)
 
       case default
@@ -261,7 +261,7 @@ contains
         end if
 
     end select
-    
+
   end subroutine calculate_scalar_diagnostic_variable_multiple_states
 
   subroutine calculate_vector_diagnostic_variable_single_state(state, d_field_name, &
@@ -309,10 +309,10 @@ contains
 
       case("GalerkinProjection")
         call calculate_galerkin_projection(state, d_field)
-        
+
       case("DiagnosticCoordinate")
         call calculate_diagnostic_coordinate_field(state, d_field)
-        
+
       case default
         if(present(stat)) then
           stat = 1
@@ -324,16 +324,16 @@ contains
     end select
 
   end subroutine calculate_vector_diagnostic_variable_single_state
-  
+
   subroutine calculate_vector_diagnostic_variable_multiple_states(state, d_field_name, d_field, stat)
     !!< Calculate the specified vector diagnostic field d_field_name from
     !!< the supplied states and return the field in d_field.
-    
+
     type(state_type), dimension(:), intent(in) :: state
     character(len = *), intent(in) :: d_field_name
     type(vector_field), intent(inout) ::d_field
     integer, optional, intent(out) :: stat
-    
+
     select case(d_field_name)
 
       case default
@@ -345,7 +345,7 @@ contains
         end if
 
     end select
-    
+
   end subroutine calculate_vector_diagnostic_variable_multiple_states
 
   subroutine calculate_tensor_diagnostic_variable_single_state(state, d_field_name, &
@@ -371,16 +371,16 @@ contains
     end select
 
   end subroutine calculate_tensor_diagnostic_variable_single_state
-  
+
   subroutine calculate_tensor_diagnostic_variable_multiple_states(state, d_field_name, d_field, stat)
     !!< Calculate the specified tensor diagnostic field d_field_name from
     !!< the supplied states and return the field in d_field.
-    
+
     type(state_type), dimension(:), intent(in) :: state
     character(len = *), intent(in) :: d_field_name
     type(tensor_field), intent(inout) ::d_field
     integer, optional, intent(out) :: stat
-    
+
     select case(d_field_name)
 
       case default
@@ -392,7 +392,7 @@ contains
         end if
 
     end select
-    
+
   end subroutine calculate_tensor_diagnostic_variable_multiple_states
 
   subroutine calculate_CFL_number(State, CFL, dt)
@@ -419,7 +419,7 @@ contains
 
     U=>extract_vector_field(state, "Velocity")
     X=>extract_vector_field(state, "Coordinate")
-    
+
     if(present(dt)) then
       l_dt = dt
     else
@@ -455,7 +455,7 @@ contains
        CFL%val(ele_CFL)=max(CFL%val(ele_CFL), sum(CFL_mat,2))
 
     end do
-    
+
     !call halo_max(cfl)
 
   end subroutine calculate_CFL_number
@@ -476,7 +476,7 @@ contains
     ! viscosity at each quad point
     real, dimension(mesh_dim(GRN), mesh_dim(GRN), ele_ngi(GRN,1)) :: vis_q
     ! density at each quad point
-    real, dimension(ele_ngi(GRN,1)) :: den_q    
+    real, dimension(ele_ngi(GRN,1)) :: den_q
     ! current element global node numbers.
     integer, dimension(:), pointer :: ele_grn
     ! local grn matrix on the current element.
@@ -486,16 +486,16 @@ contains
     type(tensor_field), pointer :: viscosity
     type(scalar_field), pointer :: density
     logical :: include_density_field, use_stress_form
-    
+
     U=>extract_vector_field(state, "Velocity")
     X=>extract_vector_field(state, "Coordinate")
 
     call zero(grn)
 
     viscosity => extract_tensor_field(state,'Viscosity')
-    
+
     include_density_field = have_option(trim(GRN%option_path)//'/diagnostic/include_density_field')
-    
+
     if (include_density_field) then
        density => extract_scalar_field(state,'Density', stat = stat)
        if (stat /= 0) then
@@ -513,7 +513,7 @@ contains
     else
        use_stress_form = .false.
     end if
-    
+
     do ele=1, element_count(GRN)
        ele_GRN=>ele_nodes(GRN, ele)
        GRN_shape=>ele_shape(GRN, ele)
@@ -526,7 +526,7 @@ contains
        vis_q=ele_val_at_quad(viscosity, ele)
 
        ! for full and partial stress form we need to set the off diagonal terms of the viscosity tensor to zero
-       ! to be able to invert it 
+       ! to be able to invert it
        if (use_stress_form) then
           do a=1,size(vis_q,1)
              do b=1,size(vis_q,2)
@@ -540,15 +540,15 @@ contains
           GRN_q(:,gi)=matmul(GRN_q(:,gi), J(:,:,gi))
           GRN_q(:,gi)=matmul(inverse(vis_q(:,:,gi)), GRN_q(:,gi))
        end do
-       
+
        ! include the density field if required also at the quad point
        if (include_density_field) then
           den_q=ele_val_at_quad(density, ele)
           do gi=1,size(detwei)
               GRN_q(:,gi)=den_q(gi)*GRN_q(:,gi)
-          end do          
+          end do
        end if
-       
+
        ! Project onto the basis functions to recover GRN at each node.
        GRN_mat=matmul(inverse(shape_shape(GRN_shape, GRN_shape, detwei)), &
             shape_shape(GRN_shape, GRN_shape, &
@@ -596,7 +596,7 @@ contains
 
     diffusivity => extract_tensor_field(state,trim(field_name)//'Diffusivity&
          &',stat=stat)
-    
+
     if(stat/=0) then
 
       FLExit("Can't calculate Peclet number, no diffusivity")
@@ -663,7 +663,7 @@ contains
 
     call allocate(hvel_field, mesh_dim(vel_field%mesh), vel_field%mesh, &
       & "HorizontalVelocity")
-      
+
     if (continuity(vel_field)<0 .or. &
         element_degree(vel_field,1)/=element_degree(g_direction_field,1)) then
       FLExit("HorizontalVelocityDivergence does not work for discontinuous or higher order fields.")
@@ -807,7 +807,7 @@ contains
     !!< which describes the width of your domain as a function of height
     !!< Assumes gravity is in y-direction in 2D, z-direction in 3D
 
-    type(state_type), intent(in) :: state    
+    type(state_type), intent(in) :: state
     type(scalar_field), intent(inout) :: isopycnal_coordinate
     integer, intent(out), optional :: stat
 
@@ -822,30 +822,30 @@ contains
     character(len = FIELD_NAME_LEN) :: fine_mesh_name
 
     rho_field => extract_scalar_field(state, "Density", lstat)
-    
+
     Xfield => extract_vector_field(state, "Coordinate")
     call get_option(trim(isopycnal_coordinate%option_path)//"/diagnostic/fine_mesh/name",fine_mesh_name)
     mesh => extract_mesh(state,fine_mesh_name)
     Xfield_depth = get_coordinate_field(state, mesh)
-    
-    allocate(index(1:node_count(rho_field)))    
+
+    allocate(index(1:node_count(rho_field)))
     allocate(index2(1:node_count(Xfield_depth)))
-    
+
     ! reorder density from smallest to largest
     call qsort(rho_field%val, index)
-    
+
     ! reorder vertical coordinate
     call qsort(Xfield_depth%val(Xfield_depth%dim,:), index2)
-    
+
     call allocate(lumped_mass, rho_field%mesh, name="LumpedMass")
     call allocate(lumped_mass_depth, mesh, name="LumpedMassDepth")
-    
+
     call zero(lumped_mass)
     call zero(lumped_mass_depth)
 
     call compute_lumped_mass(Xfield, lumped_mass)
     call compute_lumped_mass(Xfield_depth, lumped_mass_depth)
-    
+
 
     j = 1
     volume = 0.0
@@ -869,7 +869,7 @@ contains
     call deallocate(Xfield_depth)
     deallocate(index)
     deallocate(index2)
-    
+
   end subroutine calculate_isopycnal_coordinate
 
   subroutine calculate_back_pe_density(state, back_pe_density_field, stat)
@@ -883,9 +883,9 @@ contains
     integer :: lstat, i
 
     real :: g
-    type(scalar_field), pointer :: pert_rho_field, rho_field
+    type(scalar_field), pointer :: rho_field
     type(scalar_field), pointer :: isopycnal_coordinate
-    
+
     rho_field => extract_scalar_field(state, "Density", lstat)
     if (lstat /= 0) then
       if (present(stat)) then
@@ -903,7 +903,7 @@ contains
         FLExit("Need isopycnal coordinate")
       end if
     end if
-    
+
     call get_option("/physical_parameters/gravity/magnitude", g, lstat)
     if (lstat /= 0) then
       if (present(stat)) then
@@ -912,7 +912,7 @@ contains
         FLExit("Need gravity")
       end if
     end if
-    
+
     call zero(back_pe_density_field)
     do i = 1, node_count(back_pe_density_field)
       call set(back_pe_density_field, i, node_val(rho_field, i) * &
@@ -920,21 +920,21 @@ contains
     end do
 
   end subroutine calculate_back_pe_density
-    
+
   subroutine calculate_horizontal_streamfunction(state, psi)
     !!< Calculate the horizontal stream function psi where:
     !!<   \partial_x \psi = -v
     !!<   \partial_y \psi = u
-    
+
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: psi
-    
+
     integer :: i
     type(csr_matrix) :: matrix
     type(csr_sparsity), pointer :: sparsity
     type(scalar_field) :: rhs
     type(vector_field), pointer :: gravity_direction, positions, velocity
-    
+
     ewrite(1, *) "In calculate_horizontal_streamfunction"
     ewrite(2, *) "Computing horizontal stream function for state " // trim(state%name)
 
@@ -950,22 +950,22 @@ contains
     assert(positions%dim == mesh_dim(psi))
     assert(ele_count(positions) == ele_count(psi))
 
-    ! Extract velocity    
+    ! Extract velocity
     velocity => extract_vector_field(state, "Velocity")
     assert(velocity%dim == mesh_dim(psi))
     assert(ele_count(velocity) == ele_count(psi))
     ewrite_minmax(velocity)
-    
+
     ! Extract gravity direction
     gravity_direction => extract_vector_field(state, "GravityDirection")
     assert(gravity_direction%dim == mesh_dim(psi))
     assert(ele_count(gravity_direction) == ele_count(psi))
-    
+
     ! Allocate / extract from state
     sparsity => get_csr_sparsity_firstorder(state, psi%mesh, psi%mesh)
     call allocate(matrix, sparsity, name = trim(psi%name) // "Matrix")
     call allocate(rhs, psi%mesh, trim(psi%name) // "Rhs")
-    
+
     ! Assemble
     call zero(matrix)
     call zero(rhs)
@@ -973,25 +973,25 @@ contains
       call assemble_horizontal_streamfunction_element(i, psi, matrix, rhs, positions, velocity, gravity_direction)
     end do
     ewrite_minmax(rhs)
-    
+
     ! Boundary conditions - apply strong Dirichlet boundary condition of zero
     ! on all surfaces for now
     do i = 1, surface_element_count(rhs)
       call addto_diag(matrix, face_global_nodes(rhs, i), spread(INFINITY, 1, face_loc(rhs, i)))
     end do
-    
+
     ! Solve
     call petsc_solve(psi, matrix, rhs)
     ewrite_minmax(psi)
-    
+
     ! Deallocate
     call deallocate(matrix)
     call deallocate(rhs)
-    
+
     ewrite(1, *) "Exiting calculate_horizontal_streamfunction"
-    
+
   end subroutine calculate_horizontal_streamfunction
-  
+
   subroutine assemble_horizontal_streamfunction_element(ele, psi, matrix, rhs, positions, velocity, gravity_direction)
     integer, intent(in) :: ele
     type(scalar_field), intent(in) :: psi
@@ -1000,7 +1000,7 @@ contains
     type(vector_field), intent(in) :: positions
     type(vector_field), intent(in) :: velocity
     type(vector_field), intent(in) :: gravity_direction
-    
+
     integer :: i, j
     integer, dimension(:), pointer :: element_nodes
     real, dimension(ele_ngi(psi, ele)) :: detwei, vorticity_h_gi
@@ -1008,38 +1008,38 @@ contains
     real, dimension(ele_loc(psi, ele), ele_ngi(psi, ele), mesh_dim(psi)) :: dn_t_h
     real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(psi)) :: du_t
     type(element_type), pointer ::  psi_shape, velocity_shape
-    
+
     assert(ele_ngi(velocity, ele) == ele_ngi(psi, ele))
     assert(ele_ngi(gravity_direction, ele) == ele_ngi(psi, ele))
-    
+
     psi_shape => ele_shape(psi, ele)
     velocity_shape => ele_shape(velocity, ele)
-    
+
     call transform_to_physical(positions, ele, psi_shape, dshape = dn_t_h, detwei = detwei)
     if(psi_shape == velocity_shape) then
       du_t = dn_t_h
     else
       call transform_to_physical(positions, ele, velocity_shape, dshape = du_t)
     end if
-    
+
     gravity_direction_gi = ele_val_at_quad(gravity_direction, ele)
-    
+
     forall(i = 1:size(dn_t_h, 1), j = 1:size(dn_t_h, 2))
       dn_t_h(i, j, :) = dn_t_h(i, j, :) - dot_product(dn_t_h(i, j, :), gravity_direction_gi(:, j)) * gravity_direction_gi(:, j)
     end forall
-    
+
     vorticity_gi = ele_curl_at_quad(velocity, ele, du_t)
     do i = 1, size(vorticity_h_gi)
       vorticity_h_gi(i) = -dot_product(vorticity_gi(:, i), gravity_direction_gi(:, i))
     end do
-    
+
     element_nodes => ele_nodes(psi, ele)
-    
+
     call addto(matrix, element_nodes, element_nodes, dshape_dot_dshape(dn_t_h, dn_t_h, detwei))
     call addto(rhs, element_nodes, shape_rhs(psi_shape, detwei * vorticity_h_gi))
-  
+
   end subroutine assemble_horizontal_streamfunction_element
-  
+
   subroutine calculate_sgs_full_velocity(state, sgs_full, stat)
     type(state_type), intent(in) :: state
     type(vector_field), intent(inout) :: sgs_full
@@ -1181,7 +1181,7 @@ contains
 
     integer :: i
     type(vector_field), pointer :: vel_field
-    
+
     vel_field => extract_vector_field(state, "Velocity", lstat)
     if (lstat /= 0) then
       if (present(stat)) then
@@ -1190,7 +1190,7 @@ contains
         FLExit("Need Velocity")
       end if
     end if
-    
+
     call zero(speed_field)
     do i = 1, node_count(speed_field)
       call set(speed_field, i, norm2(node_val(vel_field, i)))
@@ -1199,42 +1199,42 @@ contains
   end subroutine calculate_speed
 
   subroutine calculate_diffusive_dissipation(state, diffusive_dissipation_field, stat)
-    !!< Calculate -2*kappa*g*drho_dy 
+    !!< Calculate -2*kappa*g*drho_dy
     !!< this can be used to calculate diffusive dissipation
     !!< 2D at the moment
-    !!< it probably should be generalised 
+    !!< it probably should be generalised
     !!< currently assumes a constant gravity field
     !!< also assumes an isotropic diffusivity
-    
+
     type(state_type), intent(in) :: state
     type(scalar_field), intent(inout) :: diffusive_dissipation_field
     integer, intent(out), optional :: stat
-    
+
     integer :: i
     real :: g
     type(scalar_field), pointer :: rho_field
     type(vector_field), pointer :: positions
     type(scalar_field), dimension(1) :: drho_dy
-    
+
     rho_field => extract_scalar_field(state, "Density", stat)
     positions => extract_vector_field(state, "Coordinate", stat)
-      
+
     if(present_and_nonzero(stat)) then
       return
     end if
-    
+
     call get_option("/physical_parameters/gravity/magnitude", g, stat)
 
     call allocate(drho_dy(1), rho_field%mesh, "DRhoDy")
-    
+
     call differentiate_field(rho_field, &
      & positions, (/.false., .true./), drho_dy)
-    
+
     call zero(diffusive_dissipation_field)
     do i = 1, node_count(diffusive_dissipation_field)
       call set(diffusive_dissipation_field, i, -g * node_val(drho_dy(1),i))
-    end do  
-    
+    end do
+
     call deallocate(drho_dy(1))
 
   end subroutine calculate_diffusive_dissipation
@@ -1245,10 +1245,10 @@ contains
     !!< Ri = \frac{N^2}{(\frac{\partial u}{\partial z})^2+(\frac{\partial v}{\partial z})^2}
     !!< with N^2 = -\frac{g}{\rho_0}\frac{\partial \rho}{\partial z}
     !!< currently assumes a constant gravity field
-    
+
     type(state_type), intent(in) :: state
     type(scalar_field), intent(inout) :: richardson_number_field
-    
+
 #ifdef DDEBUG
     integer :: stat
     type(vector_field), pointer :: gravity_direction
@@ -1260,11 +1260,11 @@ contains
     type(scalar_field), dimension(1) :: du_dz
     type(scalar_field), dimension(1) :: dv_dz
     type(scalar_field), dimension(1) :: drho_dz
-    
+
     positions => extract_vector_field(state, "Coordinate")
     vel_field => extract_vector_field(state, "Velocity")
     pert_rho_field => extract_scalar_field(state, "PerturbationDensity")
-        
+
     call get_option("/physical_parameters/gravity/magnitude", g)
 #ifdef DDEBUG
     gravity_direction => extract_vector_field(state, "GravityDirection", stat)
@@ -1282,30 +1282,30 @@ contains
       end select
     end if
 #endif
-    
+
     assert(positions%mesh == richardson_number_field%mesh)
     assert(vel_field%mesh == richardson_number_field%mesh)
     assert(pert_rho_field%mesh == richardson_number_field%mesh)
-    
+
     select case(positions%dim)
       case(3)
         call allocate(du_dz(1), vel_field%mesh, "DuDz")
         call allocate(dv_dz(1), vel_field%mesh, "DvDz")
         call allocate(drho_dz(1), pert_rho_field%mesh, "DRhoDz")
-        
+
         call differentiate_field(extract_scalar_field(vel_field, 1), &
          & positions, (/.false., .false., .true./), du_dz)
         call differentiate_field(extract_scalar_field(vel_field, 2), &
          & positions, (/.false., .false., .true./), dv_dz)
         call differentiate_field(pert_rho_field, &
          & positions, (/.false., .false., .true./), drho_dz)
-        
+
         call zero(richardson_number_field)
         do i = 1, node_count(richardson_number_field)
           call set(richardson_number_field, i, -g * node_val(drho_dz(1),i) /  &
            & (node_val(du_dz(1),i) ** 2 + node_val(dv_dz(1),i) ** 2))
-        end do  
-        
+        end do
+
         call deallocate(du_dz(1))
         call deallocate(dv_dz(1))
         call deallocate(drho_dz(1))
@@ -1317,30 +1317,30 @@ contains
          & positions, (/.false., .true./), du_dz)
         call differentiate_field(pert_rho_field, &
          & positions, (/.false., .true./), drho_dz)
-       
+
         call zero(richardson_number_field)
         do i = 1, node_count(richardson_number_field)
           call set(richardson_number_field, i, -g * node_val(drho_dz(1),i) /  &
            & (node_val(du_dz(1),i) ** 2))
-        end do  
-        
+        end do
+
         call deallocate(du_dz(1))
         call deallocate(drho_dz(1))
       case default
         FLAbort("Invalid dimension")
     end select
-    
+
   end subroutine calculate_richardson_number_old
-  
+
   subroutine calculate_richardson_number_new(state, ri)
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: ri
-    
+
     integer :: i
     real :: g
     type(scalar_field), pointer :: masslump, perturbation_density
     type(vector_field), pointer :: gravity_direction, positions, velocity
-    
+
     ewrite(1, *) "In calculate_richardson_number"
     ewrite(2, *) "Computing shear Richardson number for state " // trim(state%name)
 
@@ -1353,37 +1353,37 @@ contains
     assert(positions%dim == mesh_dim(ri))
     assert(ele_count(positions) == ele_count(ri))
 
-    ! Extract velocity    
+    ! Extract velocity
     velocity => extract_vector_field(state, "Velocity")
     assert(velocity%dim == mesh_dim(ri))
     assert(ele_count(velocity) == ele_count(ri))
     ewrite_minmax(velocity)
-    
+
     ! Extract gravity
     gravity_direction => extract_vector_field(state, "GravityDirection")
     assert(gravity_direction%dim == mesh_dim(gravity_direction))
     assert(ele_count(gravity_direction) == ele_count(gravity_direction))
     call get_option("/physical_parameters/gravity/magnitude", g)
-    
+
     ! Extract perturbation density
     perturbation_density => extract_scalar_field(state, "PerturbationDensity")
     ewrite_minmax(perturbation_density)
-        
+
     ! Assemble
     call zero(ri)
     do i = 1, ele_count(ri)
       call assemble_richardson_number_element(i, ri, positions, velocity, g, perturbation_density)
     end do
     ewrite_minmax(ri)
-    
+
     masslump => get_lumped_mass(state, ri%mesh)
-    
+
     ! Solve (somewhat trivial)
     ri%val = ri%val / masslump%val
     ewrite_minmax(ri)
-  
+
   end subroutine calculate_richardson_number_new
-  
+
   subroutine assemble_richardson_number_element(ele, ri, positions, velocity, g, perturbation_density)
     integer, intent(in) :: ele
     type(scalar_field), intent(inout) :: ri
@@ -1391,7 +1391,7 @@ contains
     type(vector_field), intent(in) :: velocity
     real, intent(in) :: g
     type(scalar_field), intent(in) :: perturbation_density
-    
+
     integer :: dim, i
     integer, dimension(:), pointer :: element_nodes
     real, dimension(ele_ngi(ri, ele)) :: denomenator_gi, detwei
@@ -1400,16 +1400,16 @@ contains
     real, dimension(ele_loc(perturbation_density, ele), ele_ngi(perturbation_density, ele), mesh_dim(ri)) :: dtheta_t
     real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(ri)) :: du_t
     type(element_type), pointer :: theta_shape, ri_shape, velocity_shape
-    
+
     assert(ele_ngi(velocity, ele) == ele_ngi(ri, ele))
     assert(ele_ngi(perturbation_density, ele) == ele_ngi(ri, ele))
-    
+
     dim = mesh_dim(ri)
-    
+
     ri_shape => ele_shape(ri, ele)
     velocity_shape => ele_shape(velocity, ele)
     theta_shape => ele_shape(perturbation_density, ele)
-    
+
     call transform_to_physical(positions, ele, ri_shape, &
       & dshape = dn_t, detwei = detwei)
     if(ri_shape == velocity_shape) then
@@ -1422,31 +1422,31 @@ contains
     else
       call transform_to_physical(positions, ele, theta_shape, dshape = dtheta_t)
     end if
-    
+
     grad_theta_gi = ele_grad_at_quad(perturbation_density, ele, dtheta_t)
 
     denomenator_gi = 0.0
     do i = 1, dim - 1
       denomenator_gi = denomenator_gi + (matmul(ele_val(velocity, i, ele), du_t(:, :, dim)) ** 2)
     end do
-      
+
     element_nodes => ele_nodes(ri, ele)
-    
+
     call addto(ri, element_nodes, &
       ! Note well: if \frac{d\theta}{dz} and
       ! ((\frac{du}{dz})^2 + \frac{dv}{dz})^2 are zero, then we pick up a value
       ! of NaN here
       & shape_rhs(ri_shape, -detwei * g * grad_theta_gi(dim, :) / denomenator_gi) &
       & )
-    
+
   end subroutine assemble_richardson_number_element
 
   subroutine calculate_stream_function_2d(state, streamfunc, stat)
-    !!< Calculate the stream function for a 
+    !!< Calculate the stream function for a
     type(state_type), intent(in) :: state
     type(scalar_field), intent(inout) :: streamfunc
     integer, intent(out), optional :: stat
-    
+
     integer :: i, lstat, ele
     type(vector_field), pointer :: X, U
     type(csr_sparsity) :: psi_sparsity
@@ -1466,11 +1466,11 @@ contains
           return
        end if
     end do
-    
+
     assert(X%dim==2)
     ! No discontinuous stream functions.
     assert(continuity(streamfunc)>=0)
-    
+
     psi_sparsity = extract_csr_sparsity(state, &
                &                      "StreamFunctionSparsity", lstat)
     if (lstat/=0) then
@@ -1479,7 +1479,7 @@ contains
     else
        call incref(psi_sparsity)
     end if
-    
+
     call allocate(psi_mat, psi_sparsity, name="StreamFunctionMatrix")
 
     call zero(psi_mat)
@@ -1487,11 +1487,11 @@ contains
     call zero(rhs)
 
     do ele=1, element_count(streamfunc)
-       
+
        call calculate_streamfunc_ele(psi_mat, rhs, ele, X, U)
 
     end do
-    
+
     call petsc_solve(streamfunc, psi_mat, rhs)
 
     call deallocate(rhs)
@@ -1499,7 +1499,7 @@ contains
     call deallocate(psi_sparsity)
 
   contains
-    
+
     subroutine calculate_streamfunc_ele(psi_mat, rhs, ele, X, U)
       type(csr_matrix), intent(inout) :: psi_mat
       type(scalar_field), intent(inout) :: rhs
@@ -1510,7 +1510,7 @@ contains
       real, dimension(ele_loc(U, ele), ele_ngi(U, ele), mesh_dim(U)) :: du_t
       ! Ditto for the stream function, psi
       real, dimension(ele_loc(rhs, ele), ele_ngi(rhs, ele), mesh_dim(rhs))&
-           & :: dpsi_t 
+           & :: dpsi_t
 
       ! Local vorticity_matrix
       real, dimension(2, ele_loc(rhs, ele), ele_loc(U, ele)) ::&
@@ -1520,7 +1520,7 @@ contains
 
       ! Variable transform times quadrature weights.
       real, dimension(ele_ngi(U,ele)) :: detwei
-      
+
       type(element_type), pointer :: U_shape, psi_shape
       integer, dimension(:), pointer :: psi_ele, neigh
       integer :: i, ni, face
@@ -1528,7 +1528,7 @@ contains
       U_shape=> ele_shape(U, ele)
       psi_shape=> ele_shape(rhs, ele)
       psi_ele=>ele_nodes(rhs, ele)
-      
+
       ! Transform U derivatives and weights into physical space.
       call transform_to_physical(X, ele, U_shape, dshape=du_t, detwei=detwei)
       ! Ditto psi.
@@ -1536,19 +1536,19 @@ contains
 
       call addto(psi_mat, psi_ele, psi_ele, &
            -dshape_dot_dshape(dpsi_t, dpsi_t, detwei))
-      
+
       lvorticity_mat=shape_curl_shape_2d(psi_shape, du_t, detwei)
-      
+
       lvorticity=0.0
       do i=1,2
          lvorticity=lvorticity &
               +matmul(lvorticity_mat(i,:,:), ele_val(U, i, ele))
       end do
-      
+
       call addto(rhs, psi_ele, lvorticity)
-      
+
       neigh=>ele_neigh(U, ele)
-      
+
       neighbourloop: do ni=1,size(neigh)
          ! Find boundaries.
          if (neigh(ni)<=0) then
@@ -1607,7 +1607,7 @@ contains
     integer :: ele, stat
 
     u=>extract_vector_field(state, "NonlinearVelocity",stat)
-    if(stat.ne.0) then    
+    if(stat.ne.0) then
        u=>extract_vector_field(state, "Velocity",stat)
        if(stat.ne.0) then
           FLExit('Missing velocity field!')
@@ -1619,14 +1619,14 @@ contains
        l_dt = dt
     else
        call get_option("/timestepping/timestep",l_dt)
-    end if    
-    
+    end if
+
     call zero(courant)
-    
+
     do ele = 1, element_count(courant)
        call calculate_courant_number_dg_ele(courant,x,u,ele,l_dt)
     end do
-        
+
     ! the courant values at the edge of the halo are going to be incorrect
     ! this matters when computing the max courant number
     call halo_update(courant)
@@ -1654,7 +1654,7 @@ contains
     !Get element volume
     call transform_to_physical(X, ele, detwei=detwei)
     Vol = sum(detwei)
-    
+
     !Get fluxes
     Flux = 0.0
     neigh=>ele_neigh(U, ele)
@@ -1666,13 +1666,13 @@ contains
        else
           face_2=ele_face(U, ele_2, ele)
        end if
-       
+
        U_f_quad =0.5*(face_val_at_quad(U, face)&
             &     +face_val_at_quad(U, face_2))
 
        call transform_facet_to_physical(X, face, &
             &                          detwei_f=detwei_f,&
-            &                          normal=normal) 
+            &                          normal=normal)
 
        Flux_quad = -sum(U_f_quad*normal,1)
        Flux_quad = max(Flux_quad,0.0)
@@ -1714,16 +1714,16 @@ contains
       real :: udotn, income
       ! logical array indicating if a face has already been visited by the opposing node
       logical, dimension(:), allocatable :: notvisited
-            
+
       integer, dimension(:), allocatable :: courant_bc_type
       type(scalar_field) :: courant_bc
 
       type(vector_field) :: x_courant ! coordinates on courant mesh
-      
+
       logical :: move_mesh
 
       ewrite(1,*) 'in calculate_courant_number_cv'
-      
+
       move_mesh = have_option("/mesh_adaptivity/mesh_movement")
 
       udotn=0.0 ! to stop valgrind complaining about it being unitialised
@@ -1742,11 +1742,11 @@ contains
       call zero(courant)
 
       x_courant=get_coordinate_field(state, courant%mesh)
-      
+
       ! determine the cv mass matrix to use for the length scale
       cvmass => get_cv_mass(state, courant%mesh)
-      ewrite_minmax(cvmass)    
-      
+      ewrite_minmax(cvmass)
+
       if(courant%mesh%shape%degree /= 0) then
 
         call get_option("/geometry/quadrature/controlvolume_surface_degree", &
@@ -1836,7 +1836,7 @@ contains
                 normal_bdy(x%dim, x_cvbdyshape%ngi))
         allocate(nodes_bdy(face_loc(courant, 1)))
         allocate(courant_bc_type(surface_element_count(courant)))
-        
+
         if(move_mesh) then
           ug_cvbdyshape=make_cvbdy_element_shape(cvfaces, ug%mesh%faces%shape)
           allocate(ug_bdy_f(ug%dim, ug_cvbdyshape%ngi))
@@ -1844,9 +1844,9 @@ contains
 
         ! get the fields over the surface containing the bcs
         call get_entire_boundary_condition(courant, (/"internal"/), courant_bc, courant_bc_type)
-        
+
         do sele=1,surface_element_count(courant)
-        
+
           if(courant_bc_type(sele)==1) cycle
 
           ele = face_ele(x, sele)
@@ -1869,7 +1869,7 @@ contains
                 do gi = 1, cvfaces%shape%ngi
 
                   ggi = (face-1)*cvfaces%shape%ngi + gi
-                  
+
                     if(move_mesh) then
                       udotn=dot_product((u_bdy_f(:,ggi)-ug_bdy_f(:,ggi)), normal_bdy(:,ggi))
                     else
@@ -1904,7 +1904,7 @@ contains
         call deallocate(u_cvshape)
         call deallocate(cvfaces)
         call deallocate(courant_bc)
-        
+
         if(move_mesh) then
           call deallocate(ug_cvshape)
           call deallocate(ug_cvbdyshape)
@@ -1958,7 +1958,7 @@ contains
       courant%val = courant%val*l_dt/cvmass%val
 
       call deallocate(x_courant)
-      
+
       call halo_update(courant)
 
    end subroutine calculate_courant_number_cv
@@ -2011,9 +2011,9 @@ contains
 
       ! logical array indicating if a face has already been visited by the opposing node
       logical, dimension(:), allocatable :: notvisited
-      
+
       logical :: move_mesh
-      
+
       move_mesh = have_option("/mesh_adaptivity/mesh_movement")
 
       udotn=0.0 ! to stop valgrind complaining about it being unitialised
@@ -2107,7 +2107,7 @@ contains
                matdens_ele(ele_loc(matdens, 1)), &
                oldmatdens_ele(ele_loc(matdens, 1)))
       allocate(notvisited(x_cvshape%ngi))
-      
+
       if(move_mesh) then
         ug_cvshape = make_cv_element_shape(cvfaces, ug%mesh%shape)
         allocate(ug_f(ug%dim, ug_cvshape%ngi))
@@ -2214,7 +2214,7 @@ contains
               ghost_oldmatdens_ele_bdy(face_loc(oldmatdens,1)))
       allocate(matdens_bc_type(surface_element_count(matdens)), &
                nodes_bdy(face_loc(courant,1)))
-               
+
       if(move_mesh) then
         ug_cvbdyshape=make_cvbdy_element_shape(cvfaces, ug%mesh%faces%shape)
         allocate(ug_bdy_f(ug%dim, ug_cvbdyshape%ngi))
@@ -2225,7 +2225,7 @@ contains
                                                     "internal     "/), matdens_bc, matdens_bc_type)
 
       do sele=1,surface_element_count(courant)
-      
+
         if(matdens_bc_type(sele)==2) cycle
 
         ele = face_ele(x, sele)
@@ -2318,7 +2318,7 @@ contains
       call deallocate(oldmatdens_upwind)
       call deallocate(matdens_bc)
       call deallocate(mesh_sparsity)
-      
+
       if(move_mesh) then
         call deallocate(ug_cvshape)
         call deallocate(ug_cvbdyshape)
@@ -2334,7 +2334,7 @@ contains
 
       type(scalar_field), pointer :: density
       type(vector_field), pointer :: velocity
-      
+
       type(scalar_field), pointer :: tmpdensity
 
       density => extract_scalar_field(state, "Density")
@@ -2345,12 +2345,12 @@ contains
       else
         tmpdensity => density
       end if
-      
+
       velocity => extract_vector_field(state, "Velocity")
-      
+
       call remap_field(velocity, momentum)
       call scale(momentum, tmpdensity)
-      
+
       if(.not.density%mesh==momentum%mesh) then
         call deallocate(tmpdensity)
         deallocate(tmpdensity)
@@ -2364,11 +2364,11 @@ contains
       type(scalar_field), intent(inout) :: difference
 
       type(scalar_field), pointer :: field_a, field_b
-      
+
       type(scalar_field), pointer :: l_field_a, l_field_b
       logical :: remap_field_a, remap_field_b
       type(vector_field), pointer :: field_coordinate, difference_coordinate
-      
+
       character(len=FIELD_NAME_LEN) :: field_name_a, field_name_b
 
       real :: av_diff, max_a, max_b, min_a, min_b, av_a, av_b
@@ -2385,13 +2385,13 @@ contains
         allocate(l_field_a)
         call allocate(l_field_a, difference%mesh, trim(field_a%name))
         call zero(l_field_a)
-        
+
         field_coordinate => get_external_coordinate_field(state, field_a%mesh)
         difference_coordinate => get_external_coordinate_field(state, difference%mesh)
-        
+
         call linear_interpolation(field_a, field_coordinate, l_field_a, difference_coordinate)
       end if
-      
+
       field_b => extract_scalar_field(state, trim(field_name_b))
       if(mesh_compatible(field_b%mesh, difference%mesh)) then
         remap_field_b=.false.
@@ -2401,10 +2401,10 @@ contains
         allocate(l_field_b)
         call allocate(l_field_b, difference%mesh, trim(field_b%name))
         call zero(l_field_b)
-        
+
         field_coordinate => get_external_coordinate_field(state, field_b%mesh)
         difference_coordinate => get_external_coordinate_field(state, difference%mesh)
-        
+
         call linear_interpolation(field_b, field_coordinate, l_field_b, difference_coordinate)
       end if
 
@@ -2419,7 +2419,7 @@ contains
       else
         av_diff = 0.0
       end if
-      
+
       call set(difference, l_field_a)
       call addto(difference, l_field_b, -1.0)
       call addto(difference, -av_diff)
@@ -2434,7 +2434,7 @@ contains
           end if
         end if
       end if
-      
+
       if(remap_field_a) then
         call deallocate(l_field_a)
         deallocate(l_field_a)
@@ -2452,11 +2452,11 @@ contains
       type(vector_field), intent(inout) :: difference
 
       type(vector_field), pointer :: field_a, field_b
-      
+
       type(vector_field), pointer :: l_field_a, l_field_b
       logical :: remap_field_a, remap_field_b
       type(vector_field), pointer :: field_coordinate, difference_coordinate
-      
+
       character(len=FIELD_NAME_LEN) :: field_name_a, field_name_b
       integer :: i
 
@@ -2476,13 +2476,13 @@ contains
         allocate(l_field_a)
         call allocate(l_field_a, field_a%dim, difference%mesh, trim(field_a%name))
         call zero(l_field_a)
-        
+
         field_coordinate => get_external_coordinate_field(state, field_a%mesh)
         difference_coordinate => get_external_coordinate_field(state, difference%mesh)
-        
+
         call linear_interpolation(field_a, field_coordinate, l_field_a, difference_coordinate)
       end if
-      
+
       field_b => extract_vector_field(state, trim(field_name_b))
       if(mesh_compatible(field_b%mesh, difference%mesh)) then
         remap_field_b=.false.
@@ -2492,10 +2492,10 @@ contains
         allocate(l_field_b)
         call allocate(l_field_b, field_b%dim, difference%mesh, trim(field_b%name))
         call zero(l_field_b)
-        
+
         field_coordinate => get_external_coordinate_field(state, field_b%mesh)
         difference_coordinate => get_external_coordinate_field(state, difference%mesh)
-        
+
         call linear_interpolation(field_b, field_coordinate, l_field_b, difference_coordinate)
       end if
 
@@ -2513,7 +2513,7 @@ contains
           av_diff(i) = av_a-av_b
         end do
       end if
-      
+
       call set(difference, l_field_a)
       call addto(difference, l_field_b, -1.0)
       call addto(difference, -av_diff)
@@ -2521,7 +2521,7 @@ contains
       do i = 1, difference%dim
         difference%val(i,:) = abs(difference%val(i,:))
       end do
-      
+
       if(remap_field_a) then
         call deallocate(l_field_a)
         deallocate(l_field_a)
@@ -2541,20 +2541,20 @@ contains
       type(vector_field), pointer :: U, X
       type(tensor_field), pointer :: visc
       integer, dimension(:), allocatable :: faceglobalnodes
-      integer :: i,j,snloc,ele,sele,globnod,face,node,stat
+      integer :: i,j,snloc,ele,sele,globnod,face
       real :: speed,density,drag_coefficient
 
       !! for DG
       !! Field that holds the gradient of velocity in boundary elements
       type(tensor_field), target :: dummy_visc
-      integer :: grad_u_stat, visc_stat
+      integer :: visc_stat
       !! surface mesh, element and node list
       type(mesh_type), pointer :: surface_mesh
       integer, dimension(:), allocatable :: surface_element_list
       !! surface fields
       type(vector_field) :: bed_shear_stress_surface
       type(tensor_field) :: grad_U, visc_surface, grad_u_surface
-      
+
       ewrite(2,*) 'in calculate bed_shear_stress'
 
       if (have_option(trim(bed_shear_stress%option_path)//"/prescribed")) then
@@ -2569,7 +2569,7 @@ contains
       if (have_option(trim(bed_shear_stress%option_path)//&
            &"/diagnostic/calculation_method/drag_coefficient")) then
 
-         call zero(bed_shear_stress) 
+         call zero(bed_shear_stress)
 
          call get_option(trim(bed_shear_stress%option_path)//&
               & "/diagnostic/calculation_method/drag_coefficient",&
@@ -2588,12 +2588,12 @@ contains
             end do
          end do
          deallocate( faceglobalnodes )
-         
+
       ! calculate using velocity gradient
       else if (have_option(trim(bed_shear_stress%option_path)//&
            &"/diagnostic/calculation_method/velocity_gradient")) then
 
-         call zero(bed_shear_stress) 
+         call zero(bed_shear_stress)
 
          visc => extract_tensor_field(state, "Viscosity", visc_stat)
          if (visc_stat /= 0.0) then
@@ -2603,7 +2603,7 @@ contains
             do i = 1, dummy_visc%dim(1)
                call set(dummy_visc, i, i, 1.0)
             end do
-            visc => dummy_visc            
+            visc => dummy_visc
          end if
          U    => extract_vector_field(state, "Velocity")
          X    => extract_vector_field(state, "Coordinate")
@@ -2612,9 +2612,9 @@ contains
          if (continuity(bed_shear_stress) /= continuity(U) .or. &
              element_degree(bed_shear_stress, 1) /= element_degree(U, 1)) then
             FLAbort('Bed shear stress and velocity mesh must have the same continuity and degree')
-         end if  
-         
-         if(continuity(bed_shear_stress)>=0) then       
+         end if
+
+         if(continuity(bed_shear_stress)>=0) then
             ! We need to calculate a global lumped mass over the surface elements
             call allocate(masslump, bed_shear_stress%mesh, 'Masslump')
             call zero(masslump)
@@ -2630,7 +2630,7 @@ contains
             call scale(bed_shear_stress, masslump)
             call deallocate(masslump)
          else
-            ! We do DG differently. First the gradient of the velocity field is calculated   
+            ! We do DG differently. First the gradient of the velocity field is calculated
             ! using the field_derivatives code.
             ! Then we use this field to determine the bed shear stress using:
             ! N_i N_j tau_b = N_i nu grad_u . |n|
@@ -2695,26 +2695,26 @@ contains
      real, intent(in) :: density
 
      integer :: i, j, i_gi, ele, dim
-     type(element_type), pointer :: f_shape, shape, X_f_shape, X_shape
+     type(element_type), pointer :: f_shape, shape
      real, dimension(face_ngi(X, face)) :: detwei
      real, dimension(X%dim, face_ngi(X, face)) :: normal, normal_shear_at_quad, X_ele
      real, dimension(X%dim) :: abs_normal
      real, dimension(ele_loc(X, face_ele(X, face)), face_ngi(X, face), X%dim) :: ele_dshape_at_face_quad
-     real, dimension(X%dim, X%dim, face_ngi(X, face)) :: grad_U_at_quad, visc_at_quad, shear_at_quad  
+     real, dimension(X%dim, X%dim, face_ngi(X, face)) :: grad_U_at_quad, visc_at_quad, shear_at_quad
      real, dimension(X%dim, face_loc(U, face)) :: normal_shear_at_loc
      real, dimension(face_loc(X, face), face_loc(U, face)) :: mass
 
      ele    = face_ele(X, face) ! ele number for volume mesh
-     dim    = mesh_dim(bed_shear_stress) ! field dimension 
+     dim    = mesh_dim(bed_shear_stress) ! field dimension
 
      ! get shape functions
-     f_shape => face_shape(U, face)     
-     shape   => ele_shape(U, ele)     
-     
+     f_shape => face_shape(U, face)
+     shape   => ele_shape(U, ele)
+
      call transform_facet_to_physical(X, face, shape, ele_dshape_at_face_quad, &
                                       detwei_f = detwei, normal = normal)
-    
-     ! Calculate grad U at the surface element quadrature points 
+
+     ! Calculate grad U at the surface element quadrature points
      do i=1, dim
         do j=1, dim
            grad_U_at_quad(i, j, :) = &
@@ -2725,7 +2725,7 @@ contains
      visc_at_quad = face_val_at_quad(visc, face)
      X_ele = face_val_at_quad(X, face)
      do i_gi = 1, face_ngi(X, face)
-        ! determine shear ( nu*(grad_u + grad_u.T) )   
+        ! determine shear ( nu*(grad_u + grad_u.T) )
         shear_at_quad(:,:,i_gi) = matmul(grad_U_at_quad(:,:,i_gi) + transpose(grad_U_at_quad(:,:,i_gi)), visc_at_quad(:,:,i_gi))
 
         ! Get absolute of normal vector
@@ -2736,8 +2736,8 @@ contains
         ! Multiply by surface normal (dim,sgi) to obtain shear in direction normal
         ! to surface (not sure why it is transpose(shear) but this gives the
         ! correct answer?? sp911)
-        normal_shear_at_quad(:,i_gi) = matmul(transpose(shear_at_quad(:,:,i_gi)), abs_normal) 
-     end do  
+        normal_shear_at_quad(:,i_gi) = matmul(transpose(shear_at_quad(:,:,i_gi)), abs_normal)
+     end do
 
      normal_shear_at_loc = shape_vector_rhs(f_shape, normal_shear_at_quad, density *&
           & detwei)
@@ -2760,25 +2760,25 @@ contains
      integer, intent(in) :: ele
      real, intent(in) :: density
 
-     integer :: i, j, i_gi
+     integer :: i, i_gi
      type(element_type), pointer :: shape
      real, dimension(ele_ngi(bss, ele)) :: detwei
-     real, dimension(X%dim, ele_ngi(bss, ele)) :: normal, normal_shear_at_quad, X_at_quad
+     real, dimension(X%dim, ele_ngi(bss, ele)) :: normal, normal_shear_at_quad
      real, dimension(X%dim) :: abs_normal
-     real, dimension(X%dim, X%dim, ele_ngi(grad_U, ele)) :: grad_U_at_quad, visc_at_quad, shear_at_quad  
+     real, dimension(X%dim, X%dim, ele_ngi(grad_U, ele)) :: grad_U_at_quad, visc_at_quad, shear_at_quad
      real, dimension(X%dim, ele_loc(bss, ele)) :: rhs
      real, dimension(ele_loc(bss, ele), ele_loc(bss, ele)) :: inv_mass
 
      ! get shape functions
-     shape => ele_shape(bss, ele)      
-      
+     shape => ele_shape(bss, ele)
+
      call transform_facet_to_physical(X, ele, detwei_f = detwei, normal = normal)
 
      visc_at_quad = ele_val_at_quad(visc, ele)
      grad_U_at_quad = ele_val_at_quad(grad_U, ele)
 
      do i_gi = 1, ele_ngi(bss, ele)
-        ! determine shear ( nu*(grad_u + grad_u.T ) )   
+        ! determine shear ( nu*(grad_u + grad_u.T ) )
         shear_at_quad(:,:,i_gi) = density * matmul(grad_U_at_quad(:,:,i_gi) + transpose(grad_U_at_quad(:,:,i_gi)), visc_at_quad(:,:,i_gi))
 
         ! Get absolute of normal vector
@@ -2789,9 +2789,9 @@ contains
         ! Multiply by surface normal (dim,sgi) to obtain shear in direction normal
         ! to surface (not sure why it is transpose(shear) but this gives the
         ! correct answer?? sp911)
-        normal_shear_at_quad(:,i_gi) = matmul(transpose(shear_at_quad(:,:,i_gi)), abs_normal) 
-     end do  
-     
+        normal_shear_at_quad(:,i_gi) = matmul(transpose(shear_at_quad(:,:,i_gi)), abs_normal)
+     end do
+
      ! project on to basis functions to recover value at nodes
      rhs = shape_vector_rhs(shape, normal_shear_at_quad, detwei)
      inv_mass = inverse(shape_shape(shape, shape, detwei))
@@ -2801,7 +2801,7 @@ contains
 
      ! add to bss field
      call addto(bss, ele_nodes(bss,ele), rhs)
-          
+
    end subroutine calculate_bed_shear_stress_ele_dg
 
    subroutine calculate_max_bed_shear_stress(state, max_bed_shear_stress)
@@ -2818,10 +2818,10 @@ contains
       call get_option("/timestepping/current_time", current_time)
 
       if(current_time>=spin_up_time) then
-         
+
          ! Use the value already calculated previously
-         bed_shear_stress => extract_vector_field(state, "BedShearStress", stat)  
-         if(stat /= 0) then  
+         bed_shear_stress => extract_vector_field(state, "BedShearStress", stat)
+         if(stat /= 0) then
             ewrite(-1,*) "You need BedShearStress turned on to calculate MaxBedShearStress."
             FLExit("Turn on BedShearStress")
          end if
@@ -2849,7 +2849,7 @@ contains
    subroutine calculate_galerkin_projection_scalar(state, field)
      type(state_type), intent(in) :: state
      type(scalar_field), intent(inout) :: field
-       
+
      character(len=len_trim(field%option_path)) :: path
      character(len=FIELD_NAME_LEN) :: field_name
      type(scalar_field), pointer :: projected_field
@@ -2885,7 +2885,7 @@ contains
        call allocate(mass_lumped, field%mesh, name="GalerkinProjectionMassLumped")
        call zero(mass_lumped)
      end if
-     
+
      if (lump_mass .or. .not. dg) then
        call allocate(rhs, field%mesh, name="GalerkinProjectionRHS")
        call zero(rhs)
@@ -2917,7 +2917,7 @@ contains
      end if
 
      contains
-     
+
        subroutine assemble_galerkin_projection(field, projected_field, positions, mass, rhs, ele, dg)
          type(scalar_field), intent(inout) :: field
          type(scalar_field), intent(in) :: projected_field
@@ -2956,7 +2956,7 @@ contains
 
          proj_field_val = ele_val(projected_field, ele)
          little_rhs = matmul(little_mba, proj_field_val)
-         
+
          if (lump_mass) then
            call addto(mass_lumped, ele_nodes(field, ele), &
              sum(little_mass,2))
@@ -2968,9 +2968,9 @@ contains
            call addto(mass, ele_nodes(field, ele), ele_nodes(field, ele), little_mass)
            call addto(rhs, ele_nodes(field, ele), little_rhs)
          end if
-         
+
        end subroutine assemble_galerkin_projection
-      
+
    end subroutine calculate_galerkin_projection_scalar
 
    subroutine calculate_galerkin_projection_vector(state, field)
@@ -3011,7 +3011,7 @@ contains
        call allocate(mass_lumped, field%mesh, name="GalerkinProjectionMassLumped")
        call zero(mass_lumped)
      end if
-     
+
      if (lump_mass .or. .not. dg) then
        call allocate(rhs, field%dim, field%mesh, name="GalerkinProjectionRHS")
        call zero(rhs)
@@ -3043,7 +3043,7 @@ contains
      end if
 
      contains
-     
+
        subroutine assemble_galerkin_projection(field, projected_field, positions, mass, rhs, ele, dg)
          type(vector_field), intent(inout) :: field
          type(vector_field), intent(in) :: projected_field
@@ -3096,16 +3096,16 @@ contains
            call addto(mass, ele_nodes(field, ele), ele_nodes(field, ele), little_mass)
            call addto(rhs, ele_nodes(field, ele), transpose(little_rhs))
          end if
-         
+
        end subroutine assemble_galerkin_projection
-         
+
    end subroutine calculate_galerkin_projection_vector
 
    subroutine calculate_universal_number(field)
      !!< Output the universal numbering associated with field. Clearly this
      !!< is primarily of interest for debugging.
      type(scalar_field) :: field
-     
+
      integer i
      type(halo_type) :: halo
 
@@ -3119,11 +3119,11 @@ contains
 
 
         do i=1, node_count(field)
-           
+
            call set(field, i, real(halo_universal_number(halo, i)))
-           
+
         end do
-     
+
      end if
 
    end subroutine calculate_universal_number
@@ -3132,7 +3132,7 @@ contains
      !!< Output the process owning each node in field. Clearly this
      !!< is primarily of interest for debugging.
      type(scalar_field) :: field
-     
+
      integer i
      type(halo_type) :: halo
 
@@ -3146,15 +3146,15 @@ contains
 
 
         do i=1, node_count(field)
-           
+
            call set(field, i, real(halo_node_owner(halo, i)))
-           
+
         end do
-     
+
      end if
 
    end subroutine calculate_node_owner
-   
+
    subroutine calculate_galerkin_projection_tensor(state, field, solver_path)
      type(state_type), intent(in) :: state
      type(tensor_field), intent(inout) :: field
@@ -3266,17 +3266,17 @@ contains
          end if
        end subroutine assemble_galerkin_projection
    end subroutine calculate_galerkin_projection_tensor
-   
+
    subroutine calculate_diagnostic_coordinate_field(state, field)
     type(state_type), intent(in) :: state
     type(vector_field), intent(inout) :: field
-    
+
     type(vector_field) :: coordinate_field
-      
+
     coordinate_field = get_nodal_coordinate_field(state, field%mesh)
     call set(field, coordinate_field)
     call deallocate(coordinate_field)
-   
+
    end subroutine calculate_diagnostic_coordinate_field
-   
+
 end module diagnostic_fields

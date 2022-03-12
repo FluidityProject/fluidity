@@ -31,11 +31,10 @@ module gradation_metric
   ! Bottom line: if you want to change whether gradation is used
   ! or the gradation constant, CHANGE THE VALUES in INITIALISE_GRADATION_METRIC
   logical :: use_gradation_metric = .false.
-  logical :: gradation_initialised = .false.
   real :: gamma0 = 1.5 !!< Gamma is a measure of the smoothness of the transition
                        !!< an edge. Gamma0 is the maximum allowed value for gamma.
 
-  real :: theta1 = 0.01 !!< Theta1 is the maximum angle we deem to be noise in the 
+  real :: theta1 = 0.01 !!< Theta1 is the maximum angle we deem to be noise in the
                         !!< misalignment of the metric tensors at distance 1.0.
   real :: theta0 = 0.35 !!< Theta0 is the maximum angle we deem to be noise in the
                         !!< misalignment of the metric tensors at distance 0.0.
@@ -51,7 +50,7 @@ module gradation_metric
   contains
 
   subroutine initialise_gradation_metric
-  
+
     use_gradation_metric=have_option("/mesh_adaptivity/hr_adaptivity/enable_gradation")
 
     if (have_option("/mesh_adaptivity/hr_adaptivity/enable_gradation/gradation_parameter")) then
@@ -61,7 +60,7 @@ module gradation_metric
     end if
 
     ewrite(2,*) 'gradation: ', use_gradation_metric, gamma0
-    
+
   end subroutine initialise_gradation_metric
 
   subroutine form_gradation_metric(positions, error_metric, noits)
@@ -124,7 +123,7 @@ module gradation_metric
     call allocate(nnlist, nn_sparsity, type=CSR_INTEGER)
     nnlist%ival = -1
 
-    call construct_edge_list(mesh, nnlist, edgelist) 
+    call construct_edge_list(mesh, nnlist, edgelist)
 
     if (debug_metric) then
       call allocate(edgelen, error_metric%mesh, "Desired edge lengths")
@@ -150,11 +149,11 @@ module gradation_metric
       end if
 
       call wrap_pop(nnlist, edgelist, p, q, count)                               ! fetch the nodes
-      
+
 #ifdef EXTRA_SPECIAL_GRADATION_DEBUGGING
       write(0,*) "----------------------------------------------------"
       write(0,*) "stepcount == ", stepcount
-      write(0,*) "(p, q) == (", p, ", ", q, ")" 
+      write(0,*) "(p, q) == (", p, ", ", q, ")"
 #endif
 
       call eigendecomposition_symmetric(node_val(error_metric, p), vec_P, val_P) ! decompose
@@ -316,7 +315,7 @@ module gradation_metric
    type(csr_matrix), intent(inout) :: nnlist
    type(elist), intent(inout) :: edgelist
    integer, intent(in) :: i, j, count
-   
+
    if (i == j) return
    if (ival(nnlist, i, j) < 0) then
      call insert(edgelist, i, j)
@@ -360,25 +359,25 @@ module gradation_metric
     !!< Given two metric tensors,
     !!< modify the directions of their eigenvectors to be more aligned,
     !!< while respecting anisotropism.
- 
+
     real, dimension(:, :), intent(inout) :: vec_P, vec_Q
     real, dimension(size(vec_P, 1)), intent(in) :: val_P, val_Q
     logical, intent(inout) :: changed_P, changed_Q
     real, intent(in) :: dist
- 
+
     integer, dimension(size(vec_P, 1)), target :: perm_P, perm_Q     ! contains the permutation matching up vectors
                                                                      ! which old ones correspond to the new ones
     real :: omega, angle, angle_P, angle_Q
     integer :: dim, idx, i
 
     dim = size(vec_P, 1)
-  
+
     !write(0,*) "Starting warp_directions"
 
     if (metric_isotropic(val_P) .and. metric_isotropic(val_Q)) then
-      if (val_P(1) >= val_Q(1)) then 
+      if (val_P(1) >= val_Q(1)) then
         vec_Q = vec_P
-      else 
+      else
         vec_P = vec_Q
       end if
       return
@@ -458,19 +457,19 @@ module gradation_metric
     !!< We match up vectors by matching up each angle in turn.
     real, dimension(:, :), intent(in) :: vec_P, vec_Q
     integer, dimension(:), intent(out)   :: permutation_P, permutation_Q
- 
+
     integer, dimension(2) :: idx
     real, dimension(size(vec_P, 2), (size(vec_Q, 2))) :: angle_matrix
- 
+
     integer :: i, j, k, count_P, count_Q, dim, stat
- 
+
     dim = size(vec_P, 1)
     count_P = size(vec_P, 2)
     count_Q = size(vec_Q, 2)
 
     permutation_P = 0
     permutation_Q = 0
- 
+
     ! construct a record of the angles between each of the eigenvectors.
 
     do i=1,count_P
@@ -616,7 +615,7 @@ module gradation_metric
       if (gamma .fgt. gamma0) then
         if (edgelen_P(perm_Q(i)) > edgelen_Q(perm_P(i))) then
 #ifdef EXTRA_SPECIAL_GRADATION_DEBUGGING
-          write(0,*) "reducing edge length ", perm_Q(i), " of P." 
+          write(0,*) "reducing edge length ", perm_Q(i), " of P."
           write(0,*) "old value == ", edgelen_P(perm_Q(i))
 #endif
           tmp = edgelen_P(perm_Q(i))
@@ -627,7 +626,7 @@ module gradation_metric
 #endif
         else
 #ifdef EXTRA_SPECIAL_GRADATION_DEBUGGING
-          write(0,*) "reducing edge length ", perm_P(i), " of Q." 
+          write(0,*) "reducing edge length ", perm_P(i), " of Q."
           write(0,*) "old value == ", edgelen_Q(perm_P(i))
 #endif
           tmp = edgelen_Q(perm_P(i))

@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -34,8 +34,8 @@ module shape_functions
   use quadrature
   use elements
   use Superconvergence
-  use ieee_arithmetic, only: ieee_quiet_nan, ieee_value
-  
+  use, intrinsic :: ieee_arithmetic, only: ieee_quiet_nan, ieee_value
+
   implicit none
 
   private :: lagrange_polynomial, nonconforming_polynomial
@@ -43,7 +43,7 @@ module shape_functions
   interface make_element_shape
      module procedure make_element_shape_from_element, make_element_shape
   end interface
-  
+
 contains
 
   function make_element_shape_from_element(model, vertices, dim, degree,&
@@ -114,7 +114,7 @@ contains
        lconstraint_type_choice=CONSTRAINT_NONE
     end if
 
-    
+
     if (associated(lquad_s)) then
        shape = make_element_shape(lvertices, ldim, ldegree, lquad, ltype,&
             lquad_s, constraint_type_choice=lconstraint_type_choice, stat=stat)
@@ -145,7 +145,7 @@ contains
     real, pointer :: g(:)=> null()
 
     type(ele_numbering_type), pointer :: ele_num
-    ! Count coordinates of each point 
+    ! Count coordinates of each point
     integer, dimension(dim+1) :: counts
     integer :: i,j,k
     integer :: ltype, coords
@@ -226,7 +226,7 @@ contains
                 dx = 0.0
              else
                 dx = 1.0/degree
-             end if 
+             end if
              select case(ele_num%family)
              case (FAMILY_SIMPLEX)
                 ! Raw polynomial.
@@ -344,7 +344,7 @@ contains
     ! component values in gfortran:
     poly%coefs=>null()
     poly%degree=-1
-    
+
     if (present(origin)) then
        lorigin=origin
     else
@@ -352,7 +352,7 @@ contains
     end if
 
     poly=(/1.0/)
-    
+
     degreeloop: do i=0,degree
        if (i==n) cycle degreeloop
 
@@ -362,7 +362,7 @@ contains
 
     ! normalize to 1.0 in the n-th location
     poly=poly/eval(poly, lorigin+n*dx)
-    
+
   end function lagrange_polynomial
 
   function nonconforming_polynomial(n) result (poly)
@@ -375,7 +375,7 @@ contains
     poly%coefs=>null()
     poly%degree=-1
 
-    poly=(/1.0/)    
+    poly=(/1.0/)
 
     if (n==0) then
 
@@ -383,7 +383,7 @@ contains
        poly=(/-2.0, 1.0/)
 
     end if
-       
+
   end function nonconforming_polynomial
 
 end module shape_functions

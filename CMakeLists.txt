@@ -40,14 +40,17 @@ find_package(Python3 3.6...<3.10 REQUIRED Interpreter Development NumPy)
 # )
 
 # Check for CGAL
-find_package(CGAL REQUIRED)
+find_package(CGAL QUIET)
+if(CGAL_FOUND)
+  set(HAVE_LIBCGAL HAVE_LIBCGAL)
+endif()
 
 # Check for PETSc
 pkg_search_module(PETSC REQUIRED IMPORTED_TARGET PETSc)
 message(STATUS "Found PETSc ${PETSC_VERSION}")
 
 # Check for NetCDF
-pkg_check_modules(NETCDF REQUIRED netcdf netcdf-fortran)
+pkg_check_modules(NETCDF REQUIRED netcdf)
 
 # Check for Zoltan
 find_path(ZOLTAN_INCLUDE_DIR zoltan.mod REQUIRED)
@@ -57,7 +60,12 @@ find_library(ZOLTAN_LIBRARY zoltan REQUIRED)
 find_library(UDUNITS_LIBRARY udunits2 REQUIRED)
 
 # Check for ExodusII
-find_library(EXODUSII_LIBRARY exoIIv2c REQUIRED)
+find_library(EXODUSII_LIBRARY exoIIv2c)
+if(EXODUSII_LIBRARY)
+  set(HAVE_EXODUSII HAVE_EXODUSII)
+else()
+  unset(EXODUSII_LIBRARY CACHE)
+endif()
 
 # Add libspatialindex
 FetchContent_Declare(libspatialindex
@@ -182,33 +190,18 @@ typedef float vtkFloatingPointType;
 configure_file(include/vtk.h libvtkfortran/include COPYONLY)
 configure_file(include/vtk.h libadaptivity/include COPYONLY)
 
-if(${CMAKE_Fortran_COMPILER_ID} STREQUAL "GNU")
-  set(CMAKE_Fortran_FLAGS_RELEASE "-funroll-all-loops -O3")
-  set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -g")
-  set(CMAKE_Fortran_FLAGS "-fbounds-check \
--Wall -Wno-surprising -Wno-unused-function -Wno-unused-dummy-argument \
--ffast-math \
--frecord-marker=4 \
--ffree-line-length-none -ffixed-line-length-none \
+
+set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
+set(CMAKE_Fortran_FLAGS_DEBUG "-O0")
+set(CMAKE_Fortran_FLAGS "-fbounds-check \
 -fdefault-real-8 -fdefault-double-8 \
-${CMAKE_Fortran_FLAGS}"
-  )
-elseif(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-  set(CMAKE_Fortran_FLAGS_RELEASE "-f77rtl -O3")
-  set(CMAKE_Fortran_FLAGS_DEBUG "-f77rtl -O0 -g")
-  set(CMAKE_Fortran_FLAGS "-ffastmath \
+-ffixed-line-length-none -ffree-line-length-none \
 -frecord-marker=4 \
--extend_source \
--r8 \
+-fno-unsafe-math-optimizations -frounding-math -fsignaling-nans \
+-g \
+-Wunused \
 ${CMAKE_Fortran_FLAGS}"
-  )
-else()
-  message("CMAKE_Fortran_COMPILER full path: ${CMAKE_Fortran_COMPILER}")
-  message("Fortran compiler: ${CMAKE_Fortran_COMPILER_ID}")
-  message("No optimised Fortran compiler flags are known, we just try -O2.")
-  set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
-  set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -g")
-endif()
+)
 
 configure_file(tools/version-info.in bin/version-info)
 execute_process(COMMAND
@@ -226,9 +219,9 @@ target_compile_definitions(fluidity
   DOUBLEP
   HAVE_ADAPTIVITY
   HAVE_BLAS
-  HAVE_CGAL
-  HAVE_EXODUSII
+  ${HAVE_EXODUSII}
   HAVE_HYPRE
+  ${HAVE_LIBCGAL}
   HAVE_LIBNETCDF
   HAVE_LIBNETCDFF
   HAVE_MEMORY_STATS
@@ -262,14 +255,8 @@ target_include_directories(fluidity
   libwm
 )
 target_link_libraries(fluidity
-  adaptivity
-  mba2d
-  spatialindex
-  spud
-  vtkfortran
-
-  H5hutf
-  Judy
+  adaptivity mba2d spatialindex spud vtkfortran
+  H5hutf Judy
 
   "${VTK_LIBRARIES}"
   "${Python3_LIBRARIES}"

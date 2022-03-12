@@ -5,7 +5,6 @@ subroutine test_cylinder_hessian
   use state_module
   use vtk_interfaces
   use unittest_tools
-  use node_boundary, only: pseudo2d_coord
   implicit none
 
   type(state_type) :: state
@@ -16,8 +15,6 @@ subroutine test_cylinder_hessian
   logical :: fail = .false., warn = .false.
   integer :: i, j, k
   real :: x, y, z
-
-  !pseudo2d_coord = 0
 
   call vtk_read_state("data/test_cyl.vtu", state)
 

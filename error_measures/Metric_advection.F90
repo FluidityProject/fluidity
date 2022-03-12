@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -106,14 +106,14 @@ contains
     type(csr_sparsity), pointer :: mesh_sparsity
 
     ! Change in tfield over one timestep.
-    ! Right hand side vector, cv mass matrix, 
-    ! locally iterated field (for advection iterations) 
+    ! Right hand side vector, cv mass matrix,
+    ! locally iterated field (for advection iterations)
     ! and local old field (for subcycling)
     type(tensor_field) :: rhs, advit_tfield, delta_tfield, accum_tfield
     type(tensor_field) :: l_tfield, tmp_tfield
     type(scalar_field), pointer :: t_cvmass
     type(scalar_field) :: cvmass
-      
+
     ! local copy of option_path for solution field
     character(len=OPTION_PATH_LEN) :: option_path
 
@@ -122,7 +122,7 @@ contains
     ! iterators
     integer :: rk_it, adv_it, i, sub, j, period_in_timesteps
     ! time (to output to file), timestep, iterations tolerance, subcycling timestep
-    real :: actual_dt, adapt_dt, error, sub_dt
+    real :: actual_dt, adapt_dt, sub_dt
     real :: max_cfl, scale_adv
 
     ! degree of quadrature to use on each control volume face
@@ -138,7 +138,7 @@ contains
     type(cv_options_type) :: tfield_options
 
     ! success indicators?
-    integer :: stat, cfl_stat
+    integer :: stat
     ! type of courant number we want to use
     character(len=FIELD_NAME_LEN) :: cfl_type
     ! the courant number field
@@ -153,11 +153,11 @@ contains
     real :: max_sub_cfl
     ! construct the matrices
     logical :: getmat
-    
+
     logical :: output_subcycle_vtus, output_final_vtus
     type(scalar_field) :: edgelen
     integer, save :: adaptcnt = 0
-    
+
     ewrite(1,*) 'in metric advection'
 
     ! extract lots of fields:
@@ -170,7 +170,7 @@ contains
 
     output_subcycle_vtus = have_option(trim(option_path)//"/output/output_subcycle_vtus")
     output_final_vtus = have_option(trim(option_path)//"/output/output_final_vtus")
-    
+
     ! extract fields from state
     nu=>extract_vector_field(state, "NonlinearVelocity")
     ug=>extract_vector_field(state, "GridVelocity")
@@ -199,7 +199,7 @@ contains
     u_cvbdyshape=make_cvbdy_element_shape(cvfaces, nu%mesh%faces%shape)
     x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape)
     t_cvbdyshape=make_cvbdy_element_shape(cvfaces, tfield%mesh%faces%shape)
-    
+
     ! get the mesh sparsity for the matrices
     mesh_sparsity=>get_csr_sparsity_firstorder(state, tfield%mesh, tfield%mesh)
 
@@ -234,7 +234,7 @@ contains
     rk_iterations =1
 !     ! Runge-Kutta 4
 !     rk_iterations = 4
-    
+
     call get_option(trim(option_path)//"/temporal_discretisation&
                     &/control_volumes/number_advection_iterations", &
                     adv_iterations, default=1)
@@ -246,17 +246,17 @@ contains
       call get_option("/mesh_adaptivity/hr_adaptivity/period_in_timesteps", period_in_timesteps)
       adapt_dt = period_in_timesteps * actual_dt
     end if
-    
+
     call get_option(trim(option_path)//"/temporal_discretisation&
                     &/scale_advection_time", scale_adv, default=1.1)
     adapt_dt = adapt_dt*scale_adv
-      
+
     no_subcycles = 1
-    ! are we subcycling?    
-    call get_option(trim(option_path)//"/temporal_discretisation&    
+    ! are we subcycling?
+    call get_option(trim(option_path)//"/temporal_discretisation&
                     &/number_advection_subcycles", no_subcycles, stat=stat)
     if(stat/=0) then
-      ! have not specified a number of subcycles but perhaps we're using a 
+      ! have not specified a number of subcycles but perhaps we're using a
       ! courant number definition?
       call get_option(trim(option_path)//"/temporal_discretisation/maximum_courant_number_per_subcycle", &
                       max_sub_cfl)
@@ -268,34 +268,34 @@ contains
       call allmax(max_cfl)
       ewrite(2,*) "max_cfl = ", max_cfl
       call deallocate(cfl_no)
-      
+
       no_subcycles=ceiling(max_cfl/max_sub_cfl)
     end if
-    
+
     sub_dt=adapt_dt/real(no_subcycles)
 
     ! find the cv mass that is used for the time term derivative
     t_cvmass => get_cv_mass(state, tfield%mesh)
-    ewrite_minmax(t_cvmass)    
-    
+    ewrite_minmax(t_cvmass)
+
     call allocate(cvmass, tfield%mesh, "LocalCVMass")
     call set(cvmass, t_cvmass)
-    ewrite_minmax(cvmass)    
+    ewrite_minmax(cvmass)
 
     ewrite(2,*) 'no_subcycles = ', no_subcycles
     ewrite(2,*) 'rk_iterations = ', rk_iterations
     ewrite(2,*) 'adv_iterations = ', adv_iterations
     do sub=1,no_subcycles
-      
+
       call zero(accum_tfield)
-      
+
       do rk_it = 1, rk_iterations
 
         do adv_it = 1, adv_iterations
           getmat=(adv_it==1).and.(sub==1).and.(rk_it==1)
-  
+
           ! record the value of tfield since the previous iteration
-  
+
           if(explicit) then
             call set(cvmass, t_cvmass)
           else
@@ -303,9 +303,9 @@ contains
             call addto_diag(M, t_cvmass)
           end if
           call zero(rhs)
-  
+
           ! If we've passed the first iteration/subcycle so we have A_m don't enter the next step.
-          ! Also if we're using first order upwinding (and not using a spatially varying theta 
+          ! Also if we're using first order upwinding (and not using a spatially varying theta
           ! - limit_theta) so there's no need to assemble the
           ! nonlinear rhs (assuming we've enforced pivot theta = theta as cv_options should do)
           ! then just multiply things out
@@ -322,12 +322,12 @@ contains
                                         state, relu, x, x_tfield, &
                                         getmat, sub_dt, rk_it, delta_tfield)
           end if
-  
+
           ! assemble it all into a coherent equation
           call assemble_field_eqn_cv(M, A_m, cvmass, rhs, &
                                     advit_tfield, l_tfield, &
                                     sub_dt, explicit, tfield_options)
-  
+
           if(explicit) then
             do i = 1, delta_tfield%dim(1)
               do j = 1, delta_tfield%dim(2)
@@ -337,29 +337,29 @@ contains
           else
             call zero(delta_tfield) ! Impose zero initial guess.
             ! Solve for the change in T.
-            call petsc_solve(delta_tfield, M, rhs, symmetric=.true.) 
+            call petsc_solve(delta_tfield, M, rhs, symmetric=.true.)
           end if
-          
-          call set(advit_tfield, l_tfield)  
+
+          call set(advit_tfield, l_tfield)
           call addto(advit_tfield, delta_tfield, sub_dt)
-          
+
         end do ! advection iterations
-          
+
         if(rk_iterations > 1) then
           call addto(accum_tfield, delta_tfield, rk_coeff(adv_it))
         end if
-      
+
       end do ! runge-kutta iterations
-      
+
       if(rk_iterations>1) then
         call addto(l_tfield, accum_tfield, sub_dt / 6.0)
       else
         call set(l_tfield, advit_tfield)
       end if
-      
+
       call set(tmp_tfield, l_tfield)
       call merge_tensor_fields(tfield, tmp_tfield)
-      
+
       if(output_subcycle_vtus) then
         call get_edge_lengths(l_tfield, edgelen)
         call vtk_write_fields(trim("advected_metric_subcycle_")//int2str(adaptcnt), (sub-1), x, x%mesh, &
@@ -369,7 +369,7 @@ contains
     end do ! subcycle loop
 
     call bound_metric(tfield, state)
-    
+
     if(output_final_vtus) then
       call get_edge_lengths(tfield, edgelen)
       call vtk_write_fields(trim("advected_metric_final"), adaptcnt, x, x%mesh, &
@@ -445,7 +445,7 @@ contains
 
     ! allocate some memory for assembly
     call allocate(A_mT_old, rhs%mesh, name="A_mT_oldProduct" )
-    
+
     do i=1,oldtfield%dim(1)
       do j=i,oldtfield%dim(2)
         ! construct rhs
@@ -464,14 +464,14 @@ contains
        ! A_m is all we need (i.e. we assume the rhs has been zeroed)
        ! also we're not using a spatially varying theta so A_m has been
        ! assembled excluding it (so it needs to be multiplied in now)
-    
+
       ! [M + dt*theta*A_m](T^{n+1}-T^{n})/dt = rhs - A_m*T^{n}
-      
+
       ! construct M
       if(.not.explicit) then
         call addto(M, A_m, tfield_options%theta*dt)
       end if
-      
+
     else
 
       ! [M + dt*A_m](T^{n+1}-T^{n})/dt = rhs - A_m*T^{n}
@@ -480,7 +480,7 @@ contains
       if(.not.explicit) then
         call addto(M, A_m, dt)
       end if
-      
+
     end if
 
     call deallocate(A_mT_old)
@@ -489,7 +489,7 @@ contains
 
   !************************************************************************
   !************************************************************************
-  ! assembly subroutines 
+  ! assembly subroutines
   subroutine assemble_advection_m_cv(A_m, rhs, &
                                      tfield, oldtfield, tfield_options, &
                                      cvfaces, x_cvshape, x_cvbdyshape, &
@@ -536,20 +536,17 @@ contains
     ! local memory:
     ! allocatable memory for coordinates, velocity, normals, determinants, nodes
     ! and the cfl number at the gauss pts and nodes
-    real, dimension(:,:), allocatable :: x_ele, x_ele_bdy
-    real, dimension(:,:), allocatable :: x_f, u_f, u_bdy_f
-    real, dimension(:,:), allocatable :: normal, normal_bdy
-    real, dimension(:), allocatable :: detwei, detwei_bdy
+    real, dimension(:,:), allocatable :: x_ele
+    real, dimension(:,:), allocatable :: x_f, u_f
+    real, dimension(:,:), allocatable :: normal
+    real, dimension(:), allocatable :: detwei
     real, dimension(:), allocatable :: normgi
     integer, dimension(:), pointer :: nodes, x_nodes, upwind_nodes
-    integer, dimension(:), allocatable :: nodes_bdy
     real, dimension(:), allocatable :: cfl_ele
 
     ! allocatable memory for the values of the field at the nodes
-    ! and on the boundary and for ghost values outside the boundary
+    ! and on the boundary
     real, dimension(:), allocatable :: tfield_ele, oldtfield_ele
-    real, dimension(:), allocatable :: tfield_ele_bdy, oldtfield_ele_bdy
-    real, dimension(:), allocatable :: ghost_tfield_ele_bdy, ghost_oldtfield_ele_bdy
 
     ! some memory used in assembly of the face values
     real :: tfield_theta_val, tfield_pivot_val
@@ -559,7 +556,7 @@ contains
     logical, dimension(:), allocatable :: notvisited
 
     ! loop integers
-    integer :: ele, sele, iloc, oloc, face, gi, ggi
+    integer :: ele, iloc, oloc, face, gi, ggi
 
 
     ! mesh sparsity for upwind value matrices
@@ -574,34 +571,12 @@ contains
     ! time and face discretisation
     real :: ptheta, ftheta, beta
 
-    ! the type of the bc if integrating over domain boundaries
-    integer, dimension(:), allocatable :: tfield_bc_type
-    ! fields for the bcs over the entire surface mesh
-    type(scalar_field) :: tfield_bc
-
-    ! Bilinear form for the tensor twisting terms.
-    real, dimension(tfield%dim(1), tfield%dim(2), ele_loc(tfield,1), ele_loc(tfield,1)) :: &
-         Twist_mat
-    ! Twist terms applied to explicit T_guess values.
-    real, dimension(ele_loc(tfield,1)) :: Twist_rhs
-    ! Transformed gradient function for velocity.
-    real, dimension(ele_loc(relu, 1), ele_ngi(relu, 1), mesh_dim(tfield)) ::&
-      & du_t
-    type(element_type), pointer :: u_shape, t_shape
-
     type(scalar_field) :: tfield_scomp, oldtfield_scomp
-    type(tensor_field), pointer :: U_nl_J
-    type(tensor_field) :: bounded_U_nl_J
 
     real, dimension(:,:), allocatable :: mat_local
     real, dimension(:,:,:), allocatable :: rhs_local
-    
-    integer :: i, j, k, dimi, dimj
 
-    real, dimension(relu%dim, relu%dim) :: id, value, strain, rotate
-    type(tensor_field), pointer :: max_eigenbound
-    real :: frob_norm
-    integer :: node
+    integer :: i, j, dimi, dimj
 
     ewrite(2,*) 'assemble_advection_m_cv'
 
@@ -636,7 +611,7 @@ contains
       dimi = tfield%dim(1)
       dimj = tfield%dim(2)
     end if
-    
+
     do i=1,dimi
       do j=i,dimj
 
@@ -685,7 +660,7 @@ contains
           oldtfield_ele = ele_val(oldtfield_scomp, ele)
 
           notvisited=.true.
-          
+
           mat_local = 0.0
           rhs_local = 0.0
 
@@ -723,7 +698,7 @@ contains
                        (.not.tfield_options%limit_theta))then
                       ! if we need the matrix then assemble it now
                       assert((i==1).and.(j==1).and.getmat)
-                    
+
                       mat_local(iloc, oloc) = mat_local(iloc, oloc) &
                                             + detwei(ggi)*udotn*income
                       mat_local(oloc, iloc) = mat_local(oloc, iloc) &
@@ -740,11 +715,11 @@ contains
                       ! which will be subtracted out from the rhs such that with an increasing number
                       ! of iterations the true implicit lhs pivot is cancelled out (if it converges!)
                       tfield_pivot_val = income*tfield_ele(oloc) + (1.-income)*tfield_ele(iloc)
-                      
+
                       ! evaluate the nonlinear face value that will go into the rhs
                       ! this is the value that you choose the discretisation for and
                       ! that will become the dominant term once convergence is achieved
-                      call evaluate_face_val(tfield_face_val, oldtfield_face_val, & 
+                      call evaluate_face_val(tfield_face_val, oldtfield_face_val, &
                                             iloc, oloc, ggi, upwind_nodes, &
                                             t_cvshape, &
                                             tfield_ele, oldtfield_ele, &
@@ -765,26 +740,26 @@ contains
                                       + ptheta*udotn*detwei(ggi)*tfield_pivot_val &
                                       - udotn*detwei(ggi)*tfield_theta_val &
                                       + (1.-ftheta)*(1.-beta)*detwei(ggi)*udotn*oldtfield_ele(iloc)
-                        
+
                       if(j/=i) then
                         rhs_local(j, i, iloc) = rhs_local(j, i, iloc) &
                                         + ptheta*udotn*detwei(ggi)*tfield_pivot_val &
                                         - udotn*detwei(ggi)*tfield_theta_val &
                                         + (1.-ftheta)*(1.-beta)*detwei(ggi)*udotn*oldtfield_ele(iloc)
                       end if
-                        
+
                       rhs_local(i, j, oloc) = rhs_local(i, j, oloc) &
                                       + ptheta*(-udotn)*detwei(ggi)*tfield_pivot_val &
                                       - (-udotn)*detwei(ggi)*tfield_theta_val &
                                       + (1.-ftheta)*(1.-beta)*detwei(ggi)*(-udotn)*oldtfield_ele(oloc)
-      
+
                       if(j/=i) then
                         rhs_local(j, i, oloc) = rhs_local(j, i, oloc) &
                                         + ptheta*(-udotn)*detwei(ggi)*tfield_pivot_val &
                                         - (-udotn)*detwei(ggi)*tfield_theta_val &
                                         + (1.-ftheta)*(1.-beta)*detwei(ggi)*(-udotn)*oldtfield_ele(oloc)
                       end if
-                      
+
                       ! if we need the matrix then assemble it now
                       if(getmat .and. i == 1 .and. j == 1) then
                         mat_local(iloc, oloc) = mat_local(iloc, oloc) &
@@ -799,7 +774,7 @@ contains
                                               - ftheta*(1.-beta)*detwei(ggi)*(-udotn)
 
                       end if
-                      
+
                     end if
 
                   end if ! notvisited
@@ -807,11 +782,11 @@ contains
               end if ! neiloc
             end do ! face
           end do ! iloc
-          
+
           if(getmat.and.(i==1).and.(j==1)) then
             call addto(A_m, nodes, nodes, mat_local)
           end if
-          
+
           if((tfield_options%facevalue/=CV_FACEVALUE_FIRSTORDERUPWIND).or.&
               (tfield_options%limit_theta))then
             call addto(rhs, nodes, rhs_local)
@@ -824,7 +799,7 @@ contains
 !     u_shape=>ele_shape(relu, 1)
 !     t_shape=>ele_shape(tfield, 1)
 !     allocate(detwei(ele_ngi(relu, 1)))
-! 
+!
 !   ! Twisting terms.
 !   ! Added in here separately to not confuse the CV formulation of the advection equation
 !
@@ -865,7 +840,7 @@ contains
 !             twist_rhs = twist_rhs + matmul(Twist_mat(k, j, :, :), &
 !                  &      ele_val(oldtfield, i, k, ele) + (dt/rk_coeff(rk_it)) * ele_val(delta_tfield, i, k, ele))
 !          end do
-!         
+!
 !          call addto(rhs, i, j, ele_nodes(tfield, ele), -1.0 * twist_rhs)
 !          if (j /= i) then
 !            call addto(rhs, j, i, ele_nodes(tfield, ele), -1.0 * twist_rhs)
@@ -1022,7 +997,7 @@ contains
     call deallocate(U_nl_J)
 
     call deallocate(lumped_mass)
-    
+
     deallocate(detwei)
     deallocate(U_nl_J_q)
     deallocate(du_t)
