@@ -6,7 +6,6 @@ option(H5HUT_USE_PYTHON "Build Python interface" OFF)
 
 find_package(HDF5 REQUIRED C)
 
-include_directories("${PROJECT_SOURCE_DIR}/src/include")
 add_subdirectory(src/h5core)
 
 if(H5HUT_USE_FORTRAN)

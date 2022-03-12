@@ -48,9 +48,6 @@ add_library(H5hut
   private/h5t_store_trim.c
 )
 target_include_directories(H5hut
-  PUBLIC
-  "${MPI_C_INCLUDE_DIRS}"
-  "${HDF5_C_INCLUDE_DIRS}"
-  ${CMAKE_CURRENT_BINARY_DIR}
+  PUBLIC "${MPI_C_INCLUDE_DIRS}" "${HDF5_C_INCLUDE_DIRS}" . ../include
 )
 install(TARGETS H5hut ARCHIVE)

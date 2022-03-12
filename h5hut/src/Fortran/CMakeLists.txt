@@ -43,7 +43,7 @@ add_library(H5hutf
   ../include/H5hut.f90
 )
 add_dependencies(H5hutf H5hutf_interface)
-target_include_directories(H5hutf PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+target_include_directories(H5hutf PRIVATE . ../include)
 target_link_libraries(H5hutf H5hut)
 
 install(TARGETS H5hutf ARCHIVE)

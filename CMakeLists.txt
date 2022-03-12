@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.19)
 project(fluidity
   VERSION 4.1.19
   HOMEPAGE_URL "http://fluidityproject.github.io/"
@@ -19,6 +19,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/include)
 
+set(CMAKE_CXX_STANDARD 17)
+
 option(HDF5_PREFER_PARALLEL "Look for parallel HDF5 first" ON)
 
 include(ExternalProject)
@@ -30,48 +32,32 @@ find_package(PkgConfig REQUIRED)
 find_package(VTK REQUIRED)
 
 # Check for Python 3
-find_package(Python3 REQUIRED Interpreter Development NumPy)
+find_package(Python3 3.6...<3.10 REQUIRED Interpreter Development NumPy)
 # # Check for assess Python package
 # execute_process(
 #   COMMAND ${Python3_EXECUTABLE} -c "import assess"
 #   RESULT_VARIABLE Python3_ASSESS
 # )
 
+# Check for CGAL
+find_package(CGAL REQUIRED)
+
 # Check for PETSc
 pkg_search_module(PETSC REQUIRED IMPORTED_TARGET PETSc)
 message(STATUS "Found PETSc ${PETSC_VERSION}")
 
-# Check for Zoltan
-find_path(ZOLTAN_INCLUDE_DIR zoltan.mod REQUIRED)
-find_library(ZOLTAN_LIBRARY zoltan REQUIRED)
-
 # Check for NetCDF
 pkg_check_modules(NETCDF REQUIRED netcdf netcdf-fortran)
 
-# Check for Spud
-find_path(SPUD_INCLUDE_DIR spud.mod REQUIRED)
-find_library(SPUD_LIBRARY spud REQUIRED)
+# Check for Zoltan
+find_path(ZOLTAN_INCLUDE_DIR zoltan.mod REQUIRED)
+find_library(ZOLTAN_LIBRARY zoltan REQUIRED)
 
 # Check for UDUNITS
 find_library(UDUNITS_LIBRARY udunits2 REQUIRED)
 
 # Check for ExodusII
 find_library(EXODUSII_LIBRARY exoIIv2c REQUIRED)
-
-# # Check for CGAL
-# if (USE_CGAL)
-#    message(STATUS "Link in CGAL support")
-#    find_package(CGAL REQUIRED)
-#    include(${CGAL_USE_FILE})
-#    set(USE_CGAL ON CACHE BOOL
-#       "Link to CGAL")
-#    add_definitions(-DHAVE_CGAL=yes)
-#    set(CGAL_LIBS ${CGAL_LIB} )
-# else()
-#    message(STATUS "No CGAL support")
-#    set(USE_CGAL OFF CACHE BOOL
-#       "Link to CGAL")
-# endif()
 
 # Add libspatialindex
 FetchContent_Declare(libspatialindex
@@ -116,21 +102,21 @@ set_target_properties(Judy
 add_custom_command(
   OUTPUT ${CMAKE_SOURCE_DIR}/preprocessor/register_diagnostics.F90
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/make_register_diagnostics.py
-  DEPENDS ${CMAKE_SOURCE_DIR}/tools/make_register_diagnostics.py
+  MAIN_DEPENDENCY ${CMAKE_SOURCE_DIR}/tools/make_register_diagnostics.py
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   VERBATIM
 )
 add_custom_command(
   OUTPUT ${CMAKE_SOURCE_DIR}/preprocessor/check_options.F90
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/make_check_options.py
-  DEPENDS ${CMAKE_SOURCE_DIR}/tools/make_check_options.py
+  MAIN_DEPENDENCY ${CMAKE_SOURCE_DIR}/tools/make_check_options.py
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   VERBATIM
 )
 add_custom_command(
   OUTPUT ${CMAKE_SOURCE_DIR}/diagnostics/Diagnostic_Fields_New.F90
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/make_diagnostic_fields.py
-  DEPENDS ${CMAKE_SOURCE_DIR}/tools/make_diagnostic_fields.py
+  MAIN_DEPENDENCY ${CMAKE_SOURCE_DIR}/tools/make_diagnostic_fields.py
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/diagnostics
   VERBATIM
 )
@@ -231,12 +217,16 @@ execute_process(COMMAND
 
 # Build libfluidity.a
 add_library(fluidity STATIC main/mainfl.F90 main/Fluids.F90 main/Usage.cpp)
-add_dependencies(fluidity adaptivity mba2d spatialindex vtkfortran H5hutf Judy)
+add_dependencies(fluidity
+  adaptivity mba2d spatialindex spud vtkfortran
+  H5hutf Judy
+)
 target_compile_definitions(fluidity
   PUBLIC
   DOUBLEP
   HAVE_ADAPTIVITY
   HAVE_BLAS
+  HAVE_CGAL
   HAVE_EXODUSII
   HAVE_HYPRE
   HAVE_LIBNETCDF
@@ -264,23 +254,18 @@ target_include_directories(fluidity
 
   ${ZOLTAN_INCLUDE_DIR}
   "${NETCDF_INCLUDE_DIRS}"
-  ${SPUD_INCLUDE_DIR}
 
   ${libspatialindex_SOURCE_DIR}/include
   ${libjudy_SOURCE_DIR}/src
 
-  ${CMAKE_SOURCE_DIR}/include
-  ${CMAKE_SOURCE_DIR}/h5hut/src/include
-  ${CMAKE_SOURCE_DIR}/h5hut/src/h5core
-  ${CMAKE_SOURCE_DIR}/libwm
-
-  ${CMAKE_BINARY_DIR}/libadaptivity/include
-  ${CMAKE_BINARY_DIR}/libvtkfortran/include
+  include
+  libwm
 )
 target_link_libraries(fluidity
   adaptivity
   mba2d
   spatialindex
+  spud
   vtkfortran
 
   H5hutf
@@ -288,13 +273,13 @@ target_link_libraries(fluidity
 
   "${VTK_LIBRARIES}"
   "${Python3_LIBRARIES}"
+  "${CGAL_LIBRARIES}"
 
   PkgConfig::PETSC
   ${PETSC_STATIC_LDFLAGS}
 
   ${ZOLTAN_LIBRARY}
   ${NETCDF_STATIC_LDFLAGS}
-  ${SPUD_LIBRARY}
   ${UDUNITS_LIBRARY}
   ${EXODUSII_LIBRARY}
 )
@@ -320,6 +305,7 @@ add_subdirectory(ocean_forcing)
 add_subdirectory(parameterisation)
 add_subdirectory(population_balance)
 add_subdirectory(preprocessor)
+add_subdirectory(python)
 add_subdirectory(sediments)
 # add_subdirectory(tests)
 add_subdirectory(tools)
