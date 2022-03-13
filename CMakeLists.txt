@@ -133,8 +133,14 @@ file(WRITE "${CMAKE_BINARY_DIR}/include/confdefs.h"
 "#define F77_FUNC(name,NAME) name ## _
 #define F77_FUNC_(name,NAME) name ## _"
 )
-configure_file(include/confdefs.h libvtkfortran/include COPYONLY)
-configure_file(include/confdefs.h libadaptivity/include COPYONLY)
+configure_file("${CMAKE_BINARY_DIR}/include/confdefs.h"
+  libvtkfortran/include/confdefs.h
+  COPYONLY
+)
+configure_file("${CMAKE_BINARY_DIR}/include/confdefs.h"
+  libadaptivity/include/confdefs.h
+  COPYONLY
+)
 
 file(WRITE "${CMAKE_BINARY_DIR}/include/vtk.h"
 "#ifndef VTK_H
@@ -187,8 +193,14 @@ typedef float vtkFloatingPointType;
 #endif
 #endif"
 )
-configure_file(include/vtk.h libvtkfortran/include COPYONLY)
-configure_file(include/vtk.h libadaptivity/include COPYONLY)
+configure_file("${CMAKE_BINARY_DIR}/include/vtk.h"
+  libvtkfortran/include/vtk.h
+  COPYONLY
+)
+configure_file("${CMAKE_BINARY_DIR}/include/vtk.h"
+  libadaptivity/include/vtk.h
+  COPYONLY
+)
 
 
 set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
@@ -199,9 +211,9 @@ set(CMAKE_Fortran_FLAGS "-fbounds-check \
 -frecord-marker=4 \
 -fno-unsafe-math-optimizations -frounding-math -fsignaling-nans \
 -g \
--Wunused \
 ${CMAKE_Fortran_FLAGS}"
 )
+# -Wall -Wextra
 
 configure_file(tools/version-info.in bin/version-info)
 execute_process(COMMAND
@@ -294,7 +306,7 @@ add_subdirectory(population_balance)
 add_subdirectory(preprocessor)
 add_subdirectory(python)
 add_subdirectory(sediments)
-# add_subdirectory(tests)
+add_subdirectory(tests)
 add_subdirectory(tools)
 
 # Build the fluidity binary
@@ -302,18 +314,13 @@ add_executable(fluidity-bin main.cpp)
 set_target_properties(fluidity-bin PROPERTIES OUTPUT_NAME fluidity)
 target_link_libraries(fluidity-bin fluidity)
 
-# # Add unittests
-# add_custom_target(unittest
-#   "${CMAKE_COMMAND}" "-E" "create_symlink" "${CMAKE_BINARY_DIR}/tests/data" "${CMAKE_BINARY_DIR}/bin/tests/data"
-#   COMMAND bin/unittestharness bin/tests
-# )
-# add_dependencies(unittest ${unittests} unittestharness)
-# foreach(mesh IN LISTS unittest_meshes_3d)
-#   add_dependencies(unittest ${mesh})
-# endforeach()
-#
-# add_custom_target(fltools DEPENDS ${tools} fldecomp)
-#
+# Add unittests
+add_custom_target(unittest
+  COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_BINARY_DIR}/tests/data ${CMAKE_BINARY_DIR}/bin/tests/data
+  COMMAND bin/unittestharness -x unittest_results.xml
+  VERBATIM
+)
+
 # add_custom_target(shorttest
 #   COMMAND bin/testharness -l short
 # )

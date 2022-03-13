@@ -228,5 +228,5 @@ foreach(type ${ref_types})
    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/Reference_count_interface_${type}.F90 ${TMP})
 endforeach()
 
-# add_subdirectory(tests EXCLUDE_FROM_ALL)
-# set(unittests ${femtools_unittests};${unittests} PARENT_SCOPE)
+add_subdirectory(tests)
+set(unittests "${unittests}" PARENT_SCOPE)

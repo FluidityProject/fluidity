@@ -60,7 +60,7 @@ set(tools_source_files
   Streamfunction_2D
   Supermesh_Difference
   # test_laplacian
-  test_pressure_solve
+  # test_pressure_solve
   triangle2vtu
   unifiedmesh
   Vertical_Integration
@@ -72,9 +72,15 @@ set(tools_source_files
   Vtu_Bins
 )
 
+set(tools_source_files_test
+  test_laplacian
+  test_pressure_solve
+)
+
 foreach(tool ${tools_source_files})
   if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${tool}.F90
-  AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${tool}_main.cpp)
+    AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${tool}_main.cpp
+   )
     add_executable(${tool} ${tool}.F90 ${tool}_main.cpp)
   elseif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${tool}.F90)
     add_executable(${tool} ${tool}.F90)
@@ -87,9 +93,19 @@ foreach(tool ${tools_source_files})
   list(APPEND tools_targets_list ${tool})
 endforeach()
 
-add_executable(test_laplacian_tool test_laplacian.F90)
-target_link_libraries(test_laplacian_tool fluidity)
-set_target_properties(test_laplacian_tool PROPERTIES OUTPUT_NAME test_laplacian)
-list(APPEND tools_targets_list test_laplacian_tool)
+foreach(tool ${tools_source_files_test})
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${tool}.F90
+    AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${tool}_main.cpp
+   )
+    add_executable(${tool}_tool ${tool}.F90 ${tool}_main.cpp)
+  elseif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${tool}.F90)
+    add_executable(${tool}_tool ${tool}.F90)
+  else()
+    add_executable(${tool}_tool ${tool}.cpp)
+  endif()
+  target_link_libraries(${tool}_tool fluidity)
+  set_target_properties(${tool}_tool PROPERTIES OUTPUT_NAME ${tool})
+  list(APPEND tools_targets_list ${tool}_tool)
+endforeach()
 
 set(tools_targets "${tools_targets_list}" PARENT_SCOPE)

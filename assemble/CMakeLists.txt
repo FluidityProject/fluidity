@@ -65,12 +65,5 @@ target_sources(fluidity
   Zoltan_integration.F90
 )
 
-# add_subdirectory(tests EXCLUDE_FROM_ALL)
-# set(unittests
-#   ${assemble_unittests};${unittests}
-#   PARENT_SCOPE
-# )
-# set(unittest_meshes_3d
-#   ${assemble_unittest_meshes_3d};${unittest_meshes_3d}
-#   PARENT_SCOPE
-# )
+add_subdirectory(tests)
+set(unittests "${unittests}" PARENT_SCOPE)
