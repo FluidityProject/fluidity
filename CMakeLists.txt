@@ -133,8 +133,8 @@ file(WRITE "${CMAKE_BINARY_DIR}/include/confdefs.h"
 "#define F77_FUNC(name,NAME) name ## _
 #define F77_FUNC_(name,NAME) name ## _"
 )
-configure_file(include/confdefs.h libvtkfortran/include COPYONLY)
-configure_file(include/confdefs.h libadaptivity/include COPYONLY)
+configure_file("${CMAKE_BINARY_DIR}/include/confdefs.h" libvtkfortran/include/confdefs.h COPYONLY)
+configure_file("${CMAKE_BINARY_DIR}/include/confdefs.h" libadaptivity/include/confdefs.h COPYONLY)
 
 file(WRITE "${CMAKE_BINARY_DIR}/include/vtk.h"
 "#ifndef VTK_H
@@ -187,8 +187,8 @@ typedef float vtkFloatingPointType;
 #endif
 #endif"
 )
-configure_file(include/vtk.h libvtkfortran/include COPYONLY)
-configure_file(include/vtk.h libadaptivity/include COPYONLY)
+configure_file("${CMAKE_BINARY_DIR}/include/vtk.h" libvtkfortran/include/vtk.h COPYONLY)
+configure_file("${CMAKE_BINARY_DIR}/include/vtk.h" libadaptivity/include/vtk.h COPYONLY)
 
 
 set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
