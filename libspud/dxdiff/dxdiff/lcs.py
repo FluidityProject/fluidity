@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #    This file is part of dxdiff.
 #
@@ -18,7 +18,7 @@
 Find the LCS (Longest Common Subsequence). Uses [http://www.xmailserver.org/diff2.pdf]
 """
 
-from utils import irange
+from .utils import irange
 
 def __path(V, D, k):
   if D == 0:

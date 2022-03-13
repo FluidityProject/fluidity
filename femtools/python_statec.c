@@ -1,17 +1,38 @@
 #define ALLOW_IMPORT_ARRAY
 #include "python_statec.h"
 
+#if PY_MAJOR_VERSION >= 3
+#define PyInt_FromLong PyLong_FromLong
+#define PyString_FromString PyUnicode_FromString
+static struct PyModuleDef moduledef = {
+  PyModuleDef_HEAD_INIT,
+  "spud_manager",
+  NULL, -1, NULL, NULL, NULL, NULL, NULL,
+};
+static PyObject* PyInit_spud_manager(void)
+{
+  return PyModule_Create(&moduledef);
+}
+#endif
+
 void python_init_(void){
 #ifdef HAVE_PYTHON
   // Initialize the Python interpreter
+#if PY_MAJOR_VERSION >= 3
+  PyImport_AppendInittab("spud_manager", &PyInit_spud_manager);
+#endif
   Py_Initialize();
   PyRun_SimpleString("import string");
 
   PyObject* m;
+#if PY_MAJOR_VERSION >= 3
+  m = PyImport_ImportModule("spud_manager");
+#else
   m = Py_InitModule("spud_manager", NULL);
+#endif
   assert(m != NULL);
 
-#if PY_MINOR_VERSION > 6
+#if PY_MAJOR_VERSION >= 3 || PY_MINOR_VERSION > 6
   void* manager = spud_get_manager();
   PyObject* manager_capsule = PyCapsule_New(manager, "spud_manager._spud_manager", NULL);
   assert(manager_capsule != NULL);
@@ -53,7 +74,7 @@ void init_vars(void){
   else{
     if (get_global_debug_level_() > 1) {
       printf("fluidity.state_types imported successfully; location: \n");
-      PyRun_SimpleString("import fluidity.state_types; print fluidity.state_types.__file__");
+      PyRun_SimpleString("import fluidity.state_types; print(fluidity.state_types.__file__)");
     }
   }
   PyRun_SimpleString("states = dict()");
@@ -69,11 +90,12 @@ void python_reset_(void){
 
     // Create a list of items to  be removed
     PyRun_SimpleString("rem = []");
-    PyRun_SimpleString("for i in globals().keys():\n if(not (i in keep)): rem.append(i)");
+    PyRun_SimpleString("keys = tuple(globals().keys())");
+    PyRun_SimpleString("for i in keys:\n if i not in keep: rem.append(i)");
 
     // Delete every item except the ones we want to keep
     PyRun_SimpleString("for i in rem: del globals()[i]");
-    PyRun_SimpleString("del globals()['keep'];del globals()['rem'];del globals()['i']");
+    PyRun_SimpleString("del globals()['keys'];del globals()['keep'];del globals()['rem'];\nif 'i' in globals():del globals()['i']");
 
     // Reinitialize the variables
     init_vars();
@@ -189,8 +211,8 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
   PyObject *pft = PyInt_FromLong(*field_type);
   PyDict_SetItemString(pDict,"ft",pft);  
 
-  PyRun_SimpleString("n = string.strip(n)");
-  PyRun_SimpleString("op = string.strip(op)");
+  PyRun_SimpleString("n = n.strip()");
+  PyRun_SimpleString("op = op.strip()");
 
   char *n = fix_string(state,*slen);
   int tlen=150+*slen+*mesh_name_len;
@@ -237,7 +259,7 @@ void python_add_csr_matrix_(int *valSize, double val[], int *col_indSize, int co
   PyObject *pname = PyString_FromString(namefixed);
   PyDict_SetItemString(pDict,"name",pname); 
 
-  PyRun_SimpleString("name = string.strip(name)");
+  PyRun_SimpleString("name = name.strip()");
 
   char *statefixed = fix_string(state,*statelen);
   int tlen=150+*statelen;
@@ -285,8 +307,8 @@ void python_add_vector_(int *num_dim, int *s,
   PyObject *pnd = PyInt_FromLong(*num_dim);
   PyDict_SetItemString(pDict,"nd",pnd);  
 
-  PyRun_SimpleString("n = string.strip(n)");
-  PyRun_SimpleString("op = string.strip(op)");
+  PyRun_SimpleString("n = n.strip()");
+  PyRun_SimpleString("op = op.strip()");
 
   char *n = fix_string(state,*slen);
   int tlen=150+*slen+*mesh_name_len;
@@ -341,8 +363,8 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   PyObject *pnd1 = PyInt_FromLong(num_dim[1]);
   PyDict_SetItemString(pDict,"nd1",pnd1);  
 
-  PyRun_SimpleString("n = string.strip(n)");
-  PyRun_SimpleString("op = string.strip(op)");
+  PyRun_SimpleString("n = n.strip()");
+  PyRun_SimpleString("op = op.strip()");
 
   char *n = fix_string(state,*slen);
   int tlen=150+*slen+*mesh_name_len;
@@ -392,8 +414,8 @@ void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
   PyObject *poptionp = PyString_FromString(opc);
   PyDict_SetItemString(pDict,"op",poptionp);
 
-  PyRun_SimpleString("n = string.strip(n)");
-  PyRun_SimpleString("op = string.strip(op)");
+  PyRun_SimpleString("n = n.strip()");
+  PyRun_SimpleString("op = op.strip()");
 
   char *n = fix_string(state_name,*state_name_len);
   int tlen=150 + *state_name_len;
@@ -514,7 +536,7 @@ void python_add_array_double_1d(double *arr, int *size, char *name){
   //  the actual data as a byte array(char*)
 
   // Set the array
-  PyObject *a = PyArray_SimpleNewFromData(1, (npy_intp[]){*size}, PyArray_DOUBLE, (char*)arr);
+  PyObject *a = PyArray_SimpleNewFromData(1, (npy_intp[]){*size}, NPY_DOUBLE, (char*)arr);
   PyDict_SetItemString(pDict,name,a);
   Py_DECREF(a);
 #endif
@@ -528,7 +550,7 @@ void python_add_array_double_2d(double *arr, int *sizex, int *sizey, char *name)
 
   // Set the array
   npy_intp dims[] = {*sizey,*sizex};
-  PyObject *a = PyArray_SimpleNewFromData(2, dims, PyArray_DOUBLE, (char*)arr);
+  PyObject *a = PyArray_SimpleNewFromData(2, dims, NPY_DOUBLE, (char*)arr);
   PyDict_SetItemString(pDict,name,a);
   char c[200];
   snprintf(c, 200, "%s = numpy.transpose(%s,(1,0))",name,name);
@@ -545,7 +567,7 @@ void python_add_array_double_3d(double *arr, int *sizex, int *sizey, int *sizez,
 
   // Set the array
   npy_intp dims[] = {*sizez,*sizey,*sizex};
-  PyObject *a = PyArray_SimpleNewFromData(3, dims, PyArray_DOUBLE, (char*)arr);
+  PyObject *a = PyArray_SimpleNewFromData(3, dims, NPY_DOUBLE, (char*)arr);
   PyDict_SetItemString(pDict,name,a);
   char c[200];
   snprintf(c, 200, "%s = numpy.transpose(%s,(2,1,0))",name,name);
@@ -561,7 +583,7 @@ void python_add_array_integer_1d(int *arr, int *size, char *name){
   PyObject *pDict = PyModule_GetDict(pMain);
 
   // Set the array
-  PyObject *a = PyArray_SimpleNewFromData(1, (npy_intp[]){*size}, PyArray_INT, (char*)arr);
+  PyObject *a = PyArray_SimpleNewFromData(1, (npy_intp[]){*size}, NPY_INT, (char*)arr);
   PyDict_SetItemString(pDict,name,a);
   Py_DECREF(a);
 #endif
@@ -575,7 +597,7 @@ void python_add_array_integer_2d(int *arr, int *sizex, int *sizey, char *name){
 
   // Set the array
   npy_intp dims[] = {*sizey,*sizex};
-  PyObject *a = PyArray_SimpleNewFromData(2, dims, PyArray_INT, (char*)arr);
+  PyObject *a = PyArray_SimpleNewFromData(2, dims, NPY_INT, (char*)arr);
   PyDict_SetItemString(pDict,name,a);
   char c[200];
   snprintf(c, 200, "%s = numpy.transpose(%s,(1,0))",name,name);
@@ -592,7 +614,7 @@ void python_add_array_integer_3d(int *arr, int *sizex, int *sizey, int *sizez, c
 
   // Set the array
   npy_intp dims[] = {*sizez,*sizey,*sizex};
-  PyObject *a = PyArray_SimpleNewFromData(3, dims, PyArray_INT, (char*)arr);
+  PyObject *a = PyArray_SimpleNewFromData(3, dims, NPY_INT, (char*)arr);
   PyDict_SetItemString(pDict,name,a);
   char c[200];
   snprintf(c, 200, "%s = numpy.transpose(%s,(2,1,0))",name,name);

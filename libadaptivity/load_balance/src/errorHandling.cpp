@@ -25,13 +25,13 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
  USA
 */
-#include <mpi.h>
 #include <string>
+#include "sam_mpi.h"
 
 std::string mpiErrorMessage(const int err){
   char *msg = new char [MPI_MAX_ERROR_STRING];
   int len;
-  MPI::Get_error_string(err, msg, len);
+  MPI_Error_string(err, msg, &len);
   std::string mesg(msg);
   delete [] msg;
   return mesg;

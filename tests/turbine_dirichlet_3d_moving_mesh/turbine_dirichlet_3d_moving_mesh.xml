@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>turbine_dirichlet_3d</name>
   <owner userid="sf1409"/>
@@ -11,12 +11,18 @@ import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-    <variable name="velocity_block1" language="python">from fluidity_tools import stat_parser
-s = stat_parser("turbine_3d.detectors")
-velocity_block1=s["Water"]["Velocity"]["right_block1"][0]</variable>
-    <variable name="velocity_block2" language="python">from fluidity_tools import stat_parser
-s = stat_parser("turbine_3d.detectors")
-velocity_block2=s["Water"]["Velocity"]["left_block2"][0]</variable>
+    <variable name="velocity_block1" language="python">
+import h5py
+import numpy as np
+f = h5py.File('turbine_3d.detectors.h5part', 'r')
+det_id = f.attrs['right_block1%ids'][0]-1
+velocity_block1 = np.array([f['/Step#{}/Water%Velocity%x'.format(i)][det_id] for i in range(len(f))])</variable>
+    <variable name="velocity_block2" language="python">
+import h5py
+import numpy as np
+f = h5py.File('turbine_3d.detectors.h5part', 'r')
+det_id = f.attrs['left_block2%ids'][0]-1
+velocity_block2 = np.array([f['/Step#{}/Water%Velocity%x'.format(i)][det_id] for i in range(len(f))])</variable>
     <variable name="area_block1" language="python">from fluidity_tools import stat_parser
 s = stat_parser("turbine_3d.stat")
 fs = s["Water"]["FreeSurface"]["min"]+s["Water"]["FreeSurface"]["max"]
@@ -41,13 +47,14 @@ import numpy
 flux_l=[0.0,0.0]
 flux_r=[0.0,0.0]
 for i in range(2,area_block1.size):
-   flux_l.append(area_block1[i-2]*velocity_block1[i])
-   flux_r.append(area_block2*velocity_block2[i])
+    flux_l.append(area_block1[i-2]*velocity_block1[i])
+    flux_r.append(area_block2*velocity_block2[i])
 maxerr=0.0
 for i in range(0,len(flux_l)):
-   maxerr=max(maxerr,abs(flux_l[i]-flux_r[i]))
-print maxerr
-assert(maxerr&lt;1e-6)</test>
+    maxerr=max(maxerr,abs(flux_l[i]-flux_r[i]))
+print(maxerr)
+assert(maxerr&lt;1e-6)
+</test>
     <test name="time" language="python">from math import cos
 turbine_flux=velocity_block2
 head=[]

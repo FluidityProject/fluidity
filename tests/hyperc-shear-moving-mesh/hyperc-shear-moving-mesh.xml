@@ -1,9 +1,9 @@
-<?xml version = "1.0" encoding = "UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Shearing volume fraction</name>
   <owner userid="cwilson"/>
   <tags>flml</tags>
-  <problem_definition length ="medium" nprocs = "1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v2 -l  hyperc-shear-input.flml</command_line>
   </problem_definition>
   <variables>
@@ -73,25 +73,25 @@ tracerbeta0_min_1 = stat("hyperc-shear.stat")["Material1"]["TracerBeta0"]["min"]
 assert finish_time &gt; 1.
     </test>
     <test name="check tracerbeta0 integral was not conserved" language="python">
-print 'mass loss = ', abs(tracerbeta0_int_1-tracerbeta0_int_0)
+print('mass loss = ', abs(tracerbeta0_int_1-tracerbeta0_int_0))
 assert abs(tracerbeta0_int_1-tracerbeta0_int_0) &gt; 1.e-9
-    </test>
+</test>
     <test name="check tracerbeta1 max was not conserved" language="python">
-print 'max change = ', abs(tracerbeta1_max_1-tracerbeta1_max_0)
+print('max change = ', abs(tracerbeta1_max_1-tracerbeta1_max_0))
 assert abs(tracerbeta1_max_1-tracerbeta1_max_0) &gt; 1.e-9
-    </test>
+</test>
     <test name="check tracerbeta1 integral was conserved" language="python">
-print 'mass loss = ', abs(tracerbeta1_int_1-tracerbeta1_int_0)
+print('mass loss = ', abs(tracerbeta1_int_1-tracerbeta1_int_0))
 assert abs(tracerbeta1_int_1-tracerbeta1_int_0) &lt; 1.e-9
-    </test>
+</test>
     <test name="check tracerbeta0 max was conserved" language="python">
-print 'max change = ', abs(tracerbeta0_max_1-tracerbeta0_max_0)
+print('max change = ', abs(tracerbeta0_max_1-tracerbeta0_max_0))
 assert abs(tracerbeta0_max_1-tracerbeta0_max_0) &lt; 1.e-9
-    </test>
+</test>
     <test name="check tracerbeta0 min was conserved" language="python">
-print 'min change = ', abs(tracerbeta0_min_1-tracerbeta0_min_0)
+print('min change = ', abs(tracerbeta0_min_1-tracerbeta0_min_0))
 assert abs(tracerbeta0_min_1-tracerbeta0_min_0) &lt; 1.e-9
-    </test>
+</test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

@@ -485,7 +485,7 @@
                     
                type(scalar_field), intent(in) :: vfrac_fluid, vfrac_particle
                type(scalar_field), intent(in) :: density_fluid, density_particle
-               type(scalar_field), intent(in) :: d_field ! Scalar field representing particle diameter
+               type(scalar_field), pointer, intent(in) :: d_field ! Scalar field representing particle diameter
                type(vector_field), intent(in) :: nu_fluid, nu_particle
                type(vector_field), intent(in) :: oldu_fluid, oldu_particle
                type(tensor_field), intent(in) :: viscosity_fluid    
@@ -900,7 +900,7 @@
                     
                type(scalar_field), intent(in) :: vfrac_fluid, vfrac_particle
                type(scalar_field), intent(in) :: density_fluid, density_particle
-               type(scalar_field), intent(in) :: d_field ! Scalar field representing particle diameter
+               type(scalar_field), pointer, intent(in) :: d_field ! Scalar field representing particle diameter
                type(vector_field), intent(in) :: nu_fluid, nu_particle
                type(scalar_field), intent(in) :: internal_energy_fluid, internal_energy_particle
                type(scalar_field), intent(in) :: old_internal_energy_fluid, old_internal_energy_particle

@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import vtktools
 import sys
 import math
 import re 
-import commands
 import matplotlib.pyplot as plt
 import getopt
 
@@ -24,10 +23,10 @@ def mirror(x):
 
 
 def usage():
-        print 'Usage:'
-        print 'plotfs_detec.py [-w] --file=detector_filename --save=filename'
-        print '--save=... saves the plots as images instead of plotting them on the screen.'
-        print '-w plots the wetting procedure (drying is default).'
+        print('Usage:')
+        print('plotfs_detec.py [-w] --file=detector_filename --save=filename')
+        print('--save=... saves the plots as images instead of plotting them on the screen.')
+        print('-w plots the wetting procedure (drying is default).')
 
 
 # should be copied from the diamond extrude function. X is 2 dimensional
@@ -61,25 +60,25 @@ def main(argv=None):
                 elif opt == '-w':
                         wetting=True
         if filename=='':
-                print 'No filename specified. You have to give the detectors filename.'
+                print('No filename specified. You have to give the detectors filename.')
                 usage()   
                 sys.exit(2) 
 
         
         ####################### Print time plot  ###########################
-        print 'Generating time plot'
+        print('Generating time plot')
       
         s = stat_parser(filename)
 
         timesteps=s["ElapsedTime"]["value"]
         timestep=timesteps[1]-timesteps[0]
-        print "Found ", len(timesteps), " timesteps with dt=", timestep
+        print("Found ", len(timesteps), " timesteps with dt=", timestep)
         if timestep_ana==0.0:
                 timestep_ana=timestep
 
 
         fs=s["water"]["FreeSurface"]
-        print "Found ", len(fs), " detectors. We assume they are equidistant distributed over the domain (", 0, "-", 13800, ")."
+        print("Found ", len(fs), " detectors. We assume they are equidistant distributed over the domain (", 0, "-", 13800, ").")
 
 
         # Get and plot results

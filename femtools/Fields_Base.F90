@@ -299,8 +299,7 @@ module fields_base
   end interface
 
   interface local_coords
-    module procedure local_coords_interpolation, &
-          local_coords_interpolation_all, local_coords_mesh, &
+    module procedure local_coords_interpolation_all, local_coords_mesh, &
           local_coords_scalar, local_coords_vector, local_coords_tensor
   end interface
 
@@ -348,27 +347,26 @@ module fields_base
 
   public :: mesh_dim, mesh_periodic, halo_count, node_val, ele_loc, &
             node_count, node_ele, element_count, surface_element_count,&
-	    unique_surface_element_count, face_count, surface_element_id,&
-	    ele_region_id, ele_region_ids, mesh_connectivity, mesh_equal,&
-	    mesh_compatible, print_mesh_incompatibility,&
-	    ele_faces, ele_neigh, operator (==), local_coords, eval_field,&
-	    face_eval_field, set_from_python_function, tetvol, face_opposite,&
-	    write_minmax, field_val, element_halo_count, field2file,&
-	    ele_val_at_superconvergent, extract_scalar_field,&
-	    has_discontinuous_internal_boundaries, has_faces,&
-	    element_degree, face_val_at_quad, ele_val_at_quad, face_val,&
-	    ele_val, ele_n_constraints, ele_shape, face_ngi, ele_and_faces_loc,&
-	    face_loc, ele_ngi, face_vertices, ele_vertices, ele_num_type,&
-	    ele_numbering_family, ele_face_count, face_ele, ele_face,&
-	    face_neigh, node_neigh, face_global_nodes, face_local_nodes,&
-	    ele_nodes, ele_count, local_face_number, face_shape, face_n_s,&
-	    face_dn_s, continuity, simplex_volume, ele_div_at_quad,&
-	    extract_scalar_field_from_vector_field, triarea, ele_grad_at_quad,&
-	    extract_scalar_field_from_tensor_field, ele_curl_at_quad,&
-	    eval_shape, ele_jacobian_at_quad, ele_div_at_quad_tensor,&
-	    ele_2d_curl_at_quad, getsndgln, local_coords_matrix,&
-            local_coords_interpolation
-    
+            unique_surface_element_count, face_count, surface_element_id,&
+            ele_region_id, ele_region_ids, mesh_connectivity, mesh_equal,&
+            mesh_compatible, print_mesh_incompatibility,&
+            ele_faces, ele_neigh, operator (==), local_coords, eval_field,&
+            face_eval_field, set_from_python_function, tetvol, face_opposite,&
+            write_minmax, field_val, element_halo_count, field2file,&
+            ele_val_at_superconvergent, extract_scalar_field,&
+            has_discontinuous_internal_boundaries, has_faces,&
+            element_degree, face_val_at_quad, ele_val_at_quad, face_val,&
+            ele_val, ele_n_constraints, ele_shape, face_ngi, ele_and_faces_loc,&
+            face_loc, ele_ngi, face_vertices, ele_vertices, ele_num_type,&
+            ele_numbering_family, ele_face_count, face_ele, ele_face,&
+            face_neigh, node_neigh, face_global_nodes, face_local_nodes,&
+            ele_nodes, ele_count, local_face_number, face_shape, face_n_s,&
+            face_dn_s, continuity, simplex_volume, ele_div_at_quad,&
+            extract_scalar_field_from_vector_field, triarea, ele_grad_at_quad,&
+            extract_scalar_field_from_tensor_field, ele_curl_at_quad,&
+            eval_shape, ele_jacobian_at_quad, ele_div_at_quad_tensor,&
+            ele_2d_curl_at_quad, getsndgln, local_coords_matrix
+
 contains
 
   pure function mesh_dim_mesh(mesh) result (mesh_dim)
@@ -1245,8 +1243,6 @@ contains
     type(mesh_type), intent(in) :: mesh
     integer, intent(in) :: ele_number
     
-    type(element_type), pointer :: shape
-
     face_count=mesh%shape%numbering%boundaries
 
   end function ele_face_count_mesh
@@ -3195,46 +3191,6 @@ contains
     
   end function face_vertices_shape
 
-  function local_coords_interpolation(position_field, ele, position) result(local_coords)
-    !!< Given a position field, this returns the local coordinates of
-    !!< position with respect to element "ele".
-    !!<
-    !!< This assumes the position field is linear. For higher order
-    !!< only the coordinates of the vertices are considered
-    type(vector_field), intent(in) :: position_field
-    integer, intent(in) :: ele
-    real, dimension(:), intent(in) :: position
-    real, dimension(size(position) + 1) :: local_coords
-    real, dimension(mesh_dim(position_field) + 1, size(position) + 1) :: matrix
-    real, dimension(mesh_dim(position_field), size(position) + 1) :: tmp_matrix
-    integer, dimension(position_field%mesh%shape%numbering%vertices):: vertices
-    integer, dimension(:), pointer:: nodes
-    integer :: dim
-
-    dim = size(position)
-
-    assert(dim == mesh_dim(position_field))
-    assert(position_field%mesh%shape%numbering%family==FAMILY_SIMPLEX)
-    assert(position_field%mesh%shape%numbering%type==ELEMENT_LAGRANGIAN)
-
-    local_coords(1:dim) = position
-    local_coords(dim+1) = 1.0
-
-    if (position_field%mesh%shape%degree==1) then
-      tmp_matrix = ele_val(position_field, ele)
-    else
-      nodes => ele_nodes(position_field, ele)
-      vertices=local_vertices(position_field%mesh%shape%numbering)
-      tmp_matrix = node_val(position_field, nodes(vertices) )
-    end if
-    
-    matrix(1:dim, :) = tmp_matrix
-    matrix(dim+1, :) = 1.0
-
-    call solve(matrix, local_coords)
-    
-  end function local_coords_interpolation
-
   function local_coords_interpolation_all(position_field, ele, position) result(local_coords)
     !!< Given a position field, this returns the local coordinates of a number
     !!< of positions which respect to element "ele".
@@ -3388,238 +3344,95 @@ contains
   function eval_field_scalar(ele, s_field, local_coord) result(val)
     !!< Evaluate the scalar field s_field at element local coordinate
     !!< local_coord of element ele.
-  
+
     integer, intent(in) :: ele
     type(scalar_field), intent(in) :: s_field
     real, dimension(:), intent(in) :: local_coord
-    
     real :: val
-    
-    integer :: i
-    real, dimension(ele_loc(s_field, ele)) :: n
-    type(element_type), pointer :: shape
-    
-    shape => ele_shape(s_field, ele)
-    
-    select case(shape%degree)
-      case(0)
-        n = 1.0
-      case(1)
-        if((ele_numbering_family(s_field, ele) == FAMILY_SIMPLEX).and.&
-           (ele_num_type(s_field, ele) == ELEMENT_LAGRANGIAN)) then
-          n = local_coord
-        else
-          do i = 1, size(n)
-            n(i) = eval_shape(shape, i, local_coord)
-          end do   
-        end if
-      case default
-        do i = 1, size(n)
-          n(i) = eval_shape(shape, i, local_coord)
-        end do    
-    end select
-      
-    val = dot_product(ele_val(s_field, ele), n)
-      
+
+    val = dot_product(ele_val(s_field, ele), &
+      eval_shape(ele_shape(s_field, ele), local_coord))
+
   end function eval_field_scalar
-  
+
   function eval_field_vector(ele, v_field, local_coord) result(val)
     !!< Evaluate the vector field v_field at element local coordinate
     !!< local_coord of element ele.
-  
+
     integer, intent(in) :: ele
     type(vector_field), intent(in) :: v_field
     real, dimension(:), intent(in) :: local_coord
-    
     real, dimension(v_field%dim) :: val
-    
-    integer :: i
-    real, dimension(ele_loc(v_field, ele)) :: n
-    type(element_type), pointer :: shape
-    
-    shape => ele_shape(v_field, ele)
-    
-    select case(shape%degree)
-      case(0)
-        n = 1.0
-      case(1)
-        if((ele_numbering_family(v_field, ele) == FAMILY_SIMPLEX).and.&
-           (ele_num_type(v_field, ele) == ELEMENT_LAGRANGIAN)) then
-          n = local_coord
-        else
-          do i = 1, size(n)
-            n(i) = eval_shape(shape, i, local_coord)
-          end do   
-        end if
-      case default
-        do i = 1, size(n)
-          n(i) = eval_shape(shape, i, local_coord)
-        end do    
-    end select
-      
-    do i = 1, size(val)
-      val(i) = dot_product(ele_val(v_field, i, ele), n)
-    end do
-      
+
+    val = matmul(ele_val(v_field, ele), &
+      eval_shape(ele_shape(v_field, ele), local_coord))
+
   end function eval_field_vector
-  
+
   function eval_field_tensor(ele, t_field, local_coord) result(val)
     !!< Evaluate the tensor field t_field at element local coordinate
     !!< local_coord of element ele.
-  
+
     integer, intent(in) :: ele
     type(tensor_field), intent(in) :: t_field
     real, dimension(:), intent(in) :: local_coord
-    
     real, dimension(t_field%dim(1), t_field%dim(2)) :: val
-    
-    integer :: i, j
+
+    integer :: i
+    real, dimension(t_field%dim(1), t_field%dim(2), ele_loc(t_field, ele)) :: ele_values
     real, dimension(ele_loc(t_field, ele)) :: n
-    type(element_type), pointer :: shape
-    
-    shape => ele_shape(t_field, ele)
-    
-    select case(shape%degree)
-      case(0)
-        n = 1.0
-      case(1)
-        if((ele_numbering_family(t_field, ele) == FAMILY_SIMPLEX).and.&
-           (ele_num_type(t_field, ele) == ELEMENT_LAGRANGIAN)) then
-          n = local_coord
-        else
-          do i = 1, size(n)
-            n(i) = eval_shape(shape, i, local_coord)
-          end do   
-        end if
-      case default
-        do i = 1, size(n)
-          n(i) = eval_shape(shape, i, local_coord)
-        end do    
-    end select
-      
-    do i = 1, size(val, 1)
-      do j = 1, size(val, 2)
-        val(i, j) = dot_product(ele_val(t_field, i, j, ele), n)
-      end do
+
+    n = eval_shape(ele_shape(t_field, ele), local_coord)
+    ele_values = ele_val(t_field, ele)
+
+    do i=1, size(val, 1)
+      val(i,:) = matmul(ele_values(i, :, :), n)
     end do
-      
+
   end function eval_field_tensor
 
   function face_eval_field_scalar(face, s_field, local_coord) result(val)
     !!< Evaluate the scalar field s_field at face local coordinate
     !!< local_coord of the facet face.
-  
+
     integer, intent(in) :: face
     type(scalar_field), intent(in) :: s_field
     real, dimension(:), intent(in) :: local_coord
-    
     real :: val
-    
-    integer :: i
-    real, dimension(face_loc(s_field, face)) :: n
-    type(element_type), pointer :: shape
-    
-    shape => face_shape(s_field, face)
-    
-    select case(shape%degree)
-      case(0)
-        n = 1.0
-      case(1)
-        if((ele_numbering_family(shape) == FAMILY_SIMPLEX).and.&
-           ((ele_num_type(shape) == ELEMENT_LAGRANGIAN).or.(ele_num_type(shape) == ELEMENT_BUBBLE))) then
-          n = local_coord
-        else
-          do i = 1, size(n)
-            n(i) = eval_shape(shape, i, local_coord)
-          end do   
-        end if
-      case default
-        do i = 1, size(n)
-          n(i) = eval_shape(shape, i, local_coord)
-        end do    
-    end select
-      
-    val = dot_product(face_val(s_field, face), n)
-      
+
+    val = dot_product(face_val(s_field, face), &
+      eval_shape(face_shape(s_field, face), local_coord))
+
   end function face_eval_field_scalar
-  
+
   function face_eval_field_vector(face, v_field, local_coord) result(val)
     !!< Evaluate the vector field v_field at face local coordinate
     !!< local_coord of facet face.
-  
+
     integer, intent(in) :: face
     type(vector_field), intent(in) :: v_field
     real, dimension(:), intent(in) :: local_coord
-    
     real, dimension(v_field%dim) :: val
-    
-    integer :: i
-    real, dimension(face_loc(v_field, face)) :: n
-    type(element_type), pointer :: shape
-    
-    shape => face_shape(v_field, face)
-    
-    select case(shape%degree)
-      case(0)
-        n = 1.0
-      case(1)
-        if((ele_numbering_family(shape) == FAMILY_SIMPLEX).and.&
-           ((ele_num_type(shape) == ELEMENT_LAGRANGIAN).or.(ele_num_type(shape) == ELEMENT_BUBBLE))) then
-          n = local_coord
-        else
-          do i = 1, size(n)
-            n(i) = eval_shape(shape, i, local_coord)
-          end do   
-        end if
-      case default
-        do i = 1, size(n)
-          n(i) = eval_shape(shape, i, local_coord)
-        end do    
-    end select
-      
-    do i = 1, size(val)
-      val(i) = dot_product(face_val(v_field, i, face), n)
-    end do
-      
+
+    val = matmul(face_val(v_field, face), &
+      eval_shape(face_shape(v_field, face), local_coord))
+
   end function face_eval_field_vector
-  
+
   function face_eval_field_vector_dim(face, v_field, dim, local_coord) result(val)
     !!< Evaluate the vector field v_field at face local coordinate
     !!< local_coord of facet face.
-  
+
     integer, intent(in) :: face
     type(vector_field), intent(in) :: v_field
     integer, intent(in) :: dim
     real, dimension(:), intent(in) :: local_coord
-    
     real :: val
-    
-    integer :: i
-    real, dimension(face_loc(v_field, face)) :: n
-    type(element_type), pointer :: shape
-    
-    shape => face_shape(v_field, face)
-    
-    select case(shape%degree)
-      case(0)
-        n = 1.0
-      case(1)
-        if((ele_numbering_family(shape) == FAMILY_SIMPLEX).and.&
-           ((ele_num_type(shape) == ELEMENT_LAGRANGIAN).or.(ele_num_type(shape) == ELEMENT_BUBBLE))) then
-          n = local_coord
-        else
-          do i = 1, size(n)
-            n(i) = eval_shape(shape, i, local_coord)
-          end do   
-        end if
-      case default
-        do i = 1, size(n)
-          n(i) = eval_shape(shape, i, local_coord)
-        end do    
-    end select
-      
-    val = dot_product(face_val(v_field, dim, face), n)
-      
+
+    val = dot_product(face_val(v_field, dim, face), &
+      eval_shape(face_shape(v_field, face), local_coord))
+
+
   end function face_eval_field_vector_dim
   
   function face_eval_field_tensor(face, t_field, local_coord) result(val)
@@ -3629,78 +3442,35 @@ contains
     integer, intent(in) :: face
     type(tensor_field), intent(in) :: t_field
     real, dimension(:), intent(in) :: local_coord
-    
     real, dimension(t_field%dim(1), t_field%dim(2)) :: val
-    
-    integer :: i, j
+
+    integer :: i
+    real, dimension(t_field%dim(1), t_field%dim(2), face_loc(t_field, face)) :: face_values
     real, dimension(face_loc(t_field, face)) :: n
-    type(element_type), pointer :: shape
-    
-    shape => face_shape(t_field, face)
-    
-    select case(shape%degree)
-      case(0)
-        n = 1.0
-      case(1)
-        if((ele_numbering_family(shape) == FAMILY_SIMPLEX).and.&
-           ((ele_num_type(shape) == ELEMENT_LAGRANGIAN).or.(ele_num_type(shape) == ELEMENT_BUBBLE))) then
-          n = local_coord
-        else
-          do i = 1, size(n)
-            n(i) = eval_shape(shape, i, local_coord)
-          end do   
-        end if
-      case default
-        do i = 1, size(n)
-          n(i) = eval_shape(shape, i, local_coord)
-        end do    
-    end select
-      
-    do i = 1, size(val, 1)
-      do j = 1, size(val, 2)
-        val(i, j) = dot_product(face_val(t_field, i, j, face), n)
-      end do
+
+    n = eval_shape(face_shape(t_field, face), local_coord)
+    face_values = face_val(t_field, face)
+
+    do i=1, size(val, 1)
+      val(i,:) = matmul(face_values(i, :, :), n)
     end do
-      
+
+
   end function face_eval_field_tensor
 
   function face_eval_field_tensor_dim_dim(face, t_field, dim1, dim2, local_coord) result(val)
     !!< Evaluate the tensor field t_field at face local coordinate
     !!< local_coord of facet face.
-  
+
     integer, intent(in) :: face
     type(tensor_field), intent(in) :: t_field
     integer, intent(in) :: dim1, dim2
     real, dimension(:), intent(in) :: local_coord
-    
     real :: val
-    
-    integer :: i, j
-    real, dimension(face_loc(t_field, face)) :: n
-    type(element_type), pointer :: shape
-    
-    shape => face_shape(t_field, face)
-    
-    select case(shape%degree)
-      case(0)
-        n = 1.0
-      case(1)
-        if((ele_numbering_family(shape) == FAMILY_SIMPLEX).and.&
-           ((ele_num_type(shape) == ELEMENT_LAGRANGIAN).or.(ele_num_type(shape) == ELEMENT_BUBBLE))) then
-          n = local_coord
-        else
-          do i = 1, size(n)
-            n(i) = eval_shape(shape, i, local_coord)
-          end do   
-        end if
-      case default
-        do i = 1, size(n)
-          n(i) = eval_shape(shape, i, local_coord)
-        end do    
-    end select
-      
-    val = dot_product(face_val(t_field, dim1, dim2, face), n)
-      
+
+    val = dot_product(face_val(t_field, dim1, dim2, face), &
+      eval_shape(face_shape(t_field, face), local_coord))
+
   end function face_eval_field_tensor_dim_dim
 
   subroutine getsndgln(mesh, sndgln)
@@ -4085,33 +3855,61 @@ contains
     face_l_vertices = local_vertices(face_shape(mesh, face))  ! e.g. (1, 3, 6)
 
     ! get the element local node numbers of the nodes on the face
-    face_l_nodes => face_local_nodes(mesh, face)  ! e.g. (5, 2, 1, 6, 3, 7)
+    face_l_nodes => face_local_nodes(mesh, face)  ! e.g. (3, 8, 10, 2, 7, 1)
 
     ! work out the element local node numbers of the face vertices
-    element_face_local_vertices = face_l_nodes(face_l_vertices) ! e.g. (5, 1, 7)
+    element_face_local_vertices = face_l_nodes(face_l_vertices) ! e.g. (3, 10, 1)
 
     ! get the vertex numbers of the element (indexes ino the element node numbering)
-    element_l_vertices = local_vertices(mesh%shape)  ! e.g. (1, 5, 7, 10)
+    element_l_vertices = local_vertices(mesh%shape)  ! e.g. (1, 3, 6, 10)
 
-    ! work out which vertices in volume element are vertices in facet
-    ! and set up vertices in correct order on element
-    ! e.g. (l_face_number, 2, 1, 3) = (4, 2, 1, 3)
+    ! now we want to look up the facet vertices (specified in ele node numbers),
+    !  i.e. element_face_local_vertices, in element_l_vertices
+    ! this gives us the vertices of the facet specified as element vertex numbers
+
+    ! first we create a map form element nodes to element vertices
     node2vertex = 0
     do i = 1, size(element_l_vertices)
       node2vertex(element_l_vertices(i)) = i
     end do
+    ! then we map element_face_local_vertices using this map
+
+    ! the first vertex we want however is the vertex opposite the facet
     reordered_element_vertices(1) = l_face_number
+    ! followed by the facet vertices
     do i = 1, size(element_face_local_vertices)
       j = node2vertex(element_face_local_vertices(i))
       assert(j>0)
       reordered_element_vertices(i+1) = j
     end do
+
+    ! Note that we have worked out the correct vertex order, independent of the
+    ! provided element shape (i.e. we have only used mesh and mesh%shape so far)
+    ! Only now do we use the provided element, and ask for a local numbering that is
+    ! consistent with the reordered vertices
     reordered_element_nodes = ele_local_num(reordered_element_vertices, element%numbering)
 
-  end function
+  end function reorder_element_nodes_face
 
   function face_n_s(element, mesh, face) result(n_s)
-    !!< Reorders the element shape function evaluated at the face to match the face node ordering
+    !!< Reorders the element shape functions of element%n_s to match that of element (presumed adjacent to face in mesh)
+    !!<
+    !!< The precomputed element%n_s = N_i(xi_g), where
+    !!<
+    !!<   N_i is the ith shape function of the element behind the facet
+    !!<   xi_g is the (vector of) local coordinates of the g-th gauss point on the facet
+    !!<
+    !!< They have been calculated based on the assumption that xi^1 is the local coordinate that is 0 at the facet and xi^2 to xi^(dim+1)
+    !!< are the local coordinates of the facet. The node numbering i of the element is based on a vertex ordering such that vertex 1 is
+    !!< the vertex opposite the facet, and vertices 2:dim+1 are in the same order as the vertices of the facet.
+    !!<
+    !!< An arbitrary element in the mesh adjacent to a facet will not satisfy these assumptions but will have a different ordering j
+    !!< Let j(i) be the map from the idealised node numbering i to the actual node numbering j, i.e. j(1) is the node opposite the facet,
+    !!< etc. This map is given by reorder_element_nodes_face()
+    !!< Let M_j be a reordering of the basis functions N_i such that M_j(i)=N_j
+    !!< We want to compute T(xi_g) = \sum_j T_j M_j(xi_g) = \sum_i T_j(i) N_i(xi_g)
+    !!< Therefore face_n_s(j,g,k) returns M_j(xi_g) so that we do not have to reorder T_j.  Instead we have applied an inverse
+    !!< reordering on the first index of n_s.
     !!<
     !!< Note that the element supplied does not need to be from the mesh so long as they are topologically/geometrically the same.
     !!< e.g. element can be p2 while mesh can be p1.
@@ -4130,10 +3928,29 @@ contains
       n_s(j,:) = element%n_s(i,:)
     end do
 
-  end function
+  end function face_n_s
 
   function face_dn_s(element, mesh, face) result(dn_s)
-    !!< Reorders the element shape function derivative evaluated at the face to match the face node ordering
+    !!< Reorders the element shape functions (their derivatives) of element%dn_s to match that of element (presumed adjacent to face in mesh)
+    !!<
+    !!< The precomputed element%dn_s = dN_i/dxi^k (xi_g), where
+    !!<
+    !!<   N_i is the ith shape function of the element behind the facet
+    !!<   xi^k is the kth local coordinate of the element
+    !!<   xi_g is the (vector of) local coordinates of the g-th gauss point on the facet
+    !!<
+    !!< They have been calculated based on the assumption that xi_1 is the local coordinate that is 0 at the facet and xi^2 to xi^(dim+1)
+    !!< are the local coordinates of the facet. The xi_g are based on the same local coordinates. The node numbering i of the element
+    !!< is based on a vertex ordering such that vertex 1 is the vertex opposite the facet, and vertices 2:dim+1 are in the same order
+    !!< as the vertices of the facet.
+    !!<
+    !!< An arbitrary element in the mesh adjacent to a facet will not satisfy these assumptions but will have a different ordering j
+    !!< Let j(i) be the map from the idealised node numbering i to the actual node numbering j, i.e. j(1) is the node opposite the facet,
+    !!< etc. This map is given by reorder_element_nodes_face()
+    !!< Let M_j be a reordering of the basis functions N_i such that M_j(i)=N_j
+    !!< We want to compute dT/dxi^k (xi_g) = \sum_j T_j dM_j/dxi^k (xi_g) = \sum_i T_j(i) dN_i/dxi^k (xi_g)
+    !!< Therefore face_dn_s(j,g,k) returns dM_j/dxi^k (xi_g) so that we do not have to reorder T_j.  Instead we have applied an inverse
+    !!< reordering on the first index of dn_s.
     !!<
     !!< Note that the element supplied does not need to be from the mesh so long as they are topologically/geometrically the same.
     !!< e.g. element can be p2 while mesh can be p1.
@@ -4152,7 +3969,7 @@ contains
       dn_s(j,:,:) = element%dn_s(i,:,:)
     end do
 
-  end function
+  end function face_dn_s
 
   subroutine write_minmax_scalar(sfield, field_expression)
     ! the scalar field to print its min and max of

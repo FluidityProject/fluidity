@@ -27,9 +27,7 @@
 */
 #include "confdefs.h"
 
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
+#include "flmpi.h"
 
 #include "fmangle.h"
 #include "c++debug.h"
@@ -84,7 +82,7 @@ void FLAbort(const char *ErrorStr, const char *FromFile, int LineNumber){
   
   cerr<<"Error is terminal.";
 #ifdef HAVE_MPI
-  MPI::COMM_WORLD.Abort(MPI::ERR_OTHER);
+  MPI_Abort(MPI_COMM_WORLD, MPI_ERR_OTHER);
 #endif
 }
 
@@ -95,7 +93,7 @@ void FLExit(const char *ErrorStr, const char *FromFile, int LineNumber){
 #endif
       <<"Error message: "<<ErrorStr<<endl;
 #ifdef HAVE_MPI
-  MPI::COMM_WORLD.Abort(MPI::ERR_OTHER);
+  MPI_Abort(MPI_COMM_WORLD, MPI_ERR_OTHER);
 #endif
 }
 

@@ -39,35 +39,34 @@
     <detectors>
       <static_detector name="MidPoint">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.5 0.5</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.5 0.5</real_value>
         </location>
       </static_detector>
       <static_detector name="LeftBoundaryMidHeight">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.0 0.5</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.0 0.5</real_value>
         </location>
       </static_detector>
       <static_detector name="TopLeftCorner">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.0 1.0</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.0 1.0</real_value>
         </location>
       </static_detector>
       <static_detector name="TopRightCorner">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">1.0 1.0</real_value>
+          <real_value rank="1" dim1="dim" shape="2">1.0 1.0</real_value>
         </location>
       </static_detector>
       <static_detector name="BottomLeftCorner">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
         </location>
       </static_detector>
       <static_detector name="BottomRightCorner">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">1.0 0.0</real_value>
+          <real_value rank="1" dim1="dim" shape="2">1.0 0.0</real_value>
         </location>
       </static_detector>
-      <fail_outside_domain/>
     </detectors>
   </io>
   <timestepping>
@@ -109,7 +108,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">0.0 -1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="2">0.0 -1.0</real_value>
             </constant>
           </value>
           <output>
@@ -121,6 +120,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -144,7 +146,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <spatial_discretisation>
@@ -200,13 +202,16 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <equation name="Boussinesq"/>
@@ -254,12 +259,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="FreeSlipX">
           <surface_ids>
-            <integer_value shape="2" rank="1">1 2</integer_value>
+            <integer_value rank="1" shape="2">1 2</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -273,7 +278,7 @@
         </boundary_conditions>
         <boundary_conditions name="FreeSlipY">
           <surface_ids>
-            <integer_value shape="2" rank="1">3 4</integer_value>
+            <integer_value rank="1" shape="2">3 4</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -295,6 +300,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -313,13 +321,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -366,13 +377,13 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
 	return 1.0 - x[1]</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="HotBase">
           <surface_ids>
-            <integer_value shape="1" rank="1">4</integer_value>
+            <integer_value rank="1" shape="1">4</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -382,7 +393,7 @@
         </boundary_conditions>
         <boundary_conditions name="ColdTop">
           <surface_ids>
-            <integer_value shape="1" rank="1">3</integer_value>
+            <integer_value rank="1" shape="1">3</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -392,7 +403,7 @@
         </boundary_conditions>
         <boundary_conditions name="Insulating">
           <surface_ids>
-            <integer_value shape="2" rank="1">1 2</integer_value>
+            <integer_value rank="1" shape="2">1 2</integer_value>
           </surface_ids>
           <type name="neumann">
             <constant>
@@ -410,28 +421,31 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
         <stat>
-          <surface_integral type="gradient_normal" name="LeftH">
+          <surface_integral name="LeftH" type="gradient_normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">1</integer_value>
+              <integer_value rank="1" shape="1">1</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="gradient_normal" name="RightH">
+          <surface_integral name="RightH" type="gradient_normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">2</integer_value>
+              <integer_value rank="1" shape="1">2</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="gradient_normal" name="TopH">
+          <surface_integral name="TopH" type="gradient_normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">3</integer_value>
+              <integer_value rank="1" shape="1">3</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="gradient_normal" name="BottomH">
+          <surface_integral name="BottomH" type="gradient_normal">
             <surface_ids>
-              <integer_value shape="1" rank="1">4</integer_value>
+              <integer_value rank="1" shape="1">4</integer_value>
             </surface_ids>
           </surface_integral>
         </stat>
@@ -441,13 +455,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="ControlVolumeCFLNumber" rank="0">
+    <scalar_field rank="0" name="ControlVolumeCFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="CoordinateMesh"/>
@@ -459,14 +476,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="FiniteElementDivergence" rank="0">
+    <scalar_field rank="0" name="FiniteElementDivergence">
       <diagnostic field_name="Velocity">
-        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
+        <algorithm name="Internal" material_phase_support="multiple" legacy="true"/>
         <mesh name="CoordinateMesh"/>
         <solver>
           <iterative_method name="cg"/>
@@ -490,14 +510,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="TemperatureGradient" rank="1">
+    <vector_field rank="1" name="TemperatureGradient">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="grad" source_field_name="Temperature"/>
+        <algorithm name="grad" material_phase_support="single" source_field_name="Temperature" source_field_type="scalar"/>
         <mesh name="CoordinateMesh"/>
         <output/>
         <stat>
@@ -509,6 +532,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #    This file is part of Diamond.
 #
 #    Diamond is free software: you can redistribute it and/or modify
@@ -15,24 +13,29 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
 
-import gtk
+from gi.repository import Gtk as gtk
+from gi.repository import Gdk as gdk
+from gi.repository import Pango as pango
 import re
-import TextBufferMarkup
 import webbrowser
 
 class DescriptionWidget(gtk.Frame):
+
+  fontsize = 12
+
   def __init__(self):
     gtk.Frame.__init__(self)
 
     scrolledWindow = gtk.ScrolledWindow()
-    scrolledWindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+    scrolledWindow.set_policy(gtk.PolicyType.AUTOMATIC, gtk.PolicyType.AUTOMATIC)
 
     textView = self.textView = gtk.TextView()
     textView.set_editable(False)
-    textView.set_wrap_mode(gtk.WRAP_WORD)
+    textView.set_wrap_mode(gtk.WrapMode.WORD)
     textView.set_cursor_visible(False)
+    textView.modify_font(pango.FontDescription(str(self.fontsize)))
 
-    textView.set_buffer(TextBufferMarkup.PangoBuffer())
+    textView.set_buffer(gtk.TextBuffer())
     textView.connect("button-release-event", self.mouse_button_release)
     textView.connect("motion-notify-event", self.mouse_over)
 
@@ -41,7 +44,7 @@ class DescriptionWidget(gtk.Frame):
     label = gtk.Label()
     label.set_markup("<b>Description</b>")
 
-    self.set_shadow_type(gtk.SHADOW_NONE)
+    self.set_shadow_type(gtk.ShadowType.NONE)
     self.set_label_widget(label)
     self.add(scrolledWindow)
 
@@ -79,7 +82,9 @@ class DescriptionWidget(gtk.Frame):
       new_text.append(text[index:])
       text = ''.join(new_text)
 
-    self.textView.get_buffer().set_text(text)
+    textbuffer = self.textView.get_buffer()
+    textbuffer.set_text("")
+    textbuffer.insert_markup(textbuffer.get_end_iter(), text, -1)
 
     return
 
@@ -146,8 +151,13 @@ class DescriptionWidget(gtk.Frame):
     if self.text is None:
       return None
     
-    buffer_pos = self.textView.window_to_buffer_coords(gtk.TEXT_WINDOW_TEXT, x, y)
-    char_offset = self.textView.get_iter_at_location(buffer_pos[0], buffer_pos[1]).get_offset()
+    buffer_pos = self.textView.window_to_buffer_coords(gtk.TextWindowType.TEXT, x, y)
+    result = self.textView.get_iter_at_location(buffer_pos[0], buffer_pos[1])
+    if isinstance(result, tuple):
+      textiter = result[1]
+    else:
+      textiter = result
+    char_offset = textiter.get_offset()
 
     for bounds in self.link_bounds:
       if char_offset >= bounds[0] and char_offset <= bounds[1]:
@@ -164,9 +174,9 @@ class DescriptionWidget(gtk.Frame):
     """
 
     if self.get_hyperlink(int(event.x), int(event.y)) is not None:
-      self.textView.get_window(gtk.TEXT_WINDOW_TEXT).set_cursor(gtk.gdk.Cursor(gtk.gdk.HAND2))
+      self.textView.get_window(gtk.TextWindowType.TEXT).set_cursor(gdk.Cursor(gdk.CursorType.HAND2))
     else:
-      self.textView.get_window(gtk.TEXT_WINDOW_TEXT).set_cursor(gtk.gdk.Cursor(gtk.gdk.XTERM))
+      self.textView.get_window(gtk.TextWindowType.TEXT).set_cursor(gdk.Cursor(gdk.CursorType.XTERM))
 
     return
 
@@ -190,3 +200,12 @@ class DescriptionWidget(gtk.Frame):
       webbrowser.open(hyperlink)
 
     return
+
+  def increase_font(self):
+    self.fontsize = self.fontsize + 2
+    self.textView.modify_font(pango.FontDescription(str(self.fontsize)))
+
+  def decrease_font(self):
+    if self.fontsize > 0:
+      self.fontsize = self.fontsize - 2
+      self.textView.modify_font(pango.FontDescription(str(self.fontsize)))

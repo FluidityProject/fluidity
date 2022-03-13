@@ -45,10 +45,6 @@
 
 #include "vtk.h"
 
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
-
 /** This class is used to: identify the boundary of the domain;
     uniquely label connected co-linear patches of surface elements
     (these can be used to prevent adaptivity coarsening these patches

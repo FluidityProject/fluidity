@@ -238,7 +238,7 @@ checkpoints may be overwritten.</a:documentation>
         </element>
         <optional>
           <element name="detectors">
-            <a:documentation>Specification of detectors. Note that when running in parallel the detector output is in binary format even if binary_output is not enabled. When running in serial, although the output is in principle still generated in ascii format if binary_output is not enabled, it is not certain that it is working well. Hence, it is recommended to enable binary_output and work with binary files.</a:documentation>
+            <a:documentation>Specification of detectors. Note that when running in parallel the detector output is in binary format even if binary_output is not enabled. When running in serial, although the output is in principle still generated in ascii format if binary_output is not enabled, it is not certain that it is working well. Hence, it is recommended to enable binary_output and work with binary files. </a:documentation>
             <zeroOrMore>
               <choice>
                 <element name="static_detector">
@@ -246,47 +246,9 @@ checkpoints may be overwritten.</a:documentation>
                   <attribute name="name">
                     <data type="string"/>
                   </attribute>
-                  <choice>
-                    <element name="location">
-                      <ref name="real_dim_vector"/>
-                    </element>
-                    <element name="from_checkpoint_file">
-                      <a:documentation>File containing the detectors positions in binary form</a:documentation>
-                      <attribute name="file_name">
-                        <data type="string"/>
-                      </attribute>
-                      <element name="format">
-                        <a:documentation>The format of the input file containing field data.</a:documentation>
-                        <element name="string_value">
-                          <value>binary</value>
-                        </element>
-                      </element>
-                    </element>
-                  </choice>
-                </element>
-                <element name="lagrangian_detector">
-                  <a:documentation>A single lagrangian detector</a:documentation>
-                  <attribute name="name">
-                    <data type="string"/>
-                  </attribute>
-                  <choice>
-                    <element name="location">
-                      <a:documentation>This is the initial location of a detector that moves with the fluid velocity.</a:documentation>
-                      <ref name="real_dim_vector"/>
-                    </element>
-                    <element name="from_checkpoint_file">
-                      <a:documentation>File containing the detectors positions in binary form</a:documentation>
-                      <attribute name="file_name">
-                        <data type="string"/>
-                      </attribute>
-                      <element name="format">
-                        <a:documentation>The format of the input file containing field data.</a:documentation>
-                        <element name="string_value">
-                          <value>binary</value>
-                        </element>
-                      </element>
-                    </element>
-                  </choice>
+                  <element name="location">
+                    <ref name="real_dim_vector"/>
+                  </element>
                 </element>
                 <element name="detector_array">
                   <a:documentation>Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.</a:documentation>
@@ -297,16 +259,10 @@ checkpoints may be overwritten.</a:documentation>
                     <a:documentation>The number of detectors prescribed by the python function.</a:documentation>
                     <ref name="integer"/>
                   </element>
-                  <choice>
-                    <element name="static">
-                      <a:documentation>Create fixed detectors.</a:documentation>
-                      <empty/>
-                    </element>
-                    <element name="lagrangian">
-                      <a:documentation>Create detectors which move with the fluid velocity.</a:documentation>
-                      <empty/>
-                    </element>
-                  </choice>
+                  <element name="static">
+                    <a:documentation>Create fixed detectors.</a:documentation>
+                    <empty/>
+                  </element>
                   <choice>
                     <element name="python">
                       <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
@@ -334,46 +290,15 @@ The t argument is for future use only - currently detector locations are only se
                         </element>
                       </element>
                     </element>
-                    <element name="from_checkpoint_file">
-                      <a:documentation>File containing the detectors positions in binary form</a:documentation>
-                      <attribute name="file_name">
-                        <data type="string"/>
-                      </attribute>
-                      <element name="format">
-                        <a:documentation>The format of the input file containing field data.</a:documentation>
-                        <element name="string_value">
-                          <value>binary</value>
-                        </element>
-                      </element>
-                    </element>
                   </choice>
                 </element>
               </choice>
             </zeroOrMore>
-            <choice>
-              <element name="fail_outside_domain">
-                <a:documentation>By default Fluidity will fail if a detector has left the domain.</a:documentation>
-                <empty/>
-              </element>
-              <element name="write_nan_outside_domain">
-                <a:documentation>Enable to write NaN values to detector output if a detector has left the domain.</a:documentation>
-                <empty/>
-              </element>
-            </choice>
-            <optional>
-              <element name="binary_output">
-                <a:documentation>Enable to write detector output in binary format</a:documentation>
-                <ref name="comment"/>
-              </element>
-            </optional>
             <optional>
               <element name="move_with_mesh">
                 <a:documentation>Enable to let detectors move with the domain if mesh_movement is enabled.</a:documentation>
                 <empty/>
               </element>
-            </optional>
-            <optional>
-              <ref name="lagrangian_timestepping"/>
             </optional>
           </element>
         </optional>
@@ -400,6 +325,319 @@ NOTE: Requires -v2</a:documentation>
           </element>
         </optional>
       </element>
+      <optional>
+        <element name="particles">
+          <a:documentation>Options for particles, Lagrangian particles which move with a specified velocity field.
+In addition, particles can carry attributes, being properties of the particles. These attributes
+can be constant, or based on a python expression that depends on other attribute values, at the end
+of the previous timestep, or field values interpolated at the particle location. Attributes values
+can be interpolated back onto the (Eulerian) mesh through the diagnostic algorithm from_particles.
+Options can also be set to spawn and delete particles when the number of particles within a control
+volume either exceeds or falls below a specified threshold value.</a:documentation>
+          <zeroOrMore>
+            <oneOrMore>
+              <element name="particle_group">
+                <a:documentation>Particle groups containing multiple particle arrays or subgroups. The particle group specifies
+particle IO options, as well as common attributes carried per particle subgroup for diagnostic
+calculations and spawning and deleting options.</a:documentation>
+                <attribute name="name">
+                  <data type="string"/>
+                </attribute>
+                <optional>
+                  <element name="particle_io">
+                    <optional>
+                      <choice>
+                        <element name="dump_period">
+                          <a:documentation>Period between dumps in time units.</a:documentation>
+                          <choice>
+                            <element name="constant">
+                              <ref name="real"/>
+                            </element>
+                            <element name="python">
+                              <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+</a:documentation>
+                              <ref name="python_code"/>
+                            </element>
+                          </choice>
+                        </element>
+                        <element name="dump_period_in_timesteps">
+                          <a:documentation>Dump period, in timesteps.</a:documentation>
+                          <choice>
+                            <element name="constant">
+                              <ref name="integer"/>
+                            </element>
+                            <element name="python">
+                              <a:documentation>Python function prescribing integer input. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+</a:documentation>
+                              <ref name="python_code"/>
+                            </element>
+                          </choice>
+                        </element>
+                      </choice>
+                    </optional>
+                    <optional>
+                      <!-- every CPUDUM seconds write results to disc. -->
+                      <element name="cpu_dump_period">
+                        <a:documentation>This is usually disabled.</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="wall_time_dump_period">
+                        <a:documentation>The period between dumps in walltime seconds. This is usually disabled.</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                    </optional>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="particle_spawning">
+                    <a:documentation>Options for spawning and deleting particles based on the minimum and maximum limits of
+particles per control volume. Also contains options for the location of spawned particles,
+the calculation of their attribute values, and spawning caps per particle subgroup.
+Defined per particle_group.</a:documentation>
+                    <ref name="mesh_choice">
+                      <a:documentation>Set the mesh which will be used for particle spawning. Currently only works for a P1CV mesh!</a:documentation>
+                    </ref>
+                    <element name="min_cv_threshhold">
+                      <a:documentation>Minimum threshold number of particles per control volume.</a:documentation>
+                      <ref name="integer"/>
+                    </element>
+                    <element name="max_cv_threshhold">
+                      <a:documentation>Maximum threshold number of particles per control volume (recommended to be at least
+four times the minimum threshold).</a:documentation>
+                      <ref name="integer"/>
+                    </element>
+                    <element name="spawn_location">
+                      <a:documentation>Options for setting where particles will be spawned within the control volume.</a:documentation>
+                      <choice>
+                        <element name="radius">
+                          <a:documentation>Particles will spawn within a local_coordinate radius of the parent particle
+(ensuring they remain within the current element and control volume).
+Value is in local coordinates (recommended value 0.3).</a:documentation>
+                          <ref name="real"/>
+                        </element>
+                        <element name="random">
+                          <a:documentation>Particles will spawn randomly within the control volume, prioritizing
+elements with the least number of particles.</a:documentation>
+                          <empty/>
+                        </element>
+                      </choice>
+                    </element>
+                    <element name="spawn_attributes">
+                      <a:documentation>Options for setting particle attributes when spawned.</a:documentation>
+                      <choice>
+                        <element name="copy_parent_attributes">
+                          <a:documentation>Particles will spawn with attributes copied from the parent particle.
+Used when attributes are identical across the particle_subgroup.</a:documentation>
+                          <empty/>
+                        </element>
+                        <element name="calculate_average">
+                          <a:documentation>Particles will spawn with attributes calculated from the average of
+particle_attributes within the control volume.</a:documentation>
+                          <empty/>
+                        </element>
+                      </choice>
+                    </element>
+                    <optional>
+                      <element name="subgroup_spawning_caps">
+                        <a:documentation>Option to set spawning caps for specific particle subgroups if one is dominant in a control volume.
+Allows the user to define the minimum percentage a particle subgroup must make up in a control volume
+in order for spawning of that subgroup to occur (recommended value 99%).
+Only ONE subgroup can be spawned per control volume when this option is set.</a:documentation>
+                        <element name="percentage">
+                          <a:documentation>Percentage of single subgroup required to be present for only that subgroup to spawn within
+a specific control volume.</a:documentation>
+                          <ref name="real"/>
+                        </element>
+                      </element>
+                    </optional>
+                  </element>
+                </optional>
+                <oneOrMore>
+                  <element name="particle_subgroup">
+                    <a:documentation>Particle subgroup arrays specified within a particle group. Particle attribute values are specified per
+subgroup, although all subgroups should be set to carry the same attribute names if it is desired to calculate
+a diagnostic field from_particles. Subgroups can have different initial positions specified via a python
+function or from a file.</a:documentation>
+                    <attribute name="name">
+                      <data type="string"/>
+                    </attribute>
+                    <group>
+                      <element name="initial_position">
+                        <a:documentation>Initial position of particles</a:documentation>
+                        <choice>
+                          <element name="python">
+                            <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+
+The return value must have length number_of_particles.
+
+*** IMPORTANT NOTE ***
+
+The t argument is not used here. To spawn with t dependence use initialise_during_simulation option below.</a:documentation>
+                            <ref name="python_code"/>
+                          </element>
+                          <element name="from_file">
+                            <a:documentation>File containing the particle positions in binary form</a:documentation>
+                            <attribute name="file_name">
+                              <data type="string"/>
+                            </attribute>
+                            <element name="number_of_particles">
+                              <ref name="integer"/>
+                            </element>
+                          </element>
+                        </choice>
+                      </element>
+                      <optional>
+                        <element name="initialise_during_simulation">
+                          <element name="python">
+                            <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+
+The return value must have length number_of_particles.
+
+*** IMPORTANT NOTE ***
+
+This function will only be called after simulation start. To initialise starting positions use the initial_position option above.</a:documentation>
+                            <ref name="python_code"/>
+                          </element>
+                        </element>
+                      </optional>
+                    </group>
+                    <optional>
+                      <element name="attributes">
+                        <a:documentation>Define particle attributes.</a:documentation>
+                        <oneOrMore>
+                          <choice>
+                            <element name="scalar_attribute">
+                              <a:documentation>Scalar particle attribute.</a:documentation>
+                              <attribute name="name">
+                                <data type="string"/>
+                              </attribute>
+                              <optional>
+                                <element name="exclude_from_output">
+                                  <a:documentation>Do not output this attribute to file</a:documentation>
+                                  <empty/>
+                                </element>
+                              </optional>
+                              <ref name="generic_scalar_particle_attribute_choice"/>
+                            </element>
+                            <element name="scalar_attribute_array">
+                              <a:documentation>Scalar particle attribute array.</a:documentation>
+                              <attribute name="name">
+                                <data type="string"/>
+                              </attribute>
+                              <element name="dimension">
+                                <ref name="integer"/>
+                              </element>
+                              <optional>
+                                <element name="exclude_from_output">
+                                  <a:documentation>Do not output this attribute to file</a:documentation>
+                                  <empty/>
+                                </element>
+                              </optional>
+                              <ref name="generic_scalar_particle_attribute_array"/>
+                            </element>
+                            <element name="vector_attribute">
+                              <a:documentation>Vector particle attribute.</a:documentation>
+                              <attribute name="name">
+                                <data type="string"/>
+                              </attribute>
+                              <optional>
+                                <element name="exclude_from_output">
+                                  <a:documentation>Do not output this attribute to file</a:documentation>
+                                  <empty/>
+                                </element>
+                              </optional>
+                              <ref name="generic_vector_particle_attribute_choice"/>
+                            </element>
+                            <element name="vector_attribute_array">
+                              <a:documentation>Vector particle attribute array.</a:documentation>
+                              <attribute name="name">
+                                <data type="string"/>
+                              </attribute>
+                              <element name="dimension">
+                                <ref name="integer"/>
+                              </element>
+                              <optional>
+                                <element name="exclude_from_output">
+                                  <a:documentation>Do not output this attribute to file</a:documentation>
+                                  <empty/>
+                                </element>
+                              </optional>
+                              <ref name="generic_vector_particle_attribute_array"/>
+                            </element>
+                            <element name="tensor_attribute">
+                              <a:documentation>Tensor particle attribute.</a:documentation>
+                              <attribute name="name">
+                                <data type="string"/>
+                              </attribute>
+                              <optional>
+                                <element name="exclude_from_output">
+                                  <a:documentation>Do not output this attribute to file</a:documentation>
+                                  <empty/>
+                                </element>
+                              </optional>
+                              <ref name="generic_tensor_particle_attribute_choice"/>
+                            </element>
+                            <element name="tensor_attribute_array">
+                              <a:documentation>Tensor particle attribute array.</a:documentation>
+                              <attribute name="name">
+                                <data type="string"/>
+                              </attribute>
+                              <element name="dimension">
+                                <ref name="integer"/>
+                              </element>
+                              <optional>
+                                <element name="exclude_from_output">
+                                  <a:documentation>Do not output this attribute to file</a:documentation>
+                                  <empty/>
+                                </element>
+                              </optional>
+                              <ref name="generic_tensor_particle_attribute_array"/>
+                            </element>
+                          </choice>
+                        </oneOrMore>
+                      </element>
+                    </optional>
+                  </element>
+                </oneOrMore>
+              </element>
+            </oneOrMore>
+          </zeroOrMore>
+          <element name="moving_outside_domain">
+            <a:documentation>Options for particles being advected outside the computational domain.</a:documentation>
+            <element name="delete_outside_domain">
+              <a:documentation>By default Fluidity will delete particles if they move outside the domain.</a:documentation>
+              <empty/>
+            </element>
+          </element>
+          <optional>
+            <element name="move_with_mesh">
+              <a:documentation>Enable to let particles move with the domain if mesh_movement is enabled.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <ref name="lagrangian_timestepping">
+            <a:documentation>Lagrangian timestepping options for particle advection.</a:documentation>
+          </ref>
+        </element>
+      </optional>
       <element name="timestepping">
         <a:documentation>Options dealing with time discretisation</a:documentation>
         <element name="current_time">
@@ -539,7 +777,7 @@ Manual suggests 0.0</a:documentation>
                     <a:documentation>If enabled, signals model termination if a timestep less
 than or equal to the minimum_timestep is requested. The
 model will stop at the end of the timestep in order to
-allow for the latest output to be written.</a:documentation>
+allow for the latest output to be written. </a:documentation>
                     <ref name="comment"/>
                   </element>
                 </optional>
@@ -648,7 +886,7 @@ file.</a:documentation>
               <a:documentation>Subgridscale parameterisations</a:documentation>
               <optional>
                 <element name="LANS">
-                  <a:documentation>Lagrangian-averaged Navier-Stokes equations</a:documentation>
+                  <a:documentation>Lagrangian-averaged Navier-Stokes equations </a:documentation>
                   <choice>
                     <element name="alpha_isotropic_homogeneous">
                       <a:documentation>smoothing length specified as isotropic homogeneous</a:documentation>
@@ -675,13 +913,13 @@ file.</a:documentation>
               </optional>
               <optional>
                 <element name="GLS">
-                  <a:documentation>This is the generic length scale (vertical turbulence mixed layer) model,
+                  <a:documentation>This is the generic length scale (vertical turbulence mixed layer) model, 
 based here on Warner et al 2005, Ocean Modelling 8:81-113,
 which is itself based on the works of Umlauf and Burchard 2003.
 
 The GLS model encodes four individual turbulence closure models which can be chosen via 'option' below.
 
-You will need to make sure that DistanceToTop and DistanceToBottom fields (under geometry/ocean_boundaries)
+You will need to make sure that DistanceToTop and DistanceToBottom fields (under geometry/ocean_boundaries) 
 are switched on, as well as PerturbationDensity.</a:documentation>
                   <element name="option">
                     <a:documentation>The base GLS option:
@@ -774,7 +1012,7 @@ Make sure the ocean geometry settings are enabled for this option</a:documentati
 Value should be &gt;=0 and &lt; 1. 0 is no relaxation (i.e. always use the
 most up-to-date value) and 0.9 would represent making the current value
 be 0.9*old_value + 0.1*new_value. Default is 0.0
-If being used with adaptivity, ensure you switch on interpolation of the
+If being used with adaptivity, ensure you switch on interpolation of the 
 GLSVerticalDiffusivity and GLSVerticalViscosity fields. You will seg fault
 otherwise.</a:documentation>
                       <ref name="real"/>
@@ -783,7 +1021,7 @@ otherwise.</a:documentation>
                   <optional>
                     <element name="ocean_parameterisation">
                       <a:documentation>Add extra parameterisation for internal wave breaking at base of MLD. This
-is based on the same parameterisation in NEMO and smooths the TKE down
+is based on the same parameterisation in NEMO and smooths the TKE down 
 the water column based on an exponential function
 Set the two parameters: % of TKE to smooth down and length scale to do this over</a:documentation>
                       <element name="lengthscale">
@@ -817,7 +1055,7 @@ Set the two parameters: % of TKE to smooth down and length scale to do this over
                     </choice>
                   </element>
                   <element name="scalar_field">
-                    <a:documentation>Generic second equation used in GLS.
+                    <a:documentation>Generic second equation used in GLS. 
 Make sure that the Diffusivity tensor field in here is set to diagnostic/internal.</a:documentation>
                     <attribute name="rank">
                       <value>0</value>
@@ -1541,7 +1779,7 @@ affect the result</a:documentation>
                   </element>
                   <element name="max_damping_value">
                     <a:documentation>Limit the maximum value of damping function values. This helps stability when using low_Re number
-boundary conditions. If not using low_Re boundaries this will have no effect.
+boundary conditions. If not using low_Re boundaries this will have no effect. 
 Recommended value (default): 10.0</a:documentation>
                     <ref name="real"/>
                   </element>
@@ -1612,8 +1850,8 @@ Recommended value (default): 1.3.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <element name="sigma_p">
-                    <a:documentation>The Schmidt number (ratio of viscous diffusion rate to momentum diffusion rate) for
-massive scalar fields, or Prandtl number (ratio of viscous diffusion rate to thermal diffusion rate)
+                    <a:documentation>The Schmidt number (ratio of viscous diffusion rate to momentum diffusion rate) for 
+massive scalar fields, or Prandtl number (ratio of viscous diffusion rate to thermal diffusion rate) 
 for thermal fields. This is used to calculate the turbulent buoyancy term.
 Recommended value (default): 1.0.</a:documentation>
                     <ref name="real"/>
@@ -1630,9 +1868,9 @@ the k-epsilon model
                       <ref name="real"/>
                     </element>
                     <element name="source_term_implementation">
-                      <a:documentation>Each term in the k and epsilon equations can be implemented as either a
-source or as an absorbtion term. See the manual under
-'Parameterisations/Turbulent flow modelling and simulation/Reynolds Averaged Navier Stokes (RANS) Modelling/Standard k − ε Turbulence Model/Time Discretisation and Coupling'
+                      <a:documentation>Each term in the k and epsilon equations can be implemented as either a 
+source or as an absorbtion term. See the manual under 
+'Parameterisations/Turbulent flow modelling and simulation/Reynolds Averaged Navier Stokes (RANS) Modelling/Standard k − ε Turbulence Model/Time Discretisation and Coupling' 
 for more information.</a:documentation>
                       <element name="production_term">
                         <choice>
@@ -1655,10 +1893,10 @@ for more information.</a:documentation>
                     </element>
                   </element>
                   <element name="mass_terms">
-                    <a:documentation>The source terms in the k-epsilon model are calculated before the field is
+                    <a:documentation>The source terms in the k-epsilon model are calculated before the field is 
 solved. The process requires inversion of a mass matrix. This element contains
 options for defining how this is done. For P1 meshes mass lumping can be used,
-for other discretisations the mass matrix can not be easily inverted and so a
+for other discretisations the mass matrix can not be easily inverted and so a 
 solve must be carried out, with solver options specified.</a:documentation>
                     <choice>
                       <element name="lump_mass">
@@ -1673,7 +1911,7 @@ solve must be carried out, with solver options specified.</a:documentation>
                   </element>
                   <optional>
                     <element name="debugging_options">
-                      <a:documentation>produce vtu output of individual kk and eps source terms and set prescribed
+                      <a:documentation>produce vtu output of individual kk and eps source terms and set prescribed 
 source terms for k and epsilon fields (for mms tests)</a:documentation>
                       <element name="source_term_output_fields">
                         <a:documentation>output fields for each of the source terms in the k-epsilon model</a:documentation>
@@ -1827,12 +2065,12 @@ a low-Re boundary condition</a:documentation>
                       </optional>
                       <optional>
                         <element name="zero_reynolds_stress_tensor">
-                          <a:documentation>Enabling this option disables feedback from the k-epsilon model back into
-the rest of the model. Reynolds stress tensor is set to zero by zeroing
+                          <a:documentation>Enabling this option disables feedback from the k-epsilon model back into 
+the rest of the model. Reynolds stress tensor is set to zero by zeroing 
 EddyViscosity and the added source term, based on k, in the momentum equation.
 Hence, Viscosity will always stay as the BackgroundViscosity,
-diffusivities will remain at the relevant BackgroundDiffusivity, and the
-momentum equation will be as if there were no turbulence model present.
+diffusivities will remain at the relevant BackgroundDiffusivity, and the 
+momentum equation will be as if there were no turbulence model present. 
 
 ScalarEddyViscosity is still calculated as normal.</a:documentation>
                           <empty/>
@@ -1984,15 +2222,15 @@ via a compressible equation of state.</a:documentation>
               </optional>
               <optional>
                 <element name="effective_conductivity">
-                  <a:documentation>If this is the fluid phase,
-the effective conductivity is required
+                  <a:documentation>If this is the fluid phase, 
+the effective conductivity is required 
 for the inter-phase heat transfer term.</a:documentation>
                   <ref name="real"/>
                 </element>
               </optional>
               <optional>
                 <element name="specific_heat">
-                  <a:documentation>The specific heat (at constant volume) is required
+                  <a:documentation>The specific heat (at constant volume) is required 
 for the inter-phase heat transfer term.</a:documentation>
                   <ref name="real"/>
                 </element>
@@ -2041,28 +2279,28 @@ for the inter-phase heat transfer term.</a:documentation>
                     <ref name="real_dim_vector"/>
                   </element>
                   <element name="head_flux">
-                    <a:documentation>Python function val(h) takes the head h (=free_surface_point_1-free_surface_point_2) and returns the total flux through turbine (in m^3/s). A return value
+                    <a:documentation>Python function val(h) takes the head h (=free_surface_point_1-free_surface_point_2) and returns the total flux through turbine (in m^3/s). A return value 
 of 0.0 will deactivate the turbine model which results in the dirichlet conditions prescribed at these boundaries.
 A flux value will be outflow for boundary_condition_name_1 and inflow for boundary_condition_name_2 and therefore sign(h)==sign(val(h)) should be true to achieve stability.</a:documentation>
                     <ref name="python_code"/>
                   </element>
                 </element>
                 <element name="flux">
-                  <a:documentation>Implements the turbine model by using the fluxes from the discontinues galerkin model. Works only if dg is used.</a:documentation>
+                  <a:documentation>Implements the turbine model by using the fluxes from the discontinues galerkin model. Works only if dg is used. </a:documentation>
                   <choice>
                     <a:documentation>Model type</a:documentation>
                     <element name="penalty">
                       <element name="factor">
-                        <a:documentation>Python function val(h) takes the pressure jump h and returns the flux factor between 0 and 1. A return value
-of 0.0 will deactivate the turbine model which results in the dirichlet conditions prescribed at these boundaries
+                        <a:documentation>Python function val(h) takes the pressure jump h and returns the flux factor between 0 and 1. A return value 
+of 0.0 will deactivate the turbine model which results in the dirichlet conditions prescribed at these boundaries 
 while a factor of +INF represents a connected domain.</a:documentation>
                         <ref name="python_code"/>
                       </element>
                     </element>
                     <element name="dg">
                       <element name="factor">
-                        <a:documentation>Python function val(h) takes the pressure jump h and returns the flux factor between 0 and 1. A return value
-of 0.0 will deactivate the turbine model which results in the dirichlet conditions prescribed at these boundaries
+                        <a:documentation>Python function val(h) takes the pressure jump h and returns the flux factor between 0 and 1. A return value 
+of 0.0 will deactivate the turbine model which results in the dirichlet conditions prescribed at these boundaries 
 while a factor of 1 represents a connected domain.</a:documentation>
                         <ref name="python_code"/>
                       </element>
@@ -2523,14 +2761,14 @@ requires a distinct name for the options dictionary.</a:documentation>
         </optional>
       </element>
       <element name="population_balance_source_terms">
-        <a:documentation>Source terms for the population balance equation like growth,
+        <a:documentation>Source terms for the population balance equation like growth, 
 breakage, aggegation and internal dispersion</a:documentation>
         <optional>
           <element name="growth">
             <a:documentation>Growth term in the internal coordinate space</a:documentation>
             <element name="power_law_growth">
-              <a:documentation>Enter the growth degree (r) for the power-law growth G(\xi)=\xi^{r}</a:documentation>
-              <ref name="real"/>
+              <a:documentation>Enter the growth degrees (p,q) for the power-law growth G(\xi1, \xi2)=\xi1^{p}*\xi2^{q}</a:documentation>
+              <ref name="integer_vector"/>
             </element>
           </element>
         </optional>
@@ -2751,7 +2989,7 @@ be defined the the same material phase.</a:documentation>
         <element name="scalar_field">
           <a:documentation>A single sediment field with discrete characteristics
 
-Notes:
+Notes: 
 
 - a sinking velocity is required for sediment fields, this can be set for each
 sediment field under prognostic/SinkingVelocity
@@ -2762,7 +3000,7 @@ sediment field under prognostic/SinkingVelocity
 due to turbulence. This must be set on the same boundaries as the SedimentDepositon
 field
 
-- see the manual for more details on how to use this model</a:documentation>
+- see the manual for more details on how to use this model </a:documentation>
           <attribute name="rank">
             <value>0</value>
           </attribute>
@@ -2774,7 +3012,7 @@ field
             <ref name="velocity_mesh_choice"/>
             <ref name="prognostic_scalar_field"/>
             <element name="scalar_field">
-              <a:documentation>Sediment bedload diagnostic which records the sediment
+              <a:documentation>Sediment bedload diagnostic which records the sediment 
 deposited through the prescribed boundary.
 
 The units are in unit distances as a depth of sediment.
@@ -2807,7 +3045,7 @@ The units are in unit distances as a depth of sediment.
                   <ref name="prognostic_scalar_field"/>
                   <optional>
                     <element name="disable_calculation">
-                      <a:documentation>Disables calculation of change to bedload due to
+                      <a:documentation>Disables calculation of change to bedload due to 
 erosion/deposition (generally only used for mms testing):</a:documentation>
                       <empty/>
                     </element>
@@ -2816,7 +3054,7 @@ erosion/deposition (generally only used for mms testing):</a:documentation>
               </group>
             </element>
             <element name="scalar_field">
-              <a:documentation>Sediment bedload diagnostic which records the sediment
+              <a:documentation>Sediment bedload diagnostic which records the sediment 
 deposited through the prescribed boundary.
 
 The units are in unit distances/second.</a:documentation>
@@ -2867,12 +3105,12 @@ The units are in unit distances as a depth of sediment.</a:documentation>
             </optional>
             <optional>
               <element name="scalar_field">
-                <a:documentation>This is the unhindered sinking velocity of the sediment particles.
+                <a:documentation>This is the unhindered sinking velocity of the sediment particles. 
 
-With the sinking velocity field set to diagnostic, this field is used, along with the sediment
-concentration, to calculate the hindered sinking velocity of sediment particles.
+With the sinking velocity field set to diagnostic, this field is used, along with the sediment 
+concentration, to calculate the hindered sinking velocity of sediment particles. 
 
-This uses the equation developed by Richardson and Zaki [1954].
+This uses the equation developed by Richardson and Zaki [1954]. 
 
 If the 'SinkingVelocity' is not set to diagnostic, this field will not be used.
 
@@ -2893,7 +3131,7 @@ This should be on the same mesh as the associated SinkingVelocity field.</a:docu
               </element>
             </optional>
             <element name="submerged_specific_gravity">
-              <a:documentation>This is the submerged specific gravity, R, of this sediment.
+              <a:documentation>This is the submerged specific gravity, R, of this sediment. 
 It will be used with the sediment concentration in the equation
 of state, as well as in erosion algorithms.
 
@@ -2918,7 +3156,7 @@ Diameter must be specified here or under each sediment class.</a:documentation>
             <optional>
               <element name="erodability">
                 <a:documentation>Erodability of the sediment grain. A value of one means that only the
-critical shear stress is used to determine if a grain can be put into
+critical shear stress is used to determine if a grain can be put into 
 suspension. A value of zero means these grains can never be resuspended.
 Default is 1.</a:documentation>
                 <ref name="real"/>
@@ -2936,7 +3174,7 @@ criterion.</a:documentation>
         </element>
       </zeroOrMore>
       <element name="scalar_field">
-        <a:documentation>The median sediment diameter in the active layer of the bed.
+        <a:documentation>The median sediment diameter in the active layer of the bed. 
 Required for some reentrainment algorithms.</a:documentation>
         <attribute name="rank">
           <value>0</value>
@@ -2977,7 +3215,7 @@ bed. Required for some reentrainment algorithms</a:documentation>
         <element name="tensor_field">
           <a:documentation>ZeroSedimentConcentrationViscosity field:
 
-Field for the viscosity of this a fluid with zero
+Field for the viscosity of this a fluid with zero 
 concentration of sediment.
 Required if using a diagnostic viscosity
 in a sediment problem where sediment concentration
@@ -3188,6 +3426,7 @@ want this.</a:documentation>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="prognostic_detector_options"/>
+    <ref name="prognostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_prognostic_scalar_field"/>
     <ref name="interpolation_algorithm_scalar"/>
@@ -3281,7 +3520,7 @@ quadrature not the number of surface gauss points</a:documentation>
         <optional>
           <element name="controlvolume_surface_degree">
             <a:documentation>Sets the degree of quadrature on each quadrilateral
-face of the control volume.
+face of the control volume. 
 
 Defaults to 1 if
 unselected which is the same as pre-new options
@@ -3309,11 +3548,11 @@ family_grundmann_moeller allows for degree up to
       </element>
       <optional>
         <element name="disable_geometric_data_cache">
-          <a:documentation>This causes the change of variables associated with each element in
-the mesh to be stored rather than calculated every time it is used.
-This should speed up computations at a cost of some memory.
+          <a:documentation>This causes the change of variables associated with each element in 
+the mesh to be stored rather than calculated every time it is used. 
+This should speed up computations at a cost of some memory. 
 
-The cache is automatically regenerated after mesh movement or
+The cache is automatically regenerated after mesh movement or 
 adaptivity and is automatically disabled for non-linear positions fields.</a:documentation>
           <empty/>
         </element>
@@ -3396,7 +3635,7 @@ i.e. the free surface or rigid lid.</a:documentation>
     <element name="lagrangian_timestepping">
       <element name="subcycles">
         <a:documentation>Number of subdivisions of the timestep
-increase this if you are not happy with your
+increase this if you are not happy with your 
 detector trajectory accuracy, or if particles
 are jumping out of the domain a lot</a:documentation>
         <ref name="integer"/>
@@ -3463,6 +3702,7 @@ guided search particle tracking</a:documentation>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <optional>
@@ -3477,6 +3717,7 @@ guided search particle tracking</a:documentation>
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
   </define>
   <!-- Default child of diagnostic scalar field -->
   <define name="diagnostic_scalar_field_tidal_range">
@@ -3498,6 +3739,7 @@ guided search particle tracking</a:documentation>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="vector_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_vector_field"/>
     <optional>
@@ -3515,13 +3757,13 @@ guided search particle tracking</a:documentation>
       <a:documentation>Three options for calculation of bed shear stress are available:</a:documentation>
       <choice>
         <element name="drag_coefficient">
-          <a:documentation>density*drag_coeff*|u|*u
+          <a:documentation>density*drag_coeff*|u|*u 
 This is calculated at all boundaries</a:documentation>
           <ref name="real"/>
         </element>
         <element name="velocity_gradient">
           <a:documentation>nu * (grad(u) + grad(u).T)
-This uses the velocity gradient at the boundaries to calculate the
+This uses the velocity gradient at the boundaries to calculate the 
 bed shear stress. Valid for non parameterised velocity boundaries.</a:documentation>
           <empty/>
         </element>
@@ -3530,6 +3772,7 @@ bed shear stress. Valid for non parameterised velocity boundaries.</a:documentat
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="adaptivity_options_vector_field"/>
   </define>
   <!--
@@ -3540,6 +3783,7 @@ bed shear stress. Valid for non parameterised velocity boundaries.</a:documentat
   <define name="diagnostic_tensor_field">
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_tensor_stat_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="adaptivity_options_tensor_field"/>
     <optional>
       <ref name="interpolation_algorithm_vector"/>
@@ -3634,6 +3878,7 @@ formulations</a:documentation>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="vector_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_vector_field"/>
     <optional>
@@ -3649,6 +3894,7 @@ formulations</a:documentation>
     <ref name="diagnostic_vector_stat_options"/>
     <ref name="vector_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_vector_field"/>
     <optional>
@@ -3661,6 +3907,7 @@ formulations</a:documentation>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <optional>
@@ -3676,6 +3923,7 @@ formulations</a:documentation>
     <ref name="diagnostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
     <ref name="diagnostic_detector_options"/>
+    <ref name="diagnostic_particle_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_scalar_field"/>
     <optional>
@@ -3688,7 +3936,7 @@ formulations</a:documentation>
       <element name="normal_direction">
         <a:documentation>Select if you want to specify the unit normal direction
 of the rotation matrix.
-If off then fluidity computes the normal.</a:documentation>
+If off then fluidity computes the normal.  </a:documentation>
         <ref name="input_choice_real_dim_vector"/>
       </element>
     </optional>
@@ -3696,7 +3944,7 @@ If off then fluidity computes the normal.</a:documentation>
       <element name="tangent_direction_1">
         <a:documentation>Select if you want to specify the first unit tangent direction
 of the rotation matrix (in dim &gt; 1 simulations).
-If off then fluidity computes the tangent.</a:documentation>
+If off then fluidity computes the tangent.  </a:documentation>
         <ref name="input_choice_real_dim_vector"/>
       </element>
     </optional>
@@ -3704,7 +3952,7 @@ If off then fluidity computes the tangent.</a:documentation>
       <element name="tangent_direction_2">
         <a:documentation>Select if you want to specify the second unit tangent direction
 of the rotation matrix (in dim &gt; 2 simulations).
-If off then fluidity computes the tangent.</a:documentation>
+If off then fluidity computes the tangent.  </a:documentation>
         <ref name="input_choice_real_dim_vector"/>
       </element>
     </optional>
@@ -3755,7 +4003,7 @@ If off then fluidity computes the tangent.</a:documentation>
           <element name="debugging_mode">
             <a:documentation>this will calculate the determinant of the
 rotation matrix for every boundary node
-and dump a vtu with the node
+and dump a vtu with the node 
 normals and tangenials 1/2</a:documentation>
             <empty/>
           </element>
@@ -3767,12 +4015,12 @@ normals and tangenials 1/2</a:documentation>
   <define name="free_surface_diagnostic_options">
     <optional>
       <ref name="free_surface_history_algorithm">
-        <a:documentation>Activate this for tidal harmonic analysis</a:documentation>
+        <a:documentation>Activate this for tidal harmonic analysis </a:documentation>
       </ref>
     </optional>
     <optional>
       <ref name="tidal_harmonic_algorithm">
-        <a:documentation>Activate this for tidal harmonic analysis</a:documentation>
+        <a:documentation>Activate this for tidal harmonic analysis </a:documentation>
       </ref>
     </optional>
   </define>
@@ -3837,10 +4085,20 @@ stress condition, which includes a viscosity term. When using
 this option a prognostic FreeSurface field is required.</a:documentation>
               <optional>
                 <element name="explicit">
-                  <a:documentation>Treat the free surface evolution equation separately from the momentum equation.
+                  <a:documentation>Treat the free surface evolution equation separately from the momentum equation.  
 i.e. stagger the solves.
 
 Requires a prognostic FreeSurface field.</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="radial_normals">
+                  <a:documentation>Force the normals used in the free surface boundary condition to be purely in the
+radial direction (up or down), instead of using the facet normals. This option is
+recommended in idealised cylindrical and spherical domains (only) when a surface-aligned
+strong Dirichlet boundary condition is used to prescribe the tangential velocities. In
+this case we need the normals to be orthogonal to the prescribed tangential direction.</a:documentation>
                   <empty/>
                 </element>
               </optional>
@@ -3863,8 +4121,8 @@ normal_stress=0) we apply p=p_external (resp. normal_stress=p_external) where p_
           </optional>
           <optional>
             <element name="surface_stabilisation">
-              <a:documentation>This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far.
-Note: Once activated, the stabilisation term will occur in all free surface areas in the domain.
+              <a:documentation>This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far. 
+Note: Once activated, the stabilisation term will occur in all free surface areas in the domain. 
 IN DEVELOPMENT</a:documentation>
               <element name="scale_factor">
                 <a:documentation>Scale factor for the surface stabilisation.</a:documentation>
@@ -3918,7 +4176,7 @@ Replaces windy.dat and windy.py</a:documentation>
             <a:documentation>Wind forcing with user specified wind stress
 
 &lt;b&gt; Note that the stress needs to be specified
-using the same density units as the reference_density
+using the same density units as the reference_density 
 under equation of state.&lt;/b&gt;So if you use the recommended
 non-dimensional value of 1.0 for reference_density and
 your calculated stress is in kg m^-1s^-2 and the dimensional
@@ -3950,14 +4208,14 @@ Suggested value: 4.0e-4</a:documentation>
               <ref name="input_choice_real"/>
             </element>
             <element name="density_air">
-              <a:documentation>Density of air.
+              <a:documentation>Density of air. 
 
 &lt;b&gt;Note that you have to specify
-this density in the same units as the
+this density in the same units as the 
 reference_density under equation of state.&lt;/b&gt;
 So with a typicial value of rho_air=1.3 kgm^-3
-and rho_water=1000 kgm^-3, if you fill in the
-recommended (non-dimensional) value of 1.0 for
+and rho_water=1000 kgm^-3, if you fill in the 
+recommended (non-dimensional) value of 1.0 for 
 reference_density, this field needs to be 1.3e-3.</a:documentation>
               <ref name="real"/>
             </element>
@@ -4006,7 +4264,7 @@ Note: Positive points out of the domain, negative into the domain.</a:documentat
         <ref name="input_choice_real_bc_component"/>
       </element>
       <element name="type">
-        <a:documentation>Flux boundary condition.
+        <a:documentation>Flux boundary condition. 
 
 Weakly enforces a flux across a boundary</a:documentation>
         <attribute name="name">
@@ -4099,7 +4357,7 @@ used in the nonlinear iteration.
         <element name="debugging_vtus">
           <a:documentation>Write out some extra debugging vtu files that can be used
 to analyse what goes on in the pressure projection steps.
-WARNING: this may create a huge amount of vtu files, as
+WARNING: this may create a huge amount of vtu files, as 
 multiple files are written per nonlinear iteration.</a:documentation>
           <empty/>
         </element>
@@ -4246,6 +4504,9 @@ iteration in the .stat file.</a:documentation>
       <ref name="surface_integral_stats_scalar"/>
     </zeroOrMore>
     <zeroOrMore>
+      <ref name="surface_l2norm_stats"/>
+    </zeroOrMore>
+    <zeroOrMore>
       <ref name="mixing_stats"/>
     </zeroOrMore>
   </define>
@@ -4377,6 +4638,9 @@ IN PROGRESS - Does not include all terms!</a:documentation>
     <zeroOrMore>
       <ref name="surface_integral_stats_vector"/>
     </zeroOrMore>
+    <zeroOrMore>
+      <ref name="surface_l2norm_stats"/>
+    </zeroOrMore>
   </define>
   <!-- Combining of stat elements for tensor fields -->
   <define name="prognostic_tensor_stat_no_old_or_nonlinear_options.stat">
@@ -4390,7 +4654,7 @@ during nonlinear iterations
 (if /timestepping/nonlinear_iterations and
 /timestepping/nonlinear_iterations/tolerance are
 enabled).
-Also specifies whether the field is added to the
+Also specifies whether the field is added to the 
 convergence file (if /io/convergence_file is enabled).</a:documentation>
       <choice>
         <element name="include_in_convergence">
@@ -4401,7 +4665,7 @@ enabled) and file (if /io/convergence_file is enabled)</a:documentation>
           <ref name="comment"/>
         </element>
         <element name="exclude_from_convergence">
-          <a:documentation>Exclude this field from convergence testing and file</a:documentation>
+          <a:documentation>Exclude this field from convergence testing and file </a:documentation>
           <ref name="comment"/>
         </element>
       </choice>
@@ -4415,7 +4679,7 @@ during nonlinear iterations
 (if /timestepping/nonlinear_iterations and
 /timestepping/nonlinear_iterations/tolerance are
 enabled).
-Also specifies whether the field is added to the
+Also specifies whether the field is added to the 
 convergence file (if /io/convergence_file is enabled).</a:documentation>
       <choice>
         <element name="include_in_convergence">
@@ -4427,7 +4691,7 @@ enabled) and file (if /io/convergence_file is enabled)</a:documentation>
           <ref name="comment"/>
         </element>
         <element name="exclude_components_from_convergence">
-          <a:documentation>Include just the magnitude of this field
+          <a:documentation>Include just the magnitude of this field 
 in convergence testing
 (if /timestepping/nonlinear_iterations and
 /timestepping/nonlinear_iterations/tolerance are
@@ -4436,7 +4700,7 @@ i.e. excluding the components</a:documentation>
           <ref name="comment"/>
         </element>
         <element name="exclude_from_convergence">
-          <a:documentation>Exclude this field entirely from convergence testing and file</a:documentation>
+          <a:documentation>Exclude this field entirely from convergence testing and file </a:documentation>
           <ref name="comment"/>
         </element>
       </choice>
@@ -4478,7 +4742,7 @@ in steady state testing
           <ref name="comment"/>
         </element>
         <element name="exclude_components_from_steady_state">
-          <a:documentation>Include just the magnitude of this field
+          <a:documentation>Include just the magnitude of this field 
 in steady state testing
 (if /timestepping/steady_state is
 enabled)
@@ -4486,7 +4750,7 @@ i.e. excluding the components</a:documentation>
           <ref name="comment"/>
         </element>
         <element name="exclude_from_steady_state">
-          <a:documentation>Exclude this field entirely from convergence testing and file</a:documentation>
+          <a:documentation>Exclude this field entirely from convergence testing and file </a:documentation>
           <ref name="comment"/>
         </element>
       </choice>
@@ -4525,7 +4789,7 @@ i.e. excluding the components</a:documentation>
     </element>
   </define>
   <!--
-    Detector output defaults on for prognostic and diagnostic fields,
+    Detector output defaults on for prognostic and diagnostic fields, 
     off for prescribed.
   -->
   <define name="prognostic_detector_options">
@@ -4537,6 +4801,37 @@ i.e. excluding the components</a:documentation>
   <define name="prescribed_detector_options">
     <ref name="detector_options_disabled_default"/>
   </define>
+  <!-- Specify whether or not values for this field are interpolated to particle locations.. -->
+  <define name="particle_options_disabled_default">
+    <element name="particles">
+      <a:documentation>Specify what is added to particles</a:documentation>
+      <choice>
+        <element name="exclude_from_particles">
+          <a:documentation>Field value is not interpolated to particle locations.</a:documentation>
+          <ref name="comment"/>
+        </element>
+        <element name="include_in_particles">
+          <a:documentation>Field value is interpolated to each particle location.</a:documentation>
+          <optional>
+            <element name="store_old_field">
+              <a:documentation>Store values of field at previous timestep/non-linear iteration, for use when updating particle attributes.</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <!-- Particle defaults off for prognostic, diagnostic and prescribed fields -->
+  <define name="prognostic_particle_options">
+    <ref name="particle_options_disabled_default"/>
+  </define>
+  <define name="diagnostic_particle_options">
+    <ref name="particle_options_disabled_default"/>
+  </define>
+  <define name="prescribed_particle_options">
+    <ref name="particle_options_disabled_default"/>
+  </define>
   <define name="generic_aliased_field">
     <attribute name="material_phase_name">
       <data type="string"/>
@@ -4544,6 +4839,362 @@ i.e. excluding the components</a:documentation>
     <attribute name="field_name">
       <data type="string"/>
     </attribute>
+  </define>
+  <define name="generic_scalar_particle_attribute_choice">
+    <choice>
+      <element name="constant">
+        <a:documentation>Constant value</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="python">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val(X, t, dt):
+    # Function code
+    return # Return value
+
+where X is a tuple of length geometry dimension.</a:documentation>
+        <ref name="python_code"/>
+      </element>
+      <element name="python_fields">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val (X, t, dt, fields):
+    # Function code
+    return # Return value
+
+ where X is a tuple of length geometry dimension.
+
+ E.g. if Temperature field and x position are required
+ def val (X, t, dt, fields):
+   x = X[0]
+   y = x + fields["Temperature"]
+   return y
+
+Note: fields must contain the option particles/include_in_particles
+to be accessible.
+Old field or attribute values can be accessed with the prefix old%
+if the store_old_attribute or store_old_field options are enabled.</a:documentation>
+        <ref name="python_code"/>
+        <optional>
+          <element name="store_old_attribute">
+            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <ref name="comment"/>
+          </element>
+        </optional>
+      </element>
+      <element name="from_checkpoint_file">
+        <a:documentation>File containing the particle attributes in binary form</a:documentation>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+      </element>
+    </choice>
+  </define>
+  <define name="generic_vector_particle_attribute_choice">
+    <choice>
+      <element name="constant">
+        <a:documentation>Constant value</a:documentation>
+        <ref name="real_dim_vector"/>
+      </element>
+      <element name="python">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val(X, t, dt):
+    # Function code
+    return # Return value
+
+where X and the return value are tuples of length geometry dimension.</a:documentation>
+        <ref name="python_code"/>
+      </element>
+      <element name="python_fields">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val (X, t, dt, fields):
+    # Function code
+    return # Return value
+
+ where X and the return value are tuples of length geometry dimension.
+
+ E.g. if Velocity field and positions vector are required
+ def val (X, t, dt, fields):
+   from numpy import zeros
+   y = zeros(2,float)
+   for i in range(0,2):
+      y[i] = X[i] + fields["Velocity"][i]
+   return y
+
+Note: fields must contain the option particles/include_in_particles
+to be accessible.
+Old field or attribute values can be accessed with the prefix old%
+if the store_old_attribute or store_old_field options are enabled.</a:documentation>
+        <ref name="python_code"/>
+        <optional>
+          <element name="store_old_attribute">
+            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <ref name="comment"/>
+          </element>
+        </optional>
+      </element>
+      <element name="from_checkpoint_file">
+        <a:documentation>File containing the particle attributes in binary form</a:documentation>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+        <element name="format">
+          <a:documentation>The format of the input file containing field data.</a:documentation>
+          <element name="string_value">
+            <value>binary</value>
+          </element>
+        </element>
+      </element>
+    </choice>
+  </define>
+  <define name="generic_tensor_particle_attribute_choice">
+    <choice>
+      <element name="constant">
+        <a:documentation>Constant value</a:documentation>
+        <ref name="real_dim_tensor"/>
+      </element>
+      <element name="python">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val(X, t, dt):
+    # Function code
+    return # Return value
+
+where X is a tuple of length geometry dimension and the return value
+is a (dim x dim) numpy array or list of lists.</a:documentation>
+        <ref name="python_code"/>
+      </element>
+      <element name="python_fields">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val (X, t, dt, fields):
+    # Function code
+    return # Return value
+
+ where X is a tuple of length geometry dimension and the return value
+ is a (dim x dim) numpy array or list of lists.
+
+ E.g. to calculate a tensor based off position and velocity:
+ def val (X, t, dt, fields):
+   from numpy import zeros
+   dum = zeros((2,2),float)
+   for i in range(0,2):
+      for j in range(0,2):
+         dum[i,j] = X[i]+fields["Velocity"][j]
+   return dum
+
+Note: fields must contain the option particles/include_in_particles
+to be accessible.
+Old field or attribute values can be accessed with the prefix old%
+if the store_old_attribute or store_old_field options are enabled.</a:documentation>
+        <ref name="python_code"/>
+        <optional>
+          <element name="store_old_attribute">
+            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <ref name="comment"/>
+          </element>
+        </optional>
+      </element>
+      <element name="from_checkpoint_file">
+        <a:documentation>File containing the particle attributes in binary form</a:documentation>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+        <element name="format">
+          <a:documentation>The format of the input file containing field data.</a:documentation>
+          <element name="string_value">
+            <value>binary</value>
+          </element>
+        </element>
+      </element>
+    </choice>
+  </define>
+  <define name="generic_scalar_particle_attribute_array">
+    <choice>
+      <element name="constant">
+        <a:documentation>Constant value</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="python">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val(X, t, dt, n):
+    # Function code
+    return # Return value
+
+where X is a tuple of length geometry dimension and n is the dimension
+of the attribute array.</a:documentation>
+        <ref name="python_code"/>
+      </element>
+      <element name="python_fields">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val (X, t, dt, fields, n):
+    # Function code
+    return # Return value
+
+ where X is a tuple of length geometry dimension and n is the dimension
+ of the attribute array.
+
+ E.g. if a function of the Temperature field and x position are required
+
+ def val (X, t, dt, fields, n):
+   for i in range(0,n):
+       x = X[0]
+       y = (x + fields["Temperature"])*(n+1)
+   return y
+
+Note: fields must contain the option particles/include_in_particles
+to be accessible.
+Old field or attribute values can be accessed with the prefix old%
+if the store_old_attribute or store_old_field options are enabled.</a:documentation>
+        <ref name="python_code"/>
+        <optional>
+          <element name="store_old_attribute">
+            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <ref name="comment"/>
+          </element>
+        </optional>
+      </element>
+      <element name="from_checkpoint_file">
+        <a:documentation>File containing the particle attributes in binary form</a:documentation>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+      </element>
+    </choice>
+  </define>
+  <define name="generic_vector_particle_attribute_array">
+    <choice>
+      <element name="constant">
+        <a:documentation>Constant value</a:documentation>
+        <ref name="real_dim_vector"/>
+      </element>
+      <element name="python">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val(X, t, dt):
+    # Function code
+    return # Return value
+
+ where X is a tuple of length geometry dimension, n is the dimension
+ of the attribute array, and the return value is a (n x dim) numpy array</a:documentation>
+        <ref name="python_code"/>
+      </element>
+      <element name="python_fields">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val (X, t, dt, fields, n):
+    # Function code
+    return # Return value
+
+ where X is a tuple of length geometry dimension, n is the dimension
+ of the attribute array, and the return value is a (n x dim) numpy array
+
+ E.g. if Velocity field and positions vector are required
+
+ def val (X, t, dt, fields, n):
+   from numpy import zeros
+   y = zeros(2,float)
+   for i in range(0,2):
+       for j in range(0,n):
+           y[j,i] = (X[i] + fields["Velocity"][i])*(1+k)
+   return y
+
+Note: fields must contain the option particles/include_in_particles
+to be accessible.
+Old field or attribute values can be accessed with the prefix old%
+if the store_old_attribute or store_old_field options are enabled.</a:documentation>
+        <ref name="python_code"/>
+        <optional>
+          <element name="store_old_attribute">
+            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <ref name="comment"/>
+          </element>
+        </optional>
+      </element>
+      <element name="from_checkpoint_file">
+        <a:documentation>File containing the particle attributes in binary form</a:documentation>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+        <element name="format">
+          <a:documentation>The format of the input file containing field data.</a:documentation>
+          <element name="string_value">
+            <value>binary</value>
+          </element>
+        </element>
+      </element>
+    </choice>
+  </define>
+  <define name="generic_tensor_particle_attribute_array">
+    <choice>
+      <element name="constant">
+        <a:documentation>Constant value</a:documentation>
+        <ref name="real_dim_tensor"/>
+      </element>
+      <element name="python">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val(X, t, dt, n):
+    # Function code
+    return # Return value
+
+where X is a tuple of length geometry dimension, n is the dimension of
+the attribute array, and the return value is a (n x dim x dim) numpy array
+or list of lists.</a:documentation>
+        <ref name="python_code"/>
+      </element>
+      <element name="python_fields">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val (X, t, dt, fields, n):
+    # Function code
+    return # Return value
+
+ where X is a tuple of length geometry dimension, n is the dimension of
+ the attribute array, and the return value is a (dim x dim) numpy array
+ or list of lists.
+
+ E.g. to calculate a tensor based off position and velocity:
+
+ def val (X, t, dt, fields, n):
+   from numpy import zeros
+   dum = zeros((2,2),float)
+   for i in range(0,2):
+      for j in range(0,2):
+          for k in range(0,n):
+              dum[k,i,j] = (X[i]+fields["Velocity"][j])*(1+k)
+   return dum
+
+Note: fields must contain the option particles/include_in_particles
+to be accessible.
+Old field or attribute values can be accessed with the prefix old%
+if the store_old_attribute or store_old_field options are enabled.</a:documentation>
+        <ref name="python_code"/>
+        <optional>
+          <element name="store_old_attribute">
+            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <ref name="comment"/>
+          </element>
+        </optional>
+      </element>
+      <element name="from_checkpoint_file">
+        <a:documentation>File containing the particle attributes in binary form</a:documentation>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+        <element name="format">
+          <a:documentation>The format of the input file containing field data.</a:documentation>
+          <element name="string_value">
+            <value>binary</value>
+          </element>
+        </element>
+      </element>
+    </choice>
   </define>
   <!-- This is the choice of additional scalar field to be solved for -->
   <define name="scalar_field_choice">
@@ -4689,7 +5340,7 @@ field, without the no_normal_stress_option.
 It gives you a full dimensional field (constant over the vertical)
 of the free surface elevation.
 
-* equation type ShallowWater for Velocity. It simply divides
+* equation type ShallowWater for Velocity. It simply divides 
 Pressure by g, the gravitational constant.</a:documentation>
             <ref name="internal_algorithm"/>
             <ref name="pressure_mesh_choice">
@@ -4745,6 +5396,7 @@ requires a distinct name for the options dictionary.</a:documentation>
             <ref name="prognostic_scalar_stat_options"/>
             <ref name="scalar_convergence_options"/>
             <ref name="prognostic_detector_options"/>
+            <ref name="prognostic_particle_options"/>
             <ref name="scalar_steady_state_options"/>
             <ref name="adaptivity_options_prognostic_scalar_field"/>
             <ref name="interpolation_algorithm_scalar"/>
@@ -4822,7 +5474,7 @@ of the wetting and drying alpha coefficient.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>If enabled, decomposes Pressure by solving for the balanced part of
+        <a:documentation>If enabled, decomposes Pressure by solving for the balanced part of 
 Pressure using a "geopressure" solver:
 
   f = - grad p_gp + g
@@ -4900,7 +5552,7 @@ for vbp.</a:documentation>
         <a:documentation>FoamVelocityPotential field:
 
 Required in foam flow simulations where the foam velocity is not a
-prescribed field. It solves Laplace's equation for a scalar potential,
+prescribed field. It solves Laplace's equation for a scalar potential, 
 (the foam velocity is then obtained as the gradient of the potential).</a:documentation>
         <attribute name="rank">
           <value>0</value>
@@ -5090,7 +5742,7 @@ for fields within the same material_phase.</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
-        <a:documentation>Calculate the stream function of 2D incompressible flow. Note
+        <a:documentation>Calculate the stream function of 2D incompressible flow. Note 
 that this *only* makes sense for proper 2D (not pseudo-2D) simulations.
 Requires a continuous mesh.</a:documentation>
         <attribute name="rank">
@@ -5500,7 +6152,7 @@ c.f. Winters 1995, Journal of Fluid Mechanics</a:documentation>
         <a:documentation>Richardson Number:
 
  Ri = \frac{N^2}{(\frac{\partial u}{\partial z})^2 + (\frac{\partial u}{\partial z})^2}
-with
+with 
  N^2 = -\frac{g}{\rho_0}\frac{\partial \rho}{\partial z}
 
 Limitations:
@@ -5622,7 +6274,7 @@ calculated in a discontinuous function space.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>The equilibrium pressure perturbation
+        <a:documentation>The equilibrium pressure perturbation 
 
 Further details to be added
 Currently a test field</a:documentation>
@@ -5644,7 +6296,7 @@ Currently a test field</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>The equilibrium pressure perturbation
+        <a:documentation>The equilibrium pressure perturbation 
 
 Further details to be added
 Currently a test field</a:documentation>
@@ -5730,7 +6382,7 @@ No repointing is done from this field to DENTRAF.</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
-        <a:documentation>add a MaterialVolume scalar_field to calculate the spatially varying
+        <a:documentation>add a MaterialVolume scalar_field to calculate the spatially varying 
 volume of a material (requires a MaterialVolumeFraction)</a:documentation>
         <attribute name="rank">
           <value>0</value>
@@ -5750,7 +6402,7 @@ volume of a material (requires a MaterialVolumeFraction)</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>add a MaterialMass scalar_field to calculate the spatially varying
+        <a:documentation>add a MaterialMass scalar_field to calculate the spatially varying 
 mass of a material (requires a MaterialVolumeFraction and either a
 MaterialDensity field or a reference_density in a linear eos)</a:documentation>
         <attribute name="rank">
@@ -5814,7 +6466,7 @@ of state of this material.</a:documentation>
       </element>
       <element name="scalar_field">
         <a:documentation>Calculates the BulkMaterialPressure based on the MaterialDensity
-and MaterialVolumeFraction (and MaterialInternalEnergy if appropriate)
+and MaterialVolumeFraction (and MaterialInternalEnergy if appropriate) 
 for the equation of state of all materials.</a:documentation>
         <attribute name="rank">
           <value>0</value>
@@ -5885,7 +6537,7 @@ This assumes that the viscosity used is the dynamic viscosity.</a:documentation>
 Peclet Number Pe = U*dx/2*diffusivity
 
 Also see the test case 'grid_peclet_number'
-if you wish to see the effect of changing the
+if you wish to see the effect of changing the 
 diffusivity on a 1D, cg-discretised tracer-field
 
 Adapting to this field is not recommended</a:documentation>
@@ -5968,9 +6620,9 @@ where rho is the Density scalar field
 
 BE AWARE OF WHAT IS IN THE DENSITY SCALAR FIELD
 
-In the Boussinesq approximation
+In the Boussinesq approximation 
 rho -&gt; rho_0 (reference density)
-to get this use the square of the
+to get this use the square of the 
 L2norm of the velocity field
 from the stat file and multiply by
 1/2*rho_0 in post-processing</a:documentation>
@@ -6069,7 +6721,7 @@ Limitations:
   PE_b = rho*g*z_star
 
 where rho is the Density scalar field and
-z_star is the isopycnal coordinate.
+z_star is the isopycnal coordinate. 
 
 
 BE AWARE OF WHAT IS IN THE DENSITY SCALAR FIELD
@@ -6304,7 +6956,7 @@ of this field is continuous.</a:documentation>
             <optional>
               <element name="lump_mass">
                 <a:documentation>Lump the mass matrix of the galerkin projection
-less accurate but faster and might give smoother result.</a:documentation>
+less accurate but faster and might give smoother result.                  </a:documentation>
                 <empty/>
               </element>
             </optional>
@@ -6472,9 +7124,9 @@ Sums up the divergence of each phase's apparent velocity, i.e. \sum{ div(vfrac*u
           </optional>
           <optional>
             <element name="test_with_cv_dual">
-              <a:documentation>Test the divergence operator with the CV dual function space.
-This is useful if the pressure is solved with a CV discretisation
-or with a CG but with the continuity tested with the CV dual.</a:documentation>
+              <a:documentation>Test the divergence operator with the CV dual function space. 
+This is useful if the pressure is solved with a CV discretisation 
+or with a CG but with the continuity tested with the CV dual. </a:documentation>
               <ref name="comment"/>
             </element>
           </optional>
@@ -6620,7 +7272,7 @@ associated with buoyancy. Requires a discontinuous mesh.</a:documentation>
       <element name="vector_field">
         <a:documentation>MaterialVelocity field.  Used to impose a velocity on a material
 in combination with the imposed_material_velocity_absorption_algorithm
-for VelocityAbsorption and imposed_material_velocity_source_algorithm
+for VelocityAbsorption and imposed_material_velocity_source_algorithm 
 for VelocitySource.</a:documentation>
         <attribute name="rank">
           <value>1</value>
@@ -6724,9 +7376,9 @@ Field must be in this material_phase.</a:documentation>
         </choice>
       </element>
       <element name="vector_field">
-        <a:documentation>Foam Velocity field.
-Required for simulations of foam flow and liquid drainage in foams.
-If diagnostic, a FoamVelocityPotential field is required,
+        <a:documentation>Foam Velocity field. 
+Required for simulations of foam flow and liquid drainage in foams. 
+If diagnostic, a FoamVelocityPotential field is required, 
 and the Foam Velocity is obtained by taking its gradient.</a:documentation>
         <attribute name="rank">
           <value>1</value>
@@ -6754,8 +7406,8 @@ and the Foam Velocity is obtained by taking its gradient.</a:documentation>
       </element>
       <element name="vector_field">
         <a:documentation>Foam Liquid Content times Velocity field.
-Its surface integral gives the liquid
-volumetric flow in the flowing foam</a:documentation>
+Its surface integral gives the liquid 
+volumetric flow in the flowing foam </a:documentation>
         <attribute name="rank">
           <value>1</value>
         </attribute>
@@ -6862,7 +7514,7 @@ Field must be in this material_phase.</a:documentation>
       </element>
       <element name="vector_field">
         <a:documentation>LinearMomentum field.
- p = \rho*u
+ p = \rho*u 
 (where p is the linear momentum, \rho the density and u the velocity)</a:documentation>
         <attribute name="rank">
           <value>1</value>
@@ -6952,7 +7604,7 @@ Assumes both fields are on the same mesh as the AbsoluteDifference field.</a:doc
       <element name="vector_field">
         <a:documentation>Bed Shear Stress
 
-This diagnostic vector field is only calculated over surface elements/nodes,
+This diagnostic vector field is only calculated over surface elements/nodes, 
 interior nodes will have zero value.</a:documentation>
         <attribute name="rank">
           <value>1</value>
@@ -7045,7 +7697,7 @@ of this field is continuous.</a:documentation>
             <optional>
               <element name="lump_mass">
                 <a:documentation>Lump the mass matrix of the galerkin projection
-less accurate but faster and might give smoother result.</a:documentation>
+less accurate but faster and might give smoother result.                  </a:documentation>
                 <empty/>
               </element>
             </optional>
@@ -7280,8 +7932,8 @@ Defaults to -huge(0.0)*epsilon(0.0) if not set.</a:documentation>
     </choice>
   </define>
   <!--
-    cv limiter options that
-    have NO reliance on any CFL field.
+    cv limiter options that 
+    have NO reliance on any CFL field. 
   -->
   <define name="limiter_options_excluding_cfl">
     <choice>
@@ -7352,7 +8004,7 @@ simplex element meshes and to a locally_bound_upwind_value for cube
 element meshes.
 
 This method projects the upwind value from a point in the element just
-upwind of the node pair straddling the face.  It is otherwise known as
+upwind of the node pair straddling the face.  It is otherwise known as 
 anisotropic limiting.
 This is only available on simplex meshes as it involes a search around
 the donor node to find the upwind element.</a:documentation>
@@ -7638,18 +8290,18 @@ divided by the total volume of the domain</a:documentation>
 (continuous galerkin) or within the control volume (control_volumes).</a:documentation>
           <optional>
             <element name="normalise">
-              <a:documentation>if select normalise the volume fractions will be divided by the total volume of the domain</a:documentation>
+              <a:documentation>if select normalise the volume fractions will be divided by the total volume of the domain  </a:documentation>
               <empty/>
             </element>
           </optional>
         </element>
       </choice>
       <element name="mixing_bin_bounds">
-        <a:documentation>The values of the bounds of the bins
-e.g. the values -1.5 0.0 1.5 2.0 will return 4 bins
+        <a:documentation>The values of the bounds of the bins 
+e.g. the values -1.5 0.0 1.5 2.0 will return 4 bins 
 and the fraction of the field in each bin with,
--1.5&lt;=field&lt;0.0, 0.0&lt;=field&lt;1.5, 1.5&lt;=field&lt;2.0, 2.0&lt;=field,
-will be calculated.</a:documentation>
+-1.5&lt;=field&lt;0.0, 0.0&lt;=field&lt;1.5, 1.5&lt;=field&lt;2.0, 2.0&lt;=field, 
+will be calculated.  </a:documentation>
         <choice>
           <element name="constant">
             <a:documentation>list of bin bounds</a:documentation>
@@ -7682,7 +8334,7 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
       <empty/>
     </element>
   </define>
-  <!-- Options for inclusion of calculations of surface integrals in the .stat file -->
+  <!-- Options for inclusion of calculations of surface integrals in the .stat file   -->
   <define name="surface_integral_stats_base.surface_integral">
     <attribute name="name">
       <data type="string"/>
@@ -7734,6 +8386,12 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
       <value>normal</value>
     </attribute>
   </define>
+  <define name="surface_l2norm_stats">
+    <element name="surface_l2norm">
+      <a:documentation>Calculate L2-norm of field over the specified surface</a:documentation>
+      <ref name="surface_integral_stats_base.surface_integral"/>
+    </element>
+  </define>
   <define name="forcing">
     <element name="ocean_forcing">
       <a:documentation>Force the boundary conditions of various fields in ocean simulations</a:documentation>
@@ -7741,7 +8399,7 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
         <element name="iceshelf_meltrate">
           <optional>
             <element name="Holland08">
-              <a:documentation>The type of parameterisation</a:documentation>
+              <a:documentation>The type of parameterisation </a:documentation>
               <element name="c0">
                 <a:documentation>Specific heat capacity of water [Jkg^{-1}]. Default value 3974.</a:documentation>
                 <ref name="real"/>
@@ -7755,19 +8413,19 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
                 <ref name="real"/>
               </element>
               <element name="TI">
-                <a:documentation>Temperature of ice [C]. Default value -25, pretty cold</a:documentation>
+                <a:documentation>Temperature of ice [C]. Default value -25, pretty cold </a:documentation>
                 <ref name="real"/>
               </element>
               <element name="a">
-                <a:documentation>Tb=aSb+b+cB, See equation (4) of Holland08. Default value -0.0573C.</a:documentation>
+                <a:documentation>Tb=aSb+b+cB, See equation (4) of Holland08. Default value -0.0573C. </a:documentation>
                 <ref name="real"/>
               </element>
               <element name="b">
-                <a:documentation>Tb=aSb+b+cB, See equation (4) of Holland08. Default value 0.0832C.</a:documentation>
+                <a:documentation>Tb=aSb+b+cB, See equation (4) of Holland08. Default value 0.0832C. </a:documentation>
                 <ref name="real"/>
               </element>
               <element name="Cd">
-                <a:documentation>Drag coefficient, 1.5e-3, see Holland and Jenkins's(1999) Cd.</a:documentation>
+                <a:documentation>Drag coefficient, 1.5e-3, see Holland and Jenkins's(1999) Cd. </a:documentation>
                 <ref name="real"/>
               </element>
               <optional>
@@ -7862,8 +8520,8 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
               </optional>
               <optional>
                 <element name="scalar_field">
-                  <a:documentation>Temperature of the far field, which is "melt_LayerLength" away from the ice.
-This variable feeds into the three equations.</a:documentation>
+                  <a:documentation>Temperature of the far field, which is "melt_LayerLength" away from the ice. 
+This variable feeds into the three equations. </a:documentation>
                   <attribute name="rank">
                     <value>0</value>
                   </attribute>
@@ -7880,7 +8538,7 @@ This variable feeds into the three equations.</a:documentation>
               <optional>
                 <element name="scalar_field">
                   <a:documentation>Salinity of the far field, which is "melt_LayerLength" away from the ice.
-This variable feeds into the three equations.</a:documentation>
+This variable feeds into the three equations. </a:documentation>
                   <attribute name="rank">
                     <value>0</value>
                   </attribute>
@@ -7896,7 +8554,7 @@ This variable feeds into the three equations.</a:documentation>
               </optional>
               <optional>
                 <element name="scalar_field">
-                  <a:documentation>Pressure used in the three equations.
+                  <a:documentation>Pressure used in the three equations. 
 We need to use the pressure at the ice-ocean interface.</a:documentation>
                   <attribute name="rank">
                     <value>0</value>
@@ -7914,7 +8572,7 @@ We need to use the pressure at the ice-ocean interface.</a:documentation>
               <optional>
                 <element name="vector_field">
                   <a:documentation>Velocity of the far field, which is "melt_LayerLength" away from the ice.
-This variable feeds into the three equations.</a:documentation>
+This variable feeds into the three equations. </a:documentation>
                   <attribute name="rank">
                     <value>0</value>
                   </attribute>
@@ -7964,7 +8622,7 @@ melt_LayerLength = ||Location - Location_org||</a:documentation>
               </optional>
               <optional>
                 <element name="calculate_boundaries">
-                  <a:documentation>Boundary stuff</a:documentation>
+                  <a:documentation>Boundary stuff   </a:documentation>
                   <element name="string_value">
                     <choice>
                       <value>neumann</value>
@@ -8042,7 +8700,7 @@ the ERA-40 reanalysis (http://data-portal.ecmwf.int/data/d/era40_daily/)</a:docu
               <choice>
                 <element name="type">
                   <a:documentation>Bulk formulae from Large and Yeager (2004)
-Large, W. G. &amp; Yeager, S. G. Diurnal to decadal global forcing
+Large, W. G. &amp; Yeager, S. G. Diurnal to decadal global forcing 
 for ocean and sea-ice models: The data sets and flux climatologies. NCAR TR.</a:documentation>
                   <attribute name="name">
                     <value>NCAR</value>
@@ -8050,8 +8708,8 @@ for ocean and sea-ice models: The data sets and flux climatologies. NCAR TR.</a:
                   <empty/>
                 </element>
                 <element name="type">
-                  <a:documentation>Bulk formulae from Fairall et al (2003).
-Bulk Parameterization of Air–Sea Fluxes: Updates and
+                  <a:documentation>Bulk formulae from Fairall et al (2003). 
+Bulk Parameterization of Air–Sea Fluxes: Updates and 
 Verification for the COARE Algorithm Journal of Climate, 2003, 16, 571-591</a:documentation>
                   <attribute name="name">
                     <value>COARE</value>
@@ -8215,7 +8873,7 @@ These &lt;b&gt;must&lt;/b&gt; be on the velocity mesh</a:documentation>
       </optional>
       <optional>
         <element name="tidal_forcing">
-          <a:documentation>Tidal forcing options</a:documentation>
+          <a:documentation>Tidal forcing options </a:documentation>
           <optional>
             <element name="M2">
               <a:documentation>M2</a:documentation>
@@ -8382,17 +9040,17 @@ that uses a constant beta value</a:documentation>
       <a:documentation>Model of biological processes in the ocean.</a:documentation>
       <choice>
         <element name="pznd">
-          <a:documentation>A simple model of phytoplankton, zooplankton, general nutrient and detritus.</a:documentation>
+          <a:documentation>A simple model of phytoplankton, zooplankton, general nutrient and detritus. </a:documentation>
           <choice>
             <element name="source_and_sink_algorithm">
-              <a:documentation>Python code specifying the source and sink relationships
-between the biological tracers. This is usually achieved by
-importing fluidity.ocean_biology and calling a scheme from there.</a:documentation>
+              <a:documentation>Python code specifying the source and sink relationships 
+between the biological tracers. This is usually achieved by 
+importing fluidity.ocean_biology and calling a scheme from there. </a:documentation>
               <ref name="python_code"/>
             </element>
             <element name="disable_sources_and_sinks">
-              <a:documentation>Do not calculate sources and sinks.
-This option is generally only useful for testing.</a:documentation>
+              <a:documentation>Do not calculate sources and sinks. 
+This option is generally only useful for testing. </a:documentation>
               <empty/>
             </element>
           </choice>
@@ -8417,15 +9075,15 @@ This option is generally only useful for testing.</a:documentation>
           </element>
         </element>
         <element name="six_component">
-          <a:documentation>6 component biology model, which models Nitrates, Ammonium,
+          <a:documentation>6 component biology model, which models Nitrates, Ammonium, 
 Phytoplankton, Zooplankton, Detritus and Chlorophyll.
 
 These fields must be enabled in the material phase
 
 Based on the equations in
-Popova, E. E.; Coward, A. C.; Nurser, G. A.; de Cuevas, B.; Fasham, M. J. R. &amp; Anderson, T. R.
-Mechanisms controlling primary and new production in a global ecosystem model - Part I:
-Validation of the biological simulation Ocean Science, 2006, 2, 249-266.
+Popova, E. E.; Coward, A. C.; Nurser, G. A.; de Cuevas, B.; Fasham, M. J. R. &amp; Anderson, T. R. 
+Mechanisms controlling primary and new production in a global ecosystem model - Part I: 
+Validation of the biological simulation Ocean Science, 2006, 2, 249-266. 
 DOI: 10.5194/os-2-249-2006</a:documentation>
           <choice>
             <element name="source_and_sink_algorithm">
@@ -8436,7 +9094,7 @@ those fields exist.</a:documentation>
             </element>
             <element name="disable_sources_and_sinks">
               <a:documentation>Do not calculate biology
-This option is generally only useful for testing.</a:documentation>
+This option is generally only useful for testing. </a:documentation>
               <empty/>
             </element>
           </choice>
@@ -8477,7 +9135,7 @@ This option is generally only useful for testing.</a:documentation>
       <element name="discontinuous_galerkin">
         <a:documentation>Discontinuous galerkin formulation. You can also use this
 formulation with a continuous field in which case a simple
-galerkin formulation will result.</a:documentation>
+galerkin formulation will result. </a:documentation>
         <empty/>
       </element>
     </element>
@@ -8665,7 +9323,7 @@ Automatic when projecting a discontinuous field</a:documentation>
                 <element name="test_divergence_with_cv_dual">
                   <a:documentation>Test the divergence equation with the control volume dual mesh
 of the finite element lagrange multiplier mesh.
-This will make the lagrange multiplier matrix non symmetric which must be
+This will make the lagrange multiplier matrix non symmetric which must be 
 considered when selecting the lagrange multiplier  solver options.</a:documentation>
                   <ref name="comment"/>
                 </element>
@@ -8701,7 +9359,7 @@ options too and it must be on the same mesh as used for the
 solenoidal projection above.
 
 Note well: this only really makes sense for scalar fields linked to nondivergent
-vector fields, such as pressure to incompressible velocity!</a:documentation>
+vector fields, such as pressure to incompressible velocity!                  </a:documentation>
               <attribute name="name">
                 <value>Pressure</value>
               </attribute>
@@ -8715,7 +9373,7 @@ options too and it must be on the same mesh as used for the
 solenoidal projection above.
 
 Note well: this only really makes sense for scalar fields linked to nondivergent
-vector fields, such as pressure to incompressible velocity!</a:documentation>
+vector fields, such as pressure to incompressible velocity!                  </a:documentation>
               <attribute name="name">
                 <data type="string" datatypeLibrary=""/>
               </attribute>

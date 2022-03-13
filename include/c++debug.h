@@ -32,10 +32,6 @@
 #include "confdefs.h"
 
 #include <string>
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
-
 #include "fmangle.h"
 
 void FLAbort(const char*, const char *, int);

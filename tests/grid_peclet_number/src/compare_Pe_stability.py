@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script will plot the final numerical (solid line) and exact (dotted line)
 # solutions to phi_x - diff*phi_xx = 1, phi = 0 x = 0,1 (Donea and Huerta pgs 38, 40, a = 1)

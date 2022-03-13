@@ -122,14 +122,6 @@ fi
 if $FC -v 2>&1 | grep 'gcc version'; then
   USING_GFORTRAN="yes"
   GFORTRAN_VERSION=$($FC -v 2>&1 | grep 'gcc version' | awk '{print $3}')
-  # test really is so retarded that it can't lexicographically compare strings
-  if test "$(python -c "print \"$GFORTRAN_VERSION\" >= \"4.5\"")" = "True"; then
-    GFORTRAN_4_5_OR_NEWER="yes"
-    AC_SUBST(GFORTRAN_4_5_OR_NEWER)
-  fi
-  if test "$(python -c "print \"$GFORTRAN_VERSION\" >= \"4.8\"")" = "True"; then
-    GFORTRAN_4_8_OR_NEWER="yes"
-  fi
 else
   USING_GFORTRAN="no"
 fi
@@ -189,51 +181,42 @@ AC_ARG_ENABLE(python,
 
 if test "x$enable_python" != "xno"
 then
-    AC_MSG_NOTICE([Checking for Python automagic.])
-    AC_LANG_PUSH([C++])
-    AC_LINK_IFELSE(
-        [AC_LANG_PROGRAM([[
-     #include <Python.h>
-                        ]],[[
-                        Py_Initialize();
-                        PyRun_SimpleString("from time import time,ctime\n"
-                            "print 'Today is',ctime(time())\n");
-                        Py_Finalize();
-		        ]])],
-        [
-	    AC_MSG_NOTICE([Python automagic works.])
-	    CPPFLAGS="$CPPFLAGS -DHAVE_PYTHON"],
-        [
-            AC_MSG_NOTICE([No Python automagic.])
-	    search_for_python=yes	    
-        ])
-    AC_LANG_POP([C++])
-    
-    if test "x$search_for_python" == "xyes" ; then
-        mycppflag=$CPPFLAGS
-        AC_PYTHON_DEVEL
-        CPPFLAGS=$mycppflag
-    # Save variables...
-        if test "x$pythonexists" = "xyes";
-        then
-	    if  test "$fcompiler" = "pgf90"; then
-	        PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-Xlinker/}
-	        PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-export-dynamic/}
-	    fi
-      if test "x$enable_debugging" = "xyes"; then
-        export PYTHON_EXTRA_LDFLAGS=$(echo $PYTHON_EXTRA_LDFLAGS | sed -e 's/-O1/-O0/g' -e 's/-O2/-O0/g' -e 's/-O3/-O0/g')
-      fi
-	    LIBS="$LIBS $PYTHON_LDFLAGS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
-	    CXXFLAGS="$CXXFLAGS $PYTHON_CPPFLAGS"
-	    CPPFLAGS="$CPPFLAGS $PYTHON_CPPFLAGS"
-            CFLAGS="$CFLAGS $PYTHON_CPPFLAGS"
+    if test -z "$PYTHON_VERSION"; then
+      # if PYTHON_VERSION is set we use python$PYTHON_VERSION as the python interpreter
+      # if not, if there is no `python` in the path, or there is a `python` but its version is <3
+      # then use `python3` (by setting PETSC_VERSION=3).
+      # If there *is* a `python` of version 3, we use that
+      AC_CHECK_PROG(have_bare_python, python, "yes")
+      if test "x$have_bare_python" = "xyes"; then
+        bare_python_is_two=`python -c "import sys; print(sys.version_info.major < 3)"`
+        if test "x$bare_python_is_two=xTrue"; then
+          PYTHON_VERSION=3
         fi
-    else
-       AC_PATH_PROG([PYTHON],[python[$PYTHON_VERSION]])
+      else
+        PYTHON_VERSION=3
+      fi
+    fi
+    mycppflag=$CPPFLAGS
+    AC_PYTHON_DEVEL([>= '3.6'])
+    CPPFLAGS=$mycppflag
+    # Save variables...
+    if test "x$pythonexists" = "xyes";
+    then
+        if  test "$fcompiler" = "pgf90"; then
+            PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-Xlinker/}
+            PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-export-dynamic/}
+        fi
+        if test "x$enable_debugging" = "xyes"; then
+          export PYTHON_EXTRA_LDFLAGS=$(echo $PYTHON_EXTRA_LDFLAGS | sed -e 's/-O1/-O0/g' -e 's/-O2/-O0/g' -e 's/-O3/-O0/g')
+        fi
+        LIBS="$LIBS $PYTHON_LIBS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
+        CXXFLAGS="$CXXFLAGS $PYTHON_CPPFLAGS"
+        CPPFLAGS="$CPPFLAGS $PYTHON_CPPFLAGS"
+        CFLAGS="$CFLAGS $PYTHON_CPPFLAGS"
     fi
     
     # Additionally check for numpy
-    NUMPY=$($PYTHON -c 'import numpy; print numpy.get_include()' 2>/dev/null)
+    NUMPY=$($PYTHON -c 'import numpy; print(numpy.get_include())' 2>/dev/null)
     if ! test -z "$NUMPY"; then	
 	echo "Numpy is " $NUMPY	
 	CXXFLAGS="$CXXFLAGS -DHAVE_NUMPY -I$NUMPY"
@@ -244,6 +227,18 @@ then
     else
 	echo "Failed to locate Numpy"
     fi
+    # check for the assess python package used in some tests
+    # (see https://github.com/stephankramer/assess/)
+    $PYTHON -c "import assess" 2>/dev/null
+    if test $? -eq 0;
+    then
+      HAVE_ASSESS=yes
+      AC_MSG_NOTICE([Successfully imported assess python module])
+    else
+      HAVE_ASSESS=no
+      AC_MSG_NOTICE([Failed to import (optional) python module assess])
+    fi
+    AC_SUBST(HAVE_ASSESS)
 fi
 AC_SUBST(HAVE_PYTHON)
 
@@ -830,14 +825,6 @@ AC_ARG_ENABLE(petsc-fortran-modules,
 ACX_PETSc([AC_MSG_NOTICE(["PETSc found, enabling scalable solver"])], [AC_MSG_ERROR(["PETSc not found"])])
 ACX_hypre([AC_MSG_NOTICE(["hypre found, enabling hypre preconditioners"])], [AC_MSG_WARN(["hypre not found"])])
 CPPFLAGS="$CPPFLAGS -DHAVE_PETSC"
-if test "$HAVE_PETSC_MODULES" == "1"; then
-  CPPFLAGS="$CPPFLAGS -DHAVE_PETSC_MODULES"
-fi
-if test "$HAVE_HYPRE" == "1"; then
-  CPPFLAGS="$CPPFLAGS -DHAVE_HYPRE"
-fi
-CPPFLAGS=`echo $CPPFLAGS | sed 's/-petsc-version-/3.4.2.0/' | sed 's/x86_64\/x86_64/x86_64/'`
-FCFLAGS=`echo $FCFLAGS | sed 's/-petsc-version-/3.4.2.0/' | sed 's/x86_64\/x86_64/x86_64/'`
 
 # Metis, ParMetis
 AC_MSG_CHECKING([if we can compile and link without using -lparmetis])
@@ -1287,14 +1274,18 @@ if test -d libadaptivity ; then
     # fluidity's (except for MPI)
     if test "$enable_dp" = "yes" ; then     
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
-            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" ./configure
+            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" \
+	    CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" \
+            CPPFLAGS="${env_cppflags}" ./configure
         if test "$?" -ne "0"; then
           AC_MSG_ERROR([Configuration of libadaptivity has failed.])
           exit -1
         fi
     else
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
-            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" ./configure --enable-dp=no
+            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" \
+	    CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" \
+	    CPPFLAGS="${env_cppflags}" ./configure --enable-dp=no
         if test "$?" -ne "0"; then
           AC_MSG_ERROR([Configuration of libadaptivity has failed.])
           exit -1
@@ -1354,7 +1345,7 @@ elif test -d libjudy ; then
     fi
     # this is a workaround for https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=755099
     if echo "$CFLAGS" | grep -q -- "-O[[2-3]]"; then
-      if test "x$USING_GFORTRAN" = "xyes" -a "x$GFORTRAN_4_8_OR_NEWER" = "xyes" -a "x$USING_CLANG" = "xno"; then
+      if test "x$USING_GFORTRAN" = "xyes" -a "x$USING_CLANG" = "xno"; then
         JUDY_CFLAGS="$JUDY_CFLAGS -fno-aggressive-loop-optimizations"
       fi
     fi
@@ -1474,6 +1465,31 @@ fi
 cd ../
 fi
 AC_SUBST(LIBSPATIALINDEX)
+
+AX_LIB_HDF5([parallel])
+if test "$with_hdf5" = "no"; then
+  AC_MSG_ERROR([Unable to find parallel HDF5 installation])
+fi
+LDFLAGS="$LDFLAGS $HDF5_LDFLAGS"
+
+#************H5hut***********
+if test -d h5hut; then
+    AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
+    AC_MSG_NOTICE([Configuring h5hut])
+    AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
+
+    cd h5hut
+    ./autogen.sh
+    # use some info we found earlier from AX_LIB_HDF5
+    CC="${CC}" CXX="${CXX}" CFLAGS="${env_cflags} $HDF5_CFLAGS" CPPFLAGS="${env_cppflags} $HDF5_CPPFLAGS" \
+        CXXFLAGS="${env_cxxflags}" LIBS="${env_libs} $HDF5_LIBS" LDFLAGS="$HDF5_LDFLAGS" \
+        ./configure --prefix=${PWD}/../ --enable-fortran --enable-parallel
+    if test "$?" -ne "0"; then
+       AC_MSG_ERROR([Configuration of h5hut has failed.])
+       exit -1
+    fi
+    cd ..
+fi
 
 #*************ARPACK*********
 AC_LANG_PUSH([Fortran])
@@ -1692,6 +1708,11 @@ cat > include/vtk.h <<EOF
 #include <${vtk_header_relative_path}vtkXMLUnstructuredGridReader.h>
 #include <${vtk_header_relative_path}vtkXMLUnstructuredGridWriter.h>
 #include <${vtk_header_relative_path}vtkZLibDataCompressor.h>
+
+#if VTK_MAJOR_VERSION>6 
+#include <${vtk_header_relative_path}vtkMPIController.h>
+#include <${vtk_header_relative_path}vtkMPICommunicator.h>
+#endif
 
 #ifndef vtkFloatingPointType
 #define vtkFloatingPointType vtkFloatingPointType

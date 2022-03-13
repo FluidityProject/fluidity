@@ -62,6 +62,7 @@ module fluids_module
   use reserve_state_module
   use write_state_module
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
+  use particles
   use diagnostic_variables
   use populate_state_module
   use vertical_extrapolation_module
@@ -73,6 +74,8 @@ module fluids_module
   use sediment_diagnostics, only: calculate_sediment_flux
   use dqmom
   use diagnostic_fields_wrapper
+  use particle_diagnostics, only: calculate_diagnostic_fields_from_particles, calculate_particle_material_fields, &
+       initialise_constant_particle_diagnostics, particle_cv_check
   use checkpoint
   use goals
   use adaptive_timestepping
@@ -227,6 +230,9 @@ contains
          & default=1)
     call get_option("/timestepping/nonlinear_iterations/tolerance", &
          & nonlinear_iteration_tolerance, default=0.0)
+
+    ! Initialise positions of particles before adapt_at_first_timestep
+    call initialise_particles(filename, state)
     
     if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
 
@@ -332,9 +338,20 @@ contains
     ! Initialise multimaterial fields:
     call initialise_diagnostic_material_properties(state)
 
+    ! Spawn particles to specified meshes
+    call particle_cv_check(state)
+
+    ! Initialise MVF fields based on particles:
+    call initialise_constant_particle_diagnostics(state)
+    call calculate_particle_material_fields(state)
+    
     ! Calculate diagnostic variables:
     call calculate_diagnostic_variables(state)
     call calculate_diagnostic_variables_new(state)
+
+    ! Initialise particle attributes and dependent fields
+    call update_particle_attributes_and_fields(state, current_time, dt)
+    call calculate_diagnostic_fields_from_particles(state)
     
     ! This is mostly to ensure that the photosynthetic radiation
     ! has a non-zero value before the first adapt.
@@ -366,13 +383,14 @@ contains
          & .and. .not. have_option("/io/disable_dump_at_start") &
          & ) then
        call write_state(dump_no, state)
+       call write_particles_loop(state, timestep, current_time)
     end if
 
     call initialise_convergence(filename, state)
     call initialise_steady_state(filename, state)
     call initialise_advection_convergence(state)
 
-    if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
+    if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, current_time, dt, timestep)
 
     not_to_move_det_yet=.false.
 
@@ -725,6 +743,16 @@ contains
 !       if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
 !          call melt_surf_calc(state(1))
 !       end if
+
+       ! Call move and write particles
+       call move_particles(state, dt)
+       call initialise_particles_during_simulation(state, current_time)
+       call particle_cv_check(state)
+       call update_particle_attributes_and_fields(state, current_time, dt)
+       call calculate_particle_material_fields(state)
+       call calculate_diagnostic_fields_from_particles(state)
+       call write_particles_loop(state, timestep, current_time)
+       
        ! calculate and write diagnostics before the timestep gets changed
        call calculate_diagnostic_variables(State, exclude_nonrecalculated=.true.)
        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
@@ -774,14 +802,14 @@ contains
              call pre_adapt_tasks(sub_state)
 
              call qmesh(state, metric_tensor)
-             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
+             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep)
              call run_diagnostics(state)
 
              call adapt_state(state, metric_tensor)
 
              call update_state_post_adapt(state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
 
-             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
+             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep)
              call run_diagnostics(state)
  
           end if
@@ -790,13 +818,13 @@ contains
 
              call pre_adapt_tasks(sub_state)
 
-             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
+             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep)
              call run_diagnostics(state)
 
              call adapt_state_prescribed(state, current_time)
              call update_state_post_adapt(state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
 
-             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
+             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep)
              call run_diagnostics(state)
 
           end if
@@ -831,6 +859,9 @@ contains
     ! deallocate the array of all detector lists
     call deallocate_detector_list_array()
 
+    ! deallocate the array of particle lists
+    call destroy_particles()
+    
     ewrite(1, *) "Printing references before final deallocation"
     call print_references(1)
 
@@ -964,6 +995,11 @@ contains
       call CalculateTopBottomDistance(state(1))
     end if
 
+    !Diagnostic fields based on particles
+    call particle_cv_check(state)
+    call calculate_particle_material_fields(state)
+    call calculate_diagnostic_fields_from_particles(state)
+ 
     ! Diagnostic fields
     call calculate_diagnostic_variables(state)
     call calculate_diagnostic_variables_new(state)

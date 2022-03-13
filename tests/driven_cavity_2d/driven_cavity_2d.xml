@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>driven_cavity_2d</name>
   <owner userid="piggott"/>
@@ -50,14 +49,14 @@ velocity = u.ProbeData(pts, "Velocity")
 
 norm=0.0
 for i in range(ilen):
-      diff = pts[i][3] - velocity[i][0]
-      print i,pts[i][1],pts[i][3],velocity[i][0],diff
-      norm = norm + diff*diff
-  
+    diff = pts[i][3] - velocity[i][0]
+    print(i,pts[i][1],pts[i][3],velocity[i][0],diff)
+    norm = norm + diff*diff
+
 norm = math.sqrt(norm)/ilen
-print norm
+print(norm)
 erturk_u_norm=norm
-    </variable>
+</variable>
     <variable name="erturk_v_norm" language="python">
 import vtktools
 import math
@@ -94,14 +93,14 @@ velocity = u.ProbeData(pts, "Velocity")
 
 norm=0.0
 for i in range(ilen):
-      diff = pts[i][3] - velocity[i][1]
-      print i,pts[i][0],pts[i][3],velocity[i][1],diff
-      norm = norm + diff*diff
-  
+    diff = pts[i][3] - velocity[i][1]
+    print(i,pts[i][0],pts[i][3],velocity[i][1],diff)
+    norm = norm + diff*diff
+
 norm = math.sqrt(norm)/ilen
-print norm
+print(norm)
 erturk_v_norm=norm
-    </variable>    
+</variable>    
     <variable name="botella_u_norm" language="python">
 import vtktools
 import math
@@ -132,18 +131,18 @@ pressure = u.ProbeData(pts, "Pressure")
 
 pts0=vtktools.arr([[0.5, 0.5, 0.0]])
 press0 = u.ProbeData(pts0, "Pressure")
-print press0[0][0]
+print(press0[0][0])
 
 norm=0.0
 for i in range(ilen):
-      diff = pts[i][3] - velocity[i][0]
-      print i,pts[i][1],pts[i][3],velocity[i][0],diff
-      norm = norm + diff*diff
+    diff = pts[i][3] - velocity[i][0]
+    print(i,pts[i][1],pts[i][3],velocity[i][0],diff)
+    norm = norm + diff*diff
 
 norm = math.sqrt(norm)/ilen
-print norm
+print(norm)
 botella_u_norm=norm
-    </variable>
+</variable>
     <variable name="botella_v_norm" language="python">
 import vtktools
 import math
@@ -173,14 +172,14 @@ velocity = u.ProbeData(pts, "Velocity")
 
 norm=0.0
 for i in range(ilen):
-      diff = pts[i][3] - velocity[i][1]
-      print i,pts[i][0],pts[i][3],velocity[i][1],diff
-      norm = norm + diff*diff
+    diff = pts[i][3] - velocity[i][1]
+    print(i,pts[i][0],pts[i][3],velocity[i][1],diff)
+    norm = norm + diff*diff
 
 norm = math.sqrt(norm)/ilen
-print norm
+print(norm)
 botella_v_norm=norm
-    </variable>
+</variable>
     <variable name="botella_p_norm1" language="python">
 import vtktools
 import math
@@ -211,18 +210,18 @@ pressure = u.ProbeData(pts, "Pressure")
 
 pts0=vtktools.arr([[0.5, 0.5, 0.0]])
 press0 = u.ProbeData(pts0, "Pressure")
-print press0[0][0]
+print(press0[0][0])
 
 norm=0.0
 for i in range(ilen):
-      diff = pts[i][3] - (pressure[i][0]-press0[0][0])
-      print i,pts[i][1],pts[i][3],pressure[i][0]-press0[0][0],diff
-      norm = norm + diff*diff
+    diff = pts[i][3] - (pressure[i][0]-press0[0][0])
+    print(i,pts[i][1],pts[i][3],pressure[i][0]-press0[0][0],diff)
+    norm = norm + diff*diff
 
 norm = math.sqrt(norm)/ilen
-print norm
+print(norm)
 botella_p_norm1=norm
-    </variable>    
+</variable>    
     <variable name="botella_p_norm2" language="python">
 import vtktools
 import math
@@ -254,31 +253,31 @@ pressure = u.ProbeData(pts, "Pressure")
 
 pts0=vtktools.arr([[0.5, 0.5, 0.0]])
 press0 = u.ProbeData(pts0, "Pressure")
-print press0[0][0]
+print(press0[0][0])
 
 norm=0.0
 for i in range(ilen):
-      diff = pts[i][3] - (pressure[i][0]-press0[0][0])
-      print i,pts[i][0],pts[i][3],pressure[i][0]-press0[0][0],diff
-      norm = norm + diff*diff
+    diff = pts[i][3] - (pressure[i][0]-press0[0][0])
+    print(i,pts[i][0],pts[i][3],pressure[i][0]-press0[0][0],diff)
+    norm = norm + diff*diff
 
 norm = math.sqrt(norm)/ilen
-print norm
+print(norm)
 botella_p_norm2=norm
-    </variable>
+</variable>
     <variable name="kinetic_energy_error" language="python">
 import fluidity_tools
 vel_l2_norm = fluidity_tools.stat_parser("driven_cavity_2d.stat")['Fluid']['Velocity%magnitude']['l2norm'][-1]
 kinetic_energy = 0.5*vel_l2_norm**2
 kinetic_energy_error = abs( kinetic_energy - 0.044503 )
-print kinetic_energy,kinetic_energy_error
-    </variable>   
+print(kinetic_energy,kinetic_energy_error)
+</variable>   
     <variable name="streamfunction_min_error" language="python">
 import fluidity_tools
 streamfunction_min = fluidity_tools.stat_parser("driven_cavity_2d.stat")['Fluid']['MultiplyConnectedStreamFunction']['min'][-1]
 streamfunction_min_error = abs( streamfunction_min - -0.118942 )
-print streamfunction_min,streamfunction_min_error
-    </variable>   
+print(streamfunction_min,streamfunction_min_error)
+</variable>   
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">

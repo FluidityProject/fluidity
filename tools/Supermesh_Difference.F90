@@ -234,13 +234,13 @@ subroutine supermesh_difference(vtu1_filename_, vtu1_filename_len, vtu2_filename
     if(shape%degree == 0) then    
       assert(p0)      
       call insert(state_1_split(2), v_field, v_field%name)
-      call insert(state_2_split(2), extract_scalar_field(state_2, v_field%name), v_field%name)
+      call insert(state_2_split(2), extract_vector_field(state_2, v_field%name), v_field%name)
       
       call allocate(v_field_3, dim, pwc_mesh_3, v_field%name)
       call insert(state_13(2), v_field_3, v_field_3%name)
     else
       call insert(state_1_split(1), v_field, v_field%name)
-      call insert(state_2_split(1), extract_scalar_field(state_2, v_field%name), v_field%name)
+      call insert(state_2_split(1), extract_vector_field(state_2, v_field%name), v_field%name)
       
       call allocate(v_field_3, dim, mesh_3, v_field%name)
       call insert(state_13(1), v_field_3, v_field_3%name)
@@ -273,13 +273,13 @@ subroutine supermesh_difference(vtu1_filename_, vtu1_filename_len, vtu2_filename
     if(shape%degree == 0) then    
       assert(p0)      
       call insert(state_1_split(2), t_field, t_field%name)
-      call insert(state_2_split(2), extract_scalar_field(state_2, t_field%name), t_field%name)
+      call insert(state_2_split(2), extract_tensor_field(state_2, t_field%name), t_field%name)
       
       call allocate(t_field_3, pwc_mesh_3, t_field%name)
       call insert(state_13(2), t_field_3, t_field_3%name)
     else
       call insert(state_1_split(1), t_field, t_field%name)
-      call insert(state_2_split(1), extract_scalar_field(state_2, t_field%name), t_field%name)
+      call insert(state_2_split(1), extract_tensor_field(state_2, t_field%name), t_field%name)
       
       call allocate(t_field_3, mesh_3, t_field%name)
       call insert(state_13(1), t_field_3, t_field_3%name)

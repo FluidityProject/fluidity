@@ -16,7 +16,8 @@ prescribed_scalar_field_no_adapt =
       prescribed_values_scalar_field,
       prescribed_output_options,
       prescribed_scalar_stat_options,
-      prescribed_detector_options
+      prescribed_detector_options,
+      prescribed_particle_options
    )
    
 prescribed_values_scalar_field =
@@ -57,9 +58,11 @@ prescribed_vector_field =
 prescribed_vector_field_no_adapt =
    (
       prescribed_values_vector_field,
+      prescribed_relaxation_term?,
       prescribed_output_options,
       prescribed_vector_stat_options,
-      prescribed_detector_options
+      prescribed_detector_options,
+      prescribed_particle_options
    )
 
 prescribed_values_vector_field =
@@ -85,6 +88,23 @@ prescribed_values_vector_field =
       )+
    )
 
+prescribed_relaxation_term =
+   (
+      (
+         ## Temporal discretisation options
+      	 element temporal_discretisation {
+            ## Non-linear relaxation term
+            ##  = 0  -- previous timestep velocity solution used in non-linear terms of momentum equations
+            ##  = 1  -- previous iteration velocity solution used in non-linear terms of momentum equations
+            ##  0 <= ITHETA <= 1
+	    ## Value will default to 1 if not set
+            element relaxation {
+               real
+            }
+ 	 }
+      )
+   )
+
 # Default child of prescribed tensor field
 # This is a choice of ways of inputing the prescribed tensor field
 # If the field is constant then a symmetric, or asymmetric tensor may be entered
@@ -92,6 +112,7 @@ prescribed_tensor_field =
    (
       prescribed_values_tensor_field,
       prescribed_output_options,
+      prescribed_particle_options,
       adaptivity_options_tensor_field
    )
    
@@ -101,7 +122,8 @@ prescribed_tensor_field =
 prescribed_tensor_field_no_adapt =
    (
       prescribed_values_tensor_field,
-      prescribed_output_options
+      prescribed_output_options,
+      prescribed_particle_options
    )
 
 prescribed_values_tensor_field =

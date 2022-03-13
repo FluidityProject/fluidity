@@ -79,7 +79,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="3" dim1="dim" rank="1">0.0 0.0 -1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="3">0.0 0.0 -1.0</real_value>
             </constant>
           </value>
           <output/>
@@ -89,6 +89,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -108,22 +111,25 @@
     </equation_of_state>
     <subgridscale_parameterisations>
       <prescribed_diffusivity>
-        <tensor_field name="PrescribedDiffusivity" rank="2">
+        <tensor_field rank="2" name="PrescribedDiffusivity">
           <prescribed>
             <mesh name="VelocityMesh"/>
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">10 0 0 0 10 0 0 0 1e-4</real_value>
+                  <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">10 0 0 0 10 0 0 0 1e-4</real_value>
                 </constant>
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
       </prescribed_diffusivity>
     </subgridscale_parameterisations>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
@@ -136,9 +142,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -148,7 +157,7 @@
               <streamline_upwind>
                 <nu_bar_unity/>
                 <nu_scale name="unity">
-                  <real_value shape="1" rank="0">1.0</real_value>
+                  <real_value rank="0" shape="1">1.0</real_value>
                 </nu_scale>
               </streamline_upwind>
             </stabilisation>
@@ -195,12 +204,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="lateral">
           <surface_ids>
-            <integer_value shape="4" rank="1">40 41 42 43</integer_value>
+            <integer_value rank="1" shape="4">40 41 42 43</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -214,7 +223,7 @@
         </boundary_conditions>
         <boundary_conditions name="topbottom">
           <surface_ids>
-            <integer_value shape="2" rank="1">38 39</integer_value>
+            <integer_value rank="1" shape="2">38 39</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -228,7 +237,7 @@
         </boundary_conditions>
         <boundary_conditions name="BulkFormulaVelocity">
           <surface_ids>
-            <integer_value shape="1" rank="1">38</integer_value>
+            <integer_value rank="1" shape="1">38</integer_value>
           </surface_ids>
           <type name="bulk_formulae"/>
         </boundary_conditions>
@@ -237,18 +246,21 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">10 0 0 0 10 0 0 0 1e-4</real_value>
+                  <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">10 0 0 0 10 0 0 0 1e-4</real_value>
                 </constant>
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <vector_field name="Absorption" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <constant>
-                <real_value shape="3" dim1="dim" rank="1">1.0e-7 1.0e-7 1.0e-7</real_value>
+                <real_value rank="1" dim1="dim" shape="3">1.0e-7 1.0e-7 1.0e-7</real_value>
               </constant>
             </value>
             <output/>
@@ -258,6 +270,9 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
           <default_absorption/>
         </vector_field>
@@ -277,13 +292,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -293,7 +311,7 @@
               <streamline_upwind>
                 <nu_bar_unity/>
                 <nu_scale name="unity">
-                  <real_value shape="1" rank="0">1.0</real_value>
+                  <real_value rank="0" shape="1">1.0</real_value>
                 </nu_scale>
               </streamline_upwind>
             </stabilisation>
@@ -336,7 +354,7 @@
         </initial_condition>
         <boundary_conditions name="BulkFormulaTemperature">
           <surface_ids>
-            <integer_value shape="1" rank="1">38</integer_value>
+            <integer_value rank="1" shape="1">38</integer_value>
           </surface_ids>
           <type name="bulk_formulae"/>
         </boundary_conditions>
@@ -349,13 +367,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="PerturbationDensity" rank="0">
+    <scalar_field rank="0" name="PerturbationDensity">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -367,12 +388,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Salinity" rank="0">
+    <scalar_field rank="0" name="Salinity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -418,7 +442,7 @@
         </initial_condition>
         <boundary_conditions name="BulkFormulaSalinity">
           <surface_ids>
-            <integer_value shape="1" rank="1">38</integer_value>
+            <integer_value rank="1" shape="1">38</integer_value>
           </surface_ids>
           <type name="bulk_formulae"/>
         </boundary_conditions>
@@ -431,13 +455,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="PhotosyntheticRadiation" rank="0">
+    <scalar_field rank="0" name="PhotosyntheticRadiation">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -485,7 +512,7 @@
         </initial_condition>
         <boundary_conditions name="BulkFormulaPSR">
           <surface_ids>
-            <integer_value shape="1" rank="1">38</integer_value>
+            <integer_value rank="1" shape="1">38</integer_value>
           </surface_ids>
           <type name="bulk_formulae"/>
         </boundary_conditions>
@@ -497,6 +524,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -514,7 +544,7 @@
         <type name="ERA40"/>
       </input_file_type>
       <output_fluxes_diagnostics>
-        <vector_field name="MomentumFlux" rank="1">
+        <vector_field rank="1" name="MomentumFlux">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -526,12 +556,15 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </vector_field>
-        <scalar_field name="HeatFlux" rank="0">
+        <scalar_field rank="0" name="HeatFlux">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -543,12 +576,15 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="SalinityFlux" rank="0">
+        <scalar_field rank="0" name="SalinityFlux">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -560,12 +596,15 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="PhotosyntheticRadiationDownward" rank="0">
+        <scalar_field rank="0" name="PhotosyntheticRadiationDownward">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -577,6 +616,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>

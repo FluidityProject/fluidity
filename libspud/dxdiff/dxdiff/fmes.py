@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #    This file is part of dxdiff.
 #
 #    dxdiff is free software: you can redistribute it and/or modify
@@ -20,11 +18,11 @@ Diff xml trees using a modification of FMES [http://infolab.stanford.edu/pub/pap
 
 from lxml import etree
 from collections import deque
-from bimap import Bimap
-from editscript import EditScript
+from .bimap import Bimap
+from .editscript import EditScript
 
-import lcs
-import utils
+from . import lcs
+from . import utils
 
 class Dom:
   def __init__(self, tag, value, parent, attribute = False):
@@ -183,7 +181,7 @@ def dom(tree = None, parent = None):
     text = Dom(tree.tag, text, node)
     node.children.append(text)
 
-  for key, value in tree.items():
+  for key, value in list(tree.items()):
     attr = Dom(key, value, node, True)
     node.children.append(attr)
 

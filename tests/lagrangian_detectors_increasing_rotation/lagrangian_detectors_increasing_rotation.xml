@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testproblem>
+  <name>lagrangian_detectors_increasing_rotation</name>
+  <owner userid="drhodrid"/>
+  <tags>flml parallel zoltan</tags>
+  <problem_definition length="short" nprocs="4">
+    <command_line>
+mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian-detectors-increasing-rotation lagrangian-detectors-increasing-rotation-flredecomp;
+mpiexec ../../bin/fluidity -v3 -l lagrangian-detectors-increasing-rotation-flredecomp.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="last_single_locations_error" language="python">
+import h5py
+import numpy as np
+last_single_locations_error = np.zeros((2,3))
+X = np.fromfile('Xvals.npy', dtype=np.float)
+Y = np.fromfile('Yvals.npy', dtype=np.float)
+vals_idx = [i+10 for i in [0, 50, 99]]
+
+for i in range(3):
+  f = h5py.File('lagrangian_detectors.particles.Singl_Lagr_{i}.h5part'.format(i=i+1), 'r')
+  d = f['/Step#{}'.format(len(f)-1)]
+  last_single_locations_error[0,i] = d['x'][0] - X[vals_idx[i]]
+  last_single_locations_error[0,i] = d['y'][0] - Y[vals_idx[i]]
+    </variable>
+    <variable name="last_locations_error" language="python">
+import h5py
+import numpy as np
+last_locations_error = np.zeros((2,100))
+X = np.fromfile('Xvals.npy', dtype=np.float)
+Y = np.fromfile('Yvals.npy', dtype=np.float)
+
+f = h5py.File('lagrangian_detectors.particles.Steve.h5part', 'r')
+d = f['/Step#{}'.format(len(f)-1)]
+idx = np.argsort(d['id'])
+
+last_locations_error[0,:] = d['x'][:][idx] - X[10:]
+last_locations_error[1,:] = d['y'][:][idx] - Y[10:]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="CorrectSingleLagrangianDetectors" language="python">
+      assert abs(last_single_locations_error).max() &lt; 1.0e-6
+    </test>
+    <test name="CorrectLagrangianTrajectory" language="python">
+      assert abs(last_locations_error).max() &lt; 1.0e-6
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

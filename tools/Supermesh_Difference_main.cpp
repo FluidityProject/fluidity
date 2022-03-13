@@ -28,9 +28,7 @@
 #include "fmangle.h"
 #include "Usage.h"
 
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
+#include "flmpi.h"
 
 extern "C" {
   void supermesh_difference(const char*, size_t, const char*, size_t, const char*, size_t);
@@ -62,10 +60,14 @@ void project_vtu_usage(char *binary){
 int main(int argc, char **argv){
  #ifdef HAVE_MPI
   // This must be called before we process any arguments
-  MPI::Init(argc,argv);
+  MPI_Init(&argc, &argv);
 
   // Undo some MPI init shenanigans
-  chdir(getenv("PWD"));
+  int ierr = chdir(getenv("PWD"));
+  if (ierr == -1) {
+        cerr << "Unable to switch to directory " << getenv("PWD");
+        abort();
+  }
 #endif
   
   // Initialise PETSc (this also parses PETSc command line arguments)
@@ -128,7 +130,7 @@ int main(int argc, char **argv){
 #endif
 
 #ifdef HAVE_MPI
-  MPI::Finalize();
+  MPI_Finalize();
 #endif
   return(0);
 }

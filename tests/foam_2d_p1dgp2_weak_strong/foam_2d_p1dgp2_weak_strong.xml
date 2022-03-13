@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>2d square unstructured mesh p1dgp2 foam drainage test with weak bcs for velocity and strong for pressure</name>
   <owner userid="pbritopa"/>
@@ -20,10 +20,9 @@ a_error_rho = stat("drainage_a.stat")["foam"]["ScalarAbsoluteDifference"]["l2nor
 
 a_error_inf_rho = stat("drainage_a.stat")["foam"]["ScalarAbsoluteDifference"]["max"][-1]
 
-print a_error_rho
-print a_error_inf_rho
-
-    </variable>
+print(a_error_rho)
+print(a_error_inf_rho)
+</variable>
     <variable name="a_error_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -34,20 +33,20 @@ a_error_y = stat("drainage_a.stat")["foam"]["VectorAbsoluteDifference%2"]["l2nor
 a_error_inf_x = stat("drainage_a.stat")["foam"]["VectorAbsoluteDifference%1"]["max"][-1]
 a_error_inf_y = stat("drainage_a.stat")["foam"]["VectorAbsoluteDifference%2"]["max"][-1]
 
-print a_error_x
-print a_error_y
+print(a_error_x)
+print(a_error_y)
 
-print a_error_inf_x
-print a_error_inf_y
+print(a_error_inf_x)
+print(a_error_inf_y)
 
 a_error_vel = [[a_error_x, a_error_inf_x], [a_error_y, a_error_inf_y]]
-    </variable>
+</variable>
     <variable name="a_finish_time" language="python">
 from fluidity_tools import stat_parser as stat
 a_finish_time = stat("drainage_a.stat")["ElapsedTime"]["value"][-1]
 
-print a_finish_time
-    </variable>
+print(a_finish_time)
+</variable>
     <variable name="a_final_change_rho" language="python">
 import vtktools
 from fluidity_tools import stat_parser as stat
@@ -55,16 +54,16 @@ vtu = vtktools.vtu("drainage_a_1.vtu")
 dt = stat("drainage_a.stat")["dt"]["value"][-1]
 a_final_change_rho = max(abs(vtu.GetScalarField("Density")-vtu.GetScalarField("OldDensity"))/dt)
 
-print a_final_change_rho
-    </variable>
+print(a_final_change_rho)
+</variable>
     <variable name="a_final_change_vel" language="python">
 import vtktools
 from fluidity_tools import stat_parser as stat
 vtu = vtktools.vtu("drainage_a_1.vtu")
 dt = stat("drainage_a.stat")["dt"]["value"][-1]
 a_final_change_vel = max(max(abs(vtu.GetVectorField("Velocity")[:,0]-vtu.GetVectorField("OldVelocity")[:,0])/dt), max(abs(vtu.GetVectorField("Velocity")[:,1]-vtu.GetVectorField("OldVelocity")[:,1])/dt), max(abs(vtu.GetVectorField("Velocity")[:,2]-vtu.GetVectorField("OldVelocity")[:,2])/dt))
-print a_final_change_vel
-    </variable>
+print(a_final_change_vel)
+</variable>
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">

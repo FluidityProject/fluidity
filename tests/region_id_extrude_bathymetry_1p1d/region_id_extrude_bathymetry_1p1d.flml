@@ -16,11 +16,11 @@
         <extrude>
           <regions name="LeftSlope">
             <region_ids>
-              <integer_value shape="1" rank="1">1</integer_value>
+              <integer_value rank="1" shape="1">1</integer_value>
             </region_ids>
             <bottom_depth>
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    return X[0]+400.0</string_value>
               </python>
             </bottom_depth>
@@ -38,7 +38,7 @@
           </regions>
           <regions name="FlatBottom">
             <region_ids>
-              <integer_value shape="1" rank="1">2</integer_value>
+              <integer_value rank="1" shape="1">2</integer_value>
             </region_ids>
             <bottom_depth>
               <constant>
@@ -59,11 +59,11 @@
           </regions>
           <regions name="RightSlope">
             <region_ids>
-              <integer_value shape="1" rank="1">3</integer_value>
+              <integer_value rank="1" shape="1">3</integer_value>
             </region_ids>
             <bottom_depth>
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
   return -X[0]+10000.0+6400.0</string_value>
               </python>
             </bottom_depth>
@@ -130,12 +130,12 @@
     </quadrature>
     <ocean_boundaries>
       <top_surface_ids>
-        <integer_value shape="1" rank="1">8</integer_value>
+        <integer_value rank="1" shape="1">8</integer_value>
       </top_surface_ids>
       <bottom_surface_ids>
-        <integer_value shape="3" rank="1">6 7 9</integer_value>
+        <integer_value rank="1" shape="3">6 7 9</integer_value>
       </bottom_surface_ids>
-      <scalar_field name="DistanceToTop" rank="0">
+      <scalar_field rank="0" name="DistanceToTop">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -151,12 +151,15 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <exclude_from_steady_state/>
           </steady_state>
         </diagnostic>
       </scalar_field>
-      <scalar_field name="DistanceToBottom" rank="0">
+      <scalar_field rank="0" name="DistanceToBottom">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -172,6 +175,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <exclude_from_steady_state/>
           </steady_state>
@@ -203,20 +209,19 @@
     <detectors>
       <static_detector name="Region1">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">3664.86825015395 -1589.54203006775</real_value>
+          <real_value rank="1" dim1="dim" shape="2">3664.86825015395 -1589.54203006775</real_value>
         </location>
       </static_detector>
       <static_detector name="Region2">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">7998.46424197172 -2014.1173130499</real_value>
+          <real_value rank="1" dim1="dim" shape="2">7998.46424197172 -2014.1173130499</real_value>
         </location>
       </static_detector>
       <static_detector name="Region3">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">11995.3281128037 -1545.62044906958</real_value>
+          <real_value rank="1" dim1="dim" shape="2">11995.3281128037 -1545.62044906958</real_value>
         </location>
       </static_detector>
-      <fail_outside_domain/>
     </detectors>
   </io>
   <timestepping>
@@ -246,7 +251,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">0.0 -1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="2">0.0 -1.0</real_value>
             </constant>
           </value>
           <output>
@@ -258,17 +263,20 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
   </physical_parameters>
   <material_phase name="Water">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </value>
         <output/>
@@ -278,9 +286,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Tracer" rank="0">
+    <scalar_field rank="0" name="Tracer">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -311,7 +322,7 @@
         </initial_condition>
         <boundary_conditions name="8">
           <surface_ids>
-            <integer_value shape="1" rank="1">8</integer_value>
+            <integer_value rank="1" shape="1">8</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -321,7 +332,7 @@
         </boundary_conditions>
         <boundary_conditions name="6">
           <surface_ids>
-            <integer_value shape="1" rank="1">6</integer_value>
+            <integer_value rank="1" shape="1">6</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -331,7 +342,7 @@
         </boundary_conditions>
         <boundary_conditions name="9">
           <surface_ids>
-            <integer_value shape="1" rank="1">9</integer_value>
+            <integer_value rank="1" shape="1">9</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -341,21 +352,21 @@
         </boundary_conditions>
         <output/>
         <stat>
-          <surface_integral type="value" name="6">
+          <surface_integral name="6" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">6</integer_value>
+              <integer_value rank="1" shape="1">6</integer_value>
             </surface_ids>
             <normalise/>
           </surface_integral>
-          <surface_integral type="value" name="8">
+          <surface_integral name="8" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">8</integer_value>
+              <integer_value rank="1" shape="1">8</integer_value>
             </surface_ids>
             <normalise/>
           </surface_integral>
-          <surface_integral type="value" name="9">
+          <surface_integral name="9" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">9</integer_value>
+              <integer_value rank="1" shape="1">9</integer_value>
             </surface_ids>
             <normalise/>
           </surface_integral>
@@ -366,13 +377,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="OtherTracer" rank="0">
+    <scalar_field rank="0" name="OtherTracer">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -403,7 +417,7 @@
         </initial_condition>
         <boundary_conditions name="1">
           <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value rank="1" shape="1">1</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -413,7 +427,7 @@
         </boundary_conditions>
         <boundary_conditions name="2">
           <surface_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
+            <integer_value rank="1" shape="1">2</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -423,7 +437,7 @@
         </boundary_conditions>
         <boundary_conditions name="7">
           <surface_ids>
-            <integer_value shape="1" rank="1">7</integer_value>
+            <integer_value rank="1" shape="1">7</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -433,21 +447,21 @@
         </boundary_conditions>
         <output/>
         <stat>
-          <surface_integral type="value" name="1">
+          <surface_integral name="1" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">1</integer_value>
+              <integer_value rank="1" shape="1">1</integer_value>
             </surface_ids>
             <normalise/>
           </surface_integral>
-          <surface_integral type="value" name="2">
+          <surface_integral name="2" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">2</integer_value>
+              <integer_value rank="1" shape="1">2</integer_value>
             </surface_ids>
             <normalise/>
           </surface_integral>
-          <surface_integral type="value" name="7">
+          <surface_integral name="7" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">7</integer_value>
+              <integer_value rank="1" shape="1">7</integer_value>
             </surface_ids>
             <normalise/>
           </surface_integral>
@@ -458,13 +472,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="ConstantField" rank="0">
+    <scalar_field rank="0" name="ConstantField">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
@@ -477,9 +494,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="TracerP1DG" rank="0">
+    <scalar_field rank="0" name="TracerP1DG">
       <prognostic>
         <mesh name="P1DGMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -529,7 +549,7 @@
         </initial_condition>
         <boundary_conditions name="6">
           <surface_ids>
-            <integer_value shape="1" rank="1">6</integer_value>
+            <integer_value rank="1" shape="1">6</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -539,7 +559,7 @@
         </boundary_conditions>
         <boundary_conditions name="8">
           <surface_ids>
-            <integer_value shape="1" rank="1">8</integer_value>
+            <integer_value rank="1" shape="1">8</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -549,7 +569,7 @@
         </boundary_conditions>
         <boundary_conditions name="9">
           <surface_ids>
-            <integer_value shape="1" rank="1">9</integer_value>
+            <integer_value rank="1" shape="1">9</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -559,21 +579,21 @@
         </boundary_conditions>
         <output/>
         <stat>
-          <surface_integral type="value" name="6">
+          <surface_integral name="6" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">6</integer_value>
+              <integer_value rank="1" shape="1">6</integer_value>
             </surface_ids>
             <normalise/>
           </surface_integral>
-          <surface_integral type="value" name="8">
+          <surface_integral name="8" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">8</integer_value>
+              <integer_value rank="1" shape="1">8</integer_value>
             </surface_ids>
             <normalise/>
           </surface_integral>
-          <surface_integral type="value" name="9">
+          <surface_integral name="9" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">9</integer_value>
+              <integer_value rank="1" shape="1">9</integer_value>
             </surface_ids>
             <normalise/>
           </surface_integral>
@@ -584,13 +604,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="OtherTracerP1DG" rank="0">
+    <scalar_field rank="0" name="OtherTracerP1DG">
       <prognostic>
         <mesh name="P1DGMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -640,7 +663,7 @@
         </initial_condition>
         <boundary_conditions name="1">
           <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value rank="1" shape="1">1</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -650,7 +673,7 @@
         </boundary_conditions>
         <boundary_conditions name="2">
           <surface_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
+            <integer_value rank="1" shape="1">2</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -660,7 +683,7 @@
         </boundary_conditions>
         <boundary_conditions name="7">
           <surface_ids>
-            <integer_value shape="1" rank="1">7</integer_value>
+            <integer_value rank="1" shape="1">7</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -670,21 +693,21 @@
         </boundary_conditions>
         <output/>
         <stat>
-          <surface_integral type="value" name="7">
+          <surface_integral name="7" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">7</integer_value>
+              <integer_value rank="1" shape="1">7</integer_value>
             </surface_ids>
             <normalise/>
           </surface_integral>
-          <surface_integral type="value" name="1">
+          <surface_integral name="1" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">1</integer_value>
+              <integer_value rank="1" shape="1">1</integer_value>
             </surface_ids>
             <normalise/>
           </surface_integral>
-          <surface_integral type="value" name="2">
+          <surface_integral name="2" type="value">
             <surface_ids>
-              <integer_value shape="1" rank="1">2</integer_value>
+              <integer_value rank="1" shape="1">2</integer_value>
             </surface_ids>
             <normalise/>
           </surface_integral>
@@ -695,18 +718,21 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="RegionIDs" rank="0">
+    <scalar_field rank="0" name="RegionIDs">
       <prescribed>
         <mesh name="P1DGMesh"/>
         <value name="Region1">
           <region_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value rank="1" shape="1">1</integer_value>
           </region_ids>
           <constant>
             <real_value rank="0">1</real_value>
@@ -714,7 +740,7 @@
         </value>
         <value name="Region2">
           <region_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
+            <integer_value rank="1" shape="1">2</integer_value>
           </region_ids>
           <constant>
             <real_value rank="0">2</real_value>
@@ -722,7 +748,7 @@
         </value>
         <value name="Region3">
           <region_ids>
-            <integer_value shape="1" rank="1">3</integer_value>
+            <integer_value rank="1" shape="1">3</integer_value>
           </region_ids>
           <constant>
             <real_value rank="0">3</real_value>
@@ -733,6 +759,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
   </material_phase>

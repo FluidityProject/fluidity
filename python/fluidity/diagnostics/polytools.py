@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -163,7 +163,7 @@ def WritePoly(mesh, filename, holeMesh = None):
            "# Command: " + " ".join(sys.argv) + "\n" + \
            "# " + str(time.ctime()) + "\n"
   
-  polyHandle = file(filename, "w")
+  polyHandle = open(filename, "w")
   
   # Write the node meta data
   polyHandle.write("# Nodes\n")

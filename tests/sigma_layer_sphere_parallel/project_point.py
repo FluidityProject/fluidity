@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import matplotlib
 import math
 import argparse
@@ -27,7 +27,7 @@ def main():
     coord = args.coord    
 
     point = project(coord)
-    print str(coord) +"->" +str(point)
+    print(str(coord) +"->" +str(point))
 
 
 def project(location):

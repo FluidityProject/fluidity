@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>parallel_p1_consistent_interpolation</name>
   <owner userid="cwilson"/>
@@ -36,9 +36,10 @@ initialVtu = vtutools.PvtuToVtu(vtktools.vtu("parallel_p1_consistent_interpolati
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>
-    <test name="SimulationCompleted" language="python">print "Timesteps: ", len(stat["ElapsedTime"])
+    <test name="SimulationCompleted" language="python">print("Timesteps: ", len(stat["ElapsedTime"]))
 
-assert(len(stat["ElapsedTime"]) == 1)</test>
+assert(len(stat["ElapsedTime"]) == 1)
+</test>
     <test name="Interpolation" language="python">import fluidity_tools
 
 coords = interpolatedpvtu.GetLocations()

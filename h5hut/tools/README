@@ -1,0 +1,356 @@
+TABLE OF CONTENTS
+--------------------
+
+[1] Quick Guide 
+
+--- For h5pAttrib
+[2] To see number of timesteps in a h5part file
+[3] To see file attributes in a h5part file
+[4] To see step attributes in a h5part file
+[5] To see dataset in a h5part file
+[6] Providing more than one flag at once for h5pAttrib
+
+--- For h5pToGNUplot
+[7] What parameters to provide
+[8] How to create an input file to GNUplot
+
+
+************************************************************************************************
+
+
+[1] Quick Guide 
+------------------
+
+--> -h option will display a concise help page.
+
+$>> ./h5pAttrib -h
+
+usage: h5pAttrib [OPTIONS] file
+
+  OPTIONS
+   -h, --help           Print help page
+   -n, --nstep          Print number of steps
+   -A, --fileA          Print file attributes
+   -a, --stepA          Print step attributes & values for time step n
+   -d, --dataset        Print data sets names & values for time step n
+   -H, --header         Print shorter version without the values
+
+  Examples:
+
+  1) Show file attribute names & values of sample.h5part
+
+        h5pAttrib -A sample.h5part
+
+  2) Show step attribute names for time step 5 of sample.h5part
+
+        h5pAttrib -a 5 -H sample.h5part
+        
+        
+        
+$>> ./h5pToGNUplot -h
+
+usage: h5pToGNUplot -t TIMESTEP -1 VARIABLE#1 -2 VARIABLE#2 -i INPUTFILE [OPTIONAL_FLAGS]
+
+  FLAGS
+   -h, --help           Print help page
+   -1, --1var           (REQUIRED) Takes first variable parameter
+   -2, --2var           (REQUIRED) Takes second variable parameter
+   -i, --input          (REQUIRED) Takes input file name
+   -t, --timestep       (REQUIRED) Sets the timestep (Value -1 will result in dumping values of all timesteps.)
+   -o, --output         (OPTIONAL) Takes output file name (without this flag, the program will print to stdout)
+   -n, --number         (OPTIONAL) Sets number of output points
+   -s, --start          (OPTIONAL) Sets the starting particle index
+
+  Examples:
+
+  1) Create GNU plot file output.txt from sample.h5part by ploting x vs px for timestep 54
+
+        h5pToGNUplot -t 54 -1 x -2 px -i sample.h5part -o output.txt
+
+  2) Create GNU plot file output.txt from sample.h5part by ploting x vs px for timestep 54
+     using 1200 points from particle index 76
+
+        h5pToGNUplot -t 54 -1 x -2 px -i sample.h5part -o output.txt -s 76 -n 1200
+
+************************************************************************************************
+--- For h5pAttrib
+************************************************************************************************
+
+[2] To see number of timesteps in a h5part file
+--------------------------------------------------
+
+EXAMPLE>>
+
+$>> ./h5pAttrib -n sample.h5part
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Printing number of timesteps for: sample.h5part ...
+
+There are total 252 number of timesteps.
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+done
+
+
+[3] To see file attributes in a h5part file
+----------------------------------------------
+
+EXAMPLE>>
+
+$>> ./h5pAttrib -A sample.h5part
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Printing file attributes for: sample.h5part ...
+
+The number of file attributes for file sample.h5part is 0 ...
+There are no file attributes.
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+done
+
+
+NOTE: -H option will omit the list of values of file attributes.
+
+
+[4] To see step attributes in a h5part file
+----------------------------------------------
+
+EXAMPLE>>
+
+$>> ./h5pAttrib -a 2 sample.h5part
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Printing step attributes for: sample.h5part ...
+
+The number of step attributes for timestep #2 is 10 ...
+
+Attribute #0 = Step
+There are 1 elements in the attribute
+Attribute Type is H5T_NATIVE_INT64
+Printing 1 element value(s):
+COUNT[0]: 2
+
+Attribute #1 = Spos
+There are 1 elements in the attribute
+Attribute Type is H5T_NATIVE_DOUBLE
+Printing 1 element value(s):
+COUNT[0]: 0.143580
+
+Attribute #2 = structLen
+There are 1 elements in the attribute
+Attribute Type is H5T_NATIVE_DOUBLE
+Printing 1 element value(s):
+COUNT[0]: 2.393000
+
+.
+.
+.
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+done
+
+
+NOTE: -H option will omit the list of values of step attributes.
+
+
+[5] To see dataset in a h5part file
+--------------------------------------
+
+EXAMPLE>>
+
+$>> ./h5pAttrib -d 2 -H sample.h5part
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Printing names of datasets for: sample.h5part ...
+
+The number of datasets for timestep #2 is 7 ...
+
+Dataset Name #0 = id
+Dataset Type is H5T_NATIVE_INT64
+Number of elements: 67587
+
+Dataset Name #1 = px
+Dataset Type is H5T_NATIVE_DOUBLE
+Number of elements: 67587
+
+Dataset Name #2 = py
+Dataset Type is H5T_NATIVE_DOUBLE
+Number of elements: 67587
+
+Dataset Name #3 = pz
+Dataset Type is H5T_NATIVE_DOUBLE
+Number of elements: 67587
+
+Dataset Name #4 = x
+Dataset Type is H5T_NATIVE_DOUBLE
+Number of elements: 67587
+
+Dataset Name #5 = y
+Dataset Type is H5T_NATIVE_DOUBLE
+Number of elements: 67587
+
+Dataset Name #6 = z
+Dataset Type is H5T_NATIVE_DOUBLE
+Number of elements: 67587
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+done
+
+
+NOTE: -H option will omit the list of values of dataset attributes.
+
+[6] Providing more than one flag at once
+-------------------------------------------
+
+When more than one flags are provided, one result after another will be displayed.
+
+EXAMPLE>>
+
+$>> ./h5pAttrib -H -a 1 -d 1 sample.h5part
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Printing step attributes for: sample.h5part ...
+
+The number of step attributes for timestep #1 is 10 ...
+
+Attribute #0 = Step
+Attribute #1 = Spos
+Attribute #2 = structLen
+Attribute #3 = org
+Attribute #4 = maxX
+Attribute #5 = minX
+Attribute #6 = maxP
+Attribute #7 = minP
+Attribute #8 = centroid
+Attribute #9 = nloc
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Printing names of datasets for: sample.h5part ...
+
+The number of datasets for timestep #1 is 7 ...
+
+Dataset Name #0 = id
+Dataset Type is H5T_NATIVE_INT64
+Number of elements: 60214
+
+Dataset Name #1 = px
+Dataset Type is H5T_NATIVE_DOUBLE
+Number of elements: 60214
+
+Dataset Name #2 = py
+Dataset Type is H5T_NATIVE_DOUBLE
+Number of elements: 60214
+
+Dataset Name #3 = pz
+Dataset Type is H5T_NATIVE_DOUBLE
+Number of elements: 60214
+
+Dataset Name #4 = x
+Dataset Type is H5T_NATIVE_DOUBLE
+Number of elements: 60214
+
+Dataset Name #5 = y
+Dataset Type is H5T_NATIVE_DOUBLE
+Number of elements: 60214
+
+Dataset Name #6 = z
+Dataset Type is H5T_NATIVE_DOUBLE
+Number of elements: 60214
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+done
+
+************************************************************************************************
+--- For h5pAttrib
+************************************************************************************************
+
+[7] What parameters to provide
+---------------------------------
+
+When you execute the program with -h option, it displays what flags are necessary and what flags
+are optional.
+
+   -h, --help           Print help page
+   -1, --1var           (REQUIRED) Takes first variable parameter
+   -2, --2var           (REQUIRED) Takes second variable parameter
+   -i, --input          (REQUIRED) Takes input file name
+   -t, --timestep       (REQUIRED) Sets the timestep (Value -1 will result in dumping values of all timesteps.)
+   -o, --output         (OPTIONAL) Takes output file name (without this flag, the program will print to stdout)
+   -n, --number         (OPTIONAL) Sets number of output points
+   -s, --start          (OPTIONAL) Sets the starting particle index
+
+
+[8] How to create an input file to GNUplot
+---------------------------------------------
+
+EXAMPLE>>
+Create input file to GNUplot that plots x vs. y.
+
+$>> ./h5pToGNUplot -1 x -2 y -t 1 -i sample.h5part -o output.txt
+$>> cat output.txt
+-0.390779       -0.254793
+-0.396527       -0.252781
+-0.375362       -0.285137
+-0.396527       -0.252781
+-0.379917       -0.283147
+-0.390779       -0.254793
+-0.387536       -0.287346
+-0.371787       -0.319797
+-0.379917       -0.283147
+-0.378967       -0.326058
+-0.378976       -0.326078
+-0.387536       -0.287346
+-0.378957       -0.326069
+-0.379917       -0.283147
+-0.388762       -0.265390
+-0.371787       -0.319797
+-0.390779       -0.254793
+-0.376825       -0.266804
+-0.379917       -0.283147
+-0.375362       -0.285137
+...
+
+Then run GNUplot...
+
+$>> gnuplot
+
+        G N U P L O T
+        Version 4.0 patchlevel 0
+        last modified Thu Apr 15 14:44:22 CEST 2004
+        System: Linux 2.6.11.4-21.11-smp
+
+        Copyright (C) 1986 - 1993, 1998, 2004
+        Thomas Williams, Colin Kelley and many others
+
+        This is gnuplot version 4.0.  Please refer to the documentation
+        for command syntax changes.  The old syntax will be accepted
+        throughout the 4.0 series, but all save files use the new syntax.
+
+        Type `help` to access the on-line reference manual.
+        The gnuplot FAQ is available from
+                http://www.gnuplot.info/faq/
+
+        Send comments and requests for help to
+                <gnuplot-info@lists.sourceforge.net>
+        Send bugs, suggestions and mods to
+                <gnuplot-bugs@lists.sourceforge.net>
+
+
+Terminal type set to 'x11'
+gnuplot> plot "output.txt"
+
+This will open a GNUplot window that plots output.txt.
+
+

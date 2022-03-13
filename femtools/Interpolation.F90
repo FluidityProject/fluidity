@@ -546,9 +546,7 @@ module interpolation_module
 
       node_list => ele_nodes(old_mesh, ele)
       local_coord = local_coords(old_position, ele, node_val(new_position, new_node))
-      do i=1,ele_loc(old_mesh, ele)
-        shape_fns(i) = eval_shape(ele_shape(old_mesh, ele), i, local_coord)
-      end do
+      shape_fns = eval_shape(ele_shape(old_mesh, ele), local_coord)
 
       do field_s=1,field_count_s
         ! At each node of the old element, evaluate val * shape_fn

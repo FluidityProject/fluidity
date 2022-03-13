@@ -104,28 +104,28 @@ periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
   !! that are searched for additional fields to be added.
   character(len=OPTION_PATH_LEN), dimension(22) :: additional_fields_relative=&
        (/ &
-       "/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
-       "/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
-       "/subgridscale_parameterisations/GLS                                                                 ", &
-       "/subgridscale_parameterisations/k-epsilon                                                           ", &
-       "/subgridscale_parameterisations/k-epsilon/debugging_options/source_term_output_fields               ", &
-       "/subgridscale_parameterisations/k-epsilon/debugging_options/prescribed_source_terms                 ", &
-       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order", &
-       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/fourth_order", &
-       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/wale        ", &
-       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
-       "/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/les_model/         ", &
-       "/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/les_model/debug/   ", &
-       "/vector_field::Velocity/prognostic/equation::ShallowWater                                           ", &
-       "/vector_field::Velocity/prognostic/equation::ShallowWater/bottom_drag                               ", &
-       "/vector_field::BedShearStress/diagnostic/calculation_method/velocity_gradient                       ", &
-       "/population_balance[#]/abscissa1/                                                                   ", &
-       "/population_balance[#]/abscissa2/                                                                   ", &
-       "/population_balance[#]/weights/                                                                     ", &
-       "/population_balance[#]/weighted_abscissa1/                                                          ", &
-       "/population_balance[#]/weighted_abscissa2/                                                          ", &
-       "/population_balance[#]/moments/                                                                     ", &
-       "/population_balance[#]/statistics/                                                                  "  &
+       "/subgridscale_parameterisations/Mellor_Yamada                                                        ", &
+       "/subgridscale_parameterisations/prescribed_diffusivity                                               ", &
+       "/subgridscale_parameterisations/GLS                                                                  ", &
+       "/subgridscale_parameterisations/k-epsilon                                                            ", &
+       "/subgridscale_parameterisations/k-epsilon/debugging_options/source_term_output_fields                ", &
+       "/subgridscale_parameterisations/k-epsilon/debugging_options/prescribed_source_terms                  ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/fourth_order ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/wale         ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les  ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/les_model/          ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/les_model/debug/    ", &
+       "/vector_field::Velocity/prognostic/equation::ShallowWater                                            ", &
+       "/vector_field::Velocity/prognostic/equation::ShallowWater/bottom_drag                                ", &
+       "/vector_field::BedShearStress/diagnostic/calculation_method/velocity_gradient                        ", &
+       "/population_balance[#]/abscissa1/                                                                    ", &
+       "/population_balance[#]/abscissa2/                                                                    ", &
+       "/population_balance[#]/weights/                                                                      ", &
+       "/population_balance[#]/weighted_abscissa1/                                                           ", &
+       "/population_balance[#]/weighted_abscissa2/                                                           ", &
+       "/population_balance[#]/moments/                                                                      ", &
+       "/population_balance[#]/statistics/                                                                   "  &
        /)
 
   !! Relative paths under a field that are searched for grandchildren
@@ -139,14 +139,16 @@ periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
   !! Dynamic paths that are searched for fields
   !! This allows for searching for field within paths that may branch several times
   !! The index of any particular path should be replaced with #
-  character(len=OPTION_PATH_LEN), dimension(6):: &
+  character(len=OPTION_PATH_LEN), dimension(8):: &
          dynamic_paths = (/&
-         &    "/material_phase[#]/equation_of_state/fluids/linear/        ", &
-         &    "/material_phase[#]/population_balance[#]/abscissa/         ", &
-         &    "/material_phase[#]/population_balance[#]/weights/          ", &
-         &    "/material_phase[#]/population_balance[#]/weighted_abscissa/", &
-         &    "/material_phase[#]/population_balance[#]/moments/          ", &
-         &    "/material_phase[#]/population_balance[#]/statistics/       " &
+         &    "/material_phase[#]/equation_of_state/fluids/linear/         ", &
+         &    "/material_phase[#]/population_balance[#]/abscissa1/         ", &
+         &    "/material_phase[#]/population_balance[#]/abscissa2/         ", &
+         &    "/material_phase[#]/population_balance[#]/weights/           ", &
+         &    "/material_phase[#]/population_balance[#]/weighted_abscissa1/", &
+         &    "/material_phase[#]/population_balance[#]/weighted_abscissa2/", &
+         &    "/material_phase[#]/population_balance[#]/moments/           ", &
+         &    "/material_phase[#]/population_balance[#]/statistics/        "  &
          /)
 
   character(len=OPTION_PATH_LEN), dimension(:), allocatable :: field_locations
@@ -2566,6 +2568,13 @@ contains
             call insert(states(p), aux_vfield, trim(aux_vfield%name))
             call deallocate(aux_vfield)
 
+          else if((prescribed).and.(trim(vfield%name)=="Velocity")) then 
+
+            call allocate(aux_vfield, vfield%dim, vfield%mesh, "Old"//trim(vfield%name), field_type = vfield%field_type)
+            call zero(aux_vfield)
+            call insert(states(p), aux_vfield, trim(aux_vfield%name))
+            call deallocate(aux_vfield)
+
           else
 
             aux_vfield = extract_vector_field(states(p), trim(vfield%name))
@@ -2586,6 +2595,13 @@ contains
             call insert(states(p), aux_vfield, trim(aux_vfield%name))
             call deallocate(aux_vfield)
 
+          else if((prescribed).and.((trim(vfield%name)=="Velocity"))) then 
+
+            call allocate(aux_vfield, vfield%dim, vfield%mesh, "Iterated"//trim(vfield%name))
+            call zero(aux_vfield)
+            call insert(states(p), aux_vfield, trim(aux_vfield%name))
+            call deallocate(aux_vfield)
+
           else
 
             aux_vfield = extract_vector_field(states(p), trim(vfield%name))
@@ -2600,7 +2616,7 @@ contains
 
           if(trim(vfield%name)=="Velocity") then
 
-            if(iterations>1) then
+            if(iterations>1 .or. prescribed) then
 
               call allocate(aux_vfield, vfield%dim, vfield%mesh, "Nonlinear"//trim(vfield%name))
               call zero(aux_vfield)
@@ -3699,10 +3715,10 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
     end do
     
     diagnosticvolumefraction_count = option_count(&
-                &'/material_phase/scalar_field::MaterialVolumeFraction/diagnostic')
+                &'/material_phase/scalar_field::MaterialVolumeFraction/diagnostic/algorithm::Internal')
     if(diagnosticvolumefraction_count>1) then
       ewrite(-1,*) diagnosticvolumefraction_count, 'diagnostic MaterialVolumeFractions.'
-      FLExit("Only 1 diagnostic MaterialVolumeFraction is allowed")
+      FLExit("Only 1 internal diagnostic MaterialVolumeFraction is allowed")
     end if
 
     density_count = option_count('/material_phase/&

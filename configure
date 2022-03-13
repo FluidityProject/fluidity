@@ -620,13 +620,26 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
-SED
 HYPERLIGHT
 MEMORY_STATS
 MBA3D
 MBA2D
 MODINC_FLAG
 ARFLAGS
+HDF5_TYPE
+HDF5_FLIBS
+HDF5_FFLAGS
+HDF5_FC
+HDF5_LIBS
+HDF5_LDFLAGS
+HDF5_CPPFLAGS
+HDF5_CFLAGS
+HDF5_CC
+HDF5_VERSION
+H5FC
+H5CC
+AWK
+SED
 LIBSPATIALINDEX
 SPATIALINDEXDIR
 SPUDHEADER
@@ -646,7 +659,6 @@ PROFILING_FLAG
 IO_ADVANCE_BUG
 HAVE_ZOLTAN
 CXXCPP
-HAVE_PETSC33
 X_EXTRA_LIBS
 X_LIBS
 X_PRE_LIBS
@@ -676,13 +688,15 @@ LAPACK_LIBS
 BLAS_LIBS
 HAVE_CGAL
 HAVE_PYTHON
+HAVE_ASSESS
 PYTHON_EXTRA_LDFLAGS
 PYTHON_EXTRA_LIBS
 PYTHON_SITE_PKG
-PYTHON_LDFLAGS
+PYTHON_LIBS
 PYTHON_CPPFLAGS
 PYTHON
 PYTHON_VERSION
+have_bare_python
 FLIBS
 FCLIBS
 EGREP
@@ -696,7 +710,6 @@ CPPFLAGS
 CFLAGS
 CC
 MOD_FLAG
-GFORTRAN_4_5_OR_NEWER
 ac_ct_FC
 FCFLAGS
 FC
@@ -781,6 +794,7 @@ with_judy
 with_libspud_root
 enable_spatialindex_version
 with_spatialindex_root
+with_hdf5
 with_arpack_lib
 enable_vtk
 enable_2d_adaptivity
@@ -1490,6 +1504,7 @@ Optional Packages:
   --with-spatialindex-root=<dir>
                           specify root directory of system spatialindex
                           installation
+  --with-hdf5=yes/no/PATH location of h5pcc for parallel HDF5 configuration
   --with-arpack-lib[=<lib>]
                           specify arpack library
   --with-libnuma[=libnuma_library]
@@ -2092,52 +2107,6 @@ fi
 
 } # ac_fn_c_try_link
 
-# ac_fn_cxx_try_link LINENO
-# -------------------------
-# Try to link conftest.$ac_ext, and return whether this succeeded.
-ac_fn_cxx_try_link ()
-{
-  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  rm -f conftest.$ac_objext conftest$ac_exeext
-  if { { ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
-$as_echo "$ac_try_echo"; } >&5
-  (eval "$ac_link") 2>conftest.err
-  ac_status=$?
-  if test -s conftest.err; then
-    grep -v '^ *+' conftest.err >conftest.er1
-    cat conftest.er1 >&5
-    mv -f conftest.er1 conftest.err
-  fi
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; } && {
-	 test -z "$ac_cxx_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext && {
-	 test "$cross_compiling" = yes ||
-	 test -x conftest$ac_exeext
-       }; then :
-  ac_retval=0
-else
-  $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-	ac_retval=1
-fi
-  # Delete the IPA/IPO (Inter Procedural Analysis/Optimization) information
-  # created by the PGI compiler (conftest_ipa8_conftest.oo), as it would
-  # interfere with the next link command; also delete a directory that is
-  # left behind by Apple's compiler.  We do this before executing the actions.
-  rm -rf conftest.dSYM conftest_ipa8_conftest.oo
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
-  as_fn_set_status $ac_retval
-
-} # ac_fn_cxx_try_link
-
 # ac_fn_f77_try_link LINENO
 # -------------------------
 # Try to link conftest.$ac_ext, and return whether this succeeded.
@@ -2183,6 +2152,52 @@ fi
   as_fn_set_status $ac_retval
 
 } # ac_fn_f77_try_link
+
+# ac_fn_cxx_try_link LINENO
+# -------------------------
+# Try to link conftest.$ac_ext, and return whether this succeeded.
+ac_fn_cxx_try_link ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  rm -f conftest.$ac_objext conftest$ac_exeext
+  if { { ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
+$as_echo "$ac_try_echo"; } >&5
+  (eval "$ac_link") 2>conftest.err
+  ac_status=$?
+  if test -s conftest.err; then
+    grep -v '^ *+' conftest.err >conftest.er1
+    cat conftest.er1 >&5
+    mv -f conftest.er1 conftest.err
+  fi
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; } && {
+	 test -z "$ac_cxx_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 test -x conftest$ac_exeext
+       }; then :
+  ac_retval=0
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_retval=1
+fi
+  # Delete the IPA/IPO (Inter Procedural Analysis/Optimization) information
+  # created by the PGI compiler (conftest_ipa8_conftest.oo), as it would
+  # interfere with the next link command; also delete a directory that is
+  # left behind by Apple's compiler.  We do this before executing the actions.
+  rm -rf conftest.dSYM conftest_ipa8_conftest.oo
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+  as_fn_set_status $ac_retval
+
+} # ac_fn_cxx_try_link
 
 # ac_fn_fc_try_link LINENO
 # ------------------------
@@ -3767,14 +3782,6 @@ fi
 if $FC -v 2>&1 | grep 'gcc version'; then
   USING_GFORTRAN="yes"
   GFORTRAN_VERSION=$($FC -v 2>&1 | grep 'gcc version' | awk '{print $3}')
-  # test really is so retarded that it can't lexicographically compare strings
-  if test "$(python -c "print \"$GFORTRAN_VERSION\" >= \"4.5\"")" = "True"; then
-    GFORTRAN_4_5_OR_NEWER="yes"
-
-  fi
-  if test "$(python -c "print \"$GFORTRAN_VERSION\" >= \"4.8\"")" = "True"; then
-    GFORTRAN_4_8_OR_NEWER="yes"
-  fi
 else
   USING_GFORTRAN="no"
 fi
@@ -5906,64 +5913,58 @@ fi
 
 if test "x$enable_python" != "xno"
 then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: Checking for Python automagic." >&5
-$as_echo "$as_me: Checking for Python automagic." >&6;}
-    ac_ext=cpp
-ac_cpp='$CXXCPP $CPPFLAGS'
-ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
-
-
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-     #include <Python.h>
-
-#ifdef F77_DUMMY_MAIN
-
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
-#endif
-int
-main ()
-{
-
-                        Py_Initialize();
-                        PyRun_SimpleString("from time import time,ctime\n"
-                            "print 'Today is',ctime(time())\n");
-                        Py_Finalize();
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_link "$LINENO"; then :
-
-	    { $as_echo "$as_me:${as_lineno-$LINENO}: Python automagic works." >&5
-$as_echo "$as_me: Python automagic works." >&6;}
-	    CPPFLAGS="$CPPFLAGS -DHAVE_PYTHON"
+    if test -z "$PYTHON_VERSION"; then
+      # if PYTHON_VERSION is set we use python$PYTHON_VERSION as the python interpreter
+      # if not, if there is no `python` in the path, or there is a `python` but its version is <3
+      # then use `python3` (by setting PETSC_VERSION=3).
+      # If there *is* a `python` of version 3, we use that
+      # Extract the first word of "python", so it can be a program name with args.
+set dummy python; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_have_bare_python+:} false; then :
+  $as_echo_n "(cached) " >&6
 else
-
-            { $as_echo "$as_me:${as_lineno-$LINENO}: No Python automagic." >&5
-$as_echo "$as_me: No Python automagic." >&6;}
-	    search_for_python=yes
+  if test -n "$have_bare_python"; then
+  ac_cv_prog_have_bare_python="$have_bare_python" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_have_bare_python=""yes""
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
 
 fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-    ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
+fi
+have_bare_python=$ac_cv_prog_have_bare_python
+if test -n "$have_bare_python"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_bare_python" >&5
+$as_echo "$have_bare_python" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
 
 
-    if test "x$search_for_python" == "xyes" ; then
-        mycppflag=$CPPFLAGS
+      if test "x$have_bare_python" = "xyes"; then
+        bare_python_is_two=`python -c "import sys; print(sys.version_info.major < 3)"`
+        if test "x$bare_python_is_two=xTrue"; then
+          PYTHON_VERSION=3
+        fi
+      else
+        PYTHON_VERSION=3
+      fi
+    fi
+    mycppflag=$CPPFLAGS
 
 	#
 	# Allow the use of a (user set) custom python version
@@ -6033,7 +6034,7 @@ as_fn_error $? "
 This version of the AC_PYTHON_DEVEL macro
 doesn't work properly with versions of Python before
 2.1.0. You may need to re-run configure, setting the
-variables PYTHON_CPPFLAGS, PYTHON_LDFLAGS, PYTHON_SITE_PKG,
+variables PYTHON_CPPFLAGS, PYTHON_LIBS, PYTHON_SITE_PKG,
 PYTHON_EXTRA_LIBS and PYTHON_EXTRA_LDFLAGS by hand.
 Moreover, to disable this check, set PYTHON_NOVERSIONCHECK
 to something else than an empty string.
@@ -6051,19 +6052,19 @@ $as_echo "yes" >&6; }
 	#
 	# if the macro parameter ``version'' is set, honour it
 	#
-	if test -n ""; then
-		{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for a version of Python " >&5
-$as_echo_n "checking for a version of Python ... " >&6; }
+	if test -n ">= '3.6'"; then
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for a version of Python >= '3.6'" >&5
+$as_echo_n "checking for a version of Python >= '3.6'... " >&6; }
 		ac_supports_python_ver=`$PYTHON -c "import sys; \
 			ver = sys.version.split ()[0]; \
-			print (ver )"`
+			print (ver >= '3.6')"`
 		if test "$ac_supports_python_ver" = "True"; then
-	   	   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+		   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 		else
 			{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-			as_fn_error $? "this package requires Python .
+			as_fn_error $? "this package requires Python >= '3.6'.
 If you have it installed, but it isn't the default Python
 interpreter in your system path, please pass the PYTHON_VERSION
 variable to configure. See \`\`configure --help'' for reference.
@@ -6078,7 +6079,7 @@ variable to configure. See \`\`configure --help'' for reference.
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for the distutils Python package" >&5
 $as_echo_n "checking for the distutils Python package... " >&6; }
 	ac_distutils_result=`$PYTHON -c "import distutils" 2>&1`
-	if test -z "$ac_distutils_result"; then
+	if test $? -eq 0; then
 		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 	else
@@ -6097,9 +6098,15 @@ $ac_distutils_result" "$LINENO" 5
 $as_echo_n "checking for Python include path... " >&6; }
 	if test -z "$PYTHON_CPPFLAGS"; then
 		python_path=`$PYTHON -c "import distutils.sysconfig; \
-           		print (distutils.sysconfig.get_python_inc ());"`
+			print (distutils.sysconfig.get_python_inc ());"`
+		plat_python_path=`$PYTHON -c "import distutils.sysconfig; \
+			print (distutils.sysconfig.get_python_inc (plat_specific=1));"`
 		if test -n "${python_path}"; then
-		   	python_path="-I$python_path"
+			if test "${plat_python_path}" != "${python_path}"; then
+				python_path="-I$python_path -I$plat_python_path"
+			else
+				python_path="-I$python_path"
+			fi
 		fi
 		PYTHON_CPPFLAGS=$python_path
 	fi
@@ -6112,7 +6119,7 @@ $as_echo "$PYTHON_CPPFLAGS" >&6; }
 	#
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Python library path" >&5
 $as_echo_n "checking for Python library path... " >&6; }
-	if test -z "$PYTHON_LDFLAGS"; then
+	if test -z "$PYTHON_LIBS"; then
 		# (makes two attempts to ensure we've got a version number
 		# from the interpreter)
 		ac_python_version=`cat<<EOD | $PYTHON -
@@ -6120,11 +6127,9 @@ $as_echo_n "checking for Python library path... " >&6; }
 # join all versioning strings, on some systems
 # major/minor numbers could be in different list elements
 from distutils.sysconfig import *
-ret = ''
-for e in get_config_vars ('VERSION'):
-	if (e != None):
-		ret += e
-print (ret)
+e = get_config_var('VERSION')
+if e is not None:
+	print(e)
 EOD`
 
 		if test -z "$ac_python_version"; then
@@ -6148,55 +6153,49 @@ _ACEOF
 
 # There should be only one
 import distutils.sysconfig
-for e in distutils.sysconfig.get_config_vars ('LIBDIR'):
-	if e != None:
-		print (e)
-		break
+e = distutils.sysconfig.get_config_var('LIBDIR')
+if e is not None:
+	print (e)
 EOD`
 
-		# Before checking for libpythonX.Y, we need to know
-		# the extension the OS we're on uses for libraries
-		# (we take the first one, if there's more than one fix me!):
-		ac_python_soext=`$PYTHON -c \
-		  "import distutils.sysconfig; \
-		  print (distutils.sysconfig.get_config_vars('SO')[0])"`
-
 		# Now, for the library:
-		ac_python_soname=`$PYTHON -c \
-		  "import distutils.sysconfig; \
-		  print (distutils.sysconfig.get_config_vars('LDLIBRARY')[0])"`
+		ac_python_library=`cat<<EOD | $PYTHON -
 
-		# Strip away extension from the end to canonicalize its name:
-		ac_python_library=`echo "$ac_python_soname" | sed "s/${ac_python_soext}$//"`
+import distutils.sysconfig
+c = distutils.sysconfig.get_config_vars()
+if 'LDVERSION' in c:
+	print ('python'+c['LDVERSION'])
+else:
+	print ('python'+c['VERSION'])
+EOD`
 
 		# This small piece shamelessly adapted from PostgreSQL python macro;
 		# credits goes to momjian, I think. I'd like to put the right name
 		# in the credits, if someone can point me in the right direction... ?
 		#
-		if test -n "$ac_python_libdir" -a -n "$ac_python_library" \
-			-a x"$ac_python_library" != x"$ac_python_soname"
+		if test -n "$ac_python_libdir" -a -n "$ac_python_library"
 		then
 			# use the official shared library
 			ac_python_library=`echo "$ac_python_library" | sed "s/^lib//"`
-			PYTHON_LDFLAGS="-L$ac_python_libdir -l$ac_python_library"
+			PYTHON_LIBS="-L$ac_python_libdir -l$ac_python_library"
 		else
 			# old way: use libpython from python_configdir
 			ac_python_libdir=`$PYTHON -c \
 			  "from distutils.sysconfig import get_python_lib as f; \
 			  import os; \
 			  print (os.path.join(f(plat_specific=1, standard_lib=1), 'config'));"`
-			PYTHON_LDFLAGS="-L$ac_python_libdir -lpython$ac_python_version"
+			PYTHON_LIBS="-L$ac_python_libdir -lpython$ac_python_version"
 		fi
 
-		if test -z "PYTHON_LDFLAGS"; then
+		if test -z "PYTHON_LIBS"; then
 			as_fn_error $? "
   Cannot determine location of your Python DSO. Please check it was installed with
-  dynamic libraries enabled, or try setting PYTHON_LDFLAGS by hand.
+  dynamic libraries enabled, or try setting PYTHON_LIBS by hand.
 			" "$LINENO" 5
 		fi
 	fi
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_LDFLAGS" >&5
-$as_echo "$PYTHON_LDFLAGS" >&6; }
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_LIBS" >&5
+$as_echo "$PYTHON_LIBS" >&6; }
 
 
 	#
@@ -6206,7 +6205,7 @@ $as_echo "$PYTHON_LDFLAGS" >&6; }
 $as_echo_n "checking for Python site-packages path... " >&6; }
 	if test -z "$PYTHON_SITE_PKG"; then
 		PYTHON_SITE_PKG=`$PYTHON -c "import distutils.sysconfig; \
-		        print (distutils.sysconfig.get_python_lib(0,0));"`
+			print (distutils.sysconfig.get_python_lib(0,0));"`
 	fi
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_SITE_PKG" >&5
 $as_echo "$PYTHON_SITE_PKG" >&6; }
@@ -6220,7 +6219,7 @@ $as_echo_n "checking python extra libraries... " >&6; }
 	if test -z "$PYTHON_EXTRA_LIBS"; then
 	   PYTHON_EXTRA_LIBS=`$PYTHON -c "import distutils.sysconfig; \
                 conf = distutils.sysconfig.get_config_var; \
-                print (conf('LOCALMODLIBS') + ' ' + conf('LIBS'))"`
+                print (conf('LIBS') + ' ' + conf('SYSLIBS'))"`
 	fi
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_EXTRA_LIBS" >&5
 $as_echo "$PYTHON_EXTRA_LIBS" >&6; }
@@ -6234,7 +6233,7 @@ $as_echo_n "checking python extra linking flags... " >&6; }
 	if test -z "$PYTHON_EXTRA_LDFLAGS"; then
 		PYTHON_EXTRA_LDFLAGS=`$PYTHON -c "import distutils.sysconfig; \
 			conf = distutils.sysconfig.get_config_var; \
-			print (conf('LINKFORSHARED'))"`
+			print ('' if conf('PYTHONFRAMEWORK') else conf('LINKFORSHARED'))"`
 	fi
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_EXTRA_LDFLAGS" >&5
 $as_echo "$PYTHON_EXTRA_LDFLAGS" >&6; }
@@ -6246,7 +6245,11 @@ $as_echo "$PYTHON_EXTRA_LDFLAGS" >&6; }
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking consistency of all components of python development environment" >&5
 $as_echo_n "checking consistency of all components of python development environment... " >&6; }
 	# save current global flags
-	LIBS="$ac_save_LIBS $PYTHON_LDFLAGS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
+	ac_save_LIBS="$LIBS"
+	ac_save_LDFLAGS="$LDFLAGS"
+	ac_save_CPPFLAGS="$CPPFLAGS"
+	LIBS="$ac_save_LIBS $PYTHON_LIBS $PYTHON_EXTRA_LIBS $PYTHON_EXTRA_LIBS"
+	LDFLAGS="$ac_save_LDFLAGS $PYTHON_EXTRA_LDFLAGS"
 	CPPFLAGS="$ac_save_CPPFLAGS $PYTHON_CPPFLAGS"
 	ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -6291,6 +6294,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 	# turn back to default flags
 	CPPFLAGS="$ac_save_CPPFLAGS"
 	LIBS="$ac_save_LIBS"
+	LDFLAGS="$ac_save_LDFLAGS"
 
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $pythonexists" >&5
 $as_echo "$pythonexists" >&6; }
@@ -6301,8 +6305,8 @@ $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "
   Could not link test program to Python. Maybe the main Python library has been
   installed in some non-standard library path. If so, pass it to configure,
-  via the LDFLAGS environment variable.
-  Example: ./configure LDFLAGS=\"-L/usr/non-standard-path/python/lib\"
+  via the LIBS environment variable.
+  Example: ./configure LIBS=\"-L/usr/non-standard-path/python/lib\"
   ============================================================================
    ERROR!
    You probably have to install the development version of the Python package
@@ -6317,67 +6321,25 @@ See \`config.log' for more details" "$LINENO" 5; }
 	# all done!
 	#
 
-        CPPFLAGS=$mycppflag
+    CPPFLAGS=$mycppflag
     # Save variables...
-        if test "x$pythonexists" = "xyes";
-        then
-	    if  test "$fcompiler" = "pgf90"; then
-	        PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-Xlinker/}
-	        PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-export-dynamic/}
-	    fi
-      if test "x$enable_debugging" = "xyes"; then
-        export PYTHON_EXTRA_LDFLAGS=$(echo $PYTHON_EXTRA_LDFLAGS | sed -e 's/-O1/-O0/g' -e 's/-O2/-O0/g' -e 's/-O3/-O0/g')
-      fi
-	    LIBS="$LIBS $PYTHON_LDFLAGS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
-	    CXXFLAGS="$CXXFLAGS $PYTHON_CPPFLAGS"
-	    CPPFLAGS="$CPPFLAGS $PYTHON_CPPFLAGS"
-            CFLAGS="$CFLAGS $PYTHON_CPPFLAGS"
+    if test "x$pythonexists" = "xyes";
+    then
+        if  test "$fcompiler" = "pgf90"; then
+            PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-Xlinker/}
+            PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-export-dynamic/}
         fi
-    else
-       # Extract the first word of "python[$PYTHON_VERSION]", so it can be a program name with args.
-set dummy python$PYTHON_VERSION; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_PYTHON+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $PYTHON in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_PYTHON="$PYTHON" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_PYTHON="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-PYTHON=$ac_cv_path_PYTHON
-if test -n "$PYTHON"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON" >&5
-$as_echo "$PYTHON" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
+        if test "x$enable_debugging" = "xyes"; then
+          export PYTHON_EXTRA_LDFLAGS=$(echo $PYTHON_EXTRA_LDFLAGS | sed -e 's/-O1/-O0/g' -e 's/-O2/-O0/g' -e 's/-O3/-O0/g')
+        fi
+        LIBS="$LIBS $PYTHON_LIBS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
+        CXXFLAGS="$CXXFLAGS $PYTHON_CPPFLAGS"
+        CPPFLAGS="$CPPFLAGS $PYTHON_CPPFLAGS"
+        CFLAGS="$CFLAGS $PYTHON_CPPFLAGS"
     fi
 
     # Additionally check for numpy
-    NUMPY=$($PYTHON -c 'import numpy; print numpy.get_include()' 2>/dev/null)
+    NUMPY=$($PYTHON -c 'import numpy; print(numpy.get_include())' 2>/dev/null)
     if ! test -z "$NUMPY"; then
 	echo "Numpy is " $NUMPY
 	CXXFLAGS="$CXXFLAGS -DHAVE_NUMPY -I$NUMPY"
@@ -6388,6 +6350,20 @@ fi
     else
 	echo "Failed to locate Numpy"
     fi
+    # check for the assess python package used in some tests
+    # (see https://github.com/stephankramer/assess/)
+    $PYTHON -c "import assess" 2>/dev/null
+    if test $? -eq 0;
+    then
+      HAVE_ASSESS=yes
+      { $as_echo "$as_me:${as_lineno-$LINENO}: Successfully imported assess python module" >&5
+$as_echo "$as_me: Successfully imported assess python module" >&6;}
+    else
+      HAVE_ASSESS=no
+      { $as_echo "$as_me:${as_lineno-$LINENO}: Failed to import (optional) python module assess" >&5
+$as_echo "$as_me: Failed to import (optional) python module assess" >&6;}
+    fi
+
 fi
 
 
@@ -9942,6 +9918,7 @@ ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ex
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 
+
   OPENMP_CXXFLAGS=
   # Check whether --enable-openmp was given.
 if test "${enable_openmp+set}" = set; then :
@@ -12642,26 +12619,29 @@ $as_echo "$as_me: Using PETSC_DIR=$PETSC_DIR" >&6;}
 PETSC_LINK_LIBS=`make -s -f petsc_makefile_old getlinklibs 2> /dev/null || make -s -f petsc_makefile getlinklibs`
 LIBS="$PETSC_LINK_LIBS $LIBS"
 
-# need to add -Iinclude/ to what we get from petsc, so we can use our own petsc_legacy.h wrapper
+# need to add -I$PWD/include/ to what we get from petsc, so we can use our own petsc_legacy.h wrapper
 PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile_old getincludedirs 2> /dev/null || make -s -f petsc_makefile getincludedirs`
-CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
-FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS -Iinclude/"
+CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS -I$PWD/include/"
+FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS -I$PWD/include/"
 
-# Horrible hacks needed for cx1
-# Somehow /apps/intel/ict/mpi/3.1.038/lib64 gets given as /apps/intel/ict/mpi/3.1.038/lib/64
-# maybe the directory got moved after building petsc? Anyhow next time we
-# request a new petsc package on cx1, this hack can be removed - and we
-# can check if the new packages passes the test without any hacks.
-fixedLIBS=`echo $LIBS |sed 's@/apps/intel/ict/mpi/3.1.038/lib/64@/apps/intel/ict/mpi/3.1.038/lib64@g'`
+# first check we have the right petsc version
+if ac_fn_c_compute_int "$LINENO" ""PETSC_VERSION_MAJOR"" "PETSC_VERSION_MAJOR"        "#include \"petscversion.h\""; then :
 
-if test ! "$LIBS" == "$fixedLIBS"; then
-  # more fixes needed:
-  # also -lmpichcxx got mangled to -lmpichxx
-  LIBS=`echo $fixedLIBS |sed 's@mpichxx@mpichcxx@g'`
-  # remove -lPEPCF90, -lpromfei and -lprometheus
-  LIBS=`echo $LIBS |sed 's@-lPEPCF90@@g'`
-  LIBS=`echo $LIBS |sed 's@-lpromfei@@g'`
-  LIBS=`echo $LIBS |sed 's@-lprometheus@@g'`
+else
+  as_fn_error $? "Unknown petsc major version" "$LINENO" 5
+fi
+
+if ac_fn_c_compute_int "$LINENO" ""PETSC_VERSION_MINOR"" "PETSC_VERSION_MINOR"        "#include \"petscversion.h\""; then :
+
+else
+  as_fn_error $? "Unknown petsc minor version" "$LINENO" 5
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: Detected PETSc version \"$PETSC_VERSION_MAJOR\".\"$PETSC_VERSION_MINOR\"" >&5
+$as_echo "$as_me: Detected PETSc version \"$PETSC_VERSION_MAJOR\".\"$PETSC_VERSION_MINOR\"" >&6;}
+# if major<3 or minor<4
+if test "0$PETSC_VERSION_MAJOR" -lt 3 -o "0$PETSC_VERSION_MINOR" -lt 4; then
+  as_fn_error $? "Fluidity needs PETSc version >=3.4" "$LINENO" 5
 fi
 
 ac_ext=${ac_fc_srcext-f}
@@ -12670,8 +12650,11 @@ ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
 # F90 (capital F) to invoke preprocessing
-# it's only 20 years ago now!
 ac_ext=F90
+
+# may need some extra flags for testing that we don't want to use in the end
+SAVE_FCFLAGS="$FCFLAGS"
+
 if test "$enable_petsc_fortran_modules" != "no" ; then
   # now try if the petsc fortran modules work:
   cat > conftest.$ac_ext <<_ACEOF
@@ -12691,18 +12674,18 @@ $as_echo "$as_me: PETSc modules are working." >&6;}
 
 $as_echo "#define HAVE_PETSC_MODULES 1" >>confdefs.h
 
+              FCFLAGS="$FCFLAGS -DHAVE_PETSC_MODULES"
 
 else
 
               { $as_echo "$as_me:${as_lineno-$LINENO}: PETSc modules don't work, using headers instead." >&5
 $as_echo "$as_me: PETSc modules don't work, using headers instead." >&6;}
-              unset HAVE_PETSC_MODULES
 
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-else
-  unset HAVE_PETSC_MODULES
+elif test "0$PETSC_VERSION_MINOR" -ge 8; then
+  as_fn_error $? "PETSc v3.8 and newer requires petsc fortran modules. Do not use the --disable-petsc-fortran-modules option" "$LINENO" 5
 fi
 
 # now try a more realistic program, it's a stripped down
@@ -12716,15 +12699,13 @@ program test_petsc
 implicit none
 #include "petsc_legacy.h"
       double precision  norm
-      PetscInt  i,j,II,JJ,m,n,its
+      PetscInt  i,j,II0,m,n,its
+      PetscInt, dimension(1) ::  II, JJ
       PetscInt  Istart,Iend,ione
       PetscErrorCode ierr
-#if PETSC_VERSION_MINOR>=2
       PetscBool flg
-#else
-      PetscTruth  flg
-#endif
-      PetscScalar v,one,neg_one
+      PetscScalar, dimension(1) :: v
+      PetscScalar one,neg_one
       Vec         x,b,u
       Mat         A
       KSP         ksp
@@ -12735,8 +12716,8 @@ implicit none
       one  = 1.0
       neg_one = -1.0
       ione    = 1
-      call PetscOptionsGetInt(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER,'-m',m,flg,ierr)
-      call PetscOptionsGetInt(PETSC_NULL_OBJECT, PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
+      call PetscOptionsGetInt(PETSC_NULL_OPTIONS, PETSC_NULL_CHARACTER,'-m',m,flg,ierr)
+      call PetscOptionsGetInt(PETSC_NULL_OPTIONS, PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
 
       call MatCreate(PETSC_COMM_WORLD,A,ierr)
       call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,m*n,m*n,ierr)
@@ -12744,10 +12725,11 @@ implicit none
 
       call MatGetOwnershipRange(A,Istart,Iend,ierr)
 
-      do 10, II=Istart,Iend-1
+      do 10, II0=Istart,Iend-1
+        II = II0
         v = -1.0
-        i = II/n
-        j = II - i*n
+        i = II0/n
+        j = II0 - i*n
         if (i.gt.0) then
           JJ = II - n
           call MatSetValues(A,ione,II,ione,JJ,v,INSERT_VALUES,ierr)
@@ -12815,6 +12797,7 @@ fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 
+FCFLAGS="$SAVE_FCFLAGS"
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -12822,37 +12805,9 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-# finally check we have the right petsc version
-if ac_fn_c_compute_int "$LINENO" ""PETSC_VERSION_MAJOR"" "PETSC_VERSION_MAJOR"        "#include \"petscversion.h\""; then :
-
-else
-  as_fn_error $? "Unknown petsc major version" "$LINENO" 5
-fi
-
-if ac_fn_c_compute_int "$LINENO" ""PETSC_VERSION_MINOR"" "PETSC_VERSION_MINOR"        "#include \"petscversion.h\""; then :
-
-else
-  as_fn_error $? "Unknown petsc minor version" "$LINENO" 5
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: Detected PETSc version \"$PETSC_VERSION_MAJOR\".\"$PETSC_VERSION_MINOR\"" >&5
-$as_echo "$as_me: Detected PETSc version \"$PETSC_VERSION_MAJOR\".\"$PETSC_VERSION_MINOR\"" >&6;}
-# if major<3 or minor<1
-if test "0$PETSC_VERSION_MAJOR" -lt 3 -o "0$PETSC_VERSION_MINOR" -lt 1; then
-  as_fn_error $? "Fluidity needs PETSc version >=3.1" "$LINENO" 5
-fi
 
 
 $as_echo "#define HAVE_PETSC 1" >>confdefs.h
-
-
-# define HAVE_PETSC33 for use in the Makefiles (including petsc's makefiles
-# would require having PETSC_DIR+PETSC_ARCH set correctly for every make)
-if test "0$PETSC_VERSION_MINOR" -ge 3; then
-  HAVE_PETSC33=yes
-else
-  HAVE_PETSC33=no
-fi
 
 
 
@@ -12924,14 +12879,6 @@ LIBS=$tmpLIBS
 CPPFLAGS=$tmpCPPFLAGS
 
 CPPFLAGS="$CPPFLAGS -DHAVE_PETSC"
-if test "$HAVE_PETSC_MODULES" == "1"; then
-  CPPFLAGS="$CPPFLAGS -DHAVE_PETSC_MODULES"
-fi
-if test "$HAVE_HYPRE" == "1"; then
-  CPPFLAGS="$CPPFLAGS -DHAVE_HYPRE"
-fi
-CPPFLAGS=`echo $CPPFLAGS | sed 's/-petsc-version-/3.4.2.0/' | sed 's/x86_64\/x86_64/x86_64/'`
-FCFLAGS=`echo $FCFLAGS | sed 's/-petsc-version-/3.4.2.0/' | sed 's/x86_64\/x86_64/x86_64/'`
 
 # Metis, ParMetis
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking if we can compile and link without using -lparmetis" >&5
@@ -14244,14 +14191,18 @@ $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
     # fluidity's (except for MPI)
     if test "$enable_dp" = "yes" ; then
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
-            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" ./configure
+            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" \
+	    CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" \
+            CPPFLAGS="${env_cppflags}" ./configure
         if test "$?" -ne "0"; then
           as_fn_error $? "Configuration of libadaptivity has failed." "$LINENO" 5
           exit -1
         fi
     else
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
-            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" ./configure --enable-dp=no
+            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" \
+	    CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" \
+	    CPPFLAGS="${env_cppflags}" ./configure --enable-dp=no
         if test "$?" -ne "0"; then
           as_fn_error $? "Configuration of libadaptivity has failed." "$LINENO" 5
           exit -1
@@ -14351,7 +14302,7 @@ _ACEOF
     fi
     # this is a workaround for https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=755099
     if echo "$CFLAGS" | grep -q -- "-O[2-3]"; then
-      if test "x$USING_GFORTRAN" = "xyes" -a "x$GFORTRAN_4_8_OR_NEWER" = "xyes" -a "x$USING_CLANG" = "xno"; then
+      if test "x$USING_GFORTRAN" = "xyes" -a "x$USING_CLANG" = "xno"; then
         JUDY_CFLAGS="$JUDY_CFLAGS -fno-aggressive-loop-optimizations"
       fi
     fi
@@ -14487,6 +14438,516 @@ fi
 cd ../
 fi
 
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for a sed that does not truncate output" >&5
+$as_echo_n "checking for a sed that does not truncate output... " >&6; }
+if ${ac_cv_path_SED+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+            ac_script=s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/
+     for ac_i in 1 2 3 4 5 6 7; do
+       ac_script="$ac_script$as_nl$ac_script"
+     done
+     echo "$ac_script" 2>/dev/null | sed 99q >conftest.sed
+     { ac_script=; unset ac_script;}
+     if test -z "$SED"; then
+  ac_path_SED_found=false
+  # Loop through the user's path and test for each of PROGNAME-LIST
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_prog in sed gsed; do
+    for ac_exec_ext in '' $ac_executable_extensions; do
+      ac_path_SED="$as_dir/$ac_prog$ac_exec_ext"
+      as_fn_executable_p "$ac_path_SED" || continue
+# Check for GNU ac_path_SED and select it if it is found.
+  # Check for GNU $ac_path_SED
+case `"$ac_path_SED" --version 2>&1` in
+*GNU*)
+  ac_cv_path_SED="$ac_path_SED" ac_path_SED_found=:;;
+*)
+  ac_count=0
+  $as_echo_n 0123456789 >"conftest.in"
+  while :
+  do
+    cat "conftest.in" "conftest.in" >"conftest.tmp"
+    mv "conftest.tmp" "conftest.in"
+    cp "conftest.in" "conftest.nl"
+    $as_echo '' >> "conftest.nl"
+    "$ac_path_SED" -f conftest.sed < "conftest.nl" >"conftest.out" 2>/dev/null || break
+    diff "conftest.out" "conftest.nl" >/dev/null 2>&1 || break
+    as_fn_arith $ac_count + 1 && ac_count=$as_val
+    if test $ac_count -gt ${ac_path_SED_max-0}; then
+      # Best one so far, save it but keep looking for a better one
+      ac_cv_path_SED="$ac_path_SED"
+      ac_path_SED_max=$ac_count
+    fi
+    # 10*(2^10) chars as input seems more than enough
+    test $ac_count -gt 10 && break
+  done
+  rm -f conftest.in conftest.tmp conftest.nl conftest.out;;
+esac
+
+      $ac_path_SED_found && break 3
+    done
+  done
+  done
+IFS=$as_save_IFS
+  if test -z "$ac_cv_path_SED"; then
+    as_fn_error $? "no acceptable sed could be found in \$PATH" "$LINENO" 5
+  fi
+else
+  ac_cv_path_SED=$SED
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_path_SED" >&5
+$as_echo "$ac_cv_path_SED" >&6; }
+ SED="$ac_cv_path_SED"
+  rm -f conftest.sed
+
+for ac_prog in gawk mawk nawk awk
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_AWK+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$AWK"; then
+  ac_cv_prog_AWK="$AWK" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_AWK="$ac_prog"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+AWK=$ac_cv_prog_AWK
+if test -n "$AWK"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $AWK" >&5
+$as_echo "$AWK" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$AWK" && break
+done
+
+
+
+
+
+
+
+if   test "parallel" = ""        ; then
+    : # Recognized value
+elif test "parallel" = "serial"  ; then
+    : # Recognized value
+elif test "parallel" = "parallel"; then
+    : # Recognized value
+else
+    as_fn_error $? "
+Unrecognized value for AX_LIB_HDF5 within configure.ac.
+If supplied, argument 1 must be either 'serial' or 'parallel'.
+" "$LINENO" 5
+fi
+
+
+# Check whether --with-hdf5 was given.
+if test "${with_hdf5+set}" = set; then :
+  withval=$with_hdf5; if test "$withval" = "no"; then
+     with_hdf5="no"
+   elif test "$withval" = "yes"; then
+     with_hdf5="yes"
+   else
+     with_hdf5="yes"
+     H5CC="$withval"
+   fi
+else
+  with_hdf5="yes"
+
+fi
+
+
+HDF5_CC=""
+HDF5_VERSION=""
+HDF5_CFLAGS=""
+HDF5_CPPFLAGS=""
+HDF5_LDFLAGS=""
+HDF5_LIBS=""
+HDF5_FC=""
+HDF5_FFLAGS=""
+HDF5_FLIBS=""
+HDF5_TYPE=""
+
+if test "$with_hdf5" = "yes"; then
+    if test -z "$H5CC"; then
+                for ac_prog in h5pcc
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_H5CC+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $H5CC in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_H5CC="$H5CC" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_H5CC="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+H5CC=$ac_cv_path_H5CC
+if test -n "$H5CC"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $H5CC" >&5
+$as_echo "$H5CC" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$H5CC" && break
+done
+
+    else
+        { $as_echo "$as_me:${as_lineno-$LINENO}: checking Using provided HDF5 C wrapper" >&5
+$as_echo_n "checking Using provided HDF5 C wrapper... " >&6; }
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: $H5CC" >&5
+$as_echo "$H5CC" >&6; }
+    fi
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for HDF5 type" >&5
+$as_echo_n "checking for HDF5 type... " >&6; }
+    case $H5CC in #(
+  *h5pcc) :
+    HDF5_TYPE=parallel ;; #(
+  *h5cc) :
+    HDF5_TYPE=serial ;; #(
+  *) :
+    HDF5_TYPE=neither ;;
+esac
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $HDF5_TYPE" >&5
+$as_echo "$HDF5_TYPE" >&6; }
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for HDF5 libraries" >&5
+$as_echo_n "checking for HDF5 libraries... " >&6; }
+    if test ! -f "$H5CC" || test ! -x "$H5CC"; then
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+        { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
+Unable to locate parallel HDF5 compilation helper script 'h5pcc'.
+Please specify --with-hdf5=<LOCATION> as the full path to h5pcc.
+HDF5 support is being disabled (equivalent to --with-hdf5=no).
+" >&5
+$as_echo "$as_me: WARNING:
+Unable to locate parallel HDF5 compilation helper script 'h5pcc'.
+Please specify --with-hdf5=<LOCATION> as the full path to h5pcc.
+HDF5 support is being disabled (equivalent to --with-hdf5=no).
+" >&2;}
+        with_hdf5="no"
+        with_hdf5_fortran="no"
+    else
+                HDF5_SHOW=$(eval $H5CC -show)
+
+                HDF5_CC=$(eval $H5CC -show | $AWK '{print $1}')
+        if test "$HDF5_CC" = "ccache"; then
+            HDF5_CC=$(eval $H5CC -show | $AWK '{print $2}')
+        fi
+
+
+                HDF5_VERSION=$(eval $H5CC -showconfig | $GREP 'HDF5 Version:' \
+            | $AWK '{print $3}')
+
+                                                                                HDF5_tmp_flags=$(eval $H5CC -showconfig \
+            | $GREP 'FLAGS\|Extra libraries:' \
+            | $AWK -F: '{printf("%s "), $2}' )
+
+                HDF5_tmp_inst=$(eval $H5CC -showconfig \
+            | $GREP 'Installation point:' \
+            | $AWK '{print $NF}' )
+
+                HDF5_CPPFLAGS="-I${HDF5_tmp_inst}/include"
+
+                for arg in $HDF5_SHOW $HDF5_tmp_flags ; do
+          case "$arg" in
+            -I*) echo $HDF5_CPPFLAGS | $GREP -e "$arg" 2>&1 >/dev/null \
+                  || HDF5_CPPFLAGS="$HDF5_CPPFLAGS $arg"
+              ;;
+            -L*) echo $HDF5_LDFLAGS | $GREP -e "$arg" 2>&1 >/dev/null \
+                  || HDF5_LDFLAGS="$HDF5_LDFLAGS $arg"
+              ;;
+            -l*) echo $HDF5_LIBS | $GREP -e "$arg" 2>&1 >/dev/null \
+                  || HDF5_LIBS="$HDF5_LIBS $arg"
+              ;;
+          esac
+        done
+
+        HDF5_LIBS="-lhdf5 $HDF5_LIBS"
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes (version $HDF5_VERSION)" >&5
+$as_echo "yes (version $HDF5_VERSION)" >&6; }
+
+                ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+        ax_lib_hdf5_save_CC=$CC
+        ax_lib_hdf5_save_CPPFLAGS=$CPPFLAGS
+        ax_lib_hdf5_save_LIBS=$LIBS
+        ax_lib_hdf5_save_LDFLAGS=$LDFLAGS
+        CC=$HDF5_CC
+        CPPFLAGS=$HDF5_CPPFLAGS
+        LIBS=$HDF5_LIBS
+        LDFLAGS=$HDF5_LDFLAGS
+        ac_fn_c_check_header_mongrel "$LINENO" "hdf5.h" "ac_cv_header_hdf5_h" "$ac_includes_default"
+if test "x$ac_cv_header_hdf5_h" = xyes; then :
+  ac_cv_hadf5_h=yes
+else
+  ac_cv_hadf5_h=no
+fi
+
+
+        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for H5Fcreate in -lhdf5" >&5
+$as_echo_n "checking for H5Fcreate in -lhdf5... " >&6; }
+if ${ac_cv_lib_hdf5_H5Fcreate+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lhdf5  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char H5Fcreate ();
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return H5Fcreate ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_hdf5_H5Fcreate=yes
+else
+  ac_cv_lib_hdf5_H5Fcreate=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_hdf5_H5Fcreate" >&5
+$as_echo "$ac_cv_lib_hdf5_H5Fcreate" >&6; }
+if test "x$ac_cv_lib_hdf5_H5Fcreate" = xyes; then :
+  ac_cv_libhdf5=yes
+else
+  ac_cv_libhdf5=no
+fi
+
+        if test "$ac_cv_hadf5_h" = "no" && test "$ac_cv_libhdf5" = "no" ; then
+          { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Unable to compile HDF5 test program" >&5
+$as_echo "$as_me: WARNING: Unable to compile HDF5 test program" >&2;}
+        fi
+                { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lhdf5_hl" >&5
+$as_echo_n "checking for main in -lhdf5_hl... " >&6; }
+if ${ac_cv_lib_hdf5_hl_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lhdf5_hl  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_hdf5_hl_main=yes
+else
+  ac_cv_lib_hdf5_hl_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_hdf5_hl_main" >&5
+$as_echo "$ac_cv_lib_hdf5_hl_main" >&6; }
+if test "x$ac_cv_lib_hdf5_hl_main" = xyes; then :
+  HDF5_LIBS="-lhdf5_hl $HDF5_LIBS"
+fi
+ac_cv_lib_hdf5_hl=ac_cv_lib_hdf5_hl_main
+
+
+        CC=$ax_lib_hdf5_save_CC
+        CPPFLAGS=$ax_lib_hdf5_save_CPPFLAGS
+        LIBS=$ax_lib_hdf5_save_LIBS
+        LDFLAGS=$ax_lib_hdf5_save_LDFLAGS
+        ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for matching HDF5 Fortran wrapper" >&5
+$as_echo_n "checking for matching HDF5 Fortran wrapper... " >&6; }
+                H5FC=$(eval echo -n $H5CC | $SED -n 's/cc$/fc/p')
+        if test -x "$H5FC"; then
+            { $as_echo "$as_me:${as_lineno-$LINENO}: result: $H5FC" >&5
+$as_echo "$H5FC" >&6; }
+            with_hdf5_fortran="yes"
+
+
+                        for arg in `$H5FC -show`
+            do
+              case "$arg" in #(
+                -I*) echo $HDF5_FFLAGS | $GREP -e "$arg" >/dev/null \
+                      || HDF5_FFLAGS="$HDF5_FFLAGS $arg"
+                  ;;#(
+                -L*) echo $HDF5_FFLAGS | $GREP -e "$arg" >/dev/null \
+                      || HDF5_FFLAGS="$HDF5_FFLAGS $arg"
+                                                               echo $HDF5_FFLAGS | $GREP -e "-I${arg#-L}" >/dev/null \
+                      || HDF5_FFLAGS="$HDF5_FFLAGS -I${arg#-L}"
+                  ;;
+              esac
+            done
+
+                        for arg in $HDF5_LIBS
+            do
+              case "$arg" in #(
+                -lhdf5_hl) HDF5_FLIBS="$HDF5_FLIBS -lhdf5hl_fortran $arg"
+                  ;; #(
+                -lhdf5)    HDF5_FLIBS="$HDF5_FLIBS -lhdf5_fortran $arg"
+                  ;; #(
+                *) HDF5_FLIBS="$HDF5_FLIBS $arg"
+                  ;;
+              esac
+            done
+        else
+            { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+            with_hdf5_fortran="no"
+        fi
+
+
+
+
+
+
+
+
+
+
+
+
+$as_echo "#define HAVE_HDF5 1" >>confdefs.h
+
+    fi
+fi
+
+if test "$with_hdf5" = "no"; then
+  as_fn_error $? "Unable to find parallel HDF5 installation" "$LINENO" 5
+fi
+LDFLAGS="$LDFLAGS $HDF5_LDFLAGS"
+
+#************H5hut***********
+if test -d h5hut; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
+$as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: Configuring h5hut" >&5
+$as_echo "$as_me: Configuring h5hut" >&6;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
+$as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
+
+    cd h5hut
+    ./autogen.sh
+    # use some info we found earlier from AX_LIB_HDF5
+    CC="${CC}" CXX="${CXX}" CFLAGS="${env_cflags} $HDF5_CFLAGS" CPPFLAGS="${env_cppflags} $HDF5_CPPFLAGS" \
+        CXXFLAGS="${env_cxxflags}" LIBS="${env_libs} $HDF5_LIBS" LDFLAGS="$HDF5_LDFLAGS" \
+        ./configure --prefix=${PWD}/../ --enable-fortran --enable-parallel
+    if test "$?" -ne "0"; then
+       as_fn_error $? "Configuration of h5hut has failed." "$LINENO" 5
+       exit -1
+    fi
+    cd ..
+fi
 
 #*************ARPACK*********
 ac_ext=${ac_fc_srcext-f}
@@ -15869,6 +16330,11 @@ cat > include/vtk.h <<EOF
 #include <${vtk_header_relative_path}vtkXMLUnstructuredGridWriter.h>
 #include <${vtk_header_relative_path}vtkZLibDataCompressor.h>
 
+#if VTK_MAJOR_VERSION>6
+#include <${vtk_header_relative_path}vtkMPIController.h>
+#include <${vtk_header_relative_path}vtkMPICommunicator.h>
+#endif
+
 #ifndef vtkFloatingPointType
 #define vtkFloatingPointType vtkFloatingPointType
 typedef float vtkFloatingPointType;
@@ -16869,6 +17335,7 @@ gives unlimited permission to copy, distribute and modify it."
 ac_pwd='$ac_pwd'
 srcdir='$srcdir'
 INSTALL='$INSTALL'
+AWK='$AWK'
 test -n "\$AWK" || AWK=awk
 _ACEOF
 

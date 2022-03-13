@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>biology_6_component_parallel</name>
@@ -108,15 +108,15 @@ PhotoRadiationParallel=d["water"]["PhotosyntheticRadiation"]["integral"][0]
       <test name="Total in water column conserved" language="python">
 before = nutrients1 + detritus1 + phytoplankton1 + zooplankton1 + ammonium1
 after = nutrients2 + detritus2 + phytoplankton2 + zooplankton2 + ammonium2
-print before, after, before-after
+print(before, after, before-after)
 assert (abs(before - after)/before &lt; 1e-6)
-    </test>
+</test>
     <test name="Pointwise conservation" language="python">
 nNodes = len(DifferencePerNode)
-print max(DifferencePerNode)
-for i in range(0,nNodes-1): 
+print(max(DifferencePerNode))
+for i in range(0,nNodes-1):
     assert (DifferencePerNode[i] &lt; 1e-3)
-    </test>
+</test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

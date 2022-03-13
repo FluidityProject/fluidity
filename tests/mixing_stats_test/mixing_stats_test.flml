@@ -77,7 +77,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -89,17 +89,20 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
           </constant>
         </value>
         <output/>
@@ -109,9 +112,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="MaterialVolumeFraction" rank="0">
+    <scalar_field rank="0" name="MaterialVolumeFraction">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -137,7 +143,7 @@
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
 	from math import sqrt
 	dx1 = X[0]-1.5
 	dx2 = X[1]-2.25
@@ -157,7 +163,7 @@
             </control_volumes>
             <mixing_bin_bounds>
               <constant>
-                <real_value shape="2" rank="1">0.0 1.0</real_value>
+                <real_value rank="1" shape="2">0.0 1.0</real_value>
               </constant>
             </mixing_bin_bounds>
             <tolerance>
@@ -168,7 +174,7 @@
             <control_volumes/>
             <mixing_bin_bounds>
               <constant>
-                <real_value shape="2" rank="1">0.0 1.0</real_value>
+                <real_value rank="1" shape="2">0.0 1.0</real_value>
               </constant>
             </mixing_bin_bounds>
             <tolerance>
@@ -181,7 +187,7 @@
             </continuous_galerkin>
             <mixing_bin_bounds>
               <constant>
-                <real_value shape="2" rank="1">0.0 1.0</real_value>
+                <real_value rank="1" shape="2">0.0 1.0</real_value>
               </constant>
             </mixing_bin_bounds>
             <tolerance>
@@ -192,7 +198,7 @@
             <continuous_galerkin/>
             <mixing_bin_bounds>
               <constant>
-                <real_value shape="2" rank="1">0.0 1.0</real_value>
+                <real_value rank="1" shape="2">0.0 1.0</real_value>
               </constant>
             </mixing_bin_bounds>
             <tolerance>
@@ -205,7 +211,7 @@
             </control_volumes>
             <mixing_bin_bounds>
               <python>
-                <string_value lines="20" type="code" language="python">def val(t):
+                <string_value type="code" language="python" lines="20">def val(t):
   return [0.0,1.0]</string_value>
               </python>
             </mixing_bin_bounds>
@@ -220,12 +226,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -237,6 +246,9 @@
                 <detectors>
                   <exclude_from_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </prescribed>
             </scalar_field>
           </absolute_measure>
@@ -244,7 +256,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="MaterialVolume" rank="0">
+    <scalar_field rank="0" name="MaterialVolume">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -256,6 +268,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -272,10 +287,10 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <aliased material_phase_name="Material1" field_name="Velocity"/>
     </vector_field>
-    <scalar_field name="MaterialVolumeFraction" rank="0">
+    <scalar_field rank="0" name="MaterialVolumeFraction">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -287,7 +302,7 @@
             </control_volumes>
             <mixing_bin_bounds>
               <constant>
-                <real_value shape="2" rank="1">0.0 1.0</real_value>
+                <real_value rank="1" shape="2">0.0 1.0</real_value>
               </constant>
             </mixing_bin_bounds>
             <tolerance>
@@ -301,12 +316,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="MaterialVolume" rank="0">
+    <scalar_field rank="0" name="MaterialVolume">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -318,6 +336,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -336,14 +357,14 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">0.005 0 0 0 0.005 0.0 0 0.0 0.005</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">0.005 0 0 0 0.005 0.0 0 0.0 0.005</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">1.0 0 0 0 1.0 0 0 0 1.0</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">1.0 0 0 0 1.0 0 0 0 1.0</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

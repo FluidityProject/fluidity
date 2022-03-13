@@ -33,6 +33,7 @@
 #include <spatialindex/tools/rand48.h>
 #endif
 
+#include <unistd.h>
 #include <cstring>
 
 #if HAVE_PTHREAD_H
@@ -1096,9 +1097,13 @@ Tools::TemporaryFile::TemporaryFile()
 		m_sFile = std::string(tmpName);
 
 #else
-	char tmpName[7] = "XXXXXX";
-	if (mktemp(tmpName) == 0)
+	char tmpName[] = "spatialindex.XXXXXX";
+        int fd;
+	fd = mkstemp(tmpName);
+        if (fd == -1)
 		throw std::ios_base::failure("Tools::TemporaryFile: Cannot create temporary file name.");
+        close(fd);
+
 	m_sFile = tmpName;
 #endif
 

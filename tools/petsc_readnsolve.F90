@@ -86,7 +86,7 @@ implicit none
   call PetscViewerDestroy(viewer, ierr)
   if (random_rhs) then
     call PetscRandomCreate(PETSC_COMM_WORLD, pr, ierr)
-    call VecSetRandom(rhs, PETSC_NULL_OBJECT, ierr)
+    call VecSetRandom(rhs, pr, ierr)
     call PetscRandomDestroy(pr, ierr)
   end if
 
@@ -185,8 +185,8 @@ contains
     krylov_method=KSPGMRES
     pc_method=PCSOR
     
-    call PetscOptionsGetString(PETSC_NULL_OBJECT, '', "-ksp_type", krylov_method, flag, ierr)
-    call PetscOptionsGetString(PETSC_NULL_OBJECT, '', "-pc_type", pc_method, flag, ierr)
+    call PetscOptionsGetString(PETSC_NULL_OPTIONS, '', "-ksp_type", krylov_method, flag, ierr)
+    call PetscOptionsGetString(PETSC_NULL_OPTIONS, '', "-pc_type", pc_method, flag, ierr)
     call KSPCreate(MPI_COMM_FEMTOOLS, krylov, ierr)
     call KSPSetType(krylov, krylov_method, ierr)
     call KSPSetOperators(krylov, matrix, matrix, ierr)
@@ -368,6 +368,9 @@ contains
       
       universal_nodes=petsc_numbering%universal_length
       
+      ! Escape division by zero in mod() by exiting prior to evaluation
+      if (universal_nodes==0) FLExit("Cannot have 0 nodes in specified mesh")
+
       ! and compare it with the size of the PETSc vector
       if (universal_nodes==n) then
         
@@ -712,7 +715,7 @@ contains
     ! still all columns of owned rows are stored locally)
     ! we only deal with square matrices (same d.o.f. for rows and columns)
     ! in fluidity, so we can simply reuse row_indexset as the col_indexset
-    call MatGetSubMatrix(matrix, row_indexset, row_indexset, &
+    call MatCreateSubMatrix(matrix, row_indexset, row_indexset, &
        MAT_INITIAL_MATRIX, new_matrix, ierr)
 
     ! destroy the old read-in matrix and replace by the new one
@@ -727,7 +730,7 @@ contains
     ! create a Vec according to the proper partioning:
     call VecCreateMPI(MPI_COMM_FEMTOOLS, n*ncomponents, m, new_x, ierr)
     ! fill it with values from the read x by asking for its row numbers
-    call VecScatterCreate(x, row_indexset, new_x, PETSC_NULL_OBJECT, &
+    call VecScatterCreate(x, row_indexset, new_x, PETSC_NULL_IS, &
        scatter, ierr)
     call VecScatterBegin(scatter, x, new_x, INSERT_VALUES, &
        SCATTER_FORWARD, ierr)
@@ -760,28 +763,28 @@ contains
     PetscBool flag
     PetscErrorCode ierr
     
-    call PetscOptionsGetString(PETSC_NULL_OBJECT, 'prns_', '-filename', filename, flag, ierr)
+    call PetscOptionsGetString(PETSC_NULL_OPTIONS, 'prns_', '-filename', filename, flag, ierr)
     if (.not. flag) then
       filename='matrixdump'
     end if
 
-    call PetscOptionsGetString(PETSC_NULL_OBJECT, 'prns_', '-flml', flml, flag, ierr)
+    call PetscOptionsGetString(PETSC_NULL_OPTIONS, 'prns_', '-flml', flml, flag, ierr)
     if (.not. flag) then
       flml=''
     end if
     
-    call PetscOptionsGetString(PETSC_NULL_OBJECT, 'prns_', '-field', field, flag, ierr)
+    call PetscOptionsGetString(PETSC_NULL_OPTIONS, 'prns_', '-field', field, flag, ierr)
     if (.not. flag) then
       field=''
     end if
     
-    call PetscOptionsHasName(PETSC_NULL_OBJECT, 'prns_', '-zero_init_guess', zero_init_guess, ierr)
+    call PetscOptionsHasName(PETSC_NULL_OPTIONS, 'prns_', '-zero_init_guess', zero_init_guess, ierr)
 
-    call PetscOptionsHasName(PETSC_NULL_OBJECT, 'prns_', '-scipy', scipy, ierr)
+    call PetscOptionsHasName(PETSC_NULL_OPTIONS, 'prns_', '-scipy', scipy, ierr)
 
-    call PetscOptionsHasName(PETSC_NULL_OBJECT, 'prns_', '-random_rhs', random_rhs, ierr)
+    call PetscOptionsHasName(PETSC_NULL_OPTIONS, 'prns_', '-random_rhs', random_rhs, ierr)
     
-    call PetscOptionsGetInt(PETSC_NULL_OBJECT, 'prns_', '-verbosity', current_debug_level, flag, ierr)
+    call PetscOptionsGetInt(PETSC_NULL_OPTIONS, 'prns_', '-verbosity', current_debug_level, flag, ierr)
     if (.not.flag) then
       current_debug_level=3
     end if

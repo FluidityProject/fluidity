@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Geostrophic interpolation with geopressure preconditioning</name>
   <owner userid="cjc1"/>
@@ -33,14 +33,17 @@ imbalanceVelocityL2Norm = s["Fluid"]["Imbal%magnitude"]["l2norm"]</variable>
   <pass_tests>
     <test name="SimulationCompleted" language="python">assert(timesteps == 2)</test>
     <test name="SolversConverged" language="python">assert(solversConverged)</test>
-    <test name="DeltaU" language="python">print abs(deltaU)
-assert abs(deltaU) &lt; 5.0e-3</test>
+    <test name="DeltaU" language="python">print(abs(deltaU))
+assert abs(deltaU) &lt; 5.0e-3
+</test>
     <test name="VelocityDivergence" language="python">maxval = abs(velocityDivergenceMax).max()
-print maxval
-assert maxval &lt; 3.0e-5</test>
+print(maxval)
+assert maxval &lt; 3.0e-5
+</test>
     <test name="ImbalancedVelocity" language="python">maxval = abs(imbalanceVelocityL2Norm).max()
-print maxval
-assert maxval &lt; 1.0e2</test>
+print(maxval)
+assert maxval &lt; 1.0e2
+</test>
   </pass_tests>
   <warn_tests/>
 </testproblem>

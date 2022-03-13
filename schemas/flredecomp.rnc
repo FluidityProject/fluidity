@@ -50,6 +50,14 @@ flredecomp =
                }
             }
         }?,
+        ## After the decomposition the extruded mesh is changed to a from_file
+        ## mesh. All non-extruded meshes are removed from the output flml, so
+        ## this can no longer be used in combination with vertically_structured_adaptivity
+        ## The decomposition itself will still be based on a columnar decomposition of the
+        ## horizontal mesh. If you want to decompose in all directions, run flredecomp again.
+        element write_extruded_mesh_only {
+           empty
+        }?,
         ## Zoltan Debugging
         ## 
         ## Turn on more verbose output for use when debugging Zoltan.

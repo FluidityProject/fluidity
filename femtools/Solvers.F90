@@ -29,6 +29,7 @@ module solvers
   use FLDebug
   use Global_Parameters
   use futils, only: present_and_true, int2str, free_unit, real_format
+  use element_numbering, only: ELEMENT_BUBBLE
   use elements
   use spud
   use parallel_tools
@@ -36,6 +37,7 @@ module solvers
   use petsc
 #endif
   use Sparse_Tools
+  use fields_calculations
   use Fields
   use profiler
   use Petsc_tools
@@ -79,7 +81,8 @@ module solvers
 private
 
 public petsc_solve, set_solver_options, &
-   complete_solver_option_path, petsc_solve_needs_positions
+   complete_solver_option_path, petsc_solve_needs_positions, &
+   L2_project_nullspace_vector
 
 ! meant for unit-testing solver code only:
 public petsc_solve_core, petsc_solve_destroy, &
@@ -503,7 +506,7 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
         
   ! Copy back the result using the petsc numbering:
   call petsc2field(y, matrix%column_numbering, x)
-  
+
   ! destroy all PETSc objects and the petsc_numbering
   call petsc_solve_destroy_petsc_csr(y, b, solver_option_path)
   
@@ -643,7 +646,7 @@ Mat, intent(out):: A
 !! PETSc rhs vector
 Vec, intent(out):: b
 !! Solver object
-Mat, intent(out):: ksp
+KSP, intent(out):: ksp
 !! numbering from local (i.e. fluidity speak: global) to PETSc (fluidity: universal) numbering
 type(petsc_numbering_type), intent(out):: petsc_numbering
 !! returns the option path to solver/ block for new options, otherwise ""
@@ -729,7 +732,7 @@ type(vector_field), intent(in), optional :: positions
     startfromzero=.true.
   end if
   
-  ksp=PETSC_NULL_OBJECT
+  ksp=PETSC_NULL_KSP
   if (present(matrix)) then
     if (associated(matrix%ksp)) then
       ksp=matrix%ksp
@@ -740,7 +743,7 @@ type(vector_field), intent(in), optional :: positions
     end if
   end if
   
-  if (ksp/=PETSC_NULL_OBJECT) then
+  if (ksp/=PETSC_NULL_KSP) then
     ! oh goody, we've been left something useful!
     call KSPGetOperators(ksp, A, Pmat, ierr)
     have_cache=.true.
@@ -762,7 +765,7 @@ type(vector_field), intent(in), optional :: positions
   ! Note the explicitly-described options rcm, 1wd and natural are now not
   ! listed explicitly in the schema (but can still be used by adding the
   ! appropriate string in the solver reordering node).
-  call PetscOptionsGetString(PETSC_NULL_OBJECT, "", "-ordering_type", ordering_type, use_reordering, ierr)
+  call PetscOptionsGetString(PETSC_NULL_OPTIONS, "", "-ordering_type", ordering_type, use_reordering, ierr)
   if (.not. use_reordering) then
     call get_option(trim(solver_option_path)//'/reordering[0]/name', &
       ordering_type, stat=ierr)
@@ -885,7 +888,7 @@ type(vector_field), intent(in), optional :: positions
       ksp_pointer = ksp
       
       ! make sure we don't destroy it, the %ksp becomes a separate reference
-      call PetscObjectReference(ksp, ierr)
+      call PetscObjectReferenceWrapper(ksp, ierr)
     else
       ! matrices coming from block() can't cache
       FLAbort("User wants to cache solver context, but no proper matrix is provided.")
@@ -895,11 +898,11 @@ type(vector_field), intent(in), optional :: positions
   
     ! ksp is a copy of matrix%ksp, make it a separate reference, 
     ! so we can KSPDestroy it without destroying matrix%ksp
-    call PetscObjectReference(ksp, ierr)
+    call PetscObjectReferenceWrapper(ksp, ierr)
     
     ! same for the matrix, kspgetoperators returns the matrix reference
     ! owned by the ksp - make it a separate reference
-    call PetscObjectReference(A, ierr)
+    call PetscObjectReferenceWrapper(A, ierr)
     
   end if
   
@@ -1018,7 +1021,7 @@ Mat, intent(in), optional:: rotation_matrix
   end if
 
   ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
-  if (matrix%ksp==PETSC_NULL_OBJECT) then
+  if (matrix%ksp==PETSC_NULL_KSP) then
   
     call create_ksp_from_options(matrix%ksp, matrix%M, matrix%M, solver_option_path, parallel, &
         matrix%column_numbering, &
@@ -1244,9 +1247,9 @@ logical, optional, intent(in):: nomatrixdump
   ! if a null space is defined for the petsc matrix, make sure it's projected out of the rhs
   call KSPGetOperators(ksp, mat, pmat, ierr)
   call MatGetNullSpace(mat, nullsp, ierr)
-  if (ierr==0  .and. nullsp/=PETSC_NULL_OBJECT) then
+  if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
     ewrite(2,*) "Projecting nullspace from RHS"
-    call MatNullSpaceRemove(nullsp, b, PETSC_NULL_OBJECT, ierr)
+    call MatNullSpaceRemove(nullsp, b, ierr)
   end if
 
   call KSPSolve(ksp, b, y, ierr)
@@ -1569,7 +1572,7 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
       internal_smoothing_option)
   !!< Sets options for the given ksp according to the options
   !!< in the options tree.
-    KSP, intent(out) :: ksp
+    KSP, intent(inout) :: ksp
     ! PETSc mat and pmat used to solve
     Mat, intent(in):: mat, pmat
     ! path to solver block (including '/solver')
@@ -1709,8 +1712,10 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
          FLAbort("Need petsc_numbering for monitor")
        end if
        call petsc_monitor_setup(petsc_numbering, max_its)
-       call KSPMonitorSet(ksp,MyKSPMonitor,PETSC_NULL_OBJECT, &
-            &                     PETSC_NULL_FUNCTION,ierr)
+       ! NOTE: there doesn't seem to be a clean way to provide NULL to the void *mctx
+       ! argument in for fortran interface to PETSc v3.8 - PETSC_NULL_KSP does get translated to NULL
+       call KSPMonitorSet(ksp, MyKSPMonitor, PETSC_NULL_KSP, &
+            &                     PETSC_NULL_FUNCTION, ierr)
     end if
 
 #if PETSC_VERSION_MINOR<6
@@ -1722,11 +1727,11 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
       ! At this point KSPSetOperators, has already been called, so if mat has 
       ! a nullspace we want it to be set as the nullspace of the KSP
       call MatGetNullSpace(mat, nullsp, ierr)
-      if (ierr==0  .and. nullsp/=PETSC_NULL_OBJECT) then
+      if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
         call KSPSetNullSpace(ksp, nullsp, ierr)
       else
         call MatGetNullSpace(pmat, nullsp, ierr)
-        if (ierr==0  .and. nullsp/=PETSC_NULL_OBJECT) then
+        if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
           FLAbort("Preconditioner matrix has nullspace whereas the matrix itself doesn't")
           ! This is a problem because the nullspace on the preconditioner matrix is now
           ! attached to the ksp already. Not sure how to remove it again; Can I just call
@@ -1741,7 +1746,7 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
     ! in the krylov iteration is from *pmat* not mat (as it is in 3.6.1 and later)
     if (mat/=pmat) then
       call MatGetNullSpace(mat, nullsp, ierr)
-      if (ierr==0  .and. nullsp/=PETSC_NULL_OBJECT) then
+      if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
         ewrite(0,*) "Matrix and preconditioner matrix are different. For this case nullspaces"
         ewrite(0,*) "and petsc 3.6.0 are not supported. Please upgrade to petsc 3.6.1 or higher"
         FLExit("Cannot use petsc 3.6.0 with nullspaces when mat/=pmat")
@@ -1858,8 +1863,9 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
     PC:: subpc
     MatNullSpace:: nullsp
     PCType:: pctype, hypretype
-    MatSolverPackage:: matsolverpackage
+    MatSolverType:: matsolvertype
     PetscErrorCode:: ierr
+    integer :: n_local, first_local
     
     call get_option(trim(option_path)//'/name', pctype)
 
@@ -1922,9 +1928,9 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
       call PCSetup(pc, ierr)
       
       if (pctype==PCBJACOBI) then
-        call PCBJACOBIGetSubKSP(pc, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, subksp, ierr)
+        call PCBJACOBIGetSubKSP(pc, n_local, first_local, subksp, ierr)
       else
-        call PCASMGetSubKSP(pc, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, subksp, ierr)
+        call PCASMGetSubKSP(pc, n_local, first_local, subksp, ierr)
       end if
 
       call KSPGetPC(subksp, subpc, ierr)
@@ -1947,7 +1953,7 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
        call PCSetType(pc, PCBJACOBI, ierr)
        ! need to call this before the subpc can be retrieved:
        call PCSetup(pc, ierr)
-       call PCBJACOBIGetSubKSP(pc, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, subksp, ierr)
+       call PCBJACOBIGetSubKSP(pc, n_local, first_local, subksp, ierr)
        call KSPGetPC(subksp, subpc, ierr)
        call PCSetType(subpc, pctype, ierr)
 
@@ -1971,21 +1977,31 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
        call PCSetType(pc, pctype, ierr)
 
        if (pctype==PCLU) then
-          call get_option(trim(option_path)//'/factorization_package/name', matsolverpackage)
-          call PCFactorSetMatSolverPackage(pc, matsolverpackage, ierr)
+          call get_option(trim(option_path)//'/factorization_package/name', matsolvertype)
+          call PCFactorSetMatSolverType(pc, matsolvertype, ierr)
        end if
 
       if (pctype==PCGAMG) then
         ! we think this is a more useful default - the default value of 0.0
         ! causes spurious "unsymmetric" failures as well
+#if PETSC_VERSION_MINOR<8
         call PCGAMGSetThreshold(pc, 0.01, ierr)
+#else
+        ! From petsc v3.8: the threshold can be set at each level, levels that
+        ! are left unspecified are scaled by a factor level-by-level
+        ! I believe the following leads to the same default we were using previously:
+        ! 0.01 is set at level 1 only, and a scaling of 1.0 (i.e. no scaling) is applied
+        ! so that other levels get the same threshold value
+        call PCGAMGSetThresholdScale(pc, 1.0, ierr)
+        call PCGAMGSetThreshold(pc, (/ 0.01/), 1, ierr)
+#endif
         ! this was the old default:
         call PCGAMGSetCoarseEqLim(pc, 800, ierr)
         ! PC setup seems to be required so that the Coarse Eq Lim option is used.
         call PCSetup(pc,ierr)
 
         call MatGetNullSpace(pmat, nullsp, ierr)
-        if (ierr==0  .and. nullsp/=PETSC_NULL_OBJECT) then
+        if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
           ! if the preconditioner matrix has a nullspace, this may still be present
           ! at the coarsest level (the constant null vector always will be, the rotational
           ! are as well if a near-null-space is provided). In this case the default of 
@@ -2444,8 +2460,8 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
     call PCApply(pc, petsc_monitor_x, r, ierr)
     ! within petsc the nullspace is removed directly after pcapply (see KSP_PCApply)
     call MatGetNullSpace(Pmat, nullsp, ierr)
-    if (ierr==0  .and. nullsp/=PETSC_NULL_OBJECT) then
-      call MatNullSpaceRemove(nullsp, r, PETSC_NULL_OBJECT, ierr)
+    if (.not. IsNullMatNullSpace(nullsp) .and. ierr==0) then
+      call MatNullSpaceRemove(nullsp, r, ierr)
     end if
     if (size(petsc_monitor_numbering%gnn2unn,2)==1) then
       call petsc2field(r, petsc_monitor_numbering, petsc_monitor_sfields(3))
@@ -2476,14 +2492,12 @@ function create_null_space_from_options_scalar(mat, null_space_option_path) &
    !! the option path to remove_null_space
    character(len=*), intent(in):: null_space_option_path
 
-   ! hack to satisfy interface for MatNullSpaceCreate
-   ! only works as the array won't actually be used
-   PetscObject, dimension(1:0) :: PETSC_NULL_OBJECT_ARRAY
+   Vec, dimension(1:0) :: ArrayOfZeroVecs
    MatNullSpace :: null_space
    PetscErrorCode :: ierr
    PetscBool :: isnull
 
-   call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_TRUE, 0, PETSC_NULL_OBJECT_ARRAY, null_space, ierr)
+   call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_TRUE, 0, ArrayOfZeroVecs, null_space, ierr)
 
    if(have_option(trim(null_space_option_path)//'/test_null_space')) then
      call MatNullSpaceTest(null_space, mat, isnull, ierr)
@@ -2502,7 +2516,7 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
    Mat, intent(in):: mat
    !! the option path to remove_null_space or multigrid_near_space
    character(len=*), intent(in):: null_space_option_path
-   type(petsc_numbering_type), intent(in):: petsc_numbering 
+   type(petsc_numbering_type), intent(in):: petsc_numbering
    ! positions field is only used with remove_null_space/ with rotational components
    type(vector_field), intent(in), optional :: positions
    ! with rotated bcs: matrix to transform from x,y,z aligned vectors to boundary aligned
@@ -2516,7 +2530,8 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
    PetscErrorCode :: ierr
    PetscBool :: isnull
 
-   integer :: i, nnulls, nnodes, comp, dim, universal_nodes
+   integer :: i, ele, nnulls, nnodes, comp, dim, universal_nodes
+   integer, dimension(:), pointer :: nodes
    logical, dimension(3) :: rot_mask
    logical, dimension(size(petsc_numbering%gnn2unn,2)) :: mask
    real, dimension(:,:), allocatable :: null_vector
@@ -2529,81 +2544,20 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
    nnodes=size(petsc_numbering%gnn2unn,1)
    dim=size(petsc_numbering%gnn2unn,2)
 
-   if(have_option(trim(null_space_option_path)//'/specify_components')) then
-     ! count how many null spaces we want
-     mask = .false.
-     mask(1) = have_option(trim(null_space_option_path)//&
-                            &"/specify_components/x_component")
-     if (have_option(trim(null_space_option_path)//&
-                            &"/specify_components/y_component")) then
-       if(dim<2) then
-         FLExit("Requested the removal of a y component null space on a less than 2d vector.")
-       end if
-       mask(2) = .true.
-     end if
-     if (have_option(trim(null_space_option_path)//&
-                            &"/specify_components/z_component")) then
-       if(dim<3) then
-         FLExit("Requested the removal of a z component null space on a less than 3d vector.")
-       end if
-       mask(3) = .true.
-     end if
-     if(.not. any(mask)) then
-       FLExit("Requested null space removal on specific components but have not specified which components.")
-     end if
-   else if(have_option(trim(null_space_option_path)//'/all_components')) then
-     mask = .true.
-   else if(have_option(trim(null_space_option_path)//'/no_components')) then
-     mask = .false.
-   end if
-
-   if(have_option(trim(null_space_option_path)//'/specify_rotations')) then
-     rot_mask = .false.
-     rot_mask(3)=have_option(trim(null_space_option_path)//&
-                            &"/specify_rotations/xy_rotation")
-     if (have_option(trim(null_space_option_path)//&
-                            &"/specify_rotations/xz_rotation")) then
-
-       if(dim<3) then
-         FLExit("Requested the removal of xz rotation on a less than 3d vector.")
-       end if
-       rot_mask(2) = .true.
-     end if
-     if (have_option(trim(null_space_option_path)//&
-                            &"/specify_rotations/yz_rotation")) then
-
-       if(dim<3) then
-         FLExit("Requested the removal of yz rotation on a less than 3d vector.")
-       end if
-       rot_mask(1) = .true.
-     end if
-     if(.not. any(rot_mask)) then
-       FLExit("Requested null space removal on specific rotations but have not specified which rotations.")
-     end if
-   else if(have_option(trim(null_space_option_path)//'/all_rotations')) then
-     rot_mask = .false.
-     if (dim==3) then
-       rot_mask = .true.
-     else if (dim==2) then
-       rot_mask(3) = .true.
-     end if
-   else
-     rot_mask = .false.
-   end if
-
-   if (.not. (any(mask) .or. any(rot_mask)) ) then
-      FLExit("You must remove either a component or a rotation.")
-   end if
-
-   if(any(rot_mask) .and. dim<2) then
-     FLExit("Requested the removal of rotational component for a less than 2d vector.")
-   end if 
+   call get_null_space_component_options(null_space_option_path, mask, rot_mask)
 
    nnulls=count(mask)+count(rot_mask)
    ! allocate the array of null spaces
    allocate(null_space_array(1:nnulls))
    allocate(null_vector(nnodes,dim))
+
+   ! used in l2-normalisation
    universal_nodes=petsc_numbering%universal_length/dim
+   if (any(mask)) then
+     if (positions%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
+       universal_nodes=universal_nodes-element_count(positions)
+     end if
+   end if
 
    ewrite(2,*) "Setting up array of "//int2str(nnulls)//" null spaces."
    
@@ -2615,6 +2569,13 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
        null_vector = 0.0
        ! ensure the translations are orthonormal:
        null_vector(:,comp)=1.0/sqrt(real(universal_nodes))
+       if (positions%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
+         ! zero bubble nodes
+         do ele=1, element_count(positions)
+           nodes => ele_nodes(positions, ele)
+           null_vector(nodes(size(nodes)),comp) = 0.
+         end do
+       end if
        null_space_array(i)=PetscNumberingCreateVec(petsc_numbering)
        call array2petsc(reshape(null_vector,(/nnodes*dim/)), petsc_numbering, null_space_array(i))
      end if
@@ -2644,6 +2605,7 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
          call set(null_vector_field, permutations(comp+2), &
            extract_scalar_field(positions, permutations(comp+1)))
          null_space_array(i)=PetscNumberingCreateVec(petsc_numbering)
+         call zero_bubble_vals(null_vector_field)
          call field2petsc(null_vector_field, petsc_numbering, null_space_array(i))
        end if
      end do
@@ -2721,18 +2683,186 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
 
 end function create_null_space_from_options_vector
 
+subroutine get_null_space_component_options(null_space_option_path, mask, rot_mask)
+   character(len=*), intent(in) :: null_space_option_path
+   logical, dimension(:), intent(out) :: mask  ! length should be field%dim
+   logical, dimension(3), intent(out) :: rot_mask  ! NOTE: always 3-dim
+
+   integer :: dim
+
+   dim = size(mask)
+
+   if(have_option(trim(null_space_option_path)//'/specify_components')) then
+     ! count how many null spaces we want
+     mask = .false.
+     mask(1) = have_option(trim(null_space_option_path)//&
+                            &"/specify_components/x_component")
+     if (have_option(trim(null_space_option_path)//&
+                            &"/specify_components/y_component")) then
+       if(dim<2) then
+         FLExit("Requested the removal of a y component null space on a less than 2d vector.")
+       end if
+       mask(2) = .true.
+     end if
+     if (have_option(trim(null_space_option_path)//&
+                            &"/specify_components/z_component")) then
+       if(dim<3) then
+         FLExit("Requested the removal of a z component null space on a less than 3d vector.")
+       end if
+       mask(3) = .true.
+     end if
+     if(.not. any(mask)) then
+       FLExit("Requested null space removal on specific components but have not specified which components.")
+     end if
+   else if(have_option(trim(null_space_option_path)//'/all_components')) then
+     mask = .true.
+   else if(have_option(trim(null_space_option_path)//'/no_components')) then
+     mask = .false.
+   else
+     ewrite(0,*) "null_space_option_path: ",  null_space_option_path
+     FLAbort("Invalid null_space_option_path")
+   end if
+
+   if(have_option(trim(null_space_option_path)//'/specify_rotations')) then
+     rot_mask = .false.
+     rot_mask(3)=have_option(trim(null_space_option_path)//&
+                            &"/specify_rotations/xy_rotation")
+     if (have_option(trim(null_space_option_path)//&
+                            &"/specify_rotations/xz_rotation")) then
+
+       if(dim<3) then
+         FLExit("Requested the removal of xz rotation on a less than 3d vector.")
+       end if
+       rot_mask(2) = .true.
+     end if
+     if (have_option(trim(null_space_option_path)//&
+                            &"/specify_rotations/yz_rotation")) then
+
+       if(dim<3) then
+         FLExit("Requested the removal of yz rotation on a less than 3d vector.")
+       end if
+       rot_mask(1) = .true.
+     end if
+     if(.not. any(rot_mask)) then
+       FLExit("Requested null space removal on specific rotations but have not specified which rotations.")
+     end if
+   else if(have_option(trim(null_space_option_path)//'/all_rotations')) then
+     rot_mask = .false.
+     if (dim==3) then
+       rot_mask = .true.
+     else if (dim==2) then
+       rot_mask(3) = .true.
+     end if
+   else
+     rot_mask = .false.
+   end if
+
+   if (.not. (any(mask) .or. any(rot_mask)) ) then
+      FLExit("You must remove either a component or a rotation.")
+   end if
+
+   if(any(rot_mask) .and. dim<2) then
+     FLExit("Requested the removal of rotational component for a less than 2d vector.")
+   end if 
+
+end subroutine get_null_space_component_options
+
+subroutine L2_project_nullspace_vector(field, null_space_option_path, coordinates, mesh_positions)
+  ! L2 project the nullspace specified under <null_space_option_path>/remove_null_space
+  ! out of the solution field `field`
+  ! This uses a proper (big) L2 projection, so after the projection
+  ! <n,f> = \int_\Omega n(x)f(x) dx =0 for all null modes n(x)
+  ! This in contrast with an l2-projection, as it used during the petsc solve
+  ! which merely results in \sum_i n_i f_i =0 where n_i and f_i are the DOFs of n(x) and f(x)
+
+  ! solution field to project the nullspace out of:
+  type(vector_field), intent(inout) :: field
+  ! null_space_option_path (should have remove_null_space/ under it)
+  character(len=*), intent(in) :: null_space_option_path
+  ! coordinate field used for integration (should be "Coordinate")
+  type(vector_field), intent(in) :: coordinates
+  ! positions of field%mesh
+  type(vector_field), intent(in) :: mesh_positions
+  
+  type(vector_field) :: null_field
+  integer, dimension(5), parameter:: permutations=(/ 1,2,3,1,2 /)
+  logical, dimension(field%dim) :: mask
+  logical, dimension(3) :: rot_mask
+  integer :: i, j, k
+
+  ewrite(1,*) "Inside L2_project_nullspace_vector"
+
+  call get_null_space_component_options(null_space_option_path, mask, rot_mask)
+
+  call allocate(null_field, field%dim, field%mesh, "NullspaceField")
+  call zero(null_field)
+  do i=1, field%dim
+    if (mask(i)) then
+      call set(null_field, i, 1.0)
+      call zero_bubble_vals(null_field)
+      call L2_project_nullmode_vector(field, null_field, coordinates)
+      call zero(null_field, dim=i)
+    end if
+  end do
+
+  do i=1, 3
+    if (rot_mask(i)) then
+      ! the two directions orthogonal to i
+      j = permutations(i+1)
+      k = permutations(i+2)
+      ! the rotational null field is basically j and k swapped, with a sign in front of one
+      ! while keeping the i component at zero
+      ! note that we do not care about the overall sign here, since the L2 projection takes care of that
+      if (i<=field%dim) then
+        null_field%val(i,:) = 0.
+      end if
+      null_field%val(j,:) = mesh_positions%val(k,:)
+      null_field%val(k,:) = -mesh_positions%val(j,:)
+      call zero_bubble_vals(null_field)
+      call L2_project_nullmode_vector(field, null_field, coordinates)
+    end if
+  end do
+
+  call deallocate(null_field)
+
+end subroutine L2_project_nullspace_vector
+
+subroutine L2_project_nullmode_vector(field, null_field, coordinates)
+  ! L2 project a single null_field out of field
+  ! This uses a proper (big) L2 projection, so after the projection
+  ! <n,f> = \int_\Omega n(x)f(x) dx =0 for null_field n(x) and field f(x)
+
+  ! solution field to project the nullspace out of:
+  type(vector_field), intent(inout) :: field
+  ! null mode to project out
+  type(vector_field), intent(inout) :: null_field
+  ! coordinate field used for integration (should be "Coordinate")
+  type(vector_field), intent(in) :: coordinates
+
+  real :: n_dot_f, n_dot_n
+
+  n_dot_f = dot_product(null_field, field, coordinates)
+  n_dot_n = dot_product(null_field, null_field, coordinates)
+
+  call addto(field, null_field, scale=-n_dot_f/n_dot_n)
+
+end subroutine L2_project_nullmode_vector
+
 function petsc_solve_needs_positions(solver_option_path)
   !!< Auxillary function to tell us if we need to pass in a positions field to petsc_solve
   !!< Currently only for vector solves with remove_null_space or multigrid_near_null_space
-  !!< with specify_rotations or all_rotations
   character(len=*), intent(in):: solver_option_path
   logical:: petsc_solve_needs_positions
 
+  ! for vector fields with multigrid_near_null_space we only need it if we have rotations
+  ! for vector fields with remove_null_space we need it in all cases, since we do a L2 projection afterwards
   petsc_solve_needs_positions = &
-    have_option(trim(solver_option_path)//'/remove_null_space/specify_rotations') .or. &
-    have_option(trim(solver_option_path)//'/remove_null_space/all_rotations') .or. &
-    have_option(trim(solver_option_path)//'/multigrid_near_null_space/specify_rotations') .or. &
-    have_option(trim(solver_option_path)//'/multigrid_near_null_space/all_rotations')
+    have_option(trim(solver_option_path)//'/remove_null_space/all_components') .or. &
+    have_option(trim(solver_option_path)//'/remove_null_space/specify_components') .or. &
+    have_option(trim(solver_option_path)//'/remove_null_space/no_components') .or. &
+    have_option(trim(solver_option_path)//'/multigrid_near_null_space/all_components') .or. &
+    have_option(trim(solver_option_path)//'/multigrid_near_null_space/specify_components') .or. &
+    have_option(trim(solver_option_path)//'/multigrid_near_null_space/no_components')
 
 end function petsc_solve_needs_positions
 

@@ -51,6 +51,7 @@ USA
 #include <string>
 #include <vector>
 
+#include "sam_mpi.h"
 #include "c++debug.h"
 #include "Mesh.h"
 #include "samtypes.h"
@@ -218,7 +219,8 @@ extern "C"{
       }
     }
 
-    int MyRank = MPI::COMM_WORLD.Get_rank();
+    int MyRank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
 
     { // Compress volume element-node lists
       int i = 0;

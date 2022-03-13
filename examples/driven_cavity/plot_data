@@ -1,13 +1,13 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import pylab
 import driven_cavity
 import sys
 import numpy
 
 def usage():
-    print """plot_data <NN>
+    print("""plot_data <NN>
 
-    <NN> is a space-separated list of the inverse mesh spacing."""
+    <NN> is a space-separated list of the inverse mesh spacing.""")
     
 
 try:

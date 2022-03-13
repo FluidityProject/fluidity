@@ -25,10 +25,10 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
  USA
 */
-#include <mpi.h>
+#include "sam_mpi.h"
+#include "c++debug.h"
 #include "Mesh.h"
 #include "MI5.h"
-#include "c++debug.h"
 
 #include <vector>
 #include <deque>
@@ -40,8 +40,9 @@ using namespace std;
 MI5::MI5(int nnodes, int nelems){
   __nnodes = nnodes;
   __nelems = nelems;
-  MyRank   = MPI::COMM_WORLD.Get_rank();
-  NProcs   = MPI::COMM_WORLD.Get_size();
+
+  MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
+  MPI_Comm_size(MPI_COMM_WORLD, &NProcs);
   
   nodeKnowers.resize( __nnodes );
   nodeKnowers_next.resize( __nnodes );

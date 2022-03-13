@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Bibiography:
 #
@@ -21,7 +21,7 @@ def Help():
   """
   Print program usage information.
   """
-  print "Usage: stat2csv [OPTIONS] ... STAT\n" + \
+  print("Usage: stat2csv [OPTIONS] ... STAT\n" + \
         "\n" + \
         "Converts a Fluidity .stat file to a .csv file." + \
         "\n" + \
@@ -30,7 +30,7 @@ def Help():
         "-c        Do not output data labels\n" + \
         "-d DELIM The delimiter to use between output columns (default = \",\")\n" + \
         "-o        Output file\n" + \
-        "-s        Output to stdout instead of output file"
+        "-s        Output to stdout instead of output file")
   sys.stdout.flush()
   
   return
@@ -131,7 +131,7 @@ def ExtractData(input, labelPrefix = ""):
   return data
       
 data = ExtractData(s)
-labels = data.keys()
+labels = list(data)
 
 # Open the output file for writing
 if useStdout:

@@ -133,17 +133,84 @@ Otherwise, uses a scalar field as a source field.</a:documentation>
     </optional>
   </define>
   <define name="internal_algorithm">
-    <element name="algorithm">
-      <a:documentation>This diagnostic is internal - i.e. it is calculated somewhere within
+    <choice>
+      <element name="algorithm">
+        <a:documentation>This diagnostic is internal - i.e. it is calculated somewhere within
 the main code, and is not wrapped by the automatic diagnostics
 wrappers.</a:documentation>
-      <attribute name="name">
-        <value>Internal</value>
-      </attribute>
-      <attribute name="material_phase_support">
-        <value>multiple</value>
-      </attribute>
-    </element>
+        <attribute name="name">
+          <value>Internal</value>
+        </attribute>
+        <attribute name="material_phase_support">
+          <value>multiple</value>
+        </attribute>
+      </element>
+      <element name="algorithm">
+        <a:documentation>This diagnostic is derived from particle attributes, it is calculated
+within the Particle_Diagnostics.F90 routine, and set via the ratio method.</a:documentation>
+        <attribute name="name">
+          <value>from_particles</value>
+        </attribute>
+        <attribute name="material_phase_support">
+          <value>multiple</value>
+        </attribute>
+        <group>
+          <element name="particle_group">
+            <a:documentation>Particle group used for calculation of diagnostic field.</a:documentation>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <choice>
+              <element name="particle_attribute">
+                <a:documentation>Particle attribute used for calculation of diagnostic field.</a:documentation>
+                <attribute name="name">
+                  <data type="string"/>
+                </attribute>
+              </element>
+              <element name="particle_attribute_array">
+                <a:documentation>Particle attribute_array used for calculation of diagnostic field.</a:documentation>
+                <attribute name="name">
+                  <data type="string"/>
+                </attribute>
+                <element name="attribute_index">
+                  <a:documentation>Integer value corresponding to attribute position in array (starts from 1).</a:documentation>
+                  <ref name="integer"/>
+                </element>
+              </element>
+            </choice>
+          </element>
+          <element name="interpolation">
+            <a:documentation>Function used to interpolate particle values onto nodes.</a:documentation>
+            <choice>
+              <element name="weighted_distance">
+                <a:documentation>Weighted distribution of particle values between all nodes of the current particle element.</a:documentation>
+                <empty/>
+              </element>
+              <element name="nearest_neighbour">
+                <a:documentation>Transfers particle values only to the closest node.</a:documentation>
+                <empty/>
+              </element>
+            </choice>
+          </element>
+        </group>
+      </element>
+      <element name="algorithm">
+        <a:documentation>This diagnostic is calculated from the number of particles present per
+control volume, set within the Particle_Diagnostics.F90 routine.</a:documentation>
+        <attribute name="name">
+          <value>number_of_particles</value>
+        </attribute>
+        <attribute name="material_phase_support">
+          <value>multiple</value>
+        </attribute>
+        <element name="particle_group">
+          <a:documentation>Particle group used for calculation of diagnostic.</a:documentation>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+        </element>
+      </element>
+    </choice>
   </define>
   <define name="legacy_internal_algorithm">
     <element name="algorithm">
@@ -1841,6 +1908,18 @@ i.e. Density multiplied by the PhaseVolumeFraction field.</a:documentation>
     </element>
   </define>
   <!-- Mesh -->
+  <define name="region_id_algorithm">
+    <element name="algorithm">
+      <a:documentation>Convert the region_ids to a field. This field must be on a P0 mesh
+(i.e. degree 0 and discontinuous) as these are element-wise values.</a:documentation>
+      <attribute name="name">
+        <value>region_ids</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+    </element>
+  </define>
   <define name="column_id_algorithm">
     <element name="algorithm">
       <a:documentation>Convert the column_ids to a field.
@@ -2096,6 +2175,72 @@ a horizontal vector living on the specified surface.</a:documentation>
       </element>
     </element>
   </define>
+  <define name="subtract_average_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm that subtracts the average from a scalar field. The integral
+of the resulting diagnostic field is therefore zero.
+
+This is useful for fields that are only defined up to a constant. During
+their solve it is typically best to remove this freedom by using the 
+"remove_null_space" option (which effectively introduces a mesh dependent 
+constraint on the sum of the nodal values). For diagnostic purposes however,
+it may be useful to impose the more natural constraint that the integrated
+average is zero.</a:documentation>
+      <attribute name="name">
+        <value>subtract_average</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="scalar_source_field"/>
+    </element>
+  </define>
+  <define name="subtract_point_value_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm that subtracts the scalar field value in a certain point 
+from that same field. The resulting diagnostic field will therefore be zero in that point.
+
+This is useful for fields that are only defined up to a constant. It is similar
+to pinning using a reference node during the solve, except it is only imposed afterwards.
+This can be useful because during the solve it is typically better to pin the 
+arbitrary constant with the "remove_null_space" option instead.</a:documentation>
+      <attribute name="name">
+        <value>subtract_point_value</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="scalar_source_field"/>
+      <element name="coordinates">
+        <ref name="real_dim_vector">
+          <a:documentation>coordinates of the point whose value should be subtracted</a:documentation>
+        </ref>
+      </element>
+    </element>
+  </define>
+  <define name="subtract_surface_average_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm that subtracts the surface average from a scalar field. The 
+surface integral of the resulting diagnostic field is therefore zero.
+
+This is useful for fields that are only defined up to a constant. During
+their solve it is typically best to remove this freedom by using the 
+"remove_null_space" option (which effectively introduces a mesh dependent 
+constraint on the sum of the nodal values). For diagnostic purposes however,
+it may be useful to impose a more natural constraint such as the surface 
+integral being zero.</a:documentation>
+      <attribute name="name">
+        <value>subtract_surface_average</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="scalar_source_field"/>
+      <element name="surface_ids">
+        <ref name="integer_vector"/>
+      </element>
+    </element>
+  </define>
   <define name="scalar_diagnostic_algorithms">
     <ref name="universal_numbering_diagnostic_algorithm"/>
   </define>
@@ -2140,6 +2285,15 @@ a horizontal vector living on the specified surface.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_laplacian_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="subtract_surface_average_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="subtract_point_value_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="subtract_average_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_galerkin_projection_algorithm"/>
@@ -2206,6 +2360,9 @@ a horizontal vector living on the specified surface.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="curl_2d_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="region_id_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="column_id_algorithm"/>

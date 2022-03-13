@@ -39,6 +39,7 @@ SLIB_FLUIDITY = lib$(FLUIDITY).so
 # Follow: www.gnu.org/prep/standards/html_node/Directory-Variables.html
 PACKAGE_NAME = @PACKAGE_NAME@
 prefix  = @prefix@
+datarootdir = @datarootdir@
 exec_prefix  = @exec_prefix@
 bindir = @bindir@
 libdir = @libdir@
@@ -65,6 +66,7 @@ LINKER  = @LINKER@ @LDFLAGS@ $(CXXFLAGS)
 FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
 
 LIBS    = -L./lib -l$(FLUIDITY) @LIB_FEMDEM@ ./lib/libadaptivity.a \
+           ./lib/libH5hutF.a ./lib/libH5hut.a @HDF5_LIBS@ \
            ./lib/libvtkfortran.a @LIBSPATIALINDEX@  @SPUDLIB@ @FLIBJUDY@ \
            @LIBS@ @BLAS_LIBS@
 
@@ -101,8 +103,8 @@ endif
 ifneq (@HAVE_EXODUSII@,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e exodusii
 endif
-ifneq (@HAVE_PETSC33@,yes)
-	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e petsc33
+ifneq (@HAVE_ASSESS@,yes)
+	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e assess
 endif
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
@@ -115,6 +117,7 @@ default: bin/$(FLUIDITY)
 
 sub_system: $(LIBMBA2D) $(LIBMBA3D) @LIB_FEMDEM@ \
 	lib/libadaptivity.a lib/libvtkfortran.a @LIBSPATIALINDEX@ \
+	lib/libH5hut.a \
 	@SPUDLIB@ @FLIBJUDY@ include/version.h
 
 @FLIBJUDY@:
@@ -132,7 +135,9 @@ lib/libmba3d.a:
 lib/libadaptivity.a:
 	@echo '    MKDIR lib'; mkdir -p lib
 	@BUILD_LIBADAPT@
-
+lib/libH5hut.a:
+	@echo '    MKDIR lib'; mkdir -p lib
+	echo '    MAKE h5hut'; $(MAKE) -C h5hut install-exec install-data && cp include/H5hut.f90 femtools/H5hut.F90
 lib/libvtkfortran.a:
 	@echo '    MKDIR lib'; mkdir -p lib
 	echo '    MAKE libvtkfortran'; $(MAKE) -C libvtkfortran 2>make.log 2>&1 && cp libvtkfortran/libvtkfortran.a lib/ && cp libvtkfortran/*.mod include/
@@ -146,7 +151,7 @@ lib/libvtkfortran.a:
 ifeq (@SPUD_ONLY@,yes)
 	echo '    MAKE libspud'; $(MAKE) -C libspud && $(MAKE) -C libspud install-libspud
 else
-	echo '    MAKE libspud'; $(MAKE) -C libspud &&  $(MAKE) -C libspud install-libspud && cd libspud/python && python setup.py build && cd ../.. && cp libspud/python/build/lib*/libspud.so python/
+	echo '    MAKE libspud'; $(MAKE) -C libspud &&  $(MAKE) -C libspud install-libspud && cd libspud/python && python3 setup.py build && cd ../.. && cp libspud/python/build/lib*/libspud*.so python/
 endif
 
 libfemtools: sub_system
@@ -211,7 +216,7 @@ manual:
 python_build:
 ifeq (@HAVE_PYTHON@,yes)
 	@echo "    MAKE python"
-	@cd python; python setup.py build > build.log 2>&1
+	@cd python; python3 setup.py build > build.log 2>&1
 	@cd python/fluidity; find ../build/lib* -name '*.so' -exec ln -sf {} . \;
 endif
 
@@ -304,48 +309,37 @@ all:
 	$(MAKE) default
 	$(MAKE) fltools
 
-clean-light:
+clean-light: clean-unittest
 	@echo "    CLEAN debug"
 	@cd debug; $(MAKE) clean
 	@echo "    CLEAN libwm"
 	@cd libwm; $(MAKE) clean
 	@echo "    CLEAN femtools"
 	@cd femtools; $(MAKE) clean
-	@echo "    CLEAN femtools/tests"
-	@cd femtools/tests; $(MAKE) clean
 	@echo "    CLEAN forward_interfaces"
 	@cd forward_interfaces; $(MAKE) clean
 	@echo "    CLEAN parameterisation"
 	@cd parameterisation; $(MAKE) clean
 	@echo "    CLEAN sediments"
 	@cd sediments; $(MAKE) clean
-	@echo "    CLEAN parameterisation/tests"
-	@cd parameterisation/tests; $(MAKE) clean
 	@echo "    CLEAN assemble"
 	@cd assemble;   $(MAKE) clean
-	@echo "    CLEAN assemble/tests"
-	@cd assemble/tests;   $(MAKE) clean
 	@echo "    CLEAN diagnostics"
 	@cd diagnostics;   $(MAKE) clean
 	@echo "    CLEAN preprocessor"
 	@cd preprocessor; $(MAKE) clean
 	@echo "    CLEAN population_balance"
 	@cd population_balance; $(MAKE) clean
-	@echo "    CLEAN error_measures/tests"
-	@cd error_measures/tests;   $(MAKE) clean
 	@echo "    CLEAN error_measures"
 	@cd error_measures;   $(MAKE) clean
 	@echo "    CLEAN horizontal_adaptivity"
 	@cd horizontal_adaptivity;   $(MAKE) clean
-	@echo "    CLEAN horizontal_adaptivity/tests"
-	@cd horizontal_adaptivity/tests;   $(MAKE) clean
 	@echo "    CLEAN tools"
 	@cd tools;    $(MAKE) clean
 	@echo "    CLEAN bathymetry"
 	@cd bathymetry;  $(MAKE) clean
 	@echo "    CLEAN ocean_forcing"
 	@cd ocean_forcing;  $(MAKE) clean
-	@cd ocean_forcing/tests;   $(MAKE) clean
 	@echo "    CLEAN fldecomp"
 	@cd fldecomp;	$(MAKE) clean
 ifeq (@HYPERLIGHT@,yes)
@@ -367,6 +361,9 @@ ifeq ($(abspath @SPUDLIB@),$(abspath lib/libspud.a))
 	@echo "    CLEAN libspud"
 	@cd libspud; $(MAKE) clean
 endif
+	@echo "    CLEAN h5hut"
+	@rm -f femtools/H5hut.F90
+	@cd h5hut; $(MAKE) uninstall >> make.log 2>&1
 	@echo "    CLEAN libspatialindex"
 	@cd @SPATIALINDEXDIR@; $(MAKE) clean >> make.log
 	@echo "    CLEAN libmba2d"
@@ -391,6 +388,22 @@ clean-test:
 	@cd tests; PYTHONPATH=../python ../tools/testharness.py --clean >/dev/null
 	@cd tests/data; $(MAKE) clean
 
+clean-unittest:
+	@echo "    CLEAN unittests"
+	@rm -rf bin/tests
+	@echo "    CLEAN femtools/tests"
+	@cd femtools/tests; $(MAKE) clean
+	@echo "    CLEAN parameterisation/tests"
+	@cd parameterisation/tests; $(MAKE) clean
+	@echo "    CLEAN assemble/tests"
+	@cd assemble/tests;   $(MAKE) clean
+	@echo "    CLEAN error_measures/tests"
+	@cd error_measures/tests;   $(MAKE) clean
+	@echo "    CLEAN horizontal_adaptivity/tests"
+	@cd horizontal_adaptivity/tests;   $(MAKE) clean
+	@echo "    CLEAN ocean_forcing/tests"
+	@cd ocean_forcing/tests;   $(MAKE) clean
+
 clean-all-tests: clean-test     
 	@echo "    CLEAN parallel/special/long tests"
 	@PYTHONPATH=python tools/testharness.py --parallelism=parallel --clean >/dev/null
@@ -409,6 +422,7 @@ distclean: clean
 	@cd libvtkfortran ; make distclean > /dev/null
 	@cd libspud ; make distclean > /dev/null ; rm -rf		\
 	 libspud.so.0 libtool diamond/build python/build > /dev/null
+	@cd h5hut ; rm -rf build
 	@cd tools ; make distclean > /dev/null
 	@rm -fr `find ./ -name config.status` `find ./ -name		\
 	 config.log` share include/Judy.h include/Wm4Command.h		\
@@ -480,7 +494,7 @@ endif
 
 unittest: build_unittest
 	@echo "RUN bin/tests"
-	@bin/unittestharness bin/tests
+	@bin/unittestharness -d bin/tests -x tests/test_results_unittests.xml
 
 bin/spud-preprocess:
 	@echo "Installing spudtools"
@@ -493,10 +507,6 @@ schema: bin/spud-preprocess
 .PHONY: makefiles
 
 makefiles: sub_system scripts
-ifneq (@GFORTRAN_4_5_OR_NEWER@,yes)
-	@echo "makefile dependency generation requires gfortran (>=4.5)"
-	@false
-endif
 ifneq (@HAVE_ZOLTAN@,yes)
 	@echo "makefile dependency generation requires zoltan"
 	@false
@@ -543,13 +553,13 @@ endif
 install: default fltools 
 	@mkdir -p $(DESTDIR)$(bindir) $(DESTDIR)$(docdir)/fluidity
 	find bin/ -maxdepth 1 -type f -exec cp '{}' $(DESTDIR)$(bindir) \;
-	rm -f $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval $(DESTDIR)$(bindir)/runut
+	rm -f $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval
 	[ -f manual/fluidity_manual.pdf ] && cp manual/fluidity_manual.pdf $(DESTDIR)$(docdir)/fluidity || true
 	mkdir -p $(DESTDIR)$(datadir)/fluidity
 	cp -R schemas $(DESTDIR)$(datadir)/fluidity/
 	mkdir -p $(DESTDIR)$(datadir)/diamond/schemata
 	$(SED) 's/$${datadir}/$(subst /,\/,$(datadir))/g' schemas/flml.in > $(DESTDIR)$(datadir)/diamond/schemata/flml
-	cd python ; python setup.py install --root=$(shell echo ${DESTDIR} | sed 's/^$$/\//') --prefix="$(prefix)" $$FLUIDITY_PYTHON_INSTALL_ARGS
+	cd python ; python3 setup.py install --root=$(shell echo ${DESTDIR} | sed 's/^$$/\//') --prefix="$(prefix)" $$FLUIDITY_PYTHON_INSTALL_ARGS
 	cp -R examples $(DESTDIR)$(docdir)/fluidity
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec $(SED) -i "s/\.\.\/\.\.\/\.\.\/bin\///" '{}' \;
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec $(SED) -i "s/\.\.\/\.\.\/bin\///" '{}' \;

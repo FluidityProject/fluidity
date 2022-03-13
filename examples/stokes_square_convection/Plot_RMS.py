@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This sript plots up the RMS velocity for both the 24x24 and 48x48 case
 import pylab

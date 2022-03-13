@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>p1dgp2-test-cty-cv-rhop1dg, multi-material surface integral balance pressure check</name>
   <owner userid="btollit"/>
@@ -46,7 +45,7 @@ maxdivergence_p1dgp2_test_cty_cv_rhop1dg = max(fluidity_tools.stat_parser("mmat-
 import fluidity_tools
 mindivergence_p1dgp2_test_cty_cv_rhop1dg = min(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-test-cty-cv-rhop1dg.stat")['Water']['ControlVolumeDivergence']['min'])
     </variable>    
-    <variable name= "solvers_converged" language = "python">
+    <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
@@ -69,13 +68,13 @@ assert abs(velocityy_p1dgp2_test_cty_cv_rhop1dg) &lt; 1.0e-06
 assert abs(velocity_p1dgp2_test_cty_cv_rhop1dg) &lt; 1.0e-06
     </test>
     <test name="check volume fraction_p1dgp2_test_cty_cv_rhop1dg almost conserved with tolerance 1.0e-08" language="python">
-print 'mass loss = ', abs(volfracend_p1dgp2_test_cty_cv_rhop1dg - volfrac0_p1dgp2_test_cty_cv_rhop1dg)
+print('mass loss = ', abs(volfracend_p1dgp2_test_cty_cv_rhop1dg - volfrac0_p1dgp2_test_cty_cv_rhop1dg))
 assert abs(volfracend_p1dgp2_test_cty_cv_rhop1dg - volfrac0_p1dgp2_test_cty_cv_rhop1dg) &lt; 1.0e-08
-    </test>
+</test>
     <test name="check divergence_p1dgp2_test_cty_cv_rhop1dg with tolerance 1.0e-08" language="python">
 assert max(abs(maxdivergence_p1dgp2_test_cty_cv_rhop1dg), abs(mindivergence_p1dgp2_test_cty_cv_rhop1dg)) &lt; 1.0e-08
     </test>
-    <test name= "Solvers converged" language= "python">
+    <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
   </pass_tests>

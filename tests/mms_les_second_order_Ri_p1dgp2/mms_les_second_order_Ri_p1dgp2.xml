@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
 
@@ -25,10 +25,10 @@ for mesh in meshes:
 
     ratio = a_error / b_error
 
-    print mesh[0] + '->' + mesh[1] + ': ', log(ratio, 2)
+    print(mesh[0] + '-&gt;' + mesh[1] + ': ', log(ratio, 2))
 
     convergence = min(convergence, log(ratio, 2))
-    </variable>
+</variable>
     
     <variable name="solvers_converged" language="python">
 import os
@@ -38,7 +38,7 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
   </variables>
   
   <pass_tests>
-    <test name="convergence for tracer: L2 order > 1.9" language="python">
+    <test name="convergence for tracer: L2 order &gt; 1.9" language="python">
 assert(convergence &gt; 1.9)
     </test>    
     <test name="Solvers converged" language="python">
@@ -50,4 +50,3 @@ assert(solvers_converged)
   </warn_tests>
   
 </testproblem>
-

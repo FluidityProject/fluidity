@@ -153,15 +153,28 @@ contains
                 temp_field_state_list(nsol) = p+1
              end do
              do f = 0, option_count('/material_phase['//int2str(p)//&
-                  ']/population_balance/weighted_abscissa/scalar_field') - 1
+                  ']/population_balance/weighted_abscissa1/scalar_field') - 1
                 nsol=nsol+1
                 temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
-                     ']/population_balance/weighted_abscissa/scalar_field['//int2str(f)//']'
+                     ']/population_balance/weighted_abscissa1/scalar_field['//int2str(f)//']'
                 call get_option('/material_phase['//int2str(p)//&
-                     ']/population_balance/weighted_abscissa/scalar_field['//int2str(f)//&
+                     ']/population_balance/weighted_abscissa1/scalar_field['//int2str(f)//&
                      ']/name',temp_field_name_list(nsol))
                 call get_option('/material_phase['//int2str(p)//&
-                     ']/population_balance/weighted_abscissa/scalar_field['//int2str(f)//&
+                     ']/population_balance/weighted_abscissa1/scalar_field['//int2str(f)//&
+                     ']/prognostic/priority', priority(nsol), default=0)
+                temp_field_state_list(nsol) = p+1
+             end do
+             do f = 0, option_count('/material_phase['//int2str(p)//&
+                  ']/population_balance/weighted_abscissa2/scalar_field') - 1
+                nsol=nsol+1
+                temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
+                     ']/population_balance/weighted_abscissa2/scalar_field['//int2str(f)//']'
+                call get_option('/material_phase['//int2str(p)//&
+                     ']/population_balance/weighted_abscissa2/scalar_field['//int2str(f)//&
+                     ']/name',temp_field_name_list(nsol))
+                call get_option('/material_phase['//int2str(p)//&
+                     ']/population_balance/weighted_abscissa2/scalar_field['//int2str(f)//&
                      ']/prognostic/priority', priority(nsol), default=0)
                 temp_field_state_list(nsol) = p+1
              end do
@@ -357,7 +370,9 @@ contains
                option_count('/material_phase['//int2str(p)//&
                ']/population_balance/weights/scalar_field') + &
                option_count('/material_phase['//int2str(p)//&
-               ']/population_balance/weighted_abscissa/scalar_field')
+               ']/population_balance/weighted_abscissa1/scalar_field')+ &
+               option_count('/material_phase['//int2str(p)//&
+               ']/population_balance/weighted_abscissa2/scalar_field')
        end if
 
        ! prognostic scalar fields for Mellor Yamada:

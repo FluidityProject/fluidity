@@ -2,7 +2,7 @@
 <testproblem>
   <name>Stokes-slab-detachment</name>
   <owner userid="rhodrid"/>
-  <tags>flml parallel petsc33</tags>
+  <tags>flml parallel</tags>
 
   <problem_definition length="medium" nprocs="3">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l Slab-detachment Parallel_NP3_Slab-detachment &amp;&amp; 

@@ -60,15 +60,14 @@
     <detectors>
       <static_detector name="Max">
         <location>
-          <real_value shape="3" dim1="dim" rank="1">1. 99. -10</real_value>
+          <real_value rank="1" dim1="dim" shape="3">1. 99. -10</real_value>
         </location>
       </static_detector>
       <static_detector name="Min">
         <location>
-          <real_value shape="3" dim1="dim" rank="1">99. 1. -10.</real_value>
+          <real_value rank="1" dim1="dim" shape="3">99. 1. -10.</real_value>
         </location>
       </static_detector>
-      <fail_outside_domain/>
     </detectors>
   </io>
   <timestepping>
@@ -97,7 +96,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="3" dim1="dim" rank="1">0.0 0.0 -1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="3">0.0 0.0 -1.0</real_value>
             </constant>
           </value>
           <output/>
@@ -107,17 +106,20 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
   </physical_parameters>
   <material_phase name="water">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0 0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0 0 0</real_value>
           </constant>
         </value>
         <output/>
@@ -127,9 +129,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Phytoplankton" rank="0">
+    <scalar_field rank="0" name="Phytoplankton">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -139,7 +144,7 @@
               <streamline_upwind>
                 <nu_bar_unity/>
                 <nu_scale name="unity">
-                  <real_value shape="1" rank="0">1.0</real_value>
+                  <real_value rank="0" shape="1">1.0</real_value>
                 </nu_scale>
               </streamline_upwind>
             </stabilisation>
@@ -180,7 +185,7 @@
         </initial_condition>
         <boundary_conditions name="NoFlux">
           <surface_ids>
-            <integer_value shape="2" rank="1">111 333</integer_value>
+            <integer_value rank="1" shape="2">111 333</integer_value>
           </surface_ids>
           <type name="neumann">
             <constant>
@@ -198,6 +203,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <scalar_field name="Source" rank="0">
@@ -208,6 +216,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </diagnostic>
         </scalar_field>
         <output/>
@@ -218,12 +229,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <adaptivity_options>
           <relative_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -235,6 +249,9 @@
                 <detectors>
                   <exclude_from_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </prescribed>
             </scalar_field>
             <tolerance>
@@ -245,7 +262,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Zooplankton" rank="0">
+    <scalar_field rank="0" name="Zooplankton">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -255,7 +272,7 @@
               <streamline_upwind>
                 <nu_bar_unity/>
                 <nu_scale name="unity">
-                  <real_value shape="1" rank="0">1.0</real_value>
+                  <real_value rank="0" shape="1">1.0</real_value>
                 </nu_scale>
               </streamline_upwind>
             </stabilisation>
@@ -296,7 +313,7 @@
         </initial_condition>
         <boundary_conditions name="Noflux">
           <surface_ids>
-            <integer_value shape="2" rank="1">111 333</integer_value>
+            <integer_value rank="1" shape="2">111 333</integer_value>
           </surface_ids>
           <type name="neumann">
             <constant>
@@ -314,6 +331,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <scalar_field name="Source" rank="0">
@@ -324,6 +344,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </diagnostic>
         </scalar_field>
         <output/>
@@ -334,13 +357,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Nutrient" rank="0">
+    <scalar_field rank="0" name="Nutrient">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -350,7 +376,7 @@
               <streamline_upwind>
                 <nu_bar_unity/>
                 <nu_scale name="unity">
-                  <real_value shape="1" rank="0">1.0</real_value>
+                  <real_value rank="0" shape="1">1.0</real_value>
                 </nu_scale>
               </streamline_upwind>
             </stabilisation>
@@ -391,7 +417,7 @@
         </initial_condition>
         <boundary_conditions name="NoFlux">
           <surface_ids>
-            <integer_value shape="2" rank="1">111 333</integer_value>
+            <integer_value rank="1" shape="2">111 333</integer_value>
           </surface_ids>
           <type name="neumann">
             <constant>
@@ -409,6 +435,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <scalar_field name="Source" rank="0">
@@ -419,6 +448,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </diagnostic>
         </scalar_field>
         <scalar_field name="Absorption" rank="0">
@@ -429,6 +461,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </diagnostic>
         </scalar_field>
         <output/>
@@ -439,13 +474,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Detritus" rank="0">
+    <scalar_field rank="0" name="Detritus">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -455,7 +493,7 @@
               <streamline_upwind>
                 <nu_bar_unity/>
                 <nu_scale name="unity">
-                  <real_value shape="1" rank="0">1.0</real_value>
+                  <real_value rank="0" shape="1">1.0</real_value>
                 </nu_scale>
               </streamline_upwind>
             </stabilisation>
@@ -496,7 +534,7 @@
         </initial_condition>
         <boundary_conditions name="NoFlux">
           <surface_ids>
-            <integer_value shape="2" rank="1">111 333</integer_value>
+            <integer_value rank="1" shape="2">111 333</integer_value>
           </surface_ids>
           <type name="neumann">
             <constant>
@@ -514,6 +552,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <scalar_field name="Source" rank="0">
@@ -524,6 +565,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </diagnostic>
         </scalar_field>
         <output/>
@@ -534,13 +578,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="PrimaryProduction" rank="0">
+    <scalar_field rank="0" name="PrimaryProduction">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -552,12 +599,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PhytoplanktonGrazing" rank="0">
+    <scalar_field rank="0" name="PhytoplanktonGrazing">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -569,6 +619,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -578,7 +631,7 @@
   <ocean_biology>
     <pznd>
       <source_and_sink_algorithm>
-        <string_value lines="20" type="code" language="python">import fluidity.ocean_biology as biology
+        <string_value type="code" language="python" lines="20">import fluidity.ocean_biology as biology
 
 day=1./(3600*24)
 
@@ -598,7 +651,7 @@ p["v"]=1.5*day
 
 biology.pznd(state, p)</string_value>
       </source_and_sink_algorithm>
-      <scalar_field name="PhotosyntheticRadiation" rank="0">
+      <scalar_field rank="0" name="PhotosyntheticRadiation">
         <prognostic>
           <mesh name="VelocityMesh"/>
           <equation name="PhotosyntheticRadiation"/>
@@ -636,12 +689,12 @@ biology.pznd(state, p)</string_value>
           </absorption_coefficients>
           <boundary_conditions name="SurfaceLight">
             <surface_ids>
-              <integer_value shape="1" rank="1">111</integer_value>
+              <integer_value rank="1" shape="1">111</integer_value>
             </surface_ids>
             <type name="dirichlet">
               <apply_weakly/>
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
 	from math import cos, pi
 	day=3600*24.
 	year=365.*day

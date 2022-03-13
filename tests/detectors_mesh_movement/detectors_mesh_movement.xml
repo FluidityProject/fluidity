@@ -16,28 +16,46 @@ files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
     <variable name="D1_position" language="python">
-from fluidity_tools import stat_parser
-D1_position = stat_parser("detectors.detectors")['D1']['position']
+import h5py
+import numpy as np
+f = h5py.File('detectors.detectors.h5part', 'r')
+det_id = f.attrs['D1%ids'][0]-1
+D1_position = np.hstack([np.vstack([f['/Step#{i}/{dim}'.format(i=i, dim=dim)][det_id] for dim in ('x', 'y')]) for i in range(len(f))])
     </variable>
     <variable name="D2_position" language="python">
-from fluidity_tools import stat_parser
-D2_position = stat_parser("detectors.detectors")['D2']['position']
+import h5py
+import numpy as np
+f = h5py.File('detectors.detectors.h5part', 'r')
+det_id = f.attrs['D2%ids'][0]-1
+D2_position = np.hstack([np.vstack([f['/Step#{i}/{dim}'.format(i=i, dim=dim)][det_id] for dim in ('x', 'y')]) for i in range(len(f))])
     </variable>
     <variable name="D3_position" language="python">
-from fluidity_tools import stat_parser
-D3_position = stat_parser("detectors.detectors")['D3']['position']
+import h5py
+import numpy as np
+f = h5py.File('detectors.detectors.h5part', 'r')
+det_id = f.attrs['D3%ids'][0]-1
+D3_position = np.hstack([np.vstack([f['/Step#{i}/{dim}'.format(i=i, dim=dim)][det_id] for dim in ('x', 'y')]) for i in range(len(f))])
     </variable>
     <variable name="D1_tracer" language="python">
-from fluidity_tools import stat_parser
-D1_tracer = stat_parser("detectors.detectors")['Water']['Tracer']['D1']
+import h5py
+import numpy as np
+f = h5py.File('detectors.detectors.h5part', 'r')
+det_id = f.attrs['D1%ids'][0]-1
+D1_tracer = np.array([f['/Step#{}/Water%Tracer'.format(i)][det_id] for i in range(len(f))])
     </variable>
     <variable name="D2_tracer" language="python">
-from fluidity_tools import stat_parser
-D2_tracer = stat_parser("detectors.detectors")['Water']['Tracer']['D2']
+import h5py
+import numpy as np
+f = h5py.File('detectors.detectors.h5part', 'r')
+det_id = f.attrs['D2%ids'][0]-1
+D2_tracer = np.array([f['/Step#{}/Water%Tracer'.format(i)][det_id] for i in range(len(f))])
     </variable>
     <variable name="D3_tracer" language="python">
-from fluidity_tools import stat_parser
-D3_tracer = stat_parser("detectors.detectors")['Water']['Tracer']['D3']
+import h5py
+import numpy as np
+f = h5py.File('detectors.detectors.h5part', 'r')
+det_id = f.attrs['D3%ids'][0]-1
+D3_tracer = np.array([f['/Step#{}/Water%Tracer'.format(i)][det_id] for i in range(len(f))])
     </variable>
   </variables>
   <pass_tests>
@@ -54,13 +72,16 @@ assert abs(D2_position[0,-1] - 1.25) &lt; 1e-12
 assert abs(D3_position[0,-1] - 1.4) &lt; 1e-12
     </test>
     <test name="tracer at D1" language="python">
-assert abs(D1_tracer - 0.1).all() &lt; 1e-12
+import numpy as np
+np.testing.assert_allclose(D1_tracer, 0.1, rtol=0., atol=1e-12)
     </test>
     <test name="tracer at D2" language="python">
-assert abs(D2_tracer - 0.25).all() &lt; 1e-12
+import numpy as np
+np.testing.assert_allclose(D2_tracer, 0.25, rtol=0., atol=1e-12)
     </test>
     <test name="tracer at D3" language="python">
-assert abs(D3_tracer - 0.4).all() &lt; 1e-12
+import numpy as np
+np.testing.assert_allclose(D3_tracer, 0.4, rtol=0., atol=1e-12)
     </test>
   </pass_tests>
   <warn_tests>

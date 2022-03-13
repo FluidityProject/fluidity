@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 from fluidity_tools import stat_parser as stat
 from vtktools import *
@@ -9,12 +9,12 @@ meshes = [['A','B'], ['B','C']]#, ['C','D']]
 
 convergence = np.ones(2) * 1e10
 
-print ''
-print 'ORDER OF CONVERGENCE'
-print '-------------------------------------------'
+print('')
+print('ORDER OF CONVERGENCE')
+print('-------------------------------------------')
 
-print 'TracerError:'
-print '-------------------------------------------'
+print('TracerError:')
+print('-------------------------------------------')
 
 for i, mesh in enumerate(meshes):
 
@@ -23,8 +23,8 @@ for i, mesh in enumerate(meshes):
 
     ratio = a_error / b_error
 
-    print mesh[0] + '->' + mesh[1] + ': ', log(ratio, 2)
+    print(mesh[0] + '->' + mesh[1] + ': ', log(ratio, 2))
 
     convergence = log(ratio, 2)
 
-print '-------------------------------------------'
+print('-------------------------------------------')

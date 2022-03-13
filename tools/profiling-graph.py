@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import pylab
 import matplotlib
@@ -20,9 +20,9 @@ def draw_graph(times, output):
     z = zip(x, y); z.sort()
     x = [tup[0] for tup in z]
     y = [tup[1] for tup in z]
-    print "%s:" % sub
-    print "--> x = ", x
-    print "--> y = ", y
+    print("%s:" % sub)
+    print("--> x = ", x)
+    print("--> y = ", y)
     pylab.plot(x, y, label=sub)
 
   intFormatter = pylab.FormatStrFormatter('%d')

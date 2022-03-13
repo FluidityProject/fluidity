@@ -39,8 +39,8 @@
 
 class packing{
  private:
-  unsigned int NProcs;
-  unsigned int MyRank;
+  int NProcs;
+  int MyRank;
   unsigned int __nnodes;
   unsigned int __nelems;
 

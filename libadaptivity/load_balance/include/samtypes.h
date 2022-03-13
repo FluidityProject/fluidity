@@ -29,9 +29,7 @@
 #define H_SAMTYPES
 
 #include "confdefs.h"
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
+#include "sam_mpi.h"
 
 #ifdef USING_DOUBLE_PRECISION
 typedef double samfloat_t;
@@ -43,14 +41,14 @@ typedef unsigned unn_t;      // Universal Node Number.
 typedef unsigned gnn_t;      // Global (partition) Node Number.
 typedef unsigned eid_t;      // Element ID number
 
-#define UNN_T UNSIGNED
-#define GNN_T UNSIGNED
-#define EID_T UNSIGNED
+#define UNN_T MPI_UNSIGNED
+#define GNN_T MPI_UNSIGNED
+#define EID_T MPI_UNSIGNED
 
 #ifdef USING_DOUBLE_PRECISION
-#define SAMFLOAT DOUBLE
+#define SAMFLOAT MPI_DOUBLE
 #else
-#define SAMFLOAT FLOAT
+#define SAMFLOAT MPI_FLOAT
 #endif
 
 #endif

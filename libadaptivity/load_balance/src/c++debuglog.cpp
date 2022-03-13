@@ -25,8 +25,8 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
  USA
 */
-#include <mpi.h>
 #include <string.h>
+#include "sam_mpi.h"
 #include "c++debug.h"
 
 #include <fstream>
@@ -40,10 +40,13 @@ void openlog(const bool all2null){
   int MyRank;
   char filename[20];
 
+  int init_flag;
+  MPI_Initialized(&init_flag);
+
   if(all2null){
     strcpy(filename, "/dev/null");
   }else{
-    if( MPI::Is_initialized() ){
+    if(init_flag){
       MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
       sprintf(filename, "c++debuglog%06d\n", MyRank);
     }else{

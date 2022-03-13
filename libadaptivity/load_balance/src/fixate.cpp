@@ -25,7 +25,6 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
  USA
 */
-#include <mpi.h>
 #include <assert.h>
 #include <vector>
 #include <deque>
@@ -33,6 +32,7 @@
 #include <map>
 #include <set>
 
+#include "sam_mpi.h"
 #include "Mesh.h"
 #include "MI5.h"
 #include "packing.h"
@@ -96,7 +96,7 @@ void Mesh::fixate_elements(const unsigned paranoid_element,
 	  ECHO("Two Elements have been found to be equal! See below:");
 	  ECHO(*i);
 	  ECHO(*j);
-	  MPI::COMM_WORLD.Abort(-1);
+	  MPI_Abort(MPI_COMM_WORLD,-1);
 	} 
   }
 #endif

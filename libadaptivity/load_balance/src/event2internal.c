@@ -31,7 +31,7 @@
 #include<stdlib.h>
 #include<string.h>
 #include<errno.h>
-#include<mpi.h>
+#include "sam_mpi.h"
 #include"mesh.h"
 
 #define TAG_HALO 1

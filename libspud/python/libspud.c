@@ -5,6 +5,15 @@
 
 #define MAXLENGTH   2048
 
+#if PY_MAJOR_VERSION >= 3
+#define PyInt_Type PyLong_Type
+#define PyInt_Check PyLong_Check
+#define PyString_Type PyUnicode_Type
+#define PyString_AsString PyUnicode_AsUTF8
+#define PyString_Check PyUnicode_Check
+#define PyString_GET_SIZE PyUnicode_GET_SIZE
+#endif
+
 static PyObject *SpudError;
 static PyObject *SpudTypeError;
 static PyObject *SpudKeyError;
@@ -22,44 +31,44 @@ error_checking(int outcome, char *functionname)
     char errormessage [MAXLENGTH];
 
     if (outcome == SPUD_KEY_ERROR){
-        snprintf(errormessage, MAXLENGTH, "Error: The specified option is not present \
-                        in the dictionary in %s", functionname);
+        snprintf(errormessage, MAXLENGTH, "Error: The specified option is not present "
+                        "in the dictionary in %s", functionname);
         PyErr_SetString(SpudKeyError, errormessage);
         return NULL;
     }
     if (outcome == SPUD_TYPE_ERROR){
-        snprintf(errormessage, MAXLENGTH, "Error: The specified option has a different \
-                        type from that of the option argument provided in %s", functionname);
+        snprintf(errormessage, MAXLENGTH, "Error: The specified option has a different "
+                        "type from that of the option argument provided in (%s).", functionname);
         PyErr_SetString(SpudTypeError, errormessage);
         return NULL;
     }
     if (outcome == SPUD_NEW_KEY_WARNING){
-        snprintf(errormessage, MAXLENGTH, "Warning: The option being inserted is not ]  \
-                        already in the dictionary %s", functionname);
+        snprintf(errormessage, MAXLENGTH, "Warning: The option being inserted is not "
+                        "already in the dictionary (%s).", functionname);
         PyErr_SetString(SpudNewKeyWarning, errormessage);
         return NULL;
     }
     if (outcome == SPUD_FILE_ERROR){
-        snprintf(errormessage, MAXLENGTH, "Error: The specified options file cannot be  \
-                        read or written to as the routine requires in %s", functionname);
+        snprintf(errormessage, MAXLENGTH, "Error: The specified options file cannot be "
+                        "read or written to as the routine requires in (%s).", functionname);
         PyErr_SetString(SpudFileError, errormessage);
         return NULL;
     }
     if (outcome == SPUD_RANK_ERROR){
-        snprintf(errormessage, MAXLENGTH, "Error: The specified option has a different rank from \
-                      that of the option argument provided %s", functionname);
+        snprintf(errormessage, MAXLENGTH, "Error: The specified option has a different rank from "
+                      "that of the option argument provided (%s).", functionname);
         PyErr_SetString(SpudRankError, errormessage);
         return NULL;
     }
     if (outcome == SPUD_SHAPE_ERROR){
-        snprintf(errormessage, MAXLENGTH, "Error: The specified option has a different shape from \
-                      that of the option argument provided in %s", functionname);
+        snprintf(errormessage, MAXLENGTH, "Error: The specified option has a different shape from "
+                      "that of the option argument provided in (%s).", functionname);
         PyErr_SetString(SpudShapeError, errormessage);
         return NULL;
     }
     if (outcome == SPUD_ATTR_SET_FAILED_WARNING){
-        snprintf(errormessage, MAXLENGTH, "Warning: The option being set as an attribute can not be \
-                      set as an attribute in %s", functionname);
+        snprintf(errormessage, MAXLENGTH, "Warning: The option being set as an attribute can not be "
+                      "set as an attribute in (%s).", functionname);
         PyErr_SetString(SpudAttrSetFailedWarning, errormessage);
         return NULL;
     }
@@ -655,8 +664,7 @@ set_option_aux_scalar(PyObject *pyscalar, const char *key, int key_len, int type
     int outcomeSetOption = SPUD_NO_ERROR;
 
     if (type == SPUD_DOUBLE){ //scalar is double
-        double val;
-        PyArg_Parse(pyscalar, "d", &val);
+        double val = PyFloat_AS_DOUBLE(pyscalar);
         outcomeSetOption = spud_set_option(key, key_len, &val, type, rank, shape);
     }
     else if (type == SPUD_INT){
@@ -767,7 +775,12 @@ libspud_set_option(PyObject *self, PyObject *args)
         }
     }
 
-    Py_RETURN_NONE;
+    if (PyErr_Occurred()){
+      return NULL;
+    }
+    else {
+      Py_RETURN_NONE;
+    }
 }
 
 static PyObject*
@@ -823,6 +836,26 @@ static PyMethodDef libspudMethods[] = {
             /* Sentinel */
 };
 
+#if PY_MAJOR_VERSION >= 3
+
+static struct PyModuleDef moduledef = {
+  PyModuleDef_HEAD_INIT,
+  "libspud",
+  NULL,
+  -1,
+  libspudMethods,
+  NULL, NULL, NULL, NULL,
+};
+
+PyMODINIT_FUNC
+PyInit_libspud(void)
+{
+    PyObject *m;
+
+    m = PyModule_Create(&moduledef);
+    if (m == NULL)
+      return m;
+#else
 PyMODINIT_FUNC
 initlibspud(void)
 {
@@ -831,12 +864,13 @@ initlibspud(void)
     m = Py_InitModule("libspud", libspudMethods);
     if (m == NULL)
         return;
+#endif
 
     SpudError = PyErr_NewException("Spud.error", NULL, NULL);
     SpudNewKeyWarning = PyErr_NewException("SpudNewKey.warning", NULL, NULL);
     SpudKeyError = PyErr_NewException("SpudKey.error", NULL, NULL);
     SpudTypeError = PyErr_NewException("SpudType.error", NULL, NULL);
-    SpudFileError = PyErr_NewException("SpudFile.warning", NULL, NULL);
+    SpudFileError = PyErr_NewException("SpudFile.error", NULL, NULL);
     SpudAttrSetFailedWarning = PyErr_NewException("SpudAttrSetFailed.warning", NULL, NULL);
     SpudShapeError = PyErr_NewException("SpudShape.error", NULL, NULL);
     SpudRankError = PyErr_NewException("SpudRank.error", NULL, NULL);
@@ -860,10 +894,16 @@ initlibspud(void)
     PyModule_AddObject(m, "SpudRankError", SpudRankError);
 
 
-#if PY_MINOR_VERSION > 6
+#if PY_MAJOR_VERSION>=3 || PY_MINOR_VERSION > 6
     manager = PyCapsule_Import("spud_manager._spud_manager", 0);
     if (manager != NULL) spud_set_manager(manager);
     else PyErr_Clear();
+#endif
+
+#if PY_MAJOR_VERSION>=3
+    return m;
+#else
+    return;
 #endif
 
 }

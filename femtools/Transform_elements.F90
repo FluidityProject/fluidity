@@ -61,7 +61,11 @@ module transform_elements
   interface retrieve_cached_face_transform
      module procedure retrieve_cached_face_transform_full, retrieve_cached_full_face_transform_full
   end interface
-    
+
+  interface local_coords
+    module procedure local_coords_interpolation
+  end interface
+
   private
   public :: transform_to_physical, transform_facet_to_physical, &
             transform_cvsurf_to_physical, transform_cvsurf_facet_to_physical, &
@@ -69,7 +73,8 @@ module transform_elements
             compute_jacobian, compute_inverse_jacobian, &
             compute_facet_full_inverse_jacobian, element_volume,&
             cache_transform_elements, deallocate_transform_cache, &
-            prepopulate_transform_cache, set_analytical_spherical_mapping
+            prepopulate_transform_cache, set_analytical_spherical_mapping, &
+            local_coords, local_coords_interpolation
   
   integer, parameter :: cyc3(1:5)=(/ 1, 2, 3, 1, 2 /)  
 
@@ -84,8 +89,8 @@ module transform_elements
   real, dimension(:,:,:), allocatable, save :: face_J_T_cache
   ! Record which element is on the other side of the last n/2 elements.
   integer, dimension(:), allocatable, save :: face_cache
-  
-  
+
+
   ! The reference count id of the positions mesh being cached.
   integer, save :: position_id=-1
   integer, save :: last_mesh_movement=-1
@@ -123,10 +128,49 @@ contains
 
   end function
 
+  function is_cache_valid(X) result (cache_valid)
+    !!< Is the cache (still) valid for the given coordinate field
+    !!< (e.g. has it been initialised at all, have we adapted, moved the mesh etc.)
+    !!< If *not*, reconstruct the cache, and then return .true.
+    !!< For nonlinear coordinates this always returns .false.
+    type(vector_field), intent(in) :: X
+    logical :: cache_valid
+
+    logical :: x_spherical, x_nonlinear
+
+    cache_valid=.true.
+
+    if (X%refcount%id/=position_id) then
+       cache_valid=.false.
+       if (X%name/="Coordinate") then
+          ! If Someone is not calling this on the main Coordinate field
+          ! then we're screwed anyway.
+          return
+       end if
+
+    else if(eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement) then
+       cache_valid=.false.
+    end if
+
+    x_spherical = use_analytical_spherical_mapping(X)
+
+    x_nonlinear = x_spherical .or. .not.(X%mesh%shape%degree==1 .and. X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
+    if (x_nonlinear) then
+      cache_valid=.false.
+      return
+    end if
+
+    if (.not.cache_valid) then
+       call construct_cache(X)
+       cache_valid=.true.
+    end if
+
+  end function is_cache_valid
+
   function retrieve_cached_transform_full(X, ele, J_local_T, invJ_local,&
        & detJ_local) result (cache_valid)
     !!< Determine whether the transform cache is valid for this operation.
-    !!< 
+    !!<
     !!< If caching is applicable and the cache is not ready, set up the
     !!< cache and then return true.
     type(vector_field), intent(in) :: X
@@ -135,93 +179,38 @@ contains
     real, dimension(:,:), intent(out) :: J_local_T, invJ_local
     !! Local version of the determinant of J
     real, intent(out) :: detJ_local
+    logical :: cache_valid
 
-    logical :: cache_valid, x_spherical, x_nonlinear
+    cache_valid = is_cache_valid(X)
+    if (.not. cache_valid) return
 
-    cache_valid=.true.
-    
-    if (X%refcount%id/=position_id) then
-!       ewrite(2,*) "Reference count identity of X has changed."
-       cache_valid=.false.
-       if (X%name/="Coordinate") then
-          !!< If Someone is not calling this on the main Coordinate field
-          !!< then we're screwed anyway.
-          return
-       end if
-    
-    else if(eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement) then
-!       ewrite(2,*) "Mesh has moved."
-       cache_valid=.false.
 
-    end if
-       
-    x_spherical = use_analytical_spherical_mapping(X)
-
-    x_nonlinear = x_spherical .or. .not.(X%mesh%shape%degree==1 .and. X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
-    if (x_nonlinear) then
-      cache_valid=.false.
-      return
-    end if
-
-    if (.not.cache_valid) then
-       call construct_cache(X)
-       cache_valid=.true.
-    end if
-    
     J_local_T=J_T_cache(:, :, ele)
     invJ_local=invJ_cache(:, :, ele)
-    detJ_local=detJ_cache(ele)    
-    
+    detJ_local=detJ_cache(ele)
+
   end function retrieve_cached_transform_full
 
   function retrieve_cached_transform_det(X, ele, detJ_local) &
        result (cache_valid)
     !!< Determine whether the transform cache is valid for this operation.
-    !!< 
+    !!<
     !!< If caching is applicable and the cache is not ready, set up the
     !!< cache and then return true.
     type(vector_field), intent(in) :: X
     integer, intent(in) :: ele
     !! Local version of the determinant of J
     real, intent(out) :: detJ_local
+    logical :: cache_valid
 
-    logical :: cache_valid, x_spherical, x_nonlinear
-    
-    cache_valid=.true.
+    cache_valid = is_cache_valid(X)
+    if (.not. cache_valid) return
 
-    if (X%refcount%id/=position_id) then
-       cache_valid=.false.
-       if (X%name/="Coordinate") then
-          !!< If Someone is not calling this on the main Coordinate field
-          !!< then we're screwed anyway.
-          return
-       end if
-       
-!       ewrite(2,*) "Reference count identity of X has changed."
-    else if(eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement) then
-!       ewrite(2,*) "Mesh has moved."
-       cache_valid=.false.
+    detJ_local=detJ_cache(ele)
 
-    end if
-       
-    x_spherical = use_analytical_spherical_mapping(X)
-
-    x_nonlinear = x_spherical .or. .not.(X%mesh%shape%degree==1 .and. X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
-    if (x_nonlinear) then
-      cache_valid=.false.
-      return
-    end if
-
-    if (.not.cache_valid) then
-       call construct_cache(X)
-       cache_valid=.true.
-    end if
-    
-    detJ_local=detJ_cache(ele)    
-    
   end function retrieve_cached_transform_det
 
-  function prepopulate_transform_cache(X) result(cache_valid)
+  function prepopulate_transform_cache(X) result (cache_valid)
     !!< Prepopulate the caches for transform_to_physical and
     !!< transform_face_to_physical
     !!
@@ -230,57 +219,15 @@ contains
     !!< same field before entering the region.
     type(vector_field), intent(in) :: X
     logical :: cache_valid
-    logical :: face_cache_valid
-    logical :: x_spherical, x_nonlinear, xf_nonlinear
-    cache_valid=.true.
-    face_cache_valid=.true.
-    ! Although the caches are thread safe, the code that assembles the
-    ! caches is not so we want a simple way to construct them if
-    ! appropriate before entering a threaded region.
-    if (X%refcount%id /= position_id) then
-       cache_valid=.false.
-       if (X%name/="Coordinate") then
-          !!< If Someone is not calling this on the main Coordinate field
-          !!< then we're screwed anyway.
-          return
-       end if
-    else if (eventcount(EVENT_MESH_MOVEMENT) /= last_mesh_movement) then
-       cache_valid=.false.
-    end if
 
-    if (X%refcount%id /= face_position_id) then
-       face_cache_valid=.false.
-    else if (eventcount(EVENT_MESH_MOVEMENT) /= face_last_mesh_movement) then
-       face_cache_valid = .false.
-    end if
-
-    x_spherical = use_analytical_spherical_mapping(X)
-
-    x_nonlinear = x_spherical .or. .not.(X%mesh%shape%degree==1 .and. X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
-    xf_nonlinear = x_spherical .or. .not.(X%mesh%faces%shape%degree==1 .and. X%mesh%faces%shape%numbering%family==FAMILY_SIMPLEX)
-
-    if (x_nonlinear) then
-       cache_valid=.false.
-    else if (.not.cache_valid) then
-       call construct_cache(X)
-       cache_valid=.true.
-    end if
-
-    if (xf_nonlinear) then
-       face_cache_valid=.false.
-    else if (.not.face_cache_valid) then
-       call construct_face_cache(X)
-       face_cache_valid=.true.
-    end if
-
-    cache_valid = cache_valid .and. face_cache_valid
+    cache_valid = is_cache_valid(X) .and. is_face_cache_valid(X)
 
   end function prepopulate_transform_cache
 
   subroutine construct_cache(X)
     !!< The cache is invalid so make a new one.
     type(vector_field), intent(in) :: X
-    
+
     integer :: elements, ele, i, k
     !! Note that if X is not all linear simplices we are screwed. 
     real, dimension(X%dim, ele_loc(X,1)) :: X_val
@@ -302,7 +249,7 @@ contains
     end if
 
     elements=element_count(X)
-    
+
     allocate(invJ_cache(X%dim,X%dim,elements), &
          J_T_cache(X%dim,X%dim,elements), &
          detJ_cache(elements))
@@ -358,45 +305,36 @@ contains
     
   end subroutine construct_cache
 
-  function retrieve_cached_face_transform_full(X, face, &
-       & normal_local, detJ_local) result (cache_valid)
-    !!< Determine whether the transform cache is valid for this operation.
-    !!< 
-    !!< If caching is applicable and the cache is not ready, set up the
-    !!< cache and then return true.
+  function is_face_cache_valid(X) result (cache_valid)
+    !!< Is the face cache (still) valid for the given coordinate field
+    !!< (e.g. has it been initialised at all, have we adapted, moved the mesh etc.)
+    !!< If *not*, reconstruct the face cache, and then return .true.
+    !!< For nonlinear coordinates and the coordinates of an embedded manifold,
+    !!< X%dim/=mesh_dim, this always returns .false.
     type(vector_field), intent(in) :: X
-    integer, intent(in) :: face
-    !! Face determinant
-    real, intent(out) :: detJ_local
-    !! Face normal
-    real, dimension(X%dim), intent(out) :: normal_local
+    logical :: cache_valid
 
-    logical :: cache_valid, x_spherical, xf_nonlinear
+    logical :: x_spherical, xf_nonlinear
 
     cache_valid=.true.
     
     if (X%refcount%id/=face_position_id) then
-!       ewrite(2,*) "Reference count identity of X has changed."
        cache_valid=.false.
        if (X%name/="Coordinate") then
           !!< If Someone is not calling this on the main Coordinate field
           !!< then we're screwed anyway.
           return
        end if
-    
     else if(eventcount(EVENT_MESH_MOVEMENT)/=face_last_mesh_movement) then
-!       ewrite(2,*) "Mesh has moved."
        cache_valid=.false.
-
     end if
 
     if (X%dim/=mesh_dim(X)) then
-    ! this is an embedded (manifold) mesh - construct_face_cache() does not handle this
-    ! tranform_facet_to_physical_full() hopefully does?
+      ! this is an embedded (manifold) mesh - construct_face_cache() does not handle this
+      ! tranform_facet_to_physical_full() hopefully does?
       cache_valid = .false.
       return
     end if
-
        
     x_spherical = use_analytical_spherical_mapping(X)
 
@@ -411,7 +349,26 @@ contains
        cache_valid=.true.
     end if
 
-    detJ_local=face_detJ_cache(abs(face_cache(face)))  
+  end function is_face_cache_valid
+
+  function retrieve_cached_face_transform_full(X, face, &
+       & normal_local, detJ_local) result (cache_valid)
+    !!< Determine whether the transform cache is valid for this operation.
+    !!<
+    !!< If caching is applicable and the cache is not ready, set up the
+    !!< cache and then return true.
+    type(vector_field), intent(in) :: X
+    integer, intent(in) :: face
+    !! Face determinant
+    real, intent(out) :: detJ_local
+    !! Face normal
+    real, dimension(X%dim), intent(out) :: normal_local
+    logical :: cache_valid
+
+    cache_valid = is_face_cache_valid(X)
+    if (.not. cache_valid) return
+
+    detJ_local=face_detJ_cache(abs(face_cache(face)))
     normal_local=sign(1,face_cache(face))*face_normal_cache(:,abs(face_cache(face)))
 
   end function retrieve_cached_face_transform_full
@@ -430,74 +387,15 @@ contains
     real, dimension(X%dim), intent(out) :: normal_local
     !! invJ
     real, intent(out), dimension(:,:) :: J_local_T, invJ_local
+    logical :: cache_valid
 
-    logical :: cache_valid, face_cache_valid, full_face_cache_valid, x_spherical, x_nonlinear, xf_nonlinear
+    cache_valid = is_face_cache_valid(X)
+    if (.not. cache_valid) return
 
-    cache_valid = .true.
-    face_cache_valid=.true.
-    full_face_cache_valid=.true.
-
-    if (X%refcount%id/=face_position_id) then
-!       ewrite(2,*) "Reference count identity of X has changed."
-       face_cache_valid=.false.
-       if (X%name/="Coordinate") then
-          !!< If Someone is not calling this on the main Coordinate field
-          !!< then we're screwed anyway.
-          cache_valid = .false.
-          return
-       end if
-
-    else if(eventcount(EVENT_MESH_MOVEMENT)/=face_last_mesh_movement) then
-!       ewrite(2,*) "Mesh has moved."
-       face_cache_valid=.false.
-
-    end if
-
-    if (X%dim/=mesh_dim(X)) then
-    ! this is an embedded (manifold) mesh - construct_face_cache() does not handle this
-    ! tranform_facet_to_physical_full() hopefully does?
-      cache_valid = .false.
-      return
-    end if
-
-    if (X%refcount%id/=full_face_position_id) then
-!       ewrite(2,*) "Reference count identity of X has changed."
-       full_face_cache_valid=.false.
-       if (X%name/="Coordinate") then
-          !!< If Someone is not calling this on the main Coordinate field
-          !!< then we're screwed anyway.
-          cache_valid = .false.
-          return
-       end if
-
-    else if(eventcount(EVENT_MESH_MOVEMENT)/=full_face_last_mesh_movement) then
-!       ewrite(2,*) "Mesh has moved."
-       full_face_cache_valid=.false.
-
-    end if
-
-    x_spherical = use_analytical_spherical_mapping(X)
-
-    x_nonlinear = x_spherical .or. .not.(X%mesh%shape%degree==1 .and. X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
-    xf_nonlinear = x_spherical .or. .not.(X%mesh%faces%shape%degree==1 .and. X%mesh%faces%shape%numbering%family==FAMILY_SIMPLEX)
-
-    if (x_nonlinear) then
-      cache_valid = .false.
-      return
-    end if
-
-    if (xf_nonlinear) then
-      cache_valid = .false.
-      return
-    end if
-
-    if (.not.face_cache_valid) then
-       call construct_face_cache(X)
-       face_cache_valid=.true.
-    end if
-    if (.not.full_face_cache_valid) then
+    ! if the face cache is valid, we should always be able to construct the full_face_cache as well
+    ! just need to check whether it is still up-to-date
+    if (X%refcount%id/=full_face_position_id .or. eventcount(EVENT_MESH_MOVEMENT)/=full_face_last_mesh_movement) then
        call construct_full_face_cache(X)
-       full_face_cache_valid=.true.
     end if
 
     detJ_local=face_detJ_cache(abs(face_cache(face)))
@@ -505,8 +403,6 @@ contains
     invJ_local = face_invJ_cache(:,:,face)
     J_local_T = face_J_T_cache(:,:,face)
 
-    cache_valid = face_cache_valid.and.full_face_cache_valid
-    
   end function retrieve_cached_full_face_transform_full
 
   subroutine construct_face_cache(X)
@@ -518,6 +414,7 @@ contains
     !! Note that if X is not all linear simplices we are screwed. 
     real, dimension(X%dim, ele_loc(X,1)) :: X_val
     real, dimension(X%dim, face_loc(X,1)) :: X_f
+    real, dimension(X%dim) :: X_centroid_ele, X_centroid_face
     real, dimension(X%dim, X%dim-1) :: J
     type(element_type), pointer :: X_shape_f
     real :: detJ
@@ -560,6 +457,8 @@ contains
        neigh=>ele_neigh(X, ele)
        X_val=ele_val(X,ele)
 
+       X_centroid_ele = sum(X_val, 2)/size(X_val, 2)
+
        do n=1,size(neigh)
 
           if (neigh(n)<0) then
@@ -587,6 +486,7 @@ contains
           
           
           X_f=face_val(X,face)
+          X_centroid_face = sum(X_f, 2)/size(X_f, 2)
           X_shape_f=>face_shape(X,face)
 
           !     |- dx  dx  -|
@@ -619,7 +519,7 @@ contains
           end select
 
           ! Calculate normal.
-          face_normal_cache(:,current_face)=normgi(X_val,X_f,J)
+          face_normal_cache(:,current_face)=facet_normal(J, X_centroid_face-X_centroid_ele)
           face_detJ_cache(current_face)=detJ
    
        end do
@@ -1172,6 +1072,19 @@ contains
       assert(size(detJ)==x_shape%ngi)
     end if
 
+    if (is_cache_valid(X)) then
+      do gi=1, size(invJ, 3)
+        invJ(:,:,gi) = invJ_cache(:, :, ele)
+      end do
+      if (present(detJ)) then
+        detJ = detJ_cache(ele)
+      end if
+      if (present(detwei)) then
+        detwei = abs(detJ_cache(ele)) * x_shape%quadrature%weight
+      end if
+      return
+    end if
+
     x_spherical = use_analytical_spherical_mapping(X)
 
     if (x_spherical .or. .not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)) then
@@ -1459,7 +1372,6 @@ contains
     ! Outward normal vector. (dim x x_shape_f%ngi)
     real, dimension(:,:), intent(out) :: normal
 
-    
     ! Column n of X_f is the position of the nth node on the facet.
     real, dimension(X%dim,face_loc(X,face)) :: X_f
     ! Column n of X_f is the position of the nth node on the facet.
@@ -1468,6 +1380,10 @@ contains
     real, dimension(size(X_f,2)) :: r_f
     ! shape function coordinate interpolation on the boundary
     type(element_type), pointer :: x_shape_f
+    ! element shape functions derivatives evaluated at the facet:
+    real, dimension(size(X_val,2), X%mesh%faces%shape%ngi, X%mesh%shape%dim) :: dn_s
+    ! vector pointing outward (from element to outside facet)
+    real, dimension(X%dim) :: outward_vector
 
 
     ! Jacobian matrix and its inverse.
@@ -1518,6 +1434,15 @@ contains
        X_f=face_val(X, face)
        if (x_spherical) then
           r_f = sqrt(sum(X_f**2, dim=1))
+       end if
+       if (x_spherical .or. .not. (x_shape_f%degree==1)) then
+         assert(x_shape_f%numbering%family==FAMILY_SIMPLEX)
+         assert(associated(X%mesh%shape%surface_quadrature))
+         assert(associated(X%mesh%shape%dn_s))
+         dn_s = face_dn_s(X%mesh%shape, X%mesh, face)
+       else
+         ! linear element, an outward vector is found between the element and face centroid
+         outward_vector = sum(X_f,2)/size(X_f,2) - sum(X_val, 2)/size(X_val,2)
        end if
     end if
 
@@ -1573,8 +1498,15 @@ contains
        if(present(detwei_f)) then
           detwei_f(gi)=detJ*x_shape_f%quadrature%weight(gi)
        end if
+
        ! Calculate normal.
-       normal(:,gi)=normgi(X_val,X_f,J)
+       if (x_spherical .or. .not. (x_shape_f%degree==1)) then
+         ! the 1st local coordinate L_1 in dn_s is the one associated
+         ! with the vertex opposite the facet. The outward_vector
+         ! is chosen as -dX/dL_1 (NOTE: it is not yet orthogonal to the facet)
+         outward_vector = -matmul(X_val, dn_s(:, gi, 1))
+       end if
+       normal(:,gi) = facet_normal(J, outward_vector)
 
     end do quad_loop
       
@@ -1592,57 +1524,33 @@ contains
     
   end subroutine transform_facet_to_physical_full
 
-  function NORMGI(X, X_f, J)
-    ! Calculate the normal at a given quadrature point,
+  function facet_normal(J, outward_vector)
+    ! Calculate the normal at a point on a facet
+    ! facet Jacobian J_ij = dX_i/dL_j where L_j are local coords of the facet
     real, dimension(:,:), intent(in) :: J
-    real, dimension(size(J,1)) :: normgi
-    ! Element and normal node locations respectively.
-    real, dimension (:,:), intent(in) :: X, X_f
-    ! Facet Jacobian.
+    ! Since we don't know the orientation of the facet, the sign of the normal
+    ! will be such that dot(normal, outward_vector)>0
+    real, dimension(:), intent(in) :: outward_vector
+    real, dimension(size(J,1)) :: facet_normal
 
-    ! Outward pointing not necessarily normal vector.
-    real, dimension(3) :: outv
-
-    integer :: ldim
-
-    ldim = size(J,1)
-
-    ! Outv is the vector from the element centroid to the facet centroid.
-    outv(1:ldim) = sum(X_f,2)/size(X_f,2)-sum(X,2)/size(X,2)
-
-    select case (ldim)
+    select case (size(J,1))
     case(1)
-       normgi = 1.0
+       facet_normal = 1.0
     case (2)
-       normgi = (/ -J(2,1), J(1,1) /)
+       facet_normal = (/ -J(2,1), J(1,1) /)
     case (3)
-       normgi=cross_product(J(:,1),J(:,2))
+       facet_normal = cross_product(J(:,1),J(:,2))
     case default
-       FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
+       FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
     end select
 
     ! Set correct orientation.
-    normgi=normgi*dot_product(normgi, outv(1:ldim) )
+    facet_normal=facet_normal*dot_product(facet_normal, outward_vector)
 
     ! normalise
-    normgi=normgi/sqrt(sum(normgi**2))
+    facet_normal=facet_normal/sqrt(sum(facet_normal**2))
 
-  contains
-
-    function cross_product(vector1,vector2) result (prod)
-      real, dimension(3) :: prod
-      real, dimension(3), intent(in) :: vector1, vector2
-
-      integer :: i     
-
-      forall(i=1:3)
-         prod(i)=vector1(cyc3(i+1))*vector2(cyc3(i+2))&
-              -vector1(cyc3(i+2))*vector2(cyc3(i+1))
-      end forall
-
-    end function cross_product
-
-  end function NORMGI
+  end function facet_normal
 
   subroutine transform_facet_to_physical_detwei(X, face, detwei_f)
 
@@ -1665,7 +1573,7 @@ contains
 
 
     ! Jacobian matrix and its inverse.
-    real, dimension(X%dim,X%dim-1) :: J
+    real, dimension(X%dim, mesh_dim(X)-1) :: J
     ! Determinant of J
     real :: detJ
     ! Whether the cache can be used
@@ -1823,8 +1731,9 @@ contains
     real :: detJ_local, detJ_local_full
     !! reorientated shape functions
     real, dimension(size(X_val,2),size(dshape,2)) :: n_s
-    real, dimension(size(X_val,2),size(dshape,2),X%dim) :: dn_s
-    real, dimension(shape%loc,size(dshape,2),X%dim) :: dm_s
+    ! element shape functions derivatives evaluated at the facet:
+    real, dimension(size(X_val,2),size(dshape,2),mesh_dim(X)) :: dn_s
+    real, dimension(shape%loc,size(dshape,2),mesh_dim(X)) :: dm_s
     real, dimension(X%dim) :: lnormal
 
     integer :: gi, i, k, dim, ele
@@ -2013,10 +1922,10 @@ contains
        if (present(normal)) then
          if ((x_nonlinear.or.gi==1).and..not.cache_valid) then
              ! Calculate normal.
-             ! We call this using a partial local Jacobian, excluding the first
-             ! entry, which thanks to the reordering of dn_s has the opposite vertex
-             ! as the first entry
-             normal(:,gi)=normgi(X_val,X_f,J_local_T(:,2:size(J_local_T,2)))
+             ! the 1st local coordinate L_1 in dn_s is the one associated
+             ! with the vertex opposite the facet. The outward_vector
+             ! is chosen as J(:,1)=-dX/dL_1 (NOTE: it is not yet orthogonal to the facet)
+             normal(:,gi) = facet_normal(J_local_T(:,2:), -J_local_T(:,1))
          else
              normal(:,gi)=normal(:,1)
          end if
@@ -2285,7 +2194,7 @@ contains
     type(cv_faces_type), intent(in) :: cvfaces
 
     ! Jacobian matrix
-    real, dimension(size(X,1),x_shape%numbering%dimension) :: J
+    real, dimension(size(X,1), size(x_shape%dn, 3)) :: J
 
     ! Determinant of J
     real :: detJ
@@ -2736,5 +2645,71 @@ contains
     element_volume=sum(detwei)
 
   end function element_volume
+
+  function local_coords_interpolation(X, ele, position) result(local_coords)
+    !!< Given a position field, this returns the local coordinates of
+    !!< position with respect to element "ele".
+    !!<
+    !!< This assumes the position field is linear. For higher order
+    !!< only the coordinates of the vertices are considered
+    type(vector_field), intent(in) :: X
+    integer, intent(in) :: ele
+    real, dimension(:), intent(in) :: position
+    real, dimension(size(position) + 1) :: local_coords
+
+    integer, dimension(:), pointer:: nodes
+    integer :: dim
+
+    dim = size(position)
+
+    assert(dim == mesh_dim(X))
+    assert(X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
+    assert(X%mesh%shape%numbering%type==ELEMENT_LAGRANGIAN)
+
+    if (is_cache_valid(X)) then
+      ! currently we only cache linear meshes
+      assert(X%mesh%shape%degree==1)
+      nodes => ele_nodes(X, ele)
+
+      ! we seek local coords xi[1:dim+1] s.t. \sum_i X_i xi_i = X
+      ! (where X_i are the vertex locations and X is the location we search for)
+      ! the last local coordinate can be expressed as  xi_{dim+1} = 1 - \sum_{i=1}^dim xi_i
+      ! so that we can write X as a function of the first 1:dim local coordinates xi only:
+      ! X(xi[1:dim]) = \sum_{i=1}^dim X_i xi_i + X_dim  (1 - \sum_{i=1}^dim xi_i)
+      !              = [X_i - X_dim] xi[1:dim] + X_dim
+      ! where [X_i-X_dim] is a dim X dim matrix that we can obtain from J = dX/dxi (seeing X as a function
+      ! of the first 1:dim local coordinates only). Therefore:
+      !   xi = J^{-1} X-X_dim
+
+      ! the Js and invJ used above are actually the transpose, so we use invJ^T * (X-X_dim) = (X-X_dim)^T invJ
+      local_coords(1:dim) = matmul(position-node_val(X, nodes(dim+1)), invJ_cache(:, :, ele))
+      ! and the final local coordinate, using \sum_i xi_i=1
+      local_coords(dim+1) = 1.0 - sum(local_coords(1:dim))
+    else
+      call local_coords_slow
+    end if
+
+    contains
+
+      subroutine local_coords_slow()
+        real, dimension(mesh_dim(X) + 1, size(position) + 1) :: matrix
+        real, dimension(mesh_dim(X), size(position) + 1) :: tmp_matrix
+        integer, dimension(X%mesh%shape%numbering%vertices):: vertices
+
+        ! the slow way: invert a matrix each time
+        ! NOTE that for nonlinear meshes, we linearize using the vertex positions only
+        nodes => ele_nodes(X, ele)
+        vertices=local_vertices(X%mesh%shape%numbering)
+        tmp_matrix = node_val(X, nodes(vertices) )
+        matrix(1:dim, :) = tmp_matrix
+        matrix(dim+1, :) = 1.0
+
+        local_coords(1:dim) = position
+        local_coords(dim+1) = 1.0
+        call solve(matrix, local_coords)
+
+      end subroutine local_coords_slow
+
+  end function local_coords_interpolation
 
 end module transform_elements

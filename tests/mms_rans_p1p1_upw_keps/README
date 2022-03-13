@@ -13,7 +13,7 @@ DO NOT CHANGE - n = XX in MMS_X.geo
 FUNCTION PRINTER
 
 run using:
-python function_printer.py AA BB CC DD .. n_rows
+python3 function_printer.py AA BB CC DD .. n_rows
 where:
 	AA, BB, CC, DD are names of functions in mms_rans_p1p1_upw_keps_tools.py (any number can be entered)
 	n_rows is the number of rows to display the functions on

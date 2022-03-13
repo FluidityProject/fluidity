@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #    This file is part of dxdiff.
 #
 #    dxdiff is free software: you can redistribute it and/or modify
@@ -32,7 +30,7 @@ class Bimap:
   def __iter__(self):
     # we iter over the left dict so that the left item is
     # on the left side of the tuple returned
-    for item in self.left.iteritems():
+    for item in self.left.items():
       yield item
   
   def __contains__(self, item):

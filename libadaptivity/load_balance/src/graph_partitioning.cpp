@@ -25,6 +25,7 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
  USA
 */
+#include "sam_mpi.h"
 #include "c++debug.h"
 #include "Mesh.h"
 #include "Graph.h"
@@ -106,7 +107,7 @@ std::vector<int> Mesh::decomp(const vector<int>& options){
       break;
     default:
       ERROR("Unknown option " << options[3] << " for node weights passed down into Sam. Giving up!");
-      MPI::COMM_WORLD.Abort( MPI_ERR_OP );
+      MPI_Abort(MPI_COMM_WORLD, MPI_ERR_OP);
       break;
     }
     ECHO("Got node weights.");    
@@ -155,7 +156,7 @@ std::vector<int> Mesh::decomp(const vector<int>& options){
       break;
     default:
       ERROR("Unknown option " << options[4] << " for edge weights passed down into Sam. Giving up!");
-      MPI::COMM_WORLD.Abort( MPI_ERR_OP );
+      MPI_Abort(MPI_COMM_WORLD, MPI_ERR_OP);
     }
     ECHO("Got edge weights.");
   }

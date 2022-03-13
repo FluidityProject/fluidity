@@ -57,15 +57,14 @@
     <detectors>
       <static_detector name="left">
         <location>
-          <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+          <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
         </location>
       </static_detector>
       <static_detector name="middle">
         <location>
-          <real_value shape="3" dim1="dim" rank="1">0.5 0.0 0.0</real_value>
+          <real_value rank="1" dim1="dim" shape="3">0.5 0.0 0.0</real_value>
         </location>
       </static_detector>
-      <fail_outside_domain/>
     </detectors>
   </io>
   <timestepping>
@@ -96,7 +95,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value type="code" language="python" lines="20">def val(X,t):
   from math import sin, cos, pi
   return [sin(pi*X[0])*cos(pi*X[2]), 0.0, -cos(pi*X[0])*sin(pi*X[2])]</string_value>
             </python>
@@ -108,6 +107,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -122,7 +124,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -169,13 +171,16 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -187,12 +192,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -240,24 +248,24 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0 0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0 0 0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="SidesNoNormalFlow">
           <surface_ids>
-            <integer_value shape="2" rank="1">31 32</integer_value>
+            <integer_value rank="1" shape="2">31 32</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions name="top">
           <surface_ids>
-            <integer_value shape="1" rank="1">29</integer_value>
+            <integer_value rank="1" shape="1">29</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions name="BottomNoNormalFlow">
           <surface_ids>
-            <integer_value shape="1" rank="1">30</integer_value>
+            <integer_value rank="1" shape="1">30</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
@@ -271,6 +279,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -289,15 +300,18 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="divu" rank="0">
+    <scalar_field rank="0" name="divu">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="div" source_field_name="Velocity"/>
+        <algorithm name="div" material_phase_support="single" source_field_name="Velocity" source_field_type="vector"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
@@ -307,14 +321,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="FiniteElementDivergence" rank="0">
+    <scalar_field rank="0" name="FiniteElementDivergence">
       <diagnostic field_name="Velocity">
-        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
+        <algorithm name="Internal" material_phase_support="multiple" legacy="true"/>
         <mesh name="VelocityMesh"/>
         <integrate_divergence_by_parts/>
         <solver>
@@ -339,6 +356,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

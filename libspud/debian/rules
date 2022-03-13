@@ -1,10 +1,10 @@
 #!/usr/bin/make -f
 
-PACKAGE_NAME=diamond
+PACKAGE_NAME=spud-diamond
 MODULE_NAME=diamond
 DEB_UPSTREAM_VERSION=1.0
 
-PYVERS=$(shell pyversions -dv)
+PYVERS=$(shell py3versions -dv)
 
 # These are used for cross-compiling and for saving the configure script
 # from having to guess our platform (since we know it already)
@@ -37,12 +37,12 @@ build-libspud: config.status
 	$(MAKE) doc
 
 
-build-diamond: build-diamond-stamp 
-build-diamond-stamp: $(PYVERS:%=build-python%)
+build-spud-diamond: build-spud-diamond-stamp 
+build-spud-diamond-stamp: $(PYVERS:%=build-python%)
 	touch $@
 build-python%: config.status
 # Force setuptools, but reset sys.argv[0] to 'setup.py' because setup.py files expect that.
-	cd diamond;python$* -c "import setuptools,sys;f='setup.py';sys.argv[0]=f;execfile(f,{'__file__':f,'__name__':'__main__'})" build
+	cd diamond;python$* -c "import setuptools,sys;f='setup.py';sys.argv[0]=f;exec(open(f,'r').read(),{'__file__':f,'__name__':'__main__'})" build
 	touch $@
 clean:
 	dh_testdir
@@ -61,7 +61,7 @@ install-libspud: build-libspud install-prereq
 install-spudtools: install-prereq
 	$(MAKE) install-spudtools DESTDIR=$(CURDIR)/debian/spudtools
 
-install-diamond: build-diamond install-prereq $(PYVERS:%=install-python%)
+install-spud-diamond: build-spud-diamond install-prereq $(PYVERS:%=install-python%)
 	dh_install
 install-prereq:
 	dh_testdir
@@ -71,7 +71,7 @@ install-prereq:
 
 install-python%:
 # Force setuptools, but reset sys.argv[0] to 'setup.py' because setup.py files expect that.
-	cd diamond;python$* -c "import setuptools,sys;f='setup.py';sys.argv[0]=f;execfile(f,{'__file__':f,'__name__':'__main__'})" install --prefix=/usr --no-compile --single-version-externally-managed --root=$(CURDIR)/debian/${PACKAGE_NAME}
+	cd diamond;python$* -c "import setuptools,sys;f='setup.py';sys.argv[0]=f;exec(open(f,'r').read(),{'__file__':f,'__name__':'__main__'})" install --prefix=/usr --no-compile --single-version-externally-managed --root=$(CURDIR)/debian/${PACKAGE_NAME}
 	if [ -d debian/${PACKAGE_NAME}/usr/lib/python$*/site-packages/${MODULE_NAME}-${DEB_UPSTREAM_VERSION}.egg-info ]; then \
 	    mv debian/${PACKAGE_NAME}/usr/lib/python$*/site-packages  debian/${PACKAGE_NAME}/usr/lib/python$*/dist-packages ; \
 	    mv debian/${PACKAGE_NAME}/usr/lib/python$*/dist-packages/${MODULE_NAME}-${DEB_UPSTREAM_VERSION}.egg-info		 debian/${PACKAGE_NAME}/usr/lib/python$*/dist-packages/${MODULE_NAME}.egg-info ; \
@@ -83,10 +83,10 @@ install-python%:
 	fi
 
 install-pyspud:
-	$(MAKE) install-pyspud DESTDIR=$(CURDIR)/debian/python-spud BUILDING_DEBIAN=yes
+	$(MAKE) install-pyspud DESTDIR=$(CURDIR)/debian/python3-spud BUILDING_DEBIAN=yes
 
 install-dxdiff:
-	$(MAKE) install-dxdiff DESTDIR=$(CURDIR)/debian/python-dxdiff
+	$(MAKE) install-dxdiff DESTDIR=$(CURDIR)/debian/python3-dxdiff
 
 binary-arch: build-libspud install-libspud install-spudtools install-pyspud
 	dh_testdir
@@ -101,7 +101,7 @@ binary-arch: build-libspud install-libspud install-spudtools install-pyspud
 #	dh_installemacsen
 #	dh_installpam
 #	dh_installmime
-	dh_python2
+	dh_python3
 #	dh_installinit
 #	dh_installcron
 #	dh_installinfo
@@ -118,33 +118,16 @@ binary-arch: build-libspud install-libspud install-spudtools install-pyspud
 	dh_md5sums
 	dh_builddeb
 
-binary-indep: build-diamond install-diamond build-libspud install-libspud install-spudtools install-dxdiff
+binary-indep: build-spud-diamond install-spud-diamond build-libspud install-libspud install-spudtools install-dxdiff
 	dh_testdir -i
 	dh_testroot -i
-	dh_python2 -i
+	dh_python3 -i
 	dh_installdocs -i
 	dh_installdirs -i
 	dh_installexamples  -i
 	dh_strip -i
 	dh_compress -i -X.py
 	dh_fixperms -i
-	: # Replace all '#!' calls to python with $(PYTHON)
-	: # and make them executable
-	for i in \
-	  `find debian/diamond/usr/bin -type f` \
-	  `find debian/diamond/usr/lib -type f`; \
-	do \
-	  case "$$i" in *-[0-9].[0-9]) continue; esac; \
-	  sed '1s,#!.*python[^ ]*\(.*\),#! /usr/bin/python\1,' \
-		$$i > $$i.temp; \
-	  if cmp --quiet $$i $$i.temp; then \
-	    rm -f $$i.temp; \
-	  else \
-	    mv -f $$i.temp $$i; \
-	    chmod 755 $$i; \
-	    echo "fixed interpreter: $$i"; \
-	  fi; \
-	done
 	dh_installdeb -i
 	dh_gencontrol -i
 	dh_md5sums -i
@@ -153,4 +136,4 @@ binary-indep: build-diamond install-diamond build-libspud install-libspud instal
 binary: binary-indep binary-arch
 
 
-.PHONY: build clean binary-indep binary-arch binary-diamond binary-libspud install configure
+.PHONY: build clean binary-indep binary-arch binary-spud-diamond binary-libspud install configure
