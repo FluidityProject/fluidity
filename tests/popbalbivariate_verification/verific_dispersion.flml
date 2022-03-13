@@ -1,0 +1,924 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">bivariate_homog_brk</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">fluids</string_value>
+  </problem_type>
+  <geometry>
+    <dimension>
+      <integer_value rank="0">2</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="src/channel_2d">
+        <format name="gmsh"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree>
+        <integer_value rank="0">3</integer_value>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period>
+      <constant>
+        <real_value rank="0">5</real_value>
+      </constant>
+    </dump_period>
+    <output_mesh name="VelocityMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time>
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep>
+      <real_value rank="0">0.001</real_value>
+    </timestep>
+    <finish_time>
+      <real_value rank="0">5.0</real_value>
+    </finish_time>
+  </timestepping>
+  <material_phase name="fluid">
+    <vector_field rank="1" name="Velocity">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="1" dim1="dim" shape="2">0 0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+    <scalar_field rank="0" name="m00_anal">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">1.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field rank="0" name="m10_anal">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">1.25</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field rank="0" name="m02_anal">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="code" language="python" lines="20">def val(X,t):
+   M_02 = 4*t + 3.9375
+   return M_02</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field rank="0" name="m11_anal">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="code" language="python" lines="20">def val(X,t):
+   M_11 = 3*t + 2.625
+   return M_11</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field rank="0" name="m01_anal">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">2.25</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field rank="0" name="m22_anal">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="code" language="python" lines="20">def val(X,t):
+   M_22 = 26*t**2 + 46.375*t + 10.6875
+   return M_22</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field rank="0" name="m30_anal">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="code" language="python" lines="20">def val(X,t):
+   M_30 = 6.75*t + 1.59375
+   return M_30</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field rank="0" name="m50_anal">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="code" language="python" lines="20">def val(X,t):
+   M_50 = 126*t**2 + 214.5*t + 61.63125
+   return M_50</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <population_balance name="bivariate">
+      <use_prognostic_field_initial_conditions/>
+      <kl_set_for_A_matrix>
+        <integer_value rank="1" shape="12">0 0 1 0 0 1 1 1 0 2 3 1</integer_value>
+      </kl_set_for_A_matrix>
+      <abscissa1>
+        <scalar_field rank="0" name="Abscissa1_0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field rank="0" name="Abscissa1_1">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+      </abscissa1>
+      <abscissa2>
+        <scalar_field rank="0" name="Abscissa2_0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field rank="0" name="Abscissa2_1">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+      </abscissa2>
+      <weights>
+        <scalar_field rank="0" name="Weight_0">
+          <prognostic>
+            <mesh name="VelocityMesh"/>
+            <equation name="AdvectionDiffusion"/>
+            <spatial_discretisation>
+              <continuous_galerkin>
+                <stabilisation>
+                  <no_stabilisation/>
+                </stabilisation>
+                <advection_terms/>
+                <mass_terms/>
+              </continuous_galerkin>
+              <conservative_advection>
+                <real_value rank="0">0.0</real_value>
+              </conservative_advection>
+            </spatial_discretisation>
+            <temporal_discretisation>
+              <theta>
+                <real_value rank="0">0.5</real_value>
+              </theta>
+            </temporal_discretisation>
+            <solver>
+              <iterative_method name="gmres"/>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1e-7</real_value>
+              </relative_error>
+              <max_iterations>
+                <integer_value rank="0">1000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">0.75</real_value>
+              </constant>
+            </initial_condition>
+            <scalar_field name="Source" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+            <consistent_interpolation/>
+          </prognostic>
+        </scalar_field>
+        <scalar_field rank="0" name="Weight_1">
+          <prognostic>
+            <mesh name="VelocityMesh"/>
+            <equation name="AdvectionDiffusion"/>
+            <spatial_discretisation>
+              <continuous_galerkin>
+                <stabilisation>
+                  <no_stabilisation/>
+                </stabilisation>
+                <advection_terms/>
+                <mass_terms/>
+              </continuous_galerkin>
+              <conservative_advection>
+                <real_value rank="0">0.0</real_value>
+              </conservative_advection>
+            </spatial_discretisation>
+            <temporal_discretisation>
+              <theta>
+                <real_value rank="0">0.5</real_value>
+              </theta>
+            </temporal_discretisation>
+            <solver>
+              <iterative_method name="gmres"/>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1e-7</real_value>
+              </relative_error>
+              <max_iterations>
+                <integer_value rank="0">1000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">0.25</real_value>
+              </constant>
+            </initial_condition>
+            <scalar_field name="Source" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+            <consistent_interpolation/>
+          </prognostic>
+        </scalar_field>
+      </weights>
+      <weighted_abscissa1>
+        <scalar_field rank="0" name="WeightedAbscissa1_0">
+          <prognostic>
+            <mesh name="VelocityMesh"/>
+            <equation name="AdvectionDiffusion"/>
+            <spatial_discretisation>
+              <continuous_galerkin>
+                <stabilisation>
+                  <no_stabilisation/>
+                </stabilisation>
+                <advection_terms/>
+                <mass_terms/>
+              </continuous_galerkin>
+              <conservative_advection>
+                <real_value rank="0">0.0</real_value>
+              </conservative_advection>
+            </spatial_discretisation>
+            <temporal_discretisation>
+              <theta>
+                <real_value rank="0">0.5</real_value>
+              </theta>
+            </temporal_discretisation>
+            <solver>
+              <iterative_method name="gmres"/>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1e-7</real_value>
+              </relative_error>
+              <max_iterations>
+                <integer_value rank="0">1000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">0.75</real_value>
+              </constant>
+            </initial_condition>
+            <scalar_field name="Source" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+            <consistent_interpolation/>
+          </prognostic>
+        </scalar_field>
+        <scalar_field rank="0" name="WeightedAbscissa1_1">
+          <prognostic>
+            <mesh name="VelocityMesh"/>
+            <equation name="AdvectionDiffusion"/>
+            <spatial_discretisation>
+              <continuous_galerkin>
+                <stabilisation>
+                  <no_stabilisation/>
+                </stabilisation>
+                <advection_terms/>
+                <mass_terms/>
+              </continuous_galerkin>
+              <conservative_advection>
+                <real_value rank="0">0.0</real_value>
+              </conservative_advection>
+            </spatial_discretisation>
+            <temporal_discretisation>
+              <theta>
+                <real_value rank="0">0.5</real_value>
+              </theta>
+            </temporal_discretisation>
+            <solver>
+              <iterative_method name="gmres"/>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1e-7</real_value>
+              </relative_error>
+              <max_iterations>
+                <integer_value rank="0">1000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">0.5</real_value>
+              </constant>
+            </initial_condition>
+            <scalar_field name="Source" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+            <consistent_interpolation/>
+          </prognostic>
+        </scalar_field>
+      </weighted_abscissa1>
+      <weighted_abscissa2>
+        <scalar_field rank="0" name="WeightedAbscissa2_0">
+          <prognostic>
+            <mesh name="VelocityMesh"/>
+            <equation name="AdvectionDiffusion"/>
+            <spatial_discretisation>
+              <continuous_galerkin>
+                <stabilisation>
+                  <no_stabilisation/>
+                </stabilisation>
+                <advection_terms/>
+                <mass_terms/>
+              </continuous_galerkin>
+              <conservative_advection>
+                <real_value rank="0">0.0</real_value>
+              </conservative_advection>
+            </spatial_discretisation>
+            <temporal_discretisation>
+              <theta>
+                <real_value rank="0">0.5</real_value>
+              </theta>
+            </temporal_discretisation>
+            <solver>
+              <iterative_method name="gmres"/>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1e-7</real_value>
+              </relative_error>
+              <max_iterations>
+                <integer_value rank="0">1000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">1.125</real_value>
+              </constant>
+            </initial_condition>
+            <scalar_field name="Source" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+            <consistent_interpolation/>
+          </prognostic>
+        </scalar_field>
+        <scalar_field rank="0" name="WeightedAbscissa2_1">
+          <prognostic>
+            <mesh name="VelocityMesh"/>
+            <equation name="AdvectionDiffusion"/>
+            <spatial_discretisation>
+              <continuous_galerkin>
+                <stabilisation>
+                  <no_stabilisation/>
+                </stabilisation>
+                <advection_terms/>
+                <mass_terms/>
+              </continuous_galerkin>
+              <conservative_advection>
+                <real_value rank="0">0.0</real_value>
+              </conservative_advection>
+            </spatial_discretisation>
+            <temporal_discretisation>
+              <theta>
+                <real_value rank="0">0.5</real_value>
+              </theta>
+            </temporal_discretisation>
+            <solver>
+              <iterative_method name="gmres"/>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1e-7</real_value>
+              </relative_error>
+              <max_iterations>
+                <integer_value rank="0">1000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">0.75</real_value>
+              </constant>
+            </initial_condition>
+            <scalar_field name="Source" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+            <consistent_interpolation/>
+          </prognostic>
+        </scalar_field>
+      </weighted_abscissa2>
+      <adv_diff_source_term_interpolation>
+        <use_mass_lumping/>
+      </adv_diff_source_term_interpolation>
+      <moments>
+        <scalar_field rank="0" name="m_00">
+          <moment_order>
+            <integer_value rank="1" shape="2">0 0</integer_value>
+          </moment_order>
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">1.0</real_value>
+              </constant>
+            </initial_condition>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field rank="0" name="m_10">
+          <moment_order>
+            <integer_value rank="1" shape="2">1 0</integer_value>
+          </moment_order>
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">1.0</real_value>
+              </constant>
+            </initial_condition>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field rank="0" name="m_20">
+          <moment_order>
+            <integer_value rank="1" shape="2">2 0</integer_value>
+          </moment_order>
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">1.0</real_value>
+              </constant>
+            </initial_condition>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field rank="0" name="m_11">
+          <moment_order>
+            <integer_value rank="1" shape="2">1 1</integer_value>
+          </moment_order>
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">1.0</real_value>
+              </constant>
+            </initial_condition>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field rank="0" name="m_30">
+          <moment_order>
+            <integer_value rank="1" shape="2">3 0</integer_value>
+          </moment_order>
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">1.0</real_value>
+              </constant>
+            </initial_condition>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field rank="0" name="m_02">
+          <moment_order>
+            <integer_value rank="1" shape="2">0 2</integer_value>
+          </moment_order>
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">1.0</real_value>
+              </constant>
+            </initial_condition>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field rank="0" name="m_01">
+          <moment_order>
+            <integer_value rank="1" shape="2">0 1</integer_value>
+          </moment_order>
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">3.08</real_value>
+              </constant>
+            </initial_condition>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field rank="0" name="m_22">
+          <moment_order>
+            <integer_value rank="1" shape="2">2 2</integer_value>
+          </moment_order>
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">1.0</real_value>
+              </constant>
+            </initial_condition>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field rank="0" name="m_21">
+          <moment_order>
+            <integer_value rank="1" shape="2">2 1</integer_value>
+          </moment_order>
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">1.0</real_value>
+              </constant>
+            </initial_condition>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+      </moments>
+      <statistics/>
+      <population_balance_source_terms>
+        <internal_dispersion>
+          <real_value rank="1" shape="3">1.0 1.5 2.0</real_value>
+        </internal_dispersion>
+      </population_balance_source_terms>
+      <ill_conditioned_matrices>
+        <required_condition_number>
+          <real_value rank="0">1.0e-12</real_value>
+        </required_condition_number>
+        <perturbate>
+          <perturbation>
+            <real_value rank="0">0.01</real_value>
+          </perturbation>
+        </perturbate>
+      </ill_conditioned_matrices>
+      <minimum_weight>
+        <real_value rank="0">1e-10</real_value>
+      </minimum_weight>
+    </population_balance>
+  </material_phase>
+</fluidity_options>
