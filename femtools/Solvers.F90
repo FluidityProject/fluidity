@@ -33,9 +33,7 @@ module solvers
   use elements
   use spud
   use parallel_tools
-#ifdef HAVE_PETSC_MODULES
   use petsc
-#endif
   use Sparse_Tools
   use fields_calculations
   use Fields
@@ -1588,9 +1586,6 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
     type(csr_matrix), optional, intent(in) :: matrix_csr
     integer, optional, intent(in) :: internal_smoothing_option
     
-#if PETSC_VERSION_MINOR<6 || (PETSC_VERSION_MINOR==6 && PETSC_VERSION_SUBMINOR==0)
-    MatNullSpace nullsp
-#endif
     KSPType ksptype
     PC pc
     PetscReal rtol, atol, dtol
@@ -1712,47 +1707,9 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
          FLAbort("Need petsc_numbering for monitor")
        end if
        call petsc_monitor_setup(petsc_numbering, max_its)
-       ! NOTE: there doesn't seem to be a clean way to provide NULL to the void *mctx
-       ! argument in for fortran interface to PETSc v3.8 - PETSC_NULL_KSP does get translated to NULL
-       call KSPMonitorSet(ksp, MyKSPMonitor, PETSC_NULL_KSP, &
+       call KSPMonitorSet(ksp, MyKSPMonitor, vf, &
             &                     PETSC_NULL_FUNCTION, ierr)
     end if
-
-#if PETSC_VERSION_MINOR<6
-    if (mat/=pmat) then
-      ! This is to make things consistent with the situation in petsc>=3.6:
-      ! there the nullspace is picked up directly from the Mat during KSPSolve.
-      ! The routine KSPSetNullSpace no longer exists. Previously
-      ! however, the nullspace was picked up from *pmat* inside KSPSetOperators
-      ! At this point KSPSetOperators, has already been called, so if mat has 
-      ! a nullspace we want it to be set as the nullspace of the KSP
-      call MatGetNullSpace(mat, nullsp, ierr)
-      if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
-        call KSPSetNullSpace(ksp, nullsp, ierr)
-      else
-        call MatGetNullSpace(pmat, nullsp, ierr)
-        if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
-          FLAbort("Preconditioner matrix has nullspace whereas the matrix itself doesn't")
-          ! This is a problem because the nullspace on the preconditioner matrix is now
-          ! attached to the ksp already. Not sure how to remove it again; Can I just call
-          ! KSPSetNullSpace with PETSC_NULL_OBJECT? I don't think this combination
-          ! does anything useful anyway, so let's just error. You can try it out with 
-          ! PETSc>=3.6 which should do the right thing.
-        end if
-      end if
-    end if
-#elif PETSC_VERSION_MINOR==6 && PETSC_VERSION_SUBMINOR==0
-    ! this is 3.6.0 case where KSPSetNullSpace no longer exists, but the nullspace picked up
-    ! in the krylov iteration is from *pmat* not mat (as it is in 3.6.1 and later)
-    if (mat/=pmat) then
-      call MatGetNullSpace(mat, nullsp, ierr)
-      if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
-        ewrite(0,*) "Matrix and preconditioner matrix are different. For this case nullspaces"
-        ewrite(0,*) "and petsc 3.6.0 are not supported. Please upgrade to petsc 3.6.1 or higher"
-        FLExit("Cannot use petsc 3.6.0 with nullspaces when mat/=pmat")
-      end if
-    end if
-#endif
 
   end subroutine setup_ksp_from_options
 
@@ -1967,7 +1924,7 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
             petsc_numbering=petsc_numbering)
 
     else
-      
+
        ! this doesn't work for hypre
        call PCSetType(pc, pctype, ierr)
        ! set options that may have been supplied via the
@@ -1984,9 +1941,7 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
       if (pctype==PCGAMG) then
         ! we think this is a more useful default - the default value of 0.0
         ! causes spurious "unsymmetric" failures as well
-#if PETSC_VERSION_MINOR<8
-        call PCGAMGSetThreshold(pc, 0.01, ierr)
-#else
+
         ! From petsc v3.8: the threshold can be set at each level, levels that
         ! are left unspecified are scaled by a factor level-by-level
         ! I believe the following leads to the same default we were using previously:
@@ -1994,7 +1949,7 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
         ! so that other levels get the same threshold value
         call PCGAMGSetThresholdScale(pc, 1.0, ierr)
         call PCGAMGSetThreshold(pc, (/ 0.01/), 1, ierr)
-#endif
+
         ! this was the old default:
         call PCGAMGSetCoarseEqLim(pc, 800, ierr)
         ! PC setup seems to be required so that the Coarse Eq Lim option is used.
@@ -2406,7 +2361,8 @@ end subroutine petsc_monitor_destroy
 subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
 !! The monitor function that gets called each iteration of petsc_solve
 !! (if petsc_solve_callback_setup is called)
-  PetscInt, intent(in) :: n,dummy
+  PetscInt, intent(in) :: n
+  PetscObject, intent(in):: dummy
   KSP, intent(in) :: ksp
   PetscErrorCode, intent(out) :: ierr
   

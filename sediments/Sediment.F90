@@ -31,7 +31,7 @@ module sediment
 
   use global_parameters, only:   OPTION_PATH_LEN, FIELD_NAME_LEN, dt, timestep
   use fldebug
-  use futils, only: int2str
+  use futils, only: int2str, present_and_true
   use vector_tools
   use quadrature
   use elements
@@ -88,7 +88,7 @@ contains
     call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
          & 1)//']/name', name) 
 
-    if (present(old) .and. old) then
+    if (present_and_true(old)) then
       name = "Old"//trim(name)
     end if
     item => extract_scalar_field(state, trim(name), stat)

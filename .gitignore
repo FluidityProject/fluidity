@@ -7,6 +7,12 @@
 ## Linux related
 *~
 
+## VSCode
+.vscode
+
+## Settings for the Fortran Language Server
+.fortls
+
 ## Emacs files
 # -*- mode: gitignore; -*-
 \#*\#
@@ -22,15 +28,38 @@ tramp
  __pycache__/
 *.py[cod]
 
-## C extensions
+## Build extensions
 *.o
 *.so
+*.so.*
+*.a
+*.la
+*.lai
+*.lo
+*.Plo
+*.Po
+*.pc
+*.log
+*.cmake
+
+## Build files
+Makefile
+libtool
+compile
+depcomp
+ltmain.sh
+missing
+py-compile
+config.status
+autom4te.cache/
 
 ## header files
-include/confdefs.h
+## vtk.h, config.h and confdefs.h are present in more that one include dir
+vtk.h
+config.h
+confdefs.h
 include/Judy.h
 include/Wm4*.h
-include/config.h
 include/spatialindex/
 include/spud
 include/spud.h
@@ -38,8 +67,8 @@ include/spud_enums.h
 include/tinystr.h
 include/tinyxml.h
 include/version.h
-include/vtk.h
-
+include/H5*
+include/h5core/
 
 ## Fortran extensions
 *.mod
@@ -47,3 +76,33 @@ include/vtk.h
 ## directories
 bin/
 lib/
+share/
+
+## Configure and compile generated files
+tests/tools.mk
+
+## Tools
+tools/lib
+tools/version-info
+
+## Python
+python/setup.py
+
+## Fortran files
+diagnostics/Diagnostic_Fields_New.F90
+preprocessor/check_options.F90
+preprocessor/register_diagnostics.F90
+
+## libspud
+libspud/diamond/build/
+libspud/diamond/diamond/plugins.py
+libspud/diamond/diamond/preprocess.py
+libspud/diamond/setup.py
+
+## libjudy
+stamp-h1
+Judy1TablesGen
+JudyLTablesGen
+configure.lineno
+libjudy/src/Judy1/Judy1Tables.c
+libjudy/src/JudyL/JudyLTables.c

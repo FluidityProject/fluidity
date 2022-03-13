@@ -375,62 +375,6 @@ int AddOneAnything(GetCellPointer *pts, int cellcnt, int *ENLBas, int *ENList,
   return cellcnt+1;
 }
 
-int AddOneTri(GetCellPointer *pts, int cellcnt, int *ENLBas, int *ENList,
-              REAL *X, REAL *Y, REAL *Z )
-{
-  if( ENLBas != NULL && ENList != NULL ) {
-    int ibas = ENLBas[cellcnt];
-    for(int i=0; i<3; i++)
-      ENList[ibas+i] = pts[i]+1;
-    ENLBas[cellcnt+1] = ibas + 3;
-  }
-  return cellcnt+1;
-}
-
-int AddOneQuad(GetCellPointer *pts, int cellcnt, int *ENLBas, int *ENList,
-               REAL *X, REAL *Y, REAL *Z )
-{
-  if( ENLBas != NULL && ENList != NULL ) {
-    int ibas = ENLBas[cellcnt];
-    // FIXME!! -is this node ordering correct?
-    ENList[ibas  ] = pts[0]+1;
-    ENList[ibas+1] = pts[1]+1;
-    ENList[ibas+2] = pts[3]+1;
-    ENList[ibas+3] = pts[2]+1;  
-    ENLBas[cellcnt+1] = ibas + 4;
-  }
-  return cellcnt+1;
-}
-
-int AddOneHexa(GetCellPointer *pts, int cellcnt, int *ENLBas, int *ENList,
-               REAL *X, REAL *Y, REAL *Z )
-{
-  if( ENLBas != NULL && ENList != NULL ) {
-    int ibas = ENLBas[cellcnt];
-    // FIXME!! -is this node ordering correct?
-    for(int i=0; i<8; i++)
-      ENList[ibas+i] = pts[i]+1;
-    ENList[ibas+2] = pts[3]+1;
-    ENList[ibas+3] = pts[2]+1;
-    ENList[ibas+6] = pts[7]+1;
-    ENList[ibas+7] = pts[6]+1;
-    ENLBas[cellcnt+1] = ibas + 8;
-  }
-  return cellcnt+1;
-}
-
-int AddOneWedge(GetCellPointer *pts, int cellcnt, int *ENLBas, int *ENList,
-                REAL *X, REAL *Y, REAL *Z )
-{
-  if( ENLBas != NULL && ENList != NULL ) {
-    int ibas = ENLBas[cellcnt];
-    // FIXME!! -the node ordering is probably not correct
-    for(int i=0; i<6; i++)
-      ENList[ibas+i] = pts[i]+1;
-    ENLBas[cellcnt+1] = ibas + 6;
-  }
-  return cellcnt+1;
-}
 
 int AddOneTetra(vtkIdType p1, vtkIdType p2, vtkIdType p3, vtkIdType p4,
              int tetcnt, int *ENLBas, int *ENList, REAL *X, REAL *Y, REAL *Z )
@@ -1016,21 +960,10 @@ int readVTKFile(const char * const filename,
         if( npts == 4 ) {
           tetcnt=AddOneTetra(pts[0], pts[1], pts[2], pts[3],
                              tetcnt, NULL, NULL, *X, *Y, *Z );
-        } else if( npts == 6 ) {
-          tetcnt=AddOneWedge(pts, tetcnt, NULL, NULL, *X, *Y, *Z );
-        } else if( npts == 8 ) {
-          tetcnt=AddOneHexa(pts, tetcnt, NULL, NULL, *X, *Y, *Z );
-        } else {
+        } else
           tetcnt=AddOneAnything(pts, tetcnt, NULL, NULL, *X, *Y, *Z, npts );
-        }
       } else if( curdim == 2 ) {
-        if( npts == 4 ) {
-          tetcnt=AddOneQuad(pts, tetcnt, NULL, NULL, *X, *Y, *Z );
-        } else if( npts == 3 ) {
-          tetcnt=AddOneTri(pts, tetcnt, NULL, NULL, *X, *Y, *Z );
-        } else {
           tetcnt=AddOneAnything(pts, tetcnt, NULL, NULL, *X, *Y, *Z, npts );
-        }
       } else if( curdim == 1 ) {
         if( npts == 2 ) {
           tetcnt=AddOneLine(pts, tetcnt, NULL, NULL, *X, *Y, *Z );
@@ -1066,21 +999,11 @@ int readVTKFile(const char * const filename,
           if( npts == 4 ) {
             tetcnt=AddOneTetra(pts[0], pts[1], pts[2], pts[3],
                                tetcnt, ENLBS, ENLST, *X, *Y, *Z );
-          } else if( npts == 6 ) {
-            tetcnt=AddOneWedge(pts, tetcnt, ENLBS, ENLST, *X, *Y, *Z );
-          } else if( npts == 8 ) {
-            tetcnt=AddOneHexa(pts, tetcnt, ENLBS, ENLST, *X, *Y, *Z );
           } else {
             tetcnt=AddOneAnything(pts, tetcnt, ENLBS, ENLST, *X, *Y, *Z, npts );
           }
         } else if( curdim == 2 ) {
-          if( npts == 4 ) {
-            tetcnt=AddOneQuad(pts, tetcnt, ENLBS, ENLST, *X, *Y, *Z );
-          } else if( npts == 3 ) {
-            tetcnt=AddOneTri(pts, tetcnt, ENLBS, ENLST, *X, *Y, *Z );
-          } else {
             tetcnt=AddOneAnything(pts, tetcnt, ENLBS, ENLST, *X, *Y, *Z, npts );
-          }
         } else if( curdim == 1 ) {
           if( npts == 2 ) {
             tetcnt=AddOneLine(pts, tetcnt, ENLBS, ENLST, *X, *Y, *Z );

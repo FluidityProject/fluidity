@@ -638,7 +638,6 @@ HDF5_CC
 HDF5_VERSION
 H5FC
 H5CC
-AWK
 SED
 LIBSPATIALINDEX
 SPATIALINDEXDIR
@@ -710,6 +709,8 @@ CPPFLAGS
 CFLAGS
 CC
 MOD_FLAG
+FCFLAGS_ALLOW_ARGUMENT_MISMATCH
+AWK
 ac_ct_FC
 FCFLAGS
 FC
@@ -784,7 +785,6 @@ with_femdem
 with_psmile
 with_netcdf
 with_exodusii
-enable_petsc_fortran_modules
 with_x
 enable_sam
 enable_dp
@@ -1462,12 +1462,6 @@ Optional Features:
   --enable-shared         Compile objects with -fPIC to enable the 'make
                           shared' target.
   --enable-verbose        turns on super verbosity
-  --disable-petsc-fortran-modules
-                          By default fluidity tries to use fortran modules
-                          provided with petsc. Use
-                          --disable-petsc-fortran-modules if these are known
-                          to be not functional (e.g. compiled with different
-                          compiler version)
   --enable-sam            use sam rather than zoltan for adaptive load
                           rebalancing
   --enable-dp=flag        compile with 64 bit floating point numbers (default)
@@ -3782,9 +3776,93 @@ fi
 if $FC -v 2>&1 | grep 'gcc version'; then
   USING_GFORTRAN="yes"
   GFORTRAN_VERSION=$($FC -v 2>&1 | grep 'gcc version' | awk '{print $3}')
+  # note this flag is needed for gfortran>=10 due to stricter interface checking
+  # (see https://gcc.gnu.org/gcc-10/porting_to.html)
+  # we only want to disable this check selectively (netcdf interface)
+  # as it is generally useful
+  for ac_prog in gawk mawk nawk awk
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_AWK+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$AWK"; then
+  ac_cv_prog_AWK="$AWK" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_AWK="$ac_prog"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+AWK=$ac_cv_prog_AWK
+if test -n "$AWK"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $AWK" >&5
+$as_echo "$AWK" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$AWK" && break
+done
+
+
+
+
+  # Used to indicate true or false condition
+  ax_compare_version=false
+
+  # Convert the two version strings to be compared into a format that
+  # allows a simple string comparison.  The end result is that a version
+  # string of the form 1.12.5-r617 will be converted to the form
+  # 0001001200050617.  In other words, each number is zero padded to four
+  # digits, and non digits are removed.
+
+  ax_compare_version_A=`echo ""$GFORTRAN_VERSION"" | sed -e 's/\([0-9]*\)/Z\1Z/g' \
+                     -e 's/Z\([0-9]\)Z/Z0\1Z/g' \
+                     -e 's/Z\([0-9][0-9]\)Z/Z0\1Z/g' \
+                     -e 's/Z\([0-9][0-9][0-9]\)Z/Z0\1Z/g' \
+                     -e 's/[^0-9]//g'`
+
+
+  ax_compare_version_B=`echo "10" | sed -e 's/\([0-9]*\)/Z\1Z/g' \
+                     -e 's/Z\([0-9]\)Z/Z0\1Z/g' \
+                     -e 's/Z\([0-9][0-9]\)Z/Z0\1Z/g' \
+                     -e 's/Z\([0-9][0-9][0-9]\)Z/Z0\1Z/g' \
+                     -e 's/[^0-9]//g'`
+
+
+    ax_compare_version=`echo "x$ax_compare_version_A
+x$ax_compare_version_B" | sed 's/^ *//' | sort -r | sed "s/x${ax_compare_version_A}/true/;s/x${ax_compare_version_B}/false/;1q"`
+
+
+
+    if test "$ax_compare_version" = "true" ; then
+    FCFLAGS_ALLOW_ARGUMENT_MISMATCH="-fallow-argument-mismatch"
+    else FCFLAGS_ALLOW_ARGUMENT_MISMATCH=""
+  fi
+
 else
   USING_GFORTRAN="no"
+  FCFLAGS_ALLOW_ARGUMENT_MISMATCH=""
 fi
+
 
 # How to specify where .mod files are placed.
 if test "$FC" = "ifort"; then
@@ -5916,7 +5994,7 @@ then
     if test -z "$PYTHON_VERSION"; then
       # if PYTHON_VERSION is set we use python$PYTHON_VERSION as the python interpreter
       # if not, if there is no `python` in the path, or there is a `python` but its version is <3
-      # then use `python3` (by setting PETSC_VERSION=3).
+      # then use `python3` (by setting PYTHON_VERSION=3).
       # If there *is* a `python` of version 3, we use that
       # Extract the first word of "python", so it can be a program name with args.
 set dummy python; ac_word=$2
@@ -11708,11 +11786,6 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 fi
 
-# Check whether --enable-petsc-fortran-modules was given.
-if test "${enable_petsc_fortran_modules+set}" = set; then :
-  enableval=$enable_petsc_fortran_modules;
-fi
-
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for X" >&5
 $as_echo_n "checking for X... " >&6; }
 
@@ -12639,9 +12712,9 @@ fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: Detected PETSc version \"$PETSC_VERSION_MAJOR\".\"$PETSC_VERSION_MINOR\"" >&5
 $as_echo "$as_me: Detected PETSc version \"$PETSC_VERSION_MAJOR\".\"$PETSC_VERSION_MINOR\"" >&6;}
-# if major<3 or minor<4
-if test "0$PETSC_VERSION_MAJOR" -lt 3 -o "0$PETSC_VERSION_MINOR" -lt 4; then
-  as_fn_error $? "Fluidity needs PETSc version >=3.4" "$LINENO" 5
+# if major<3 or minor<8
+if test "0$PETSC_VERSION_MAJOR" -lt 3 -o "0$PETSC_VERSION_MINOR" -lt 8; then
+  as_fn_error $? "Fluidity needs PETSc version >=3.8" "$LINENO" 5
 fi
 
 ac_ext=${ac_fc_srcext-f}
@@ -12655,47 +12728,36 @@ ac_ext=F90
 # may need some extra flags for testing that we don't want to use in the end
 SAVE_FCFLAGS="$FCFLAGS"
 
-if test "$enable_petsc_fortran_modules" != "no" ; then
-  # now try if the petsc fortran modules work:
-  cat > conftest.$ac_ext <<_ACEOF
+# now try if the petsc fortran modules work:
+cat > conftest.$ac_ext <<_ACEOF
       program main
 
-                          use petsc
-                          integer :: ierr
-                          print*, "hello petsc"
-                          call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
+                        use petsc
+                        integer :: ierr
+                        print*, "hello petsc"
+                        call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
 
       end
 _ACEOF
 if ac_fn_fc_try_link "$LINENO"; then :
 
-              { $as_echo "$as_me:${as_lineno-$LINENO}: PETSc modules are working." >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: PETSc modules are working." >&5
 $as_echo "$as_me: PETSc modules are working." >&6;}
-
-$as_echo "#define HAVE_PETSC_MODULES 1" >>confdefs.h
-
-              FCFLAGS="$FCFLAGS -DHAVE_PETSC_MODULES"
 
 else
 
-              { $as_echo "$as_me:${as_lineno-$LINENO}: PETSc modules don't work, using headers instead." >&5
-$as_echo "$as_me: PETSc modules don't work, using headers instead." >&6;}
+            as_fn_error $? "PETSc fortran modules cannot be used. Either it the petsc*.mod files cannot be found, or petsc has been built using a different fortran compiler." "$LINENO" 5
 
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-elif test "0$PETSC_VERSION_MINOR" -ge 8; then
-  as_fn_error $? "PETSc v3.8 and newer requires petsc fortran modules. Do not use the --disable-petsc-fortran-modules option" "$LINENO" 5
-fi
 
 # now try a more realistic program, it's a stripped down
 # petsc tutorial - using the headers in the same way as we do in the code
 cat > conftest.$ac_ext <<_ACEOF
 
 program test_petsc
-#ifdef HAVE_PETSC_MODULES
   use petsc
-#endif
 implicit none
 #include "petsc_legacy.h"
       double precision  norm
@@ -14508,48 +14570,6 @@ $as_echo "$ac_cv_path_SED" >&6; }
  SED="$ac_cv_path_SED"
   rm -f conftest.sed
 
-for ac_prog in gawk mawk nawk awk
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_AWK+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$AWK"; then
-  ac_cv_prog_AWK="$AWK" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_AWK="$ac_prog"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-AWK=$ac_cv_prog_AWK
-if test -n "$AWK"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $AWK" >&5
-$as_echo "$AWK" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$AWK" && break
-done
-
 
 
 
@@ -14926,6 +14946,52 @@ if test "$with_hdf5" = "no"; then
   as_fn_error $? "Unable to find parallel HDF5 installation" "$LINENO" 5
 fi
 LDFLAGS="$LDFLAGS $HDF5_LDFLAGS"
+
+# Some changes are necesary in H5hut source to build with HDF5 >= 1.12
+
+
+
+  # Used to indicate true or false condition
+  ax_compare_version=false
+
+  # Convert the two version strings to be compared into a format that
+  # allows a simple string comparison.  The end result is that a version
+  # string of the form 1.12.5-r617 will be converted to the form
+  # 0001001200050617.  In other words, each number is zero padded to four
+  # digits, and non digits are removed.
+
+  ax_compare_version_A=`echo ""$HDF5_VERSION"" | sed -e 's/\([0-9]*\)/Z\1Z/g' \
+                     -e 's/Z\([0-9]\)Z/Z0\1Z/g' \
+                     -e 's/Z\([0-9][0-9]\)Z/Z0\1Z/g' \
+                     -e 's/Z\([0-9][0-9][0-9]\)Z/Z0\1Z/g' \
+                     -e 's/[^0-9]//g'`
+
+
+  ax_compare_version_B=`echo "1.12" | sed -e 's/\([0-9]*\)/Z\1Z/g' \
+                     -e 's/Z\([0-9]\)Z/Z0\1Z/g' \
+                     -e 's/Z\([0-9][0-9]\)Z/Z0\1Z/g' \
+                     -e 's/Z\([0-9][0-9][0-9]\)Z/Z0\1Z/g' \
+                     -e 's/[^0-9]//g'`
+
+
+    ax_compare_version=`echo "x$ax_compare_version_A
+x$ax_compare_version_B" | sed 's/^ *//' | sort -r | sed "s/x${ax_compare_version_A}/true/;s/x${ax_compare_version_B}/false/;1q"`
+
+
+
+    if test "$ax_compare_version" = "true" ; then
+    PATCH_H5hut="yes"
+    else PATCH_H5hut="no"
+  fi
+
+
+if test "$PATCH_H5hut" = "yes" ; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: HDF5 >= 1.12 detected; applying patches to h5hut." >&5
+$as_echo "$as_me: HDF5 >= 1.12 detected; applying patches to h5hut." >&6;}
+    sed -i -e 's/H5Oget_info(/H5Oget_info1(/' h5hut/test/testframe.c h5hut/src/h5core/private/h5_hdf5.c
+    sed -i -e 's/H5Oget_info (/H5Oget_info1 (/' h5hut/src/h5core/private/h5_hdf5.h
+    sed -i -e 's/H5Oget_info_by_name(/H5Oget_info_by_name1(/' h5hut/src/h5core/private/h5_hdf5.c
+fi
 
 #************H5hut***********
 if test -d h5hut; then

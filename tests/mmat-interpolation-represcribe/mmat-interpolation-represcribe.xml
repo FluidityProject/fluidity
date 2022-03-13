@@ -3,7 +3,7 @@
   <name>Multimaterial adaptivity, represcription and interpolation test</name>
   <owner userid="cwilson"/>
   <tags>flml 2dadapt</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v1 -l mmat-interpolation.flml &amp;&amp; ./change_options.py &amp;&amp; fluidity -v1 -l mmat-interpolation_2_checkpoint.flml </command_line>
   </problem_definition>
   <variables>

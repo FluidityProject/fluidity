@@ -6,9 +6,7 @@ use FLDebug
 use spud
 use futils
 use parallel_tools
-#ifdef HAVE_PETSC_MODULES
   use petsc
-#endif
 use Sparse_tools
 use Petsc_Tools
 use sparse_tools_petsc
@@ -412,8 +410,7 @@ logical, intent(in), optional :: no_top_smoothing
         end do
         deallocate(matrices, prolongators, contexts)
         ! Need to set n/o levels (to 1) otherwise PCDestroy will fail:
-        ! See note below about PETSC_NULL_KSP argument
-        call PCMGSetLevels(prec, 1, PETSC_NULL_KSP, ierr)
+        call PCMGSetLevels_nocomms(prec, 1, ierr)
         ierror=1
         return
       end if
@@ -435,10 +432,9 @@ logical, intent(in), optional :: no_top_smoothing
       nolevels=i
     end if
     
-    ! NOTE: in petsc v3.8 it's unclear what the legal null argument should be for MPI_Comm *comms
-    ! it does not accept any scalar null object (e.g. PETSC_NULL_INTEGER) - luckily there's no
-    ! explicit interface so we can pass this instead which does get correctly translated to a null argument
-    call PCMGSetLevels(prec, nolevels, PETSC_NULL_KSP, ierr)
+    ! NOTE: we use a wrapper around PCMGLEVELS defined in femtools/ISCopyIndices.cpp
+    ! to deal with bug in https://gitlab.com/petsc/petsc/-/issues/868
+    call PCMGSetLevels_nocomms(prec, nolevels, ierr)
     
     if (lno_top_smoothing) then
       top_level=nolevels-2
@@ -853,7 +849,7 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
     onnz=0
     
     call MatCreateAIJ(MPI_COMM_FEMTOOLS, nrows, ncols, PETSC_DECIDE, PETSC_DECIDE, &
-      PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, P, ierr)
+      0, dnnz, 0, onnz, P, ierr)
     call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
       
     ! get base for coarse node/cluster numbering
@@ -862,7 +858,7 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
     coarse_base=coarse_base-1
   else
     call MatCreateAIJ(MPI_COMM_SELF, nrows, ncols, nrows, ncols, &
-      PETSC_NULL_INTEGER, dnnz, 0, PETSC_NULL_INTEGER, P, ierr)
+      0, dnnz, 0, PETSC_NULL_INTEGER, P, ierr)
     call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
     ! subtract 1 from each cluster no to get petsc 0-based numbering
     coarse_base=-1

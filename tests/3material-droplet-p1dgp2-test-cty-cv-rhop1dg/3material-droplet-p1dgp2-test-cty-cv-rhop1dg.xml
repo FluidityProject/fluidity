@@ -3,7 +3,7 @@
   <name>p1dgp2-test-cty-cv-rhop1dg multi-material flow test</name>
   <owner userid="btollit"/>
   <tags>flml</tags>
-    <problem_definition length="medium" nprocs="1">
+    <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v1 -l 3material-droplet-p1dgp2-test-cty-cv-rhop1dg.flml </command_line>
   </problem_definition>  
   <variables>  

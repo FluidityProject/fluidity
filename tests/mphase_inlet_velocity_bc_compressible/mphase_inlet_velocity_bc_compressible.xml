@@ -7,7 +7,7 @@
   <owner userid="ctj10"/>
   <tags>flml</tags>
   
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>make run</command_line>
   </problem_definition>
   

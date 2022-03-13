@@ -160,25 +160,8 @@ extern "C" {
     int *elem = enlist;
     dataSet->Allocate(ecnt);
     for(unsigned i=0; i<ecnt; i++){
-      // Node ordering blues
-      if(elementTypes[i] == 9){
-	cell[0] = elem[0]-1;
-	cell[1] = elem[1]-1;
-	cell[2] = elem[3]-1; 
-	cell[3] = elem[2]-1;
-      }else if(elementTypes[i] == 12){
-	cell[0] = elem[0]-1;
-	cell[1] = elem[1]-1;
-	cell[2] = elem[3]-1;
-	cell[3] = elem[2]-1;
-	cell[4] = elem[4]-1;
-	cell[5] = elem[5]-1;
-	cell[6] = elem[7]-1;
-	cell[7] = elem[6]-1;
-      }else{
-	for(int j=0; j<elementSizes[i]; j++)
-	  cell[j] = elem[j]-1;
-      }
+      // The node ordering to VTK nodes happens in Fluidity
+      for(int j=0; j<elementSizes[i]; j++) cell[j] = elem[j]-1;
     
       dataSet->InsertNextCell(elementTypes[i], elementSizes[i], cell);    
       elem+=elementSizes[i];
@@ -220,25 +203,8 @@ extern "C" {
     int *elem = enlist;
     dataSet->Allocate(ecnt);
     for(unsigned i=0; i<ecnt; i++){
-      // Node ordering blues
-      if(elementTypes[i] == 9){
-	cell[0] = elem[0]-1;
-	cell[1] = elem[1]-1;
-	cell[2] = elem[3]-1; 
-	cell[3] = elem[2]-1;
-      }else if(elementTypes[i] == 12){
-	cell[0] = elem[0]-1;
-	cell[1] = elem[1]-1;
-	cell[2] = elem[3]-1;
-	cell[3] = elem[2]-1;
-	cell[4] = elem[4]-1;
-	cell[5] = elem[5]-1;
-	cell[6] = elem[7]-1;
-	cell[7] = elem[6]-1;
-      }else{
-	for(int j=0; j<elementSizes[i]; j++)
-	  cell[j] = elem[j]-1;
-      }
+      // The node ordering to VTK nodes happens in Fluidity
+      for(int j=0; j<elementSizes[i]; j++) cell[j] = elem[j]-1;
     
       dataSet->InsertNextCell(elementTypes[i], elementSizes[i], cell);    
       elem+=elementSizes[i];

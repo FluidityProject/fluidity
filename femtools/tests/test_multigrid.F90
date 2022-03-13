@@ -12,9 +12,7 @@ subroutine test_multigrid
   use solvers
   use fields
   use parallel_tools
-#ifdef HAVE_PETSC_MODULES
-  use petsc 
-#endif
+  use petsc
   implicit none
 #include "petsc_legacy.h"
   integer, parameter:: DIM=100, NNZ=1000

@@ -46,6 +46,8 @@ LINKER = $(CXX)
 # interfere with other compilers - and it would completely
 # stuff C++ with obsecure, ungoogleable, error messages. 
 FCFLAGS   = -I../include @MOD_FLAG@../include @FCFLAGS@ @CPPFLAGS@ -I/usr/include
+# disable stricter interface checking in gfortran10 for netcdf:
+FCFLAGS += @FCFLAGS_ALLOW_ARGUMENT_MISMATCH@
 
 CXXFLAGS = -I../include @CXXFLAGS@ @CPPFLAGS@
 

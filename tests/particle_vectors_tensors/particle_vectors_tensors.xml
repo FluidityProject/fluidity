@@ -2,7 +2,7 @@
 
 <testproblem>
   <name>Testing of particle vector and tensor attributes in parallel</name>
-  <owner userid="cmath"/>
+  <owner userid="drhodrid"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="2">
     <command_line>

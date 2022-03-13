@@ -332,86 +332,48 @@ contains
     !!< value indicates that no element could be found for that node.
     !!< Detectors are assumed to be local.
     
-    type(vector_field), intent(inout) :: positions
+    !!< NOTE: This routine does not check whether all detectors have been found. "Lost" detectors
+    !!< are marked with a %element = -1. Therefore this routine should be followed by a call to
+    !!< distribute_detectors() to globally search for these, or if we know that this shouldn't occur
+    !!< a test that indeed all detectors have been found.
     
+    type(vector_field), intent(inout) :: positions
     type(detector_linked_list), intent(inout) :: detectors
     type(detector_type), pointer :: node
 
-    integer :: i, nglobal_dets
-    real, dimension(:, :), allocatable :: local_coords, local_l_coords
-    real, dimension(:, :), allocatable :: global_coords, global_l_coords
-    integer, dimension(:), allocatable :: local_ele, global_ele
-       
+    integer :: i
+    real, dimension(:, :), allocatable :: coords, l_coords
+    integer, dimension(:), allocatable :: ele
+
     call initialise_picker(positions)
     assert(ele_numbering_family(positions, 1) == FAMILY_SIMPLEX)
 
-    allocate(local_coords(positions%dim, detectors%length))
-    allocate(local_l_coords(positions%dim+1, detectors%length))
-    allocate(local_ele(detectors%length))
-        
+    allocate(coords(positions%dim, detectors%length))
+    allocate(l_coords(positions%dim+1, detectors%length))
+    allocate(ele(detectors%length))
+
     node => detectors%first
     do i = 1, detectors%length
-      local_coords(:, i) = node%position
+      coords(:, i) = node%position
       node => node%next
     end do
 
     ! First check locally
     if (detectors%length > 0) then
-       call picker_inquire(positions, local_coords(:,:), local_ele(:), local_coords = local_l_coords(:,:), global = .false.)
+       call picker_inquire(positions, coords(:,:), ele(:), local_coords = l_coords(:,:), global = .false.)
     end if
 
-    nglobal_dets = 0
     node => detectors%first
     do i = 1, detectors%length
-      node%local_coords = local_l_coords(:, i)
-      node%element = local_ele(i)
-      if (node%element < 0) then
-         nglobal_dets = nglobal_dets + 1
-      end if
+      node%local_coords = l_coords(:, i)
+      node%element = ele(i)
       node => node%next
     end do
 
-    deallocate(local_coords)
-    deallocate(local_l_coords)
-    deallocate(local_ele)
+    deallocate(coords)
+    deallocate(l_coords)
+    deallocate(ele)
 
-    call allmax(nglobal_dets)
-    if (nglobal_dets==0) then
-       return
-    end if
-
-    ! If any detectors could not be found locally try again globally
-    allocate(global_coords(positions%dim, nglobal_dets))
-    allocate(global_l_coords(positions%dim+1, nglobal_dets))
-    allocate(global_ele(nglobal_dets))
-
-    nglobal_dets = 0
-    node => detectors%first
-    do i = 1, detectors%length
-      if (node%element < 0) then
-         nglobal_dets = nglobal_dets + 1
-         global_coords(:, nglobal_dets) = node%position
-      end if
-      node => node%next
-    end do
-
-    call picker_inquire(positions, global_coords(:,:), global_ele(:), local_coords = global_l_coords(:,:), global = .true.)
-
-    nglobal_dets = 0
-    node => detectors%first
-    do i = 1, detectors%length
-      if (node%element < 0) then
-         nglobal_dets = nglobal_dets + 1
-         node%local_coords = global_l_coords(:, nglobal_dets)
-         node%element = global_ele(nglobal_dets)
-      end if
-      node => node%next
-    end do
-
-    deallocate(global_coords)
-    deallocate(global_l_coords)
-    deallocate(global_ele)
-    
   end subroutine search_for_detectors
 
 end module pickers_inquire

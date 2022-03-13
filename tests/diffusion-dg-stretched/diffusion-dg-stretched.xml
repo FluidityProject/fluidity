@@ -2,7 +2,7 @@
 <testproblem>
   <name>diffusion-dg-stretched</name>
   <owner userid="colin"/>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>./generate_mesh 5 1000; fluidity diffusion-dg-stretched.flml; cp diffusion-dg-stretched.stat stretched-5.stat; cp diffusion-dg-stretched_1.vtu stretched-5.vtu; ./generate_mesh 10 1000; fluidity diffusion-dg-stretched.flml; cp diffusion-dg-stretched.stat stretched-10.stat; cp diffusion-dg-stretched_1.vtu stretched-10.vtu; ./generate_mesh 20 1000; fluidity diffusion-dg-stretched.flml; cp diffusion-dg-stretched.stat stretched-20.stat; cp diffusion-dg-stretched_1.vtu stretched-20.vtu; ./generate_mesh 30 1000; fluidity diffusion-dg-stretched.flml; cp diffusion-dg-stretched.stat stretched-30.stat; cp diffusion-dg-stretched_1.vtu stretched-30.vtu</command_line>
   </problem_definition>
   <variables>

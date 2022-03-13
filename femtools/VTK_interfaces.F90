@@ -54,7 +54,7 @@ module vtk_interfaces
 
   public :: vtk_write_state, vtk_write_fields, vtk_read_state, &
     vtk_write_surface_mesh, vtk_write_internal_face_mesh, &
-    vtk_get_sizes, vtk_read_file
+    vtk_get_sizes, vtk_read_file, vtk_mesh2fluidity_numbering, fluidity_mesh2vtk_numbering
   
   interface 
        subroutine vtk_read_file(&
@@ -931,15 +931,13 @@ contains
     case(VTK_QUADRATIC_TRIANGLE)
        order=(/1,3,6,2,5,4/)
     case(VTK_QUAD)
-       ! this is already reordered inside libvtkfortran :(
-       order=(/1,2,3,4/)
+       order=(/1,2,4,3/)
     case(VTK_TETRA)
        order=(/1,2,3,4/)
     case(VTK_QUADRATIC_TETRA)
        order=(/1,3,6,10,2,5,4,7,8,9/)
     case(VTK_HEXAHEDRON)
-       ! this is already reordered inside libvtkfortran :(
-       order=(/1,2,3,4,5,6,7,8/)
+       order=(/1,2,4,3,5,6,8,7/)
     ! NOTE: quadratic quads and hexes are not supported as
     ! vtk quadratic quads/hexes are only quadratic along the edges
     ! i.e. there are no internal nodes.
