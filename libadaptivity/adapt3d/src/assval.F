@@ -1,25 +1,25 @@
 C Copyright (C) 2006 Imperial College London and others.
-C 
+C
 C Please see the AUTHORS file in the main source directory for a full list
 C of copyright holders.
-C 
+C
 C Adrian Umpleby
 C Applied Modelling and Computation Group
 C Department of Earth Science and Engineering
 C Imperial College London
-C 
+C
 C adrian@Imperial.ac.uk
-C 
+C
 C This library is free software; you can redistribute it and/or
 C modify it under the terms of the GNU Lesser General Public
 C License as published by the Free Software Foundation; either
 C version 2.1 of the License.
-C 
+C
 C This library is distributed in the hope that it will be useful,
 C but WITHOUT ANY WARRANTY; without even the implied warranty of
 C MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 C Lesser General Public License for more details.
-C 
+C
 C You should have received a copy of the GNU Lesser General Public
 C License along with this library; if not, write to the Free Software
 C Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -41,12 +41,11 @@ c
 c
       logical bndlyr
 c
-      integer ielm, nln, ibas, iln, i1, i2, i3, i4, inod, conelm, i,
+      integer ielm, nln, ibas, i1, i2, i3, i4, inod, conelm, i,
      :        conbas, connln, j1, j2, j3, its, added, jbas, ipos,
      :        setit, chked
 c
-      real m(9), vol, areas(4), lngths(6), rad, q, xx(4), yy(4), zz(4),
-     :     qq(4), d
+      real m(9), xx(4), yy(4), zz(4), qq(4), d
 c
       logical missed, setval, debug
 c

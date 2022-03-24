@@ -145,6 +145,7 @@ add_library(adaptivity STATIC
 )
 target_compile_definitions(adaptivity PUBLIC HAVE_MPI HAVE_VTK)
 target_include_directories(adaptivity
-	PUBLIC include adapt3d/include load_balance/include
+	PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/include
+	include adapt3d/include load_balance/include
 )
 target_link_libraries(adaptivity "${VTK_LIBRARIES}")

@@ -2,23 +2,24 @@ include(FortranCInterface)
 
 set(CMAKE_Fortran_FORMAT FREE)
 
-FortranCInterface_HEADER(FC.h MACRO_NAMESPACE "FC_")
+FortranCInterface_HEADER(${CMAKE_CURRENT_SOURCE_DIR}/FC.h MACRO_NAMESPACE "FC_")
 
 set(H5hutf_sources
-  ../include/H5Block_attribs.f90
-  ../include/H5Block_io.f90
-  ../include/H5Block_model.f90
-  ../include/H5_const.f90
-  ../include/H5_err.f90
-  ../include/H5_file_attribs.f90
-  ../include/H5_file.f90
-  ../include/H5hut.f90
-  ../include/H5_log.f90
-  ../include/H5_model.f90
-  ../include/H5Part_io.f90
-  ../include/H5Part_model.f90
-  ../include/H5_step_attribs.f90
+  H5Block_attribs.f90
+  H5Block_io.f90
+  H5Block_model.f90
+  H5_const.f90
+  H5_err.f90
+  H5_file_attribs.f90
+  H5_file.f90
+  H5hut.f90
+  H5_log.f90
+  H5_model.f90
+  H5Part_io.f90
+  H5Part_model.f90
+  H5_step_attribs.f90
 )
+list(TRANSFORM H5hutf_sources PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/../include/)
 
 set(INTERFACE_FILE ${CMAKE_CURRENT_BINARY_DIR}/h5hut.f)
 

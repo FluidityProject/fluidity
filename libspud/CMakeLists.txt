@@ -1,11 +1,12 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.19)
 project(spud LANGUAGES CXX Fortran)
 
 set(CMAKE_Fortran_FLAGS "-fbounds-check \
--Wall -Wno-surprising -Wno-unused-function -Wno-unused-dummy-argument \
--ffast-math \
+-ffixed-line-length-none -ffree-line-length-none \
 -frecord-marker=4 \
--ffree-line-length-none -ffixed-line-length-none"
+-fno-unsafe-math-optimizations -frounding-math -fsignaling-nans \
+-g \
+-Wall -Wextra"
 )
 
 add_library(spud STATIC
@@ -19,5 +20,5 @@ add_library(spud STATIC
 )
 target_include_directories(spud PUBLIC include)
 
-# add_subdirectory(python)
-# add_subdirectory(diamond)
+add_subdirectory(diamond)
+add_subdirectory(python)

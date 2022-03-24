@@ -121,37 +121,7 @@ target_sources(fluidity
   Read_Triangle.F90
   # Refcount_interface_templates.F90
   # Refcount_templates.F90
-  # Reference_count_block_csr_matrix.F90
-  # Reference_count_block_dynamic_csr_matrix.F90
-  # Reference_count_csr_matrix.F90
-  # Reference_count_csr_sparsity.F90
-  # Reference_count_dynamic_csr_matrix.F90
-  # Reference_count_element_type.F90
-  # Reference_count_halo_type.F90
   Reference_Counting.F90
-  # Reference_count_interface_block_csr_matrix.F90
-  # Reference_count_interface_block_dynamic_csr_matrix.F90
-  # Reference_count_interface_csr_matrix.F90
-  # Reference_count_interface_csr_sparsity.F90
-  # Reference_count_interface_dynamic_csr_matrix.F90
-  # Reference_count_interface_element_type.F90
-  # Reference_count_interface_halo_type.F90
-  # Reference_count_interface_mesh_type.F90
-  # Reference_count_interface_petsc_csr_matrix.F90
-  # Reference_count_interface_petsc_numbering_type.F90
-  # Reference_count_interface_picker_type.F90
-  # Reference_count_interface_quadrature_type.F90
-  # Reference_count_interface_scalar_field.F90
-  # Reference_count_interface_tensor_field.F90
-  # Reference_count_interface_vector_field.F90
-  # Reference_count_mesh_type.F90
-  # Reference_count_petsc_csr_matrix.F90
-  # Reference_count_petsc_numbering_type.F90
-  # Reference_count_picker_type.F90
-  # Reference_count_quadrature_type.F90
-  # Reference_count_scalar_field.F90
-  # Reference_count_tensor_field.F90
-  # Reference_count_vector_field.F90
   Rotated_Boundary_Conditions.F90
   SampleNetCDF_fortran.F90
   Shape_Functions.F90
@@ -223,9 +193,9 @@ file(READ ${CMAKE_CURRENT_SOURCE_DIR}/Refcount_interface_templates.F90 Refcount_
 foreach(type ${ref_types})
    message(STATUS "Generate reference counting code for ${type}")
    string(REPLACE "REFCOUNT_TYPE" ${type} TMP ${Refcount_template})
-   file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/Reference_count_${type}.F90 ${TMP})
+   file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/Reference_count_${type}.F90 ${TMP})
    string(REPLACE "REFCOUNT_TYPE" ${type} TMP ${Refcount_interface_template})
-   file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/Reference_count_interface_${type}.F90 ${TMP})
+   file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/Reference_count_interface_${type}.F90 ${TMP})
 endforeach()
 
 add_subdirectory(tests)

@@ -6,5 +6,5 @@ target_sources(fluidity
   k_epsilon.F90
 )
 
-# add_subdirectory(tests EXCLUDE_FROM_ALL)
-# set(unittests ${parameterisation_unittests}${unittests} PARENT_SCOPE)
+add_subdirectory(tests)
+set(unittests "${unittests}" PARENT_SCOPE)

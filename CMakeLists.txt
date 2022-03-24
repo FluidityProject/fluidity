@@ -202,7 +202,6 @@ configure_file("${CMAKE_BINARY_DIR}/include/vtk.h"
   COPYONLY
 )
 
-
 set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
 set(CMAKE_Fortran_FLAGS_DEBUG "-O0")
 set(CMAKE_Fortran_FLAGS "-fbounds-check \
@@ -211,6 +210,7 @@ set(CMAKE_Fortran_FLAGS "-fbounds-check \
 -frecord-marker=4 \
 -fno-unsafe-math-optimizations -frounding-math -fsignaling-nans \
 -g \
+-Wunused \
 ${CMAKE_Fortran_FLAGS}"
 )
 # -Wall -Wextra
@@ -221,7 +221,7 @@ execute_process(COMMAND
 )
 
 # Build libfluidity.a
-add_library(fluidity STATIC main/mainfl.F90 main/Fluids.F90 main/Usage.cpp)
+add_library(fluidity STATIC)
 add_dependencies(fluidity
   adaptivity mba2d spatialindex spud vtkfortran
   H5hutf Judy
@@ -236,6 +236,7 @@ target_compile_definitions(fluidity
   ${HAVE_LIBCGAL}
   HAVE_LIBNETCDF
   HAVE_LIBNETCDFF
+  HAVE_LIBUDUNITS
   HAVE_MEMORY_STATS
   HAVE_MBA_2D
   HAVE_MPI
@@ -252,13 +253,14 @@ target_compile_definitions(fluidity
 target_include_directories(fluidity
   PUBLIC
   "${VTK_INCLUDE_DIRS}"
-  "${Python3_INCLUDE_DIRS}"
-  "${Python3_NumPy_INCLUDE_DIRS}"
+  "${Python3_INCLUDE_DIRS}" "${Python3_NumPy_INCLUDE_DIRS}"
 
   "${PETSC_INCLUDE_DIRS}"
+  "${NETCDF_INCLUDE_DIRS}"
 
   ${ZOLTAN_INCLUDE_DIR}
-  "${NETCDF_INCLUDE_DIRS}"
+
+  ${CMAKE_CURRENT_BINARY_DIR}/include
 
   ${libspatialindex_SOURCE_DIR}/include
   ${libjudy_SOURCE_DIR}/src
@@ -276,9 +278,9 @@ target_link_libraries(fluidity
 
   PkgConfig::PETSC
   ${PETSC_STATIC_LDFLAGS}
+  ${NETCDF_STATIC_LDFLAGS}
 
   ${ZOLTAN_LIBRARY}
-  ${NETCDF_STATIC_LDFLAGS}
   ${UDUNITS_LIBRARY}
   ${EXODUSII_LIBRARY}
 )
@@ -300,6 +302,7 @@ add_subdirectory(libmba2d)
 add_subdirectory(libspud)
 add_subdirectory(libvtkfortran)
 add_subdirectory(libwm)
+add_subdirectory(main)
 add_subdirectory(ocean_forcing)
 add_subdirectory(parameterisation)
 add_subdirectory(population_balance)
@@ -316,10 +319,11 @@ target_link_libraries(fluidity-bin fluidity)
 
 # Add unittests
 add_custom_target(unittest
-  COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_BINARY_DIR}/tests/data ${CMAKE_BINARY_DIR}/bin/tests/data
+  COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/tests/data bin/tests/data
   COMMAND bin/unittestharness -x unittest_results.xml
   VERBATIM
 )
+add_dependencies(unittest ${unittests})
 
 # add_custom_target(shorttest
 #   COMMAND bin/testharness -l short

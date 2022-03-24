@@ -1,25 +1,25 @@
 C Copyright (C) 2006 Imperial College London and others.
-C 
+C
 C Please see the AUTHORS file in the main source directory for a full list
 C of copyright holders.
-C 
+C
 C Adrian Umpleby
 C Applied Modelling and Computation Group
 C Department of Earth Science and Engineering
 C Imperial College London
-C 
+C
 C adrian@Imperial.ac.uk
-C 
+C
 C This library is free software; you can redistribute it and/or
 C modify it under the terms of the GNU Lesser General Public
 C License as published by the Free Software Foundation; either
 C version 2.1 of the License.
-C 
+C
 C This library is distributed in the hope that it will be useful,
 C but WITHOUT ANY WARRANTY; without even the implied warranty of
 C MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 C Lesser General Public License for more details.
-C 
+C
 C You should have received a copy of the GNU Lesser General Public
 C License along with this library; if not, write to the Free Software
 C Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -43,8 +43,7 @@ C
       REAL X(4), Y(4), Z(4), XX, YY, ZZ, D1N1, D2N1, D3N1, D1N2, D2N2,
      :     D3N2, D1N3, D2N3, D3N3, D1N4, D2N4, D3N4,
      :     V1N1(3), V2N1(3), V3N1(3), V1N2(3), V2N2(3), V3N2(3),
-     :     V1N3(3), V2N3(3), V3N3(3), V1N4(3), V2N4(3), V3N4(3),
-     :     a1234, a2134, a3214, a4231, a1324, a1432, a1243
+     :     V1N3(3), V2N3(3), V3N3(3), V1N4(3), V2N4(3), V3N4(3)
 C
       INCLUDE 'blknew.i'
 C
