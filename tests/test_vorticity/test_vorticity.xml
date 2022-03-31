@@ -3,7 +3,7 @@
   <name>test_vorticity</name>
   <owner userid="am2008"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>make clean-run; fluidity test_vorticity.flml</command_line>
   </problem_definition>
   <variables>

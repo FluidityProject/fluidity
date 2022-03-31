@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>spherical patch<comment>Tests gmsh reading and writing on the sphere with 2d horizontal spherical input mesh, checkpointing and flredecomp.</comment></name>
   <owner userid="skramer"/>

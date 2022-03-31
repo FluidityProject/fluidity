@@ -1,0 +1,55 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testproblem>
+  <name>vv-p1p1-Stokes-square-convection-1e4</name>
+  <owner userid="rhodrid"/>
+
+  <tags>flml</tags>
+
+  <problem_definition length="long" nprocs="1">
+    <command_line>mpiexec fluidity -v3 -l Stokes-square-convection-1e4-vv-p1p1.flml</command_line>
+  </problem_definition>
+
+<variables>  
+<variable name="nu_top" language="python">
+from fluidity_tools import stat_parser as stat
+nu_top = abs(stat("stokes-1e4-p1p1-vv.stat")["Fluid"]["Temperature"]["surface_integral%TopH"][-1])
+</variable>
+
+<variable name="max_div" language="python">
+from fluidity_tools import stat_parser as stat
+max_div = max(max(abs(stat("stokes-1e4-p1p1-vv.stat")["Fluid"]["FiniteElementDivergence"]["max"])), max(abs(stat("stokes-1e4-p1p1-vv.stat")["Fluid"]["FiniteElementDivergence"]["min"])))
+</variable>
+
+<variable name="rms_vel" language="python">
+from fluidity_tools import stat_parser as stat
+rms_vel= stat("stokes-1e4-p1p1-vv.stat")["Fluid"]["Velocity%magnitude"]["l2norm"][-1]
+</variable>
+
+<variable name="finish_time" language="python">                                                                                                                                                            
+from fluidity_tools import stat_parser as stat
+finish_time= stat("stokes-1e4-p1p1-vv.stat")["ElapsedTime"]["value"][-1]
+</variable>
+</variables>
+
+<pass_tests>
+<test name="Finish Time .gt. 0.4 AND .lt. 0.8" language="python">
+assert(abs(finish_time-0.6) &lt; 0.2)
+</test>
+
+<test name="Surface Nusselt Number Validity: 9.0 .lt. Nu .lt. 11.0" language="python">
+assert(abs(nu_top-10.0) &lt; 1.00)
+</test>
+
+<test name="RMS Velocity Validity: 460.0 .lt. V_RMS .lt. 490.0" language="python">
+assert(abs(rms_vel-475) &lt; 15.0)
+</test>
+
+<test name="Divergence small .lt. 10000" language="python">
+assert(max_div &lt; 10000)
+</test>
+</pass_tests>                                                                                                                                                                                                
+
+<warn_tests>
+</warn_tests>
+
+</testproblem>

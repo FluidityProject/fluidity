@@ -1,20 +1,20 @@
-<?xml version = "1.0" encoding = "UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Offline adaptivity</name>
   <owner userid="pef"/>
   <tags>flml 2dadapt</tags>
-  <problem_definition length="short" nprocs = "1">
-    <command_line>make clean-run-debug; fladapt -v fladapt fladapt > fladapt.log</command_line>
+  <problem_definition length="short" nprocs="1">
+    <command_line>make clean-run-debug; fladapt -v fladapt fladapt &gt; fladapt.log</command_line>
   </problem_definition>
   <variables>
-    <variable name = "output" language = "python">
+    <variable name="output" language="python">
 import fluidity.diagnostics.gmshtools as gmshtools
 
 output = gmshtools.ReadMsh("fladapt.msh")
     </variable>
   </variables>
   <pass_tests>
-    <test name = "Expected node count" language = "python">
+    <test name="Expected node count" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(float(output.NodeCoordsCount()), 10000.0, 0.05)
     </test>

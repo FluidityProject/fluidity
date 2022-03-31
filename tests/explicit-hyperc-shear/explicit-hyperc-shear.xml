@@ -1,0 +1,83 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testproblem>
+  <name>Shearing volume fraction</name>
+  <owner userid="cwilson"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>mpiexec fluidity -v0 explicit-hyperc-shear-input-conservative.flml &gt;forward.log 2&gt;&amp;1 || true &amp;&amp; mpiexec ./change_options_conservative.py &amp;&amp; mpiexec fluidity -v0 explicit-hyperc-shear-conservative_16_checkpoint.flml &gt;back.log 2&gt;&amp;1</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="error" language="python"> 
+from fluidity_tools import stat_parser as stat
+error = stat("explicit-hyperc-shear-conservative_checkpoint.stat")["Material1"]["ScalarAbsoluteDifference"]["integral"][-1]/stat("explicit-hyperc-shear-conservative_checkpoint.stat")["Material1"]["AnalyticalMaterialVolumeFraction"]["integral"][0]
+    </variable>
+    <variable name="materialstartforward" language="python"> 
+from fluidity_tools import stat_parser as stat
+materialstartforward = stat("explicit-hyperc-shear-conservative.stat")["Material1"]["MaterialVolumeFraction"]["integral"][0]
+    </variable>
+    <variable name="materialendforward" language="python"> 
+from fluidity_tools import stat_parser as stat
+materialendforward = stat("explicit-hyperc-shear-conservative.stat")["Material1"]["MaterialVolumeFraction"]["integral"][-1]
+    </variable>
+    <variable name="materialstartback" language="python"> 
+from fluidity_tools import stat_parser as stat
+materialstartback = stat("explicit-hyperc-shear-conservative_checkpoint.stat")["Material1"]["MaterialVolumeFraction"]["integral"][0]
+    </variable>
+    <variable name="materialendback" language="python"> 
+from fluidity_tools import stat_parser as stat
+materialendback = stat("explicit-hyperc-shear-conservative_checkpoint.stat")["Material1"]["MaterialVolumeFraction"]["integral"][-1]
+    </variable>
+    <variable name="divergenceminforward" language="python">
+from fluidity_tools import stat_parser as stat
+divergenceminforward= min(stat("explicit-hyperc-shear-conservative.stat")["Material1"]["ControlVolumeDivergence"]["min"])
+    </variable>
+    <variable name="divergencemaxforward" language="python">
+from fluidity_tools import stat_parser as stat
+divergencemaxforward= max(stat("explicit-hyperc-shear-conservative.stat")["Material1"]["ControlVolumeDivergence"]["max"])
+    </variable>
+    <variable name="divergenceminback" language="python">
+from fluidity_tools import stat_parser as stat
+divergenceminback= max(stat("explicit-hyperc-shear-conservative.stat")["Material1"]["ControlVolumeDivergence"]["min"])
+    </variable>
+    <variable name="divergencemaxback" language="python">
+from fluidity_tools import stat_parser as stat
+divergencemaxback= max(stat("explicit-hyperc-shear-conservative.stat")["Material1"]["ControlVolumeDivergence"]["max"])
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="check error is less than 0.05" language="python">
+assert error &lt; 0.05
+    </test>
+    <test name="check forward conservation tolerance is reasonable" language="python">
+print('forward tolerance = ', max(abs(divergenceminforward), abs(divergencemaxforward)))
+assert max(abs(divergenceminforward), abs(divergencemaxforward)) &lt; 1.E-10
+    </test>
+    <test name="check backward conservation tolerance is reasonable" language="python">
+print('backward tolerance = ', max(abs(divergenceminback), abs(divergencemaxback)))
+assert max(abs(divergenceminback), abs(divergencemaxback)) &lt; 1.E-10
+    </test>
+    <test name="check material1 was conserved on forward run" language="python">
+assert abs(materialstartforward-materialendforward) &lt; max(abs(divergenceminforward), abs(divergencemaxforward))
+    </test>
+    <test name="check material1 was conserved on reverse run" language="python">
+assert abs(materialstartback-materialendback) &lt; max(abs(divergenceminback), abs(divergencemaxback))
+    </test>
+    <test name="check material1 was conserved on pickup for reverse run" language="python">
+assert abs(materialendforward-materialstartback) &lt; 1.E-10
+    </test>
+    <test name="check min divergence was zero for forward run" language="python">
+assert abs(divergenceminforward) &lt; 1.E-10
+    </test>
+    <test name="check max divergence was zero for forward run" language="python">
+assert abs(divergencemaxforward) &lt; 1.E-10
+    </test>
+    <test name="check min divergence was zero for back run" language="python">
+assert abs(divergenceminback) &lt; 1.E-10
+    </test>
+    <test name="check max divergence was zero for back run" language="python">
+assert abs(divergencemaxback) &lt; 1.E-10
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

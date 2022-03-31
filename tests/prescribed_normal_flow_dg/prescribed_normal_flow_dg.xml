@@ -1,8 +1,8 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>PrescribedNormalFlow_DG</name>
   <owner userid="jhill1"/>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity presc_normal_flow.flml</command_line>
   </problem_definition>
   <variables>
@@ -24,7 +24,7 @@ stats["MaxU2"]=s["Water"]["Velocity%2"]["max"][-1]</variable>
     </test>
     <test name="VelocityIsCorrect" language="python">assert(0.0045 &lt; stats["MaxU"]&lt;0.055)</test>
     <test name="U1IsCorrect" language="python">assert(0.035 &lt; stats["MaxU1"]&lt;0.04)</test>
-    <test name="U2IsCorrect" language="python">assert(0.035 &lt; stats["MaxU2"]&lt;0.04)</test>>
+    <test name="U2IsCorrect" language="python">assert(0.035 &lt; stats["MaxU2"]&lt;0.04)</test>&gt;
   </pass_tests>
   <comment>This problem tests a spatially constant flow through a channel at 45 degrees to the axes with no slip BCs on the edge. Flow is
       forced in the inflow and outflow via a prescribed normal boundary condition</comment></testproblem>

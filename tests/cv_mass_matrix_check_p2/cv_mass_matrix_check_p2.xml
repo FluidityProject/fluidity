@@ -1,10 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>cv_mass_matrix_check_p2</name>
   <owner userid="btollit"/>
   <tags>flml cv</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>
 ../../bin/fluidity cv_mass_matrix_check_p2_1d.flml 
 ../../bin/fluidity cv_mass_matrix_check_p2_2d.flml 

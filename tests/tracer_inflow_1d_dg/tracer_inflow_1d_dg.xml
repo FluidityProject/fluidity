@@ -1,10 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>tracer_inflow_1d_dg</name>
   <owner userid="dham"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity  tracer.flml </command_line>
     <!-- One dimensional poroblem in which a pulse of tracer us introduced via a dirichlet boundary condition on the tracer. The tracer then flows out of the domain. -->
   </problem_definition>

@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
 
   <!-- A 1D gas-solid shock tube problem. The setup is the same as the one given in the paper by Miura & Glass (1982).  -->

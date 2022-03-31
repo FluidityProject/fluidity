@@ -1,8 +1,8 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>mmat_overlapping_vfracs</name>
   <owner userid="cwilson"/>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v2 -l 3materials_overlapping.flml</command_line>
   </problem_definition>
   <variables>

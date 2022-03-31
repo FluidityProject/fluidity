@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testproblem>
+   
+  <name>mphase_tephra_settling_3d</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="long" nprocs="8">
+    <command_line>mpiexec flredecomp -i 1 -o 8 -v -l mphase_tephra_settling_3d mphase_tephra_settling_3d_flredecomp &amp;&amp;
+mpiexec fluidity mphase_tephra_settling_3d_flredecomp.flml</command_line>
+    <!-- This is a 3D simulation of the formation of density currents. We consider a -->
+    <!-- body of water with a constant inflow of (denser) tephra at the top boundary. -->
+    <!-- Density currents/plumes should eventually form when the bulk density is large enough. -->
+  </problem_definition>
+  
+  <variables>
+    <variable name="tephra_u_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_tephra_settling_3d.stat")
+tephra_u_max=s["Tephra"]["Velocity%magnitude"]["max"]
+    </variable>
+    <variable name="time" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_tephra_settling_3d.stat")
+time=s["ElapsedTime"]["value"]
+    </variable>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+  </variables>
+    
+  <pass_tests>
+    <test name="Maximum Tephra velocity is less than 0.0025 for the first 30 seconds" language="python">
+for t in range(0,len(time)):
+   if(time[t] &gt; 30.0):
+      assert tephra_u_max[0:t-1].all() &lt; 0.0025
+      break
+    </test>
+
+    <test name="Maximum Tephra velocity is between 0.002 and 0.05 for the rest of the simulation" language="python">
+for t in range(0,len(time)):
+   if(time[t] &gt; 30.0):
+      assert min(tephra_u_max[t:]) &gt; 0.002
+      assert max(tephra_u_max[t:]) &lt; 0.05
+      break
+    </test>
+
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>

@@ -1,11 +1,11 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>write-extruded-mesh-only</name>
   <owner userid="rhodrid"/>
 
   <tags>flml parallel</tags>
 
-  <problem_definition length="medium" nprocs="4">
+  <problem_definition length="short" nprocs="4">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 4 write-extruded-mesh-only P4-write-extruded-mesh-only_s1 &amp;&amp;
 mpiexec ../../bin/flredecomp -i 4 -o 4 P4-write-extruded-mesh-only_s1 P4-write-extruded-mesh-only_s2 &amp;&amp;
 mpiexec ../../bin/fluidity -v2 -l P4-write-extruded-mesh-only_s2.flml</command_line>
@@ -48,8 +48,3 @@ assert largest_radius_min &gt; 1.22
 </warn_tests>
 
 </testproblem>
-
-
-
-
-

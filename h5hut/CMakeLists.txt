@@ -4,8 +4,6 @@ project(H5hut VERSION 2.0.0)
 option(H5HUT_USE_FORTRAN "Build Fortran library" ON)
 option(H5HUT_USE_PYTHON "Build Python interface" OFF)
 
-find_package(HDF5 REQUIRED)
-
 add_subdirectory(src/h5core)
 
 if(H5HUT_USE_FORTRAN)

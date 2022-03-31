@@ -2,7 +2,7 @@
 <testproblem>
   <name>Test of analytical mapping onto a sphere</name>
   <owner userid="cwilson"/>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v3 -l linear.flml; fluidity -v3 -l analytic.flml; fluidity -v3 -l super.flml; fluidity -v3 -l super_analytic.flml</command_line>
   </problem_definition>
   <variables>

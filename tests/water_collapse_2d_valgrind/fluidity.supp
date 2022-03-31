@@ -1,0 +1,601 @@
+## List of valgrind suppresions to be used with fluidity compiled with intel
+##
+## When adding new suppresions:
+## - obviously: make sure that the thing is not a real error, memory leak
+##   Just because it is inside some obscure external library, doesn't mean
+##   it's harmless or not our fault
+## - keep the suppression as specific as possible. Although it's a good
+##   good idea to combine suppresions using wildcards, if  for instance
+##   you know all allocates under a initialisation routine are 
+##   harmless/only called once, we should take care to not suppress all
+##   errors from some part of the code.
+## - describe in the comment above why you think it occurs and why it is harmless
+## - give a small useful description in the first line of the suppression
+## - try to group them with other similar suppressions
+
+##########################################################################
+## 
+## First part is general memory errors: reading, writing to 
+## invalid addresses (Addr*), using uninitialised values (Value*),
+## or making a conditional jump based on unitialised values (Cond).
+## Memory leak suppressions (Leak) go in the second part below
+##
+##########################################################################
+
+# Python stuff, see the README.valgrind in your python distribution to find
+# out why these are valid.
+{
+   Cond in PyObject_Free
+   Memcheck:Cond
+   fun:PyObject_Free
+}
+{
+   Value8 in PyObject_Free
+   Memcheck:Value8
+   fun:PyObject_Free
+}
+{
+   Addr4 in PyObject_Free
+   Memcheck:Addr4
+   fun:PyObject_Free
+}
+{
+   Cond in PyObject_Realloc
+   Memcheck:Cond
+   fun:PyObject_Realloc
+}
+{
+   Addr4 in PyObject_Realloc
+   Memcheck:Addr4
+   fun:PyObject_Realloc
+}
+{
+   Value8 in PyObject_Realloc
+   Memcheck:Value8
+   fun:PyObject_Realloc
+}
+# Other stuff
+# Some things to do with IO with ifort:
+{
+   Addr8 in ifort open
+   Memcheck:Addr8
+   fun:for__add_to_lf_table
+   fun:for__open_proc
+   fun:for_open
+}
+{
+   Cond in ifort write with format
+   Memcheck:Cond
+   fun:for__format_compiler
+   fun:for_write_seq_fmt
+}
+# believed to be memcopy of unitialised vector
+# please leave rest of the backtrace, as other
+# VecCopy should still be checked
+{
+   Addr8 during VecCopy inside KSPSolve
+   Memcheck:Addr8
+   fun:__intel_new_memcpy
+   fun:_intel_fast_memcpy.J
+   fun:PetscMemcpy
+   fun:VecCopy_Seq
+   fun:VecCopy
+   ...
+   fun:KSPSolve
+}
+# not entirely sure what this one, in dgesv, means:
+# depending on linkage it appears in mkl_blas as
+{
+   Unknown error (Param) in mkl's dtrsm
+   Memcheck:Param
+   sched_setaffinity(mask)
+   fun:syscall
+   fun:__kmp_affinity_determine_capable
+   ...
+   fun:__kmp_serial_initialize
+   fun:__kmpc_global_thread_num
+   fun:mkl_blas_mc_dtrsm
+   fun:DTRSM
+   fun:dgetrs_
+   fun:dgesv_
+}
+# or from mkl_lapack
+{
+   Unknown error (Param) in mkl's dspev
+   Memcheck:Param
+   sched_setaffinity(mask)
+   fun:syscall
+   fun:__kmp_affinity_determine_capable
+   ...
+   fun:mkl_lapack_dspev
+   fun:DSPEV
+}
+# and apparently also in PETSc sometimes
+{
+   Unknown error (Param) in P
+   Memcheck:Param
+   socketcall.sendto(msg)
+   fun:send
+   fun:get_mapping
+   fun:__nscd_get_map_ref
+   fun:nscd_getpw_r
+   fun:__nscd_getpwuid_r
+   fun:getpwuid_r*
+   fun:getpwuid
+   fun:PetscGetUserName
+   fun:PetscErrorPrintfInitialize
+   fun:PetscInitialize
+   fun:_Z9PetscInitiPPc
+   fun:main
+}
+
+# value error in profil_counter
+# (this only occurs when build with profiling)
+{
+   Value8 in profil_counter
+   Memcheck:Value8
+   fun:profil_counter
+   obj:/lib64/tls/libc-2.3.4.so
+}
+
+
+#
+# something's freed on exit that wasn't malloced (or freed before)
+# Hard to find out, and seems to occur regularly in external libraries
+# Please leave the backtrace as is
+# (the ... bit can be different on different platforms)
+{
+   free() called from exit()
+   Memcheck:Free
+   fun:free
+   ...
+   fun:_vgnU_freeres
+   fun:exit
+   fun:main
+}
+# profil_counter seems to come up from various places
+# not sure what it's all about
+{
+   profil_counter value8 error
+   Memcheck:Value8
+   fun:profil_counter
+   ...
+}
+
+########################################################################
+##
+## Memory leaks
+##
+########################################################################
+# some more python fun, these are all in py_init_, only called
+# once and should therefore be no problem
+{
+   mallocs from python_init_
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:python_init_
+   fun:main
+}
+{
+   callocs from python_init_
+   Memcheck:Leak
+   fun:calloc
+   ...
+   fun:python_init_
+   fun:main
+}
+{
+   reallocs from python_init_
+   Memcheck:Leak
+   fun:realloc
+   ...
+   fun:python_init_
+   fun:main
+}
+# same for MPI, these are all in PMPI_Init, only called
+# once and should therefore be no problem
+{
+   mallocs from PMPI_Init
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:PMPI_Init
+   fun:_ZN3MPI4InitERiRPPc
+   fun:main
+}
+
+#######################################################
+#
+# fluidity initialisation routines, only called once
+# (or have "if (initialised) return" on top )
+#
+
+# this suppresses all allocates under element_numbering_mp_number_elements_
+# this is is safe as it is really only called once
+{
+   allocates under element_numbering_mp_number_elements_
+   Memcheck:Leak
+   fun:malloc
+   fun:for__spec_align_alloc
+   fun:for_allocate
+   ...
+   fun:element_numbering_mp_number_elements_
+}
+# this suppresses all allocates under quadrature_mp_construct_quadrature_templates_
+# this is is safe as it is really only called once
+{
+   allocates under quadrature_mp_construct_quadrature_templates_
+   Memcheck:Leak
+   fun:malloc
+   fun:for__spec_align_alloc
+   fun:for_allocate
+   ...
+   fun:quadrature_mp_construct_quadrature_templates_
+}
+# this suppresses all allocates under cv_faces_mp_locate_controlvolume_corners_
+# this is is safe as it is really only called once
+{
+   allocates under cv_faces_mp_locate_controlvolume_corners_
+   Memcheck:Leak
+   fun:malloc
+   fun:for__spec_align_alloc
+   fun:for_allocate
+   ...
+   fun:cv_faces_mp_locate_controlvolume_corners_
+}
+# allocate in bounding_box_metric_mp_initialise_bounding_box_metric_
+# only called once
+{
+   allocates under bounding_box_metric_mp_initialise_bounding_box_metric_
+   Memcheck:Leak
+   fun:malloc
+   fun:for__spec_align_alloc
+   fun:for_allocate
+   ...
+   fun:bounding_box_metric_mp_initialise_bounding_box_metric_
+}
+# initialisation of field_lists (1:ntsol)
+{
+   allocates in legacy_field_lists_mp_initialise_field_lists_from_options_
+   Memcheck:Leak
+   fun:malloc
+   fun:for__spec_align_alloc
+   fun:for_allocate
+   ...
+   fun:field_priority_lists_mp_initialise_field_lists_from_options_
+}
+# initialisation of state2phase and phase2state
+{
+   initialisation of state2phase and phase2state
+   Memcheck:Leak
+   fun:malloc
+   fun:for__spec_align_alloc
+   fun:for_allocate
+   ...
+   fun:field_priority_lists_mp_initialise_state_phase_lists_from_options_
+}
+#
+# memory allocated in diagnostic_variables module in initialise_diagnostics
+# this is done only once, so no memory leak
+#
+{
+   allocates in diagnostic_variables_mp_initialise_diagnostics_
+   Memcheck:Leak
+   fun:malloc
+   fun:for__spec_align_alloc
+   fun:for_allocate
+   ...
+   fun:diagnostic_variables_mp_initialise_diagnostics_
+   fun:fluids_module_mp_fluids_
+   fun:mainfl
+   fun:main
+}
+# initialisation of superconvergence stuff
+{
+   allocates in superconvergence_mp_initialise_superconvergence_
+   Memcheck:Leak
+   fun:malloc
+   fun:for__spec_align_alloc
+   fun:for_allocate
+   ...
+   fun:superconvergence_mp_initialise_superconvergence_
+}
+# initialisation of node_boundary module
+{
+   allocates in node_boundary_mp_initialise_boundcount_
+   Memcheck:Leak
+   fun:malloc
+   fun:for__spec_align_alloc
+   fun:for_allocate
+   ...
+   fun:node_boundary_mp_initialise_boundcount_
+}
+# initialisation of domain_bbox
+{
+   allocation of domain_bbox
+   Memcheck:Leak
+   fun:malloc
+   fun:for__spec_align_alloc
+   fun:for_allocate
+   fun:for_alloc_allocatable
+   fun:populate_state_module_mp_compute_domain_statistics_
+   fun:populate_state_module_mp_populate_state_
+   fun:fluids_module_mp_fluids_
+   fun:mainfl
+   fun:main
+}
+{
+   allocations in initialise_diagnostics 
+   Memcheck:Leak
+   fun:malloc
+   fun:for__spec_align_alloc
+   fun:for_allocate
+   fun:for_alloc_allocatable
+   fun:diagnostic_variables_mp_initialise_diagnostics_
+   fun:fluids_module_mp_fluids_
+   fun:mainfl
+   fun:main
+}
+#
+# some miscelaneous ifort i/o trouble
+#
+#
+# this is 2 small leaks in a (log) write statement in libmba2d
+# (mba_nodal.f:351)
+{
+   write statement in libmba2d
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:for_write_seq_fmt
+   fun:mba2d_module_mp_mbanodal_
+   fun:mba2d_integration_mp_adapt_mesh_mba2d_
+   fun:adapt_state_module_mp_adapt_mesh_
+   fun:adapt_state_module_mp_adapt_state_internal_
+   fun:adapt_state_module_mp_adapt_mesh_simple_
+   fun:adapt_state_module_mp_adapt_state_multiple_
+   fun:fluids_module_mp_fluids_
+   fun:mainfl
+   fun:main
+}
+# the very first fortran write to the log
+{
+   first write to log in mainfl
+   Memcheck:Leak
+   fun:malloc
+   fun:for__get_vm
+   ...
+   fun:for_write_seq_lis
+   fun:mainfl
+   fun:main
+}
+#
+# memory allocated by mkl's dgesv that's never deallocated, seems to 
+# only allocate once though despite multiple calls, so not really leaking
+#
+{
+   allocation of buffer in dgesv_
+   Memcheck:Leak
+   fun:malloc
+   fun:mkl_serv_allocate
+   fun:mkl_blas_mc_dgemm_getbufs_0
+   fun:mkl_blas_mc_xdtrsm
+   fun:mkl_blas_mc_dtrsm
+   fun:DTRSM
+   fun:dgetrs_
+   fun:dgesv_
+}
+#
+# the following two appeared after linking slightly differently?
+#
+{
+   memalign in DGESV
+   Memcheck:Leak
+   fun:memalign
+   ...
+   fun:DGESV
+}
+{
+   allocate of buffer in DGESV
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:DGESV
+}
+{
+   memleak in mkl's dspev
+   Memcheck:Leak
+   fun:calloc
+   ...
+   fun:mkl_lapack_dspev
+   fun:DSPEV
+}
+
+
+#
+# intersection stuff
+#
+# these have been checked by Patrick
+{
+   cintersector_set_input_
+   Memcheck:Leak
+   fun:malloc
+   fun:_ZN8Fluidity18ElementIntersector8SetInputERPdS2_RKiS4_
+   fun:_ZN8Fluidity20ElementIntersector2D8SetInputERPdS2_RKiS4_
+   fun:cintersector_set_input_
+   fun:supermesh_construction_mp_intersect_elements_
+   fun:conservative_interpolation_module_mp_galerkin_projection_inner_loop_
+   fun:conservative_interpolation_module_mp_interpolation_galerkin_scalars_
+   fun:conservative_interpolation_module_mp_interpolation_galerkin_multiple_states_
+   fun:interpolation_manager_mp_interpolate_
+   fun:adapt_state_module_mp_adapt_state_internal_
+   fun:adapt_state_module_mp_adapt_state_multiple_
+   fun:fluids_module_mp_fluids_
+   fun:mainfl
+   fun:main
+}
+{
+   cintersector_set_dimension_
+   Memcheck:Leak
+   fun:_Znwm
+   fun:cintersector_set_dimension_
+   fun:conservative_interpolation_module_mp_interpolation_galerkin_scalars_
+   fun:conservative_interpolation_module_mp_interpolation_galerkin_multiple_states_
+   fun:interpolation_manager_mp_interpolate_
+   fun:adapt_state_module_mp_adapt_state_internal_
+   fun:adapt_state_module_mp_adapt_state_multiple_
+   fun:fluids_module_mp_fluids_
+   fun:mainfl
+   fun:main
+}
+{
+   cintersector_drive_
+   Memcheck:Leak
+   fun:_Znwm
+   fun:_ZN8Fluidity20ElementIntersector2D9IntersectEv
+   fun:cintersector_drive_
+   fun:supermesh_construction_mp_intersect_elements_
+   fun:conservative_interpolation_module_mp_galerkin_projection_inner_loop_
+   fun:conservative_interpolation_module_mp_interpolation_galerkin_scalars_
+   fun:conservative_interpolation_module_mp_interpolation_galerkin_multiple_states_
+   fun:interpolation_manager_mp_interpolate_
+   fun:adapt_state_module_mp_adapt_state_internal_
+   fun:adapt_state_module_mp_adapt_state_multiple_
+   fun:fluids_module_mp_fluids_
+   fun:mainfl
+   fun:main
+}
+
+
+# python generates a lot of leak messages, whose backtrace are too long to
+# see if they are harmful. Unfortunately I see no alternative but to
+# suppress them all.
+{
+   malloc inside libpython
+   Memcheck:Leak
+   fun:malloc
+   ...
+   obj:/usr/lib64/libpython*
+}
+{
+   realloc inside libpython
+   Memcheck:Leak
+   fun:realloc
+   ...
+   obj:/usr/lib64/libpython*
+}
+{
+   calloc inside libpython
+   Memcheck:Leak
+   fun:calloc
+   ...
+   obj:/usr/lib64/libpython*
+}
+
+
+{
+   __strncmp_ssse3 Addr8
+   Memcheck:Addr8
+   fun:__strncmp_ssse3
+   ...
+}
+
+{
+   __strncmp_ssse3 Value8
+   Memcheck:Value8
+   fun:__strncmp_ssse3
+   ...
+}
+
+{
+   __strncmp_ssse3 Cond
+   Memcheck:Cond
+   fun:__strncmp_ssse3
+   ...
+}
+
+{
+   __strcmp_ssse3 Addr8
+   Memcheck:Addr8
+   fun:__strcmp_ssse3
+   ...
+}
+
+{
+   __strcmp_ssse3 Value8
+   Memcheck:Value8
+   fun:__strcmp_ssse3
+   ...
+}
+
+{
+   __strcmp_ssse3 Cond
+   Memcheck:Cond
+   fun:__strcmp_ssse3
+   ...
+}
+
+{
+  VTK Addr8
+  Memcheck:Addr8
+  ...
+  obj:/apps/vtk/*/lib/vtk-*/libvtk*
+  ...
+}
+
+{
+  VTK Cond
+  Memcheck:Cond
+  ...
+  obj:/apps/vtk/*/lib/vtk-*/libvtk*
+  ...
+}
+
+{
+  Python Cond
+  Memcheck:Cond
+  ...
+  obj:/usr/lib64/libpython*
+  ..
+}
+
+{
+  Python Addr8
+  Memcheck:Addr8
+  ...
+  obj:/usr/lib64/libpython*
+  ..
+}
+
+{
+  Python Value8
+  Memcheck:Value8
+  ...
+  obj:/usr/lib64/libpython*
+  ..
+}
+
+{
+  Spud Cond
+  Memcheck:Cond
+  ...
+  fun:_ZN4Spud*
+  ..
+}
+
+{
+  Spud Addr8
+  Memcheck:Addr8
+  ...
+  fun:_ZN4Spud*
+  ..
+}
+
+{
+  Spud Value8
+  Memcheck:Value8
+  ...
+  fun:_ZN4Spud*
+  ..
+}

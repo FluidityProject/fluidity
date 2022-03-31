@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>lagrangian_4th_order</name>
   <owner userid="drhodrid"/>
@@ -89,10 +88,10 @@ bc_convergence = log10(bc_ratio)
     </variable>
   </variables>
   <pass_tests>
-    <test name="ab_convergence > 3.8" language="python">
+    <test name="ab_convergence &gt; 3.8" language="python">
 assert (ab_convergence &gt; 3.8)
     </test>
-    <test name="bc_convergence > 3.8" language="python">
+    <test name="bc_convergence &gt; 3.8" language="python">
 assert (bc_convergence &gt; 3.8)
     </test>
   </pass_tests>

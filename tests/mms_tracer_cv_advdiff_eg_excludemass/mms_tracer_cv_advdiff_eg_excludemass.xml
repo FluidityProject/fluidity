@@ -3,7 +3,7 @@
   <name>p1cv advection-diffusion equation spatial convergence test using element gradient diffusion</name>
   <owner userid="cwilson"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v1 MMS_A_cv.flml &gt; MMS_A.log; mv Burgers__NumericalSolution.convergence MMS_A_cv.convergence; fluidity -v1 MMS_B_cv.flml &gt; MMS_B.log; mv Burgers__NumericalSolution.convergence MMS_B_cv.convergence; fluidity -v1 MMS_C_cv.flml &gt; MMS_C.log; mv Burgers__NumericalSolution.convergence MMS_C_cv.convergence; fluidity -v1 MMS_D_cv.flml &gt; MMS_D.log; mv Burgers__NumericalSolution.convergence MMS_D_cv.convergence; fluidity -v1 MMS_E_cv.flml &gt; MMS_E.log; mv Burgers__NumericalSolution.convergence MMS_E_cv.convergence</command_line>
   </problem_definition>
   <variables>

@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
    <name>backward facing step 3D example</name>
    <!--Runs a 3D backward facing step problem with geometry defined as in Le, Moin &amp; Kim 1997. Direct numerical simulation of turbulent flow over a backward-facing step, Journal of Fluid Mechanics.-->

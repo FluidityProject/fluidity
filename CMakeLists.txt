@@ -9,9 +9,11 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Set build type; \
 typical values include Debug, Release, RelWithDebInfo and MinSizeRel." FORCE
   )
+elseif(CMAKE_BUILD_TYPE STREQUAL Debug)
+  set(DDEBUG DDEBUG)
 endif()
 
-set(CMAKE_PREFIX_PATH "$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}")
+set(CMAKE_PREFIX_PATH $ENV{PETSC_DIR}/$ENV{PETSC_ARCH})
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -26,43 +28,61 @@ option(HDF5_PREFER_PARALLEL "Look for parallel HDF5 first" ON)
 include(ExternalProject)
 include(FetchContent)
 
+find_program(SED NAMES sed gsed REQUIRED)
+
 find_package(PkgConfig REQUIRED)
+
+# Check for HDF5
+find_package(HDF5 REQUIRED Fortran)
 
 # Check for VTK
 find_package(VTK REQUIRED)
 
 # Check for Python 3
 find_package(Python3 3.6...<3.10 REQUIRED Interpreter Development NumPy)
-# # Check for assess Python package
-# execute_process(
-#   COMMAND ${Python3_EXECUTABLE} -c "import assess"
-#   RESULT_VARIABLE Python3_ASSESS
-# )
+
+# # Check for OpenMP
+# find_package(OpenMP QUIET COMPONENTS Fortran)
 
 # Check for CGAL
 find_package(CGAL QUIET)
 if(CGAL_FOUND)
   set(HAVE_LIBCGAL HAVE_LIBCGAL)
+  set(CGAL_IMPORTED_TARGET CGAL::CGAL)
 endif()
 
 # Check for PETSc
 pkg_search_module(PETSC REQUIRED IMPORTED_TARGET PETSc)
 message(STATUS "Found PETSc ${PETSC_VERSION}")
 
-# Check for NetCDF
-pkg_check_modules(NETCDF REQUIRED netcdf)
+# # Check for ARPACK
+# pkg_search_module(ARPACK REQUIRED arpack)
+# message(STATUS "Found ARPACK ${ARPACK_VERSION}")
 
-# Check for Zoltan
-find_path(ZOLTAN_INCLUDE_DIR zoltan.mod REQUIRED)
-find_library(ZOLTAN_LIBRARY zoltan REQUIRED)
+# Check for NetCDF
+pkg_search_module(NETCDF REQUIRED netcdf)
+message(STATUS "Found NetCDF ${NETCDF_VERSION}")
+
+# Check for TCMalloc
+pkg_search_module(TCMALLOC REQUIRED libtcmalloc)
+message(STATUS "Found TCMalloc ${TCMALLOC_VERSION}")
 
 # Check for UDUNITS
-find_library(UDUNITS_LIBRARY udunits2 REQUIRED)
+pkg_search_module(UDUNITS REQUIRED udunits)
+message(STATUS "Found UDUNITS ${UDUNITS_VERSION}")
+
+# Check for libsupermesh
+pkg_search_module(LIBSUPERMESH QUIET libsupermesh)
+if(LIBSUPERMESH_FOUND)
+  message(STATUS "Found libsupermesh ${LIBSUPERMESH_VERSION}")
+  set(HAVE_LIBSUPERMESH HAVE_LIBSUPERMESH)
+endif()
 
 # Check for ExodusII
 find_library(EXODUSII_LIBRARY exoIIv2c)
 if(EXODUSII_LIBRARY)
-  set(HAVE_EXODUSII HAVE_EXODUSII)
+  set(HAVE_LIBEXOIIV2C HAVE_LIBEXOIIV2C)
+  find_path(EXODUSII_INCLUDE_DIR exodusII.h REQUIRED)
 else()
   unset(EXODUSII_LIBRARY CACHE)
 endif()
@@ -104,6 +124,27 @@ set(libjudy_SOURCE_DIR ${SOURCE_DIR})
 add_library(Judy STATIC IMPORTED)
 set_target_properties(Judy
   PROPERTIES IMPORTED_LOCATION ${libjudy_SOURCE_DIR}/lib/libJudy.a
+)
+
+# Add Zoltan
+ExternalProject_Add(libzoltan
+  PREFIX Zoltan
+  GIT_REPOSITORY https://github.com/sandialabs/Zoltan
+  GIT_TAG origin/main
+  CONFIGURE_COMMAND ../libzoltan/configure --enable-f90interface --with-gnumake --with-scotch --with-scotch-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-scotch-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib --with-parmetis --with-parmetis-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-parmetis-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib
+  BUILD_COMMAND make everything
+  BUILD_BYPRODUCTS <BINARY_DIR>/src/libzoltan.a
+  INSTALL_COMMAND ""
+  LOG_DOWNLOAD ON
+  LOG_CONFIGURE ON
+  LOG_BUILD ON
+)
+ExternalProject_Get_property(libzoltan BINARY_DIR)
+set(Zoltan_BINARY_DIR ${BINARY_DIR})
+add_library(Zoltan STATIC IMPORTED)
+add_dependencies(Zoltan libzoltan)
+set_target_properties(Zoltan
+  PROPERTIES IMPORTED_LOCATION ${Zoltan_BINARY_DIR}/src/libzoltan.a
 )
 
 # Generate some source files
@@ -204,12 +245,13 @@ configure_file("${CMAKE_BINARY_DIR}/include/vtk.h"
 
 set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
 set(CMAKE_Fortran_FLAGS_DEBUG "-O0")
-set(CMAKE_Fortran_FLAGS "-fbounds-check \
+set(CMAKE_Fortran_FLAGS "-fcheck=bounds \
 -fdefault-real-8 -fdefault-double-8 \
 -ffixed-line-length-none -ffree-line-length-none \
 -frecord-marker=4 \
 -fno-unsafe-math-optimizations -frounding-math -fsignaling-nans \
 -g \
+-march=native \
 -Wunused \
 ${CMAKE_Fortran_FLAGS}"
 )
@@ -224,64 +266,81 @@ execute_process(COMMAND
 add_library(fluidity STATIC)
 add_dependencies(fluidity
   adaptivity mba2d spatialindex spud vtkfortran
-  H5hutf Judy
+  H5hutf Judy Zoltan
 )
 target_compile_definitions(fluidity
   PUBLIC
+  ${DDEBUG}
   DOUBLEP
   HAVE_ADAPTIVITY
   HAVE_BLAS
-  ${HAVE_EXODUSII}
+  # HAVE_HYPERLIGHT
   HAVE_HYPRE
+  # HAVE_LIBARPACK
   ${HAVE_LIBCGAL}
+  ${HAVE_LIBEXOIIV2C}
   HAVE_LIBNETCDF
-  HAVE_LIBNETCDFF
+  ${HAVE_LIBSUPERMESH}
+  HAVE_LIBTCMALLOC
   HAVE_LIBUDUNITS
   HAVE_MEMORY_STATS
   HAVE_MBA_2D
+  # HAVE_MBA_3D
   HAVE_MPI
   HAVE_NUMPY
   HAVE_PETSC
   HAVE_PYTHON
   HAVE_VTK
   HAVE_ZOLTAN
+  # IO_ADVANCE_BUG
   PACKAGE_NAME=fluidity
   PACKAGE_TARNAME=fluidity
+  SED=${SED}
   SIGNAL
+  # SIGNAL_HAVE_FLAG
   STREAM_IO
+  # USING_FEMDEM
+  # _OPENMP
 )
 target_include_directories(fluidity
   PUBLIC
-  "${VTK_INCLUDE_DIRS}"
-  "${Python3_INCLUDE_DIRS}" "${Python3_NumPy_INCLUDE_DIRS}"
+  ${HDF5_Fortran_INCLUDE_DIRS}
+  ${Python3_INCLUDE_DIRS}
+  ${Python3_NumPy_INCLUDE_DIRS}
+  # ${OpenMP_Fortran_INCLUDE_DIRS}
 
-  "${PETSC_INCLUDE_DIRS}"
-  "${NETCDF_INCLUDE_DIRS}"
+  ${PETSC_INCLUDE_DIRS}
+  ${NETCDF_INCLUDE_DIRS}
 
-  ${ZOLTAN_INCLUDE_DIR}
-
-  ${CMAKE_CURRENT_BINARY_DIR}/include
+  ${EXODUSII_INCLUDE_DIR}
 
   ${libspatialindex_SOURCE_DIR}/include
   ${libjudy_SOURCE_DIR}/src
+  ${Zoltan_BINARY_DIR}/src
+
+  ${CMAKE_CURRENT_BINARY_DIR}/include
 
   include
   libwm
 )
 target_link_libraries(fluidity
   adaptivity mba2d spatialindex spud vtkfortran
-  H5hutf Judy
+  H5hutf Judy Zoltan
 
-  "${VTK_LIBRARIES}"
-  "${Python3_LIBRARIES}"
-  "${CGAL_LIBRARIES}"
+  ${HDF5_Fortran_LIBRARIES}
+  ${VTK_LIBRARIES}
+  ${Python3_LIBRARIES}
+  # ${OpenMP_Fortran_LIBRARIES}
+  ${CGAL_IMPORTED_TARGET}
 
   PkgConfig::PETSC
   ${PETSC_STATIC_LDFLAGS}
+  # ${ARPACK_STATIC_LDFLAGS}
   ${NETCDF_STATIC_LDFLAGS}
+  ${TCMALLOC_STATIC_LDFLAGS}
+  ${UDUNITS_STATIC_LDFLAGS}
+  ${LIBSUPERMESH_STATIC_LDFLAGS}
 
-  ${ZOLTAN_LIBRARY}
-  ${UDUNITS_LIBRARY}
   ${EXODUSII_LIBRARY}
 )
 vtk_module_autoinit(TARGETS fluidity MODULES ${VTK_LIBRARIES})
@@ -317,20 +376,39 @@ add_executable(fluidity-bin main.cpp)
 set_target_properties(fluidity-bin PROPERTIES OUTPUT_NAME fluidity)
 target_link_libraries(fluidity-bin fluidity)
 
+# Build the fluidity manual
+add_custom_target(manual
+  COMMAND make
+  WORKING_DIRECTORY manual
+  VERBATIM
+)
+
 # Add unittests
 add_custom_target(unittest
   COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/tests/data bin/tests/data
-  COMMAND bin/unittestharness -x unittest_results.xml
+  COMMAND bin/unittestharness -x unit-tests.xml
   VERBATIM
 )
 add_dependencies(unittest ${unittests})
 
-# add_custom_target(shorttest
-#   COMMAND bin/testharness -l short
-# )
-# add_dependencies(shorttest fluidity-bin fltools)
-#
-# add_custom_target(mediumtest
-#   COMMAND ${CMAKE_BINARY_DIR}/bin/testharness -l medium
-# )
-# add_dependencies(mediumtest fluidity-bin fltools)
+# Add tests
+add_custom_target(vshorttest
+  COMMAND ${Python3_EXECUTABLE} bin/testharness -x vshort-tests.xml -l vshort
+  VERBATIM
+)
+add_custom_target(shorttest
+  COMMAND ${Python3_EXECUTABLE} bin/testharness -x short-tests.xml -l short
+  VERBATIM
+)
+add_custom_target(mediumtest
+  COMMAND ${Python3_EXECUTABLE} bin/testharness -x medium-tests.xml -l medium
+  VERBATIM
+)
+add_custom_target(longtest
+  COMMAND ${Python3_EXECUTABLE} bin/testharness -x long-tests.xml -l long
+  VERBATIM
+)
+add_custom_target(vlongtest
+  COMMAND ${Python3_EXECUTABLE} bin/testharness -x vlong-tests.xml -l vlong
+  VERBATIM
+)

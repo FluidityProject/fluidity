@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   
   <!-- A 2D compressible multiphase flow simulation of the shock tube experiment by Rogue et al. (1998). -->

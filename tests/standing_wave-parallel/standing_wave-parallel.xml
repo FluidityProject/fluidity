@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Standing free surface wave in channel using P1DG-P2.</name>
   <owner userid="skramer"/>
   <tags>flml parallel zoltan</tags>
-  <problem_definition length="medium" nprocs="2">
+  <problem_definition length="short" nprocs="2">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l standing_wave standing_wave_flredecomp
 
 mpiexec ../../bin/fluidity -v3 -l  standing_wave_flredecomp.flml;

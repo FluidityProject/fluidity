@@ -1,0 +1,107 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testproblem>
+  <name>open_ocean_deep_convection-parallel</name>
+  <owner userid="piggott"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="8">
+    <command_line>mpiexec flredecomp -i 1 -o 8 -v -l oodc-unstructured-parallel oodc-unstructured-parallel_flredecomp &amp;&amp;
+mpiexec fluidity -v3 -l oodc-unstructured-parallel_flredecomp.flml</command_line>
+  </problem_definition>
+  <variables>
+
+    <variable name="error_log_n_lines" language="python">
+import os
+files = os.listdir("./")
+error_log_n_lines = {}
+for file in files:
+  if file.startswith("fluidity.err-"):
+    fileHandle = open(file)
+    errorLog = fileHandle.read()
+    print(file + ":")
+    print(errorLog)
+    error_log_n_lines[file] = len(errorLog.split("\n"))
+    fileHandle.close()
+    </variable>
+
+    <variable name="FinalTime" language="python">
+import fluidity_tools
+FinalTime = fluidity_tools.stat_parser("oodc-unstructured-parallel.stat")['ElapsedTime']['value'][-1]
+    </variable>
+
+    <variable name="NumberOfTimeSteps" language="python">
+import fluidity_tools
+from numpy import size
+Times = fluidity_tools.stat_parser("oodc-unstructured-parallel.stat")['ElapsedTime']['value']
+NumberOfTimeSteps = size(Times)
+    </variable>
+
+    <variable name="NormVelocity" language="python">
+import fluidity_tools
+NormVelocity = fluidity_tools.stat_parser("oodc-unstructured-parallel.stat")['BoussinesqFluid']['Velocity%magnitude']['l2norm'][-1]
+    </variable>
+
+    <variable name="MaximumVelocity" language="python">
+import fluidity_tools
+MaximumVelocity = fluidity_tools.stat_parser("oodc-unstructured-parallel.stat")['BoussinesqFluid']['Velocity%magnitude']['max'][-1]
+    </variable>
+
+    <variable name="PressureRange" language="python">
+import fluidity_tools
+MaximumPressure = fluidity_tools.stat_parser("oodc-unstructured-parallel.stat")['BoussinesqFluid']['Pressure']['max'][-1]
+MinimumPressure = fluidity_tools.stat_parser("oodc-unstructured-parallel.stat")['BoussinesqFluid']['Pressure']['min'][-1]
+PressureRange = MaximumPressure - MinimumPressure
+    </variable>
+    
+    <variable name="MaximumGeostrophicPressure" language="python">
+import fluidity_tools
+MaximumGeostrophicPressure = fluidity_tools.stat_parser("oodc-unstructured-parallel.stat")['BoussinesqFluid']['GeostrophicPressure']['max'][-1]
+    </variable>
+
+    <variable name="MinimumGeostrophicPressure" language="python">
+import fluidity_tools
+MinimumGeostrophicPressure = fluidity_tools.stat_parser("oodc-unstructured-parallel.stat")['BoussinesqFluid']['GeostrophicPressure']['min'][-1]
+    </variable>
+    
+    <variable name="FinalNodeCount" language="python">
+import fluidity_tools
+FinalNodeCount = fluidity_tools.stat_parser("oodc-unstructured-parallel.stat")['CoordinateMesh']['nodes'][-1]
+    </variable>
+
+    <variable name="ElapsedWallTime" language="python">
+import fluidity_tools
+ElapsedWallTime = fluidity_tools.stat_parser("oodc-unstructured-parallel.stat")['ElapsedWallTime']['value'][-1]
+    </variable>
+
+  </variables>
+
+  <pass_tests>
+    <test name="Final time greater than 43200s (12 hours)" language="python">
+assert FinalTime &gt; (43200.0 - 1.0e-6)
+    </test>
+    <test name="Number of time steps within 10% of previous run" language="python">
+assert abs( NumberOfTimeSteps - 27.0 ) &lt; 27.0/10.0
+    </test>
+    <test name="Maximum velocity within 10% of previous run" language="python">
+assert abs ( MaximumVelocity  - 0.104 ) &lt; 0.104/10.0
+    </test>
+    <test name="Norm of velocity within 10% of previous run" language="python">
+assert abs ( NormVelocity - 5588.0 ) &lt; 5588.0/10.0
+    </test>
+    <test name="Pressure range within 10% of previous run" language="python">
+assert abs (  PressureRange - (0.001686) )  &lt; 0.001686/10.0
+    </test>
+    <test name="Balance pressure range within 10% of previous run" language="python">
+assert abs (  (MaximumGeostrophicPressure - MinimumGeostrophicPressure)- 0.098 )  &lt; 0.098/10.0
+    </test>
+    <test name="Check final number of nodes within 2000 of the previous number" language="python">
+assert abs ( FinalNodeCount - 14256.0 ) &lt; 2000.0
+    </test>
+    <test name="Check ElapsedWallTime is within an hour of the previous timing" language="python">
+assert abs ( ElapsedWallTime - 1950.0 ) &lt; 3600.0
+    </test>
+  </pass_tests>
+
+  <warn_tests>
+  </warn_tests>
+
+</testproblem>

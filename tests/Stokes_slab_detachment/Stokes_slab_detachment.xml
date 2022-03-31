@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Stokes-slab-detachment</name>
   <owner userid="rhodrid"/>
@@ -62,8 +62,3 @@ assert(abs(viscous_dissipation-90.0) &lt; 10.0)
 </warn_tests>
 
 </testproblem>
-
-
-
-
-

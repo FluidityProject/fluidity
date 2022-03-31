@@ -1,9 +1,9 @@
-<?xml version = "1.0" encoding = "UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Metric advection test, parallel</name>
   <owner userid="pef"/>
   <tags>flml parallel 2dadapt</tags>
-  <problem_definition length = "medium" nprocs = "2">
+  <problem_definition length="short" nprocs="2">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l test_metric_advection_parallel test_metric_advection_parallel_flredecomp &amp;&amp;
 mpiexec ../../bin/fluidity -v3 -l test_metric_advection_parallel_flredecomp.flml
     </command_line>
@@ -14,7 +14,7 @@ import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-    <variable name = "end_times" language = "python">
+    <variable name="end_times" language="python">
     
 from lxml import etree
 
@@ -60,7 +60,7 @@ end_times.append(float(Getflmlvalue('test_metric_advection_parallel.flml','/flui
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>
-    <test name = "check run completed" language = "python">
+    <test name="check run completed" language="python">
     assert end_times[1]-end_times[0] &lt; 1.E-6
     </test>
   </pass_tests>

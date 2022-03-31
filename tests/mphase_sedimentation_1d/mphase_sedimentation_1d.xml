@@ -1,12 +1,11 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
    
   <name>mphase_sedimentation_1d</name>
   <owner userid="ctj10"/>
   <tags>flml</tags>
   
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>make run</command_line>
     <!-- 1D multi-phase test case to check that the volume fraction fields are behaving properly. -->
    

@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>netcdf_read_errors</name>
   <owner userid="asc"/>
   <tags>flml netcdf</tags>
-  <problem_definition length="short" nprocs="1">
-    <command_line>for name in valid missingdata missingdimension missingvariable incorrectdimension incorrectvariable ; do echo "Running case ${name}"; ../../bin/fluidity "${name}.flml" 1>/dev/null 2>"${name}.err"; sed -i '/\/proc\/mounts/d' *.err ; done</command_line>
+  <problem_definition length="vshort" nprocs="1">
+    <command_line>for name in valid missingdata missingdimension missingvariable incorrectdimension incorrectvariable ; do echo "Running case ${name}"; ../../bin/fluidity "${name}.flml" 1&gt;/dev/null 2&gt;"${name}.err"; sed -i '/\/proc\/mounts/d' *.err ; done</command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">
@@ -135,4 +135,3 @@ assert ( incorrectvariable_err )
   <warn_tests>
   </warn_tests>
 </testproblem>
-

@@ -1,0 +1,124 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testproblem>
+  <name>Parallel baroclinic gyre decomposed in columns.</name>
+  <owner userid="skramer"/>
+  <tags>flml</tags>
+  <problem_definition length="long" nprocs="4">
+    <command_line>mpiexec flredecomp -i 1 -o 4 -v -l baroclinic_gyre_unstructured_res2_p1dgp2_cgsupg_NoSlipBottom_BR baroclinic_gyre_unstructured_res2_p1dgp2_cgsupg_NoSlipBottom_BR_flredecomp &amp;&amp;
+mpiexec fluidity -v2 -l baroclinic_gyre_unstructured_res2_p1dgp2_cgsupg_NoSlipBottom_BR_flredecomp.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="bounds" language="python">
+from fluidity_tools import stat_parser
+from math import log
+
+stat=stat_parser('baroclinic_gyre_unstructured_res2_p1dgp2_cgsupg_NoSlipBottom_BR.stat')
+bounds={}
+for field in ('Temperature', 'Pressure',  'FreeSurface','Velocity%1','Velocity%2','Velocity%3'):
+  bounds[field]={}
+  for bound in ('max', 'min'):
+    bounds[field][bound]=stat["ocean"][field][bound][-1]
+
+# not really a surface integral, but since it's constant over the depth
+# and we're not moving the mesh, just take the volume integral and divide by depth
+depth=2000.0
+bounds['FreeSurface']['surfaceintegral']=(stat['ocean']['FreeSurface']['integral'][-1]-stat['ocean']['FreeSurface']['integral'][0])/depth
+    </variable>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+    </variable>
+</variables>
+ <pass_tests>
+    <test name="min. Temperature greater than 10" language="python">
+assert(bounds['Temperature']['min'] &gt; 10.0)
+    </test>
+    <test name="min. Temperature less than 12.5" language="python">
+assert(bounds['Temperature']['min'] &lt; 12.5)
+    </test>
+    <test name="max. Temperature greater than 18" language="python">
+assert(bounds['Temperature']['max'] &gt; 18.0)
+    </test>
+    <test name="max. Temperature less than 20" language="python">
+assert(bounds['Temperature']['max'] &lt; 20.0)
+    </test>
+    
+    <test name="min. Pressure greater than -60" language="python">
+assert(bounds['Pressure']['min'] &gt; -60.0)
+    </test>
+    <test name="min. Pressure less than -58" language="python">
+assert(bounds['Pressure']['min'] &lt; -58.0)
+    </test>
+    <test name="max. Pressure greater than 0" language="python">
+assert(bounds['Pressure']['max'] &gt; 0.0)
+    </test>
+    <test name="max. Pressure less than 3" language="python">
+assert(bounds['Pressure']['max'] &lt; 3.0)
+    </test>
+    
+    <test name="min. FreeSurface greater than -0.23" language="python">
+assert(bounds['FreeSurface']['min'] &gt; -0.23)
+    </test>
+    <test name="min. FreeSurface less than -0.18" language="python">
+assert(bounds['FreeSurface']['min'] &lt; -0.18)
+    </test>
+    <test name="max. FreeSurface greater than 0.18" language="python">
+assert(bounds['FreeSurface']['max'] &gt; 0.18)
+    </test>
+    <test name="max. FreeSurface less than 0.21" language="python">
+assert(bounds['FreeSurface']['max'] &lt; 0.21)
+    </test>
+    <test name="FreeSurface integral over surface less than 1.0e-8 times volume" language="python">
+volume=2000*1.e6*1.e6
+assert(bounds['FreeSurface']['surfaceintegral'] &lt; 1.0e-8*volume)
+    </test>
+    
+    <test name="min. Velocity%1 greater than -0.25" language="python">
+assert(bounds['Velocity%1']['min'] &gt; -0.25)
+    </test>
+    <test name="min. Velocity%1 less than 0" language="python">
+assert(bounds['Velocity%1']['min'] &lt; 0.0)
+    </test>
+    <test name="max. Velocity%1 greater than 0.5" language="python">
+assert(bounds['Velocity%1']['max'] &gt; 0.5)
+    </test>
+    <test name="max. Velocity%1 less than 0.7" language="python">
+assert(bounds['Velocity%1']['max'] &lt; 0.7)
+    </test>
+    
+    <test name="min. Velocity%2 greater than -0.6" language="python">
+assert(bounds['Velocity%2']['min'] &gt; -0.6)
+    </test>
+    <test name="min. Velocity%2 less than -0.4" language="python">
+assert(bounds['Velocity%2']['min'] &lt; -0.4)
+    </test>
+    <test name="max. Velocity%2 greater than 0.5" language="python">
+assert(bounds['Velocity%2']['max'] &gt; 0.5)
+    </test>
+    <test name="max. Velocity%2 less than 0.7" language="python">
+assert(bounds['Velocity%2']['max'] &lt; 0.7)
+    </test>
+    
+    <test name="min. Velocity%3 greater than -0.0005" language="python">
+assert(bounds['Velocity%3']['min'] &gt; -0.0005)
+    </test>
+    <test name="min. Velocity%3 less than -0.0002" language="python">
+assert(bounds['Velocity%3']['min'] &lt; -0.0002)
+    </test>
+    <test name="max. Velocity%3 greater than 0.0002" language="python">
+assert(bounds['Velocity%3']['max'] &gt; 0.0002)
+    </test>
+    <test name="max. Velocity%3 less than 0.0005" language="python">
+# Increased tolerance needed for flredecomp
+#assert(bounds['Velocity%3']['max'] &lt; 0.0005)
+assert(bounds['Velocity%3']['max'] &lt; 0.00051)
+    </test>
+    
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

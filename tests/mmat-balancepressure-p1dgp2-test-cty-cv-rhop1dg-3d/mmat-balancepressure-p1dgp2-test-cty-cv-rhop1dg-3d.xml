@@ -3,7 +3,7 @@
   <name>3d p1dgp2-test-cty-cv-rhop1dg-3d, multi-material surface integral balance pressure check</name>
   <owner userid="btollit"/>
   <tags>flml</tags>
-    <problem_definition length="short" nprocs="1">
+    <problem_definition length="vshort" nprocs="1">
     <command_line>
 fluidity  mmat-balancepressure-p1dgp2-test-cty-cv-rhop1dg-3d.flml
     </command_line>

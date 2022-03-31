@@ -1,10 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Testing of particle based multimaterial fields in parallel for a small resolution prescribed vortex flow case. Vortex flow stretches particles from an initial circle of distinct compoisiton into a spiral, then reverses and reforms the initial circle. Conservation diagnostics are tested against those from a successful run.</name>
   <owner userid="drhodrid"/>
   <tags>flml parallel</tags>
-  <problem_definition length="short" nprocs="4">
+  <problem_definition length="medium" nprocs="4">
     <command_line>    
 mpiexec ../../bin/flredecomp -i 1 -o 4 particle-prescribed-vortex-flow particle-prescribed-vortex-flow-flredecomp;      
 mpiexec ../../bin/fluidity -v3 -l particle-prescribed-vortex-flow-flredecomp.flml
@@ -36,5 +35,3 @@ assert abs(Max_conservation_error).max() &lt; 0.015
   <warn_tests>
   </warn_tests>
 </testproblem>
-
-   

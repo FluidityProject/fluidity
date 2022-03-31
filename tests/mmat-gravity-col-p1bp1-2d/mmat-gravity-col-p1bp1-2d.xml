@@ -1,10 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Control volume, multi-material surface integral pressure check</name>
   <owner userid="cwilson"/>
   <tags>flml solidity</tags>
-    <problem_definition length="short" nprocs="1">
+    <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity -v3 -l  2material_column_under_gravity.flml  </command_line>
   </problem_definition>  
   <variables>  
@@ -20,7 +19,7 @@ minpressure = fluidity_tools.stat_parser("2material_column_under_gravity.stat")[
 import fluidity_tools
 velocity = fluidity_tools.stat_parser("2material_column_under_gravity.stat")['Material1']['Velocity%magnitude']['max'][-1]
     </variable>    
-    <variable name = "solvers_converged" language = "python">
+    <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
@@ -36,7 +35,7 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     <test name="check maximum speed is zero" language="python">
    assert abs(velocity) &lt; 1e-6
     </test>
-    <test name = "Solvers converged" language = "python">
+    <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
   </pass_tests>

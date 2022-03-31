@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>parallel-p2p1-Stokes-square-convection-1e4</name>
   <owner userid="rhodrid"/>
@@ -57,8 +57,3 @@ assert(max_div &lt; 5.0E-6)
 </warn_tests>
 
 </testproblem>
-
-
-
-
-

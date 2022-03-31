@@ -1,6 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>restratification<comment> 3d fixed layered mesh simulation of the restratification following open ocean deep convection.
 </comment></name>

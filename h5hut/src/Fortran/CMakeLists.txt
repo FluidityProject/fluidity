@@ -23,14 +23,11 @@ list(TRANSFORM H5hutf_sources PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/../include/)
 
 set(INTERFACE_FILE ${CMAKE_CURRENT_BINARY_DIR}/h5hut.f)
 
-add_custom_command(
-  OUTPUT ${INTERFACE_FILE}
+add_custom_target(H5hutf_interface ALL
   COMMAND awk [[/INTEGER\*8 :: / { sub(/^[ \t]+/, ""); print $0 } /PARAMETER / { sub(/^[ \t]+/, ""); print $0 } /INTEGER\*8 FUNCTION/ { sub(/^[ \t]+/, ""); print $1 " " $3 }]] ${H5hutf_sources} > ${INTERFACE_FILE}
-  DEPENDS ${H5hutf_sources}
+  BYPRODUCTS ${INTERFACE_FILE}
   VERBATIM
 )
-
-add_custom_target(H5hutf_interface DEPENDS ${INTERFACE_FILE})
 
 add_library(H5hutf
   H5_attribs.c

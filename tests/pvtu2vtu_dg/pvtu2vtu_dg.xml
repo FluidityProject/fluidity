@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>pvtu2vtu_dg</name>
   <owner userid="skramer"/>
   <tags>flml parallel</tags>
-  <problem_definition length="short" nprocs="3">
+  <problem_definition length="vshort" nprocs="3">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l pvtu2vtu pvtu2vtu_flredecomp &amp;&amp;
 mpiexec ../../bin/fluidity -v2 -l pvtu2vtu_flredecomp.flml &amp;&amp;
 ../../bin/pvtu2vtu output 0 0</command_line>

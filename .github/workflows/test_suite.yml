@@ -1,0 +1,289 @@
+name: Build and test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+
+  build:
+    name: Build - ${{ matrix.distribution }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        distribution: [impish]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: docker/actions/Dockerfile.actions.${{ matrix.distribution }}
+          push: true
+          tags: fluidity/actions:${{ matrix.distribution }}-${{ github.sha }}
+
+  unit-test:
+    name: Unit Tests - ${{ matrix.distribution }}
+    runs-on: ubuntu-latest
+    needs: build
+
+    strategy:
+      fail-fast: false
+      matrix:
+        distribution: [impish]
+        output: [unit-tests.xml]
+
+    steps:
+      - name: Run tests
+        run: |
+          chmod 777 .
+          docker pull fluidity/actions:${{ matrix.distribution }}-${{ github.sha }}
+          docker run -v $PWD:/host fluidity/actions:${{ matrix.distribution }}-${{ github.sha }} \
+          /bin/bash -c "ninja unittest &&
+          cp -v ${{ matrix.output }} /host/${{ matrix.distribution }}-${{ matrix.output }}"
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v2
+        with:
+          path: ${{ matrix.distribution }}-${{ matrix.output }}
+          name: xml_outputs
+
+      - name: Publish test report
+        uses: mikepenz/action-junit-report@v2
+        if: always()
+        with:
+          report_paths: ${{ matrix.distribution }}-${{ matrix.output }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: JUnit Test Report - Unit Tests - ${{ matrix.distribution }}
+          fail_on_failure: true
+
+  vshort-test:
+    name: VShort Tests - ${{ matrix.distribution }}
+    runs-on: ubuntu-latest
+    needs: build
+
+    strategy:
+      fail-fast: false
+      matrix:
+        distribution: [impish]
+        output: [vshort-tests.xml]
+
+    steps:
+      - name: Run tests
+        run: |
+          chmod 777 .
+          docker pull fluidity/actions:${{ matrix.distribution }}-${{ github.sha }}
+          docker run -v $PWD:/host fluidity/actions:${{ matrix.distribution }}-${{ github.sha }} \
+          /bin/bash -c "ninja vshorttest &&
+          cp -v ${{ matrix.output }} /host/${{ matrix.distribution }}-${{ matrix.output }}"
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v2
+        with:
+          path: ${{ matrix.distribution }}-${{ matrix.output }}
+          name: xml_outputs
+
+      - name: Publish test report
+        uses: mikepenz/action-junit-report@v2
+        if: always()
+        with:
+          report_paths: ${{ matrix.distribution }}-${{ matrix.output }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: JUnit Test Report - VShort Tests - ${{ matrix.distribution }}
+          fail_on_failure: true
+
+  short-test:
+    name: Short Tests - ${{ matrix.distribution }}
+    runs-on: ubuntu-latest
+    needs: build
+
+    strategy:
+      fail-fast: false
+      matrix:
+        distribution: [impish]
+        output: [short-tests.xml]
+
+    steps:
+      - name: Run tests
+        run: |
+          chmod 777 .
+          docker pull fluidity/actions:${{ matrix.distribution }}-${{ github.sha }}
+          docker run -v $PWD:/host fluidity/actions:${{ matrix.distribution }}-${{ github.sha }} \
+          /bin/bash -c "ninja shorttest &&
+          cp -v ${{ matrix.output }} /host/${{ matrix.distribution }}-${{ matrix.output }}"
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v2
+        with:
+          path: ${{ matrix.distribution }}-${{ matrix.output }}
+          name: xml_outputs
+
+      - name: Publish test report
+        uses: mikepenz/action-junit-report@v2
+        if: always()
+        with:
+          report_paths: ${{ matrix.distribution }}-${{ matrix.output }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: JUnit Test Report - Short Tests - ${{ matrix.distribution }}
+          fail_on_failure: true
+
+  get-lists:
+    name: Generate JSON files that contain tests to be executed
+    runs-on: ubuntu-latest
+
+    outputs:
+      mediumtest-matrix: ${{ steps.set-matrices.outputs.mediumtest-matrix }}
+      longtest-matrix: ${{ steps.set-matrices.outputs.longtest-matrix }}
+      vlongtest-matrix: ${{ steps.set-matrices.outputs.vlongtest-matrix }}
+
+    strategy:
+      matrix:
+        python-version: [3.9]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip junit_xml
+
+      - name: Generate JSON files
+        id: set-matrices
+        run: |
+          bin/testharness -l medium --just-list --github mediumtests.json
+          bin/testharness -l long --just-list --github longtests.json
+          bin/testharness -l vlong --just-list --github vlongtests.json
+
+          echo "::set-output name=mediumtest-matrix::$(echo $(cat mediumtests.json))"
+          echo "::set-output name=longtest-matrix::$(echo $(cat longtests.json))"
+          echo "::set-output name=vlongtest-matrix::$(echo $(cat vlongtests.json))"
+
+  medium-test:
+    name: Medium Test - ${{ matrix.distribution }} - ${{ matrix.test-xml }}
+    runs-on: ubuntu-latest
+    needs: [build, get-lists]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        distribution: [impish]
+        test-xml: ${{fromJSON(needs.get-lists.outputs.mediumtest-matrix)}}
+
+    steps:
+      - name: Testing
+        run: |
+          chmod 777 .
+          docker pull fluidity/actions:${{ matrix.distribution }}-${{ github.sha }}
+          docker run -v $PWD:/host fluidity/actions:${{ matrix.distribution }}-${{ github.sha }} \
+          /bin/bash -c "bin/testharness -f ${{ matrix.test-xml }} \
+          -x ${{ matrix.distribution }}-${{ matrix.test-xml }} &&
+          cp -v ${{ matrix.distribution }}-${{ matrix.test-xml }} /host"
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v2
+        with:
+          path: ${{ matrix.distribution }}-${{ matrix.output }}
+          name: xml_outputs
+
+      - name: Publish test report
+        uses: mikepenz/action-junit-report@v2
+        if: always()
+        with:
+          report_paths: ${{ matrix.distribution }}-${{ matrix.output }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: JUnit Test Report - Medium Test - ${{ matrix.distribution }} - ${{ matrix.test-xml }}
+          fail_on_failure: true
+
+  long-test:
+    name: Long Test - ${{ matrix.distribution }} - ${{ matrix.test-xml }}
+    runs-on: ubuntu-latest
+    needs: [build, get-lists]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        distribution: [impish]
+        test-xml: ${{fromJSON(needs.get-lists.outputs.longtest-matrix)}}
+
+    steps:
+      - name: Testing
+        run: |
+          chmod 777 .
+          docker pull fluidity/actions:${{ matrix.distribution }}-${{ github.sha }}
+          docker run -v $PWD:/host fluidity/actions:${{ matrix.distribution }}-${{ github.sha }} \
+          /bin/bash -c "bin/testharness -f ${{ matrix.test-xml }} \
+          -x ${{ matrix.distribution }}-${{ matrix.test-xml }} &&
+          cp -v ${{ matrix.distribution }}-${{ matrix.test-xml }} /host"
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v2
+        with:
+          path: ${{ matrix.distribution }}-${{ matrix.output }}
+          name: xml_outputs
+
+      - name: Publish test report
+        uses: mikepenz/action-junit-report@v2
+        if: always()
+        with:
+          report_paths: ${{ matrix.distribution }}-${{ matrix.output }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: JUnit Test Report - Long Test - ${{ matrix.distribution }} - ${{ matrix.test-xml }}
+          fail_on_failure: true
+
+  vlong-test:
+    name: VLong Test - ${{ matrix.distribution }} - ${{ matrix.test-xml }}
+    runs-on: ubuntu-latest
+    needs: [build, get-lists]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        distribution: [impish]
+        test-xml: ${{fromJSON(needs.get-lists.outputs.vlongtest-matrix)}}
+
+    steps:
+      - name: Testing
+        run: |
+          chmod 777 .
+          docker pull fluidity/actions:${{ matrix.distribution }}-${{ github.sha }}
+          docker run -v $PWD:/host fluidity/actions:${{ matrix.distribution }}-${{ github.sha }} \
+          /bin/bash -c "bin/testharness -f ${{ matrix.test-xml }} \
+          -x ${{ matrix.distribution }}-${{ matrix.test-xml }} &&
+          cp -v ${{ matrix.distribution }}-${{ matrix.test-xml }} /host"
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v2
+        with:
+          path: ${{ matrix.distribution }}-${{ matrix.output }}
+          name: xml_outputs
+
+      - name: Publish test report
+        uses: mikepenz/action-junit-report@v2
+        if: always()
+        with:
+          report_paths: ${{ matrix.distribution }}-${{ matrix.output }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: JUnit Test Report - VLong Test - ${{ matrix.distribution }} - ${{ matrix.test-xml }}
+          fail_on_failure: true

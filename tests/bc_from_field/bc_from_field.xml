@@ -1,12 +1,11 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
    
   <name>bc_from_field</name>
   <owner userid="ctj10"/>
   <tags>flml</tags>
   
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>make run</command_line>
     <!-- This tests Fluidity's capability of enforcing boundary conditions using values from another field -->
   </problem_definition>

@@ -1,9 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Periodic adaptivity in 3D</name>
   <owner userid="pfarrell"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>../../bin/periodise periodic_adaptivity_3d.flml; fluidity -v2 -l periodic_adaptivity_3d_periodised.flml</command_line>
   </problem_definition>
   <variables>

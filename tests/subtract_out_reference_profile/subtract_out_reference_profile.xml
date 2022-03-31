@@ -1,13 +1,11 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
    
   <name>subtract_out_reference_profile</name>
   <owner userid="ctj10"/>
   <tags>flml</tags>
   
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>make run</command_line>
   </problem_definition>
   

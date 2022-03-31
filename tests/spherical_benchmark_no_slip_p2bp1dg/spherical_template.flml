@@ -1,0 +1,761 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">sphere_TEMPLATE</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">stokes</string_value>
+  </problem_type>
+  <geometry>
+    <dimension>
+      <integer_value rank="0">3</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_mesh>
+        <mesh name="ExtrudedMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="ExtrudedMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+          <element_type>
+            <string_value>bubble</string_value>
+          </element_type>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="ExtrudedMesh"/>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="InputMesh">
+      <from_file file_name="icosahedron_TEMPLATE">
+        <format name="gmsh"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+      <exclude_from_mesh_adaptivity/>
+    </mesh>
+    <mesh name="ExtrudedMesh">
+      <from_mesh>
+        <mesh name="InputMesh"/>
+        <extrude>
+          <layer name="UpperMantle">
+            <regions name="WholeMesh">
+              <bottom_depth>
+                <constant>
+                  <real_value rank="0">0.5</real_value>
+                </constant>
+              </bottom_depth>
+              <sizing_function>
+                <constant>
+                  <real_value rank="0">0.1</real_value>
+                </constant>
+              </sizing_function>
+              <extruded_region_id>
+                <integer_value rank="0">1</integer_value>
+              </extruded_region_id>
+              <top_surface_id>
+                <integer_value rank="0">1</integer_value>
+              </top_surface_id>
+              <bottom_surface_id>
+                <integer_value rank="0">3</integer_value>
+              </bottom_surface_id>
+            </regions>
+          </layer>
+          <layer name="LowerMantle">
+            <regions name="WholeMesh">
+              <bottom_depth>
+                <constant>
+                  <real_value rank="0">1.0</real_value>
+                </constant>
+              </bottom_depth>
+              <sizing_function>
+                <constant>
+                  <real_value rank="0">0.1</real_value>
+                </constant>
+              </sizing_function>
+              <extruded_region_id>
+                <integer_value rank="0">2</integer_value>
+              </extruded_region_id>
+              <bottom_surface_id>
+                <integer_value rank="0">2</integer_value>
+              </bottom_surface_id>
+            </regions>
+          </layer>
+        </extrude>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="P2Mesh">
+      <from_mesh>
+        <mesh name="ExtrudedMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree>
+        <integer_value rank="0">6</integer_value>
+      </degree>
+    </quadrature>
+    <spherical_earth>
+      <superparametric_mapping/>
+    </spherical_earth>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period_in_timesteps>
+      <constant>
+        <integer_value rank="0">1</integer_value>
+      </constant>
+    </dump_period_in_timesteps>
+    <output_mesh name="CoordinateMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time>
+      <real_value rank="0">0</real_value>
+    </current_time>
+    <timestep>
+      <real_value rank="0">0.001</real_value>
+    </timestep>
+    <finish_time>
+      <real_value rank="0">1</real_value>
+    </finish_time>
+    <final_timestep>
+      <integer_value rank="0">1</integer_value>
+    </final_timestep>
+  </timestepping>
+  <physical_parameters>
+    <gravity>
+      <magnitude>
+        <real_value rank="0">0</real_value>
+      </magnitude>
+      <vector_field name="GravityDirection" rank="1">
+        <prescribed>
+          <mesh name="CoordinateMesh"/>
+          <value name="WholeMesh">
+            <python>
+              <string_value type="code" language="python" lines="20">def val(X,t):
+  import math
+  r = math.sqrt(X[0]**2+X[1]**2+X[2]**2)
+  return [-X[0]/r,-X[1]/r,-X[2]/r]</string_value>
+            </python>
+          </value>
+          <output>
+            <exclude_from_vtu/>
+          </output>
+          <stat>
+            <exclude_from_stat/>
+          </stat>
+          <detectors>
+            <exclude_from_detectors/>
+          </detectors>
+        </prescribed>
+      </vector_field>
+    </gravity>
+  </physical_parameters>
+  <material_phase name="Fields">
+    <equation_of_state>
+      <fluids>
+        <linear>
+          <reference_density>
+            <real_value rank="0">1</real_value>
+          </reference_density>
+          <subtract_out_hydrostatic_level/>
+        </linear>
+      </fluids>
+    </equation_of_state>
+    <scalar_field rank="0" name="Pressure">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <remove_stabilisation_term/>
+          </continuous_galerkin>
+        </spatial_discretisation>
+        <scheme>
+          <poisson_pressure_solution>
+            <string_value lines="1">never</string_value>
+          </poisson_pressure_solution>
+          <use_projection_method>
+            <full_schur_complement>
+              <inner_matrix name="FullMomentumMatrix"/>
+              <preconditioner_matrix name="ScaledPressureMassMatrix"/>
+            </full_schur_complement>
+          </use_projection_method>
+        </scheme>
+        <solver>
+          <iterative_method name="fgmres"/>
+          <preconditioner name="ksp">
+            <solver>
+              <iterative_method name="cg"/>
+              <preconditioner name="gamg"/>
+              <relative_error>
+                <real_value rank="0">1e-12</real_value>
+              </relative_error>
+              <max_iterations>
+                <integer_value rank="0">1000</integer_value>
+              </max_iterations>
+              <remove_null_space/>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+          </preconditioner>
+          <relative_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <remove_null_space>
+            <test_null_space/>
+          </remove_null_space>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors>
+              <preconditioned_residual/>
+            </monitors>
+          </diagnostics>
+        </solver>
+        <output/>
+        <stat/>
+        <convergence>
+          <exclude_from_convergence/>
+        </convergence>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+        <no_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field rank="0" name="Density">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <exclude_from_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field rank="1" name="Velocity">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="LinearMomentum"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <stabilisation>
+              <no_stabilisation/>
+            </stabilisation>
+            <mass_terms>
+              <exclude_mass_terms/>
+            </mass_terms>
+            <advection_terms>
+              <exclude_advection_terms/>
+            </advection_terms>
+            <stress_terms>
+              <partial_stress_form/>
+            </stress_terms>
+            <buoyancy>
+              <radial_gravity_direction_at_gauss_points/>
+            </buoyancy>
+          </continuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">1</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">1</real_value>
+          </theta>
+          <relaxation>
+            <real_value rank="0">0.5</real_value>
+          </relaxation>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="gamg"/>
+          <relative_error>
+            <real_value rank="0">1e-12</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <multigrid_near_null_space>
+            <all_components/>
+            <all_rotations/>
+          </multigrid_near_null_space>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <print_norms/>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions name="NoSlip">
+          <surface_ids>
+            <integer_value rank="1" shape="2">1 2</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <align_bc_with_cartesian>
+              <x_component>
+                <constant>
+                  <real_value rank="0">0</real_value>
+                </constant>
+              </x_component>
+              <y_component>
+                <constant>
+                  <real_value rank="0">0</real_value>
+                </constant>
+              </y_component>
+              <z_component>
+                <constant>
+                  <real_value rank="0">0</real_value>
+                </constant>
+              </z_component>
+            </align_bc_with_cartesian>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions name="Internal">
+          <surface_ids>
+            <integer_value rank="1" shape="1">3</integer_value>
+          </surface_ids>
+          <type name="flux">
+            <align_bc_with_cartesian>
+              <x_component>
+                <python>
+                  <string_value type="code" language="python" lines="20">def val(X,t):
+  from solution import Y_cartesian, rp, l, m
+  return -Y_cartesian(l, m, X)*X[0]/2./rp</string_value>
+                </python>
+              </x_component>
+              <y_component>
+                <python>
+                  <string_value type="code" language="python" lines="20">def val(X,t):
+  from solution import Y_cartesian, rp, l, m
+  return -Y_cartesian(l, m, X)*X[1]/2./rp</string_value>
+                </python>
+              </y_component>
+              <z_component>
+                <python>
+                  <string_value type="code" language="python" lines="20">def val(X,t):
+  from solution import Y_cartesian, rp, l, m
+  return -Y_cartesian(l, m, X)*X[2]/2./rp</string_value>
+                </python>
+              </z_component>
+            </align_bc_with_cartesian>
+          </type>
+        </boundary_conditions>
+        <tensor_field name="Viscosity" rank="2">
+          <prescribed>
+            <mesh name="CoordinateMesh"/>
+            <value name="WholeMesh">
+              <anisotropic_symmetric>
+                <constant>
+                  <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0</real_value>
+                </constant>
+              </anisotropic_symmetric>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
+        <output/>
+        <stat>
+          <include_in_stat/>
+          <previous_time_step>
+            <exclude_from_stat/>
+          </previous_time_step>
+          <nonlinear_field>
+            <exclude_from_stat/>
+          </nonlinear_field>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </vector_field>
+    <scalar_field rank="0" name="AnalyticalPressure">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="TopHalf">
+          <region_ids>
+            <integer_value rank="1" shape="1">1</integer_value>
+          </region_ids>
+          <python>
+            <string_value type="code" language="python" lines="20">def val(X,t):
+  from solution import solution_upper
+  return solution_upper.pressure_cartesian(X)</string_value>
+          </python>
+        </value>
+        <value name="BottomHalf">
+          <region_ids>
+            <integer_value rank="1" shape="1">2</integer_value>
+          </region_ids>
+          <python>
+            <string_value type="code" language="python" lines="20">def val(X,t):
+  from solution import solution_lower
+  return solution_lower.pressure_cartesian(X)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+      </prescribed>
+    </scalar_field>
+    <scalar_field rank="0" name="PressureError">
+      <diagnostic>
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="PressureRemeaned" source_field_1_type="scalar" source_field_2_name="AnalyticalPressure" source_field_2_type="scalar"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat>
+          <surface_integral name="Top" type="value">
+            <surface_ids>
+              <integer_value rank="1" shape="1">1</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral name="Bottom" type="value">
+            <surface_ids>
+              <integer_value rank="1" shape="1">2</integer_value>
+            </surface_ids>
+          </surface_integral>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field rank="0" name="PressureRemeaned">
+      <diagnostic>
+        <algorithm name="subtract_average" material_phase_support="single" source_field_name="Pressure" source_field_type="scalar"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field rank="0" name="NormalStress">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value type="code" language="python" lines="20">from solution import nu
+X = state.vector_fields['DiagnosticCoordinate']
+s = state.tensor_fields['StrainRate']
+p = state.scalar_fields['PressureRemeaned']
+
+assert(X.node_count == field.node_count)
+assert(s.node_count == field.node_count)
+assert(p.node_count == field.node_count)
+
+for i in range(field.node_count):
+   r = X.node_val(i)
+   tau = 2*nu*s.node_val(i)
+   field.set(i, (r @ tau @ r)/(r@r) - p.node_val(i))</string_value>
+          <depends>
+            <string_value lines="1">StrainRate,PressureRemeaned,DiagnosticCoordinate</string_value>
+          </depends>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field rank="0" name="AnalyticalNormalStress">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="TopHalf">
+          <region_ids>
+            <integer_value rank="1" shape="1">1</integer_value>
+          </region_ids>
+          <python>
+            <string_value type="code" language="python" lines="20">def val(X,t):
+  from solution import solution_upper
+  return solution_upper.radial_stress_cartesian(X)</string_value>
+          </python>
+        </value>
+        <value name="BottomHalf">
+          <region_ids>
+            <integer_value rank="1" shape="1">2</integer_value>
+          </region_ids>
+          <python>
+            <string_value type="code" language="python" lines="20">def val(X,t):
+  from solution import solution_lower
+  return solution_lower.radial_stress_cartesian(X)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <surface_l2norm name="Top">
+            <surface_ids>
+              <integer_value rank="1" shape="1">1</integer_value>
+            </surface_ids>
+          </surface_l2norm>
+          <surface_l2norm name="Bottom">
+            <surface_ids>
+              <integer_value rank="1" shape="1">2</integer_value>
+            </surface_ids>
+          </surface_l2norm>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+      </prescribed>
+    </scalar_field>
+    <scalar_field rank="0" name="NormalStressError">
+      <diagnostic>
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="NormalStress" source_field_1_type="scalar" source_field_2_name="AnalyticalNormalStress" source_field_2_type="scalar"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat>
+          <surface_l2norm name="Top">
+            <surface_ids>
+              <integer_value rank="1" shape="1">1</integer_value>
+            </surface_ids>
+          </surface_l2norm>
+          <surface_l2norm name="Bottom">
+            <surface_ids>
+              <integer_value rank="1" shape="1">2</integer_value>
+            </surface_ids>
+          </surface_l2norm>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field rank="1" name="AnalyticalVelocity">
+      <prescribed>
+        <mesh name="P2Mesh"/>
+        <value name="TopHalf">
+          <region_ids>
+            <integer_value rank="1" shape="1">1</integer_value>
+          </region_ids>
+          <python>
+            <string_value type="code" language="python" lines="20">def val(X,t):
+  from solution import solution_upper
+  return solution_upper.velocity_cartesian(X)</string_value>
+          </python>
+        </value>
+        <value name="BottomHalf">
+          <region_ids>
+            <integer_value rank="1" shape="1">2</integer_value>
+          </region_ids>
+          <python>
+            <string_value type="code" language="python" lines="20">def val(X,t):
+  from solution import solution_lower
+  return solution_lower.velocity_cartesian(X)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+          <surface_l2norm name="Top">
+            <surface_ids>
+              <integer_value rank="1" shape="1">1</integer_value>
+            </surface_ids>
+          </surface_l2norm>
+          <surface_l2norm name="Bottom">
+            <surface_ids>
+              <integer_value rank="1" shape="1">2</integer_value>
+            </surface_ids>
+          </surface_l2norm>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+    <vector_field rank="1" name="VelocityError">
+      <diagnostic>
+        <algorithm name="vector_difference" material_phase_support="single" source_field_1_name="VelocityRemap" source_field_1_type="vector" source_field_2_name="AnalyticalVelocity" source_field_2_type="vector"/>
+        <mesh name="P2Mesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+          <surface_l2norm name="Top">
+            <surface_ids>
+              <integer_value rank="1" shape="1">1</integer_value>
+            </surface_ids>
+          </surface_l2norm>
+          <surface_l2norm name="Bottom">
+            <surface_ids>
+              <integer_value rank="1" shape="1">2</integer_value>
+            </surface_ids>
+          </surface_l2norm>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field rank="1" name="VelocityRemap">
+      <diagnostic>
+        <algorithm name="vector_copy" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
+          <allow_bubble_lagrange_remap/>
+        </algorithm>
+        <mesh name="P2Mesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field rank="1" name="DiagnosticCoordinate">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <tensor_field rank="2" name="StrainRate">
+      <diagnostic>
+        <algorithm name="strain_rate" material_phase_support="single " source_field_name="Velocity" source_field_type="vector"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </diagnostic>
+    </tensor_field>
+  </material_phase>
+</fluidity_options>

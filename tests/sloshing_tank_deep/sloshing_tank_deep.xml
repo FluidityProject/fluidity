@@ -5,7 +5,7 @@
   <name>Wave speed sloshing water of large depth</name>
   <owner userid="piggott"/>
   <tags>flml</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v3 -l sloshing_tank_deep.flml</command_line>
   </problem_definition>
   <variables>

@@ -1,10 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>diff_src_dirichlet_1d</name>
   <owner userid="btollit"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>
 ../../bin/fluidity diff_src_dirichlet_1d_cg_p1_A.flml 
     </command_line>

@@ -3,7 +3,7 @@
   <name>gls-relax</name>
   <owner userid="jhill1"/>
   <tags>flml gls</tags>
-    <problem_definition length="short" nprocs="1">
+    <problem_definition length="vshort" nprocs="1">
         <command_line>fluidity -l -v2 gls-relax.flml;
                       cp fluidity.log-0 fluidity.log_relax.0;
                       fluidity -l -v2 gls-orig.flml;

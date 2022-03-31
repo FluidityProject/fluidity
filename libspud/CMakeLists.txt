@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.19)
 project(spud LANGUAGES CXX Fortran)
 
-set(CMAKE_Fortran_FLAGS "-fbounds-check \
+set(CMAKE_Fortran_FLAGS "-fcheck=bounds \
 -ffixed-line-length-none -ffree-line-length-none \
 -frecord-marker=4 \
 -fno-unsafe-math-optimizations -frounding-math -fsignaling-nans \
 -g \
+-march=native \
 -Wall -Wextra"
 )
 
