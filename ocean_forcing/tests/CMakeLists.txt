@@ -9,6 +9,7 @@ set(unittest_sources
 )
 
 foreach(unittest_source ${unittest_sources})
+  configure_file(${unittest_source} ${CMAKE_CURRENT_SOURCE_DIR}/${unittest_source})
   get_filename_component(unittest ${unittest_source} NAME_WE)
   list(APPEND unittests ${unittest})
 

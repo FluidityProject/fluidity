@@ -1,0 +1,25 @@
+FROM ubuntu:jammy
+
+USER root
+
+RUN apt -y update && \
+    apt -y dist-upgrade && \
+    apt -y install python3-build python3-h5py-mpi python3-junit.xml python3-numpy python3-pip python3-scipy python3-sympy python3-venv && \
+    rm -rf /var/cache/apt/archives && \
+    rm -rf /var/lib/apt/lists
+
+COPY . /home/fluidity
+RUN chown -R fluidity /home/fluidity
+
+USER fluidity
+
+RUN python3 -m pip install assess
+
+git clone https://github.com/FluidityProject/fluidity.git
+cd fluidity
+git checkout cmake_build_2022
+mkdir build
+cd build
+cmake -G Ninja ..
+ninja
+ninja manual

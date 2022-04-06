@@ -23,6 +23,7 @@ void test_kara_ocean_fluxes_fc() {
     bool fail = true;
     bool warn = false;
     char errorMessage[256];
+    char path_to_data[256];
     int NNodes = 1;
     double time = 86400;
     vector<double> T(NNodes, 0.0), S(NNodes, 35.0), Vx(NNodes, 0.0), Vy(NNodes, 0.0), Vz(NNodes, 0.0),
@@ -31,7 +32,7 @@ void test_kara_ocean_fluxes_fc() {
     q_l(NNodes,0.0), q_h(NNodes,0.0), q_e(NNodes, 0.0), q_p(NNodes, 0.0);
 
     // set up the normal input file (ERA40)
-    FluxesReader_global.RegisterDataFile("../../tests/data/stationPapa_1970.nc");
+    FluxesReader_global.RegisterDataFile("@CMAKE_SOURCE_DIR@/tests/data/stationPapa_1970.nc");
     FluxesReader_global.AddFieldOfInterest("u10");  //  0   | 10 metre U wind component
     FluxesReader_global.AddFieldOfInterest("v10");  //  1   | 10 metre V wind component
     FluxesReader_global.AddFieldOfInterest("ssrd"); //  2   | Surface solar radiation downwards
@@ -46,7 +47,7 @@ void test_kara_ocean_fluxes_fc() {
 
     // set up the file containing the forcings from ERA40 - this is equivalent to our output
     // from the bulk formulae
-    FluxesReader_ERAdata.RegisterDataFile("../../tests/data/stationPapa_1970_output.nc");
+    FluxesReader_ERAdata.RegisterDataFile("@CMAKE_SOURCE_DIR@/tests/data/stationPapa_1970_output.nc");
     FluxesReader_ERAdata.SetSimulationTimeUnits("seconds since 1970-01-02 00:00:0.0");
     FluxesReader_ERAdata.SetTimeSeconds(time);
     FluxesReader_ERAdata.AddFieldOfInterest("sshf"); // 0 | surface sensible heat flux

@@ -39,7 +39,7 @@ find_package(HDF5 REQUIRED Fortran)
 find_package(VTK REQUIRED)
 
 # Check for Python 3
-find_package(Python3 3.6...<3.10 REQUIRED Interpreter Development NumPy)
+find_package(Python3 REQUIRED Interpreter Development NumPy)
 
 # # Check for OpenMP
 # find_package(OpenMP QUIET COMPONENTS Fortran)
@@ -131,7 +131,7 @@ ExternalProject_Add(libzoltan
   PREFIX Zoltan
   GIT_REPOSITORY https://github.com/sandialabs/Zoltan
   GIT_TAG origin/main
-  CONFIGURE_COMMAND ../libzoltan/configure --enable-f90interface --with-gnumake --with-scotch --with-scotch-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-scotch-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib --with-parmetis --with-parmetis-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-parmetis-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib
+  CONFIGURE_COMMAND ../libzoltan/configure FCFLAGS=-fallow-argument-mismatch --enable-f90interface --with-gnumake --with-scotch --with-scotch-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-scotch-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib --with-parmetis --with-parmetis-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-parmetis-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib
   BUILD_COMMAND make everything
   BUILD_BYPRODUCTS <BINARY_DIR>/src/libzoltan.a
   INSTALL_COMMAND ""
@@ -245,7 +245,8 @@ configure_file("${CMAKE_BINARY_DIR}/include/vtk.h"
 
 set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
 set(CMAKE_Fortran_FLAGS_DEBUG "-O0")
-set(CMAKE_Fortran_FLAGS "-fcheck=bounds \
+set(CMAKE_Fortran_FLAGS "-fallow-argument-mismatch \
+-fcheck=bounds \
 -fdefault-real-8 -fdefault-double-8 \
 -ffixed-line-length-none -ffree-line-length-none \
 -frecord-marker=4 \
@@ -379,7 +380,7 @@ target_link_libraries(fluidity-bin fluidity)
 # Build the fluidity manual
 add_custom_target(manual
   COMMAND make
-  WORKING_DIRECTORY manual
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/manual
   VERBATIM
 )
 

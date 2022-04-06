@@ -4,7 +4,7 @@ setup(
     ext_modules=[
         Extension(
             name='libspud', sources=['libspud.c'], include_dirs=['../include'],
-            library_dirs=['..'], libraries=['spud'],
+            library_dirs=['../../build/lib'], libraries=['spud'],
         )
     ]
 )

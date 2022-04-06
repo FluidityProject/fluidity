@@ -120,16 +120,16 @@ def filter_tests(xml_files):
 
 def gather_tests():
     if args.file:  # Specific test requested
-        xml_files = [fluidity_root.rglob(args.file)]
+        xml_files = [fluidity_source.rglob(args.file)]
     elif args.from_file:  # Specific list of tests requested
         with open(args.from_file, "r") as fid:
-            xml_files = [fluidity_root.rglob(test_name.rstrip())
+            xml_files = [fluidity_source.rglob(test_name.rstrip())
                          for test_name in fid]
     else:  # Gather all XML files that can be found
         test_paths = ["examples", "tests", "longtests"]
-        xml_files = [list((fluidity_root / test_path).rglob("*/*.xml"))
+        xml_files = [list((fluidity_source / test_path).rglob("*/*.xml"))
                      for test_path in test_paths
-                     if (fluidity_root / test_path).exists()]
+                     if (fluidity_source / test_path).exists()]
     return list(chain(*xml_files))
 
 
@@ -427,11 +427,12 @@ if args.parallel not in ["serial", "parallel", "any"]:
     parser.error("Specify parallelism as either of serial, parallel or any.")
 
 # Obtain path to the root of fluidity's directory
-fluidity_root = Path(sys.argv[0]).resolve().parent.parent
+fluidity_source = Path("@CMAKE_SOURCE_DIR@")
+fluidity_build = Path("@CMAKE_BINARY_DIR@")
 
-add_path_to_environment_variable("PATH", fluidity_root / "bin")
-add_path_to_environment_variable("PATH", fluidity_root / "libspud" / "bin")
-add_path_to_environment_variable("LD_LIBRARY_PATH", fluidity_root / "lib")
+add_path_to_environment_variable("PATH", fluidity_build / "bin")
+add_path_to_environment_variable("PATH", fluidity_source / "libspud" / "bin")
+add_path_to_environment_variable("LD_LIBRARY_PATH", fluidity_build / "lib")
 add_path_to_environment_variable("HOSTNAME", gethostname())
 
 print(f"""*** Test criteria
@@ -472,7 +473,7 @@ elif args.clean:
     print("Cleaning done.")
 else:
     fluidity_version = subprocess.run(
-        [f"{fluidity_root}/bin/fluidity", "-V"], check=True, encoding="utf-8",
+        ["fluidity", "-V"], check=True, encoding="utf-8",
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     print(f"""{"-" * 80}
 Output of "fluidity -V"

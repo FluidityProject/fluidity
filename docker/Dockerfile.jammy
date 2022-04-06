@@ -1,7 +1,7 @@
 # DockerFile for a Fludity development container
 
 # Use an Impish base image
-FROM ubuntu:impish
+FROM ubuntu:jammy
 
 # This DockerFile is looked after by
 MAINTAINER Tim Greaves <tim.greaves@imperial.ac.uk>
@@ -10,15 +10,15 @@ MAINTAINER Tim Greaves <tim.greaves@imperial.ac.uk>
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Package updates and installs
-RUN apt-get update && \
-    apt-get -y dist-upgrade && \
-    apt-get -y install gnupg dirmngr && \
-    echo "deb http://ppa.launchpad.net/fluidity-core/ppa/ubuntu impish main" > /etc/apt/sources.list.d/fluidity-core-ppa-impish.list && \
-    gpg --keyserver keyserver.ubuntu.com --recv 0D45605A33BAC3BE && \
-    gpg --export --armor 33BAC3BE | apt-key add - && \
-    apt-get update && \
+RUN apt update && \
+    apt -y dist-upgrade && \
+    # apt-get -y install gnupg dirmngr && \
+    # echo "deb http://ppa.launchpad.net/fluidity-core/ppa/ubuntu impish main" > /etc/apt/sources.list.d/fluidity-core-ppa-impish.list && \
+    # gpg --keyserver keyserver.ubuntu.com --recv 0D45605A33BAC3BE && \
+    # gpg --export --armor 33BAC3BE | apt-key add - && \
+    # apt-get update && \
     echo "Europe/London" > /etc/timezone && \
-    apt-get -y install cmake gmsh ninja-build petsc-dev vtk9 texlive-pstricks texlive texlive-latex-extra texlive-science && \
+    apt -y install bison cmake flex fig2dev git libgoogle-perftools-dev libnetcdff-dev libudunits2-dev libvtk9-qt-dev ninja-build texlive-fonts-recommended texlive-latex-base texlive-latex-extra texlive-pstricks texlive-science && \
     rm -rf /var/cache/apt && \
     rm -rf /var/lib/apt/lists
 

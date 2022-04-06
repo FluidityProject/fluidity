@@ -8,7 +8,7 @@ subroutine test_fluxes_reader_wrapper
 
   ! Run the first GetScalar(..) test from FluxesReader test via the Fortran wrappers
   fail = .true.
-  call fluxes_registerdatafile("../../tests/data/global_fluxes.nc")
+  call fluxes_registerdatafile("@CMAKE_SOURCE_DIR@/tests/data/global_fluxes.nc")
   call fluxes_addfieldofinterest("_2t")
   call fluxes_setsimulationtimeunits("seconds since 1960-01-01 06:00:0.0")
   call fluxes_settimeseconds(0.0)

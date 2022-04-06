@@ -1,3 +1,5 @@
+configure_file(testharness.py ${CMAKE_CURRENT_SOURCE_DIR}/testharness.py)
+
 set(python_source_files
   clean_mayavi_mesh.py
   create_aligned_mesh.py
