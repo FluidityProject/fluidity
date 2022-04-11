@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
   flex \
   fig2dev \
   git \
+  gmsh \
   libgoogle-perftools-dev \
   libnetcdff-dev \
   libudunits2-dev \
@@ -76,6 +77,6 @@ RUN mkdir -p fluidity/build
 
 WORKDIR /home/Softwares/fluidity/build
 
-RUN cmake -G Ninja ..
+RUN cmake -G Ninja -D GITHUB_ACTIONS=1 ..
 RUN ninja
 RUN ninja manual

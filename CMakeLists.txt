@@ -255,12 +255,16 @@ set(CMAKE_Fortran_FLAGS "-fcheck=bounds \
 -ffixed-line-length-none -ffree-line-length-none \
 -frecord-marker=4 \
 -fno-unsafe-math-optimizations -frounding-math -fsignaling-nans \
--g \
--march=native"
+-g"
 )
 # -Wall -Wextra
 if(${CMAKE_C_COMPILER_VERSION} GREATER_EQUAL 10)
   set(CMAKE_Fortran_FLAGS "-fallow-argument-mismatch ${CMAKE_Fortran_FLAGS}")
+endif()
+if(DEFINED GITHUB_ACTIONS)
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -march=haswell")
+else()
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -march=native")
 endif()
 
 configure_file(tools/version-info.in bin/version-info)
