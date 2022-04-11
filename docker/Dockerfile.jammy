@@ -18,17 +18,20 @@ RUN apt-get update && apt-get install -y \
   flex \
   fig2dev \
   git \
-  gmsh \
   libexodusii-dev \
+  libgmsh-dev \
   libgoogle-perftools-dev \
   libnetcdff-dev \
   libudunits2-dev \
   libvtk9-qt-dev \
   netgen \
+  netgen-headers \
   ninja-build \
   python3-build \
   python3-h5py-mpi \
   python3-junit.xml \
+  python3-lxml \
+  python3-matplotlib \
   python3-numpy \
   python3-pip \
   python3-scipy \
