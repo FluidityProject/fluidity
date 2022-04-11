@@ -19,10 +19,12 @@ RUN apt-get update && apt-get install -y \
   fig2dev \
   git \
   gmsh \
+  libexodusii-dev \
   libgoogle-perftools-dev \
   libnetcdff-dev \
   libudunits2-dev \
   libvtk9-qt-dev \
+  netgen \
   ninja-build \
   python3-build \
   python3-h5py-mpi \
