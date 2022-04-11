@@ -7,10 +7,10 @@ preprocess:
 
 run:
 	@echo **********Running simulations
-	../../bin/fluidity -v3 -l MMS_A.flml
-	../../bin/fluidity -v3 -l MMS_B.flml
-	../../bin/fluidity -v3 -l MMS_C.flml
-	../../bin/fluidity -v3 -l MMS_D.flml
+	fluidity -v3 -l MMS_A.flml
+	fluidity -v3 -l MMS_B.flml
+	fluidity -v3 -l MMS_C.flml
+	fluidity -v3 -l MMS_D.flml
 
 input: clean preprocess
 

@@ -4,7 +4,7 @@ preprocess:
 
 run:
 	@echo **********Running simulation
-	../../bin/fluidity -v2 -l mphase_wen_yu_drag_correlation.flml
+	fluidity -v2 -l mphase_wen_yu_drag_correlation.flml
 
 input: clean preprocess
 

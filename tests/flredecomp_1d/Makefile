@@ -1,7 +1,7 @@
 default: input
 
 input:
-	../../bin/interval --dx=0.0008 0 1 line
+	interval --dx=0.0008 0 1 line
 
 clean: clean-mesh clean-run
 clean-mesh:

@@ -4,7 +4,7 @@ preprocess:
 
 run:
 	@echo **********Running simulation
-	../../bin/fluidity -v2 -l mphase_stokes_law.flml
+	fluidity -v2 -l mphase_stokes_law.flml
 
 input: clean preprocess
 

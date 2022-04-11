@@ -4,7 +4,7 @@ preprocess:
 	gmsh -2 src/domain.geo -o src/domain.msh
 
 run:
-	../../bin/fluidity swe_tidal_flow_regular_bed.flml
+	fluidity swe_tidal_flow_regular_bed.flml
 	
 clean:
 	rm -f *.node *.ele *.bound

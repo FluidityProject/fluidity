@@ -4,7 +4,7 @@ preprocess:
 
 run:
 	@echo **********Running simulation
-	../../bin/fluidity -v2 -l mphase_three_layers.flml
+	fluidity -v2 -l mphase_three_layers.flml
 
 input: clean preprocess
 

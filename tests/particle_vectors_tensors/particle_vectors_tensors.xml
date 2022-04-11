@@ -5,8 +5,8 @@
   <tags>flml</tags>
   <problem_definition length="short" nprocs="2">
     <command_line>
-mpiexec ../../bin/flredecomp -i 1 -o 2 particle-vectors-tensors particle-vectors-tensors-flredecomp;
-mpiexec ../../bin/fluidity -v3 -l particle-vectors-tensors-flredecomp.flml
+mpiexec flredecomp -i 1 -o 2 particle-vectors-tensors particle-vectors-tensors-flredecomp;
+mpiexec fluidity -v3 -l particle-vectors-tensors-flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>

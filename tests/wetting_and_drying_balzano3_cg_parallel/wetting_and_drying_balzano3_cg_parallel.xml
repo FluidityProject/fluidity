@@ -4,7 +4,7 @@
   <owner userid="sf1409"/>
   <tags>parallel zoltan</tags>
   <problem_definition length="medium" nprocs="4">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l balzano1_2plus1 balzano1_2plus1_flredecomp &amp;&amp;
+    <command_line>mpiexec flredecomp -i 1 -o 4 -v -l balzano1_2plus1 balzano1_2plus1_flredecomp &amp;&amp;
 mpiexec fluidity balzano1_2plus1_flredecomp.flml</command_line>
   </problem_definition>
   <variables>

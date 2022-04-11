@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Read support for exodusii</name>
   <owner userid="ffm10"/>
@@ -10,7 +10,7 @@
     </command_line>
   </problem_definition>
   <variables>
-    <variable name = "solvers_converged" language = "python">
+    <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
@@ -56,39 +56,38 @@ NumberNodes_ExodusII_3D=s["CoordinateMesh"]["nodes"]
     </variable>
   </variables>
   <pass_tests>
-    <test name = "Solvers converged" language = "python">
+    <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
-    <test name = "2D/With sideset: Simulation completed" language = "python">
+    <test name="2D/With sideset: Simulation completed" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(ElapsedTime_ExodusII_2D_with_sideset[-1], 0.01, 1.0e-6)
     </test>
-    <test name = "2D/With sideset: Nodes, elements, surface elements" language = "python">
+    <test name="2D/With sideset: Nodes, elements, surface elements" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(NumberNodes_ExodusII_2D_with_sideset[-1], 23, 1.0e-6)
 fluidity_tools.compare_variable(NumberElements_ExodusII_2D_with_sideset[-1], 30, 1.0e-6)
 fluidity_tools.compare_variable(NumberSurfaceElements_ExodusII_2D_with_sideset[-1], 14, 1.0e-6)
     </test>
-    <test name = "2D/With sideset: Boundary condition" language = "python">
+    <test name="2D/With sideset: Boundary condition" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(BoundaryCondition_ExodusII_2D_with_sideset, 1, 1.0e-6)
     </test>
-    <test name = "2D/WithOUT sideset: Simulation completed" language = "python">
+    <test name="2D/WithOUT sideset: Simulation completed" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(ElapsedTime_ExodusII_2D_without_sideset[-1], 0.01, 1.0e-6)
     </test>
-    <test name = "2D/WithOUT sideset: Nodes" language = "python">
+    <test name="2D/WithOUT sideset: Nodes" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(NumberNodes_ExodusII_2D_without_sideset[-1], 47, 1.0e-6)
     </test>
-    <test name = "3D: Simulation completed" language = "python">
+    <test name="3D: Simulation completed" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(ElapsedTime_ExodusII_3D[-1], 0.01, 1.0e-6)
     </test>
-    <test name = "3D: Nodes" language = "python">
+    <test name="3D: Nodes" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(NumberNodes_ExodusII_3D[-1], 146, 1.0e-6)
     </test>
   </pass_tests>
 </testproblem>
-

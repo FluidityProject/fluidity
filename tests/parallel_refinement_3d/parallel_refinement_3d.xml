@@ -3,8 +3,8 @@
   <name>parallel_refinement_3d<comment>This tests 3D refinement in parallel. We start from a uniform mesh of 10x10x10 in a cube, i.e. dx~0.1. There's no interpolation error specified, so it should just refine to a uniform mesh according to the maximum edge length of 0.05. This is run on 3 cores. On master this fails because of it failing to move around the halos sufficiently so that we can refine everywhere. With he new halo locking strategy that only locks a single row of elements this passes.</comment></name>
   <owner userid="skramer"/>
   <problem_definition length="short" nprocs="3">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 3 refine refinep &amp;&amp;
-mpiexec ../../bin/fluidity -v2 -l refinep.flml</command_line>
+    <command_line>mpiexec flredecomp -i 1 -o 3 refine refinep &amp;&amp;
+mpiexec fluidity -v2 -l refinep.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="cell_volume_stats" language="python">from fluidity_tools import stat_parser

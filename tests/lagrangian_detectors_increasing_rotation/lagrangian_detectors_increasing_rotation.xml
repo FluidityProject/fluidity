@@ -5,8 +5,8 @@
   <tags>flml parallel zoltan</tags>
   <problem_definition length="short" nprocs="4">
     <command_line>
-mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian-detectors-increasing-rotation lagrangian-detectors-increasing-rotation-flredecomp;
-mpiexec ../../bin/fluidity -v3 -l lagrangian-detectors-increasing-rotation-flredecomp.flml
+mpiexec flredecomp -i 1 -o 4 -v -l lagrangian-detectors-increasing-rotation lagrangian-detectors-increasing-rotation-flredecomp;
+mpiexec fluidity -v3 -l lagrangian-detectors-increasing-rotation-flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>

@@ -5,7 +5,7 @@
   <tags>flml parallel zoltan</tags>
   <problem_definition length="medium" nprocs="4">
     <command_line>
-mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian-2nd-A lagrangian-2nd-A-flredecomp &amp;&amp; mpiexec ../../bin/fluidity -v2 -l lagrangian-2nd-A-flredecomp.flml &amp;&amp; mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian-2nd-B lagrangian-2nd-B-flredecomp &amp;&amp; mpiexec ../../bin/fluidity -v2 -l lagrangian-2nd-B-flredecomp.flml &amp;&amp; mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian-2nd-C lagrangian-2nd-C-flredecomp &amp;&amp; mpiexec ../../bin/fluidity -v2 -l lagrangian-2nd-C-flredecomp.flml &amp;&amp; mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian-2nd-D lagrangian-2nd-D-flredecomp &amp;&amp; mpiexec ../../bin/fluidity -v2 -l lagrangian-2nd-D-flredecomp.flml
+mpiexec flredecomp -i 1 -o 4 -v -l lagrangian-2nd-A lagrangian-2nd-A-flredecomp &amp;&amp; mpiexec fluidity -v2 -l lagrangian-2nd-A-flredecomp.flml &amp;&amp; mpiexec flredecomp -i 1 -o 4 -v -l lagrangian-2nd-B lagrangian-2nd-B-flredecomp &amp;&amp; mpiexec fluidity -v2 -l lagrangian-2nd-B-flredecomp.flml &amp;&amp; mpiexec flredecomp -i 1 -o 4 -v -l lagrangian-2nd-C lagrangian-2nd-C-flredecomp &amp;&amp; mpiexec fluidity -v2 -l lagrangian-2nd-C-flredecomp.flml &amp;&amp; mpiexec flredecomp -i 1 -o 4 -v -l lagrangian-2nd-D lagrangian-2nd-D-flredecomp &amp;&amp; mpiexec fluidity -v2 -l lagrangian-2nd-D-flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>

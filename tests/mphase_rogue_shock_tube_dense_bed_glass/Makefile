@@ -4,7 +4,7 @@ preprocess:
 
 run:
 	@echo **********Running simulation
-	../../bin/fluidity mphase_rogue_shock_tube_dense_bed_glass.flml
+	fluidity mphase_rogue_shock_tube_dense_bed_glass.flml
 
 input: clean preprocess
 

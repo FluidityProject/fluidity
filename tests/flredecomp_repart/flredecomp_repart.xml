@@ -5,8 +5,8 @@
   <problem_definition length="vshort" nprocs="4">
     <command_line>
       make clean-run
-      mpiexec -np 2 ../../bin/flredecomp -i 1 -o 2 -v -l test test_flredecomp
-      mpiexec ../../bin/flredecomp -i 2 -o 4 -v -l test_flredecomp test_flredecomp_repart
+      mpiexec -np 2 flredecomp -i 1 -o 2 -v -l test test_flredecomp
+      mpiexec flredecomp -i 2 -o 4 -v -l test_flredecomp test_flredecomp_repart
     </command_line>
   </problem_definition>
   <variables>

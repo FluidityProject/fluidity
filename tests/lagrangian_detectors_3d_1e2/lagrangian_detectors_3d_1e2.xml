@@ -4,8 +4,8 @@
   <owner userid="drhodrid"/>
   <tags>flml parallel</tags>
   <problem_definition length="short" nprocs="4">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l lagrangian_detectors_3d_1e2 lagrangian_detectors_3d_1e2_flredecomp &amp;&amp;
-mpiexec ../../bin/fluidity -v3 -l lagrangian_detectors_3d_1e2_flredecomp.flml
+    <command_line>mpiexec flredecomp -i 1 -o 4 -v -l lagrangian_detectors_3d_1e2 lagrangian_detectors_3d_1e2_flredecomp &amp;&amp;
+mpiexec fluidity -v3 -l lagrangian_detectors_3d_1e2_flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>

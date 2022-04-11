@@ -1,37 +1,81 @@
-# DockerFile for a Fludity development container
+# Dockerfile for Fluidity CI using GitHub Actions
 
-# Use an Impish base image
+# Use a Jammy base image
 FROM ubuntu:jammy
 
-# This DockerFile is looked after by
-MAINTAINER Tim Greaves <tim.greaves@imperial.ac.uk>
+LABEL maintainer.name="Tim Greaves"
+LABEL maintainer.email="tim.greaves@imperial.ac.uk"
 
 # Installs shouldn't expect input
 ENV DEBIAN_FRONTEND=noninteractive
-
-# Package updates and installs
-RUN apt update && \
-    apt -y dist-upgrade && \
-    # apt-get -y install gnupg dirmngr && \
-    # echo "deb http://ppa.launchpad.net/fluidity-core/ppa/ubuntu impish main" > /etc/apt/sources.list.d/fluidity-core-ppa-impish.list && \
-    # gpg --keyserver keyserver.ubuntu.com --recv 0D45605A33BAC3BE && \
-    # gpg --export --armor 33BAC3BE | apt-key add - && \
-    # apt-get update && \
-    echo "Europe/London" > /etc/timezone && \
-    apt -y install bison cmake flex fig2dev git libgoogle-perftools-dev libnetcdff-dev libudunits2-dev libvtk9-qt-dev ninja-build texlive-fonts-recommended texlive-latex-base texlive-latex-extra texlive-pstricks texlive-science && \
-    rm -rf /var/cache/apt && \
-    rm -rf /var/lib/apt/lists
-
-WORKDIR /usr/local
-
 ENV OMPI_MCA_btl_vader_single_copy_mechanism none
 ENV OMPI_MCA_rmaps_base_oversubscribe 1
 
-# Add a Fluidity user who will be the default user for this container
-# Make sure the user has a userid matching the host system
-# -- pass this as an argument at build time
+# Package updates and installs
+RUN apt-get update && apt-get install -y \
+  bison \
+  cmake \
+  flex \
+  fig2dev \
+  git \
+  libgoogle-perftools-dev \
+  libnetcdff-dev \
+  libudunits2-dev \
+  libvtk9-qt-dev \
+  ninja-build \
+  python3-build \
+  python3-h5py-mpi \
+  python3-junit.xml \
+  python3-numpy \
+  python3-pip \
+  python3-scipy \
+  python3-sympy \
+  python3-venv \
+  texlive-fonts-recommended \
+  texlive-latex-base \
+  texlive-latex-extra \
+  texlive-pstricks \
+  texlive-science \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /usr/local
+
 ARG userid=1000
 RUN adduser --disabled-password --gecos "" -u $userid fluidity
 
+WORKDIR /home/Softwares
+RUN chown -R fluidity /home/Softwares
+
 USER fluidity
-WORKDIR /home/fluidity
+
+RUN git clone -b release https://gitlab.com/petsc/petsc.git
+
+WORKDIR /home/Softwares/petsc
+
+ENV PETSC_ARCH=arch-linux-c-opt
+ENV PETSC_DIR=/home/Softwares/petsc
+
+RUN ./configure \
+  --with-debugging=0 \
+  --download-blacs=1 \
+  --download-fblaslapack=1 \
+  --download-hypre=1 \
+  --download-metis=1 \
+  --download-ml \
+  --download-mumps=1 \
+  --download-parmetis=1 \
+  --download-ptscotch=1 \
+  --download-scalapack=1 \
+  --download-suitesparse=1
+RUN make all check
+
+WORKDIR /home/Softwares
+
+RUN git clone -b cmake_build_2022 https://github.com/FluidityProject/fluidity.git
+RUN mkdir -p fluidity/build
+
+WORKDIR /home/Softwares/fluidity/build
+
+RUN cmake -G Ninja ..
+RUN ninja
+RUN ninja manual

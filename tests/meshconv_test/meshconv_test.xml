@@ -1,16 +1,16 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Meshconv (mesh converter) test</name>
   <owner userid="ffm10"/>
   <tags>exodusii</tags>
   <problem_definition length="short" nprocs="2">
-    <command_line>../../bin/meshconv -i exodusii -o gmsh rectangle; fluidity meshconv_exo2gmsh.flml;
-    ../../bin/meshconv -i gmsh -o triangle rectangle; fluidity meshconv_gmsh2triangle.flml; rm rectangle.msh;
-    mpiexec ../../bin/meshconv -i gmsh -o triangle prectangle; mpiexec fluidity meshconv_parallel_gmsh2triangle.flml; rm prectangle_?.msh;
+    <command_line>meshconv -i exodusii -o gmsh rectangle; fluidity meshconv_exo2gmsh.flml;
+    meshconv -i gmsh -o triangle rectangle; fluidity meshconv_gmsh2triangle.flml; rm rectangle.msh;
+    mpiexec meshconv -i gmsh -o triangle prectangle; mpiexec fluidity meshconv_parallel_gmsh2triangle.flml; rm prectangle_?.msh;
     </command_line>
   </problem_definition>
   <variables>
-    <variable name = "solvers_converged" language = "python">
+    <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
@@ -80,10 +80,10 @@ BoundaryCondition_parallel_gmsh2triangle=s["Fluid"]["Velocity%magnitude"]["max"]
     </variable>
   </variables>
   <pass_tests>
-    <test name = "Solvers converged" language = "python">
+    <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
-    <test name = "Exo2Gmsh: Simulation completed, No. Nodes, elements, surface elements, boundary condition:" language = "python">
+    <test name="Exo2Gmsh: Simulation completed, No. Nodes, elements, surface elements, boundary condition:" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(ElapsedTime_exo2gmsh[-1], 0.01, 1.0e-6)
 fluidity_tools.compare_variable(NumberNodes_exo2gmsh[-1], 23, 1.0e-6)
@@ -91,7 +91,7 @@ fluidity_tools.compare_variable(NumberElements_exo2gmsh[-1], 30, 1.0e-6)
 fluidity_tools.compare_variable(NumberSurfaceElements_exo2gmsh[-1], 14, 1.0e-6)
 fluidity_tools.compare_variable(BoundaryCondition_exo2gmsh, 1, 1.0e-6)
     </test>
-    <test name = "Gmsh2Triangle: Simulation completed, No. Nodes, elements, surface elements, boundary condition:" language = "python">
+    <test name="Gmsh2Triangle: Simulation completed, No. Nodes, elements, surface elements, boundary condition:" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(ElapsedTime_gmsh2triangle[-1], 0.01, 1.0e-6)
 fluidity_tools.compare_variable(NumberNodes_gmsh2triangle[-1], 23, 1.0e-6)
@@ -99,7 +99,7 @@ fluidity_tools.compare_variable(NumberElements_gmsh2triangle[-1], 30, 1.0e-6)
 fluidity_tools.compare_variable(NumberSurfaceElements_gmsh2triangle[-1], 14, 1.0e-6)
 fluidity_tools.compare_variable(BoundaryCondition_gmsh2triangle, 1, 1.0e-6)
     </test>
-    <test name = "Parallel Gmsh2Triangle: Simulation completed, No. Nodes, elements, surface elements, boundary condition:" language = "python">
+    <test name="Parallel Gmsh2Triangle: Simulation completed, No. Nodes, elements, surface elements, boundary condition:" language="python">
 import fluidity_tools
 fluidity_tools.compare_variable(ElapsedTime_parallel_gmsh2triangle[-1], 0.01, 1.0e-6)
 fluidity_tools.compare_variable(NumberNodes_parallel_gmsh2triangle[-1], 23, 1.0e-6)
@@ -109,4 +109,3 @@ fluidity_tools.compare_variable(BoundaryCondition_parallel_gmsh2triangle, 1, 1.0
     </test>
   </pass_tests>
 </testproblem>
-

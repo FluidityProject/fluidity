@@ -5,8 +5,8 @@
   <tags>flml</tags>
   <problem_definition length="vshort" nprocs="2">
     <command_line>
-mpiexec ../../bin/flredecomp -i 1 -o 2 particle-attribute-array particle-attribute-array-flredecomp;
-mpiexec ../../bin/fluidity -v3 -l particle-attribute-array-flredecomp.flml
+mpiexec flredecomp -i 1 -o 2 particle-attribute-array particle-attribute-array-flredecomp;
+mpiexec fluidity -v3 -l particle-attribute-array-flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>

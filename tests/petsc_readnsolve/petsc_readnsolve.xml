@@ -1,13 +1,13 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>petsc_readnsolve</name>
   <owner userid="skramer"/>
   <tags> parallel </tags>
   <problem_definition length="special" nprocs="4">
     <comment>First make a common flredecomped mesh and edit the flml files to use this, then do the actual test.</comment>
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l standing_wave_failing_velocity standing_wave_failing_velocity_flredecomp;
-mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l standing_wave_failing_pressure standing_wave_failing_pressure_flredecomp;
-mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l standing_wave standing_wave_flredecomp;
+    <command_line>mpiexec flredecomp -i 1 -o 4 -v -l standing_wave_failing_velocity standing_wave_failing_velocity_flredecomp;
+mpiexec flredecomp -i 1 -o 4 -v -l standing_wave_failing_pressure standing_wave_failing_pressure_flredecomp;
+mpiexec flredecomp -i 1 -o 4 -v -l standing_wave standing_wave_flredecomp;
 make mesh_rename
 rm -f *failing_velocity_flredecomp_CoordinateMesh* *failing_pressure_flredecomp_CoordinateMesh*
 ( mpiexec fluidity -v2 -l standing_wave_failing_velocity_flredecomp.flml 2&gt;&amp;1 ) &gt; /dev/null;

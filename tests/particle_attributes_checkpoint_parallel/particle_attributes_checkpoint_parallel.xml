@@ -5,9 +5,9 @@
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="4">
     <command_line>
-mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l particle-attributes-checkpoint-parallel P4_particle-attributes &amp;&amp;
-mpiexec ../../bin/fluidity -v3 -l P4_particle-attributes.flml &amp;&amp;
-mpiexec ../../bin/fluidity -v3 -l particle_attributes_1_checkpoint.flml
+mpiexec flredecomp -i 1 -o 4 -v -l particle-attributes-checkpoint-parallel P4_particle-attributes &amp;&amp;
+mpiexec fluidity -v3 -l P4_particle-attributes.flml &amp;&amp;
+mpiexec fluidity -v3 -l particle_attributes_1_checkpoint.flml
     </command_line>
   </problem_definition>
   <variables>

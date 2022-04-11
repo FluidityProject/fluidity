@@ -3,9 +3,9 @@
   <name>extrude_adapt3d_parallel</name>
   <owner userid="skramer"/>
   <problem_definition length="short" nprocs="2">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 box box_flredecomp &amp;&amp;
-mpiexec ../../bin/fluidity -v2 -l box_flredecomp.flml &amp;&amp;
-mpiexec ../../bin/fluidity -v2 -l box_1_checkpoint.flml</command_line>
+    <command_line>mpiexec flredecomp -i 1 -o 2 box box_flredecomp &amp;&amp;
+mpiexec fluidity -v2 -l box_flredecomp.flml &amp;&amp;
+mpiexec fluidity -v2 -l box_1_checkpoint.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="ConservationError" language="python">from fluidity_tools import stat_parser

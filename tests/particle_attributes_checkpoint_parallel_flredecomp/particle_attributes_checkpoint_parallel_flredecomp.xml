@@ -5,10 +5,10 @@
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="4">
     <command_line>
-mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l particle-attributes P4_particle-attributes &amp;&amp;
-mpiexec ../../bin/fluidity -v3 -l P4_particle-attributes.flml &amp;&amp;
-mpiexec ../../bin/flredecomp -i 4 -o 1 -v -l particle_attributes_1_checkpoint particle-attributes-flredecomp &amp;&amp;
-../../bin/fluidity -v3 -l particle-attributes-flredecomp.flml
+mpiexec flredecomp -i 1 -o 4 -v -l particle-attributes P4_particle-attributes &amp;&amp;
+mpiexec fluidity -v3 -l P4_particle-attributes.flml &amp;&amp;
+mpiexec flredecomp -i 4 -o 1 -v -l particle_attributes_1_checkpoint particle-attributes-flredecomp &amp;&amp;
+fluidity -v3 -l particle-attributes-flredecomp.flml
     </command_line>
   </problem_definition>
 

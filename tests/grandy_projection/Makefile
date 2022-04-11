@@ -4,7 +4,7 @@ default: input
 
 input:
 	tar -xvjf src/meshes.tar.bz2
-	for i in `seq 0 9`; do ../../bin/triangle2gmsh $$i ; done
+	for i in `seq 0 9`; do triangle2gmsh $$i ; done
 
 clean: clean-mesh clean-run-debug
 clean-mesh:

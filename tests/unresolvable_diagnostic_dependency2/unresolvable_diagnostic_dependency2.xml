@@ -1,9 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
   <name>Unresolvable diagnostic dependency</name>
   <owner userid="dham"/>
   <tags>flml</tags>
-  <problem_definition length = "special" nprocs = "1">
+  <problem_definition length="special" nprocs="1">
     <command_line>make clean-run-debug; fluidity -v2 -l diagnostics.flml</command_line>
   </problem_definition>
   <variables>
@@ -12,7 +12,7 @@ import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-    <variable name = "error_present" language = "python">
+    <variable name="error_present" language="python">
 error_present = False
 for line in open("fluidity.err-0", "r"):
    if line.startswith("Error message: Circular dependency"):
@@ -24,7 +24,7 @@ for line in open("fluidity.err-0", "r"):
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>
-    <test name="Fluidity failed with the expected error" language = "python">
+    <test name="Fluidity failed with the expected error" language="python">
 assert(error_present)
     </test>
   </pass_tests>

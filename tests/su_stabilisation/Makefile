@@ -4,7 +4,7 @@ FLMLMODEL2 = top_hat_cg_su
 default: input
 
 input:
-	../../bin/interval --dx=0.025 0 1 line
+	interval --dx=0.025 0 1 line
 
 clean: clean-run-debug
 	rm -f *.log

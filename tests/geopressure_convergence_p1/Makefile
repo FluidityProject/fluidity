@@ -4,10 +4,10 @@ default: input
 
 input:
 	tar -xvjf src/meshes.tar.bz2
-	../../bin/triangle2gmsh square-8
-	../../bin/triangle2gmsh square-16
-	../../bin/triangle2gmsh square-32
-	../../bin/triangle2gmsh square-64
+	triangle2gmsh square-8
+	triangle2gmsh square-16
+	triangle2gmsh square-32
+	triangle2gmsh square-64
 	cp geopressure_8.flml geopressure_16.flml 
 	$(SED) -i "s/"geopressure_8"/"geopressure_16"/g" geopressure_16.flml 
 	$(SED) -i "s/square-8/square-16/g" geopressure_16.flml 

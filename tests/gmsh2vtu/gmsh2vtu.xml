@@ -3,7 +3,7 @@
   <name>gmsh2vtu_test</name>
   <owner userid="rhodrid"/>
   <problem_definition length="vshort" nprocs="1">
-    <command_line>../../bin/gmsh2vtu Subduction_Mesh</command_line>
+    <command_line>gmsh2vtu Subduction_Mesh</command_line>
   </problem_definition>
   <variables>
     <variable name="num_gmsh_nodes" language="python">from check_nodes import *

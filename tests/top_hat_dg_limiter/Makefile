@@ -3,7 +3,7 @@ FLMLMODEL = top_hat_dg
 default: input
 
 input:
-	../../bin/interval --dx=0.025 0 1 line --region_ids=regions.py
+	interval --dx=0.025 0 1 line --region_ids=regions.py
 
 clean: clean-run-debug
 

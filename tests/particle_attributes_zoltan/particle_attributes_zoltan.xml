@@ -5,8 +5,8 @@
   <tags>flml parallel zoltan</tags>
   <problem_definition length="medium" nprocs="4">
     <command_line>
-mpiexec ../../bin/flredecomp -i 1 -o 4 particle-attributes-zoltan particle-attributes-zoltan-flredecomp;
-mpiexec ../../bin/fluidity -v3 -l particle-attributes-zoltan-flredecomp.flml
+mpiexec flredecomp -i 1 -o 4 particle-attributes-zoltan particle-attributes-zoltan-flredecomp;
+mpiexec fluidity -v3 -l particle-attributes-zoltan-flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>

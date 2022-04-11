@@ -3,8 +3,8 @@
   <name>parallel_coarsening_3d<comment>This tests 3D coarsening in parallel. We start from a uniform mesh of 30x30x30 in a cube, i.e. dx~0.033. There's no interpolation error specified, so it should just coarsen to a uniform mesh according to the maximum edge length of 0.1. This is run on 3 cores. On master this fails because of it failing to move around the halos sufficiently so that we can coarsen everywhere. With he new halo locking strategy that only locks a single row of elements this passes.</comment></name>
   <owner userid="skramer"/>
   <problem_definition length="short" nprocs="3">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 3 coarsen coarsenp &amp;&amp;
-mpiexec ../../bin/fluidity -v2 -l coarsenp.flml</command_line>
+    <command_line>mpiexec flredecomp -i 1 -o 3 coarsen coarsenp &amp;&amp;
+mpiexec fluidity -v2 -l coarsenp.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="cell_volume_stats" language="python">from fluidity_tools import stat_parser

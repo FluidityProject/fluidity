@@ -5,8 +5,8 @@
   <tags>flml parallel</tags>
   <problem_definition length="vlong" nprocs="8">
     <command_line>    
-mpiexec ../../bin/flredecomp -i 1 -o 8 particle-rayleigh-taylor-mu10fold particle-rayleigh-taylor-mu10fold-flredecomp;      
-mpiexec ../../bin/fluidity -v3 -l particle-rayleigh-taylor-mu10fold-flredecomp.flml
+mpiexec flredecomp -i 1 -o 8 particle-rayleigh-taylor-mu10fold particle-rayleigh-taylor-mu10fold-flredecomp;      
+mpiexec fluidity -v3 -l particle-rayleigh-taylor-mu10fold-flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>

@@ -4,8 +4,8 @@
   <owner userid="wence"/>
   <tags>flml parallel zoltan<comment>zoltan tag added since test generates empty partitions with libsam.  -jrper</comment></tags>
   <problem_definition length="short" nprocs="8">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 8 -v -l heat heat_flredecomp &amp;&amp;
-      mpiexec ../../bin/fluidity -l heat_flredecomp.flml</command_line>
+    <command_line>mpiexec flredecomp -i 1 -o 8 -v -l heat heat_flredecomp &amp;&amp;
+      mpiexec fluidity -l heat_flredecomp.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">import os

@@ -5,9 +5,9 @@
   <tags>flml parallel</tags>
   <problem_definition length="short" nprocs="4">
     <command_line>
-mpiexec -np 2 ../../bin/flredecomp -i 1 -o 2 particle-attributes-parallel particle-attributes-parallel-flredecomp
-mpiexec ../../bin/flredecomp -i 2 -o 4 particle-attributes-parallel-flredecomp particle-attributes-parallel-repart
-mpiexec ../../bin/fluidity -v3 -l particle-attributes-parallel-repart.flml
+mpiexec -np 2 flredecomp -i 1 -o 2 particle-attributes-parallel particle-attributes-parallel-flredecomp
+mpiexec flredecomp -i 2 -o 4 particle-attributes-parallel-flredecomp particle-attributes-parallel-repart
+mpiexec fluidity -v3 -l particle-attributes-parallel-repart.flml
     </command_line>
   </problem_definition>
   <variables>

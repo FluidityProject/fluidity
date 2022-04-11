@@ -5,8 +5,8 @@
   <tags>flml parallel</tags>
   <problem_definition length="vlong" nprocs="4">
     <command_line>    
-mpiexec ../../bin/flredecomp -i 1 -o 4 particle-stratified-stable-layer particle-stratified-stable-layer-flredecomp;      
-mpiexec ../../bin/fluidity -v3 -l particle-stratified-stable-layer-flredecomp.flml
+mpiexec flredecomp -i 1 -o 4 particle-stratified-stable-layer particle-stratified-stable-layer-flredecomp;      
+mpiexec fluidity -v3 -l particle-stratified-stable-layer-flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>

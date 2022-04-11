@@ -5,9 +5,9 @@
   <tags>flml parallel</tags>
   <problem_definition length="medium" nprocs="8">
     <command_line>    
-mpiexec ../../bin/flredecomp -i 1 -o 8 particle-rayleigh-taylor-checkpoint particle-rayleigh-taylor-checkpoint-flredecomp;      
-mpiexec ../../bin/fluidity -v3 -l particle-rayleigh-taylor-checkpoint-flredecomp.flml
-mpiexec ../../bin/fluidity -v3 -l particle_attributes_5_checkpoint.flml
+mpiexec flredecomp -i 1 -o 8 particle-rayleigh-taylor-checkpoint particle-rayleigh-taylor-checkpoint-flredecomp;      
+mpiexec fluidity -v3 -l particle-rayleigh-taylor-checkpoint-flredecomp.flml
+mpiexec fluidity -v3 -l particle_attributes_5_checkpoint.flml
     </command_line>
   </problem_definition>
   <variables>

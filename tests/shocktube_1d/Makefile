@@ -1,5 +1,5 @@
 input:
-	../../bin/interval --dx=0.01 -- -1 2 tube
+	interval --dx=0.01 -- -1 2 tube
 
 clean:
 	rm -f *.msh

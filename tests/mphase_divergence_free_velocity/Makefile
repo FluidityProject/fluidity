@@ -4,7 +4,7 @@ preprocess:
 
 run:
 	@echo **********Running simulation
-	../../bin/fluidity -v3 -l mphase_divergence_free_velocity.flml
+	fluidity -v3 -l mphase_divergence_free_velocity.flml
 
 input: clean preprocess
 

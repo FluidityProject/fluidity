@@ -127,11 +127,16 @@ set_target_properties(Judy
 )
 
 # Add Zoltan
+if(${CMAKE_C_COMPILER_VERSION} GREATER_EQUAL 10)
+  set(ZOLTAN_CONFIGURE ../libzoltan/configure FCFLAGS=-fallow-argument-mismatch --enable-f90interface --with-gnumake --with-scotch --with-scotch-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-scotch-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib --with-parmetis --with-parmetis-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-parmetis-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib)
+else()
+  set(ZOLTAN_CONFIGURE ../libzoltan/configure --enable-f90interface --with-gnumake --with-scotch --with-scotch-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-scotch-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib --with-parmetis --with-parmetis-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-parmetis-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib)
+endif()
 ExternalProject_Add(libzoltan
   PREFIX Zoltan
   GIT_REPOSITORY https://github.com/sandialabs/Zoltan
   GIT_TAG origin/main
-  CONFIGURE_COMMAND ../libzoltan/configure FCFLAGS=-fallow-argument-mismatch --enable-f90interface --with-gnumake --with-scotch --with-scotch-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-scotch-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib --with-parmetis --with-parmetis-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-parmetis-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib
+  CONFIGURE_COMMAND ${ZOLTAN_CONFIGURE}
   BUILD_COMMAND make everything
   BUILD_BYPRODUCTS <BINARY_DIR>/src/libzoltan.a
   INSTALL_COMMAND ""
@@ -245,18 +250,18 @@ configure_file("${CMAKE_BINARY_DIR}/include/vtk.h"
 
 set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
 set(CMAKE_Fortran_FLAGS_DEBUG "-O0")
-set(CMAKE_Fortran_FLAGS "-fallow-argument-mismatch \
--fcheck=bounds \
+set(CMAKE_Fortran_FLAGS "-fcheck=bounds \
 -fdefault-real-8 -fdefault-double-8 \
 -ffixed-line-length-none -ffree-line-length-none \
 -frecord-marker=4 \
 -fno-unsafe-math-optimizations -frounding-math -fsignaling-nans \
 -g \
--march=native \
--Wunused \
-${CMAKE_Fortran_FLAGS}"
+-march=native"
 )
 # -Wall -Wextra
+if(${CMAKE_C_COMPILER_VERSION} GREATER_EQUAL 10)
+  set(CMAKE_Fortran_FLAGS "-fallow-argument-mismatch ${CMAKE_Fortran_FLAGS}")
+endif()
 
 configure_file(tools/version-info.in bin/version-info)
 execute_process(COMMAND

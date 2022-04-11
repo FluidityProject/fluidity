@@ -12,7 +12,7 @@ This is tested by checking some surface integrals (to check that they don't disa
   <owner userid="skramer"/>
   <tags>zoltan</tags>
   <problem_definition length="vshort" nprocs="3">
-    <command_line>mpiexec ../../bin/flredecomp -v -l -i 1 -o 3 internal_boundary parallel_internal_boundary ; mpiexec ../../bin/fluidity -v2 -l parallel_internal_boundary.flml &amp;&amp; spud-set ib_1_checkpoint.flml /timestepping/finish_time 0.999999 &amp;&amp; mpiexec ../../bin/fluidity -v2 -l ib_1_checkpoint.flml</command_line>
+    <command_line>mpiexec flredecomp -v -l -i 1 -o 3 internal_boundary parallel_internal_boundary ; mpiexec fluidity -v2 -l parallel_internal_boundary.flml &amp;&amp; spud-set ib_1_checkpoint.flml /timestepping/finish_time 0.999999 &amp;&amp; mpiexec fluidity -v2 -l ib_1_checkpoint.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">import os

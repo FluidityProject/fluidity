@@ -4,7 +4,7 @@ preprocess:
 
 run:
 	@echo **********Running simulation
-	../../bin/fluidity -v2 -l mphase_sedimentation_2d.flml
+	fluidity -v2 -l mphase_sedimentation_2d.flml
 
 input: clean preprocess
 

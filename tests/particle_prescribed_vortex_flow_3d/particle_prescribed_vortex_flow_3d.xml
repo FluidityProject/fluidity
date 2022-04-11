@@ -5,8 +5,8 @@
   <tags>flml parallel</tags>
   <problem_definition length="medium" nprocs="4">
     <command_line>    
-mpiexec ../../bin/flredecomp -i 1 -o 4 particle-prescribed-vortex-flow-3d particle-prescribed-vortex-flow-3d-flredecomp;      
-mpiexec ../../bin/fluidity -v3 -l particle-prescribed-vortex-flow-3d-flredecomp.flml
+mpiexec flredecomp -i 1 -o 4 particle-prescribed-vortex-flow-3d particle-prescribed-vortex-flow-3d-flredecomp;      
+mpiexec fluidity -v3 -l particle-prescribed-vortex-flow-3d-flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>

@@ -4,13 +4,13 @@
   <owner userid="skramer"/>
   <tags>flml parallel zoltan</tags>
   <problem_definition length="short" nprocs="2">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l standing_wave standing_wave_flredecomp
+    <command_line>mpiexec flredecomp -i 1 -o 2 -v -l standing_wave standing_wave_flredecomp
 
-mpiexec ../../bin/fluidity -v3 -l  standing_wave_flredecomp.flml;
+mpiexec fluidity -v3 -l  standing_wave_flredecomp.flml;
 mkdir -p run1_logs; 
 mv fluidity.* run1_logs; 
 spud-set standing_wave_1_checkpoint.flml /material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution never;
-mpiexec ../../bin/fluidity -v3 -l standing_wave_1_checkpoint.flml</command_line>
+mpiexec fluidity -v3 -l standing_wave_1_checkpoint.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">import os

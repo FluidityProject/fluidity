@@ -5,9 +5,9 @@ preprocess:
 
 run:
 	@echo **********Running 2D simulation
-	../../bin/fluidity flux_bc_2d.flml 
+	fluidity flux_bc_2d.flml 
 	@echo **********Running 3D simulation
-	../../bin/fluidity flux_bc_3d.flml
+	fluidity flux_bc_3d.flml
 
 input: clean preprocess
 

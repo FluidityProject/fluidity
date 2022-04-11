@@ -1,1 +1,1 @@
-configure_file(tools.mk.in tools.mk)
+configure_file(tools.mk.in ${CMAKE_CURRENT_SOURCE_DIR}/tools.mk)
