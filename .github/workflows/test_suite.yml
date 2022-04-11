@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distribution: [impish]
+        distribution: [jammy]
 
     steps:
       - name: Set up QEMU
@@ -47,7 +47,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distribution: [impish]
+        distribution: [jammy]
         output: [unit-tests.xml]
 
     steps:
@@ -82,7 +82,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distribution: [impish]
+        distribution: [jammy]
         output: [vshort-tests.xml]
 
     steps:
@@ -117,7 +117,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distribution: [impish]
+        distribution: [jammy]
         output: [short-tests.xml]
 
     steps:
@@ -189,7 +189,7 @@ jobs:
   #   strategy:
   #     fail-fast: false
   #     matrix:
-  #       distribution: [impish]
+  #       distribution: [jammy]
   #       test-xml: ${{fromJSON(needs.get-lists.outputs.mediumtest-matrix)}}
   #
   #   steps:
@@ -225,7 +225,7 @@ jobs:
   #   strategy:
   #     fail-fast: false
   #     matrix:
-  #       distribution: [impish]
+  #       distribution: [jammy]
   #       test-xml: ${{fromJSON(needs.get-lists.outputs.longtest-matrix)}}
   #
   #   steps:
@@ -261,7 +261,7 @@ jobs:
   #   strategy:
   #     fail-fast: false
   #     matrix:
-  #       distribution: [impish]
+  #       distribution: [jammy]
   #       test-xml: ${{fromJSON(needs.get-lists.outputs.vlongtest-matrix)}}
   #
   #   steps:
