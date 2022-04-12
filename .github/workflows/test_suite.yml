@@ -204,14 +204,14 @@ jobs:
       - name: Upload test report
         uses: actions/upload-artifact@v3
         with:
-          path: ${{ matrix.distribution }}-${{ matrix.output }}
+          path: ${{ matrix.distribution }}-${{ matrix.test-xml }}
           name: xml_outputs
 
       - name: Publish test report
         uses: mikepenz/action-junit-report@v3
         if: always()
         with:
-          report_paths: ${{ matrix.distribution }}-${{ matrix.output }}
+          report_paths: ${{ matrix.distribution }}-${{ matrix.test-xml }}
           token: ${{ secrets.GITHUB_TOKEN }}
           check_name: JUnit Test Report - Medium Test - ${{ matrix.distribution }} - ${{ matrix.test-xml }}
           fail_on_failure: true
@@ -240,14 +240,14 @@ jobs:
   #     - name: Upload test report
   #       uses: actions/upload-artifact@v3
   #       with:
-  #         path: ${{ matrix.distribution }}-${{ matrix.output }}
+  #         path: ${{ matrix.distribution }}-${{ matrix.test-xml }}
   #         name: xml_outputs
   #
   #     - name: Publish test report
   #       uses: mikepenz/action-junit-report@v3
   #       if: always()
   #       with:
-  #         report_paths: ${{ matrix.distribution }}-${{ matrix.output }}
+  #         report_paths: ${{ matrix.distribution }}-${{ matrix.test-xml }}
   #         token: ${{ secrets.GITHUB_TOKEN }}
   #         check_name: JUnit Test Report - Long Test - ${{ matrix.distribution }} - ${{ matrix.test-xml }}
   #         fail_on_failure: true
@@ -276,14 +276,14 @@ jobs:
   #     - name: Upload test report
   #       uses: actions/upload-artifact@v3
   #       with:
-  #         path: ${{ matrix.distribution }}-${{ matrix.output }}
+  #         path: ${{ matrix.distribution }}-${{ matrix.test-xml }}
   #         name: xml_outputs
   #
   #     - name: Publish test report
   #       uses: mikepenz/action-junit-report@v3
   #       if: always()
   #       with:
-  #         report_paths: ${{ matrix.distribution }}-${{ matrix.output }}
+  #         report_paths: ${{ matrix.distribution }}-${{ matrix.test-xml }}
   #         token: ${{ secrets.GITHUB_TOKEN }}
   #         check_name: JUnit Test Report - VLong Test - ${{ matrix.distribution }} - ${{ matrix.test-xml }}
   #         fail_on_failure: true
