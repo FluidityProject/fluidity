@@ -169,9 +169,12 @@ jobs:
       - name: Generate JSON files
         id: set-matrices
         run: |
-          bin/testharness -l medium --just-list --github mediumtests.json
-          bin/testharness -l long --just-list --github longtests.json
-          bin/testharness -l vlong --just-list --github vlongtests.json
+          sed -i "s:@CMAKE_SOURCE_DIR@:$PWD:g" tools/testharness.py
+          sed -i "s:@CMAKE_BINARY_DIR@:${PWD}/build:g" tools/testharness.py
+
+          tools/testharness.py -l medium --just-list --github mediumtests.json
+          tools/testharness.py -l long --just-list --github longtests.json
+          tools/testharness.py -l vlong --just-list --github vlongtests.json
 
           echo "::set-output name=mediumtest-matrix::$(echo $(cat mediumtests.json))"
           echo "::set-output name=longtest-matrix::$(echo $(cat longtests.json))"
