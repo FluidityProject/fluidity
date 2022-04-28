@@ -535,8 +535,8 @@ if args.parallel not in ["serial", "parallel", "any"]:
     parser.error("Specify parallelism as either of serial, parallel or any.")
 
 # Obtain path to the root of fluidity's directory
-fluidity_source = Path("/home/thomas/Softwares/fluidity_cmake")
-fluidity_build = Path("/home/thomas/Softwares/fluidity_cmake/build")
+fluidity_source = Path("@CMAKE_SOURCE_DIR@")
+fluidity_build = Path("@CMAKE_BINARY_DIR@")
 
 add_path_to_environment_variable("PATH", fluidity_build / "bin")
 add_path_to_environment_variable("HOSTNAME", gethostname())
