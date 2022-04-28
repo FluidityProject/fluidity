@@ -38,7 +38,7 @@ initial_vtu = vtktools.vtu("top_hat_cg_0.vtu")
     </variable>
     <variable name="final_vtu" language="python">
 import fluidity.diagnostics.fluiditytools as fluidity_tools
-import fluidity.diagnostics.vtutools as vtktools
+import vtktools
 final_vtu = vtktools.vtu(fluidity_tools.FindFinalVtu("top_hat_cg"))
     </variable>
   </variables>

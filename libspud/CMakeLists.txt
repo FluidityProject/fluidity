@@ -10,7 +10,7 @@ set(CMAKE_Fortran_FLAGS "-fcheck=bounds \
 -Wall -Wextra"
 )
 
-add_library(spud SHARED
+add_library(spud STATIC
   src/fspud.f90
   src/spud.cpp
   src/spud_interfaces.cpp

@@ -1,26 +1,26 @@
 /* Copyright (C) 2004-2006 by Gerard Gorman
    Copyright (C) 2006- Imperial College London and others.
-   
+
    Please see the AUTHORS file in the main source directory for a full
    list of copyright holders.
-   
+
    Dr Gerard J Gorman
    Applied Modelling and Computation Group
    Department of Earth Science and Engineering
    Imperial College London
-   
+
    g.gorman@imperial.ac.uk
-   
+
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
    License as published by the Free Software Foundation; either
    version 2.1 of the License.
-   
+
    This library is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    Lesser General Public License for more details.
-   
+
    You should have received a copy of the GNU Lesser General Public
    License along with this library; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -57,9 +57,9 @@ static unsigned ecnt;
 
 int pvtu_search_and_replace(TiXmlElement *pElement, const char *dir){
   if (!pElement) return 0;
-  
+
   TiXmlAttribute* pAttrib=pElement->FirstAttribute();
-  
+
   while (pAttrib){
     if(std::string(pAttrib->Name())=="Source"){
       pAttrib->SetValue(std::string(dir)+pAttrib->Value());
@@ -67,15 +67,15 @@ int pvtu_search_and_replace(TiXmlElement *pElement, const char *dir){
     pAttrib=pAttrib->Next();
   }
 
-  return 0;	
+  return 0;
 }
 
 void pvtu_search_and_replace(TiXmlNode* pParent, const char *dir){
   if (!pParent) return;
-  
+
   TiXmlNode* pChild;
   int t = pParent->Type();
-  
+
   switch (t){
   case TiXmlNode::ELEMENT:
     if(std::string(pParent->Value())=="Piece"){
@@ -85,7 +85,7 @@ void pvtu_search_and_replace(TiXmlNode* pParent, const char *dir){
   default:
     break;
   }
-  
+
   for(pChild = pParent->FirstChild(); pChild!=0; pChild=pChild->NextSibling()){
     pvtu_search_and_replace(pChild, dir);
   }
@@ -114,17 +114,17 @@ extern "C" {
   */
   void vtkopen(char *outName, int *len1, char *vtkTitle, int *len2){
     static bool initialized = false;
-    if(initialized) 
+    if(initialized)
       assert(dataSet==NULL);
     initialized = true;
-    
+
     dataSet = vtkUnstructuredGrid::New();
 #ifdef DEBUG
     dataSet->DebugOn();
 #endif
     string title(vtkTitle, *len2);
     fl_vtkFileName = string(outName, *len1);
-    
+
     return;
   }
 
@@ -135,23 +135,23 @@ extern "C" {
      @param[in] x,y,z Coordinate vectors.
      @param[in] enlist This is the element-node adjancy list. The counting starts from 1.
      @param[in] elementTypes Vector of length NElems, containing element type integer for each element as defined by the VTK file file formats document.
-     @param[in] elementSizes Vector of length NElems, containing the number of nodes in each element. 
+     @param[in] elementSizes Vector of length NElems, containing the number of nodes in each element.
     */
-  void vtkwritemesh(int *NNodes, int *NElems, 
+  void vtkwritemesh(int *NNodes, int *NElems,
 		       float *x, float *y, float *z,
 		       int *enlist, int *elementTypes, int *elementSizes){
     ncnt = *NNodes;
     ecnt = *NElems;
 
-    // Point definitions  
+    // Point definitions
     vtkPoints *newPts = vtkPoints::New();
     newPts->SetDataTypeToFloat();
     for(unsigned i=0; i<ncnt; i++){
       float xyz[3];
-      xyz[0] = x[i]; 
-      xyz[1] = y[i]; 
-      xyz[2] = z[i]; 
-    
+      xyz[0] = x[i];
+      xyz[1] = y[i];
+      xyz[2] = z[i];
+
       newPts->InsertPoint(i, xyz);
     }
     dataSet->SetPoints(newPts);
@@ -162,12 +162,12 @@ extern "C" {
     for(unsigned i=0; i<ecnt; i++){
       // The node ordering to VTK nodes happens in Fluidity
       for(int j=0; j<elementSizes[i]; j++) cell[j] = elem[j]-1;
-    
-      dataSet->InsertNextCell(elementTypes[i], elementSizes[i], cell);    
+
+      dataSet->InsertNextCell(elementTypes[i], elementSizes[i], cell);
       elem+=elementSizes[i];
     }
 
-    newPts->Delete();  
+    newPts->Delete();
     return;
   }
 
@@ -178,7 +178,7 @@ extern "C" {
      @param[in] x,y,z Coordinate vectors.
      @param[in] enlist This is the element-node adjancy list. The counting starts from 1.
      @param[in] elementTypes Vector of length NElems, containing element type integer for each element as defined by the VTK file file formats document.
-     @param[i] elementSizes Vector of length NElems, containing the number of nodes in each element. 
+     @param[i] elementSizes Vector of length NElems, containing the number of nodes in each element.
   */
   void vtkwritemeshd(int *NNodes, int *NElems,
 			double *x, double *y, double *z,
@@ -186,15 +186,15 @@ extern "C" {
     ncnt = *NNodes;
     ecnt = *NElems;
 
-    // Point definitions  
+    // Point definitions
     vtkPoints *newPts = vtkPoints::New();
     newPts->SetDataTypeToDouble();
     for(unsigned i=0; i<ncnt; i++){
       double xyz[3];
-      xyz[0] = x[i]; 
-      xyz[1] = y[i]; 
-      xyz[2] = z[i]; 
-    
+      xyz[0] = x[i];
+      xyz[1] = y[i];
+      xyz[2] = z[i];
+
       newPts->InsertPoint(i, xyz);
     }
     dataSet->SetPoints(newPts);
@@ -205,15 +205,15 @@ extern "C" {
     for(unsigned i=0; i<ecnt; i++){
       // The node ordering to VTK nodes happens in Fluidity
       for(int j=0; j<elementSizes[i]; j++) cell[j] = elem[j]-1;
-    
-      dataSet->InsertNextCell(elementTypes[i], elementSizes[i], cell);    
+
+      dataSet->InsertNextCell(elementTypes[i], elementSizes[i], cell);
       elem+=elementSizes[i];
     }
 
-    newPts->Delete();  
+    newPts->Delete();
     return;
   }
-  
+
   void vtkstartn(){}
 
   /**
@@ -231,10 +231,10 @@ extern "C" {
 
     for(unsigned i=0; i<ncnt; i++)
       newScalars->InsertValue(i, vect[i]);
-  
+
     dataSet->GetPointData()->AddArray(newScalars);
     dataSet->GetPointData()->SetActiveAttribute(tag.c_str(), vtkDataSetAttributes::SCALARS);
-  
+
     newScalars->Delete();
     return;
   }
@@ -251,14 +251,14 @@ extern "C" {
     newScalars->SetName( tag.c_str() );
     newScalars->SetNumberOfComponents(1);
     newScalars->SetNumberOfTuples(ncnt);
-  
-  
+
+
     for(unsigned i=0; i<ncnt; i++)
       newScalars->InsertValue(i, vect[i]);
-  
+
     dataSet->GetPointData()->AddArray(newScalars);
     dataSet->GetPointData()->SetActiveAttribute(tag.c_str(), vtkDataSetAttributes::SCALARS);
-  
+
     newScalars->Delete();
     return;
   }
@@ -269,20 +269,20 @@ extern "C" {
      @param[in] name Variable name to be written to metadata.
      @param[in] len Length of variable name.
   */
-  void vtkwritedsn(double *vect, char *name, int *len){ 
+  void vtkwritedsn(double *vect, char *name, int *len){
     string tag(name, *len);
     vtkDoubleArray *newScalars = vtkDoubleArray::New();
     newScalars->SetName( tag.c_str() );
     newScalars->SetNumberOfComponents(1);
     newScalars->SetNumberOfTuples(ncnt);
-  
-  
+
+
     for(unsigned i=0; i<ncnt; i++)
       newScalars->InsertValue(i, vect[i]);
-  
+
     dataSet->GetPointData()->AddArray(newScalars);
     dataSet->GetPointData()->SetActiveAttribute(tag.c_str(), vtkDataSetAttributes::SCALARS);
-  
+
     newScalars->Delete();
     return;
   }
@@ -296,8 +296,8 @@ extern "C" {
   void vtkwritefvn(float *vx, float *vy, float *vz,
 		      char *name, int *len){
     string tag(name, *len);
-    vtkFloatArray *newVectors = vtkFloatArray::New();  
-  
+    vtkFloatArray *newVectors = vtkFloatArray::New();
+
     newVectors->SetName( tag.c_str() );
     newVectors->SetNumberOfComponents(3);
     newVectors->SetNumberOfTuples(ncnt);
@@ -322,8 +322,8 @@ extern "C" {
   void vtkwritedvn(double *vx, double *vy, double *vz,
 		      char *name, int *len){
     string tag(name, *len);
-    vtkDoubleArray *newVectors = vtkDoubleArray::New();  
-  
+    vtkDoubleArray *newVectors = vtkDoubleArray::New();
+
     newVectors->SetName( tag.c_str() );
     newVectors->SetNumberOfComponents(3);
     newVectors->SetNumberOfTuples(ncnt);
@@ -345,29 +345,29 @@ extern "C" {
      @param[in] name Variable name to be written to metadata.
      @param[in] len Length of variable name.
   */
-  void vtkwriteftn(float *v1, float *v2, float *v3, 
-		      float *v4, float *v5, float *v6, 
-		      float *v7, float *v8, float *v9, 
+  void vtkwriteftn(float *v1, float *v2, float *v3,
+		      float *v4, float *v5, float *v6,
+		      float *v7, float *v8, float *v9,
 		      char *name, int *len){
     string tag(name, *len);
-    vtkFloatArray *newTensors = vtkFloatArray::New();  
-  
+    vtkFloatArray *newTensors = vtkFloatArray::New();
+
     newTensors->SetName( tag.c_str() );
     newTensors->SetNumberOfComponents(9);
     newTensors->SetNumberOfTuples(ncnt);
-  
+
     for(unsigned i=0; i<ncnt; i++){
-      newTensors->SetTuple9(i, 
+      newTensors->SetTuple9(i,
 			    v1[i], v2[i], v3[i],
 			    v4[i], v5[i], v6[i],
 			    v7[i], v8[i], v9[i]);
     }
-  
+
     dataSet->GetPointData()->AddArray(newTensors);
     dataSet->GetPointData()->SetActiveAttribute(tag.c_str(), vtkDataSetAttributes::TENSORS);
 
     dataSet->GetPointData()->SetTensors( newTensors );
-  
+
     newTensors->Delete();
     return;
   }
@@ -378,29 +378,29 @@ extern "C" {
      @param[in] name Variable name to be written to metadata.
      @param[in] len Length of variable name.
   */
-  void vtkwritedtn(double *v1, double *v2, double *v3, 
-		      double *v4, double *v5, double *v6, 
-		      double *v7, double *v8, double *v9, 
+  void vtkwritedtn(double *v1, double *v2, double *v3,
+		      double *v4, double *v5, double *v6,
+		      double *v7, double *v8, double *v9,
 		      char *name, int *len){
     string tag(name, *len);
-    vtkDoubleArray *newTensors = vtkDoubleArray::New();  
-  
+    vtkDoubleArray *newTensors = vtkDoubleArray::New();
+
     newTensors->SetName( tag.c_str() );
     newTensors->SetNumberOfComponents(9);
     newTensors->SetNumberOfTuples(ncnt);
-  
+
     for(unsigned i=0; i<ncnt; i++){
-      newTensors->SetTuple9(i, 
+      newTensors->SetTuple9(i,
 			    v1[i], v2[i], v3[i],
 			    v4[i], v5[i], v6[i],
 			    v7[i], v8[i], v9[i]);
     }
-  
+
     dataSet->GetPointData()->AddArray(newTensors);
     dataSet->GetPointData()->SetActiveAttribute(tag.c_str(), vtkDataSetAttributes::TENSORS);
 
     dataSet->GetPointData()->SetTensors( newTensors );
-  
+
     newTensors->Delete();
     return;
   }
@@ -422,34 +422,30 @@ extern "C" {
 
     for(unsigned i=0; i<ecnt; i++)
       newScalars->InsertValue(i, vect[i]);
-  
+
     dataSet->GetCellData()->AddArray(newScalars);
     dataSet->GetCellData()->SetActiveAttribute(tag.c_str(), vtkDataSetAttributes::SCALARS);
-  
+
     newScalars->Delete();
     return;
   }
 
-#define vtkwriteghostlevels F77_FUNC(vtkwriteghostlevels, VTKWRITEGHOSTLEVELS)
+#define vtkwritecellghostarray F77_FUNC(vtkwritecellghostarray, VTKWRITECELLGHOSTARRAY)
   /**
-     Write out VTK ghost levels.
-     @param[in] ghost_levels This array is 0 for owned elements, 1 otherwise.
+     Write out VTK CellGhostArray.
+     @param[in] ghosts This array is 0 for owned elements, 1 otherwise.
   */
-  void vtkwriteghostlevels(int *ghost_levels){
-    vtkUnsignedCharArray *newScalars = vtkUnsignedCharArray::New();
-    newScalars->SetName("vtkGhostLevels");
-    newScalars->SetNumberOfComponents(1);
-    newScalars->SetNumberOfTuples(ecnt);
-
-    for(unsigned i=0; i<ecnt; i++)
-      newScalars->InsertValue(i, ghost_levels[i]);
-  
-    dataSet->GetCellData()->AddArray(newScalars);
-    dataSet->GetCellData()->SetActiveAttribute("vtkGhostLevels", vtkDataSetAttributes::SCALARS);
-  
-    newScalars->Delete();
-    return;
-  }
+	void vtkwritecellghostarray(int* ghosts)
+  {
+    vtkUnsignedCharArray* ghostCells = dataSet->AllocateCellGhostArray();
+    for (vtkIdType cellId = 0; cellId < ghostCells->GetNumberOfTuples(); cellId++)
+    {
+      if (ghosts[cellId] == 1)
+      {
+        ghostCells->SetValue(cellId, vtkDataSetAttributes::DUPLICATECELL);
+      }
+    }
+	}
 
   /**
      Writes cellular scalar float values.
@@ -463,14 +459,14 @@ extern "C" {
     newScalars->SetName( tag.c_str() );
     newScalars->SetNumberOfComponents(1);
     newScalars->SetNumberOfTuples(ecnt);
-  
-  
+
+
     for(unsigned i=0; i<ecnt; i++)
       newScalars->InsertValue(i, vect[i]);
-  
+
     dataSet->GetCellData()->AddArray(newScalars);
     dataSet->GetCellData()->SetActiveAttribute(tag.c_str(), vtkDataSetAttributes::SCALARS);
-  
+
     newScalars->Delete();
     return;
   }
@@ -487,14 +483,14 @@ extern "C" {
     newScalars->SetName( tag.c_str() );
     newScalars->SetNumberOfComponents(1);
     newScalars->SetNumberOfTuples(ecnt);
-  
-  
+
+
     for(unsigned i=0; i<ecnt; i++)
       newScalars->InsertValue(i, vect[i]);
-  
+
     dataSet->GetCellData()->AddArray(newScalars);
     dataSet->GetCellData()->SetActiveAttribute(tag.c_str(), vtkDataSetAttributes::SCALARS);
-  
+
     newScalars->Delete();
     return;
   }
@@ -508,8 +504,8 @@ extern "C" {
   void vtkwritefvc(float *vx, float *vy, float *vz,
                       char *name, int *len){
     string tag(name, *len);
-    vtkFloatArray *newVectors = vtkFloatArray::New();  
-  
+    vtkFloatArray *newVectors = vtkFloatArray::New();
+
     newVectors->SetName( tag.c_str() );
     newVectors->SetNumberOfComponents(3);
     newVectors->SetNumberOfTuples(ecnt);
@@ -534,8 +530,8 @@ extern "C" {
   void vtkwritedvc(double *vx, double *vy, double *vz,
           char *name, int *len){
     string tag(name, *len);
-    vtkDoubleArray *newVectors = vtkDoubleArray::New();  
-  
+    vtkDoubleArray *newVectors = vtkDoubleArray::New();
+
     newVectors->SetName( tag.c_str() );
     newVectors->SetNumberOfComponents(3);
     newVectors->SetNumberOfTuples(ecnt);
@@ -557,29 +553,29 @@ extern "C" {
      @param[in] name Variable name to be written to metadata.
      @param[in] len Length of variable name.
   */
-  void vtkwriteftc(float *v1, float *v2, float *v3, 
-                      float *v4, float *v5, float *v6, 
-                      float *v7, float *v8, float *v9, 
+  void vtkwriteftc(float *v1, float *v2, float *v3,
+                      float *v4, float *v5, float *v6,
+                      float *v7, float *v8, float *v9,
                       char *name, int *len){
     string tag(name, *len);
-    vtkFloatArray *newTensors = vtkFloatArray::New();  
-  
+    vtkFloatArray *newTensors = vtkFloatArray::New();
+
     newTensors->SetName( tag.c_str() );
     newTensors->SetNumberOfComponents(9);
     newTensors->SetNumberOfTuples(ecnt);
-  
+
     for(unsigned i=0; i<ecnt; i++){
-      newTensors->SetTuple9(i, 
+      newTensors->SetTuple9(i,
           v1[i], v2[i], v3[i],
           v4[i], v5[i], v6[i],
           v7[i], v8[i], v9[i]);
     }
-  
+
     dataSet->GetCellData()->AddArray(newTensors);
     dataSet->GetCellData()->SetActiveAttribute(tag.c_str(), vtkDataSetAttributes::TENSORS);
 
     dataSet->GetCellData()->SetTensors( newTensors );
-  
+
     newTensors->Delete();
     return;
   }
@@ -590,29 +586,29 @@ extern "C" {
      @param[in] name Variable name to be written to metadata.
      @param[in] len Length of variable name.
   */
-  void vtkwritedtc(double *v1, double *v2, double *v3, 
-                      double *v4, double *v5, double *v6, 
-                      double *v7, double *v8, double *v9, 
+  void vtkwritedtc(double *v1, double *v2, double *v3,
+                      double *v4, double *v5, double *v6,
+                      double *v7, double *v8, double *v9,
                       char *name, int *len){
     string tag(name, *len);
-    vtkDoubleArray *newTensors = vtkDoubleArray::New();  
-  
+    vtkDoubleArray *newTensors = vtkDoubleArray::New();
+
     newTensors->SetName( tag.c_str() );
     newTensors->SetNumberOfComponents(9);
     newTensors->SetNumberOfTuples(ecnt);
-  
+
     for(unsigned i=0; i<ecnt; i++){
-      newTensors->SetTuple9(i, 
+      newTensors->SetTuple9(i,
           v1[i], v2[i], v3[i],
           v4[i], v5[i], v6[i],
           v7[i], v8[i], v9[i]);
     }
-  
+
     dataSet->GetCellData()->AddArray(newTensors);
     dataSet->GetCellData()->SetActiveAttribute(tag.c_str(), vtkDataSetAttributes::TENSORS);
 
     dataSet->GetCellData()->SetTensors( newTensors );
-  
+
     newTensors->Delete();
     return;
   }
@@ -622,7 +618,7 @@ extern "C" {
    */
   void vtkclose(){
     vtkXMLUnstructuredGridWriter *writer= vtkXMLUnstructuredGridWriter::New();
-    
+
 #ifdef DEBUG
     writer->DebugOn();
 #endif
@@ -630,9 +626,9 @@ extern "C" {
 
 #ifdef DEBUG
     cerr<<"fl_vtkFileName - "<<fl_vtkFileName<<endl;
-#endif    
+#endif
     writer->SetFileName( fl_vtkFileName.c_str() );
- 
+
     // Set to true binary format (not encoded as base 64)
     writer->SetDataModeToAppended();
     writer->EncodeAppendedDataOff();
@@ -642,13 +638,13 @@ extern "C" {
 #else
     writer->SetInputData(dataSet);
 #endif
-  
+
     writer->SetCompressor(compressor);
     compressor->Delete();
-  
+
     writer->Write();
     writer->Delete();
-  
+
     // Finished
     dataSet->Delete();
     dataSet = NULL;
@@ -659,14 +655,14 @@ extern "C" {
   void _vtkpclose_nointerleave(const int *rank, const int *npartitions){
     if((*npartitions)<2)
       vtkclose();
-    
+
     vtkXMLPUnstructuredGridWriter *writer= vtkXMLPUnstructuredGridWriter::New();
-    
+
 #ifdef DEBUG
     writer->DebugOn();
 #endif
     vtkZLibDataCompressor* compressor = vtkZLibDataCompressor::New();
-    
+
     writer->SetDataModeToBinary();
 #ifdef DEBUG
     cerr<<"fl_vtkFileName - "<<fl_vtkFileName<<endl;
@@ -676,14 +672,14 @@ extern "C" {
     string basename;
     if(fl_vtkFileName.size()>4){
       is_pvtu = string(fl_vtkFileName, fl_vtkFileName.size()-4, 4)=="pvtu";
-      
+
       basename = string(fl_vtkFileName, 0, fl_vtkFileName.size()-5)+"/";
       mkdir(basename.c_str(), 0777);
       filename = basename+filename;
     }
 
     writer->SetFileName(filename.c_str());
-    
+
     writer->SetNumberOfPieces(*npartitions);
     writer->SetGhostLevel(1);
     writer->SetStartPiece(*rank);
@@ -694,7 +690,7 @@ extern "C" {
     writer->SetInputData(dataSet);
 #endif
     writer->SetCompressor(compressor);
-    
+
     compressor->Delete();
 
     // Set to true binary format (not encoded as base 64)
@@ -712,14 +708,14 @@ extern "C" {
 #else
     writer->SetWriteSummaryFile((*rank)==0);
 #endif
-    
+
     writer->Write();
     writer->Delete();
-    
+
     // Finished
     dataSet->Delete();
     dataSet = NULL;
-  
+
     if(is_pvtu){
       if((*rank)==0){
         rename(filename.c_str(), fl_vtkFileName.c_str());
@@ -738,7 +734,7 @@ extern "C" {
     _vtkpclose_nointerleave(rank, npartitions);
     return;
   }
-  
+
   /**
      Set the active scalar in the VTK file.
    */
@@ -769,5 +765,3 @@ extern "C" {
 #else
 #include "vtkfortran-dummy.cpp"
 #endif
- 
- 

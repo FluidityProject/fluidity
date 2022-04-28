@@ -41,7 +41,8 @@ depths_p2 = []
 for i in range(0,len(dtb)):
     if (abs(coords[i,0] - x0) &lt; 0.01 and abs(coords[i,1] - y0) &lt; 0.01):
         depths_p2.append(dtb[i]) # should be depth, but could also grab dtb</variable>
-    <variable name="depths_p3" language="python">import vtktools
+    <variable name="depths_p3" language="python">import numpy as np
+import vtktools
 
 # load in the vtu
 u=vtktools.vtu('sigma_layers_1.pvtu')
@@ -52,11 +53,8 @@ coords = u.GetLocations()
 # get the correct point
 x0 = 0
 y0 = 90
-# Might not work - might not be a vertex there
-depths_p3 = []
-for i in range(0,len(dtb)):
-    if (abs(coords[i,0] - x0) &lt; 0.5 and abs(coords[i,1] - y0) &lt; 0.5):
-        depths_p3.append(dtb[i]) # should be depth, but could also grab dtb</variable>
+# should be depth, but could also grab dtb
+depths_p3 = dtb[np.linalg.norm(coords[:, :2] - np.array([x0, y0]), axis=1).argsort()[:3]]</variable>
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">assert(solvers_converged)</test>

@@ -516,7 +516,7 @@ assert all(abs(super_gradient_inner_upper_surfaceintegrals-pi*(1.2**2)*(2-(2**0.
 </test>
     <test name="super_gradient_inner_middle_surfaceintegrals" language="python">from math import pi
 print(abs(super_gradient_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8))
-assert all(abs(super_gradient_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8) &lt; 0.16)
+assert all(abs(super_gradient_inner_middle_surfaceintegrals-(2**0.5)*pi*(1.2**2)/8)/((2**0.5)*pi*(1.2**2)/8) &lt; 0.18)
 </test>
     <test name="super_gradient_outer_upper_surfaceintegrals" language="python">from math import pi
 print(abs(super_gradient_outer_upper_surfaceintegrals-pi*(2.7**2)*(2-(2**0.5))/8)/(pi*(2.7**2)*(2-(2**0.5))/8))

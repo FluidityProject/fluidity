@@ -76,7 +76,7 @@ checkpointtracer=max(vtu_diff.GetScalarRange("Tracer"))
    assert abs(tracerfrontfront) &lt; 1e-2
     </test>
     <test name="check volume fraction behind front is 1.0 (relaxed for simplex elements)" language="python">
-   assert abs(tracerbehindfront-1.0) &lt; 1e-6
+   assert abs(tracerbehindfront-1.0) &lt; 1e-5
     </test>
     <test name="check initial minimum volume fraction is 0.0" language="python">
    assert abs(mnvfrac0) &lt; 1e-10
@@ -91,10 +91,10 @@ checkpointtracer=max(vtu_diff.GetScalarRange("Tracer"))
       assert abs(mxcfl-1.6) &lt; 1e-10
     </test>    
     <test name="check minimum cv cfl (lower bound)" language="python">
-      assert mncfl-0.559 &gt; 1e-10
+      assert mncfl &gt; 0.66
     </test>    
     <test name="check minimum cv cfl (upper bound)" language="python">
-      assert mncfl-0.58 &lt; -1e-10
+      assert mncfl &lt; 0.67
     </test>
     <test name="check difference is zero to checkpointed run" language="python">
       assert abs(checkpointtracer) &lt; 1e-10
