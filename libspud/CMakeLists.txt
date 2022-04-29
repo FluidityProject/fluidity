@@ -10,7 +10,7 @@ set(CMAKE_Fortran_FLAGS "-fcheck=bounds \
 -Wall -Wextra"
 )
 
-add_library(spud STATIC
+add_library(spud OBJECT
   src/fspud.f90
   src/spud.cpp
   src/spud_interfaces.cpp
@@ -20,6 +20,9 @@ add_library(spud STATIC
   src/tinyxmlparser.cpp
 )
 target_include_directories(spud PUBLIC include)
+set_target_properties(spud PROPERTIES POSITION_INDEPENDENT_CODE 1)
+add_library(spud_shared SHARED $<TARGET_OBJECTS:spud>)
+add_library(spud_static STATIC $<TARGET_OBJECTS:spud>)
 
 add_subdirectory(diamond)
 add_subdirectory(python)

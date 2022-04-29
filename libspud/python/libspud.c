@@ -11,7 +11,7 @@
 #define PyString_Type PyUnicode_Type
 #define PyString_AsString PyUnicode_AsUTF8
 #define PyString_Check PyUnicode_Check
-#define PyString_GET_SIZE PyUnicode_GET_SIZE
+#define PyString_GET_SIZE PyUnicode_GET_LENGTH
 #endif
 
 static PyObject *SpudError;
