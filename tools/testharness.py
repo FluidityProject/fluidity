@@ -539,6 +539,7 @@ fluidity_source = Path("@CMAKE_SOURCE_DIR@")
 fluidity_build = Path("@CMAKE_BINARY_DIR@")
 
 add_path_to_environment_variable("PATH", fluidity_build / "bin")
+add_path_to_environment_variable("LD_LIBRARY_PATH", fluidity_build / "lib")
 add_path_to_environment_variable("HOSTNAME", gethostname())
 
 print(

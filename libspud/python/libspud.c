@@ -3,7 +3,7 @@
 #include "spud.h"
 #include <stdio.h>
 
-#define MAXLENGTH   2048
+#define MAXLENGTH 2048
 
 #if PY_MAJOR_VERSION >= 3
 #define PyInt_Type PyLong_Type

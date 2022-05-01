@@ -6,11 +6,10 @@ set(CMAKE_Fortran_FLAGS "-fcheck=bounds \
 -frecord-marker=4 \
 -fno-unsafe-math-optimizations -frounding-math -fsignaling-nans \
 -g \
--march=native \
--Wall -Wextra"
+-march=native"
 )
 
-add_library(spud OBJECT
+add_library(spud_static STATIC
   src/fspud.f90
   src/spud.cpp
   src/spud_interfaces.cpp
@@ -19,10 +18,30 @@ add_library(spud OBJECT
   src/tinyxmlerror.cpp
   src/tinyxmlparser.cpp
 )
+set_target_properties(
+  spud_static PROPERTIES OUTPUT_NAME spud
+  Fortran_MODULE_DIRECTORY .
+)
+target_include_directories(spud_static PUBLIC include)
+
+add_library(spud SHARED
+  src/fspud.f90
+  src/spud.cpp
+  src/spud_interfaces.cpp
+  src/tinystr.cpp
+  src/tinyxml.cpp
+  src/tinyxmlerror.cpp
+  src/tinyxmlparser.cpp
+)
+add_dependencies(spud spud_static)
 target_include_directories(spud PUBLIC include)
-set_target_properties(spud PROPERTIES POSITION_INDEPENDENT_CODE 1)
-add_library(spud_shared SHARED $<TARGET_OBJECTS:spud>)
-add_library(spud_static STATIC $<TARGET_OBJECTS:spud>)
+
+add_custom_target(spud_numbering ALL
+  COMMAND ${CMAKE_COMMAND} -E copy libspud.so libspud.so.0
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+  VERBATIM
+)
+add_dependencies(spud_numbering spud)
 
 add_subdirectory(diamond)
 add_subdirectory(python)
