@@ -462,7 +462,7 @@ c ... fill in holes in points
 
 c ... fill in holes in edges
       lF = IHolF(1)
-      Do 200 n = 1, lF
+      Do n = 1, lF
          iF = IHolF(n + 1)
 
          Do m = nF, iF + 1, -1
@@ -490,7 +490,8 @@ c ... fill in holes in edges
          End do
 
          IPF(1, kF) = 0
-200     nF = nF - 1
+200      nF = nF - 1
+      End do
 
       icnt = 0
       Do n = 1, nF
@@ -510,7 +511,7 @@ c ... fill in holes in edges
 
 c ... fill in holes in elements
       lE = IHolE(1)
-      Do 300 n = 1, lE
+      Do n = 1, lE
          iE = IHolE(n + 1)
 
          Do m = nE, iE + 1, -1
@@ -544,6 +545,7 @@ c  ...   update auxiliary structures
 
          IPE(1, kE) = 0
  300     nE = nE - 1
+      End do
 
       Return
       End
@@ -796,7 +798,7 @@ C ================================================================
 C ================================================================
 C Search for element iE2, other than iE1, in the intersection of
 C sublists associated with i1 and i2. The routine returns value
-C .FALSe. and iE2 = 0 when thre is no such element.
+C .FALSE. and iE2 = 0 when thre is no such element.
 C ================================================================
       Integer IEP(*), nEP(*)
 

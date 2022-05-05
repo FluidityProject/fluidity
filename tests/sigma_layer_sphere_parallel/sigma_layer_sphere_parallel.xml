@@ -54,7 +54,9 @@ coords = u.GetLocations()
 x0 = 0
 y0 = 90
 # should be depth, but could also grab dtb
-depths_p3 = dtb[np.linalg.norm(coords[:, :2] - np.array([x0, y0]), axis=1).argsort()[:3]]</variable>
+depths_p3 = dtb[
+    np.sort(np.linalg.norm(coords[:, :2] - np.array([x0, y0]), axis=1).argsort()[:3])
+]</variable>
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">assert(solvers_converged)</test>

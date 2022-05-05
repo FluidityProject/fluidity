@@ -1,5 +1,3 @@
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/tests)
-
 set(unittest_sources
   # compute_anisotropic_gradation.F90
   # compute_chimney_adapt.F90
@@ -70,16 +68,11 @@ set(unittest_sources
 
 foreach(unittest_source ${unittest_sources})
   get_filename_component(unittest ${unittest_source} NAME_WE)
-  list(APPEND unittests ${unittest})
 
-  add_library(${unittest}_main OBJECT test_main.cpp)
-  target_compile_definitions(${unittest}_main PUBLIC TESTNAME=${unittest}_)
-  target_link_libraries(${unittest}_main fluidity)
-
-  add_executable(${unittest}
-    ${unittest_source} $<TARGET_OBJECTS:${unittest}_main>
+  add_executable(${unittest} ${unittest_source} test_main.cpp)
+  set_target_properties(${unittest}
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/tests
   )
+  target_compile_definitions(${unittest} PUBLIC TESTNAME=${unittest}_)
   target_link_libraries(${unittest} fluidity)
 endforeach()
-
-set(unittests "${unittests}" PARENT_SCOPE)

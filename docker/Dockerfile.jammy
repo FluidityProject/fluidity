@@ -9,7 +9,6 @@ LABEL maintainer.email="tim.greaves@imperial.ac.uk"
 # Installs shouldn't expect input
 ENV DEBIAN_FRONTEND=noninteractive
 ENV OMPI_MCA_btl_vader_single_copy_mechanism none
-ENV OMPI_MCA_rmaps_base_oversubscribe 1
 
 # Package updates and installs
 RUN apt-get update && apt-get install -y \
@@ -85,3 +84,5 @@ WORKDIR /home/Softwares/fluidity/build
 RUN cmake -G Ninja -D GITHUB_ACTIONS=1 ..
 RUN ninja
 RUN ninja manual
+
+RUN python3 -m pip install --user assess

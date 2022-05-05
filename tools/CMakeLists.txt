@@ -1,4 +1,4 @@
-configure_file(testharness.py ${CMAKE_CURRENT_SOURCE_DIR}/testharness.py)
+configure_file(testharness.py ${CMAKE_CURRENT_BINARY_DIR}/testharness.py)
 
 set(python_source_files
   clean_mayavi_mesh.py
@@ -31,7 +31,7 @@ set(python_source_files
   sphere2plane.py
   stat2csv.py
   statplot.py
-  testharness.py
+  ${CMAKE_CURRENT_BINARY_DIR}/testharness.py
   transform_mesh.py
   triangle2gmsh.py
   unittestharness.py
@@ -43,7 +43,7 @@ set(python_source_files
 
 foreach(python_source_file ${python_source_files})
     get_filename_component(name_we ${python_source_file} NAME_WE)
-    configure_file(${python_source_file} ../bin/${name_we})
+    configure_file(${python_source_file} ../bin/${name_we} COPYONLY)
 endforeach()
 
 set(tools_source_files
@@ -61,8 +61,8 @@ set(tools_source_files
   Project_Vtu
   Streamfunction_2D
   Supermesh_Difference
-  # test_laplacian
-  # test_pressure_solve
+  test_laplacian
+  test_pressure_solve
   triangle2vtu
   unifiedmesh
   Vertical_Integration
@@ -74,28 +74,7 @@ set(tools_source_files
   Vtu_Bins
 )
 
-set(tools_source_files_test
-  test_laplacian
-  test_pressure_solve
-)
-
 foreach(tool ${tools_source_files})
-  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${tool}.F90
-    AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${tool}_main.cpp
-   )
-    add_executable(${tool} ${tool}.F90 ${tool}_main.cpp)
-  elseif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${tool}.F90)
-    add_executable(${tool} ${tool}.F90)
-  else()
-    add_executable(${tool} ${tool}.cpp)
-  endif()
-  target_link_libraries(${tool} fluidity)
-  string(TOLOWER ${tool} lc_tool)
-  set_target_properties(${tool} PROPERTIES OUTPUT_NAME ${lc_tool})
-  # list(APPEND tools_targets_list ${tool})
-endforeach()
-
-foreach(tool ${tools_source_files_test})
   if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${tool}.F90
     AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${tool}_main.cpp
    )
@@ -105,9 +84,7 @@ foreach(tool ${tools_source_files_test})
   else()
     add_executable(${tool}_tool ${tool}.cpp)
   endif()
+  string(TOLOWER ${tool} tool_name)
+  set_target_properties(${tool}_tool PROPERTIES OUTPUT_NAME ${tool_name})
   target_link_libraries(${tool}_tool fluidity)
-  set_target_properties(${tool}_tool PROPERTIES OUTPUT_NAME ${tool})
-  # list(APPEND tools_targets_list ${tool}_tool)
 endforeach()
-
-# set(tools_targets "${tools_targets_list}" PARENT_SCOPE)

@@ -1,5 +1,4 @@
-target_sources(fluidity
-  PRIVATE
+target_sources(fluidity PRIVATE
   Adapt_Integration.F90
   Adaptivity_1D.F90
   Adapt_State.F90
@@ -66,4 +65,3 @@ target_sources(fluidity
 )
 
 add_subdirectory(tests)
-set(unittests "${unittests}" PARENT_SCOPE)

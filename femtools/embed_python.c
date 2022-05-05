@@ -26,24 +26,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 USA
 */
 
+#define NO_IMPORT_ARRAY
+#include "python_statec.h"
+
 #include <stdlib.h>
 
-#include "confdefs.h"
 #include "string.h"
-
-#ifdef HAVE_PYTHON
-#include "Python.h"
-#if PY_MAJOR_VERSION >= 3
-#define PyInt_FromLong PyLong_FromLong
-#define PyInt_AsLong PyLong_AsLong
-#define PyString_Size PyUnicode_GET_LENGTH
-#define PyString_AsString PyUnicode_AsUTF8
-#endif
-#endif
-#ifdef HAVE_NUMPY
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include "numpy/arrayobject.h"
-#endif
 
 void deallocate_c_array(void *ptr) {
   free(ptr);
@@ -435,7 +423,7 @@ void set_tensor_particles_from_python_array(char *function, int function_len, in
 #define set_tensor_field_from_python F77_FUNC(set_tensor_field_from_python, SET_TENSOR_FIELD_FROM_PYTHON)
 void set_tensor_field_from_python(char *function, int function_len, int dim,
                                   int nodes, double *x, double *y, double *z, double t,
-				  int *result_dim, double *result, int *stat)
+				  												int *result_dim, double *result, int *stat)
 {
 #ifndef HAVE_NUMPY
   int i;
@@ -448,8 +436,6 @@ void set_tensor_field_from_python(char *function, int function_len, int dim,
   *stat = 1;
   return;
 #else
-  import_array();
-
   set_field_from_python(function, function_len, dim, nodes, NULL, x, y, z, t, NULL, stat,
 			result_dim, (void**)&result, set_tensor_result_double, NULL);
 
@@ -636,8 +622,6 @@ void set_field_from_python_fields(char *function, int function_len, int dim, int
   return;
 #else
   PyObject *pLocals, *pFunc, *pNames, *pT, *pdT, *pPos, *pArgs, *pKwArgs, *pResult;
-
-  import_array();
 
   // load the user's function as a Python object -- borrows locals
   pLocals = PyDict_New();
@@ -1307,7 +1291,7 @@ void integer_vector_from_python(char* function, int* function_len,
       return;
     }
 
-    ((long*)*result)[i]=PyInt_AsLong(pResultItem);
+    ((long*)*result)[i]=PyLong_AsLong(pResultItem);
 
     // Check we really got a float.
     if (PyErr_Occurred()){
@@ -1509,14 +1493,14 @@ void string_from_python(char* function, int* function_len,
     return;
   }
 
-  pResult_len = PyString_Size(pResult);
+  pResult_len = PyUnicode_GET_LENGTH(pResult);
   if(pResult_len > *result_len){
     fprintf(stderr, "In string_from_python\n");
     fprintf(stderr, "Warning: Truncating returned string\n");
     fflush(stderr);
-    (const char*) memcpy(result, PyString_AsString(pResult), *result_len * sizeof(char));
+    (const char*) memcpy(result, PyUnicode_AsUTF8(pResult), *result_len * sizeof(char));
   } else{
-    (const char*) memcpy(result, PyString_AsString(pResult), pResult_len * sizeof(char));
+    (const char*) memcpy(result, PyUnicode_AsUTF8(pResult), pResult_len * sizeof(char));
     *result_len = pResult_len;
   }
 

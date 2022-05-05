@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.21)
 project(H5hut VERSION 2.0.0)
 
 option(H5HUT_USE_FORTRAN "Build Fortran library" ON)

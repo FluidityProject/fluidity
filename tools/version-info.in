@@ -1,10 +1,7 @@
 #!/bin/bash
-# Attempt to determine the version of Fluidity
+# Determine the version of Fluidity
 
-# In order this looks at:
-#  - The PACKAGE_VERSION environment variable
-#  - the configure-time variable FLUIDITY_VERSION
-#  - git (asking for the branch nickname and revno)
+# fluidity_VERSION is set during configuration through CMake
 
 # Usage:
 # bin/version-info [FILENAME]
@@ -14,15 +11,7 @@
 #   The file is only written to if the version existing in the file
 #   differs from the one we've just figured out.
 
-if [ x"$PACKAGE_VERSION" = x"" ]; then
-    if [ "@FLUIDITY_VERSION@" = "" ]; then
-        GIT_COMMIT=`git --no-pager log --pretty=format:'%H' -n 1`
-        GIT_BRANCH=`git rev-parse --abbrev-ref HEAD`
-        PACKAGE_VERSION=$GIT_BRANCH:$GIT_COMMIT
-    else
-        PACKAGE_VERSION="@FLUIDITY_VERSION@"
-    fi
-fi
+PACKAGE_VERSION="@fluidity_VERSION@"
 
 if [ x"$@" = x"" ]; then
     echo $PACKAGE_VERSION
@@ -34,4 +23,3 @@ else
 #endif /* _FLUIDITY_VERSION_H */\n" > $@ &&
     echo "DEFINE __FLUIDITY_VERSION__")
 fi
-

@@ -1,5 +1,4 @@
-target_sources(fluidity
-  PRIVATE
+target_sources(fluidity PRIVATE
 	Anisotropic_gradation_metric.F90
 	Anisotropic_ZZ.F90
 	Aspect_ratios.F90
@@ -27,4 +26,3 @@ target_sources(fluidity
 )
 
 add_subdirectory(tests)
-set(unittests "${unittests}" PARENT_SCOPE)

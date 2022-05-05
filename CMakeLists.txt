@@ -32,6 +32,9 @@ find_program(SED NAMES sed gsed REQUIRED)
 
 find_package(PkgConfig REQUIRED)
 
+# Check for MPI
+find_package(MPI REQUIRED C CXX Fortran)
+
 # Check for HDF5
 find_package(HDF5 REQUIRED Fortran)
 
@@ -248,6 +251,18 @@ configure_file("${CMAKE_BINARY_DIR}/include/vtk.h"
   COPYONLY
 )
 
+set(CMAKE_C_FLAGS_RELEASE "-O3")
+set(CMAKE_C_FLAGS_DEBUG "-O0")
+set(CMAKE_C_FLAGS "-fsanitize=bounds \
+-fno-unsafe-math-optimizations -frounding-math -fsignaling-nans \
+-g"
+)
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0")
+set(CMAKE_CXX_FLAGS "-fsanitize=bounds \
+-fno-unsafe-math-optimizations -frounding-math -fsignaling-nans \
+-g"
+)
 set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
 set(CMAKE_Fortran_FLAGS_DEBUG "-O0")
 set(CMAKE_Fortran_FLAGS "-fcheck=bounds \
@@ -257,29 +272,25 @@ set(CMAKE_Fortran_FLAGS "-fcheck=bounds \
 -fno-unsafe-math-optimizations -frounding-math -fsignaling-nans \
 -g"
 )
-# -Wall -Wextra
 if(${CMAKE_C_COMPILER_VERSION} GREATER_EQUAL 10)
   set(CMAKE_Fortran_FLAGS "-fallow-argument-mismatch ${CMAKE_Fortran_FLAGS}")
 endif()
 if(DEFINED GITHUB_ACTIONS)
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -march=core2")
+  string(APPEND CMAKE_C_FLAGS " -march=sandybridge")
+  string(APPEND CMAKE_CXX_FLAGS " -march=sandybridge")
+  string(APPEND CMAKE_Fortran_FLAGS " -march=sandybridge")
 else()
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -march=native")
+  string(APPEND CMAKE_C_FLAGS " -march=native")
+  string(APPEND CMAKE_CXX_FLAGS " -march=native")
+  string(APPEND CMAKE_Fortran_FLAGS " -march=native")
 endif()
 
-configure_file(tools/version-info.in bin/version-info)
-execute_process(COMMAND
-  ${CMAKE_BINARY_DIR}/bin/version-info ${CMAKE_BINARY_DIR}/include/version.h
-)
+configure_file(tools/version-info.in bin/version-info @ONLY)
+execute_process(COMMAND bin/version-info include/version.h OUTPUT_QUIET)
 
-# Build libfluidity.a
+# Build the fluidity static library
 add_library(fluidity STATIC)
-add_dependencies(fluidity
-  adaptivity mba2d spatialindex spud vtkfortran
-  H5hutf Judy Zoltan
-)
-target_compile_definitions(fluidity
-  PUBLIC
+target_compile_definitions(fluidity PUBLIC
   ${DDEBUG}
   DOUBLEP
   HAVE_ADAPTIVITY
@@ -303,8 +314,8 @@ target_compile_definitions(fluidity
   HAVE_VTK
   HAVE_ZOLTAN
   # IO_ADVANCE_BUG
-  PACKAGE_NAME=fluidity
-  PACKAGE_TARNAME=fluidity
+  # PACKAGE_NAME=fluidity
+  # PACKAGE_TARNAME=fluidity
   SED=${SED}
   SIGNAL
   # SIGNAL_HAVE_FLAG
@@ -312,8 +323,7 @@ target_compile_definitions(fluidity
   # USING_FEMDEM
   # _OPENMP
 )
-target_include_directories(fluidity
-  PUBLIC
+target_include_directories(fluidity PUBLIC
   ${HDF5_Fortran_INCLUDE_DIRS}
   ${Python3_INCLUDE_DIRS}
   ${Python3_NumPy_INCLUDE_DIRS}
@@ -328,10 +338,9 @@ target_include_directories(fluidity
   ${libjudy_SOURCE_DIR}/src
   ${Zoltan_BINARY_DIR}/src
 
-  ${CMAKE_CURRENT_BINARY_DIR}/include
-
-  include
-  libwm
+  ${CMAKE_BINARY_DIR}/include
+  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/libwm
 )
 target_link_libraries(fluidity
   adaptivity mba2d spatialindex spud vtkfortran
@@ -382,9 +391,9 @@ add_subdirectory(tests)
 add_subdirectory(tools)
 
 # Build the fluidity binary
-add_executable(fluidity-bin main.cpp)
-set_target_properties(fluidity-bin PROPERTIES OUTPUT_NAME fluidity)
-target_link_libraries(fluidity-bin fluidity)
+add_executable(fluidity_binary main.cpp)
+set_target_properties(fluidity_binary PROPERTIES OUTPUT_NAME fluidity)
+target_link_libraries(fluidity_binary fluidity)
 
 # Build the fluidity manual
 add_custom_target(manual
@@ -394,12 +403,15 @@ add_custom_target(manual
 )
 
 # Add unittests
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E make_directory bin/tests
+  COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/tests/data bin/tests/data
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
 add_custom_target(unittest
-  COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/tests/data bin/tests/data
   COMMAND bin/unittestharness -x unit-tests.xml
   VERBATIM
 )
-add_dependencies(unittest ${unittests})
 
 # Add tests
 add_custom_target(vshorttest

@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -54,7 +54,7 @@ extern "C" {
 #include "Profiler.h"
 
 int main(int argc, char **argv){
-  
+
 #ifdef HAVE_MPI
   // This must be called before we process any arguments
   MPI_Init(&argc,&argv);
@@ -65,11 +65,11 @@ int main(int argc, char **argv){
 	std::cerr << "Unable to switch to directory " << getenv("PWD");
 	abort();
   }
-  
+
 #endif
 
   flprofiler.tic("/fluidity");
-  
+
 #ifdef USING_GFORTRAN
   /* gfortran hack to ensure 4-byte record marker for unformatted files */
   _gfortran_set_record_marker(4);
@@ -80,8 +80,8 @@ int main(int argc, char **argv){
 
   if(atoi(fl_command_line_options["verbose"].c_str()) >= 2){
     print_version(std::cout);
-  }    
-  
+  }
+
   // Initialise PETSc (this also parses PETSc command line arguments)
   PetscInit(argc, argv);
 
@@ -92,7 +92,7 @@ int main(int argc, char **argv){
 
   // Start fortran main
   if(fl_command_line_options.count("simulation_name")){
-    mainfl();    
+    mainfl();
   }else{
     usage(argv[0]);
     exit(-1);
@@ -102,11 +102,11 @@ int main(int argc, char **argv){
   // Finalize the Python Interpreter
   python_end_();
 #endif
-  
+
 #ifdef HAVE_PETSC
   PetscFinalize();
 #endif
-  
+
   flprofiler.toc("/fluidity");
   if ( fl_command_line_options.count("profile") ) {
     flprofiler.print();
@@ -115,5 +115,5 @@ int main(int argc, char **argv){
 #ifdef HAVE_MPI
   MPI_Finalize();
 #endif
-  return(0);
+  return 0;
 }

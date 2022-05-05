@@ -1,5 +1,5 @@
 input: clean
-	gmsh -2 src/square.geo -o square.msh
+	gmsh -format msh2 -2 src/square.geo -o square.msh
 	transform_mesh '(x,0.001*y)' square
 
 clean:

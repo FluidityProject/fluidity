@@ -1,7 +1,5 @@
 include(FortranCInterface)
 
-set(CMAKE_Fortran_FORMAT FREE)
-
 FortranCInterface_HEADER(${CMAKE_CURRENT_SOURCE_DIR}/FC.h MACRO_NAMESPACE "FC_")
 
 set(H5hutf_sources
@@ -41,6 +39,7 @@ add_library(H5hutf
   ../include/H5hut.f90
 )
 add_dependencies(H5hutf H5hutf_interface)
+set_target_properties(H5hutf PROPERTIES Fortran_FORMAT FREE)
 target_include_directories(H5hutf PRIVATE . ../include)
 target_link_libraries(H5hutf H5hut)
 

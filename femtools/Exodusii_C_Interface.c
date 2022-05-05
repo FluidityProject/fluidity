@@ -100,7 +100,7 @@ int c_ex_get_elem_blk_ids(int *exoid, int *block_ids)
 
 /* get element type of blocks, number of elements in blocks,
    and number of nodes per element */
-int c_ex_get_elem_block(int *exoid, int *block_id, const char *elem_type, int *num_elem_in_block, int *num_nodes_per_elem, int *num_attr)
+int c_ex_get_elem_block(int *exoid, int *block_id, char *elem_type, int *num_elem_in_block, int *num_nodes_per_elem, int *num_attr)
 {
    int error=0;
 #ifdef HAVE_LIBEXOIIV2C
@@ -234,7 +234,7 @@ int c_ex_get_elem_block_parameters(int *exoid, int *num_elem_blk, int *block_ids
    // Get element type of blocks, number of elements in blocks, and
    // number of nodes per element:
    num_attr = (int *) calloc(*num_elem_blk, sizeof(int));
-   
+
    for (i=0; i<*num_elem_blk; i++)
    {
       error = ex_get_elem_block(*exoid,
@@ -250,4 +250,3 @@ int c_ex_get_elem_block_parameters(int *exoid, int *num_elem_blk, int *block_ids
 #endif
    return (error);
 }
-

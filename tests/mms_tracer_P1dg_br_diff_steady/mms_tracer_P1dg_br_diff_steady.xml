@@ -110,8 +110,8 @@ e_finish_time = stat("MMS_E_P1dg_br.stat")["ElapsedTime"]["value"][-1]
     </variable>
   </variables>
   <pass_tests>
-    <test name="ab_convergence_stat: L2 order in [1.8,2.2]" language="python">
-assert(abs(ab_convergence_gal_stat[0]-2.0) &lt; 0.2)
+    <test name="ab_convergence_stat: L2 order in [1.75,2.25]" language="python">
+assert(abs(ab_convergence_gal_stat[0]-2.0) &lt; 0.25)
     </test>
     <test name="bc_convergence_stat: L2 order in [1.8,2.2]" language="python">
 assert(abs(bc_convergence_gal_stat[0]-2.0) &lt; 0.2)

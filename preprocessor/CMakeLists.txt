@@ -1,5 +1,4 @@
-target_sources(fluidity
-  PRIVATE
+target_sources(fluidity PRIVATE
   Boundary_Conditions_From_Options.F90
   check_options.F90
   Field_Priority_Lists.F90

@@ -1,28 +1,12 @@
-cmake_minimum_required(VERSION 3.19)
-project(spud LANGUAGES CXX Fortran)
+cmake_minimum_required(VERSION 3.21)
+project(spud LANGUAGES C CXX Fortran)
 
-set(CMAKE_Fortran_FLAGS "-fcheck=bounds \
--ffixed-line-length-none -ffree-line-length-none \
--frecord-marker=4 \
--fno-unsafe-math-optimizations -frounding-math -fsignaling-nans \
--g \
--march=native"
+string(REPLACE
+  "-fdefault-real-8 -fdefault-double-8"
+  ""
+  CMAKE_Fortran_FLAGS
+  ${CMAKE_Fortran_FLAGS}
 )
-
-add_library(spud_static STATIC
-  src/fspud.f90
-  src/spud.cpp
-  src/spud_interfaces.cpp
-  src/tinystr.cpp
-  src/tinyxml.cpp
-  src/tinyxmlerror.cpp
-  src/tinyxmlparser.cpp
-)
-set_target_properties(
-  spud_static PROPERTIES OUTPUT_NAME spud
-  Fortran_MODULE_DIRECTORY .
-)
-target_include_directories(spud_static PUBLIC include)
 
 add_library(spud SHARED
   src/fspud.f90
@@ -33,15 +17,14 @@ add_library(spud SHARED
   src/tinyxmlerror.cpp
   src/tinyxmlparser.cpp
 )
-add_dependencies(spud spud_static)
-target_include_directories(spud PUBLIC include)
+target_include_directories(spud PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-add_custom_target(spud_numbering ALL
+add_custom_target(spud_copy ALL
   COMMAND ${CMAKE_COMMAND} -E copy libspud.so libspud.so.0
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/lib
   VERBATIM
 )
-add_dependencies(spud_numbering spud)
+add_dependencies(spud_copy spud)
 
 add_subdirectory(diamond)
 add_subdirectory(python)

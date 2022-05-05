@@ -1,5 +1,4 @@
-target_sources(fluidity
-  PRIVATE
+target_sources(fluidity PRIVATE
   Binary_Operators.F90
   Diagnostic_Fields_Interfaces.F90
   Diagnostic_Fields_New.F90

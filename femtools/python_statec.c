@@ -1,48 +1,37 @@
-#define ALLOW_IMPORT_ARRAY
 #include "python_statec.h"
 
-#if PY_MAJOR_VERSION >= 3
-#define PyInt_FromLong PyLong_FromLong
-#define PyString_FromString PyUnicode_FromString
 static struct PyModuleDef moduledef = {
   PyModuleDef_HEAD_INIT,
   "spud_manager",
   NULL, -1, NULL, NULL, NULL, NULL, NULL,
 };
+
 static PyObject* PyInit_spud_manager(void)
 {
   return PyModule_Create(&moduledef);
 }
-#endif
+
 
 void python_init_(void){
 #ifdef HAVE_PYTHON
   // Initialize the Python interpreter
-#if PY_MAJOR_VERSION >= 3
   PyImport_AppendInittab("spud_manager", &PyInit_spud_manager);
-#endif
   // Force the stdout and stderr streams to be unbuffered
   // This is to ensure backtrace+error actually gets printed
   // through PyErr_Print before we abort.
-  Py_UnbufferedStdioFlag = 1;   
+  Py_UnbufferedStdioFlag = 1;
   Py_Initialize();
   PyRun_SimpleString("import string");
 
   PyObject* m;
-#if PY_MAJOR_VERSION >= 3
   m = PyImport_ImportModule("spud_manager");
-#else
-  m = Py_InitModule("spud_manager", NULL);
-#endif
   assert(m != NULL);
 
-#if PY_MAJOR_VERSION >= 3 || PY_MINOR_VERSION > 6
   void* manager = spud_get_manager();
   PyObject* manager_capsule = PyCapsule_New(manager, "spud_manager._spud_manager", NULL);
   assert(manager_capsule != NULL);
 
   PyModule_AddObject(m, "_spud_manager", manager_capsule);
-#endif
 
 #endif
 #ifdef HAVE_NUMPY
@@ -59,7 +48,7 @@ void python_init_(void){
   // Add the working directory to the module search path.
   PyRun_SimpleString("import sys");
   PyRun_SimpleString("sys.path.append('.')");
-  
+
   init_vars();
 #endif
 }
@@ -134,7 +123,7 @@ void python_run_stringc_(char *s,int *slen, int *stat){
   if(*stat != 0){
     PyErr_Print();
   }
-  free(c); 
+  free(c);
 #endif
 }
 
@@ -166,14 +155,7 @@ char* fix_string(char *s,int len){
 }
 
 
-
-
-
-
-
-
 // Functions to add a state and fields: scalar, vector, tensor, mesh, quadrature, polynomial
-
 
 void python_add_statec_(char *name,int *len){
 #ifdef HAVE_PYTHON
@@ -181,19 +163,19 @@ void python_add_statec_(char *name,int *len){
   char *n = fix_string(name,*len);
   int tlen=23+2*(*len);
   char t[tlen];
-  // 'state' in Python will always be the last state added while the 'states' dictionary 
+  // 'state' in Python will always be the last state added while the 'states' dictionary
   // includes all added states
   snprintf(t, tlen, "states[\"%s\"] = State(\"%s\")",n,n);
   PyRun_SimpleString(t);
   snprintf(t, tlen, "state = states[\"%s\"]",n);
   PyRun_SimpleString(t);
 
-  free(n); 
+  free(n);
 #endif
 }
 
 
-void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type, 
+void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type,
   char *option_path, int *oplen, char *state,int *slen,
   char *mesh_name, int *mesh_name_len){
 #ifdef HAVE_NUMPY
@@ -208,12 +190,12 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
   // Create the array
   python_add_array_double_1d(x,sx,"s");
 
-  PyObject *pname = PyString_FromString(namec);
-  PyDict_SetItemString(pDict,"n",pname); 
-  PyObject *poptionp = PyString_FromString(opc);
-  PyDict_SetItemString(pDict,"op",poptionp);  
-  PyObject *pft = PyInt_FromLong(*field_type);
-  PyDict_SetItemString(pDict,"ft",pft);  
+  PyObject *pname = PyUnicode_FromString(namec);
+  PyDict_SetItemString(pDict,"n",pname);
+  PyObject *poptionp = PyUnicode_FromString(opc);
+  PyDict_SetItemString(pDict,"op",poptionp);
+  PyObject *pft = PyLong_FromLong(*field_type);
+  PyDict_SetItemString(pDict,"ft",pft);
 
   PyRun_SimpleString("n = n.strip()");
   PyRun_SimpleString("op = op.strip()");
@@ -230,7 +212,7 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
 
   // Clean up
   PyRun_SimpleString("del n; del op; del ft; del s; del field");
-  free(namec); 
+  free(namec);
   free(opc);
   free(n);
   free(meshc);
@@ -240,6 +222,7 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
 #endif
 }
 
+
 void python_add_csr_matrix_(int *valSize, double val[], int *col_indSize, int col_ind [], int *row_ptrSize, \
                             int row_ptr [], char *name, int *namelen, char *state, int *statelen, int *numCols)
 {
@@ -247,34 +230,34 @@ void python_add_csr_matrix_(int *valSize, double val[], int *col_indSize, int co
   // Add the Fortran csr matrix to the dictionary of the Python interpreter
   PyObject *pMain = PyImport_AddModule("__main__");
   PyObject *pDict = PyModule_GetDict(pMain);
-  
+
   // Fix the Fortran strings for C and Python
   char *namefixed = fix_string(name,*namelen);
-  PyObject *pnumCols = PyInt_FromLong(*numCols);
-  PyDict_SetItemString(pDict,"numCols",pnumCols); 
-  PyObject *pnumRows = PyInt_FromLong((*row_ptrSize) - 1);
-  PyDict_SetItemString(pDict,"numRows",pnumRows); 
-  
+  PyObject *pnumCols = PyLong_FromLong(*numCols);
+  PyDict_SetItemString(pDict,"numCols",pnumCols);
+  PyObject *pnumRows = PyLong_FromLong((*row_ptrSize) - 1);
+  PyDict_SetItemString(pDict,"numRows",pnumRows);
+
   // Create the array
   python_add_array_double_1d(val,valSize,"val");
   python_add_array_integer_1d(col_ind,col_indSize,"col_ind");
   python_add_array_integer_1d(row_ptr,row_ptrSize,"row_ptr");
 
-  PyObject *pname = PyString_FromString(namefixed);
-  PyDict_SetItemString(pDict,"name",pname); 
+  PyObject *pname = PyUnicode_FromString(namefixed);
+  PyDict_SetItemString(pDict,"name",pname);
 
   PyRun_SimpleString("name = name.strip()");
 
   char *statefixed = fix_string(state,*statelen);
   int tlen=150+*statelen;
   char t[tlen];
-  
+
   snprintf(t, tlen, "matrix = CsrMatrix((val,col_ind - 1,row_ptr - 1), shape=(numRows,numCols)); states['%s'].csr_matrices['%s'] = matrix",statefixed,namefixed);
   PyRun_SimpleString(t);
 
   // Clean up
   PyRun_SimpleString("del val; del col_ind; del row_ptr; del numRows; del numCols; del matrix");
-  free(namefixed); 
+  free(namefixed);
   free(statefixed);
 
   Py_DECREF(pname);
@@ -284,9 +267,8 @@ void python_add_csr_matrix_(int *valSize, double val[], int *col_indSize, int co
 }
 
 
-
-void python_add_vector_(int *num_dim, int *s, 
-  double x[], 
+void python_add_vector_(int *num_dim, int *s,
+  double x[],
   char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,
   char *mesh_name, int *mesh_name_len){
 #ifdef HAVE_NUMPY
@@ -296,20 +278,20 @@ void python_add_vector_(int *num_dim, int *s,
 
   python_add_array_double_2d(x,num_dim,s,"vector");
   PyRun_SimpleString("vector = vector.transpose(1, 0)");
-    
+
   // Fix the Fortran strings for C and Python
   char *namec = fix_string(name,*nlen);
   char *opc = fix_string(option_path,*oplen);
   char *meshc = fix_string(mesh_name,*mesh_name_len);
 
-  PyObject *pname = PyString_FromString(namec);
-  PyDict_SetItemString(pDict,"n",pname); 
-  PyObject *poptionp = PyString_FromString(opc);
-  PyDict_SetItemString(pDict,"op",poptionp);  
-  PyObject *pft = PyInt_FromLong(*field_type);
-  PyDict_SetItemString(pDict,"ft",pft);  
-  PyObject *pnd = PyInt_FromLong(*num_dim);
-  PyDict_SetItemString(pDict,"nd",pnd);  
+  PyObject *pname = PyUnicode_FromString(namec);
+  PyDict_SetItemString(pDict,"n",pname);
+  PyObject *poptionp = PyUnicode_FromString(opc);
+  PyDict_SetItemString(pDict,"op",poptionp);
+  PyObject *pft = PyLong_FromLong(*field_type);
+  PyDict_SetItemString(pDict,"ft",pft);
+  PyObject *pnd = PyLong_FromLong(*num_dim);
+  PyDict_SetItemString(pDict,"nd",pnd);
 
   PyRun_SimpleString("n = n.strip()");
   PyRun_SimpleString("op = op.strip()");
@@ -327,7 +309,7 @@ void python_add_vector_(int *num_dim, int *s,
   // Clean up
   PyRun_SimpleString("del n; del op; del ft; del nd; del vector; del field");
   free(n);
-  free(namec); 
+  free(namec);
   free(opc);
   free(meshc);
 
@@ -356,16 +338,16 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   char *opc = fix_string(option_path,*oplen);
   char *meshc = fix_string(mesh_name,*mesh_name_len);
 
-  PyObject *pname = PyString_FromString(namec);
-  PyDict_SetItemString(pDict,"n",pname); 
-  PyObject *poptionp = PyString_FromString(opc);
-  PyDict_SetItemString(pDict,"op",poptionp);  
-  PyObject *pft = PyInt_FromLong(*field_type);
-  PyDict_SetItemString(pDict,"ft",pft);  
-  PyObject *pnd0 = PyInt_FromLong(num_dim[0]);
-  PyDict_SetItemString(pDict,"nd0",pnd0);  
-  PyObject *pnd1 = PyInt_FromLong(num_dim[1]);
-  PyDict_SetItemString(pDict,"nd1",pnd1);  
+  PyObject *pname = PyUnicode_FromString(namec);
+  PyDict_SetItemString(pDict,"n",pname);
+  PyObject *poptionp = PyUnicode_FromString(opc);
+  PyDict_SetItemString(pDict,"op",poptionp);
+  PyObject *pft = PyLong_FromLong(*field_type);
+  PyDict_SetItemString(pDict,"ft",pft);
+  PyObject *pnd0 = PyLong_FromLong(num_dim[0]);
+  PyDict_SetItemString(pDict,"nd0",pnd0);
+  PyObject *pnd1 = PyLong_FromLong(num_dim[1]);
+  PyDict_SetItemString(pDict,"nd1",pnd1);
 
   PyRun_SimpleString("n = n.strip()");
   PyRun_SimpleString("op = op.strip()");
@@ -374,7 +356,7 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   int tlen=150+*slen+*mesh_name_len;
   char t[tlen];
   snprintf(t, tlen, "field = TensorField(n,val,ft,op,nd0,nd1); states[\"%s\"].tensor_fields['%s'] = field",n,namec);
-  PyRun_SimpleString(t);  
+  PyRun_SimpleString(t);
 
   // Set the mesh for this field
   snprintf(t, tlen, "field.set_mesh(states['%s'].meshes['%s'])",n,meshc);
@@ -383,8 +365,8 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   // Clean up
   PyRun_SimpleString("del n; del op; del val; del field");
   free(n);
-  free(namec); 
-  free(opc); 
+  free(namec);
+  free(opc);
   free(meshc);
 
   Py_DECREF(pname);
@@ -396,8 +378,8 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
 }
 
 
-void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes, 
-  char *name,int *nlen, char *option_path, int *oplen, 
+void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
+  char *name,int *nlen, char *option_path, int *oplen,
   int *continuity, int region_ids[], int *sregion_ids,
   char *state_name, int *state_name_len){
 #ifdef HAVE_NUMPY
@@ -413,9 +395,9 @@ void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
 
   python_add_array_integer_1d(region_ids, sregion_ids,"region_ids");
 
-  PyObject *pname = PyString_FromString(namec);
+  PyObject *pname = PyUnicode_FromString(namec);
   PyDict_SetItemString(pDict,"n",pname);
-  PyObject *poptionp = PyString_FromString(opc);
+  PyObject *poptionp = PyUnicode_FromString(opc);
   PyDict_SetItemString(pDict,"op",poptionp);
 
   PyRun_SimpleString("n = n.strip()");
@@ -432,8 +414,8 @@ void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
 
   // Clean up
   PyRun_SimpleString("del n; del op; del m");
-  free(namec); 
-  free(n); 
+  free(namec);
+  free(n);
   free(opc);
 
   Py_DECREF(pname);
@@ -480,7 +462,7 @@ void python_add_element_(int *dim, int *loc, int *ngi, int *degree,
 }
 
 
-void python_add_quadrature_(int *dim,int *degree,int *loc, int *ngi, 
+void python_add_quadrature_(int *dim,int *degree,int *loc, int *ngi,
   double *weight, int *weight_size, double *locations, int *l_size, int *is_surfacequadr){
   // Only being called right after an element has been added
 #ifdef HAVE_NUMPY
@@ -503,7 +485,6 @@ void python_add_quadrature_(int *dim,int *degree,int *loc, int *ngi,
 #endif
 }
 
-
 void python_add_polynomial_(double *coefs,int *size,int *degree, int *x,int *y, int *spoly){
 #ifdef HAVE_NUMPY
   // Add a polynomial to the latest element
@@ -518,10 +499,9 @@ void python_add_polynomial_(double *coefs,int *size,int *degree, int *x,int *y, 
     snprintf(c, 120, "element.set_polynomial_ds(Polynomial(coefs,%d),%d,%d)",*degree,*x,*y);
   PyRun_SimpleString(c);
   PyRun_SimpleString("del coefs");
-//   Py_DECREF(arr); 
+//   Py_DECREF(arr);
 #endif
 }
-
 
 
 // Interface for adding arrays
@@ -533,7 +513,7 @@ void python_add_array_double_1d(double *arr, int *size, char *name){
   PyObject *pDict = PyModule_GetDict(pMain);
 
   // Create our NumPy matrix struct:
-  // Arguments are: 
+  // Arguments are:
   //  number of dimensions (int),
   //  size of each dimension (int[]),
   //  data type to determine the width of each element in memory (int)
@@ -545,6 +525,7 @@ void python_add_array_double_1d(double *arr, int *size, char *name){
   Py_DECREF(a);
 #endif
 }
+
 
 void python_add_array_double_2d(double *arr, int *sizex, int *sizey, char *name){
 #ifdef HAVE_NUMPY
@@ -563,6 +544,7 @@ void python_add_array_double_2d(double *arr, int *sizex, int *sizey, char *name)
 #endif
 }
 
+
 void python_add_array_double_3d(double *arr, int *sizex, int *sizey, int *sizez, char *name){
 #ifdef HAVE_NUMPY
   // Add an array in Python which will be availabe under the variable name 'name'
@@ -580,6 +562,7 @@ void python_add_array_double_3d(double *arr, int *sizex, int *sizey, int *sizez,
 #endif
 }
 
+
 void python_add_array_integer_1d(int *arr, int *size, char *name){
 #ifdef HAVE_NUMPY
   // Add an array in Python which will be availabe under the variable name 'name'
@@ -592,6 +575,7 @@ void python_add_array_integer_1d(int *arr, int *size, char *name){
   Py_DECREF(a);
 #endif
 }
+
 
 void python_add_array_integer_2d(int *arr, int *sizex, int *sizey, char *name){
 #ifdef HAVE_NUMPY
@@ -609,6 +593,7 @@ void python_add_array_integer_2d(int *arr, int *sizex, int *sizey, char *name){
   Py_DECREF(a);
 #endif
 }
+
 
 void python_add_array_integer_3d(int *arr, int *sizex, int *sizey, int *sizez, char *name){
 #ifdef HAVE_NUMPY
@@ -628,8 +613,6 @@ void python_add_array_integer_3d(int *arr, int *sizex, int *sizey, int *sizez, c
 }
 
 
-
-
 // Wrapper functions
 
 void python_add_array_double_1d_(double *arr, int *size, char *name, int *name_len){
@@ -639,6 +622,7 @@ void python_add_array_double_1d_(double *arr, int *size, char *name, int *name_l
   free(namec);
 }
 
+
 void python_add_array_double_2d_(double *arr, int *sizex, int *sizey, char *name, int *name_len){
   // Called from Fortran
   char *namec = fix_string(name,*name_len);
@@ -646,18 +630,22 @@ void python_add_array_double_2d_(double *arr, int *sizex, int *sizey, char *name
   free(namec);
 }
 
+
 void python_add_array_double_3d_(double *arr, int *sizex, int *sizey, int *sizez, char *name, int *name_len){
   // Called from Fortran
   char *namec = fix_string(name,*name_len);
   python_add_array_double_3d(arr, sizex,sizey,sizez, namec);
   free(namec);
 }
+
+
 void python_add_array_integer_1d_(int *arr, int *size, char *name, int *name_len){
   // Called from Fortran
   char *namec = fix_string(name,*name_len);
   python_add_array_integer_1d(arr, size, namec);
   free(namec);
 }
+
 
 void python_add_array_integer_2d_(int *arr, int *sizex, int *sizey, char *name, int *name_len){
   // Called from Fortran
@@ -666,12 +654,14 @@ void python_add_array_integer_2d_(int *arr, int *sizex, int *sizey, char *name, 
   free(namec);
 }
 
+
 void python_add_array_integer_3d_(int *arr, int *sizex, int *sizey, int *sizez, char *name, int *name_len){
   // Called from Fortran
   char *namec = fix_string(name,*name_len);
   python_add_array_integer_3d(arr, sizex,sizey,sizez, namec);
   free(namec);
 }
+
 
 #define python_fetch_real F77_FUNC(python_fetch_real_c, PYTHON_FETCH_REAL_C)
 void python_fetch_real(char* varname, int* varname_len, double* output)

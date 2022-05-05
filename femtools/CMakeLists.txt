@@ -1,5 +1,4 @@
-target_sources(fluidity
-  PRIVATE
+target_sources(fluidity PRIVATE
   Adaptive_interpolation.F90
   Adaptive_Timestepping.F90
   Adjacency_Lists.F90
@@ -170,7 +169,7 @@ target_sources(fluidity
   Write_Triangle.F90
 )
 
-set(ref_types
+set(reference_counting_types
   block_csr_matrix
   block_dynamic_csr_matrix
   csr_matrix
@@ -188,15 +187,30 @@ set(ref_types
   vector_field
 )
 
-file(READ ${CMAKE_CURRENT_SOURCE_DIR}/Refcount_templates.F90 Refcount_template)
-file(READ ${CMAKE_CURRENT_SOURCE_DIR}/Refcount_interface_templates.F90 Refcount_interface_template)
-foreach(type ${ref_types})
+file(READ
+  ${CMAKE_CURRENT_SOURCE_DIR}/Refcount_templates.F90
+  Refcount_template
+)
+file(READ
+  ${CMAKE_CURRENT_SOURCE_DIR}/Refcount_interface_templates.F90
+  Refcount_interface_template
+)
+foreach(type ${reference_counting_types})
    message(STATUS "Generate reference counting code for ${type}")
-   string(REPLACE "REFCOUNT_TYPE" ${type} TMP ${Refcount_template})
-   file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/Reference_count_${type}.F90 ${TMP})
-   string(REPLACE "REFCOUNT_TYPE" ${type} TMP ${Refcount_interface_template})
-   file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/Reference_count_interface_${type}.F90 ${TMP})
+
+   string(REPLACE
+     "REFCOUNT_TYPE"
+     ${type}
+     ${CMAKE_CURRENT_SOURCE_DIR}/Reference_count_${type}.F90
+     ${Refcount_template}
+   )
+
+   string(REPLACE
+     "REFCOUNT_TYPE"
+     ${type}
+     ${CMAKE_CURRENT_SOURCE_DIR}/Reference_count_interface_${type}.F90
+     ${Refcount_interface_template}
+   )
 endforeach()
 
 add_subdirectory(tests)
-set(unittests "${unittests}" PARENT_SCOPE)

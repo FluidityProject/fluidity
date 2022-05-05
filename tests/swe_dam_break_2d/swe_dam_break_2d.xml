@@ -60,10 +60,10 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
 assert abs(ux_max - 5.75) &lt; 1.5e-1
     </test>
     <test name="min(ux) is about -1.0" language="python">
-assert abs(ux_min - (-1.0)) &lt; 1.5e-1
+assert abs(ux_min - (-1.0)) &lt; 4e-1
     </test>
     <test name="max(uy) is about 3.2" language="python">
-assert abs(uy_max - 3.2) &lt; 1e-1
+assert abs(uy_max - 3.2) &lt; 1.5e-1
     </test>
     <test name="min(uy) is about -3.2" language="python">
 assert abs(uy_min - (-3.2)) &lt; 1.5e-1
@@ -72,7 +72,7 @@ assert abs(uy_min - (-3.2)) &lt; 1.5e-1
 assert abs(h_max - 5.0) &lt; 1e-1
     </test>
     <test name="min(h) is about 0.0" language="python">
-assert abs(h_min) &lt; 2e-1
+assert abs(h_min) &lt; 3e-1
     </test>
     <test name="Solvers converged" language="python">
 assert(solvers_converged)

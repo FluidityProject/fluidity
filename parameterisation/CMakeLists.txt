@@ -1,5 +1,4 @@
-target_sources(fluidity
-  PRIVATE
+target_sources(fluidity PRIVATE
   Equation_of_State.F90
   Gls_vertical_turbulence_model.F90
   iceshelf_meltrate_surf_normal.F90
@@ -7,4 +6,3 @@ target_sources(fluidity
 )
 
 add_subdirectory(tests)
-set(unittests "${unittests}" PARENT_SCOPE)

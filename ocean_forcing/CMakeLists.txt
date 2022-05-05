@@ -1,5 +1,4 @@
-target_sources(fluidity
-  PRIVATE
+target_sources(fluidity PRIVATE
   bulk_parameterisations.F90
   Calendar.cpp
   ClimateReader.cpp
@@ -22,4 +21,3 @@ target_sources(fluidity
 )
 
 add_subdirectory(tests)
-set(unittests "${unittests}" PARENT_SCOPE)

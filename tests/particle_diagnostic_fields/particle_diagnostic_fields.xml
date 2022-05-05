@@ -128,7 +128,7 @@ assert Yl2norm &gt; 0.98
 assert Yintegral &lt; 1e-3
     </test>
     <test name="MaxTemp" language="python">
-assert MaxTemptest &gt; 0.9
+assert MaxTemptest &gt; 0.8
     </test>
     <test name="MinTemp" language="python">
 assert MinTemptest &lt; 0.01

@@ -47,8 +47,8 @@ add_library(H5hut
   private/h5t_store_tetm.c
   private/h5t_store_trim.c
 )
-target_include_directories(H5hut
-  PUBLIC "${MPI_C_INCLUDE_DIRS}" "${HDF5_Fortran_INCLUDE_DIRS}"
+target_include_directories(H5hut PUBLIC
+  "${MPI_C_INCLUDE_DIRS}" "${HDF5_Fortran_INCLUDE_DIRS}"
   . ../include
 )
 install(TARGETS H5hut ARCHIVE)

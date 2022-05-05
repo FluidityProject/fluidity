@@ -1,2 +1,2 @@
-FC = @FC@
+FC = @MPI_Fortran_COMPILER@
 SED= @SED@

@@ -8,16 +8,9 @@ from argparse import ArgumentParser
 from itertools import chain
 from os import environ, sched_getaffinity
 from pathlib import Path
-from socket import gethostname
 from textwrap import dedent, indent
 from time import monotonic, sleep
 from xml.etree.ElementTree import parse
-
-# Warning: The xml.etree.ElementTree module is not secure against maliciously
-# constructed data. If you need to parse untrusted or unauthenticated data see
-# XML vulnerabilities.
-# Use defusedxml instead?
-# from defusedxml.ElementTree import parse
 
 try:
     from junit_xml import TestCase, TestSuite
@@ -55,14 +48,6 @@ except ImportError:  # Provide dummy classes in the absence of junit_xml
 
         def add_skipped_info(self, *args, **kwargs):
             pass
-
-
-def add_path_to_environment_variable(env_var, env_path):
-    try:  # Check if the the environment variable already contains the path
-        if str(env_path) not in environ[env_var]:
-            environ[env_var] = f"{env_path}:" + environ[env_var]
-    except KeyError:  # If the environment variable does not exist, create it
-        environ[env_var] = str(env_path)
 
 
 def filter_tests(xml_files):
@@ -401,6 +386,14 @@ def run_tasks(task_string, tests_list, serial, process_interpreter, task_functio
     return return_list
 
 
+def set_environment_variable(env_var, env_path):
+    try:  # Check if the the environment variable already contains the path
+        if str(env_path) not in environ[env_var]:
+            environ[env_var] = f"{env_path}:" + environ[env_var]
+    except KeyError:  # If the environment variable does not exist, create it
+        environ[env_var] = str(env_path)
+
+
 def task_make_input(test_xml):
     tests[test_xml]["running_proc"] = subprocess.Popen(
         ["make", "input"],
@@ -538,9 +531,8 @@ if args.parallel not in ["serial", "parallel", "any"]:
 fluidity_source = Path("@CMAKE_SOURCE_DIR@")
 fluidity_build = Path("@CMAKE_BINARY_DIR@")
 
-add_path_to_environment_variable("PATH", fluidity_build / "bin")
-add_path_to_environment_variable("LD_LIBRARY_PATH", fluidity_build / "lib")
-add_path_to_environment_variable("HOSTNAME", gethostname())
+set_environment_variable("OMPI_MCA_rmaps_base_oversubscribe", 1)
+set_environment_variable("PATH", fluidity_build / "bin")
 
 print(
     f"""*** Test criteria

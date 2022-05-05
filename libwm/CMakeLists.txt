@@ -1,5 +1,4 @@
-target_sources(fluidity
-  PRIVATE
+target_sources(fluidity PRIVATE
 	Wm4Command.cpp
 	Wm4FoundationPCH.cpp
 	Wm4Intersector1.cpp
