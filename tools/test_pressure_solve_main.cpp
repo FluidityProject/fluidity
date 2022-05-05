@@ -18,6 +18,7 @@ using std::endl;
 
 extern "C"{
 #ifdef HAVE_PYTHON
+#define NO_IMPORT_ARRAY
 #include "python_statec.h"
 #endif
 void test_pressure_solve_();

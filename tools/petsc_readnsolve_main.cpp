@@ -25,6 +25,7 @@ using std::ostringstream;
 extern "C"{
 void petsc_readnsolve_();
 #ifdef HAVE_PYTHON
+#define NO_IMPORT_ARRAY
 #include "python_statec.h"
 #endif
 }

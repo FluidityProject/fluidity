@@ -44,6 +44,7 @@ extern "C"{
   void streamfunction_2d(const char* input_basename, size_t input_basename_len,
                          const char* output_basename, size_t output_basename_len);
 #ifdef HAVE_PYTHON
+#define NO_IMPORT_ARRAY
 #include "python_statec.h"
 #endif
 }

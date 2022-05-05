@@ -43,6 +43,7 @@ using namespace std;
 extern "C"{
   void fladapt(const char *, size_t, const char *, size_t);
 #ifdef HAVE_PYTHON
+#define NO_IMPORT_ARRAY
 #include "python_statec.h"
 #endif
 }

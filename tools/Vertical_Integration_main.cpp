@@ -48,6 +48,7 @@ extern "C"{
                             double top, double bottom, double sizing, int result_continuity, int result_degree);
 
 #ifdef HAVE_PYTHON
+#define NO_IMPORT_ARRAY
 #include "python_statec.h"
 #endif
 }
