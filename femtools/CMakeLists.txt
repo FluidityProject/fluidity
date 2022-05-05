@@ -201,15 +201,23 @@ foreach(type ${reference_counting_types})
    string(REPLACE
      "REFCOUNT_TYPE"
      ${type}
-     ${CMAKE_CURRENT_SOURCE_DIR}/Reference_count_${type}.F90
+     ${Refcount_template}_${type}
      ${Refcount_template}
+   )
+   file(WRITE
+     ${CMAKE_CURRENT_SOURCE_DIR}/Reference_count_${type}.F90
+     ${${Refcount_template}_${type}}
    )
 
    string(REPLACE
      "REFCOUNT_TYPE"
      ${type}
-     ${CMAKE_CURRENT_SOURCE_DIR}/Reference_count_interface_${type}.F90
+     ${Refcount_interface_template}_${type}
      ${Refcount_interface_template}
+   )
+   file(WRITE
+     ${CMAKE_CURRENT_SOURCE_DIR}/Reference_count_interface_${type}.F90
+     ${${Refcount_interface_template}_${type}}
    )
 endforeach()
 

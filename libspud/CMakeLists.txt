@@ -8,7 +8,7 @@ string(REPLACE
   ${CMAKE_Fortran_FLAGS}
 )
 
-add_library(spud SHARED
+add_library(spud OBJECT
   src/fspud.f90
   src/spud.cpp
   src/spud_interfaces.cpp
@@ -19,12 +19,22 @@ add_library(spud SHARED
 )
 target_include_directories(spud PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-add_custom_target(spud_copy ALL
-  COMMAND ${CMAKE_COMMAND} -E copy libspud.so libspud.so.0
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/lib
-  VERBATIM
+add_library(spud_shared SHARED
+  src/fspud.f90
+  src/spud.cpp
+  src/spud_interfaces.cpp
+  src/tinystr.cpp
+  src/tinyxml.cpp
+  src/tinyxmlerror.cpp
+  src/tinyxmlparser.cpp
 )
-add_dependencies(spud_copy spud)
+set_target_properties(spud_shared PROPERTIES
+  Fortran_MODULE_DIRECTORY schema
+  OUTPUT_NAME spud
+  SOVERSION 0
+  VERSION 0.0.0
+)
+target_include_directories(spud_shared PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 add_subdirectory(diamond)
 add_subdirectory(python)
@@ -38,3 +48,5 @@ configure_file(bin/spud-set ${CMAKE_BINARY_DIR}/bin/spud-set
 configure_file(bin/spud-update-options ${CMAKE_BINARY_DIR}/bin/spud-update-options
   FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ WORLD_READ
 )
+configure_file(schema/spud_base.rnc ${CMAKE_SOURCE_DIR}/schemas COPYONLY)
+configure_file(schema/spud_base.rng ${CMAKE_SOURCE_DIR}/schemas COPYONLY)

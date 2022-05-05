@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y \
   libvtk9-qt-dev \
   ninja-build \
   python3-build \
+  python3-future \
   python3-h5py-mpi \
   python3-junit.xml \
   python3-lxml \

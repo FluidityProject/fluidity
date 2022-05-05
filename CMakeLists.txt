@@ -289,7 +289,7 @@ configure_file(tools/version-info.in bin/version-info @ONLY)
 execute_process(COMMAND bin/version-info include/version.h OUTPUT_QUIET)
 
 # Build the fluidity static library
-add_library(fluidity STATIC)
+add_library(fluidity STATIC $<TARGET_OBJECTS:spud>)
 target_compile_definitions(fluidity PUBLIC
   ${DDEBUG}
   DOUBLEP
@@ -340,10 +340,11 @@ target_include_directories(fluidity PUBLIC
 
   ${CMAKE_BINARY_DIR}/include
   ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/libspud/include
   ${CMAKE_SOURCE_DIR}/libwm
 )
 target_link_libraries(fluidity
-  adaptivity mba2d spatialindex spud vtkfortran
+  adaptivity mba2d spatialindex vtkfortran
   H5hutf Judy Zoltan
 
   ${HDF5_Fortran_LIBRARIES}
