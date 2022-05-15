@@ -22,16 +22,17 @@ max_cfl_numbers = s["Fluid"]["CFLNumber"]["max"]
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
-solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
     <variable name="final_mid_line_u" language="python">
 import fluidity.diagnostics.fluiditytools as fluidity_tools
 import fluidity.diagnostics.utils as utils
-import fluidity.diagnostics.vtutools as vtktools
+import fluidity.diagnostics.vtutools as vtutools
+import vtktools
 
 vtu = vtktools.vtu(fluidity_tools.VtuFilenames("square-convection", fluidity_tools.FindMaxVtuId("square-convection"), extension = ".pvtu")[0])
-vtu = vtktools.VtuFromPvtu(vtu)
-line = vtktools.PlanarVtuCut(vtu, origin = (0.5, 0.0, 0.0), normal = (1.0, 0.0, 0.0))
+vtu = vtutools.VtuFromPvtu(vtu)
+line = vtutools.PlanarVtuCut(vtu, origin = (0.5, 0.0, 0.0), normal = (1.0, 0.0, 0.0))
 
 coords = line.GetLocations()
 vel = line.GetVectorField("Velocity")
@@ -45,11 +46,12 @@ final_mid_line_u = [(z[i], u[i]) for i in range(len(z))]
     <variable name="final_mid_line_w" language="python">
 import fluidity.diagnostics.fluiditytools as fluidity_tools
 import fluidity.diagnostics.utils as utils
-import fluidity.diagnostics.vtutools as vtktools
+import fluidity.diagnostics.vtutools as vtutools
+import vtktools
 
 vtu = vtktools.vtu(fluidity_tools.VtuFilenames("square-convection", fluidity_tools.FindMaxVtuId("square-convection"), extension = ".pvtu")[0])
-vtu = vtktools.VtuFromPvtu(vtu)
-line = vtktools.PlanarVtuCut(vtu, origin = (0.0, 0.5, 0.0), normal = (0.0, 1.0, 0.0))
+vtu = vtutools.VtuFromPvtu(vtu)
+line = vtutools.PlanarVtuCut(vtu, origin = (0.0, 0.5, 0.0), normal = (0.0, 1.0, 0.0))
 
 coords = line.GetLocations()
 vel = line.GetVectorField("Velocity")
@@ -62,10 +64,11 @@ final_mid_line_w = [(x[i], w[i]) for i in range(len(x))]
     </variable>
     <variable name="psi_max" language="python">
 import fluidity.diagnostics.fluiditytools as fluidity_tools
-import fluidity.diagnostics.vtutools as vtktools
+import fluidity.diagnostics.vtutools as vtutools
+import vtktools
 
 vtu = vtktools.vtu(fluidity_tools.VtuFilenames("square-convection", fluidity_tools.FindMaxVtuId("square-convection"), extension = ".pvtu")[0])
-vtu = vtktools.VtuFromPvtu(vtu)
+vtu = vtutools.VtuFromPvtu(vtu)
 
 coords = vtu.GetLocations()
 psi = vtu.GetScalarField("StreamFunction")
@@ -98,10 +101,11 @@ left_boundary_mid_height_nu = d["Fluid%TemperatureGradient%x"][det_id[0]]
     </variable>
     <variable name="left_boundary_nus" language="python">
 import fluidity.diagnostics.fluiditytools as fluidity_tools
-import fluidity.diagnostics.vtutools as vtktools
+import fluidity.diagnostics.vtutools as vtutools
+import vtktools
 
 vtu = vtktools.vtu(fluidity_tools.VtuFilenames("square-convection", fluidity_tools.FindMaxVtuId("square-convection"), extension = ".pvtu")[0])
-vtu = vtktools.VtuFromPvtu(vtu)
+vtu = vtutools.VtuFromPvtu(vtu)
 coords = vtu.GetLocations()
 gradT = vtu.GetVectorField("TemperatureGradient")
 left_boundary_nus = []

@@ -33,10 +33,10 @@ mem_stats_sor.pop('Viewer')</variable>
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">assert(solvers_converged)</test>
-    <test name="GAMG solver behaving as expected" language="python">assert(DeltaU_iterations_GAMG &lt; 14)</test>
-    <test name="Fieldsplit solver behaving as expected" language="python">assert(DeltaU_iterations_FS &lt; 17)</test>
-    <test name="MG solver behaving as expected" language="python">assert(abs(DeltaU_iterations_MG - 251) &lt; 5)</test>
-    <test name="SOR solver behaving as expected" language="python">assert(abs(DeltaU_iterations_SOR - 599) &lt; 5)</test>
+    <test name="GAMG solver behaving as expected" language="python">assert(abs(DeltaU_iterations_GAMG - 16) &lt; 2)</test>
+    <test name="Fieldsplit solver behaving as expected" language="python">assert(abs(DeltaU_iterations_FS - 15) &lt; 2)</test>
+    <test name="MG solver behaving as expected" language="python">assert(abs(DeltaU_iterations_MG - 251) &lt; 2)</test>
+    <test name="SOR solver behaving as expected" language="python">assert(abs(DeltaU_iterations_SOR - 599) &lt; 2)</test>
     <test name="no_petsc_mem_leaks_sor" language="python">assert all(stat[0]==stat[1] for stat in mem_stats_sor.values())</test>
     <test name="no_petsc_mem_leaks_gamg" language="python">assert all(stat[0]==stat[1] for stat in mem_stats_gamg.values())</test>
     <test name="no_petsc_mem_leaks_fs" language="python">assert all(stat[0]==stat[1] for stat in mem_stats_fs.values())</test>

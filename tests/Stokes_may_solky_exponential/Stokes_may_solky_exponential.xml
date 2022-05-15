@@ -7,7 +7,7 @@
     <command_line>fluidity -v2 -l Stokes-may-solky-exponential-gamg.flml; mv fluidity.log-0 log_gamg; fluidity -v2 -l Stokes-may-solky-exponential-fs.flml; mv fluidity.log-0 log_fs; fluidity -v2 -l Stokes-may-solky-exponential-mg.flml; mv fluidity.log-0 log_mg; fluidity -v2 -l Stokes-may-solky-exponential-sor.flml; mv fluidity.log-0 log_sor</command_line>
   </problem_definition>
 
-<variables>  
+<variables>
 
 <variable name="solvers_converged" language="python">
 import os
@@ -44,7 +44,7 @@ assert(solvers_converged)
 </test>
 
 <test name="GAMG solver behaving as expected" language="python">
-assert(abs(DeltaU_iterations_GAMG - 17) &lt; 2)
+assert(abs(DeltaU_iterations_GAMG - 25) &lt; 2)
 </test>
 
 <test name="Fieldsplit solver behaving as expected" language="python">
@@ -60,7 +60,7 @@ assert(abs(DeltaU_iterations_SOR - 170) &lt; 2)
 </test>
 
 </pass_tests>
-                                                                                                                                                                              
+
 <warn_tests>
 </warn_tests>
 

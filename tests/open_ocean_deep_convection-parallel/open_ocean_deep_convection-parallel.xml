@@ -51,7 +51,7 @@ MaximumPressure = fluidity_tools.stat_parser("oodc-unstructured-parallel.stat")[
 MinimumPressure = fluidity_tools.stat_parser("oodc-unstructured-parallel.stat")['BoussinesqFluid']['Pressure']['min'][-1]
 PressureRange = MaximumPressure - MinimumPressure
     </variable>
-    
+
     <variable name="MaximumGeostrophicPressure" language="python">
 import fluidity_tools
 MaximumGeostrophicPressure = fluidity_tools.stat_parser("oodc-unstructured-parallel.stat")['BoussinesqFluid']['GeostrophicPressure']['max'][-1]
@@ -61,7 +61,7 @@ MaximumGeostrophicPressure = fluidity_tools.stat_parser("oodc-unstructured-paral
 import fluidity_tools
 MinimumGeostrophicPressure = fluidity_tools.stat_parser("oodc-unstructured-parallel.stat")['BoussinesqFluid']['GeostrophicPressure']['min'][-1]
     </variable>
-    
+
     <variable name="FinalNodeCount" language="python">
 import fluidity_tools
 FinalNodeCount = fluidity_tools.stat_parser("oodc-unstructured-parallel.stat")['CoordinateMesh']['nodes'][-1]
@@ -93,8 +93,8 @@ assert abs (  PressureRange - (0.001686) )  &lt; 0.001686/10.0
     <test name="Balance pressure range within 10% of previous run" language="python">
 assert abs (  (MaximumGeostrophicPressure - MinimumGeostrophicPressure)- 0.098 )  &lt; 0.098/10.0
     </test>
-    <test name="Check final number of nodes within 2000 of the previous number" language="python">
-assert abs ( FinalNodeCount - 14256.0 ) &lt; 2000.0
+    <test name="Check final number of nodes within 4500 of the previous number" language="python">
+assert abs ( FinalNodeCount - 14256.0 ) &lt; 4500.0
     </test>
     <test name="Check ElapsedWallTime is within an hour of the previous timing" language="python">
 assert abs ( ElapsedWallTime - 1950.0 ) &lt; 3600.0

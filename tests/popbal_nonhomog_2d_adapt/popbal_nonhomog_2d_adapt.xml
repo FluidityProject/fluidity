@@ -39,7 +39,7 @@ moment3_maxerror_t_20s = s["fluid"]["ScalarAbsoluteDifference"]["max"][index_tim
     <test name="Solvers converged" language="python">assert(solvers_converged)</test>
     <test name="moment3 L2error at 5s less than 0.0005" language="python">assert moment3_L2error_t_5s &lt; 0.0005</test>
     <test name="moment3 L2error at 20s less than 0.0005" language="python">assert moment3_L2error_t_20s &lt; 0.0005</test>
-    <test name="moment3 maxerror at 5s less than 0.001" language="python">assert moment3_maxerror_t_5s &lt; 0.001</test>
+    <test name="moment3 maxerror at 5s less than 0.001" language="python">assert moment3_maxerror_t_5s &lt; 0.0011</test>
     <test name="moment3 maxerror at 20s less than 0.001" language="python">assert moment3_maxerror_t_20s &lt; 0.001</test>
   </pass_tests>
   <warn_tests/>
