@@ -406,13 +406,13 @@ add_custom_target(manual
 # Add unittests
 execute_process(
   COMMAND ${CMAKE_COMMAND} -E make_directory bin/tests
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+execute_process(
   COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/tests/data bin/tests/data
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
-add_custom_target(unittest
-  COMMAND bin/unittestharness -x unit-tests.xml
-  VERBATIM
-)
+add_custom_target(unittest COMMAND bin/unittestharness -x unit-tests.xml VERBATIM)
 
 # Add tests
 add_custom_target(vshorttest
