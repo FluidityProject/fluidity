@@ -430,26 +430,22 @@ extern "C" {
     return;
   }
 
-#define vtkwriteghostlevels F77_FUNC(vtkwriteghostlevels, VTKWRITEGHOSTLEVELS)
+#define vtkwritecellghostarray F77_FUNC(vtkwritecellghostarray, VTKWRITECELLGHOSTARRAY)
   /**
-     Write out VTK ghost levels.
-     @param[in] ghost_levels This array is 0 for owned elements, 1 otherwise.
+     Write out VTK CellGhostArray.
+     @param[in] ghosts This array is 0 for owned elements, 1 otherwise.
   */
-  void vtkwriteghostlevels(int *ghost_levels){
-    vtkUnsignedCharArray *newScalars = vtkUnsignedCharArray::New();
-    newScalars->SetName("vtkGhostLevels");
-    newScalars->SetNumberOfComponents(1);
-    newScalars->SetNumberOfTuples(ecnt);
-
-    for(unsigned i=0; i<ecnt; i++)
-      newScalars->InsertValue(i, ghost_levels[i]);
-
-    dataSet->GetCellData()->AddArray(newScalars);
-    dataSet->GetCellData()->SetActiveAttribute("vtkGhostLevels", vtkDataSetAttributes::SCALARS);
-
-    newScalars->Delete();
-    return;
-  }
+	void vtkwritecellghostarray(int* ghosts)
+  {
+    vtkUnsignedCharArray* ghostCells = dataSet->AllocateCellGhostArray();
+    for (vtkIdType cellId = 0; cellId < ghostCells->GetNumberOfTuples(); cellId++)
+    {
+      if (ghosts[cellId] == 1)
+      {
+        ghostCells->SetValue(cellId, vtkDataSetAttributes::DUPLICATECELL);
+      }
+    }
+	}
 
   /**
      Writes cellular scalar float values.

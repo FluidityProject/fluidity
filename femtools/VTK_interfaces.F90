@@ -94,11 +94,11 @@ module vtk_interfaces
      end subroutine vtk_get_sizes
   end interface
 
-  interface vtkwriteghostlevels
-     subroutine vtkwriteghostlevels(ghost_levels)
+  interface vtkwritecellghostarray
+     subroutine vtkwritecellghostarray(ghosts)
        implicit none
-       integer ghost_levels(*)
-     end subroutine vtkwriteghostlevels
+       integer ghosts(*)
+     end subroutine vtkwritecellghostarray
   end interface
 
 contains
@@ -253,7 +253,7 @@ contains
     type(vector_field) :: v_model(3)
     type(tensor_field) :: t_model
     logical :: dgify_fields ! should we DG-ify the fields -- make them discontinous?
-    integer, allocatable, dimension(:)::ghost_levels
+    integer, allocatable, dimension(:) :: ghosts
     real, allocatable, dimension(:,:) :: tempval
     integer :: lstat
 
@@ -310,7 +310,7 @@ contains
           allocate(model_mesh%region_ids(ele_count(model_mesh)))
           model_mesh%region_ids = model%region_ids
         end if
-        ! Copy element_halos to ensure vtkGhostLevels are output
+        ! Copy element_halos to ensure values for the vtk CellGhostArray are output
         if (associated(model%element_halos)) then
           allocate(model_mesh%element_halos(size(model%element_halos)))
           do i = 1, size(model_mesh%element_halos)
@@ -556,16 +556,16 @@ contains
      end if
 
     !----------------------------------------------------------------------
-    ! Output ghost levels
+    ! Output values for the vtk CellGhostArray
     !----------------------------------------------------------------------
     if(element_halo_count(model_mesh) > 0) then
-       allocate(ghost_levels(element_count(model_mesh)))
-       ghost_levels = 0
+       allocate(ghosts(element_count(model_mesh)))
+       ghosts = 0
        do i=1, element_count(model_mesh)
-         if(.not. element_owned(model, i)) ghost_levels(i) = 1
+         if(.not. element_owned(model, i)) ghosts(i) = 1
        end do
 
-       call vtkWriteGhostLevels(ghost_levels)
+       call vtkwritecellghostarray(ghosts)
     end if
 
 

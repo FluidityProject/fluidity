@@ -36,7 +36,7 @@ extern "C"{
 			double *x, double *y, double *z,
 			int *enlist, int *elementTypes, int *elementSizes){}
   void vtkstartn(){}
-  void vtkwriteghostlevels(int *ghost_levels){}
+  void vtkwritecellghostarray(int *ghosts){}
   void vtkwriteisn(int *vect, char *name, int *len){}
   void vtkwritefsn(float *vect, char *name, int *len){}
   void vtkwritedsn(double *vect, char *name, int *len){}

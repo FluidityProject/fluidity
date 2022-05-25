@@ -18,29 +18,18 @@
 VTK tools
 """
 
-import copy
 import math
-import sys
 import unittest
-
-import fluidity.diagnostics.debug as debug
-
-try:
-    import vtk
-except ImportError:
-    debug.deprint("Warning: Failed to import vtk module")
-
-try:
-    from vtktools import *
-except ImportError:
-    debug.deprint("Warning: Failed to import vtktools module")
 
 import fluidity.diagnostics.bounds as bounds
 import fluidity.diagnostics.calc as calc
+import fluidity.diagnostics.debug as debug
 import fluidity.diagnostics.elements as elements
 import fluidity.diagnostics.optimise as optimise
 import fluidity.diagnostics.simplices as simplices
 import fluidity.diagnostics.utils as utils
+import vtk
+from vtktools import *
 
 
 def VtkSupport():
@@ -163,99 +152,73 @@ def ModelPvtuToVtu(pvtu):
     (except generate a copy) if the supplied vtu is already a serial vtu.
     """
 
-    # Step 1: Extract the ghost levels, and check that we have a parallel vtu
-
-    result = vtu()
-    ghostLevel = pvtu.ugrid.GetCellData().GetArray("vtkGhostLevels")
-    if ghostLevel is None:
-        # We have a serial vtu
-        debug.deprint("Warning: input file contains no vtkGhostLevels")
-        ghostLevel = [0 for i in range(pvtu.ugrid.GetNumberOfCells())]
-    else:
-        # We have a parallel vtu
-        ghostLevel = [
-            ghostLevel.GetValue(i)
-            for i in range(
-                ghostLevel.GetNumberOfComponents() * ghostLevel.GetNumberOfTuples()
-            )
-        ]
+    # Step 1: Extract the CellGhostArray and check that we have a parallel vtu
+    ghosts = pvtu.ugrid.GetCellData().GetArray("vtkGhostType")
+    if ghosts is None:  # We have a serial vtu
+        debug.deprint("Warning: input file contains no vtk CellGhostArray")
+        ghosts = [0] * pvtu.ugrid.GetNumberOfCells()
+    else:  # We have a parallel vtu
+        ghosts = [ghosts.GetValue(i) for i in range(ghosts.GetNumberOfValues())]
+    debug.dprint(f"Input cells: {pvtu.ugrid.GetNumberOfCells()}")
+    debug.dprint(f"Input points: {pvtu.ugrid.GetNumberOfPoints()}")
 
     # Step 2: Collect the non-ghost cell IDs
-
-    debug.dprint("Input cells: " + str(pvtu.ugrid.GetNumberOfCells()))
-
-    cellIds = []
-    keepCell = [False for i in range(pvtu.ugrid.GetNumberOfCells())]
-    oldCellIdToNew = [None for i in range(pvtu.ugrid.GetNumberOfCells())]
-
-    # Collect the new non-ghost cell IDs and generate the cell renumbering map
-    index = 0
-    for i, level in enumerate(ghostLevel):
-        if calc.AlmostEquals(level, 0.0):
-            cellIds.append(i)
-            keepCell[i] = True
-            oldCellIdToNew[i] = index
-            index += 1
-
-    debug.dprint("Non-ghost cells: " + str(len(cellIds)))
+    cell_ids = [i for i, ghost in enumerate(ghosts) if ghost == 0]
+    old_cell_id_to_new = [None] * pvtu.ugrid.GetNumberOfCells()
+    for i, cell_id in enumerate(cell_ids):
+        old_cell_id_to_new[cell_id] = i
+    debug.dprint(f"Non-ghost cells: {len(cell_ids)}")
 
     # Step 3: Collect the non-ghost node IDs
-
-    debug.dprint("Input points: " + str(pvtu.ugrid.GetNumberOfPoints()))
-
-    keepNode = [False for i in range(pvtu.ugrid.GetNumberOfPoints())]
-
+    keep_node = [False] * pvtu.ugrid.GetNumberOfPoints()
+    keep_node_count = 0
     # Find a list of candidate non-ghost node IDs, based on nodes attached to
     # non-ghost cells
-    keepNodeCount = 0
-    for cellId in cellIds:
-        cellNodeIds = pvtu.ugrid.GetCell(cellId).GetPointIds()
-        cellNodeIds = [
-            cellNodeIds.GetId(i) for i in range(cellNodeIds.GetNumberOfIds())
+    for cell_id in cell_ids:
+        cell_point_ids = pvtu.ugrid.GetCell(cell_id).GetPointIds()
+        cell_point_ids = [
+            cell_point_ids.GetId(i) for i in range(cell_point_ids.GetNumberOfIds())
         ]
-        keepNodeCount += len(cellNodeIds)
-        for nodeId in cellNodeIds:
-            keepNode[nodeId] = True
+        keep_node_count += len(cell_point_ids)
+        for node_id in cell_point_ids:
+            keep_node[node_id] = True
 
-    uniqueKeepNodeCount = keepNode.count(True)
-    debug.dprint("Non-ghost nodes (pass 1): " + str(uniqueKeepNodeCount))
-    if uniqueKeepNodeCount == keepNodeCount:
+    debug.dprint(f"Non-ghost nodes (pass 1): {sum(keep_node)}")
+    if keep_node_count == sum(keep_node):
         debug.dprint("Assuming pvtu is discontinuous")
         # we're keeping all non-ghost nodes:
-        nodeIds = [i for i in range(pvtu.ugrid.GetNumberOfPoints()) if keepNode[i]]
-        oldNodeIdToNew = numpy.array([None] * pvtu.ugrid.GetNumberOfPoints())
-        oldNodeIdToNew[nodeIds] = range(keepNodeCount)
+        node_ids = [i for i in range(len(keep_node)) if keep_node[i]]
+        old_node_id_to_new = [None] * pvtu.ugrid.GetNumberOfPoints()
+        for i, node_id in enumerate(node_ids):
+            old_node_id_to_new[node_id] = i
     else:
-        # for the CG case we still have duplicate nodes that need to be removed
-        oldNodeIdToNew, nodeIds = PvtuToVtuRemoveDuplicateNodes(pvtu, keepNode)
+        old_node_id_to_new, node_ids = PvtuToVtuRemoveDuplicateNodes(pvtu, keep_node)
 
     # Step 4: Generate the new locations
     locations = pvtu.GetLocations()
-    locations = numpy.array([locations[i] for i in nodeIds])
+    locations = arr([locations[i] for i in node_ids])
     points = vtk.vtkPoints()
     points.SetDataTypeToDouble()
     for location in locations:
         points.InsertNextPoint(location)
+    result = vtu()
     result.ugrid.SetPoints(points)
 
     # Step 5: Generate the new cells
-    for cellId in cellIds:
-        cell = pvtu.ugrid.GetCell(cellId)
-        cellNodeIds = cell.GetPointIds()
-        cellNodeIds = [
-            cellNodeIds.GetId(i) for i in range(cellNodeIds.GetNumberOfIds())
+    for cell_id in cell_ids:
+        cell = pvtu.ugrid.GetCell(cell_id)
+        cell_point_ids = cell.GetPointIds()
+        cell_point_ids = [
+            cell_point_ids.GetId(i) for i in range(cell_point_ids.GetNumberOfIds())
         ]
-        idList = vtk.vtkIdList()
-        for nodeId in cellNodeIds:
-            oldNodeId = nodeId
-            nodeId = oldNodeIdToNew[nodeId]
-            assert not nodeId is None
-            assert nodeId >= 0
-            assert nodeId <= len(nodeIds)
-            idList.InsertNextId(nodeId)
-        result.ugrid.InsertNextCell(cell.GetCellType(), idList)
+        id_list = vtk.vtkIdList()
+        for cell_point_id in cell_point_ids:
+            cell_point_id = old_node_id_to_new[cell_point_id]
+            assert 0 <= cell_point_id <= len(node_ids)
+            id_list.InsertNextId(cell_point_id)
+        result.ugrid.InsertNextCell(cell.GetCellType(), id_list)
 
-    return result, oldNodeIdToNew, oldCellIdToNew
+    return result, old_node_id_to_new, old_cell_id_to_new
 
 
 ModelVtuFromPvtu = ModelPvtuToVtu
@@ -377,7 +340,7 @@ def PvtuToVtuRemoveDuplicateNodes(pvtu, keepNode):
             oldNodeIdToNew[i] = index
             index += 1
     for i, nodeId in enumerate(duplicateNodeMap):
-        if not nodeId is None:
+        if nodeId is not None:
             assert oldNodeIdToNew[i] is None
             assert not oldNodeIdToNew[nodeId] is None
             oldNodeIdToNew[i] = oldNodeIdToNew[nodeId]
@@ -396,7 +359,7 @@ def PvtuToVtu(pvtu, model=None, oldNodeIdToNew=[], oldCellIdToNew=[], fieldlist=
     # Steps 1-5 are now handled by ModelPvtuToVtu (or aren't necessary if
     # additional information is passed to PvtuToVtu)
     if (
-        (model == None)
+        (model is None)
         or (len(oldNodeIdToNew) != pvtu.ugrid.GetNumberOfPoints())
         or (len(oldCellIdToNew) != pvtu.ugrid.GetNumberOfCells())
     ):
@@ -420,7 +383,7 @@ def PvtuToVtu(pvtu, model=None, oldNodeIdToNew=[], oldCellIdToNew=[], fieldlist=
         newData.SetNumberOfValues(result.ugrid.GetNumberOfPoints() * components)
         for nodeId in range(tuples):
             newNodeId = oldNodeIdToNew[nodeId]
-            if not newNodeId is None:
+            if newNodeId is not None:
                 for i in range(components):
                     newData.SetValue(
                         newNodeId * components + i,
@@ -435,8 +398,8 @@ def PvtuToVtu(pvtu, model=None, oldNodeIdToNew=[], oldCellIdToNew=[], fieldlist=
         if len(fieldlist) > 0 and name not in fieldlist:
             continue
         debug.dprint("Processing cell data " + name)
-        if name == "vtkGhostLevels":
-            debug.dprint("Skipping ghost level data")
+        if name == "vtkGhostType":
+            debug.dprint("Skipping ghost data")
             continue
         components = oldData.GetNumberOfComponents()
         tuples = oldData.GetNumberOfTuples()
@@ -447,7 +410,7 @@ def PvtuToVtu(pvtu, model=None, oldNodeIdToNew=[], oldCellIdToNew=[], fieldlist=
         newData.SetNumberOfValues(result.ugrid.GetNumberOfCells() * components)
         for cellId in range(tuples):
             newCellId = oldCellIdToNew[cellId]
-            if not newCellId is None:
+            if newCellId is not None:
                 for i in range(components):
                     newData.SetValue(
                         newCellId * components + i,
@@ -506,7 +469,7 @@ def XyPhiToVtu(x, y, phi, fieldName="Scalar"):
 
     result = XyToVtu(x, y)
 
-    lphi = numpy.array(utils.ExpandList(utils.TransposeListList(phi)))
+    lphi = arr(utils.ExpandList(utils.TransposeListList(phi)))
     lphi.shape = (len(x) * len(y), 1)
     result.AddScalarField(fieldName, lphi)
 
@@ -863,8 +826,8 @@ def RemappedVtu(inputVtu, targetVtu):
 
     coordinates = targetVtu.GetLocations()
 
-    ### The following is lifted from vtu.ProbeData in tools/vtktools.py (with
-    ### self -> inputVtu and invalid node remapping rather than repositioning)
+    # The following is lifted from vtu.ProbeData in tools/vtktools.py (with
+    # self -> inputVtu and invalid node remapping rather than repositioning)
     # Initialise locator
     locator = vtk.vtkPointLocator()
     locator.SetDataSet(inputVtu.ugrid)
@@ -900,7 +863,7 @@ def RemappedVtu(inputVtu, targetVtu):
                 [coordinates[i][0], coordinates[i][1], coordinates[i][2]]
             )
             invalidNodes.append((i, nearest))
-    ### End of code from vtktools.py
+    # End of code from vtktools.py
 
     # Construct output
     result = vtu()
@@ -934,7 +897,7 @@ def ZeroField(components, tuples):
 
     zeros = [0.0 for i in range(components)]
     zeroField = [zeros for i in range(tuples)]
-    zeroField = numpy.array(zeroField)
+    zeroField = arr(zeroField)
     zeroField.shape = (tuples, components)
 
     return zeroField
@@ -1054,14 +1017,14 @@ def RotateVtuField(vtu, fieldName, axis, angle):
         newField = []
         for val in field:
             newField.append(calc.RotatedVector(val, angle, axis=axis))
-        newField = numpy.array(newField)
+        newField = arr(newField)
         vtu.AddVectorField(fieldName, newField)
     elif rank == 2:
         # Tensor field rotation
         newField = []
         for val in field:
             newField.append(calc.RotatedTensor(val, angle, axis=axis))
-        newField = numpy.array(newField)
+        newField = arr(newField)
         vtu.AddField(fieldName, newField)
     else:
         # Erm, erm ...
@@ -1256,7 +1219,7 @@ def MinVtuFieldEigenvalue(vtu, fieldName):
             calc.MinVal(calc.Eigendecomposition(val, returnEigenvectors=False))
         )
 
-    eigField = numpy.array(eigField)
+    eigField = arr(eigField)
 
     return eigField
 
@@ -1276,8 +1239,8 @@ def VtuGetCellField(vtu, fieldName):
     Extract a P0 field from the supplied vtu
     """
 
-    ### The following is lifted from vtu.GetField in tools/vtktools.py (with
-    ### pointdata -> celldata)
+    # The following is lifted from vtu.GetField in tools/vtktools.py (with
+    # pointdata -> celldata)
     celldata = vtu.ugrid.GetCellData()
     vtkdata = celldata.GetArray(fieldName)
     nc = vtkdata.GetNumberOfComponents()
@@ -1289,7 +1252,7 @@ def VtuGetCellField(vtu, fieldName):
         return array.reshape(nt, 2, 2)
     else:
         return array.reshape(nt, nc)
-    ### End of code from vtktools.py
+    # End of code from vtktools.py
 
 
 def VtuAddCellField(vtu, fieldName, field):
@@ -1297,8 +1260,8 @@ def VtuAddCellField(vtu, fieldName, field):
     Add a P0 field to the supplied vtu
     """
 
-    ### The following is lifted from vtu.AddField in tools/vtktools.py (with
-    ### pointdata -> celldata)
+    # The following is lifted from vtu.AddField in tools/vtktools.py (with
+    # pointdata -> celldata)
     n = field.size
     sh = arr(field.shape)
     data = vtk.vtkFloatArray()
@@ -1313,7 +1276,7 @@ def VtuAddCellField(vtu, fieldName, field):
 
     celldata = vtu.ugrid.GetCellData()
     celldata.AddArray(data)
-    ### End of code from vtktools.py
+    # End of code from vtktools.py
 
     return
 
@@ -1336,10 +1299,10 @@ def TimeAveragedVtu(filenames, timeFieldName="Time", baseMesh=None, baseVtu=None
 
     debug.dprint("Computing time averaged vtu")
 
-    if not baseMesh is None:
+    if baseMesh is not None:
         assert baseVtu is None
         result = baseMesh.ToVtu()
-    elif not baseVtu is None:
+    elif baseVtu is not None:
         assert baseMesh is None
         result = CopyVtu(baseVtu)
     else:
@@ -1379,7 +1342,7 @@ def TimeAveragedVtu(filenames, timeFieldName="Time", baseMesh=None, baseVtu=None
         else:
             # Trapezium rule weighting
             weight = 0.0
-            if not lastDt is None:
+            if lastDt is not None:
                 weight += lastDt
 
             timeField = inputVtu.GetScalarField(timeFieldName)
@@ -1475,8 +1438,7 @@ def VtuIntegrateCell(vtu, cell, fieldName):
         cellCoords.GetPoint(i)[:dim] for i in range(cellCoords.GetNumberOfPoints())
     ]
     fieldVals = [
-        numpy.array([field.GetValue(point * nc + i) for i in range(nc)])
-        for point in cellPoints
+        arr([field.GetValue(point * nc + i) for i in range(nc)]) for point in cellPoints
     ]
 
     return simplices.SimplexIntegral(nodeCoords, fieldVals)
@@ -1507,7 +1469,6 @@ def VtuVolume(vtu):
     for cell in range(vtu.ugrid.GetNumberOfCells()):
         vtkCell = vtu.ugrid.GetCell(cell)
         cellCoords = vtkCell.GetPoints()
-        cellPoints = vtu.GetCellPoints(cell)
 
         nodeCoords = [
             cellCoords.GetPoint(i)[:dim] for i in range(cellCoords.GetNumberOfPoints())
@@ -1525,7 +1486,7 @@ def VtuIntegrateBinnedCells(vtu, cellBins, fieldName):
 
     nc = VtuFieldComponents(vtu, fieldName)
 
-    integral = [numpy.array([0.0 for i in range(nc)]) for j in range(len(cellBins))]
+    integral = [arr([0.0 for i in range(nc)]) for j in range(len(cellBins))]
     for i, bin in enumerate(cellBins):
         for cell in bin:
             integral[i] += VtuIntegrateCell(vtu, cell, fieldName)
@@ -1554,7 +1515,7 @@ def VtuMeshMerge(vtu, mesh, idsName="IDs"):
     for fieldName in VtuGetCellFieldNames(vtu):
         if fieldName == idsName:
             continue
-        cellField = numpy.array(
+        cellField = arr(
             [numpy.zeros(mesh.SurfaceElementCount()), VtuGetCellField(vtu, fieldName)]
         )
         cellField.shape = (mesh.SurfaceElementCount() + mesh.VolumeElementCount(),)
@@ -1568,7 +1529,7 @@ def VtuStripFloatingNodes(vtu):
     Strip floating (unconnected) nodes from the supplied vtu
     """
 
-    nodeUsed = numpy.array([False for i in range(vtu.ugrid.GetNumberOfPoints())])
+    nodeUsed = arr([False for i in range(vtu.ugrid.GetNumberOfPoints())])
     for i in range(vtu.ugrid.GetNumberOfCells()):
         cell = vtu.ugrid.GetCell(i)
         nodeIds = cell.GetPointIds()
@@ -1613,7 +1574,7 @@ def VtuStripFloatingNodes(vtu):
         shape[0] = nnodes
         nField = numpy.empty(shape)
         for node, nNode in enumerate(nodeMap):
-            if not nNode is None:
+            if nNode is not None:
                 nField[nNode] = field[node]
         vtu.AddField(fieldName, nField)
 

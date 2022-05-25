@@ -12,7 +12,9 @@ import vtktools
 def parse_args(argv):
     parser = argparse.ArgumentParser(
         prog="vtu2ensight",
-        description="""This converts a vtu file to a ensight file. If applied to checkpointed files, use rename_checkpoint first and ensure that 'checkpoint' is removed from the basename of the solution files.""",
+        description="""This converts a vtu file to a ensight file. If applied to
+        checkpointed files, use rename_checkpoint first and ensure that 'checkpoint' is
+        removed from the basename of the solution files.""",
     )
     parser.add_argument(
         "-v",
@@ -65,11 +67,14 @@ def parse_args(argv):
 
 # Function taken from:
 # http://stackoverflow.com/questions/2669059/how-to-sort-alpha-numeric-set-in-python
-def sorted_nicely(l):
+def sorted_nicely(iterable):
     """Sort the given iterable in the way that humans expect."""
-    convert = lambda text: int(text) if text.isdigit() else text
-    alphanum_key = lambda key: [convert(c) for c in re.split("([0-9]+)", key)]
-    return sorted(l, key=alphanum_key)
+    return sorted(
+        iterable,
+        key=lambda element: [
+            int(x) if x.isdigit() else x for x in re.split("([0-9]+)", element)
+        ],
+    )
 
 
 def getvtulist(basename, dumpno, lastdump):
@@ -115,9 +120,9 @@ def addblockid(ug):
     return ug
 
 
-def removeghostlevel(reader, ug):
+def removeghosts(reader, ug):
     for i in range(reader.gridreader.GetNumberOfCellArrays()):
-        if reader.gridreader.GetCellArrayName(i) == "vtkGhostLevels":
+        if reader.gridreader.GetCellArrayName(i) == "vtkGhostType":
             ug.GetCellData().RemoveArray(i)
             break
     return ug
@@ -166,7 +171,7 @@ def main(args):
         # add block id (required by the ensight format):
         ug = addblockid(reader.ugrid)
         # check/remove ghostlevel array:
-        ug = removeghostlevel(reader, ug)
+        ug = removeghosts(reader, ug)
         # write data:
         writedata(writer, ug, i)
     # write case file:
@@ -181,9 +186,5 @@ if __name__ == "__main__":
         print("EnSight output files have been written successfully.")
     except IOError:
         print(
-            'Error: Could not find any output files with a basename "'
-            + args.basename
-            + '".'
+            f'Error: Could not find any output files with a basename "{args.basename}".'
         )
-    except:
-        raise Exception("Something went wrong. Aborting operation.")

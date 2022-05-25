@@ -10,7 +10,8 @@ import optparse
 
 import fluidity.diagnostics.debug as debug
 import fluidity.diagnostics.fluiditytools as fluidity_tools
-import fluidity.diagnostics.vtutools as vtktools
+import fluidity.diagnostics.vtutools as vtutools
+import vtktools
 
 optionParser = optparse.OptionParser(
     usage="%prog [OPTIONS] ... PROJECT [FIRSTID] [LASTID]",
@@ -48,7 +49,7 @@ if len(args) == 3:
         firstId = int(args[1])
         lastId = int(args[2])
         assert lastId >= firstId
-    except:
+    except AssertionError:
         debug.FatalError("Invalid last dump ID")
 
 if len(args) == 1:
@@ -59,8 +60,7 @@ else:
     )
 
 for filename in filenames:
-    debug.dprint("Processing file: " + filename)
+    debug.dprint(f"Processing file: {filename}")
 
-    vtu = vtktools.vtu(filename)
-    vtu = vtktools.VtuFromPvtu(vtu)
-    vtu.Write(filename[:-5] + ".vtu")
+    vtu = vtutools.VtuFromPvtu(vtktools.vtu(filename))
+    vtu.Write(f"{filename[:-5]}.vtu")

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import math
-import sys
 
 import numpy
 import vtk
@@ -40,12 +39,12 @@ class vtu:
             pointdata = self.ugrid.GetPointData()
             vtkdata = pointdata.GetScalars(name)
             vtkdata.GetNumberOfTuples()
-        except:
+        except AttributeError:
             try:
                 celldata = self.ugrid.GetCellData()
                 vtkdata = celldata.GetScalars(name)
                 vtkdata.GetNumberOfTuples()
-            except:
+            except AttributeError:
                 raise Exception(
                     "ERROR: couldn't find point or cell scalar field data with name "
                     + name
@@ -61,12 +60,12 @@ class vtu:
             pointdata = self.ugrid.GetPointData()
             vtkdata = pointdata.GetScalars(name)
             vtkdata.GetRange()
-        except:
+        except AttributeError:
             try:
                 celldata = self.ugrid.GetCellData()
                 vtkdata = celldata.GetScalars(name)
                 vtkdata.GetRange()
-            except:
+            except AttributeError:
                 raise Exception(
                     "ERROR: couldn't find point or cell scalar field data with name "
                     + name
@@ -82,12 +81,12 @@ class vtu:
             pointdata = self.ugrid.GetPointData()
             vtkdata = pointdata.GetScalars(name)
             vtkdata.GetNumberOfTuples()
-        except:
+        except AttributeError:
             try:
                 celldata = self.ugrid.GetCellData()
                 vtkdata = celldata.GetScalars(name)
                 vtkdata.GetNumberOfTuples()
-            except:
+            except AttributeError:
                 raise Exception(
                     "ERROR: couldn't find point or cell vector field data with name "
                     + name
@@ -124,12 +123,12 @@ class vtu:
             pointdata = self.ugrid.GetPointData()
             vtkdata = pointdata.GetArray(name)
             vtkdata.GetNumberOfTuples()
-        except:
+        except AttributeError:
             try:
                 celldata = self.ugrid.GetCellData()
                 vtkdata = celldata.GetArray(name)
                 vtkdata.GetNumberOfTuples()
-            except:
+            except AttributeError:
                 raise Exception(
                     "ERROR: couldn't find point or cell field data with name "
                     + name
@@ -155,12 +154,12 @@ class vtu:
             pointdata = self.ugrid.GetPointData()
             vtkdata = pointdata.GetArray(name)
             vtkdata.GetNumberOfTuples()
-        except:
+        except AttributeError:
             try:
                 celldata = self.ugrid.GetCellData()
                 vtkdata = celldata.GetArray(name)
                 vtkdata.GetNumberOfTuples()
-            except:
+            except AttributeError:
                 raise Exception(
                     "ERROR: couldn't find point or cell field data with name "
                     + name
@@ -202,7 +201,8 @@ class vtu:
         gridwriter.Write()
 
     def AddScalarField(self, name, array):
-        """Adds a scalar field with the specified name using the values from the array."""
+        """Adds a scalar field with the specified name using the values from the
+        array."""
         data = vtk.vtkDoubleArray()
         data.SetNumberOfValues(len(array))
         data.SetName(name)
@@ -221,7 +221,8 @@ class vtu:
             raise Exception("Length neither number of nodes nor number of cells")
 
     def AddVectorField(self, name, array):
-        """Adds a vector field with the specified name using the values from the array."""
+        """Adds a vector field with the specified name using the values from the
+        array."""
         n = array.size
         data = vtk.vtkDoubleArray()
         data.SetNumberOfComponents(array.shape[1])
@@ -241,7 +242,8 @@ class vtu:
             raise Exception("Length neither number of nodes nor number of cells")
 
     def AddField(self, name, array):
-        """Adds a field with arbitrary number of components under the specified name using."""
+        """Adds a field with arbitrary number of components under the specified name
+        using."""
         n = array.size
         sh = arr(array.shape)
         data = vtk.vtkDoubleArray()
@@ -264,7 +266,8 @@ class vtu:
             raise Exception("Length neither number of nodes nor number of cells")
 
     def ApplyProjection(self, projection_x, projection_y, projection_z):
-        """Applys a projection to the grid coordinates. This overwrites the existing values."""
+        """Applys a projection to the grid coordinates. This overwrites the existing
+        values."""
         npoints = self.ugrid.GetNumberOfPoints()
         for i in range(npoints):
             (x, y, z) = self.ugrid.GetPoint(i)
@@ -274,7 +277,8 @@ class vtu:
             self.ugrid.GetPoints().SetPoint(i, new_x, new_y, new_z)
 
     def ApplyCoordinateTransformation(self, f):
-        """Applys a coordinate transformation to the grid coordinates. This overwrites the existing values."""
+        """Applys a coordinate transformation to the grid coordinates. This overwrites
+        the existing values."""
         npoints = self.ugrid.GetNumberOfPoints()
 
         for i in range(npoints):
@@ -283,20 +287,19 @@ class vtu:
             self.ugrid.GetPoints().SetPoint(i, newX[0], newX[1], newX[2])
 
     def ApplyEarthProjection(self):
-        """Assume the input geometry is the Earth in Cartesian geometry and project to longatude, latitude, depth."""
+        """Assume the input geometry is the Earth in Cartesian geometry and project to
+        longitude, latitude, depth."""
         npoints = self.ugrid.GetNumberOfPoints()
 
         earth_radius = 6378000.0
-        rad_to_deg = 180.0 / math.pi
-        deg_to_rad = math.pi / 180.0
 
         for i in range(npoints):
             (x, y, z) = self.ugrid.GetPoint(i)
 
             r = math.sqrt(x * x + y * y + z * z)
             depth = r - earth_radius
-            longitude = rad_to_deg * math.atan2(y, x)
-            latitude = 90.0 - rad_to_deg * math.acos(z / r)
+            longitude = numpy.rad2deg(math.atan2(y, x))
+            latitude = 90.0 - numpy.rad2deg(math.acos(z / r))
 
             self.ugrid.GetPoints().SetPoint(i, longitude, latitude, depth)
 
@@ -376,12 +379,12 @@ class vtu:
         integral = 0.0
 
         n_cells = self.ugrid.GetNumberOfCells()
-        vtkGhostLevels = self.ugrid.GetCellData().GetArray("vtkGhostLevels")
+        ghosts = self.ugrid.GetCellData().GetArray("vtkGhostType")
         for cell_no in range(n_cells):
             integrate_cell = True
 
-            if vtkGhostLevels:
-                integrate_cell = vtkGhostLevels.GetTuple1(cell_no) == 0
+            if ghosts:
+                integrate_cell = ghosts.GetTuple1(cell_no) == 0
 
             if integrate_cell:
                 Cell = self.ugrid.GetCell(cell_no)
@@ -475,7 +478,7 @@ class vtu:
         sgrid = vtk.vtkStructuredPoints()
 
         bbox = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        if bounding_box == None:
+        if bounding_box is None:
             bbox = self.ugrid.GetBounds()
         else:
             bbox = bounding_box
@@ -510,6 +513,7 @@ class vtu:
         The returned array gives a cell-wise derivative.
         """
         cd = vtk.vtkCellDerivatives()
+        sgrid = vtk.vtkStructuredPoints()
         if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
             cd.SetInput(sgrid)
         else:
@@ -576,8 +580,8 @@ class vtu:
 
 
 class VTU_Probe(object):
-    """A class that combines a vtkProbeFilter with a list of invalid points (points that it failed to probe
-    where we take the value of the nearest point)"""
+    """A class that combines a vtkProbeFilter with a list of invalid points (points that
+    it failed to probe where we take the value of the nearest point)"""
 
     def __init__(self, ugrid, coordinates):
         # Initialise locator
@@ -639,7 +643,6 @@ class VTU_Probe(object):
                         + name
                         + "."
                     )
-            components = oldField.GetNumberOfComponents()
             for invalidNode, nearest in self.invalidNodes:
                 for comp in range(nc):
                     array[invalidNode * nc + comp] = oldField.GetValue(
@@ -765,16 +768,17 @@ def VtuDiff(vtu1, vtu2, filename=None):
     vtkdata = vtu2.ugrid.GetCellData()
     fieldNames2 = [vtkdata.GetArrayName(i) for i in range(vtkdata.GetNumberOfArrays())]
     if useProbe:
-        # meshes are different - we can't interpolate cell-based fields so let's just remove them from the output
+        # meshes are different - we can't interpolate cell-based fields so let's just
+        # remove them from the output
         for fieldName in fieldNames1:
-            if fieldName == "vtkGhostLevels":
+            if fieldName == "vtkGhostType":
                 # this field should just be passed on unchanged
                 continue
             resultVtu.RemoveField(fieldName)
     else:
         # meshes are the same - we can simply subtract
         for fieldName in fieldNames1:
-            if fieldName == "vtkGhostLevels":
+            if fieldName == "vtkGhostType":
                 # this field should just be passed on unchanged
                 continue
             elif fieldName in fieldNames2:

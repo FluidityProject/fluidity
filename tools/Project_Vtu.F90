@@ -129,7 +129,7 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   end if
   do i = 1, scalar_field_count(input_state)
     input_s_field => extract_scalar_field(input_state, i)
-    if(input_s_field%name == "vtkGhostLevels") then
+    if(input_s_field%name == "vtkGhostType") then
       call remove_scalar_field(input_state, input_s_field%name)
       cycle
     end if
