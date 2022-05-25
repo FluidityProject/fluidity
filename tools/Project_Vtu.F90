@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -45,12 +45,12 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   use vtk_interfaces
   use iso_c_binding
   implicit none
-  
+
   integer(kind=c_size_t), value :: input_filename_len, donor_basename_len
   integer(kind=c_size_t), value :: target_basename_len, output_filename_len
   character(kind=c_char, len=1) :: input_filename_(*), donor_basename_(*)
   character(kind=c_char, len=1) :: target_basename_(*), output_filename_(*)
-  
+
   character(len = input_filename_len) :: input_filename
   character(len = donor_basename_len) :: donor_basename
   character(len = target_basename_len) :: target_basename
@@ -70,7 +70,7 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   type(vector_field), pointer :: input_v_field
   type(tensor_field) :: output_t_field
   type(tensor_field), pointer :: input_t_field
-  
+
   ewrite(1, *) "In project_vtu"
 
   do i=1, input_filename_len
@@ -86,17 +86,17 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
     output_filename(i:i)=output_filename_(i)
   end do
 
-  
+
   call set_solver_options(fields_path // "/galerkin_projection/continuous", &
     & ksptype = "cg", pctype = "sor", atol = epsilon(0.0), rtol = 0.0, max_its = 2000, start_from_zero = .true.)
-      
+
   call vtk_read_state(trim(input_filename), input_state, quad_degree = quad_degree)
-  
+
   donor_positions = extract_vector_field(input_state, "Coordinate")
   input_mesh => extract_mesh(input_state, "Mesh")
 
   target_positions = read_mesh_files(trim(target_basename), quad_degree = quad_degree, format="gmsh")
-  
+
   shape => ele_shape(donor_positions, 1)
   if (shape==ele_shape(target_positions,1) .and. continuity(donor_positions)==continuity(target_positions)) then
     output_mesh = target_positions%mesh
@@ -107,7 +107,7 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   if (has_mesh(input_state, "P0Mesh")) then
     output_p0mesh = piecewise_constant_mesh(target_positions%mesh, "P0Mesh")
   end if
-  
+
   if (donor_basename_len>0) then
     donor_positions = read_mesh_files(trim(donor_basename), quad_degree = quad_degree, format="gmsh")
   else
@@ -119,10 +119,10 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
     end if
     call incref(donor_positions)
   end if
-  
+
   allocate(map_BA(ele_count(target_positions)))
   map_BA = rtree_intersection_finder(target_positions, donor_positions)
-  
+
   call insert(output_state, output_mesh, "Mesh")
   if (has_mesh(input_state, "P0Mesh")) then
     call insert(output_state, output_p0mesh, "P0Mesh")
@@ -174,8 +174,8 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
     call insert(output_state, output_t_field, output_t_field%name)
     call deallocate(output_t_field)
   end do
-  
-  
+
+
   if(current_debug_level >= 2) then
     ewrite(2, *) "Options tree:"
     call print_options()
@@ -197,7 +197,7 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   call insert(output_state, target_positions, "Coordinate")
   call deallocate(donor_positions)
   call deallocate(target_positions)
-  
+
   call interpolation_galerkin(input_mesh_states, output_mesh_states, map_BA = map_BA)
   call deallocate(map_BA)
   deallocate(map_BA)
@@ -206,16 +206,16 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   call deallocate(output_mesh_states)
   deallocate(output_mesh_states)
   call deallocate(input_state)
-  
+
   call vtk_write_state(trim(output_filename), model = "Mesh", state = (/output_state/))
   call deallocate(output_mesh)
   if (has_mesh(output_state, "P0Mesh")) then
     call deallocate(output_p0mesh)
   end if
   call deallocate(output_state)
-  
+
   call print_references(0)
-  
+
   ewrite(1, *) "Exiting project_vtu"
-       
+
 end subroutine project_vtu
