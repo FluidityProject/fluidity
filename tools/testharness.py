@@ -508,10 +508,8 @@ parser.add_argument("-x", "--xml-output", help="XML output filename", metavar="O
 args = parser.parse_args()
 
 # Obtain path to the root of fluidity's directory
-fluidity_source = Path("/home/thomas/Softwares/fluidity")
-fluidity_build = Path("/home/thomas/Softwares/fluidity/build")
-# fluidity_source = Path("@CMAKE_SOURCE_DIR@")
-# fluidity_build = Path("@CMAKE_BINARY_DIR@")
+fluidity_source = Path("@CMAKE_SOURCE_DIR@")
+fluidity_build = Path("@CMAKE_BINARY_DIR@")
 
 set_environment_variable("OMPI_MCA_rmaps_base_oversubscribe", 1)
 set_environment_variable("PATH", fluidity_build / "bin")
