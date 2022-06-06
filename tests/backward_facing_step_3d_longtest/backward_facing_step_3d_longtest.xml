@@ -6,12 +6,12 @@
   <tags>flml 3dadapt</tags>
   <!-- uses flml - uses 3d adaptivity -->
   <problem_definition length="vlong" nprocs="8">
-    <command_line>mpiexec flredecomp -i 1 -o 8 -v -l backward_facing_step_3d backward_facing_step_3d_flredecomp &amp;&amp;
-mpiexec fluidity -v2 -l backward_facing_step_3d_flredecomp.flml</command_line>
+    <command_line>mpiexec flredecomp -i 1 -o 8 -v -l backward-facing-step-3d backward-facing-step-3d-flredecomp &amp;&amp;
+mpiexec fluidity -v2 -l backward-facing-step-3d-flredecomp.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="finishtime" language="python">from fluidity_tools import stat_parser as stat
-finishtime= stat("backward_facing_step_3d.stat")["ElapsedTime"]["value"][-1]</variable>
+finishtime= stat("backward-facing-step-3d.stat")["ElapsedTime"]["value"][-1]</variable>
     <variable name="reattachment_length" language="python">
 from postprocessor_3d import reatt_length, get_filelist
 import numpy

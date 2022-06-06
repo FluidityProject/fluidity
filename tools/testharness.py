@@ -70,23 +70,20 @@ def filter_tests(xml_files):
             xml_tags = parsed_xml.find("tags").text.split()
         except AttributeError:  # If no tags are present, assign an empty list
             xml_tags = []
-        # Define conditions the test must meet
-        # Do we want to keep this condition, or do we want to have "any"
-        # correspond to all tests when length is not given (and only run the
-        # provided lengths when length is given)?
+        # Conditions to exclude a test
         length_condition = (
-            args.length == "any" and prob_length in ["long", "vlong"]
-        ) or (args.length != "any" and prob_length not in args.length)
-        nprocs_condition = (args.parallel == "parallel" and prob_nprocs <= 1) or (
-            args.parallel == "serial" and prob_nprocs != 1
+            False if args.length is None else prob_length not in args.length
         )
-        excluded_tags_condition = set(xml_tags).intersection(args.exclude_tags)
+        nprocs_condition = (args.exec_type == "parallel" and prob_nprocs <= 1) or (
+            args.exec_type == "serial" and prob_nprocs != 1
+        )
+        omitted_tags_condition = set(xml_tags).intersection(args.omit_tags)
         required_tags_condition = set(args.tags).difference(xml_tags)
         # Skip the test if any of the conditions is not met
         if (
             length_condition
             or nprocs_condition
-            or excluded_tags_condition
+            or omitted_tags_condition
             or required_tags_condition
         ):
             xml_entry = TestCase(
@@ -450,96 +447,81 @@ def task_run_tests(test_xml):
 
 parser = ArgumentParser(description="Fluidity Test Harness")
 parser.add_argument(
-    "-c",
-    "--clean",
-    action="store_true",
-    help="call 'make clean' for each included test",
+    "--clean", action="store_true", help="call `make clean` for each test found"
 )
-# action="extend", nargs=1 can be used with Python >= 3.8
 parser.add_argument(
     "-e",
-    "--exclude-tags",
-    metavar="",
-    action="append",
-    default=[],
-    help="tags indicating tests that are excluded",
+    "--exec-type",
+    default="any",
+    choices=["serial", "parallel"],
+    help="specify which kind of tests to run; choose either serial or parallel",
+    metavar="TYPE",
+)
+parser.add_argument("-f", "--file", help="run a single test - expects an XML filename")
+parser.add_argument(
+    "--from-file",
+    help="path to a file where to read which tests to run - one XML filename per line",
+    metavar="FILE",
 )
 parser.add_argument(
-    "-f", "--file", metavar="", help="single test to run - expects XML filename"
+    "--just-list",
+    nargs="?",
+    const=True,
+    default=False,
+    help="print which tests were found and save the list to a JSON file if provided",
+    metavar="FILE",
 )
-# action="extend", nargs=1 can be used with Python >= 3.8
 parser.add_argument(
     "-l",
     "--length",
-    metavar="",
     action="append",
-    help="""test length to be run; must be either vshort, short, medium, long or
-vlong""",
+    choices=["vshort", "short", "medium", "long", "vlong"],
+    help="test length(s) to be run; choose from vshort, short, medium, long or vlong",
 )
 parser.add_argument(
-    "-n", "--nprocs", type=int, metavar="", help="targeted number of cores"
+    "-n",
+    "--ncores",
+    type=int,
+    help="number of logical cores to target",
+    metavar="CORES",
 )
 parser.add_argument(
-    "-p",
-    "--parallelism",
-    dest="parallel",
-    default="any",
-    metavar="",
-    help="""parallelism of problem; must be either serial, parallel or any - defaults
-to '%(default)s'""",
+    "-o",
+    "--omit-tags",
+    action="extend",
+    nargs="*",
+    default=[],
+    help="tags identifying which tests to exclude",
+    metavar="TAG",
 )
 parser.add_argument(
     "-t",
     "--tags",
-    metavar="",
     action="extend",
-    nargs=1,
+    nargs="*",
     default=[],
-    help="tags indicating tests that are included",
+    help="tags identifying which tests to run",
+    metavar="TAG",
 )
 parser.add_argument("-v", "--valgrind", action="store_true", help="enable Valgrind")
-parser.add_argument("-x", "--xml-output", metavar="", help="XML output filename")
-parser.add_argument(
-    "--from-file",
-    metavar="",
-    help="""path to a file containing a list of tests to run (one *.xml filename per
-line)""",
-)
-parser.add_argument(
-    "--github",
-    metavar="",
-    help="""filename (expects JSON) to store the tests to run on GitHub Actions""",
-)
-parser.add_argument(
-    "--just-list",
-    action="store_true",
-    help="""prints the list of tests that would be included in the run given the
-provided arguments""",
-)
+parser.add_argument("-x", "--xml-output", help="XML output filename", metavar="OUTPUT")
 args = parser.parse_args()
 
-if args.length is None:
-    args.length = "any"
-elif set(args.length).difference(["vshort", "short", "medium", "long", "vlong"]):
-    parser.error(
-        """Specify length as either of vshort, short, medium, long, or vlong."""
-    )
-if args.parallel not in ["serial", "parallel", "any"]:
-    parser.error("Specify parallelism as either of serial, parallel or any.")
-
 # Obtain path to the root of fluidity's directory
-fluidity_source = Path("@CMAKE_SOURCE_DIR@")
-fluidity_build = Path("@CMAKE_BINARY_DIR@")
+fluidity_source = Path("/home/thomas/Softwares/fluidity")
+fluidity_build = Path("/home/thomas/Softwares/fluidity/build")
+# fluidity_source = Path("@CMAKE_SOURCE_DIR@")
+# fluidity_build = Path("@CMAKE_BINARY_DIR@")
 
 set_environment_variable("OMPI_MCA_rmaps_base_oversubscribe", 1)
 set_environment_variable("PATH", fluidity_build / "bin")
 
 print(
     f"""*** Test criteria
-\t-> length: {args.length}
-\t-> parallel: {args.parallel}
+\t-> length: {"any" if args.length is None else " ".join(args.length)}
+\t-> parallel: {args.exec_type}
 \t-> tags to include: {args.tags}
-\t-> tags to exclude: {args.exclude_tags}
+\t-> tags to exclude: {args.omit_tags}
 """
 )
 
@@ -553,14 +535,15 @@ if args.just_list:
     print("*** Found tests that match the input criteria")
     for test_xml in sorted(tests.keys()):
         print(f"\t-> {test_xml.stem}")
-    print(f"{len(tests.keys())} tests found.")
-    if args.github:
-        with open(args.github, "w") as fid:
+    nb_tests = len(tests.keys())
+    print(f"{nb_tests} test{'s' if nb_tests > 1 else ''} found.")
+    if isinstance(args.just_list, str):
+        with open(args.just_list, "w") as fid:
             json.dump([test.name for test in tests.keys()], fid)
 elif args.clean:
     print("*** Cleaning")
     for test_xml in tests.keys():
-        print(f"\t-> {test_xml.stem}: Calling 'make clean'.")
+        print(f"\t-> {test_xml.stem}: Calling `make clean`.")
         try:
             subprocess.run(
                 ["make", "clean"],
@@ -615,8 +598,8 @@ Keep the following in mind:
 --log-file=test.log {tests[test_xml]["command"]}"""
 
     core_avail = len(sched_getaffinity(0))
-    if args.nprocs is not None:
-        core_avail = min(args.nprocs, core_avail)
+    if args.ncores is not None:
+        core_avail = min(args.ncores, core_avail)
     error_list, failure_list, warning_list = [], [], []
 
     tests_list = run_tasks(

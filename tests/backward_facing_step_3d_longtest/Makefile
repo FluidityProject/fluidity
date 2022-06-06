@@ -12,17 +12,17 @@ endif
 ifeq ($(NPROCS),1)
 	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
 	@echo **********Calling fluidity in serial with verbose log output enabled:
-	${BINPREFIX}fluidity -v2 -l backward_facing_step_3d.flml
+	${BINPREFIX}fluidity -v2 -l backward-facing-step-3d.flml
 else
 	@echo **********Calling flredecomp in parallel with verbose log output enabled:
-	mpiexec -n $(NPROCS) ${BINPREFIX}flredecomp -i 1 -o $(NPROCS) -v -l backward_facing_step_3d backward_facing_step_3d_flredecomp
+	mpiexec -n $(NPROCS) ${BINPREFIX}flredecomp -i 1 -o $(NPROCS) -v -l backward-facing-step-3d backward-facing-step-3d-flredecomp
 	@echo **********Calling fluidity in parallel with verbose log output enabled:
-	mpiexec -n $(NPROCS) ${BINPREFIX}fluidity -v2 -l backward_facing_step_3d_flredecomp.flml
+	mpiexec -n $(NPROCS) ${BINPREFIX}fluidity -v2 -l backward-facing-step-3d-flredecomp.flml
 endif
 
 postprocess: envcheck
 	@echo **********Calling the velocity data extraction and plotting python script:
-	@mkdir -p numpy_data 
+	@mkdir -p numpy_data
 	./postprocessor_3d.py
 
 input: clean
@@ -30,5 +30,5 @@ input: clean
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
-	rm -rf *.stat *.msh backward_facing_step_3d_*.pvtu backward_facing_step_3d_* *.log-* *.err-* matrixdump* *.halo
+	rm -rf *.stat *.msh backward-facing-step-3d_* *.log-* *.err-* matrixdump* *.halo
 	rm -rf *flredecomp*
