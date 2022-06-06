@@ -57,7 +57,7 @@
           <regions name="WholeMesh">
             <bottom_depth>
               <python>
-                <string_value lines="20" type="code" language="python">def val(X, t): 
+                <string_value type="code" language="python" lines="20">def val(X, t): 
   import ana_sol
   r=(X[0]**2+X[1]**2)**0.5
   return ana_sol.bathymetry_function(r)</string_value>
@@ -65,7 +65,7 @@
             </bottom_depth>
             <sizing_function>
               <python>
-                <string_value lines="20" type="code" language="python">def val(X, t):
+                <string_value type="code" language="python" lines="20">def val(X, t):
   return 50000</string_value>
               </python>
             </sizing_function>
@@ -92,12 +92,12 @@
     </quadrature>
     <ocean_boundaries>
       <top_surface_ids>
-        <integer_value shape="1" rank="1">101</integer_value>
+        <integer_value rank="1" shape="1">101</integer_value>
       </top_surface_ids>
       <bottom_surface_ids>
-        <integer_value shape="1" rank="1">100</integer_value>
+        <integer_value rank="1" shape="1">100</integer_value>
       </bottom_surface_ids>
-      <scalar_field name="DistanceToTop" rank="0">
+      <scalar_field rank="0" name="DistanceToTop">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -109,12 +109,15 @@
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>
         </diagnostic>
       </scalar_field>
-      <scalar_field name="DistanceToBottom" rank="0">
+      <scalar_field rank="0" name="DistanceToBottom">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -126,6 +129,9 @@
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>
@@ -151,7 +157,7 @@
         </number_of_detectors>
         <static/>
         <python>
-          <string_value lines="20" type="code" language="python">def val(t):
+          <string_value type="code" language="python" lines="20">def val(t):
  import math
  h0=50.0
  R=430620.0
@@ -174,8 +180,6 @@
   return h0*(R**2-r2)/(R**2)+0.5-h0*(R**2-Rmesh**2)/(R**2)</comment>
         </python>
       </detector_array>
-      <fail_outside_domain/>
-      <binary_output/>
     </detectors>
   </io>
   <timestepping>
@@ -206,7 +210,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="3" dim1="dim" rank="1">0 0 -1</real_value>
+              <real_value rank="1" dim1="dim" shape="3">0 0 -1</real_value>
             </constant>
           </value>
           <output/>
@@ -216,6 +220,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -231,7 +238,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -266,7 +273,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
   import ana_sol
   g=9.81
   r=(X[0]**2+X[1]**2)**0.5
@@ -285,13 +292,16 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <no_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -303,12 +313,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -324,6 +337,7 @@
                 <twice/>
               </integrate_advection_by_parts>
             </advection_scheme>
+            <buoyancy/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0</real_value>
@@ -362,24 +376,24 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0 0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0 0 0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="fs">
           <surface_ids>
-            <integer_value shape="1" rank="1">101</integer_value>
+            <integer_value rank="1" shape="1">101</integer_value>
           </surface_ids>
           <type name="free_surface"/>
         </boundary_conditions>
         <boundary_conditions name="wall">
           <surface_ids>
-            <integer_value shape="1" rank="1">4</integer_value>
+            <integer_value rank="1" shape="1">4</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions name="bottom">
           <surface_ids>
-            <integer_value shape="1" rank="1">100</integer_value>
+            <integer_value rank="1" shape="1">100</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
@@ -401,13 +415,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="WettingDryingAlpha" rank="0">
+    <scalar_field rank="0" name="WettingDryingAlpha">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -419,12 +436,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="FreeSurface" rank="0">
+    <scalar_field rank="0" name="FreeSurface">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -436,17 +456,20 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="AnalyticalSolution_eta" rank="0">
+    <scalar_field rank="0" name="AnalyticalSolution_eta">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
   import ana_sol
   d0=0.2
   r=(X[0]**2+X[1]**2)**0.5
@@ -458,11 +481,14 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="fs_error" rank="0">
+    <scalar_field rank="0" name="fs_error">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="FreeSurface" source_field_2_name="AnalyticalSolution_eta" material_phase_support="single" source_field_1_type="scalar"/>
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="FreeSurface" source_field_1_type="scalar" source_field_2_name="AnalyticalSolution_eta" source_field_2_type="scalar"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
@@ -472,14 +498,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="fs_error_abs" rank="0">
+    <scalar_field rank="0" name="fs_error_abs">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="FreeSurface" source_field_2_name="AnalyticalSolution_eta" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="FreeSurface" source_field_1_type="scalar" source_field_2_name="AnalyticalSolution_eta" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="VelocityMesh"/>
@@ -491,12 +520,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="DG_CourantNumber" rank="0">
+    <scalar_field rank="0" name="DG_CourantNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -508,17 +540,20 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="AnalyticalSolution_Vel" rank="1">
+    <vector_field rank="1" name="AnalyticalSolution_Vel">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
   import ana_sol
   d0=0.2
   return ana_sol.analytic_solution_vel(X, t, d0)</string_value>
@@ -531,11 +566,14 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <vector_field name="vel_error" rank="1">
+    <vector_field rank="1" name="vel_error">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="AnalyticalSolution_Vel" material_phase_support="single" source_field_1_type="vector"/>
+        <algorithm name="vector_difference" material_phase_support="single" source_field_1_name="Velocity" source_field_1_type="vector" source_field_2_name="AnalyticalSolution_Vel" source_field_2_type="vector"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>
@@ -547,14 +585,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="vel_error_abs" rank="1">
+    <vector_field rank="1" name="vel_error_abs">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="AnalyticalSolution_Vel" material_phase_support="single" source_field_1_type="vector">
+        <algorithm name="vector_difference" material_phase_support="single" source_field_1_name="Velocity" source_field_1_type="vector" source_field_2_name="AnalyticalSolution_Vel" source_field_2_type="vector">
           <absolute_difference/>
         </algorithm>
         <mesh name="VelocityMesh"/>
@@ -568,6 +609,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -599,6 +643,9 @@
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>

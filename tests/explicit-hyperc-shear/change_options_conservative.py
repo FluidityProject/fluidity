@@ -15,12 +15,14 @@ for f in range(len(file_name)):
                 i + 1
             ] = '            <real_value rank="0">7.7176909321518821</real_value>\n'
         elif "Shear rotation about origin." in line:
-            flml_options[i] = (
-                '                        <string_value lines="20" type="python">def'
-                " val(X,t):&#x0A;   from math import sin, cos&#x0A;   # Shear rotation"
-                " about origin.&#x0A;   return (-1.0*sin(X[0])*cos(X[1]),"
-                " cos(X[0])*sin(X[1]))</string_value>\n"
-            )
+            flml_options[
+                i
+            ] = """
+            <string_value type="code" language="python" lines="20">def val(X,t):
+   from math import sin, cos
+   # Shear rotation about origin.
+   return (-1.0*sin(X[0])*cos(X[1]), cos(X[0])*sin(X[1]))</string_value>
+"""
 
     for i in range(len(flml_options)):
         if "<checkpointing>" in flml_options[i]:

@@ -88,7 +88,7 @@
   <material_phase name="Air">
     <subgridscale_parameterisations>
       <k-epsilon>
-        <scalar_field name="TurbulentKineticEnergy" rank="0">
+        <scalar_field rank="0" name="TurbulentKineticEnergy">
           <prognostic>
             <mesh name="VelocityMesh"/>
             <equation name="KEpsilon">
@@ -133,7 +133,7 @@
             </initial_condition>
             <boundary_conditions name="OuterOutlet">
               <surface_ids>
-                <integer_value shape="1" rank="1">666</integer_value>
+                <integer_value rank="1" shape="1">666</integer_value>
               </surface_ids>
               <type name="dirichlet">
                 <constant>
@@ -148,6 +148,9 @@
                 <stat>
                   <include_in_stat/>
                 </stat>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </tensor_field>
             <scalar_field name="Source" rank="0">
@@ -158,6 +161,9 @@
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </scalar_field>
             <scalar_field name="Absorption" rank="0">
@@ -168,6 +174,9 @@
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </scalar_field>
             <output/>
@@ -178,13 +187,16 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
             <consistent_interpolation/>
           </prognostic>
         </scalar_field>
-        <scalar_field name="TurbulentDissipation" rank="0">
+        <scalar_field rank="0" name="TurbulentDissipation">
           <prognostic>
             <mesh name="VelocityMesh"/>
             <equation name="KEpsilon">
@@ -229,7 +241,7 @@
             </initial_condition>
             <boundary_conditions name="OuterOutlet">
               <surface_ids>
-                <integer_value shape="1" rank="1">666</integer_value>
+                <integer_value rank="1" shape="1">666</integer_value>
               </surface_ids>
               <type name="dirichlet">
                 <constant>
@@ -244,6 +256,9 @@
                 <stat>
                   <include_in_stat/>
                 </stat>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </tensor_field>
             <scalar_field name="Source" rank="0">
@@ -254,6 +269,9 @@
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </scalar_field>
             <scalar_field name="Absorption" rank="0">
@@ -264,6 +282,9 @@
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </scalar_field>
             <output/>
@@ -274,19 +295,22 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
             <consistent_interpolation/>
           </prognostic>
         </scalar_field>
-        <tensor_field name="BackgroundViscosity" rank="2">
+        <tensor_field rank="2" name="BackgroundViscosity">
           <prescribed>
             <mesh name="VelocityMesh"/>
             <value name="WholeMesh">
               <isotropic>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
   U = 0.535 # m/s
   H = 0.04 # m
   nu = (U*H)/21400.0
@@ -295,9 +319,12 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
-        <tensor_field name="EddyViscosity" rank="2">
+        <tensor_field rank="2" name="EddyViscosity">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -305,9 +332,12 @@
             <stat>
               <include_in_stat/>
             </stat>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </diagnostic>
         </tensor_field>
-        <scalar_field name="ScalarEddyViscosity" rank="0">
+        <scalar_field rank="0" name="ScalarEddyViscosity">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -319,12 +349,15 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="LengthScale" rank="0">
+        <scalar_field rank="0" name="LengthScale">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -336,12 +369,15 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="f_1" rank="0">
+        <scalar_field rank="0" name="f_1">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -353,12 +389,15 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="f_2" rank="0">
+        <scalar_field rank="0" name="f_2">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -370,12 +409,15 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="f_mu" rank="0">
+        <scalar_field rank="0" name="f_mu">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -387,6 +429,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -428,7 +473,7 @@
         </mass_terms>
       </k-epsilon>
     </subgridscale_parameterisations>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -462,13 +507,16 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <no_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -484,6 +532,7 @@
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
@@ -517,12 +566,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="OuterInlet">
           <surface_ids>
-            <integer_value shape="1" rank="1">999</integer_value>
+            <integer_value rank="1" shape="1">999</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -541,7 +590,7 @@
         </boundary_conditions>
         <boundary_conditions name="OuterTop">
           <surface_ids>
-            <integer_value shape="1" rank="1">444</integer_value>
+            <integer_value rank="1" shape="1">444</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -555,7 +604,7 @@
         </boundary_conditions>
         <boundary_conditions name="OuterBottom">
           <surface_ids>
-            <integer_value shape="1" rank="1">333</integer_value>
+            <integer_value rank="1" shape="1">333</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -569,7 +618,7 @@
         </boundary_conditions>
         <boundary_conditions name="InnerTop">
           <surface_ids>
-            <integer_value shape="1" rank="1">44</integer_value>
+            <integer_value rank="1" shape="1">44</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -588,7 +637,7 @@
         </boundary_conditions>
         <boundary_conditions name="InnerSides">
           <surface_ids>
-            <integer_value shape="2" rank="1">66 99</integer_value>
+            <integer_value rank="1" shape="2">66 99</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -607,7 +656,7 @@
         </boundary_conditions>
         <boundary_conditions name="InnerBottom">
           <surface_ids>
-            <integer_value shape="1" rank="1">33</integer_value>
+            <integer_value rank="1" shape="1">33</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -631,13 +680,16 @@
             <stat>
               <include_in_stat/>
             </stat>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </diagnostic>
         </tensor_field>
         <vector_field name="Absorption" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
   H = 0.04
   x2 = 20*H - H/2
   if(X[0] &gt;= x2):
@@ -653,6 +705,9 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
           <default_absorption/>
         </vector_field>
@@ -672,13 +727,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -690,14 +748,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="TimeAveragedVelocity0" rank="1">
+    <vector_field rank="1" name="TimeAveragedVelocity0">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="time_averaged_vector" source_field_name="Velocity">
+        <algorithm name="time_averaged_vector" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <spin_up_time>
             <real_value rank="0">0.0</real_value>
           </spin_up_time>
@@ -713,14 +774,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="TimeAveragedVelocity5" rank="1">
+    <vector_field rank="1" name="TimeAveragedVelocity5">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="time_averaged_vector" source_field_name="Velocity">
+        <algorithm name="time_averaged_vector" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <spin_up_time>
             <real_value rank="0">5.0</real_value>
           </spin_up_time>
@@ -736,14 +800,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="TimeAveragedVelocity30" rank="1">
+    <vector_field rank="1" name="TimeAveragedVelocity30">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="time_averaged_vector" source_field_name="Velocity">
+        <algorithm name="time_averaged_vector" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <spin_up_time>
             <real_value rank="0">30.0</real_value>
           </spin_up_time>
@@ -759,6 +826,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

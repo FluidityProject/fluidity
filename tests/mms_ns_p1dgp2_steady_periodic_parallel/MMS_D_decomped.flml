@@ -15,13 +15,13 @@
         <mesh name="DoublyPeriodicMesh"/>
         <periodic_boundary_conditions name="x">
           <physical_boundary_ids>
-            <integer_value shape="1" rank="1">10</integer_value>
+            <integer_value rank="1" shape="1">10</integer_value>
           </physical_boundary_ids>
           <aliased_boundary_ids>
-            <integer_value shape="1" rank="1">8</integer_value>
+            <integer_value rank="1" shape="1">8</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import pi
    return(X[0]-2*pi, X[1])</string_value>
           </coordinate_map>
@@ -29,13 +29,13 @@
         </periodic_boundary_conditions>
         <periodic_boundary_conditions name="y">
           <physical_boundary_ids>
-            <integer_value shape="1" rank="1">7</integer_value>
+            <integer_value rank="1" shape="1">7</integer_value>
           </physical_boundary_ids>
           <aliased_boundary_ids>
-            <integer_value shape="1" rank="1">9</integer_value>
+            <integer_value rank="1" shape="1">9</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import pi
    return (X[0], X[1]-2*pi)</string_value>
           </coordinate_map>
@@ -125,7 +125,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -172,13 +172,16 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -190,12 +193,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -211,6 +217,7 @@
                 <twice/>
               </integrate_advection_by_parts>
             </advection_scheme>
+            <buoyancy/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0</real_value>
@@ -257,6 +264,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <vector_field name="Source" rank="1">
@@ -264,7 +274,7 @@
             <mesh name="VelocityMesh"/>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(XX, t):
+                <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import sin,cos
    nu = 0.7;
    adv = 1.0;
@@ -322,6 +332,9 @@ Sv = mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) - nu*v_xx - nu*
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </vector_field>
         <output>
@@ -342,18 +355,21 @@ Sv = mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) - nu*v_xx - nu*
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="PressureAnalytical" rank="0">
+    <scalar_field rank="0" name="PressureAnalytical">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import cos
    nu = 0.7;
    adv = 1.0;
@@ -371,10 +387,13 @@ Sv = mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) - nu*v_xx - nu*
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="ScalarAbsoluteDifference" rank="0">
-      <diagnostic field_name_b="PressureAnalytical" field_name_a="Pressure">
+    <scalar_field rank="0" name="ScalarAbsoluteDifference">
+      <diagnostic field_name_a="Pressure" field_name_b="PressureAnalytical">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
         <output/>
@@ -385,14 +404,17 @@ Sv = mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) - nu*v_xx - nu*
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <relative_to_average/>
       </diagnostic>
     </scalar_field>
-    <vector_field name="VectorAbsoluteDifference" rank="1">
-      <diagnostic field_name_b="Velocity" field_name_a="VelocityAnalytical">
+    <vector_field rank="1" name="VectorAbsoluteDifference">
+      <diagnostic field_name_a="VelocityAnalytical" field_name_b="Velocity">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
         <output/>
@@ -405,17 +427,20 @@ Sv = mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) - nu*v_xx - nu*
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="VelocityAnalytical" rank="1">
+    <vector_field rank="1" name="VelocityAnalytical">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    from math import sin, cos
    # Shear rotation about origin.
    return (sin(X[0])*cos(X[1]), -1.0*cos(X[0])*sin(X[1]))</string_value>
@@ -428,6 +453,9 @@ Sv = mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) - nu*v_xx - nu*
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
   </material_phase>

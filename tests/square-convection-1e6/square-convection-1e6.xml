@@ -149,7 +149,7 @@ print("Max w = " + str(max[1]) + " at x = " + str(max[0]))
 fluidity_tools.compare_variable(max[0], 0.0379, 0.03)
 # Tolerance increased for flredecomp
 #fluidity_tools.compare_variable(max[1], 219.36, 0.003)
-fluidity_tools.compare_variable(max[1], 219.36, 0.004)
+fluidity_tools.compare_variable(max[1], 219.36, 0.006)
     </test>
     <test name="Streamfunction max benchmark" language="python">
 import fluidity_tools

@@ -87,8 +87,8 @@ assert abs ( MaximumVelocity  - 0.104 ) &lt; 0.104/10.0
     <test name="Norm of velocity within 10% of previous run" language="python">
 assert abs ( NormVelocity - 5588.0 ) &lt; 5588.0/10.0
     </test>
-    <test name="Pressure range within 10% of previous run" language="python">
-assert abs (  PressureRange - (0.001686) )  &lt; 0.001686/10.0
+    <test name="Pressure range within 20% of previous run" language="python">
+assert abs (  PressureRange - (0.001686) )  &lt; 0.001686/5.0
     </test>
     <test name="Balance pressure range within 10% of previous run" language="python">
 assert abs (  (MaximumGeostrophicPressure - MinimumGeostrophicPressure)- 0.098 )  &lt; 0.098/10.0

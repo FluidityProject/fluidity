@@ -53,13 +53,13 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
         <mesh name="CoordinateMesh"/>
         <periodic_boundary_conditions name="X">
           <physical_boundary_ids>
-            <integer_value shape="1" rank="1">6</integer_value>
+            <integer_value rank="1" shape="1">6</integer_value>
           </physical_boundary_ids>
           <aliased_boundary_ids>
-            <integer_value shape="1" rank="1">5</integer_value>
+            <integer_value rank="1" shape="1">5</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    return(X[0]+250, X[1],X[2])</string_value>
           </coordinate_map>
         </periodic_boundary_conditions>
@@ -75,12 +75,12 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
     </quadrature>
     <ocean_boundaries>
       <top_surface_ids>
-        <integer_value shape="1" rank="1">1</integer_value>
+        <integer_value rank="1" shape="1">1</integer_value>
       </top_surface_ids>
       <bottom_surface_ids>
-        <integer_value shape="1" rank="1">2</integer_value>
+        <integer_value rank="1" shape="1">2</integer_value>
       </bottom_surface_ids>
-      <scalar_field name="DistanceToTop" rank="0">
+      <scalar_field rank="0" name="DistanceToTop">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -92,12 +92,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>
         </diagnostic>
       </scalar_field>
-      <scalar_field name="DistanceToBottom" rank="0">
+      <scalar_field rank="0" name="DistanceToBottom">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -109,6 +112,9 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>
@@ -152,7 +158,7 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="3" dim1="dim" rank="1">0.0 0.0 -1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="3">0.0 0.0 -1.0</real_value>
             </constant>
           </value>
           <output/>
@@ -162,6 +168,9 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -196,13 +205,13 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
         <calculate_boundaries>
           <string_value>neumann</string_value>
           <top_surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value rank="1" shape="1">1</integer_value>
           </top_surface_ids>
           <bottom_surface_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
+            <integer_value rank="1" shape="1">2</integer_value>
           </bottom_surface_ids>
         </calculate_boundaries>
-        <scalar_field name="GLSTurbulentKineticEnergy" rank="0">
+        <scalar_field rank="0" name="GLSTurbulentKineticEnergy">
           <prognostic>
             <mesh name="Periodic"/>
             <equation name="AdvectionDiffusion"/>
@@ -259,6 +268,9 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
                 <stat>
                   <include_in_stat/>
                 </stat>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </tensor_field>
             <scalar_field name="Source" rank="0">
@@ -269,6 +281,9 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </scalar_field>
             <scalar_field name="Absorption" rank="0">
@@ -279,6 +294,9 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </scalar_field>
             <output/>
@@ -289,6 +307,9 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -298,7 +319,7 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             </minimum_value>
           </prognostic>
         </scalar_field>
-        <scalar_field name="GLSGenericSecondQuantity" rank="0">
+        <scalar_field rank="0" name="GLSGenericSecondQuantity">
           <prognostic>
             <mesh name="Periodic"/>
             <equation name="AdvectionDiffusion"/>
@@ -355,6 +376,9 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
                 <stat>
                   <include_in_stat/>
                 </stat>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </tensor_field>
             <scalar_field name="Source" rank="0">
@@ -365,6 +389,9 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </scalar_field>
             <scalar_field name="Absorption" rank="0">
@@ -375,6 +402,9 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </scalar_field>
             <output/>
@@ -385,39 +415,48 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
             <consistent_interpolation/>
           </prognostic>
         </scalar_field>
-        <tensor_field name="GLSBackgroundViscosity" rank="2">
+        <tensor_field rank="2" name="GLSBackgroundViscosity">
           <prescribed>
             <mesh name="Periodic"/>
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">100 0.0 0.0 0.0 100 0.0 0.0 0.0 1e-6</real_value>
+                  <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">100 0.0 0.0 0.0 100 0.0 0.0 0.0 1e-6</real_value>
                 </constant>
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
-        <tensor_field name="GLSBackgroundDiffusivity" rank="2">
+        <tensor_field rank="2" name="GLSBackgroundDiffusivity">
           <prescribed>
             <mesh name="Periodic"/>
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">100 0.0 0.0 0.0 100 0 0.0 0 1e-6</real_value>
+                  <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">100 0.0 0.0 0.0 100 0 0.0 0 1e-6</real_value>
                 </constant>
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
-        <tensor_field name="GLSEddyViscosityKM" rank="2">
+        <tensor_field rank="2" name="GLSEddyViscosityKM">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="Periodic"/>
@@ -429,12 +468,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </tensor_field>
-        <tensor_field name="GLSEddyDiffusivityKH" rank="2">
+        <tensor_field rank="2" name="GLSEddyDiffusivityKH">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="Periodic"/>
@@ -446,12 +488,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </tensor_field>
-        <scalar_field name="GLSLengthScale" rank="0">
+        <scalar_field rank="0" name="GLSLengthScale">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="Periodic"/>
@@ -463,12 +508,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSBuoyancyFrequency" rank="0">
+        <scalar_field rank="0" name="GLSBuoyancyFrequency">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="Periodic"/>
@@ -480,12 +528,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSVelocityShear" rank="0">
+        <scalar_field rank="0" name="GLSVelocityShear">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="Periodic"/>
@@ -497,12 +548,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSShearProduction" rank="0">
+        <scalar_field rank="0" name="GLSShearProduction">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="Periodic"/>
@@ -514,12 +568,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSBuoyancyProduction" rank="0">
+        <scalar_field rank="0" name="GLSBuoyancyProduction">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="Periodic"/>
@@ -531,12 +588,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSDissipationEpsilon" rank="0">
+        <scalar_field rank="0" name="GLSDissipationEpsilon">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="Periodic"/>
@@ -548,12 +608,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSStabilityFunctionSM" rank="0">
+        <scalar_field rank="0" name="GLSStabilityFunctionSM">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="Periodic"/>
@@ -565,12 +628,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSStabilityFunctionSH" rank="0">
+        <scalar_field rank="0" name="GLSStabilityFunctionSH">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="Periodic"/>
@@ -582,12 +648,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSSource1" rank="0">
+        <scalar_field rank="0" name="GLSSource1">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="Periodic"/>
@@ -599,12 +668,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSSource2" rank="0">
+        <scalar_field rank="0" name="GLSSource2">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="Periodic"/>
@@ -616,12 +688,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSAbsorption1" rank="0">
+        <scalar_field rank="0" name="GLSAbsorption1">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="Periodic"/>
@@ -633,12 +708,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSAbsorption2" rank="0">
+        <scalar_field rank="0" name="GLSAbsorption2">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="Periodic"/>
@@ -650,12 +728,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSWallFunction" rank="0">
+        <scalar_field rank="0" name="GLSWallFunction">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="Periodic"/>
@@ -667,12 +748,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSVerticalViscosity" rank="0">
+        <scalar_field rank="0" name="GLSVerticalViscosity">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="Periodic"/>
@@ -684,12 +768,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="GLSVerticalDiffusivity" rank="0">
+        <scalar_field rank="0" name="GLSVerticalDiffusivity">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="Periodic"/>
@@ -701,6 +788,9 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>
@@ -708,7 +798,7 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
         </scalar_field>
       </GLS>
     </subgridscale_parameterisations>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
@@ -721,9 +811,12 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="Periodic"/>
@@ -735,12 +828,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -756,6 +852,7 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
                 <twice/>
               </integrate_advection_by_parts>
             </advection_scheme>
+            <buoyancy/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
@@ -789,12 +886,12 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="Sides">
           <surface_ids>
-            <integer_value shape="2" rank="1">3 4</integer_value>
+            <integer_value rank="1" shape="2">3 4</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -808,7 +905,7 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
         </boundary_conditions>
         <boundary_conditions name="top_bottom">
           <surface_ids>
-            <integer_value shape="2" rank="1">1 2</integer_value>
+            <integer_value rank="1" shape="2">1 2</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -822,12 +919,12 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
         </boundary_conditions>
         <boundary_conditions name="Wind">
           <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value rank="1" shape="1">1</integer_value>
           </surface_ids>
           <type name="wind_forcing">
             <wind_stress>
               <constant>
-                <real_value shape="2" dim1="dim-1" rank="1">0.0001 0.00</real_value>
+                <real_value rank="1" dim1="dim-1" shape="2">0.0001 0.00</real_value>
               </constant>
             </wind_stress>
           </type>
@@ -839,6 +936,9 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
             <stat>
               <include_in_stat/>
             </stat>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </diagnostic>
         </tensor_field>
         <output/>
@@ -857,13 +957,16 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prognostic>
         <mesh name="Periodic"/>
         <equation name="AdvectionDiffusion"/>
@@ -873,7 +976,7 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
               <streamline_upwind_petrov_galerkin>
                 <nu_bar_optimal/>
                 <nu_scale name="0.5">
-                  <real_value shape="1" rank="0">0.5</real_value>
+                  <real_value rank="0" shape="1">0.5</real_value>
                 </nu_scale>
               </streamline_upwind_petrov_galerkin>
             </stabilisation>
@@ -911,7 +1014,7 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
     TopTemp = 13
     t = TopTemp - 0.06*abs(X[2])
     return t</string_value>
@@ -926,13 +1029,16 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="PerturbationDensity" rank="0">
+    <scalar_field rank="0" name="PerturbationDensity">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="Periodic"/>
@@ -944,12 +1050,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -961,12 +1070,15 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="GeostrophicPressure" rank="0">
+    <scalar_field rank="0" name="GeostrophicPressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -997,6 +1109,9 @@ where U_s is the surface friction velocity, N_0 = initial buoyancy frequency (0.
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

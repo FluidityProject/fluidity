@@ -21,7 +21,7 @@ start =
       }?,
       ## Test execution options
       element problem_definition {
-         attribute length { "short" | "medium" | "long" | "vlong" | "special" },
+         attribute length { "vshort" | "short" | "medium" | "long" | "vlong" | "disabled" },
          attribute nprocs { xsd:integer },
          ## Test execution command
          element command_line {

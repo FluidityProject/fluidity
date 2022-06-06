@@ -124,7 +124,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">0.707106781 0.707106781</real_value>
+              <real_value rank="1" dim1="dim" shape="2">0.707106781 0.707106781</real_value>
             </constant>
           </value>
           <output/>
@@ -134,6 +134,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -159,7 +162,7 @@
     </equation_of_state>
     <subgridscale_parameterisations>
       <k-epsilon>
-        <scalar_field name="TurbulentKineticEnergy" rank="0">
+        <scalar_field rank="0" name="TurbulentKineticEnergy">
           <prognostic>
             <mesh name="VelocityMesh"/>
             <equation name="KEpsilon">
@@ -214,18 +217,18 @@
             </solver>
             <initial_condition name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.ke(X)</string_value>
               </python>
             </initial_condition>
             <boundary_conditions name="all_sides">
               <surface_ids>
-                <integer_value shape="1" rank="1">1</integer_value>
+                <integer_value rank="1" shape="1">1</integer_value>
               </surface_ids>
               <type name="dirichlet">
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.ke(X)</string_value>
                 </python>
@@ -238,6 +241,9 @@
                 <stat>
                   <exclude_from_stat/>
                 </stat>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </tensor_field>
             <scalar_field name="Source" rank="0">
@@ -250,6 +256,9 @@
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </scalar_field>
             <scalar_field name="Absorption" rank="0">
@@ -262,6 +271,9 @@
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </scalar_field>
             <output/>
@@ -274,13 +286,16 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <exclude_from_steady_state/>
             </steady_state>
             <consistent_interpolation/>
           </prognostic>
         </scalar_field>
-        <scalar_field name="TurbulentDissipation" rank="0">
+        <scalar_field rank="0" name="TurbulentDissipation">
           <prognostic>
             <mesh name="VelocityMesh"/>
             <equation name="KEpsilon">
@@ -335,18 +350,18 @@
             </solver>
             <initial_condition name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.eps(X)</string_value>
               </python>
             </initial_condition>
             <boundary_conditions name="all_sides">
               <surface_ids>
-                <integer_value shape="1" rank="1">1</integer_value>
+                <integer_value rank="1" shape="1">1</integer_value>
               </surface_ids>
               <type name="dirichlet">
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.eps(X)</string_value>
                 </python>
@@ -359,6 +374,9 @@
                 <stat>
                   <exclude_from_stat/>
                 </stat>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </tensor_field>
             <scalar_field name="Source" rank="0">
@@ -371,6 +389,9 @@
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </scalar_field>
             <scalar_field name="Absorption" rank="0">
@@ -383,6 +404,9 @@
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </diagnostic>
             </scalar_field>
             <output/>
@@ -395,26 +419,32 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <exclude_from_steady_state/>
             </steady_state>
             <consistent_interpolation/>
           </prognostic>
         </scalar_field>
-        <tensor_field name="BackgroundViscosity" rank="2">
+        <tensor_field rank="2" name="BackgroundViscosity">
           <prescribed>
             <mesh name="VelocityMesh"/>
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1.0 1.0 1.0 1.0</real_value>
+                  <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">1.0 1.0 1.0 1.0</real_value>
                 </constant>
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
-        <tensor_field name="EddyViscosity" rank="2">
+        <tensor_field rank="2" name="EddyViscosity">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -422,9 +452,12 @@
             <stat>
               <exclude_from_stat/>
             </stat>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </diagnostic>
         </tensor_field>
-        <scalar_field name="ScalarEddyViscosity" rank="0">
+        <scalar_field rank="0" name="ScalarEddyViscosity">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -438,12 +471,15 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <exclude_from_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="LengthScale" rank="0">
+        <scalar_field rank="0" name="LengthScale">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -457,12 +493,15 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <exclude_from_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="f_1" rank="0">
+        <scalar_field rank="0" name="f_1">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -476,12 +515,15 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <exclude_from_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="f_2" rank="0">
+        <scalar_field rank="0" name="f_2">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -495,12 +537,15 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <exclude_from_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="f_mu" rank="0">
+        <scalar_field rank="0" name="f_mu">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -514,6 +559,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <exclude_from_steady_state/>
             </steady_state>
@@ -570,7 +618,7 @@
         </mass_terms>
         <debugging_options>
           <source_term_output_fields>
-            <scalar_field name="TurbulentKineticEnergy_production_term" rank="0">
+            <scalar_field rank="0" name="TurbulentKineticEnergy_production_term">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <mesh name="VelocityMesh"/>
@@ -584,12 +632,15 @@
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
                 <steady_state>
                   <exclude_from_steady_state/>
                 </steady_state>
               </diagnostic>
             </scalar_field>
-            <scalar_field name="TurbulentKineticEnergy_destruction_term" rank="0">
+            <scalar_field rank="0" name="TurbulentKineticEnergy_destruction_term">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <mesh name="VelocityMesh"/>
@@ -603,12 +654,15 @@
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
                 <steady_state>
                   <exclude_from_steady_state/>
                 </steady_state>
               </diagnostic>
             </scalar_field>
-            <scalar_field name="TurbulentKineticEnergy_buoyancy_term" rank="0">
+            <scalar_field rank="0" name="TurbulentKineticEnergy_buoyancy_term">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <mesh name="VelocityMesh"/>
@@ -622,12 +676,15 @@
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
                 <steady_state>
                   <exclude_from_steady_state/>
                 </steady_state>
               </diagnostic>
             </scalar_field>
-            <scalar_field name="TurbulentDissipation_production_term" rank="0">
+            <scalar_field rank="0" name="TurbulentDissipation_production_term">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <mesh name="VelocityMesh"/>
@@ -641,12 +698,15 @@
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
                 <steady_state>
                   <exclude_from_steady_state/>
                 </steady_state>
               </diagnostic>
             </scalar_field>
-            <scalar_field name="TurbulentDissipation_destruction_term" rank="0">
+            <scalar_field rank="0" name="TurbulentDissipation_destruction_term">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <mesh name="VelocityMesh"/>
@@ -660,12 +720,15 @@
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
                 <steady_state>
                   <exclude_from_steady_state/>
                 </steady_state>
               </diagnostic>
             </scalar_field>
-            <scalar_field name="TurbulentDissipation_buoyancy_term" rank="0">
+            <scalar_field rank="0" name="TurbulentDissipation_buoyancy_term">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <mesh name="VelocityMesh"/>
@@ -679,6 +742,9 @@
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
                 <steady_state>
                   <exclude_from_steady_state/>
                 </steady_state>
@@ -686,12 +752,12 @@
             </scalar_field>
           </source_term_output_fields>
           <prescribed_source_terms>
-            <scalar_field name="TurbulentKineticEnergyPrescribedSource" rank="0">
+            <scalar_field rank="0" name="TurbulentKineticEnergyPrescribedSource">
               <prescribed>
                 <mesh name="VelocityMesh"/>
                 <value name="WholeMesh">
                   <python>
-                    <string_value lines="20" type="code" language="python">def val(X,t):
+                    <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.forcing_ke(X)</string_value>
                   </python>
@@ -703,14 +769,17 @@
                 <detectors>
                   <exclude_from_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </prescribed>
             </scalar_field>
-            <scalar_field name="TurbulentDissipationPrescribedSource" rank="0">
+            <scalar_field rank="0" name="TurbulentDissipationPrescribedSource">
               <prescribed>
                 <mesh name="VelocityMesh"/>
                 <value name="WholeMesh">
                   <python>
-                    <string_value lines="20" type="code" language="python">def val(X,t):
+                    <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.forcing_eps(X)</string_value>
                   </python>
@@ -722,13 +791,16 @@
                 <detectors>
                   <exclude_from_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </prescribed>
             </scalar_field>
           </prescribed_source_terms>
         </debugging_options>
       </k-epsilon>
     </subgridscale_parameterisations>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -737,7 +809,7 @@
           </continuous_galerkin>
         </spatial_discretisation>
         <reference_coordinates>
-          <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+          <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
         </reference_coordinates>
         <scheme>
           <poisson_pressure_solution>
@@ -774,13 +846,16 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -794,12 +869,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -855,14 +933,14 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.velocity(X)</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="all_sides">
           <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value rank="1" shape="1">1</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly>
@@ -871,14 +949,14 @@
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.u(X)</string_value>
                 </python>
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.v(X)</string_value>
                 </python>
@@ -893,13 +971,16 @@
             <stat>
               <include_in_stat/>
             </stat>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </diagnostic>
         </tensor_field>
         <vector_field name="Source" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.forcing_velocity(X)</string_value>
               </python>
@@ -911,6 +992,9 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </vector_field>
         <output/>
@@ -929,6 +1013,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -952,7 +1039,7 @@
         </galerkin_projection>
       </prognostic>
     </vector_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -966,12 +1053,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -1019,18 +1109,18 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.rho(X)</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="all_sides">
           <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value rank="1" shape="1">1</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.rho(X)</string_value>
             </python>
@@ -1048,13 +1138,16 @@
             <stat>
               <exclude_from_stat/>
             </stat>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </diagnostic>
         </tensor_field>
         <scalar_field name="Source" rank="0">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.forcing_rho(X)</string_value>
               </python>
@@ -1066,6 +1159,9 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </scalar_field>
         <output/>
@@ -1078,18 +1174,21 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="TemperatureAnalytical" rank="0">
+    <scalar_field rank="0" name="TemperatureAnalytical">
       <prescribed>
         <mesh name="VelocityErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.rho(X)</string_value>
           </python>
@@ -1101,11 +1200,14 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="TemperatureError" rank="0">
+    <scalar_field rank="0" name="TemperatureError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TemperatureAnalytical" source_field_2_name="TemperatureProjection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="TemperatureAnalytical" source_field_1_type="scalar" source_field_2_name="TemperatureProjection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="VelocityErrorMesh"/>
@@ -1117,14 +1219,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TemperatureProjection" rank="0">
+    <scalar_field rank="0" name="TemperatureProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="Temperature">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="Temperature" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -1151,17 +1256,20 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PressureAnalytical" rank="0">
+    <scalar_field rank="0" name="PressureAnalytical">
       <prescribed>
         <mesh name="PressureErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
         import mms_rans_p1dgp2_keps_tools as k
         return k.p(X)</string_value>
           </python>
@@ -1173,11 +1281,14 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="PressureProjection" rank="0">
+    <scalar_field rank="0" name="PressureProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="Pressure">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="Pressure" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -1204,14 +1315,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PressureError" rank="0">
+    <scalar_field rank="0" name="PressureError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="PressureAnalytical" source_field_2_name="PressureProjection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="PressureAnalytical" source_field_1_type="scalar" source_field_2_name="PressureProjection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="PressureErrorMesh"/>
@@ -1223,15 +1337,18 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentKineticEnergy_production_termCopy" rank="0">
+    <scalar_field rank="0" name="TurbulentKineticEnergy_production_termCopy">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentKineticEnergy_production_term"]
+          <string_value type="code" language="python" lines="20">E=state.scalar_fields["TurbulentKineticEnergy_production_term"]
 
 for n in range(field.node_count):
 	field.set(n,E.node_val(n))</string_value>
@@ -1247,17 +1364,20 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentKineticEnergy_production_termAnalytical" rank="0">
+    <scalar_field rank="0" name="TurbulentKineticEnergy_production_termAnalytical">
       <prescribed>
         <mesh name="VelocityErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.P_ke(X)</string_value>
           </python>
@@ -1269,11 +1389,14 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="TurbulentKineticEnergy_production_termProjection" rank="0">
+    <scalar_field rank="0" name="TurbulentKineticEnergy_production_termProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="TurbulentKineticEnergy_production_termCopy">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="TurbulentKineticEnergy_production_termCopy" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -1300,14 +1423,17 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentKineticEnergy_production_termError" rank="0">
+    <scalar_field rank="0" name="TurbulentKineticEnergy_production_termError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TurbulentKineticEnergy_production_termAnalytical" source_field_2_name="TurbulentKineticEnergy_production_termProjection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="TurbulentKineticEnergy_production_termAnalytical" source_field_1_type="scalar" source_field_2_name="TurbulentKineticEnergy_production_termProjection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="VelocityErrorMesh"/>
@@ -1319,15 +1445,18 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentKineticEnergy_destruction_termCopy" rank="0">
+    <scalar_field rank="0" name="TurbulentKineticEnergy_destruction_termCopy">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentKineticEnergy_destruction_term"]
+          <string_value type="code" language="python" lines="20">E=state.scalar_fields["TurbulentKineticEnergy_destruction_term"]
 
 for n in range(field.node_count):
 	field.set(n,E.node_val(n))</string_value>
@@ -1343,17 +1472,20 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentKineticEnergy_destruction_termAnalytical" rank="0">
+    <scalar_field rank="0" name="TurbulentKineticEnergy_destruction_termAnalytical">
       <prescribed>
         <mesh name="VelocityErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.A_ke(X)</string_value>
           </python>
@@ -1365,11 +1497,14 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="TurbulentKineticEnergy_destruction_termProjection" rank="0">
+    <scalar_field rank="0" name="TurbulentKineticEnergy_destruction_termProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="TurbulentKineticEnergy_destruction_termCopy">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="TurbulentKineticEnergy_destruction_termCopy" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -1396,14 +1531,17 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentKineticEnergy_destruction_termError" rank="0">
+    <scalar_field rank="0" name="TurbulentKineticEnergy_destruction_termError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TurbulentKineticEnergy_destruction_termAnalytical" source_field_2_name="TurbulentKineticEnergy_destruction_termProjection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="TurbulentKineticEnergy_destruction_termAnalytical" source_field_1_type="scalar" source_field_2_name="TurbulentKineticEnergy_destruction_termProjection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="VelocityErrorMesh"/>
@@ -1415,15 +1553,18 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentKineticEnergy_buoyancy_termCopy" rank="0">
+    <scalar_field rank="0" name="TurbulentKineticEnergy_buoyancy_termCopy">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentKineticEnergy_buoyancy_term"]
+          <string_value type="code" language="python" lines="20">E=state.scalar_fields["TurbulentKineticEnergy_buoyancy_term"]
 
 for n in range(field.node_count):
 	field.set(n,E.node_val(n))</string_value>
@@ -1439,17 +1580,20 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentKineticEnergy_buoyancy_termAnalytical" rank="0">
+    <scalar_field rank="0" name="TurbulentKineticEnergy_buoyancy_termAnalytical">
       <prescribed>
         <mesh name="VelocityErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.B_ke(X)</string_value>
           </python>
@@ -1461,11 +1605,14 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="TurbulentKineticEnergy_buoyancy_termProjection" rank="0">
+    <scalar_field rank="0" name="TurbulentKineticEnergy_buoyancy_termProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="TurbulentKineticEnergy_buoyancy_termCopy">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="TurbulentKineticEnergy_buoyancy_termCopy" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -1492,14 +1639,17 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentKineticEnergy_buoyancy_termError" rank="0">
+    <scalar_field rank="0" name="TurbulentKineticEnergy_buoyancy_termError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TurbulentKineticEnergy_buoyancy_termAnalytical" source_field_2_name="TurbulentKineticEnergy_buoyancy_termProjection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="TurbulentKineticEnergy_buoyancy_termAnalytical" source_field_1_type="scalar" source_field_2_name="TurbulentKineticEnergy_buoyancy_termProjection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="VelocityErrorMesh"/>
@@ -1511,15 +1661,18 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentKineticEnergyCopy" rank="0">
+    <scalar_field rank="0" name="TurbulentKineticEnergyCopy">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentKineticEnergy"]
+          <string_value type="code" language="python" lines="20">E=state.scalar_fields["TurbulentKineticEnergy"]
 
 for n in range(field.node_count):
 	field.set(n,E.node_val(n))</string_value>
@@ -1535,17 +1688,20 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentKineticEnergyAnalytical" rank="0">
+    <scalar_field rank="0" name="TurbulentKineticEnergyAnalytical">
       <prescribed>
         <mesh name="VelocityErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.ke(X)</string_value>
           </python>
@@ -1557,11 +1713,14 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="TurbulentKineticEnergyProjection" rank="0">
+    <scalar_field rank="0" name="TurbulentKineticEnergyProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="TurbulentKineticEnergyCopy">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="TurbulentKineticEnergyCopy" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -1588,14 +1747,17 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentKineticEnergyError" rank="0">
+    <scalar_field rank="0" name="TurbulentKineticEnergyError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TurbulentKineticEnergyAnalytical" source_field_2_name="TurbulentKineticEnergyProjection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="TurbulentKineticEnergyAnalytical" source_field_1_type="scalar" source_field_2_name="TurbulentKineticEnergyProjection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="VelocityErrorMesh"/>
@@ -1607,15 +1769,18 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentDissipation_production_termCopy" rank="0">
+    <scalar_field rank="0" name="TurbulentDissipation_production_termCopy">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentDissipation_production_term"]
+          <string_value type="code" language="python" lines="20">E=state.scalar_fields["TurbulentDissipation_production_term"]
 
 for n in range(field.node_count):
 	field.set(n,E.node_val(n))</string_value>
@@ -1631,17 +1796,20 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentDissipation_production_termAnalytical" rank="0">
+    <scalar_field rank="0" name="TurbulentDissipation_production_termAnalytical">
       <prescribed>
         <mesh name="VelocityErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.P_eps(X)</string_value>
           </python>
@@ -1653,11 +1821,14 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="TurbulentDissipation_production_termProjection" rank="0">
+    <scalar_field rank="0" name="TurbulentDissipation_production_termProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="TurbulentDissipation_production_termCopy">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="TurbulentDissipation_production_termCopy" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -1684,14 +1855,17 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentDissipation_production_termError" rank="0">
+    <scalar_field rank="0" name="TurbulentDissipation_production_termError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TurbulentDissipation_production_termAnalytical" source_field_2_name="TurbulentDissipation_production_termProjection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="TurbulentDissipation_production_termAnalytical" source_field_1_type="scalar" source_field_2_name="TurbulentDissipation_production_termProjection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="VelocityErrorMesh"/>
@@ -1703,15 +1877,18 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentDissipation_destruction_termCopy" rank="0">
+    <scalar_field rank="0" name="TurbulentDissipation_destruction_termCopy">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentDissipation_destruction_term"]
+          <string_value type="code" language="python" lines="20">E=state.scalar_fields["TurbulentDissipation_destruction_term"]
 
 for n in range(field.node_count):
 	field.set(n,E.node_val(n))</string_value>
@@ -1727,17 +1904,20 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentDissipation_destruction_termAnalytical" rank="0">
+    <scalar_field rank="0" name="TurbulentDissipation_destruction_termAnalytical">
       <prescribed>
         <mesh name="VelocityErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.A_eps(X)</string_value>
           </python>
@@ -1749,11 +1929,14 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="TurbulentDissipation_destruction_termProjection" rank="0">
+    <scalar_field rank="0" name="TurbulentDissipation_destruction_termProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="TurbulentDissipation_destruction_termCopy">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="TurbulentDissipation_destruction_termCopy" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -1780,14 +1963,17 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentDissipation_destruction_termError" rank="0">
+    <scalar_field rank="0" name="TurbulentDissipation_destruction_termError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TurbulentDissipation_destruction_termAnalytical" source_field_2_name="TurbulentDissipation_destruction_termProjection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="TurbulentDissipation_destruction_termAnalytical" source_field_1_type="scalar" source_field_2_name="TurbulentDissipation_destruction_termProjection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="VelocityErrorMesh"/>
@@ -1799,15 +1985,18 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentDissipation_buoyancy_termCopy" rank="0">
+    <scalar_field rank="0" name="TurbulentDissipation_buoyancy_termCopy">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentDissipation_buoyancy_term"]
+          <string_value type="code" language="python" lines="20">E=state.scalar_fields["TurbulentDissipation_buoyancy_term"]
 
 for n in range(field.node_count):
 	field.set(n,E.node_val(n))</string_value>
@@ -1823,17 +2012,20 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentDissipation_buoyancy_termAnalytical" rank="0">
+    <scalar_field rank="0" name="TurbulentDissipation_buoyancy_termAnalytical">
       <prescribed>
         <mesh name="VelocityErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.B_eps(X)</string_value>
           </python>
@@ -1845,11 +2037,14 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="TurbulentDissipation_buoyancy_termProjection" rank="0">
+    <scalar_field rank="0" name="TurbulentDissipation_buoyancy_termProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="TurbulentDissipation_buoyancy_termCopy">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="TurbulentDissipation_buoyancy_termCopy" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -1876,14 +2071,17 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentDissipation_buoyancy_termError" rank="0">
+    <scalar_field rank="0" name="TurbulentDissipation_buoyancy_termError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TurbulentDissipation_buoyancy_termAnalytical" source_field_2_name="TurbulentDissipation_buoyancy_termProjection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="TurbulentDissipation_buoyancy_termAnalytical" source_field_1_type="scalar" source_field_2_name="TurbulentDissipation_buoyancy_termProjection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="VelocityErrorMesh"/>
@@ -1895,15 +2093,18 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentDissipationCopy" rank="0">
+    <scalar_field rank="0" name="TurbulentDissipationCopy">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentDissipation"]
+          <string_value type="code" language="python" lines="20">E=state.scalar_fields["TurbulentDissipation"]
 
 for n in range(field.node_count):
 	field.set(n,E.node_val(n))</string_value>
@@ -1919,17 +2120,20 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentDissipationAnalytical" rank="0">
+    <scalar_field rank="0" name="TurbulentDissipationAnalytical">
       <prescribed>
         <mesh name="VelocityErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.eps(X)</string_value>
           </python>
@@ -1941,11 +2145,14 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="TurbulentDissipationProjection" rank="0">
+    <scalar_field rank="0" name="TurbulentDissipationProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="TurbulentDissipationCopy">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="TurbulentDissipationCopy" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -1972,14 +2179,17 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TurbulentDissipationError" rank="0">
+    <scalar_field rank="0" name="TurbulentDissipationError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="TurbulentDissipationAnalytical" source_field_2_name="TurbulentDissipationProjection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="TurbulentDissipationAnalytical" source_field_1_type="scalar" source_field_2_name="TurbulentDissipationProjection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="VelocityErrorMesh"/>
@@ -1991,15 +2201,18 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="ScalarEddyViscosityCopy" rank="0">
+    <scalar_field rank="0" name="ScalarEddyViscosityCopy">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">E=state.scalar_fields["ScalarEddyViscosity"]
+          <string_value type="code" language="python" lines="20">E=state.scalar_fields["ScalarEddyViscosity"]
 
 for n in range(field.node_count):
 	field.set(n,E.node_val(n))</string_value>
@@ -2015,17 +2228,20 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="ScalarEddyViscosityAnalytical" rank="0">
+    <scalar_field rank="0" name="ScalarEddyViscosityAnalytical">
       <prescribed>
         <mesh name="VelocityErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mms_rans_p1dgp2_keps_tools as k
    return k.EV(X)</string_value>
           </python>
@@ -2037,11 +2253,14 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="ScalarEddyViscosityProjection" rank="0">
+    <scalar_field rank="0" name="ScalarEddyViscosityProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="ScalarEddyViscosityCopy">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="ScalarEddyViscosityCopy" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -2068,14 +2287,17 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="ScalarEddyViscosityError" rank="0">
+    <scalar_field rank="0" name="ScalarEddyViscosityError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="ScalarEddyViscosityAnalytical" source_field_2_name="ScalarEddyViscosityProjection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="ScalarEddyViscosityAnalytical" source_field_1_type="scalar" source_field_2_name="ScalarEddyViscosityProjection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="VelocityErrorMesh"/>
@@ -2087,17 +2309,20 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="VelocityAnalytical" rank="1">
+    <vector_field rank="1" name="VelocityAnalytical">
       <prescribed>
         <mesh name="VelocityErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
         import mms_rans_p1dgp2_keps_tools as k
         return k.velocity(X)</string_value>
           </python>
@@ -2109,11 +2334,14 @@ for n in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <vector_field name="VelocityProjection" rank="1">
+    <vector_field rank="1" name="VelocityProjection">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="Velocity">
+        <algorithm name="vector_galerkin_projection" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -2140,14 +2368,17 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="VelocityError" rank="1">
+    <vector_field rank="1" name="VelocityError">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="VelocityProjection" source_field_2_name="VelocityAnalytical" material_phase_support="single" source_field_1_type="vector">
+        <algorithm name="vector_difference" material_phase_support="single" source_field_1_name="VelocityProjection" source_field_1_type="vector" source_field_2_name="VelocityAnalytical" source_field_2_type="vector">
           <absolute_difference/>
         </algorithm>
         <mesh name="VelocityErrorMesh"/>
@@ -2161,6 +2392,9 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

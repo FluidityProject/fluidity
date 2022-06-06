@@ -74,7 +74,7 @@ bc_CMB_convergence_ns = cc.CMB_normalstress_convergence(file_coarse,file_fine)
   </variables>
 
   <pass_tests>
-    <test name="abvolume_vel" language="python">assert( abs(ab_volume_convergence_vel -1.5) &lt; 0.2)</test>
+    <test name="abvolume_vel" language="python">assert( abs(ab_volume_convergence_vel -1.5) &lt; 0.25)</test>
     <test name="bcvolume_vel" language="python">assert( abs(bc_volume_convergence_vel -1.5) &lt; 0.05)</test>
 
     <test name="abvolume_pressure" language="python">assert( abs(ab_volume_convergence_pressure -0.5) &lt; 0.05)</test>

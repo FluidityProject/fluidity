@@ -154,6 +154,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -364,6 +367,9 @@
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -382,6 +388,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
@@ -627,6 +636,9 @@ for i in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
     <vector_field rank="1" name="VelocityError">
@@ -653,6 +665,9 @@ for i in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -674,6 +689,9 @@ for i in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -687,6 +705,9 @@ for i in range(field.node_count):
         <stat>
           <include_in_stat/>
         </stat>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </diagnostic>
     </tensor_field>
   </material_phase>

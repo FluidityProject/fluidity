@@ -57,13 +57,13 @@
           <regions name="WholeMesh">
             <bottom_depth>
               <python>
-                <string_value lines="20" type="code" language="python">def val(X, t):
+                <string_value type="code" language="python" lines="20">def val(X, t):
     return 5.0*X[0]/13800+0.1</string_value>
               </python>
             </bottom_depth>
             <sizing_function>
               <python>
-                <string_value lines="20" type="code" language="python">def val(X, t):
+                <string_value type="code" language="python" lines="20">def val(X, t):
     return 10000.0</string_value>
               </python>
             </sizing_function>
@@ -87,12 +87,12 @@
     </quadrature>
     <ocean_boundaries>
       <top_surface_ids>
-        <integer_value shape="1" rank="1">101</integer_value>
+        <integer_value rank="1" shape="1">101</integer_value>
       </top_surface_ids>
       <bottom_surface_ids>
-        <integer_value shape="1" rank="1">100</integer_value>
+        <integer_value rank="1" shape="1">100</integer_value>
       </bottom_surface_ids>
-      <scalar_field name="DistanceToTop" rank="0">
+      <scalar_field rank="0" name="DistanceToTop">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -104,12 +104,15 @@
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>
         </diagnostic>
       </scalar_field>
-      <scalar_field name="DistanceToBottom" rank="0">
+      <scalar_field rank="0" name="DistanceToBottom">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -121,6 +124,9 @@
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>
@@ -146,7 +152,7 @@
         </number_of_detectors>
         <static/>
         <python>
-          <string_value lines="20" type="code" language="python">def val(t):
+          <string_value type="code" language="python" lines="20">def val(t):
  import math
  ret=[]
  for i in range(0,1001):
@@ -154,7 +160,6 @@
  return ret</string_value>
         </python>
       </detector_array>
-      <fail_outside_domain/>
     </detectors>
   </io>
   <timestepping>
@@ -185,7 +190,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="3" dim1="dim" rank="1">0 0 -1</real_value>
+              <real_value rank="1" dim1="dim" shape="3">0 0 -1</real_value>
             </constant>
           </value>
           <output/>
@@ -195,6 +200,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -210,7 +218,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -245,12 +253,12 @@
         </solver>
         <boundary_conditions name="open_sinus_wave">
           <surface_ids>
-            <integer_value shape="1" rank="1">22</integer_value>
+            <integer_value rank="1" shape="1">22</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
             <python>
-              <string_value lines="20" type="code" language="python">def val(X, t):
+              <string_value type="code" language="python" lines="20">def val(X, t):
     from math import pi, sin
     g=9.81
     if (t&gt;=54000):
@@ -270,13 +278,16 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <no_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -288,12 +299,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -309,6 +323,7 @@
                 <twice/>
               </integrate_advection_by_parts>
             </advection_scheme>
+            <buoyancy/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0</real_value>
@@ -346,36 +361,36 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0 0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0 0 0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="FreeSurface">
           <surface_ids>
-            <integer_value shape="1" rank="1">101</integer_value>
+            <integer_value rank="1" shape="1">101</integer_value>
           </surface_ids>
           <type name="free_surface"/>
         </boundary_conditions>
         <boundary_conditions name="walls">
           <surface_ids>
-            <integer_value shape="2" rank="1">23 21</integer_value>
+            <integer_value rank="1" shape="2">23 21</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions name="shallow_back">
           <surface_ids>
-            <integer_value shape="1" rank="1">20</integer_value>
+            <integer_value rank="1" shape="1">20</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions name="bottom">
           <surface_ids>
-            <integer_value shape="1" rank="1">100</integer_value>
+            <integer_value rank="1" shape="1">100</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions name="bottom_drag">
           <surface_ids>
-            <integer_value shape="1" rank="1">100</integer_value>
+            <integer_value rank="1" shape="1">100</integer_value>
           </surface_ids>
           <type name="drag">
             <constant>
@@ -391,11 +406,14 @@
             <value name="WholeMesh">
               <diagonal>
                 <constant>
-                  <real_value shape="3" dim1="dim" rank="1">0 0 0.1</real_value>
+                  <real_value rank="1" dim1="dim" shape="3">0 0 0.1</real_value>
                 </constant>
               </diagonal>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output>
@@ -416,13 +434,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="FreeSurface" rank="0">
+    <scalar_field rank="0" name="FreeSurface">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -434,12 +455,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="WettingDryingAlpha" rank="0">
+    <scalar_field rank="0" name="WettingDryingAlpha">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -451,6 +475,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -466,7 +493,7 @@
             <real_value rank="0">0.1</real_value>
           </d0>
           <dry_absorption>
-            <real_value shape="3" dim1="dim" rank="1">0.1 0.1 0.1</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.1 0.1 0.1</real_value>
           </dry_absorption>
         </wetting_and_drying>
       </free_surface>
@@ -484,6 +511,9 @@
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>

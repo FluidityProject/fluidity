@@ -91,7 +91,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">0.0 -1.0</real_value>
+              <real_value rank="1" dim1="dim" shape="2">0.0 -1.0</real_value>
             </constant>
           </value>
           <output/>
@@ -101,6 +101,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -116,7 +119,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <spatial_discretisation>
@@ -173,13 +176,16 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <no_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -191,12 +197,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -214,6 +223,7 @@
             <stress_terms>
               <partial_stress_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
@@ -243,12 +253,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0. 0.</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0. 0.</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="Free_Slip_Sides">
           <surface_ids>
-            <integer_value shape="2" rank="1">7 9</integer_value>
+            <integer_value rank="1" shape="2">7 9</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -262,7 +272,7 @@
         </boundary_conditions>
         <boundary_conditions name="Rigid_Bottom">
           <surface_ids>
-            <integer_value shape="1" rank="1">6</integer_value>
+            <integer_value rank="1" shape="1">6</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -281,7 +291,7 @@
         </boundary_conditions>
         <boundary_conditions name="Free_Surface">
           <surface_ids>
-            <integer_value shape="1" rank="1">8</integer_value>
+            <integer_value rank="1" shape="1">8</integer_value>
           </surface_ids>
           <type name="free_surface">
             <no_normal_stress/>
@@ -290,11 +300,16 @@
         <tensor_field name="Viscosity" rank="2">
           <diagnostic>
             <mesh name="VelocityMesh"/>
-            <algorithm depends="MaterialViscosity" name="bulk_viscosity" material_phase_support="multiple"/>
+            <algorithm name="bulk_viscosity" material_phase_support="multiple" depends="MaterialViscosity">
+              <mean name="arithmetic"/>
+            </algorithm>
             <output/>
             <stat>
               <include_in_stat/>
             </stat>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </diagnostic>
         </tensor_field>
         <output/>
@@ -313,13 +328,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="MaterialVolumeFraction" rank="0">
+    <scalar_field rank="0" name="MaterialVolumeFraction">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -363,7 +381,7 @@
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
   import math
   amp = 0.01
   ycut = amp * math.cos((2*math.pi*X[0])/1) - 0.2
@@ -381,6 +399,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -390,7 +411,7 @@
         </priority>
       </prognostic>
     </scalar_field>
-    <scalar_field name="FreeSurface" rank="0">
+    <scalar_field rank="0" name="FreeSurface">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <initial_condition name="WholeMesh">
@@ -420,23 +441,29 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <tensor_field name="MaterialViscosity" rank="2">
+    <tensor_field rank="2" name="MaterialViscosity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <anisotropic_symmetric>
             <constant>
-              <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">10. 10. 10. 10.</real_value>
+              <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">10. 10. 10. 10.</real_value>
             </constant>
           </anisotropic_symmetric>
         </value>
         <output/>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </tensor_field>
   </material_phase>
@@ -450,10 +477,10 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <aliased material_phase_name="Dense" field_name="Velocity"/>
     </vector_field>
-    <scalar_field name="MaterialVolumeFraction" rank="0">
+    <scalar_field rank="0" name="MaterialVolumeFraction">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -465,22 +492,28 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <tensor_field name="MaterialViscosity" rank="2">
+    <tensor_field rank="2" name="MaterialViscosity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <anisotropic_symmetric>
             <constant>
-              <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1. 1. 1. 1.</real_value>
+              <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">1. 1. 1. 1.</real_value>
             </constant>
           </anisotropic_symmetric>
         </value>
         <output/>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </tensor_field>
   </material_phase>

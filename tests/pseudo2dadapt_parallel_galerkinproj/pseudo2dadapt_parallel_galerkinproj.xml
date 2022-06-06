@@ -4,9 +4,10 @@
   <owner userid="cwilson"/>
   <tags>flml</tags>
     <problem_definition length="medium" nprocs="2">
-    <command_line>mpiexec fluidity -v2 -l water_collapse.flml</command_line>
-  </problem_definition>  
-  <variables>  
+    <command_line>mpiexec flredecomp -i 1 -o 2 -v -l water_collapse water_collapse_flredecomp &amp;&amp;
+      mpiexec fluidity -v2 -l water_collapse_flredecomp.flml</command_line>
+  </problem_definition>
+  <variables>
     <variable name="log_n_lines" language="python">
 import glob
 files = glob.glob1(".","*.log-?")
@@ -63,7 +64,7 @@ nodesend= stat("water_collapse.stat")["CoordinateMesh"]["nodes"][-1]
 from fluidity_tools import stat_parser as stat
 numbertimesteps= len(stat("water_collapse.stat")["CoordinateMesh"]["nodes"])
     </variable>
-  </variables>    
+  </variables>
   <pass_tests>
     <test name="check water was conserved" language="python">
 print('mass loss = ', abs(vfracintend-vfracintstart))

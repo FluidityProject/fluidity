@@ -71,12 +71,12 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="fluid">
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
   from math import exp, sin, cos
   ##L=1.e6; F=0.1; rho=1000.0; H=200.0; gamma=1.e-6;
   ##A = F*L/(pi*gamma*rho*H) 
@@ -123,9 +123,12 @@ beta=1e-11</comment>
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -179,7 +182,7 @@ beta=1e-11</comment>
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
   from math import exp
   L =1.e6
   T =  10.0*exp(-((X[0] - 2.*L/3.)**2 + (X[1] - L/3.)**2)/(2.*(L/12.5)**2))
@@ -192,7 +195,7 @@ beta=1e-11</comment>
             <control_volumes/>
             <mixing_bin_bounds>
               <constant>
-                <real_value shape="11" rank="1">0 1 2 3 4 5 6 7 8 9 10</real_value>
+                <real_value rank="1" shape="11">0 1 2 3 4 5 6 7 8 9 10</real_value>
               </constant>
             </mixing_bin_bounds>
           </include_mixing_stats>
@@ -203,12 +206,15 @@ beta=1e-11</comment>
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -220,6 +226,9 @@ beta=1e-11</comment>
                 <detectors>
                   <exclude_from_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </prescribed>
             </scalar_field>
           </absolute_measure>
@@ -227,12 +236,12 @@ beta=1e-11</comment>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Streamfunction" rank="0">
+    <scalar_field rank="0" name="Streamfunction">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
   from math import exp, sin, cos
   ##L=1.e6; F=0.1; rho=1000.0; H=200.0; gamma=1.e-6;
   ##A = F*L/(pi*gamma*rho*H) 
@@ -258,6 +267,9 @@ beta=1e-11</comment>
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
   </material_phase>
@@ -273,7 +285,7 @@ beta=1e-11</comment>
         <tensor_field name="Gamma">
           <anisotropic_symmetric>
             <constant>
-              <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.7 0.0 0.0 0.7</real_value>
+              <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">0.7 0.0 0.0 0.7</real_value>
             </constant>
           </anisotropic_symmetric>
         </tensor_field>
@@ -281,14 +293,14 @@ beta=1e-11</comment>
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1.e3 0.0 0.0 1.e3</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">1.e3 0.0 0.0 1.e3</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1.e6 0.0 0.0 1.e6</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">1.e6 0.0 0.0 1.e6</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

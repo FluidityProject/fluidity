@@ -103,7 +103,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="3" dim1="dim" rank="1">0 0 -1</real_value>
+              <real_value rank="1" dim1="dim" shape="3">0 0 -1</real_value>
             </constant>
           </value>
           <output/>
@@ -113,6 +113,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -143,7 +146,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -180,13 +183,16 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -196,7 +202,7 @@
               <streamline_upwind>
                 <nu_bar_unity/>
                 <nu_scale name="unity">
-                  <real_value shape="1" rank="0">1.0</real_value>
+                  <real_value rank="0" shape="1">1.0</real_value>
                 </nu_scale>
               </streamline_upwind>
             </stabilisation>
@@ -207,6 +213,7 @@
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0</real_value>
@@ -240,12 +247,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0 0 0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0 0 0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="TopBottom">
           <surface_ids>
-            <integer_value shape="2" rank="1">161 162</integer_value>
+            <integer_value rank="1" shape="2">161 162</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -259,7 +266,7 @@
         </boundary_conditions>
         <boundary_conditions name="EastWest">
           <surface_ids>
-            <integer_value shape="2" rank="1">163 164</integer_value>
+            <integer_value rank="1" shape="2">163 164</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -273,7 +280,7 @@
         </boundary_conditions>
         <boundary_conditions name="NorthSouth">
           <surface_ids>
-            <integer_value shape="2" rank="1">165 166</integer_value>
+            <integer_value rank="1" shape="2">165 166</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -290,11 +297,14 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">5 0 0 0 5 0 0 0 0.2</real_value>
+                  <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">5 0 0 0 5 0 0 0 0.2</real_value>
                 </constant>
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -313,16 +323,19 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <vector_field name="InterpolationErrorBound" rank="1">
+            <vector_field rank="1" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
-                    <real_value shape="3" dim1="dim" rank="1">0.005 0.005 0.005</real_value>
+                    <real_value rank="1" dim1="dim" shape="3">0.005 0.005 0.005</real_value>
                   </constant>
                 </value>
                 <output/>
@@ -332,6 +345,9 @@
                 <detectors>
                   <exclude_from_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </prescribed>
             </vector_field>
           </absolute_measure>
@@ -339,7 +355,7 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -393,17 +409,17 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
    return (0.05+(X[2]/40000.0))</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="SurfaceHeatFlux">
           <surface_ids>
-            <integer_value shape="1" rank="1">161</integer_value>
+            <integer_value rank="1" shape="1">161</integer_value>
           </surface_ids>
           <type name="neumann">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value type="code" language="python" lines="20">def val(X,t):
     from math import sqrt
     QQ = -2.0E-04
     ramp = 500.0
@@ -446,11 +462,14 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">5 0 0 0 5 0 0 0 0.2</real_value>
+                  <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">5 0 0 0 5 0 0 0 0.2</real_value>
                 </constant>
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -461,12 +480,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
@@ -478,6 +500,9 @@
                 <detectors>
                   <exclude_from_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </prescribed>
             </scalar_field>
           </absolute_measure>
@@ -485,7 +510,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="GeostrophicPressure" rank="0">
+    <scalar_field rank="0" name="GeostrophicPressure">
       <prognostic>
         <mesh name="GeostrophicPressureMesh"/>
         <spatial_discretisation>
@@ -494,7 +519,7 @@
           </geostrophic_pressure_option>
         </spatial_discretisation>
         <reference_node name="node_1">
-          <integer_value shape="1" rank="0">1</integer_value>
+          <integer_value rank="0" shape="1">1</integer_value>
         </reference_node>
         <solver>
           <iterative_method name="cg"/>
@@ -518,13 +543,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <no_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="ControlVolumeCFLNumber" rank="0">
+    <scalar_field rank="0" name="ControlVolumeCFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -536,6 +564,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -558,14 +589,14 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">100 0 0 0 100 0 0 0 10</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">100 0 0 0 100 0 0 0 10</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">5000 0 0 0 5000 0 0 0 500</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">5000 0 0 0 5000 0 0 0 500</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

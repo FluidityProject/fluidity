@@ -16,8 +16,9 @@ with open("warnings", "r") as fid:
     warningOnlyOptionsFiles = fid.readlines()
 warningOnlyOptionsFiles = [x.strip() for x in warningOnlyOptionsFiles]</variable>
     <variable name="optionErrors" language="python">
-from diamond_validator import DiamondValidator
 from pathlib import Path
+
+from diamond_validator import DiamondValidator
 
 validator = DiamondValidator()
 
@@ -25,11 +26,15 @@ for testDir in ["tests", "examples"]:
     validator.ValidateOptionsFiles(
         schemafile="../../schemas/test_options.rng",
         testDir=Path(f"../../{testDir}"),
-        extension="xml", xmlRootNode="testproblem")
+        extension="xml",
+        xmlRootNode="testproblem",
+    )
     validator.ValidateOptionsFiles(
         schemafile="../../schemas/fluidity_options.rng",
         testDir=Path(f"../../{testDir}"),
-        extension="flml", xmlRootNode="fluidity_options")
+        extension="flml",
+        xmlRootNode="fluidity_options",
+    )
 
 optionErrors = validator.optionErrors</variable>
   </variables>

@@ -125,7 +125,7 @@
         </stiffened_gas>
       </compressible>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -164,11 +164,11 @@
         </initial_condition>
         <boundary_conditions name="incoming">
           <surface_ids>
-            <integer_value shape="2" rank="1">7 10</integer_value>
+            <integer_value rank="1" shape="2">7 10</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="code" language="python">def val(XX,t):
+              <string_value type="code" language="python" lines="20">def val(XX,t):
    from math import sin, cos
    csq = 0.4
    rho0 = 0.1
@@ -192,13 +192,16 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <prognostic>
         <mesh name="DensityMesh"/>
         <spatial_discretisation>
@@ -225,11 +228,11 @@
         </initial_condition>
         <boundary_conditions name="incoming">
           <surface_ids>
-            <integer_value shape="2" rank="1">7 10</integer_value>
+            <integer_value rank="1" shape="2">7 10</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="code" language="python">def val(XX,t):
+              <string_value type="code" language="python" lines="20">def val(XX,t):
    from math import sin, cos
    x = XX[0]
    x2 = x*x
@@ -244,7 +247,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(XX,t):
+                <string_value type="code" language="python" lines="20">def val(XX,t):
    from math import sin,cos
    x = XX[0]
    x2 = x*x
@@ -272,6 +275,9 @@ S = rho_t + rhou_x + rhov_y</comment>
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </scalar_field>
         <output>
@@ -284,13 +290,16 @@ S = rho_t + rhou_x + rhov_y</comment>
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -308,6 +317,7 @@ S = rho_t + rhou_x + rhov_y</comment>
             <stress_terms>
               <stress_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
@@ -341,18 +351,18 @@ S = rho_t + rhou_x + rhov_y</comment>
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="all_sides">
           <surface_ids>
-            <integer_value shape="4" rank="1">7 8 9 10</integer_value>
+            <integer_value rank="1" shape="4">7 8 9 10</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(XX,t):
+                  <string_value type="code" language="python" lines="20">def val(XX,t):
    from math import sin, cos
    # Shear rotation about origin.
    x = XX[0]
@@ -366,7 +376,7 @@ S = rho_t + rhou_x + rhov_y</comment>
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(XX,t):
+                  <string_value type="code" language="python" lines="20">def val(XX,t):
    from math import sin, cos
    # Shear rotation about origin.
    x = XX[0]
@@ -386,18 +396,21 @@ S = rho_t + rhou_x + rhov_y</comment>
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.7 0.7 0.7 0.7</real_value>
+                  <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="2 2">0.7 0.7 0.7 0.7</real_value>
                 </constant>
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <vector_field name="Source" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(XX, t):
+                <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import sin,cos
    gamma = 1.4;
    csq = 0.4;
@@ -453,6 +466,9 @@ Sv = (mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) - 2*nu*(v_xx/2
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </vector_field>
         <output>
@@ -473,13 +489,16 @@ Sv = (mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) - 2*nu*(v_xx/2
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -491,17 +510,20 @@ Sv = (mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) - 2*nu*(v_xx/2
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PressureAnalytical" rank="0">
+    <scalar_field rank="0" name="PressureAnalytical">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(XX,t):
+            <string_value type="code" language="python" lines="20">def val(XX,t):
    from math import sin, cos
    csq = 0.4
    rho0 = 0.1
@@ -519,12 +541,15 @@ Sv = (mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) - 2*nu*(v_xx/2
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <do_not_recalculate/>
       </prescribed>
     </scalar_field>
-    <scalar_field name="FiniteElementDivergence" rank="0">
+    <scalar_field rank="0" name="FiniteElementDivergence">
       <diagnostic field_name="Velocity">
-        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
+        <algorithm name="Internal" material_phase_support="multiple" legacy="true"/>
         <mesh name="PressureMesh"/>
         <solver>
           <iterative_method name="cg"/>
@@ -548,17 +573,20 @@ Sv = (mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) - 2*nu*(v_xx/2
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="DensityAnalytical" rank="0">
+    <scalar_field rank="0" name="DensityAnalytical">
       <prescribed>
         <mesh name="DensityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(XX,t):
+            <string_value type="code" language="python" lines="20">def val(XX,t):
    from math import sin, cos
    x = XX[0]
    x2 = x*x
@@ -574,13 +602,16 @@ Sv = (mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) - 2*nu*(v_xx/2
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <do_not_recalculate/>
       </prescribed>
     </scalar_field>
-    <scalar_field name="PressureAbsoluteDifference" rank="0">
+    <scalar_field rank="0" name="PressureAbsoluteDifference">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">field1=state.scalar_fields["Pressure"]
+          <string_value type="code" language="python" lines="20">field1=state.scalar_fields["Pressure"]
 field2=state.scalar_fields["PressureAnalytical"]
 for i in range(field.node_count):
    field.set(i, abs(field1.node_val(i)-field2.node_val(i)))</string_value>
@@ -594,15 +625,18 @@ for i in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="DensityAbsoluteDifference" rank="0">
+    <scalar_field rank="0" name="DensityAbsoluteDifference">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">field1=state.scalar_fields["Density"]
+          <string_value type="code" language="python" lines="20">field1=state.scalar_fields["Density"]
 field2=state.scalar_fields["DensityAnalytical"]
 for i in range(field.node_count):
    field.set(i, abs(field1.node_val(i)-field2.node_val(i)))</string_value>
@@ -616,17 +650,20 @@ for i in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="InternalEnergyAnalytical" rank="0">
+    <scalar_field rank="0" name="InternalEnergyAnalytical">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(XX,t):
+            <string_value type="code" language="python" lines="20">def val(XX,t):
    from math import sin, cos
    x = XX[0]
    y = XX[1]
@@ -639,13 +676,16 @@ for i in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <do_not_recalculate/>
       </prescribed>
     </scalar_field>
-    <scalar_field name="InternalEnergyAbsoluteDifference" rank="0">
+    <scalar_field rank="0" name="InternalEnergyAbsoluteDifference">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">field1=state.scalar_fields["InternalEnergy"]
+          <string_value type="code" language="python" lines="20">field1=state.scalar_fields["InternalEnergy"]
 field2=state.scalar_fields["InternalEnergyAnalytical"]
 for i in range(field.node_count):
    field.set(i, abs(field1.node_val(i)-field2.node_val(i)))</string_value>
@@ -659,12 +699,15 @@ for i in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="InternalEnergy" rank="0">
+    <scalar_field rank="0" name="InternalEnergy">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="InternalEnergy">
@@ -712,11 +755,11 @@ for i in range(field.node_count):
         </initial_condition>
         <boundary_conditions name="incoming">
           <surface_ids>
-            <integer_value shape="2" rank="1">7 10</integer_value>
+            <integer_value rank="1" shape="2">7 10</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="code" language="python">def val(XX,t):
+              <string_value type="code" language="python" lines="20">def val(XX,t):
    from math import sin, cos
    x = XX[0]
    y = XX[1]
@@ -729,7 +772,7 @@ for i in range(field.node_count):
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(XX,t):
+                <string_value type="code" language="python" lines="20">def val(XX,t):
    from math import sin,cos
    gamma = 1.4;
    csq = 0.4;
@@ -785,6 +828,9 @@ S = erho_t + u*rho*e_x + v*rho*e_y + beta*e*(rhou_x+rhov_y)</comment>
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </scalar_field>
         <output>
@@ -797,18 +843,21 @@ S = erho_t + u*rho*e_x + v*rho*e_y + beta*e*(rhou_x+rhov_y)</comment>
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="DivergenceAnalytical" rank="0">
+    <scalar_field rank="0" name="DivergenceAnalytical">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(XX,t):
+            <string_value type="code" language="python" lines="20">def val(XX,t):
    from math import sin,cos
    x = XX[0]
    x2 = x*x
@@ -830,15 +879,18 @@ d = u_x + v_y</comment>
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <do_not_recalculate/>
       </prescribed>
     </scalar_field>
-    <vector_field name="VelocityAnalytical" rank="1">
+    <vector_field rank="1" name="VelocityAnalytical">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(XX,t):
+            <string_value type="code" language="python" lines="20">def val(XX,t):
    from math import sin, cos
    # Shear rotation about origin.
    x = XX[0]
@@ -859,13 +911,16 @@ v(x,y,rho,beta,nu,adv,mass,t) = 0.1*(cos(x*x+y*y)+0.5)</comment>
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <do_not_recalculate/>
       </prescribed>
     </vector_field>
-    <vector_field name="VelocityAbsoluteDifference" rank="1">
+    <vector_field rank="1" name="VelocityAbsoluteDifference">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">field1=state.vector_fields["Velocity"]
+          <string_value type="code" language="python" lines="20">field1=state.vector_fields["Velocity"]
 field2=state.vector_fields["VelocityAnalytical"]
 for i in range(field.node_count):
    field.set(i, abs(field1.node_val(i)-field2.node_val(i)))</string_value>
@@ -881,6 +936,9 @@ for i in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

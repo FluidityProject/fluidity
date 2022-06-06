@@ -3,7 +3,7 @@
   <name>petsc_readnsolve</name>
   <owner userid="skramer"/>
   <tags> parallel </tags>
-  <problem_definition length="special" nprocs="4">
+  <problem_definition length="disabled" nprocs="4">
     <comment>First make a common flredecomped mesh and edit the flml files to use this, then do the actual test.</comment>
     <command_line>mpiexec flredecomp -i 1 -o 4 -v -l standing_wave_failing_velocity standing_wave_failing_velocity_flredecomp;
 mpiexec flredecomp -i 1 -o 4 -v -l standing_wave_failing_pressure standing_wave_failing_pressure_flredecomp;
@@ -86,7 +86,7 @@ prns_pressure_solve_success= reason_number&gt;1
     <variable name="no_new_matrixdump" language="python">import os
 files = os.listdir("./")
 no_new_matrixdump = not "matrixdump" in files and not "matrixdump.info" in files</variable>
-    </variables>  
+    </variables>
   <pass_tests>
     <test name="check_velocity_solve_failed" language="python">assert velocity_solve_failed</test>
     <test name="check_pressure_solve_failed" language="python">assert pressure_solve_failed</test>

@@ -37,6 +37,7 @@ set_target_properties(spud_shared PROPERTIES
 target_include_directories(spud_shared PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 add_subdirectory(diamond)
+add_subdirectory(dxdiff)
 add_subdirectory(python)
 
 configure_file(bin/spud-preprocess.in ${CMAKE_BINARY_DIR}/bin/spud-preprocess

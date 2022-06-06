@@ -557,7 +557,7 @@
   Memcheck:Cond
   ...
   obj:/usr/lib64/libpython*
-  ..
+  ...
 }
 
 {
@@ -565,7 +565,7 @@
   Memcheck:Addr8
   ...
   obj:/usr/lib64/libpython*
-  ..
+  ...
 }
 
 {
@@ -573,7 +573,7 @@
   Memcheck:Value8
   ...
   obj:/usr/lib64/libpython*
-  ..
+  ...
 }
 
 {
@@ -581,7 +581,7 @@
   Memcheck:Cond
   ...
   fun:_ZN4Spud*
-  ..
+  ...
 }
 
 {
@@ -589,7 +589,7 @@
   Memcheck:Addr8
   ...
   fun:_ZN4Spud*
-  ..
+  ...
 }
 
 {
@@ -597,5 +597,5 @@
   Memcheck:Value8
   ...
   fun:_ZN4Spud*
-  ..
+  ...
 }

@@ -4,7 +4,7 @@
   <name>mphase_mms_p2p1_compressible_ie</name>
   <owner userid="ctj10"/>
   <tags>flml</tags>
-  
+
   <problem_definition length="medium" nprocs="1">
     <command_line>
       mpiexec fluidity -v3 -l MMS_A.flml
@@ -12,9 +12,9 @@
       mpiexec fluidity -v3 -l MMS_C.flml
       </command_line>
   </problem_definition>
-  
+
   <variables>
-  
+
     <variable name="ab_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -51,7 +51,7 @@ ab_ratio_fluid = [log(ab_ratio_x, 2), log(ab_ratio_y, 2)]
 
 ab_convergence_vel = [ab_ratio_particle, ab_ratio_fluid]
     </variable>
-    
+
     <variable name="ab_convergence_p" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -66,7 +66,7 @@ print(b_error)
 ab_ratio = a_error / b_error
 ab_convergence_p = log(ab_ratio, 2)
     </variable>
-    
+
     <variable name="ab_convergence_compressiblecontinuityresidual" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -108,7 +108,7 @@ ab_convergence_ie_fluid = log(ab_ratio, 2)
 
 ab_convergence_ie = [ab_convergence_ie_particle, ab_convergence_ie_fluid]
     </variable>
-    
+
     <variable name="ab_convergence_density" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -123,7 +123,7 @@ print(b_error)
 ab_ratio = a_error / b_error
 ab_convergence_density = log(ab_ratio, 2)
     </variable>
-    
+
     <variable name="bc_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -160,7 +160,7 @@ bc_ratio_fluid = [log(bc_ratio_x, 2), log(bc_ratio_y, 2)]
 
 bc_convergence_vel = [bc_ratio_particle, bc_ratio_fluid]
     </variable>
-    
+
     <variable name="bc_convergence_p" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -190,7 +190,7 @@ print(c_error)
 bc_ratio = b_error / c_error
 bc_convergence_compressiblecontinuityresidual = log(bc_ratio, 2)
     </variable>
-    
+
     <variable name="bc_convergence_ie" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -217,7 +217,7 @@ bc_convergence_ie_fluid = log(bc_ratio, 2)
 
 bc_convergence_ie = [bc_convergence_ie_particle, bc_convergence_ie_fluid]
     </variable>
-    
+
     <variable name="bc_convergence_density" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -239,64 +239,64 @@ files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
   </variables>
-  
+
   <pass_tests>
     <test name="ab_convergence_vel_x for Particle: L2 order &gt; 2.0" language="python">
 assert(ab_convergence_vel[0][0] &gt; 2.0)
     </test>
-    <test name="ab_convergence_vel_y for Particle: L2 order &gt; 2.0" language="python">
-assert(ab_convergence_vel[0][1] &gt; 2.0)
-    </test>
-    
-    <test name="ab_convergence_vel_x for Fluid: L2 order &gt; 1.9" language="python">
-assert(ab_convergence_vel[1][0] &gt; 1.9)
-    </test>
-    <test name="ab_convergence_vel_y for Fluid: L2 order &gt; 2.0" language="python">
-assert(ab_convergence_vel[1][1] &gt; 2.0)
-    </test>
-    
-    <test name="ab_convergence_p: L2 order &gt; 1.9" language="python">
-assert(ab_convergence_p &gt; 1.9)
-    </test>
-   
-    <test name="ab_convergence_density: L2 order &gt; 1.8" language="python">
-assert(ab_convergence_density &gt; 1.8)
-    </test>    
-    
-    <test name="ab_convergence_ie for Particle: L2 order &gt; 0.7" language="python">
-assert(ab_convergence_ie[0] &gt; 0.7)
-    </test>
-    <test name="ab_convergence_ie for Fluid: L2 order &gt; 1.5" language="python">
-assert(ab_convergence_ie[1] &gt; 1.5)
+    <test name="ab_convergence_vel_y for Particle: L2 order &gt; 1.85" language="python">
+assert(ab_convergence_vel[0][1] &gt; 1.85)
     </test>
 
-    <test name="ab_convergence_compressiblecontinuityresidual: L2 order &gt; 1.6" language="python">
-assert(ab_convergence_compressiblecontinuityresidual &gt; 1.6)
-    </test> 
-    
-    
-    <test name="bc_convergence_vel_x for Particle: L2 order &gt; 1.8" language="python">
-assert(bc_convergence_vel[0][0] &gt; 1.8)
+    <test name="ab_convergence_vel_x for Fluid: L2 order &gt; 2.0" language="python">
+assert(ab_convergence_vel[1][0] &gt; 2.0)
     </test>
-    <test name="bc_convergence_vel_y for Particle: L2 order &gt; 1.5" language="python">
-assert(bc_convergence_vel[0][1] &gt; 1.5)
+    <test name="ab_convergence_vel_y for Fluid: L2 order &gt; 1.95" language="python">
+assert(ab_convergence_vel[1][1] &gt; 1.95)
     </test>
-    
-    <test name="bc_convergence_vel_x for Fluid: L2 order &gt; 1.9" language="python">
-assert(bc_convergence_vel[1][0] &gt; 1.9)
+
+    <test name="ab_convergence_p: L2 order &gt; 1.6" language="python">
+assert(ab_convergence_p &gt; 1.6)
     </test>
-    <test name="bc_convergence_vel_y for Fluid: L2 order &gt; 1.85" language="python">
-assert(bc_convergence_vel[1][1] &gt; 1.85)
+
+    <test name="ab_convergence_density: L2 order &gt; 2.0" language="python">
+assert(ab_convergence_density &gt; 2.0)
     </test>
-    
+
+    <test name="ab_convergence_ie for Particle: L2 order &gt; 0.65" language="python">
+assert(ab_convergence_ie[0] &gt; 0.65)
+    </test>
+    <test name="ab_convergence_ie for Fluid: L2 order &gt; 1.35" language="python">
+assert(ab_convergence_ie[1] &gt; 1.35)
+    </test>
+
+    <test name="ab_convergence_compressiblecontinuityresidual: L2 order &gt; 1.8" language="python">
+assert(ab_convergence_compressiblecontinuityresidual &gt; 1.8)
+    </test>
+
+
+    <test name="bc_convergence_vel_x for Particle: L2 order &gt; 2.0" language="python">
+assert(bc_convergence_vel[0][0] &gt; 2.0)
+    </test>
+    <test name="bc_convergence_vel_y for Particle: L2 order &gt; 1.25" language="python">
+assert(bc_convergence_vel[0][1] &gt; 1.25)
+    </test>
+
+    <test name="bc_convergence_vel_x for Fluid: L2 order &gt; 2.0" language="python">
+assert(bc_convergence_vel[1][0] &gt; 2.0)
+    </test>
+    <test name="bc_convergence_vel_y for Fluid: L2 order &gt; 1.45" language="python">
+assert(bc_convergence_vel[1][1] &gt; 1.45)
+    </test>
+
     <test name="bc_convergence_p: L2 order &gt; 0.8" language="python">
 assert(bc_convergence_p &gt; 0.8)
     </test>
 
     <test name="bc_convergence_density: L2 order &gt; 2.0" language="python">
 assert(bc_convergence_density &gt; 2.0)
-    </test>    
-    
+    </test>
+
     <test name="bc_convergence_ie for Particle: L2 order &gt; 0.7" language="python">
 assert(bc_convergence_ie[0] &gt; 0.7)
     </test>
@@ -307,13 +307,13 @@ assert(bc_convergence_ie[1] &gt; 0.7)
     <test name="bc_convergence_compressiblecontinuityresidual: L2 order &gt; 1.5" language="python">
 assert(bc_convergence_compressiblecontinuityresidual &gt; 1.5)
     </test>
-    
+
     <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
   </pass_tests>
-  
+
   <warn_tests>
   </warn_tests>
-  
+
 </testproblem>

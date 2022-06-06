@@ -116,7 +116,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="3" dim1="dim" rank="1">0.0 -1.0 0.0</real_value>
+              <real_value rank="1" dim1="dim" shape="3">0.0 -1.0 0.0</real_value>
             </constant>
           </value>
           <output/>
@@ -126,6 +126,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -140,10 +143,10 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <aliased material_phase_name="Tephra" field_name="Pressure"/>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -155,12 +158,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -176,6 +182,7 @@
                 <twice/>
               </integrate_advection_by_parts>
             </advection_scheme>
+            <buoyancy/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
@@ -209,12 +216,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="Top">
           <surface_ids>
-            <integer_value shape="1" rank="1">444</integer_value>
+            <integer_value rank="1" shape="1">444</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -229,7 +236,7 @@
         </boundary_conditions>
         <boundary_conditions name="Sides_X">
           <surface_ids>
-            <integer_value shape="1" rank="1">777</integer_value>
+            <integer_value rank="1" shape="1">777</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -244,7 +251,7 @@
         </boundary_conditions>
         <boundary_conditions name="Sides_Z">
           <surface_ids>
-            <integer_value shape="1" rank="1">666</integer_value>
+            <integer_value rank="1" shape="1">666</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -259,7 +266,7 @@
         </boundary_conditions>
         <boundary_conditions name="Bottom">
           <surface_ids>
-            <integer_value shape="1" rank="1">333</integer_value>
+            <integer_value rank="1" shape="1">333</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -282,6 +289,9 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -300,13 +310,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="PhaseVolumeFraction" rank="0">
+    <scalar_field rank="0" name="PhaseVolumeFraction">
       <diagnostic>
         <mesh name="CoordinateMesh"/>
         <algorithm name="Internal" material_phase_support="multiple"/>
@@ -315,6 +328,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </diagnostic>
     </scalar_field>
   </material_phase>
@@ -328,7 +344,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -367,13 +383,16 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="CoordinateMesh"/>
@@ -385,12 +404,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -406,6 +428,7 @@
                 <twice/>
               </integrate_advection_by_parts>
             </advection_scheme>
+            <buoyancy/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
@@ -439,12 +462,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="Top">
           <surface_ids>
-            <integer_value shape="1" rank="1">444</integer_value>
+            <integer_value rank="1" shape="1">444</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -459,7 +482,7 @@
         </boundary_conditions>
         <boundary_conditions name="Sides_X">
           <surface_ids>
-            <integer_value shape="1" rank="1">777</integer_value>
+            <integer_value rank="1" shape="1">777</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -474,7 +497,7 @@
         </boundary_conditions>
         <boundary_conditions name="Sides_Z">
           <surface_ids>
-            <integer_value shape="1" rank="1">666</integer_value>
+            <integer_value rank="1" shape="1">666</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -489,7 +512,7 @@
         </boundary_conditions>
         <boundary_conditions name="Bottom">
           <surface_ids>
-            <integer_value shape="1" rank="1">333</integer_value>
+            <integer_value rank="1" shape="1">333</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -518,13 +541,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="PhaseVolumeFraction" rank="0">
+    <scalar_field rank="0" name="PhaseVolumeFraction">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -566,7 +592,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
   import random
   random.seed()
   if(X[1]==0.7):
@@ -577,7 +603,7 @@
         </initial_condition>
         <boundary_conditions name="Top">
           <surface_ids>
-            <integer_value shape="1" rank="1">444</integer_value>
+            <integer_value rank="1" shape="1">444</integer_value>
           </surface_ids>
           <type name="flux">
             <constant>
@@ -587,7 +613,7 @@
         </boundary_conditions>
         <boundary_conditions name="Others">
           <surface_ids>
-            <integer_value shape="3" rank="1">333 666 777</integer_value>
+            <integer_value rank="1" shape="3">333 666 777</integer_value>
           </surface_ids>
           <type name="zero_flux"/>
         </boundary_conditions>
@@ -599,16 +625,19 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
+            <scalar_field rank="0" name="InterpolationErrorBound">
               <prescribed>
                 <value name="WholeMesh">
                   <python>
-                    <string_value lines="20" type="code" language="python">def val(X,t):
+                    <string_value type="code" language="python" lines="20">def val(X,t):
   if(X[1] &gt;= 0.02):
     return 4.25e-5
   else:
@@ -620,6 +649,9 @@
                 <detectors>
                   <exclude_from_detectors/>
                 </detectors>
+                <particles>
+                  <exclude_from_particles/>
+                </particles>
               </prescribed>
             </scalar_field>
             <p_norm>
@@ -630,7 +662,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="SumVelocityDivergence" rank="0">
+    <scalar_field rank="0" name="SumVelocityDivergence">
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal" material_phase_support="multiple"/>
@@ -640,6 +672,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <solver>
           <iterative_method name="gmres">
             <restart>
@@ -683,14 +718,14 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">1.0e-5 0.0 0.0 0.0 1.0e-5 0.0 0.0 0.0 1.0e-5</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">1.0e-5 0.0 0.0 0.0 1.0e-5 0.0 0.0 0.0 1.0e-5</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">0.3 0.0 0.0 0.0 0.3 0.0 0.0 0.0 0.3</real_value>
+            <real_value symmetric="true" rank="2" dim1="dim" dim2="dim" shape="3 3">0.3 0.0 0.0 0.0 0.3 0.0 0.0 0.0 0.3</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

@@ -69,7 +69,7 @@
     <detectors>
       <static_detector name="Temperature6060">
         <location>
-          <real_value shape="2" dim1="dim" rank="1">60000. -60000.</real_value>
+          <real_value rank="1" dim1="dim" shape="2">60000. -60000.</real_value>
         </location>
       </static_detector>
       <detector_array name="TSlab">
@@ -78,7 +78,7 @@
         </number_of_detectors>
         <static/>
         <python>
-          <string_value lines="20" type="code" language="python">def val(t):
+          <string_value type="code" language="python" lines="20">def val(t):
   import numpy
   start = numpy.array([0, 0])
   end = numpy.array([210000, -210000])
@@ -94,7 +94,7 @@
         </number_of_detectors>
         <static/>
         <python>
-          <string_value lines="20" type="code" language="python">def val(t):
+          <string_value type="code" language="python" lines="20">def val(t):
   output1 = []
   for i in range(12):
     for j in range(12):
@@ -103,7 +103,6 @@
   return output1</string_value>
         </python>
       </detector_array>
-      <fail_outside_domain/>
     </detectors>
   </io>
   <timestepping>
@@ -135,7 +134,7 @@
     </steady_state>
   </timestepping>
   <material_phase name="Fluid">
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <spatial_discretisation>
@@ -209,13 +208,16 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -227,12 +229,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -250,6 +255,7 @@
             <stress_terms>
               <partial_stress_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
@@ -281,10 +287,10 @@
         </solver>
         <initial_condition name="Batchelor">
           <region_ids>
-            <integer_value shape="1" rank="1">27</integer_value>
+            <integer_value rank="1" shape="1">27</integer_value>
           </region_ids>
           <python>
-          <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
   from math import sqrt, atan, cos, sin, pi
 
   Xcoord = X[0]
@@ -318,18 +324,18 @@
         </initial_condition>
         <prescribed_region name="Crust">
           <region_ids>
-            <integer_value shape="1" rank="1">24</integer_value>
+            <integer_value rank="1" shape="1">24</integer_value>
           </region_ids>
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0. 0.</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0. 0.</real_value>
           </constant>
         </prescribed_region>
         <prescribed_region name="Slab">
           <region_ids>
-            <integer_value shape="1" rank="1">30</integer_value>
+            <integer_value rank="1" shape="1">30</integer_value>
           </region_ids>
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
   from math import sqrt
   vx = sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
   vy = -sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
@@ -338,7 +344,7 @@
         </prescribed_region>
         <boundary_conditions name="Crust">
           <surface_ids>
-            <integer_value shape="1" rank="1">32</integer_value>
+            <integer_value rank="1" shape="1">32</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -357,13 +363,13 @@
         </boundary_conditions>
         <boundary_conditions name="Slab">
           <surface_ids>
-            <integer_value shape="1" rank="1">31</integer_value>
+            <integer_value rank="1" shape="1">31</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
         from math import sqrt
         vx = sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
         return vx</string_value>
@@ -371,7 +377,7 @@
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
         from math import sqrt
         vy = -sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
         return vy</string_value>
@@ -384,7 +390,7 @@
           <diagnostic>
             <mesh name="CoordinateMesh"/>
             <algorithm name="tensor_python_diagnostic" material_phase_support="single">
-              <string_value lines="20" type="code" language="python">import math
+              <string_value type="code" language="python" lines="20">import math
 import numpy
 
 T = state.scalar_fields["Temperature"]
@@ -416,19 +422,22 @@ for i in range(field.node_count):
             <stat>
               <include_in_stat/>
             </stat>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </diagnostic>
         </tensor_field>
         <output/>
         <stat>
           <include_in_stat/>
-          <surface_integral type="normal" name="Outflow">
+          <surface_integral name="Outflow" type="normal">
             <surface_ids>
-              <integer_value shape="2" rank="1">13 16</integer_value>
+              <integer_value rank="1" shape="2">13 16</integer_value>
             </surface_ids>
           </surface_integral>
-          <surface_integral type="normal" name="All">
+          <surface_integral name="All" type="normal">
             <surface_ids>
-              <integer_value shape="3" rank="1">12 13 16</integer_value>
+              <integer_value rank="1" shape="3">12 13 16</integer_value>
             </surface_ids>
           </surface_integral>
           <previous_time_step>
@@ -444,13 +453,16 @@ for i in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -491,14 +503,14 @@ for i in range(field.node_count):
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
+            <string_value type="code" language="python" lines="20">def val(x, t):
               T = 273.
               return T</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="SurfaceTemperature">
           <surface_ids>
-            <integer_value shape="1" rank="1">10</integer_value>
+            <integer_value rank="1" shape="1">10</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -508,7 +520,7 @@ for i in range(field.node_count):
         </boundary_conditions>
         <boundary_conditions name="InflowWedge">
           <surface_ids>
-            <integer_value shape="1" rank="1">12</integer_value>
+            <integer_value rank="1" shape="1">12</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -518,11 +530,11 @@ for i in range(field.node_count):
         </boundary_conditions>
         <boundary_conditions name="ERF">
           <surface_ids>
-            <integer_value shape="1" rank="1">15</integer_value>
+            <integer_value rank="1" shape="1">15</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X, t):
+              <string_value type="code" language="python" lines="20">def val(X, t):
   import math
 
   def erf(x):
@@ -555,11 +567,11 @@ for i in range(field.node_count):
         </boundary_conditions>
         <boundary_conditions name="LinearGradientCrust">
           <surface_ids>
-            <integer_value shape="1" rank="1">11</integer_value>
+            <integer_value rank="1" shape="1">11</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X, t):
+              <string_value type="code" language="python" lines="20">def val(X, t):
   Depth = X[1] * -1.
   T = 273. + (Depth*0.026)
   return T</string_value>
@@ -576,6 +588,9 @@ for i in range(field.node_count):
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -586,15 +601,18 @@ for i in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="secondinvariant" rank="0">
+    <scalar_field rank="0" name="secondinvariant">
       <diagnostic>
-        <algorithm source_field_type="tensor" material_phase_support="single " name="tensor_second_invariant" source_field_name="Strain_rate"/>
+        <algorithm name="tensor_second_invariant" material_phase_support="single " source_field_name="Strain_rate" source_field_type="tensor"/>
         <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
@@ -604,17 +622,20 @@ for i in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="dummy" rank="0">
+    <scalar_field rank="0" name="dummy">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="prescribed">
           <region_ids>
-            <integer_value shape="2" rank="1">24 30</integer_value>
+            <integer_value rank="1" shape="2">24 30</integer_value>
           </region_ids>
           <constant>
             <real_value rank="0">1.</real_value>
@@ -622,7 +643,7 @@ for i in range(field.node_count):
         </value>
         <value name="prognostic">
           <region_ids>
-            <integer_value shape="1" rank="1">27</integer_value>
+            <integer_value rank="1" shape="1">27</integer_value>
           </region_ids>
           <constant>
             <real_value rank="0">0.</real_value>
@@ -633,9 +654,12 @@ for i in range(field.node_count):
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Ele_Owner" rank="0">
+    <scalar_field rank="0" name="Ele_Owner">
       <diagnostic>
         <algorithm name="element_ownership" material_phase_support="single"/>
         <mesh name="P0_Mesh"/>
@@ -647,12 +671,15 @@ for i in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Ele_Halos" rank="0">
+    <scalar_field rank="0" name="Ele_Halos">
       <diagnostic>
         <algorithm name="element_halo" material_phase_support="single"/>
         <mesh name="P0_Mesh"/>
@@ -664,12 +691,15 @@ for i in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Node_Halo" rank="0">
+    <scalar_field rank="0" name="Node_Halo">
       <diagnostic>
         <algorithm name="node_halo" material_phase_support="single"/>
         <mesh name="CoordinateMesh"/>
@@ -681,14 +711,17 @@ for i in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="NodeOwner" rank="0">
+    <scalar_field rank="0" name="NodeOwner">
       <diagnostic>
-        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
+        <algorithm name="Internal" material_phase_support="multiple" legacy="true"/>
         <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
@@ -698,30 +731,36 @@ for i in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <tensor_field name="Strain_rate" rank="2">
+    <tensor_field rank="2" name="Strain_rate">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single " name="strain_rate" source_field_name="Velocity"/>
+        <algorithm name="strain_rate" material_phase_support="single " source_field_name="Velocity" source_field_type="vector"/>
         <mesh name="CoordinateMesh"/>
         <output/>
         <stat>
           <include_in_stat/>
         </stat>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </diagnostic>
     </tensor_field>
   </material_phase>
   <flredecomp>
     <field_weighted_partitions>
-      <scalar_field name="FieldWeightedPartitionValues" rank="0">
+      <scalar_field rank="0" name="FieldWeightedPartitionValues">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="Prognostic_Regions">
             <region_ids>
-              <integer_value shape="1" rank="1">27</integer_value>
+              <integer_value rank="1" shape="1">27</integer_value>
             </region_ids>
             <constant>
               <real_value rank="0">1.</real_value>
@@ -729,7 +768,7 @@ for i in range(field.node_count):
           </value>
           <value name="Prescribed_Regions">
             <region_ids>
-              <integer_value shape="2" rank="1">24 30</integer_value>
+              <integer_value rank="1" shape="2">24 30</integer_value>
             </region_ids>
             <constant>
               <real_value rank="0">0.005</real_value>
@@ -740,6 +779,9 @@ for i in range(field.node_count):
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </scalar_field>
     </field_weighted_partitions>

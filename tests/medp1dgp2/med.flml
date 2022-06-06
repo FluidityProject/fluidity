@@ -98,12 +98,12 @@
     </spherical_earth>
     <ocean_boundaries>
       <top_surface_ids>
-        <integer_value shape="1" rank="1">33</integer_value>
+        <integer_value rank="1" shape="1">33</integer_value>
       </top_surface_ids>
       <bottom_surface_ids>
-        <integer_value shape="1" rank="1">34</integer_value>
+        <integer_value rank="1" shape="1">34</integer_value>
       </bottom_surface_ids>
-      <scalar_field name="DistanceToTop" rank="0">
+      <scalar_field rank="0" name="DistanceToTop">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -115,12 +115,15 @@
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>
         </diagnostic>
       </scalar_field>
-      <scalar_field name="DistanceToBottom" rank="0">
+      <scalar_field rank="0" name="DistanceToBottom">
         <diagnostic>
           <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="CoordinateMesh"/>
@@ -132,6 +135,9 @@
           <detectors>
             <include_in_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
           <steady_state>
             <include_in_steady_state/>
           </steady_state>
@@ -176,7 +182,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X, t):
+              <string_value type="code" language="python" lines="20">def val(X, t):
 
   a = X[0]
   b = X[1]
@@ -196,6 +202,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -227,7 +236,7 @@
       </fluids>
     </equation_of_state>
     <subgridscale_parameterisations/>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -274,13 +283,16 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -292,12 +304,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="Boussinesq"/>
@@ -360,12 +375,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="3">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="drag_on_bottom_and_sides">
           <surface_ids>
-            <integer_value shape="2" rank="1">32 34</integer_value>
+            <integer_value rank="1" shape="2">32 34</integer_value>
           </surface_ids>
           <type name="drag">
             <constant>
@@ -376,19 +391,19 @@
         </boundary_conditions>
         <boundary_conditions name="FreeSurface">
           <surface_ids>
-            <integer_value shape="1" rank="1">33</integer_value>
+            <integer_value rank="1" shape="1">33</integer_value>
           </surface_ids>
           <type name="free_surface"/>
         </boundary_conditions>
         <boundary_conditions name="NoNormalFlow">
           <surface_ids>
-            <integer_value shape="2" rank="1">32 34</integer_value>
+            <integer_value rank="1" shape="2">32 34</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions name="BulkForcingVelocity">
           <surface_ids>
-            <integer_value shape="1" rank="1">33</integer_value>
+            <integer_value rank="1" shape="1">33</integer_value>
           </surface_ids>
           <type name="bulk_formulae"/>
         </boundary_conditions>
@@ -397,7 +412,7 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
+                  <string_value type="code" language="python" lines="20">def val(X, t):
    a = X[0]
    b = X[1]
    c = X[2]
@@ -425,6 +440,9 @@
               </anisotropic_symmetric>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <output/>
@@ -443,13 +461,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="FreeSurface" rank="0">
+    <scalar_field rank="0" name="FreeSurface">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -461,12 +482,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="Temperature" rank="0">
+    <scalar_field rank="0" name="Temperature">
       <prognostic>
         <mesh name="BaseMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -520,7 +544,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
     a = X[0]
     b = X[1]
     c = X[2]
@@ -532,7 +556,7 @@
         </initial_condition>
         <boundary_conditions name="BulkForcingTemperature">
           <surface_ids>
-            <integer_value shape="1" rank="1">33</integer_value>
+            <integer_value rank="1" shape="1">33</integer_value>
           </surface_ids>
           <type name="bulk_formulae"/>
         </boundary_conditions>
@@ -544,18 +568,21 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="x_coord" rank="0">
+    <scalar_field rank="0" name="x_coord">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
     a=X[0]
     return a</string_value>
           </python>
@@ -565,14 +592,17 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="y_coord" rank="0">
+    <scalar_field rank="0" name="y_coord">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
     b=X[1]
     return b</string_value>
           </python>
@@ -582,14 +612,17 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="z_coord" rank="0">
+    <scalar_field rank="0" name="z_coord">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value type="code" language="python" lines="20">def val(X, t):
     c=X[2]
     return c</string_value>
           </python>
@@ -599,9 +632,12 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="DG_CourantNumber" rank="0">
+    <scalar_field rank="0" name="DG_CourantNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -613,6 +649,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -626,7 +665,7 @@
       </bulk_formulae>
       <input_file file_name="1987_raw.nc"/>
       <output_fluxes_diagnostics>
-        <scalar_field name="HeatFlux" rank="0">
+        <scalar_field rank="0" name="HeatFlux">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -638,6 +677,9 @@
             <detectors>
               <include_in_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
             <steady_state>
               <include_in_steady_state/>
             </steady_state>

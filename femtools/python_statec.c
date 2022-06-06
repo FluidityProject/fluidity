@@ -79,16 +79,15 @@ void python_reset_(void){
 #ifdef HAVE_PYTHON
   if(Py_IsInitialized()){
     // Create a list of items to be kept
-    PyRun_SimpleString("keep = [];keep.append('keep');keep.append('rem');keep.append('__builtins__');keep.append('__name__'); keep.append('__doc__');keep.append('string');keep.append('numpy');keep.append('persistent')");
+    PyRun_SimpleString(
+      "keep = ['keep', 'rem', '__name__', '__doc__', '__package__', '__loader__', '__spec__', '__annotations__', '__builtins__', 'string', 'numpy', 'persistent']"
+    );
 
     // Create a list of items to  be removed
-    PyRun_SimpleString("rem = []");
-    PyRun_SimpleString("keys = tuple(globals().keys())");
-    PyRun_SimpleString("for i in keys:\n if i not in keep: rem.append(i)");
+    PyRun_SimpleString("rem = [i for i in globals().keys() if i not in keep]");
 
     // Delete every item except the ones we want to keep
-    PyRun_SimpleString("for i in rem: del globals()[i]");
-    PyRun_SimpleString("del globals()['keys'];del globals()['keep'];del globals()['rem'];\nif 'i' in globals():del globals()['i']");
+    PyRun_SimpleString("for i in rem + ['keep', 'rem', 'i']: del globals()[i]");
 
     // Reinitialize the variables
     init_vars();
@@ -106,7 +105,8 @@ void python_end_(void){
     // Garbage collection
     PyGC_Collect();
     // Finalize the Python interpreter
-    Py_Finalize();
+    int exit_value = Py_FinalizeEx();
+    assert(exit_value == 0);
   }
 #endif
 }

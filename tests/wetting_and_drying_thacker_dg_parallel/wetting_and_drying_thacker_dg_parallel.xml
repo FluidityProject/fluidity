@@ -5,7 +5,7 @@
   <tags> parallel </tags>
   <problem_definition length="medium" nprocs="4">
     <command_line>mpiexec flredecomp -i 1 -o 4 -v -l thacker_B_d0=1.0 thacker_B_d0=1.0_flredecomp &amp;&amp;
-mpiexec fluidity thacker_B_d0=1.0_flredecomp.flml</command_line>
+mpiexec fluidity -v5 -l thacker_B_d0=1.0_flredecomp.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="ElapsedTime" language="python">from fluidity_tools import stat_parser
@@ -39,7 +39,7 @@ print("Checking fs_error_max ", max(fs_error_max), " &lt; ", tol_max)
 for val in fs_error_max:
   assert(val&lt;tol_max)</test>
     <test name="vel_error" language="python">tol_l2=1000000
-tol_max=3.0
+tol_max=3.1
 print("Checking vel_error_l2 &lt; ", tol_l2)
 for val in vel_error_l2:
   assert(val&lt;tol_l2)

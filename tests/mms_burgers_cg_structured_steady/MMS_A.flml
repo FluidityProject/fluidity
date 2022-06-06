@@ -85,7 +85,7 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -97,12 +97,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -116,6 +119,7 @@
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
@@ -149,18 +153,18 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="all_sides">
           <surface_ids>
-            <integer_value shape="4" rank="1">7 8 9 10</integer_value>
+            <integer_value rank="1" shape="4">7 8 9 10</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(XX, t):
+                  <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import sin,cos
    omega = 0;
    epsilon = 0.001;
@@ -175,7 +179,7 @@
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(XX, t):
+                  <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import sin,cos
    omega = 0;
    epsilon =0.001;
@@ -201,13 +205,16 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <vector_field name="Source" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(XX, t):
+                <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import sin,cos
    omega = 0;
    epsilon = 0.001;
@@ -256,6 +263,9 @@ mass*v_t + adv*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) - nu*v_xx - nu*v_yy</comment
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </vector_field>
         <output>
@@ -276,13 +286,16 @@ mass*v_t + adv*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) - nu*v_xx - nu*v_yy</comment
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="ControlVolumeCFLNumber" rank="0">
+    <scalar_field rank="0" name="ControlVolumeCFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -294,12 +307,15 @@ mass*v_t + adv*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) - nu*v_xx - nu*v_yy</comment
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -311,17 +327,20 @@ mass*v_t + adv*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) - nu*v_xx - nu*v_yy</comment
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="VelocityAnalytical" rank="1">
+    <vector_field rank="1" name="VelocityAnalytical">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(XX, t):
+            <string_value type="code" language="python" lines="20">def val(XX, t):
    from math import sin,cos
    omega = 0;
    epsilon = 0.001;
@@ -343,10 +362,13 @@ mass*v_t + adv*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) - nu*v_xx - nu*v_yy</comment
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <vector_field name="AbsoluteDifference" rank="1">
-      <diagnostic field_name_b="Velocity" field_name_a="VelocityAnalytical">
+    <vector_field rank="1" name="AbsoluteDifference">
+      <diagnostic field_name_a="VelocityAnalytical" field_name_b="Velocity">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
         <output/>
@@ -359,6 +381,9 @@ mass*v_t + adv*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) - nu*v_xx - nu*v_yy</comment
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

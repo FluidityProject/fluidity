@@ -27,11 +27,12 @@
         <a:documentation>Test execution options</a:documentation>
         <attribute name="length">
           <choice>
+            <value>vshort</value>
             <value>short</value>
             <value>medium</value>
             <value>long</value>
             <value>vlong</value>
-            <value>special</value>
+            <value>disabled</value>
           </choice>
         </attribute>
         <attribute name="nprocs">

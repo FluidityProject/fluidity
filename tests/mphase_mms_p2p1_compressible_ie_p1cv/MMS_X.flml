@@ -129,7 +129,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">0.707106781 0.707106781</real_value>
+              <real_value rank="1" dim1="dim" shape="2">0.707106781 0.707106781</real_value>
             </constant>
           </value>
           <output/>
@@ -139,6 +139,9 @@
           <detectors>
             <exclude_from_detectors/>
           </detectors>
+          <particles>
+            <exclude_from_particles/>
+          </particles>
         </prescribed>
       </vector_field>
     </gravity>
@@ -153,7 +156,7 @@
         </stiffened_gas>
       </compressible>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
@@ -195,13 +198,16 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <prognostic>
         <mesh name="DensityMesh"/>
         <spatial_discretisation>
@@ -219,18 +225,18 @@
         </temporal_discretisation>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.rho1(X)</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="All">
           <surface_ids>
-            <integer_value shape="2" rank="1">7 10</integer_value>
+            <integer_value rank="1" shape="2">7 10</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.rho1(X)</string_value>
             </python>
@@ -240,7 +246,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.forcing_rho1(X)</string_value>
               </python>
@@ -250,6 +256,9 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </scalar_field>
         <output/>
@@ -260,13 +269,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -284,6 +296,7 @@
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
@@ -317,25 +330,25 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="All">
           <surface_ids>
-            <integer_value shape="4" rank="1">7 8 9 10</integer_value>
+            <integer_value rank="1" shape="4">7 8 9 10</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.u1(X)</string_value>
                 </python>
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.v1(X)</string_value>
                 </python>
@@ -353,13 +366,16 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <vector_field name="Source" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    density = tools.rho1(X)
    forcing_velocity1 = tools.forcing_velocity1(X)
@@ -376,6 +392,9 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </vector_field>
         <output/>
@@ -394,13 +413,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -412,12 +434,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="InternalEnergy" rank="0">
+    <scalar_field rank="0" name="InternalEnergy">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="InternalEnergy">
@@ -457,18 +482,18 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.ie1(X)</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="All">
           <surface_ids>
-            <integer_value shape="2" rank="1">7 10</integer_value>
+            <integer_value rank="1" shape="2">7 10</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.ie1(X)</string_value>
             </python>
@@ -484,13 +509,16 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <scalar_field name="Source" rank="0">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.forcing_ie1(X)</string_value>
               </python>
@@ -500,6 +528,9 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </scalar_field>
         <output/>
@@ -510,18 +541,21 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="InternalEnergyAnalytical" rank="0">
+    <scalar_field rank="0" name="InternalEnergyAnalytical">
       <prescribed>
         <mesh name="ErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.ie1(X)</string_value>
           </python>
@@ -531,11 +565,14 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="InternalEnergyError" rank="0">
+    <scalar_field rank="0" name="InternalEnergyError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="InternalEnergyAnalytical" source_field_2_name="InternalEnergyProjection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="InternalEnergyAnalytical" source_field_1_type="scalar" source_field_2_name="InternalEnergyProjection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
@@ -547,14 +584,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="InternalEnergyProjection" rank="0">
+    <scalar_field rank="0" name="InternalEnergyProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="InternalEnergy">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="InternalEnergy" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -579,17 +619,20 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PressureAnalytical" rank="0">
+    <scalar_field rank="0" name="PressureAnalytical">
       <prescribed>
         <mesh name="ErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.p(X)</string_value>
           </python>
@@ -599,11 +642,14 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="PressureProjection" rank="0">
+    <scalar_field rank="0" name="PressureProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="Pressure">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="Pressure" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -628,14 +674,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PressureError" rank="0">
+    <scalar_field rank="0" name="PressureError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="PressureProjection" source_field_2_name="PressureAnalytical" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="PressureProjection" source_field_1_type="scalar" source_field_2_name="PressureAnalytical" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
@@ -647,17 +696,20 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="DensityAnalytical" rank="0">
+    <scalar_field rank="0" name="DensityAnalytical">
       <prescribed>
         <mesh name="ErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.rho1(X)</string_value>
           </python>
@@ -667,11 +719,14 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="DensityError" rank="0">
+    <scalar_field rank="0" name="DensityError">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="DensityAnalytical" source_field_2_name="DensityProjection" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm name="scalar_difference" material_phase_support="single" source_field_1_name="DensityAnalytical" source_field_1_type="scalar" source_field_2_name="DensityProjection" source_field_2_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
@@ -683,14 +738,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="DensityProjection" rank="0">
+    <scalar_field rank="0" name="DensityProjection">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="Density">
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single" source_field_name="Density" source_field_type="scalar">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -715,12 +773,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PhaseVolumeFraction" rank="0">
+    <scalar_field rank="0" name="PhaseVolumeFraction">
       <diagnostic>
         <mesh name="CoordinateMesh"/>
         <algorithm name="Internal" material_phase_support="multiple"/>
@@ -729,14 +790,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </diagnostic>
     </scalar_field>
-    <vector_field name="VelocityAnalytical" rank="1">
+    <vector_field rank="1" name="VelocityAnalytical">
       <prescribed>
         <mesh name="ErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.velocity1(X)</string_value>
           </python>
@@ -748,11 +812,14 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <vector_field name="VelocityProjection" rank="1">
+    <vector_field rank="1" name="VelocityProjection">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="Velocity">
+        <algorithm name="vector_galerkin_projection" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -779,14 +846,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="VelocityError" rank="1">
+    <vector_field rank="1" name="VelocityError">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="VelocityProjection" source_field_2_name="VelocityAnalytical" material_phase_support="single" source_field_1_type="vector">
+        <algorithm name="vector_difference" material_phase_support="single" source_field_1_name="VelocityProjection" source_field_1_type="vector" source_field_2_name="VelocityAnalytical" source_field_2_type="vector">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
@@ -800,6 +870,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
@@ -824,10 +897,10 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+    <scalar_field rank="0" name="Pressure">
       <aliased material_phase_name="Phase1" field_name="Pressure"/>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
+    <scalar_field rank="0" name="Density">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="DensityMesh"/>
@@ -839,12 +912,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="Velocity" rank="1">
+    <vector_field rank="1" name="Velocity">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
@@ -862,6 +938,7 @@
             <stress_terms>
               <tensor_form/>
             </stress_terms>
+            <buoyancy/>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
@@ -895,25 +972,25 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+            <real_value rank="1" dim1="dim" shape="2">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="All">
           <surface_ids>
-            <integer_value shape="4" rank="1">7 8 9 10</integer_value>
+            <integer_value rank="1" shape="4">7 8 9 10</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.u2(X)</string_value>
                 </python>
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
+                  <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.v2(X)</string_value>
                 </python>
@@ -931,13 +1008,16 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <vector_field name="Source" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    density = tools.rho2(X)
    forcing_velocity2 = tools.forcing_velocity2(X)
@@ -954,6 +1034,9 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </vector_field>
         <output/>
@@ -972,13 +1055,16 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="CFLNumber" rank="0">
+    <scalar_field rank="0" name="CFLNumber">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -990,12 +1076,15 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="InternalEnergy" rank="0">
+    <scalar_field rank="0" name="InternalEnergy">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="InternalEnergy">
@@ -1049,18 +1138,18 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.ie2(X)</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="All">
           <surface_ids>
-            <integer_value shape="2" rank="1">7 10</integer_value>
+            <integer_value rank="1" shape="2">7 10</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.ie2(X)</string_value>
             </python>
@@ -1076,13 +1165,16 @@
               </isotropic>
             </value>
             <output/>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </tensor_field>
         <scalar_field name="Source" rank="0">
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,t):
+                <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.forcing_ie2(X)</string_value>
               </python>
@@ -1092,6 +1184,9 @@
             <detectors>
               <exclude_from_detectors/>
             </detectors>
+            <particles>
+              <exclude_from_particles/>
+            </particles>
           </prescribed>
         </scalar_field>
         <output/>
@@ -1102,18 +1197,21 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="InternalEnergyAnalytical" rank="0">
+    <scalar_field rank="0" name="InternalEnergyAnalytical">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.ie2(X)</string_value>
           </python>
@@ -1123,14 +1221,17 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="PhaseVolumeFraction" rank="0">
+    <scalar_field rank="0" name="PhaseVolumeFraction">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.vfrac2(X)</string_value>
           </python>
@@ -1140,10 +1241,13 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </scalar_field>
-    <scalar_field name="ScalarAbsoluteDifference" rank="0">
-      <diagnostic field_name_b="InternalEnergy" field_name_a="InternalEnergyAnalytical">
+    <scalar_field rank="0" name="ScalarAbsoluteDifference">
+      <diagnostic field_name_a="InternalEnergyAnalytical" field_name_b="InternalEnergy">
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
         <output/>
@@ -1154,17 +1258,20 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="VelocityAnalytical" rank="1">
+    <vector_field rank="1" name="VelocityAnalytical">
       <prescribed>
         <mesh name="ErrorMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" language="python" lines="20">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
    return tools.velocity2(X)</string_value>
           </python>
@@ -1176,11 +1283,14 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
       </prescribed>
     </vector_field>
-    <vector_field name="VelocityProjection" rank="1">
+    <vector_field rank="1" name="VelocityProjection">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="Velocity">
+        <algorithm name="vector_galerkin_projection" material_phase_support="single" source_field_name="Velocity" source_field_type="vector">
           <solver>
             <iterative_method name="gmres">
               <restart>
@@ -1211,14 +1321,17 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="VelocityError" rank="1">
+    <vector_field rank="1" name="VelocityError">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="VelocityProjection" source_field_2_name="VelocityAnalytical" material_phase_support="single" source_field_1_type="vector">
+        <algorithm name="vector_difference" material_phase_support="single" source_field_1_name="VelocityProjection" source_field_1_type="vector" source_field_2_name="VelocityAnalytical" source_field_2_type="vector">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
@@ -1232,6 +1345,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <particles>
+          <exclude_from_particles/>
+        </particles>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>

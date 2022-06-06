@@ -4,10 +4,10 @@
   <name>water collapse 2d</name>
   <owner userid="skramer"/>
   <tags>flml</tags>
-    <problem_definition length="special" nprocs="1">
-    <command_line>mpiexec valgrind --gen-suppressions=all --tool=memcheck --leak-check=full -v --log-file=valgrind.out --show-reachable=yes --num-callers=50 --error-limit=no --suppressions=fluidity.supp --leak-resolution=high fluidity -v2 -l water_collapse.flml</command_line>
+    <problem_definition length="disabled" nprocs="1">
+    <command_line>valgrind --gen-suppressions=all --tool=memcheck --leak-check=full -v --log-file=valgrind.out --show-reachable=yes --num-callers=50 --error-limit=no --suppressions=fluidity.supp --leak-resolution=high fluidity -v2 -l water_collapse.flml</command_line>
   </problem_definition>
-  <variables>  
+  <variables>
     <variable name="mindivergence" language="python">
 from fluidity_tools import stat_parser as stat
 mindivergence= max(abs(stat("water_collapse.stat")["Dense"]["ControlVolumeDivergence"]["min"]))
@@ -50,35 +50,38 @@ nodesend= stat("water_collapse.stat")["CoordinateMesh"]["nodes"][-1]
     </variable>
     <variable name="valgrind_output" language="python">
 def valgrind_int(x):
-  """Converts an integer in the output of valgrind to int, stripping out any commas"""
-  return int(x.replace(",",""))
-  
-print("-------------------------------------------------------------------------------------------------------------------------------------")
-print(" valgrind output:")
-print)
+    """Converts an integer in the output of valgrind to int, stripping out any commas"""
+    return int(x.replace(",", ""))
 
-for line in file("valgrind.out", "r"):
-  # omit last newline character:
-  print(line[:-1])
-print("-------------------------------------------------------------------------------------------------------------------------------------")
 
-f=file("valgrind.out", "r")
-valgrind_output={}
-for line in f:
-  if "ERROR SUMMARY" in line:
-    # take the bit between the first : and 'errors'
-    valgrind_output["memory_errors"]= \
-       valgrind_int(line.split(":")[1].split("errors")[0])
-  elif "LEAK SUMMARY" in line:
-    # take the info out of the next 3 lines:
-    valgrind_output["definitely_lost"]= \
-       valgrind_int(f.next().split(":")[1].split("bytes")[0])
-    valgrind_output["possibly_lost"]= \
-       valgrind_int(f.next().split(":")[1].split("bytes")[0])
-    valgrind_output["still_reachable"]= \
-       valgrind_int(f.next().split(":")[1].split("bytes")[0])
-    </variable>
-  </variables>    
+print("-------------------------------------------------------------------------------")
+print("valgrind output:")
+with open("valgrind.out", "r") as fid:
+    lines = fid.readlines()
+valgrind_output = {}
+for i, line in enumerate(lines):
+    print(line.strip())
+    if "ERROR SUMMARY" in line:
+        # take the bit between the first : and 'errors'
+        valgrind_output["memory_errors"] = valgrind_int(
+            line.split(":")[1].split("errors")[0]
+        )
+    elif "LEAK SUMMARY" in line:
+        # take the info out of the next 3 lines:
+        valgrind_output["definitely_lost"] = valgrind_int(
+            lines[i + 1].split(":")[1].split("bytes")[0]
+        )
+        valgrind_output["indirectly_lost"] = valgrind_int(
+            lines[i + 2].split(":")[1].split("bytes")[0]
+        )
+        valgrind_output["possibly_lost"] = valgrind_int(
+            lines[i + 3].split(":")[1].split("bytes")[0]
+        )
+        valgrind_output["still_reachable"] = valgrind_int(
+            lines[i + 4].split(":")[1].split("bytes")[0]
+        )
+print("-------------------------------------------------------------------------------")</variable>
+  </variables>
   <pass_tests>
     <test name="check water was conserved" language="python">
 print('mass loss = ', abs(vfracintend-vfracintstart))
@@ -98,7 +101,7 @@ assert abs(minvfrac) &lt; 1.E-10
 assert nodesend &gt; nodesstart
     </test>
     <test name="valgrind hasn't detected memory errors or leaks" language="python">
-assert valgrind_output.values()==[0,0,0,0]
+assert valgrind_output.values()==[0,0,0,0,0]
     </test>
   </pass_tests>
   <warn_tests>
