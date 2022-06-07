@@ -158,8 +158,8 @@ f_max_adv_it = max(stat("MMS_F_cv.convergence")["AdvectionIteration"]["value"])
     </variable>-->
   </variables>
   <pass_tests>
-    <test name="ab_convergence_stat: L2 order in [1.4,1.8]" language="python">
-assert(abs(ab_convergence_gal_stat[0]-1.6) &lt; 0.2)
+    <test name="ab_convergence_stat: L2 order in [0.9,1.3]" language="python">
+assert(abs(ab_convergence_gal_stat[0]-1.1) &lt; 0.2)
     </test>
     <test name="bc_convergence_stat: L2 order in [0.7,1.1]" language="python">
 assert(abs(bc_convergence_gal_stat[0]-0.9) &lt; 0.2)
@@ -192,7 +192,7 @@ assert(e_finish_time-1.0 &lt; 1.E-10)
 assert(f_finish_time-1.0 &lt; 1.E-10)
     </test>-->
     <test name="checking A performed less than 20 advection iterations per timestep" language="python">
-assert(a_max_adv_it &lt; 20) 
+assert(a_max_adv_it &lt; 20)
     </test>
     <test name="checking B performed less than 20 advection iterations per timestep" language="python">
 assert(b_max_adv_it &lt; 20)

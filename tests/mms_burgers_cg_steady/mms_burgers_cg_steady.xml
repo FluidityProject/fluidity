@@ -240,8 +240,8 @@ assert(aa2_convergence_gal_stat[1][0] &gt; 1.95)
     <test name="bc_convergence_x: L2 order in [1.8,2.2]" language="python">
 assert(abs(bc_convergence_gal_stat[0][0]-2.0) &lt; 0.2)
     </test>
-    <test name="bc_convergence_y: L2 order in [1.8,2.2]" language="python">
-assert(abs(bc_convergence_gal_stat[1][0]-2.0) &lt; 0.2)
+    <test name="bc_convergence_y: L2 order in [1.75,2.25]" language="python">
+assert(abs(bc_convergence_gal_stat[1][0]-2.0) &lt; 0.25)
     </test>
     <test name="cd_convergence_x: L2 order in [1.8,2.2]" language="python">
 assert(abs(cd_convergence_gal_stat[0][0]-2.0) &lt; 0.2)

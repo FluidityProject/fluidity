@@ -12,6 +12,7 @@ ENV OMPI_MCA_btl_vader_single_copy_mechanism none
 
 # Package updates and installs
 RUN apt-get update && apt-get install -y \
+  2to3 \
   bison \
   cmake \
   curl \

@@ -126,9 +126,9 @@ assert(abs(cd_convergence_gal_stat[0]-2.0) &lt; 0.2)
     <test name="de_convergence_stat: L2 order in [1.8,2.2]" language="python">
 assert(abs(de_convergence_gal_stat[0]-2.0) &lt; 0.2)
     </test>
-    <test name="checking A finished in less than 3.0" language="python">
+    <test name="checking A finished in less than 3.4" language="python">
 print(a_finish_time)
-assert(a_finish_time-3.0 &lt; 1.E-10)
+assert(a_finish_time-3.4 &lt; 1.E-10)
     </test>
     <test name="checking B finished in less than 3.0" language="python">
 print(b_finish_time)

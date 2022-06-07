@@ -1,70 +1,72 @@
-import time_integrated_errors_mod
+#!/usr/bin/python3
+
 from math import log
 
+import time_integrated_errors_mod
 
 ####################################################################################
-error1=time_integrated_errors_mod.get_time_integrated_error('thacker_A.stat')
-error2=time_integrated_errors_mod.get_time_integrated_error('thacker_B.stat')
-rate=[]
+error1 = time_integrated_errors_mod.get_time_integrated_error("thacker_A.stat")
+error2 = time_integrated_errors_mod.get_time_integrated_error("thacker_B.stat")
+rate = []
 for i in range(0, len(error1)):
-  rate.append(log(abs(error1[i]/error2[i]), 2))
- 
-print 'A_B_rates Free surface rates: ' rate
+    rate.append(log(abs(error1[i] / error2[i]), 2))
 
-error1=time_integrated_errors_mod.get_time_integrated_vel_error('thacker_A.stat')
-error2=time_integrated_errors_mod.get_time_integrated_vel_error('thacker_B.stat')
-rate=[]
+print("A_B_rates Free surface rates: ", rate)
+
+error1 = time_integrated_errors_mod.get_time_integrated_vel_error("thacker_A.stat")
+error2 = time_integrated_errors_mod.get_time_integrated_vel_error("thacker_B.stat")
+rate = []
 for i in range(0, len(error1)):
-  rate.append(log(abs(error1[i]/error2[i]), 2))
-  
-print 'A_B_rates Velocity rates: ' rate
+    rate.append(log(abs(error1[i] / error2[i]), 2))
+
+print("A_B_rates Velocity rates: ", rate)
 ####################################################################################
-error1=time_integrated_errors_mod.get_time_integrated_error('thacker_B.stat')
-error2=time_integrated_errors_mod.get_time_integrated_error('thacker_C.stat')
-rate=[]
+error1 = time_integrated_errors_mod.get_time_integrated_error("thacker_B.stat")
+error2 = time_integrated_errors_mod.get_time_integrated_error("thacker_C.stat")
+rate = []
 for i in range(0, len(error1)):
-  rate.append(log(abs(error1[i]/error2[i]), 2))
- 
-print 'B_C_rates Free surface rates: ' rate
+    rate.append(log(abs(error1[i] / error2[i]), 2))
 
-error1=time_integrated_errors_mod.get_time_integrated_vel_error('thacker_B.stat')
-error2=time_integrated_errors_mod.get_time_integrated_vel_error('thacker_C.stat')
-rate=[]
+print("B_C_rates Free surface rates: ", rate)
+
+error1 = time_integrated_errors_mod.get_time_integrated_vel_error("thacker_B.stat")
+error2 = time_integrated_errors_mod.get_time_integrated_vel_error("thacker_C.stat")
+rate = []
 for i in range(0, len(error1)):
-  rate.append(log(abs(error1[i]/error2[i]), 2))
-  
-print 'B_C_rates Velocity rates: ' rate
+    rate.append(log(abs(error1[i] / error2[i]), 2))
+
+print("B_C_rates Velocity rates: ", rate)
 
 ####################################################################################
-error1=time_integrated_errors_mod.get_time_integrated_error('thacker_C.stat')
-error2=time_integrated_errors_mod.get_time_integrated_error('thacker_D.stat')
-rate=[]
+error1 = time_integrated_errors_mod.get_time_integrated_error("thacker_C.stat")
+error2 = time_integrated_errors_mod.get_time_integrated_error("thacker_D.stat")
+rate = []
 for i in range(0, len(error1)):
-  rate.append(log(abs(error1[i]/error2[i]), 2))
- 
-print 'C_D_rates Free surface rates: ' rate
+    rate.append(log(abs(error1[i] / error2[i]), 2))
 
-error1=time_integrated_errors_mod.get_time_integrated_vel_error('thacker_C.stat')
-error2=time_integrated_errors_mod.get_time_integrated_vel_error('thacker_D.stat')
-rate=[]
+print("C_D_rates Free surface rates: ", rate)
+
+error1 = time_integrated_errors_mod.get_time_integrated_vel_error("thacker_C.stat")
+error2 = time_integrated_errors_mod.get_time_integrated_vel_error("thacker_D.stat")
+rate = []
 for i in range(0, len(error1)):
-  rate.append(log(abs(error1[i]/error2[i]), 2))
-  
-print 'C_D_rates Velocity rates: ' rate
+    rate.append(log(abs(error1[i] / error2[i]), 2))
+
+print("C_D_rates Velocity rates: ", rate)
 ####################################################################################
 
-error1=time_integrated_errors_mod.get_time_integrated_error('thacker_D.stat')
-error2=time_integrated_errors_mod.get_time_integrated_error('thacker_E.stat')
-rate=[]
+error1 = time_integrated_errors_mod.get_time_integrated_error("thacker_D.stat")
+error2 = time_integrated_errors_mod.get_time_integrated_error("thacker_E.stat")
+rate = []
 for i in range(0, len(error1)):
-  rate.append(log(abs(error1[i]/error2[i]), 2))
- 
-print 'D_E_rates Free surface rates: ' rate
+    rate.append(log(abs(error1[i] / error2[i]), 2))
 
-error1=time_integrated_errors_mod.get_time_integrated_vel_error('thacker_D.stat')
-error2=time_integrated_errors_mod.get_time_integrated_vel_error('thacker_E.stat')
-rate=[]
+print("D_E_rates Free surface rates: ", rate)
+
+error1 = time_integrated_errors_mod.get_time_integrated_vel_error("thacker_D.stat")
+error2 = time_integrated_errors_mod.get_time_integrated_vel_error("thacker_E.stat")
+rate = []
 for i in range(0, len(error1)):
-  rate.append(log(abs(error1[i]/error2[i]), 2))
-  
-print 'D_E_rates Velocity rates: ' rate
+    rate.append(log(abs(error1[i] / error2[i]), 2))
+
+print("D_E_rates Velocity rates: ", rate)

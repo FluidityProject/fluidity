@@ -143,8 +143,8 @@ d_final_change = max(max(abs(vtu.GetVectorField("Velocity")[:,0]-vtu.GetVectorFi
     </variable>
   </variables>
   <pass_tests>
-    <test name="ab_convergence_x: L2 order in [1.9,2.2]" language="python">
-assert(abs(ab_convergence_gal_stat[0][0]-2.05) &lt; 0.15)
+    <test name="ab_convergence_x: L2 order in [1.85,2.15]" language="python">
+assert(abs(ab_convergence_gal_stat[0][0]-2.0) &lt; 0.15)
     </test>
     <test name="ab_convergence_y: L2 order in [1.9,2.2]" language="python">
 assert(abs(ab_convergence_gal_stat[1][0]-2.05) &lt; 0.15)

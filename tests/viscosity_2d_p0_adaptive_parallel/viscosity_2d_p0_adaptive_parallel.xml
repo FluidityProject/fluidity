@@ -44,8 +44,8 @@ tracer2_error = s["Water"]["VectorAbsoluteDifference%2"]["max"]
     <test name="finish time is 10000" language="python">
 assert abs(finish_time - 10000) &lt; 1e-9
     </test>
-    <test name="no. nodes is initially 220" language="python">
-assert abs(no_nodes[0] - 220) &lt; 1e-9
+    <test name="no. nodes is initially 231" language="python">
+assert abs(no_nodes[0] - 231) &lt; 1e-9
     </test>
     <test name="no. nodes is constant" language="python">
 import numpy
@@ -59,11 +59,11 @@ import numpy
 assert(numpy.all(abs(tracer1_integral[1:] - tracer1_integral[0]) &lt; 1e-9))
     </test>
     <test name="tracer1 error is initially less than 0.01" language="python">
-assert tracer1_error[0] &lt; 0.01 
+assert tracer1_error[0] &lt; 0.01
     </test>
     <test name="tracer1 error less than 0.01" language="python">
 import numpy
-assert(numpy.all(abs(tracer1_error[1:]-tracer1_error[0]) &lt; 1.e-9)) 
+assert(numpy.all(abs(tracer1_error[1:]-tracer1_error[0]) &lt; 1.e-9))
     </test>
     <test name="tracer2 integral is initially 1.0" language="python">
 assert abs(tracer2_integral[0] - 1.0) &lt; 1e-9
@@ -73,11 +73,11 @@ import numpy
 assert(numpy.all(abs(tracer2_integral[1:] - tracer2_integral[0]) &lt; 1e-9))
     </test>
     <test name="tracer2 error is initially less than 0.01" language="python">
-assert tracer2_error[0] &lt; 0.01 
+assert tracer2_error[0] &lt; 0.01
     </test>
     <test name="tracer2 error less than 0.01" language="python">
 import numpy
-assert(numpy.all(abs(tracer2_error[1:]-tracer2_error[0]) &lt; 1.e-9)) 
+assert(numpy.all(abs(tracer2_error[1:]-tracer2_error[0]) &lt; 1.e-9))
     </test>
   </pass_tests>
   <warn_tests>

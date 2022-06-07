@@ -67,16 +67,16 @@ Sqr_entrainment_error_48= sq_error
 assert(abs(Max_rms_24-0.00915) &lt; 1.0e-3)
 </test>
 
-<test name="Square entrainment error  24x24: Sqrr_entrainment_error_24 .lt. 1.0e-3" language="python">
-assert(abs(Sqr_entrainment_error_24) &lt; 1.0e-3)
+<test name="Square entrainment error  24x24: Sqr_entrainment_error_24 .lt. 1.0e-2" language="python">
+assert(abs(Sqr_entrainment_error_24) &lt; 1.0e-2)
 </test>
 
 <test name="Max RMS velocity 48x48: Max_rms_48 - 0.00915 .lt. 1.0e-5" language="python">
 assert(abs(Max_rms_48-0.00915) &lt; 1.0e-3)
 </test>
 
-<test name="Square entrainment error  48x48: Sqrr_entrainment_error_48 .lt. 1.0e-3" language="python">
-assert(abs(Sqr_entrainment_error_48) &lt; 1.0e-3)
+<test name="Square entrainment error  48x48: Sqr_entrainment_error_48 .lt. 1" language="python">
+assert(abs(Sqr_entrainment_error_48) &lt; 1)
 </test>
 
 </pass_tests>

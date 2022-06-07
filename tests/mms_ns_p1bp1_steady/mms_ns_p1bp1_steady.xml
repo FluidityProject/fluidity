@@ -253,10 +253,10 @@ assert(ab_convergence_vel[0][0] &gt; 1.5)
     <test name="ab_convergence_vel_y: L2 order &gt; 1.9" language="python">
 assert(ab_convergence_vel[1][0] &gt; 1.9)
     </test>
-    <test name="ab_convergence_p: L2 order &gt; 2.0" language="python">
-assert(ab_convergence_p[0] &gt; 2.0)
+    <test name="ab_convergence_p: L2 order &gt; 0.6" language="python">
+assert(ab_convergence_p[0] &gt; 0.6)
     </test>
-    <test name="bc_convergence_vel_x: L2 order &gt; 2.0" language="python">
+    <test name="bc_convergence_vel_x: L2 order &gt; 1.9" language="python">
 assert(bc_convergence_vel[0][0] &gt; 1.9)
     </test>
     <test name="bc_convergence_vel_y: L2 order &gt; 1.85" language="python">

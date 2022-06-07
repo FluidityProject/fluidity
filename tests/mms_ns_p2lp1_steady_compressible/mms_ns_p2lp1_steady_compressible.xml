@@ -343,9 +343,9 @@ d_final_change_rho = max(abs(vtu.GetScalarField("Density")-vtu.GetScalarField("O
     <test name="ab_convergence_rho: L2 order &gt; 2.0" language="python">assert(ab_convergence_rho[0] &gt; 2.0)</test>
 <!--    <test name="bc_convergence_rho: L2 order &gt; 0.9" language="python">assert(bc_convergence_rho[0] &gt; 0.9)</test>
     <test name="cd_convergence_rho: L2 order &gt; 0.9" language="python">assert(cd_convergence_rho[0] &gt; 0.9)</test>-->
-    <test name="ab_convergence_e: L2 order &gt; 2.0" language="python">assert(ab_convergence_e[0] &gt; 2.0)</test>
+    <test name="ab_convergence_e: L2 order &gt; 1.75" language="python">assert(ab_convergence_e[0] &gt; 1.75)</test>
     <test name="checking A finished in less than 50.0" language="python">assert(a_finish_time-50.0 &lt; 1.E-10)</test>
-    <test name="checking B finished in less than 50.0" language="python">assert(b_finish_time-50.0 &lt; 1.E-10)</test>
+    <test name="checking B finished in less than 81.0" language="python">assert(b_finish_time-81.0 &lt; 1.E-10)</test>
 <!--    <test name="checking C finished in less than 6.0" language="python">assert(c_finish_time-6.0 &lt; 1.E-10)</test>
     <test name="checking D finished in less than 6.0" language="python">assert(d_finish_time-6.0 &lt; 1.E-10)</test>-->
     <test name="checking A only used 5-9 iterations" language="python">

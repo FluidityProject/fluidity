@@ -1,65 +1,75 @@
-from fluidity_tools import stat_parser as stat
 from math import log
-import numpy as np
 
-meshes = [['A','B'], ['B','C'], ['C','D']]
+import numpy as np
+from fluidity_tools import stat_parser as stat
+
+meshes = [["A", "B"], ["B", "C"], ["C", "D"]]
 
 convergence = np.ones(15) * 1e10
 
-print ''
-print 'ORDER OF CONVERGENCE'
-print '-------------------------------------------'
+print("")
+print("ORDER OF CONVERGENCE")
+print("-------------------------------------------")
 
-print 'VelocityError:'
-print '-------------------------------------------'
+print("VelocityError:")
+print("-------------------------------------------")
 
 for i, mesh in enumerate(meshes):
 
-    a_error_x = stat("MMS_"+str(mesh[0])+".stat")["NS"]["VelocityError%1"]["l2norm"][-1]
-    b_error_x = stat("MMS_"+str(mesh[1])+".stat")["NS"]["VelocityError%1"]["l2norm"][-1]
-    a_error_y = stat("MMS_"+str(mesh[0])+".stat")["NS"]["VelocityError%2"]["l2norm"][-1]
-    b_error_y = stat("MMS_"+str(mesh[1])+".stat")["NS"]["VelocityError%2"]["l2norm"][-1]
+    a_error_x = stat("MMS_" + str(mesh[0]) + ".stat")["NS"]["VelocityError%1"][
+        "l2norm"
+    ][-1]
+    b_error_x = stat("MMS_" + str(mesh[1]) + ".stat")["NS"]["VelocityError%1"][
+        "l2norm"
+    ][-1]
+    a_error_y = stat("MMS_" + str(mesh[0]) + ".stat")["NS"]["VelocityError%2"][
+        "l2norm"
+    ][-1]
+    b_error_y = stat("MMS_" + str(mesh[1]) + ".stat")["NS"]["VelocityError%2"][
+        "l2norm"
+    ][-1]
 
     ratio_x = a_error_x / b_error_x
     ratio_y = a_error_y / b_error_y
 
-    print mesh[0] + '->' + mesh[1] + ': ', [log(ratio_x, 2), log(ratio_y, 2)]
+    print(mesh[0] + "->" + mesh[1] + ": ", [log(ratio_x, 2), log(ratio_y, 2)])
 
     convergence[0] = min(log(ratio_x, 2), log(ratio_y, 2), convergence[0])
 
-print '-------------------------------------------'
+print("-------------------------------------------")
 
-fields = ['TurbulentKineticEnergyProductionError', 
-          'TurbulentKineticEnergyDestructionError',
-          'TurbulentKineticEnergyBuoyancyTermError',
-          'TurbulentKineticEnergyError',
-          'TurbulentDissipationProductionError',
-          'TurbulentDissipationDestructionError',
-          'TurbulentDissipationBuoyancyTermError',
-          'TurbulentDissipationError',
-          'ScalarEddyViscosityError',
-          'TemperatureError', 
-          'PressureError',
-          'f_1Error', 
-          'f_2Error',
-          'f_muError',
-          ]
+fields = [
+    "TurbulentKineticEnergyProductionError",
+    "TurbulentKineticEnergyDestructionError",
+    "TurbulentKineticEnergyBuoyancyTermError",
+    "TurbulentKineticEnergyError",
+    "TurbulentDissipationProductionError",
+    "TurbulentDissipationDestructionError",
+    "TurbulentDissipationBuoyancyTermError",
+    "TurbulentDissipationError",
+    "ScalarEddyViscosityError",
+    "TemperatureError",
+    "PressureError",
+    "f_1Error",
+    "f_2Error",
+    "f_muError",
+]
 
 for i, field in enumerate(fields):
-    print field
-    print '-------------------------------------------'
+    print(field)
+    print("-------------------------------------------")
 
     for j, mesh in enumerate(meshes):
-        
-        a_error = stat("MMS_"+str(mesh[0])+".stat")["NS"][field]["l2norm"][-1]
-        b_error = stat("MMS_"+str(mesh[1])+".stat")["NS"][field]["l2norm"][-1]
-        
+
+        a_error = stat("MMS_" + str(mesh[0]) + ".stat")["NS"][field]["l2norm"][-1]
+        b_error = stat("MMS_" + str(mesh[1]) + ".stat")["NS"][field]["l2norm"][-1]
+
         ratio = a_error / b_error
-        
-        print mesh[0] + '->' + mesh[1] + ': ', log(ratio, 2)
 
-        convergence[i+1] = min(log(ratio, 2), convergence[i+1])
-    
-    print '-------------------------------------------'
+        print(mesh[0] + "->" + mesh[1] + ": ", log(ratio, 2))
 
-print ''
+        convergence[i + 1] = min(log(ratio, 2), convergence[i + 1])
+
+    print("-------------------------------------------")
+
+print("")
