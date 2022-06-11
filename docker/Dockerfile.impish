@@ -22,9 +22,6 @@ RUN apt-get update && \
      rm -rf /var/cache/apt && \
      rm -rf /var/lib/apt/lists
 
-ENV PETSC_DIR /usr/lib/petscdir/3.15
-ENV LDFLAGS -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi
-ENV CPPFLAGS -I/usr/include/hdf5/openmpi
 ENV OMPI_MCA_btl_vader_single_copy_mechanism none
 ENV OMPI_MCA_rmaps_base_oversubscribe 1
 
