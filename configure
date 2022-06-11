@@ -3858,6 +3858,9 @@ x$ax_compare_version_B" | sed 's/^ *//' | sort -r | sed "s/x${ax_compare_version
     else FCFLAGS_ALLOW_ARGUMENT_MISMATCH=""
   fi
 
+  # this is needed to find .mod files in these places
+  # see also https://gcc.gnu.org/bugzilla/show_bug.cgi?id=49138
+  FCFLAGS="$FCFLAGS -I/usr/local/include -I/usr/include"
 else
   USING_GFORTRAN="no"
   FCFLAGS_ALLOW_ARGUMENT_MISMATCH=""

@@ -129,6 +129,9 @@ if $FC -v 2>&1 | grep 'gcc version'; then
   AX_COMPARE_VERSION(["$GFORTRAN_VERSION"], [ge], 10,
                      [FCFLAGS_ALLOW_ARGUMENT_MISMATCH="-fallow-argument-mismatch"],
                      [FCFLAGS_ALLOW_ARGUMENT_MISMATCH=""])
+  # this is needed to find .mod files in these places
+  # see also https://gcc.gnu.org/bugzilla/show_bug.cgi?id=49138
+  FCFLAGS="$FCFLAGS -I/usr/local/include -I/usr/include"
 else
   USING_GFORTRAN="no"
   FCFLAGS_ALLOW_ARGUMENT_MISMATCH=""
