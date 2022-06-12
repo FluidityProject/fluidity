@@ -100,8 +100,8 @@ def validate_xml_snippets(filename, test_pep8, fix):
         def expand_tree(ele, path):
             epath = path+ele.tag+'/'
             exp_tree[epath] = ele
-            for _ in ele.getchildren():
-                expand_tree(_, epath)
+            for child in ele:
+                expand_tree(child, epath)
 
         expand_tree(tree.getroot(), '/')
 
