@@ -17,11 +17,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Build Impish" ]
+        name: [ "Build Bionic", "Build Focal", "Build Impish" ]
         include:
-
+        
+          - name: "Build Bionic"
+            release: bionic
+    
+          - name: "Build Focal"
+            release: focal
+    
           - name: "Build Impish"
             release: impish
+
     steps:
 
       - name: Check Out Repo 
@@ -52,9 +59,39 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Unit Impish", "Short Impish", "Medium Impish" ]
-        include:        
-            
+        name: [ "Ubnit Bionic", "Short Bionic", "Medium Bionic", "Unit Focal", "Short Focal", "Medium Focal", "Unit Impish", "Short Impish", "Medium Impish" ]
+        include:
+        
+          - name: "Unit Bionic"
+            release: bionic
+            command: "make unittest"
+            output: "test_results_unittests.xml"
+          
+          - name: "Short Bionic"
+            release: bionic
+            command: "make THREADS=2 test"
+            output: "test_results.xml"
+
+          - name: "Medium Bionic"
+            release: bionic
+            command: "make THREADS=2 mediumtest"
+            output: "test_results_medium.xml"
+
+          - name: "Unit Focal"
+            release: focal
+            command: "make unittest"
+            output: "test_results_unittests.xml"
+          
+          - name: "Short Focal"
+            release: focal
+            command: "make THREADS=2 test"
+            output: "test_results.xml"
+
+          - name: "Medium Focal"
+            release: focal
+            command: "make THREADS=2 mediumtest"
+            output: "test_results_medium.xml"
+
           - name: "Unit Impish"
             release: impish
             command: "make unittest"
@@ -208,8 +245,8 @@ jobs:
       - name: ${{ matrix.name }} Longtesting
         run: |
          chmod 777 .
-         docker pull fluidity/actions:impish-${{ github.sha }}
-         docker run -v $PWD:/host fluidity/actions:impish-${{ github.sha }} /bin/bash -c "git clone https://github.com/fluidityproject/longtests && bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && cp -v test_results_${{ matrix.name }}.xml /host"
+         docker pull fluidity/actions:focal-${{ github.sha }}
+         docker run -v $PWD:/host fluidity/actions:focal-${{ github.sha }} /bin/bash -c "git clone https://github.com/fluidityproject/longtests && bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && cp -v test_results_${{ matrix.name }}.xml /host"
 
       - uses: actions/upload-artifact@v2
         with:
