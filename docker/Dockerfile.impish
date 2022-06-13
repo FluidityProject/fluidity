@@ -18,15 +18,17 @@ RUN apt-get update && \
      gpg --export --armor 33BAC3BE | apt-key add - && \
      apt-get update && \
      echo "Europe/London" > /etc/timezone && \
-     apt-get -y install fluidity-dev texlive-pstricks texlive texlive-latex-extra texlive-science && \
+     apt-get -y install fluidity-dev texlive-pstricks texlive texlive-latex-extra texlive-science python3-pip && \
      rm -rf /var/cache/apt && \
      rm -rf /var/lib/apt/lists
 
-ENV OMPI_MCA_btl_vader_single_copy_mechanism none
-ENV OMPI_MCA_rmaps_base_oversubscribe 1
+RUN python3 -m pip install --upgrade junit-xml
 
 WORKDIR /usr/local
 RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-2.16.0-Linux64.tgz | tar --strip-components=1 -zxf -
+
+ENV OMPI_MCA_btl_vader_single_copy_mechanism none
+ENV OMPI_MCA_rmaps_base_oversubscribe 1
 
 # Add a Fluidity user who will be the default user for this container
 # Make sure the user has a userid matching the host system
