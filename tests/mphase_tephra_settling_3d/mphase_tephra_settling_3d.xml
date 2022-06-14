@@ -1,18 +1,17 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
-   
   <name>mphase_tephra_settling_3d</name>
   <owner userid="ctj10"/>
   <tags>flml</tags>
-  
+
   <problem_definition length="long" nprocs="8">
     <command_line>mpiexec flredecomp -i 1 -o 8 -v -l mphase_tephra_settling_3d mphase_tephra_settling_3d_flredecomp &amp;&amp;
-mpiexec fluidity mphase_tephra_settling_3d_flredecomp.flml</command_line>
+mpiexec fluidity -v2 -l mphase_tephra_settling_3d_flredecomp.flml</command_line>
     <!-- This is a 3D simulation of the formation of density currents. We consider a -->
     <!-- body of water with a constant inflow of (denser) tephra at the top boundary. -->
     <!-- Density currents/plumes should eventually form when the bulk density is large enough. -->
   </problem_definition>
-  
+
   <variables>
     <variable name="tephra_u_max" language="python">
 from fluidity_tools import stat_parser
@@ -30,7 +29,7 @@ files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
   </variables>
-    
+
   <pass_tests>
     <test name="Maximum Tephra velocity is less than 0.0025 for the first 30 seconds" language="python">
 for t in range(0,len(time)):
@@ -51,8 +50,8 @@ for t in range(0,len(time)):
 assert(solvers_converged)
     </test>
   </pass_tests>
-  
+
   <warn_tests>
   </warn_tests>
-  
+
 </testproblem>

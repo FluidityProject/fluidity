@@ -288,20 +288,20 @@ print(d_min_divergence)
     <test name="ss_reached_in_b_vel" language="python">assert(b_final_change_vel &lt; 1.E-10)
     </test>
     <test name="ss_reached_in_c_vel" language="python">assert(c_final_change_vel &lt; 1.E-10)
-    </test>    
+    </test>
     <test name="ss_reached_in_d_vel" language="python">assert(d_final_change_vel &lt; 1.E-10)
     </test>
     <test name="ab_convergence_rho: L2 order between 3.25 and 3.45" language="python">assert(abs(ab_convergence_rho[0]-3.35) &lt; 0.1)
     </test>
     <test name="bc_convergence_rho: L2 order between 3.6 and 3.8" language="python">assert(abs(bc_convergence_rho[0]-3.7) &lt; 0.1)
     </test>
-    <test name="cd_convergence_rho: L2 order between 3.0 and 3.4" language="python">assert(abs(cd_convergence_rho[0]-3.2) &lt; 0.2)
+    <test name="cd_convergence_rho: L2 order between 2.8 and 3.2" language="python">assert(abs(cd_convergence_rho[0]-3.0) &lt; 0.2)
     </test>
-    <test name="ab_convergence_vel_y: L2 order between 1.5 and 1.7" language="python">assert(abs(ab_convergence_vel[1][0]-1.6) &lt; 0.1)
+    <test name="ab_convergence_vel_y: L2 order between 1.6 and 1.8" language="python">assert(abs(ab_convergence_vel[1][0]-1.7) &lt; 0.1)
     </test>
-    <test name="bc_convergence_vel_y: L2 order between 2.0 and 2.2" language="python">assert(abs(bc_convergence_vel[1][0]-2.1) &lt; 0.1)
+    <test name="bc_convergence_vel_y: L2 order between 1.8 and 2.0" language="python">assert(abs(bc_convergence_vel[1][0]-1.9) &lt; 0.1)
     </test>
-    <test name="cd_convergence_vel_y: L2 order between 2.0 and 2.2" language="python">assert(abs(cd_convergence_vel[1][0]-2.1) &lt; 0.1)
+    <test name="cd_convergence_vel_y: L2 order between 1.5 and 1.7" language="python">assert(abs(cd_convergence_vel[1][0]-1.6) &lt; 0.1)
     </test>
   </pass_tests>
   <warn_tests/>

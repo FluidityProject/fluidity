@@ -21,6 +21,7 @@ ab_volume_convergence_vel = cc.velocity_convergence(file_coarse,file_fine)
 file_coarse = "sphere_B.stat"
 file_fine = "sphere_C.stat"
 bc_volume_convergence_vel = cc.velocity_convergence(file_coarse,file_fine)
+print(bc_volume_convergence_vel)
     </variable>
 
     <variable name="ab_surface_convergence_vel" language="python">import calculate_convergence as cc
@@ -87,6 +88,7 @@ bc_surface_convergence_ns = cc.surface_normalstress_convergence(file_coarse,file
 file_coarse = "sphere_A.stat"
 file_fine = "sphere_B.stat"
 ab_CMB_convergence_ns = cc.CMB_normalstress_convergence(file_coarse,file_fine)
+print(ab_CMB_convergence_ns)
     </variable>
 
     <variable name="bc_CMB_convergence_ns" language="python">import calculate_convergence as cc

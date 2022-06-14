@@ -57,6 +57,7 @@ ab_volume_convergence_pressure = cc.pressure_convergence(file_coarse,file_fine)
 file_coarse = "sphere_B.stat"
 file_fine = "sphere_C.stat"
 bc_volume_convergence_pressure = cc.pressure_convergence(file_coarse,file_fine)
+print(bc_volume_convergence_pressure)
     </variable>
 
     <variable name="ab_volume_convergence_ns" language="python">import calculate_convergence as cc

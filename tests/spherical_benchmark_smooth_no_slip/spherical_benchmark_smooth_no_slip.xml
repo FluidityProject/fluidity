@@ -57,7 +57,6 @@ ab_surface_convergence_ns = cc.surface_normalstress_convergence(file_coarse,file
 file_coarse = "sphere_B.stat"
 file_fine = "sphere_C.stat"
 bc_surface_convergence_ns = cc.surface_normalstress_convergence(file_coarse,file_fine)
-print(bc_surface_convergence_ns)
     </variable>
 
     <variable name="ab_CMB_convergence_ns" language="python">import calculate_convergence as cc
@@ -84,7 +83,7 @@ bc_CMB_convergence_ns = cc.CMB_normalstress_convergence(file_coarse,file_fine)
     <test name="bcvolume_ns" language="python">assert( abs(bc_volume_convergence_ns -2.0) &lt; 0.1)</test>
 
     <test name="absurface_ns" language="python">assert( abs(ab_surface_convergence_ns -2.0) &lt; 0.7)</test>
-    <test name="bcsurface_ns" language="python">assert( abs(bc_surface_convergence_ns -2.0) &lt; 0.1)</test>
+    <test name="bcsurface_ns" language="python">assert( abs(bc_surface_convergence_ns -2.0) &lt; 0.15)</test>
 
     <test name="abCMB_ns" language="python">assert( abs(ab_CMB_convergence_ns -2.0) &lt; 0.5)</test>
     <test name="bcCMB_ns" language="python">assert( abs(bc_CMB_convergence_ns -2.0) &lt; 0.1)</test>

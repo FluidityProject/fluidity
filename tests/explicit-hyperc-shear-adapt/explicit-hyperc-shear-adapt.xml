@@ -4,16 +4,16 @@
   <owner userid="cwilson"/>
   <tags>flml 2dadapt</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>fixme mpiexec fluidity -v2 -l explicit-hyperc-shear-input-conservative.flml &amp;&amp;
-      mv fluidity.log-0 forward.log &amp;&amp;
-      mv fluidity.err-0 forward.err &amp;&amp;
-      ./change_options_conservative.py &amp;&amp;
-      mpiexec fluidity -v2 -l explicit-hyperc-shear-conservative_16_checkpoint.flml &amp;&amp;
-      mv fluidity.log-0 back.log &amp;&amp;
-      mv fluidity.err-0 back.err &amp;&amp;
-      mpiexec unifiedmesh explicit-hyperc-shear-conservative_CoordinateMesh_0_checkpoint explicit-hyperc-shear-conservative_checkpoint_CoordinateMesh_16_checkpoint merged_mesh &amp;&amp;
-      mpiexec fluidity -v2 -l explicit-hyperc-shear-errors.flml &amp;&amp;
-      mv fluidity.log-0 errors.log &amp;&amp;
+    <command_line>fluidity -v2 -l explicit-hyperc-shear-input-conservative.flml
+      mv fluidity.log-0 forward.log
+      mv fluidity.err-0 forward.err
+      ./change_options_conservative.py
+      fluidity -v2 -l explicit-hyperc-shear-conservative_16_checkpoint.flml
+      mv fluidity.log-0 back.log
+      mv fluidity.err-0 back.err
+      unifiedmesh explicit-hyperc-shear-conservative_CoordinateMesh_0_checkpoint explicit-hyperc-shear-conservative_checkpoint_CoordinateMesh_16_checkpoint merged_mesh
+      fluidity -v2 -l explicit-hyperc-shear-errors.flml
+      mv fluidity.log-0 errors.log
       mv fluidity.err-0 errors.err</command_line>
   </problem_definition>
   <variables>

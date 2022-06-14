@@ -1,6 +1,6 @@
 preprocess:
 	@echo **********Creating 3D mesh
-	gmsh -format msh2 -3 -o mphase_tephra_settling_3d.msh src/mphase_tephra_settling_3d.geo
+	gmsh -3 -o mphase_tephra_settling_3d.msh src/mphase_tephra_settling_3d.geo
 
 run:
 	@echo **********Running simulation
