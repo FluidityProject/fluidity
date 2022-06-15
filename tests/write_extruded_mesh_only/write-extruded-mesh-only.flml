@@ -279,7 +279,7 @@
             <mesh name="CoordinateMesh"/>
             <algorithm name="tensor_python_diagnostic" material_phase_support="single">
               <string_value type="code" language="python" lines="20">import math, numpy
-from constants import nu0, E
+from params import nu0, E
 
 T = state.scalar_fields["Temperature"]
 assert(T.node_count == field.node_count)
@@ -335,7 +335,7 @@ for n in range(field.node_count):
         <value name="WholeMesh">
           <python>
             <string_value type="code" language="python" lines="20">def val(X,t):
-  import numpy, math, constants
+  import numpy, math, params
 
   # Store coordinates as straightforward variables:
   X0 = X[0]
@@ -346,8 +346,8 @@ for n in range(field.node_count):
   r     = math.sqrt(X0**2+X1**2+X2**2) # r
 
   # Calculate spharical harmonic initial condition:
-  ri = constants.inner_radius
-  ro = constants.outer_radius
+  ri = params.inner_radius
+  ro = params.outer_radius
   conductive_term = ( (ri*(r - ro)) / (r*(ri - ro)) )
   T  = conductive_term
   return T</string_value>

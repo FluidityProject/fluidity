@@ -1,13 +1,13 @@
 from __future__ import print_function
-import numpy, glob, sys, os, vtk, constants
+import numpy, glob, sys, os, vtk, params
 
 def check_min_max_radii():
   # Loop over vtu's and check that each core does not extend from inner radius to outer radius:
   filelist = glob.glob("Stokes_sphere_0/Stokes_sphere_0_*.vtu")
   filelist.sort()
 
-  smallest_radius_max = constants.outer_radius
-  largest_radius_min = constants.inner_radius
+  smallest_radius_max = params.outer_radius
+  largest_radius_min = params.inner_radius
 
   for filename in filelist:
     print('Working on file:', filename)

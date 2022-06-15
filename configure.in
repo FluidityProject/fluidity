@@ -129,6 +129,9 @@ if $FC -v 2>&1 | grep 'gcc version'; then
   AX_COMPARE_VERSION(["$GFORTRAN_VERSION"], [ge], 10,
                      [FCFLAGS_ALLOW_ARGUMENT_MISMATCH="-fallow-argument-mismatch"],
                      [FCFLAGS_ALLOW_ARGUMENT_MISMATCH=""])
+  # this is needed to find .mod files in these places
+  # see also https://gcc.gnu.org/bugzilla/show_bug.cgi?id=49138
+  FCFLAGS="$FCFLAGS -I/usr/local/include -I/usr/include"
 else
   USING_GFORTRAN="no"
   FCFLAGS_ALLOW_ARGUMENT_MISMATCH=""
@@ -878,7 +881,7 @@ AC_ARG_ENABLE(sam,
 if test "$enable_sam" = "yes"; then
   HAVE_ZOLTAN=no
 else
-  ACX_lib_automagic(zoltan, Zoltan_Create, [],
+  AC_SEARCH_LIBS(Zoltan_Create,[trilinos_zoltan zoltan],[],
     [
       AC_MSG_NOTICE([Fluidity can be built without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details.])
       AC_MSG_FAILURE("Could not link with Zoltan library.")

@@ -3858,6 +3858,9 @@ x$ax_compare_version_B" | sed 's/^ *//' | sort -r | sed "s/x${ax_compare_version
     else FCFLAGS_ALLOW_ARGUMENT_MISMATCH=""
   fi
 
+  # this is needed to find .mod files in these places
+  # see also https://gcc.gnu.org/bugzilla/show_bug.cgi?id=49138
+  FCFLAGS="$FCFLAGS -I/usr/local/include -I/usr/include"
 else
   USING_GFORTRAN="no"
   FCFLAGS_ALLOW_ARGUMENT_MISMATCH=""
@@ -13442,65 +13445,12 @@ fi
 if test "$enable_sam" = "yes"; then
   HAVE_ZOLTAN=no
 else
-
-
-ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking zoltan automagic" >&5
-$as_echo_n "checking zoltan automagic... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-void Zoltan_Create();
-
-#ifdef F77_DUMMY_MAIN
-
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
-#endif
-#ifdef FC_DUMMY_MAIN
-#ifndef FC_DUMMY_MAIN_EQ_F77
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int FC_DUMMY_MAIN() { return 1; }
-#endif
-#endif
-int
-main ()
-{
-
-Zoltan_Create();
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-
-
-else
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for Zoltan_Create in -lzoltan" >&5
-$as_echo_n "checking for Zoltan_Create in -lzoltan... " >&6; }
-if ${ac_cv_lib_zoltan_Zoltan_Create+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing Zoltan_Create" >&5
+$as_echo_n "checking for library containing Zoltan_Create... " >&6; }
+if ${ac_cv_search_Zoltan_Create+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lzoltan  $LIBS"
+  ac_func_search_save_LIBS=$LIBS
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -13535,20 +13485,36 @@ return Zoltan_Create ();
   return 0;
 }
 _ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_zoltan_Zoltan_Create=yes
-else
-  ac_cv_lib_zoltan_Zoltan_Create=no
+for ac_lib in '' trilinos_zoltan zoltan; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_search_Zoltan_Create=$ac_res
 fi
 rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
+    conftest$ac_exeext
+  if ${ac_cv_search_Zoltan_Create+:} false; then :
+  break
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zoltan_Zoltan_Create" >&5
-$as_echo "$ac_cv_lib_zoltan_Zoltan_Create" >&6; }
-if test "x$ac_cv_lib_zoltan_Zoltan_Create" = xyes; then :
+done
+if ${ac_cv_search_Zoltan_Create+:} false; then :
 
-       LIBS="-lzoltan $LIBS"
+else
+  ac_cv_search_Zoltan_Create=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_Zoltan_Create" >&5
+$as_echo "$ac_cv_search_Zoltan_Create" >&6; }
+ac_res=$ac_cv_search_Zoltan_Create
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
 else
 
       { $as_echo "$as_me:${as_lineno-$LINENO}: Fluidity can be built without zoltan by configuring with the --enable-sam flag. This gives limited functionality when using parallel adaptivity. See the manual for more details." >&5
@@ -13559,19 +13525,6 @@ as_fn_error $? "\"Could not link with Zoltan library.\"
 See \`config.log' for more details" "$LINENO" 5; }
 
 fi
-
-
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-
-ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
 
 
   # Small test for zoltan .mod files:
