@@ -1,10 +1,10 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
-   
+
   <name>mphase_tephra_settling_salinity_adaptive</name>
   <owner userid="ctj10"/>
-  <tags>flml</tags>
-  
+  <tags>flml longtime</tags>
+
   <problem_definition length="vlong" nprocs="8">
     <command_line>mpiexec flredecomp -i 1 -o 8 -v -l mphase_tephra_settling_salinity_adaptive mphase_tephra_settling_salinity_adaptive_flredecomp &amp;&amp;
 mpiexec fluidity mphase_tephra_settling_salinity_adaptive_flredecomp.flml</command_line>
@@ -16,26 +16,26 @@ mpiexec fluidity mphase_tephra_settling_salinity_adaptive_flredecomp.flml</comma
     <!-- After a second tephra layer forms along the inflexion, the particles continue their descent towards the -->
     <!-- bottom of the water tank. -->
   </problem_definition>
-  
+
   <variables>
     <variable name="tephra_velocity_magnitude_max" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_tephra_settling_salinity_adaptive.stat")
 tephra_velocity_magnitude_max = s["Tephra"]["Velocity%magnitude"]["max"]
     </variable>
-    
+
     <variable name="time" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_tephra_settling_salinity_adaptive.stat")
 time = s["ElapsedTime"]["value"]
     </variable>
-    
+
     <variable name="salinity_min_final" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_tephra_settling_salinity_adaptive.stat")
 salinity_min_final = s["Water"]["Salinity"]["min"][-1]
     </variable>
-    
+
     <variable name="salinity_max_final" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_tephra_settling_salinity_adaptive.stat")
@@ -48,7 +48,7 @@ files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
   </variables>
-    
+
   <pass_tests>
     <test name="Maximum Tephra velocity is less than 0.002 for the first 5 seconds" language="python">
 for t in range(0, len(time)):
@@ -64,7 +64,7 @@ for t in range(0, len(time)):
       assert max(tephra_velocity_magnitude_max[t:]) &lt; 0.7
       break
     </test>
-    
+
     <test name="Salinity gradient remains mostly unchanged by the plumes passing through it" language="python">
 assert salinity_min_final &gt; 0
 assert salinity_max_final &lt; 70
@@ -74,8 +74,8 @@ assert salinity_max_final &lt; 70
 assert(solvers_converged)
     </test>
   </pass_tests>
-  
+
   <warn_tests>
   </warn_tests>
-  
+
 </testproblem>

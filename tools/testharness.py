@@ -51,9 +51,9 @@ except ImportError:  # Provide dummy classes in the absence of junit_xml
 
 
 def filter_tests(xml_files):
+    """Iterate through all found XML files and keep only the ones that match the program
+    input arguments."""
     tests = {}
-    # Iterate through all found XML files and keep only the ones that match the
-    # program input arguments
     for xml_file in xml_files:
         # Obtain basic information about the test
         parsed_xml = parse(xml_file).getroot()
@@ -65,6 +65,7 @@ def filter_tests(xml_files):
         prob_command = prob_def.find("command_line").text.replace(
             "mpiexec", f"mpiexec -n {prob_nprocs}"
         )
+        # Indicate if the test belongs to 'examples' or 'tests' and specify its length.
         prob_classname = f"{xml_file.parts[-3]}.{prob_length}"
         try:
             xml_tags = parsed_xml.find("tags").text.split()
@@ -86,11 +87,11 @@ def filter_tests(xml_files):
             or omitted_tags_condition
             or required_tags_condition
         ):
-            xml_entry = TestCase(
+            test_case = TestCase(
                 name=xml_file.stem, classname=prob_classname, status="Skipped"
             )
-            xml_entry.add_skipped_info(message="Test suite conditions unmet.")
-            xml_parser.test_cases.append(xml_entry)
+            test_case.add_skipped_info(message="Test suite conditions unmet.")
+            test_suite.test_cases.append(test_case)
             continue
         # Populate dictionary with test information
         tests[xml_file] = {
@@ -121,6 +122,7 @@ def filter_tests(xml_files):
 
 
 def gather_tests():
+    """Look for tests given the program input arguments."""
     if args.file:  # Specific test requested
         xml_files = [fluidity_source.rglob(args.file)]
     elif args.from_file:  # Specific list of tests requested
@@ -137,8 +139,8 @@ def gather_tests():
 
 
 def generate_string(test_type, assertion_status, test, test_str):
-    # Encapsulate Python code to execute within a try/except structure to
-    # properly catch potential exceptions and obtain tracebacks
+    """Encapsulate within a try/except structure the Python code to execute to properly
+    catch potential exceptions and obtain tracebacks."""
     return f"""
 print("# {test_type} Test: {test}")
 try:
@@ -167,7 +169,7 @@ def poll_processes(
     process_interpreter,
     oversubscribe,
 ):
-    # Check if running processes have terminated
+    """Check if running processes have terminated and deal with results."""
     proc_status = [
         tests[running_xml]["running_proc"].poll() for running_xml in running_procs
     ]
@@ -203,8 +205,9 @@ def poll_processes(
 
 
 def process_error(test_xml, process_interpreter, stdout, stderr):
+    """Process tests that did not complete successfully."""
     # Add an entry to the XML parser
-    xml_entry = TestCase(
+    test_case = TestCase(
         name=test_xml.stem,
         classname=tests[test_xml]["id"],
         elapsed_sec=tests[test_xml]["elapsed_time"],
@@ -215,8 +218,8 @@ def process_error(test_xml, process_interpreter, stdout, stderr):
     # Errors generated in make input or while running command(s)
     if process_interpreter == "Shell":
         error_list.append(test_xml.stem)
-        xml_entry.status = "Error"
-        xml_entry.add_error_info(
+        test_case.status = "Error"
+        test_case.add_error_info(
             message=f"{test_xml.stem}: Shell script failed.", output=f"\n{stderr}"
         )
         if tests[test_xml]["running_proc"].returncode == 0:
@@ -229,8 +232,8 @@ def process_error(test_xml, process_interpreter, stdout, stderr):
             error in stderr for error in ["IndentationError", "SyntaxError", "TabError"]
         ):
             error_list.append(test_xml.stem)
-            xml_entry.status = "Error"
-            xml_entry.add_error_info(
+            test_case.status = "Error"
+            test_case.add_error_info(
                 message=f"{test_xml.stem}: Parsing failed", output=f"\n{stderr}"
             )
         # Failure(s) within actual test(s)
@@ -255,11 +258,11 @@ def process_error(test_xml, process_interpreter, stdout, stderr):
             for traceback, (test_type, test_name) in zip(tracebacks, failed_tests):
                 if flag_pass and test_type == "Pass Test":
                     failure_list.append(test_xml.stem)
-                    xml_entry.status = "Failure"
+                    test_case.status = "Failure"
                     flag_pass = False
                 elif flag_warn and test_type == "Warn Test":
                     warning_list.append(test_xml.stem)
-                    xml_entry.status = "Warning" if flag_pass else "Failure and Warning"
+                    test_case.status = "Warning" if flag_pass else "Failure and Warning"
                     flag_warn = False
                 line_nb = re.search(
                     '(?<="<string>", line )[0-9]+(?=, in <module>)', traceback
@@ -270,14 +273,14 @@ def process_error(test_xml, process_interpreter, stdout, stderr):
                     f"\n  Caught exception at '{python_error_line.strip()}'\n",
                 )
                 failure_type = "failure" if "Pass" in test_type else "warning"
-                xml_entry.add_failure_info(
+                test_case.add_failure_info(
                     message=f"{test_xml.stem}: Test '{test_name}' failed",
                     output=f"\n{traceback}",
                     failure_type=failure_type,
                 )
         else:  # Error within variable
             error_list.append(test_xml.stem)
-            xml_entry.status = "Error"
+            test_case.status = "Error"
             try:
                 line_nb = re.search(
                     '(?<="<string>", line )[0-9]+(?=, in <module>)', stderr
@@ -292,13 +295,13 @@ def process_error(test_xml, process_interpreter, stdout, stderr):
             var_name = list(
                 re.finditer(r"(?<=^#\sVariable:\s).+", stdout, re.MULTILINE)
             )[-1].group()
-            xml_entry.add_error_info(
+            test_case.add_error_info(
                 message=f"{test_xml.stem}: Variable '{var_name}' failed.",
                 output=f"\n{traceback}",
             )
         if tests[test_xml]["running_proc"].returncode == 0:
             tests[test_xml]["running_proc"].returncode = "Python exception"
-    xml_parser.test_cases.append(xml_entry)
+    test_suite.test_cases.append(test_case)
     # Print relevant information regarding the error
     print(f"\n* ERROR: {test_xml.stem} exited with a non-zero exit code.")
     print(f"* Exit status: {tests[test_xml]['running_proc'].returncode}")
@@ -307,6 +310,7 @@ def process_error(test_xml, process_interpreter, stdout, stderr):
 
 
 def read_stream(test_xml, stream_key):
+    """Read content of provided stream."""
     # Set file object’s position to the beginning of the file
     tests[test_xml][stream_key].seek(0)
     stream = tests[test_xml][stream_key].readlines()
@@ -317,6 +321,7 @@ def read_stream(test_xml, stream_key):
 
 
 def run_tasks(task_string, tests_list, serial, process_interpreter, task_function):
+    """Iterate through the test list and execute the provided function in parallel."""
     return_list, running_procs, core_counter = [], [], 0
     print(task_string)
     oversubscribe = False
@@ -384,14 +389,16 @@ def run_tasks(task_string, tests_list, serial, process_interpreter, task_functio
 
 
 def set_environment_variable(env_var, env_path):
+    """Set or prepend to the requested environment variable."""
     try:  # Check if the the environment variable already contains the path
-        if str(env_path) not in environ[env_var]:
+        if not any(env_path.samefile(path) for path in environ[env_var].split(":")):
             environ[env_var] = f"{env_path}:" + environ[env_var]
     except KeyError:  # If the environment variable does not exist, create it
         environ[env_var] = str(env_path)
 
 
 def task_make_input(test_xml):
+    """Execute `make input`."""
     tests[test_xml]["running_proc"] = subprocess.Popen(
         ["make", "input"],
         cwd=test_xml.parent,
@@ -402,6 +409,7 @@ def task_make_input(test_xml):
 
 
 def task_run_commands(test_xml):
+    """Execute test instructions."""
     tests[test_xml]["running_proc"] = subprocess.Popen(
         tests[test_xml]["command"],
         cwd=test_xml.parent,
@@ -413,6 +421,7 @@ def task_run_commands(test_xml):
 
 
 def task_run_tests(test_xml):
+    """Calculate Python variables specific to the test and assess their values."""
     # Join variable strings together
     var_string = "\n".join(
         [
@@ -525,7 +534,7 @@ print(
 
 xml_files = gather_tests()
 assert xml_files, "No tests were found."
-xml_parser = TestSuite("Test Harness")
+test_suite = TestSuite("Test Harness")
 tests = filter_tests(xml_files)
 assert tests, "No tests matched the provided test criteria."
 
@@ -617,19 +626,19 @@ Keep the following in mind:
         )
 
     for test_xml in tests_list:
-        xml_entry = TestCase(
+        test_case = TestCase(
             name=test_xml.stem,
             classname=tests[test_xml]["id"],
             elapsed_sec=tests[test_xml]["elapsed_time"],
             status="Success",
         )
-        xml_entry.stdout = tests[test_xml]["stdout"]
-        xml_entry.stderr = tests[test_xml]["stderr"]
-        xml_parser.test_cases.append(xml_entry)
+        test_case.stdout = tests[test_xml]["stdout"]
+        test_case.stderr = tests[test_xml]["stderr"]
+        test_suite.test_cases.append(test_case)
 
     if args.xml_output:
         with open(args.xml_output, "w") as fid:
-            xml_parser.to_file(fid, [xml_parser])
+            test_suite.to_file(fid, [test_suite])
 
     if any([error_list, failure_list, warning_list]):
         if error_list:

@@ -3,7 +3,7 @@
    <name>backward facing step 3D example</name>
    <!--Runs a 3D backward facing step problem with geometry defined as in Le, Moin &amp; Kim 1997. Direct numerical simulation of turbulent flow over a backward-facing step, Journal of Fluid Mechanics.-->
   <owner userid="jbull"/>
-  <tags>flml 3dadapt</tags>
+  <tags>flml 3dadapt longtime</tags>
   <!-- uses flml - uses 3d adaptivity -->
   <problem_definition length="vlong" nprocs="8">
     <command_line>mpiexec flredecomp -i 1 -o 8 -v -l backward_facing_step_3d backward_facing_step_3d_flredecomp &amp;&amp;

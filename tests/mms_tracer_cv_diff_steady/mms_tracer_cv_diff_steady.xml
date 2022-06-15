@@ -3,7 +3,7 @@
   <name>p1cvp1cv bassi-rebay diffusion equation spatial convergence test</name>
   <owner userid="cwilson"/>
   <tags>flml</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="long" nprocs="1">
 <!--    <command_line>mpiexec fluidity -v1 MMS_A_cv.flml &gt; MMS_A.log; mpiexec fluidity -v1 MMS_B_cv.flml &gt; MMS_B.log; mpiexec fluidity -v1 MMS_C_cv.flml &gt; MMS_C.log; mpiexec fluidity -v1 MMS_D_cv.flml &gt; MMS_D.log; mpiexec fluidity -v1 MMS_E_cv.flml &gt; MMS_E.log; mpiexec fluidity -v1 MMS_F_cv.flml &gt; MMS_F.log</command_line>-->
     <command_line>mpiexec fluidity -v1 MMS_A_cv.flml &gt; MMS_A.log; mpiexec fluidity -v1 MMS_B_cv.flml &gt; MMS_B.log; mpiexec fluidity -v1 MMS_C_cv.flml &gt; MMS_C.log; mpiexec fluidity -v1 MMS_D_cv.flml &gt; MMS_D.log; mpiexec fluidity -v1 MMS_E_cv.flml &gt; MMS_E.log</command_line>
   </problem_definition>

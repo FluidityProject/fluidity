@@ -2,7 +2,7 @@
 <testproblem>
   <name>Adaptive shearing volume fraction</name>
   <owner userid="cwilson"/>
-  <tags>flml 2dadapt</tags>
+  <tags>flml 2dadapt fixme</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v2 -l explicit-hyperc-shear-input-conservative.flml
       mv fluidity.log-0 forward.log

@@ -27,7 +27,8 @@ s = stat_parser("bubcol_2d_rans.stat")
 particle_reynolds_number_min=s["Air"]["ParticleReynoldsNumber"]["min"][-1]</variable>
     <variable name="divergence_max" language="python">from fluidity_tools import stat_parser
 s = stat_parser("bubcol_2d_rans.stat")
-divergence_max = s["Air"]["SumVelocityDivergence"]["max"][-1]</variable>
+divergence_max = s["Air"]["SumVelocityDivergence"]["max"][-1]
+print(divergence_max)</variable>
     <variable name="solvers_converged" language="python">import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
@@ -36,7 +37,8 @@ s = stat_parser("bubcol_2d_rans.stat")
 air_vol_frac_integ=s["Air"]["PhaseVolumeFraction"]["integral"][-1]</variable>
     <variable name="k_max" language="python">from fluidity_tools import stat_parser
 s = stat_parser("bubcol_2d_rans.stat")
-k_max = s["Water"]["TurbulentKineticEnergy"]["max"][-1]</variable>
+k_max = s["Water"]["TurbulentKineticEnergy"]["max"][-1]
+print(k_max)</variable>
     <variable name="epsilon_max" language="python">from fluidity_tools import stat_parser
 s = stat_parser("bubcol_2d_rans.stat")
 epsilon_max = s["Water"]["TurbulentDissipation"]["max"][-1]</variable>

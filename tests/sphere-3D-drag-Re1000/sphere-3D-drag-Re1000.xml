@@ -3,7 +3,7 @@
 <testproblem>
   <name>sphere-3d-drag-Re1000</name>
   <owner userid="piggt01"/>
-  <tags>flml</tags>
+  <tags>flml longtime</tags>
   <problem_definition length="vlong" nprocs="8">
     <command_line>mpiexec flredecomp -i 1 -o 8 -v -l sphere-3D-drag-Re1000 sphere-3D-drag-Re1000_flredecomp &amp;&amp;
 mpiexec fluidity -v1 -l sphere-3D-drag-Re1000_flredecomp.flml</command_line>
@@ -20,8 +20,8 @@ print(time_average_xforce)
 from math import pi
 def drag(Re):
 # Correlation to lab data from Brown and Lawler (2003)
-   Cd = (24.0/Re)*(1.0 + 0.15*(Re**0.681)) + 0.407/(1.0 + (8710.0/Re))  
-   return Cd     
+   Cd = (24.0/Re)*(1.0 + 0.15*(Re**0.681)) + 0.407/(1.0 + (8710.0/Re))
+   return Cd
 
 Re = 1000
 exact_xforce = drag(Re)*(0.5*1.0*1.0*pi/4.0)

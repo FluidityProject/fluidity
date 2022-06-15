@@ -4,7 +4,7 @@
   <name>cylinder-3d-drag</name>
   <owner userid="piggott"/>
   <tags>flml</tags>
-  <problem_definition length="vlong" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>mpiexec fluidity -v3 -l  cylinder-3d-drag.flml</command_line>
   </problem_definition>
   <variables>

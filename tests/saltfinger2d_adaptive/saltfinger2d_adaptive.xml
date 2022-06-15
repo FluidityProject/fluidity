@@ -2,7 +2,7 @@
 <testproblem>
   <name>2D salt finger adaptive</name>
   <owner userid="matt-piggott"/>
-  <tags>flml 2dadapt</tags>
+  <tags>flml 2dadapt longtime</tags>
   <problem_definition length="vlong" nprocs="8">
     <command_line>mpiexec flredecomp -i 1 -o 8 -v -l saltfinger2d_adaptive saltfinger2d_adaptive_flredecomp &amp;&amp;
 mpiexec fluidity  saltfinger2d_adaptive_flredecomp.flml </command_line>

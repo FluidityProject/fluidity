@@ -5,22 +5,22 @@
   <tags>flml gls</tags>
     <problem_definition length="medium" nprocs="1">
         <command_line>
-            fluidity -v2 -l gls-Kato_Phillips-mixed_layer_depth-gen-GL.flml
+            <!-- fluidity -v2 -l gls-Kato_Phillips-mixed_layer_depth-gen-GL.flml -->
             fluidity -v2 -l gls-Kato_Phillips-mixed_layer_depth-k_w-CB.flml
         </command_line>
   </problem_definition>
   <variables>
 
-    <variable name="FinalTimeGenGL" language="python">
+    <!-- <variable name="FinalTimeGenGL" language="python">
 import fluidity_tools
 FinalTimeGenGL = fluidity_tools.stat_parser("Kato_Phillips-mld-gen-GL.stat")['ElapsedTime']['value'][-1]
-    </variable>
+    </variable> -->
     <variable name="FinalTimeKWCB" language="python">
 import fluidity_tools
 FinalTimeKWCB = fluidity_tools.stat_parser("Kato_Phillips-mld-k_w-CB.stat")['ElapsedTime']['value'][-1]
     </variable>
 
-    <variable name="GenGL_MLD" language="python">
+    <!-- <variable name="GenGL_MLD" language="python">
 import sys
 sys.path.append("gls-Kato_Phillips-mixed_layer_depth")
 import mld_calc
@@ -28,7 +28,7 @@ import glob
 filelist = glob.glob("Kato_Phillips-mld-gen-GL_*.vtu")
 mld_calc.sort_nicely(filelist)
 GenGL_MLD = mld_calc.MLD(filelist)
-    </variable>
+    </variable> -->
     <variable name="KWCB_MLD" language="python">
 import sys
 sys.path.append("gls-Kato_Phillips-mixed_layer_depth")
@@ -42,22 +42,17 @@ KWCB_MLD = mld_calc.MLD(filelist)
   </variables>
 
   <pass_tests>
-    <!--
-    #### This test disabled as it is failing on bionic, and the maintainer
-    ####   doesn't currently have time to debug the failure. Reference
-    ####   discussion in PR #238; revert this change as part of the fix
-    ####   to the test when the maintainer has time to debug it.
-    <test name="Final time equals 10 hours for Gen GL" language="python">
+    <!-- <test name="Final time equals 10 hours for Gen GL" language="python">
 assert FinalTimeGenGL &gt; 35900
     </test> -->
     <test name="Final time equals 10 hours for k-w CB" language="python">
 assert FinalTimeKWCB &gt; 35900
     </test>
 
-    <test name="MLD for Gen GL vs analytical" language="python">
+    <!-- <test name="MLD for Gen GL vs analytical" language="python">
 from numpy import array, all
 assert (all( abs(array(GenGL_MLD[1]) - array(GenGL_MLD[2]) ) &lt; 2.0))
-    </test>
+    </test> -->
     <test name="MLD for K-W CB vs analytical" language="python">
 from numpy import array, all
 print(abs(array(KWCB_MLD[1]) - array(KWCB_MLD[2]) ))

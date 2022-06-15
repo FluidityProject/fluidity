@@ -2,7 +2,7 @@
 <testproblem>
    <name>Backward-facing step 2D longtest</name>
    <!--Runs a reference and kepsilon 2D backward-facing step problems.-->
-   <!-- this seems to be a fragile test. Anyone with experience of BFS think of a better one-->   
+   <!-- this seems to be a fragile test. Anyone with experience of BFS think of a better one-->
   <owner userid="matt-piggott"/>
   <tags>flml</tags>
   <!-- uses flml -->
@@ -20,6 +20,7 @@ import numpy, os
 os.chdir('./reference/')
 filelist = get_filelist(10,50)
 reference_reattachment_length = numpy.array(reattachment_length(filelist))
+print(reference_reattachment_length[-1, 0])
 os.chdir('../')
     </variable>
     <variable name="kepsilon_reattachment_length" language="python">
@@ -28,6 +29,7 @@ import numpy, os
 os.chdir('./kepsilon/')
 filelist = get_filelist(10,120)
 kepsilon_reattachment_length = numpy.array(reattachment_length(filelist))
+print(kepsilon_reattachment_length[-1, 0])
 os.chdir('../')
     </variable>
   </variables>

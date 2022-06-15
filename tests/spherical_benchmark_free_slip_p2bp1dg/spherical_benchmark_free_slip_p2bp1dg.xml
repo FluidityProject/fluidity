@@ -57,7 +57,6 @@ ab_volume_convergence_pressure = cc.pressure_convergence(file_coarse,file_fine)
 file_coarse = "sphere_B.stat"
 file_fine = "sphere_C.stat"
 bc_volume_convergence_pressure = cc.pressure_convergence(file_coarse,file_fine)
-print(bc_volume_convergence_pressure)
     </variable>
 
     <variable name="ab_volume_convergence_ns" language="python">import calculate_convergence as cc
@@ -110,7 +109,7 @@ bc_CMB_convergence_ns = cc.CMB_normalstress_convergence(file_coarse,file_fine)
     <test name="bcCMB_vel" language="python">assert( abs(bc_CMB_convergence_vel -3.0) &lt; 0.4)</test>
 
     <test name="abvolume_pressure" language="python">assert( abs(ab_volume_convergence_pressure -2.0) &lt; 0.5)</test>
-    <test name="bcvolume_pressure" language="python">assert( abs(bc_volume_convergence_pressure -2.0) &lt; 0.3)</test>
+    <test name="bcvolume_pressure" language="python">assert( abs(bc_volume_convergence_pressure -2.0) &lt; 0.35)</test>
 
     <test name="abvolume_ns" language="python">assert( abs(ab_volume_convergence_ns -2.0) &lt; 0.5)</test>
     <test name="bcvolume_ns" language="python">assert( abs(bc_volume_convergence_ns -2.0) &lt; 0.3)</test>
