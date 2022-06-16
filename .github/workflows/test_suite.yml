@@ -166,6 +166,7 @@ jobs:
         id: set-matrices
         run: |
           mkdir -p build/bin
+          mkdir -p /home/runner/.local/bin
 
           sed -i "s:@CMAKE_SOURCE_DIR@:$PWD:g" tools/testharness.py
           sed -i "s:@CMAKE_BINARY_DIR@:${PWD}/build:g" tools/testharness.py
