@@ -27,8 +27,7 @@ s = stat_parser("bubcol_2d_rans.stat")
 particle_reynolds_number_min=s["Air"]["ParticleReynoldsNumber"]["min"][-1]</variable>
     <variable name="divergence_max" language="python">from fluidity_tools import stat_parser
 s = stat_parser("bubcol_2d_rans.stat")
-divergence_max = s["Air"]["SumVelocityDivergence"]["max"][-1]
-print(divergence_max)</variable>
+divergence_max = s["Air"]["SumVelocityDivergence"]["max"][-1]</variable>
     <variable name="solvers_converged" language="python">import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
@@ -37,8 +36,7 @@ s = stat_parser("bubcol_2d_rans.stat")
 air_vol_frac_integ=s["Air"]["PhaseVolumeFraction"]["integral"][-1]</variable>
     <variable name="k_max" language="python">from fluidity_tools import stat_parser
 s = stat_parser("bubcol_2d_rans.stat")
-k_max = s["Water"]["TurbulentKineticEnergy"]["max"][-1]
-print(k_max)</variable>
+k_max = s["Water"]["TurbulentKineticEnergy"]["max"][-1]</variable>
     <variable name="epsilon_max" language="python">from fluidity_tools import stat_parser
 s = stat_parser("bubcol_2d_rans.stat")
 epsilon_max = s["Water"]["TurbulentDissipation"]["max"][-1]</variable>
@@ -50,9 +48,9 @@ epsilon_max = s["Water"]["TurbulentDissipation"]["max"][-1]</variable>
     <test name="Maximum ParticleReynoldsNumber is less than 2050 at the 120 s" language="python">assert particle_reynolds_number_max &lt; 2050</test>
     <test name="Minimum ParticleReynoldsNumber is greater than 750 at the 120 s" language="python">assert particle_reynolds_number_min &gt; 750</test>
     <test name="Gas holdup is equal to 0.013" language="python">assert abs((air_vol_frac_integ/0.09)-0.013) &lt; 1e-3</test>
-    <test name="Maximum turbulent kinetic energy is less than 0.016 at the 120 s" language="python">assert k_max &lt; 0.016</test>
+    <test name="Maximum turbulent kinetic energy is less than 0.017 at the 120 s" language="python">assert k_max &lt; 0.017</test>
     <test name="Maximum turbulent dissipation rate is less than 0.033 at the 120 s" language="python">assert epsilon_max &lt; 0.033</test>
-    <test name="SumVelocityDivergence is less than 3e-10 at 120 s" language="python">assert divergence_max &lt; 3e-10</test>
+    <test name="SumVelocityDivergence is less than 2e-9 at 120 s" language="python">assert divergence_max &lt; 2e-9</test>
     <test name="Solvers converged" language="python">assert(solvers_converged)</test>
   </pass_tests>
   <warn_tests/>

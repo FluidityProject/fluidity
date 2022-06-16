@@ -168,9 +168,9 @@ jobs:
           sed -i "s:@CMAKE_SOURCE_DIR@:$PWD:g" tools/testharness.py
           sed -i "s:@CMAKE_BINARY_DIR@:${PWD}/build:g" tools/testharness.py
 
-          tools/testharness.py -l medium --just-list mediumtests.json
+          tools/testharness.py -l medium -o fixme --just-list mediumtests.json
           tools/testharness.py -l long --just-list longtests.json
-          tools/testharness.py -l vlong --just-list vlongtests.json
+          tools/testharness.py -l vlong -o fixme longtime --just-list vlongtests.json
 
           echo "::set-output name=mediumtest-matrix::$(echo $(cat mediumtests.json))"
           echo "::set-output name=longtest-matrix::$(echo $(cat longtests.json))"
@@ -194,7 +194,7 @@ jobs:
           docker pull fluidity/actions:${{ matrix.distribution }}-${{ github.sha }}
           docker run -v $PWD:/host fluidity/actions:${{ matrix.distribution }}-${{ github.sha }} \
           /bin/bash -c "bin/testharness -f ${{ matrix.test-xml }} \
-          -o fixme -x ${{ matrix.distribution }}-${{ matrix.test-xml }} &&
+          -x ${{ matrix.distribution }}-${{ matrix.test-xml }} &&
           cp -v ${{ matrix.distribution }}-${{ matrix.test-xml }} /host"
 
       - name: Upload test report
@@ -266,7 +266,7 @@ jobs:
           docker pull fluidity/actions:${{ matrix.distribution }}-${{ github.sha }}
           docker run -v $PWD:/host fluidity/actions:${{ matrix.distribution }}-${{ github.sha }} \
           /bin/bash -c "bin/testharness -f ${{ matrix.test-xml }} \
-          -o longtime -x ${{ matrix.distribution }}-${{ matrix.test-xml }} &&
+          -x ${{ matrix.distribution }}-${{ matrix.test-xml }} &&
           cp -v ${{ matrix.distribution }}-${{ matrix.test-xml }} /host"
 
       - name: Upload test report

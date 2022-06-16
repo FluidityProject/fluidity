@@ -1,11 +1,11 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
-   
+
   <name>mphase_tephra_settling_2d_adaptive</name>
   <owner userid="ctj10"/>
   <tags>flml</tags>
-  
-  <problem_definition length="vlong" nprocs="8">
+
+  <problem_definition length="long" nprocs="8">
     <command_line>mpiexec flredecomp -i 1 -o 8 -v -l mphase_tephra_settling_2d_adaptive mphase_tephra_settling_2d_adaptive_flredecomp &amp;&amp;
 mpiexec fluidity -v2 -l mphase_tephra_settling_2d_adaptive_flredecomp.flml</command_line>
     <!-- This is a 2D simulation of the formation of density currents, with mesh adaptivity enabled. -->
@@ -13,7 +13,7 @@ mpiexec fluidity -v2 -l mphase_tephra_settling_2d_adaptive_flredecomp.flml</comm
     <!-- Density currents/plumes should eventually form when the bulk density of the tephra-water mixture -->
     <!-- is large enough relative to the underlying particle-free water. -->
   </problem_definition>
-  
+
   <variables>
     <variable name="tephra_u_max" language="python">
 from fluidity_tools import stat_parser
@@ -31,7 +31,7 @@ files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
   </variables>
-    
+
   <pass_tests>
     <test name="Maximum Tephra velocity is less than 0.0025 for the first 30 seconds" language="python">
 for t in range(0,len(time)):
@@ -52,8 +52,8 @@ for t in range(0,len(time)):
 assert(solvers_converged)
     </test>
   </pass_tests>
-  
+
   <warn_tests>
   </warn_tests>
-  
+
 </testproblem>

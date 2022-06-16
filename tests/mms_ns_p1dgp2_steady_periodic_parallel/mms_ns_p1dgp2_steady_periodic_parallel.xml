@@ -4,8 +4,15 @@
   <owner userid="pfarrell"/>
   <tags>flml</tags>
   <problem_definition length="vlong" nprocs="4">
-    <!--    <command_line>mpiexec flredecomp -i 1 -o 4 MMS_A_periodised MMS_A_decomped; mpiexec fluidity -v1 MMS_A_decomped.flml &gt; MMS_A.log; mpiexec flredecomp -i 1 -o 4 MMS_B_periodised MMS_B_decomped; mpiexec fluidity -v1 MMS_B_decomped.flml &gt; MMS_B.log; mpiexec flredecomp -i 1 -o 4 MMS_C_periodised MMS_C_decomped; mpiexec fluidity -v1 MMS_C_decomped.flml &gt; MMS_C.log; mpiexec flredecomp -i 1 -o 4 MMS_D_periodised MMS_D_decomped; mpiexec fluidity -v1 MMS_D_decomped.flml &gt; MMS_D.log</command_line> -->
-    <command_line>mpiexec fluidity -v2 -l MMS_A_decomped.flml &gt; MMS_A.log; mpiexec fluidity -v1 MMS_B_decomped.flml &gt; MMS_B.log; mpiexec fluidity -v1 MMS_C_decomped.flml &gt; MMS_C.log; mpiexec fluidity -v1 MMS_D_decomped.flml &gt; MMS_D.log</command_line> 
+    <command_line>
+        mpiexec flredecomp -i 1 -o 4 MMS_A_periodised MMS_A_decomped
+        mpiexec fluidity -v1 MMS_A_decomped.flml &gt; MMS_A.log
+        mpiexec flredecomp -i 1 -o 4 MMS_B_periodised MMS_B_decomped
+        mpiexec fluidity -v1 MMS_B_decomped.flml &gt; MMS_B.log
+        mpiexec flredecomp -i 1 -o 4 MMS_C_periodised MMS_C_decomped
+        mpiexec fluidity -v1 MMS_C_decomped.flml &gt; MMS_C.log
+        mpiexec flredecomp -i 1 -o 4 MMS_D_periodised MMS_D_decomped
+        mpiexec fluidity -v1 MMS_D_decomped.flml &gt; MMS_D.log</command_line>
   </problem_definition>
   <variables>
     <variable name="ab_convergence_vel" language="python">

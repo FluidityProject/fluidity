@@ -1,10 +1,10 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
-   
+
   <name>flow_past_a_square</name>
   <owner userid="ctj10"/>
-  <tags>flml</tags>
-  
+  <tags>flml longtime</tags>
+
   <problem_definition length="vlong" nprocs="16">
     <command_line>mpiexec flredecomp -i 1 -o 16 -v -l flow_past_a_square flow_past_a_square_flredecomp &amp;&amp;
 mpiexec fluidity flow_past_a_square_flredecomp.flml</command_line>
@@ -12,14 +12,14 @@ mpiexec fluidity flow_past_a_square_flredecomp.flml</command_line>
     <!-- LES is used to model the turbulence. -->
     <!-- The numerical results are compared against the experimental results of Lyn and Rodi (1994). -->
   </problem_definition>
-  
+
   <variables>
     <variable name="time" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("flow_past_a_square.stat")
 time=s["ElapsedTime"]["value"]
     </variable>
-    
+
     <variable name="positions" language="python">
 import vtktools
 # The 120th dump corresponds to 30 seconds of simulation time.
@@ -28,19 +28,19 @@ file.GetFieldNames()
 p = file.GetLocations()
 positions = p[:,0]
     </variable>
-    
+
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
   </variables>
-    
+
   <pass_tests>
     <test name="Final time is 30 seconds" language="python">
 assert abs(time[-1]-30.0) &lt; 1.0e-2
     </test>
-    
+
     <test name="After 30 seconds, normalised stream-wise time-averaged velocity agrees with experimental results." language="python">
 import vtktools
 import numpy
@@ -74,15 +74,15 @@ for i in range(0, len(experimental_X)):
    probed_velocity = vtktools.vtu.ProbeData(vt, numpy.array([[experimental_X[i]*H, 0, 0]]), 'TimeAveragedVelocity5')
    print("Numerical velocity = %.3f, experimental velocity = %.3f, difference = %.3f" % (probed_velocity[0][0]/U, experimental_u_bar[i], probed_velocity[0][0]/U - experimental_u_bar[i]))
    assert abs(probed_velocity[0][0]/U - experimental_u_bar[i]) &lt; 0.26
-   
+
     </test>
 
     <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
   </pass_tests>
-  
+
   <warn_tests>
   </warn_tests>
-  
+
 </testproblem>

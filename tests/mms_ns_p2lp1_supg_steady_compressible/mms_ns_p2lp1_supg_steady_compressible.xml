@@ -37,6 +37,7 @@ ab_ratio_y = a_error_y / b_error_y
 ab_ratio_inf_x = a_error_inf_x / b_error_inf_x
 ab_ratio_inf_y = a_error_inf_y / b_error_inf_y
 ab_convergence_vel = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_ratio_y, 2), log(ab_ratio_inf_y, 2)]]
+print(ab_convergence_vel)
     </variable>
     <variable name="ab_convergence_p" language="python">
 from fluidity_tools import stat_parser as stat
@@ -57,6 +58,7 @@ print(b_error_inf)
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
 ab_convergence_p = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+print(ab_convergence_p)
     </variable>
     <variable name="ab_convergence_rho" language="python">
 from fluidity_tools import stat_parser as stat
@@ -77,6 +79,7 @@ print(b_error_inf)
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
 ab_convergence_rho = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+print(ab_convergence_rho)
     </variable>
     <variable name="ab_convergence_e" language="python">
 from fluidity_tools import stat_parser as stat
@@ -97,6 +100,7 @@ print(b_error_inf)
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
 ab_convergence_e = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+print(ab_convergence_e)
     </variable>
     <variable name="bc_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
@@ -127,6 +131,7 @@ bc_ratio_y = b_error_y / c_error_y
 bc_ratio_inf_x = b_error_inf_x / c_error_inf_x
 bc_ratio_inf_y = b_error_inf_y / c_error_inf_y
 bc_convergence_vel = [[log(bc_ratio_x, 2), log(bc_ratio_inf_x, 2)], [log(bc_ratio_y, 2), log(bc_ratio_inf_y, 2)]]
+print(bc_convergence_vel)
     </variable>
     <variable name="bc_convergence_p" language="python">
 from fluidity_tools import stat_parser as stat
@@ -147,6 +152,7 @@ print(c_error_inf)
 bc_ratio = b_error / c_error
 bc_ratio_inf = b_error_inf / c_error_inf
 bc_convergence_p = [log(bc_ratio, 2), log(bc_ratio_inf, 2)]
+print(bc_convergence_p)
     </variable>
     <variable name="bc_convergence_rho" language="python">
 from fluidity_tools import stat_parser as stat
@@ -167,6 +173,7 @@ print(c_error_inf)
 bc_ratio = b_error / c_error
 bc_ratio_inf = b_error_inf / c_error_inf
 bc_convergence_rho = [log(bc_ratio, 2), log(bc_ratio_inf, 2)]
+print(bc_convergence_rho)
     </variable>
     <variable name="bc_convergence_e" language="python">
 from fluidity_tools import stat_parser as stat
@@ -187,6 +194,7 @@ print(c_error_inf)
 bc_ratio = b_error / c_error
 bc_ratio_inf = b_error_inf / c_error_inf
 bc_convergence_e = [log(bc_ratio, 2), log(bc_ratio_inf, 2)]
+print(bc_convergence_e)
     </variable>
     <variable name="cd_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
@@ -217,6 +225,7 @@ cd_ratio_y = c_error_y / d_error_y
 cd_ratio_inf_x = c_error_inf_x / d_error_inf_x
 cd_ratio_inf_y = c_error_inf_y / d_error_inf_y
 cd_convergence_vel = [[log(cd_ratio_x, 2), log(cd_ratio_inf_x, 2)], [log(cd_ratio_y, 2), log(cd_ratio_inf_y, 2)]]
+print(cd_convergence_vel)
     </variable>
     <variable name="cd_convergence_p" language="python">
 from fluidity_tools import stat_parser as stat
@@ -237,6 +246,7 @@ print(d_error_inf)
 cd_ratio = c_error / d_error
 cd_ratio_inf = c_error_inf / d_error_inf
 cd_convergence_p = [log(cd_ratio, 2), log(cd_ratio_inf, 2)]
+print(cd_convergence_p)
     </variable>
     <variable name="cd_convergence_rho" language="python">
 from fluidity_tools import stat_parser as stat
@@ -257,6 +267,7 @@ print(d_error_inf)
 cd_ratio = c_error / d_error
 cd_ratio_inf = c_error_inf / d_error_inf
 cd_convergence_rho = [log(cd_ratio, 2), log(cd_ratio_inf, 2)]
+print(cd_convergence_rho)
     </variable>
     <variable name="cd_convergence_e" language="python">
 from fluidity_tools import stat_parser as stat
@@ -277,6 +288,7 @@ print(d_error_inf)
 cd_ratio = c_error / d_error
 cd_ratio_inf = c_error_inf / d_error_inf
 cd_convergence_e = [log(cd_ratio, 2), log(cd_ratio_inf, 2)]
+print(cd_convergence_e)
     </variable>
 <!--    <variable name="de_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
@@ -367,18 +379,22 @@ d_finish_time = stat("MMS_D.stat")["ElapsedTime"]["value"][-1]
    <variable name="a_max_iterations" language="python">
 from fluidity_tools import stat_parser as stat
 a_max_iterations = stat("MMS_A.convergence")["Iteration"]["value"].max()
+print(a_max_iterations)
     </variable>
    <variable name="b_max_iterations" language="python">
 from fluidity_tools import stat_parser as stat
 b_max_iterations = stat("MMS_B.convergence")["Iteration"]["value"].max()
+print(b_max_iterations)
     </variable>
    <variable name="c_max_iterations" language="python">
 from fluidity_tools import stat_parser as stat
 c_max_iterations = stat("MMS_C.convergence")["Iteration"]["value"].max()
+print(c_max_iterations)
     </variable>
    <variable name="d_max_iterations" language="python">
 from fluidity_tools import stat_parser as stat
 d_max_iterations = stat("MMS_D.convergence")["Iteration"]["value"].max()
+print(d_max_iterations)
     </variable>
     <variable name="a_final_change_vel" language="python">
 import vtktools

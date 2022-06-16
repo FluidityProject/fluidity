@@ -71,16 +71,16 @@ for i, field in enumerate(fields):
     print('-------------------------------------------')
 
     for j, mesh in enumerate(meshes):
-        
+
         a_error = stat("MMS_"+str(mesh[0])+".stat")["Phase1"][field]["l2norm"][-1]
         b_error = stat("MMS_"+str(mesh[1])+".stat")["Phase1"][field]["l2norm"][-1]
-        
+
         ratio = a_error / b_error
-        
+
         print(mesh[0] + '-&gt;' + mesh[1] + ': ', log(ratio, 2))
 
         convergence[i+2] = min(log(ratio, 2), convergence[i+2])
-    
+
     print('-------------------------------------------')
 
 print('')
@@ -95,16 +95,16 @@ for i, field in enumerate(fields):
     print('-------------------------------------------')
 
     for j, mesh in enumerate(meshes):
-        
+
         a_error = stat("MMS_"+str(mesh[0])+".stat")["Phase2"][field]["l2norm"][-1]
         b_error = stat("MMS_"+str(mesh[1])+".stat")["Phase2"][field]["l2norm"][-1]
-        
+
         ratio = a_error / b_error
-        
+
         print(mesh[0] + '-&gt;' + mesh[1] + ': ', log(ratio, 2))
 
         convergence[i+5] = min(log(ratio, 2), convergence[i+5])
-    
+
     print('-------------------------------------------')
 
 print('')
@@ -124,23 +124,23 @@ c_finish_time = stat("MMS_C.stat")["ElapsedTime"]["value"][-1]
     </variable>
   </variables>
   <pass_tests>
-    <test name="velocity (phase 1) convergence order &gt; 0.55" language="python">
-assert(convergence[0] &gt; 0.55)
+    <test name="velocity (phase 1) convergence order &gt; 0.25" language="python">
+assert(convergence[0] &gt; 0.25)
     </test>
     <test name="velocity (phase 2) convergence order &gt; 0.7" language="python">
 assert(convergence[1] &gt; 0.7)
     </test>
-    <test name="pressure convergence order &gt; 0.8" language="python">
-assert(convergence[2] &gt; 0.8)
+    <test name="pressure convergence order &gt; 0.75" language="python">
+assert(convergence[2] &gt; 0.75)
     </test>
     <test name="ie (phase 1) convergence order &gt; 0.8" language="python">
 assert(convergence[3] &gt; 0.8)
     </test>
-    <test name="density (phase 1) convergence order &gt; 0.9" language="python">
-assert(convergence[4] &gt; 0.9)
+    <test name="density (phase 1) convergence order &gt; 1.0" language="python">
+assert(convergence[4] &gt; 1.0)
     </test>
-    <test name="ie (phase 2) convergence order &gt; 0.8" language="python">
-assert(convergence[5] &gt; 0.8)
+    <test name="ie (phase 2) convergence order &gt; 0.65" language="python">
+assert(convergence[5] &gt; 0.65)
     </test>
     <test name="checking A finished in less than 100 seconds" language="python">
 assert(a_finish_time-100.0 &lt; 1.E-10)

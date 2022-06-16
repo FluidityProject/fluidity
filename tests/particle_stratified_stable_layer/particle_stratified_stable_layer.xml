@@ -3,9 +3,9 @@
   <name>Testing of particle based multimaterial fields in parallel for a small resolution compositionally stratified stable layer case. Vrms velocity and entrainment values are tested against the diagnostics from a successful run.</name>
   <owner userid="cmath"/>
   <tags>flml parallel</tags>
-  <problem_definition length="vlong" nprocs="4">
-    <command_line>    
-mpiexec flredecomp -i 1 -o 4 particle-stratified-stable-layer particle-stratified-stable-layer-flredecomp;      
+  <problem_definition length="long" nprocs="4">
+    <command_line>
+mpiexec flredecomp -i 1 -o 4 particle-stratified-stable-layer particle-stratified-stable-layer-flredecomp;
 mpiexec fluidity -v3 -l particle-stratified-stable-layer-flredecomp.flml
     </command_line>
   </problem_definition>
@@ -24,7 +24,7 @@ import numpy as np
 s = stat_parser('2d_entrainment.stat')
 max_ent = s['Bottom']['Entrainment']['integral'][:].max()
 max_ent = max_ent / (3 * 0.5)
-print ("max ent", max_ent)    
+print ("max ent", max_ent)
     </variable>
     <variable name="Walltime" language="python">
 from fluidity_tools import stat_parser
@@ -37,7 +37,7 @@ print ("Total wall time", Walltime)
   </variables>
   <pass_tests>
     <test name="max_rms close to 95" language="python">
-abs(max_rms-95) &lt; 2       
+abs(max_rms-95) &lt; 2
     </test>
     <test name="max_ent less than 1.0" language="python">
 assert max_ent &lt; 1.0

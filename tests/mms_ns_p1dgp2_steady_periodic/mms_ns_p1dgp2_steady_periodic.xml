@@ -2,10 +2,10 @@
 <testproblem>
   <name>P1DGP2 periodic spatial convergence test</name>
   <owner userid="cwilson"/>
-  <tags>flml</tags>
+  <tags>flml longtime</tags>
   <problem_definition length="vlong" nprocs="1">
 <!--     <command_line>fluidity  MMS_A.flml &gt; MMS_A.log; fluidity  MMS_B.flml &gt; MMS_B.log; fluidity  MMS_C.flml &gt; MMS_C.log</command_line> -->
-    <command_line>mpiexec fluidity -v1 MMS_A.flml &gt; MMS_A.log; mpiexec fluidity -v1 MMS_B.flml &gt; MMS_B.log; mpiexec fluidity -v1 MMS_C.flml &gt; MMS_C.log; mpiexec fluidity -v1 MMS_D.flml &gt; MMS_D.log</command_line> 
+    <command_line>mpiexec fluidity -v1 MMS_A.flml &gt; MMS_A.log; mpiexec fluidity -v1 MMS_B.flml &gt; MMS_B.log; mpiexec fluidity -v1 MMS_C.flml &gt; MMS_C.log; mpiexec fluidity -v1 MMS_D.flml &gt; MMS_D.log</command_line>
   </problem_definition>
   <variables>
     <variable name="ab_convergence_vel" language="python">

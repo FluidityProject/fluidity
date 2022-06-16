@@ -6,13 +6,13 @@
 <testproblem>
   <name>medp1dgp2</name>
   <owner userid="jhill1"/>
-  <tags>flml</tags>
+  <tags>flml fixme</tags>
   <problem_definition length="vlong" nprocs="4">
     <command_line>mpiexec flredecomp -i 1 -o 4 -v -l med med_flredecomp &amp;&amp;
 mpiexec fluidity -v2 -l med_flredecomp.flml</command_line>
   </problem_definition>
 
-<variables>  
+<variables>
 
 <variable name="max_depth" language="python">
 import fluidity_tools
@@ -60,7 +60,7 @@ assert(max_vel &gt; 0.001)
 assert(int_temp_diff &lt; 0.0)
 </test>
 
-</pass_tests>                                                                                                                                                                                                
+</pass_tests>
 
 <warn_tests>
 </warn_tests>

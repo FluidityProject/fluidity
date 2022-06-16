@@ -4,8 +4,10 @@ for F in A B C
 do
     echo creating set $F
 
-    cp MMS_X.flml MMS_$F.flml 
+    cp MMS_X.flml MMS_$F.flml
     sed s/MMS_X/MMS_$F/ MMS_$F.flml > MMS_$F.flml.cp
+    gmsh -2 src/MMS_$F.geo
+    cp src/MMS_$F.msh .
 done
 
 echo setting flml timestep values

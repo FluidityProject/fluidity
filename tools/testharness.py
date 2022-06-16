@@ -391,7 +391,7 @@ def run_tasks(task_string, tests_list, serial, process_interpreter, task_functio
 def set_environment_variable(env_var, env_path):
     """Set or prepend to the requested environment variable."""
     try:
-        environ[env_var] = f"{env_path}:" + environ[env_var]
+        environ[env_var] = f"{env_path}:{environ[env_var]}"
     except KeyError:  # If the environment variable does not exist, create it
         environ[env_var] = str(env_path)
 
