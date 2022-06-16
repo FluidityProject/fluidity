@@ -3,7 +3,7 @@
   <name>FLML validation (python version)</name>
   <owner userid="jrper"/>
   <tags>flml python_validation</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>true</command_line>
   </problem_definition>
   <variables>

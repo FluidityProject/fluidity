@@ -3,7 +3,7 @@
   <name>p1dgp2 stokes spatial convergence test</name>
   <owner userid="rhodrid"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>mpiexec fluidity -v2 -l MMS_A.flml &amp;&amp; mpiexec fluidity MMS_B.flml &amp;&amp; mpiexec fluidity MMS_C.flml &amp;&amp; mpiexec fluidity MMS_D.flml </command_line>
   </problem_definition>
   <variables>

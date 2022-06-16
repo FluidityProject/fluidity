@@ -3,7 +3,7 @@
   <name>Meshconv (mesh converter) test</name>
   <owner userid="ffm10"/>
   <tags>exodusii</tags>
-  <problem_definition length="short" nprocs="2">
+  <problem_definition length="vshort" nprocs="2">
     <command_line>meshconv -i exodusii -o gmsh rectangle; fluidity meshconv_exo2gmsh.flml;
     meshconv -i gmsh -o triangle rectangle; fluidity meshconv_gmsh2triangle.flml; rm rectangle.msh;
     mpiexec meshconv -i gmsh -o triangle prectangle; mpiexec fluidity meshconv_parallel_gmsh2triangle.flml; rm prectangle_?.msh;

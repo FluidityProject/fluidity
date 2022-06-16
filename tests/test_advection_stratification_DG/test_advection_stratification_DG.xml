@@ -3,7 +3,7 @@
   <name>test-advection_stratification_DG</name>
   <owner userid="colin"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="vshort" nprocs="1">
     <command_line>fluidity slice_unstructured_exponential.flml; fluidity slice_unstructured_linear.flml</command_line>
   </problem_definition>
   <variables>
