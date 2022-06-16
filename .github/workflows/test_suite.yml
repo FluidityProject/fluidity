@@ -147,7 +147,6 @@ jobs:
   get-lists:
     name: Generate JSON files that contain tests to be executed
     runs-on: ubuntu-latest
-    needs: build
 
     outputs:
       mediumtest-matrix: ${{ steps.set-matrices.outputs.mediumtest-matrix }}
@@ -166,6 +165,8 @@ jobs:
       - name: Generate JSON files
         id: set-matrices
         run: |
+          mkdir -p build/bin
+
           sed -i "s:@CMAKE_SOURCE_DIR@:$PWD:g" tools/testharness.py
           sed -i "s:@CMAKE_BINARY_DIR@:${PWD}/build:g" tools/testharness.py
 
