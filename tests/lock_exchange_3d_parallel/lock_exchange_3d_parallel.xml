@@ -43,13 +43,13 @@ def get_head_position(file):
    plane.SetNormal(0.0, 1.0, 0.0)
    cutter = vtk.vtkCutter()
    cutter.SetCutFunction(plane)
-   if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+   if vtk.vtkVersion.GetVTKMajorVersion() &lt; 5:
        cutter.SetInput(data)
    else:
        cutter.SetInputData(data)
    cutter.Update()
    contour = vtk.vtkContourFilter()
-   if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
+   if vtk.vtkVersion.GetVTKMajorVersion() &lt; 5:
        contour.SetInput(cutter.GetOutput())
    else:
        contour.SetInputData(cutter.GetOutput())
