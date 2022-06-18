@@ -3,10 +3,10 @@ name: Build and test
 on:
   push:
     branches:
-      - cmake_build_2022
-  pull_request:
-    branches:
       - main
+  # pull_request:
+  #   branches:
+  #     - main
 
 jobs:
 

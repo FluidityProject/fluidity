@@ -246,22 +246,22 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
   </variables>
 
   <pass_tests>
-    <test name="ab_convergence_vel_x for Particle: L2 order &gt; 1.8" language="python">
-assert(ab_convergence_vel[0][0] &gt; 1.8)
+    <test name="ab_convergence_vel_x for Particle: L2 order &gt; 2.0" language="python">
+assert(ab_convergence_vel[0][0] &gt; 2.0)
     </test>
-    <test name="ab_convergence_vel_y for Particle: L2 order &gt; 2.0" language="python">
-assert(ab_convergence_vel[0][1] &gt; 2.0)
+    <test name="ab_convergence_vel_y for Particle: L2 order &gt; 0.85" language="python">
+assert(ab_convergence_vel[0][1] &gt; 0.85)
     </test>
 
     <test name="ab_convergence_vel_x for Fluid: L2 order &gt; 2.0" language="python">
 assert(ab_convergence_vel[1][0] &gt; 2.0)
     </test>
-    <test name="ab_convergence_vel_y for Fluid: L2 order &gt; 2.0" language="python">
-assert(ab_convergence_vel[1][1] &gt; 2.0)
+    <test name="ab_convergence_vel_y for Fluid: L2 order &gt; 0.75" language="python">
+assert(ab_convergence_vel[1][1] &gt; 0.75)
     </test>
 
-    <test name="ab_convergence_p: L2 order &gt; 2.0" language="python">
-assert(ab_convergence_p &gt; 2.0)
+    <test name="ab_convergence_p: L2 order &gt; 1.85" language="python">
+assert(ab_convergence_p &gt; 1.85)
     </test>
 
     <test name="ab_convergence_density: L2 order &gt; 1.95" language="python">
@@ -272,26 +272,26 @@ assert(ab_convergence_density &gt; 1.95)
 assert(ab_convergence_compressiblecontinuityresidual &gt; 1.4)
     </test>
 
-    <test name="ab_convergence_ie for Particle: L2 order &gt; 1.75" language="python">
-assert(ab_convergence_ie[0] &gt; 1.75)
+    <test name="ab_convergence_ie for Particle: L2 order &gt; 2.0" language="python">
+assert(ab_convergence_ie[0] &gt; 2.0)
     </test>
 
-    <test name="ab_convergence_ie for Fluid: L2 order &gt; 2.0" language="python">
-assert(ab_convergence_ie[1] &gt; 2.0)
+    <test name="ab_convergence_ie for Fluid: L2 order &gt; 1.95" language="python">
+assert(ab_convergence_ie[1] &gt; 1.95)
     </test>
 
-    <test name="bc_convergence_vel_x for Particle: L2 order &gt; 1.9" language="python">
-assert(bc_convergence_vel[0][0] &gt; 1.9)
+    <test name="bc_convergence_vel_x for Particle: L2 order &gt; 2.0" language="python">
+assert(bc_convergence_vel[0][0] &gt; 2.0)
     </test>
-    <test name="bc_convergence_vel_y for Particle: L2 order &gt; 1.7" language="python">
-assert(bc_convergence_vel[0][1] &gt; 1.7)
+    <test name="bc_convergence_vel_y for Particle: L2 order &gt; 2.0" language="python">
+assert(bc_convergence_vel[0][1] &gt; 2.0)
     </test>
 
-    <test name="bc_convergence_vel_x for Fluid: L2 order &gt; 1.9" language="python">
-assert(bc_convergence_vel[1][0] &gt; 1.9)
+    <test name="bc_convergence_vel_x for Fluid: L2 order &gt; 1.85" language="python">
+assert(bc_convergence_vel[1][0] &gt; 1.85)
     </test>
-    <test name="bc_convergence_vel_y for Fluid: L2 order &gt; 1.6" language="python">
-assert(bc_convergence_vel[1][1] &gt; 1.6)
+    <test name="bc_convergence_vel_y for Fluid: L2 order &gt; 2.0" language="python">
+assert(bc_convergence_vel[1][1] &gt; 2.0)
     </test>
 
     <test name="bc_convergence_p: L2 order &gt; 1.9" language="python">
@@ -306,12 +306,12 @@ assert(bc_convergence_compressiblecontinuityresidual &gt; 1.6)
 assert(bc_convergence_density &gt; 1.7)
     </test>
 
-    <test name="bc_convergence_ie for Particle: L2 order &gt; 1.7" language="python">
-assert(bc_convergence_ie[0] &gt; 1.7)
+    <test name="bc_convergence_ie for Particle: L2 order &gt; 1.6" language="python">
+assert(bc_convergence_ie[0] &gt; 1.6)
     </test>
 
-    <test name="bc_convergence_ie for Fluid: L2 order &gt; 1.65" language="python">
-assert(bc_convergence_ie[1] &gt; 1.65)
+    <test name="bc_convergence_ie for Fluid: L2 order &gt; 1.9" language="python">
+assert(bc_convergence_ie[1] &gt; 1.9)
     </test>
 
     <test name="Solvers converged" language="python">
