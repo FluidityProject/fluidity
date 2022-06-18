@@ -50,7 +50,6 @@ ab_ratio_y = a_error_y / b_error_y
 ab_ratio_fluid = [log(ab_ratio_x, 2), log(ab_ratio_y, 2)]
 
 ab_convergence_vel = [ab_ratio_particle, ab_ratio_fluid]
-print(ab_convergence_vel)
     </variable>
 
     <variable name="ab_convergence_p" language="python">
@@ -66,7 +65,6 @@ print(b_error)
 
 ab_ratio = a_error / b_error
 ab_convergence_p = log(ab_ratio, 2)
-print(ab_convergence_p)
     </variable>
 
     <variable name="ab_convergence_compressiblecontinuityresidual" language="python">
@@ -109,7 +107,6 @@ ab_ratio = a_error / b_error
 ab_convergence_ie_fluid = log(ab_ratio, 2)
 
 ab_convergence_ie = [ab_convergence_ie_particle, ab_convergence_ie_fluid]
-print(ab_convergence_ie)
     </variable>
 
     <variable name="ab_convergence_density" language="python">
@@ -162,7 +159,6 @@ bc_ratio_y = b_error_y / c_error_y
 bc_ratio_fluid = [log(bc_ratio_x, 2), log(bc_ratio_y, 2)]
 
 bc_convergence_vel = [bc_ratio_particle, bc_ratio_fluid]
-print(bc_convergence_vel)
     </variable>
 
     <variable name="bc_convergence_p" language="python">
@@ -220,7 +216,6 @@ bc_ratio = b_error / c_error
 bc_convergence_ie_fluid = log(bc_ratio, 2)
 
 bc_convergence_ie = [bc_convergence_ie_particle, bc_convergence_ie_fluid]
-print(bc_convergence_ie)
     </variable>
 
     <variable name="bc_convergence_density" language="python">
