@@ -29,7 +29,8 @@
 
 module diagnostic_variables
   !!< A module to calculate and output diagnostics. This replaces the .s file.
-  use iso_c_binding, only: c_long
+  use, intrinsic :: iso_c_binding, only: c_long
+  use, intrinsic :: ieee_arithmetic, only: ieee_quiet_nan, ieee_value
   use fldebug
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, &
 & PYTHON_FUNC_LEN, integer_size, real_size
@@ -47,7 +48,6 @@ module diagnostic_variables
   use halos_base
   use halos_debug
   use halos_allocates
-  use ieee_arithmetic
   use sparse_tools
   use embed_python
   use fields_base
@@ -66,7 +66,6 @@ module diagnostic_variables
   use halos_registration
   use field_derivatives
   use field_options
-  use c_interfaces
   use fefields
   use meshdiagnostics
   use sparsity_patterns
@@ -1164,7 +1163,8 @@ contains
     integer, intent(in) :: unit
     !! If present and .true., indicates binary output format
     logical, optional, intent(in) :: binary_format
-    
+    integer :: stat
+
     character(len=254) :: buffer, value_buffer
 
 #ifdef __FLUIDITY_VERSION__
@@ -1182,8 +1182,11 @@ contains
     value_buffer=date_and_time_string()
     buffer=constant_tag(name="StartTime", type="string", value=trim(value_buffer))
     write(unit, '(a)') trim(buffer)
-    
-    call get_environment_variable("HOSTNAME", value_buffer, default = "Unknown")
+
+    call hostnm(value_buffer, stat)
+    if (stat /= 0) then
+      ewrite(-1, *) "HOSTNM returned a non-zero status: ", stat
+    end if
     buffer=constant_tag(name="HostName", type="string", value=trim(value_buffer))
     write(unit, '(a)') trim(buffer)
     
@@ -2560,7 +2563,6 @@ contains
     character(len=FIELD_NAME_LEN) :: vfield_name
     integer :: i, j, k, phase, ele, check_no_det, totaldet_global, dim
     integer(kind=8) :: h5_ierror
-    real :: value
     integer, dimension(:), allocatable :: detector_ids
     real, dimension(:), allocatable :: detector_scalar_values
     real, dimension(:,:), allocatable :: detector_vector_values, positions
@@ -2643,7 +2645,7 @@ contains
                ! check this detector belongs to an element
                if (detector%element<0) then
                  if (detector_list%write_nan_outside) then
-                   call cget_nan(detector_scalar_values(j))
+                   detector_scalar_values(j) = ieee_value(0.0, ieee_quiet_nan)
                  else
                    FLExit("Trying to write detector that is outside of domain.")
                  end if
@@ -2678,8 +2680,7 @@ contains
              do j = 1, detector_list%length
                if (detector%element<0) then
                  if (detector_list%write_nan_outside) then
-                   call cget_nan(value)
-                   detector_vector_values(j,:) = value
+                   detector_vector_values(j,:) = ieee_value(0.0, ieee_quiet_nan)
                  else
                    FLExit("Trying to write detector that is outside of domain.")
                  end if

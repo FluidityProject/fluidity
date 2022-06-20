@@ -32,7 +32,6 @@ module zoltan_integration
   use sparsity_patterns_meshes
   use reserve_state_module
   use boundary_conditions
-  use c_interfaces
   use detector_data_types
   use boundary_conditions_from_options
   use pickers

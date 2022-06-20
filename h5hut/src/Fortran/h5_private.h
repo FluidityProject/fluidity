@@ -28,7 +28,8 @@
 #elif defined(FC_MANGLING_UPPERCASE_DOUBLE_UNDERSCORE)
 #    define FC_MANGLING(a,b) b ## __
 #else
-#  error "Unknown Fortran symbol mangling"
+#include "FC.h"
+#define FC_MANGLING(a,b) FC_GLOBAL(a,b)
 #endif
 
 static inline char*
