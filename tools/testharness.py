@@ -13,20 +13,13 @@ from time import monotonic, sleep
 from xml.etree.ElementTree import parse
 
 try:
+    from importlib.metadata import version
+
     from junit_xml import TestCase, TestSuite
 
-    if sys.version_info.major == 3 and sys.version_info.minor >= 8:
-        from importlib.metadata import version
-
-        assert (
-            float(version("junit_xml")) >= 1.9
-        ), "ERROR: junit_xml version must be at least 1.9 - please update."
-    else:  # To be dropped when Python >= 3.8 becomes mainstream
-        from pkg_resources import get_distribution
-
-        assert (
-            float(get_distribution("junit_xml").version) >= 1.9
-        ), "ERROR: junit_xml version must be at least 1.9 - please update."
+    assert (
+        float(version("junit_xml")) >= 1.9
+    ), "ERROR: junit_xml version must be at least 1.9 — please update."
 except ImportError:  # Provide dummy classes in the absence of junit_xml
 
     class TestSuite(object):
@@ -50,14 +43,16 @@ except ImportError:  # Provide dummy classes in the absence of junit_xml
             pass
 
 
-def filter_tests(xml_files):
-    """Iterate through all found XML files and keep only the ones that match the program
-    input arguments."""
+def filter_tests(xml_files, test_suite):
+    """Iterate through all found XML files and retain only the ones that match the
+    program input arguments. Update the JUnit record with skipped tests."""
     tests = {}
     for xml_file in xml_files:
         # Obtain basic information about the test
         parsed_xml = parse(xml_file).getroot()
-        assert parsed_xml.tag == "testproblem", xml_file
+        if parsed_xml.tag != "testproblem":
+            print(f"Skipping {parsed_xml} — root tag differs from 'testproblem'.")
+            continue
         prob_def = parsed_xml.find("problem_definition")
         prob_length = prob_def.get("length")
         prob_nprocs = int(prob_def.get("nprocs"))
@@ -80,7 +75,7 @@ def filter_tests(xml_files):
         )
         omitted_tags_condition = set(xml_tags).intersection(args.omit_tags)
         required_tags_condition = set(args.tags).difference(xml_tags)
-        # Skip the test if any of the conditions is not met
+        # Skip the test if any of the conditions is not met and update the JUnit record
         if (
             length_condition
             or nprocs_condition
@@ -124,21 +119,22 @@ def filter_tests(xml_files):
 def gather_tests():
     """Look for tests given the program input arguments."""
     if args.file:  # Specific test requested
-        xml_files = [fluidity_root.rglob(args.file)]
+        xml_files = [Path(args.file)]
     elif args.from_file:  # Specific list of tests requested
         with open(args.from_file, "r") as fid:
-            xml_files = [fluidity_root.rglob(test_name.rstrip()) for test_name in fid]
+            xml_files = [Path(test_name.rstrip()) for test_name in fid]
     else:  # Gather all XML files that can be found
         test_paths = ["examples", "tests", "longtests"]
         xml_files = [
-            list((fluidity_root / test_path).rglob("*/*.xml"))
+            xml_file
             for test_path in test_paths
             if (fluidity_root / test_path).exists()
+            for xml_file in (fluidity_root / test_path).glob("*/*.xml")
         ]
-    return list(chain(*xml_files))
+    return xml_files
 
 
-def generate_string(test_type, assertion_status, test, test_str):
+def generate_python_test_string(test_type, assertion_status, test, test_str):
     """Encapsulate within a try/except structure the Python code to execute to properly
     catch potential exceptions and obtain tracebacks."""
     return f"""
@@ -167,7 +163,7 @@ def poll_processes(
     return_list,
     task_string,
     process_interpreter,
-    oversubscribe,
+    test_suite,
 ):
     """Check if running processes have terminated and deal with results."""
     proc_status = [
@@ -180,10 +176,8 @@ def poll_processes(
             # Measure an upper bound for the test elapsed time
             current_test["elapsed_time"] += monotonic() - current_test["create_time"]
             # Update objects that keep track of the current activity
-            task_nprocs = 1 if serial else current_test["nprocs"]
-            core_counter -= task_nprocs
-            if task_nprocs > core_avail:
-                oversubscribe = False
+            task_ncores = 1 if serial else current_test["nprocs"]
+            core_counter -= task_ncores
             running_procs.remove(running_xml)
             # Recover standard ouput and error streams
             stdout = "".join([line for line in read_stream(running_xml, "stdout_file")])
@@ -199,13 +193,16 @@ def poll_processes(
             ):
                 return_list.append(running_xml)
             else:  # Deal with errors
-                process_error(running_xml, process_interpreter, stdout, stderr)
+                process_error(
+                    running_xml, process_interpreter, stdout, stderr, test_suite
+                )
     sleep(0.1)  # Avoid high-intensity polling
-    return core_counter, oversubscribe
+    return core_counter
 
 
-def process_error(test_xml, process_interpreter, stdout, stderr):
-    """Process tests that did not complete successfully."""
+def process_error(test_xml, process_interpreter, stdout, stderr, test_suite):
+    """Process tests that did not complete successfully and update the JUnit record
+    accordingly."""
     # Add an entry to the XML parser
     test_case = TestCase(
         name=test_xml.stem,
@@ -320,35 +317,38 @@ def read_stream(test_xml, stream_key):
     return stream
 
 
-def run_tasks(task_string, tests_list, serial, process_interpreter, task_function):
+def run_tasks(
+    task_string, tests_list, serial, process_interpreter, task_function, test_suite
+):
     """Iterate through the test list and execute the provided function in parallel."""
     return_list, running_procs, core_counter = [], [], 0
     print(task_string)
-    oversubscribe = False
     # Start tasks whilst there are queuing tests
     while tests_list:
         # Remove and obtain a test from the end of the queue
         test_xml = tests_list.pop()
         current_test = tests[test_xml]
         # Determine the amount of cores required
-        task_nprocs = 1 if serial else current_test["nprocs"]
-        # Check if there are sufficient resources available
-        if core_counter + task_nprocs > core_avail and (
-            task_nprocs <= core_avail or oversubscribe
+        task_ncores = 1 if serial else current_test["nprocs"]
+        # Check if there are sufficient resources available; allow tests requesting a
+        # higher number of cores than available to run by oversubscribing nodes (MPI),
+        # with only one oversubscribed test at a time
+        if core_counter >= core_avail or (
+            core_counter + task_ncores > core_avail and task_ncores <= core_avail
         ):
             # Check if some processes have terminated
-            core_counter, oversubscribe = poll_processes(
+            core_counter = poll_processes(
                 running_procs,
                 core_counter,
                 serial,
                 return_list,
                 task_string,
                 process_interpreter,
-                oversubscribe,
+                test_suite,
             )
             # Check if sufficient resources have become available
-            if core_counter + task_nprocs > core_avail and (
-                task_nprocs <= core_avail or oversubscribe
+            if core_counter >= core_avail or (
+                core_counter + task_ncores > core_avail and task_ncores <= core_avail
             ):
                 # Re-insert the test at the beginning of the queue
                 tests_list.insert(0, test_xml)
@@ -362,37 +362,31 @@ def run_tasks(task_string, tests_list, serial, process_interpreter, task_functio
         current_test["create_time"] = monotonic()
         # Submit task and update objects that keep track of the current load
         task_function(test_xml)
-        core_counter += task_nprocs
+        core_counter += task_ncores
         running_procs.append(test_xml)
-        # Allow tests requesting a higher number of cores than available to
-        # run by oversubscribing nodes (MPI)
-        if task_nprocs > core_avail:
-            oversubscribe = True
     # Once the queue is empty, wait for the processes that are still running
     while running_procs:
-        core_counter, oversubscribe = poll_processes(
+        core_counter = poll_processes(
             running_procs,
             core_counter,
             serial,
             return_list,
             task_string,
             process_interpreter,
-            oversubscribe,
+            test_suite,
         )
 
-    # Check that the objects which keep track of the current load have come
-    # back to their nominal value
+    # Check that the objects which keep track of the current load have come back to
+    # their nominal value
     assert core_counter == 0 and bool(running_procs) is False
-    assert oversubscribe is False
 
     return return_list
 
 
 def set_environment_variable(env_var, env_path):
     """Set or prepend to the requested environment variable."""
-    try:  # Check if the the environment variable already contains the path
-        if not any(env_path.samefile(path) for path in environ[env_var].split(":")):
-            environ[env_var] = f"{env_path}:" + environ[env_var]
+    try:
+        environ[env_var] = f"{env_path}:{environ[env_var]}"
     except KeyError:  # If the environment variable does not exist, create it
         environ[env_var] = str(env_path)
 
@@ -432,14 +426,14 @@ def task_run_tests(test_xml):
     # Join pass-test strings together
     pass_string = "\n".join(
         [
-            generate_string("Pass", "Failure", test, test_str)
+            generate_python_test_string("Pass", "Failure", test, test_str)
             for test, test_str in tests[test_xml]["pass_tests"].items()
         ]
     )
     # Join warn-test strings together
     warn_string = "\n".join(
         [
-            generate_string("Warn", "Warning", test, test_str)
+            generate_python_test_string("Warn", "Warning", test, test_str)
             for test, test_str in tests[test_xml]["warn_tests"].items()
         ]
     )
@@ -466,10 +460,10 @@ parser.add_argument(
     help="specify which kind of tests to run; choose either serial or parallel",
     metavar="TYPE",
 )
-parser.add_argument("-f", "--file", help="run a single test - expects an XML filename")
+parser.add_argument("-f", "--file", help="run a single test — expects an XML filepath")
 parser.add_argument(
     "--from-file",
-    help="path to a file where to read which tests to run - one XML filename per line",
+    help="path to a file where to read which tests to run — one XML filepath per line",
     metavar="FILE",
 )
 parser.add_argument(
@@ -479,6 +473,11 @@ parser.add_argument(
     default=False,
     help="print which tests were found and save the list to a JSON file if provided",
     metavar="FILE",
+)
+parser.add_argument(
+    "--just-test",
+    action="store_true",
+    help="execute Python instructions without re-running test core commands",
 )
 parser.add_argument(
     "-l",
@@ -537,7 +536,7 @@ print(
 xml_files = gather_tests()
 assert xml_files, "No tests were found."
 test_suite = TestSuite("Test Harness")
-tests = filter_tests(xml_files)
+tests = filter_tests(xml_files, test_suite)
 assert tests, "No tests matched the provided test criteria."
 
 if args.just_list:
@@ -549,6 +548,7 @@ if args.just_list:
     if isinstance(args.just_list, str):
         with open(args.just_list, "w") as fid:
             json.dump([test.name for test in tests.keys()], fid)
+    raise SystemExit
 elif args.clean:
     print("*** Cleaning")
     for test_xml in tests.keys():
@@ -567,52 +567,59 @@ elif args.clean:
                 pass
             else:
                 raise test_error
-    print("Cleaning done.")
-else:
-    fluidity_version = subprocess.run(
-        ["fluidity", "-V"],
-        check=True,
-        encoding="utf-8",
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    print(
-        f"""{"-" * 80}
+    raise SystemExit("Cleaning done.")
+
+fluidity_version = subprocess.run(
+    ["fluidity", "-V"],
+    check=True,
+    encoding="utf-8",
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+)
+print(
+    f"""{"-" * 80}
 Output of "fluidity -V"
 {fluidity_version.stderr.strip()}
 {"-" * 80}
 """
-    )
-    if args.valgrind:
-        # Make sure Fluidity has been compiled in debug mode
-        assert (
-            "debugging" in fluidity_version.stderr
-        ), "Please compile Fluidity in debug mode to use valgrind."
-        print(
-            f"""{"-" * 80}
+)
+if args.valgrind:
+    # Make sure Fluidity has been compiled in debug mode
+    assert (
+        "debugging" in fluidity_version.stderr
+    ), "Please compile Fluidity in debug mode to use valgrind."
+    print(
+        f"""{"-" * 80}
 I see you are using Valgrind!
 Keep the following in mind:
 - The log file will be produced in the directory containing the tests.
 - Valgrind typically takes O(100) times as long. I hope your test is short.
 {"-" * 80}
 """
-        )
-        # Prepend valgrind command
-        for test_xml in tests.keys():
-            # What about when command contains commands delimited by ";"?
-            tests[test_xml][
-                "command"
-            ] = f"""valgrind --tool=memcheck \
+    )
+    # Prepend valgrind command
+    for test_xml in tests.keys():
+        # What about when command contains commands delimited by ";"?
+        tests[test_xml][
+            "command"
+        ] = f"""valgrind --tool=memcheck \
 --leak-check=full -v --show-reachable=yes --num-callers=8 --error-limit=no \
 --log-file=test.log {tests[test_xml]["command"]}"""
 
-    core_avail = len(sched_getaffinity(0))
-    if args.ncores is not None:
-        core_avail = min(args.ncores, core_avail)
-    error_list, failure_list, warning_list = [], [], []
+core_avail = len(sched_getaffinity(0))
+if args.ncores is not None:
+    core_avail = min(args.ncores, core_avail)
+error_list, failure_list, warning_list = [], [], []
 
+tests_list = list(tests.keys())
+if not args.just_test:
     tests_list = run_tasks(
-        "*** Executing 'make input'", list(tests.keys()), True, "Shell", task_make_input
+        "*** Executing 'make input'",
+        tests_list,
+        True,
+        "Shell",
+        task_make_input,
+        test_suite,
     )
     if tests_list:
         tests_list = run_tasks(
@@ -621,39 +628,45 @@ Keep the following in mind:
             False,
             "Shell",
             task_run_commands,
+            test_suite,
         )
-    if tests_list:
-        tests_list = run_tasks(
-            "*** Executing Python tests", tests_list, True, "Python", task_run_tests
-        )
+if tests_list:
+    tests_list = run_tasks(
+        "*** Executing Python tests",
+        tests_list,
+        True,
+        "Python",
+        task_run_tests,
+        test_suite,
+    )
 
-    for test_xml in tests_list:
-        test_case = TestCase(
-            name=test_xml.stem,
-            classname=tests[test_xml]["id"],
-            elapsed_sec=tests[test_xml]["elapsed_time"],
-            status="Success",
-        )
-        test_case.stdout = tests[test_xml]["stdout"]
-        test_case.stderr = tests[test_xml]["stderr"]
-        test_suite.test_cases.append(test_case)
+for test_xml in tests_list:
+    test_case = TestCase(
+        name=test_xml.stem,
+        classname=tests[test_xml]["id"],
+        elapsed_sec=tests[test_xml]["elapsed_time"],
+        status="Success",
+    )
+    test_case.stdout = tests[test_xml]["stdout"]
+    test_case.stderr = tests[test_xml]["stderr"]
+    test_suite.test_cases.append(test_case)
 
-    if args.xml_output:
-        with open(args.xml_output, "w") as fid:
-            test_suite.to_file(fid, [test_suite])
+if args.xml_output:
+    with open(args.xml_output, "w") as fid:
+        test_suite.to_file(fid, [test_suite])
 
-    if any([error_list, failure_list, warning_list]):
-        if error_list:
-            print("Summary of test problems that produced errors:")
-            for test in error_list:
-                print(f"-> {test}")
-        if failure_list:
-            print("Summary of test problems that produced failures:")
-            for test in failure_list:
-                print(f"-> {test}")
-        if warning_list:
-            print("Summary of test problems that produced warnings:")
-            for test in warning_list:
-                print(f"-> {test}")
-    else:
-        print("Test suite completed successfully.")
+if any([error_list, failure_list, warning_list]):
+    if error_list:
+        print("Summary of test problems that produced errors:")
+        for test in error_list:
+            print(f"-> {test}")
+    if failure_list:
+        print("Summary of test problems that produced failures:")
+        for test in failure_list:
+            print(f"-> {test}")
+    if warning_list:
+        print("Summary of test problems that produced warnings:")
+        for test in warning_list:
+            print(f"-> {test}")
+else:
+    print("Test suite completed successfully.")
