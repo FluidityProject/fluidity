@@ -27,7 +27,7 @@
 
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(fluidity, None)
+AC_INIT([fluidity],[None])
 
 AC_CONFIG_HEADERS(include/config.h)
 
@@ -72,8 +72,7 @@ fi
 # Name fluidity
 #
 AC_ARG_ENABLE(debugging,
-    [AC_HELP_STRING([--enable-debugging],
-	    [turns on debugging flags])])
+    [AS_HELP_STRING([--enable-debugging],[turns on debugging flags])])
  
 FLFEMDEM="femdem"
 
@@ -179,8 +178,6 @@ else
    USING_CLANG="no"
 fi
 
-AC_LONG_64_BITS
-
 # Find fortran libraries required when linking with C++ main.
 AC_FC_LIBRARY_LDFLAGS
 
@@ -188,8 +185,7 @@ AC_F77_WRAPPERS
 
 # Find python to link against.
 AC_ARG_ENABLE(python,
-[AC_HELP_STRING([--enable-python],
-[embed python in fluidity for generic functions.])])
+[AS_HELP_STRING([--enable-python],[embed python in fluidity for generic functions.])])
 
 if test "x$enable_python" != "xno"
 then
@@ -209,7 +205,7 @@ then
       fi
     fi
     mycppflag=$CPPFLAGS
-    AC_PYTHON_DEVEL([>= '3.6'])
+    AX_PYTHON_DEVEL([>= '3.6'])
     CPPFLAGS=$mycppflag
     # Save variables...
     if test "x$pythonexists" = "xyes";
@@ -254,7 +250,7 @@ then
 fi
 AC_SUBST(HAVE_PYTHON)
 
-AC_ARG_ENABLE(cgal, [AC_HELP_STRING([--enable-cgal], [turns on use of the CGAL library])])
+AC_ARG_ENABLE(cgal, [AS_HELP_STRING([--enable-cgal],[turns on use of the CGAL library])])
 if test "x$enable_cgal" = "xyes" ; then
   ACX_lib_automagic(CGAL, _ZNK4CGAL6Random8get_seedEv, [HAVE_CGAL=yes; AC_DEFINE(HAVE_LIBCGAL)], AC_MSG_ERROR("Use of CGAL enabled but cannot identify CGAL. Check that it is installed."))
   AC_SUBST(HAVE_CGAL)
@@ -278,7 +274,7 @@ if test -z "$with_lapack" -a -z "$with_blas" && \
       LAPACK_LIBS="-L$i $LAPACK_LIBS"
       fi
     done
-    ACX_BLAS([found_blas="yes"],[found_blas="no"])
+    AX_BLAS([found_blas="yes"],[found_blas="no"])
 elif  test "$fcompiler" = "pgf90"
     then
     AC_MSG_NOTICE([Appear to be using Portland Group compiler suite. Check if ACML is also available.])
@@ -296,9 +292,9 @@ AC_LANG_PUSH([Fortran 77])
 if test "$found_blas" = "no"
     then
     AC_MSG_NOTICE([checking the position of the stars to help find a versions of BLAS])
-    ACX_BLAS([],[AC_MSG_ERROR("Cannot identify BLAS. Check that it is installed.")])
+    AX_BLAS([],[AC_MSG_ERROR("Cannot identify BLAS. Check that it is installed.")])
 fi
-ACX_LAPACK([],[AC_MSG_ERROR("Cannot identify LAPACK. Check that it is installed.")])
+AX_LAPACK([],[AC_MSG_ERROR("Cannot identify LAPACK. Check that it is installed.")])
 AC_LANG_POP([Fortran 77])
 
 # Check for standard libraries
@@ -314,8 +310,7 @@ EOF
 fi
 
 AC_ARG_ENABLE(openmp,
-    [AC_HELP_STRING([--enable-openmp],
-	    [turns on OpenMP support])])
+    [AS_HELP_STRING([--enable-openmp],[turns on OpenMP support])])
 if test "x$enable_openmp" == "xyes" ; then      
     AC_LANG_PUSH([C++])
     AC_OPENMP()
@@ -334,8 +329,7 @@ AC_SUBST(BLAS_LIBS)
 LINKER=$CXX
 
 AC_ARG_ENABLE(shared,
-[AC_HELP_STRING([--enable-shared],
-[Compile objects with -fPIC to enable the 'make shared' target.])])
+[AS_HELP_STRING([--enable-shared],[Compile objects with -fPIC to enable the 'make shared' target.])])
 
 if test "$enable_shared" = "yes" ; then
   PIC_FLAG="-fPIC"
@@ -563,8 +557,7 @@ test -n "$ARFLAGS" || ARFLAGS="cr"
 AC_PROG_RANLIB
 
 AC_ARG_ENABLE(verbose,
-[AC_HELP_STRING([--enable-verbose],
-[turns on super verbosity])])
+[AS_HELP_STRING([--enable-verbose],[turns on super verbosity])])
 
 if test "$enable_verbose" = "yes" ; then
 cat >> confdefs.h << EOF
@@ -647,8 +640,7 @@ CXXFLAGS="$CXXFLAGS $OPTIMISATION_FLAGS"
 # Are we using FEMDEM
 ##########################################
 AC_ARG_WITH(femdem,
-    [AC_HELP_STRING([--with-femdem@<:@=femdem_library@:>@],
-        [specify the femdem path])])
+    [AS_HELP_STRING([--with-femdem@<:@=femdem_library@:>@],[specify the femdem path])])
 if test -n "$with_femdem" ; then
   FLFEMDEM_PATH="${with_femdem}"
   LIB_FEMDEM="${with_femdem}""/lib/libd$FLFEMDEM.a"
@@ -670,8 +662,7 @@ AC_SUBST(FEMDEM)
 ##########################################
  
 AC_ARG_WITH(psmile,
-    [AC_HELP_STRING([--with-psmile@<:@=psmile_library@:>@],
-    [specify the oasis4 path])])
+    [AS_HELP_STRING([--with-psmile@<:@=psmile_library@:>@],[specify the oasis4 path])])
 if test -n "$with_psmile" ; then
   FLPSMILE_PATH="${with_psmile}"
   ENABLE_PSMILE="yes"
@@ -718,12 +709,12 @@ CC=$MPICC
 CXX=$MPICXX
 
 AC_MSG_CHECKING([if we can compile and link without using -lmpi])
-AC_TRY_LINK([
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <mpi.h>
-],[
+]], [[
 int flag;
 MPI_Initialized(&flag);
-],[
+]])],[
 AC_MSG_RESULT([yes])
 mpi="yes"
 ],[
@@ -735,12 +726,12 @@ if test "$check_for_lmpi" = "yes" ; then
   AC_MSG_CHECKING([if we can compile and link using -lmpi])
   LIBS_bck="$LIBS"
   LIBS="-lmpi"
-  AC_TRY_LINK([
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[
   #include <mpi.h>
-  ],[
+  ]], [[
   int flag;
   MPI_Initialized(&flag);
-  ],[
+  ]])],[
   AC_MSG_RESULT([yes])
   LIBS="$LIBS $LIBS_bck"
   mpi="yes"
@@ -759,12 +750,12 @@ if test "$check_for_mpich" = "yes" ; then
   CPPFLAGS_bck="$CPPFLAGS"
   CPPFLAGS="$CPPFLAGS $MPICH_INCLUDES"
 
-  AC_TRY_LINK([
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[
   #include <mpi.h>
-  ],[
+  ]], [[
   int flag;
   MPI_Initialized(&flag);
-  ],[
+  ]])],[
   AC_MSG_RESULT([yes])
   LIBS="$LIBS $LIBS_bck"
   mpi="yes"
@@ -789,8 +780,7 @@ fi
 # netCDF support
 AC_LANG_PUSH([C])
 AC_ARG_WITH(netcdf,
-[AC_HELP_STRING([--with-netcdf@<:@=netcdf_ROOT@:>@],
-[specify where to find lib/ and include/ for netCDF])])
+[AS_HELP_STRING([--with-netcdf@<:@=netcdf_ROOT@:>@],[specify where to find lib/ and include/ for netCDF])])
 
 # allow various synonyms to disable NetCDF
 if test -z "$with_netcdf" ; then
@@ -818,8 +808,7 @@ fi
 HAVE_EXODUSII=no
 AC_LANG_PUSH([C])
 AC_ARG_WITH(exodusii,
-[AC_HELP_STRING([--with-exodusii@<:@=exodus_ROOT@:>@],
-[specify where to find lib/ and include/ for exodusii])])
+[AS_HELP_STRING([--with-exodusii@<:@=exodus_ROOT@:>@],[specify where to find lib/ and include/ for exodusii])])
 
 if test "$with_exodusii" = "yes" ; then
     if test -d "$with_exodusii" ; then
@@ -837,11 +826,11 @@ CPPFLAGS="$CPPFLAGS -DHAVE_PETSC"
 
 # Metis, ParMetis
 AC_MSG_CHECKING([if we can compile and link without using -lparmetis])
-AC_TRY_LINK([
-],[
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+]], [[
 METIS_PartGraphKway();
 ParMETIS_V3_AdaptiveRepart();
-],[
+]])],[
 AC_MSG_RESULT([yes])
 AC_DEFINE(HAVE_LIBMETIS, [1])
 AC_DEFINE(HAVE_LIBPARMETIS, [1])
@@ -854,7 +843,7 @@ AC_CHECK_HEADERS([parmetis.h])
 AS_IF([test "x$ac_cv_header_parmetis_h" = "xyes" ],
 	    [
 	    AC_LANG_SAVE
-	    AC_LANG_CPLUSPLUS
+	    AC_LANG([C++])
 	    AC_MSG_CHECKING([parmetis major version <=3])
 	    AC_EGREP_CPP([test_true],
 		[
@@ -876,8 +865,7 @@ test_true
 CPPFLAGS="$CPPFLAGS $PARMETIS_FLAGS"
 
 AC_ARG_ENABLE(sam,
-              [AC_HELP_STRING([--enable-sam],
-                              [use sam rather than zoltan for adaptive load rebalancing])])
+              [AS_HELP_STRING([--enable-sam],[use sam rather than zoltan for adaptive load rebalancing])])
 if test "$enable_sam" = "yes"; then
   HAVE_ZOLTAN=no
 else
@@ -1038,8 +1026,7 @@ AC_SUBST(IO_ADVANCE_BUG)
 AC_LANG_RESTORE
 
 AC_ARG_ENABLE(dp,
-[AC_HELP_STRING([--enable-dp[=flag]],
-[compile with 64 bit floating point numbers (default)])])
+[AS_HELP_STRING([--enable-dp[=flag]],[compile with 64 bit floating point numbers (default)])])
 
 if test "$enable_dp" = "no"
   then
@@ -1190,8 +1177,7 @@ AC_LANG_POP(Fortran)
 # enable gprof profiling
 
 AC_ARG_ENABLE(profiling,
-[AC_HELP_STRING([--enable-profiling],
-[enable gprof profiling])])
+[AS_HELP_STRING([--enable-profiling],[enable gprof profiling])])
 
 if test "$enable_profiling" = "yes" ; then
   PROFILING_FLAG="-pg"
@@ -1233,7 +1219,7 @@ CC=$MPICC
 CXX=$MPICXX
 LINKER=$CXX
 
-AC_ARG_ENABLE(libsupermesh, [AC_HELP_STRING([--enable-libsupermesh], [enable use of the libsupermesh library])])
+AC_ARG_ENABLE(libsupermesh, [AS_HELP_STRING([--enable-libsupermesh],[enable use of the libsupermesh library])])
 if test "x$enable_libsupermesh" = "xyes" ; then
   AC_MSG_CHECKING([libsupermesh])
   AC_LANG_PUSH([C++])
@@ -1316,7 +1302,7 @@ fi
 # Configure libjudy
 
 AC_ARG_WITH([judy],
-	[AC_HELP_STRING([--with-judy=<lib>], [specify Judy library <lib>])])
+	[AS_HELP_STRING([--with-judy=<lib>],[specify Judy library <lib>])])
 
 if test -n "$with_judy"; then
     AC_MSG_NOTICE([Linking against $with_judy])
@@ -1373,7 +1359,7 @@ AC_SUBST(FLIBJUDY)
 
 # Configure libspud
 AC_ARG_WITH([libspud-root],
-	[AC_HELP_STRING([--with-libspud-root=<lib>], [specify external libspud installation root directory])])
+	[AS_HELP_STRING([--with-libspud-root=<lib>],[specify external libspud installation root directory])])
 
 if test -n "$with_libspud_root"; then
    	SPUDLIB="${with_libspud_root}/lib/libspud.a"
@@ -1431,11 +1417,9 @@ AC_SUBST(SPUDHEADER)
 
 #*************SpatialIndex******
 AC_ARG_ENABLE(spatialindex-version, 
-[AC_HELP_STRING([--enable-spatialindex-version],
-[Select required version of spatialindex library: 1.8.0])])
+[AS_HELP_STRING([--enable-spatialindex-version],[Select required version of spatialindex library: 1.8.0])])
 AC_ARG_WITH([spatialindex-root],
-	[AC_HELP_STRING([--with-spatialindex-root=<dir>],
-        [specify root directory of system spatialindex installation])])
+	[AS_HELP_STRING([--with-spatialindex-root=<dir>],[specify root directory of system spatialindex installation])])
 
 if test "x$enable_spatialindex_version" != "x"
 then
@@ -1515,8 +1499,7 @@ fi
 #*************ARPACK*********
 AC_LANG_PUSH([Fortran])
 AC_ARG_WITH(arpack-lib,
-[AC_HELP_STRING([--with-arpack-lib@<:@=<lib>@:>@],
-[specify arpack library])])
+[AS_HELP_STRING([--with-arpack-lib@<:@=<lib>@:>@],[specify arpack library])])
 
 if test -n "$with_arpack_lib" ; then
     AC_MSG_NOTICE([Linking against $with_arpack_lib])
@@ -1527,7 +1510,7 @@ else
 fi
 
 vtk_header_relative_path=""
-AC_ARG_ENABLE(vtk,[AC_HELP_STRING([--enable-vtk], [Only use to disable vtk])])
+AC_ARG_ENABLE(vtk,[AS_HELP_STRING([--enable-vtk],[Only use to disable vtk])])
 # various synonyms accepted for disabling VTK
 if test "$with_vtk" = no ; then enable_vtk=no; fi
 if test "$with_VTK" = no ; then enable_vtk=no; fi
@@ -1758,8 +1741,7 @@ cat confdefs.h | grep MPI >> libvtkfortran/include/confdefs.h
 cat confdefs.h | grep "^#[dua][enl][fdl][ieo][nfw]" > include/confdefs.h
 
 AC_ARG_ENABLE(2d-adaptivity,
-[AC_HELP_STRING([--enable-2d-adaptivity],
-[Link against 2D adaptivity library (GPL license)])])
+[AS_HELP_STRING([--enable-2d-adaptivity],[Link against 2D adaptivity library (GPL license)])])
 
 if test "x$enable_2d_adaptivity" = "xyes"; then
   echo "#define HAVE_MBA_2D 1" >> include/confdefs.h
@@ -1769,8 +1751,7 @@ if test "x$enable_2d_adaptivity" = "xyes"; then
 fi
 
 AC_ARG_ENABLE(mba3d,
-[AC_HELP_STRING([--enable-mba3d],
-[Enabled libmba3d 3D adaptivity library])])
+[AS_HELP_STRING([--enable-mba3d],[Enabled libmba3d 3D adaptivity library])])
 
 if test "x$enable_mba3d" = "xyes"; then
   echo "#define HAVE_MBA_3D 1" >> include/confdefs.h
@@ -1780,8 +1761,7 @@ if test "x$enable_mba3d" = "xyes"; then
 fi
 
 AC_ARG_ENABLE(memory_stats,
-[AC_HELP_STRING([--enable-memory-stats],
-[Enable memory statistics])])
+[AS_HELP_STRING([--enable-memory-stats],[Enable memory statistics])])
 
 if test "x$enable_debugging" = "xyes" ; then
   if test "x$enable_memory_stats" != "xno"; then
@@ -1803,8 +1783,7 @@ fi
 LIBS="$LIBS $ZOLTAN_DEPS"
 
 AC_ARG_ENABLE(hyperlight,
-[AC_HELP_STRING([--enable-hyperlight],
-[Enable Hyperlight solar irradiance model])])
+[AS_HELP_STRING([--enable-hyperlight],[Enable Hyperlight solar irradiance model])])
 
 if test "$enable_hyperlight" = "yes"; then
   AC_CHECK_FILES([hyperlight/Hyperlight.h hyperlight/Hyperlight.cpp hyperlight/Sky.h hyperlight/Sky.cpp hyperlight/Iop.h hyperlight/Iop.cpp],[
@@ -1819,8 +1798,7 @@ fi
 
 #***** LIBNUMA *****
 AC_ARG_WITH(libnuma,
-[AC_HELP_STRING([--with-libnuma@<:@=libnuma_library@:>@],
-		[specify the path to libnuma, e.g. -L/usr/lib -lnuma])])
+[AS_HELP_STRING([--with-libnuma@<:@=libnuma_library@:>@],[specify the path to libnuma, e.g. -L/usr/lib -lnuma])])
 if test -n "$with_libnuma"; then
    AC_MSG_NOTICE([Linking against $with-libnuma])
    LIBS="$with_libnuma $LIBS"
@@ -1833,7 +1811,7 @@ fi
 AC_PROG_SED
 AC_PROG_GREP
 
-AC_OUTPUT(Makefile
+AC_CONFIG_FILES([Makefile
           debug/Makefile
           bathymetry/Makefile
           ocean_forcing/Makefile ocean_forcing/tests/Makefile
@@ -1865,4 +1843,5 @@ AC_OUTPUT(Makefile
           libjudy/src/JudyHS/Makefile
           libwm/Makefile
           libvtkfortran/Makefile
-	  tests/tools.mk)
+	  tests/tools.mk])
+AC_OUTPUT
