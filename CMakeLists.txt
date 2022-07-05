@@ -5,6 +5,19 @@ project(fluidity
   LANGUAGES C CXX Fortran
 )
 
+function(build_unittest_executable unittest_sources)
+  foreach(unittest_source ${unittest_sources})
+    get_filename_component(unittest ${unittest_source} NAME_WE)
+
+    add_executable(${unittest} ${unittest_source} test_main.cpp)
+    set_target_properties(${unittest}
+      PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/tests
+    )
+    target_compile_definitions(${unittest} PUBLIC TESTNAME=${unittest}_)
+    target_link_libraries(${unittest} fluidity)
+  endforeach()
+endfunction()
+
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Set build type; \
 typical values include Debug, Release, RelWithDebInfo and MinSizeRel." FORCE
@@ -12,8 +25,6 @@ typical values include Debug, Release, RelWithDebInfo and MinSizeRel." FORCE
 elseif(CMAKE_BUILD_TYPE STREQUAL Debug)
   set(DDEBUG DDEBUG)
 endif()
-
-set(CMAKE_PREFIX_PATH $ENV{PETSC_DIR}/$ENV{PETSC_ARCH})
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -39,7 +50,19 @@ find_package(MPI REQUIRED C CXX Fortran)
 find_package(HDF5 REQUIRED Fortran)
 
 # Check for VTK
-find_package(VTK REQUIRED)
+find_package(VTK REQUIRED
+  CommonCore
+  CommonDataModel
+  FiltersCore
+  FiltersGeneral
+  FiltersVerdict
+  IOLegacy
+  IOCore
+  IOImage
+  IOParallelXML
+  IOXML
+  ParallelMPI
+)
 
 # Check for Python 3
 find_package(Python3 REQUIRED Interpreter Development NumPy)
@@ -50,11 +73,15 @@ find_package(Python3 REQUIRED Interpreter Development NumPy)
 # Check for CGAL
 find_package(CGAL QUIET)
 if(CGAL_FOUND)
-  set(HAVE_LIBCGAL HAVE_LIBCGAL)
-  set(CGAL_IMPORTED_TARGET CGAL::CGAL)
+  message(STATUS "Found CGAL ${CGAL_VERSION}")
 endif()
 
 # Check for PETSc
+if(DEFINED ENV{PETSC_ARCH})
+  set(CMAKE_PREFIX_PATH $ENV{PETSC_DIR}/$ENV{PETSC_ARCH})
+else()
+  set(CMAKE_PREFIX_PATH $ENV{PETSC_DIR})
+endif()
 pkg_search_module(PETSC REQUIRED IMPORTED_TARGET PETSc)
 message(STATUS "Found PETSc ${PETSC_VERSION}")
 
@@ -67,8 +94,10 @@ pkg_search_module(NETCDF REQUIRED netcdf)
 message(STATUS "Found NetCDF ${NETCDF_VERSION}")
 
 # Check for TCMalloc
-pkg_search_module(TCMALLOC REQUIRED libtcmalloc)
-message(STATUS "Found TCMalloc ${TCMALLOC_VERSION}")
+pkg_search_module(TCMALLOC QUIET libtcmalloc)
+if(TCMALLOC_FOUND)
+  message(STATUS "Found TCMalloc ${TCMALLOC_VERSION}")
+endif()
 
 # Check for UDUNITS
 pkg_search_module(UDUNITS REQUIRED udunits)
@@ -78,16 +107,13 @@ message(STATUS "Found UDUNITS ${UDUNITS_VERSION}")
 pkg_search_module(LIBSUPERMESH QUIET libsupermesh)
 if(LIBSUPERMESH_FOUND)
   message(STATUS "Found libsupermesh ${LIBSUPERMESH_VERSION}")
-  set(HAVE_LIBSUPERMESH HAVE_LIBSUPERMESH)
 endif()
 
 # Check for ExodusII
 find_library(EXODUSII_LIBRARY exoIIv2c)
+find_path(EXODUSII_INCLUDE_DIR exodusII.h)
 if(EXODUSII_LIBRARY)
-  set(HAVE_LIBEXOIIV2C HAVE_LIBEXOIIV2C)
-  find_path(EXODUSII_INCLUDE_DIR exodusII.h REQUIRED)
-else()
-  unset(EXODUSII_LIBRARY CACHE)
+  message(STATUS "Found ExodusII")
 endif()
 
 # Add libspatialindex
@@ -214,6 +240,7 @@ file(WRITE "${CMAKE_BINARY_DIR}/include/vtk.h"
 #include <vtkIdList.h>
 #include <vtkImageData.h>
 #include <vtkIntArray.h>
+#include <vtkMPICommunicator.h>
 #include <vtkMPIController.h>
 #include <vtkPointData.h>
 #include <vtkPointLocator.h>
@@ -298,11 +325,11 @@ target_compile_definitions(fluidity PUBLIC
   # HAVE_HYPERLIGHT
   HAVE_HYPRE
   # HAVE_LIBARPACK
-  ${HAVE_LIBCGAL}
-  ${HAVE_LIBEXOIIV2C}
+  $<$<BOOL:${CGAL_FOUND}>:HAVE_LIBCGAL>
+  $<$<BOOL:${EXODUSII_LIBRARY}>:HAVE_LIBEXOIIV2C>
   HAVE_LIBNETCDF
-  ${HAVE_LIBSUPERMESH}
-  HAVE_LIBTCMALLOC
+  $<$<BOOL:${LIBSUPERMESH_FOUND}>:HAVE_LIBSUPERMESH>
+  $<$<BOOL:${LIBTCMALLOC_FOUND}>:HAVE_LIBTCMALLOC>
   HAVE_LIBUDUNITS
   HAVE_MEMORY_STATS
   HAVE_MBA_2D
@@ -332,7 +359,7 @@ target_include_directories(fluidity PUBLIC
   ${PETSC_INCLUDE_DIRS}
   ${NETCDF_INCLUDE_DIRS}
 
-  ${EXODUSII_INCLUDE_DIR}
+  $<$<BOOL:${EXODUSII_INCLUDE_DIR}>:${EXODUSII_INCLUDE_DIR}>
 
   ${libspatialindex_SOURCE_DIR}/include
   ${libjudy_SOURCE_DIR}/src
@@ -351,17 +378,17 @@ target_link_libraries(fluidity
   ${VTK_LIBRARIES}
   ${Python3_LIBRARIES}
   # ${OpenMP_Fortran_LIBRARIES}
-  ${CGAL_IMPORTED_TARGET}
+  $<TARGET_NAME_IF_EXISTS:CGAL::CGAL>
 
   PkgConfig::PETSC
   ${PETSC_STATIC_LDFLAGS}
   # ${ARPACK_STATIC_LDFLAGS}
   ${NETCDF_STATIC_LDFLAGS}
-  ${TCMALLOC_STATIC_LDFLAGS}
+  $<$<BOOL:${TCMALLOC_STATIC_LDFLAGS}>:${TCMALLOC_STATIC_LDFLAGS}>
   ${UDUNITS_STATIC_LDFLAGS}
-  ${LIBSUPERMESH_STATIC_LDFLAGS}
+  $<$<BOOL:${LIBSUPERMESH_STATIC_LDFLAGS}>:${LIBSUPERMESH_STATIC_LDFLAGS}>
 
-  ${EXODUSII_LIBRARY}
+  $<$<BOOL:${EXODUSII_LIBRARY}>:${EXODUSII_LIBRARY}>
 )
 vtk_module_autoinit(TARGETS fluidity MODULES ${VTK_LIBRARIES})
 
