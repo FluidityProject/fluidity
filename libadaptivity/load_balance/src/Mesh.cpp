@@ -713,7 +713,7 @@ samfloat_t Mesh::idealElementDensity(const unsigned eid)
 {
   assert(element_list[eid].get_flags()&ELM_VOLUME);
 
-  samfloat_t det;
+  samfloat_t det{};
 
   if (dimension == 3)
   {
