@@ -133,13 +133,13 @@ module metric_tools
   function edge_length_from_eigenvalue_scalar(evalue) result(edge_len)
     real, intent(in) :: evalue
     real :: edge_len
-    
+
     if (evalue /= 0.0) then
        edge_len = 1.0/sqrt(abs(evalue))
     else
        edge_len = huge(evalue)
     end if
-    
+
   end function edge_length_from_eigenvalue_scalar
 
   function edge_length_from_eigenvalue_vector(evalues) result(edge_lens)
@@ -464,7 +464,7 @@ module metric_tools
     do i=1,size(vec)
       r2norm = r2norm + vec(i)**2
     end do
-    
+
     r2norm = sqrt(r2norm)
   end function norm
 
@@ -521,7 +521,7 @@ module metric_tools
     end if
 
     angle = atan2(vecB(2), vecB(1)) - atan2(vecA(2), vecA(1))
-  end function get_angle_2d 
+  end function get_angle_2d
 
   function get_rotation_matrix(A, B) result(mat)
     !!< Really, this should be done with an interface block.
@@ -531,7 +531,7 @@ module metric_tools
 
     real, dimension(size(A)) :: normed_A, normed_B
     real :: norm_AplusB, norm_AminusB
-    
+
     normed_A = A / norm(A)
     normed_B = B / norm(B)
 
@@ -757,7 +757,7 @@ module metric_tools
     end if
 #endif
   end subroutine check_perm
-    
+
   function factorial(n) result(fact)
     integer, intent(in) :: n
     integer :: fact
@@ -796,7 +796,7 @@ module metric_tools
     ewrite(-1,*) "ext == ", ext
     FLAbort("no such variable")
   end subroutine get_adapt_opt_real_scalar
-    
+
   subroutine get_adapt_opt_real_vector(path, ext, var)
     character(len=*), intent(in) :: path, ext
     real, dimension(:), intent(out) :: var
@@ -848,7 +848,7 @@ module metric_tools
     evals = edge_length_from_eigenvalue(evals)
     call eigenrecomposition(edgelen, evecs, evals)
   end function edge_lengths_from_metric
-    
+
   function simplex_tensor(positions, ele, power) result(m)
     !!< Compute the metric tensor
     !!< associated with the element.
@@ -961,11 +961,11 @@ module metric_tools
       new_pos(:, i) = matmul(metric, pos(:, i))
     end do
   end function apply_transform
-  
+
   subroutine form_anisotropic_metric_from_isotropic_metric(isotropic_metric, anisotropic_metric)
     type(scalar_field), intent(in) :: isotropic_metric
     type(tensor_field), intent(out) :: anisotropic_metric
-    
+
     integer :: i
     real, dimension(mesh_dim(isotropic_metric)) :: eigenvals
     real, dimension(mesh_dim(isotropic_metric), mesh_dim(isotropic_metric)) :: eigenvecs, tensor
@@ -973,7 +973,7 @@ module metric_tools
     assert(anisotropic_metric%dim(1)==anisotropic_metric%dim(2))
 
     call allocate(anisotropic_metric, isotropic_metric%mesh, isotropic_metric%name)
-    
+
     eigenvecs = get_matrix_identity(anisotropic_metric%dim(1))
 
     call zero(anisotropic_metric)
@@ -982,7 +982,7 @@ module metric_tools
       call eigenrecomposition(tensor, eigenvecs, eigenvals)
       call set(anisotropic_metric, i, tensor)
     end do
-    
+
   end subroutine form_anisotropic_metric_from_isotropic_metric
 
   function absolutify_tensor(tens) result(absolute_tens)
@@ -998,15 +998,15 @@ module metric_tools
 
   function lipnikov_functional(ele, positions, metric) result(func)
     !!< Evaluate the Lipnikov functional for the supplied element
-    
+
     integer, intent(in) :: ele
     type(vector_field), intent(in) :: positions
     type(tensor_field), intent(in) :: metric
-    
+
     real :: func
 
     assert(ele_numbering_family(positions, ele) == FAMILY_SIMPLEX)
-    
+
     select case(positions%dim)
       case(2)
         assert(ele_loc(positions, ele) == 3)
@@ -1017,88 +1017,88 @@ module metric_tools
       case default
         FLExit("The Lipnikov functional is only available in 2 or 3d.")
     end select
-  
+
   end function lipnikov_functional
-  
+
   function lipnikov_functional_2d(ele, positions, metric) result(func)
     !!< Evaluate the Lipnikov functional for the supplied 2d triangle. See:
     !!<   Yu. V. Vasileskii and K. N. Lipnikov, An Adaptive Algorithm for
     !!<   Quasioptimal Mesh Generation, Computational Mathematics and
     !!<   Mathematical Physics, Vol. 39, No. 9, 1999, pp. 1468 - 1486
-    
+
     integer, intent(in) :: ele
     type(vector_field), intent(in) :: positions
     type(tensor_field), intent(in) :: metric
-    
+
     real :: func
-    
+
     integer, dimension(:), pointer :: element_nodes
     real :: edge_sum, vol
     real, dimension(2) :: tmp_pos
     real, dimension(2, 2) :: pos
     real, dimension(2, 2) :: m
-    
+
     real :: scale_factor = 12.0 * sqrt(3.0)
-        
+
     m = sum(ele_val(metric, ele), 3) / 3.0
-    
+
     element_nodes => ele_nodes(positions, ele)
     tmp_pos = node_val(positions, element_nodes(1))
     pos(:, 1) = node_val(positions, element_nodes(2)) - tmp_pos
     pos(:, 2) = node_val(positions, element_nodes(3)) - tmp_pos
-    
+
     edge_sum = metric_edge_length(pos(:, 1), m) + &
              & metric_edge_length(pos(:, 2), m) + &
              & metric_edge_length(pos(:, 2) - pos(:, 1), m)
     vol = abs(sqrt(det(m)) * det(pos) / 2.0)
-    
+
     func = (scale_factor * vol / (edge_sum ** 2)) * F(edge_sum / 3.0)
-    
+
   contains
-  
+
     pure function F(x)
       real, intent(in) :: x
-      
+
       real :: F
-      
+
       real :: x1
-      
+
       x1 = min(x, 1.0 / x)
       F = x1 * (2.0 - x1)
       F = F ** 3
-      
+
     end function F
-    
+
   end function lipnikov_functional_2d
-  
+
   function lipnikov_functional_3d(ele, positions, metric) result(func)
     !!< Evaluate the Lipnikov functional for the supplied 3d tetrahedron. See:
     !!<   A. Agouzal, K Lipnikov, Yu. Vassilevski, Adaptive generation of
     !!<   quasi-optimal tetrahedral meshes, East-West J. Numer. Math., Vol. 7,
     !!<   No. 4, pp. 223-244 (1999)
-    
+
     integer, intent(in) :: ele
     type(vector_field), intent(in) :: positions
     type(tensor_field), intent(in) :: metric
-    
+
     real :: func
-    
+
     integer, dimension(:), pointer :: element_nodes
     real :: edge_sum, vol
     real, dimension(3) :: tmp_pos
     real, dimension(3, 3) :: pos
     real, dimension(3, 3) :: m
-    
+
     real :: scale_factor = (6.0 ** 4) * sqrt(2.0)
-        
+
     m = sum(ele_val(metric, ele), 3) / 4.0
-    
+
     element_nodes => ele_nodes(positions, ele)
     tmp_pos = node_val(positions, element_nodes(1))
     pos(:, 1) = node_val(positions, element_nodes(2)) - tmp_pos
     pos(:, 2) = node_val(positions, element_nodes(3)) - tmp_pos
     pos(:, 3) = node_val(positions, element_nodes(4)) - tmp_pos
-    
+
     edge_sum = metric_edge_length(pos(:, 1), m) + &
              & metric_edge_length(pos(:, 2), m) + &
              & metric_edge_length(pos(:, 3), m) + &
@@ -1106,36 +1106,36 @@ module metric_tools
              & metric_edge_length(pos(:, 3) - pos(:, 2), m) + &
              & metric_edge_length(pos(:, 2) - pos(:, 1), m)
     vol = abs(sqrt(det(m)) * det(pos) / 6.0)
-    
+
     func = (scale_factor * vol / (edge_sum ** 3)) * F(edge_sum / 6.0)
-    
+
   contains
-  
+
     pure function F(x)
       real, intent(in) :: x
-      
+
       real :: F
-      
+
       real :: x1
-      
+
       x1 = min(x, 1.0 / x)
       F = x1 * (2.0 - x1)
       F = F ** 3
-      
+
     end function F
-    
+
   end function lipnikov_functional_3d
-  
+
   pure function metric_edge_length(x, m) result(length)
     !!< Return the length of an edge x in a metric space with metric m
-  
+
     real, dimension(:), intent(in) :: x
     real, dimension(size(x), size(x)), intent(in) :: m
-    
+
     real :: length
-    
+
     length = sqrt(dot_product(x, matmul(m, x)))
-  
+
   end function metric_edge_length
 
   subroutine element_quality_p0(positions, metric, quality)

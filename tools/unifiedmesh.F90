@@ -20,7 +20,7 @@ subroutine unifiedmesh(filename1_, filename1_len, &
   use iso_c_binding
 
   implicit none
-  
+
   integer(kind=c_size_t), value :: filename1_len, filename2_len, output_len
   character(kind=c_char, len=1) :: filename1_(*), filename2_(*), output_(*)
 
@@ -50,7 +50,7 @@ subroutine unifiedmesh(filename1_, filename1_len, &
   do i=1, output_len
     output(i:i)=output_(i)
   end do
-  
+
   call set_global_debug_level(0)
 
   positionsA = read_mesh_files(trim(filename1), quad_degree=1, format="gmsh")

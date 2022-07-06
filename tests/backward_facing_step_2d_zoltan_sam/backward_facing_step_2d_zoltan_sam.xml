@@ -24,7 +24,7 @@ FinalTimeSam = fluidity_tools.stat_parser("backward_facing_step_2d_sam.stat")['E
     <variable name="MaximumVelocity" language="python">
 import fluidity_tools
 MaximumVelocity = fluidity_tools.stat_parser("backward_facing_step_2d.stat")['Fluid']['Velocity%magnitude']['max'][-1]
-    </variable>    
+    </variable>
     <variable name="MaximumVelocitySam" language="python">
 import fluidity_tools
 MaximumVelocitySam = fluidity_tools.stat_parser("backward_facing_step_2d_sam.stat")['Fluid']['Velocity%magnitude']['max'][-1]
@@ -32,7 +32,7 @@ MaximumVelocitySam = fluidity_tools.stat_parser("backward_facing_step_2d_sam.sta
     <variable name="FinalNodeCount" language="python">
 import fluidity_tools
 FinalNodeCount = fluidity_tools.stat_parser("backward_facing_step_2d.stat")['CoordinateMesh']['nodes'][-1]
-    </variable>    
+    </variable>
     <variable name="FinalNodeCountSam" language="python">
 import fluidity_tools
 FinalNodeCountSam = fluidity_tools.stat_parser("backward_facing_step_2d_sam.stat")['CoordinateMesh']['nodes'][-1]
@@ -43,7 +43,7 @@ FinalNodeCountSam = fluidity_tools.stat_parser("backward_facing_step_2d_sam.stat
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>
-<!-- 
+<!--
      On the same machine the first two tests should be nearly exact. Because buildbot is not the machine
      where the Sam tests were run, the output might well be a bit different. Therefore using % error even on the
      time check. We don't want a red buildbot, do we?
@@ -55,7 +55,7 @@ FinalNodeCountSam = fluidity_tools.stat_parser("backward_facing_step_2d_sam.stat
 Err = (abs(FinalTime-FinalTimeSam) / FinalTimeSam) *100
 print(Err)
 assert (Err &lt; 10.0)
-</test>    
+</test>
     <test name="Max velocity within 10%" language="python">
 Err = (abs(MaximumVelocity-MaximumVelocitySam) / MaximumVelocitySam) *100
 print(Err)

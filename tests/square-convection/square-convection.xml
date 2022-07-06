@@ -25,7 +25,7 @@ max_cfl_numbers = s["Fluid"]["CFLNumber"]["max"]
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
-solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
     <variable name="final_mid_line_u" language="python">
 import fluidity.diagnostics.utils as utils
@@ -113,7 +113,7 @@ picked_up_timesteps = len(s["ElapsedTime"]["value"])
     <variable name="picked_up_solvers_converged" language="python">
 import os
 files = os.listdir("./checkpoint")
-picked_up_solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+picked_up_solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
     <variable name="pickup_initial_vtudiff" language="python">
 import vtktools

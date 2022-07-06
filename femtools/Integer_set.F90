@@ -86,36 +86,36 @@ module integer_set_module
   interface remove
     module procedure integer_set_remove
   end interface
-  
+
   interface copy
     module procedure integer_set_copy, integer_set_copy_multiple
   end interface
-  
+
   interface set_intersection
     module procedure set_intersection_two, set_intersection_multiple
   end interface
-  
+
   private
   public :: integer_set, allocate, deallocate, has_value, key_count, fetch, insert, &
           & set_complement, set2vector, set_intersection, set_minus, remove, copy, &
           & integer_set_vector
 
-  contains 
-  
+  contains
+
   subroutine integer_set_allocate_single(iset)
     type(integer_set), intent(out) :: iset
     iset = integer_set_create()
   end subroutine integer_set_allocate_single
-  
+
   subroutine integer_set_allocate_vector(iset)
     type(integer_set), dimension(:), intent(out) :: iset
-    
+
     integer :: i
-    
+
     do i = 1, size(iset)
       call allocate(iset(i))
     end do
-  
+
   end subroutine integer_set_allocate_vector
 
   function integer_set_create() result(iset)
@@ -127,16 +127,16 @@ module integer_set_module
     type(integer_set), intent(inout) :: iset
     call integer_set_delete_c(iset%address)
   end subroutine integer_set_delete_single
-  
+
   subroutine integer_set_delete_vector(iset)
     type(integer_set), dimension(:), intent(inout) :: iset
-    
+
     integer :: i
-    
+
     do i = 1, size(iset)
       call deallocate(iset(i))
     end do
-    
+
   end subroutine integer_set_delete_vector
 
   subroutine integer_set_insert(iset, val, changed)
@@ -171,25 +171,25 @@ module integer_set_module
       call insert(iset, fetch(value_set,i))
     end do
   end subroutine integer_set_insert_set
-  
+
   pure function integer_set_length_single(iset) result(len)
     type(integer_set), intent(in) :: iset
     integer :: len
 
     call integer_set_length_c(iset%address, len)
   end function integer_set_length_single
-  
+
   pure function integer_set_length_vector(iset) result(len)
     type(integer_set), dimension(:), intent(in) :: iset
 
     integer, dimension(size(iset)) :: len
-    
+
     integer :: i
-    
+
     do i = 1, size(iset)
       len(i) = key_count(iset(i))
     end do
-  
+
   end function integer_set_length_vector
 
   function integer_set_fetch(iset, idx) result(val)
@@ -223,14 +223,14 @@ module integer_set_module
     type(integer_set), intent(in) :: iset
     integer, dimension(:), intent(in) :: val
     logical, dimension(size(val)) :: bool
-    
+
     integer:: i
-    
+
     do i=1, size(val)
       bool(i)=integer_set_has_value(iset, val(i))
     end do
   end function integer_set_has_value_multiple
-  
+
   subroutine set_complement(complement, universe, current)
     ! complement = universe \ current
     type(integer_set), intent(out) :: complement
@@ -266,7 +266,7 @@ module integer_set_module
     type(integer_set), intent(out) :: intersection
     type(integer_set), dimension(:), intent(in) :: isets
     integer :: i
-    
+
     type(integer_set) :: tmp_intersection, tmp_iset
 
     tmp_iset = isets(1)
@@ -276,36 +276,36 @@ module integer_set_module
       call deallocate(tmp_intersection)
     end do
     intersection = tmp_iset
-    
+
   end subroutine set_intersection_multiple
-  
+
   subroutine integer_set_copy(iset_copy, iset)
     type(integer_set), intent(out) :: iset_copy
     type(integer_set), intent(in) :: iset
-    
+
     integer :: i, val
-    
+
     call allocate(iset_copy)
-    
+
     do i = 1, key_count(iset)
       val = fetch(iset, i)
       call insert(iset_copy, val)
     end do
-  
+
   end subroutine integer_set_copy
 
   subroutine integer_set_copy_multiple(iset_copy, iset)
     type(integer_set), dimension(:), intent(out) :: iset_copy
     type(integer_set), dimension(:), intent(in) :: iset
-    
+
     integer :: n
-    
+
     do n=1, size(iset)
       call copy(iset_copy(n), iset(n))
     end do
-  
+
   end subroutine integer_set_copy_multiple
-  
+
   subroutine set_minus(minus, A, B)
   ! minus = A \ B
     type(integer_set), intent(out) :: minus

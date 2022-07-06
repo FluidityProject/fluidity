@@ -54,7 +54,7 @@ Since JudyHS is based on a hash method, <B>Indexes</B> are not stored in
 any particular order.  Therefore the JudyHSFirst(), JudyHSNext(),
 JudyHSPrev() and JudyHSLast() neighbor search functions are not
 practical.  The <B>Length</B> of each array-of-bytes can be from 0 to
-the limits of <I>malloc()</I> (about 2GB).  
+the limits of <I>malloc()</I> (about 2GB).
 <P>
 The hallmark of <B>JudyHS</B> is speed with scalability, but memory
 efficiency is excellent.  The speed is very competitive with the best
@@ -150,7 +150,7 @@ main()
         LineNumb++;                     // line number
 
         // store string into array
-        JHSI(PValue, PJArray, Index, strlen(Index)); 
+        JHSI(PValue, PJArray, Index, strlen(Index));
         if (PValue == PJERR)            // See ERRORS section
         {
             fprintf(stderr, "Out of memory -- exit\n");
@@ -166,7 +166,7 @@ main()
             *PValue = LineNumb;         // store Line number
         }
     }
-    printf("%lu Duplicates, free JudyHS array of %lu Lines\n", 
+    printf("%lu Duplicates, free JudyHS array of %lu Lines\n",
                     Dups, LineNumb - Dups);
     JHSFA(Bytes, PJArray);              // free JudyHS array
     printf("JudyHSFreeArray() free'ed %lu bytes of memory\n", Bytes);

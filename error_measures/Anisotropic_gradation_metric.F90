@@ -147,7 +147,7 @@ module anisotropic_gradation
       call deallocate(gamma)
     end if
     call deallocate(nnlist)
-    
+
     call bound_metric(metric, state, stat=stat)
   end subroutine
 

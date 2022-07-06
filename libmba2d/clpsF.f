@@ -4,7 +4,7 @@ C =======================================================
 c group (M)
      &            iwF, iwE,
      &            nP, nF, nE,
-     &            XYP, IPF, IPE, 
+     &            XYP, IPF, IPE,
      &            calCrv, parCrv, iFnc,
      &            hStar,
      &            ICP, IEP, IFE, IEE,
@@ -39,9 +39,9 @@ C  -> simple check if the edge can be collapsed
 C  -> collect information about the edge
 c
 c  -> define a point to collapse the edge
-c  ----> mid-point of the edge 
+c  ----> mid-point of the edge
 c  ----> projection onto the curved boundary
-c  ----> one of the terminal points of the edge 
+c  ----> one of the terminal points of the edge
 c
 c  -> virtual evaluation of the element quality
 c
@@ -51,7 +51,7 @@ c  -> check that no traingles were tangled
 c
 c  -> update the quality of new mesh elements
 c  -> update the list of curvilinear edges
-c  -> update mesh cross-references for the new elements  
+c  -> update mesh cross-references for the new elements
 C =======================================================
 C group (M)
       Integer IPF(4, *), IPE(3, *)
@@ -79,7 +79,7 @@ C group (Q)
       real  HesP(3, *), rQuality
       real  detG(*), qE(*)
       Logical flagAnalytic
- 
+
       Integer  MetricFunction
       EXTERNAL MetricFunction
 
@@ -103,7 +103,7 @@ C group (Local variables)
       Integer ip(4), iPs(MaxS), iOs(MaxS)
       real  par(6), t1, t2, tc
       Logical flagBNDs, flagOrient, flagFirst, flagTM
-      
+
       Logical chkTangled, ifXnode
       Integer minClr
 
@@ -173,7 +173,7 @@ C ... checking for inverted elements
       if(flagTM) Then
          flagTM = nBad.GT.0
       End if
-      
+
 
 C ... finding a point in which we collapse the edge
       iFNCs = 0
@@ -188,7 +188,7 @@ C ... finding a point in which we collapse the edge
          End do
 
          If(.NOT.flagAnalytic) Then
-         Call LINTRP(nEw, IPEw, nPw, XYPw, 3, HesPw, 1, 
+         Call LINTRP(nEw, IPEw, nPw, XYPw, 3, HesPw, 1,
      &               XYPs, HesPs, iSE, rSE, .FALSE.)
          Else
             Call scaleBack(XYPs, XYPo)
@@ -252,9 +252,9 @@ c!       ICPs = minClr(ICP1, ICP2)
             Call prjCrv(XYPs, prjXYPs, iFNCs, tc, calCrv,
      &                  L1Et(1, ir), L2Et(ir), nL2t(k), nStept(1, k),
      &                  nEt(k), tE(ir))
-  
+
             If(.NOT.flagAnalytic) Then
-            Call LINTRP(nEw, IPEw, nPw, XYPw, 3, HesPw, 1, 
+            Call LINTRP(nEw, IPEw, nPw, XYPw, 3, HesPw, 1,
      &                  prjXYPs, HesPs, iSE, rSE, .FALSE.)
          Else
                Call scaleBack(prjXYPs, XYPo)
@@ -266,7 +266,7 @@ c!       ICPs = minClr(ICP1, ICP2)
             End do
 
             If(.NOT.flagAnalytic) Then
-            Call LINTRP(nEw, IPEw, nPw, XYPw, 3, HesPw, 1, 
+            Call LINTRP(nEw, IPEw, nPw, XYPw, 3, HesPw, 1,
      &                  XYPs, HesPs, iSE, rSE, .FALSE.)
             Else
                Call scaleBack(XYPs, XYPo)
@@ -372,7 +372,7 @@ c ... updating the quality
          Call updQE(XYP, lE, iEs, IPEs,
      &              HesP, rQuality, detG, hStar, qEs, flagFirst)
          If(.NOT.flagFirst) goto 1000
-      End if 
+      End if
 
 
 C ... updating the grid
@@ -441,7 +441,7 @@ C =======================================================
 c group (M)
      &            iwP, iwE,
      &            nP, nF, nE,
-     &            XYP, IPF, IPE, 
+     &            XYP, IPF, IPE,
      &            calCrv, parCrv, iFnc,
      &            hStar,
      &            ICP, IEP, IFE, IEE,
@@ -456,7 +456,7 @@ C group (Q)
      &            HesP, rQuality, detG, qE,
      &            MetricFunction, flagAnalytic,
 C group (S)
-     &            lEu, iEu, 
+     &            lEu, iEu,
 C group (W)
      &            nPw, nEw, XYPw, HesPw, IPEw,
      &            iSE, rSE,
@@ -496,7 +496,7 @@ C group (Q)
       real  HesP(3, *), rQuality
       real  detG(*), qE(*)
       Logical flagAnalytic
- 
+
       Integer  MetricFunction
       EXTERNAL MetricFunction
 
@@ -588,7 +588,7 @@ C ... checking points which can not be involved
 c group (M)
      &            iwF, kE,
      &            nP, nF, nE,
-     &            XYP, IPF, IPE, 
+     &            XYP, IPF, IPE,
      &            calCrv, parCrv, iFnc,
      &            hStar,
      &            ICP, IEP, IFE, IEE,
@@ -613,5 +613,3 @@ C group (W)
 
  1000 Return
       End
-
-

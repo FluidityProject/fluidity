@@ -1,11 +1,9 @@
-#TODO: use the rewrite to swap depending whether mpi is there are not..
-
-import numpy
+# TODO: use the rewrite to swap depending whether mpi is there are not..
 import sys
 
 import H5hut as H5hut_rewrite
+import numpy
 from H5hut import *
-
 
 __h5hut_table__ = {}
 
@@ -26,7 +24,7 @@ __h5hut_table__ = {}
 # The third arguments is an array in all cases.
 #
 funcx = """
-def {0}(*args, **kwargs): 
+def {0}(*args, **kwargs):
     import numpy
     if not len(args) == 3:
         print 'wrong number of arguments'
@@ -51,19 +49,23 @@ def {0}(*args, **kwargs):
         return __h5hut_table__['{0}'][dtype](*args, **kwargs)
 """
 
+
 def __update_types__():
-    import numpy
-    import sys
     import inspect
+    import sys
+
+    import numpy
 
     __h5hut_api__ = dir(H5hut_rewrite)
 
-    __h5hut_types__ = [ "Int32", "Int64", "Float32", "Float64", "String" ]
-    __numpy_types__ = [ numpy.dtype(numpy.int32), 
-                        numpy.dtype(numpy.int64), 
-                        numpy.dtype(numpy.float32), 
-                        numpy.dtype(numpy.float64),
-                        numpy.str]
+    __h5hut_types__ = ["Int32", "Int64", "Float32", "Float64", "String"]
+    __numpy_types__ = [
+        numpy.dtype(numpy.int32),
+        numpy.dtype(numpy.int64),
+        numpy.dtype(numpy.float32),
+        numpy.dtype(numpy.float64),
+        numpy.str,
+    ]
 
     #
     # loop over all H5hut C-functions and above types.
@@ -72,7 +74,7 @@ def __update_types__():
     for __i__ in __h5hut_api__:
         for __j__ in __h5hut_types__:
             if __j__ in __i__:
-                key = __i__[:-len(__j__)]
+                key = __i__[: -len(__j__)]
 
                 numpy_key = __numpy_types__[__h5hut_types__.index(__j__)]
                 func = H5hut_rewrite.__dict__[__i__]
@@ -87,12 +89,13 @@ def __update_types__():
 
     for __new_func__ in __h5hut_table__.keys():
         types = __h5hut_table__[__new_func__]
-        #args = inspect.getargspec(types[0])
-        #print __new_func__
-        result = funcx.format(__new_func__) 
+        # args = inspect.getargspec(types[0])
+        # print __new_func__
+        result = funcx.format(__new_func__)
         exec(result)
 
-        #H5hut_rewrite.__dict__[__new_func__] = globals()[__new_func__]
+        # H5hut_rewrite.__dict__[__new_func__] = globals()[__new_func__]
         sys.modules["H5hut"].__dict__[__new_func__] = locals()[__new_func__]
+
 
 __update_types__()

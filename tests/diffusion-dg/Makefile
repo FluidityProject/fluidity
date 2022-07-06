@@ -8,7 +8,7 @@ default: clean
 stretch: default
 	./stretch.py -f MMS_A -x 100 -y 1
 	./stretch.py -f MMS_D -x 100 -y 1
-clean: 
+clean:
 	rm -f *.msh *.node *.ele *.face *.edge *.vtu *.log *.stat *.log-0 *.err-0 matrixdump*
 
 geos:

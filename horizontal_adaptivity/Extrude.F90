@@ -26,7 +26,7 @@ module hadapt_extrude
   implicit none
 
   private
-  
+
   public :: extrude, compute_z_nodes, hadapt_extrude_check_options, populate_depth_vector
 
   interface compute_z_nodes
@@ -145,7 +145,7 @@ module hadapt_extrude
     integer:: column
 
     integer :: number_sigma_layers, nregions
-    
+
     integer :: i, ele, r, visit_count
     integer, dimension(:), pointer :: nodes
     logical, dimension(:), allocatable :: column_visited
@@ -164,7 +164,7 @@ module hadapt_extrude
     end if
 
     allocate(region_columns(nregions))
-    
+
     if (nregions>1) then
 
       allocate(column_visited(1:node_count(h_mesh)))
@@ -210,7 +210,7 @@ module hadapt_extrude
     allocate(depth_vector(node_count(h_mesh)))
 
     radial_extrusion = have_option("/geometry/spherical_earth")
-    
+
     regions2: do r = 1, nregions
 
       region_option_path = trim(layer_option_path)//"/regions["//int2str(r-1)//"]"
@@ -232,7 +232,7 @@ module hadapt_extrude
       if (depth_from_map) then
         call populate_depth_vector(h_mesh,file_name,depth_vector,surface_height,radial_extrusion)
       end if
-        
+
       if(varies_only_in_depth .and. depth_is_constant) then
         column = fetch(region_columns(r), 1)
         call compute_z_nodes(constant_z_mesh, node_val(h_mesh, column), min_bottom_layer_frac, &
@@ -259,11 +259,11 @@ module hadapt_extrude
       end if
 
       call deallocate(region_columns(r))
-    
+
     end do regions2
-    
+
     deallocate(depth_vector)
-    
+
   end subroutine compute_z_meshes_layer
 
   subroutine get_regional_extrusion_options(region_option_path, &
@@ -274,11 +274,11 @@ module hadapt_extrude
                                    varies_only_in_depth, sigma_layers, number_sigma_layers)
 
     character(len=*), intent(in) :: region_option_path
-    
+
     logical, intent(out) :: depth_is_constant, depth_from_python, depth_from_map
     real, intent(out) :: depth
     character(len=PYTHON_FUNC_LEN), intent(out) :: depth_function
-    
+
     logical, intent(out) :: sizing_is_constant, list_sizing
     real, intent(out) :: constant_sizing
     character(len=PYTHON_FUNC_LEN), intent(out) :: sizing_function
@@ -287,9 +287,9 @@ module hadapt_extrude
     character(len=FIELD_NAME_LEN), intent(out) :: file_name
     logical, intent(out) :: have_min_depth
     real, intent(out) :: min_depth, surface_height
-    
+
     logical, intent(out) :: varies_only_in_depth
-    
+
     real, intent(out) :: min_bottom_layer_frac
 
     logical, intent(out) :: sigma_layers
@@ -354,10 +354,10 @@ module hadapt_extrude
     end if
 
     varies_only_in_depth = have_option(trim(region_option_path)//'/sizing_function/varies_only_in_depth')
-  
+
     call get_option(trim(region_option_path)//'/minimum_bottom_layer_fraction', &
                     min_bottom_layer_frac, default=1.e-3)
-  
+
   end subroutine get_regional_extrusion_options
 
   subroutine populate_depth_vector(h_mesh,file_name,depth_vector,surface_height,radial_extrusion)
@@ -426,10 +426,10 @@ module hadapt_extrude
     real, dimension(1) :: tmp_depth
     real, dimension(size(xy), 1) :: tmp_pos
     real :: ldepth
-    
+
     if(depth_is_constant) then
       ldepth = depth
-    else 
+    else
       tmp_pos(:,1) = xy
       if (depth_from_python) then
         call set_from_python_function(tmp_depth, trim(depth_function), tmp_pos, time=0.0)
@@ -443,7 +443,7 @@ module hadapt_extrude
         FLAbort("Unknown way of specifying the bottom_depth.")
       end if
     end if
-    
+
     if (sizing_is_constant) then
       call compute_z_nodes(z_mesh, ldepth, xy, top_depth, &
        min_bottom_layer_frac, radial_extrusion, sizing=constant_sizing)
@@ -459,7 +459,7 @@ module hadapt_extrude
         min_bottom_layer_frac, radial_extrusion, sizing_function=sizing_function)
       end if
     end if
-    
+
   end subroutine compute_z_nodes_wrapper
 
   subroutine get_previous_z_nodes(z_mesh, z_mesh_previous)
@@ -535,7 +535,7 @@ module hadapt_extrude
     ! Start the mesh at the top (d=0 for the top layer) and work down to d=-depth.
     d = top_depth
     node=2
-    ! first size(xy) coordinates remain fixed, 
+    ! first size(xy) coordinates remain fixed,
     ! the last entry will be replaced with the appropriate depth
     if (radial_extrusion) then
       allocate(xyz(size(xy)))
@@ -591,14 +591,14 @@ module hadapt_extrude
     ! For pathological sizing functions the mesh might have gotten inverted at the last step.
     ! If you encounter this, make this logic smarter.
     assert(abs(node_val(z_mesh, 1, elements)) < abs(node_val(z_mesh, 1, elements+1)))
-    
+
     assert(oned_quad%refcount%count == 1)
     assert(oned_shape%refcount%count == 1)
     assert(z_mesh%refcount%count == 1)
     assert(mesh%refcount%count == 1)
 
     contains
-    
+
       function get_delta_h(pos, is_constant, constant_value, py_func) result(delta_h)
         real, dimension(:), intent(in) :: pos
         logical, intent(in) :: is_constant
@@ -608,7 +608,7 @@ module hadapt_extrude
         real :: delta_h
         real, dimension(1) :: delta_h_tmp
         real, dimension(size(pos), 1) :: pos_tmp
-        
+
         if (is_constant) then
           delta_h = constant_value
         else
@@ -617,9 +617,9 @@ module hadapt_extrude
           delta_h = delta_h_tmp(1)
         end if
         assert(delta_h > 0.0)
-        
+
       end function get_delta_h
-      
+
   end subroutine compute_z_nodes_sizing
 
   ! hadapt_extrude options checking
@@ -657,5 +657,5 @@ module hadapt_extrude
 
   end subroutine hadapt_extrude_check_options
 
-    
+
 end module hadapt_extrude

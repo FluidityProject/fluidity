@@ -1,25 +1,25 @@
 C Copyright (C) 2006 Imperial College London and others.
-C 
+C
 C Please see the AUTHORS file in the main source directory for a full list
 C of copyright holders.
-C 
+C
 C Adrian Umpleby
 C Applied Modelling and Computation Group
 C Department of Earth Science and Engineering
 C Imperial College London
-C 
+C
 C adrian@Imperial.ac.uk
-C 
+C
 C This library is free software; you can redistribute it and/or
 C modify it under the terms of the GNU Lesser General Public
 C License as published by the Free Software Foundation; either
 C version 2.1 of the License.
-C 
+C
 C This library is distributed in the hope that it will be useful,
 C but WITHOUT ANY WARRANTY; without even the implied warranty of
 C MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 C Lesser General Public License for more details.
-C 
+C
 C You should have received a copy of the GNU Lesser General Public
 C License along with this library; if not, write to the Free Software
 C Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -282,19 +282,19 @@ C
 c
 c      print*,'   done clearing flags'
 C
-      ewrite(1,6) 
+      ewrite(1,6)
      :     'Top of BIGLST & NODLST:',TOPBIG,TOPNOD
 C
       IF( IERR .NE. 0 ) RETURN
 c
       if( .not. mvnode ) then
-         ewrite(1,8) 
+         ewrite(1,8)
      :        '--- ADAPT1: Node movement OFF...'
       else if( minchg .lt. 0.0 ) then
          ewrite(1,8)
      :        '--- ADAPT1: Node movement in OVERSHOOT mode...'
       else
-         ewrite(1,8) 
+         ewrite(1,8)
      :        '--- ADAPT1: Node movement in NORMAL mode...'
       end if
 C
@@ -342,12 +342,12 @@ C
 C
       IF( SPLED2 ) THEN
          IF( NELEMS*3+NEDGES .GT. (MAXBIG*4/5) ) THEN
-            ewrite(0,'(A,A)') 
+            ewrite(0,'(A,A)')
      :           '+++ ADAPT1: WARNING! ',
      :          'BIGLST FILLING UP -Switched off edge splitting'
             SPLED2 = .FALSE.
          ELSE IF( NUMNDS .GT. (MXNODS*9/10) ) THEN
-            ewrite(0,'(A,A)') 
+            ewrite(0,'(A,A)')
      :           '+++ ADAPT1: WARNING! ',
      :          'NODLST FILLING UP -Switched off edge splitting'
             SPLED2 = .FALSE.
@@ -355,7 +355,7 @@ C
       ELSE IF( SPLTED ) THEN
          IF( NELEMS*3+NEDGES .LT. (MAXBIG*15/20) .AND.
      :       NUMNDS .LT. (MXNODS*8/10) ) THEN
-            ewrite(0,8) 
+            ewrite(0,8)
      :   '--- ADAPT1: BIGLST/NODLST now clear enough for edge split'
             SPLED2 = .TRUE.
          END IF
@@ -411,9 +411,9 @@ c         print*,'   conelm: ',conelm
 c         print*,'   edglst: ',edglst
 C
          IF( IERR .NE. 0 ) THEN
-            ewrite(3,8) 
+            ewrite(3,8)
      :           '*** ADAPT1: GOT ERROR FROM ELMINF/GETFLG'
-           ewrite(3,6) 
+           ewrite(3,6)
      :           '   element: ',iptr
            RETURN
          END IF
@@ -527,7 +527,7 @@ C
            IF( .NOT. GETFLG(BIGLST,NODLST,EDGLST(I),6) ) THEN
 c
               if( ierr.ne.0 ) then
-                ewrite(-1,8) 
+                ewrite(-1,8)
      :                '*** ADAPT1: GOT ERROR FROM GETFLG 2'
                 ewrite(-1,6) '   element: ',iptr
                 ewrite(-1,6) '   conelm: ',conelm
@@ -559,7 +559,7 @@ C
                ewrite(3,'(A)') '   Done EDGELS.'
              end if
              IF( IERR .NE. 0 ) THEN
-                ewrite(-1,8) 
+                ewrite(-1,8)
      :               '*** ADAPT1: GOT ERROR FROM EDGELS'
                 ewrite(-1,6)
      :                 '   elem,edge,srf: ',iptr,edglst(i),surfac
@@ -590,7 +590,7 @@ C
      :                    RATIA, XA, YA, ZA, INELMA,
      :                    ALWAYS, GF*DOTOP, ABS(MINCHG) )
              if(goterr) then
-               ewrite(3,9) 
+               ewrite(3,9)
      :            '   Done EDGTST:',curdif,sumdif
              end if
 c
@@ -614,16 +614,16 @@ C
      :               '    x,y,z: ',x,y,z
                 ednd1 = biglst(1,edglst(i))
                 ednd2 = biglst(2,edglst(i))
-                ewrite(-1,'(A,3(1PE13.5),I8)') 
+                ewrite(-1,'(A,3(1PE13.5),I8)')
      :               '    nod1: ',
      :         (nodlst(iumnds,ednd1),iumnds=1,3), int(nodlst(6,ednd1))
-                ewrite(-1,'(A,3(1PE13.5),I8)') 
+                ewrite(-1,'(A,3(1PE13.5),I8)')
      :               '    nod2: ',
      :           (nodlst(iumnds,ednd2),iumnds=1,3), int(nodlst(6,ednd2))
              endif
 c
              IF( IERR .NE. 0 ) THEN
-               ewrite(-1,8) 
+               ewrite(-1,8)
      :               '*** ADAPT1: GOT ERROR FROM EDGTST 1'
                ewrite(-1,6) '   element,edge: ',iptr,edglst(i)
                ewrite(-1,6) '   conelm: ',conelm
@@ -701,7 +701,7 @@ C
      :                    RATIA, XA, YA, ZA, INELMA,
      :                    ALWAYS, GF*DOTOP, ABS(MINCHG) )
              if( goterr ) then
-               ewrite(3,9) 
+               ewrite(3,9)
      :            '   Done EDGTST:',curdif,sumdif
              end if
 c
@@ -715,13 +715,13 @@ cccc            pause
          end if
 c
              IF( IERR .NE. 0 ) THEN
-               ewrite(-1,8) 
+               ewrite(-1,8)
      :               '*** ADAPT1: GOT ERROR FROM EDGTST 2'
-               ewrite(-1,6) 
+               ewrite(-1,6)
      :              '   element,edge: ',iptr,edglst(i)
-               ewrite(-1,6) 
+               ewrite(-1,6)
      :              '   conelm: ',conelm
-               ewrite(-1,6) 
+               ewrite(-1,6)
      :              '   edglst: ',edglst
                RETURN
              END IF
@@ -792,7 +792,7 @@ C
      :                    RATIA, XA, YA, ZA, INELMA,
      :                    ALWAYS, GF*DOTOP, ABS(MINCHG) )
              if( goterr ) then
-               ewrite(3,9) 
+               ewrite(3,9)
      :            '   Done EDGTST:',curdif,sumdif
              end if
 c
@@ -806,13 +806,13 @@ cccc            pause
          end if
 c
              IF( IERR .NE. 0 ) THEN
-               ewrite(-1,8) 
+               ewrite(-1,8)
      :               '*** ADAPT1: GOT ERROR FROM EDGTST 3'
-               ewrite(-1,6) 
+               ewrite(-1,6)
      :              '   element,edge: ',iptr,edglst(i)
-               ewrite(-1,6) 
+               ewrite(-1,6)
      :              '   conelm: ',conelm
-               ewrite(-1,6) 
+               ewrite(-1,6)
      :              '   edglst: ',edglst
                RETURN
              END IF
@@ -892,9 +892,9 @@ c
           CALL ELNODS( BIGLST, NODLST, IPTR, NODS, NXT, LST, .false. )
 C
           IF( IERR .NE. 0 ) THEN
-             ewrite(-1,8) 
+             ewrite(-1,8)
      :            '*** ADAPT1: GOT ERROR FROM ELNODS (1)'
-             ewrite(-1,6) 
+             ewrite(-1,6)
      :            '   element: ',iptr
           END IF
 C
@@ -944,9 +944,9 @@ C
              CALL ELNODS( BIGLST, NODLST, IPTR, NODS, NXT, LST,.false. )
 C
              IF( IERR .NE. 0 ) THEN
-              ewrite(-1,8) 
+              ewrite(-1,8)
      :               '*** ADAPT1: GOT ERROR FROM ELNODS (2)'
-              ewrite(-1,6) 
+              ewrite(-1,6)
      :             '   element: ',iptr
              END IF
 C
@@ -968,7 +968,7 @@ C
                END IF
 C
                if( goterr ) then
-                  ewrite(3,2) 
+                  ewrite(3,2)
      :                 'Checking move of node ',nods(i),
      :                   (nodlst(ierr,nods(i)),ierr=1,3)
                   ierr = 0
@@ -1005,15 +1005,15 @@ cccc            pause
          end if
 C
                IF( IERR .NE. 0 ) THEN
-                 ewrite(-1,8) 
+                 ewrite(-1,8)
      :                 '*** ADAPT1: GOT ERROR FROM NODTST'
-                 ewrite(-1,6) 
+                 ewrite(-1,6)
      :                '   element,node: ',iptr,nods(i)
-                 ewrite(-1,6) 
+                 ewrite(-1,6)
      :                '   conelm: ',conelm
-                 ewrite(-1,6) 
+                 ewrite(-1,6)
      :                '   edglst: ',edglst
-                 ewrite(-1,6) 
+                 ewrite(-1,6)
      :                '    nodes: ',nods
                  RETURN
                END IF
@@ -1067,7 +1067,7 @@ C
 C
 
             else if( goterr ) then
-               ewrite(3,2) 
+               ewrite(3,2)
      :              'Not checking move of node',nods(i),
      :               (nodlst(ierr,nods(i)),ierr=1,3)
                ierr = 0
@@ -1076,7 +1076,7 @@ C
           END DO
 C
          else if( goterr ) then
-            ewrite(3,8) 
+            ewrite(3,8)
      :           'Not moving nodes of this elem...'
          END IF
 C
@@ -1109,9 +1109,9 @@ c            end if
 c              if( goterr ) then
                 gothere = gothere + 1
                 if( gothere .gt. 1000 ) then
-                   ewrite(-1,8) 
+                   ewrite(-1,8)
      :                  '*** STUCK IN LOOP - GIVING UP...'
-                   ewrite(-1,*) 
+                   ewrite(-1,*)
      :                  nelems,elslft,lstlft,gothere
                   IERR = -1999
                   RETURN
@@ -1136,10 +1136,10 @@ C
 C
          ELSE IF( (1.0*NELCHK-1200.0)/1000 .GT. 1.0*NELEMS ) THEN
 C
-            ewrite(0,8) 
+            ewrite(0,8)
      :           '+++ WARNING: STUCK IN A LOOP???'
             LSTLFT = ELSLFT
-            ewrite(0,3) 
+            ewrite(0,3)
      :           'LEFT/TOTAL:',ELSLFT,NELEMS,
      :           '      ADD/SUB/CHK:',NELADD,NELSUB,NELCHK,
      :           '      NODES:',NUMNDS
@@ -1151,24 +1151,24 @@ C
 C
          ELSE IF( (1.0*NELCHK-600.0)/1000 .GT. NELEMS
      :                            .and. .not. goterr ) THEN
-            ewrite(0,8) 
+            ewrite(0,8)
      :           '+++ Warning: loop is looking likely...'
-            ewrite(0,3) 
+            ewrite(0,3)
      :           'LEFT/TOTAL:',ELSLFT,NELEMS,
      :           '      ADD/SUB/CHK:',NELADD,NELSUB,NELCHK,
      :           '      NODES:',NUMNDS
             goterr = .TRUE.
          ELSE IF( (1.0*NELCHK)/1000 .GT. 1.0*NELEMS
      :                            .and. .not. shwchg ) THEN
-            ewrite(0,8) 
+            ewrite(0,8)
      :           '+++ Warning: may be stuck in a loop...'
-            ewrite(0,3) 
+            ewrite(0,3)
      :           'LEFT/TOTAL:',ELSLFT,NELEMS,
      :           '      ADD/SUB/CHK:',NELADD,NELSUB,NELCHK,
      :           '      NODES:',NUMNDS
             shwchg = .TRUE.
          else if( mvcnt .gt. 1100 ) then
-            ewrite(-1,8) 
+            ewrite(-1,8)
      :           '*** ADAPT1: ABORTING - TOO MANY MOVES'
             IERR = -11111
             RETURN
@@ -1241,7 +1241,7 @@ C
             ewrite(3,1)
      :           '--- Info: Moving node ---',bstptr,bstcel,
      :           bstcur,bstorg
-            ewrite(3,9) 
+            ewrite(3,9)
      :           ' Orig:',(nodlst(ierr,bstptr),ierr=1,3)
             ierr = 0
          end if
@@ -1268,9 +1268,9 @@ cccc            pause
 C
 c         print*,'Done...'
          IF( IERR .NE. 0 ) THEN
-            ewrite(-1,8) 
+            ewrite(-1,8)
      :           '*** ADAPT1: GOT ERROR FROM NODMOV'
-            ewrite(-1,6) 
+            ewrite(-1,6)
      :           '   Node,Element: ',bstptr,bstcel
             RETURN
          END IF
@@ -1278,7 +1278,7 @@ c
          if( debug .and. .not. goterr ) then
             debug = .false.
             goterr = .true.
-            ewrite(3,9) 
+            ewrite(3,9)
      :           ' Done:',(nodlst(ierr,bstptr),ierr=1,3)
             ierr = 0
          end if
@@ -1289,7 +1289,7 @@ C
 C
          if( goterr .or. shwchg ) then
 c         print*,' '
-            ewrite(3,2) 
+            ewrite(3,2)
      :           '--- Info: Splitting element ---',bstptr,
      :                  bstcur,bstorg
 c         print*,'   Element: ',bstptr
@@ -1304,9 +1304,9 @@ C
      :                BSTPTR )
 C
          IF( IERR .NE. 0 ) THEN
-            ewrite(-1,8) 
+            ewrite(-1,8)
      :           '*** ADAPT1: GOT ERROR FROM ELMDIV'
-            ewrite(-1,6) 
+            ewrite(-1,6)
      :           '   element: ',bstptr
             RETURN
          END IF
@@ -1315,7 +1315,7 @@ C
 C
          if( goterr .or. shwchg ) then
 c         print*,' '
-            ewrite(3,1) 
+            ewrite(3,1)
      :           '--- Info: Swapping face for edge ---',
      :           bstptr,bstcel,bstcur,bstorg
 c         print*,'   Elements: ',bstptr,bstcel
@@ -1335,7 +1335,7 @@ cccc            pause
          end if
 C
          IF( IERR .NE. 0 ) THEN
-            ewrite(-1,8) 
+            ewrite(-1,8)
      :           '*** ADAPT1: GOT ERROR FROM FC2EDG'
             ewrite(-1,6)
      :           '   elements: ',bstptr,bstcel
@@ -1357,7 +1357,7 @@ cccc            pause
          end if
 C
           IF( IERR .NE. 0 ) THEN
-             ewrite(-1,8) 
+             ewrite(-1,8)
      :            '*** ADAPT1: GOT ERROR FROM EDGELS'
              ewrite(-1,6)
      :            '   edge,element: ',bstptr,bstcel
@@ -1393,11 +1393,11 @@ cccc            pause
          end if
 C
             IF( IERR .NE. 0 ) THEN
-               ewrite(-1,8) 
+               ewrite(-1,8)
      :              '*** ADAPT1: GOT ERROR FROM SPLEDG'
-               ewrite(-1,6) 
+               ewrite(-1,6)
      :              '   edge,element: ',bstptr,bstcel
-               ewrite(-1,6) 
+               ewrite(-1,6)
      :              '   numede,surfac: ',numede,surfac
                RETURN
             END IF
@@ -1431,11 +1431,11 @@ cccc            pause
          end if
 C
             IF( IERR .NE. 0 ) THEN
-               ewrite(-1,8) 
+               ewrite(-1,8)
      :              '*** ADAPT1: GOT ERROR FROM SHREDG'
-               ewrite(-1,6) 
+               ewrite(-1,6)
      :              '   edge,element: ',bstptr,bstcel
-               ewrite(-1,6) 
+               ewrite(-1,6)
      :              '   numede,surfac: ',numede,surfac
                RETURN
             END IF
@@ -1446,11 +1446,11 @@ c         if( goterr .or. bstwht .ne. 3 .or. shwchg ) then
          if( goterr .or. shwchg ) then
 c         print*,' '
             if( bstwht .eq. 3 ) then
-               ewrite(3,4) 
+               ewrite(3,4)
      :              '--- Info: Swapping edge for face ---',
      :              bstptr,bstcel,bstcur,bstorg
             else
-               ewrite(3,5) 
+               ewrite(3,5)
      :              '--- Info: Swapping edge for edge ---',
      :              bstwht,bstptr,bstcel,bstcur,bstorg
             end if
@@ -1471,11 +1471,11 @@ cccc            pause
          end if
 C
             IF( IERR .NE. 0 ) THEN
-               ewrite(-1,8) 
+               ewrite(-1,8)
      :              '*** ADAPT1: GOT ERROR FROM EDG2FC'
-               ewrite(-1,6) 
+               ewrite(-1,6)
      :              '   edge,element: ',bstptr,bstcel
-               ewrite(-1,6) 
+               ewrite(-1,6)
      :              '   numede,surfac: ',numede,surfac
                RETURN
             END IF
@@ -1484,7 +1484,7 @@ C
 C
       ELSE if( goterr ) then
 C
-         ewrite(3,8) 
+         ewrite(3,8)
      :        '--- Info: nothing done on this pass ---'
 c         BSTDIF = 0.0
 C
@@ -1516,7 +1516,7 @@ c
 C
          IPTR = NEXTLS( MYNXT )
          if( iptr .ne. nxt .and. goterr ) then
-           ewrite(3,6) 
+           ewrite(3,6)
      :           '   NXTELM CHANGED: ',NXT,IPTR
            ewrite(3,6)
      :            '   STTBIG,ENDBIG,EMTBIG:',STTBIG,ENDBIG,EMTBIG
@@ -1528,13 +1528,13 @@ c         if( totchg .gt. 100 ) goto 900
          IF( GETFLG(BIGLST,NODLST,IPTR,1) ) GOTO 20
 c
          if( ierr.ne.0 ) then
-            ewrite(-1,8) 
+            ewrite(-1,8)
      :           '*** ADAPT1: GOT ERROR FROM GETFLG 3'
-            ewrite(-1,6) 
+            ewrite(-1,6)
      :           '   element: ',iptr
-            ewrite(-1,6) 
+            ewrite(-1,6)
      :           '   conelm: ',conelm
-            ewrite(-1,6) 
+            ewrite(-1,6)
      :           '   edglst: ',edglst
             return
          end if
@@ -1600,41 +1600,41 @@ C
          GOTO 960
       END IF
 C
-      ewrite(1,9) 
+      ewrite(1,9)
      :     '--- Info: sum of reductions:',CHANGE
-      ewrite(1,6) 
+      ewrite(1,6)
      :     '--- Info: total elems checked:',TELCHK
-      ewrite(1,6) 
+      ewrite(1,6)
      :     '--- Info: total edges checked:',TEDCHK
-      ewrite(1,6) 
+      ewrite(1,6)
      :     '--- Info: total nodes checked:',TNDCHK
 C
       ewrite(1,8) ' '
-      ewrite(1,'(A,i8,A,i8,A,i8)') 
+      ewrite(1,'(A,i8,A,i8,A,i8)')
      :     '    Nodes:',NUMNDS,
      :     '       Elements:',NELEMS,
      :     '       Edges:',NEDGES
 c      goterr = .true.
       if( goterr ) then
-         ewrite(3,6) 
+         ewrite(3,6)
      :        'TOPBIG,TOPNOD: ',TOPBIG,TOPNOD
-         ewrite(3,6) 
+         ewrite(3,6)
      :        'MAXBIG,MXNODS: ',MAXBIG,MXNODS
       end if
 C
       CALL RATOPC( TOPBIG, MAXBIG, STR1 )
       CALL RATOPC( 3*NELEMS+NEDGES, TOPBIG, STR2 )
-      ewrite(1,'(A,A,A,A)') 
+      ewrite(1,'(A,A,A,A)')
      :     '   BIGLST usage: ',STR1,
      :     '   BIGLST efficiency: ',STR2
       CALL RATOPC( TOPNOD, MXNODS, STR1 )
       CALL RATOPC( NUMNDS, TOPNOD, STR2 )
-      ewrite(1,'(A,A,A,A)') 
+      ewrite(1,'(A,A,A,A)')
      :     '   NODLST usage: ',STR1,
      :     '   NODLST efficiency: ',STR2
 C
       IF( SPLTED .AND. .NOT. SPLED2 ) THEN
-         ewrite(0,8) 
+         ewrite(0,8)
      :        '+++ ADAPT1: WARNING! LISTS WERE FILLING UP!'
          ewrite(0,8)
      :  '   ** Edge splitting was switched off during adapt sweep **'
@@ -1647,7 +1647,7 @@ C
       CALL SHWTIM
 C
       ADPTNG = .FALSE.
-      
+
       RETURN
       END
 C

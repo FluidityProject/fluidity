@@ -51,8 +51,8 @@ set(SIDX_CAPI_HPP
   ${SIDX_HEADERS_CAPI_DIR}/Index.h
   ${SIDX_HEADERS_CAPI_DIR}/LeafQuery.h
   ${SIDX_HEADERS_CAPI_DIR}/ObjVisitor.h
-  ${SIDX_HEADERS_CAPI_DIR}/sidx_api.h 
-  ${SIDX_HEADERS_CAPI_DIR}/sidx_config.h 
+  ${SIDX_HEADERS_CAPI_DIR}/sidx_api.h
+  ${SIDX_HEADERS_CAPI_DIR}/sidx_config.h
   ${SIDX_HEADERS_CAPI_DIR}/sidx_impl.h
   ${SIDX_HEADERS_CAPI_DIR}/Utility.h
 )
@@ -207,7 +207,7 @@ target_link_libraries(${SIDX_C_LIB_NAME}
 set_target_properties(${SIDX_LIB_NAME}
   PROPERTIES SOVERSION "${SIDX_LIB_SOVERSION}" )
 
-set_target_properties(${SIDX_C_LIB_NAME} 
+set_target_properties(${SIDX_C_LIB_NAME}
   PROPERTIES SOVERSION "${SIDX_LIB_SOVERSION}" )
 
 

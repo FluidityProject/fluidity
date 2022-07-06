@@ -31,8 +31,8 @@ The memory efficiency is usually best with the Judy algorithm because it
 uses the opportunity to compress data in a digital tree.  The Hashing is
 generally the fastest algorithm, however it looses its advantage when
 the number of stored exceeds about 5X the size of the hash table.
-Many thanks to J.  Zobel for supplying the code for Hash, Splay and 
-Redblack algorithms.  
+Many thanks to J.  Zobel for supplying the code for Hash, Splay and
+Redblack algorithms.
 
 I will be including more algorithms as people donate code for testing.
 
@@ -41,8 +41,8 @@ The Judy code is available at: <http://sourceforge.net/projects/judy>
 
 This is the output of this program when run on a 750Mhz P3 laptop.
 
-This output is using a file available from www.google.com.  It looks 
-like 'http' web pages and was one of the files used in a March 2002 
+This output is using a file available from www.google.com.  It looks
+like 'http' web pages and was one of the files used in a March 2002
 contest by www.google.com
 
  wc google/data/repos.00
@@ -55,19 +55,19 @@ contest by www.google.com
  2807737   58.0 byts 0.875 uS  1455201    78.7 byts  3.898 uS  2.687 uS JUDY
 
 With = 1.46 million lines stored and 2.81 million non-blank lines,
-all the algorithms seem to keep their performance.  The hash table is a 
+all the algorithms seem to keep their performance.  The hash table is a
 perfect size for this data set.  I suspect only the HASH algorithm will
 slow down with larger data sets unless the hash table is increased larger
-than 2**20 million entrys.  I have now tried a data set with about 10 
-million unique lines on a 64 bit machine (google/data/repos.*).  
-The speeds are about the same.  Lookup times are in the 2-4 uSec range 
-and this is probably insignificant compared to the application needing 
-the data.  I think all four methods are fine for speed, and Judy is a 
+than 2**20 million entrys.  I have now tried a data set with about 10
+million unique lines on a 64 bit machine (google/data/repos.*).
+The speeds are about the same.  Lookup times are in the 2-4 uSec range
+and this is probably insignificant compared to the application needing
+the data.  I think all four methods are fine for speed, and Judy is a
 standout for its memory efficiency -- frequently using less memory than
 the strings alone.
 
-I plan on tuning JudySL in the near future.  This should improve the 
-performance of JudySL with short (a text word) strings.  I have a data 
+I plan on tuning JudySL in the near future.  This should improve the
+performance of JudySL with short (a text word) strings.  I have a data
 base of all (28.8 million) domain names on the internet as a test case.
 
 wc /data/domnames.txt
@@ -123,7 +123,7 @@ double    DeltaUSec;            // Global for remembering delta times
 
 #ifndef _TIMEIT_H
 
-// Note: I have found some Linux systems (2.4.18-6mdk) to have bugs in the 
+// Note: I have found some Linux systems (2.4.18-6mdk) to have bugs in the
 // gettimeofday() routine.  Sometimes it returns a negative ~2840 microseconds
 // instead of 0 or 1.  If you use the above #include "timeit.h" and compile with
 // timeit.c and use -DJU_LINUX_IA32, that problem will be eliminated.  This is

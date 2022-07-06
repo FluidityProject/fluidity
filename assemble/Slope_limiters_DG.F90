@@ -1,5 +1,5 @@
 !    Copyright (C) 2009 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -102,9 +102,9 @@ contains
     select case (limiter)
     case (LIMITER_MINIMAL)
        T_limit=extract_scalar_field(state, trim(T%name)//"Limiter", stat=stat)
-       
+
        do ele=1,element_count(T)
-          
+
           if (stat==0) then
              call limit_slope_ele_dg(ele, T, X, T_limit)
           else
@@ -128,11 +128,11 @@ contains
             &discontinuous_galerkin/slope_limiter::Cockburn_Shu/tolerate_negative_weights")
 
        call cockburn_shu_setup(T, X)
-       
+
        do ele=1,element_count(T)
-          
+
           call limit_slope_ele_cockburn_shu(ele, T, X)
-          
+
        end do
 
     case (LIMITER_HERMITE_WENO)
@@ -146,20 +146,20 @@ contains
             &spatial_discretisation/&
             &discontinuous_galerkin/slope_limiter::Hermite_Weno/tolerance_th&
             &reshold_oscillations", &
-            &eps_o) 
+            &eps_o)
        call get_option(trim(T%option_path)//"/prognostic/&
             &spatial_discretisation/&
             &discontinuous_galerkin/slope_limiter::Hermite_Weno/tolerance_th&
             &reshold_weights", &
-            &eps_w) 
+            &eps_w)
        call get_option(trim(T%option_path)//"/prognostic/&
             &spatial_discretisation/&
             &discontinuous_galerkin/slope_limiter::Hermite_Weno/discontinuit&
-            &y_tolerance",disc_tol) 
+            &y_tolerance",disc_tol)
        call get_option(trim(T%option_path)//"/prognostic/&
             &spatial_discretisation/&
             &discontinuous_galerkin/slope_limiter::Hermite_Weno/limit_tolera&
-            &nce",limit_tol) 
+            &nce",limit_tol)
        debugging = have_option(trim(T%option_path)//"/prognostic/&
             &spatial_discretisation/&
             &discontinuous_galerkin/slope_limiter::Hermite_Weno/debugging")
@@ -188,9 +188,9 @@ contains
             &leave_out_hermite_polynomials")) &
             & leave_out_hermite_polynomials = .true.
 
-       call allocate(T_limit, T%mesh, name="NewT") 
+       call allocate(T_limit, T%mesh, name="NewT")
        T_limit%val = T%val
-       
+
        limit_count = 0.0
 
        has_discontinuity_detector_field = has_scalar_field( &
@@ -202,7 +202,7 @@ contains
        end if
 
        do ele = 1, element_count(T)
-          
+
           call limit_slope_ele_hermite_weno(ele, T, T_limit, X, U)
 
        end do
@@ -216,7 +216,7 @@ contains
        call limit_VB(state, T)
 
     case (LIMITER_FPN)
-       call limit_fpn(state, T)      
+       call limit_fpn(state, T)
 
     case default
        ewrite(-1,*) 'limiter = ', limiter
@@ -228,7 +228,7 @@ contains
   end subroutine limit_slope_dg
 
   subroutine limit_slope_ele_dg(ele, T, X, T_limit)
-    
+
     integer, intent(in) :: ele
     type(scalar_field), intent(inout) :: T
     type(vector_field), intent(in) :: X
@@ -246,11 +246,11 @@ contains
 
     X_val=ele_val(X, ele)
     T_val=ele_val(T, ele)
-    
+
     ele_centre=sum(X_val,2)/size(X_val,2)
 
     ele_mean=sum(T_val)/size(T_val)
-    
+
     neigh=>ele_neigh(T, ele)
 
     limit=.false.
@@ -260,13 +260,13 @@ contains
        !----------------------------------------------------------------------
        ! Find the relevant faces.
        !----------------------------------------------------------------------
-       
+
        ! These finding routines are outside the inner loop so as to allow
        ! for local stack variables of the right size in
        ! construct_add_diff_interface_dg.
 
        ele_2=neigh(ni)
-    
+
        ! Note that although face is calculated on field U, it is in fact
        ! applicable to any field which shares the same mesh topology.
        face=ele_face(T, ele, ele_2)
@@ -275,7 +275,7 @@ contains
        face_centre(:,ni) = sum(face_val(X,face),2)/size(face_val(X,face),2)
 
        face_mean(ni) = sum(face_val(T,face))/size(face_val(T,face))
-       
+
        if (ele_2<=0) then
           ! External face.
           cycle
@@ -287,11 +287,11 @@ contains
        neigh_centre(:,ni)=sum(X_val_2,2)/size(X_val_2,2)
 
        neigh_mean(ni)=sum(T_val_2)/size(T_val_2)
-    
+
        if ((face_mean(ni)-ele_mean)*(face_mean(ni)-neigh_mean(ni))>0.0) then
           ! Limit if face_mean does not lie between ele_mean and neigh_mean
           limit=.true.
-          
+
           if (face_mean(ni)>ele_mean) then
              face_mean(ni) = max(ele_mean, neigh_mean(ni))
           else
@@ -310,12 +310,12 @@ contains
     if (.not.limit) then
        return
     end if
-    
+
     d=mesh_dim(T)
     new_val=ele_mean
 
     do miss=1,d+1
-       
+
        ! If the missed side is a boundary, it is not possible to limit in
        ! this direction without violating the boundary condition.
        if (neigh(miss)<=0) cycle
@@ -325,39 +325,39 @@ contains
 
        do i=1, d+1
           ! Enforce preservation of the element mean value.
-          A(1,i)=1.0/(d+1) 
-          
+          A(1,i)=1.0/(d+1)
+
           jj=1
           do j=1,d+1
              if (j==miss) cycle
              jj=jj+1
-             
+
              if (i/=j) then
                 A(jj,i)=1.0/d
              else
                 b(jj)=face_mean(j)
              end if
-             
+
           end do
-          
+
        end do
 
        call invert(A)
        b=matmul(A,b)
-       
+
        if (maxval(abs(b-ele_mean))>maxval(abs(new_val-ele_mean))) then
           !! The slope is larger than the current best guess.
-          
+
           miss_val=0.0
           do ni=1, d+1
              if (ni==miss) cycle
 
              miss_val=miss_val+b(ni)/d
           end do
-             
+
           if ((miss_val-ele_mean)*(miss_val-neigh_mean(miss))<=0.0) then
              ! The slope is legal.
-             
+
              new_val=b
 
           end if
@@ -365,15 +365,15 @@ contains
        end if
 
     end do
-   
+
     ! Success or non-boundary failure.
     T_ele=>ele_nodes(T,ele)
-    
+
     call set(T, T_ele, new_val)
 
     if (present(T_limit)) then
        T_ele=>ele_nodes(T_limit, ele)
-       
+
        if (all(new_val==ele_mean)) then
           call set(T_limit, T_ele, 1.0+T_ele*0.0)
        else
@@ -396,7 +396,7 @@ contains
        CALL GetEventCounter(EVENT_ADAPTIVITY, csl_adapt_counter)
        do_setup = .true.
        CSL_initialised = .true.
-    else 
+    else
        CALL GetEventCounter(EVENT_ADAPTIVITY, CNT)
        if(cnt.ne.csl_adapt_counter) then
           do_setup= .true.
@@ -436,14 +436,14 @@ contains
              end if
           end do
        end do
-       
+
        call invert(A)
 
        do ele = 1, element_count(T)
           call cockburn_shu_setup_ele(ele,T,X)
        end do
 
-    end if    
+    end if
 
   end subroutine cockburn_shu_setup
 
@@ -451,7 +451,7 @@ contains
     integer, intent(in) :: ele
     type(scalar_field), intent(inout) :: T
     type(vector_field), intent(in) :: X
-    
+
     integer, dimension(:), pointer :: neigh, x_neigh
     real, dimension(X%dim) :: ele_centre, face_2_centre
     real :: max_alpha, min_alpha, neg_alpha
@@ -465,9 +465,9 @@ contains
     integer, dimension(mesh_dim(T)) :: face_nodes
 
     X_val=ele_val(X, ele)
-    
+
     ele_centre=sum(X_val,2)/size(X_val,2)
-    
+
     neigh=>ele_neigh(T, ele)
     ! x_neigh/=t_neigh only on periodic boundaries.
     x_neigh=>ele_neigh(X, ele)
@@ -478,14 +478,14 @@ contains
        ! Find the relevant faces.
        !----------------------------------------------------------------------
        ele_2=neigh(ni)
-    
+
        ! Note that although face is calculated on field U, it is in fact
        ! applicable to any field which shares the same mesh topology.
        face=ele_face(T, ele, ele_2)
        face_nodes=face_local_nodes(T, face)
 
        face_centre(:,ni) = sum(X_val(:,face_nodes),2)/size(face_nodes)
-       
+
        if (ele_2<=0) then
           ! External face.
           neigh_centre(:,ni)=face_centre(:,ni)
@@ -493,7 +493,7 @@ contains
        end if
 
        X_val_2=ele_val(X, ele_2)
-       
+
        neigh_centre(:,ni)=sum(X_val_2,2)/size(X_val_2,2)
        if (ele_2/=x_neigh(ni)) then
           ! Periodic boundary case. We have to cook up the coordinate by
@@ -526,7 +526,7 @@ contains
           !for linear basis across face
 
           if(nj==ni) cycle
-          
+
           !Construct a linear basis using all faces except for nj
           nl = 1
           do nk = 1, size(neigh)
@@ -534,7 +534,7 @@ contains
              nl = nl + 1
              alphamat(:,nl) = dx_c(:,nk)
           end do
-          
+
           !Solve for basis coefficients alpha
           alpha2 = dx_f(:,ni)
           call solve(alphamat,alpha2,info)
@@ -555,9 +555,9 @@ contains
              choosing_best_other_face_neg_weights_loop: do nj = 1, size(neigh)
                 !Loop over the other faces to choose best one to use
                 !for linear basis across face
-                
+
                 if(nj==ni) cycle
-                
+
                 !Construct a linear basis using all faces except for nj
                 nl = 1
                 do nk = 1, size(neigh)
@@ -565,7 +565,7 @@ contains
                    nl = nl + 1
                    alphamat(:,nl) = dx_c(:,nk)
                 end do
-                
+
                 !Solve for basis coefficients alpha
                 alpha2 = dx_f(:,ni)
                 call solve(alphamat,alpha2,info)
@@ -588,7 +588,7 @@ contains
              FLAbort('solving for alpha failed')
           end if
        end if
-       
+
        alpha(ele,ni,:) = 0.0
        alpha(ele,ni,ni) = alpha1(1)
        nl = 1
@@ -605,12 +605,12 @@ contains
   end subroutine cockburn_shu_setup_ele
 
   subroutine limit_slope_ele_cockburn_shu(ele, T, X)
-    !!< Slope limiter according to Cockburn and Shu (2001) 
+    !!< Slope limiter according to Cockburn and Shu (2001)
     !!< http://dx.doi.org/10.1023/A:1012873910884
     integer, intent(in) :: ele
     type(scalar_field), intent(inout) :: T
     type(vector_field), intent(in) :: X
-    
+
     integer, dimension(:), pointer :: neigh, x_neigh, T_ele
     real :: ele_mean
     real :: pos, neg
@@ -622,9 +622,9 @@ contains
     integer, dimension(mesh_dim(T)) :: face_nodes
 
     T_val=ele_val(T, ele)
-    
+
     ele_mean=sum(T_val)/size(T_val)
-    
+
     neigh=>ele_neigh(T, ele)
     ! x_neigh/=t_neigh only on periodic boundaries.
     x_neigh=>ele_neigh(X, ele)
@@ -635,14 +635,14 @@ contains
        ! Find the relevant faces.
        !----------------------------------------------------------------------
        ele_2=neigh(ni)
-    
+
        ! Note that although face is calculated on field U, it is in fact
        ! applicable to any field which shares the same mesh topology.
        face=ele_face(T, ele, ele_2)
        face_nodes=face_local_nodes(T, face)
-       
+
        face_mean(ni) = sum(T_val(face_nodes))/size(face_nodes)
-       
+
        if (ele_2<=0) then
           ! External face.
           neigh_mean(ni)=face_mean(ni)
@@ -669,26 +669,26 @@ contains
 
        pos=sum(max(0.0, Delta))
        neg=sum(max(0.0, -Delta))
-       
+
        Delta = min(1.0,neg/pos)*max(0.0,Delta) &
             -min(1.0,pos/neg)*max(0.0,-Delta)
-       
+
     end if
 
     new_val=matmul(A,Delta+ele_mean)
-    
+
     ! Success or non-boundary failure.
     T_ele=>ele_nodes(T,ele)
-    
+
     call set(T, T_ele, new_val)
 
   end subroutine limit_slope_ele_cockburn_shu
 
   !11:25 <Guest54276>     do ele_A=1,ele_count(old_position)
-  !11:25 <Guest54276>       call local_coords_matrix(old_position, ele_A, 
+  !11:25 <Guest54276>       call local_coords_matrix(old_position, ele_A,
   !                   inversion_matrices_A(:, :, ele_A))
   !11:25 <Guest54276>     end do
-  
+
   !subroutine local_coords_matrix(positions, ele, mat)
   !inputs global coordinates
   !outputs local coordinates
@@ -733,7 +733,7 @@ contains
 
     real :: Discontinuity_indicator, inflow_integral, h
     real, dimension(ele_loc(T,ele)) :: ones
-    integer :: discontinuity_option 
+    integer :: discontinuity_option
     real :: face_max, face_min
 
     if(debugging) then
@@ -761,7 +761,7 @@ contains
     case (1)
        !=========================================================
        !Discontinuity detector using TVB condition
-       !Checks solution on each face is between mean values of 
+       !Checks solution on each face is between mean values of
        !ele and ele_2
        !=========================================================
        do ni=1,size(neigh)
@@ -772,7 +772,7 @@ contains
           ele_2=neigh(ni)
 
           if(ele_2<0) cycle
-          
+
           T_val_2 = ele_val(T,ele_2)
           face=ele_face(T, ele, ele_2)
           T_val_face = face_val(T, face)
@@ -927,9 +927,9 @@ contains
           ! i = size(neigh)+1 : The existing polynomial representation
           ! j = size(neigh)+1 + i, i = 1:size(neigh) : The function with same mean
           !                                            as existing polynomial
-          !                                            with slope taken from 
+          !                                            with slope taken from
           !                                            i-th neighbour
-          ! The latter representations are Hermite polynomials using 
+          ! The latter representations are Hermite polynomials using
           ! gradient information
 
           !Construct Lagrange polys
@@ -946,7 +946,7 @@ contains
                    !This row requires that the mean of the polynomial over
                    !neighbour element nj be equal to the mean of the unlimited
                    !solution in that element.
-                   ! 
+                   !
                    ! This is done by computing the local coordinates of the
                    ! centre of the neighbour element (only works for P1) which
                    ! gives you the coefficients of the local expansion which
@@ -1045,11 +1045,11 @@ contains
 
              !ADD SOME DEBUGGING TESTS
 
-             !Second we adjust the mean so that it is the same as the 
+             !Second we adjust the mean so that it is the same as the
              !mean of the current solution in ele
              Polys(nk,:) = Polys(nk,:)- &
                   & sum(Polys(nk,:))/size(T_val) + &
-                  & sum(T_val)/size(T_val)         
+                  & sum(T_val)/size(T_val)
 
           end do HermiteP_loop
 
@@ -1157,11 +1157,11 @@ contains
   end function TVB_minmod
 
   subroutine limit_slope_ele_dg_1d(ele, T, X)
-    
+
     integer, intent(in) :: ele
     type(scalar_field), intent(inout) :: T
     type(vector_field), intent(in) :: X
-    
+
     integer, dimension(:), pointer :: neigh, T_ele
     real, dimension(mesh_dim(X)) :: ele_centre, ele_2_centre
     real :: ele_mean, ele_2_mean, dx
@@ -1169,19 +1169,19 @@ contains
     integer :: ele_2, ni
     real, dimension(mesh_dim(X), ele_loc(X,ele)) :: X_val, X_val_2
     real, dimension(ele_loc(T,ele)) :: T_val, T_val_2
-    
+
     X_val=ele_val(X, ele)
     T_val=ele_val(T, ele)
-    
+
 
     ele_centre=sum(X_val,2)/size(X_val,2)
 
     ele_mean=sum(T_val)/size(T_val)
-    
+
     dx=X_val(1,2)-X_val(1,1)
-    
+
     ele_slope=(T_val(2)-T_val(1))/dx
-    
+
     old_ele_slope=ele_slope
 
     neigh=>ele_neigh(T, ele)
@@ -1191,13 +1191,13 @@ contains
        !----------------------------------------------------------------------
        ! Find the relevant faces.
        !----------------------------------------------------------------------
-       
+
        ! These finding routines are outside the inner loop so as to allow
        ! for local stack variables of the right size in
        ! construct_add_diff_interface_dg.
 
        ele_2=neigh(ni)
-           
+
        if (ele_2<=0) then
           ! External face.
           cycle
@@ -1209,9 +1209,9 @@ contains
        ele_2_centre=sum(X_val_2,2)/size(X_val_2,2)
 
        ele_2_mean=sum(T_val_2)/size(T_val_2)
-    
+
        ele_2_slope=(ele_2_mean-ele_mean)/sum(ele_2_centre-ele_centre)
-       
+
        if (ele_slope*ele_2_slope<0.0) then
           ! Slope sign changes
           ele_slope=0.0
@@ -1223,7 +1223,7 @@ contains
     end do neighbourloop
 
     if (old_ele_slope/=ele_slope) then
-       
+
        ! Remove high order stuff here.
        T_ele=>ele_nodes(T,ele)
 
@@ -1304,11 +1304,11 @@ contains
 
        call transform_facet_to_physical( X, face,&
             & detwei_f=detwei,normal=normal)
-       
+
        U_flux = 0.5*(face_val_at_quad(U,face)+ &
             & face_val_at_quad(U,face_2))
-       
-       !We only compute on inflow boundaries    
+
+       !We only compute on inflow boundaries
        inflow = merge(1.0,0.0,sum(U_flux*normal,1)<0.0)
 
        Discontinuity_indicator = &
@@ -1352,7 +1352,7 @@ contains
     case default
        FLExit('dont know that dimension.')
     end select
-    
+
   end function get_H
 
   subroutine limit_vb(state, t)
@@ -1378,17 +1378,17 @@ contains
     if (.not. element_degree(T%mesh, 1)==1 .or. continuity(T%mesh)>=0) then
       FLExit("The vertex based slope limiter only works for P1DG fields.")
     end if
-    
+
     ! Allocate copy of field
     call allocate(T_limit, T%mesh,trim(T%name)//"Limited")
     call set(T_limit, T)
-    
+
     ! returns linear version of T%mesh (if T%mesh is periodic, so is vertex_mesh)
     call find_linear_parent_mesh(state, T%mesh, vertex_mesh)
 
     call allocate(T_max, vertex_mesh, trim(T%name)//"LimitMax")
     call allocate(T_min, vertex_mesh, trim(T%name)//"LimitMin")
- 
+
     call set(T_max, -huge(0.0))
     call set(T_min, huge(0.0))
 
@@ -1399,14 +1399,14 @@ contains
        Tbar = sum(T_val)/size(T_val)
        ! we assume here T is P1DG and vertex_mesh is linear
        assert( size(T_ele)==ele_loc(vertex_mesh,ele) )
-       
+
        ! do maxes
        T_val_max = ele_val(T_max,ele)
        do node = 1, size(T_val)
           T_val_max(node) = max(T_val_max(node), Tbar)
        end do
        call set(T_max, ele_nodes(T_max, ele), T_val_max)
-       
+
        ! do mins
        T_val_min = ele_val(T_min,ele)
        do node = 1, size(T_val)
@@ -1422,13 +1422,13 @@ contains
        alpha = 1.
        !Get local node lists
        T_ele=>ele_nodes(T,ele)
-       
+
        T_val = ele_val(T,ele)
        Tbar = sum(T_val)/size(T_val)
        T_val_slope = T_val - Tbar
        T_val_max = ele_val(T_max,ele)
        T_val_min = ele_val(T_min,ele)
-       
+
        !loop over nodes, adjust alpha
        do node = 1, size(T_val)
          !check whether to use max or min, and avoid floating point algebra errors due to round-off and underflow
@@ -1456,7 +1456,7 @@ contains
 
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: t
-    
+
     type(scalar_field), pointer :: limiting_t, lumped_mass
     type(scalar_field) :: lowerbound, upperbound, inverse_lumped_mass
     type(csr_matrix), pointer :: mass
@@ -1605,7 +1605,7 @@ contains
         else if (midpoint.and.extrapolate) then
           local_values(row,3) = (1.0-beta)*local_values(row,2)+beta*local_values(row,3)
           ! Extrapolate using the gradients of the neighbouring element to form our extra value
-                
+
           ! 1st, work out the direction in which we want to extrapolate, e_vec_1
           e_vec_1=node_val(dg_position,node)-node_val(dg_position,nodes_array(node,row,1))
           ! Work out the distance to exprapolate
@@ -1622,7 +1622,7 @@ contains
           ! Note that grad_t will be the same at all gauss points in the linear element case
           grad=dot_product(grad_t(1,:),e_vec_1)
 
-          local_values(row,4) = local_values(row,2)+beta*grad*e_dist 
+          local_values(row,4) = local_values(row,2)+beta*grad*e_dist
         end if
         if (upwind) then
           u_node=node_val(u, node)

@@ -34,7 +34,7 @@ for letter in ('A','B','C','D'):
   scalar = vtu.GetField('Scalar')
   vtu.AddField('ScalarSquared', scalar**2)
   scalar_err.append(math.sqrt(vtu.GetFieldIntegral('ScalarSquared')[0]))
-  
+
   vtu = vtktools.vtu('diff{0}_dg.vtu'.format(letter))
   u = vtu.GetField('Velocity')
   vtu.AddField('VelocitySquared', (u**2).sum(axis=1))
@@ -42,7 +42,7 @@ for letter in ('A','B','C','D'):
 
   tensor = vtu.GetField('Tensor')
   tensor_err.append(math.sqrt(CellFieldIntegral(vtu, (tensor**2).sum(axis=2).sum(axis=1))))
-  
+
 scalar_err = numpy.array(scalar_err)
 scalar_convergence = numpy.log(scalar_err[:-1]/scalar_err[1:])/numpy.log(2)
 vector_err = numpy.array(vector_err)

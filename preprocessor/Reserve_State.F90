@@ -32,32 +32,32 @@ module reserve_state_module
   !!< (other than CoordinateMesh) are put in.  All the fields associated with
   !!< them are also saved. After an adapt, all this information is reinserted
   !!< into state
-  
+
   use global_parameters, only: OPTION_PATH_LEN
   use spud
   use fields
   use state_module
-  
+
   implicit none
-  
+
   private
-  
+
   type (state_type), dimension(:), save, allocatable :: reserve_state
-    
+
   public :: no_reserved_meshes, create_reserve_state, restore_reserved_meshes, &
     & restore_reserved_fields, deallocate_reserve_state
-  
+
 contains
 
   function no_reserved_meshes()
     logical :: no_reserved_meshes
-    
+
     if(allocated(reserve_state)) then
       no_reserved_meshes = mesh_count(reserve_state(1)) == 0
     else
       no_reserved_meshes = .true.
     end if
-  
+
   end function no_reserved_meshes
 
   subroutine create_reserve_state(state)
@@ -65,17 +65,17 @@ contains
     !!< imported (not the CoordinateMesh), and any fields that are associated
     !!< with them. exclude_from_mesh_adaptivity must be switched on for this to
     !!< work.
-    
+
     type (state_type), dimension(:), intent(in) :: state
-    
+
     type (scalar_field) :: sfield
     type (vector_field) :: vfield
-    type (tensor_field) :: tfield   
+    type (tensor_field) :: tfield
     type (mesh_type)    :: mesh
     integer i,j
-    
+
     if(.not. allocated(reserve_state)) allocate(reserve_state(size(state)))
-    
+
     !Loop over all meshes, insert those that are to be excluded into reserve_state
     mesh_loop: do i = 1, mesh_count(state(1))
        mesh = extract_mesh(state(1), i)
@@ -83,9 +83,9 @@ contains
          call insert(reserve_state, mesh, mesh%name)
        end if
     end do mesh_loop
-    
+
     if(no_reserved_meshes()) return
-    
+
     !Loop over states, inserting all fields that are associated with the meshes inserted in
     !the previous mesh loop.
     state_loop: do i = 1,size(state)
@@ -108,41 +108,41 @@ contains
          end if
        end do tensor_loop
     end do state_loop
-    
+
   end subroutine create_reserve_state
-  
+
   subroutine restore_reserved_meshes(state)
     !!< This subroutine re-inserts the mesh information saved by reserve_state
     !!< back into state.
-    
+
     type (state_type) , intent(inout), dimension(:) :: state
     type (mesh_type)    :: mesh
     integer i
-    
+
     !if there are no associated meshes... skip this routine
     if(no_reserved_meshes()) return
-    
+
     !Loop over all meshes, reinserting them into state.
     mesh_loop: do i = 1, mesh_count(reserve_state(1))
       mesh = extract_mesh(reserve_state(1), i)
       call insert(state, mesh, mesh%name)
     end do mesh_loop
-    
+
   end subroutine restore_reserved_meshes
-  
+
   subroutine restore_reserved_fields(state)
     !!< This subroutine re-inserts the field information saved by reserve_state
     !!< back into state.
-    
+
     type (state_type) , intent(inout), dimension(:) :: state
     type (scalar_field) :: sfield
     type (vector_field) :: vfield
-    type (tensor_field) :: tfield   
+    type (tensor_field) :: tfield
     integer i,j
-    
+
     !if there are no associated meshes... skip this routine
     if (no_reserved_meshes()) return
-    
+
     !Loop over reserve_state, reinserting all fields into state.
     state_loop: do i = 1,size(reserve_state)
        scalar_loop: do j = 1, scalar_field_count(reserve_state(i))
@@ -158,20 +158,19 @@ contains
          call insert(state(i), tfield, tfield%name)
        end do tensor_loop
     end do state_loop
-    
+
   end subroutine restore_reserved_fields
-  
+
   subroutine deallocate_reserve_state()
     integer i
-    
+
     if(allocated(reserve_state)) then
        do i=1,size(reserve_state)
           call deallocate(reserve_state(i))
        end do
        deallocate(reserve_state)
     end if
-    
+
   end subroutine deallocate_reserve_state
 
 end module reserve_state_module
-  

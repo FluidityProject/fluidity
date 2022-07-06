@@ -34,7 +34,7 @@ program visualise_elements
 
   if (have_option("/geometry/mesh")) then
      call populate_state(state)
-     
+
      position=extract_vector_field(state(1),"Coordinate")
 
      tracer=extract_scalar_field(state(1), "Tracer")
@@ -50,30 +50,30 @@ program visualise_elements
      call remap_field(tracer, visualisation_shape_values)
 
      linear_mesh=subdivide_elements(visualisation_position%mesh)
-     
+
      visualisation_shape_values%mesh=linear_mesh
      visualisation_position%mesh=linear_mesh
 
      outline_position=construct_outline_positions(element)
 
      if (has_vector_field(state(1),"Derivative")) then
-        
+
         derivative=extract_vector_field(state(1), "Derivative")
-        
+
         dx(1)=extract_scalar_field(derivative, 1)
         dx(2)=extract_scalar_field(derivative, 2)
-     
+
         print *, dx(1)%val
 
         call differentiate_field(tracer, position, (/.true.,.true./), dx)
-        
+
         print *, tracer%val
         print *, dx(1)%val
 
         call allocate(visualisation_derivative, 2,visualisation_mesh, &
              "Derivative" )
         call remap_field(derivative, visualisation_derivative)
-        
+
         call vtk_write_fields(projectname, 0, &
              visualisation_position, &
              linear_mesh, &
@@ -98,7 +98,7 @@ program visualise_elements
      end if
 
   else
-     
+
      element=construct_element()
      position=construct_positions(element)
      shape_values=construct_shape_values(position%mesh)
@@ -136,7 +136,7 @@ contains
   function subdivide_elements(mesh) result (linear_mesh)
     type(mesh_type), intent(in) :: mesh
     type(mesh_type) :: linear_mesh
-    
+
     type(element_type) :: element, linear_element
     integer :: triangles, e, n, row, column, rowlen, ele
 
@@ -144,7 +144,7 @@ contains
 
     linear_element=make_element_shape(element%numbering%vertices, 2, degree=1, &
          quad=element%quadrature)
-    
+
     triangles=tr(element%degree) + tr(element%degree-1)
 
     call allocate(linear_mesh, nodes=node_count(mesh), &
@@ -161,11 +161,11 @@ contains
              n=n+1
              e=e+1
              linear_mesh%ndglno((e-1)*3+1:e*3)&
-                  =(/n, n+1, n+rowlen/)   
+                  =(/n, n+1, n+rowlen/)
           end do
           n=n+1
        end do
-       
+
        ! Point down triangles.
        n=element%loc*(ele-1)+1
        do row=1, element%degree-1
@@ -174,7 +174,7 @@ contains
              n=n+1
              e=e+1
              linear_mesh%ndglno((e-1)*3+1:e*3)&
-                  =(/n, n+rowlen, n+rowlen-1/)   
+                  =(/n, n+rowlen, n+rowlen-1/)
           end do
           n=n+2
        end do
@@ -185,7 +185,7 @@ contains
   function construct_shape_values(mesh) result (sfield)
     type(scalar_field) :: sfield
     type(mesh_type) :: mesh
-    
+
     integer :: ele, node
     integer, dimension(:), pointer :: nodes
 
@@ -279,18 +279,18 @@ contains
          "OneLinearMesh")
 
     one_mesh=construct_one_element_mesh(element, "OneMesh")
-    
+
     call allocate(one_element_linear, 2, one_mesh_linear, &
          "OneLinearCoordinate")
 
     call allocate(one_element, 2, one_mesh, "OneCoordinate")
 
     call set(one_element_linear, ele_nodes(one_element_linear,1), vertices)
-    
+
     call remap_field(one_element_linear, one_element)
 
     call allocate(linear_position, 2, linear_mesh, "LinearCoordinate")
-    
+
     scale=1.5*element%degree
 
     do i=1, node_count(one_element)
@@ -298,13 +298,13 @@ contains
        do d=1,2
           lvertices(d,:)=vertices(d,:)+scale*node_loc(d)
        end do
-       
+
        call set(linear_position, ele_nodes(linear_mesh,i), lvertices)
     end do
-    
+
     mesh = construct_mesh(element, element, "Mesh")
     call allocate(position, 2, mesh, "Coordinate")
-    
+
     call remap_field(linear_position, position)
 
     call deallocate(linear_position)
@@ -341,18 +341,18 @@ contains
          "OneLinearMesh")
 
     one_mesh=construct_one_element_mesh(element, "OneMesh")
-    
+
     call allocate(one_element_linear, 2, one_mesh_linear, &
          "OneLinearCoordinate")
 
     call allocate(one_element, 2, one_mesh, "OneCoordinate")
 
     call set(one_element_linear, ele_nodes(one_element_linear,1), vertices)
-    
+
     call remap_field(one_element_linear, one_element)
 
     call allocate(position, 2, linear_mesh, "LinearCoordinate")
-    
+
     scale=1.5*element%degree
 
     do i=1, node_count(one_element)
@@ -360,10 +360,10 @@ contains
        do d=1,2
           lvertices(d,:)=vertices(d,:)+scale*node_loc(d)
        end do
-       
+
        call set(position, ele_nodes(linear_mesh,i), lvertices)
     end do
-    
+
     call deallocate(linear_mesh)
     call deallocate(linear_element)
     call deallocate(one_element)
@@ -400,7 +400,7 @@ contains
 
     call allocate(mesh, nodes=element%loc, elements=1, shape&
          &=element, name=name)
-    
+
     ! Usual dg numbering.
     mesh%ndglno=(/(i, i=1,element%loc)/)
 
@@ -413,9 +413,9 @@ contains
 
     character(len=1024) :: filename
     integer :: status
-    
+
     call get_command_argument(1, value=filename, status=status)
-  
+
     if (status/=0) then
        call usage
        stop
@@ -428,9 +428,9 @@ contains
   end subroutine read_command_line
 
   subroutine usage
-    
+
     write (0,*) "usage: visualise_elements <options_file>"
-    
+
   end subroutine usage
 
   function regular_figure(nodes, length) result (vertex)

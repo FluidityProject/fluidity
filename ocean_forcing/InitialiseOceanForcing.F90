@@ -1,5 +1,5 @@
 !    Copyright (C) 2007 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -72,18 +72,18 @@ contains
        if(have_option("/ocean_forcing/bulk_formulae/file_type")) then
           call get_option("/ocean_forcing/bulk_formulae/file_type/filetype/name", dataset)
        end if
-       
+
        if (dataset == "ERA40") then
           call fluxes_registerdatafile(trim(option))
           !                field from NetCDF file     dex |   Physical meaning
           call fluxes_addfieldofinterest("u10")   !   0   | 10 metre U wind component
           call fluxes_addfieldofinterest("v10")   !   1   | 10 metre V wind component
           call fluxes_addfieldofinterest("ssrd")  !   2   | Surface solar radiation
-          call fluxes_addfieldofinterest("strd")  !   3   | Surface thermal radiation 
+          call fluxes_addfieldofinterest("strd")  !   3   | Surface thermal radiation
           call fluxes_addfieldofinterest("ro")    !   4   | Runoff
           call fluxes_addfieldofinterest("tp")    !   5   | Total precipitation
           call fluxes_addfieldofinterest("d2m")   !   6   | Dew point temp at 2m
-          call fluxes_addfieldofinterest("t2m")   !   7   | Air temp at 2m 
+          call fluxes_addfieldofinterest("t2m")   !   7   | Air temp at 2m
           call fluxes_addfieldofinterest("msl")   !   8   | Mean sea level pressure
        else
           FLExit("unsupported bulk formula input file type. Choose ERA40")
@@ -91,7 +91,7 @@ contains
     end if
 
     if(have_option("/ocean_biology/lagrangian_ensemble/hyperlight")) then
-       call fluxes_addfieldofinterest("tcc")      !       | Total cloud cover 
+       call fluxes_addfieldofinterest("tcc")      !       | Total cloud cover
     end if
 
     if(have_option("/ocean_forcing/external_data_boundary_conditions")) then

@@ -3,9 +3,9 @@
 n=8
 for F in A B C D
 do
-    echo creating set $F with n_ele=$n	
+    echo creating set $F with n_ele=$n
     $SED s/MMS_X/MMS_$F/ MMS_X.flml > MMS_$F.flml
-    $SED s/XX/$n/ src/MMS_X.geo > src/MMS_$F.geo	
+    $SED s/XX/$n/ src/MMS_X.geo > src/MMS_$F.geo
     n=$((n*2))
 done
 

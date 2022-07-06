@@ -9,13 +9,13 @@ c group (M)
      &      nP, MaxP, nF, MaxF, nE, MaxE, nPv,
      &      XYP, IPF, IPE, IPV,
      &      CrvFunction, ParCrv, iFnc,
-     &      nEStar, 
+     &      nEStar,
 c group (D)
      &      nFv, nEv, IFV, IEV, lbE,
      &      flagAuto, status,
 c group (Q)
      &      MaxSkipE, MaxQItr,
-     &      Metric, Quality, rQuality, 
+     &      Metric, Quality, rQuality,
 c group (W)
      &      MaxWr, MaxWi, rW, iW,
      &      iPrint, iERR)
@@ -23,11 +23,11 @@ C ==========================================================
       include 'lintrp.fd'
       include 'status.fd'
 C ==========================================================
-C This routine adapts the mesh to the discrete metric given 
+C This routine adapts the mesh to the discrete metric given
 C at mesh nodes.
 C ==========================================================
 C  VARIABLES & PARAMETER:
-C  
+C
 C     nP, MaxP  - the real and maximal number of points (P)
 C     nF, MaxF  - the real and maximal number of boundary and inner
 C     edges (F)
@@ -48,10 +48,10 @@ C                                   parametrization
 C                                            of this edge and iFnc(n)
 C                                            gives
 C                                            a function number for
-C                                            computing the 
+C                                            computing the
 C                                            Cartesian coordinates (see
 C                                            calCrv())
-C                    column 4      - boundary identificator 
+C                    column 4      - boundary identificator
 C                                    (example: unit square has 4
 C                                    boundaries which
 C                                     may have or not different
@@ -59,9 +59,9 @@ C                                     identificators.
 C                                     In order to automatically
 C                                     recognize corners
 C                                     of the square, boundaries have to
-C                                     have 
+C                                     have
 C                                     different colors. It is not
-C                                     required if 
+C                                     required if
 C                                     the corner points are in the list
 C                                     of fixed
 C                                     points. See colors.fd for more
@@ -70,8 +70,8 @@ C
 C     IPV(nPv)     - list of fixed points
 C
 C
-C     CrvFunction  - user-created routine that computes the 
-C                    Cartesian coordinates of a point xyc from 
+C     CrvFunction  - user-created routine that computes the
+C                    Cartesian coordinates of a point xyc from
 C                    its parametric coordinate tc:
 C
 C                    Subroutine CrvFunction(tc, xyc, iFnc)
@@ -84,7 +84,7 @@ C
 C                      On input :  tc, iFnc
 C                      On output:  xyc(2)
 C
-C     ParCrv(2, MaxF) - linear parametrizations of curvilinear edges 
+C     ParCrv(2, MaxF) - linear parametrizations of curvilinear edges
 C                       column 1 - parameter for the starting point
 C                       column 2 - parameter for the terminal point
 C
@@ -100,7 +100,7 @@ C     coordinates
 C
 C     nEstar - the desired number of triangles
 C
-C     
+C
 C     nFv       - number of fixed edges
 C     nEv       - number of fixed triangles
 C     IFV(nFv)  - list of fixed edges
@@ -110,29 +110,29 @@ C     lbE(MaxE) - element indentificator (a positive number)
 C
 C     flagAuto  - flag controling the mesh generation:
 C                 TRUE  - automatic recovering of missing mesh elements
-C                 FALSE - rigorous checking of input data 
+C                 FALSE - rigorous checking of input data
 C
 C     status    - advanced control of mesh generation:
 C                 0 or negative - no additional control
 C                 positive      - enforce some of the mesh properties
 C                      The detailed description of available properties
-C                      is in file status.fd. Variable status is equal 
+C                      is in file status.fd. Variable status is equal
 C                      to the sum of positive numbers corresponding
-C                      to the desired properties. Here is the list of 
+C                      to the desired properties. Here is the list of
 C                      user-controled properties:
-C  
+C
 C                      1  - the final mesh will not have boundary
 C                      elements;
 C                      4  - the algorithm will not change boundary
 C                      edges;
 C                      8  - the missing material interfaces and
 C                      boundary;
-C                           edges created by the code will be removed 
+C                           edges created by the code will be removed
 C                           from the final mesh;
 C                      16 - the algorithm will not change boundary
 C                      points.
 C
-C                      If only two first properties are required, set 
+C                      If only two first properties are required, set
 C                      status = 5. Do not use tne number since status
 C                      is input/output parameter.
 C
@@ -141,11 +141,11 @@ C     MaxSkipE  - the maximal number of skipped triangles
 C     MaxQItr   - the maximal number of local grid modifications
 C
 C     Metric(3, nP) - real array containing the metric defined at
-C                     mesh points. The metric is a 2x2 positive 
+C                     mesh points. The metric is a 2x2 positive
 C                     definite symmetric tensor:
 C
-C                            M11   M12   
-C                   Metric = 
+C                            M11   M12
+C                   Metric =
 C                            M12   M22
 C
 C                   Each column of this array stores the upper
@@ -159,17 +159,17 @@ C
 C     MaxWr     - the maximal space for real arrays
 C     MaxWi     - the maximal space for integer arrays
 C
-C     rW(MaxWr)  - the real  working array. On output: 
+C     rW(MaxWr)  - the real  working array. On output:
 C                  rW(1) - mesh generation time
 C                  rW(2) - rQuality
-C                  rW(3) - average size of triangles (with respect to 
+C                  rW(3) - average size of triangles (with respect to
 C                          the given metric) [hStar]
 C
 C     iW(MaxWi)  - the integer working array. On output:
-C                  iW(1 : nP) - colors of mesh points as 
+C                  iW(1 : nP) - colors of mesh points as
 C                               described in file color.fd
 C                  iW(nP + 1) - the number of performed iterations
-C       
+C
 C                  If memory allocation unsufficient, the output
 C                  is different:
 C                  iW(1) - the required integer memory allocation
@@ -194,7 +194,7 @@ C ================================================================
 C
 C  Note:
 C       Input parameters:  MaxP, MaxF, MaxE, nPv,
-C                          IPV, IFV, IEV, lbE, flagAuto, 
+C                          IPV, IFV, IEV, lbE, flagAuto,
 C                          nEStar, MaxSkipE, MaxQItr,
 C                          Quality, MaxWr, MaxWi, iPrint
 C
@@ -234,7 +234,7 @@ C group (M)
 C group (D)
       Integer nFv, nEv
       Integer IFV(*), IEV(*), lbE(*)
-      
+
       Logical flagAuto
       Integer status
 
@@ -258,7 +258,7 @@ C ==========================================================
 C group (Common blocks)
       Integer iDomBnd, iMatBnd
       Common /aniBND/ iDomBnd, iMatBnd
- 
+
       real  refXYP(2), scaXYP(2)
       Common /rescale/refXYP, scaXYP
 
@@ -272,11 +272,11 @@ C ==========================================================
 
 
 c ... refine initial mesh when nE is very small
-c ... it increases robustness of the code 
+c ... it increases robustness of the code
       Do while(nE < nEStar / 15 .AND. nE.LE.500 .AND. nEv+nFv.EQ.0)
          iIFE = 1
          iiW  = iIFE + 3 * nE
-         nWi  = iiW  + 3 * nE + nP 
+         nWi  = iiW  + 3 * nE + nP
          If(nWi.GT.MaxWi) goto 100
 
          If(iPrint.GE.1) Write(*,5001) nP, nE
@@ -286,7 +286,7 @@ c ... it increases robustness of the code
      &        XYP, IPF, IPE, lbE,
      &        CrvFunction, ParCrv, iFnc, iW(iIFE),
      &        Metric, 3, iW(iiW), MaxWi)
-      End do 
+      End do
 
 
  100  miLINTRP = 10 * nP + 3 * nE + 6
@@ -405,7 +405,7 @@ c ... returning sadditional information
 
 
  1000 If(iERR.EQ.0 .OR. iERR.EQ.1000) Return
-      Call errMes(iERR, 'mbaMetric', 
+      Call errMes(iERR, 'mbaMetric',
      &            'See error.f for error description')
 
       Return
@@ -414,8 +414,8 @@ c ... returning sadditional information
 
  5004 Format(/,
      &    'STONE FLOWER! (1997-2007), version 2.0', /,
-     &    'Target: Quality', F5.2, ' with', I8, 
-     &    ' triangles for at most', I8, ' iterations') 
+     &    'Target: Quality', F5.2, ' with', I8,
+     &    ' triangles for at most', I8, ' iterations')
       End subroutine
 
 

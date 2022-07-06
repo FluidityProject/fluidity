@@ -2,20 +2,20 @@ C ================================================================
       Subroutine DG2P1(
 C ================================================================
      &           nP, nF, nR, nE, XYP, IPF, IPE, IRE,
-     &           fDG, fP1, 
+     &           fDG, fP1,
      &           MaxWr, MaxWi, rW, iW)
 C ================================================================
       implicit integer (i)
       include 'makS.fd'
 C ================================================================
 C  The routine maps a discontinuous piece-wise linear function with
-C  d.o.f on edges onto a continuous piece-wise linear function with 
+C  d.o.f on edges onto a continuous piece-wise linear function with
 C  d.o.f. at vertices. We use the ZZ method for that.
 C
 C  Limitation to the mesh: Each boundary node can be connected with
 C                          an interior note by at most 2 mesh edges.
 C
-C  *** Remarks 
+C  *** Remarks
 C         1. Extrapolation at boundary nodes adds some diffusion
 C            for functions with sharp gradients near boundary.
 C ================================================================
@@ -26,16 +26,16 @@ C         nR  - the number of mesh edges
 C         nE  - the number of triangles
 C
 C         XYP - coordinates of the mesh nodes
-C         IPF - map: boundary edge -> {2 vertices, ID, curved flag} 
+C         IPF - map: boundary edge -> {2 vertices, ID, curved flag}
 C         IPE - map: triangle -> vertices
 C         IRE - map: triangle -> edges
 C
 C         fDG - discontinuous piece-wise linear function
 C
-C  *** Output: 
+C  *** Output:
 C         fP1 - continuous piece-wice linear function
-C                    
-C  *** Work memory: 
+C
+C  *** Work memory:
 C          rW - real  array of size MaxWr
 C          iW - integer array of size MaxWi
 C ================================================================
@@ -73,19 +73,19 @@ C ... distribute memory
       iMass = 0
       irW   = iMass + nP
 
-      If(MaxWi.LT.iiW) 
+      If(MaxWi.LT.iiW)
      &   Call errMes(1001, 'DG2P1', 'Increase size of MaxWi')
 
-      If(MaxWr.LT.irW) 
+      If(MaxWr.LT.irW)
      &   Call errMes(1002, 'DG2P1', 'Increase size of MaxWr')
-      
+
 
 C ... create maps: vertix -> triangles
       Call backReferences(nP, nE, 3, 3, IPE, iW(inEP+1), iW(iIEP+1))
 
 
 C ... mark boundary nodes
-      Do n = 1, 2 * nP 
+      Do n = 1, 2 * nP
          iW(n) = 0
       End do
 
@@ -115,7 +115,7 @@ C ... interpolate in interior points with least squares
 
          Do i = i1, i2
             iE = iW(iIEP + i)
-   
+
             Do j1 = 1, 3
                iP1 = IPE(j1, iE)
                If(iP1.EQ.n) goto 100
@@ -127,7 +127,7 @@ C ... interpolate in interior points with least squares
             iP2 = IPE(j2, iE)
             iP3 = IPE(j3, iE)
 
-            iR1 = IRE(j1, iE) 
+            iR1 = IRE(j1, iE)
 
             vol = calVol(XYP(1, iP1), XYP(1, iP2), XYP(1, iP3))
             If(vol.LT.0D0) Then
@@ -141,7 +141,7 @@ C ... interpolate in interior points with least squares
             If(iW(iBnd + n).GT.0) Then
                Do j = 1, 3
                   iP = IPE(j, iE)
-                  If(iW(iBnd + iP).EQ.0) 
+                  If(iW(iBnd + iP).EQ.0)
      &               rW(iMass + n) = rW(iMass + n) + vol / 12
                End do
             Else
@@ -173,7 +173,7 @@ C ... extrapolate fP1 at boundary nodes from nearest interior nodes
 
             Do i = i1, i2
                iE = iW(iIEP + i)
-   
+
                iP1 = IPE(1, iE)
                iP2 = IPE(2, iE)
                iP3 = IPE(3, iE)
@@ -190,7 +190,7 @@ C ... extrapolate fP1 at boundary nodes from nearest interior nodes
                      weights(k) = weights(k) + vol / 12
                   Else If(iW(iBnd + iP).EQ.0) Then
                      lbuf = lbuf + 1
-                     kbuf(lbuf) = iP 
+                     kbuf(lbuf) = iP
                      weights(lbuf) = vol / 12
                   End if
                End do
@@ -202,9 +202,9 @@ C ... extrapolate fP1 at boundary nodes from nearest interior nodes
             End do
 
             If(lbuf.GT.0) iW(iArm + n) = 1
-         End if 
+         End if
       End do
-     
+
 
 c ... remove boundary node from the list
       Do n = 1, nP
@@ -228,12 +228,12 @@ c ... the second level of extrapolation
                   iP = IPE(j, iE)
                   If(iW(iBnd + iP).EQ.0) Then
                      k = k + 1
-                     s = s + fP1(iP)  
+                     s = s + fP1(iP)
                   End if
                End do
             End do
 
-            If(k.EQ.0) 
+            If(k.EQ.0)
      &         Call errMes(2011, 'DG2P1', 'Mesh violates 2-arm rule')
 
             fP1(n) = s / k
@@ -248,21 +248,21 @@ c ... the second level of extrapolation
 C ================================================================
       Subroutine P02P1(
 C ================================================================
-     &           nP, nF, nR, nE, XYP, IPF, IPE, 
-     &           fP0, fP1, 
+     &           nP, nF, nR, nE, XYP, IPF, IPE,
+     &           fP0, fP1,
      &           MaxWr, MaxWi, rW, iW)
 C ================================================================
       implicit integer (i)
       include 'makS.fd'
 C ================================================================
-C  The routine maps a discontinuous piece-wise constant function 
-C  with d.o.f in elements onto a continuous piece-wise linear 
+C  The routine maps a discontinuous piece-wise constant function
+C  with d.o.f in elements onto a continuous piece-wise linear
 C  function with d.o.f. at vertices. We use the ZZ method for that.
 C
 C  Limitation to the mesh: Each boundary node can be connected with
 C                          an interior note by at most 2 mesh edges.
 C
-C  *** Remarks 
+C  *** Remarks
 C         1. Extrapolation at boundary nodes adds some diffusion
 C            for functions with sharp gradients near boundary.
 C ================================================================
@@ -273,15 +273,15 @@ C         nR  - the number of mesh edges
 C         nE  - the number of triangles
 C
 C         XYP - coordinates of the mesh nodes
-C         IPF - map: boundary edge -> {2 vertices, ID, curved flag} 
+C         IPF - map: boundary edge -> {2 vertices, ID, curved flag}
 C         IPE - map: triangle -> vertices
 C
 C         fP0 - discontinuous piece-wise constant function
 C
-C  *** Output: 
+C  *** Output:
 C         fP1 - continuous piece-wice linear function
-C                    
-C  *** Work memory: 
+C
+C  *** Work memory:
 C          rW - real  array of size MaxWr
 C          iW - integer array of size MaxWi
 C ================================================================
@@ -316,19 +316,19 @@ C ... distribute memory
       iMass = 0
       irW   = iMass + nP
 
-      If(MaxWi.LT.iiW) 
+      If(MaxWi.LT.iiW)
      &   Call errMes(1001, 'P02P1', 'Increase size of MaxWi')
 
-      If(MaxWr.LT.irW) 
+      If(MaxWr.LT.irW)
      &   Call errMes(1002, 'P02P1', 'Increase size of MaxWr')
-      
+
 
 C ... create maps: vertix -> triangles
       Call backReferences(nP, nE, 3, 3, IPE, iW(inEP+1), iW(iIEP+1))
 
 
 C ... mark boundary nodes
-      Do n = 1, 2 * nP 
+      Do n = 1, 2 * nP
          iW(n) = 0
       End do
 
@@ -358,7 +358,7 @@ C ... interpolate in interior points with least squares
 
          Do i = i1, i2
             iE = iW(iIEP + i)
-   
+
             iP1 = IPE(1, iE)
             iP2 = IPE(2, iE)
             iP3 = IPE(3, iE)
@@ -369,7 +369,7 @@ C ... interpolate in interior points with least squares
             If(iW(iBnd + n).GT.0) Then
                Do j = 1, 3
                   iP = IPE(j, iE)
-                  If(iW(iBnd + iP).EQ.0) 
+                  If(iW(iBnd + iP).EQ.0)
      &               rW(iMass + n) = rW(iMass + n) + vol / 12
                End do
             Else
@@ -401,7 +401,7 @@ C ... extrapolate fP1 at boundary nodes from nearest interior nodes
 
             Do i = i1, i2
                iE = iW(iIEP + i)
-   
+
                iP1 = IPE(1, iE)
                iP2 = IPE(2, iE)
                iP3 = IPE(3, iE)
@@ -418,7 +418,7 @@ C ... extrapolate fP1 at boundary nodes from nearest interior nodes
                      weights(k) = weights(k) + vol / 12
                   Else If(iW(iBnd + iP).EQ.0) Then
                      lbuf = lbuf + 1
-                     kbuf(lbuf) = iP 
+                     kbuf(lbuf) = iP
                      weights(lbuf) = vol / 12
                   End if
                End do
@@ -430,9 +430,9 @@ C ... extrapolate fP1 at boundary nodes from nearest interior nodes
             End do
 
             If(lbuf.GT.0) iW(iArm + n) = 1
-         End if 
+         End if
       End do
-     
+
 
 c ... remove boundary node from the list
       Do n = 1, nP
@@ -456,12 +456,12 @@ c ... the second level of extrapolation
                   iP = IPE(j, iE)
                   If(iW(iBnd + iP).EQ.0) Then
                      k = k + 1
-                     s = s + fP1(iP)  
+                     s = s + fP1(iP)
                   End if
                End do
             End do
 
-            If(k.EQ.0) 
+            If(k.EQ.0)
      &         Call errMes(2011, 'P02P1', 'Mesh violates 2-arm rule')
 
             fP1(n) = s / k
@@ -486,11 +486,11 @@ C ================================================================
 
 c (local variables)
       real   A(3, 3), S(3), work(30)
-      Integer  i, j, ipiv(3), info     
-      
+      Integer  i, j, ipiv(3), info
+
 C ================================================================
-      Do i = 1, 3 
-         Do j = 1, 3 
+      Do i = 1, 3
+         Do j = 1, 3
             A(i, j) = 0D0
          End do
          S(i) = 0D0
@@ -500,10 +500,10 @@ c ... generate the least squares matrix
       Do i = 1, k
          A(1,1) = A(1,1) + xy(1, i) * xy(1, i)
          A(1,2) = A(1,2) + xy(1, i) * xy(2, i)
-         A(1,3) = A(1,3) + xy(1, i) 
+         A(1,3) = A(1,3) + xy(1, i)
 
          A(2,2) = A(2,2) + xy(2, i) * xy(2, i)
-         A(2,3) = A(2,3) + xy(2, i) 
+         A(2,3) = A(2,3) + xy(2, i)
       End do
       A(3,3) = k
 
@@ -524,4 +524,3 @@ c ... evaluate the linear function
 
       Return
       End
-

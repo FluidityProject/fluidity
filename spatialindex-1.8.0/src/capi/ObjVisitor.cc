@@ -6,7 +6,7 @@
  * Copyright (c) 2009, Howard Butler
  *
  * All rights reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
@@ -48,14 +48,13 @@ void ObjVisitor::visitNode(const SpatialIndex::INode& n)
 void ObjVisitor::visitData(const SpatialIndex::IData& d)
 {
 
-	SpatialIndex::IData* item = dynamic_cast<SpatialIndex::IData*>(const_cast<SpatialIndex::IData&>(d).clone()) ; 
-	
+	SpatialIndex::IData* item = dynamic_cast<SpatialIndex::IData*>(const_cast<SpatialIndex::IData&>(d).clone()) ;
+
 	nResults += 1;
-	
+
 	m_vector.push_back(item);
 }
 
 void ObjVisitor::visitData(std::vector<const SpatialIndex::IData*>& v)
 {
 }
-

@@ -18,7 +18,7 @@ spud (1.1.5) precise; urgency=low
 
 spud (1.1.4) natty; urgency=low
 
-  * Release for Cian's syntax highlighting changes - r.521 of lp:spud 
+  * Release for Cian's syntax highlighting changes - r.521 of lp:spud
 
  -- Tim Greaves <tim.greaves@imperial.ac.uk>  Sat, 10 Mar 2012 22:49:30 +0000
 
@@ -103,7 +103,7 @@ spud (1.0.18) unstable; urgency=low
 
 spud (1.0.17) karmic; urgency=low
 
-  * Use libtool to build a static and shared library 
+  * Use libtool to build a static and shared library
 
  -- Patrick Farrell <patrick.farrell06@imperial.ac.uk>  Thu, 10 Dec 2009 11:05:15 +0000
 
@@ -145,7 +145,7 @@ spud (1.0.11) unstable; urgency=low
   * Make the schema parsing about 10x faster.
     This is done by loading elements from the schema as they
     are needed rather than all at initialisation.
-  * This necessitates the disabling of the find dialog for now. 
+  * This necessitates the disabling of the find dialog for now.
 
  -- Patrick Farrell <patrick.farrell06@imperial.ac.uk>  Mon, 30 Mar 2009 15:29:35 +0100
 
@@ -202,7 +202,7 @@ spud (1.0.3) hardy; urgency=low
 
 spud (1.0.2) hardy; urgency=low
 
-  * Fix infinite loop on load due to awkward schema changes. 
+  * Fix infinite loop on load due to awkward schema changes.
 
  -- Patrick Farrell <patrick.farrell06@imperial.ac.uk>  Thu, 14 Aug 2008 11:29:18 +0100
 
@@ -247,7 +247,7 @@ spud (0.2.4) unstable; urgency=low
   * Various diamond bugs reverted.
   * Interface changes to libspud.
   * Spud is now all double precision independent of compiler options.
-	
+
  -- David Ham <david.ham@imperial.ac.uk>  Tue, 27 May 2008 15:14:08 +0100
 
 spud (0.2.3) unstable; urgency=low
@@ -265,7 +265,7 @@ spud (0.2.1) unstable; urgency=low
 
 spud (0.2) unstable; urgency=low
 
-  * Transition to spud source package producing libspud-dev 
+  * Transition to spud source package producing libspud-dev
     and diamond binary packages.
 
  -- David Ham <david.ham@imperial.ac.uk>  Tue, 13 May 2008 16:15:09 +0100

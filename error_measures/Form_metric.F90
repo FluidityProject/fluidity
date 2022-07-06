@@ -16,7 +16,7 @@ module form_metric_field
   use vtk_interfaces, only: vtk_write_fields
   use recovery_estimator
   use field_options
-  
+
   implicit none
 
   interface bound_metric
@@ -51,7 +51,7 @@ module form_metric_field
       read(field%name(idx+1:len_trim(field%name)), *) dim
       adweit => extract_scalar_field(state, field%name(1:idx-1) // "InterpolationErrorBound%" // int2str(dim), allocated=allocated)
     end if
-    
+
     call form_metric(hessian, field, adweit, state)
 
     if (allocated) then
@@ -74,7 +74,7 @@ module form_metric_field
       call relative_metric(hessian, field, adweit)
     else
       ewrite(2,*) "Forming absolute metric"
-            
+
       call get_p_norm(field, p, stat)
       if(stat == 0) then
         ewrite(2, *) "Norm degree: ", p
@@ -87,25 +87,25 @@ module form_metric_field
 
     ewrite(2,*) "Bounding metric"
     call bound_metric(hessian, state)
-  
+
   contains
-  
+
     subroutine get_p_norm(field, p, stat)
       type(scalar_field), intent(in) :: field
       integer, intent(out) :: p
       integer, intent(out) :: stat
-      
+
       character(len = OPTION_PATH_LEN) :: option_path
-      
+
       stat = 0
-      
+
       option_path = complete_field_path(field%option_path, stat = stat)
       if(stat /= 0) return
-      
+
       call get_option(trim(option_path) // "/adaptivity_options/absolute_measure/p_norm", p, stat = stat)
-      
+
     end subroutine get_p_norm
-  
+
   end subroutine form_metric_weight
 
   subroutine absolute_metric(metric, adweit, p)
@@ -114,34 +114,34 @@ module form_metric_field
     type(scalar_field), intent(in) :: adweit
     !! Norm degree. Defaults to inf-norm.
     integer, optional, intent(in) :: p
-    
+
     integer :: i
-    
+
     if(present(p)) call p_norm_scale_metric(metric, p)
-    
+
     do i = 1, node_count(metric)
       call set(metric, i, node_val(metric, i) / node_val(adweit, i))
     end do
-      
+
   end subroutine absolute_metric
-  
+
   subroutine p_norm_scale_metric(metric, p)
     !!< Apply the p-norm scaling to the metric, as in Chen Sun and Zu,
     !!< Mathematics of Computation, Volume 76, Number 257, January 2007,
     !!< pp. 179-204
-    
+
     type(tensor_field), intent(inout) :: metric
     integer, intent(in) :: p
-    
+
     real :: m_det
     real, dimension(mesh_dim(metric), mesh_dim(metric)) :: evecs
     real, dimension(mesh_dim(metric)) :: evals
     integer :: i, j, n
-    
+
     assert(p > 0)
-    
+
     n = mesh_dim(metric)
-    
+
     do i = 1, node_count(metric)
       ! We really need det(metric) to be positive here
       ! This happens again in bound_metric, but it doesn't hurt to do it twice
@@ -151,16 +151,16 @@ module form_metric_field
         evals(j) = abs(evals(j))
       end do
       call eigenrecomposition(metric%val(:, :, i), evecs, evals)
-    
+
       m_det = 1.0
       do j = 1, size(evals)
         m_det = m_det * evals(j)
       end do
       m_det = max(m_det, epsilon(0.0))
-      
+
       call set(metric, i, node_val(metric, i) * (m_det ** (-1.0 / (2.0 * p + n))))
     end do
-    
+
   end subroutine p_norm_scale_metric
 
   subroutine relative_metric(hessian, field, adweit)
@@ -221,7 +221,7 @@ module form_metric_field
     call bound_metric(hessian, min_bound, max_bound)
 
   end subroutine bound_metric_anisotropic
-  
+
   subroutine bound_metric_minmax(hessian, min_bound, max_bound)
     !!< Implement the anisotropic edge length bounds.
     type(tensor_field), intent(inout) :: hessian

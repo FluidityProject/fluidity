@@ -5,13 +5,13 @@ c group (M)
      &      nP, MaxP, nF, MaxF, nE, MaxE, nPv,
      &      XYP, IPF, IPE, IPV,
      &      CrvFunction, ParCrv, iFnc,
-     &      nEStar, 
+     &      nEStar,
 c group (D)
      &      nFv, nEv, IFV, IEV, lbE,
      &      flagAuto, status,
 c group (Q)
      &      MaxSkipE, MaxQItr,
-     &      MetricFunction, Quality, rQuality, 
+     &      MetricFunction, Quality, rQuality,
 c group (W)
      &      MaxWr, MaxWi, rW, iW,
      &      iPrint, iERR)
@@ -21,7 +21,7 @@ C ==========================================================
 C ==========================================================
 C  VARIABLES & PARAMETER are described in mba_nodal.f
 C
-C  MetricFunction - integer function created by the user (see 
+C  MetricFunction - integer function created by the user (see
 C                   example in file forlibmba.f)
 C
 C    Integer Function MetricFunction(x, y, z, Metric)
@@ -30,7 +30,7 @@ C  This routine creates a metric at the given point (x,y, z). The
 C  metric is a 2x2 positive definite symmetric tensor:
 C
 C                M11   M12
-C      Metric =     
+C      Metric =
 C                M12   M22
 C
 C  Only the upper triangular part of array Metric must be defined.
@@ -51,7 +51,7 @@ C     Integer MaxP, MaxF, MaxE, MaxFnc
 C group (D)
       Integer nFv, nEv
       Integer IFV(*), IEV(*), lbE(*)
-      
+
       Logical flagAuto
       Integer status
 
@@ -74,7 +74,7 @@ C ==========================================================
 C group (Common blocks)
       Integer iDomBnd, iMatBnd
       Common /aniBND/ iDomBnd, iMatBnd
- 
+
       real  refXYP(2), scaXYP(2)
       Common /rescale/refXYP, scaXYP
 
@@ -88,29 +88,29 @@ C ==========================================================
 
 
 c ... refine initial mesh when nE is very small
-c ... it increases robustness of the code 
+c ... it increases robustness of the code
       Do while(nE < nEStar / 15 .AND. nE.LE.500 .AND. nEv+nFv.EQ.0)
          iIFE = 1
          iiW  = iIFE + 3 * nE
-         nWi  = iiW  + 3 * nE + nP 
+         nWi  = iiW  + 3 * nE + nP
          If(nWi.GT.MaxWi) goto 100
 
          iSol = 1
          nWr  = iSol + MaxP
          If(nWr.GT.MaxWr) goto 100
- 
+
          If(iPrint.GE.1) Write(*,5001) nP, nE
 
          Do i = 1, nP
             rW(iSol + i - 1) = 0D0
-         End do 
+         End do
 
          Call uniformRefinement(
      &        nP, MaxP, nF, MaxF, nE, MaxE,
      &        XYP, IPF, IPE, lbE,
      &        CrvFunction, ParCrv, iFnc, iW(iIFE),
      &        rW(iSol), 1, iW(iiW), MaxWi)
-      End do 
+      End do
 
 
  100  miLINTRP = 10 * nP + 3 * nE + 6
@@ -234,7 +234,7 @@ c ... returning sadditional information
 
 
  1000 If(iERR.EQ.0 .OR. iERR.EQ.1000) Return
-      Call errMes(iERR, 'mbaMetric', 
+      Call errMes(iERR, 'mbaMetric',
      &            'See error.f for error description')
 
       Return
@@ -243,8 +243,8 @@ c ... returning sadditional information
 
  5004 Format(/,
      &    'STONE FLOWER! (1997-2007), version 2.0', /,
-     &    'Target: Quality', F5.2, ' with', I8, 
-     &    ' triangles for at most', I8, ' iterations') 
+     &    'Target: Quality', F5.2, ' with', I8,
+     &    ' triangles for at most', I8, ' iterations')
       End
 
 
@@ -288,7 +288,3 @@ C ==========================================================
 
       Return
       End
-
-
-
-

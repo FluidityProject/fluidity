@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-
-from matplotlib.pylab import *
-
 import vtktools
+from matplotlib.pylab import *
 
 vtu = vtktools.vtu("cg_80.vtu")
 x = [coord[0] for coord in vtu.GetLocations()]
@@ -14,8 +12,8 @@ xlim(x[0], x[-1])
 ylim(-0.2, 1.2)
 xlabel("$x$")
 ylabel("$T$")
-savefig("cg.pdf", bbox_inches = matplotlib.transforms.Bbox([[-0.2, -0.2], [4.0, 3.0]]))
-savefig("cg.png", bbox_inches = matplotlib.transforms.Bbox([[-0.2, -0.2], [4.0, 3.0]]))
+savefig("cg.pdf", bbox_inches=matplotlib.transforms.Bbox([[-0.2, -0.2], [4.0, 3.0]]))
+savefig("cg.png", bbox_inches=matplotlib.transforms.Bbox([[-0.2, -0.2], [4.0, 3.0]]))
 clf()
 
 vtu = vtktools.vtu("supg_80.vtu")
@@ -28,8 +26,8 @@ xlim(x[0], x[-1])
 ylim(-0.2, 1.2)
 xlabel("$x$")
 ylabel("$T$")
-savefig("supg.pdf", bbox_inches = matplotlib.transforms.Bbox([[-0.2, -0.2], [4.0, 3.0]]))
-savefig("supg.png", bbox_inches = matplotlib.transforms.Bbox([[-0.2, -0.2], [4.0, 3.0]]))
+savefig("supg.pdf", bbox_inches=matplotlib.transforms.Bbox([[-0.2, -0.2], [4.0, 3.0]]))
+savefig("supg.png", bbox_inches=matplotlib.transforms.Bbox([[-0.2, -0.2], [4.0, 3.0]]))
 clf()
 
 vtu = vtktools.vtu("su_80.vtu")
@@ -42,6 +40,6 @@ xlim(x[0], x[-1])
 ylim(-0.2, 1.2)
 xlabel("$x$")
 ylabel("$T$")
-savefig("su.pdf", bbox_inches = matplotlib.transforms.Bbox([[-0.2, -0.2], [4.0, 3.0]]))
-savefig("su.png", bbox_inches = matplotlib.transforms.Bbox([[-0.2, -0.2], [4.0, 3.0]]))
+savefig("su.pdf", bbox_inches=matplotlib.transforms.Bbox([[-0.2, -0.2], [4.0, 3.0]]))
+savefig("su.png", bbox_inches=matplotlib.transforms.Bbox([[-0.2, -0.2], [4.0, 3.0]]))
 clf()

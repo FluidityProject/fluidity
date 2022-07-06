@@ -81,7 +81,7 @@ subroutine test_get_rotation_matrix
   a3 = (/0.98686556700264593811E+00, -0.16149555124340336798E+00, 0.39420290632705429906E-02/)
   b3 = (/0.98686556608677455937E+00, -0.16149555683264460448E+00, 0.39420293687526817075E-02/)
   mat3 = get_rotation_matrix(a3, b3)
-  
+
   fail = .false.
   if (is_nan(mat3(1,1))) fail = .true.
   call report_test("[rotation matrix NaN]", fail, .false., "Rotation matrices &
@@ -90,7 +90,7 @@ subroutine test_get_rotation_matrix
   a3 = (/0.0, 1.0, 0.0/)
   b3 = (/0.0, 1.0/sqrt(2.0), 1.0/sqrt(2.0)/)
   mat3 = get_rotation_matrix(a3, b3)
-  
+
   fail = .false.
   if (det(mat3) .fne. 1.0) fail = .true.
   call report_test("[rotation matrix determinant]", fail, .false., "Rotation &

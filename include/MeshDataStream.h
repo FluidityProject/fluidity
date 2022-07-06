@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -41,7 +41,7 @@
 #include <set>
 
 namespace Fluidity{
-  
+
   // Customised version of MyDataStream class in
   // regressiontest/rtree/RTreeBulkLoad.cc in spatialindex 1.2.0
   class MeshDataStream : public SpatialIndex::IDataStream{
@@ -49,7 +49,7 @@ namespace Fluidity{
     MeshDataStream(const double*& positions, const int& nnodes, const int& dim,
                    const int*& enlist, const int& nelements, const int& loc);
     virtual ~MeshDataStream();
-    
+
     virtual SpatialIndex::IData* getNext();
     virtual bool hasNext();
     virtual uint32_t size();
@@ -80,7 +80,7 @@ namespace Fluidity{
     const int* enlist;
     int dim, index, nelements, loc, nnodes;
   };
-  
+
   class ExpandedMeshDataStream : public MeshDataStream
   {
     public:
@@ -88,15 +88,15 @@ namespace Fluidity{
                    const int*& enlist, const int& nelements, const int& loc, const double& expansionFactor)
         : MeshDataStream(positions, nnodes, dim, enlist, nelements, loc),
           expansionFactor(fabs(expansionFactor))
-      {      
+      {
         return;
       }
-                   
+
       inline virtual ~ExpandedMeshDataStream()
       {
         return;
       }
-      
+
       virtual SpatialIndex::IData* getNext();
     private:
       double expansionFactor;

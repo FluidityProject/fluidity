@@ -57,7 +57,7 @@ the newly adapted mesh) become more complicated than with hierarchical refinemen
 
 This chapter is divided as follows. Firstly, we orient the user by describing a typical
 adaptive loop used in \fluidity\ (section \ref{sec:typical_adaptive_loop}). Before
-discussing how to configure mesh adaptivity, we introduce some necessary background ideas: 
+discussing how to configure mesh adaptivity, we introduce some necessary background ideas:
 section \ref{sec:meshes_and_metrics} describes how a metric tensor field
 may be used to encode the desired mesh, and section \ref{sec:adaptive_remeshing_technology} describes how the
 mesh optimisation procedure in \fluidity\ uses this metric tensor to generate an adapted mesh. Finally,
@@ -84,7 +84,7 @@ desired initial conditions. This involves:
   \item The metric is then smoothed with a gradation algorithm to avoid large jumps in mesh sizing.
   \item The metric is scaled so that the expected number of nodes it will yield after adapting is no more than the maximum number of nodes.
   \item The metric is then passed to the adaptivity algorithm, which modifies the mesh until it satisfies the sizing requirements given in the metric.
-  \item Since the simulation time has not yet advanced, the initial conditions are reapplied on the newly-generated adapted mesh. 
+  \item Since the simulation time has not yet advanced, the initial conditions are reapplied on the newly-generated adapted mesh.
   \end{enumerate}
      This procedure is iterated 6 times so that the adaptive algorithm can recognise the anisotropy of the step.
 \item Once the initial mesh has converged, the simulation time loop proceeds. The lock--exchange simulation invokes
@@ -134,7 +134,7 @@ d_M(x, y) = ||x - y||_M = \sqrt{\langle x - y, x - y \rangle}.
 \end{equation}
 Note that the symmetric positive-definite condition is necessary for the tensor
 to induce a sense of distance: for otherwise, the tensor does not induce
-a norm. 
+a norm.
 
 Now let $\metric$ be a symmetric positive-definite tensor field. As long as
 $\metric$ is sufficiently smooth, then it also induces an inner product
@@ -192,7 +192,7 @@ specification, by means of an automatic mesh generator. This was first introduce
 sizing and directionality inputs to an advancing front mesh generator. While this is the fastest
 approach if the existing mesh and the desired mesh are very different, developing a robust metric-aware
 mesh generator is very difficult, and to the best of the author's knowledge no open-source algorithm
-is available for this problem. 
+is available for this problem.
 
 By contrast, local remeshing is a mechanism of adaptive remeshing in which cavities of elements are removed
 and the hole remeshed \citep{hassan1998}. These cavities are identified by measuring
@@ -215,7 +215,7 @@ merging adjacent elements, splitting an element into two or more child elements,
 edges or faces, and moving nodes in the mesh. For diagrams of some example optimisation
 operations see figure \ref{fig:edge_operations}.
 
-\begin{figure}[h] 
+\begin{figure}[h]
 \centering
 \subfigure[2D]{\includegraphics[width=0.475\textwidth, clip = True, trim = 35mm 165mm 32.5mm 20mm]{./adaptivity_images/piggott2009_pg4}} \hspace{7mm}
 \subfigure[3D]{\includegraphics[width=0.45\textwidth, clip = True, trim = 25mm 35mm 95mm 185mm]{./adaptivity_images/pain2001_pg3}}
@@ -299,7 +299,7 @@ options so that the simulation terminates after one timestep, so that the adapti
 for the initial condition.
 
 Now run the problem, and inspect the adapted\_state\_*.vtu that result. Each VTU is the \emph{output}
-of the adaptivity loop, and hopefully convergence of the adaptive procedure towards some 
+of the adaptivity loop, and hopefully convergence of the adaptive procedure towards some
 mesh should be observed. If the adapted mesh is satisfactory, then record the adaptivity parameters
 used for this field, and repeat the procedure on any other fields to which you wish to adapt that
 have nontrivial boundary conditions. Once you are happy with the initial mesh, run the simulation further
@@ -318,7 +318,7 @@ Historically, the interpolation error was first controlled in the $L_{\infty}$ n
 the maximum value of the interpolation error over the domain. The metric formulation which
 controls the $L_{\infty}$ norm is the simplest, and remains the default in \fluidity. Since the $L_{\infty}$
 norm considers only the least accurate point in the domain, without regard to the relative size of the
-interpolation error there, then it can have a tendency to focus the resolution entirely on the 
+interpolation error there, then it can have a tendency to focus the resolution entirely on the
 dynamics of largest magnitude. Other authors have instead proposed the use of the $L_p$ norm, which incorporates
 more influence from dynamics of smaller magnitude \citep{alauzet2008,loseille2010ii}. Empirical experience indicates that choosing $p=2$, and hence the $L_2$ norm, generally gives better results, and for that reason we recommend it as the default for all new adaptivity configurations.
 
@@ -359,7 +359,7 @@ In all cases, the field weights should be the main parameters to vary to control
 of the adapted meshes.
 
 \subsection{Gradation parameter} \label{sec:gradation_parameter}
-In numerical simulations, a smooth transition from small elements to large elements is generally important for mesh quality. 
+In numerical simulations, a smooth transition from small elements to large elements is generally important for mesh quality.
 A mesh sizing function derived from error considerations may
 yield sudden changes in desired mesh edge length, due to the
 nature of the problem being resolved. Such sudden changes are undesirable
@@ -402,8 +402,8 @@ reasons are based on physics: a maximum size may be based on the size of the dom
 resolves a spatial scale that allows an instability to develop (the latter case would be better
 handled with a more advanced \emph{a posteriori} error measure of course), or simply a consequence of
 the time/memory constraints of the machine the problem is running on. The bad reason is to control
-the mesh when the field weights have been chosen poorly. However, it is often 
-unavoidable that the weights and max/min edge length sizes will be chosen in tandem to achieve 
+the mesh when the field weights have been chosen poorly. However, it is often
+unavoidable that the weights and max/min edge length sizes will be chosen in tandem to achieve
 an appropriate mesh, especially for experienced users --- new users should be wary whenever maximum
 and particularly minimum size constraints are actually hit in the mesh and as a first stage should
 look to vary the weights to achieve the mesh they desire.
@@ -414,8 +414,8 @@ constraints being broken (slightly) in places.
 
 \subsection{Maximum and minimum numbers of nodes} \label{sec:max_min_nodes}
 Similar to the edge length size constraint above, it is possible to limit the maximum and minimum number of nodes
-that the mesh optimisation procedure returns. For reasons very similar to above this is potentially dangerous, 
-but somewhat necessary. 
+that the mesh optimisation procedure returns. For reasons very similar to above this is potentially dangerous,
+but somewhat necessary.
 
 This is effected by computing the expected number of nodes from the given metric. If the expected
 number of nodes is greater than the maximum number of nodes, the metric resolution is homogenously
@@ -424,18 +424,18 @@ limit on the number of nodes is employed, the metric resolution is homogenously 
 would yield a mesh with fewer nodes.
 
 For new users, altering the weights should be the primary way to control the
-size of the adapted mesh. 
+size of the adapted mesh.
 
 \subsection{Metric advection}
 \label{section:metric_advection_general}
-Metric advection is a technique that uses the current flow velocity to advect the metric forward in time over the period until the next mesh adapt. This allows an estimate of the mesh resolution required at each time--step before the next adapt to be obtained and incorporated into the adapted mesh \citep{wilson_phdthesis_2009}. Each component of the metric is advected as a scalar using a control volume scheme with the time--step determined by a specified Courant number section \ref{sec:ND_control_volume_advection}. 
+Metric advection is a technique that uses the current flow velocity to advect the metric forward in time over the period until the next mesh adapt. This allows an estimate of the mesh resolution required at each time--step before the next adapt to be obtained and incorporated into the adapted mesh \citep{wilson_phdthesis_2009}. Each component of the metric is advected as a scalar using a control volume scheme with the time--step determined by a specified Courant number section \ref{sec:ND_control_volume_advection}.
 
 With metric advection, mesh resolution is `pushed ahead' of the flow such that, between mesh adapts, the dynamics of interest are less likely to propagate out of the region of higher resolution. This leads to a larger area that requires refinement and, therefore, an increase in the number of nodes. However, metric advection can allow the frequency of adapt to be reduced whilst maintaining a good representation of the dynamics
 
-In the lock--exchange example, section \ref{sec:lock_exchange}, consider an adapted mesh with high resolution in the region of the interface between the two fluids. As the simulation proceeds, the gravity current fronts may propagate out of this high resolution region before the next adapt. This can lead to a more diffuse interface due to increased numerical diffusion from the advection method at coarser resolutions. Metric advection would increase the resolution in the adapted mesh not only in the interface, but also ahead of it, in the region into which the gravity current fronts will propagate. 
+In the lock--exchange example, section \ref{sec:lock_exchange}, consider an adapted mesh with high resolution in the region of the interface between the two fluids. As the simulation proceeds, the gravity current fronts may propagate out of this high resolution region before the next adapt. This can lead to a more diffuse interface due to increased numerical diffusion from the advection method at coarser resolutions. Metric advection would increase the resolution in the adapted mesh not only in the interface, but also ahead of it, in the region into which the gravity current fronts will propagate.
 
 The options for metric advection can be found under \option{/mesh\_adaptivity/hr\_adaptivity/metric\_advection}, section \ref{sec:configuring_fluidity_metric_advection}.
- 
+
 \section{Interpolation} \label{sec:interpolation_algorithms}
 As mentioned previously, the application of adaptive remeshing
 divides naturally into three sub-problems. The first is to decide what mesh
@@ -451,10 +451,10 @@ its use.
 
 There are several good reasons for this. The drawbacks of consistent
 interpolation can be summarised as having suboptimal interpolation error,
-its unsuitability for discontinuous fields, and its lack of conservation. 
+its unsuitability for discontinuous fields, and its lack of conservation.
 Firstly, for stationary problems, the
 interpolated solution is only used as an initial guess for the next solve,
-so any errors introduced in the interpolation have a minimal effect. 
+so any errors introduced in the interpolation have a minimal effect.
 Secondly, even for transient simulations, the interpolation error introduced
 is often acceptably low, provided the adapted mesh is suitable for the representation
 of the data. Thirdly, its unsuitability for
@@ -469,7 +469,7 @@ operators is diffusive and cannot exploit discontinuous functions in the target
 function space. Thirdly, consistent interpolation is inherently nonconservative,
 which is a key requirement for the discretisation of certain problems.
 Without a conservative interpolation operator available, adaptive remeshing
-cannot be applied to these problems. 
+cannot be applied to these problems.
 
 The standard method, consistent interpolation, consists of evaluating
 the previous solution at the locations of the nodes in the adapted
@@ -502,9 +502,9 @@ been interpolated to provide clues for the search for the parent of unprocessed
 nodes.
 
 \citet{george1998} discuss the necessity
-of solution interpolation after adaptive remeshing, note the 
-non-conservative character of consistent interpolation, and propose  
-the use of the Galerkin projection from mesh to mesh by means of 
+of solution interpolation after adaptive remeshing, note the
+non-conservative character of consistent interpolation, and propose
+the use of the Galerkin projection from mesh to mesh by means of
 mesh intersection. Galerkin projection is the optimally accurate
 projection in the $L_2$ norm, and is conservative, but its implementation
 is very difficult. The fundamental reason for this difficulty is that
@@ -550,7 +550,7 @@ involving the target mesh mass matrix, which is why additional options under \op
 to configure how this linear system is solved.) If Dirichlet conditions should be enforced through the Galerkin projection
 procedure, set the \option{\ldots/galerkin\_projection/honour\_strong\_boundary\_conditions} option.
 
-If the bounded variant of Galerkin projection is desired, activate the 
+If the bounded variant of Galerkin projection is desired, activate the
 \option{\ldots/galerkin\_projection/continuous/bounded::Diffuse} option. The algorithm
 to bound the Galerkin projection is iterative, and the user must set a limit on the number
 of iterations it will perform with \option{boundedness\_iterations}. If the bounds are known
@@ -570,12 +570,12 @@ elements below the element quality cutoff.
 \item Repeat the two steps above up to \option{adapt\_iterations} (default value of $3$).
 \item Finally re-partition without applying edge-weighting to return a
 load balanced mesh.
-\end{itemize} 
+\end{itemize}
 
-Zoltan is a parallel partitioning and data distribution library 
+Zoltan is a parallel partitioning and data distribution library
 \citep{devine2002}. It is used within \fluidity\ to do the mesh re-
 partitioning during the parallel adaptivity. Zoltan gives access to
-various different partitioning libraries; ParMETIS, PT-Scotch as well as 
+various different partitioning libraries; ParMETIS, PT-Scotch as well as
 its own graph and hypergraph partitioners. For the intermediate adapt iterations
 (when edge-weighting is applied) the partitioner to be used by default
 is Zoltan graph and this can be changed using the \option{partitioner} option
@@ -605,18 +605,16 @@ The percentage of time spent in the adaptivity routines for simulations of the l
 \centering
 \begin{tabular}{|c|c|c|c|c|c|c|} \hline
 \multicolumn{4}{|c|}{Adaptivity options} & \multicolumn{3}{c|}{$\%$ of total simulation time spent in adaptivity routines} \\ \hline
-Metric & Adapt & Interpolation & Metric      &   Metric formation    & Remesh & Total          \\             
-                & frequency & method & advection &                       &  and interpolation    &                \\ \hline                                              
-$M_\infty$ & 10 & CI & no              &  4.0                  &    3.5               &   7.5               \\    
-$M_\infty$ & 10 & CI & yes -- 5              &  25.7                 &    2.2                & 27.9             \\       
-$M_\infty$ & 10 & CI & yes -- 10            & 18.5                 &    2.6                & 21.1             \\   
-$M_\infty$ & 40 & CI & yes -- 5           &  29.5                 &    0.7                &   30.1         \\     
-$M_\infty$ & 40 & CI & yes -- 10           &  17.8                &   0.9                &  18.7            \\      
- $M_\infty$ & 10 & bd GP & no          & 3.5                   &   14.0                &  17.5             \\                         
+Metric & Adapt & Interpolation & Metric      &   Metric formation    & Remesh & Total          \\
+                & frequency & method & advection &                       &  and interpolation    &                \\ \hline
+$M_\infty$ & 10 & CI & no              &  4.0                  &    3.5               &   7.5               \\
+$M_\infty$ & 10 & CI & yes -- 5              &  25.7                 &    2.2                & 27.9             \\
+$M_\infty$ & 10 & CI & yes -- 10            & 18.5                 &    2.6                & 21.1             \\
+$M_\infty$ & 40 & CI & yes -- 5           &  29.5                 &    0.7                &   30.1         \\
+$M_\infty$ & 40 & CI & yes -- 10           &  17.8                &   0.9                &  18.7            \\
+ $M_\infty$ & 10 & bd GP & no          & 3.5                   &   14.0                &  17.5             \\
 $M_2$ & 10 & CI & no	& 4.1			& 3.4			& 7.5		 \\ \hline
 \end{tabular}
 \caption[Percentage of total simulation run time spent in adaptive mesh routines for adaptive mesh simulations of the lock--exchange.]{Percentage of time spent in adaptivity routines for adaptive mesh simulations of the lock--exchange, section \ref{sec:lock_exchange} \citep{hiester2011}. The simulations were run from $t=0\,$s until $t=25.025\,$s, the time the free--slip head nears the end wall. This is equivalent to 1001 time--steps and 100 adapts when adapting every 10 time--steps and 25 adapts when adapting every 40 time--steps. The adapt frequency is given in number of time steps. For the interpolation method CI: consistent interpolation and bd GP: bounded Galerkin projection. For those simulations that use metric advection the number given is the CFL number used to determine the time step used in the calculation of advection of the metric components.}
 \label{table:adaptivity_cost}
 \end{table}
-
-

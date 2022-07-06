@@ -2182,7 +2182,7 @@ contains
                 end do
                 if (found_attribute.eqv..false.) then
                    FLExit("Could not find particle attribute "//trim(lattribute)//" in particle group "//trim(lgroup)//". Check attribute is a scalar.")
-                end if 
+                end if
              else
                 particle_attributes = option_count("/particles/particle_group["//int2str(i-1)//"]/particle_subgroup["//int2str(0)//"]/attributes/scalar_attribute_array")
                 l = 0

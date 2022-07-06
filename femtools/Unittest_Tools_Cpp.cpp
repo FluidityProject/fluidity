@@ -11,7 +11,7 @@ void report_test(const string& title, const bool& fail, const bool& warn, const 
   }else{
     cout << "Pass: " << title << "\n";
   }
-  
+
   return;
 }
 

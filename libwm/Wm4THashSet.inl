@@ -182,7 +182,7 @@ TKEY* THashSet<TKEY>::GetNext () const
         {
             return &m_pkItem->m_tKey;
         }
-        
+
         for (m_iIndex++; m_iIndex < m_iTableSize; m_iIndex++)
         {
             if (m_apkTable[m_iIndex])

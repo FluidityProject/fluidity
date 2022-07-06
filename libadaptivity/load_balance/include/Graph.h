@@ -40,19 +40,19 @@
 namespace csr{
 
 class Graph{
- public:  
+ public:
   Graph();
   Graph(const std::map<unsigned, std::set<unsigned> >&);
   ~Graph();
-  
-  void build(const std::map<unsigned, std::set<unsigned> >& _edges, 
+
+  void build(const std::map<unsigned, std::set<unsigned> >& _edges,
 	     const std::deque<int>& _eweights);
   void setVertexWeights(const std::deque<float>);
-  void buildEdgeWeights_adapt(const std::deque< std::set<unsigned> >&, 
-			      const std::map<unsigned, unsigned>&, 
+  void buildEdgeWeights_adapt(const std::deque< std::set<unsigned> >&,
+			      const std::map<unsigned, unsigned>&,
 			      const std::deque<samfloat_t>&,
 			      samfloat_t);
-  
+
 
   void clear();
   int *get_cptr_bptr();
@@ -70,10 +70,10 @@ class Graph{
   void PartGraphKway(int nparts, std::vector<int>& noddom);
   // Minimize communication volume rather than edge-cut
   void PartGraphVKway(int nparts, std::vector<int>& noddom);
-  
+
   // Multi-constraint partitioning
   void mCPartGraphRecursive(int nparts, int nconstraints, std::vector<int>& noddom);
-  void mCPartGraphKway(int nparts, int nconstraints, std::vector<samfloat_t>& vcon, 
+  void mCPartGraphKway(int nparts, int nconstraints, std::vector<samfloat_t>& vcon,
 		       std::vector<int>& noddom);
 
   // Partitions of different sizes.

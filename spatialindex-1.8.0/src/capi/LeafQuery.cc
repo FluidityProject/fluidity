@@ -6,7 +6,7 @@
  * Copyright (c) 2009, Howard Butler
  *
  * All rights reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
@@ -28,7 +28,7 @@
 
 #include <spatialindex/capi/sidx_impl.h>
 
-LeafQuery::LeafQuery() 
+LeafQuery::LeafQuery()
 {
 
 }
@@ -49,12 +49,12 @@ LeafQueryResult get_results(const SpatialIndex::INode* n)
 	result.SetIDs(ids);
 	result.SetBounds(pr);
     delete ps;
-	
+
 	return result;
 }
-void LeafQuery::getNextEntry(	const SpatialIndex::IEntry& entry, 
-								SpatialIndex::id_type& nextEntry, 
-								bool& hasNext) 
+void LeafQuery::getNextEntry(	const SpatialIndex::IEntry& entry,
+								SpatialIndex::id_type& nextEntry,
+								bool& hasNext)
 {
 
 	const SpatialIndex::INode* n = dynamic_cast<const SpatialIndex::INode*>(&entry);
@@ -71,7 +71,7 @@ void LeafQuery::getNextEntry(	const SpatialIndex::IEntry& entry,
 	if (n->isLeaf()) {
 		m_results.push_back(get_results(n));
 	}
-			
+
 	if (! m_ids.empty())
 	{
 		nextEntry = m_ids.front(); m_ids.pop();
@@ -80,7 +80,7 @@ void LeafQuery::getNextEntry(	const SpatialIndex::IEntry& entry,
 	else
 	{
 		hasNext = false;
-	}	 
+	}
 }
 
 
@@ -89,7 +89,7 @@ std::vector<SpatialIndex::id_type> const& LeafQueryResult::GetIDs() const
     return ids;
 }
 
-void LeafQueryResult::SetIDs(std::vector<SpatialIndex::id_type>& v) 
+void LeafQueryResult::SetIDs(std::vector<SpatialIndex::id_type>& v)
 {
     ids.resize(v.size());
     std::copy(v.begin(), v.end(), ids.begin());
@@ -99,7 +99,7 @@ const SpatialIndex::Region*  LeafQueryResult::GetBounds() const
     return bounds;
 }
 
-void LeafQueryResult::SetBounds(const SpatialIndex::Region*  b) 
+void LeafQueryResult::SetBounds(const SpatialIndex::Region*  b)
 {
     bounds = new SpatialIndex::Region(*b);
 }
@@ -109,7 +109,7 @@ LeafQueryResult::LeafQueryResult(LeafQueryResult const& other)
     ids.resize(other.ids.size());
     std::copy(other.ids.begin(), other.ids.end(), ids.begin());
     m_id = other.m_id;
-    
+
     bounds = other.bounds->clone();
 }
 
@@ -124,4 +124,3 @@ LeafQueryResult& LeafQueryResult::operator=(LeafQueryResult const& rhs)
     }
     return *this;
 }
-

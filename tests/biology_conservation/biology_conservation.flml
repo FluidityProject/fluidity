@@ -698,7 +698,7 @@ biology.pznd(state, p)</string_value>
 	from math import cos, pi
 	day=3600*24.
 	year=365.*day
-	
+
 	light=100*(1-cos(2*pi*t/year))+10
 	return light</string_value>
               </python>

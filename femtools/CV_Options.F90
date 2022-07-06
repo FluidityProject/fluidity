@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -62,7 +62,7 @@ module cv_options
                                 CV_UPWINDVALUE_PROJECT_GRAD=2, &
                                 CV_UPWINDVALUE_LOCAL=3, &
                                 CV_UPWINDVALUE_STRUCTURED=4
-                                
+
    type cv_options_type
       ! this is a wrapper type to pass around all the options a control
       ! volume field needs to be advected
@@ -200,7 +200,7 @@ contains
     call get_option(trim(complete_cv_field_path(option_path))//&
                     '/face_value[0]/limit_face_value/limiter[0]/slopes&
                     &/upper', cv_options%limiter_slopes(2), default=2.0)
-                    
+
     cv_options%upwind_scheme=cv_upwind_scheme(option_path, element_family, dim)
 
   end function get_cv_options
@@ -299,14 +299,14 @@ contains
   end function cv_projection_node
 
   function cv_upwind_scheme(option_path, element_family, dim) result(upwind_scheme)
-  
+
     character(len=*), intent(in) :: option_path
     integer, intent(in) :: element_family, dim
     integer :: upwind_scheme
-    
+
     character(len=OPTION_PATH_LEN) :: spatial_discretisation_path, upwind_value_path
     logical :: project_point, project_grad, local, structured
-    
+
     spatial_discretisation_path = trim(complete_cv_field_path(option_path))
 
     if(have_option(trim(spatial_discretisation_path)//"/face_value[0]/limit_face_value")) then
@@ -330,7 +330,7 @@ contains
     ! do we want to use pseudo-structured values as the upwind value?
     structured = have_option(trim(upwind_value_path)//&
                     '/pseudo_structured_upwind_value')
-    
+
     ! in case none (or both) selected default to family type selection
     select case(element_family)
     case (FAMILY_SIMPLEX) ! use projection except in 1d
@@ -362,5 +362,5 @@ contains
     end if
 
   end function cv_upwind_scheme
-  
+
 end module cv_options

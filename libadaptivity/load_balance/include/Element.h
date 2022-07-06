@@ -53,7 +53,7 @@ class Element{
   Element();
   Element(const Element& element);                   // Copy constructor
   ~Element();
-  
+
   // Overloaded operators.
   friend std::ostream &operator<<(std::ostream& out, const Element& in);
   Element &operator=(const Element& in);
@@ -70,25 +70,25 @@ class Element{
 
   void  set_eid(const eid_t);
   eid_t get_eid() const;
-  
+
   void set_flags(const unsigned char flags);
   unsigned char get_flags() const;
-  
+
   void set_enlist(const std::vector<unn_t>&);
   void set_MFenlist(const std::vector<unn_t>&);
 
   const std::vector<unn_t>& get_enlist() const;
   const std::vector<unn_t>& get_MFenlist() const;
-  
+
   unsigned get_size_enlist() const;
   unsigned get_size_MFenlist() const;
-  
+
   void set_ifields(const std::vector<int>&);
   void set_fields(const std::vector<samfloat_t>&);
-  
-  const std::vector<int>& get_ifields() const;  
+
+  const std::vector<int>& get_ifields() const;
   const std::vector<samfloat_t>& get_fields() const;
-  
+
   size_t get_size_ifields() const;
   size_t get_size_fields() const;
 
@@ -99,13 +99,13 @@ class Element{
  private:
   eid_t eid;                   // element id number.
   unsigned char flags;         // states: {ELM_DEFAULT, ELM_CHECK, ELM_DELETE} */
-  std::vector<unn_t> nodes;    // the element-node list. 
+  std::vector<unn_t> nodes;    // the element-node list.
   std::vector<unn_t> MFnodes;  // Stores the varies mixed-formulation elements aligned with this element.
-  
+
   // All integer variables associated with this element. This will
   // include region id information for example.
   std::vector<int> ifields;
-  
+
   // All real variables associated with this element.  NOTE: in the
   // case of discontinious methods, information regarding field values
   // would be included here.

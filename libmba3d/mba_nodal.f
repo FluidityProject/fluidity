@@ -12,13 +12,13 @@ C ================================================================
 c group (M)
      &      nP, MaxP, nF, MaxF, nE, MaxE,
      &      XYP, IPF, IPE, lbF, lbE,
-     &      nEStar, 
+     &      nEStar,
 c group (Dev)
-     &      nPv, nFv, nEv, IPV, IFV, IEV, 
+     &      nPv, nFv, nEv, IPV, IFV, IEV,
      &      flagAuto, status,
 c group (Q)
      &      MaxSkipE, MaxQItr,
-     &      Metric, Quality, rQuality, 
+     &      Metric, Quality, rQuality,
 c group (W)
      &      MaxWr, MaxWi, rW, iW,
      &      iPrint, iERR)
@@ -42,7 +42,7 @@ C     XYP(3, MaxP) - Cartesian coordinates of mesh points
 C     IPE(4, MaxE) - connectivity list of element
 C     IPF(3, MaxF) - connectivity list of faces
 C
-C  ***AUX 1: lbF to lbE. 
+C  ***AUX 1: lbF to lbE.
 C     lbF(MaxF) - boundary identificator
 C                   (a positive number strictly less than 1400=MaxS-100,
 C                    colors from MaxS-99 to MaxS are reserved)
@@ -90,20 +90,20 @@ C                    is the input/output parameter.
 C
 C
 C     MaxSkipE  - the maximal number of skipped elements.
-C                   The bad elements are put is a basket if their 
-C                   cannot be fixed. These bad elements will be 
-C                   skipped (temporary) from analysis. The basket 
-C                   size is MaxSkipE. When it is full, all elements 
+C                   The bad elements are put is a basket if their
+C                   cannot be fixed. These bad elements will be
+C                   skipped (temporary) from analysis. The basket
+C                   size is MaxSkipE. When it is full, all elements
 C                   are released back into the mesh.
 C
 C  ***BASIC 3: MaxQItr to iERR
 C     MaxQItr   - the maximal number of local grid modifications
 C
-C     Metric(6,nP) - metric defined at mesh nodes. The metric is 
+C     Metric(6,nP) - metric defined at mesh nodes. The metric is
 C                    a 3x3 symmetric matrix M_ij. Each column of
 C                    this array stores the upper diagonal entries
-C                    in the following order: M_11, M_22, M_33, 
-C                    M_12, M_23, M_13.   
+C                    in the following order: M_11, M_22, M_33,
+C                    M_12, M_23, M_13.
 C
 C     Quality   - target quality for the final grid
 C                    (a positive number between 0 and 1)
@@ -112,10 +112,10 @@ C
 C     MaxWr     - size of the working real*8 array
 C     MaxWi     - size of the wirking integer array
 C
-C     rW(MaxWr) - real*8  working array. On output: 
+C     rW(MaxWr) - real*8  working array. On output:
 C                   rW(1) - mesh generation time
 C                   rW(2) - rQuality
-C                   rW(3) - average size of elements with respect 
+C                   rW(3) - average size of elements with respect
 C                           to the given metrici (hStar in theory)
 C                   rW(4:nE+3) - quality of elements
 C
@@ -137,7 +137,7 @@ C                 iW(nP + 1) - the number of performed iterations
 C
 C     iPrint - nonnegative number 10 * A + B:
 C                B - level of output information:
-C                      0 - nothing 
+C                      0 - nothing
 C                      9 - maximum
 C
 C                A - output chanel number (between 0 and 99):
@@ -148,13 +148,13 @@ C
 C     iERR   - error code:
 C              0  - correct program termination
 C           1000  - target quality was not reached (warning)
-C           other - error as desribed in error.f 
+C           other - error as desribed in error.f
 C
 C ================================================================
 C
 C  Note:
-C       Input parameters:  MaxP, MaxF, MaxE, 
-C                          nEStar, nPv, nFv, nEv, IPV, IFV, IEV, 
+C       Input parameters:  MaxP, MaxF, MaxE,
+C                          nEStar, nPv, nFv, nEv, IPV, IFV, IEV,
 C                          flagAuto, MaxSkipE, MaxQItr,
 C                          Metric, Quality, MaxWr, MaxWi, iPrint
 C
@@ -181,8 +181,8 @@ C  A short version (mbaNodalShort) can be used when there are
 C  no curvilinear boundaries. The following parameters are set
 C  by default and have to be changed if necessary:
 C
-C       MaxSkipE =  200  
-C       MaxQItr  =  min(50000, nE)  
+C       MaxSkipE =  200
+C       MaxQItr  =  min(50000, nE)
 C       Quality  =  0.3
 C
 C  Remark:
@@ -204,7 +204,7 @@ C     Integer MaxP, MaxF, MaxE
       Integer lbF(*), lbE(*)
 
 C group (Dev)
-      Integer nPv, nFv, nEv, IPV(*), IFV(*), IEV(*) 
+      Integer nPv, nFv, nEv, IPV(*), IFV(*), IEV(*)
       Logical flagAuto
       Integer status
 
@@ -294,7 +294,7 @@ c     iW(1) is overloaded to return colors & nQItr
 c ... memory for sequantial running (is cleaned)
 c     rW(1) is overloaded to return total time
       iHesP = 1
-      idG = iHesP + 6 * MaxP 
+      idG = iHesP + 6 * MaxP
       iqE = idG + MaxP
       iXYPw = iqE + MaxE
       irSE = iXYPw + 3 * nP
@@ -343,7 +343,7 @@ c ... scale geometry to unit cube
 c ... setting the fixed metric for the future loops
       nPw = nP
       nEw = nE
-      Call copyMeshData(nP, nE, XYP, Metric, IPE, 
+      Call copyMeshData(nP, nE, XYP, Metric, IPE,
      &                  rW(iXYPw), rW(iHesP), iW(iIPEw))
 
       Call checkMetric(nP, rW(iHesP))
@@ -363,8 +363,8 @@ c ... runing the basic algorithm for the global grid
       flagAnalytic = .FALSE.
       Call ani2(
 c group (M)
-     &     nP, MaxP, nF, MaxF, nE, MaxE, 
-     &     XYP, iW(iIPF), iW(iIPE), 
+     &     nP, MaxP, nF, MaxF, nE, MaxE,
+     &     XYP, iW(iIPF), iW(iIPE),
      &     nEStar, hStar,
      &     iW(iICP), iW(iIPP), iW(iIEP),
      &     iW(iIFE), iW(iIEE),
@@ -374,11 +374,11 @@ c group (M)
      &     miLINTRP, mrLINTRP, iW(iIPEw), iW(iiSE),
      &     flagAuto, statusWork,
 c group (Dev)
-     &     nPv, nFv, nEv, IPV, IFV, IEV, 
+     &     nPv, nFv, nEv, IPV, IFV, IEV,
 c group (Q)
      &     MaxSkipE, MaxQItr, MaxBasketsGrid,
-     &     rW(iHesP), Quality, rQuality, 
-     &     rW(idG), rW(iqE), 
+     &     rW(iHesP), Quality, rQuality,
+     &     rW(idG), rW(iqE),
      &     nPw, nEw, rW(iXYPw), Metric, rW(irSE),
      &     MetricFunction_ani, flagAnalytic,
 c group (ERR)
@@ -426,7 +426,7 @@ c ... original structure of the data
       m = iIPE - 1
       Do n = 1, nE
          Do i = 1, 4
-            IPE(i, n) = iW(m + i) 
+            IPE(i, n) = iW(m + i)
          End do
          lbE(n) = iW(m + 5)
          m = m + 5
@@ -467,7 +467,7 @@ c group (M)
      &      nP, MaxP, nF, MaxF, nE, MaxE,
      &      XYP, IPF, IPE, lbF,
      &      nEStar, status,
-     &      Metric, 
+     &      Metric,
 c group (W)
      &      MaxWr, MaxWi, rW, iW,
      &      iPrint, iERR)
@@ -530,7 +530,7 @@ c ... setup of missing parameter
       iIPV = 1
       ilbE = iIPV + MaxF
       iIFV = ilbE + MaxE
-      iIEV = iIFV + nFv + 1 
+      iIEV = iIFV + nFv + 1
       iiEnd = iIEV + nEv + 1
 
 
@@ -542,13 +542,13 @@ c ... setup of missing parameter
 c group (M)
      &      nP, MaxP, nF, MaxF, nE, MaxE,
      &      XYP, IPF, IPE, lbF, iW(ilbE),
-     &      nEStar, 
+     &      nEStar,
 c group (Dev)
-     &      nPv, nFv, nEv, iW(iIPV), iW(iIFV), iW(iIEV), 
+     &      nPv, nFv, nEv, iW(iIPV), iW(iIFV), iW(iIEV),
      &      flagAuto, status,
 c group (Q)
      &      MaxSkipE, MaxQItr,
-     &      Metric, Quality, rQuality, 
+     &      Metric, Quality, rQuality,
 c group (W)
      &      MaxWr, MaxWi - iiEnd, rW, iW(iiEnd),
      &      iPrint, iERR)

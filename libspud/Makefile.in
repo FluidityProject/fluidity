@@ -54,7 +54,7 @@ VPATH = src/
 default: libspud.la build-diamond
 
 libspud.la: $(OBJS)
-	./libtool --mode=link --tag=FC $(FC) $(FCFLAGS) -o $(LIB) $(OBJS) $(LIBS) -rpath @prefix@/lib 
+	./libtool --mode=link --tag=FC $(FC) $(FCFLAGS) -o $(LIB) $(OBJS) $(LIBS) -rpath @prefix@/lib
 	if test -f .libs/libspud.a; then cp .libs/libspud.a .; fi
 	(if test -f .libs/libspud.so; then cp .libs/libspud.so ./libspud.so.0; ln -s libspud.so.0 libspud.so; fi) || true
 
@@ -71,7 +71,7 @@ junittest: libspud.la
 
 .PHONY:doc
 
-doc: 
+doc:
 	@cd doc; $(MAKE) spud_manual.pdf
 
 install: install-libspud install-spudtools install-diamond install-pyspud install-dxdiff
@@ -85,7 +85,7 @@ install-libspud: libspud.la
 	@INSTALL@ $(MODS) $(DESTDIR)@prefix@/include
 	@INSTALL@ $(HEADERS) $(DESTDIR)@prefix@/include
 
-install-spudtools: 
+install-spudtools:
 	@INSTALL@ -d $(DESTDIR)@prefix@/share/spud
 	@INSTALL@ -d $(DESTDIR)@prefix@/bin
 	@INSTALL@ -m755 bin/spud-preprocess $(DESTDIR)@prefix@/bin
@@ -130,5 +130,5 @@ distclean: clean
 	rm -fr debian/diamond debian/python3-dxdiff debian/python3-spud
 	rm -fr debian/spudtools debian/libspud-dev
 	rm -rf diamond/diamond.egg-info/
-	rm -f debian/*.debhelper* debian/*.substvars 
+	rm -f debian/*.debhelper* debian/*.substvars
 	rm -f build-* debian/files

@@ -54,5 +54,4 @@ default: $(OBJS)
 	cp *.o ../obj/
 
 clean:
-	rm -f *.o 
-
+	rm -f *.o

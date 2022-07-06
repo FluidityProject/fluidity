@@ -35,7 +35,7 @@ FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/in
 MPIF90  = @MPIF90@
 
 CC      = @CC@
-CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I/usr/local/include 
+CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I/usr/local/include
 
 CXX     = @CXX@
 CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I/usr/local/include
@@ -49,7 +49,7 @@ LIB = ../lib/lib$(FLUIDITY).a
 
 LIBS    = -L../lib ../lib/libvtkfortran.a -l$(FLUIDITY) @LIBS@ @BLAS_LIBS@
 
-LINKER  = @LINKER@ @LDFLAGS@ @CPPFLAGS@ 
+LINKER  = @LINKER@ @LDFLAGS@ @CPPFLAGS@
 
 TESTLIBS = $(shell echo @LIBS@ | sed 's@./lib/lib\([a-z]*\)\.a@-l\1@g')
 
@@ -64,7 +64,7 @@ OBJS = Populate_State.o Populate_Sub_State.o Reserve_State.o Field_Priority_List
 
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $<
 .c.o:
 	@echo "        CC $<"
 	$(CC) $(CFLAGS) -c $<

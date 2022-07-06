@@ -313,7 +313,7 @@
   visc = numpy.zeros((2,2))
   mu_ref = 1.0
   B = 5.0
-  mu = mu_ref*math.exp(2.0*B*X[1]) 
+  mu = mu_ref*math.exp(2.0*B*X[1])
   for i in range(2):
     for j in range(2):
       visc[i,j] = mu

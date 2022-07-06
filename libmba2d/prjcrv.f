@@ -2,9 +2,9 @@ C ==========================================================
       Subroutine prjCrv(XY, prjXY, iFNC, t, calCrv,
      &                  L1Et, L2Et, nL2t, nStept, nEt, tE)
 C ==========================================================
-C Routine computes a point which lies on the boundary of the 
-C input polygonal domain and is the closest point to XY. The 
-C later is the point lying on new boundary. 
+C Routine computes a point which lies on the boundary of the
+C input polygonal domain and is the closest point to XY. The
+C later is the point lying on new boundary.
 C ==========================================================
       real  XY(2), prjXY(2), t
 
@@ -42,7 +42,7 @@ C ==========================================================
 C ==========================================================
       Subroutine calCrvFnc(IPF, nF, iFnc, LFnc, nCrvFnc)
 C ==========================================================
-C Routine computes the number of different functions 
+C Routine computes the number of different functions
 C describing curvilinear boundaries and internal interfaces.
 C ==========================================================
       Integer IPF(4, *), iFnc(*), LFnc(*)
@@ -95,15 +95,15 @@ c ... compute minimal parameter for boundary iFnc
       End do
 
 
-c ... collect maxima of two parameters in tE 
+c ... collect maxima of two parameters in tE
       ic = 1
-      tE(ic) = tmin  
+      tE(ic) = tmin
       Do i = 1, nF
          If(IPF(3, i).NE.0) Then
             If(iFnc(i).EQ.iCrvFnc) Then
                ic = ic + 1
 c  ...  this should never happen
-               If(ic.GT.MaxF) Call errMes(6003, 
+               If(ic.GT.MaxF) Call errMes(6003,
      &                             'tEMak', 'System error')
                If(parCrv(1, i).GT.parCrv(2, i)) Then
                   tE(ic) = parCrv(1, i)

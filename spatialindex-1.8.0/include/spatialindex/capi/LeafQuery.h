@@ -6,7 +6,7 @@
  * Copyright (c) 2009, Howard Butler
  *
  * All rights reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
@@ -39,13 +39,13 @@ public:
 
 	LeafQuery();
 	~LeafQuery() { }
-	void getNextEntry(	const SpatialIndex::IEntry& entry, 
-						SpatialIndex::id_type& nextEntry, 
+	void getNextEntry(	const SpatialIndex::IEntry& entry,
+						SpatialIndex::id_type& nextEntry,
 						bool& hasNext);
 	std::vector<LeafQueryResult> const& GetResults() const {return m_results;}
 };
 
-class LeafQueryResult 
+class LeafQueryResult
 {
 private:
     std::vector<SpatialIndex::id_type> ids;
@@ -61,7 +61,7 @@ public:
 
     /// Assignment operator.
     LeafQueryResult& operator=(LeafQueryResult const& rhs);
-        
+
     std::vector<SpatialIndex::id_type> const& GetIDs() const;
     void SetIDs(std::vector<SpatialIndex::id_type>& v);
     const SpatialIndex::Region* GetBounds() const;

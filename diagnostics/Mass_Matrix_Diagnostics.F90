@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -28,7 +28,7 @@
 #include "fdebug.h"
 
 module mass_matrix_diagnostics
-   
+
    !!< Module containing mass matrix related diagnostic algorithms.
 
    use fldebug
@@ -40,53 +40,52 @@ module mass_matrix_diagnostics
    use state_fields_module
 
    implicit none
-   
+
    private
 
    public :: calculate_finite_element_lumped_mass_matrix, &
              calculate_control_volume_mass_matrix
-  
+
 contains
 
    subroutine calculate_finite_element_lumped_mass_matrix(state, s_field)
-      
+
       !!< Calculate the finite element lumped mass matrix
 
       type(state_type), intent(inout) :: state
-      type(scalar_field), intent(inout) :: s_field 
-      
+      type(scalar_field), intent(inout) :: s_field
+
       ! local variables
-      type(scalar_field), pointer :: mass => null()      
+      type(scalar_field), pointer :: mass => null()
 
       ewrite(1,*) 'Entering calculate_finite_element_lumped_mass_matrix'
-      
+
       mass => get_lumped_mass(state, s_field%mesh)
-      
+
       call set(s_field, mass)
-      
+
       ewrite(1,*) 'Exiting calculate_finite_element_lumped_mass_matrix'
 
    end subroutine calculate_finite_element_lumped_mass_matrix
 
    subroutine calculate_control_volume_mass_matrix(state, s_field)
-      
+
       !!< Calculate the control volume mass matrix
 
       type(state_type), intent(inout) :: state
-      type(scalar_field), intent(inout) :: s_field 
-      
+      type(scalar_field), intent(inout) :: s_field
+
       ! local variables
-      type(scalar_field), pointer :: mass => null()      
+      type(scalar_field), pointer :: mass => null()
 
       ewrite(1,*) 'Entering calculate_control_volume_mass_matrix'
-      
+
       mass => get_cv_mass(state, s_field%mesh)
 
       call set(s_field, mass)
-      
+
       ewrite(1,*) 'Exiting calculate_control_volume_mass_matrix'
 
    end subroutine calculate_control_volume_mass_matrix
 
 end module mass_matrix_diagnostics
-

@@ -1,5 +1,5 @@
 subroutine test_invert_dg_mass_matrix
-  
+
   use fldebug
   use quadrature
   use fields
@@ -28,13 +28,13 @@ subroutine test_invert_dg_mass_matrix
   u_mesh = make_mesh(positions%mesh,u_shape,-1,'u_mesh')
 
   call get_dg_inverse_mass_matrix(inverse_mass,u_mesh,positions)
-  
+
   call allocate(rhs,u_mesh,'RHS')
   call allocate(u,u_mesh,'u')
   call allocate(u_check,u_mesh,'u_check')
 
   u%val = 1.0
-  
+
   call get_rhs(rhs,u,positions)
 
   u_check%val = 0.0
@@ -46,26 +46,26 @@ subroutine test_invert_dg_mass_matrix
   call report_test("[inverse dg mass matrix formed correctly using dynamic csr matrices]", warn, fail, &
   "Inverse dg mass matrix not formed correctly")
 
-  contains 
+  contains
 
     subroutine get_rhs(rhs,u,positions)
       type(scalar_field), intent(in) :: u
       type(scalar_field), intent(inout) :: rhs
       type(vector_field), intent(in) :: positions
-      
+
       !
       integer :: ele
-      
+
       call zero(rhs)
-      
+
       do ele = 1, element_count(u)
-         
+
          call assemble_rhs(ele,rhs,u,positions)
-         
+
       end do
-      
+
     end subroutine get_rhs
-    
+
     subroutine assemble_rhs(ele,rhs,u,positions)
       integer, intent(in) :: ele
       type(scalar_field), intent(in) :: u
@@ -73,7 +73,7 @@ subroutine test_invert_dg_mass_matrix
       type(vector_field), intent(in) :: positions
 
       ! Coordinate transform * quadrature weights.
-      real, dimension(ele_ngi(positions,ele)) :: detwei    
+      real, dimension(ele_ngi(positions,ele)) :: detwei
       ! Node numbers of field element.
       integer, dimension(:), pointer :: ele_u
       ! Shape functions.

@@ -86,7 +86,7 @@ prns_pressure_solve_success= reason_number&gt;1
     <variable name="no_new_matrixdump" language="python">import os
 files = os.listdir("./")
 no_new_matrixdump = not "matrixdump" in files and not "matrixdump.info" in files</variable>
-    </variables>  
+    </variables>
   <pass_tests>
     <test name="check_velocity_solve_failed" language="python">assert velocity_solve_failed</test>
     <test name="check_pressure_solve_failed" language="python">assert pressure_solve_failed</test>

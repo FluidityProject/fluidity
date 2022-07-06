@@ -17,7 +17,7 @@ anystring =
       comment
    )
 
-# a filename for which the gui 
+# a filename for which the gui
 filename =
    (
       element string_value{

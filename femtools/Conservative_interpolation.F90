@@ -49,9 +49,9 @@ module conservative_interpolation_module
   end interface
 
   public :: interpolation_galerkin, grandy_projection
-  
+
   private
-  
+
 #ifdef DUMP_SUPERMESH_INTERSECTIONS
   integer :: dump_idx
 #endif
@@ -61,16 +61,16 @@ module conservative_interpolation_module
   subroutine galerkin_projection_inner_loop(ele_B, little_mass_matrix, detJ, local_rhs, conservation_tolerance, stat, &
                                             field_counts, old_fields, old_position, new_fields, new_position, &
                                             map_BA, inversion_matrices_A, supermesh_shape)
-  
+
     integer, intent(in) :: ele_B
     real, dimension(:,:,:), intent(inout) :: little_mass_matrix
     real, dimension(:), intent(out) :: detJ
     real, dimension(:,:,:), intent(inout) :: local_rhs
     real, intent(in) :: conservation_tolerance
     integer, intent(out) :: stat
-    
+
     integer, dimension(:), intent(in) :: field_counts
-    
+
     type(scalar_field), dimension(:,:), intent(in) :: old_fields
     type(vector_field), intent(in) :: old_position
 
@@ -80,12 +80,12 @@ module conservative_interpolation_module
     type(ilist), dimension(:), intent(in) :: map_BA
     real, dimension(:, :, :) :: inversion_matrices_A
     type(element_type), intent(inout) :: supermesh_shape
-   
+
     real, dimension(ele_loc(new_position, ele_B), ele_loc(new_position, ele_B)) :: inversion_matrix_B, inversion_matrix_A
     real, dimension(ele_ngi(new_position, ele_B)) :: detwei_B
     real, dimension(supermesh_shape%ngi) :: detwei_C
     type(inode), pointer :: llnode
-    
+
     real :: vol_B, vols_C
     integer :: ele_A, ele_C, nloc, dim, j, k, l, field, mesh, mesh_count
     type(vector_field) :: intersection
@@ -94,7 +94,7 @@ module conservative_interpolation_module
     real, dimension(new_position%dim+1, supermesh_shape%ngi) :: pos_at_quad_B, pos_at_quad_A, tmp_pos_at_quad
     real, dimension(size(local_rhs, 3), supermesh_shape%ngi) :: basis_at_quad_B, basis_at_quad_A
     real, dimension(size(local_rhs, 3),size(local_rhs, 3)) :: mat, mat_int
-    
+
     real, dimension(new_position%dim, supermesh_shape%ngi) :: intersection_val_at_quad
     real, dimension(new_position%dim, new_position%dim, ele_ngi(new_position, 1)) :: invJ
     real, dimension(new_position%dim, ele_loc(new_position, ele_B)) :: pos_B
@@ -212,15 +212,15 @@ module conservative_interpolation_module
               basis_at_quad_A(:nloc,:) = 1.0
               basis_at_quad_B(:nloc,:) = 1.0
             elseif (element_degree(new_fields(mesh,1),ele_B)==1) then
-              basis_at_quad_A(:nloc,:) = pos_at_quad_A 
-              basis_at_quad_B(:nloc,:) = pos_at_quad_B 
+              basis_at_quad_A(:nloc,:) = pos_at_quad_A
+              basis_at_quad_B(:nloc,:) = pos_at_quad_B
             else
               do j=1,ele_ngi(intersection, ele_C)
                 basis_at_quad_A(:nloc, j) = eval_shape(B_shape, pos_at_quad_A(:, j))
                 basis_at_quad_B(:nloc, j) = eval_shape(B_shape, pos_at_quad_B(:, j))
               end do
             end if
-          
+
             ! Combined outer_product and tensormul_3_1 to see if it is faster.
             ! This is sort of like a mixed shape_shape.
             ! Here we assemble a little local part of the mixed mass matrix.
@@ -231,7 +231,7 @@ module conservative_interpolation_module
                 mat(k, l) = mat(k, l) + detwei_C(j) * basis_at_quad_B(k, j) * basis_at_quad_A(l, j)
               end forall
             end do
-    
+
             ! And now we apply that to the field to give the RHS contribution to the Galerkin
             ! projection.
             do field=1,field_counts(mesh)
@@ -255,7 +255,7 @@ module conservative_interpolation_module
     end do
 
     ! Check for supermeshing failures.
-    if (abs(vol_B - vols_C)/vol_B > conservation_tolerance .and. & 
+    if (abs(vol_B - vols_C)/vol_B > conservation_tolerance .and. &
 #ifdef DOUBLEP
          & abs(vol_B - vols_C) > 100.0 * 1.0e-12) then
 #else
@@ -281,10 +281,10 @@ module conservative_interpolation_module
     integer :: ele_B
     integer :: ele_A
     integer :: name, no_names, priority, f, field, field2, max_field_count
-    
+
     type(scalar_field), dimension(:,:), allocatable :: old_fields, new_fields
     integer, dimension(size(old_fields_state)) :: field_counts
-    
+
     type(scalar_field), dimension(:,:), allocatable :: named_fields, named_rhs
     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: field_names
     integer, dimension(:), allocatable :: named_counts, priorities, named_indices
@@ -315,7 +315,7 @@ module conservative_interpolation_module
     type(csr_sparsity) :: M_B_sparsity
     type(scalar_field), dimension(:), allocatable :: M_B_L
     type(scalar_field) :: inverse_M_B_L
-    
+
     ! Boundedness stuff
     logical, dimension(:,:), allocatable :: bounded, lumped
     logical, dimension(:), allocatable :: coupled
@@ -328,12 +328,12 @@ module conservative_interpolation_module
     integer, dimension(:), pointer :: ele_nodes_B
     integer :: stat, statp
     logical :: l_apply_globally, u_apply_globally
-    
+
     logical :: l_force_bounded
-    
+
     integer :: max_loc, max_degree, nloc
     integer :: mesh, mesh_count
-    
+
     real :: conservation_tolerance, tmp_tol
 
     type(element_type), pointer :: shape_B
@@ -357,12 +357,12 @@ module conservative_interpolation_module
     else
       l_force_bounded = .false.
     end if
-    
+
     ! Linear positions -- definitely linear positions.
     assert(old_position%mesh%shape%degree == 1)
     assert(continuity(old_position) >= 0)
     assert(continuity(new_position) >= 0)
-    
+
     mesh_count = size(old_fields_state)
     max_field_count = 0
     field_counts = 0
@@ -378,10 +378,10 @@ module conservative_interpolation_module
     allocate(new_fields(mesh_count, max_field_count))
     allocate(force_bc(mesh_count, max_field_count))
     allocate(bc_nodes(mesh_count, max_field_count))
-    
+
     shape_B => ele_shape(new_position, 1)
     new_positions_simplicial = (shape_B%numbering%family == FAMILY_SIMPLEX)
-    
+
     dim = mesh_dim(new_position)
 
     dg = .false.
@@ -390,7 +390,7 @@ module conservative_interpolation_module
     conservation_tolerance = 1.0
     do mesh = 1, size(old_fields_state)
       if(field_counts(mesh)>0) then
-      
+
         do field = 1, field_counts(mesh)
           old_fields(mesh, field) = extract_scalar_field(old_fields_state(mesh), field)
           new_fields(mesh, field) = extract_scalar_field(new_fields_state(mesh), field)
@@ -425,19 +425,19 @@ module conservative_interpolation_module
             end do
           end if
         end do
-        
+
         dg(mesh) = (continuity(new_fields(mesh,1)) < 0)
         if(dg(mesh)) then
-          bounded(mesh,:) = .false. ! not possible to have a bounded or lumped dg field 
+          bounded(mesh,:) = .false. ! not possible to have a bounded or lumped dg field
           lumped(mesh,:) = .false.  ! so just to make sure set it to false
         end if
-        
+
         max_degree = max(max_degree, element_degree(new_fields(mesh,1), 1))
         max_loc = max(max_loc, ele_loc(new_fields(mesh,1), 1))
-      
+
       end if
     end do
-    
+
     allocate(local_rhs(mesh_count, max_field_count, max_loc))
     allocate(little_mass_matrix(mesh_count, max_loc, max_loc))
 
@@ -454,16 +454,16 @@ module conservative_interpolation_module
         end if
       end do
     end if
-    
+
     allocate(little_rhs(max_loc, max_field_count))
 
     if(any(.not.dg)) then
       ! if any meshes are not dg then we need a lhs matrix and a global rhs
-      
+
       allocate(rhs(mesh_count, max_field_count))
       allocate(M_B(mesh_count))
       allocate(M_B_L(mesh_count))
-      
+
       do mesh = 1, mesh_count
         if(.not.dg(mesh)) then
           if(field_counts(mesh)>0) then
@@ -471,17 +471,17 @@ module conservative_interpolation_module
               call allocate(rhs(mesh,field), new_fields(mesh,field)%mesh, name = trim(new_fields(mesh,field)%name)//"RHS")
               call zero(rhs(mesh,field))
             end do
-      
+
             if(.not.all(lumped(mesh,1:field_counts(mesh)))) then
               M_B_sparsity = make_sparsity(new_fields(mesh,1)%mesh, new_fields(mesh,1)%mesh, name="MassMatrixBSparsity")
-            
+
               call allocate(M_B(mesh), M_B_sparsity, &
                             name=trim(new_fields(mesh,1)%mesh%name)//"MassMatrixB")
               call zero(M_B(mesh))
-              
+
               call deallocate(M_B_sparsity)
             end if
-            
+
             if(any(bounded(mesh,:)).or.any(lumped(mesh,:))) then
               call allocate(M_B_L(mesh), new_fields(mesh,1)%mesh, &
                             name=trim(new_fields(mesh,1)%mesh%name)//"LumpedMassMatrixB")
@@ -490,9 +490,9 @@ module conservative_interpolation_module
           end if
         end if
       end do
-      
+
     end if
-    
+
     supermesh_quad = make_quadrature(vertices=ele_loc(new_position, 1), dim=dim, degree=max(max_degree+max_degree, 1))
     supermesh_shape = make_element_shape(vertices=ele_loc(new_position, 1), dim=dim, degree=1, quad=supermesh_quad)
 
@@ -522,7 +522,7 @@ module conservative_interpolation_module
       not_halo_2_element = .false.
       nloc = ele_loc(new_position, ele_B)
       ele_nodes_B => ele_nodes(new_position, ele_B)
-      
+
       do j = 1, nloc
         if (node_owned(new_position, ele_nodes_B(j))) then
            not_halo_2_element = .true.
@@ -627,7 +627,7 @@ module conservative_interpolation_module
 
         end do
       end if
-      
+
     end do
 
     ewrite(1, *) "Supermeshing complete"
@@ -642,13 +642,13 @@ module conservative_interpolation_module
     do mesh = 1, mesh_count
       if(field_counts(mesh)>0) then
         if(.not.dg(mesh)) then
-        
+
           if(any(bounded(mesh,:)).or.any(lumped(mesh,:))) then
             call allocate(inverse_M_B_L, M_B_L(mesh)%mesh, "InverseLumpedMass")
             call invert(M_B_L(mesh), inverse_M_B_L)
             call halo_update(inverse_M_B_L)
           end if
-          
+
           do field=1,field_counts(mesh)
             if(lumped(mesh,field)) then
               call set(new_fields(mesh, field), rhs(mesh, field))
@@ -669,12 +669,12 @@ module conservative_interpolation_module
           end do
 
           if(any(bounded(mesh,:))) then
-          
+
             nnlist => extract_nnlist(new_fields(mesh,1))
-            
-            ! Ok. All that above was more or less the same as Galerkin projection. Here is 
+
+            ! Ok. All that above was more or less the same as Galerkin projection. Here is
             ! where we bound.
-            
+
             ! to be able to couple the fields together we first need to group the fields by name
             ! and order them by priority
             ! so... let's get the priorities
@@ -683,7 +683,7 @@ module conservative_interpolation_module
             do field = 1, field_counts(mesh)
               call get_option(trim(new_fields(mesh,field)%option_path)//"/prognostic/priority", priorities(field), default=0)
             end do
-              
+
             ! let's allocate some space (too much in fact but it's our best guess) for the counts of each name
             allocate(named_counts(field_counts(mesh)))
             named_counts = 0
@@ -693,7 +693,7 @@ module conservative_interpolation_module
             ! the indices of each name
             allocate(tmp_named_indices(field_counts(mesh), field_counts(mesh)))
             tmp_named_indices = 0
-            
+
             ! now loop through the fields collecting the actual number of fields with the same
             ! names and where they are located (their indices) in the current lists
             f = 0
@@ -714,12 +714,12 @@ module conservative_interpolation_module
               end if
             end do
             no_names = f
-            
+
             ! allocate the real space for them (still too much to avoid ragged arrays)
             allocate(named_fields(no_names, maxval(named_counts)))
             allocate(named_rhs(no_names, maxval(named_counts)))
             allocate(named_indices(maxval(named_counts)))
-            
+
             do name = 1, no_names
               ! sort out their indices in order of priority
               f = 0
@@ -732,68 +732,68 @@ module conservative_interpolation_module
                   end if
                 end do
               end do
-              
+
               ! and finally put them into a new list of fields sorted by name
               do field = 1, named_counts(name)
                 named_fields(name, field) = new_fields(mesh, named_indices(field))
                 named_rhs(name, field) = rhs(mesh, named_indices(field))
               end do
             end do
-            
+
             do name = 1, no_names
-            
+
               allocate(coupled(named_counts(name)))
               coupled = .false.
               do field = 1, named_counts(name)
                 coupled(field) = have_option(trim(complete_field_path(named_fields(name,field)%option_path, stat=statp))// &
                   & "/galerkin_projection/continuous/bounded[0]/bounds/upper_bound/coupled")
               end do
-          
+
               do field=1,named_counts(name)
-              
+
                 ewrite(2,*) 'Bounding field:', trim(named_fields(name,field)%name)
-            
+
                 ! Step 0. Compute bounds
                 call get_option(trim(complete_field_path(named_fields(name,field)%option_path, stat=statp))// &
                   & "/galerkin_projection/continuous/bounded[0]/bounds/upper_bound", &
                   & upper_bound, default=huge(0.0)*epsilon(0.0))
-                  
+
                 u_apply_globally = have_option(trim(complete_field_path(named_fields(name,field)%option_path, stat=statp))// &
                   & "/galerkin_projection/continuous/bounded[0]/bounds/upper_bound/apply_globally")
-                  
+
                 call get_option(trim(complete_field_path(named_fields(name,field)%option_path, stat=statp))// &
                   & "/galerkin_projection/continuous/bounded[0]/bounds/lower_bound", &
                   & lower_bound, default=-huge(0.0)*epsilon(0.0))
-                  
+
                 l_apply_globally = have_option(trim(complete_field_path(named_fields(name,field)%option_path, stat=statp))// &
                   & "/galerkin_projection/continuous/bounded[0]/bounds/lower_bound/apply_globally")
-                
+
                 if((.not.u_apply_globally).or.(coupled(field))) then
                   call allocate(max_bound, named_fields(name,1)%mesh, "MaxBound")
                 else
                   call allocate(max_bound, named_fields(name,1)%mesh, "MaxBound", field_type=FIELD_TYPE_CONSTANT)
                 end if
-                
+
                 if(.not.l_apply_globally) then
                   call allocate(min_bound, named_fields(name,1)%mesh, "MinBound")
                 else
                   call allocate(min_bound, named_fields(name,1)%mesh, "MinBound", field_type=FIELD_TYPE_CONSTANT)
                 end if
-                
+
                 call set(max_bound, upper_bound)
                 if(coupled(field)) then
                   do field2 = 1, field-1
                     if(coupled(field2)) call addto(max_bound, named_fields(name,field2), -1.0)
                   end do
                 end if
-                
+
                 call set(min_bound, lower_bound)
-                
+
                 call allocate(bounded_soln, named_fields(name,1)%mesh, "BoundedSolution")
                 call set(bounded_soln, named_rhs(name,field))
                 call scale(bounded_soln, inverse_M_B_L)
                 call halo_update(bounded_soln)
-                
+
                 do node_B=1,node_count(named_fields(name,1)%mesh)
                   patch => row_m_ptr(nnlist, node_B)
                   if(.not.u_apply_globally) then
@@ -813,22 +813,22 @@ module conservative_interpolation_module
 
                 call halo_update(min_bound)
                 ewrite_minmax(min_bound)
-                
+
                 call bound_field(named_fields(name, field), max_bound, min_bound, &
                                  M_B(mesh), M_B_L(mesh), inverse_M_B_L, bounded_soln, &
                                  new_position)
 
-                
+
                 call deallocate(max_bound)
                 call deallocate(min_bound)
                 call deallocate(bounded_soln)
-                
+
               end do
-              
+
               deallocate(coupled)
-              
+
             end do
-            
+
             deallocate(priorities)
             deallocate(named_counts)
             deallocate(field_names)
@@ -838,14 +838,14 @@ module conservative_interpolation_module
             deallocate(named_indices)
 
           end if
-          
+
           if(any(bounded(mesh,:)).or.any(lumped(mesh,:))) then
             call deallocate(inverse_M_B_L)
             call deallocate(M_B_L(mesh))
           end if
 
         end if
-      
+
         do field = 1, field_counts(mesh)
           if(have_option(trim(complete_field_path(new_fields(mesh,field)%option_path, stat=statp)) // &
                                                 "/galerkin_projection/supermesh_conservation/print_field_integral")) then
@@ -866,7 +866,7 @@ module conservative_interpolation_module
         end do
 
       end if
-      
+
     end do
 
     call deallocate(supermesh_shape)
@@ -908,7 +908,7 @@ module conservative_interpolation_module
     call finalise_tet_intersector
 
     ewrite(1, *) "Exiting interpolation_galerkin_scalars"
-    
+
   end subroutine interpolation_galerkin_scalars
 
   subroutine interpolation_galerkin_single_state(old_state, new_state, map_BA)
@@ -916,13 +916,13 @@ module conservative_interpolation_module
     type(ilist), dimension(:), intent(in), optional :: map_BA
 
     type(state_type), dimension(1) :: old_states, new_states
-    
+
     old_states = (/old_state/)
     new_states = (/new_state/)
     call interpolation_galerkin(old_states, new_states, map_BA=map_BA)
     old_state = old_states(1)
     new_state = new_states(1)
-    
+
   end subroutine interpolation_galerkin_single_state
 
   subroutine interpolation_galerkin_multiple_states(old_states, new_states, map_BA)
@@ -1103,7 +1103,7 @@ module conservative_interpolation_module
       call deallocate(projection_state)
       call deallocate(pwc_B(field))
     end do
-    
+
     if (.not. present(map_BA)) then
       do ele_B=1,ele_count(new_position)
         call deallocate(lmap_BA(ele_B))

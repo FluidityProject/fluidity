@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -54,7 +54,7 @@ contains
   subroutine calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate, submaterials_indices)
     !< A subroutine to group together all the diagnostic calculations that
     !< must happen before a momentum solve.
-  
+
     type(state_type), dimension(:), intent(inout) :: state
     integer, intent(in) :: istate
     ! An array of submaterials of the current phase in state(istate).
@@ -62,20 +62,20 @@ contains
     ! The index of the current phase (i.e. state(istate)) in the submaterials array
     integer, intent(in) :: submaterials_istate
     integer, dimension(:), intent(in) :: submaterials_indices
-    
-    ! Local variables  
+
+    ! Local variables
     type(state_type), dimension(size(state)) :: calculated_state
     type(state_type), dimension(size(submaterials)) :: calculated_submaterials
     type(scalar_field), pointer :: bulk_density, buoyancy_density, sfield
     type(vector_field), pointer :: vfield, x, velocity
     type(vector_field) :: prescribed_source
     type(tensor_field), pointer :: tfield
-    
+
     integer :: stat, i
     logical :: gravity, diagnostic
-    
+
     ewrite(1,*) 'Entering calculate_momentum_diagnostics'
-    
+
     ! This needs to be done first or none of the following multimaterial algorithms will work...
     call calculate_diagnostic_material_volume_fraction(submaterials)
     call calculate_diagnostic_phase_volume_fraction(state)
@@ -110,10 +110,10 @@ contains
                                 buoyancy_density=buoyancy_density, &
                                 momentum_diagnostic=.true.)
     end if
-    
-    ! Note: For multimaterial-multiphase simulations we normally pass the submaterials array to 
-    ! diagnostic algorithms in order to compute bulk properties correctly. However, for Python 
-    ! diagnostic algorithms where the user may wish to use fields from other phases, we need to 
+
+    ! Note: For multimaterial-multiphase simulations we normally pass the submaterials array to
+    ! diagnostic algorithms in order to compute bulk properties correctly. However, for Python
+    ! diagnostic algorithms where the user may wish to use fields from other phases, we need to
     ! pass in the whole state array.
     vfield => extract_vector_field(submaterials(submaterials_istate), "VelocityAbsorption", stat = stat)
     if(stat == 0) then
@@ -202,7 +202,7 @@ contains
     end do
 
     ewrite(1,*) 'Exiting calculate_momentum_diagnostics'
-    
+
   end subroutine calculate_momentum_diagnostics
 
   subroutine update_calculated_state(calculated_state, calculated_submaterials, submaterials_indices)
@@ -245,24 +245,24 @@ contains
     type(scalar_field), intent(inout), optional, target :: buoyancy_density
     type(scalar_field), intent(inout), optional, target :: bulk_density
     logical, intent(in), optional :: momentum_diagnostic
-    
+
     type(state_type), dimension(1) :: states
-  
+
     states = (/state/)
     call calculate_densities(states, buoyancy_density=buoyancy_density, bulk_density=bulk_density, &
                              momentum_diagnostic=momentum_diagnostic)
     state = states(1)
-  
+
   end subroutine calculate_densities_single_state
 
   subroutine calculate_densities_multiple_states(state, buoyancy_density, bulk_density, &
                                                  momentum_diagnostic)
-  
+
     type(state_type), dimension(:), intent(inout) :: state
     type(scalar_field), intent(inout), optional, target :: buoyancy_density
     type(scalar_field), intent(inout), optional, target :: bulk_density
     logical, intent(in), optional ::momentum_diagnostic
-    
+
     type(scalar_field) :: eosdensity
     type(scalar_field), pointer :: tmpdensity
     type(scalar_field) :: bulksumvolumefractionsbound
@@ -274,25 +274,25 @@ contains
     integer :: subtract_count, materialvolumefraction_count
     real :: hydrostatic_rho0, reference_density
     integer :: i, stat
-    
+
     logical :: boussinesq
     type(vector_field), pointer :: velocity
     real :: boussinesq_rho0
-    
+
     if(.not.present(buoyancy_density).and..not.present(bulk_density)) then
       ! coding error
       FLAbort("No point calling me if I don't have anything to do.")
     end if
-    
+
     if(present(buoyancy_density)) call zero(buoyancy_density)
     if(present(bulk_density)) call zero(bulk_density)
-    
+
     if(present(bulk_density)) then
       mesh => bulk_density%mesh
     else
       mesh => buoyancy_density%mesh
     end if
-    
+
     multimaterial = .false.
     materialvolumefraction_count = 0
     subtract_count = 0
@@ -301,13 +301,13 @@ contains
         if(has_scalar_field(state(i), "MaterialVolumeFraction")) then
           materialvolumefraction_count = materialvolumefraction_count + 1
         end if
-        
+
         option_path='/material_phase::'//trim(state(i)%name)//'/equation_of_state'
-        
+
         subtract_count = subtract_count + &
             option_count(trim(option_path)//'/fluids/linear/subtract_out_hydrostatic_level') + &
             option_count(trim(option_path)//'/fluids/ocean_pade_approximation')
-        
+
       end do
       if(size(state)/=materialvolumefraction_count) then
         FLExit("Multiple material_phases but not all of them have MaterialVolumeFractions.")
@@ -315,9 +315,9 @@ contains
       if(subtract_count>1) then
         FLExit("You can only select one material_phase to use the reference_density from to subtract out the hydrostatic level.")
       end if
-      
+
       multimaterial = .true.
-      
+
       ! allocate a bounding field for the volume fractions
       if(present(bulk_density)) then
         call allocate(bulksumvolumefractionsbound, mesh, "SumMaterialVolumeFractionsBound")
@@ -328,7 +328,7 @@ contains
         call set(buoyancysumvolumefractionsbound, 1.0)
       end if
 
-      ! get the order in which states should be processed      
+      ! get the order in which states should be processed
       call order_states_priority(state, state_order)
 
       ! this needs to be done first or none of the following multimaterial algorithms will work...
@@ -336,32 +336,32 @@ contains
     else
       assert(size(state_order)==1)
       ! set up a dummy state ordering for the single material case
-      state_order(1) = 1      
+      state_order(1) = 1
     end if
-    
+
     boussinesq = .false.
     hydrostatic_rho0 = 0.0
     state_loop: do i = 1, size(state)
-  
+
       option_path='/material_phase::'//trim(state(state_order(i))%name)//'/equation_of_state'
-      
+
       if(have_option(trim(option_path)//'/fluids')) then
         ! we have a fluids eos
-      
+
         subtract_out_hydrostatic = &
           have_option(trim(option_path)//'/fluids/linear/subtract_out_hydrostatic_level') .or. &
           have_option(trim(option_path)//'/fluids/ocean_pade_approximation')
-        
+
         call allocate(eosdensity, mesh, "LocalPerturbationDensity")
-        
+
         call calculate_perturbation_density(state(state_order(i)), eosdensity, reference_density)
-        
+
         if(multimaterial) then
           ! if multimaterial we have to subtract out a single reference density at the end
           ! rather than one per material so add it in always for now
           call addto(eosdensity, reference_density)
         end if
-        
+
         if(present(buoyancy_density)) then
           if(multimaterial) then
             if(subtract_out_hydrostatic) then
@@ -378,7 +378,7 @@ contains
               call addto(buoyancy_density, reference_density)
             end if
           end if
-          
+
           ! find out if the velocity in this state is *the* (i.e. not aliased)
           ! prognostic one and if it's using a Boussinesq equation.
           ! if it is record the rho0 and it will be used later to scale
@@ -398,9 +398,9 @@ contains
               end if
             end if
           end if
-          
+
         end if
-        
+
         if(present(bulk_density)) then
           if(multimaterial) then
             ! the perturbation density has already had the reference density added to it
@@ -413,12 +413,12 @@ contains
             call addto(bulk_density, reference_density)
           end if
         end if
-        
+
         call deallocate(eosdensity)
-        
+
       else
         ! we don't have a fluids eos
-        
+
         tmpdensity => extract_scalar_field(state(state_order(i)), "MaterialDensity", stat)
         if(stat==0) then
           if(multimaterial) then
@@ -446,16 +446,16 @@ contains
           else
             if(have_option(trim(option_path)//'/compressible')) then
               call allocate(eosdensity, mesh, "LocalCompressibleEOSDensity")
-            
+
               call compressible_eos(state(state_order(i)), density=eosdensity)
-              
+
               if(present(bulk_density)) then
                 call set(bulk_density, eosdensity)
               end if
               if(present(buoyancy_density)) then
                 call set(buoyancy_density, eosdensity)
               end if
-            
+
               call deallocate(eosdensity)
             else
               tmpdensity => extract_scalar_field(state(state_order(i)), "Density", stat)
@@ -480,12 +480,12 @@ contains
         end if
 
       end if
-        
+
     end do state_loop
-    
+
     if(present(buoyancy_density)) then
       if(multimaterial) call addto(buoyancy_density, -hydrostatic_rho0)
-      
+
       if(boussinesq) then
         ! the buoyancy density is being used in a Boussinesq eqn
         ! therefore it needs to be scaled by rho0:
@@ -501,7 +501,7 @@ contains
         call deallocate(bulksumvolumefractionsbound)
       end if
     end if
-  
+
   end subroutine calculate_densities_multiple_states
 
   subroutine calculate_diagnostic_pressure(state, pressure)
@@ -526,7 +526,7 @@ contains
 
     character(len=OPTION_PATH_LEN):: phase_path
     integer:: i
-  
+
     do i=0, option_count('/material_phase')-1
        phase_path = '/material_phase[' // int2str(i) // ']'
        if (have_option(trim(phase_path)//'/scalar_field::Pressure/diagnostic')) then

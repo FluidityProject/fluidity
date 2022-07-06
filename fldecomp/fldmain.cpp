@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -102,8 +102,8 @@ int main(int argc, char **argv){
       <<"\n";
 
   int optionIndex = 0;
-  
-  optarg = NULL;  
+
+  optarg = NULL;
   char c;
   map<char, string> flArgs;
   while (true){
@@ -149,7 +149,7 @@ int main(int argc, char **argv){
     val = 0;
   }
   set_global_debug_level_fc(&val);
-  
+
   if(!flArgs.count('f')){
     if(argc>optind+1){
       flArgs['f'] = argv[optind+1];
@@ -157,7 +157,7 @@ int main(int argc, char **argv){
       flArgs['f'] = argv[optind];
     }
   }
-  
+
   string filename = flArgs['f'];
 
   int nparts = atoi(flArgs['n'].c_str());
@@ -189,7 +189,7 @@ int main(int argc, char **argv){
   // Read in the mesh
   if(verbose)
     cout<<"Reading in mesh file with base name "<<filename<<"\n";
-  
+
 
   int exitVal;
 
@@ -201,7 +201,7 @@ int main(int argc, char **argv){
   else if( string(file_format) == "gmsh" )
     exitVal = decomp_gmsh( flArgs, verbose, filename, file_format,
                                    nparts, ncores );
-  else 
+  else
     {
       cerr<<"ERROR: file format not supported\n";
       exitVal=1;
@@ -209,5 +209,3 @@ int main(int argc, char **argv){
 
   exit(0);
 }
-
-

@@ -5,7 +5,7 @@ preprocess:
 
 run:
 	@echo **********Running 2D simulation
-	../../bin/fluidity flux_bc_2d.flml 
+	../../bin/fluidity flux_bc_2d.flml
 	@echo **********Running 3D simulation
 	../../bin/fluidity flux_bc_3d.flml
 
@@ -17,4 +17,3 @@ clean:
 	rm -f *.msh
 	rm -f *.ele *.edge *.node *.poly *.face
 	rm -f matrixdump* *checkpoint* *.log* *.err*
-

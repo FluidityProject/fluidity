@@ -104,7 +104,7 @@ module integer_hash_table_module
   public :: integer_hash_table, allocate, deallocate, has_key, key_count, fetch, insert, &
             fetch_pair, print, remove, copy
 
-  contains 
+  contains
 
   subroutine integer_hash_table_copy(ihash_copy, ihash)
     type(integer_hash_table), intent(out) :: ihash_copy

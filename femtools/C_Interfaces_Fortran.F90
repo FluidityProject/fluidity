@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -32,7 +32,7 @@ module c_interfaces
   use fldebug
 
   implicit none
-  
+
   interface
     subroutine get_environment_variable_c(name, name_len, val, val_len, stat)
       implicit none
@@ -60,11 +60,11 @@ module c_interfaces
       logical(kind=c_bool) :: cmp
     end function compare_pointers
   end interface
-  
+
   private
-  
+
   public :: get_environment_variable, memcpy, compare_pointers
-  
+
 contains
 
   subroutine get_environment_variable(name, val, stat, default)
@@ -72,15 +72,15 @@ contains
     character(len = *), intent(out) :: val
     integer, optional, intent(out) :: stat
     character(len = *), optional, intent(in) :: default
-    
+
     integer :: lstat, val_len
-    
+
     if(present(stat)) stat = 0
-    
+
     val_len = len(val)
     call get_environment_variable_c(name, len_trim(name), val, val_len, lstat)
     if(val_len < len(val)) val(val_len + 1:) = ""
-    
+
     if(lstat /= 0) then
       if(present(default)) then
         val = default
@@ -90,7 +90,7 @@ contains
         FLAbort("Failed to retrieve environment variable named " // trim(name))
       end if
     end if
-    
+
   end subroutine get_environment_variable
 
 end module c_interfaces

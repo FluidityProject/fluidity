@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -25,7 +25,7 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 #include "fdebug.h"
-  
+
   subroutine test_ispcolouring
   use sparse_tools
   use fields_data_types
@@ -47,7 +47,7 @@
   integer :: no_colours
 
   positions = read_mesh_files('data/square-cavity-2d', quad_degree=4, format="gmsh")
-  mesh = piecewise_constant_mesh(positions%mesh, "P0Mesh")   
+  mesh = piecewise_constant_mesh(positions%mesh, "P0Mesh")
   sparsity = make_sparsity_compactdgdouble(mesh, "cdG Sparsity")
 
   isp_sparsity=mat_sparsity_to_isp_sparsity(sparsity)
@@ -59,5 +59,5 @@
 
   fail=.not. verify_colour_ispsparsity(sparsity, node_colour)
   call report_test("colour sets", fail, .false., "the csr sparcity colouring is not valid")
-  
+
   end subroutine test_ispcolouring

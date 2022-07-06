@@ -1,13 +1,13 @@
 C ============================================================
 C Magic numbers are used to adjust the code performance:
 C
-C magicNumber      - corection to the final number of tetrahedrons 
+C magicNumber      - corection to the final number of tetrahedrons
 C
-C MaxItrSwap       - the maximal permissible number of local 
+C MaxItrSwap       - the maximal permissible number of local
 C                    iterations in swapR.f
 C
-C cMax2DAngle      - the cosine of the minimal angle between neighboring 
-C                    triangles living on a curvilinear surface 
+C cMax2DAngle      - the cosine of the minimal angle between neighboring
+C                    triangles living on a curvilinear surface
 C
 C ***PREC          - under reconstruction at the moment
 C
@@ -50,13 +50,12 @@ C ============================================================
 
        Integer   MaxCutSearch
        Parameter(MaxCutSearch = 3)
-       
+
        Integer   MaxInertiaTensor
        Parameter(MaxInertiaTensor = 2)
 
        Integer   MaxBasketsGrid
        Parameter(MaxBasketsGrid = 1000)
-    
+
        Real*8    AniRatio
        Parameter(AniRatio = 1D-8)
-

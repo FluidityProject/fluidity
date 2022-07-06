@@ -26,7 +26,7 @@ extern "C" ScriptingOperatorPluginInfo* GetScriptingInfo()
 // ****************************************************************************
 // Method: BinnerScriptingPluginInfo::InitializePlugin
 //
-// Purpose: 
+// Purpose:
 //   Calls the initialization function for the plugin.
 //
 // Arguments:
@@ -37,7 +37,7 @@ extern "C" ScriptingOperatorPluginInfo* GetScriptingInfo()
 //  Creation:   Thu Mar 30 12:05:26 PDT 2006
 //
 // Modifications:
-//   
+//
 // ****************************************************************************
 
 void
@@ -50,7 +50,7 @@ BinnerScriptingPluginInfo::InitializePlugin(AttributeSubject *subj,
 // ****************************************************************************
 // Method: BinnerScriptingPluginInfo::GetMethodTable
 //
-// Purpose: 
+// Purpose:
 //   Returns a pointer to the plugin's Python method table. These methods are
 //   added to the top-level visit module's methods.
 //
@@ -63,7 +63,7 @@ BinnerScriptingPluginInfo::InitializePlugin(AttributeSubject *subj,
 //  Creation:   Thu Mar 30 12:05:26 PDT 2006
 //
 // Modifications:
-//   
+//
 // ****************************************************************************
 
 void *
@@ -75,7 +75,7 @@ BinnerScriptingPluginInfo::GetMethodTable(int *nMethods)
 // ****************************************************************************
 // Method: BinnerScriptingPluginInfo::TypesMatch
 //
-// Purpose: 
+// Purpose:
 //   Returns whether or not the input PyObject is Binner plot attributes.
 //
 // Arguments:
@@ -85,7 +85,7 @@ BinnerScriptingPluginInfo::GetMethodTable(int *nMethods)
 //  Creation:   Thu Mar 30 12:05:26 PDT 2006
 //
 // Modifications:
-//   
+//
 // ****************************************************************************
 
 bool
@@ -97,7 +97,7 @@ BinnerScriptingPluginInfo::TypesMatch(void *pyobject)
 // ****************************************************************************
 // Method: BinnerScriptingPluginInfo::GetLogString
 //
-// Purpose: 
+// Purpose:
 //   Gets a string representation of the current attributes.
 //
 // Arguments:
@@ -107,7 +107,7 @@ BinnerScriptingPluginInfo::TypesMatch(void *pyobject)
 //  Creation:   Thu Mar 30 12:05:26 PDT 2006
 //
 // Modifications:
-//   
+//
 // ****************************************************************************
 
 char *
@@ -122,7 +122,7 @@ BinnerScriptingPluginInfo::GetLogString()
 // ****************************************************************************
 // Method: BinnerScriptingPluginInfo::SetDefaults
 //
-// Purpose: 
+// Purpose:
 //   Used to set the default values for a plugin's state object.
 //
 // Arguments:
@@ -132,7 +132,7 @@ BinnerScriptingPluginInfo::GetLogString()
 //  Creation:   Thu Mar 30 12:05:26 PDT 2006
 //
 // Modifications:
-//   
+//
 // ****************************************************************************
 
 void

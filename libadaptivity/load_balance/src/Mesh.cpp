@@ -54,8 +54,8 @@ Mesh::Mesh(){
   __num_elements_surface  = 0;
 
   dimension = -1;
- 
-  int init_flag; 
+
+  int init_flag;
   MPI_Initialized(&init_flag);
   if(init_flag){
     MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
@@ -64,10 +64,10 @@ Mesh::Mesh(){
     MyRank = 0;
     NProcs = 1;
   }
-  
+
   shared_nodes.resize( NProcs );
-  halo_nodes.resize( NProcs ); 
-  
+  halo_nodes.resize( NProcs );
+
   nodes_per_rank.resize(NProcs);
   unn_offsets.resize(NProcs+1);
 }
@@ -77,7 +77,7 @@ Mesh::~Mesh(){}
 // returns true if we're using mixed formulation
 bool Mesh::mixed_formulation() const{
   return( __mixed_formulation );
-}               
+}
 bool Mesh::mixed_formulation(const bool in){
   __mixed_formulation = in;
   return( __mixed_formulation );
@@ -95,7 +95,7 @@ void Mesh::do_node_headcount(){
   __num_nodes_native = 0;
   __num_nodes_alien  = 0;
 
-  for(NodeVector<Node>::iterator it=node_list.begin(); 
+  for(NodeVector<Node>::iterator it=node_list.begin();
       it != node_list.end(); ++it){
     if( (*it).get_current_owner() == (unsigned)MyRank){
       __num_nodes_native++;
@@ -103,16 +103,16 @@ void Mesh::do_node_headcount(){
       __num_nodes_alien++;
     }
   }
-  
+
   __num_nodes_total = __num_nodes_native + __num_nodes_alien;
   assert( __num_nodes_total == node_list.size());
-  
+
 }
 void Mesh::do_element_headcount(){
   __num_elements_surface = 0;
   __num_elements_volume  = 0;
 
-  for(ElementVector<Element>::iterator it = element_list.begin(); 
+  for(ElementVector<Element>::iterator it = element_list.begin();
       it != element_list.end(); ++it){
     const unsigned char flag = (*it).get_flags();
 
@@ -132,23 +132,23 @@ void Mesh::do_element_headcount(){
 
 unsigned Mesh::max_nodepack_size() const{
   unsigned maxsize = 0;
-  
+
   for(NodeVector<Node>::const_iterator nt=node_list.begin(); nt!=node_list.end(); ++nt){
     unsigned size = (*nt).pack_size();
     maxsize = (size>maxsize)?size:maxsize;
   }
-  
+
   return(maxsize);
 }
 
 unsigned Mesh::max_pressurepack_size() const{
   unsigned maxsize = 0;
-  
+
   for(NodeVector<PressureNode>::const_iterator nt=MFnode_list.begin(); nt!=MFnode_list.end(); ++nt){
     unsigned size = (*nt).pack_size();
     maxsize = (size>maxsize)?size:maxsize;
   }
-  
+
   return(maxsize);
 }
 
@@ -159,12 +159,12 @@ void Mesh::add_element(Element& elem){
 
 unsigned int Mesh::max_elementpack_size() const{
   unsigned maxsize = 0;
-  
+
   for(ElementVector<Element>::const_iterator et=element_list.begin(); et!=element_list.end(); ++et){
     unsigned size = (*et).pack_size();
     maxsize = (size>maxsize)?size:maxsize;
   }
-  
+
   return(maxsize);
 }
 
@@ -211,7 +211,7 @@ const PressureNode& Mesh::get_pnode(const unsigned n) const{
   const PressureNode& node = MFnode_list[n];
   return node;
 }
-  
+
 Element& Mesh::get_element(const unsigned e){
   return element_list[e];
 }
@@ -237,14 +237,14 @@ unsigned Mesh::num_nodes(const string option){
     return __num_nodes_native;
   if(option == "alien")
     return __num_nodes_alien;
-  
+
   if(option != "total"){
-    ERROR( "Error: Invalid option, " << option << 
+    ERROR( "Error: Invalid option, " << option <<
 	   ", passed to unsigned Mesh::num_nodes(const string option)" );
   }
-  
+
   return __num_nodes_total;
-  
+
 }
 
 unsigned Mesh::num_elements(const string& option){
@@ -263,10 +263,10 @@ unsigned Mesh::num_elements(const string& option){
 
 unsigned Mesh::num_nodes_shared(){
   unsigned int cnt=0;
-  
+
   for(int i = 0; i<NProcs; i++)
     cnt += shared_nodes[i].size();
-  
+
   return( cnt );
 }
 unsigned Mesh::num_nodes_shared(const unsigned proc){
@@ -275,10 +275,10 @@ unsigned Mesh::num_nodes_shared(const unsigned proc){
 
 unsigned Mesh::num_nodes_halo(){
   unsigned int cnt=0;
-  
+
   for(int i = 0; i<NProcs; i++)
     cnt += halo_nodes[i].size();
-  
+
   return cnt;
 }
 unsigned Mesh::num_nodes_halo(const unsigned proc){
@@ -290,10 +290,10 @@ void Mesh::find_nodes_per_rank(const unsigned lcnt){
   MPI_Initialized(&init_flag);
   if(init_flag){
     nodes_per_rank.resize( NProcs );
-    
+
     for(int i = 0; i<NProcs; i++)
       MPI_Gather(&lcnt, 1, MPI_INT, &(nodes_per_rank[0]), 1, MPI_INT, i, MPI_COMM_WORLD);
-    
+
   }else{ // Not running MPI.
     nodes_per_rank.resize(1);
     nodes_per_rank[0] = lcnt;
@@ -316,17 +316,17 @@ void Mesh::add2halo_nodes(const unsigned short p, const unn_t unn){
 set<int> Mesh::current_element_domain_set(const unsigned elem){
   set<int> doms;
   vector<unn_t> nodes = element_list[elem].get_enlist();
-  
+
   for(vector<unn_t>::iterator it = nodes.begin(); it != nodes.end(); ++it){
     gnn_t gnn = unn2gnn(*it);
 
     assert( gnn < (gnn_t)num_nodes("total") );
     doms.insert( node_list[ gnn ].get_current_owner() );
   }
-  
+
   return doms;
 }
- 
+
 // find the set of domains which know this element.
 set<int> Mesh::future_element_domain_set(const unsigned elem){
   set<int> doms;
@@ -343,7 +343,7 @@ set<int> Mesh::future_element_domain_set(const unsigned elem){
 // current mapping of the nodes in element x to domains
 map<unn_t, int> Mesh::current_enode2domain_map(const unsigned elem){
   map<unn_t, int> mapping;
-  
+
   vector<unn_t> nodes = element_list[elem].get_enlist();
   for(vector<unn_t>::iterator it = nodes.begin(); it != nodes.end(); ++it){
     ECHO("unn? " << *it);
@@ -355,17 +355,17 @@ map<unn_t, int> Mesh::current_enode2domain_map(const unsigned elem){
 // future mapping of the nodes in element x to domains
 map<unn_t, int> Mesh::future_enode2domain_map(const unsigned elem){
   map<unn_t, int> mapping;
-  
+
   vector<unn_t> nodes = element_list[elem].get_enlist();
   for(vector<unn_t>::iterator it = nodes.begin(); it != nodes.end(); ++it)
     mapping[ *it ] = node_list[ unn2gnn(*it) ].get_future_owner();
-  
+
   return mapping;
 }
 
 // Updata all halo values stored in data_in
 void Mesh::halo_update(const vector< vector<int> >& data_in, vector< vector<int> >& data_out){
-  
+
   data_out.clear();
   data_out.resize(NProcs);
 
@@ -379,12 +379,12 @@ void Mesh::halo_update(const vector< vector<int> >& data_in, vector< vector<int>
       break;
     }
   }
-  
+
   // setup non-blocking receives
   vector<MPI_Request> RecvRequest(NProcs);
   for(int i = 0; i<NProcs; i++){
     int cnt = stride*num_nodes_halo(i);
-    
+
     if((i==MyRank)||(cnt==0)){
       RecvRequest[i] =  MPI_REQUEST_NULL;
     }else{
@@ -392,7 +392,7 @@ void Mesh::halo_update(const vector< vector<int> >& data_in, vector< vector<int>
       MPI_Irecv(&(data_out[i][0]), cnt, MPI_INT, i, 13, MPI_COMM_WORLD, &(RecvRequest[i]));
     }
   }
-  
+
   // setup non-blocking sends
   vector<MPI_Request> SendRequest(NProcs);
   for(int i = 0; i<NProcs; i++){
@@ -400,18 +400,18 @@ void Mesh::halo_update(const vector< vector<int> >& data_in, vector< vector<int>
 
     if((i==MyRank)||(cnt==0)){
       SendRequest[i] =  MPI_REQUEST_NULL;
-    }else{    
+    }else{
       MPI_Isend(&(data_in[i][0]), cnt, MPI_INT, i, 13, MPI_COMM_WORLD, &(SendRequest[i]));
     }
   }
-  
+
   MPI_Waitall(NProcs, &(RecvRequest[0]),MPI_STATUSES_IGNORE);
   MPI_Waitall(NProcs, &(SendRequest[0]),MPI_STATUSES_IGNORE);
-  
+
 }
 // Updata all halo values stored in data_in
 void Mesh::halo_update(const vector< vector<unsigned> >& data_in, vector< vector<unsigned> >& data_out){
-  
+
   data_out.clear();
   data_out.resize(NProcs);
 
@@ -425,7 +425,7 @@ void Mesh::halo_update(const vector< vector<unsigned> >& data_in, vector< vector
       break;
     }
   }
-  
+
   // setup non-blocking receives
   vector<MPI_Request> RecvRequest(NProcs);
   for(int i=0;i<NProcs;i++){
@@ -433,12 +433,12 @@ void Mesh::halo_update(const vector< vector<unsigned> >& data_in, vector< vector
 
     if((i==MyRank)||(cnt==0)){
       RecvRequest[i] =  MPI_REQUEST_NULL;
-    }else{    
+    }else{
       data_out[i].resize( cnt );
       MPI_Irecv(&(data_out[i][0]), cnt, MPI_UNSIGNED, i, 13, MPI_COMM_WORLD, &(RecvRequest[i]));
     }
   }
-  
+
   // setup non-blocking sends
   vector<MPI_Request> SendRequest(NProcs);
   for(int i = 0; i<NProcs; i++){
@@ -446,19 +446,19 @@ void Mesh::halo_update(const vector< vector<unsigned> >& data_in, vector< vector
 
     if((i==MyRank)||(cnt==0)){
       SendRequest[i] =  MPI_REQUEST_NULL;
-    }else{    
+    }else{
       MPI_Isend(&(data_in[i][0]), cnt, MPI_UNSIGNED, i, 13, MPI_COMM_WORLD, &(SendRequest[i]));
     }
   }
-  
+
   MPI_Waitall(NProcs, &(RecvRequest[0]), MPI_STATUSES_IGNORE);
   MPI_Waitall(NProcs, &(SendRequest[0]), MPI_STATUSES_IGNORE);
-  
+
 }
 // Updata all halo values stored in data_in
 void Mesh::halo_update(const vector< vector<unsigned> >& data_in, const vector<unsigned>& data_cnt,
                        vector< vector<unsigned> >& data_out){
-  
+
   data_out.clear();
   data_out.resize( NProcs );
 
@@ -472,12 +472,12 @@ void Mesh::halo_update(const vector< vector<unsigned> >& data_in, const vector<u
       break;
     }
   }
-    
+
   // setup non-blocking receives
   vector<MPI_Request> RecvRequest(NProcs);
   for(int i = 0; i<NProcs; i++){
     int cnt = stride*data_cnt[i];
-    
+
     if((i==MyRank)||(cnt==0)){
       RecvRequest[i] =  MPI_REQUEST_NULL;
     }else{
@@ -486,12 +486,12 @@ void Mesh::halo_update(const vector< vector<unsigned> >& data_in, const vector<u
     }
 
   }
-  
+
   // setup non-blocking sends
   vector<MPI_Request> SendRequest(NProcs);
   for(int i = 0; i<NProcs; i++){
     int cnt = stride*num_nodes_shared(i);
-    
+
     if((i==MyRank)||(cnt==0)){
       SendRequest[i] =  MPI_REQUEST_NULL;
     }else{
@@ -500,14 +500,14 @@ void Mesh::halo_update(const vector< vector<unsigned> >& data_in, const vector<u
   }
 
   MPI_Waitall(NProcs, &(RecvRequest[0]), MPI_STATUSES_IGNORE);
-  MPI_Waitall(NProcs, &(SendRequest[0]), MPI_STATUSES_IGNORE);  
-  
+  MPI_Waitall(NProcs, &(SendRequest[0]), MPI_STATUSES_IGNORE);
+
 }
 void Mesh::halo_update(const vector< vector<samfloat_t> >& data_in, vector< vector<samfloat_t> >& data_out){
-  
+
   data_out.clear();
   data_out.resize( NProcs );
-  
+
   // Calculate the number of items being sent per node
   unsigned stride=0;
   for(unsigned i=0; i<(unsigned)NProcs; i++){
@@ -518,25 +518,25 @@ void Mesh::halo_update(const vector< vector<samfloat_t> >& data_in, vector< vect
       break;
     }
   }
-  
+
   // setup non-blocking receives
   vector<MPI_Request> RecvRequest(NProcs);
   for(int i = 0; i<NProcs; i++){
     int cnt = stride*num_nodes_halo(i);
-    
+
     if((cnt==0)||(i==MyRank)){
       RecvRequest[i] =  MPI_REQUEST_NULL;
-    }else{    
+    }else{
       data_out[i].resize( cnt );
       MPI_Irecv(&(data_out[i][0]), cnt, SAMFLOAT, i, 13, MPI_COMM_WORLD, &(RecvRequest[i]));
     }
   }
-  
+
   // setup non-blocking sends
   vector<MPI_Request> SendRequest(NProcs);
   for(int i = 0; i<NProcs; i++){
     int cnt = stride*num_nodes_shared(i);
-    
+
     if((cnt==0)||(i==MyRank)){
       SendRequest[i] =  MPI_REQUEST_NULL;
       continue;
@@ -546,21 +546,21 @@ void Mesh::halo_update(const vector< vector<samfloat_t> >& data_in, vector< vect
   }
 
   MPI_Waitall(NProcs, &(RecvRequest[0]), MPI_STATUSES_IGNORE);
-  MPI_Waitall(NProcs, &(SendRequest[0]), MPI_STATUSES_IGNORE);  
-  
+  MPI_Waitall(NProcs, &(SendRequest[0]), MPI_STATUSES_IGNORE);
+
 }
 
 unsigned Mesh::min_node_owner(const unsigned elem){
   const vector<unn_t>& nodes = element_list[elem].get_enlist();
   unsigned len = nodes.size();
   assert(len>0);
-  
+
   unsigned min = node_list[ unn2gnn(nodes[0]) ].get_current_owner();
   for(unsigned i=1; i<len; i++){
     unsigned T = node_list[ unn2gnn(nodes[i]) ].get_current_owner();
     min = min<T?min:T;
   }
-  
+
   return min;
 }
 
@@ -570,7 +570,7 @@ unsigned Mesh::min_node_owner(const unsigned elem){
 #ifdef __cplusplus
 extern "C"  /* prevent C++ name mangling */
 #endif
-void mtetin_fc(samfloat_t *, samfloat_t *, samfloat_t*, samfloat_t*, 
+void mtetin_fc(samfloat_t *, samfloat_t *, samfloat_t*, samfloat_t*,
 	       samfloat_t*, samfloat_t*, samfloat_t*, samfloat_t*, samfloat_t*);
 
 samfloat_t Mesh::element_functional(const unsigned eid){
@@ -584,43 +584,43 @@ samfloat_t Mesh::element_functional(const unsigned eid){
 
   ECHO("Calculating element function for element "<<eid);
   assert(eid<element_list.size());
-  
+
   samfloat_t fxnl=0.0;
   if (dimension == 3)
   {
     // Use Adrians fortran subroutine
     samfloat_t X[4], Y[4], Z[4], VOL, AREAS[4], RADIUS, QUALTY, L[6];
     vector<samfloat_t> M(9, 0.0);
-    
+
     vector<unn_t> nodes( element_list[eid].get_enlist() );
     assert( nodes.size() == 4 );
     for(unsigned i=0; i<4; i++)
       nodes[i] = unn2gnn( nodes[i] );
-    
+
     // Get coordinates and average metric
     for(unsigned i=0; i<4; i++){
       X[i] =  node_list[ nodes[i] ].get_x();
       Y[i] =  node_list[ nodes[i] ].get_y();
       Z[i] =  node_list[ nodes[i] ].get_z();
-      
+
       const vector<samfloat_t>& metric = node_list[ nodes[i] ].get_metric();
-      
+
       CHECK( metric.size() );
       assert(metric.size() == 9);
       for(unsigned j=0; j<9; j++){
 	M[j] += metric[j];
       }
     }
-    
+
     for(unsigned j=0; j<9; j++)
       M[j] *= 0.25;
-    
+
     // Adrians routine
     mtetin_fc(X, Y, Z, &(M[0]), &VOL, AREAS, L, &RADIUS, &QUALTY);
     CHECK(VOL);
     CHECK(RADIUS);
     CHECK(QUALTY);
-    
+
     // From this the functional can be calculated as
     fxnl = 1.0;
     for(unsigned i=0; i<6; i++)
@@ -637,7 +637,7 @@ samfloat_t Mesh::element_functional(const unsigned eid){
     assert( nodes.size() == 3 );
     for(unsigned i=0; i<3; i++)
       nodes[i] = unn2gnn( nodes[i] );
-    
+
     // Get coordinates and average metric
     for(unsigned i=0; i<3; i++)
     {
@@ -650,11 +650,11 @@ samfloat_t Mesh::element_functional(const unsigned eid){
     M2[0] = metric2[0]; M2[1] = metric2[1]; M2[2] = metric2[3];
     const vector<samfloat_t>& metric3 = node_list[ nodes[2] ].get_metric();
     M3[0] = metric3[0]; M3[1] = metric3[1]; M3[2] = metric3[3];
-    
+
     functional_2d f;
     fxnl = f.standard(X[0], Y[0], M1, X[1], Y[1], M2, X[2], Y[2], M3);
   }
-  
+
   CHECK(fxnl);
   return fxnl;
 }
@@ -671,19 +671,19 @@ samfloat_t Mesh::elementVolume(const unsigned eid){
     const vector<samfloat_t>& r1 = node_list.unn( nodes[1] ).get_coord();
     const vector<samfloat_t>& r2 = node_list.unn( nodes[2] ).get_coord();
     const vector<samfloat_t>& r3 = node_list.unn( nodes[3] ).get_coord();
-    
+
     samfloat_t a1 = r1[0]-r0[0];
     samfloat_t a2 = r1[1]-r0[1];
     samfloat_t a3 = r1[2]-r0[2];
-    
+
     samfloat_t b1 = r2[0]-r0[0];
     samfloat_t b2 = r2[1]-r0[1];
     samfloat_t b3 = r2[2]-r0[2];
-    
+
     samfloat_t c1 = r3[0]-r0[0];
     samfloat_t c2 = r3[1]-r0[1];
     samfloat_t c3 = r3[2]-r0[2];
-    
+
     // volume = | r_a r_b r_c | / 6
     vol = (a1*(b2*c3 - b3*c2) - b1*(a2*c3 - a3*c2) + c1*(a2*b3 - a3*b2))/6.0;
   }
@@ -694,7 +694,7 @@ samfloat_t Mesh::elementVolume(const unsigned eid){
     const vector<samfloat_t>& r2 = node_list.unn( nodes[2] ).get_coord();
     samfloat_t a1 = r1[0]-r0[0];
     samfloat_t a2 = r1[1]-r0[1];
-    
+
     samfloat_t b1 = r2[0]-r0[0];
     samfloat_t b2 = r2[1]-r0[1];
 
@@ -704,7 +704,7 @@ samfloat_t Mesh::elementVolume(const unsigned eid){
   {
     ERROR("Only know how to compute the volume of triangles and tets. Sorry!");
   }
-  
+
   // return the abs value as there may be orientation problems
   return fabs(vol);
 }
@@ -722,16 +722,16 @@ samfloat_t Mesh::idealElementDensity(const unsigned eid)
     samfloat_t a1 = 0.0;
     samfloat_t a2 = 0.0;
     samfloat_t a3 = 0.0;
-    
+
     samfloat_t b1 = 0.0;
     samfloat_t b2 = 0.0;
     samfloat_t b3 = 0.0;
-    
+
     samfloat_t c1 = 0.0;
     samfloat_t c2 = 0.0;
     samfloat_t c3 = 0.0;
-    
-    const std::vector<unn_t>& nodes = element_list[eid].get_enlist();  
+
+    const std::vector<unn_t>& nodes = element_list[eid].get_enlist();
     for(vector<unsigned>::const_iterator it=nodes.begin();it!=nodes.end();++it){
       const vector<samfloat_t>& metric = node_list.unn( *it ).get_metric();
       // it doesn't matter what order they are loaded in as since the
@@ -756,17 +756,17 @@ samfloat_t Mesh::idealElementDensity(const unsigned eid)
     c1/=len;
     c2/=len;
     c3/=len;
-    
+
     // det = | r_a r_b r_c |
     samfloat_t det = a1*(b2*c3 - b3*c2) - b1*(a2*c3 - a3*c2) + c1*(a2*b3 - a3*b2);
     CHECK(det);
-    
+
     return sqrt(det)*elementVolume(eid);
   }
   else if (dimension == 2)
   {
     samfloat_t a1 = 0.0, a2 = 0.0, b1 = 0.0, b2 = 0.0;
-    const std::vector<unn_t>& nodes = element_list[eid].get_enlist();  
+    const std::vector<unn_t>& nodes = element_list[eid].get_enlist();
     for(vector<unsigned>::const_iterator it=nodes.begin();it!=nodes.end();++it)
     {
       const vector<samfloat_t>& metric = node_list.unn( *it ).get_metric();
@@ -787,18 +787,18 @@ samfloat_t Mesh::idealElementDensity(const unsigned eid)
 // Returns a node->element list
 deque< set<unsigned> > Mesh::mknelist(){
   deque< set<unsigned> > nelist( __num_nodes_total );
-  
+
   // Loop through all the elements
   unsigned eid = 0;
   for(ElementVector<Element>::iterator ie = element_list.begin(); ie != element_list.end(); ++ie, ++eid){
     unsigned char flag = (*ie).get_flags();
-    
+
     // Default behaviour only deals in volume elements
     if(flag&ELM_VOLUME){
-      
+
       // Get node list
       const vector<unn_t>& nodes = (*ie).get_enlist();
-      
+
       for(vector<unn_t>::const_iterator in = nodes.begin(); in != nodes.end(); ++in){
 	unsigned gnn = unn2gnn(*in);
 	assert(gnn<__num_nodes_total);
@@ -806,26 +806,26 @@ deque< set<unsigned> > Mesh::mknelist(){
       }
     }
   }
-  
+
   return nelist;
 }
 
 // Returns a node->element list in a map with an option to use unn's
 map<unsigned, set<unsigned> > Mesh::mknelist(const bool use_unn){
-  
+
   map<unsigned, set<unsigned> > nelist;
-  
+
   // Loop through all the elements
   unsigned eid = 0;
   for(ElementVector<Element>::iterator ie = element_list.begin(); ie != element_list.end(); ++ie, ++eid){
     unsigned char flag = (*ie).get_flags();
-    
+
     // Default behaviour only deals in volume elements
     if(flag&ELM_VOLUME){
-      
+
       // Get node list
       const vector<unn_t>& nodes = (*ie).get_enlist();
-      
+
       for(vector<unn_t>::const_iterator in = nodes.begin(); in != nodes.end(); ++in){
 	if(use_unn)
 	  nelist[ *in ].insert( eid );
@@ -834,7 +834,7 @@ map<unsigned, set<unsigned> > Mesh::mknelist(const bool use_unn){
       }
     }
   }
-  
+
   return( nelist );
 }
 
@@ -847,17 +847,17 @@ map<unsigned, set<unsigned> > Mesh::mknnlist(const bool use_unn){
   // Loop through elements
   for(ElementVector<Element>::iterator it = element_list.begin(); it != element_list.end(); ++it){
     vector<unn_t> enlist( (*it).get_enlist() );
-    
+
     for(vector<unn_t>::iterator i = enlist.begin(); i != enlist.end(); ++i){
       unsigned gnn = unn2gnn(*i);
-      
+
       if(node_list[gnn].get_current_owner() != MyRank)
 	continue;
-      
+
       for(vector<unn_t>::iterator j = enlist.begin(); j != enlist.end(); ++j){
-	
+
 	if( (*i) != (*j) ){
-	  
+
 	  if(use_unn){
 	    edges[*i].insert( *j );
 	  }else{
@@ -865,7 +865,7 @@ map<unsigned, set<unsigned> > Mesh::mknnlist(const bool use_unn){
 	  }
 	}
 
-      } // end of element. 
+      } // end of element.
 
     }
   }
@@ -889,11 +889,11 @@ map<unsigned, set<unsigned> > Mesh::mknnlist(const bool use_unn){
 bool Mesh::mesh_consistant(){
 #ifndef NDEBUG
   ECHO("Testing that the meshs are complete");
-  
+
   unsigned elem = 0;
   for(ElementVector<Element>::const_iterator et = element_list.begin(); et!=element_list.end(); ++et){
     ECHO("Checking element "<<elem);
-    
+
     // regular nodes
     ECHO("regular nodes: ");
     const vector<unn_t>& enl = (*et).get_enlist();
@@ -902,17 +902,17 @@ bool Mesh::mesh_consistant(){
       if(!node_list.contains_unn( *it ))
 	return(false);
     }
-    
+
     // Pressure nodes.
     ECHO("pressure nodes: ");
     const vector<unn_t>& enl2 = (*et).get_MFenlist();
     for(vector<unn_t>::const_iterator it = enl2.begin(); it != enl2.end(); ++it){
-      ECHO(*it);      
+      ECHO(*it);
       if(!MFnode_list.contains_unn( *it ))
 	return(false);
     }
   }
-  
+
   // regular halo
   ECHO("Testing regular halo");
   for(int p=0; p<NProcs; p++){
@@ -925,8 +925,8 @@ bool Mesh::mesh_consistant(){
 	return(false);
     }
   }
-  
-  
+
+
   // pressure halo
   ECHO("Testing pressure halo");
   for(int p=0; p<NProcs; p++){

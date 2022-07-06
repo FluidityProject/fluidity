@@ -6,7 +6,7 @@
  * Copyright (c) 2009, Howard Butler
  *
  * All rights reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
@@ -32,15 +32,14 @@ class BoundsQuery : public SpatialIndex::IQueryStrategy
 {
 private:
     SpatialIndex::Region* m_bounds;
-    
+
 public:
 
     BoundsQuery();
     ~BoundsQuery() { if (m_bounds != 0) delete m_bounds; }
-    void getNextEntry(  const SpatialIndex::IEntry& entry, 
-                        SpatialIndex::id_type& nextEntry, 
+    void getNextEntry(  const SpatialIndex::IEntry& entry,
+                        SpatialIndex::id_type& nextEntry,
                         bool& hasNext);
-    
+
     SpatialIndex::Region* GetBounds() const { return m_bounds; }
 };
-

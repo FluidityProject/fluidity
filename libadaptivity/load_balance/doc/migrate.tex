@@ -1,16 +1,16 @@
 \documentclass[11pt]{article}
 
 \pagestyle{empty}                         %%%% No page Numbering
- 
-% Mathews packages....
-\usepackage{amsbsy,amsmath,amssymb,psfig} 
-\usepackage{times,mathpi,mathptm} 
-\usepackage{graphicx,psfrag,rotating,subfigure} 
 
-\begin{document} 
+% Mathews packages....
+\usepackage{amsbsy,amsmath,amssymb,psfig}
+\usepackage{times,mathpi,mathptm}
+\usepackage{graphicx,psfrag,rotating,subfigure}
+
+\begin{document}
 %\DeclareGraphicsExtensions{.pdf}
 
-\date{}   
+\date{}
 
 \title{HOWTO Migrate}
 
@@ -24,9 +24,9 @@ London SW7 2BP, UK            \\
 
 \maketitle
 \thispagestyle{empty}
-        
+
 \noindent
-{\bf 
+{\bf
 
 Abstract {\small\em One of the basic operations required in parallel
 computations based on an unstructured computational mesh is {\it
@@ -122,7 +122,7 @@ elements in their halo.
 
 The remainder of this work describes details of the algorithm and
 implementation. This is followed by details on how {\it libmigrate} can be
-incorporated into existing codes. 
+incorporated into existing codes.
 
 \section{Migration: Algorithm and Implementation}
 In order to make {\it libmigrate} as portable and flexible as
@@ -162,7 +162,7 @@ where UNN\_LEN has been defined as 10.
 \centering
 \includegraphics[height=50mm, angle=-90]{images/UNN}
 \caption{UNN for node of GNN=235523 on Rank 16}
-\end{figure} 
+\end{figure}
 In order to establish the UNN for the halo nodes managed by
 neithbouring partitions, communication is required. Each partition
 sends the GNN's of nodes which are managed by it but used by another
@@ -273,19 +273,19 @@ discontinuous/high-resolution methods.
 \centering
 \includegraphics[height=140mm, angle=-90]{images/node_class}
 \caption{C++ node class}
-\end{figure} 
+\end{figure}
 
 \begin{figure}[h]\label{fig:element_class}
 \centering
 \includegraphics[height=140mm, angle=-90]{images/element_class}
 \caption{C++ element class}
-\end{figure} 
+\end{figure}
 
 \begin{figure}[h]\label{fig:mesh_class}
 \centering
 \includegraphics[width=210mm, angle=-90]{images/mesh_class}
 \caption{C++ mesh class}
-\end{figure} 
+\end{figure}
 
 \section{Users Manual}
 
@@ -303,7 +303,7 @@ application. A simple version of the script is shown in Figure~\ref{fig:mkcxxpat
 \includegraphics[height=140mm, angle=-90]{images/mkcxxpatch}
 \caption{Example script that generates a C++ patch from a Fortran 77
 file which contains a main routine}
-\end{figure} 
+\end{figure}
 %A simple version of the script is shown below:
 %sed -e $\backslash$ \\
 %'s/\textasciicircum [ ]*[Pp][Rr][Oo][Gg][Rr][Aa][Mm][
@@ -347,25 +347,3 @@ guidance in the development of the algorithm used for the migration.
 \bibliography{migrate}
 
 \end{document}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

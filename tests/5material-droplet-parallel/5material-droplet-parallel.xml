@@ -6,8 +6,8 @@
     <problem_definition length="short" nprocs="2">
       <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l 5material-droplet 5material-droplet_flredecomp &amp;&amp;
 mpiexec ../../bin/fluidity -v2 -l 5material-droplet_flredecomp.flml</command_line>
-  </problem_definition>  
-  <variables>  
+  </problem_definition>
+  <variables>
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
@@ -29,46 +29,46 @@ mindivergence=max(abs(stat("5material-droplet.stat")["Water"]["ControlVolumeDive
 from fluidity_tools import stat_parser as stat
 maxdivergence=max(stat("5material-droplet.stat")["Water"]["ControlVolumeDivergence"]["max"])
     </variable>
-     <variable name="vfracintwater0" language="python"> 
+     <variable name="vfracintwater0" language="python">
 import fluidity_tools
 vfracintwater0 = fluidity_tools.stat_parser("5material-droplet.stat")['Water']['MaterialVolumeFraction']['integral'][0]
-    </variable>    
-     <variable name="vfracintwater" language="python"> 
+    </variable>
+     <variable name="vfracintwater" language="python">
 import fluidity_tools
 vfracintwater = fluidity_tools.stat_parser("5material-droplet.stat")['Water']['MaterialVolumeFraction']['integral'][-1]
-    </variable>    
-     <variable name="vfracintdrop0" language="python"> 
+    </variable>
+     <variable name="vfracintdrop0" language="python">
 import fluidity_tools
 vfracintdrop0 = fluidity_tools.stat_parser("5material-droplet.stat")['Droplet']['MaterialVolumeFraction']['integral'][0]
-    </variable>    
-     <variable name="vfracintdrop" language="python"> 
+    </variable>
+     <variable name="vfracintdrop" language="python">
 import fluidity_tools
 vfracintdrop = fluidity_tools.stat_parser("5material-droplet.stat")['Droplet']['MaterialVolumeFraction']['integral'][-1]
-    </variable>    
-     <variable name="vfracintwater20" language="python"> 
+    </variable>
+     <variable name="vfracintwater20" language="python">
 import fluidity_tools
 vfracintwater20 = fluidity_tools.stat_parser("5material-droplet.stat")['Water2']['MaterialVolumeFraction']['integral'][0]
-    </variable>    
-     <variable name="vfracintwater2" language="python"> 
+    </variable>
+     <variable name="vfracintwater2" language="python">
 import fluidity_tools
 vfracintwater2 = fluidity_tools.stat_parser("5material-droplet.stat")['Water2']['MaterialVolumeFraction']['integral'][-1]
-    </variable>    
-     <variable name="vfracintdrop20" language="python"> 
+    </variable>
+     <variable name="vfracintdrop20" language="python">
 import fluidity_tools
 vfracintdrop20 = fluidity_tools.stat_parser("5material-droplet.stat")['Droplet2']['MaterialVolumeFraction']['integral'][0]
-    </variable>    
-     <variable name="vfracintdrop2" language="python"> 
+    </variable>
+     <variable name="vfracintdrop2" language="python">
 import fluidity_tools
 vfracintdrop2 = fluidity_tools.stat_parser("5material-droplet.stat")['Droplet2']['MaterialVolumeFraction']['integral'][-1]
-    </variable>    
-     <variable name="mxvfracwater" language="python"> 
+    </variable>
+     <variable name="mxvfracwater" language="python">
 import fluidity_tools
 mxvfracwater = min(fluidity_tools.stat_parser("5material-droplet.stat")['Water']['MaterialVolumeFraction']['max'])
-    </variable>    
-     <variable name="mnvfracwater" language="python"> 
+    </variable>
+     <variable name="mnvfracwater" language="python">
 import fluidity_tools
 mnvfracwater = min(fluidity_tools.stat_parser("5material-droplet.stat")['Water']['MaterialVolumeFraction']['min'])
-    </variable>    
+    </variable>
     <variable name="mxvfracdrop" language="python">
 import fluidity_tools
 mxvfracdrop = max(fluidity_tools.stat_parser("5material-droplet.stat")['Droplet']['MaterialVolumeFraction']['max'])
@@ -77,14 +77,14 @@ mxvfracdrop = max(fluidity_tools.stat_parser("5material-droplet.stat")['Droplet'
 import fluidity_tools
 mnvfracdrop = min(fluidity_tools.stat_parser("5material-droplet.stat")['Droplet']['MaterialVolumeFraction']['min'])
     </variable>
-     <variable name="mxvfracwater2" language="python"> 
+     <variable name="mxvfracwater2" language="python">
 import fluidity_tools
 mxvfracwater2 = min(fluidity_tools.stat_parser("5material-droplet.stat")['Water']['MaterialVolumeFraction']['max'])
-    </variable>    
-     <variable name="mnvfracwater2" language="python"> 
+    </variable>
+     <variable name="mnvfracwater2" language="python">
 import fluidity_tools
 mnvfracwater2 = min(fluidity_tools.stat_parser("5material-droplet.stat")['Water']['MaterialVolumeFraction']['min'])
-    </variable>    
+    </variable>
     <variable name="mxvfracdrop2" language="python">
 import fluidity_tools
 mxvfracdrop2 = max(fluidity_tools.stat_parser("5material-droplet.stat")['Droplet']['MaterialVolumeFraction']['max'])
@@ -93,14 +93,14 @@ mxvfracdrop2 = max(fluidity_tools.stat_parser("5material-droplet.stat")['Droplet
 import fluidity_tools
 mnvfracdrop2 = min(fluidity_tools.stat_parser("5material-droplet.stat")['Droplet']['MaterialVolumeFraction']['min'])
     </variable>
-     <variable name="mxvfracair" language="python"> 
+     <variable name="mxvfracair" language="python">
 import fluidity_tools
 mxvfracair = max(fluidity_tools.stat_parser("5material-droplet.stat")['Air']['MaterialVolumeFraction']['max'])
-    </variable>    
-     <variable name="mnvfracair" language="python"> 
+    </variable>
+     <variable name="mnvfracair" language="python">
 import fluidity_tools
 mnvfracair = min(fluidity_tools.stat_parser("5material-droplet.stat")['Air']['MaterialVolumeFraction']['min'])
-    </variable>    
+    </variable>
     <variable name="mxvfracsum" language="python">
 import fluidity_tools
 mxvfracsum = max(fluidity_tools.stat_parser("5material-droplet.stat")['Water']['SumMaterialVolumeFractions']['max'])
@@ -143,7 +143,7 @@ for f in range(len(filelist)):
             serial_error[f][2] = max(serial_error[f][2], field_error)
 </variable>
   </variables>
-    <pass_tests>  
+    <pass_tests>
       <test name="Solvers converged" language="python">
         assert(solvers_converged)
       </test>

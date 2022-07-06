@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -46,19 +46,19 @@ void get_environment_variable_fc(char* name, int* name_len, char* val, int* val_
    char* lname;
    lname = malloc((*name_len + 1) * sizeof(char));
    assert(lname != NULL);
-   
+
    memcpy(lname, name, *name_len * sizeof(char));
    lname[*name_len] = '\0';
-      
+
    char* lval = getenv(lname);
-   
+
    free(lname);
-   
+
    if(lval == NULL){
      *stat = 1;
      return;
    }
-   
+
    if(strlen(lval) > *val_len){
      fprintf(stderr, "In get_environment_variable_fc\n");
      fprintf(stderr, "Warning: Truncating returned string\n");
@@ -67,7 +67,7 @@ void get_environment_variable_fc(char* name, int* name_len, char* val, int* val_
      *val_len = strlen(lval);
    }
    memcpy(val, lval, *val_len * sizeof(char));
-   
+
    return;
 }
 

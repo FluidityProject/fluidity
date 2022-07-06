@@ -1,5 +1,5 @@
 !    Copyright (C) 2007 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -29,7 +29,7 @@
 
 module parallel_fields
   !!< This module exists to separate out parallel operations on fields
-  
+
   use fldebug
   use futils
   use mpi_interfaces
@@ -44,7 +44,7 @@ module parallel_fields
   use halos_ownership
   use fields_allocates
   use fields_manipulation
-  
+
   implicit none
 
   private
@@ -54,7 +54,7 @@ module parallel_fields
        & surface_element_owned, nowned_nodes
   ! Apparently ifort has a problem with the generic name node_owned
   public :: node_owned_mesh, zero_non_owned
-  
+
   interface node_owned
     module procedure node_owned_mesh, node_owned_scalar, node_owned_vector, &
       & node_owned_tensor
@@ -75,12 +75,12 @@ module parallel_fields
     module procedure element_owner_mesh, element_owner_scalar, &
       & element_owner_vector, element_owner_tensor
   end interface element_owner
-  
+
   interface assemble_ele
     module procedure assemble_ele_mesh, assemble_ele_scalar, &
       & assemble_ele_vector, assemble_ele_tensor
   end interface assemble_ele
-  
+
   interface surface_element_owned
     module procedure surface_element_owned_mesh, surface_element_owned_scalar, &
       & surface_element_owned_vector, surface_element_owned_tensor
@@ -89,29 +89,29 @@ module parallel_fields
   interface zero_non_owned
      module procedure zero_non_owned_scalar, zero_non_owned_vector
   end interface
-  
+
   interface halo_communicator
     module procedure halo_communicator_mesh, halo_communicator_scalar, &
       & halo_communicator_vector, halo_communicator_tensor
   end interface halo_communicator
-  
+
   interface nowned_nodes
     module procedure nowned_nodes_mesh, nowned_nodes_scalar, &
       & nowned_nodes_vector, nowned_nodes_tensor
   end interface nowned_nodes
 
 contains
-  
+
   function halo_communicator_mesh(mesh) result(communicator)
     !!< Return the halo communicator for this mesh. Returns the halo
     !!< communicator off of the max level node halo.
-    
+
     type(mesh_type), intent(in) :: mesh
-    
+
     integer :: communicator
-    
+
     integer :: nhalos
-    
+
     nhalos = halo_count(mesh)
     if(nhalos > 0) then
       communicator = halo_communicator(mesh%halos(nhalos))
@@ -122,43 +122,43 @@ contains
       communicator = -1
 #endif
     end if
-    
+
   end function halo_communicator_mesh
-  
+
   function halo_communicator_scalar(s_field) result(communicator)
     !!< Return the halo communicator for this field. Returns the halo
     !!< communicator off of the max level node halo.
-    
+
     type(scalar_field), intent(in) :: s_field
-    
+
     integer :: communicator
-    
+
     communicator = halo_communicator(s_field%mesh)
-  
+
   end function halo_communicator_scalar
-  
+
   function halo_communicator_vector(v_field) result(communicator)
     !!< Return the halo communicator for this mesh. Returns the halo
     !!< communicator off of the max level node halo.
-    
+
     type(vector_field), intent(in) :: v_field
-    
+
     integer :: communicator
-    
+
     communicator = halo_communicator(v_field%mesh)
-  
+
   end function halo_communicator_vector
-  
+
   function halo_communicator_tensor(t_field) result(communicator)
     !!< Return the halo communicator for this mesh. Returns the halo
     !!< communicator off of the max level node halo.
-    
+
     type(tensor_field), intent(in) :: t_field
-    
+
     integer :: communicator
-    
+
     communicator = halo_communicator(t_field%mesh)
-  
+
   end function halo_communicator_tensor
 
   function node_owned_mesh(mesh, node_number) result(owned)
@@ -243,7 +243,7 @@ contains
     end if
 
   end function element_owned_mesh
-  
+
   function element_owned_scalar(s_field, element_number) result(owned)
     !!< Return whether the supplied element in the mesh of the given scalar
     !!< field is owned by this process
@@ -256,7 +256,7 @@ contains
     owned = element_owned(s_field%mesh, element_number)
 
   end function element_owned_scalar
-  
+
   function element_owned_vector(v_field, element_number) result(owned)
     !!< Return whether the supplied element in the mesh of the given scalar
     !!< field is owned by this process
@@ -386,7 +386,7 @@ contains
 
   function element_owner_scalar(s_field, element_number) result(owner)
     !!< Return the processor that owns the supplied element in the mesh of the given scalar
-    !!< field 
+    !!< field
 
     type(scalar_field), intent(in) :: s_field
     integer, intent(in) :: element_number
@@ -399,7 +399,7 @@ contains
 
   function element_owner_vector(v_field, element_number) result(owner)
     !!< Return the processor that owns the supplied element in the mesh of the given vector
-    !!< field 
+    !!< field
 
     type(vector_field), intent(in) :: v_field
     integer, intent(in) :: element_number
@@ -412,26 +412,26 @@ contains
 
   function element_owner_tensor(t_field, element_number) result(owner)
     !!< Return the processor that owns the supplied element in the mesh of the given tensor
-    !!< field 
+    !!< field
 
     type(tensor_field), intent(in) :: t_field
     integer, intent(in) :: element_number
-    
+
     integer :: owner
 
     owner = element_owner(t_field%mesh, element_number)
-  
+
   end function element_owner_tensor
-  
+
   function assemble_ele_mesh(mesh, ele) result(assemble)
     !!< Return whether the supplied element for the supplied mesh should be
     !!< assembled. An element need not be assembled if it has no owned nodes.
-    
+
     type(mesh_type), intent(in) :: mesh
     integer, intent(in) :: ele
-   
+
     logical :: assemble
-    
+
     select case(continuity(mesh))
       case(0)
         if(associated(mesh%halos)) then
@@ -449,89 +449,89 @@ contains
         ewrite(-1, "(a,i0)") "For mesh continuity", mesh%continuity
         FLAbort("Unrecognised mesh continuity")
     end select
-  
+
   end function assemble_ele_mesh
-  
+
   function assemble_ele_scalar(s_field, ele) result(assemble)
     type(scalar_field), intent(in) :: s_field
     integer, intent(in) :: ele
-    
+
     logical :: assemble
-    
+
     assemble = assemble_ele(s_field%mesh, ele)
-  
+
   end function assemble_ele_scalar
-  
+
   function assemble_ele_vector(v_field, ele) result(assemble)
     type(vector_field), intent(in) :: v_field
     integer, intent(in) :: ele
-    
+
     logical :: assemble
-    
+
     assemble = assemble_ele(v_field%mesh, ele)
-  
+
   end function assemble_ele_vector
-  
+
   function assemble_ele_tensor(t_field, ele) result(assemble)
     type(tensor_field), intent(in) :: t_field
     integer, intent(in) :: ele
-    
+
     logical :: assemble
-    
+
     assemble = assemble_ele(t_field%mesh, ele)
-  
+
   end function assemble_ele_tensor
 
   function surface_element_owned_mesh(mesh, face_number) result(owned)
     !!< Return if the supplied surface element in the given mesh is owned by
     !!< this process.
-    
+
     type(mesh_type), intent(in) :: mesh
     integer, intent(in) :: face_number
-    
+
     logical :: owned
-   
+
     owned = element_owned(mesh, face_ele(mesh, face_number))
-    
+
   end function surface_element_owned_mesh
-  
+
   function surface_element_owned_scalar(s_field, face_number) result(owned)
     !!< Return if the supplied surface element in the mesh of the given field is
-    !!< owned by this process. 
-    
+    !!< owned by this process.
+
     type(scalar_field), intent(in) :: s_field
     integer, intent(in) :: face_number
-    
+
     logical :: owned
-    
+
     owned = surface_element_owned(s_field%mesh, face_number)
-    
+
   end function surface_element_owned_scalar
-  
+
   function surface_element_owned_vector(v_field, face_number) result(owned)
     !!< Return if the supplied surface element in the mesh of the given field is
-    !!< owned by this process. 
-    
+    !!< owned by this process.
+
     type(vector_field), intent(in) :: v_field
     integer, intent(in) :: face_number
-    
+
     logical :: owned
-    
+
     owned = surface_element_owned(v_field%mesh, face_number)
-    
+
   end function surface_element_owned_vector
-  
+
   function surface_element_owned_tensor(t_field, face_number) result(owned)
     !!< Return if the supplied surface element in the mesh of the given field is
-    !!< owned by this process. 
-    
+    !!< owned by this process.
+
     type(tensor_field), intent(in) :: t_field
     integer, intent(in) :: face_number
-    
+
     logical :: owned
-    
+
     owned = surface_element_owned(t_field%mesh, face_number)
-    
+
   end function surface_element_owned_tensor
 
   subroutine zero_non_owned_scalar(field)
@@ -597,7 +597,7 @@ contains
   function owner_map(model_owner, new_mesh) result (new_owner)
     !!< Given a P1 field whose values are the node owners, and a new Pn
     !!< mesh, return a field whose values are the new node owners of the Pn
-    !!< mesh. 
+    !!< mesh.
     type(scalar_field) :: new_owner
     type(scalar_field), intent(in) :: model_owner
     type(mesh_type), intent(inout) :: new_mesh
@@ -610,13 +610,13 @@ contains
     do face=1,face_count(new_mesh)
        call create_owner_map_face(model_owner, new_owner, face)
     end do
-    
+
     do ele=1,element_count(new_mesh)
        call create_owner_map_ele(model_owner, new_owner, ele)
     end do
 
   contains
-    
+
     subroutine create_owner_map_face(model_owner, new_owner, face)
       type(scalar_field), intent(in) :: model_owner
       type(scalar_field), intent(inout) :: new_owner
@@ -636,21 +636,21 @@ contains
       model_shape=>face_shape(model_owner, face)
       new_shape=>face_shape(new_owner, face)
       model_node_owner=face_val(model_owner, face)
-      
-      ! The vertices all belong to the owners of the 
+
+      ! The vertices all belong to the owners of the
       ! corresponding vertices in the model.
       new_node_owner(local_vertices(new_shape))=model_node_owner
-      
+
       ! In 3D the face elements have edges which have to be dealt with
-      ! separately. 
+      ! separately.
       if (mesh_dim(model_owner)>2) then
          call create_owner_map_edge(new_node_owner, &
               & new_shape)
       end if
-      
-      ! Any remaining nodes are interior to the face and 
+
+      ! Any remaining nodes are interior to the face and
       ! belong to the face_owner element owner.
-      
+
       face_owner=minval(model_node_owner)
 
       where(new_node_owner==0)
@@ -676,15 +676,15 @@ contains
 
       do edge=1,new_shape%numbering%boundaries
          edge_numbering=boundary_numbering(new_shape, edge)
-         
+
          edge_owner=min(new_node_owner(edge_numbering(1)), &
               new_node_owner(edge_numbering(size(edge_numbering))))
 
          new_node_owner(edge_numbering(2:size(edge_numbering)-1))&
-              &=edge_owner 
+              &=edge_owner
 
       end do
-            
+
     end subroutine create_owner_map_edge
 
     subroutine create_owner_map_ele(model_owner, new_owner, ele)
@@ -713,48 +713,48 @@ contains
     end subroutine create_owner_map_ele
 
   end function owner_map
-  
+
   pure function nowned_nodes_mesh(mesh) result(nodes)
     type(mesh_type), intent(in) :: mesh
-    
+
     integer :: nodes
-    
+
     integer :: nhalos
-    
+
     nhalos = halo_count(mesh)
     if(nhalos > 0) then
       nodes = halo_nowned_nodes(mesh%halos(nhalos))
     else
       nodes = node_count(mesh)
     end if
-  
+
   end function nowned_nodes_mesh
-  
+
   pure function nowned_nodes_scalar(s_field) result(nodes)
     type(scalar_field), intent(in) :: s_field
-    
+
     integer :: nodes
-    
+
     nodes = nowned_nodes(s_field%mesh)
-  
+
   end function nowned_nodes_scalar
-  
+
   pure function nowned_nodes_vector(v_field) result(nodes)
     type(vector_field), intent(in) :: v_field
-    
+
     integer :: nodes
-    
+
     nodes = nowned_nodes(v_field%mesh)
-  
+
   end function nowned_nodes_vector
-  
+
   pure function nowned_nodes_tensor(t_field) result(nodes)
     type(tensor_field), intent(in) :: t_field
-    
+
     integer :: nodes
-    
+
     nodes = nowned_nodes(t_field%mesh)
-  
+
   end function nowned_nodes_tensor
 
 end module parallel_fields

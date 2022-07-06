@@ -676,4 +676,3 @@ test_open_objects(h5_file_t file, int max_objects)
 		free(list);
 	}
 }
-

@@ -60,7 +60,7 @@ C group (Q)
       Real*8  HesP(6, *), rQuality
       Real*8  detG(*), qE(*)
       Logical flagAnalytic
- 
+
       Integer  MetricFunction
       EXTERNAL MetricFunction
 
@@ -138,7 +138,7 @@ C ... making a virtual evaluation of the quality
       Call clrSR(iPa, iPb, ICP, IPF, IFE, lF, iFs, lE, iEs, ICRab)
       ICPs = ICRab
       If(ifXnode(ICPs, jTnode)) Goto 1000
-      If(ifXnode(ICP(iPa), jTnode) .AND. 
+      If(ifXnode(ICP(iPa), jTnode) .AND.
      &   ifXnode(ICP(iPb), jTnode)) Goto 1000
 
 
@@ -181,9 +181,9 @@ C ... making a virtual evaluation of the quality
 
       flagFBE = ifXnode(status, ANIForbidBoundaryElements)
       flagFBE = flagFBE .AND. ifXnode(ICPs, jBnode)
-      flagFBE = flagFBE .AND. 
-     &        (ifXnode(ICP(iPa), jBnode) .OR. 
-     &         ifXnode(ICP(iPb), jBnode)) 
+      flagFBE = flagFBE .AND.
+     &        (ifXnode(ICP(iPa), jBnode) .OR.
+     &         ifXnode(ICP(iPb), jBnode))
 
 
       lEold = lE
@@ -193,8 +193,8 @@ C ... making a virtual evaluation of the quality
 
 c  ...  checking for boundary elements
          If(flagFBE) Then
-            If(ifXnode(ICP(iP1), jBnode) .AND. 
-     &         ifXnode(ICP(iP2), jBnode)) Goto 1000 
+            If(ifXnode(ICP(iP1), jBnode) .AND.
+     &         ifXnode(ICP(iP2), jBnode)) Goto 1000
          End if
 
          nE1 = iRs(1, n)
@@ -236,7 +236,7 @@ C ... checking for surrounding points
          iDPs(1, 1) = iPa
          iDPs(2, 1) = iPb
 
-         If(ifXnode(ICP(iPa), jBnode) .AND. 
+         If(ifXnode(ICP(iPa), jBnode) .AND.
      &      ifXnode(ICP(iPb), jBnode)) Then
             Call chkSPf(1, iPa, iINSRT, ICP, IEP, IPE, IEE, lP, iPs)
             Call chkSPb(2, 1, iDPs, 0, iNPs, iINSRT,
@@ -276,7 +276,7 @@ c  ...   checking for the new boundary point
 
 c  ...  checking for boundary elements
          If(flagFBE .AND.
-     &      ifXnode(ICP(iPa), jBnode) .AND. 
+     &      ifXnode(ICP(iPa), jBnode) .AND.
      &      ifXnode(ICP(iPb), jBnode)) Then
             Do 100 n = 1, lR
                iP1 = iRs(2, n)

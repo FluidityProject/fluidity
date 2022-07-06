@@ -13,17 +13,19 @@
 # fredrik@pythonware.com
 # http://www.pythonware.com
 #
-
 ##
 # Tools to build element trees from HTML, using the external <b>tidy</b>
 # utility.
 ##
-
 from __future__ import print_function
 
-import glob, string, os, sys
+import glob
+import os
+import string
+import sys
 
-from ElementTree import ElementTree, Element
+from ElementTree import Element
+from ElementTree import ElementTree
 
 NS_XHTML = "{http://www.w3.org/1999/xhtml}"
 
@@ -36,6 +38,7 @@ NS_XHTML = "{http://www.w3.org/1999/xhtml}"
 #     inline tags.
 # @return An element tree, or None if not successful.
 
+
 def tidy(file, new_inline_tags=None):
 
     command = ["tidy", "-qn", "-asxml"]
@@ -47,17 +50,14 @@ def tidy(file, new_inline_tags=None):
     # FIXME: support more tidy options!
 
     # convert
-    os.system(
-        "%s %s >%s.out 2>%s.err" % (string.join(command), file, file, file)
-        )
+    os.system("{} {} >{}.out 2>{}.err".format(string.join(command), file, file, file))
     # check that the result is valid XML
     try:
         tree = ElementTree()
         tree.parse(file + ".out")
     except:
         print("*** %s:%s" % sys.exc_info()[:2])
-        print("*** %s is not valid XML "
-               "(check %s.err for info)" % (file, file))
+        print("*** %s is not valid XML " "(check %s.err for info)" % (file, file))
         tree = None
     else:
         if os.path.isfile(file + ".out"):
@@ -67,6 +67,7 @@ def tidy(file, new_inline_tags=None):
 
     return tree
 
+
 ##
 # Get document body from a an HTML or HTML-like file.  This function
 # uses the <b>tidy</b> function to convert HTML to XHTML, and cleans
@@ -74,6 +75,7 @@ def tidy(file, new_inline_tags=None):
 #
 # @param file Filename.
 # @return A <b>body</b> element, or None if not successful.
+
 
 def getbody(file, **options):
     # get clean body from text file
@@ -92,11 +94,12 @@ def getbody(file, **options):
     # remove namespace uris
     for node in tree.getiterator():
         if node.tag.startswith(NS):
-            node.tag = node.tag[len(NS):]
+            node.tag = node.tag[len(NS) :]
 
     body = tree.getroot().find("body")
 
     return body
+
 
 ##
 # Same as <b>getbody</b>, but turns plain text at the start of the
@@ -105,6 +108,7 @@ def getbody(file, **options):
 #
 # @param file Filename.
 # @return A <b>body</b> element, or None if not successful.
+
 
 def getzonebody(file, **options):
 
@@ -122,9 +126,11 @@ def getzonebody(file, **options):
 
     return body
 
+
 if __name__ == "__main__":
 
     import sys
+
     for arg in sys.argv[1:]:
         for file in glob.glob(arg):
             print(file, "...", tidy(file))

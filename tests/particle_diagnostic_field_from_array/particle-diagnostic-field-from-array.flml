@@ -109,7 +109,7 @@
         x[k] = 1.0*i/b
         y[k] = 1.0*j/b
         k = k + 1
-        
+
   return reshape(concatenate((x,y)),(2,c)).T</string_value>
           </python>
         </initial_position>
@@ -155,7 +155,7 @@
         x[k] = 1.0*i/b
         y[k] = 1.0*j/b
         k = k + 1
-        
+
   return reshape(concatenate((x,y)),(2,c)).T</string_value>
           </python>
         </initial_position>

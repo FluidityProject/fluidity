@@ -87,7 +87,7 @@ Otherwise use variable limited theta on individual faces.</a:documentation>
           <a:documentation>Only works if a control volume or coupled_cv spatial discretisation is selected.
 Time discretisation of upwind discretisation off which the
 higher order solution is pivotted.
- - pivot_theta = 1 - implicit pivot (default if not set and 
+ - pivot_theta = 1 - implicit pivot (default if not set and
                      best choice if not intentionally modifying
                      scheme to be explicit)
  - pivot_theta = 0 - explicit pivot</a:documentation>

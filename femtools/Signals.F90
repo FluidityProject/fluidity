@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -30,7 +30,7 @@ module signals
   ! This module sets up signal handling.
   use signal_vars
   implicit none
-  
+
   logical, save, private :: initialised=.false.
 
 #ifdef SIGNAL_HAVE_FLAG
@@ -47,11 +47,11 @@ module signals
      end function signal
   end interface
 !#else
-!  interface 
+!  interface
 !     function signal(signum, proc)
 !       integer :: signal
 !       integer, intent(in):: signum
-!       interface 
+!       interface
 !          function proc(signum)
 !            integer :: proc
 !            integer, intent(in) :: signum
@@ -65,7 +65,7 @@ contains
 
   subroutine initialise_signals
     ! Register the signal handlers.
-    interface 
+    interface
        function handle_sigint(signum)
          integer :: handle_sigint
          integer, intent(in) :: signum
@@ -75,13 +75,13 @@ contains
          integer, intent(in) :: signum
        end function handle_sigterm
     end interface
-    interface 
+    interface
        function handle_sighup(signum)
          integer :: handle_sighup
          integer, intent(in) :: signum
        end function handle_sighup
     end interface
-    interface 
+    interface
        function handle_sigfpe(signum)
          integer :: handle_sigfpe
          integer, intent(in) :: signum
@@ -126,7 +126,7 @@ end module signals
 function signal(signum, proc, flag)
   integer :: signal
   integer, intent(in):: signum, flag
-  interface 
+  interface
      function proc(signum)
        integer :: proc
        integer, intent(in) :: signum

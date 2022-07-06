@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -37,13 +37,13 @@ module timers
   implicit none
 
   private
-  
+
   public :: wall_time, wall_time_supported
-  
+
 contains
 
   function wall_time()
-    ! This function returns the wall clock time from when the 
+    ! This function returns the wall clock time from when the
     ! simulation started.
     !
     ! It must be called at the start of the simulation to get the clock
@@ -52,7 +52,7 @@ contains
     logical, save :: started=.false.
 #ifdef HAVE_MPI
     real(kind = c_double), save :: wall_time0
-    
+
     wall_time = MPI_Wtime()
     if(.not.started) then
        wall_time0 = wall_time
@@ -76,26 +76,26 @@ contains
     IF(.not.started) THEN
        call system_clock(count_max=clockmax, count_rate=clockrate)
        call system_clock(clock0)
-       
-       IF(clockrate==0) THEN 
+
+       IF(clockrate==0) THEN
           clock_support=.false.
           ewrite(-1, *) "No wall time support"
        else
           wall_time = 0.0
        ENDIF
-       
+
        started=.true.
-    ELSE 
+    ELSE
        call system_clock(clock1)
        ticks=clock1-clock0
        ! reset -ve numbers
        ticks=mod(ticks+clockmax, clockmax)
-       secs=  real(ticks)/real(clockrate)     
+       secs=  real(ticks)/real(clockrate)
        wall_time=secs
     ENDIF
 #endif
   end function wall_time
-  
+
   function wall_time_supported() result(supported)
 !    !!< Return whether wall time is supported
 
@@ -106,7 +106,7 @@ contains
 #else
     supported = (wall_time() >= 0.0)
 #endif
-    
+
   end function wall_time_supported
 
 end module timers

@@ -72,17 +72,17 @@ C         end if
         end if
 
         flagCvxCrvBnd = .true.
-C       flagCvxCrvBnd is flag 
+C       flagCvxCrvBnd is flag
 C                 'Nearby a true curved boundary patch the domain is convex'
 C      If the domain is polygonal or nearby a true curved boundary
 C    patch the domain is concave, and for a given point there is no an
 C    element containing it within tolerance PREC=10^{-6} , then the ERROR
 C    is assumed. The code could not find an element within PREC tolerance
 C    for MaxTrials.
-C      If the domain has a curved boundary and nearby a true curved boundary 
+C      If the domain has a curved boundary and nearby a true curved boundary
 C    patch the domain is convex, it is possible that a given
 C    point is in the domain but out of the mesh. In this case the tolerance
-C    PREC will be relaxed until an element will be found. 
+C    PREC will be relaxed until an element will be found.
 
         call RESTORE( NT, tri, NV, vrt, LDF, F, NXY, xy, G,
      .                imem(QT), dmem(MaxH + 1),
@@ -205,7 +205,7 @@ C*************************************************************************
         L = 1
         do while ( .TRUE. )
           L = L + 1
-          if ( L.GT.MaxH ) 
+          if ( L.GT.MaxH )
      &      Call errMes(6201, 'DROPS', 'No memory for quadtree')
 
           call SETIJ( XYc(1, ip), XY(1, idx), i, j )
@@ -236,7 +236,7 @@ C*************************************************************************
 C  Function returns the square of distance between points of plane
 C*************************************************************************
       real a(2), b(2)
-  
+
         SQRDST = (a(1) - b(1))**2 + (a(2) - b(2))**2
       return
       end
@@ -311,7 +311,7 @@ C*************************************************************************
         do while ( .TRUE. )
           if ( ptr.LT.0 ) then
             L = L + 1
-            if ( L.GT.MaxH ) 
+            if ( L.GT.MaxH )
      &        Call errMes(6202, 'NEAREST', 'No memory for quadtree')
 
             ip(L) = -ptr
@@ -356,7 +356,7 @@ C  for point XY being inside of triangulation
 C*************************************************************************
         integer QT(*), tri(3, *), ref(*), itri(*), NTR
         real XYc(2, *), vrt(2, *), XY(2)
-        real h(*), PREC  
+        real h(*), PREC
 
         integer i, k, n, idx, ip, buf(2, MaxBuf), NEARST
         integer j, m, jj, idx2, iT, tbuf(0:MaxTrSSEl),MaxTrials
@@ -381,13 +381,13 @@ C*************************************************************************
                goto 101
             endif
             tbuf(0) = tbuf(0) + 1
-            if ( tbuf(0).GT.MaxTrSSEl ) 
+            if ( tbuf(0).GT.MaxTrSSEl )
      &         Call errMes(6203, 'BASETRI', 'No memory for tbuffer')
             tbuf( tbuf(0) ) = itri(i)
 1           continue
           enddo
 
-C ...  checking for neighbooring triangles   
+C ...  checking for neighbooring triangles
           do i = ref(idx), ref(idx+1)-1
             iT = itri(i)
             Do j = 1, 3
@@ -401,18 +401,18 @@ C ...  checking for neighbooring triangles
                      goto 101
                   endif
                   tbuf(0) = tbuf(0) + 1
-                  if ( tbuf(0).GT.MaxTrSSEl ) 
+                  if ( tbuf(0).GT.MaxTrSSEl )
      &               Call errMes(6203,'BASETRI','No memory for tbuffer')
                   tbuf( tbuf(0) ) = itri(m)
 2                 continue
-               End do   
+               End do
             End do
           enddo
 C ...  end of
 
 
           k = k + 1
-          if ( k.GT.MaxBuf ) 
+          if ( k.GT.MaxBuf )
      &      Call errMes(6203, 'BASETRI', 'No memory for buffer')
           buf(1, k) = ip
           buf(2, k) = idx
@@ -488,7 +488,7 @@ C*************************************************************************
           if(idx.le.0) then
 c            write(*,'(A,2F11.7,A)') 'Point: ', xy(1, i), xy(2, i),
 c    &             ' is out of the mesh even approximately. '
-C if Curvelinear boundaries exist and nearby the domain is convex, 
+C if Curvelinear boundaries exist and nearby the domain is convex,
 C    then probably the node is out of the mesh
 C Relaxation of PREC is applied
             if (flagCvxCrvBnd) then
@@ -639,7 +639,7 @@ C ================================================================
       do while ( .TRUE. )
          if ( ptr.LT.0 ) then
             L = L + 1
-            if ( L.GT.MaxH ) Call errMes(1009, 'SizeHost', 
+            if ( L.GT.MaxH ) Call errMes(1009, 'SizeHost',
      &                            'local parameter MaxH is small')
 
             ip(L) = -ptr
@@ -656,5 +656,3 @@ C ================================================================
 
       return
       end
-
-

@@ -73,14 +73,14 @@ fi
 #
 AC_ARG_ENABLE(debugging,
     [AS_HELP_STRING([--enable-debugging],[turns on debugging flags])])
- 
+
 FLFEMDEM="femdem"
 
 # Check system type
 AC_CANONICAL_HOST
 
 case $host_os in
-     darwin* ) 
+     darwin* )
 	     LINUX=no
          DARWIN=yes
 	     FCFLAGS="-DDARWIN $FCFLAGS"
@@ -157,10 +157,10 @@ else
 fi
 
 if test "$fcompiler" = "ifort" ; then
-    if ifort -v 2>&1 |grep 11.0; then 
+    if ifort -v 2>&1 |grep 11.0; then
       AC_MSG_ERROR(Intel 11.0 is bugged and cannot be used to compile Fluidity. Try a working version of the compiler such as 10.1.)
     fi
-    if ifort -v 2>&1 |grep 11.1; then 
+    if ifort -v 2>&1 |grep 11.1; then
       AC_MSG_WARN(Early versions of intel 11.1 are bugged and cannot be used to compile Fluidity. Make sure you have at least version 11.1.073.)
     fi
     FFLAGS="$FFLAGS -vec-report=0"
@@ -222,11 +222,11 @@ then
         CPPFLAGS="$CPPFLAGS $PYTHON_CPPFLAGS"
         CFLAGS="$CFLAGS $PYTHON_CPPFLAGS"
     fi
-    
+
     # Additionally check for numpy
     NUMPY=$($PYTHON -c 'import numpy; print(numpy.get_include())' 2>/dev/null)
-    if ! test -z "$NUMPY"; then	
-	echo "Numpy is " $NUMPY	
+    if ! test -z "$NUMPY"; then
+	echo "Numpy is " $NUMPY
 	CXXFLAGS="$CXXFLAGS -DHAVE_NUMPY -I$NUMPY"
         CPPFLAGS="$CPPFLAGS -DHAVE_NUMPY -I$NUMPY"
         CFLAGS="$CFLAGS -DHAVE_NUMPY -I$NUMPY"
@@ -311,7 +311,7 @@ fi
 
 AC_ARG_ENABLE(openmp,
     [AS_HELP_STRING([--enable-openmp],[turns on OpenMP support])])
-if test "x$enable_openmp" == "xyes" ; then      
+if test "x$enable_openmp" == "xyes" ; then
     AC_LANG_PUSH([C++])
     AC_OPENMP()
     CXXFLAGS="$CXXFLAGS $OPENMP_CXXFLAGS"
@@ -479,7 +479,7 @@ if test "$extended_source_flag" != happy ; then
     if test "$extended_source_flag" = none ; then
         FFLAGS="-ffixed-line-length-132 -ffree-line-length-huge"
         AC_COMPILE_IFELSE(
-            [AC_LANG_PROGRAM(,[[   
+            [AC_LANG_PROGRAM(,[[
       PRINT*, "hello world                                                                                 "
                             ]])],
             [
@@ -660,7 +660,7 @@ AC_SUBST(FEMDEM)
 ##########################################
 # Are we using OASIS
 ##########################################
- 
+
 AC_ARG_WITH(psmile,
     [AS_HELP_STRING([--with-psmile@<:@=psmile_library@:>@],[specify the oasis4 path])])
 if test -n "$with_psmile" ; then
@@ -1232,7 +1232,7 @@ if test "x$enable_libsupermesh" = "xyes" ; then
     LIBS="$LIBS $ac_cv_search_libsupermesh_build_rtree"
   fi
   AC_LANG_POP([C++])
-   
+
   AC_LANG_PUSH([Fortran])
   tmpFCFLAGS="$FCFLAGS"
   FCFLAGS="$FCFLAGS $CPPFLAGS"
@@ -1248,7 +1248,7 @@ if test "x$enable_libsupermesh" = "xyes" ; then
     ],
     [
       AC_MSG_ERROR("libsupermesh Fortran module not found")
-    ])    
+    ])
   FCFLAGS="$tmpFCFLAGS"
   AC_LANG_POP([Fortran])
   AC_DEFINE(HAVE_LIBSUPERMESH, [1])
@@ -1267,7 +1267,7 @@ if test -d libadaptivity ; then
     # so we let libadapt's configure work out everything for itself
     # * EXCEPT * for the compiler, which we MUST make sure is the same as
     # fluidity's (except for MPI)
-    if test "$enable_dp" = "yes" ; then     
+    if test "$enable_dp" = "yes" ; then
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
             FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" \
 	    CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" \
@@ -1309,7 +1309,7 @@ if test -n "$with_judy"; then
    	case $with_judy in
 	      -l* | */* | *.a | *.so | *.so.* | *.o) acx_judy_lib="$with_judy" ;;
 	      *) acx_judy_lib="-l$with_judy" ;;
-	esac	      
+	esac
    	FLIBJUDY="$acx_judy_lib"
     if test "x$ARCHER" != "x" ; then
         FLLINKER=$CXX
@@ -1348,7 +1348,7 @@ elif test -d libjudy ; then
     LIBJUDY=-ljudy
     FLIBJUDY="./lib/libjudy.a"
 
-    
+
 cat >> confdefs.h << EOF
 #define HAVE_JUDY 1
 EOF
@@ -1405,7 +1405,7 @@ elif test -d libspud ; then
       exit -1
     fi
     cd ..
-    
+
 cat >> confdefs.h << EOF
 #define HAVE_SPUD 1
 EOF
@@ -1416,7 +1416,7 @@ AC_SUBST(SPUDLIB)
 AC_SUBST(SPUDHEADER)
 
 #*************SpatialIndex******
-AC_ARG_ENABLE(spatialindex-version, 
+AC_ARG_ENABLE(spatialindex-version,
 [AS_HELP_STRING([--enable-spatialindex-version],[Select required version of spatialindex library: 1.8.0])])
 AC_ARG_WITH([spatialindex-root],
 	[AS_HELP_STRING([--with-spatialindex-root=<dir>],[specify root directory of system spatialindex installation])])
@@ -1523,7 +1523,7 @@ if test "$enable_vtk" != "no" ; then
     OLD_CPPFLAGS="$CPPFLAGS"
     CPPFLAGS="$CPPFLAGS $VTK_FLAGS"
     OLD_LIBS="$LIBS"
-    LIBS="$LIBS $VTK_LIBS" 
+    LIBS="$LIBS $VTK_LIBS"
     AC_LANG_PUSH([C++])
     AC_LINK_IFELSE(
 	[AC_LANG_PROGRAM([[
@@ -1545,9 +1545,9 @@ if test "$enable_vtk" != "no" ; then
             AC_MSG_NOTICE([No VTK automagic])
 	    search_for_vtk=yes
 	    CPPFLAGS="$OLD_CPPFLAGS"
-	    LIBS="$OLD_LIBS"	    
+	    LIBS="$OLD_LIBS"
 	])
-    
+
     if test "x$search_for_vtk" = "xyes" ; then
 
         # Need to check what version of VTK is on the system.
@@ -1555,10 +1555,10 @@ if test "$enable_vtk" != "no" ; then
         # User may set the install directory for VTK but use
         # the default sensible location if not.
         if test "x$VTK_INSTALL_PREFIX" == "x"; then
-            VTK_INSTALL_PREFIX=/usr/include 
+            VTK_INSTALL_PREFIX=/usr/include
         fi
 
-        # Loop through potential vtk installations and get the highest version number 
+        # Loop through potential vtk installations and get the highest version number
         vtk_version=0
         vtk_include_dir=""
         vtk_version_file=""
@@ -1597,15 +1597,15 @@ if test "$enable_vtk" != "no" ; then
         AC_MSG_NOTICE([Found and using VTK major version: $vtk_version])
 
         # Link the correct libraries depending on the version
-        if [[ "x$vtk_version" == "x5" ]]; then 
+        if [[ "x$vtk_version" == "x5" ]]; then
             # Usually the location of the libraries is not a mystery. The
             # header files are another matter.
             AC_CHECK_LIB(dl, main)
-            AC_CHECK_LIB(vtkCommon, main, [], 
+            AC_CHECK_LIB(vtkCommon, main, [],
                 [if test "x$VTK_LIBS" != "x" ; then
                     LIBS="$LIBS -L$VTK_LIBS"
                     unset ac_cv_lib_vtkCommon_main
-                    AC_CHECK_LIB(vtkCommon, main, [], 
+                    AC_CHECK_LIB(vtkCommon, main, [],
                        [
                           AC_MSG_ERROR([Cannot find vtk installation.])
                           exit -1
@@ -1620,7 +1620,7 @@ if test "$enable_vtk" != "no" ; then
             AC_CHECK_LIB(vtkFiltering, main)
             AC_CHECK_LIB(vtkGraphics, main)
             AC_CHECK_LIB(vtkIO, main)
-            
+
             # check at the usual places:
             for i in $(ls -d /usr/include/vtk*) $VTK_INCLUDE; do
                 if test -r $i/vtkCellData.h; then
@@ -1636,7 +1636,7 @@ if test "$enable_vtk" != "no" ; then
                             VTK=yes
                             vtk_header_relative_path="vtk-5.0/"
                             ],
-                        [       
+                        [
                             AC_MSG_ERROR([Cannot find vtk installation.])
                             exit -1
                         ])
@@ -1645,11 +1645,11 @@ if test "$enable_vtk" != "no" ; then
             if test -d /usr/lib64/vtk ; then
                 LIBS="$LIBS -L/usr/lib64/vtk"
             fi
-            AC_CHECK_LIB(vtkCommonCore, main, [], 
+            AC_CHECK_LIB(vtkCommonCore, main, [],
                 [if test "x$VTK_LIBS" != "x" ; then
                     LIBS="$LIBS -L$VTK_LIBS"
                     unset ac_cv_lib_vtkCommonCore_main
-                    AC_CHECK_LIB(vtkCommonCore, main, [], 
+                    AC_CHECK_LIB(vtkCommonCore, main, [],
                        [
                           AC_MSG_ERROR([Cannot find vtk installation.])
                           exit -1
@@ -1713,7 +1713,7 @@ cat > include/vtk.h <<EOF
 #include <${vtk_header_relative_path}vtkXMLUnstructuredGridWriter.h>
 #include <${vtk_header_relative_path}vtkZLibDataCompressor.h>
 
-#if VTK_MAJOR_VERSION>6 
+#if VTK_MAJOR_VERSION>6
 #include <${vtk_header_relative_path}vtkMPIController.h>
 #include <${vtk_header_relative_path}vtkMPICommunicator.h>
 #endif

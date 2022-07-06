@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -31,7 +31,7 @@ subroutine fladapt(input_basename_, input_basename_len, &
   & output_basename_, output_basename_len)  bind(c)
   !!< Peforms a mesh adapt based on the supplied input options file.
   !!< Outputs the resulting mesh.
- 
+
   use iso_c_binding
   use global_parameters, only: FIELD_NAME_LEN
   use fldebug
@@ -53,7 +53,7 @@ subroutine fladapt(input_basename_, input_basename_len, &
     & calculate_diagnostic_variables_new => calculate_diagnostic_variables
 
   implicit none
-  
+
   interface
     subroutine check_options()
     end subroutine check_options
@@ -63,7 +63,7 @@ subroutine fladapt(input_basename_, input_basename_len, &
     end subroutine python_init
 #endif
   end interface
-  
+
   character(kind=c_char, len=1) :: input_basename_(*)
   integer(kind=c_size_t), value :: input_basename_len
   character(kind=c_char, len=1) :: output_basename_(*)
@@ -86,9 +86,9 @@ subroutine fladapt(input_basename_, input_basename_len, &
   do i=1, output_basename_len
     output_basename(i:i)=output_basename_(i)
   end do
-  
+
   ewrite(1, *) "In fladapt"
- 
+
 #ifdef HAVE_PYTHON
   call python_init()
 #endif
@@ -126,15 +126,15 @@ subroutine fladapt(input_basename_, input_basename_len, &
   ! Assemble the error metric
   call allocate(metric, old_mesh, "ErrorMetric")
   call assemble_metric(states, metric)
-  
+
   ewrite(0, *) "Expected nodes = ", expected_nodes(old_mesh_field, metric)
-  
+
   call allocate(t_edge_lengths, metric%mesh, "TensorEdgeLengths")
   call get_edge_lengths(metric, t_edge_lengths)
   call vtk_write_fields(trim(output_basename) // "EdgeLengths", position = old_mesh_field, model = metric%mesh, &
     & tfields = (/t_edge_lengths, metric/))
   call deallocate(t_edge_lengths)
-  
+
   ! Adapt the mesh
   call allocate_metric_limits(states(1))
   if(isparallel()) then
@@ -146,22 +146,22 @@ subroutine fladapt(input_basename_, input_basename_len, &
   else
     call adapt_mesh(old_mesh_field, metric, new_mesh_field)
   end if
-  
+
   call get_option(trim(old_mesh_field%mesh%option_path)//"/from_file/format/name", mesh_format)
   ! Write the output mesh
   call write_mesh_files(output_basename, mesh_format, new_mesh_field)
-  
+
   ! Deallocate
   do i = 1, size(states)
     call deallocate(states(i))
   end do
   call deallocate(metric)
   call deallocate(new_mesh_field)
-  
+
   call print_references(0)
-  
+
   ewrite(1, *) "Exiting fladapt"
-  
+
 contains
 
   subroutine find_mesh_field_to_adapt(state, mesh_field)
@@ -170,22 +170,22 @@ contains
     type(state_type), intent(in) :: state
     type(vector_field), pointer :: mesh_field
 
-    character(len = FIELD_NAME_LEN) :: mesh_field_name    
+    character(len = FIELD_NAME_LEN) :: mesh_field_name
     type(mesh_type), pointer :: mesh
-    
+
     call find_mesh_to_adapt(state, mesh)
     if(trim(mesh%name) == "CoordinateMesh") then
        mesh_field_name = "Coordinate"
     else
        mesh_field_name = trim(mesh%name) // "Coordinate"
     end if
-    
+
     if(.not. has_vector_field(state, mesh_field_name)) then
       FLAbort("External mesh field " // trim(mesh_field_name) // " not found in the system state")
     end if
-      
+
     mesh_field => extract_vector_field(state, mesh_field_name)
-    
+
   end subroutine find_mesh_field_to_adapt
-  
+
 end subroutine fladapt

@@ -49,7 +49,7 @@ module zoltan_integration
 
   implicit none
 
-  integer, save :: max_coplanar_id 
+  integer, save :: max_coplanar_id
 
   public :: zoltan_drive
   private
@@ -96,7 +96,7 @@ module zoltan_integration
 
     type(tensor_field) :: new_metric
     type(mesh_type), pointer :: full_mesh
-    
+
     integer(zoltan_int), dimension(:), pointer :: p1_export_local_ids_full => null()
     integer(zoltan_int), dimension(:), pointer :: p1_export_procs_full => null()
     integer(zoltan_int) :: p1_num_export_full
@@ -136,7 +136,7 @@ module zoltan_integration
        if (present(target_procs)) then
           FLAbort("target_procs should only be provided when flredecomping.")
        end if
-       
+
        zoltan_global_base_option_path = '/mesh_adaptivity/hr_adaptivity/zoltan_options'
     end if
 
@@ -165,7 +165,7 @@ module zoltan_integration
                      "and a prescribed field. Select one option only or fix the code."
         FLExit("Use Weighted mesh partitions for EITHER extruded meshes or prescribed fields")
     end if
-    
+
     if(zoltan_global_migrate_extruded_mesh) then
        call create_columns_sparsity(zoltan_global_columns_sparsity, full_mesh)
     end if
@@ -174,7 +174,7 @@ module zoltan_integration
     call set_zoltan_parameters(final_adapt_iteration, flredecomp, flredecomp_target_procs, load_imbalance_tolerance, zz)
 
     call zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
-       & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, & 
+       & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
        & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
        & load_imbalance_tolerance, flredecomp, flredecomp_input_procs, flredecomp_target_procs)
 
@@ -212,7 +212,7 @@ module zoltan_integration
 
     ! Migrate here
     ! for nodes I am going to own
-    call zoltan_migration_phase_one(zz, & 
+    call zoltan_migration_phase_one(zz, &
          & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
          & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
     call deallocate_zoltan_lists(p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
@@ -226,17 +226,17 @@ module zoltan_integration
     call reconstruct_enlist
     call reconstruct_senlist
     call reconstruct_halo(zz)
-    
+
     if(zoltan_global_migrate_extruded_mesh) then
       zoltan_global_new_positions_m1d = zoltan_global_new_positions ! save a reference to the horizontal mesh you've just load balanced
       call copy(zoltan_global_universal_to_new_local_numbering_m1d, zoltan_global_universal_to_new_local_numbering)
-      
+
       call cleanup_basic_module_variables(zz)
-      ! don't clean up the quality variables now 
+      ! don't clean up the quality variables now
       ! (they'll be deallocated later but we don't need to use them in the vertically_structured section
       ! so we don't need to reallocate them either)
       call cleanup_other_module_variables
-      
+
       call setup_module_variables(states, final_adapt_iteration, zz, flredecomp, mesh_name = topology_mesh_name)
 
 
@@ -247,14 +247,14 @@ module zoltan_integration
        & p1_num_export_full, p1_export_local_ids_full, p1_export_procs_full, &
        & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
        & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
-      
+
       ! It builds an import list from that, then migrates again
 
       call are_we_keeping_or_sending_nodes(p1_num_export, p1_export_local_ids, p1_export_procs)
 
       ! Migrate here
       ! for nodes I am going to own
-      call zoltan_migration_phase_one(zz, & 
+      call zoltan_migration_phase_one(zz, &
        & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
        & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
 
@@ -272,12 +272,12 @@ module zoltan_integration
 
       if (.not. verify_consistent_local_element_numbering(zoltan_global_new_positions%mesh) ) then
         ewrite(-1,*) "For the extruded mesh, the local element numbering of elements in the halo region" // &
-                     "is not consistent with that of the element owner. This is likely" // & 
+                     "is not consistent with that of the element owner. This is likely" // &
                      "due to a bug in zoltan. Please report" // &
                      "to the fluidity mailing list"
         FLExit("Need a consistent local element ordering in parallel")
       end if
-      
+
       deallocate(zoltan_global_universal_columns)
       call deallocate(zoltan_global_universal_to_new_local_numbering_m1d)
     end if
@@ -301,7 +301,7 @@ module zoltan_integration
     call cleanup_basic_module_variables(zz)
     call cleanup_quality_module_variables
     call cleanup_other_module_variables
-    
+
     dumpno = dumpno + 1
 
     ewrite(1,*) "Exiting zoltan_drive"
@@ -313,7 +313,7 @@ module zoltan_integration
     logical, intent(in) :: final_adapt_iteration
     logical, intent(in) :: flredecomp
     type(zoltan_struct), pointer, intent(out) :: zz
-    
+
     type(mesh_type), pointer :: mesh_ptr
     character(len=*), optional :: mesh_name
     integer :: nhalos, stat
@@ -328,12 +328,12 @@ module zoltan_integration
     else
        zoltan_global_calculate_edge_weights = .true.
     end if
-    
-    zoltan_global_max_edge_weight_on_node => extract_scalar_field(states(1), "MaxEdgeWeightOnNodes", stat) 
+
+    zoltan_global_max_edge_weight_on_node => extract_scalar_field(states(1), "MaxEdgeWeightOnNodes", stat)
     if (stat == 0) then
        zoltan_global_output_edge_weights = .true.
     end if
-    
+
     ! set quality_tolerance
     if (have_option(trim(zoltan_global_base_option_path) // "/element_quality_cutoff")) then
        call get_option(trim(zoltan_global_base_option_path) // "/element_quality_cutoff", zoltan_global_quality_tolerance)
@@ -367,22 +367,22 @@ module zoltan_integration
        zoltan_global_zz_positions = extract_vector_field(states, trim(zoltan_global_zz_mesh%name)//"Coordinate")
     end if
     call incref(zoltan_global_zz_positions)
-    
+
     zoltan_global_zz_nelist => extract_nelist(zoltan_global_zz_mesh)
-    
+
     zz => Zoltan_Create(halo_communicator(zoltan_global_zz_mesh))
-    
+
     nhalos = halo_count(zoltan_global_zz_mesh)
     assert(nhalos == 2)
     zoltan_global_zz_halo => zoltan_global_zz_mesh%halos(nhalos)
-    
+
     nhalos = element_halo_count(zoltan_global_zz_mesh)
     assert(nhalos >= 1)
     zoltan_global_zz_ele_halo => zoltan_global_zz_mesh%element_halos(nhalos)
-    
+
     zoltan_global_zz_sparsity_one => get_csr_sparsity_firstorder(states, zoltan_global_zz_mesh, zoltan_global_zz_mesh)
     zoltan_global_zz_sparsity_two => get_csr_sparsity_secondorder(states, zoltan_global_zz_mesh, zoltan_global_zz_mesh)
-    
+
     allocate(owned_nodes(halo_nowned_nodes(zoltan_global_zz_halo)))
     call allocate(zoltan_global_universal_to_old_local_numbering)
     call get_owned_nodes(zoltan_global_zz_halo, owned_nodes)
@@ -397,7 +397,7 @@ module zoltan_integration
        call insert(zoltan_global_uen_to_old_local_numbering, halo_universal_number(zoltan_global_zz_ele_halo, i), i)
        call insert(zoltan_global_old_local_numbering_to_uen, i, halo_universal_number(zoltan_global_zz_ele_halo, i))
     end do
-    
+
     allocate(zoltan_global_receives(halo_proc_count(zoltan_global_zz_halo)))
     do i=1,size(zoltan_global_receives)
        call allocate(zoltan_global_receives(i))
@@ -415,13 +415,13 @@ module zoltan_integration
     floc = face_loc(zoltan_global_zz_positions, 1)
     eloc = ele_loc(zoltan_global_zz_positions, 1)
     allocate(face_nodes(1:floc))
-    
+
     do i=1, surface_element_count(zoltan_global_zz_positions)
        old_element_number = face_ele(zoltan_global_zz_positions, i)
        universal_element_number = halo_universal_number(zoltan_global_zz_ele_halo, old_element_number)
        face_number = local_face_number(zoltan_global_zz_positions, i)
        universal_surface_element_number = (universal_element_number-1)*eloc + face_number
-       
+
        call insert(zoltan_global_universal_surface_number_to_surface_id, universal_surface_element_number, interleaved_surface_ids(i))
        call insert(zoltan_global_universal_surface_number_to_element_owner, universal_surface_element_number, universal_element_number)
 
@@ -430,14 +430,14 @@ module zoltan_integration
           call insert(zoltan_global_old_snelist(face_nodes(j)), universal_surface_element_number)
        end do
     end do
-    
+
     deallocate(interleaved_surface_ids)
     deallocate(face_nodes)
-    
+
     zoltan_global_preserve_mesh_regions = associated(zoltan_global_zz_mesh%region_ids)
     ! this deals with the case where some processors have no elements
     ! (i.e. when used to flredecomp from 1 to many processors)
-    call allor(zoltan_global_preserve_mesh_regions) 
+    call allor(zoltan_global_preserve_mesh_regions)
     if(zoltan_global_preserve_mesh_regions) then
        call allocate(zoltan_global_universal_element_number_to_region_id)
        do i = 1, element_count(zoltan_global_zz_positions)
@@ -447,12 +447,12 @@ module zoltan_integration
     end if
 
     if(zoltan_global_field_weighted_partitions) then
-       zoltan_global_field_weighted_partition_values = extract_scalar_field(states, "FieldWeightedPartitionValues") 
+       zoltan_global_field_weighted_partition_values = extract_scalar_field(states, "FieldWeightedPartitionValues")
        assert(zoltan_global_field_weighted_partition_values%mesh == zoltan_global_zz_mesh)
 
        if(zoltan_global_field_weighted_partition_values%mesh%name /= zoltan_global_zz_mesh%name) then
           ewrite(-1,*) "FieldWeightedPartitionValues and Zoltan Global ZZ Mesh must be on the " // &
-                       "same mesh. 99.9% of the time, this means that FieldWeightedPartitionValues " // & 
+                       "same mesh. 99.9% of the time, this means that FieldWeightedPartitionValues " // &
                        "must be on the external mesh."
           FLExit("FieldWeightedPartitionValues must be on the external mesh")
        end if
@@ -473,20 +473,20 @@ module zoltan_integration
     ! *maximum* quality of the adjacent elements at each node - as this is closer to libadaptivity's
     ! termination criterion
     real, intent(out):: minimum_quality
-    
+
     type(mesh_type) :: pwc_mesh
     integer :: node
     integer, dimension(:), pointer :: elements
     logical :: use_pain_functional
-    
+
     ! And the element quality measure
     use_pain_functional = present(metric) .and. mesh_dim(zoltan_global_zz_mesh)==3 .and. &
           .not. have_option("/mesh_adaptivity/hr_adaptivity/adaptivity_library/libmba3d")
     if (use_pain_functional) then
        ! with libadaptivity use the Pain functional
        call element_quality_pain_p0(zoltan_global_zz_positions, metric, zoltan_global_element_quality)
-       ! the rest of the zoltan wrappers have been written assuming the lipnikov 
-       ! functional where q=0 is bad and q=1 is perfect. With the pain functional, 
+       ! the rest of the zoltan wrappers have been written assuming the lipnikov
+       ! functional where q=0 is bad and q=1 is perfect. With the pain functional,
        ! q'=0 is perfect and q'=\infty is bad. Therefore map q' -> q=1/(q'+1), so
        ! that we get the same behaviour
        call addto(zoltan_global_element_quality, 1.0)
@@ -513,7 +513,7 @@ module zoltan_integration
        ! affect a neighbour that is already good enough - it will be kept as it is.
        ! Therefore we compute the best quality element adjacent to each node, and then
        ! take the minimum over all nodes. The zoltan iterations termination criterion isbased
-       ! on this minimum, saying that if all nodes should have at least a good enough element adjacent 
+       ! on this minimum, saying that if all nodes should have at least a good enough element adjacent
        ! to it - as we can't guarantee that elements of worse quality adjacent to a node will
        ! ever be changed by libadaptivity
        minimum_quality = 1.0
@@ -525,12 +525,12 @@ module zoltan_integration
        call allmin(minimum_quality)
        ewrite(1,*) "global minimum achievable quality = ", minimum_quality
     end if
-    
+
   end subroutine setup_quality_module_variables
 
   function get_load_imbalance_tolerance(final_adapt_iteration) result(load_imbalance_tolerance)
-    logical, intent(in) :: final_adapt_iteration    
- 
+    logical, intent(in) :: final_adapt_iteration
+
     real, parameter :: default_load_imbalance_tolerance = 1.05
     real, parameter :: final_iteration_load_imbalance_tolerance = 1.02
     real :: load_imbalance_tolerance
@@ -540,7 +540,7 @@ module zoltan_integration
        ! else use the default load imbalance tolerance
        call get_option(trim(zoltan_global_base_option_path) // "/load_imbalance_tolerance", load_imbalance_tolerance, &
           & default = default_load_imbalance_tolerance)
-       
+
        ! check the value is reasonable
        if (load_imbalance_tolerance < 1.0) then
           FLExit("load_imbalance_tolerance should be greater than or equal to 1. Default is 1.5")
@@ -557,7 +557,7 @@ module zoltan_integration
     logical, intent(in) :: flredecomp
     integer, intent(in) :: target_procs
     real, intent(in) :: load_imbalance_tolerance
-    type(zoltan_struct), pointer, intent(in) :: zz    
+    type(zoltan_struct), pointer, intent(in) :: zz
 
     integer(zoltan_int) :: ierr
     character (len = FIELD_NAME_LEN) :: method, graph_checking_level
@@ -565,7 +565,7 @@ module zoltan_integration
 
     if (debug_level()>1) then
        ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "1"); assert(ierr == ZOLTAN_OK)
-    else         
+    else
        ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0"); assert(ierr == ZOLTAN_OK)
     end if
 
@@ -583,7 +583,7 @@ module zoltan_integration
        end if
        ierr = Zoltan_set_Param(zz, "NUM_GLOBAL_PARTS", int2str(target_procs)); assert(ierr == ZOLTAN_OK)
     end if
-    
+
     if (.NOT. final_adapt_iteration) then
        if (have_option(trim(zoltan_global_base_option_path) // "/partitioner")) then
           if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/metis"))  then
@@ -598,11 +598,11 @@ module zoltan_integration
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
              end if
           end if
-          
+
           if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/zoltan")) then
-             
+
              call get_option(trim(zoltan_global_base_option_path) // "/partitioner/zoltan/method", method)
-             
+
              if (trim(method) == "graph") then
                 ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
                 ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
@@ -612,9 +612,9 @@ module zoltan_integration
                 ierr = Zoltan_Set_Param(zz, "HYPERGRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
                 ewrite(3,*) "Setting the partitioner to be Zoltan-Hypergraph."
              end if
-             
+
           end if
-       
+
           if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/scotch")) then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
              ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "SCOTCH"); assert(ierr == ZOLTAN_OK)
@@ -627,7 +627,7 @@ module zoltan_integration
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
              end if
           end if
-         
+
        else
           ! Use the Zoltan graph partitioner by default
           ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
@@ -638,7 +638,7 @@ module zoltan_integration
     else
 
        if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner")) then
-          
+
           if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/metis"))  then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
              ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
@@ -651,11 +651,11 @@ module zoltan_integration
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
              end if
           end if
-          
+
           if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/zoltan")) then
-             
+
              call get_option(trim(zoltan_global_base_option_path) // "/final_partitioner/zoltan/method", method)
-             
+
              if (trim(method) == "graph") then
                 ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
                 ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
@@ -665,9 +665,9 @@ module zoltan_integration
                 ierr = Zoltan_Set_Param(zz, "HYPERGRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
                 ewrite(3,*) "Setting the final partitioner to be Zoltan-Hypergraph."
              end if
-             
+
           end if
-       
+
           if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/scotch")) then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
              ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "SCOTCH"); assert(ierr == ZOLTAN_OK)
@@ -680,7 +680,7 @@ module zoltan_integration
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
              end if
           end if
-          
+
        else
           ! Use ParMETIS by default on the final adapt iteration
           ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
@@ -691,7 +691,7 @@ module zoltan_integration
     end if
 
     ! Choose the appropriate partitioning method based on the current adapt iteration.
-    ! The default is currently to do a clean partition on all adapt iterations to produce a 
+    ! The default is currently to do a clean partition on all adapt iterations to produce a
     ! load balanced partitioning and to limit the required number of adapts. In certain cases,
     ! repartitioning or refining may lead to improved performance, and this is optional for all
     ! but the final adapt iteration.
@@ -749,7 +749,7 @@ module zoltan_integration
     ! empty *input* partitions should only occur with flredecomp, as we don't handle empty output partitions
     ! and adaptivity never reduces the number of vertices to 0
     ierr = Zoltan_Set_Param(zz, "SCATTER_GRAPH", "2"); assert(ierr == ZOLTAN_OK)
-    
+
     ierr = Zoltan_Set_Fn(zz, ZOLTAN_NUM_OBJ_FN_TYPE, zoltan_cb_owned_node_count);      assert(ierr == ZOLTAN_OK)
     ierr = Zoltan_Set_Fn(zz, ZOLTAN_OBJ_LIST_FN_TYPE, zoltan_cb_get_owned_nodes);      assert(ierr == ZOLTAN_OK)
     ierr = Zoltan_Set_Fn(zz, ZOLTAN_NUM_EDGES_MULTI_FN_TYPE, zoltan_cb_get_num_edges); assert(ierr == ZOLTAN_OK)
@@ -757,15 +757,15 @@ module zoltan_integration
     ierr = Zoltan_Set_Fn(zz, ZOLTAN_OBJ_SIZE_MULTI_FN_TYPE, zoltan_cb_pack_node_sizes); assert(ierr == ZOLTAN_OK)
     ierr = Zoltan_Set_Fn(zz, ZOLTAN_PACK_OBJ_MULTI_FN_TYPE, zoltan_cb_pack_nodes); assert(ierr == ZOLTAN_OK)
     ierr = Zoltan_Set_Fn(zz, ZOLTAN_UNPACK_OBJ_MULTI_FN_TYPE, zoltan_cb_unpack_nodes); assert(ierr == ZOLTAN_OK)
-    
+
   end subroutine set_zoltan_parameters
 
   subroutine deallocate_zoltan_lists(p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
        & p1_export_global_ids, p1_export_local_ids, p1_export_procs)
-    
+
     integer(zoltan_int), dimension(:), pointer, intent(inout) :: p1_import_global_ids
     integer(zoltan_int), dimension(:), pointer, intent(inout) :: p1_import_local_ids
-    integer(zoltan_int), dimension(:), pointer, intent(inout) :: p1_import_procs    
+    integer(zoltan_int), dimension(:), pointer, intent(inout) :: p1_import_procs
     integer(zoltan_int), dimension(:), pointer, intent(inout) :: p1_export_global_ids
     integer(zoltan_int), dimension(:), pointer, intent(inout) :: p1_export_local_ids
     integer(zoltan_int), dimension(:), pointer, intent(inout) :: p1_export_procs
@@ -775,7 +775,7 @@ module zoltan_integration
     ! deallocates the memory which was allocated in Zoltan
     ierr = Zoltan_LB_Free_Data(p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
          & p1_export_global_ids, p1_export_local_ids, p1_export_procs)
-    
+
     assert(ierr == ZOLTAN_OK)
   end subroutine deallocate_zoltan_lists
 
@@ -783,7 +783,7 @@ module zoltan_integration
     ! This routine deallocates everything that is guaranteed to be allocated
     ! regardless of whether Zoltan actually wants to change anything or not.
     ! (except for the quality functions)
-    type(zoltan_struct), pointer, intent(inout) :: zz    
+    type(zoltan_struct), pointer, intent(inout) :: zz
 
     call deallocate(zoltan_global_universal_surface_number_to_surface_id)
     call deallocate(zoltan_global_universal_surface_number_to_element_owner)
@@ -791,13 +791,13 @@ module zoltan_integration
     deallocate(zoltan_global_old_snelist)
     call deallocate(zoltan_global_receives)
     deallocate(zoltan_global_receives)
-    
+
     call deallocate(zoltan_global_universal_to_old_local_numbering)
     call deallocate(zoltan_global_uen_to_old_local_numbering)
     call deallocate(zoltan_global_old_local_numbering_to_uen)
-    
+
     zoltan_global_new_positions%refcount => null()
-    
+
     call deallocate(zoltan_global_zz_mesh)
     call deallocate(zoltan_global_zz_positions)
     zoltan_global_zz_sparsity_one => null()
@@ -805,10 +805,10 @@ module zoltan_integration
     zoltan_global_zz_halo => null()
     zoltan_global_zz_ele_halo => null()
     call Zoltan_Destroy(zz)
-    
+
     zoltan_global_preserve_columns = .false.
   end subroutine cleanup_basic_module_variables
-  
+
   subroutine cleanup_quality_module_variables
     ! This routine deallocates the module quality fields.
     call deallocate(zoltan_global_element_quality)
@@ -833,17 +833,17 @@ module zoltan_integration
      & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
      & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
      load_imbalance_tolerance, flredecomp, input_procs, target_procs)
-    
-    type(zoltan_struct), pointer, intent(in) :: zz    
-    logical, intent(out) :: changes    
-    
+
+    type(zoltan_struct), pointer, intent(in) :: zz
+    logical, intent(out) :: changes
+
     integer(zoltan_int), intent(out) :: num_gid_entries, num_lid_entries
     integer(zoltan_int), intent(out) :: p1_num_import
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_import_global_ids
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_import_local_ids
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_import_procs
     integer(zoltan_int), intent(out) :: p1_num_export
-    integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_global_ids 
+    integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_global_ids
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_local_ids
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_procs
     real, intent(inout) :: load_imbalance_tolerance
@@ -894,7 +894,7 @@ module zoltan_integration
 
        if (target_procs < input_procs) then
           ! We're expecting some processes to have empty partitions when using flredecomp to
-          ! reduce the number of active processes. The plan is to calculate the number of 
+          ! reduce the number of active processes. The plan is to calculate the number of
           ! processes with an empty partition after the load balance and check this is how
           ! many we'd expect to be empty
           if (num_nodes_after_balance > 0) then
@@ -904,7 +904,7 @@ module zoltan_integration
           end if
           call mpi_allreduce(empty_partition, num_empty_partitions, 1, getPINTEGER(), &
              & MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
-          
+
           if (num_empty_partitions /= (input_procs - target_procs)) then
              FLAbort("The correct number of processes did not have empty partitons after the load balancing.")
           end if
@@ -931,19 +931,19 @@ module zoltan_integration
 
        min_num_nodes_after_balance = 0
        do while (min_num_nodes_after_balance == 0)
-          
+
           ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
              &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
           assert(ierr == ZOLTAN_OK)
-          
+
           ! calculate how many owned nodes we'd have after doing the planned load balancing
           num_nodes_after_balance = num_nodes + p1_num_import - p1_num_export
-          
+
           ! find the minimum number of owned nodes any process would have after doing the planned load balancing
           call mpi_allreduce(num_nodes_after_balance, min_num_nodes_after_balance, 1, getPINTEGER(), &
              & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
           assert(ierr == MPI_SUCCESS)
-          
+
           if (min_num_nodes_after_balance == 0) then
              ewrite(2,*) 'Empty partion would be created with load_imbalance_tolerance of', load_imbalance_tolerance
              load_imbalance_tolerance = 0.95 * load_imbalance_tolerance
@@ -951,24 +951,24 @@ module zoltan_integration
 
                 ewrite(1,*) 'Could not prevent empty partions by tightening load_imbalance_tolerance.'
                 ewrite(1,*) 'Attempting to load balance with no edge-weights.'
-                
+
                 ! Reset the load_imbalance_tolerance
                 ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.075"); assert(ierr == ZOLTAN_OK)
                 ! Turn off the edge-weight calculation
                 zoltan_global_calculate_edge_weights = .false.
-                
+
                 ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
                    &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
                 assert(ierr == ZOLTAN_OK)
-                
+
                 ! calculate how many owned nodes we'd have after doing the planned load balancing
                 num_nodes_after_balance = num_nodes + p1_num_import - p1_num_export
-                
+
                 ! find the minimum number of owned nodes any process would have after doing the planned load balancing
                 call mpi_allreduce(num_nodes_after_balance, min_num_nodes_after_balance, 1, getPINTEGER(), &
                    & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
                 assert(ierr == MPI_SUCCESS)
-                
+
                 if (min_num_nodes_after_balance == 0) then
                    FLAbort("Could not stop Zoltan creating empty partitions.")
                 else
@@ -978,13 +978,13 @@ module zoltan_integration
                 ! convert load_imbalance_tolerance to a string for setting the option in Zoltan
                 write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
                 ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", string_load_imbalance_tolerance); assert(ierr == ZOLTAN_OK)
-                
+
                 ewrite(2,*) 'Tightened load_imbalance_tolerance to ', load_imbalance_tolerance
              end if
           end if
        end do
     end if
-   
+
     do i=1,p1_num_export
        node = p1_export_local_ids(i)
        assert(node_owned(zoltan_global_zz_halo, node))
@@ -1001,44 +1001,44 @@ module zoltan_integration
     integer(zoltan_int), dimension(:), pointer, intent(in) :: p1_export_local_ids
     integer(zoltan_int), dimension(:), pointer, intent(in) :: p1_export_procs
 
-    integer(zoltan_int), intent(out) :: p1_num_export_full    
+    integer(zoltan_int), intent(out) :: p1_num_export_full
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_local_ids_full
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_procs_full
 
     type(mesh_type), pointer :: full_mesh
     integer :: i, column
     integer, dimension(:), pointer :: column_nodes
-    
+
     integer :: last_full_node
     logical :: lpreserve_columns
-    
+
     ewrite(1,*) 'in derive_full_export_lists'
-    
+
     p1_num_export_full = 0
     do i = 1, p1_num_export
        column = p1_export_local_ids(i)
        p1_num_export_full = p1_num_export_full + row_length(zoltan_global_columns_sparsity, column)
     end do
-      
+
     allocate(p1_export_local_ids_full(p1_num_export_full))
     p1_export_local_ids_full = 0
     allocate(p1_export_procs_full(p1_num_export_full))
     p1_export_procs_full = -1
-    
+
     last_full_node = 1
     do i = 1, p1_num_export
        column = p1_export_local_ids(i)
        column_nodes => row_m_ptr(zoltan_global_columns_sparsity, column)
-       
+
        p1_export_local_ids_full(last_full_node:last_full_node+size(column_nodes)-1) = column_nodes
        p1_export_procs_full(last_full_node:last_full_node+size(column_nodes)-1) = p1_export_procs(i)
-       
+
        last_full_node = last_full_node + size(column_nodes)
     end do
     assert(last_full_node-1==p1_num_export_full)
     assert(all(p1_export_local_ids_full>0))
     assert(all(p1_export_procs_full>-1))
-    
+
     full_mesh => extract_mesh(states(1), trim(topology_mesh_name))
     lpreserve_columns = associated(full_mesh%columns)
     call allor(lpreserve_columns)
@@ -1046,9 +1046,9 @@ module zoltan_integration
        allocate(zoltan_global_universal_columns(node_count(full_mesh)))
        zoltan_global_universal_columns = halo_universal_numbers(zoltan_global_zz_halo, full_mesh%columns)
     end if
-    
+
     ewrite(1,*) 'exiting derive_full_export_lists'
-    
+
   end subroutine derive_full_export_lists
 
   subroutine reset_zoltan_lists_full(zz, &
@@ -1056,7 +1056,7 @@ module zoltan_integration
        & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
        & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
 
-    type(zoltan_struct), pointer, intent(in) :: zz    
+    type(zoltan_struct), pointer, intent(in) :: zz
 
     integer(zoltan_int), intent(in) :: p1_num_export_full
     integer(zoltan_int), dimension(:), pointer, intent(in) :: p1_export_local_ids_full
@@ -1072,37 +1072,37 @@ module zoltan_integration
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_procs
 
     integer :: i, ierr
-    
+
     ewrite(1,*) 'in reset_zoltan_lists_full'
-    
+
     p1_num_export = p1_num_export_full
-    
+
     p1_export_local_ids => p1_export_local_ids_full
     p1_export_procs => p1_export_procs_full
-    
+
     allocate(p1_export_global_ids(p1_num_export))
     p1_export_global_ids = 0
-    
+
     do i=1,p1_num_export
        p1_export_global_ids(i) = halo_universal_number(zoltan_global_zz_halo, p1_export_local_ids(i))
     end do
     assert(all(p1_export_global_ids>0))
-    
+
     p1_num_import = 0
     p1_import_local_ids => null()
     p1_import_procs => null()
     p1_import_global_ids => null()
-    
+
     ierr = Zoltan_Compute_Destinations(zz, &
          & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
          & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs)
     assert(ierr == ZOLTAN_OK)
-    
+
     zoltan_global_preserve_columns = associated(zoltan_global_zz_positions%mesh%columns)
     call allor(zoltan_global_preserve_columns)
-    
+
     ewrite(1,*) 'exiting reset_zoltan_lists_full'
-    
+
   end subroutine reset_zoltan_lists_full
 
 
@@ -1113,14 +1113,14 @@ module zoltan_integration
 
     integer :: node, i
     integer, dimension(halo_nowned_nodes(zoltan_global_zz_halo)) :: owned_nodes
-    
+
     call allocate(zoltan_global_nodes_we_are_sending)
     call allocate(zoltan_global_nodes_we_are_keeping)
-    
+
     do i=1,p1_num_export
        call insert(zoltan_global_nodes_we_are_sending, p1_export_local_ids(i), p1_export_procs(i))
     end do
-    
+
     call get_owned_nodes(zoltan_global_zz_halo, owned_nodes)
     do i=1,size(owned_nodes)
        node = owned_nodes(i)
@@ -1134,7 +1134,7 @@ module zoltan_integration
        & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
        & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
 
-    type(zoltan_struct), pointer, intent(in) :: zz    
+    type(zoltan_struct), pointer, intent(in) :: zz
 
     integer(zoltan_int), intent(in) :: p1_num_import
     integer(zoltan_int), dimension(:), pointer, intent(in) :: p1_import_global_ids
@@ -1148,14 +1148,14 @@ module zoltan_integration
 
     integer(zoltan_int) :: ierr
     integer(zoltan_int), dimension(:), pointer :: import_to_part, export_to_part
-    
+
     ewrite(1,*) "In zoltan_migration_phase_one; objects to import: ", p1_num_import
     ewrite(1,*) "In zoltan_migration_phase_one; objects to export: ", p1_num_export
     import_to_part => null()
     export_to_part => null()
 
     ierr = Zoltan_Migrate(zz, p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
-         & import_to_part, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, export_to_part) 
+         & import_to_part, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, export_to_part)
     assert(ierr == ZOLTAN_OK)
   end subroutine zoltan_migration_phase_one
 
@@ -1178,24 +1178,24 @@ module zoltan_integration
     type(mesh_type) :: new_mesh
     type(integer_set) :: halo_nodes_we_currently_own
     integer :: rank
-    
+
     if (associated(zoltan_global_new_positions%refcount)) return
     ewrite(1,*) "In deal_with_exports"
 
     call allocate(zoltan_global_new_nodes)
-    
+
     ! Need to allocate zoltan_global_new_nodes, zoltan_global_new_elements, zoltan_global_new_positions, zoltan_global_new_nelist, zoltan_global_universal_to_new_local_numbering
     do i=1,key_count(zoltan_global_nodes_we_are_keeping)
        old_local_number = fetch(zoltan_global_nodes_we_are_keeping, i)
        call insert(zoltan_global_new_nodes, halo_universal_number(zoltan_global_zz_halo, old_local_number), changed=changed)
     end do
-    
+
     call allocate(halo_nodes_we_need_to_know_about)
     call allocate(halo_nodes_we_currently_own)
     call allocate(universal_number_to_old_owner)
-    
+
     rank = getrank()
-    
+
     do i=1,key_count(zoltan_global_nodes_we_are_keeping)
        old_local_number = fetch(zoltan_global_nodes_we_are_keeping, i)
        neighbours => row_m_ptr(zoltan_global_zz_sparsity_two, old_local_number)
@@ -1233,24 +1233,24 @@ module zoltan_integration
     allocate(zoltan_global_new_snelist(key_count(zoltan_global_new_nodes)))
     call allocate(zoltan_global_new_snelist)
     call allocate(zoltan_global_new_surface_elements)
-    
+
     allocate(zoltan_global_new_nelist(key_count(zoltan_global_new_nodes)))
     do i=1,key_count(zoltan_global_new_nodes)
        call allocate(zoltan_global_new_nelist(i))
     end do
     call allocate(zoltan_global_new_elements)
-    
+
     do i=1,key_count(zoltan_global_nodes_we_are_keeping)
        old_local_number = fetch(zoltan_global_nodes_we_are_keeping, i)
        universal_number = halo_universal_number(zoltan_global_zz_halo, old_local_number)
        new_local_number = fetch(zoltan_global_universal_to_new_local_numbering, universal_number)
        call set(zoltan_global_new_positions, new_local_number, node_val(zoltan_global_zz_positions, old_local_number))
-       
+
        if(zoltan_global_preserve_columns) then
           zoltan_global_new_positions%mesh%columns(new_local_number) = fetch(zoltan_global_universal_to_new_local_numbering_m1d, &
                zoltan_global_universal_columns(old_local_number))
        end if
-       
+
        neighbours => row_m_ptr(zoltan_global_zz_nelist, old_local_number)
        do j=1,size(neighbours)
           call insert(zoltan_global_new_nelist(new_local_number), halo_universal_number(zoltan_global_zz_ele_halo, neighbours(j)))
@@ -1272,7 +1272,7 @@ module zoltan_integration
        universal_number = halo_universal_number(zoltan_global_zz_halo, old_local_number)
        new_local_number = fetch(zoltan_global_universal_to_new_local_numbering, universal_number)
        call set(zoltan_global_new_positions, new_local_number, node_val(zoltan_global_zz_positions, old_local_number))
-       
+
        if(zoltan_global_preserve_columns) then
           zoltan_global_new_positions%mesh%columns(new_local_number) = fetch(zoltan_global_universal_to_new_local_numbering_m1d, &
                zoltan_global_universal_columns(old_local_number))
@@ -1287,7 +1287,7 @@ module zoltan_integration
 
        new_owner = fetch(zoltan_global_nodes_we_are_sending, old_local_number)
        call insert(zoltan_global_receives(new_owner+1), universal_number)
-       
+
        ! and record the snelist information
        do j=1,key_count(zoltan_global_old_snelist(old_local_number))
           call insert(zoltan_global_new_snelist(new_local_number), fetch(zoltan_global_old_snelist(old_local_number), j))
@@ -1295,7 +1295,7 @@ module zoltan_integration
        end do
     end do
     call deallocate(halo_nodes_we_currently_own)
-    
+
     zoltan_global_my_num_import = key_count(halo_nodes_we_need_to_know_about)
     allocate(zoltan_global_my_import_procs(zoltan_global_my_num_import))
     allocate(zoltan_global_my_import_global_ids(zoltan_global_my_num_import))
@@ -1312,7 +1312,7 @@ module zoltan_integration
   end subroutine deal_with_exporters
 
   subroutine zoltan_migration_phase_two(zz)
-    type(zoltan_struct), pointer, intent(in) :: zz    
+    type(zoltan_struct), pointer, intent(in) :: zz
 
     integer(zoltan_int) :: ierr
     integer(zoltan_int), dimension(:), pointer :: import_to_part, export_to_part, export_procs
@@ -1339,7 +1339,7 @@ module zoltan_integration
        allocate(zoltan_global_my_import_procs(0))
     end if
     ewrite(1,*) "In zoltan_migration_phase_two; objects to import: ", zoltan_global_my_num_import
-    
+
     ! We should be able to do:
     ! import_local_ids => null()
     ! from my reading of the Zoltan docs. But it actually doesn't appear to be the case.
@@ -1359,12 +1359,12 @@ module zoltan_integration
     ewrite(1,*) "In zoltan_migration_phase_two; objects to export: ", num_export
 
     ierr = Zoltan_Migrate(zz, zoltan_global_my_num_import, zoltan_global_my_import_global_ids, import_local_ids, zoltan_global_my_import_procs, &
-         & import_to_part, num_export, export_global_ids, export_local_ids, export_procs, export_to_part) 
+         & import_to_part, num_export, export_global_ids, export_local_ids, export_procs, export_to_part)
     assert(ierr == ZOLTAN_OK)
 
     ierr = Zoltan_LB_Free_Part(export_global_ids, export_local_ids, export_procs, export_to_part)
     assert(ierr == ZOLTAN_OK)
-    
+
     deallocate(import_local_ids)
   end subroutine zoltan_migration_phase_two
 
@@ -1381,21 +1381,21 @@ module zoltan_integration
     integer :: universal_number, new_local_number
     type(integer_set) :: new_elements_we_actually_have
     integer, dimension(:), pointer:: neigh
-    
+
     ewrite(1,*) "In reconstruct_enlist"
-    
+
     ! zoltan_global_new_elements currently contains the universal numbers of elements
     ! we don't fully have and won't be in the final mesh.
     ! So uen_to_new_local_numbering here is just temporary -- we will
     ! construct the proper version later.
     call invert_set(zoltan_global_new_elements, zoltan_global_uen_to_new_local_numbering)
-    
+
     do i=1,key_count(zoltan_global_new_elements)
        call allocate(enlists(i))
     end do
-    
+
     ! Invert the nelists to give the enlists
-    
+
     do i=1,key_count(zoltan_global_new_nodes)
        do j=1,key_count(zoltan_global_new_nelist(i))
           universal_number = fetch(zoltan_global_new_nelist(i), j)
@@ -1405,17 +1405,17 @@ module zoltan_integration
     end do
 
     call deallocate(zoltan_global_uen_to_new_local_numbering)
-    
+
     ! Now, some of these will be degenerate, because the halo nodes will refer
     ! to elements we don't know about. We can tell these apart because they
     ! are incomplete.
-    
+
     full_elements = 0
     ! For mixed meshes, this should be the loc of the positions mesh
     ! note we know the universal number -- fetch(zoltan_global_new_elements, i)
     ! However, it's constant for now
     expected_loc = zoltan_global_zz_mesh%shape%loc
-    
+
     ! First, count how many we have
     do i=1,key_count(zoltan_global_new_elements)
        if (key_count(enlists(i)) == expected_loc) then
@@ -1431,7 +1431,7 @@ module zoltan_integration
     ! Now we construct a temporary mesh of full elements
     ! This mesh is temporary because we also want to drop elements that are not connected
     ! to any other elements
-      
+
     call allocate(temporary_mesh, node_count(zoltan_global_new_positions), full_elements, zoltan_global_new_positions%mesh%shape, &
          name="TemporaryZoltanMesh")
     j = 1
@@ -1441,18 +1441,18 @@ module zoltan_integration
           j = j + 1
        end if
     end do
-    
+
     call add_nelist(temporary_mesh)
     call extract_lists(temporary_mesh, eelist=eelist)
-    
+
     connected_elements=0
     do i=1, element_count(temporary_mesh)
        neigh => row_m_ptr(eelist, i)
        if (any(neigh>0)) connected_elements = connected_elements + 1
     end do
-    
+
     ewrite(2,*) "Of the ", full_elements, " full elements, ", connected_elements, " are connected."
-    
+
     call allocate(new_elements_we_actually_have)
     call allocate(zoltan_global_uen_to_new_local_numbering)
     zoltan_global_new_positions%mesh%elements = connected_elements
@@ -1464,7 +1464,7 @@ module zoltan_integration
     if(zoltan_global_preserve_mesh_regions) then
        allocate(zoltan_global_new_positions%mesh%region_ids(connected_elements))
     end if
-      
+
     j = 1 ! index connected full elements (new local element numbering)
     k = 1 ! indexes full elements
     do i=1, key_count(zoltan_global_new_elements)
@@ -1485,29 +1485,29 @@ module zoltan_integration
           k = k + 1
        end if
     end do
-        
+
     assert( k==full_elements+1 )
     assert( j==connected_elements+1 )
 
     do i=1,size(enlists)
        call deallocate(enlists(i))
     end do
-        
+
     call deallocate(temporary_mesh)
     call deallocate(zoltan_global_new_nelist)
     deallocate(zoltan_global_new_nelist)
-      
+
     ! New elements is no longer valid, as we have lost the degenerate elements
     call deallocate(zoltan_global_new_elements)
     zoltan_global_new_elements = new_elements_we_actually_have
-    
+
     call deallocate(zoltan_global_universal_element_number_to_region_id)
-    
+
     ! Bingo! Our mesh has an enlist.
     ewrite(1,*) "Exiting reconstruct_enlist"
-    
+
   end subroutine reconstruct_enlist
-    
+
   subroutine reconstruct_senlist
     type(integer_set), dimension(key_count(zoltan_global_new_surface_elements)) :: senlists
     integer :: i, j, expected_loc, full_elements
@@ -1515,24 +1515,24 @@ module zoltan_integration
     type(integer_hash_table) :: universal_surface_element_to_local_numbering
     integer, dimension(:), allocatable, target :: surface_ids, element_owners
     type(csr_sparsity), pointer :: nnlist
-    
+
     logical, dimension(key_count(zoltan_global_new_surface_elements)) :: keep_surface_element
     integer, dimension(:), allocatable :: sndgln
     integer :: universal_element_number
-    
+
     ewrite(1,*) "In reconstruct_senlist"
-    
+
     ! zoltan_global_new_surface_elements currently contains the universal numbers of surface elements
     ! we don't fully have and won't be in the final mesh.
     ! So universal_surface_element_to_local_numbering here is just temporary.
     call invert_set(zoltan_global_new_surface_elements, universal_surface_element_to_local_numbering)
-    
+
     do i=1,key_count(zoltan_global_new_surface_elements)
        call allocate(senlists(i))
     end do
-    
+
     ! Invert the snelists to give the senlists
-    
+
     do i=1,key_count(zoltan_global_new_nodes)
        do j=1,key_count(zoltan_global_new_snelist(i))
           universal_number = fetch(zoltan_global_new_snelist(i), j)
@@ -1540,18 +1540,18 @@ module zoltan_integration
           call insert(senlists(new_local_number), i)
        end do
     end do
-    
+
     call deallocate(universal_surface_element_to_local_numbering)
-    
+
     ! Now, some of these will be degenerate, because the halo nodes will refer
     ! to elements we don't know about. We can tell these apart because they
     ! are incomplete.
-    
+
     full_elements = 0
     ! For mixed meshes, this should taken from the loc of the positions mesh
     ! However, it's constant for now
     expected_loc = face_loc(zoltan_global_zz_mesh, 1)
-    
+
     ! First, count how many we have
     nnlist => extract_nnlist(zoltan_global_new_positions%mesh)
     do i=1,key_count(zoltan_global_new_surface_elements)
@@ -1576,11 +1576,11 @@ module zoltan_integration
     ewrite(2,*) "Of these, ", full_elements, " are non-degenerate."
 
     ! And now fill in the non-degenerate ones
-    
+
     allocate(sndgln(full_elements * expected_loc))
     allocate(surface_ids(full_elements))
     allocate(element_owners(full_elements))
-    
+
     j = 1
     do i=1,key_count(zoltan_global_new_surface_elements)
        if (keep_surface_element(i)) then
@@ -1604,24 +1604,24 @@ module zoltan_integration
       call add_faces(zoltan_global_new_positions%mesh, sndgln=sndgln, boundary_ids=surface_ids, &
         allow_duplicate_internal_facets=.true.)
     end if
-    
+
     do i=1,size(senlists)
        call deallocate(senlists(i))
     end do
-    
+
     ! New elements is no longer valid, as we have lost the degenerate elements
     call deallocate(zoltan_global_new_surface_elements)
     call deallocate(zoltan_global_universal_surface_number_to_surface_id)
     call deallocate(zoltan_global_universal_surface_number_to_element_owner)
     call deallocate(zoltan_global_new_snelist)
     deallocate(zoltan_global_new_snelist)
-    
+
     deallocate(sndgln)
     deallocate(surface_ids)
     deallocate(element_owners)
-    
+
     call deinterleave_surface_ids(zoltan_global_new_positions%mesh, max_coplanar_id)
-    
+
     ! Bingo! Our mesh has an senlist.
     ewrite(1,*) "Exiting reconstruct_senlist"
   end subroutine reconstruct_senlist
@@ -1633,10 +1633,10 @@ module zoltan_integration
     ! the send list for each process too.
     ! Then we will allocate the l2n halo and set it.
     ! Then we will chop it down to form the l1n halo, the l1e halo, and the
-    ! l2e halo. 
+    ! l2e halo.
     ! Supply the peeps with jeeps, brick apiece, capiche?
 
-    type(zoltan_struct), pointer, intent(in) :: zz    
+    type(zoltan_struct), pointer, intent(in) :: zz
 
     integer :: num_import, num_export
     integer, dimension(:), pointer :: import_global_ids, import_local_ids, import_procs
@@ -1648,21 +1648,21 @@ module zoltan_integration
     integer, dimension(node_count(zoltan_global_new_positions)) :: node_renumber_permutation
     integer :: universal_element_number, old_new_local_element_number, new_new_local_element_number
     integer :: universal_node_number, old_new_local_node_number, new_new_local_node_number
-    
+
     integer, dimension(ele_count(zoltan_global_new_positions)) :: old_new_region_ids
-    
+
     ewrite(1,*) "In reconstruct_halo"
-    
+
     num_import = 0
     do i=1,size(zoltan_global_receives)
        nreceives(i) = key_count(zoltan_global_receives(i))
        num_import = num_import + nreceives(i)
     end do
-    
+
     allocate(import_global_ids(num_import))
     allocate(import_local_ids(num_import))
     allocate(import_procs(num_import))
-    
+
     import_local_ids = 666
     head = 1
     do i=1,size(zoltan_global_receives)
@@ -1670,46 +1670,46 @@ module zoltan_integration
        import_procs(head:head + nreceives(i) - 1) = i - 1
        head = head + nreceives(i)
     end do
-    
+
     export_global_ids => null()
     export_local_ids => null()
     export_procs => null()
     export_to_part => null()
-    
+
     ierr = Zoltan_Compute_Destinations(zz, &
          & num_import, import_global_ids, import_local_ids, import_procs, &
          & num_export, export_global_ids, export_local_ids, export_procs)
     assert(ierr == ZOLTAN_OK)
-    
+
     ! Now we know the sends too! Thanks, Zoltan!
-    
+
     deallocate(import_global_ids)
     deallocate(import_local_ids)
     deallocate(import_procs)
-    
+
     ! Now create the sends sets .. easier than pulling it straight out of Zoltan's data structures
     ! as Zoltan does NOT explicitly guarantee that the sends are organised such that export_procs looks
-    ! like 
+    ! like
     ! [ sends to process 0 | sends to process 1 | sends to process 2 ... ]
     ! If such a guarantee were available, then it would be just as easy to use that, but there
     ! is no such guarantee given in the documentation ...
     ! Is an appetite for destruction, slap a murder rap on this production
-    
+
     do i=1,size(sends)
        call allocate(sends(i))
     end do
-    
+
     do i=1,num_export
        call insert(sends(export_procs(i)+1), export_global_ids(i))
     end do
-    
+
     do i=1,size(sends)
        nsends(i) = key_count(sends(i))
     end do
-    
+
     ! Allocate the halo and such
     ! We had to grow dreads to change our description, two cops is on a milkbox, missin'
-    
+
     allocate(zoltan_global_new_positions%mesh%halos(2))
     call allocate(zoltan_global_new_positions%mesh%halos(2), &
          nsends = nsends, &
@@ -1726,7 +1726,7 @@ module zoltan_integration
 
     ! Now derive all the other halos ...
     ! And me teevee's always off, cause I see something truly black then
-    
+
     call derive_l1_from_l2_halo(zoltan_global_new_positions%mesh, ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
     call renumber_positions_trailing_receives(zoltan_global_new_positions, permutation=node_renumber_permutation)
     assert(has_ownership(zoltan_global_new_positions%mesh%halos(2)))
@@ -1736,11 +1736,11 @@ module zoltan_integration
     call renumber_positions_elements_trailing_receives(zoltan_global_new_positions, permutation=ele_renumber_permutation)
     assert(has_ownership(zoltan_global_new_positions%mesh%halos(2)))
     assert(has_ownership(zoltan_global_new_positions%mesh%halos(1)))
-    
+
     if(zoltan_global_preserve_mesh_regions) then
        old_new_region_ids = zoltan_global_new_positions%mesh%region_ids
     end if
-    
+
     ! The previous routine has renumbered all the local elements to put the element halos in
     ! trailing receives status. However, we need the universal element number -> local element number
     ! later in the field transfer. So we need to update our records now.
@@ -1760,26 +1760,26 @@ module zoltan_integration
        new_new_local_node_number = node_renumber_permutation(old_new_local_node_number)
        call insert(zoltan_global_universal_to_new_local_numbering, universal_node_number, new_new_local_node_number)
     end do
-    
+
     do i=1,halo_count(zoltan_global_new_positions)
        assert(halo_verifies(zoltan_global_new_positions%mesh%halos(i), zoltan_global_new_positions))
     end do
-    
+
     ! Now cleanup
-    
+
     ierr = Zoltan_LB_Free_Part(export_global_ids, export_local_ids, export_procs, export_to_part)
     assert(ierr == ZOLTAN_OK)
 
     do i=1,size(sends)
        call deallocate(sends(i))
     end do
-      
+
     call reorder_element_numbering(zoltan_global_new_positions)
-    
+
     ewrite(1,*) "Exiting reconstruct_halo"
-    
+
   end subroutine reconstruct_halo
-    
+
   subroutine initialise_transfer(zz, states, zoltan_global_new_positions_m1d, metric, full_metric, new_metric, initialise_fields, skip_extrusion_after)
     type(zoltan_struct), pointer, intent(in) :: zz
     type(state_type), dimension(:), intent(inout), target :: states
@@ -1796,9 +1796,9 @@ module zoltan_integration
     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: mesh_names
     type(mesh_type), pointer :: mesh
     integer :: no_meshes
-    
+
     ewrite(1,*) 'in initialise_transfer'
-    
+
     ! Set up zoltan_global_source_states
     do i=1,size(states)
        call select_fields_to_interpolate(states(i), interpolate_states(i), no_positions=.true., &
@@ -1806,7 +1806,7 @@ module zoltan_integration
        ! Remove the current state as we've copied the bits we need
        call deallocate(states(i))
     end do
-    
+
     ! Interpolate the metric, too
     if (present(full_metric)) then
        call insert(interpolate_states(1), full_metric, "ErrorMetric")
@@ -1815,7 +1815,7 @@ module zoltan_integration
        call insert(interpolate_states(1), metric, "ErrorMetric")
        call deallocate(metric)
     end if
-    
+
     allocate( mesh_names(1:mesh_count(interpolate_states(1))) )
     no_meshes = 0
     do i=1, mesh_count(interpolate_states(1))
@@ -1824,25 +1824,25 @@ module zoltan_integration
        no_meshes = no_meshes + 1
        mesh_names(no_meshes) = mesh%name
     end do
-    
+
     allocate(zoltan_global_source_states(no_meshes))
     call halo_update(interpolate_states, level=1)
     ! Place the fields we've picked out to interpolate onto the correct meshes of zoltan_global_source_states
     call collect_fields_by_mesh(interpolate_states, mesh_names(1:no_meshes), zoltan_global_source_states)
-    
+
     ! Finished with interpolate_states for setting up zoltan_global_source_states
     do i=1,size(interpolate_states)
        call deallocate(interpolate_states(i))
     end do
-    
+
     if (mesh_periodic(zoltan_global_zz_mesh)) then
        zoltan_global_new_positions%mesh%periodic = .true.
     end if
-    
+
     ! Start setting up states so that it can be populated with migrated fields data
-    
+
     ! Put the new positions mesh into states
-    
+
     if(zoltan_global_migrate_extruded_mesh) then
        if (mesh_periodic(zoltan_global_zz_mesh)) then
           zoltan_global_new_positions_m1d%mesh%periodic = .true.
@@ -1850,7 +1850,7 @@ module zoltan_integration
        call insert(states, zoltan_global_new_positions_m1d%mesh, name = zoltan_global_new_positions_m1d%mesh%name)
        call insert(states, zoltan_global_new_positions_m1d, name = zoltan_global_new_positions_m1d%name)
     end if
-    
+
     call insert(states, zoltan_global_new_positions%mesh, name = zoltan_global_new_positions%mesh%name)
     call insert(states, zoltan_global_new_positions, name = zoltan_global_new_positions%name)
 
@@ -1858,7 +1858,7 @@ module zoltan_integration
     ! Used in a few places within the Zoltan callback and detector routines
     zoltan_global_new_positions_mesh_nhalos = halo_count(zoltan_global_new_positions%mesh)
     assert(zoltan_global_new_positions_mesh_nhalos == 2)
-    
+
     ! Allocate a new metric field on the new positions mesh and zero it
     if (present(metric).or.present(full_metric)) then
        call allocate(new_metric, zoltan_global_new_positions%mesh, "ErrorMetric")
@@ -1870,7 +1870,7 @@ module zoltan_integration
     call insert_derived_meshes(states, skip_extrusion=skip_extrusion_after)
     call allocate_and_insert_fields(states)
     call restore_reserved_fields(states)
-    
+
     ! And set up zoltan_global_target_states based on states
     do i=1,size(states)
        call select_fields_to_interpolate(states(i), interpolate_states(i), no_positions=.true., &
@@ -1881,10 +1881,10 @@ module zoltan_integration
     if (present(metric).or.present(full_metric)) then
        call insert(interpolate_states(1), new_metric, "ErrorMetric")
     end if
-    
+
     allocate(zoltan_global_target_states(no_meshes))
     call collect_fields_by_mesh(interpolate_states, mesh_names(1:no_meshes), zoltan_global_target_states)
-      
+
     ! Finished with interpolate states for setting up zoltan_global_target_states
     do i=1,size(interpolate_states)
        call deallocate(interpolate_states(i))
@@ -1894,9 +1894,9 @@ module zoltan_integration
     ierr = Zoltan_Set_Fn(zz, ZOLTAN_OBJ_SIZE_MULTI_FN_TYPE, zoltan_cb_pack_field_sizes); assert(ierr == ZOLTAN_OK)
     ierr = Zoltan_Set_Fn(zz, ZOLTAN_PACK_OBJ_MULTI_FN_TYPE, zoltan_cb_pack_fields); assert(ierr == ZOLTAN_OK)
     ierr = Zoltan_Set_Fn(zz, ZOLTAN_UNPACK_OBJ_MULTI_FN_TYPE, zoltan_cb_unpack_fields); assert(ierr == ZOLTAN_OK)
-    
+
     ewrite(1,*) 'exiting initialise_transfer'
-    
+
   end subroutine initialise_transfer
 
   subroutine update_detector_list_element(detector_list_array)
@@ -1954,7 +1954,7 @@ module zoltan_integration
              ! to all procs, so move it to the send list and count how many detectors we're sending.
              ewrite(2,*) "Found non-local detector, initialising broadcast..."
              send_count = send_count + 1
-          
+
              ! Store the old universal element number for unpacking to new local at the receive
              detector%element = old_universal_element_number
              detector%list_id=detector_list%id
@@ -1985,7 +1985,7 @@ module zoltan_integration
 
     ! Allocate memory for all the detectors you're going to send
     allocate(send_buff(send_count,zoltan_global_ndata_per_det))
-      
+
     detector => detector_send_list%first
     do i=1,send_count
        ! Pack the detector information and delete from send_list (delete advances detector to detector%next)
@@ -2005,7 +2005,7 @@ module zoltan_integration
           else
              ! Allocate memory to receive into
              allocate(recv_buff(ndets_being_sent(i),zoltan_global_ndata_per_det))
-             
+
              ! Receive broadcast
              ewrite(2,*) "Receiving ", ndets_being_sent(i), " detectors from process ", i
              call mpi_bcast(recv_buff,ndets_being_sent(i)*zoltan_global_ndata_per_det, getPREAL(), i-1, MPI_COMM_FEMTOOLS, ierr)
@@ -2015,11 +2015,11 @@ module zoltan_integration
              do j=1,ndets_being_sent(i)
 
                 ! Allocate and unpack the detector
-                shape=>ele_shape(zoltan_global_new_positions,1)                     
+                shape=>ele_shape(zoltan_global_new_positions,1)
                 call allocate(detector, zoltan_global_ndims, local_coord_count(shape))
                 call unpack_detector(detector, recv_buff(j, 1:zoltan_global_ndata_per_det), zoltan_global_ndims)
 
-                if (has_key(zoltan_global_uen_to_new_local_numbering, detector%element)) then 
+                if (has_key(zoltan_global_uen_to_new_local_numbering, detector%element)) then
                    new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, detector%element)
                    if (element_owned(zoltan_global_new_positions%mesh, new_local_element_number)) then
                       detector%element = new_local_element_number
@@ -2041,13 +2041,13 @@ module zoltan_integration
           end if
        end if
     end do
-    
+
     deallocate(ndets_being_sent)
     deallocate(send_buff)
     ewrite(1,*) "Exiting update_detector_list_element"
 
   end subroutine update_detector_list_element
-    
+
   subroutine update_particle_list_element(detector_list_array)
     ! Update the detector%element field for every particle left in our list
     type(detector_list_ptr), dimension(:), intent(inout) :: detector_list_array
@@ -2073,9 +2073,9 @@ module zoltan_integration
        ewrite(2,*) "Length of detector list to be updated: ", detector_list%length
 
        if (sum(detector_list%total_attributes)==0) cycle
-       
+
        detector => detector_list%first
-       
+
        do while (associated(detector))
 
           old_local_element_number = detector%element
@@ -2098,7 +2098,7 @@ module zoltan_integration
              ! to all procs, so move it to the send list and count how many particles we're sending.
              ewrite(2,*) "Found non-local particle, initialising broadcast..."
              send_count = send_count + 1
-          
+
              ! Store the old universal element number for unpacking to new local at the receive
              detector%element = old_universal_element_number
              detector%list_id=detector_list%id
@@ -2126,10 +2126,10 @@ module zoltan_integration
        ewrite(2,*) "Broadcast required, initialising..."
 
        total_attributes=sum(detector_list%total_attributes)
-       
+
        ! Allocate memory for all the particles you're going to send
        allocate(send_buff(send_count,zoltan_global_ndata_per_det+total_attributes))
-       
+
        detector => detector_send_list%first
        do i=1,send_count
           ! Pack the particle information and delete from send_list (delete advances particle to detector%next)
@@ -2141,7 +2141,7 @@ module zoltan_integration
        ! Broadcast particles whose new owner we can't identify
        do i=1,getnprocs()
           if (ndets_being_sent(i) > 0) then
-             
+
              if (i == getprocno()) then
                 ! Broadcast the particles you want to send
                 ewrite(2,*) "Broadcasting ", send_count, " particles"
@@ -2150,17 +2150,17 @@ module zoltan_integration
              else
                 ! Allocate memory to receive into
                 allocate(recv_buff(ndets_being_sent(i),zoltan_global_ndata_per_det+total_attributes))
-                
+
                 ! Receive broadcast
                 ewrite(2,*) "Receiving ", ndets_being_sent(i), " particles from process ", i
                 call mpi_bcast(recv_buff,ndets_being_sent(i)*(zoltan_global_ndata_per_det+total_attributes), getPREAL(), i-1, MPI_COMM_FEMTOOLS, ierr)
                 assert(ierr == MPI_SUCCESS)
-                
+
                 ! Unpack particle if you own it
                 do k=1,ndets_being_sent(i)
-                   
+
                    ! Allocate and unpack the particle
-                   shape=>ele_shape(zoltan_global_new_positions,1)                     
+                   shape=>ele_shape(zoltan_global_new_positions,1)
                    call allocate(detector, zoltan_global_ndims, local_coord_count(shape), detector_list%total_attributes)
                    call unpack_detector(detector, recv_buff(k, 1:zoltan_global_ndata_per_det+total_attributes), zoltan_global_ndims, &
                      attribute_size_in=detector_list%total_attributes)
@@ -2182,7 +2182,7 @@ module zoltan_integration
                       call delete(detector)
                    end if
                 end do
-                
+
                 deallocate(recv_buff)
              end if
           end if
@@ -2196,14 +2196,14 @@ module zoltan_integration
   end subroutine update_particle_list_element
 
   subroutine transfer_fields(zz)
-    ! OK! So, here is how this is going to work. We are going to 
+    ! OK! So, here is how this is going to work. We are going to
     ! loop through every element in which you own at least one node, and note
     ! that its information needs to be sent to the owners of its vertices.
     ! We also have to take special care of self-sends, since they don't
     ! get taken care of in the zoltan communication.
 
-    type(zoltan_struct), pointer, intent(in) :: zz    
-    
+    type(zoltan_struct), pointer, intent(in) :: zz
+
     integer :: old_ele
     integer, dimension(:), pointer :: old_local_nodes, nodes
     type(element_type), pointer :: eshape
@@ -2217,7 +2217,7 @@ module zoltan_integration
     integer, dimension(:), pointer :: export_global_ids, export_local_ids, export_procs, export_to_part
     integer :: head
     integer(zoltan_int) :: ierr
-    
+
     integer :: old_universal_element_number, new_local_element_number, old_local_element_number
     integer :: state_no, field_no
     type(scalar_field), pointer :: source_sfield, target_sfield
@@ -2228,13 +2228,13 @@ module zoltan_integration
     type(detector_type), pointer :: detector => null(), add_detector => null()
 
     ewrite(1,*) 'in transfer_fields'
-    
+
     do i=1,size(sends)
        call allocate(sends(i))
     end do
     call allocate(self_sends)
-    
-    
+
+
     do old_ele=1,ele_count(zoltan_global_zz_positions)
        universal_element_number = halo_universal_number(zoltan_global_zz_ele_halo, old_ele)
        old_local_nodes => ele_nodes(zoltan_global_zz_positions, old_ele)
@@ -2249,7 +2249,7 @@ module zoltan_integration
           end if
        end do
     end do
-    
+
     num_export = sum(key_count(sends))
     allocate(export_global_ids(num_export))
     allocate(export_procs(num_export))
@@ -2262,23 +2262,23 @@ module zoltan_integration
     zoltan_global_ndims = zoltan_global_zz_positions%dim
     zoltan_global_ndata_per_det = detector_buffer_size(zoltan_global_ndims, .false.)
     ewrite(2,*) "Amount of data to be transferred per detector: ", zoltan_global_ndata_per_det
-    
+
     head = 1
     do i=1,size(sends)
        export_global_ids(head:head + key_count(sends(i)) - 1) = set2vector(sends(i))
        export_procs(head:head + key_count(sends(i)) - 1) = i - 1
        head = head + key_count(sends(i))
     end do
-    
+
     allocate(export_local_ids(num_export))
     export_local_ids = 666
-    
+
     import_global_ids => null()
     import_local_ids => null()
     import_procs => null()
     import_to_part => null()
     export_to_part => null()
-    
+
     ierr = Zoltan_Compute_Destinations(zz, &
          & num_export, export_global_ids, export_local_ids, export_procs, &
          & num_import, import_global_ids, import_local_ids, import_procs)
@@ -2297,15 +2297,15 @@ module zoltan_integration
 
     ierr = Zoltan_Migrate(zz, num_import, import_global_ids, import_local_ids, import_procs, &
          & import_to_part, num_export, export_global_ids, export_local_ids, export_procs, export_to_part)
-    
+
     assert(ierr == ZOLTAN_OK)
-    
+
     deallocate(export_local_ids)
     deallocate(export_procs)
     deallocate(export_global_ids)
 
     deallocate(zoltan_global_ndets_in_ele)
-    
+
     ! update the local detectors and make sure we didn't miss any in the first send
     if (get_num_detector_lists()>0) then
        call update_detector_list_element(detector_list_array)
@@ -2338,7 +2338,7 @@ module zoltan_integration
 
     ierr = Zoltan_LB_Free_Part(import_global_ids, import_local_ids, import_procs, import_to_part)
     assert(ierr == ZOLTAN_OK)
-    
+
     ! for all self-send elements, establish the vertex order in the new element such
     ! that it matches the local element ordering of the old element
     allocate(vertex_order(1:ele_loc(zoltan_global_new_positions,1), key_count(self_sends)))
@@ -2352,17 +2352,17 @@ module zoltan_integration
          halo_universal_number(zoltan_global_zz_halo, ele_nodes(zoltan_global_zz_positions, old_local_element_number)), &
          ele_nodes(zoltan_global_new_positions, new_local_element_number))
     end do
-    
+
     do state_no=1,size(zoltan_global_source_states)
        assert(scalar_field_count(zoltan_global_source_states(state_no)) == scalar_field_count(zoltan_global_target_states(state_no)))
        assert(vector_field_count(zoltan_global_source_states(state_no)) == vector_field_count(zoltan_global_target_states(state_no)))
        assert(tensor_field_count(zoltan_global_source_states(state_no)) == tensor_field_count(zoltan_global_target_states(state_no)))
-       
+
        do field_no=1,scalar_field_count(zoltan_global_source_states(state_no))
           source_sfield => extract_scalar_field(zoltan_global_source_states(state_no), field_no)
           target_sfield => extract_scalar_field(zoltan_global_target_states(state_no), field_no)
           assert(trim(source_sfield%name) == trim(target_sfield%name))
-          
+
           do i=1,key_count(self_sends)
              old_universal_element_number = fetch(self_sends, i)
              new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
@@ -2373,13 +2373,13 @@ module zoltan_integration
                                ele_val(source_sfield, old_local_element_number))
           end do
        end do
-       
+
        do field_no=1,vector_field_count(zoltan_global_source_states(state_no))
           source_vfield => extract_vector_field(zoltan_global_source_states(state_no), field_no)
           target_vfield => extract_vector_field(zoltan_global_target_states(state_no), field_no)
           assert(trim(source_vfield%name) == trim(target_vfield%name))
           if (source_vfield%name == zoltan_global_new_positions%name) cycle
-          
+
           do i=1,key_count(self_sends)
              old_universal_element_number = fetch(self_sends, i)
              new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
@@ -2390,12 +2390,12 @@ module zoltan_integration
                                ele_val(source_vfield, old_local_element_number))
           end do
        end do
-       
+
        do field_no=1,tensor_field_count(zoltan_global_source_states(state_no))
           source_tfield => extract_tensor_field(zoltan_global_source_states(state_no), field_no)
           target_tfield => extract_tensor_field(zoltan_global_target_states(state_no), field_no)
           assert(trim(source_tfield%name) == trim(target_tfield%name))
-          
+
           do i=1,key_count(self_sends)
              old_universal_element_number = fetch(self_sends, i)
              new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
@@ -2407,15 +2407,15 @@ module zoltan_integration
           end do
        end do
     end do
-    
+
     call deallocate(self_sends)
     call deallocate(sends)
-    deallocate(vertex_order)    
-    
+    deallocate(vertex_order)
+
     call halo_update(zoltan_global_target_states)
-    
+
     ewrite(1,*) 'exiting transfer_fields'
-    
+
   end subroutine transfer_fields
 
   subroutine finalise_transfer(states, metric, full_metric, new_metric)
@@ -2431,7 +2431,7 @@ module zoltan_integration
     call set_boundary_conditions_values(states)
     call set_dirichlet_consistent(states)
     call alias_fields(states)
-    
+
     if (present(full_metric)) then
        full_metric = new_metric
        call halo_update(full_metric)
@@ -2439,7 +2439,7 @@ module zoltan_integration
        metric = new_metric
        call halo_update(metric)
     end if
-    
+
     do i=1,size(zoltan_global_source_states)
        call deallocate(zoltan_global_source_states(i))
        call deallocate(zoltan_global_target_states(i))
@@ -2451,19 +2451,19 @@ module zoltan_integration
   subroutine dump_linear_mesh
     type(scalar_field) :: sends, receives, unn
     integer :: i, proc
-    
+
     assert(associated(zoltan_global_new_positions%refcount))
     assert(zoltan_global_new_positions%refcount%count == 1)
     assert(associated(zoltan_global_new_positions%mesh%refcount))
     assert(zoltan_global_new_positions%mesh%refcount%count == 1)
-    
+
     call allocate(sends, zoltan_global_new_positions%mesh, "Sends")
     call zero(sends)
     call allocate(receives, zoltan_global_new_positions%mesh, "Receives")
     call zero(receives)
     call allocate(unn, zoltan_global_new_positions%mesh, "NewUniversalNodeNumber")
     call zero(unn)
-    
+
     do proc=1,halo_proc_count(zoltan_global_new_positions%mesh%halos(2))
        do i=1,size(zoltan_global_new_positions%mesh%halos(2)%sends(proc)%ptr)
           call set(sends, zoltan_global_new_positions%mesh%halos(2)%sends(proc)%ptr(i), 1.0)
@@ -2472,11 +2472,11 @@ module zoltan_integration
           call set(receives, zoltan_global_new_positions%mesh%halos(2)%receives(proc)%ptr(i), 1.0)
        end do
     end do
-    
+
     do i=1,node_count(zoltan_global_new_positions)
        call set(unn, i, float(halo_universal_number(zoltan_global_new_positions%mesh%halos(2), i)))
     end do
-    
+
     call deallocate(sends)
     call deallocate(receives)
     call deallocate(unn)
@@ -2490,26 +2490,26 @@ module zoltan_integration
     integer :: rank, i
     type(scalar_field) :: suggested_owner, unn
     type(vector_field) :: positions
-    
+
     rank = getrank()
     call allocate(suggested_owner, zoltan_global_zz_mesh, "SuggestedOwner")
-    
+
     call set(suggested_owner, float(rank))
     do i=1,p1_num_export
        call set(suggested_owner, p1_export_local_ids(i), float(p1_export_procs(i)))
     end do
-    
+
     call allocate(unn, zoltan_global_zz_mesh, "OldUniversalNodeNumber")
     do i=1,node_count(unn)
        call set(unn, i, float(halo_universal_number(zoltan_global_zz_halo, i)))
     end do
-    
+
     positions = get_coordinate_field(states(1), zoltan_global_zz_mesh)
     call halo_update(suggested_owner)
     call deallocate(positions)
     call deallocate(suggested_owner)
     call deallocate(unn)
-    
+
   end subroutine dump_suggested_owner
 
 #endif

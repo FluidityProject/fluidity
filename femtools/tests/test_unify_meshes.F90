@@ -74,7 +74,7 @@ subroutine test_unify_meshes
       accum_positions = accum_positions_tmp
 
       llnode => llnode%next
-      
+
       call deallocate(intersection)
     end do
 
@@ -92,5 +92,5 @@ subroutine test_unify_meshes
   call report_test("[unify meshes: completeness]", fail, .false., "Need to have the same volume!")
 
   call vtk_write_fields("unified_mesh", 0, accum_positions, accum_positions%mesh)
-    
+
 end subroutine test_unify_meshes

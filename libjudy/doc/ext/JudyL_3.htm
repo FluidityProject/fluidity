@@ -93,8 +93,8 @@ the <B>Value</B> is initialized to 0. If the <B>Index</B> was already present,
 the <B>Value</B> is not modified.
 <P>
 Return <B>PValue</B> pointing to <B>Value</B>.
-Your program can use this pointer to read or modify <B>Value</B> until the next 
-<B>JLI()</B> (insert), <B>JLD()</B> (delete) or <B>JLFA()</B> (freearray) 
+Your program can use this pointer to read or modify <B>Value</B> until the next
+<B>JLI()</B> (insert), <B>JLD()</B> (delete) or <B>JLFA()</B> (freearray)
 is executed on <B>PJLArray</B>. Examples:
 <PRE>
 *PValue = 1234;
@@ -244,19 +244,19 @@ Search (exclusive) for the previous index absent that is less than the passed
 <DT><B>Multi-dimensional JudyL Arrays</B></DT>
 <DD>
 Storing a pointer to another JudyL array in a JudyL array's <B>Value</B>
-is a simple way to support dynamic multi-dimensional arrays.  
-These arrays (or trees) built using JudyL arrays are very fast and 
+is a simple way to support dynamic multi-dimensional arrays.
+These arrays (or trees) built using JudyL arrays are very fast and
 memory efficient. (In fact, that is how JudySL and JudyHS are implemented).
 An arbitrary number of dimensions can be realized this way.
-To terminate the number of dimensions (or tree), the <B>Value</B> pointer is 
-marked to <B>NOT</B> point to another Judy array. A <B>JLAP_INVALID</B> flag is 
-used in the least significant bit(s) of the pointer.  
+To terminate the number of dimensions (or tree), the <B>Value</B> pointer is
+marked to <B>NOT</B> point to another Judy array. A <B>JLAP_INVALID</B> flag is
+used in the least significant bit(s) of the pointer.
 After the flag <B>JLAP_INVALID</B> is removed, it is used as a pointer to the users data.
 The <B>Judy.h</B> header file defines <B>JLAP_INVALID</B>.
 See code fragment below.
 <P>
-Note: The current version of <B>Judy.h</B> changed this flag from 0x4 to 0x1 
-to allow for a <I>malloc()</I> that does not deliver memory on an 8 byte 
+Note: The current version of <B>Judy.h</B> changed this flag from 0x4 to 0x1
+to allow for a <I>malloc()</I> that does not deliver memory on an 8 byte
 aligned boundry (such as old versions of valgrind).
 <P>
 The following example code segment can be used to determine whether or

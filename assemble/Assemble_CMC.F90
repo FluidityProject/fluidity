@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -45,10 +45,10 @@ module assemble_CMC
   use field_options
   use fefields
 
-  implicit none 
+  implicit none
 
   private
-  
+
   public :: assemble_cmc_dg, assemble_masslumped_cmc, &
             assemble_masslumped_ctm, repair_stiff_nodes, zero_stiff_nodes, &
             assemble_diagonal_schur, assemble_scaled_pressure_mass_matrix
@@ -70,21 +70,21 @@ contains
       integer :: dim, dim2
 
       call zero(CMC)
-      
+
       if(inverse_mass%diagonal) then
 
          do dim=1, blocks(CT,2)
-            
+
             ! This is a borrowed reference so no need to deallocate.
             CT_block=block(CT, 1, dim)
             CTP_block=block(CTP, 1, dim)
-            
+
             CM=matmul_T(CTP_block, block(inverse_mass,dim,dim), CT%sparsity)
-            
+
             CMC_tmp=matmul_T(CM, CT_block, model=CMC%sparsity)
-            
+
             call addto(CMC, CMC_tmp)
-            
+
             call deallocate(CM)
             call deallocate(CMC_tmp)
 
@@ -94,17 +94,17 @@ contains
 
          do dim=1, blocks(CT,2)
             do dim2 = 1, blocks(CT,2)
-               
+
                ! This is a borrowed reference so no need to deallocate.
                CT_block=block(CT, 1, dim)
                CTP_block=block(CTP, 1, dim2)
-               
+
                CM=matmul_T(CTP_block, block(inverse_mass,dim2,dim), CT%sparsity)
-               
+
                CMC_tmp=matmul_T(CM, CT_block, model=CMC%sparsity)
-               
+
                call addto(CMC, CMC_tmp)
-               
+
                call deallocate(CM)
                call deallocate(CMC_tmp)
             end do
@@ -129,13 +129,13 @@ contains
       ewrite(1,*) 'Entering assemble_masslumped_cmc'
 
       call mult_div_vector_div_T(cmc_m, ctp_m, inverse_masslump, ct_m)
-      
+
       ewrite_minmax(cmc_m)
 
     end subroutine assemble_masslumped_cmc
 
     subroutine assemble_diagonal_schur(schur_diagonal_matrix,u,inner_m,ctp_m,ct_m)
-      !!< Assemble the matrix C_P^T * [(Big_m)_diagonal]^-1 * C. 
+      !!< Assemble the matrix C_P^T * [(Big_m)_diagonal]^-1 * C.
       !!< This is used as a preconditioner for the full projection solve
       !!< when using the full momentum matrix.
 
@@ -144,12 +144,12 @@ contains
       ! Divergence matrices:
       type(block_csr_matrix), intent(in) :: ctp_m, ct_m
       ! Inner matrix of Schur complement:
-      type(petsc_csr_matrix), intent(inout) :: inner_m   
+      type(petsc_csr_matrix), intent(inout) :: inner_m
       ! Product matrix:
       type(csr_matrix), intent(inout):: schur_diagonal_matrix
       ! Diagonal of inner_m - required to set up preconditioner matrix for Stokes problems
       ! (i.e. DiagonalSchurComplement):
-      type(vector_field) :: inner_m_diagonal   
+      type(vector_field) :: inner_m_diagonal
 
       integer :: i
 
@@ -180,7 +180,7 @@ contains
       ! This routine assembles the scaled_pressure_mass_matrix at the
       ! quadrature points. It is scaled by the inverse of viscosity.
 
-      type(state_type), intent(in) :: state   
+      type(state_type), intent(in) :: state
       ! Scaled pressure mass matrix - already allocated in Momentum_Eq:
       type(csr_matrix), intent(inout) :: scaled_pressure_mass_matrix
 
@@ -189,7 +189,7 @@ contains
       real, intent(in) :: dt
 
       ! Viscosity tensor:
-      type(tensor_field), pointer :: viscosity     
+      type(tensor_field), pointer :: viscosity
       ! Viscosity component:
       type(scalar_field) :: viscosity_component
       ! Positions:
@@ -202,7 +202,7 @@ contains
       real, dimension(:,:), allocatable :: mass_matrix
       real, dimension(:), allocatable :: mu_gi
 
-      ewrite(1,*) 'Entering assemble_scaled_pressure_mass_matrix'    
+      ewrite(1,*) 'Entering assemble_scaled_pressure_mass_matrix'
 
       ! Positions:
       positions => extract_vector_field(state, "Coordinate")
@@ -217,7 +217,7 @@ contains
       allocate(detwei(ele_ngi(p_mesh, 1)), &
                mass_matrix(ele_loc(p_mesh, 1), ele_loc(p_mesh, 1)), &
                mu_gi(ele_ngi(viscosity_component, 1)))
- 
+
       call zero(scaled_pressure_mass_matrix)
 
       do ele = 1, ele_count(p_mesh)
@@ -234,25 +234,25 @@ contains
       deallocate(detwei, mass_matrix, mu_gi)
 
     end subroutine assemble_scaled_pressure_mass_matrix
-      
+
     subroutine repair_stiff_nodes(cmc_m, stiff_nodes_list)
-    
+
       type(csr_matrix), intent(inout) :: cmc_m
       type(ilist), intent(inout) :: stiff_nodes_list
-      
+
       integer :: row
       real, pointer :: row_diag
       integer, dimension(:), pointer :: row_m
       real, dimension(:), pointer :: row_val
       real :: tolerance
-      
+
       ewrite(1,*) 'in repair_stiff_nodes()'
-      
+
       tolerance = maxval(cmc_m%val)*epsilon(0.0)
       ewrite(2,*) 'tolerance = ', tolerance
-      
+
       call flush_list(stiff_nodes_list)
-      
+
       do row = 1, size(cmc_m, 1)
         row_diag=>diag_val_ptr(cmc_m, row)
         row_m=>row_m_ptr(cmc_m, row)
@@ -265,27 +265,27 @@ contains
           call insert(stiff_nodes_list, row)
         end if
       end do
-      
+
       call print_list(stiff_nodes_list, 2)
 
     end subroutine repair_stiff_nodes
-      
+
     subroutine zero_stiff_nodes(rhs, stiff_nodes_list)
-    
+
       type(scalar_field), intent(inout) :: rhs
       type(ilist), intent(in) :: stiff_nodes_list
-      
+
       real, dimension(:), pointer :: row_val
-      
+
       ewrite(1,*) 'in zero_stiff_nodes()'
-      
+
       if(stiff_nodes_list%length>0) then
         ewrite(2,*) 'before node_val = ', node_val(rhs, list2vector(stiff_nodes_list))
         call set(rhs, list2vector(stiff_nodes_list), spread(0.0, 1, stiff_nodes_list%length))
       end if
 
     end subroutine zero_stiff_nodes
-    
+
     subroutine assemble_masslumped_ctm(ctm_m, ctp_m, masslump)
       !!< Assemble the matrix C_P^T M_l^{-1}
       !!< This currently does not support rotations.
@@ -320,5 +320,5 @@ contains
       ewrite_minmax(ctm_m)
 
     end subroutine assemble_masslumped_ctm
-    
+
 end module assemble_cmc

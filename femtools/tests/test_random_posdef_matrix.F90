@@ -14,7 +14,7 @@ subroutine test_random_posdef_matrix
 
     fail = .false.
     warn = .false.
-    
+
     mat = random_posdef_matrix(dim)
     call eigendecomposition_symmetric(mat, evecs, evals)
     do j=1,dim
@@ -28,5 +28,5 @@ subroutine test_random_posdef_matrix
     call report_test("[positive definite matrix " // trim(buf) // "]", fail, warn, &
     "Positive definite matrices have positive eigenvalues.")
   end do
-  
+
 end subroutine test_random_posdef_matrix

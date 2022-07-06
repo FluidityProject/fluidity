@@ -1,5 +1,5 @@
 !    Copyright (C) 2007 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -117,7 +117,7 @@ contains
 
     call alias_fields(sub_states)
 
-    call allocate_and_insert_auxilliary_fields(sub_states)       
+    call allocate_and_insert_auxilliary_fields(sub_states)
 
     ! Update field values in subdomain from state values:
     call update_subdomain_fields(states,sub_states)
@@ -188,7 +188,7 @@ contains
     number_of_prescribed_regions = &
          option_count(trim(velocity%option_path)// "/prognostic/prescribed_region")
     ewrite(2,*) 'Number of prescribed_regions',number_of_prescribed_regions
-    
+
     call allocate(prescribed_region_id_set)
     do i = 1, number_of_prescribed_regions
       prescribed_regions_shape = option_shape(trim(velocity%option_path)// &
@@ -286,7 +286,7 @@ contains
     nmeshes=mesh_count(states(1))
 
     ! Loop over meshes and derive list of nodes:
-    do imesh = 1, nmeshes 
+    do imesh = 1, nmeshes
 
        full_mesh => extract_mesh(states(1),imesh)
 
@@ -343,12 +343,12 @@ contains
     type(scalar_field), pointer :: sfield, sfield_sub
     type(vector_field), pointer :: vfield, vfield_sub
     type(tensor_field), pointer :: tfield, tfield_sub
-    
+
     ! Other declarations:
     integer :: nstates, nsfields, nvfields, ntfields
     integer :: istate, ifield, stat
 
-    ewrite(1,*) "Entering update_subdomain_fields"    
+    ewrite(1,*) "Entering update_subdomain_fields"
 
     ! How many states exist?
     nstates = size(states)
@@ -402,7 +402,7 @@ contains
 
     end do
 
-    ewrite(1,*) "Leaving update_subdomain_fields"    
+    ewrite(1,*) "Leaving update_subdomain_fields"
 
   end subroutine update_subdomain_fields
 
@@ -428,7 +428,7 @@ contains
 
     ! Loop over states:
     do istate = 1, nstates
-       
+
        ! Deal with vector fields:
        nvfields = vector_field_count(states(istate))
 
@@ -535,7 +535,7 @@ contains
 
         ewrite(0,*) "When using prescribed regions with mesh adaptivity:"
         FLExit("Need /mesh_adaptivity/hr_adaptivity/preserve_mesh_regions option")
-        
+
       end if
 
     end if

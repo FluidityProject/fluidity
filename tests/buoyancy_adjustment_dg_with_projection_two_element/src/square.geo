@@ -16,4 +16,3 @@ Physical Line(1) = {1};
 Physical Line(2) = {2};
 // Side walls.
 Physical Line(3) = {3,4};
-

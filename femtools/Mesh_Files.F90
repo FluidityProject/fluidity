@@ -31,7 +31,7 @@
 
 ! ----------------------------------------------------------------------------
 ! This module acts as a wrapper for read/write routines for
-! meshes of different formats. 
+! meshes of different formats.
 !
 ! You should add code to support additional formats:
 ! - here (wrapper routines)
@@ -153,7 +153,7 @@ contains
     case("gmsh")
        call write_gmsh_file(filename, state, mesh, number_of_partitions=number_of_partitions)
 
-    ! ExodusII write routines are not implemented at this point. 
+    ! ExodusII write routines are not implemented at this point.
     ! Mesh is dumped as gmsh format for now.
     ! check subroutine 'insert_external_mesh' in Populate_State.F90,
     ! right after reading in external mesh files
@@ -184,7 +184,7 @@ contains
     case("gmsh")
        call write_gmsh_file( trim(filename), positions, number_of_partitions=number_of_partitions)
 
-    ! ExodusII write routines are not implemented at this point. 
+    ! ExodusII write routines are not implemented at this point.
     ! Mesh is dumped as gmsh format for now.
     ! check subroutine 'insert_external_mesh' in Populate_State.F90,
     ! right after reading in external mesh files
@@ -198,4 +198,3 @@ contains
   end subroutine write_positions_to_file
 
 end module mesh_files
-

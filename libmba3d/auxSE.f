@@ -13,7 +13,7 @@ C ================================================================
 C ================================================================
 C A superelement around element iE is created.
 C
-C Remark: The element iE and his face-heighboors should be included 
+C Remark: The element iE and his face-heighboors should be included
 C         independently to prevent a situation where vertices of iE
 C         give a multy-connected (point-based) superelement.
 C         In addition, we repeat algorithm whenever the "face closure"
@@ -104,12 +104,12 @@ c  ...  checking for intersection with tetrahedron iE
                Do j = 1, 4
                   If(ICP(IPE(j, iEt)).LT.0) Then
                      m = m + 1
-                     iEs(MaxS - m + 1) = iEt 
+                     iEs(MaxS - m + 1) = iEt
 
                      nMaxS = nMaxS - 1
                      Goto 15
                   End if
-               End do 
+               End do
             End if
  15      Continue
       End do

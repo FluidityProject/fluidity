@@ -55,7 +55,7 @@ class PythonValidator:
 
     def TestFiles(self, testDir, depth):
         print("Checking xml and flml files:")
-        filenames = [os.path.abspath(name) for 
+        filenames = [os.path.abspath(name) for
                     name in self._TestFiles(("xml", "flml", "py"), testDir, depth)]
         for py_version in versions:
             try:

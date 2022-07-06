@@ -23,39 +23,39 @@ parser = argparse.ArgumentParser( \
                        description="""Updates option files.""")
 parser.add_argument('file', action='store', metavar='file', type=str, nargs='+',
                     help='specify a filename or expression')
-parser.add_argument('-a', '--alias', action='store', dest='alias', required=False, default=None, 
+parser.add_argument('-a', '--alias', action='store', dest='alias', required=False, default=None,
                     type=str,
                     help='schema alias that should be used (will be ignored if -s is set)')
-parser.add_argument('-s', '--schema', action='store', dest='schema', required=False, default=None, 
+parser.add_argument('-s', '--schema', action='store', dest='schema', required=False, default=None,
                     type=str,
                     help='schema that should be used')
-parser.add_argument('-r', '--recursive', metavar='depth', action='store', type=int, dest='recurse', nargs='?', default=None, 
+parser.add_argument('-r', '--recursive', metavar='depth', action='store', type=int, dest='recurse', nargs='?', default=None,
                     required=False, const=-1,
                     help='recursively search the directory tree for files (if no depth is specified full recursion will be used)')
-parser.add_argument('-v', '--verbose', action='store_const', dest='verbose', const=True, default=False, 
+parser.add_argument('-v', '--verbose', action='store_const', dest='verbose', const=True, default=False,
                     required=False,
                     help='verbose output')
 args = parser.parse_args()
 
-if not args.verbose: 
+if not args.verbose:
   debug.SetDebugLevel(0)
 
 filenames = []
 exts = set()
 for f in args.file:
-  
+
   if args.recurse is None:
     for filename in glob.glob(f):
       filenames.append(os.path.join(os.curdir, filename))
       exts.add(filename.split('.')[-1])
   else:
-    
+
     if os.path.isabs(f):
       dirname = os.path.dirname(f)
     else:
       dirname = os.curdir
     dirname = os.path.normpath(dirname)
-  
+
     for root, dirnames, files in os.walk(dirname, topdown=True):
       depth = string.count(root, os.path.sep)
       for filename in glob.glob1(os.path.join(root, os.path.dirname(f)), os.path.split(f)[-1]):
@@ -64,7 +64,7 @@ for f in args.file:
       if depth == args.recurse:
         dirnames[:] = []
 
-import diamond.config as config   
+import diamond.config as config
 # only import config after the debug level has been set
 extdict = {}
 if args.schema is not None:
@@ -73,7 +73,7 @@ else:
   if len(config.schemata) == 0:
     debug.deprint("Could not find a schema file.", 0)
     schemaerr()
-  for e in exts: 
+  for e in exts:
     try:
       extdict[e] = config.schemata[e][1][args.alias]
     except:
@@ -89,10 +89,10 @@ invalidFiles = []
 updated = 0
 for filename in filenames:
   debug.dprint("Processing " + str(filename), 1)
-  
+
   ext = filename.split(".")[-1]
   sch = schemadict[ext]
- 
+
   # Read the file and check that either the file is valid, or diamond.schema
   # can make the file valid by adding in the missing elements
   optionsTree = sch.read(filename)
@@ -102,7 +102,7 @@ for filename in filenames:
     debug.deprint(str(filename) + " errors: " + str((lost_eles, added_eles, lost_attrs, added_attrs)), 1)
     invalidFiles.append(filename)
     continue
-  
+
   # Write out the updated options file
   optionsTree.write(filename)
   debug.dprint(str(filename) + ": Updated", 0)

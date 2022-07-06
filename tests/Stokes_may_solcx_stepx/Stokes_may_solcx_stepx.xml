@@ -8,7 +8,7 @@
     <command_line>fluidity -v2 -l Stokes-may-solcx-stepx-gamg.flml; mv fluidity.log-0 log_gamg; fluidity -v2 -l Stokes-may-solcx-stepx-fs.flml; mv fluidity.log-0 log_fs; fluidity -v2 -l Stokes-may-solcx-stepx-mg.flml; mv fluidity.log-0 log_mg; fluidity -v2 -l Stokes-may-solcx-stepx-sor.flml; mv fluidity.log-0 log_sor</command_line>
   </problem_definition>
 
-<variables>  
+<variables>
 
 <variable name="solvers_converged" language="python">
 import os
@@ -61,13 +61,8 @@ assert(abs(DeltaU_iterations_SOR - 207) &lt; 2)
 </test>
 
 </pass_tests>
-                                                                                                                                                                              
+
 <warn_tests>
 </warn_tests>
 
 </testproblem>
-
-
-
-
-

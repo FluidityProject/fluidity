@@ -100,7 +100,7 @@ for i in range(ilen):
 norm = math.sqrt(norm)/ilen
 print(norm)
 erturk_v_norm=norm
-</variable>    
+</variable>
     <variable name="botella_u_norm" language="python">
 import vtktools
 import math
@@ -221,7 +221,7 @@ for i in range(ilen):
 norm = math.sqrt(norm)/ilen
 print(norm)
 botella_p_norm1=norm
-</variable>    
+</variable>
     <variable name="botella_p_norm2" language="python">
 import vtktools
 import math
@@ -271,13 +271,13 @@ vel_l2_norm = fluidity_tools.stat_parser("driven_cavity_2d.stat")['Fluid']['Velo
 kinetic_energy = 0.5*vel_l2_norm**2
 kinetic_energy_error = abs( kinetic_energy - 0.044503 )
 print(kinetic_energy,kinetic_energy_error)
-</variable>   
+</variable>
     <variable name="streamfunction_min_error" language="python">
 import fluidity_tools
 streamfunction_min = fluidity_tools.stat_parser("driven_cavity_2d.stat")['Fluid']['MultiplyConnectedStreamFunction']['min'][-1]
 streamfunction_min_error = abs( streamfunction_min - -0.118942 )
 print(streamfunction_min,streamfunction_min_error)
-</variable>   
+</variable>
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">
@@ -297,16 +297,16 @@ assert botella_v_norm &lt; 0.0045
     </test>
     <test name="L2 norm of p along centre line (cf. Botella)" language="python">
 assert botella_p_norm1 &lt; 0.0025
-    </test>    
+    </test>
     <test name="L2 norm of p along centre line (cf. Botella)" language="python">
 assert botella_p_norm2 &lt; 0.0025
-    </test>    
+    </test>
     <test name="Difference in KE (cf. Botella)" language="python">
 assert kinetic_energy_error &lt; 0.005
-    </test>    
+    </test>
     <test name="Difference in streamfunction min (cf. Erturk)" language="python">
 assert streamfunction_min_error &lt; 0.007
-    </test>    
+    </test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

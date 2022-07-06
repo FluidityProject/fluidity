@@ -47,18 +47,18 @@ typedef unsigned __int64 uint64_t;
 #else /* ================ ! JU_WIN ============================= */
 
 // ISO C99: 7.8 Format conversion of integer types <inttypes.h>
-#include <inttypes.h>  /* if this FAILS, try #include <stdint.h> */ 
+#include <inttypes.h>  /* if this FAILS, try #include <stdint.h> */
 
-// ISO C99: 7.18 Integer types uint*_t 
-//#include <stdint.h>  
+// ISO C99: 7.18 Integer types uint*_t
+//#include <stdint.h>
 
 #endif /* ================ ! JU_WIN ============================= */
 
 // ISO C99 Standard: 7.20 General utilities
-#include <stdlib.h>  
+#include <stdlib.h>
 
 // ISO C99 Standard: 7.10/5.2.4.2.1 Sizes of integer types
-#include <limits.h>  
+#include <limits.h>
 
 #ifdef __cplusplus      /* support use by C++ code */
 extern "C" {

@@ -45,7 +45,7 @@ subroutine test_eigendecomposition
   dot(3) = dot_product(evecs(:, 2), evecs(:, 3))
   do i=1,3
     if (.not. fequals(dot(i), 0.0)) fail = .true.
-  end do 
+  end do
   call report_test("[eigendecomposition " // trim(buf) // "]", fail, warn, "Eigendecomposition of symmetric &
   & matrices should yield orthogonal eigenvectors.")
 

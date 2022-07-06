@@ -36,7 +36,7 @@ using namespace std;
 ofstream debugfile;
 
 void openlog(const bool all2null){
-  
+
   int MyRank;
   char filename[20];
 

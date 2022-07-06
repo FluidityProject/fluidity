@@ -13,13 +13,13 @@ C ================================================================
 C ================================================================
      &           iP, lF, iFs, lE, iEs, IPEs, IPF, IFE, MaxS,
      &           lP1, iP1s, lP2, iP2s, ICP2s,
-     &           lS, IPSs, IESs, lDF, iDFs, lDE, iDEs, 
+     &           lS, IPSs, IESs, lDF, iDFs, lDE, iDEs,
      &           flagFACE, flagEDGE)
 C ================================================================
 C Compute:
 C   (a) list of faces IPSs(3, lS) around point iP is created.
 C
-C   (b) list of surface points connected with point iP 
+C   (b) list of surface points connected with point iP
 C
 C   (c) edge case : list of points on an edge passing through iP
 C       face case : list of points on the face passing through iP
@@ -233,19 +233,19 @@ C ================================================================
 C ================================================================
       Real*8 Function projectF(xyp, xy1, xy2, xy3, xyt)
 C ================================================================
-C Routine finds a point xyt lying inside triangular face 
+C Routine finds a point xyt lying inside triangular face
 C {xy1, xy2, xy3} which is the closest point to xyp. It returns
 C the distance to this point.
 C
 C *** Remarks:
 C        1. We minimize the distance ||a * x21 + b * x31 - p||^2
-C           w.r.t. a and b. 
+C           w.r.t. a and b.
 C ================================================================
       Real*8  xyp(3), xy1(3), xy2(3), xy3(3), xyt(3)
 
 c group (Local variables)
       Real*8  v1(3), v2(3), vp(3)
-      Real*8  m11, m12, m22, f1, f2, det, a, b 
+      Real*8  m11, m12, m22, f1, f2, det, a, b
 
 C ================================================================
       Do i = 1, 3
@@ -283,12 +283,12 @@ c ... analyze few cases (seach along b, a and a + b = 1)
          b = 1D0 - a
       End if
 
- 
+
 c ... compute point the closest point
       Do i = 1, 3
          xyt(i) = xy1(i) + a * v1(i) + b * v2(i)
       End do
-      
+
       projectF = calEdge(xyp, xyt)
 
       Return
@@ -300,7 +300,7 @@ C ================================================================
       Subroutine bariCoords(xyp, xy1, xy2, xy3, b1, b2, b3)
 C ================================================================
 C Routine computes barycentric coordinates of point xyp lying
-C inside triangle {xy1, xy2, xy3}. They coordinates are always 
+C inside triangle {xy1, xy2, xy3}. They coordinates are always
 C positive and sum to 1 upto round-off errors.
 C ================================================================
       Real*8  xyp(3), xy1(3), xy2(3), xy3(3)
@@ -347,7 +347,7 @@ c ... third baricentric coordinate
       b3 = 1 - b2 - b1
       If(b1 + b2.GT.1D0) Then
          b1 = min(1D0, b1)
-         b2 = max(0D0, 1 - b1) 
+         b2 = max(0D0, 1 - b1)
          b3 = 0D0
       End if
 

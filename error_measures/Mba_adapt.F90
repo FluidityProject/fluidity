@@ -191,7 +191,7 @@ module mba_adapt_module
 
     call vtk_write_state("new_state", 0, state=(/new_state/))
     call linear_interpolation(state, new_state)
-    
+
     deallocate(pos)
     deallocate(ipf)
     deallocate(ipe)
@@ -292,7 +292,7 @@ module mba_adapt_module
     type(vector_field), intent(in) :: positions
     integer, intent(in) :: face
     real, dimension(positions%dim, positions%dim-1) :: basis
-    
+
     real, dimension(positions%dim, face_loc(positions, face)) :: pos
     integer :: i, j
     real, dimension(positions%dim) :: tmp_vec

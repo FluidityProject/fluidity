@@ -259,13 +259,13 @@ contains
     implicit none
     character(len=*), intent(in) :: string
     character(len=1,kind=c_char), dimension(len(string)) :: array
-    
+
     integer :: i
 
     do i=1, size(array)
        array(i)=string(i:i)
     end do
-    
+
   end function string_array
 
   pure function array_string(array) result(string)
@@ -279,7 +279,7 @@ contains
     do i=1, size(array)
        string(i:i)=array(i)
     end do
-    
+
   end function array_string
 
   subroutine clear_options()
@@ -808,7 +808,7 @@ contains
     integer :: lstat
     ! Buffer to make c_loc call legal.
     real(D), dimension(size(val)), target :: lval
-    
+
     if(present(stat)) then
       stat = SPUD_NO_ERROR
     end if
@@ -881,7 +881,7 @@ contains
     if(present(stat)) then
       stat = SPUD_NO_ERROR
     end if
-    
+
     lval=val
     lstat = spud_set_option(string_array(key), len_trim(key), c_loc(lval), SPUD_REAL, 1, (/size(val), -1/))
     if(lstat /= SPUD_NO_ERROR) then
@@ -1110,7 +1110,7 @@ contains
       case(SPUD_SHAPE_ERROR)
         write(0, *) "Option shape error. Key is: " // trim(key)
       case(SPUD_FILE_ERROR)
-        write(0, *) "Option file error. Filename is: " // trim(key)        
+        write(0, *) "Option file error. Filename is: " // trim(key)
       case(SPUD_NEW_KEY_WARNING)
         write(0, *) "Option warning. Key is not in the options tree: " // trim(key)
       case(SPUD_ATTR_SET_FAILED_WARNING)

@@ -25,30 +25,30 @@ class functional_2d{
  public:
   functional_2d();
   ~functional_2d();
-    
+
   samfloat_t standard(samfloat_t x0, samfloat_t y0, const samfloat_t *m0,
 		  samfloat_t x1, samfloat_t y1, const samfloat_t *m1,
 		  samfloat_t x2, samfloat_t y2, const samfloat_t *m2);
-  
+
   samfloat_t oddy(samfloat_t x0, samfloat_t y0, const samfloat_t *m0,
 	      samfloat_t x1, samfloat_t y1, const samfloat_t *m1,
 	      samfloat_t x2, samfloat_t y2, const samfloat_t *m2);
-  
+
  private:
   samfloat_t dot(samfloat_t x0, samfloat_t y0,
 	     samfloat_t x1, samfloat_t y1);
 
   samfloat_t len2(samfloat_t x0, samfloat_t y0,
 	      samfloat_t x1, samfloat_t y1);
-  
+
   samfloat_t GetInRadius(samfloat_t x0, samfloat_t y0,
 		     samfloat_t x1, samfloat_t y1,
 		     samfloat_t x2, samfloat_t y2);
-  
+
   samfloat_t GetShape(samfloat_t x0, samfloat_t y0,
 		  samfloat_t x1, samfloat_t y1,
 		  samfloat_t x2, samfloat_t y2);
-  
+
   samfloat_t GetSize(samfloat_t x0, samfloat_t y0,
 		 samfloat_t x1, samfloat_t y1,
 		 samfloat_t x2, samfloat_t y2);
@@ -56,7 +56,7 @@ class functional_2d{
   samfloat_t GetArea(samfloat_t r0_x, samfloat_t r0_y,
 					  samfloat_t r1_x, samfloat_t r1_y,
 					  samfloat_t r2_x, samfloat_t r2_y);
-  
+
   const samfloat_t alpha;
   samfloat_t m[3];
 };

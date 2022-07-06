@@ -4,11 +4,11 @@ start =
    (
       element ballistics_options {
          ## The name of the simulation.
-         ## This will be used as the basename of output files. 
+         ## This will be used as the basename of output files.
          element simulation_name {
             filename
          },
-         # Timestepping_options is a named pattern defined below. 
+         # Timestepping_options is a named pattern defined below.
          timestepping_options,
          ## The acceleration due to gravity measured downwards.
          element gravity {
@@ -38,7 +38,7 @@ timestepping_options =
          element finish_time {
             real
          },
-         ## The algorithm which will be used to move the projectiles. 
+         ## The algorithm which will be used to move the projectiles.
          ## explicit_euler is the first order unstable numeric scheme.
          ## analytic is the analytic solution.
          element time_integration_scheme {
@@ -52,12 +52,12 @@ timestepping_options =
       }
    )
 
-projectile = 
+projectile =
    (
       element projectile {
-         ## An object with a velocity. Projectiles move during the simulation 
+         ## An object with a velocity. Projectiles move during the simulation
          ## and are accelerated by gravity.
-         ## 
+         ##
          ## The projectile name identifies this projectile in the output.
          attribute name { string },
          element initial_velocity {
@@ -70,4 +70,3 @@ projectile =
          }
       }
    )
-

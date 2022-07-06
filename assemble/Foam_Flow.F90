@@ -297,7 +297,7 @@ contains
     type(vector_field) :: cfield
 
     integer :: i, stat
-    
+
     foamvel => extract_vector_field(state, foamvel_name)
     if (have_option(trim(foamvel%option_path)//'/diagnostic')) then
       field=>extract_scalar_field(state, "FoamVelocityPotential")
@@ -344,5 +344,3 @@ contains
 
 
 end module foam_flow_module
-
-

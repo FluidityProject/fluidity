@@ -1,10 +1,10 @@
 C ================================================================
       Subroutine smoothingS(
 C ================================================================
-C Routine smoothes the piecewise linear function Sol defined at 
-C mesh points. The value of the smoothed function at a mesh point 
-C P is equal to the integral average over the superelement 
-C associated with point P. This method is known as the Steklov 
+C Routine smoothes the piecewise linear function Sol defined at
+C mesh points. The value of the smoothed function at a mesh point
+C P is equal to the integral average over the superelement
+C associated with point P. This method is known as the Steklov
 c smoothing.
 C ================================================================
      &           nP, nE, XYP, IPE, Sol,
@@ -73,7 +73,7 @@ C ... computing volumes of elemnts and superelements
          End do
          rW(iSup + n) = v
       End do
-      
+
 
 C ... itegrating the piecewise linear function SOL
       Do n = 1, nP
@@ -84,21 +84,19 @@ C ... itegrating the piecewise linear function SOL
          v = 0D0
          Do i = 1, 3
             iP1 = IPE(i, n)
-            v = v + Sol(iP1) 
+            v = v + Sol(iP1)
          End do
-         v = v * rW(iVol + n) / 3 
+         v = v * rW(iVol + n) / 3
 
          Do i = 1, 3
             iP1 = IPE(i, n)
             rW(iSol + iP1) = rW(iSol + iP1) + v  / rW(iSup + iP1)
          End do
       End do
-      
+
       Do n = 1, nP
          Sol(n) = rW(iSol + n)
       End do
 
       Return
       End
-
-

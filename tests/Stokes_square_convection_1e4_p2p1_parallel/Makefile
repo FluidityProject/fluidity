@@ -17,7 +17,7 @@ clean-run:
 	rm -f $(FLMLMODEL)_?*.pvtu $(FLMLMODEL)_?*.vtu
 	rm -f $(FLMLMODEL).detectors $(FLMLMODEL).stat tmpf*
 	rm -f fluidity.err-?* fluidity.log-?*
-	rm -f matrixdump matrixdump.info 
+	rm -f matrixdump matrixdump.info
 	rm -f $(FLMLMODEL)_?*_checkpoint.flml
 	rm -f $(FLMLMODEL)_?*_checkpoint_?*.msh $(FLMLMODEL)_?*_checkpoint_?*.halo
 	rm -f $(FLMLMODEL)_?*_?*_checkpoint.pvtu $(FLMLMODEL)_?*_?*_checkpoint.vtu
@@ -32,5 +32,3 @@ run: clean-run input
 	$(FLUIDITY) $(FLFLAGS) $(MODEL).flml $MESH.*
 run-debug: clean-run-debug input
 	$(FLUIDITY)-debug $(FLFLAGS) $(MODEL).flml
-
-

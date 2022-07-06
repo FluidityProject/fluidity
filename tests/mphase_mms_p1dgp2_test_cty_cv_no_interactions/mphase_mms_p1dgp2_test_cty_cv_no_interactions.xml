@@ -2,13 +2,13 @@
 <testproblem>
   <name>mphase_mms_p1dgp2_test_cty_cv_no_interactions</name>
   <owner userid="btollit"/>
-  <tags>flml cg_press_test_cty_cv</tags>  
+  <tags>flml cg_press_test_cty_cv</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
 make run
     </command_line>
-  </problem_definition>  
-  <variables>  
+  </problem_definition>
+  <variables>
     <variable name="ab_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -44,7 +44,7 @@ ab_ratio_y = a_error_y / b_error_y
 ab_ratio_f2 = [log(ab_ratio_x, 2), log(ab_ratio_y, 2)]
 
 ab_convergence_vel = [ab_ratio_f1, ab_ratio_f2]
-</variable>    
+</variable>
     <variable name="ab_convergence_p" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -58,7 +58,7 @@ print(b_error)
 
 ab_ratio = a_error / b_error
 ab_convergence_p = log(ab_ratio, 2)
-</variable>    
+</variable>
     <variable name="bc_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -94,7 +94,7 @@ bc_ratio_y = b_error_y / c_error_y
 bc_ratio_f2 = [log(bc_ratio_x, 2), log(bc_ratio_y, 2)]
 
 bc_convergence_vel = [bc_ratio_f1, bc_ratio_f2]
-</variable>    
+</variable>
     <variable name="bc_convergence_p" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -109,50 +109,50 @@ print(c_error)
 bc_ratio = b_error / c_error
 bc_convergence_p = log(bc_ratio, 2)
 </variable>
-    
+
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-  </variables>  
+  </variables>
   <pass_tests>
     <test name="ab_convergence_vel_x for Fluid1: 1.8 .lt. L2 order .gt. 2.22" language="python">
 assert(abs(ab_convergence_vel[0][0] - 2.01) &lt; 0.21)
     </test>
     <test name="ab_convergence_vel_y for Fluid1: 1.8 .lt. L2 order .gt. 2.22" language="python">
 assert(abs(ab_convergence_vel[0][1] - 2.01) &lt; 0.21)
-    </test>    
+    </test>
     <test name="ab_convergence_vel_x for Fluid2: 1.8 .lt. L2 order .gt. 2.22" language="python">
 assert(abs(ab_convergence_vel[1][0] - 2.01) &lt; 0.21)
     </test>
     <test name="ab_convergence_vel_y for Fluid2: 1.8 .lt. L2 order .gt. 2.22" language="python">
 assert(abs(ab_convergence_vel[1][1] - 2.01) &lt; 0.21)
-    </test>    
+    </test>
     <test name="ab_convergence_p: 1.8 .lt. L2 order .gt. 2.22" language="python">
 assert(abs(ab_convergence_p - 2.01) &lt; 0.21)
     </test>
-    
+
     <test name="bc_convergence_vel_x for Fluid1: 1.8 .lt. L2 order .gt. 2.22" language="python">
 assert(abs(bc_convergence_vel[0][0] - 2.01) &lt; 0.21)
     </test>
     <test name="bc_convergence_vel_y for Fluid1: 1.8 .lt. L2 order .gt. 2.22" language="python">
 assert(abs(bc_convergence_vel[0][1] - 2.01) &lt; 0.21)
-    </test>    
+    </test>
     <test name="bc_convergence_vel_x for Fluid2: 1.8 .lt. L2 order .gt. 2.22" language="python">
 assert(abs(bc_convergence_vel[1][0] - 2.01) &lt; 0.21)
     </test>
     <test name="bc_convergence_vel_y for Fluid2: 1.8 .lt. L2 order .gt. 2.22" language="python">
 assert(abs(bc_convergence_vel[1][1] - 2.01) &lt; 0.21)
-    </test>    
+    </test>
     <test name="bc_convergence_p: 1.8 .lt. L2 order .gt. 2.22" language="python">
 assert(abs(bc_convergence_p - 2.01) &lt; 0.21)
     </test>
-    
+
     <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
-  </pass_tests>  
+  </pass_tests>
   <warn_tests>
-  </warn_tests>  
+  </warn_tests>
 </testproblem>

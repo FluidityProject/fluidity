@@ -16,4 +16,3 @@ Physical Surface(12) = {6};
 Field[1] = MathEval;
 Background Field = 1;
 Field[1].F = "1./16";
-

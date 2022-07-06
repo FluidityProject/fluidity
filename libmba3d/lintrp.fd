@@ -4,5 +4,3 @@
        Real*8    RelativeTrials
        Parameter(RelativeTrials = 1D-1)
 C      Parameter(RelativeTrials = 1D0)
-
-

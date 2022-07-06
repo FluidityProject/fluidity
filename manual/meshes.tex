@@ -4,17 +4,17 @@
 \index{exodusii}
 \index{Cubit|see{exodusii}}
 
-In each run of \fluidity\ an input mesh needs to 
+In each run of \fluidity\ an input mesh needs to
 be provided. Even in adaptive mesh runs an initial mesh is needed
-to define the initial condition of the fields on. 
-This chapter covers a number of topics 
+to define the initial condition of the fields on.
+This chapter covers a number of topics
 related to meshes in \fluidity:  what
 mesh formats are supported (section \ref{sec:supported_mesh_formats})
 , how different regions and boundary surfaces can be
-marked (section \ref{sec:surface_and_region_ids}), 
+marked (section \ref{sec:surface_and_region_ids}),
 the relation between meshes and function spaces (section
-\ref{sec:meshes_and_function_spaces}), the extrusion of 
-horizontal meshes in the vertical (section \ref{sec:extruded_meshes}), 
+\ref{sec:meshes_and_function_spaces}), the extrusion of
+horizontal meshes in the vertical (section \ref{sec:extruded_meshes}),
 the creation of periodic meshes (section \ref{sec:periodic_meshes}),
 and finally an overview of meshing tools provided with \fluidity (section
 \ref{sec:meshing_tools}).
@@ -24,7 +24,7 @@ and finally an overview of meshing tools provided with \fluidity (section
 \fluidity\ supports two mesh file formats:
 \begin{enumerate}
 \item Gmsh .msh files. Gmsh is a mesh generator freely available on the
-web at \url{http://geuz.org/gmsh/}, and is included in Linux distributions 
+web at \url{http://geuz.org/gmsh/}, and is included in Linux distributions
 such as Ubuntu. This is the recommended file format.
 \item {\bf DEPRECATED:} Triangle format. Support for the Triangle mesh
   format in Fluidity has ceased in order to increase Fluidity's
@@ -33,20 +33,20 @@ such as Ubuntu. This is the recommended file format.
   reader. Moreover, a conversion tool \lstinline+triangle2gmsh+
   (section~\ref{sec:triangle2gmsh}) is provided to convert all legacy
   meshes.
-\item ExodusII: ExodusII is a model developed by Sandia National Laboratories 
-which can be used for pre- and postprocessing of finite element analyses. 
-In Fluidity we currently only read in the mesh from an ExodusII file which 
-can be created using \href{http://cubit.sandia.gov/}{Cubit}. Cubit should 
-preferably be used when dealing with complex engineering geometries, e.g.~a 
+\item ExodusII: ExodusII is a model developed by Sandia National Laboratories
+which can be used for pre- and postprocessing of finite element analyses.
+In Fluidity we currently only read in the mesh from an ExodusII file which
+can be created using \href{http://cubit.sandia.gov/}{Cubit}. Cubit should
+preferably be used when dealing with complex engineering geometries, e.g.~a
 turbine.
 \end{enumerate}
 
-For a detailed, technical description of the three mesh file formats see 
+For a detailed, technical description of the three mesh file formats see
 appendix~\ref{chap:mesh_formats}. In addition, instructions on how
 to generate a mesh using Gmsh in simple geometries as well as complex
 ocean domains can be found in the Gmsh tutorial available at
-\url{http://amcg.ese.ic.ac.uk/files/amcg-gmsh-tutorial.pdf}. Tutorials 
-on how to use Cubit a documentation can be found at 
+\url{http://amcg.ese.ic.ac.uk/files/amcg-gmsh-tutorial.pdf}. Tutorials
+on how to use Cubit a documentation can be found at
 \url{http://cubit.sandia.gov/tutorials.html}.
 
 \section{Surface and regions ids}
@@ -60,19 +60,19 @@ Both ids can be defined in Gmsh by assigning physical ids to different
 geometrical objects. In two dimensions surface ids can be defined by assigning a
 physical id to each group of lines that make up a part of the boundary that
 needs to be considered separately. Region ids can be defined by dividing the
-domain up in different (groups of) surfaces and assigning different 
+domain up in different (groups of) surfaces and assigning different
 physical ids to them. Similarly, in three dimensions surface ids are defined by
 assigning physical surface ids in Gmsh, and regions ids by assigning physical
 volume ids.
 
 It is recommended, and required in parallel, that all parts of the domain
 boundary are marked with a surface id. Region ids are optional. They can be used
-to instruct the adaptivity library to strictly maintain the interface between 
-different regions of the domain. They are also useful to set different constant 
+to instruct the adaptivity library to strictly maintain the interface between
+different regions of the domain. They are also useful to set different constant
 field values in the regions.
 
-In ExodusII/Cubit region ids and surface ids are defined by block ids and 
-sideset ids respectively. 
+In ExodusII/Cubit region ids and surface ids are defined by block ids and
+sideset ids respectively.
 
 \section{Meshes and function spaces}
 \label{sec:meshes_and_function_spaces}
@@ -89,12 +89,12 @@ locations of these field values are referred to as nodes. As another example, th
 nodes of the \Ptwo discretisation correspond to the triangle vertices, and the
 midpoints of the edges.
 
-This combination of the set of polygons (triangles, tetrahedrals, 
-quadrilaterals, etc.) covering the domain 
+This combination of the set of polygons (triangles, tetrahedrals,
+quadrilaterals, etc.) covering the domain
 and a choice of polynomial order and continuity between
-elements (\Pone, \PoDG, \Ptwo, etc.) therefore defines the discrete function 
+elements (\Pone, \PoDG, \Ptwo, etc.) therefore defines the discrete function
 space in which the approximate discrete fields are found, and the nodes
-in which the field values are stored. In \fluidity\ 
+in which the field values are stored. In \fluidity\
 the term mesh is often used to refer to this specific combination, and fields are said
 to be defined on such meshes. In other words ``meshes'' in \fluidity\ correspond
 to the (polynomial) discrete function spaces.
@@ -105,8 +105,8 @@ that the choice between these two types of input meshes also has an influence
 on the function space. For simplicial meshes, a polynomial order
 of one means linear polynomials are used (\Pone), whereas in cubical meshes this
 leads to bilinear (trilinear in 3D) polynomials (known as the \Qone
-discretisation). Therefore to use 
-the \Poo or the \PoDGPt discretisation 
+discretisation). Therefore to use
+the \Poo or the \PoDGPt discretisation
 a simplicial input mesh is needed. Structured meshes in two
 or three dimensions can be generated by stacking two triangles in a rectangle,
 or six tetrahedrals in a cube respectively. Such meshes are easily obtained
@@ -114,8 +114,8 @@ using Gmsh.
 
 In mixed finite element discretisations, where different fields are discretised
 using different function spaces (again \PoDGPt is a clear example), a mesh needs
-to be defined for every function space that is used. In \fluidity, 
-the input mesh is always considered to be a 
+to be defined for every function space that is used. In \fluidity,
+the input mesh is always considered to be a
 continuous linear mesh (\Pone for simplicial and \Qone for
 cubical meshes), as its vertices correspond to the nodes of the \Pone/\Qone
 discretisation. For a \PoDGPt discretisation we therefore need two additional
@@ -188,9 +188,9 @@ description of the curved elements in these nodes. See section
 
 Given a 1D or 2D input mesh, \fluidity\ can extrude this
 mesh to create a layered 2D or 3D mesh, on which simulations can be
-performed. The extrusion is always downwards (in the direction of gravity), 
-and the top of the domain is always flat, corresponding to the $y=0$-level 
-in 2 dimension, the $z=0$ level in 3 dimensions, or the equilibrium 
+performed. The extrusion is always downwards (in the direction of gravity),
+and the top of the domain is always flat, corresponding to the $y=0$-level
+in 2 dimension, the $z=0$ level in 3 dimensions, or the equilibrium
 free surface geoid when running on the sphere.
 
 The advantage of this approach is that the user can provide a horizontal mesh,
@@ -206,23 +206,23 @@ referred to as ``2+1D'' adaptivity. For the configuration of this kind of
 adaptivity see section \ref{sec:vertically_structured_adaptivity}.
 
 \section{Periodic meshes}
-\index{mesh!periodic} 
-\index{periodic domain} 
+\index{mesh!periodic}
+\index{periodic domain}
 \label{sec:periodic_meshes}
 Periodic meshes are those that are ``virtually'' connected on one side of the
 domain to the boundary on the opposite side. This can be done in one or more
 directions. To make a periodic
 mesh you must first create an input mesh where the edges on the two sides
 that will be connected
-can be mapped exactly by a simple transformation. For a 2d mesh that is 
+can be mapped exactly by a simple transformation. For a 2d mesh that is
 periodic in the $x$-direction this simply means all the nodes on left and right
 boundary need to be at the same $y$-height. For 3d meshes, not only the nodes
 on the two sides need to be ``periodic'', but also the edges connecting them.
 For a simple box geometry, this can be easily accomplished using the
 \lstinline[language=Bash]+create_aligned_mesh+ script in the tools folder.
 
-Alternatively, if you require a more complex periodic mesh with some structure between the periodic 
-boundaries you can create one using \lstinline[language=Bash]{gmsh}. This can be achieved by 
+Alternatively, if you require a more complex periodic mesh with some structure between the periodic
+boundaries you can create one using \lstinline[language=Bash]{gmsh}. This can be achieved by
 setting up the periodic boundaries by using extrude and then deleting the 'internal' mesh.
 
 The use of periodic domains requires additional configuration options. See
@@ -232,7 +232,7 @@ section \ref{sec:periodic}.
 \label{sec:meshing_tools}
 \index{mesh!meshing tools}
 
-There are a number of meshing tools in tools directory. These can be built by running 
+There are a number of meshing tools in tools directory. These can be built by running
 \lstinline[language = bash]+make fltools+ in the top directory of the \fluidity\ trunk.
 The following binaries will then be created in the \lstinline+bin/+ directory (see section \ref{sec:fltools}).
 
@@ -285,7 +285,7 @@ single block. This section outlines how to decompose a mesh with \fluidity\ tool
 \subsubsection{flredecomp}
 \index{mesh!meshing tools!flredecomp}
 \label{mesh!meshing tools!flredecomp}
-\lstinline[language=bash]+flredecomp+ can be used to perform the initial decomposition of a mesh, or to perform a re-decomposition of a \fluidity\ checkpoint. \lstinline[language=bash]+flredecomp+ runs in parallel. 
+\lstinline[language=bash]+flredecomp+ can be used to perform the initial decomposition of a mesh, or to perform a re-decomposition of a \fluidity\ checkpoint. \lstinline[language=bash]+flredecomp+ runs in parallel.
 For example, to decompose the serial file \lstinline+foo.flml+
 into four parts, running on 4 processors type:
 
@@ -295,12 +295,12 @@ mpiexec -n 4 `\fluiditysourcepath'/bin/flredecomp \
 \end{lstlisting}
 
 The output of running flredecomp is a series of mesh and vtu files as well
-as the new flml to be used in the subsequent run of \fluidity.  In the example above, this file is \lstinline+foo_flredecomp.flml+. 
+as the new flml to be used in the subsequent run of \fluidity.  In the example above, this file is \lstinline+foo_flredecomp.flml+.
 Note that \lstinline[language=bash]+flredecomp+ must be run on a number of processors equal to the larger number of processors between input and output.
 
-When using flredecomp, it is possible to partition the mesh based upon a user defined weighting. 
-This is achieved by prescribing a scalar field, bounded between values of 0 and 1, under 
-\option{/flredecomp/field\_weighted\_partitions}. Flredecomp will then try to ensure that the sum 
+When using flredecomp, it is possible to partition the mesh based upon a user defined weighting.
+This is achieved by prescribing a scalar field, bounded between values of 0 and 1, under
+\option{/flredecomp/field\_weighted\_partitions}. Flredecomp will then try to ensure that the sum
 of weights on each partition is approximately equal.
 
 Further information on flredecomp can be found in section~\ref{sec:flredecomp}.
@@ -372,7 +372,7 @@ mpiexec -n [number of processors] \
 \section{Non-\fluidity\ tools}
 
 In addition to the tools and capabilities of \fluidity, there are numerous
-tools and software packages available for mesh generation. Here, we describe 
+tools and software packages available for mesh generation. Here, we describe
 two of the tools commonly used.
 
 \subsection{Terreno}
@@ -380,24 +380,24 @@ two of the tools commonly used.
 \index{Terreno}
 \label{sec:Terreno}
 
-Terreno uses a 2D anisotropic mesh optimisation algorithm to explicitly optimise for 
+Terreno uses a 2D anisotropic mesh optimisation algorithm to explicitly optimise for
 element quality and bathymetric approximation while minimising the number of mesh
-elements created. The shoreline used in the mesh generation process is the result 
-of a polyline approximation algorithm that where the minimum length of the resulting 
-edges is considered as well as the distance an edge is from a vertex on the original 
-shoreline segment being approximated. The underlying philosophy is that meshing and 
-approximation should be error driven and should minimise user intervention. The 
-latter point is two pronged: usability is paramount and the user should not need 
-to be an expert in mesh generation to generate high quality meshes for their ocean 
-model; fundamentally there must be clearly defined objectives to the mesh generation 
-process to ensure reproducibility of results. The result is an unstructured mesh, 
-which may be anisotropic, which focuses resolution where it is required to optimally 
-approximate the bathymetry of the domain. The criterion to judge the quality of the 
-mesh is defined in terms of clearly defined objectives. An important feature of the 
-approach is that it facilitates multi-objective mesh optimisation. This allows one to 
-simultaneously optimise the approximation to other variables in addition to the 
-bathymetry on the same mesh, such as back-scatter data from soundings, material 
-properties or climatology data. 
+elements created. The shoreline used in the mesh generation process is the result
+of a polyline approximation algorithm that where the minimum length of the resulting
+edges is considered as well as the distance an edge is from a vertex on the original
+shoreline segment being approximated. The underlying philosophy is that meshing and
+approximation should be error driven and should minimise user intervention. The
+latter point is two pronged: usability is paramount and the user should not need
+to be an expert in mesh generation to generate high quality meshes for their ocean
+model; fundamentally there must be clearly defined objectives to the mesh generation
+process to ensure reproducibility of results. The result is an unstructured mesh,
+which may be anisotropic, which focuses resolution where it is required to optimally
+approximate the bathymetry of the domain. The criterion to judge the quality of the
+mesh is defined in terms of clearly defined objectives. An important feature of the
+approach is that it facilitates multi-objective mesh optimisation. This allows one to
+simultaneously optimise the approximation to other variables in addition to the
+bathymetry on the same mesh, such as back-scatter data from soundings, material
+properties or climatology data.
 
 See the \href{http://amcg.ese.ic.ac.uk/terreno}{Terreno website}\ for more information.
 
@@ -408,10 +408,10 @@ See the \href{http://amcg.ese.ic.ac.uk/terreno}{Terreno website}\ for more infor
 
 Gmsh is a 3D finite element mesh generator with a build-in CAD engine and post-processor.
 Its design goal is to provide a fast, light and user-friendly meshing tool with parametric
-input and advanced visualisation capabilities. Gmsh is built around four modules: geometry, 
+input and advanced visualisation capabilities. Gmsh is built around four modules: geometry,
 mesh, solver and post-processing. The specification of any input to these modules is done
 either interactively using the graphical user interface or in ASCII text files using Gmsh's
-own scripting language. 
+own scripting language.
 
 For more information see the \href{http://geuz.org/gmsh/}{Gmsh website}\ or the \href{http://amcg.ese.ic.ac.uk}{AMCG
 website}. An online manual is available at \href{http://geuz.org/gmsh/doc/texinfo/gmsh.html}{geuz.org/gmsh/doc/texinfo/gmsh.html}.

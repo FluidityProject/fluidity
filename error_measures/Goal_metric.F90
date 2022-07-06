@@ -92,7 +92,7 @@ module goal_metric
         c = count_chars(trim(deps), " ")
         allocate(goal_deps(c + 1))
         allocate(indices(c + 2))
-        
+
         if (c == 0) then
           goal_deps(1) = trim(deps)
         else
@@ -120,7 +120,7 @@ module goal_metric
     integer :: iters, i
     type(tensor_field) :: tmp_metric
     type(vector_field), pointer :: positions
- 
+
     select case(goal_name)
     case("enstrophy_goal")
       call form_goal_metric_specific(state, metric, goal_enstrophy, goal_enstrophy_grad)
@@ -179,7 +179,7 @@ module goal_metric
     type(tensor_field), intent(inout) :: metric
     !! This function computes the goal, given the state
     !! of the system.
-    interface 
+    interface
       function goal(state)
         use state_module, only:state_type
         real :: goal
@@ -371,7 +371,7 @@ module goal_metric
 
       if (err == 0.0) then
         err_field%val(node) = 1.0e10
-      else 
+      else
         err_field%val(node) = goal_tolerance / (node_count(mesh) * err)
       end if
       deallocate(patch%elements)

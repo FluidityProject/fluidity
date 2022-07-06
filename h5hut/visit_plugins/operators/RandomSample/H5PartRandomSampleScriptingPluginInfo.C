@@ -26,7 +26,7 @@ extern "C" ScriptingOperatorPluginInfo* GetScriptingInfo()
 // ****************************************************************************
 // Method: H5PartRandomSampleScriptingPluginInfo::InitializePlugin
 //
-// Purpose: 
+// Purpose:
 //   Calls the initialization function for the plugin.
 //
 // Arguments:
@@ -37,7 +37,7 @@ extern "C" ScriptingOperatorPluginInfo* GetScriptingInfo()
 //  Creation:   Thu Mar 16 10:26:55 PDT 2006
 //
 // Modifications:
-//   
+//
 // ****************************************************************************
 
 void
@@ -50,7 +50,7 @@ H5PartRandomSampleScriptingPluginInfo::InitializePlugin(AttributeSubject *subj,
 // ****************************************************************************
 // Method: H5PartRandomSampleScriptingPluginInfo::GetMethodTable
 //
-// Purpose: 
+// Purpose:
 //   Returns a pointer to the plugin's Python method table. These methods are
 //   added to the top-level visit module's methods.
 //
@@ -63,7 +63,7 @@ H5PartRandomSampleScriptingPluginInfo::InitializePlugin(AttributeSubject *subj,
 //  Creation:   Thu Mar 16 10:26:55 PDT 2006
 //
 // Modifications:
-//   
+//
 // ****************************************************************************
 
 void *
@@ -75,7 +75,7 @@ H5PartRandomSampleScriptingPluginInfo::GetMethodTable(int *nMethods)
 // ****************************************************************************
 // Method: H5PartRandomSampleScriptingPluginInfo::TypesMatch
 //
-// Purpose: 
+// Purpose:
 //   Returns whether or not the input PyObject is H5PartRandomSample plot attributes.
 //
 // Arguments:
@@ -85,7 +85,7 @@ H5PartRandomSampleScriptingPluginInfo::GetMethodTable(int *nMethods)
 //  Creation:   Thu Mar 16 10:26:55 PDT 2006
 //
 // Modifications:
-//   
+//
 // ****************************************************************************
 
 bool
@@ -97,7 +97,7 @@ H5PartRandomSampleScriptingPluginInfo::TypesMatch(void *pyobject)
 // ****************************************************************************
 // Method: H5PartRandomSampleScriptingPluginInfo::GetLogString
 //
-// Purpose: 
+// Purpose:
 //   Gets a string representation of the current attributes.
 //
 // Arguments:
@@ -107,7 +107,7 @@ H5PartRandomSampleScriptingPluginInfo::TypesMatch(void *pyobject)
 //  Creation:   Thu Mar 16 10:26:55 PDT 2006
 //
 // Modifications:
-//   
+//
 // ****************************************************************************
 
 char *
@@ -122,7 +122,7 @@ H5PartRandomSampleScriptingPluginInfo::GetLogString()
 // ****************************************************************************
 // Method: H5PartRandomSampleScriptingPluginInfo::SetDefaults
 //
-// Purpose: 
+// Purpose:
 //   Used to set the default values for a plugin's state object.
 //
 // Arguments:
@@ -132,7 +132,7 @@ H5PartRandomSampleScriptingPluginInfo::GetLogString()
 //  Creation:   Thu Mar 16 10:26:55 PDT 2006
 //
 // Modifications:
-//   
+//
 // ****************************************************************************
 
 void

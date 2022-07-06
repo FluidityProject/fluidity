@@ -10,5 +10,3 @@ C ...  list of operations
 C ...  available operations
        Integer   iCLPSop,     iSWAPop,     iINSRTop,     iMOVEop
        Parameter(iCLPSop = 1, iSWAPop = 1, iINSRTop = 1, iMOVEop = 1)
-
-

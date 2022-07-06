@@ -1006,7 +1006,7 @@ layer = numpy.array(layerl)
 
 # The fill_value will set nodes below the bottom of the data to the bottom value.
 interp_temp_ic=interp1d(layer,temp,bounds_error=True)
-                        
+
 def val(X,t):
     return float(interp_temp_ic(abs(X[2])))</string_value>
           </python>

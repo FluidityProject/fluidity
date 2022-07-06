@@ -21,7 +21,7 @@
 \usepackage{palatino}
 \usepackage{epsfig}
 \usepackage{multirow}
-\usepackage{rotating} 
+\usepackage{rotating}
 %\usepackage{stmaryrd}
 \usepackage{siunitx}
 \usepackage{algpseudocode}
@@ -57,11 +57,11 @@
 \input{notation.tex}
 
 \makeindex
-% Command to enable the labelling of the primary reference. 
+% Command to enable the labelling of the primary reference.
 % To do this use \index{term|primary}
 \newcommand{\primary}[1]{\textbf{\hyperpage{#1}}}
 
-% Cause numbering of subsubsections. 
+% Cause numbering of subsubsections.
 \setcounter{secnumdepth}{3}
 
 \definecolor{DarkBlue}{rgb}{0.00,0.00,0.55}
@@ -103,7 +103,7 @@
 \newcommand{\pdffig}[2][]{
   \ifhtml{
     % This won't work. If we ever re-enable html we'll have to deal with
-    % this. 
+    % this.
     \includegraphics[#1]{#2.pdf}
   }{
     \includegraphics[#1]{#2.pdf}
@@ -122,9 +122,9 @@
   morekeywords={pure},
   escapeinside=`'
 }
- 
+
 \usepackage{float}
- 
+
 \floatstyle{boxed}
 \newfloat{example}{thp}{leg}[chapter]
 \floatname{example}{Example}

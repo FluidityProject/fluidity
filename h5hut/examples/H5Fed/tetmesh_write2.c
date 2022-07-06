@@ -10,12 +10,12 @@ const h5_int32_t num_levels = 11;
 
 typedef struct vertex {
 	h5_float64_t P[3];
-} vertex_t; 
+} vertex_t;
 
 typedef struct elem {
 	h5_loc_idx_t vids[4];
 } elem_t;
-	       
+
 vertex_t Vertices[] = {
 	{{-1.0,  0.0,  0.0}},
 	{{ 1.0,  0.0,  0.0}},

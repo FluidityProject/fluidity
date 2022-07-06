@@ -63,7 +63,7 @@ module simple_diagnostics
   ! for the period_averaged_scalar routine
   real, save :: last_output_time
   integer, save :: n_times_added
-  
+
 contains
   subroutine calculate_temporalmax_scalar(state, s_field)
     type(state_type), intent(in) :: state
@@ -211,7 +211,7 @@ contains
     integer :: stat
     logical :: absolute_vals=.false.
 
-    if (timestep==0) then 
+    if (timestep==0) then
       last_output_time = 0.0
       call initialise_diagnostic_from_checkpoint(s_field)
       return
@@ -247,7 +247,7 @@ contains
     real :: current_time, averaging_period, nt
     integer :: stat
 
-    if (timestep==0) then 
+    if (timestep==0) then
       last_output_time = 0.0
       n_times_added = 0
       running_tot => extract_scalar_field(state,"AveCumulativeValue",stat)
@@ -293,7 +293,7 @@ contains
     integer :: stat
     logical :: absolute_vals
 
-    if (timestep==0) then 
+    if (timestep==0) then
       call initialise_diagnostic_from_checkpoint(v_field)
       return
     end if
@@ -326,7 +326,7 @@ contains
     real :: a, b, spin_up_time, current_time, dt
     integer :: stat
 
-    if (timestep==0) then 
+    if (timestep==0) then
       call initialise_diagnostic_from_checkpoint(s_field)
       return
     end if
@@ -363,7 +363,7 @@ contains
     real :: a, b, spin_up_time, current_time, dt
     integer :: stat
 
-    if (timestep==0) then 
+    if (timestep==0) then
       call initialise_diagnostic_from_checkpoint(v_field)
       return
     end if
@@ -488,7 +488,7 @@ contains
 
   end subroutine calculate_subtract_surface_average
 
-  subroutine initialise_diagnostic_scalar_from_checkpoint(s_field) 
+  subroutine initialise_diagnostic_scalar_from_checkpoint(s_field)
     type(scalar_field), intent(inout) :: s_field
 
     type(scalar_field), pointer :: read_field
@@ -513,7 +513,7 @@ contains
         filename = trim(filename) // ".vtu"
     end if
     inquire(file=trim(filename), exist=checkpoint_exists)
-    
+
     if (checkpoint_exists) then
         read_field => vtk_cache_read_scalar_field(filename, trim(s_field%name))
         call set(s_field, read_field)
@@ -521,7 +521,7 @@ contains
 
   end subroutine initialise_diagnostic_scalar_from_checkpoint
 
-  subroutine initialise_diagnostic_vector_from_checkpoint(v_field) 
+  subroutine initialise_diagnostic_vector_from_checkpoint(v_field)
     type(vector_field), intent(inout) :: v_field
 
     type(vector_field), pointer :: read_field
@@ -546,7 +546,7 @@ contains
       filename = trim(filename) // ".vtu"
     end if
     inquire(file=trim(filename), exist=checkpoint_exists)
-    
+
     if (checkpoint_exists) then
       read_field => vtk_cache_read_vector_field(filename, trim(v_field%name))
       call set(v_field, read_field)
@@ -554,7 +554,7 @@ contains
 
   end subroutine initialise_diagnostic_vector_from_checkpoint
 
-  subroutine initialise_diagnostic_tensor_from_checkpoint(t_field) 
+  subroutine initialise_diagnostic_tensor_from_checkpoint(t_field)
     type(tensor_field), intent(inout) :: t_field
 
     type(tensor_field), pointer :: read_field
@@ -579,7 +579,7 @@ contains
       filename = trim(filename) // ".vtu"
     end if
     inquire(file=trim(filename), exist=checkpoint_exists)
-    
+
     if (checkpoint_exists) then
       read_field => vtk_cache_read_tensor_field(filename, trim(t_field%name))
       call set(t_field, read_field)

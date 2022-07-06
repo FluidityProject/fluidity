@@ -5,7 +5,7 @@
  * Copyright (c) 2004, Marios Hadjieleftheriou
  *
  * All rights reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
@@ -294,7 +294,7 @@ bool Region::touchesRegion(const Region& r) const
 		throw Tools::IllegalArgumentException(
 			"Region::touchesRegion: Regions have different number of dimensions."
 		);
-	
+
 	for (uint32_t i = 0; i < m_dimension; ++i)
 	{
 		if (

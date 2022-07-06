@@ -429,8 +429,8 @@ where X is a tuple of length geometry dimension.</a:documentation>
       <element name="from_file">
         <a:documentation>Initialise the field from an existing file (indended
 primarily for use in checkpointing). The file mesh must match
-the mesh of this field  (except for piecewise constant fields 
-which will be remapped back from the discontinuous nodal values). 
+the mesh of this field  (except for piecewise constant fields
+which will be remapped back from the discontinuous nodal values).
 In parallel the process number is
 appended to the filename, e.g. if the file_name attribute is
 set to "input.vtu", process 0 reads from "input-0.vtu".</a:documentation>
@@ -576,7 +576,7 @@ where X and the return value are tuples of length geometry dimension.</a:documen
       <element name="python">
         <a:documentation>Python command prescribing symmetric tensor input.
 
-Note that it is for the python function to determine 
+Note that it is for the python function to determine
 that the results it produces are, in fact, symmetric.
 
 An example that returns the three-dimensional identity:
@@ -816,7 +816,7 @@ a discontinuous velocity field for this to work!</a:documentation>
           <element name="viscosity_scheme">
             <choice>
               <element name="bassi_rebay">
-                <a:documentation>Classical scheme from Bassi and Rebay 
+                <a:documentation>Classical scheme from Bassi and Rebay
 (JCP 131 267-179 1997)</a:documentation>
                 <empty/>
               </element>
@@ -834,7 +834,7 @@ Vol. 39, No. 5 (2002), pp. 1749-1779 </a:documentation>
 The penalty term Int [u][v] dS on element boundaries
 is scaled by C = C_0 h**p
 This option specifies the C_0
-There is a theoretical lower bound for 
+There is a theoretical lower bound for
 stability and hence convergence</a:documentation>
                   <ref name="real"/>
                 </element>
@@ -947,7 +947,7 @@ advection matrix becomes:
         /                                        /
      /                                                /
  + I | N_A_i (nu dot n) N_B_o ds + [(1-I) - (1-beta)] | N_A_i (nu dot n) N_B_i ds
-     /                                                /                  
+     /                                                /
 where beta is set in conservative_advection, N is
 a shape function (uppercase
 subscripts indicate nodes A or B while lowercase
@@ -1047,7 +1047,7 @@ twice.</a:documentation>
  DISOPT=5 - nonlinear streamline and cross stream diffusion.
  DISOPT=6 - nonlinear upwind in steapest direction.
  DISOPT=7 - nonlinear streamline+ cross stream diffusion(but restricted)
- 
+
  DISOPT=42- LES option using constant length scale.
  DISOPT=43- LES option using isotropic length scale.
  DISOPT=44- LES option which uses no balancing diffusion.
@@ -1055,7 +1055,7 @@ twice.</a:documentation>
  DISOPT=46- same as 45 but with 4th order dissipation.
  DISOPT=47 -LES but in tensor form like hart3d.
  DISOPT=48 -LES 4th order version of 47.
- 
+
  DISOPT=125 - NO balancing diffusion(DISOPT=4)and take out non-linear terms.</a:documentation>
             <ref name="integer"/>
           </element>
@@ -1736,7 +1736,7 @@ cg and to use the full momentum matrix in the projection if
 you so desire.</a:documentation>
             <choice>
               <element name="inner_matrix">
-                <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+                <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C).
 Use the full mass matrix.
 
 Make sure you've not lumped your mass in the velocity spatial_discretisation if you want to be consistent!</a:documentation>
@@ -1748,7 +1748,7 @@ Make sure you've not lumped your mass in the velocity spatial_discretisation if 
                 </element>
               </element>
               <element name="inner_matrix">
-                <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+                <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C).
 Use the full momentum matrix.
 
 Doesn't really matter if you've lumped your mass or not but why would you if you're doing a full inner solve anyway?</a:documentation>
@@ -2259,7 +2259,7 @@ If on the tangents vectors must also be specified.</a:documentation>
       <ref name="input_choice_real"/>
       <element name="synthetic_eddy_method">
         <element name="number_of_eddies">
-          <a:documentation>use a large number to ensure Gaussian 
+          <a:documentation>use a large number to ensure Gaussian
 behaviour of the fluctuating component</a:documentation>
           <ref name="integer"/>
         </element>
@@ -2432,7 +2432,7 @@ Replaces windy.dat and windy.py</a:documentation>
             <a:documentation>Wind forcing with user specified wind stress
 
 &lt;b&gt; Note that the stress needs to be specified
-using the same density units as the reference_density 
+using the same density units as the reference_density
 under equation of state.&lt;/b&gt;So if you use the recommended
 non-dimensional value of 1.0 for reference_density and
 your calculated stress is in kg m^-1s^-2 and the dimensional
@@ -2464,14 +2464,14 @@ Suggested value: 4.0e-4</a:documentation>
               <ref name="input_choice_real"/>
             </element>
             <element name="density_air">
-              <a:documentation>Density of air. 
+              <a:documentation>Density of air.
 
 &lt;b&gt;Note that you have to specify
-this density in the same units as the 
+this density in the same units as the
 reference_density under equation of state.&lt;/b&gt;
 So with a typicial value of rho_air=1.3 kgm^-3
-and rho_water=1000 kgm^-3, if you fill in the 
-recommended (non-dimensional) value of 1.0 for 
+and rho_water=1000 kgm^-3, if you fill in the
+recommended (non-dimensional) value of 1.0 for
 reference_density, this field needs to be 1.3e-3.</a:documentation>
               <ref name="real"/>
             </element>
@@ -2581,7 +2581,7 @@ used in the nonlinear iteration.
         <element name="debugging_vtus">
           <a:documentation>Write out some extra debugging vtu files that can be used
 to analyse what goes on in the pressure projection steps.
-WARNING: this may create a huge amount of vtu files, as 
+WARNING: this may create a huge amount of vtu files, as
 multiple files are written per nonlinear iteration.</a:documentation>
           <empty/>
         </element>
@@ -2786,7 +2786,7 @@ during nonlinear iterations
 (if /timestepping/nonlinear_iterations and
 /timestepping/nonlinear_iterations/tolerance are
 enabled).
-Also specifies whether the field is added to the 
+Also specifies whether the field is added to the
 convergence file (if /io/convergence_file is enabled).</a:documentation>
       <choice>
         <element name="include_in_convergence">
@@ -2811,7 +2811,7 @@ during nonlinear iterations
 (if /timestepping/nonlinear_iterations and
 /timestepping/nonlinear_iterations/tolerance are
 enabled).
-Also specifies whether the field is added to the 
+Also specifies whether the field is added to the
 convergence file (if /io/convergence_file is enabled).</a:documentation>
       <choice>
         <element name="include_in_convergence">
@@ -2823,7 +2823,7 @@ enabled) and file (if /io/convergence_file is enabled)</a:documentation>
           <ref name="comment"/>
         </element>
         <element name="exclude_components_from_convergence">
-          <a:documentation>Include just the magnitude of this field 
+          <a:documentation>Include just the magnitude of this field
 in convergence testing
 (if /timestepping/nonlinear_iterations and
 /timestepping/nonlinear_iterations/tolerance are
@@ -2874,7 +2874,7 @@ in steady state testing
           <ref name="comment"/>
         </element>
         <element name="exclude_components_from_steady_state">
-          <a:documentation>Include just the magnitude of this field 
+          <a:documentation>Include just the magnitude of this field
 in steady state testing
 (if /timestepping/steady_state is
 enabled)
@@ -2921,7 +2921,7 @@ i.e. excluding the components</a:documentation>
     </element>
   </define>
   <!--
-    Detector output defaults on for prognostic and diagnostic fields, 
+    Detector output defaults on for prognostic and diagnostic fields,
     off for prescribed.
   -->
   <define name="prognostic_detector_options">
@@ -2958,8 +2958,8 @@ fields.</a:documentation>
         <choice>
           <element name="absolute_measure">
             <a:documentation>When specifying absolute measure
-one specifies the absolute interpolation 
-error in the units of the field that is 
+one specifies the absolute interpolation
+error in the units of the field that is
 being adapted, e.g. you can specify
 the error to be 1.3 units </a:documentation>
             <element name="scalar_field">
@@ -3005,7 +3005,7 @@ Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
             </element>
           </element>
           <element name="anisotropic_zienkiewicz_zhu">
-            <a:documentation>Adapt using the anisotropic strategy of 
+            <a:documentation>Adapt using the anisotropic strategy of
 Formaggia, Perotto, Micheletti.
 Rather than taking two derivatives
 and deriving the anisotropic information,
@@ -3031,8 +3031,8 @@ Typically, tau will be ~= 6-8 * |e|_H1.</a:documentation>
     <choice>
       <element name="absolute_measure">
         <a:documentation>When specifying absolute measure
-one specifies the absolute interpolation 
-error in the units of the field that is 
+one specifies the absolute interpolation
+error in the units of the field that is
 being adapted, e.g. you can specify
 the error to be 1.3 units </a:documentation>
         <element name="scalar_field">
@@ -3078,7 +3078,7 @@ Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
         </element>
       </element>
       <element name="anisotropic_zienkiewicz_zhu">
-        <a:documentation>Adapt using the anisotropic strategy of 
+        <a:documentation>Adapt using the anisotropic strategy of
 Formaggia, Perotto, Micheletti.
 Rather than taking two derivatives
 and deriving the anisotropic information,
@@ -3112,8 +3112,8 @@ Typically, tau will be ~= 6-8 * |e|_H1.</a:documentation>
         <choice>
           <element name="absolute_measure">
             <a:documentation>When specifying absolute measure
-one specifies the absolute interpolation 
-error in the units of the field that is 
+one specifies the absolute interpolation
+error in the units of the field that is
 being adapted, e.g. you can specify
 the error to be 1.3 units </a:documentation>
             <element name="vector_field">
@@ -3170,8 +3170,8 @@ Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
         <choice>
           <element name="absolute_measure">
             <a:documentation>When specifying absolute measure
-one specifies the absolute interpolation 
-error in the units of the field that is 
+one specifies the absolute interpolation
+error in the units of the field that is
 being adapted, e.g. you can specify
 the error to be 1.3 units </a:documentation>
             <element name="vector_field">
@@ -3228,8 +3228,8 @@ Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
         <choice>
           <element name="absolute_measure">
             <a:documentation>When specifying absolute measure
-one specifies the absolute interpolation 
-error in the units of the field that is 
+one specifies the absolute interpolation
+error in the units of the field that is
 being adapted, e.g. you can specify
 the error to be 1.3 units </a:documentation>
             <element name="tensor_field">
@@ -3286,8 +3286,8 @@ Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
         <choice>
           <element name="absolute_measure">
             <a:documentation>When specifying absolute measure
-one specifies the absolute interpolation 
-error in the units of the field that is 
+one specifies the absolute interpolation
+error in the units of the field that is
 being adapted, e.g. you can specify
 the error to be 1.3 units </a:documentation>
             <element name="tensor_field">
@@ -3650,7 +3650,7 @@ on for output purposes.</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
-        <a:documentation>If enabled, decomposes Pressure by solving for the balanced part of 
+        <a:documentation>If enabled, decomposes Pressure by solving for the balanced part of
 Pressure using a "geopressure" solver:
 
   f = - grad p_gp + g
@@ -3856,7 +3856,7 @@ for fields within the same material_phase.</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
-        <a:documentation>Calculate the stream function of 2D incompressible flow. Note 
+        <a:documentation>Calculate the stream function of 2D incompressible flow. Note
 that this *only* makes sense for proper 2D (not pseudo-2D) simulations.
 Requires a continuous mesh.</a:documentation>
         <attribute name="rank">
@@ -4073,7 +4073,7 @@ Requires a diagnostic bulk Cohesion field
         </choice>
       </element>
       <!--
-        
+
         Insert new prescribed scalar fields here using the template:
                element scalar_field {
                    attribute rank { "0" },
@@ -4088,11 +4088,11 @@ Requires a diagnostic bulk Cohesion field
                       }
                    )
                }
-        
+
         - - Last is a list of fields that are primarily diagnostic,
            but can be aliased. An example is Tidal Range.
         - - The list is in order of most frequently used.
-        
+
       -->
       <element name="___Diagnostic_Fields_Below___">
         <a:documentation>Diagnostic scalar fields below this</a:documentation>
@@ -4202,7 +4202,7 @@ the finite element C^T matrix.</a:documentation>
         <a:documentation>Richardson Number:
 
  Ri = \frac{N^2}{(\frac{\partial u}{\partial z})^2 + (\frac{\partial u}{\partial z})^2}
-with 
+with
  N^2 = -\frac{g}{\rho_0}\frac{\partial \rho}{\partial z}
 
 Limitations:
@@ -4357,7 +4357,7 @@ No repointing is done from this field to DENTRAF.</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
-        <a:documentation>Add field to be used by Solid_configuration to 
+        <a:documentation>Add field to be used by Solid_configuration to
 Visualize the solids and MaterialVolumeFraction together</a:documentation>
         <attribute name="rank">
           <value>0</value>
@@ -4372,7 +4372,7 @@ Visualize the solids and MaterialVolumeFraction together</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
-        <a:documentation>Add field to be used by Solid_configuration to 
+        <a:documentation>Add field to be used by Solid_configuration to
 Visualize the solid_Concentration</a:documentation>
         <attribute name="rank">
           <value>0</value>
@@ -4387,8 +4387,8 @@ Visualize the solid_Concentration</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
-        <a:documentation>Add field to be used by Solid_configuration to 
-map  the solid_Concentration from particle mesh to 
+        <a:documentation>Add field to be used by Solid_configuration to
+map  the solid_Concentration from particle mesh to
 the fluid mesh.</a:documentation>
         <attribute name="rank">
           <value>0</value>
@@ -4403,7 +4403,7 @@ the fluid mesh.</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
-        <a:documentation>Add field to be used by Explicit_ALE to 
+        <a:documentation>Add field to be used by Explicit_ALE to
 visualize functional values before iterations start.</a:documentation>
         <attribute name="rank">
           <value>0</value>
@@ -4418,7 +4418,7 @@ visualize functional values before iterations start.</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
-        <a:documentation>Add field to be used by Explicit_ALE to 
+        <a:documentation>Add field to be used by Explicit_ALE to
 visualize functional values at each iteration.</a:documentation>
         <attribute name="rank">
           <value>0</value>
@@ -4433,7 +4433,7 @@ visualize functional values at each iteration.</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
-        <a:documentation>add a MaterialVolume scalar_field to calculate the spatially varying 
+        <a:documentation>add a MaterialVolume scalar_field to calculate the spatially varying
 volume of a material (requires a MaterialVolumeFraction)</a:documentation>
         <attribute name="rank">
           <value>0</value>
@@ -4453,7 +4453,7 @@ volume of a material (requires a MaterialVolumeFraction)</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>add a MaterialMass scalar_field to calculate the spatially varying 
+        <a:documentation>add a MaterialMass scalar_field to calculate the spatially varying
 mass of a material (requires a MaterialVolumeFraction and a MaterialDensity)</a:documentation>
         <attribute name="rank">
           <value>0</value>
@@ -4516,7 +4516,7 @@ of state of this material.</a:documentation>
       </element>
       <element name="scalar_field">
         <a:documentation>Calculates the BulkMaterialPressure based on the MaterialDensity
-and MaterialVolumeFraction (and MaterialInternalEnergy if appropriate) 
+and MaterialVolumeFraction (and MaterialInternalEnergy if appropriate)
 for the equation of state of all materials.</a:documentation>
         <attribute name="rank">
           <value>0</value>
@@ -4564,7 +4564,7 @@ for the equation of state of all materials.</a:documentation>
 Peclet Number Pe = U*dx/2*diffusivity
 
 Also see the test case 'grid_peclet_number'
-if you wish to see the effect of changing the 
+if you wish to see the effect of changing the
 diffusivity on a 1D, cg-discretised tracer-field
 
 Adapting to this field is not recommended</a:documentation>
@@ -4643,7 +4643,7 @@ div velocity
 
  1/2 rho_0*|u|^2
 
-where rho_0 is the (reference) density 
+where rho_0 is the (reference) density
 
 Limitations:
  - The Density, PerturbationDensity, KineticEnergyDensity and Velocity fields must be on the same mesh.</a:documentation>
@@ -5556,22 +5556,22 @@ ocean biology is being simulated.</a:documentation>
         </choice>
       </element>
       <!--
-        
+
         - - List of fields that are primarily prognostic,
            but can be aliased.
         - - The list is in order of most frequently used.
-        
+
       -->
       <element name="___Prognostic_fields_below___">
         <a:documentation>Prescribed vector fields below this</a:documentation>
         <empty/>
       </element>
       <!--
-        
+
         - - List of fields that are primarily prescribed,
            but can be aliased. An example is Maximum bed shear stress.
         - - The list is in order of most frequently used.
-        
+
       -->
       <element name="___Prescribed_fields_below___">
         <a:documentation>Prescribed vector fields below this</a:documentation>
@@ -5972,7 +5972,7 @@ FEMDEM or DEM to the fluid mesh. </a:documentation>
       </element>
       <element name="vector_field">
         <a:documentation>LinearMomentum field.
- p = \rho*u 
+ p = \rho*u
 (where p is the linear momentum, \rho the density and u the velocity)</a:documentation>
         <attribute name="rank">
           <value>1</value>
@@ -6051,7 +6051,7 @@ Assumes both fields are on the same mesh as the AbsoluteDifference field.</a:doc
         <a:documentation>Bed Shear Stress = density*drag_coeff*|u|*u
 
 at the moment this assumes the density and drag coefficients are constants.
-This diagnostic vector field is only calculated over surface elements/nodes, 
+This diagnostic vector field is only calculated over surface elements/nodes,
 interior nodes will have zero value.</a:documentation>
         <attribute name="rank">
           <value>1</value>
@@ -6244,11 +6244,11 @@ This diagnostic depends on ImbalancedVelocity.</a:documentation>
         </choice>
       </element>
       <!--
-        
+
         - - Second is a list of tensor fields that are primarily prescribed,
            but can be aliased.
         - - The list is in order of most frequently used.
-        
+
       -->
       <element name="___Prescribed_fields_below___">
         <a:documentation>Prescribed scalar fields below this</a:documentation>
@@ -6294,7 +6294,7 @@ in a multimaterial simulation.</a:documentation>
         </choice>
       </element>
       <!--
-        
+
         Insert new prescribed tensor fields here using the template:
                element tensor_field {
                    attribute rank { "2" },
@@ -6309,11 +6309,11 @@ in a multimaterial simulation.</a:documentation>
                       }
                    )
                }|
-        
+
         - - Last is a list of fields that are primarily diagnostic,
            but can be aliased.
         - - The list is in order of most frequently used.
-        
+
       -->
       <element name="___Diagnostic_Fields_Below___">
         <a:documentation>Diagnostic tensor fields below this</a:documentation>
@@ -6622,11 +6622,11 @@ Especially suited for ill-conditioned, large aspect ratio problems.</a:documenta
         <a:documentation>Complete solve
 
 This only makes sense for solves where a different approximated preconditioner
-matrix is provided. For instance when solving pressure with the 
+matrix is provided. For instance when solving pressure with the
 option full_schur_complement and using a masslumped schur complement
 as preconditioner matrix.
 
-NOTE: If you are using a krylov method (cg/gmres) for this preconditioner 
+NOTE: If you are using a krylov method (cg/gmres) for this preconditioner
 solve you either need to set your tolerances much stricter for it
 than in the outer solve (so that the preconditioner is close to an
 exact matrix inversion), or use fgmres in the outer solve.</a:documentation>
@@ -6805,11 +6805,11 @@ but improves the solution quite a lot for difficult meshes.</a:documentation>
         <a:documentation>Complete solve
 
 This only makes sense for solves where a different approximated preconditioner
-matrix is provided. For instance when solving pressure with the 
+matrix is provided. For instance when solving pressure with the
 option full_schur_complement and using a masslumped schur complement
 as preconditioner matrix.
 
-NOTE: If you are using a krylov method (cg/gmres) for this preconditioner 
+NOTE: If you are using a krylov method (cg/gmres) for this preconditioner
 solve you either need to set your tolerances much stricter for it
 than in the outer solve (so that the preconditioner is close to an
 exact matrix inversion), or use fgmres in the outer solve.</a:documentation>
@@ -7243,7 +7243,7 @@ Otherwise use variable limited theta on individual faces.</a:documentation>
 continuous galerkin spatial discretisation is selected.
 Time discretisation of upwind discretisation off which the
 higher order solution is pivotted.
- - pivot_theta = 1 - implicit pivot (default if not set and 
+ - pivot_theta = 1 - implicit pivot (default if not set and
                      best choice if not intentionally modifying
                      scheme to be explicit)
  - pivot_theta = 0 - explicit pivot</a:documentation>
@@ -7363,9 +7363,9 @@ This defines the limiter used to enforce boundedness on this field.</a:documenta
     <choice>
       <element name="face_value">
         <a:documentation>First Order Upwind face value discretisation
- face_value = donor_value, 
+ face_value = donor_value,
 where
- donor_value = income*val_1 + (1.-income)*val_2, 
+ donor_value = income*val_1 + (1.-income)*val_2,
 where val_i is the value on the ith node neighbouring the face and
 income = [0, 1] depending on whether the flow is coming from node 1 or 2
 First order upwinding is monotonic so no limiting is ever required</a:documentation>
@@ -7376,7 +7376,7 @@ First order upwinding is monotonic so no limiting is ever required</a:documentat
       </element>
       <element name="face_value">
         <a:documentation>Trapezoidal face value discretisation
- face_value = 0.5*(val_1 + val_2), 
+ face_value = 0.5*(val_1 + val_2),
 where
  val_i is the value on the ith node neighbouring the face
 
@@ -7414,9 +7414,9 @@ Finite element discretisation may become unbounded so limiting is often necessar
     <choice>
       <element name="face_value">
         <a:documentation>First Order Upwind face value discretisation
- face_value = donor_value, 
+ face_value = donor_value,
 where
- donor_value = income*val_1 + (1.-income)*val_2, 
+ donor_value = income*val_1 + (1.-income)*val_2,
 where val_i is the value on the ith node neighbouring the face and
 income = [0, 1] depending on whether the flow is coming from node 1 or 2
 First order upwinding is monotonic so no limiting is ever required</a:documentation>
@@ -7429,7 +7429,7 @@ First order upwinding is monotonic so no limiting is ever required</a:documentat
       </element>
       <element name="face_value">
         <a:documentation>Trapezoidal face value discretisation
- face_value = 0.5*(val_1 + val_2), 
+ face_value = 0.5*(val_1 + val_2),
 where
  val_i is the value on the ith node neighbouring the face
 
@@ -7561,8 +7561,8 @@ velocity.</a:documentation>
 
 First line of file is free to use (for comments)
 Second line must contain the number of particles
-Third and fourth line are again for comments. 
-Following lines include 10 columns, corresponding to 
+Third and fourth line are again for comments.
+Following lines include 10 columns, corresponding to
 the particle's x, y, and z positions, followed by the radius, then
 velocities in x, y, and z directions, followed by angular velocities
 in the x, y, and z directions.</a:documentation>
@@ -7578,7 +7578,7 @@ in the x, y, and z directions.</a:documentation>
 One script for particle position (output is tuple of position coords)
 Second script is for particle radius (output is tuple of position coords)
 Third script is for particle translational velocity.
-Fourth script is for particle angular velocity. (Note: particles 
+Fourth script is for particle angular velocity. (Note: particles
 have a no slip boundary condition at the surface, so this angular velocity
 WILL matter to the flow.)
 Python functions should be of the form:
@@ -7760,7 +7760,7 @@ simplex element meshes and to a locally_bound_upwind_value for cube
 element meshes.
 
 This method projects the upwind value from a point in the element just
-upwind of the node pair straddling the face.  It is otherwise known as 
+upwind of the node pair straddling the face.  It is otherwise known as
 anisotropic limiting.
 This is only available on simplex meshes as it involes a search around
 the donor node to find the upwind element.</a:documentation>
@@ -8039,10 +8039,10 @@ divided by the total volume of the domain</a:documentation>
         </element>
       </choice>
       <element name="mixing_bin_bounds">
-        <a:documentation>The values of the bounds of the bins 
-e.g. the values 0 1 2 3 will return 4 bins 
+        <a:documentation>The values of the bounds of the bins
+e.g. the values 0 1 2 3 will return 4 bins
 and the fraction of the field in each bin with,
-0&lt;=field&lt;1, 1&lt;=field&lt;2, 2&lt;=field&lt;3, 3&lt;=field, 
+0&lt;=field&lt;1, 1&lt;=field&lt;2, 2&lt;=field&lt;3, 3&lt;=field,
 will be calculated. </a:documentation>
         <ref name="real_vector"/>
       </element>
@@ -8395,13 +8395,13 @@ If you enable this you MUST enable the /geometry/ocean_boundaries option too</a:
         <a:documentation>A simple model of phytoplankton, zooplankton, general nutrient and detritus. </a:documentation>
         <choice>
           <element name="source_and_sink_algorithm">
-            <a:documentation>Python code specifying the source and sink relationships 
-between the biological tracers. This is usually achieved by 
+            <a:documentation>Python code specifying the source and sink relationships
+between the biological tracers. This is usually achieved by
 importing fluidity.ocean_biology and calling a scheme from there. </a:documentation>
             <ref name="python_code"/>
           </element>
           <element name="disable_sources_and_sinks">
-            <a:documentation>Do not calculate sources and sinks. 
+            <a:documentation>Do not calculate sources and sinks.
 This option is generally only useful for testing. </a:documentation>
             <empty/>
           </element>
@@ -8726,7 +8726,7 @@ Defaults to computer precision if unspecified.</a:documentation>
               <element name="bounds">
                 <a:documentation>If the bounds on this field are known then they can be set here.
 These can either further constrain the limits worked out by the
-lumped version of the projection (i.e. to make sure that errors 
+lumped version of the projection (i.e. to make sure that errors
 don't accumulate with succesive interpolations) or if apply_globally
 is set they are just made to be bounded within the bounds globally
 (i.e. anything between those bounds is not smoothed).</a:documentation>

@@ -234,7 +234,7 @@ int c_ex_get_elem_block_parameters(int *exoid, int *num_elem_blk, int *block_ids
    // Get element type of blocks, number of elements in blocks, and
    // number of nodes per element:
    num_attr = (int *) calloc(*num_elem_blk, sizeof(int));
-   
+
    for (i=0; i<*num_elem_blk; i++)
    {
       error = ex_get_elem_block(*exoid,
@@ -250,4 +250,3 @@ int c_ex_get_elem_block_parameters(int *exoid, int *num_elem_blk, int *block_ids
 #endif
    return (error);
 }
-

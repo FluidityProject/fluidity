@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -28,22 +28,22 @@
 #include "fdebug.h"
 module element_numbering
   !!< Module containing local element numbering for the One True Numbering
-  !!< Order. 
+  !!< Order.
   !!<
   !!< This is currently very tet-centric but is written to be
-  !!< generalised. 
+  !!< generalised.
   !!<
   !!< Conventions:
-  !!< 
+  !!<
   !!< The One True Numbering Order is the recursive Pascal's triangle order
   !!< as documented in the wiki.
-  !!< 
+  !!<
   !!< The bdys of a Tet have the same indices as the opposite vertex.
   !!<
   !!< This module currently implements tets of polynomial order 0 to 5.
   !!<
   !!< Nodes are subdivided into four disjoint sets: vertex nodes, those lying
-  !!< on edges, those lying on faces and those interior to elements. 
+  !!< on edges, those lying on faces and those interior to elements.
   use FLDebug
   use futils
   implicit none
@@ -73,7 +73,7 @@ module element_numbering
      ! Value of that count coordinate on the element boundary.
      integer, dimension(:), pointer :: boundary_val
   end type ele_numbering_type
-  
+
   integer, parameter :: TET_MAX_DEGREE=9, TET_BUBBLE_MAX_DEGREE=3
   integer, parameter :: TRI_MAX_DEGREE=32
   integer, parameter :: TRI_BUBBLE_MAX_DEGREE=2
@@ -109,7 +109,7 @@ module element_numbering
        1,0,3,5,&
        2,3,0,6,&
        4,5,6,0/), (/4,4/))
-       
+
   ! map from pair of local linear tet node numbers to local number of
   ! inbetween quadratic node
   integer, parameter, dimension(4,4) :: ilink2=reshape(&
@@ -117,15 +117,15 @@ module element_numbering
          2, 3, 5, 8, &
          4, 5, 6, 9, &
          7, 8, 9, 10 /), (/ 4, 4 /) )
-         
+
   ! map from pair of local linear tet node numbers to local number of
-  ! for surface triangle 
+  ! for surface triangle
   ! ! THIS IS NOT IN THE ONE TRUE ORDERING - THIS SHOULD CHANGE ! !
   integer, parameter, dimension(3,3) :: silink2=reshape(&
       (/ 1, 4, 6, &
          4, 2, 5, &
          6, 5, 3 /), (/ 3, 3 /) )
-  
+
   logical, private, save :: initialised=.false.
 
   interface local_coords
@@ -159,7 +159,7 @@ module element_numbering
   interface face_local_num
      module procedure face_local_num_int, face_local_num_no_int
   end interface
-  
+
   interface operator(==)
      module procedure element_num_equal
   end interface
@@ -208,7 +208,7 @@ contains
 
        case (1)
           select case(vertices)
-          case(2) 
+          case(2)
              ! Intervals - the only possibility.
              if (degree>INTERVAL_MAX_DEGREE) then
                 ele_num=>null()
@@ -217,18 +217,18 @@ contains
                 ele_num=>interval_numbering(degree)
                 return
              end if
-          
+
           case default
              ele_num=>null()
              return
           end select
 
        case(2)
-          
+
           select case(vertices)
           case(3)
              !Triangles.
-             
+
              if (degree>TRI_MAX_DEGREE) then
                 ele_num=>null()
                 return
@@ -236,10 +236,10 @@ contains
                 ele_num=>tri_numbering(degree)
                 return
              end if
-             
+
           case (4)
              ! Quads
-             
+
              if (degree>QUAD_MAX_DEGREE) then
                 ele_num=>null()
                 return
@@ -247,18 +247,18 @@ contains
                 ele_num=>quad_numbering(degree)
                 return
              end if
-             
+
           case default
              ele_num=>null()
              return
           end select
-          
+
        case(3)
-          
+
           select case (vertices)
           case (4)
              !Tets
-             
+
              if (degree>TET_MAX_DEGREE) then
                 ele_num=>null()
                 return
@@ -266,10 +266,10 @@ contains
                 ele_num=>tet_numbering(degree)
                 return
              end if
-             
+
           case (8)
              ! Hexes
-             
+
              if (degree>HEX_MAX_DEGREE) then
                 ele_num=>null()
                 return
@@ -277,17 +277,17 @@ contains
                 ele_num=>hex_numbering(degree)
                 return
              end if
-             
+
           case default
              ele_num=>null()
              return
           end select
-          
+
        case default
           ele_num=>null()
           return
        end select
-       
+
     case (ELEMENT_NONCONFORMING)
 
        assert(vertices==3)
@@ -301,7 +301,7 @@ contains
 !       assert(dimension==2)
 !       assert(degree==1)
 !       ele_num=>tri_numbering_nc
-       
+
     case (ELEMENT_TRACE)
 
        if(dimension /= 2) then
@@ -319,9 +319,9 @@ contains
 
        select case(dimension)
        case(1)
-         
+
           select case(vertices)
-          case(2) 
+          case(2)
              ! Intervals - the only possibility.
              if (degree/=1) then
                 ele_num=>null()
@@ -330,18 +330,18 @@ contains
                 ele_num=>interval_numbering_bubble
                 return
              end if
-          
+
           case default
              ele_num=>null()
              return
           end select
-          
+
        case(2)
-          
+
           select case(vertices)
           case(3)
              !Triangles.
-             
+
              if ((degree==0).or.(degree>TRI_BUBBLE_MAX_DEGREE)) then
                 ele_num=>null()
                 return
@@ -349,18 +349,18 @@ contains
                 ele_num=>tri_numbering_bubble(degree)
                 return
              end if
-             
+
           case default
              ele_num=>null()
              return
           end select
 
        case(3)
-          
+
           select case(vertices)
           case(4)
              !Tets.
-             
+
              if ((degree==0).or.(degree>TET_BUBBLE_MAX_DEGREE)) then
                 ele_num=>null()
                 return
@@ -368,7 +368,7 @@ contains
                 ele_num=>tet_numbering_bubble(degree)
                 return
              end if
-             
+
           case default
              ele_num=>null()
              return
@@ -380,11 +380,11 @@ contains
        end select
 
     case default
-       
+
        FLAbort('Attempt to select an illegal element type.')
 
     end select
-       
+
   end function find_element_numbering
 
   subroutine number_elements
@@ -406,7 +406,7 @@ contains
     call number_hexes_lagrange
     call number_quads_lagrange
     call number_quads_trace
-    
+
   end subroutine number_elements
 
   subroutine number_tets_lagrange
@@ -427,7 +427,7 @@ contains
     ! Degree 0 elements are a special case.
     ele=>tet_numbering(0)
     ele%degree=0
-    
+
     degree_loop: do i=0,TET_MAX_DEGREE
        ele=>tet_numbering(i)
        ele%degree=i
@@ -445,23 +445,23 @@ contains
 
        l=0
        l(1)=i
-       
+
        cnt=0
 
        number_loop: do
-          
+
           cnt=cnt+1
-          
+
           ele%count2number(l(1), l(2), l(3))=cnt
           ele%number2count(:,cnt)=l
 
           ! If the last index has reached the current degree then we are
-          ! done.          
+          ! done.
           if (l(4)==i) exit number_loop
 
           ! Increment the index counter.
           l(2)=l(2)+1
-          
+
           do j=2,3
              ! This comparison implements the decreasing dimension lengths
              ! as you move up the pyramid.
@@ -475,13 +475,13 @@ contains
 
 
        end do number_loop
-       
+
        ! Sanity test
        if (te(i+1)/=cnt) then
           ewrite(3,*) 'Counting error', i, te(i+1), cnt
           stop
        end if
-       
+
        ! Number faces.
        forall(j=1:ele%faces)
           ele%boundary_coord(j)=j
@@ -491,7 +491,7 @@ contains
 
     end do degree_loop
 
-    
+
   end subroutine number_tets_lagrange
 
   subroutine number_tets_bubble
@@ -525,23 +525,23 @@ contains
 
        l=0
        l(1)=i*(ele%dimension+1)
-       
+
        cnt=0
 
        number_loop: do
-          
+
           cnt=cnt+1
-          
+
           ele%count2number(l(1), l(2), l(3))=cnt
           ele%number2count(:,cnt)=l
 
           ! If the last index has reached the current degree then we are
-          ! done.          
+          ! done.
           if (l(4)==i*(ele%dimension+1)) exit number_loop
 
           ! Increment the index counter.
           l(2)=l(2)+ele%dimension+1
-          
+
           do j=2,3
              ! This comparison implements the decreasing dimension lengths
              ! as you move up the pyramid.
@@ -570,7 +570,7 @@ contains
           ewrite(-1,*) 'degree, nodes, cnt = ', i, te(i+1)+1, cnt
           FLAbort("Counting error")
        end if
-       
+
        ! Number faces.
        forall(j=1:ele%faces)
           ele%boundary_coord(j)=j
@@ -580,7 +580,7 @@ contains
 
     end do degree_loop
 
-    
+
   end subroutine number_tets_bubble
 
   subroutine number_triangles_lagrange
@@ -600,10 +600,10 @@ contains
     ! Degree 0 elements are a special case.
     ele=>tri_numbering(0)
     ele%degree=0
-    
+
     degree_loop: do i=0,TRI_MAX_DEGREE
        ele=>tri_numbering(i)
-       ele%degree=i 
+       ele%degree=i
 
        ! Allocate mappings:
        allocate(ele%count2number(0:i,0:i,0:i))
@@ -617,23 +617,23 @@ contains
 
        l=0
        l(1)=i
-       
+
        cnt=0
 
        number_loop: do
-          
+
           cnt=cnt+1
-          
+
           ele%count2number(l(1), l(2), l(3))=cnt
           ele%number2count(:,cnt)=l
 
           ! If the last index has reached the current degree then we are
-          ! done.          
+          ! done.
           if (l(3)==i) exit number_loop
 
           ! Increment the index counter.
           l(2)=l(2)+1
-          
+
           do j=2,2
              ! This comparison implements the decreasing dimension lengths
              ! as you move up the triangle.
@@ -647,13 +647,13 @@ contains
 
 
        end do number_loop
-       
+
        ! Sanity test
        if (tr(i+1)/=cnt) then
           ewrite(3,*) 'Counting error', i, tr(i+1), cnt
           stop
        end if
-       
+
        ! Number edges.
        forall(j=1:ele%vertices)
           ele%boundary_coord(j)=j
@@ -661,7 +661,7 @@ contains
        ! In a triangle all faces occur on planes of zero value for one local coord.
        ele%boundary_val=0
     end do degree_loop
-    
+
   end subroutine number_triangles_lagrange
 
   subroutine number_triangles_bubble
@@ -694,23 +694,23 @@ contains
 
        l=0
        l(1)=i*(ele%dimension+1)
-       
+
        cnt=0
 
        number_loop: do
-          
+
           cnt=cnt+1
-          
+
           ele%count2number(l(1), l(2), l(3))=cnt
           ele%number2count(:,cnt)=l
 
           ! If the last index has reached the current degree then we are
-          ! done.          
+          ! done.
           if (l(3)==i*(ele%dimension+1)) exit number_loop
 
           ! Increment the index counter.
           l(2)=l(2)+ele%dimension+1
-          
+
           do j=2,2
              ! This comparison implements the decreasing dimension lengths
              ! as you move up the triangle.
@@ -724,7 +724,7 @@ contains
 
 
        end do number_loop
-      
+
       ! add in the bubble node
       l(1) = i
       l(2) = i
@@ -732,13 +732,13 @@ contains
       cnt=cnt+1
       ele%count2number(l(1), l(2), l(3))=cnt
       ele%number2count(:,cnt)=l
-       
+
        ! Sanity test
        if (tr(i+1)+1/=cnt) then
           ewrite(-1,*) 'degree, nodes, cnt = ', i, tr(i+1)+1, cnt
           FLAbort("Counting error")
        end if
-       
+
        ! Number edges.
        forall(j=1:ele%vertices)
           ele%boundary_coord(j)=j
@@ -746,7 +746,7 @@ contains
        ! In a triangle all faces occur on planes of zero value for one local coord.
        ele%boundary_val=0
     end do degree_loop
-    
+
   end subroutine number_triangles_bubble
 
   subroutine number_triangles_nc
@@ -765,8 +765,8 @@ contains
 
     ele=>tri_numbering_nc
     ele%degree=1
-    
-    ! Allocate mappings: 
+
+    ! Allocate mappings:
     allocate(ele%count2number(0:ele%degree,0:ele%degree,0:ele%degree))
     allocate(ele%number2count(ele%dimension+1,tr(ele%degree+1)))
     allocate(ele%boundary_coord(ele%vertices))
@@ -793,7 +793,7 @@ contains
     ele%count2number(1,0,0)=1
     ele%count2number(0,1,0)=2
     ele%count2number(0,0,1)=3
-    
+
     ! NOTE THAT INVERSE MAPPINGS ARE ONLY DEFINED FOR SHAPE FUNCTIONS.
     ele%number2count(:,1)=(/0,1,1/)
     ele%number2count(:,2)=(/1,0,1/)
@@ -805,7 +805,7 @@ contains
     end forall
     ! In a triange all faces occur on planes of zero value for one local coord.
     ele%boundary_val=0
-    
+
   end subroutine number_triangles_nc
 
   subroutine number_triangles_trace
@@ -825,15 +825,15 @@ contains
     ! Degree 0 elements are a special case.
     ele=>tri_numbering_trace(0)
     ele%degree=0
-    
+
     degree_loop: do i=0,TRI_MAX_DEGREE
        ele=>tri_numbering_trace(i)
-       ele%degree=i 
+       ele%degree=i
 
        ! Allocate mappings:
 
        ele%nodes=(ele%dimension+1)*(ele%degree+1) !faces x floc
-       
+
        ! For trace elements, the first index is the facet number.
        allocate(ele%count2number(1:ele%dimension+1,0:i,0:i))
        allocate(ele%number2count(ele%dimension+1,ele%nodes))
@@ -845,21 +845,21 @@ contains
 
        l=0
        l(1)=ele%degree
-       
+
        cnt=0
-       
+
        facet_loop: do ll=1,ele%dimension+1
-          
+
           l=0
           l(1)=ll
           number_loop: do j=0,ele%degree
-             
+
              cnt=cnt+1
              l(2:3)=(/ele%degree-j,j/)
-             
+
              ele%count2number(l(1), l(2), l(3))=cnt
              ele%number2count(:,cnt)=l
-             
+
           end do number_loop
        end do facet_loop
 
@@ -876,7 +876,7 @@ contains
           ele%boundary_val(j)=j
        end forall
     end do degree_loop
-    
+
   end subroutine number_triangles_trace
 
   subroutine number_quads_trace
@@ -896,15 +896,15 @@ contains
     ! Degree 0 elements are a special case.
     ele=>quad_numbering_trace(0)
     ele%degree=0
-    
+
     degree_loop: do i=0,QUAD_MAX_DEGREE
        ele=>quad_numbering_trace(i)
-       ele%degree=i 
+       ele%degree=i
 
        ! Allocate mappings:
 
        ele%nodes= 2**ele%dimension * (ele%degree + 1) ! faces x floc
-       
+
        ! For trace elements, the first index is the facet number.
        allocate(ele%count2number(1:2*ele%dimension,0:i,0:i))
        allocate(ele%number2count(ele%dimension+1,ele%nodes))
@@ -916,22 +916,22 @@ contains
 
        l=0
        l(1)=ele%degree
-       
+
        cnt=0
-       
+
        facet_loop: do ll=1,2*ele%dimension
-          
+
           l=0
 
           l(1)=ll
           number_loop: do j=0,ele%degree
-             
+
              cnt=cnt+1
              l(2:3)=(/ele%degree-j,j/)
-             
+
              ele%count2number(l(1), l(2), l(3))=cnt
              ele%number2count(:,cnt)=l
-             
+
           end do number_loop
        end do facet_loop
 
@@ -948,7 +948,7 @@ contains
           ele%boundary_val(j)=j
        end forall
     end do degree_loop
-    
+
   end subroutine number_quads_trace
 
   subroutine number_intervals_lagrange
@@ -968,10 +968,10 @@ contains
     ! Degree 0 elements are a special case.
     ele=>interval_numbering(0)
     ele%degree=0
-    
+
     degree_loop: do i=0,INTERVAL_MAX_DEGREE
        ele=>interval_numbering(i)
-       ele%degree=i 
+       ele%degree=i
 
        ! Allocate mappings:
        allocate(ele%count2number(0:i,0:i,0:0))
@@ -985,33 +985,33 @@ contains
 
        l=0
        l(1)=i
-       
+
        cnt=0
 
        number_loop: do
-          
+
           cnt=cnt+1
-          
+
           ele%count2number(l(1), l(2), 0)=cnt
           ele%number2count(:,cnt)=l
 
           ! If the last index has reached the current degree then we are
-          ! done.          
+          ! done.
           if (l(2)==i) exit number_loop
 
           ! Increment the index counter.
           l(2)=l(2)+1
-          
+
           l(1)=i-l(2)
 
        end do number_loop
-       
+
        ! Sanity test
        if (i+1/=cnt) then
           ewrite(3,*) 'Counting error', i, i+1, cnt
           stop
        end if
-       
+
        ! Number edges.
        forall(j=1:ele%vertices)
           ele%boundary_coord(j)=j
@@ -1020,7 +1020,7 @@ contains
        ele%boundary_val=0
 
     end do degree_loop
-    
+
   end subroutine number_intervals_lagrange
 
   subroutine number_intervals_bubble
@@ -1057,55 +1057,55 @@ contains
 
      l=0
      l(1)=ele%dimension+1
-     
+
      cnt=0
 
      number_loop: do
         ! this loop just takes care of the standard lagrangian element
         ! nodes (i.e. it intentionally excludes the bubble node)
-        
+
         cnt=cnt+1
-        
+
         ele%count2number(l(1), l(2), 0)=cnt
         ele%number2count(:,cnt)=l
 
         ! If the last index has reached the current degree then we are
-        ! done.          
+        ! done.
         if (l(2)==(ele%dimension+1)) exit number_loop
 
         ! Increment the index counter.
         l(2)=l(2)+ele%dimension+1
-        
+
         l(1)=ele%dimension+1-l(2)
 
      end do number_loop
-    
+
      ! add in the bubble node
      l(1) = 1
      l(2) = 1
-     cnt = cnt +1 
+     cnt = cnt +1
      ele%count2number(l(1), l(2), 0)=cnt
      ele%number2count(:,cnt)=l
-     
+
      ! Sanity test
      if (cnt/=3) then
         ewrite(-1,*) 'Counting error', 1, 3, cnt
         FLAbort("Counting error.")
      end if
-     
+
      ! Number edges.
      forall(j=1:ele%vertices)
         ele%boundary_coord(j)=j
      end forall
      ! In an interval all faces occur on planes of zero value for one local coord.
      ele%boundary_val=0
-    
+
   end subroutine number_intervals_bubble
 
   subroutine number_point_lagrange
     !!< The highly complex 1 point 0D element.
     type(ele_numbering_type), pointer :: ele
-    
+
     point_numbering%faces=0
     point_numbering%vertices=1
     point_numbering%edges=0
@@ -1127,9 +1127,9 @@ contains
     ele%nodes=1
     ele%count2number=1
     ele%number2count=0
-    
+
   end subroutine number_point_lagrange
-   
+
   subroutine number_hexes_lagrange
     ! Fill the values in in element_numbering.
     integer :: i,j, cnt, l1, l2, l3
@@ -1147,7 +1147,7 @@ contains
     ! Degree 0 elements are a special case.
     ele=>hex_numbering(0)
     ele%degree=0
-    
+
     degree_loop: do i=0,HEX_MAX_DEGREE
        ele=>hex_numbering(i)
        ele%degree=i
@@ -1162,26 +1162,26 @@ contains
 
        ele%count2number=0
        ele%number2count=0
-       
+
        cnt=0
 
        do l1=0, ele%degree
-          
+
           do l2=0, ele%degree
-             
+
              do l3=0, ele%degree
 
                 cnt=cnt+1
-          
+
                 ele%count2number(l1, l2, l3)=cnt
                 ele%number2count(:,cnt)=(/l1, l2, l3/)
-                
+
              end do
 
           end do
 
        end do
-              
+
        ! Number faces.
        forall(j=1:ele%faces)
           ele%boundary_coord(j)=(j+1)/2
@@ -1192,7 +1192,7 @@ contains
        ele%boundary_val((/2,4,6/))=ele%degree
 
     end do degree_loop
-    
+
   end subroutine number_hexes_lagrange
 
   subroutine number_quads_lagrange
@@ -1212,7 +1212,7 @@ contains
     ! Degree 0 elements are a special case.
     ele=>quad_numbering(0)
     ele%degree=0
-    
+
     degree_loop: do i=0,QUAD_MAX_DEGREE
        ele=>quad_numbering(i)
        ele%degree=i
@@ -1227,18 +1227,18 @@ contains
 
        ele%count2number=0
        ele%number2count=0
-       
+
        cnt=0
 
        do l1=0, ele%degree
-          
+
           do l2=0, ele%degree
-             
+
                 cnt=cnt+1
-          
+
                 ele%count2number(l1, l2, 0)=cnt
                 ele%number2count(:,cnt)=(/l1, l2/)
-                
+
           end do
 
        end do
@@ -1253,39 +1253,39 @@ contains
        ele%boundary_val((/2,4/))=ele%degree
 
     end do degree_loop
-    
+
   end subroutine number_quads_lagrange
 
   pure function tr(n)
     ! Return the nth triangular number
     integer :: tr
     integer, intent(in) :: n
-    
+
     tr=max(n,0)*(n+1)/2
-    
+
   end function tr
 
   pure function te(n)
     ! Return the nth tetrahedral number
     integer :: te
     integer, intent(in) :: n
-    
+
     te=max(n,0)*(n+1)*(n+2)/6
-    
+
   end function te
 
   pure function inv_tr(m) result (n)
     ! Return n where m=tr(n). If m is not a triangular number, return -1
     integer :: n
     integer, intent(in) :: m
-    
+
     integer :: i, tri
 
     i=0
-    
+
     do
        i=i+1
-       
+
        tri=tr(i)
 
        if (tri==m) then
@@ -1305,14 +1305,14 @@ contains
     ! Return n where m=te(n). If m is not a tetrahedral number, return -1
     integer :: n
     integer, intent(in) :: m
-    
+
     integer :: i, tei
 
     i=0
-    
+
     do
        i=i+1
-       
+
        tei=te(i)
 
        if (tei==m) then
@@ -1364,7 +1364,7 @@ contains
     if (present(stat)) then
        stat=0
     end if
-    
+
     ! Find the vertex number on the tet.
     svertex_num=minloc(array=element, dim=1, mask=(node==element))
 
@@ -1407,7 +1407,7 @@ contains
   function vvertex_num(nodes, element, ele_num, stat)
     ! Given a vector of global vertex node numbers and a vector of node
     ! numbers defining a tet or triangle, return the local node number of those
-    ! vertices. 
+    ! vertices.
     !
     ! If the element numbering ele_num is present then the node numbers in
     ! that element are returned. Otherwise the node numbers for a linear element
@@ -1426,16 +1426,16 @@ contains
     if (present(stat)) then
        stat=0
     end if
-    
+
     do i=1,size(nodes)
        vvertex_num(i)=vertex_num(nodes(i), element, ele_num, stat)
     end do
-    
+
   end function vvertex_num
 
   function ele_num_local_vertices(ele_num)
     ! Given an element numbering, return the local node numbers of its
-    ! vertices. 
+    ! vertices.
     type(ele_numbering_type), intent(in) :: ele_num
     integer, dimension(ele_num%vertices) :: ele_num_local_vertices
 
@@ -1453,17 +1453,17 @@ contains
            l(i)=ele_num%degree
 
            ele_num_local_vertices(i)=ele_num%count2number(l(1),l(2),l(3))
-            
+
          end do
-         
+
       case (FAMILY_CUBE)
-      
+
          ! Degree zero element only has one node which is non-zero on all vertices.
          if(ele_num%degree == 0) then
             ele_num_local_vertices = 1
             return
          end if
-        
+
          l=0
          c=1 ! coordinate counter
          do i=1, ele_num%vertices
@@ -1479,7 +1479,7 @@ contains
            end do
          end do
          assert(c==ele_num%dimension+1)
-        
+
       case default
 
          FLAbort('Unknown element shape.')
@@ -1496,9 +1496,9 @@ contains
            l(i)=ele_num%degree*(ele_num%dimension+1)
 
            ele_num_local_vertices(i)=ele_num%count2number(l(1),l(2),l(3))
-            
+
          end do
-         
+
       case default
 
          FLAbort('Unknown element shape.')
@@ -1507,11 +1507,11 @@ contains
 
     case (ELEMENT_TRACE)
        FLAbort("Trace elements do not have well-defined vertices")
-       
+
     case default
       FLAbort("Unknown element type")
     end select
-    
+
   end function ele_num_local_vertices
 
   !------------------------------------------------------------------------
@@ -1530,7 +1530,7 @@ contains
           boundary_num_length=0
        else
           boundary_num_length=1
-       end if       
+       end if
     case (2)
        if (interior) then
           boundary_num_length=ele_num%degree-1
@@ -1540,7 +1540,7 @@ contains
     case (3)
        boundary_num_length=face_num_length(ele_num, interior)
     end select
-    
+
   end function boundary_num_length
 
   pure function edge_num_length(ele_num, interior)
@@ -1595,14 +1595,14 @@ contains
     integer, intent(in) :: boundary
     type(ele_numbering_type), intent(in) :: ele_num
     integer, dimension(boundary_num_length(ele_num, .false.)) ::&
-         & numbering 
-    
+         & numbering
+
     integer :: i, k, l
 
     k=0
 
     do i=1,ele_num%nodes
-       
+
        if (ele_num%number2count(ele_num%boundary_coord(boundary),i)==&
             & ele_num%boundary_val(boundary)) then
           ! We are on the face.
@@ -1613,10 +1613,10 @@ contains
     end do
 
     ASSERT(k==size(numbering))
-    
+
     select case (ele_num%family)
     case (FAMILY_SIMPLEX)
-      
+
        if (mod(boundary,2)==0) then
           ! reverse ordering for even faces, so that orientation is
           ! always positive with respect to the element:
@@ -1632,21 +1632,21 @@ contains
                 if (i<1) exit
              end do
           end if
-          
+
        end if
-          
+
     case (FAMILY_CUBE)
-      
+
        if (boundary==1 .or. boundary==4 .or. boundary==6) then
           ! reverse ordering so that orientation is
           ! always positive with respect to the element:
           numbering=numbering(size(numbering):1:-1)
        end if
-       
+
     case default
        FLAbort("Unknown element family.")
     end select
-    
+
   end function numbering_boundary_numbering
 
   !------------------------------------------------------------------------
@@ -1655,22 +1655,22 @@ contains
 
   function edge_num_no_int(nodes, element, ele_num,  stat)
     ! This function exists only to make interior in effect an optional
-    ! argument. 
+    ! argument.
     integer, dimension(2), intent(in) :: nodes
     integer, dimension(:), intent(in) :: element
     type(ele_numbering_type), intent(in) :: ele_num
     integer, intent(out), optional :: stat
 
     integer, dimension(edge_num_length(ele_num, interior=.false.)) ::&
-         & edge_num_no_int 
-    
+         & edge_num_no_int
+
     edge_num_no_int = edge_num_int(nodes, element, ele_num, .false., stat)
 
   end function edge_num_no_int
 
   function edge_num_int(nodes, element, ele_num, interior, stat)
     ! Given a pair of vertex node numbers and a vector of node numbers
-    ! defining a tet, hex, quad, or triangle, return the node numbers 
+    ! defining a tet, hex, quad, or triangle, return the node numbers
     ! of the edge elements along the edge from nodes(1) to nodes(2).
     !
     ! The numbers returned are those for the element numbering ele_num and
@@ -1692,11 +1692,11 @@ contains
     integer, dimension(2) :: lnodes
 
     if (present(stat)) stat=0
-    
+
     ! Special case: degree 0 elements to not have edge nodes and elements
     ! with degree <2 do not have interior edge nodes.
     if (ele_num%type/=ELEMENT_TRACE .and.(ele_num%degree==0 .or. &
-         present_and_true(interior).and.ele_num%degree<2)) return 
+         present_and_true(interior).and.ele_num%degree<2)) return
 
     ! Find the vertex numbers on the tet.
     lnodes(1)=minloc(array=element, dim=1, mask=(nodes(1)==element))
@@ -1711,7 +1711,7 @@ contains
           FLAbort("Nodes are not part of element in edge_num_int.")
        end if
     end if
-    
+
     edge_num_int=edge_local_num(lnodes, ele_num, interior)
 
   end function edge_num_int
@@ -1729,17 +1729,17 @@ contains
     integer, dimension(2), intent(in) :: nodes
     type(ele_numbering_type), intent(in) :: ele_num
     logical, intent(in) :: interior
-    
+
     integer, dimension(edge_num_length(ele_num, interior)) :: edge_local_num
 
     integer, dimension(4) :: l
     integer :: cnt, i, j, k, inc, inc_l
-    ! Local edge vertices for trace elements. 
+    ! Local edge vertices for trace elements.
     integer, dimension(2) :: ln
     ! array for locating face in quad
     integer, dimension(7) :: sum2face
     integer, dimension(1:ele_num%vertices) :: vertices
-    
+
     select case (ele_num%type)
     case (ELEMENT_LAGRANGIAN)
       select case (ele_num%family)
@@ -1752,25 +1752,25 @@ contains
              if (.not.present_and_true(interior) .or. all(&
                   l(nodes)/=0 .and. l(nodes)/=ele_num%degree)) then
                 cnt=cnt+1
-                
+
                 edge_local_num(cnt)=ele_num%count2number(l(1), l(2), l(3))
              end if
 
              ! Advance the index:
              l(nodes)=l(nodes)+(/-1,1/)
-             
+
              ! Check for completion
              if (any(l<0)) exit number_loop
 
           end do number_loop
       case (FAMILY_CUBE)
-      
-          ! If a quad element has degree zero then the local 
+
+          ! If a quad element has degree zero then the local
           if(ele_num%degree == 0) then
             edge_local_num = 1
             return
           end if
-         
+
          ! Get local node numbers of vertices
          vertices=local_vertices(ele_num)
 
@@ -1780,7 +1780,7 @@ contains
           do i=ele_num%dimension, 1, -1
              ! compute ith 'count' coordinate
              l(i) = iand(vertices(nodes(1))-1, k)/k
-             
+
              ! increment to go from node 1 to node 2: 0, -1 or +1
              inc_l = iand(vertices(nodes(2))-1, k)/k-l(i)
              ! remember the coordinate in which node 1 and 2 differ:
@@ -1790,11 +1790,11 @@ contains
              end if
              k=k*2
           end do
-            
+
           if (j==0) then
             FLAbort("The same node appears more than once in edge_local_num.")
           end if
-            
+
           ! instead of between 0 and 1, between 0 and degree
           l=l*ele_num%degree
           if (interior) then
@@ -1809,7 +1809,7 @@ contains
                l(j)=l(j)+inc
              end do
           end if
-          
+
       case default
           FLAbort("Unknown element family.")
       end select
@@ -1825,18 +1825,18 @@ contains
              if (.not.present_and_true(interior) .or. all(&
                   l(nodes)/=0 .and. l(nodes)/=(ele_num%degree*(ele_num%dimension+1)))) then
                 cnt=cnt+1
-                  
+
                 edge_local_num(cnt)=ele_num%count2number(l(1), l(2), l(3))
              end if
 
              ! Advance the index:
              l(nodes)=l(nodes)+(/-(ele_num%dimension+1),ele_num%dimension+1/)
-               
+
              ! Check for completion
              if (any(l<0)) exit number_loop_b
 
           end do number_loop_b
-          
+
       case default
           FLAbort("Unknown element family.")
       end select
@@ -1860,21 +1860,21 @@ contains
          end if
 
          l(ln(1))=ele_num%degree
-         cnt=0         
+         cnt=0
          trace_number_loop: do
             cnt=cnt+1
-                
+
             edge_local_num(cnt)=ele_num%count2number(l(1), l(2), l(3))
 
             ! Advance the index:
             l(ln)=l(ln)+(/-1,1/)
-            
+
             ! Check for completion
             if (any(l<0)) exit trace_number_loop
 
          end do trace_number_loop
          assert(cnt==size(edge_local_num))
-         
+
       case (FAMILY_CUBE)
          l = 0
          !boundary_coord = (0,0,1,1)
@@ -1904,15 +1904,15 @@ contains
          end if
 
          l(ln(1))=ele_num%degree
-         cnt=0         
+         cnt=0
          trace_number_loop1: do
             cnt=cnt+1
-                
+
             edge_local_num(cnt)=ele_num%count2number(l(1), l(2), l(3))
 
             ! Advance the index:
             l(ln)=l(ln)+(/-1,1/)
-            
+
             ! Check for completion
             if (any(l<0)) exit trace_number_loop1
 
@@ -1921,7 +1921,7 @@ contains
       case default
          FLAbort("Unknown element family.")
       end select
-      
+
    case default
       FLAbort("Unknown element type")
    end select
@@ -1934,22 +1934,22 @@ contains
 
   function face_num_no_int(nodes, element, ele_num,  stat)
     ! This function exists only to make interior in effect an optional
-    ! argument. 
+    ! argument.
     integer, dimension(3), intent(in) :: nodes
     integer, dimension(:), intent(in) :: element
     type(ele_numbering_type), intent(in) :: ele_num
     integer, intent(out), optional :: stat
 
     integer, dimension(face_num_length(ele_num, interior=.false.)) ::&
-         & face_num_no_int 
-    
+         & face_num_no_int
+
     face_num_no_int = face_num_int(nodes, element, ele_num, .false., stat)
 
   end function face_num_no_int
 
   function face_num_int(nodes, element, ele_num, interior, stat)
     ! Given a triple of vertex node numbers and a 4-vector (or 8-vector
-    ! in case of hexes) of node numbers defining an element, 
+    ! in case of hexes) of node numbers defining an element,
     ! return the node numbers of the face elements on the
     ! face defined by nodes.
     !
@@ -1971,13 +1971,13 @@ contains
 
     if (present(stat)) stat=0
 
-    ! Special case: degree 0 elements to not have face nodes 
+    ! Special case: degree 0 elements to not have face nodes
     if (ele_num%degree==0.and.ele_num%type/=ELEMENT_TRACE) return
 
     do i=1, 3
        lnodes(i)=minloc(array=element, dim=1, mask=(element==nodes(i)))
     end do
-      
+
     ! Minloc returns 0 if all elements of mask are false.
     if (any(lnodes==0)) then
        if (present(stat)) then
@@ -1989,24 +1989,24 @@ contains
     end if
 
     face_num_int=face_local_num_int(lnodes, ele_num, interior)
-    
+
   end function face_num_int
 
   function face_local_num_no_int(nodes, ele_num)
     ! This function exists only to make interior in effect an optional
-    ! argument. 
+    ! argument.
     integer, dimension(:), intent(in) :: nodes
     type(ele_numbering_type), intent(in) :: ele_num
     !output variable
     integer, dimension(face_num_length(ele_num, interior=.false.)) ::&
-         & face_local_num_no_int 
+         & face_local_num_no_int
 
     face_local_num_no_int = face_local_num_int(nodes, ele_num, .false.)
- 
+
   end function face_local_num_no_int
 
   function face_local_num_int(nodes, ele_num, interior)
-    ! Given a triple of local vertex node numbers (ie in the range 1-4, 
+    ! Given a triple of local vertex node numbers (ie in the range 1-4,
     ! or in the range 1-8 in the case of hexes)
     ! return the node numbers of the face elements on the
     ! face defined by those nodes.
@@ -2022,7 +2022,7 @@ contains
 
     integer, dimension(4) :: l
     integer :: i, j, k, cnt, j12, j13, inc12, inc13, tmp
-    
+
     select case (ele_num%type)
     case (ELEMENT_LAGRANGIAN)
       select case (ele_num%family)
@@ -2036,14 +2036,14 @@ contains
              if ((.not.interior) .or. all(&
                   l(nodes)/=0 .and. l(nodes)/=ele_num%degree)) then
                 cnt=cnt+1
-                
+
                 ! Do the actual numbering.
                 face_local_num_int(cnt)=ele_num%count2number(l(1), l(2), l(3))
              end if
 
              ! Advance the index:
              l(nodes(2))=l(nodes(2))+1
-             
+
              if (l(nodes(2))>ele_num%degree-sum(l(nodes(3:)))) then
                 l(nodes(2))=0
                 l(nodes(3))=l(nodes(3))+1
@@ -2054,29 +2054,29 @@ contains
              ! Check for completion
              if (l(nodes(3))>ele_num%degree) exit number_loop
 
-          end do number_loop    
+          end do number_loop
 
           ! Sanity test.
       !    assert(cnt==size(face_local_num_int))
       case (FAMILY_CUBE)
-          
+
           ! this first loop works out the count coordinates
           ! of the first given node N, using the following formula:
           !   l(i)=iand( N-1, 2**(3-i) ) / 2**(3-i)
           ! also it finds out in which count coordinate node1 and node2
-          ! differ and the increment in this coordinate needed to walk 
+          ! differ and the increment in this coordinate needed to walk
           ! from node1 to node2, stored in j12 and inc12 resp.
           ! same for node1 and node3, stored in j13 and inc13
-      
-          ! If a quad element has degree zero then the local 
+
+          ! If a quad element has degree zero then the local
           if(ele_num%degree == 0) then
             face_local_num_int = 1
             return
           end if
-         
+
           ! Get local node numbers of vertices
           vertices=local_vertices(ele_num)
-          
+
           l=0
           k=1 ! bit mask
           j12=0
@@ -2084,7 +2084,7 @@ contains
           do i=ele_num%dimension, 1, -1
              ! compute ith 'count' coordinate
              l(i)=iand(vertices(nodes(1))-1, k)/k
-             
+
              ! increment to go from node 1 to node 2: 0, -1 or +1
              tmp=iand(vertices(nodes(2))-1, k)/k-l(i)
              ! remember the coordinate in which node 1 and 2 differ:
@@ -2102,15 +2102,15 @@ contains
              end if
              k=k*2
           end do
-            
+
           if (j12==0 .or. j13==0) then
             FLAbort("The same node appears more than once in edge_local_num.")
           end if
-            
+
           ! Now find the nodes on the face by walking through the count
           ! numbers, starting at node1 and walking from node1 to node2
           ! in the inner loop, and from node1 to node3 in the outer loop
-          
+
           ! instead of between 0 and 1, between 0 and degree
           l=l*ele_num%degree
           cnt=0
@@ -2138,11 +2138,11 @@ contains
                 l(j13)=l(j13)+inc13
              end do
           end if
-          
+
       case default
-        
+
           FLAbort("Unknown element family.")
-          
+
       end select
     case (ELEMENT_BUBBLE)
       select case (ele_num%family)
@@ -2156,14 +2156,14 @@ contains
              if ((.not.interior) .or. all(&
                   l(nodes)/=0 .and. l(nodes)/=(ele_num%degree*(ele_num%dimension+1)))) then
                 cnt=cnt+1
-                
+
                 ! Do the actual numbering.
                 face_local_num_int(cnt)=ele_num%count2number(l(1), l(2), l(3))
              end if
 
              ! Advance the index:
              l(nodes(2))=l(nodes(2))+ele_num%dimension+1
-             
+
              if (l(nodes(2))>ele_num%degree*(ele_num%dimension+1)-sum(l(nodes(3:)))) then
                 l(nodes(2))=0
                 l(nodes(3))=l(nodes(3))+ele_num%dimension+1
@@ -2174,19 +2174,19 @@ contains
              ! Check for completion
              if (l(nodes(3))>(ele_num%degree*(ele_num%dimension+1))) exit number_loop_b
 
-          end do number_loop_b    
+          end do number_loop_b
 
       case default
-        
+
           FLAbort("Unknown element family.")
-          
+
       end select
     case default
       FLAbort("Unknown element type.")
     end select
-      
+
   end function face_local_num_int
-    
+
   !-------------------------------------------------
   !boundary numbering wrapper
   !=================================================
@@ -2258,7 +2258,7 @@ contains
   !------------------------------------------------------------------------
   ! Return all local nodes in the order determined by specified local vertices
   !------------------------------------------------------------------------
-  
+
   function ele_local_num(nodes, ele_num)
     !!< Given the local vertex numbers (1-4 for tets) in a certain order,
     !!< return all local node numbers of ele_num in the corresponding order
@@ -2266,36 +2266,36 @@ contains
     integer, dimension(:), intent(in) :: nodes
     type(ele_numbering_type), intent(in) :: ele_num
     integer, dimension(1:ele_num%nodes) :: ele_local_num
-    
+
     ! count coordinate
     integer, dimension(3) :: cc
     integer :: i, j
-    
+
     cc=(/ 0, 0, 0 /)
-    
+
     if (ele_num%family/=FAMILY_SIMPLEX) then
       FLAbort("ele_local_num currently only works for simplices")
     end if
-    
+
     if (ele_num%type==ELEMENT_TRACE) then
        FLAbort("ele_local_num doesn't know about trace elements yet")
     end if
 
     do i=1, ele_num%nodes
-      
+
       do j=1, size(ele_num%number2count,1)
         if (nodes(j)<=3) then
           cc(nodes(j)) = ele_num%number2count(j, i)
         end if
       end do
-      
+
       if (size(ele_num%number2count,1)<3) cc(3)=0
       ele_local_num(i) = ele_num%count2number(cc(1), cc(2), cc(3))
-      
+
     end do
-  
+
   end function ele_local_num
-  
+
   !------------------------------------------------------------------------
   ! Local coordinate calculations.
   !------------------------------------------------------------------------
@@ -2303,9 +2303,9 @@ contains
   function ele_num_local_coords(n, ele_num) result (coords)
     ! Work out the local coordinates of node n in ele_num.
     integer, intent(in) :: n
-    type(ele_numbering_type), intent(in) :: ele_num    
+    type(ele_numbering_type), intent(in) :: ele_num
     real, dimension(size(ele_num%number2count, 1)) :: coords
-    
+
     integer, dimension(size(ele_num%number2count, 1)) :: count_coords
     integer :: i
 
@@ -2319,29 +2319,29 @@ contains
              coords=real(ele_num%number2count(:,n))/real(ele_num%degree)
           else
              ! Degree 0 elements have a single node in the centre of the
-             ! element. 
+             ! element.
              coords=1.0/ele_num%vertices
           end if
 
        case (FAMILY_CUBE)
-          
+
           if (ele_num%degree>0) then
              coords=-1+ 2*real(ele_num%number2count(:,n))&
                   &                                /real(ele_num%degree)
           else
              ! Degree 0 elements have a single node in the centre of the
-             ! element. 
+             ! element.
              coords=0.0
           end if
-          
+
        case default
-          
+
           FLAbort('Unknown element family.')
 
        end select
-       
+
     case (ELEMENT_BUBBLE)
-      
+
        select case (ele_num%family)
        case (FAMILY_SIMPLEX)
 
@@ -2352,13 +2352,13 @@ contains
           end if
 
        case default
-          
+
           FLAbort('Unknown element family.')
 
        end select
 
     case (ELEMENT_NONCONFORMING)
-       
+
        coords=real(ele_num%number2count(:,n))/2.0
 
     case (ELEMENT_TRACE)
@@ -2380,7 +2380,7 @@ contains
              end do
           else
              ! Degree 0 elements have a single node in the centre of the
-             ! face. 
+             ! face.
              coords=0.5
              coords(n) = 0.0
           end if
@@ -2388,7 +2388,7 @@ contains
           FLAbort('I *thought* this wasn''t needed.')
 
        case default
-          
+
           FLAbort('Unknown element family.')
 
        end select

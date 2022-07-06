@@ -206,7 +206,7 @@ h5_get_attachment_info_by_name (
         h5_file_p f = (h5_file_p)f_;
 	H5_CORE_API_ENTER (h5_err_t, "f=%p, fname='%s', fsize=%p", f, fname, fsize);
 	CHECK_FILEHANDLE (f);
-	
+
 	hid_t loc_id;
 	TRY (loc_id = hdf5_open_group (f->file, H5_ATTACHMENT));
 	if (fsize) {

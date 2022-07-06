@@ -113,7 +113,7 @@ double System::GetTime ()
 
     struct timeval kCurrent;
     gettimeofday(&kCurrent,0);
-    
+
     struct timeval kDelta;
     timersub(&kCurrent,&gs_kInitial,&kDelta);
 

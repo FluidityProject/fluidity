@@ -16,7 +16,7 @@ import llnl.visit.Plugin;
 // Creation:   Thu Mar 30 12:05:26 PDT 2006
 //
 // Modifications:
-//   
+//
 // ****************************************************************************
 
 public class Binner extends AttributeSubject implements Plugin
@@ -113,4 +113,3 @@ public class Binner extends AttributeSubject implements Plugin
     private int dim2;
     private int dim3;
 }
-

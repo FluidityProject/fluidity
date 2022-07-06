@@ -42,14 +42,14 @@ using std::string;
 #include "c++debuglog.h"
 
 void Mesh::formHalo2(){
-  
-  // Make a list of the halo2 elements and a map of 
+
+  // Make a list of the halo2 elements and a map of
   // the neighbouring domains of a node.
   map<unsigned, set< unsigned > > node_neighbours;
   deque< unsigned > halo2_Elems;
   {
-    
-    // Create a mapping of shared nodes to neighbouring domain sets. 
+
+    // Create a mapping of shared nodes to neighbouring domain sets.
     // This will also serve as a shared node list.
     for(unsigned p = 0; p < (unsigned)NProcs; p++){
       for(map<unn_t, gnn_t>::iterator it = shared_nodes[p].begin(); it != shared_nodes[p].end(); ++it){
@@ -69,7 +69,7 @@ void Mesh::formHalo2(){
 	  break;
 	}
       }
-      
+
       bool halo2_element = true;
       if( interesting ){
 	// Determine if this element is a halo-1 or halo-2 element.
@@ -80,13 +80,13 @@ void Mesh::formHalo2(){
 	    break;
 	  }
 	}
-	
+
 	// Place the element index in the appropiate array
 	if(halo2_element){
 	  halo2_Elems.push_back( pos );
 	}
       }
-      
+
       pos++;
     }
   }
@@ -123,18 +123,7 @@ void Mesh::formHalo2(){
 	}
       }
     }
-    
+
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-

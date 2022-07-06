@@ -148,11 +148,11 @@
   a = X[0]
   b = X[1]
   c = X[2]
-  
-  x_component = -(a/((a**2+b**2+c**2)**0.5)) 
+
+  x_component = -(a/((a**2+b**2+c**2)**0.5))
   y_component = -(b/((a**2+b**2+c**2)**0.5))
   z_component = -(c/((a**2+b**2+c**2)**0.5))
-  
+
   return [x_component, y_component, z_component]</string_value>
             </python>
           </value>

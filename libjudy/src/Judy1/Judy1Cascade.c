@@ -572,7 +572,7 @@ JUDYLCODE(Pjv_t       Pjv;)    // value area of leaf.
 #ifdef JUDY1
                             JU_JPSETADT(PjpJP, 0, DcdP0, cJ1_JPIMMED_1_01);
 #else   // JUDYL
-                            JU_JPSETADT(PjpJP, Pjv[Start], DcdP0, 
+                            JU_JPSETADT(PjpJP, Pjv[Start], DcdP0,
                                 cJL_JPIMMED_1_01);
 #endif  // JUDYL
             }
@@ -636,7 +636,7 @@ JUDYLCODE(Pjv_t       Pjv;)    // value area of leaf.
 
                 DBGCODE(JudyCheckSorted(Pjll, Pop1, 1);)
 
-                                DcdP0 = (JU_JPDCDPOP0(Pjp) & cJU_DCDMASK(2)) 
+                                DcdP0 = (JU_JPDCDPOP0(Pjp) & cJU_DCDMASK(2))
                                                 |
                                         (CIndex & cJU_DCDMASK(2-1))
                                                 |
@@ -661,9 +661,9 @@ JUDYLCODE(Pjv_t       Pjv;)    // value area of leaf.
                 if (PjlbRaw == (Pjlb_t)NULL)
                     FREEALLEXIT(ExpCnt, StageJP, Pjpm);
 
-                                DcdP0 = (JU_JPDCDPOP0(Pjp) & cJU_DCDMASK(2)) 
+                                DcdP0 = (JU_JPDCDPOP0(Pjp) & cJU_DCDMASK(2))
                                                 |
-                                        (CIndex & cJU_DCDMASK(2-1)) 
+                                        (CIndex & cJU_DCDMASK(2-1))
                                                 |
                                         (Pop1 - 1);
 
@@ -807,7 +807,7 @@ JUDYLCODE(Pjv_t       Pjv;)    // value area of leaf.
 #ifdef JUDY1
                             JU_JPSETADT(PjpJP, 0, DcdP0, cJ1_JPIMMED_2_01);
 #else   // JUDYL
-                            JU_JPSETADT(PjpJP, Pjv[Start], DcdP0, 
+                            JU_JPSETADT(PjpJP, Pjv[Start], DcdP0,
                                 cJL_JPIMMED_2_01);
 #endif  // JUDYL
             }
@@ -870,9 +870,9 @@ JUDYLCODE(Pjv_t       Pjv;)    // value area of leaf.
 
                 DBGCODE(JudyCheckSorted(Pjll, Pop1, 2);)
 
-                                DcdP0 = (JU_JPDCDPOP0(Pjp) & cJU_DCDMASK(3)) 
+                                DcdP0 = (JU_JPDCDPOP0(Pjp) & cJU_DCDMASK(3))
                                                 |
-                                        (CIndex & cJU_DCDMASK(3-1)) 
+                                        (CIndex & cJU_DCDMASK(3-1))
                                                 |
                                         (Pop1 - 1);
 
@@ -1082,9 +1082,9 @@ JUDYLCODE(Pjv_t       Pjv;)    // value area of leaf.
 #endif
                 DBGCODE(JudyCheckSorted(Pjll, Pop1, 3);)
 
-                                DcdP0 = (JU_JPDCDPOP0(Pjp) & cJU_DCDMASK(4)) 
+                                DcdP0 = (JU_JPDCDPOP0(Pjp) & cJU_DCDMASK(4))
                                                 |
-                                        (CIndex & cJU_DCDMASK(4-1)) 
+                                        (CIndex & cJU_DCDMASK(4-1))
                                                 |
                                         (Pop1 - 1);
 
@@ -1273,9 +1273,9 @@ JUDYLCODE(Pjv_t       Pjv;)    // value area of leaf.
 #endif
                 DBGCODE(JudyCheckSorted(Pjll, Pop1, 4);)
 
-                                DcdP0 = (JU_JPDCDPOP0(Pjp) & cJU_DCDMASK(5)) 
+                                DcdP0 = (JU_JPDCDPOP0(Pjp) & cJU_DCDMASK(5))
                                                 |
-                                        (CIndex & cJU_DCDMASK(5-1)) 
+                                        (CIndex & cJU_DCDMASK(5-1))
                                                 |
                                         (Pop1 - 1);
 
@@ -1466,9 +1466,9 @@ JUDYLCODE(Pjv_t       Pjv;)    // value area of leaf.
 #endif
                 DBGCODE(JudyCheckSorted(Pjll, Pop1, 5);)
 
-                                DcdP0 = (JU_JPDCDPOP0(Pjp) & cJU_DCDMASK(6)) 
+                                DcdP0 = (JU_JPDCDPOP0(Pjp) & cJU_DCDMASK(6))
                                                 |
-                                        (CIndex & cJU_DCDMASK(6-1)) 
+                                        (CIndex & cJU_DCDMASK(6-1))
                                                 |
                                         (Pop1 - 1);
 
@@ -1657,9 +1657,9 @@ JUDYLCODE(Pjv_t       Pjv;)    // value area of leaf.
 #endif
                 DBGCODE(JudyCheckSorted(Pjll, Pop1, 6);)
 
-                                DcdP0 = (JU_JPDCDPOP0(Pjp) & cJU_DCDMASK(7)) 
+                                DcdP0 = (JU_JPDCDPOP0(Pjp) & cJU_DCDMASK(7))
                                                 |
-                                        (CIndex & cJU_DCDMASK(7-1)) 
+                                        (CIndex & cJU_DCDMASK(7-1))
                                                 |
                                         (Pop1 - 1);
 

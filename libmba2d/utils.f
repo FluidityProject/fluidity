@@ -1,14 +1,14 @@
 C ================================================================
       Subroutine uniformRefinement(
 C ================================================================
-     &      nP, MaxP, nF, MaxF, nE, MaxE,  
+     &      nP, MaxP, nF, MaxF, nE, MaxE,
      &      XYP, IPF, IPE, lbE,
      &      CrvFunction, ParCrv, iFnc, IRE,
      &      F, LDF, iW, MaxWi)
 C ================================================================
 C Routine refines the input mesh and interpolates (linearly) the
 C nodal function F(LDF, *).
-C 
+C
 C *** Remarks:
 C        1. The size of working memory is 3 * nE + nP
 C ================================================================
@@ -98,7 +98,7 @@ c ... split edges
 
 
 c ... split elements
-      kE = nEo 
+      kE = nEo
       Do n = 1, nEo
          Do i1 = 1, 3
             i2 = iref(i1 + 1)
@@ -139,14 +139,14 @@ c ... split curved edges
       End do
 
       Do n = 1, nFo
-         nC = IPF(3, n) 
+         nC = IPF(3, n)
 
          If(nC.GT.0) Then
             s = 1.0D0
 
             iloop = 0
  20         iloop = iloop + 1
-            If(iloop.GT.3) Call errMes(6004, 'uniformRefinement', 
+            If(iloop.GT.3) Call errMes(6004, 'uniformRefinement',
      &                          'Mesh is tangled after refinement')
 
             t1 = ParCrv(1, nC)
@@ -159,16 +159,16 @@ c ... split curved edges
             kP1 = IPF(1, n)
             Call aniCrv(t3, XYP(1, kP1), iFnc(nC), CrvFunction)
 
-c  ...  check for inverted elements    
-            iP1 = IPF(1, nFo + n) 
-            iP2 = IPF(2, n) 
+c  ...  check for inverted elements
+            iP1 = IPF(1, nFo + n)
+            iP2 = IPF(2, n)
 
             nEt = 0
             iE1 = 0
             Do k = 1, 2
                If(cmpE(iP1, iP2, iW(iIEP), iW(inEP), iE1, iE2)) Then
-                  Do i = 1, 3 
-                     iEt(nEt + i) = nEo + 3 * (iE2 - 1) + i 
+                  Do i = 1, 3
+                     iEt(nEt + i) = nEo + 3 * (iE2 - 1) + i
                   End do
                   iEt(nEt + 4) = iE2
                   nEt = nEt + 4
@@ -201,8 +201,8 @@ c  ...  add new curved edge
 C ================================================================
       Subroutine orientBoundary(nP, nF, nE, XYP, IPF, IPE, iW, MaxWi)
 C ================================================================
-C Routine orients the external boundary of a given mesh in such 
-C a way that the domain is on the left of an edge. In orwer words, 
+C Routine orients the external boundary of a given mesh in such
+C a way that the domain is on the left of an edge. In orwer words,
 C IPF(1, *) and IPF(2, *) are flipped if neccessary.
 C
 C *** Remarks:
@@ -231,19 +231,19 @@ c ... compute map E -> F
       Do n = 1, nE
          Do i1 = 1, 3
             ife = iW(iIFE + 3 * (n - 1) + i1 - 1)
-            If(ife.GT.0) Then 
+            If(ife.GT.0) Then
                i2 = iref(i1 + 1)
                i3 = iref(i2 + 1)
- 
-               iP1 = IPF(1, ife)  
-               iP2 = IPF(2, ife)  
-               iP3 = IPE(i3, n)  
+
+               iP1 = IPF(1, ife)
+               iP2 = IPF(2, ife)
+               iP3 = IPE(i3, n)
 
                v = calVol(XYP(1, iP1), XYP(1, iP2), XYP(1, iP3))
                If(v.GT.0D0) Call swapii(IPF(1, ife), IPF(2, ife))
             End if
          End do
-      End do      
+      End do
 
       Return
       End
@@ -253,7 +253,7 @@ c ... compute map E -> F
 C ================================================================
       Subroutine listE2R(nP, nR, nE, IPE, IRE, nEP, IEP)
 C ================================================================
-C  The routine creates connectivity lists E->R for mesh edges 
+C  The routine creates connectivity lists E->R for mesh edges
 C
 C  *** Remarks:
 C         1. Working memory is nEP(nP), IEP(3 * nE)
@@ -313,7 +313,7 @@ C ================================================================
 C ================================================================
       Subroutine listR2R(nP, nR, nE, MaxL, IPE, nRR, IRR, iW)
 C ================================================================
-C  The routine creates connectivity lists R->R for mesh edges 
+C  The routine creates connectivity lists R->R for mesh edges
 C
 C  *** Remarks:
 C         1. iW(*) - working memory of size 9 * nE
@@ -325,16 +325,16 @@ C ================================================================
       iIRE = 1
       inEP = iIRE + 3 * nE
       iIEP = inEP + nP
-      iEnd = iIEP + 3 * nE 
-      
+      iEnd = iIEP + 3 * nE
+
       Call listE2R(nP, nR, nE, IPE, iW(iIRE), iW(inEP), iW(iIEP))
 
-      inER = inEP 
+      inER = inEP
       iIER = inER + nR
       iEnd = iIER + 3 * nE
       Call backReferences(nR, nE, 3,3, iW(iIRE), iW(inER), iW(iIER))
 
-      nL = 0 
+      nL = 0
 
       i2 = 0
       Do n = 1, nR
@@ -350,7 +350,7 @@ C ================================================================
                If(iRt.EQ.n .AND. m.GT.i1) goto 100
 
                nL = nL + 1
-               If(nL.GT.MaxL) 
+               If(nL.GT.MaxL)
      &            Call errMes(2011, 'listR2R',
      &                       'user parameter MaxL is small')
 
@@ -369,7 +369,7 @@ C ================================================================
 C ================================================================
       Subroutine listR2P(nP, nR, nE, MaxR, IPE, IPR, nEP, IEP)
 C ================================================================
-C  The routine creates connectivity lists R->P for mesh edges 
+C  The routine creates connectivity lists R->P for mesh edges
 C
 C  *** Remarks:
 C         1. Working memory is nEP(nP), IEP(3 * nE)
@@ -434,7 +434,7 @@ C ================================================================
       iIEP = inEP + nP
 
       Call backReferences(nP, nE, 3,3, IPE, iW(inEP + 1), iW(iIEP + 1))
- 
+
 c ... main algorithm: array nEP is overloaded inside
       nL = 0
 
@@ -522,7 +522,7 @@ C ================================================================
       Subroutine listE2E(nP, nE, IPE, IEE, nEP, IEP)
 C ================================================================
 C  The routine computes connectivity lists E->E for neighboring
-C  triangles. 
+C  triangles.
 C
 C  *** Remarks:
 C         1. Working memory is nEP(nP), IEP(3 * nE)
@@ -561,10 +561,10 @@ C ================================================================
       Subroutine listConv(
      &           nP, nR, nE, nEP, IEP, IRE, nX, MaxX, nRP, IRP, iW)
 C ================================================================
-C  The routine convolutes unstructured maps X->Y and Y->Z to get 
+C  The routine convolutes unstructured maps X->Y and Y->Z to get
 C  the map X->Z. For examples, if X means points (P), Y means
 C  elements (E), and Z means edges (R), we get the map from a point
-C  to all edges in the elements having this point.  
+C  to all edges in the elements having this point.
 C
 C  Only the first map X->Y is structured
 C
@@ -591,7 +591,7 @@ C ================================================================
             iE = IEP(i)
 
             Do j = 1, 3
-               iR = IRE(j, iE)  
+               iR = IRE(j, iE)
                If(iW(iR).GT.0) Then
                   nX = nX + 1
                   If(nX.GT.MaxX) Call errMes(2011, 'listConv',
@@ -601,16 +601,16 @@ C ================================================================
                   iW(iR) = -iW(iR)
                End if
             End do
-         End do 
+         End do
 
          nRP(n) = nX
-        
+
 c ...    restore array iW
          Do i = nX0 + 1, nX
             iR = IRP(i)
             iW(iR) = -iW(iR)
-         End do 
-      End do      
+         End do
+      End do
 
       Return
       End
@@ -678,10 +678,10 @@ C ================================================================
       Subroutine backReferences(nP, nE, L, M, IPE, nEP, IEP)
 C ================================================================
 C Routine creates map P->E reverse to the map E->P.
-C     nEP(P) - nEP(P-1) = number of elements having common 
+C     nEP(P) - nEP(P-1) = number of elements having common
 C                         point P.
 C     IPE([nEP(P-1) + 1 : nEP(P)]) = list of elements having
-C                         common point P.  
+C                         common point P.
 C ================================================================
       Integer IPE(M, *), nEP(*), IEP(*)
 
@@ -720,6 +720,3 @@ C ================================================================
 
       Return
       End
-
-
-

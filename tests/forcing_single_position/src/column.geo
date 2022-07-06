@@ -4,10 +4,10 @@ Extrude {10000.0,0,0} {
   Point{1}; Layers{3};
 }
 Extrude {0,10000.0,0.0} {
-  Line{1}; Layers{3}; 
+  Line{1}; Layers{3};
 }
 Extrude {0.0,0.0,-100.0} {
-  Surface{5}; Layers{10}; 
+  Surface{5}; Layers{10};
 }
 //Top
 Physical Surface(38) = {5};
@@ -22,4 +22,3 @@ Physical Surface(42) = {26};
 //East
 Physical Surface(43) = {18};
 Physical Volume(44) = {1};
-

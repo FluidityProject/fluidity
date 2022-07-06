@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -13,7 +12,6 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
 """
 VTK tools
 """
@@ -28,8 +26,9 @@ import fluidity.diagnostics.elements as elements
 import fluidity.diagnostics.optimise as optimise
 import fluidity.diagnostics.simplices as simplices
 import fluidity.diagnostics.utils as utils
+import numpy as np
 import vtk
-from vtktools import *
+from vtktools import VtuMatchLocations, vtu
 
 
 def VtkSupport():
@@ -196,7 +195,7 @@ def ModelPvtuToVtu(pvtu):
 
     # Step 4: Generate the new locations
     locations = pvtu.GetLocations()
-    locations = arr([locations[i] for i in node_ids])
+    locations = np.array([locations[i] for i in node_ids])
     points = vtk.vtkPoints()
     points.SetDataTypeToDouble()
     for location in locations:
@@ -469,7 +468,7 @@ def XyPhiToVtu(x, y, phi, fieldName="Scalar"):
 
     result = XyToVtu(x, y)
 
-    lphi = arr(utils.ExpandList(utils.TransposeListList(phi)))
+    lphi = np.array(utils.ExpandList(utils.TransposeListList(phi)))
     lphi.shape = (len(x) * len(y), 1)
     result.AddScalarField(fieldName, lphi)
 
@@ -897,7 +896,7 @@ def ZeroField(components, tuples):
 
     zeros = [0.0 for i in range(components)]
     zeroField = [zeros for i in range(tuples)]
-    zeroField = arr(zeroField)
+    zeroField = np.array(zeroField)
     zeroField.shape = (tuples, components)
 
     return zeroField
@@ -1017,14 +1016,14 @@ def RotateVtuField(vtu, fieldName, axis, angle):
         newField = []
         for val in field:
             newField.append(calc.RotatedVector(val, angle, axis=axis))
-        newField = arr(newField)
+        newField = np.array(newField)
         vtu.AddVectorField(fieldName, newField)
     elif rank == 2:
         # Tensor field rotation
         newField = []
         for val in field:
             newField.append(calc.RotatedTensor(val, angle, axis=axis))
-        newField = arr(newField)
+        newField = np.array(newField)
         vtu.AddField(fieldName, newField)
     else:
         # Erm, erm ...
@@ -1219,7 +1218,7 @@ def MinVtuFieldEigenvalue(vtu, fieldName):
             calc.MinVal(calc.Eigendecomposition(val, returnEigenvectors=False))
         )
 
-    eigField = arr(eigField)
+    eigField = np.array(eigField)
 
     return eigField
 
@@ -1245,7 +1244,7 @@ def VtuGetCellField(vtu, fieldName):
     vtkdata = celldata.GetArray(fieldName)
     nc = vtkdata.GetNumberOfComponents()
     nt = vtkdata.GetNumberOfTuples()
-    array = arr([vtkdata.GetValue(i) for i in range(nc * nt)])
+    array = np.array([vtkdata.GetValue(i) for i in range(nc * nt)])
     if nc == 9:
         return array.reshape(nt, 3, 3)
     elif nc == 4:
@@ -1263,7 +1262,7 @@ def VtuAddCellField(vtu, fieldName, field):
     # The following is lifted from vtu.AddField in tools/vtktools.py (with
     # pointdata -> celldata)
     n = field.size
-    sh = arr(field.shape)
+    sh = np.array(field.shape)
     data = vtk.vtkFloatArray()
     # number of tuples is sh[0]
     # number of components is the product of the rest of sh
@@ -1438,7 +1437,8 @@ def VtuIntegrateCell(vtu, cell, fieldName):
         cellCoords.GetPoint(i)[:dim] for i in range(cellCoords.GetNumberOfPoints())
     ]
     fieldVals = [
-        arr([field.GetValue(point * nc + i) for i in range(nc)]) for point in cellPoints
+        np.array([field.GetValue(point * nc + i) for i in range(nc)])
+        for point in cellPoints
     ]
 
     return simplices.SimplexIntegral(nodeCoords, fieldVals)
@@ -1486,7 +1486,7 @@ def VtuIntegrateBinnedCells(vtu, cellBins, fieldName):
 
     nc = VtuFieldComponents(vtu, fieldName)
 
-    integral = [arr([0.0 for i in range(nc)]) for j in range(len(cellBins))]
+    integral = [np.array([0.0 for i in range(nc)]) for j in range(len(cellBins))]
     for i, bin in enumerate(cellBins):
         for cell in bin:
             integral[i] += VtuIntegrateCell(vtu, cell, fieldName)
@@ -1515,8 +1515,8 @@ def VtuMeshMerge(vtu, mesh, idsName="IDs"):
     for fieldName in VtuGetCellFieldNames(vtu):
         if fieldName == idsName:
             continue
-        cellField = arr(
-            [numpy.zeros(mesh.SurfaceElementCount()), VtuGetCellField(vtu, fieldName)]
+        cellField = np.array(
+            [np.zeros(mesh.SurfaceElementCount()), VtuGetCellField(vtu, fieldName)]
         )
         cellField.shape = (mesh.SurfaceElementCount() + mesh.VolumeElementCount(),)
         VtuAddCellField(merge, fieldName, VtuGetCellField(vtu, fieldName))
@@ -1529,7 +1529,7 @@ def VtuStripFloatingNodes(vtu):
     Strip floating (unconnected) nodes from the supplied vtu
     """
 
-    nodeUsed = arr([False for i in range(vtu.ugrid.GetNumberOfPoints())])
+    nodeUsed = np.array([False for i in range(vtu.ugrid.GetNumberOfPoints())])
     for i in range(vtu.ugrid.GetNumberOfCells()):
         cell = vtu.ugrid.GetCell(i)
         nodeIds = cell.GetPointIds()
@@ -1572,7 +1572,7 @@ def VtuStripFloatingNodes(vtu):
         field = vtu.GetField(fieldName)
         shape = list(field.shape)
         shape[0] = nnodes
-        nField = numpy.empty(shape)
+        nField = np.empty(shape)
         for node, nNode in enumerate(nodeMap):
             if nNode is not None:
                 nField[nNode] = field[node]
@@ -1596,14 +1596,14 @@ class vtutoolsUnittests(unittest.TestCase):
 
     def testVtkType(self):
         type = VtkType(dim=2, nodeCount=4)
-        self.assertEquals(type.GetVtkTypeId(), VTK_QUAD)
+        self.assertEqual(type.GetVtkTypeId(), VTK_QUAD)
         type.SetDim(3)
-        self.assertEquals(type.GetVtkTypeId(), VTK_TETRAHEDRON)
+        self.assertEqual(type.GetVtkTypeId(), VTK_TETRAHEDRON)
         type.SetNodeCount(8)
-        self.assertEquals(type.GetVtkTypeId(), VTK_HEXAHEDRON)
+        self.assertEqual(type.GetVtkTypeId(), VTK_HEXAHEDRON)
         type.SetVtkTypeId(VTK_LINE)
-        self.assertEquals(type.GetDim(), 1)
-        self.assertEquals(type.GetNodeCount(), 2)
+        self.assertEqual(type.GetDim(), 1)
+        self.assertEqual(type.GetNodeCount(), 2)
         self.assertRaises(KeyError, type.SetVtkTypeId, VTK_UNKNOWN)
         self.assertRaises(AssertionError, type.SetDim, -1)
         self.assertRaises(AssertionError, type.SetNodeCount, -1)
@@ -1620,12 +1620,12 @@ class vtutoolsUnittests(unittest.TestCase):
         points.InsertNextPoint(1.0, -2.0, 3.0)
         vtu.ugrid.SetPoints(points)
         lbound, ubound = VtuBoundingBox(vtu).GetBounds()
-        self.assertAlmostEquals(lbound[0], -1.0)
-        self.assertAlmostEquals(lbound[1], -2.0)
-        self.assertAlmostEquals(lbound[2], -3.0)
-        self.assertAlmostEquals(ubound[0], 1.0)
-        self.assertAlmostEquals(ubound[1], 2.0)
-        self.assertAlmostEquals(ubound[2], 3.0)
+        self.assertAlmostEqual(lbound[0], -1.0)
+        self.assertAlmostEqual(lbound[1], -2.0)
+        self.assertAlmostEqual(lbound[2], -3.0)
+        self.assertAlmostEqual(ubound[0], 1.0)
+        self.assertAlmostEqual(ubound[1], 2.0)
+        self.assertAlmostEqual(ubound[2], 3.0)
 
         return
 
@@ -1633,13 +1633,13 @@ class vtutoolsUnittests(unittest.TestCase):
         import vtktools
 
         vtu = vtktools.vtu()
-        self.assertEquals(VtuDim(vtu), 0)
+        self.assertEqual(VtuDim(vtu), 0)
 
         points = vtk.vtkPoints()
         points.SetDataTypeToDouble()
         points.InsertNextPoint(0.0, 0.0, 0.0)
         points.InsertNextPoint(0.0, 0.0, 1.0)
         vtu.ugrid.SetPoints(points)
-        self.assertEquals(VtuDim(vtu), 1)
+        self.assertEqual(VtuDim(vtu), 1)
 
         return

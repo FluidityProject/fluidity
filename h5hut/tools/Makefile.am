@@ -23,4 +23,3 @@ h5pAttrib_SOURCES = h5pAttrib.cc
 #h5pToGNUplot_SOURCES = h5pToGNUplot.cc
 
 clean: clean-am
-

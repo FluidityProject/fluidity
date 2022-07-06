@@ -35,13 +35,13 @@
 #include "mesh.h"
 #include "LUTs.h"
 
-/* This is the migrate routine to be called by EVENT. After the second 
+/* This is the migrate routine to be called by EVENT. After the second
  * route has been called, and EVENT has it's new mesh, it is responsible for
  * creating it's new node-element list.
  */
-void emigrate1_(const int *PNodes, const int *NNodes, const int *NElems,  
+void emigrate1_(const int *PNodes, const int *NNodes, const int *NElems,
 		const int *scatter, const int *ATOREC, const int *NScatter,
-		const int *gather, const int *ATOSEN, const int *NGather, 
+		const int *gather, const int *ATOSEN, const int *NGather,
 		const int *ENLIST, const int *ENLBAS, const int *SZENLS,
 		const int *NELIST, const int *NELBAS, const int *SZNELS,
 		const int *ITYP, const int *IAVR, const int *IMAT, const int *ISOR,
@@ -52,30 +52,30 @@ void emigrate1_(const int *PNodes, const int *NNodes, const int *NElems,
 		int *F_NewPNodes, int *F_NewNNodes, int *F_NewSZENLS,
 		int *F_NewNScatter, int *F_NewNGather,
 		int *IERROR){
-  
+
   int MyRank, NProcs;
   int i,j, *PNodesPerProc, *NNodesPerProc, err;
   long int *G_scatter, *G_gather;
   int *scatterCnt, *gatherCnt, *tmptr;
   long int refnum;
-  
+
   MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
   MPI_Comm_size(MPI_COMM_WORLD, &NProcs);
-  
+
   /* Convert data to horizons internal graph format.
    */
   if((err=event2internal((const int)*NNodes,
 			 (const int)*PNodes,
 			 (const int)*NElems,
 			 (const int)*TOTUNS,
-			 (const int *)ITYP, 
-			 (const int *)IAVR, 
-			 (const int *)IMAT, 
+			 (const int *)ITYP,
+			 (const int *)IAVR,
+			 (const int *)IMAT,
 			 (const int *)ISOR,
-			 (const coord_t *)NODX, 
-			 (const coord_t *)NODY, 
+			 (const coord_t *)NODX,
+			 (const coord_t *)NODY,
 			 (const coord_t *)NODZ,
-			 (const metric_t *)METRIC, 
+			 (const metric_t *)METRIC,
 			 (const field_t *)FIELDS,
 			 (const int *)ENLIST,
 			 (const int *)ENLBAS,
@@ -90,18 +90,18 @@ void emigrate1_(const int *PNodes, const int *NNodes, const int *NElems,
 			 (const int *)gather,
 			 (const int)*NGather,
 			 (const int)*TOTUNS,
-			 (const char)*ZeroOffset))<0){    
+			 (const char)*ZeroOffset))<0){
     *IERROR = err;
     return;
   }
-  
+
   /* Send around new nodes according to NODDOM.
    */
   if( (err = migrate(NODDOM))<0){
     *IERROR = err;
     return;
   }
-  
+
   /* Send back.
    */
   *F_NewPNodes   = NumNodes;
@@ -110,35 +110,35 @@ void emigrate1_(const int *PNodes, const int *NNodes, const int *NElems,
   *F_NewNScatter = meshNSCAT;
   *F_NewNGather  = meshNGATH;
 
-  return; 
+  return;
 }
 
 void emigrate2_(const int *OldNNodes,
 		int *scatter, int *ATOREC, int *NScatter,
-		int *gather,  int *ATOSEN, int *NGather, 
+		int *gather,  int *ATOSEN, int *NGather,
 		int *ENLIST,  int *ENLBAS, int *SZENLS,
 		int *ITYP, int *IAVR, int *IMAT, int *ISOR,
 		int *ZeroOffset, coord_t *NODX, coord_t *NODY, coord_t *NODZ,
 		metric_t *METRIC, field_t *FIELDS,
 		int *TOTUNS,
-		int *F_NewPNodes, int *F_NewNNodes, int *F_NewSZENLS, 
+		int *F_NewPNodes, int *F_NewNNodes, int *F_NewSZENLS,
 		int *IERROR){
   int n,i,j,cnt, MyRank, NProcs;
-  
+
   MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
   MPI_Comm_size(MPI_COMM_WORLD, &NProcs);
 
   /* Write the new halo. */
-  for(i=0;i<NProcs+1;i++) 
-    ATOREC[i] = meshATOREC[i] + (*ZeroOffset);  
-  for(i=0; i<meshNSCAT;i++) 
+  for(i=0;i<NProcs+1;i++)
+    ATOREC[i] = meshATOREC[i] + (*ZeroOffset);
+  for(i=0; i<meshNSCAT;i++)
     scatter[i] = meshScatter[i];
-  
-  for(i=0;i<NProcs+1;i++)    
-    ATOSEN[i] = meshATOSEN[i] + (*ZeroOffset);  
-  for(i=0; i<meshNGATH;i++) 
+
+  for(i=0;i<NProcs+1;i++)
+    ATOSEN[i] = meshATOSEN[i] + (*ZeroOffset);
+  for(i=0; i<meshNGATH;i++)
     gather[i] = meshGather[i];
-  
+
   /* Write node-wise values.
    */
   for(n=0; n<NumNodes; n++){
@@ -147,7 +147,7 @@ void emigrate2_(const int *OldNNodes,
 #ifndef MESH_2D
     NODZ[n]            = node_list[n].x[2];
 #endif
-    
+
 #ifdef USING_ADAPTIVITY
 #ifndef MESH_2D
     memcpy(METRIC+i*9, &node_list[i].metric[0], 9*sizeof(metric_t));
@@ -155,30 +155,14 @@ void emigrate2_(const int *OldNNodes,
     memcpy(METRIC+i*4, &node_list[i].metric[0], 4*sizeof(metric_t));
 #endif
 #endif
-    
+
     memcpy(FIELDS+i*(*TOTUNS), node_list[n].fields, (*TOTUNS)*sizeof(field_t));
   }
-  
+
   /* Wrap-up.
    */
   G2L_free();
   mesh_free();
 
-  return; 
+  return;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

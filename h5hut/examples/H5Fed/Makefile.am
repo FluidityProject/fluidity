@@ -57,4 +57,3 @@ endif
 
 clean-local:
 	$(RM) *.h5 *~
-

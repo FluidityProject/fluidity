@@ -10,8 +10,8 @@ XS-Python-Version: >= 2.5
 Package: spud-diamond
 Architecture: all
 Depends: ${python3:Depends}, python3-gi, python3-lxml, libxml2-utils, python3, spudtools, python3-dxdiff, python3-future, ${misc:Depends}
-Recommends: 
-Suggests: 
+Recommends:
+Suggests:
 Conflicts: python-diamond, diamond
 Replaces: python-diamond
 Provides: ${python:Provides}
@@ -30,8 +30,8 @@ Recommends: spud-diamond
 Section: libdevel
 Suggests:
 Description: An automatic options system for scientific models.
- Spud is an automatic options system which reads an xml options file 
- into a dictionary for immediate access from within the model. The xml 
+ Spud is an automatic options system which reads an xml options file
+ into a dictionary for immediate access from within the model. The xml
  file is generated using a spud-compatible RELAX NG schema and a
  schema-aware editor such as Diamond.
 
@@ -44,8 +44,8 @@ Replaces: libspud-dev (<<1.0.6)
 Section: science
 Suggests:
 Description: An automatic options system for scientific models.
- Spud is an automatic options system which reads an xml options file 
- into a dictionary for immediate access from within the model. The xml 
+ Spud is an automatic options system which reads an xml options file
+ into a dictionary for immediate access from within the model. The xml
  file is generated using a spud-compatible RELAX NG schema and a
  schema-aware editor such as Diamond. Spudtools contains the schema
  for the spud base language and the spud-preprocess script for
@@ -59,8 +59,8 @@ Architecture: any
 X-Python-Version: ${python:Versions}
 Depends: libspud-dev (= ${binary:Version}), ${python3:Depends}, ${shlibs:Depends}, ${misc:Depends}
 Description: An automatic options system for scientific models (python interface).
- Spud is an automatic options system which reads an xml options file 
- into a dictionary for immediate access from within the model. The xml 
+ Spud is an automatic options system which reads an xml options file
+ into a dictionary for immediate access from within the model. The xml
  file is generated using a spud-compatible RELAX NG schema and a
  schema-aware editor such as Diamond. This package contains the Python
  bindings for libspud.

@@ -12,170 +12,196 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
-
-from gi.repository import GObject as gobject
-from gi.repository import Gtk as gtk
-from gi.repository import GLib as glib
 import os
 import threading
+
+from gi.repository import GLib as glib
+from gi.repository import GObject as gobject
+from gi.repository import Gtk as gtk
 
 from . import schemausage
 
 RELAXNGNS = "http://relaxng.org/ns/structure/1.0"
 RELAXNG = "{" + RELAXNGNS + "}"
 
+
 class UseView(gtk.Window):
-  def __init__(self, schema, suffix, folder = None):
-    gtk.Window.__init__(self)
-    self.__add_controls()
+    def __init__(self, schema, suffix, folder=None):
+        gtk.Window.__init__(self)
+        self.__add_controls()
 
-    if folder is None:
-      dialog = gtk.FileChooserDialog(title = "Input directory",
-                                   action = gtk.FileChooserAction.SELECT_FOLDER,
-                                   buttons = (gtk.STOCK_CANCEL, gtk.ResponseType.CANCEL, gtk.STOCK_OPEN, gtk.ResponseType.OK))
+        if folder is None:
+            dialog = gtk.FileChooserDialog(
+                title="Input directory",
+                action=gtk.FileChooserAction.SELECT_FOLDER,
+                buttons=(
+                    gtk.STOCK_CANCEL,
+                    gtk.ResponseType.CANCEL,
+                    gtk.STOCK_OPEN,
+                    gtk.ResponseType.OK,
+                ),
+            )
 
-      response = dialog.run()
-      if response != gtk.ResponseType.OK:
-        dialog.destroy()
-        return
+            response = dialog.run()
+            if response != gtk.ResponseType.OK:
+                dialog.destroy()
+                return
 
-      folder = os.path.abspath(dialog.get_filename())
-      dialog.destroy()
-    #endif
+            folder = os.path.abspath(dialog.get_filename())
+            dialog.destroy()
+        # endif
 
-    paths = []
-    for dirpath, dirnames, filenames in os.walk(folder):
-      paths.extend([os.path.join(dirpath, filename) for filename in filenames if filename.endswith(suffix)])
+        paths = []
+        for dirpath, dirnames, filenames in os.walk(folder):
+            paths.extend(
+                [
+                    os.path.join(dirpath, filename)
+                    for filename in filenames
+                    if filename.endswith(suffix)
+                ]
+            )
 
-    self.__update(schema, paths)
-    self.show_all()
+        self.__update(schema, paths)
+        self.show_all()
 
-  def __add_controls(self): 
-    self.set_title("Unused schema entries")
-    self.set_default_size(800, 600)
+    def __add_controls(self):
+        self.set_title("Unused schema entries")
+        self.set_default_size(800, 600)
 
-    vbox = gtk.VBox()
+        vbox = gtk.VBox()
 
-    scrolledwindow = gtk.ScrolledWindow()
-    scrolledwindow.set_policy(gtk.PolicyType.AUTOMATIC, gtk.PolicyType.AUTOMATIC)
+        scrolledwindow = gtk.ScrolledWindow()
+        scrolledwindow.set_policy(gtk.PolicyType.AUTOMATIC, gtk.PolicyType.AUTOMATIC)
 
-    self.treeview = gtk.TreeView()
+        self.treeview = gtk.TreeView()
 
-    self.treeview.get_selection().set_mode(gtk.SelectionMode.SINGLE)
+        self.treeview.get_selection().set_mode(gtk.SelectionMode.SINGLE)
 
-    # Node column
-    celltext = gtk.CellRendererText()
-    column = gtk.TreeViewColumn("Node", celltext)
-    column.set_cell_data_func(celltext, self.set_celltext, None)
+        # Node column
+        celltext = gtk.CellRendererText()
+        column = gtk.TreeViewColumn("Node", celltext)
+        column.set_cell_data_func(celltext, self.set_celltext, None)
 
-    self.treeview.append_column(column)
+        self.treeview.append_column(column)
 
-    # 0: The node tag
-    # 1: Used (0 == Not used, 1 = Child not used, 2 = Used)
-    self.treestore = gtk.TreeStore(gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT)
-    self.treeview.set_enable_search(False)
+        # 0: The node tag
+        # 1: Used (0 == Not used, 1 = Child not used, 2 = Used)
+        self.treestore = gtk.TreeStore(gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT)
+        self.treeview.set_enable_search(False)
 
-    scrolledwindow.add(self.treeview)
-    vbox.pack_start(scrolledwindow, True, True, 0)
+        scrolledwindow.add(self.treeview)
+        vbox.pack_start(scrolledwindow, True, True, 0)
 
-    self.statusbar = gtk.Statusbar()
-    vbox.pack_end(self.statusbar, False, True, 0)
-    self.add(vbox)
+        self.statusbar = gtk.Statusbar()
+        vbox.pack_end(self.statusbar, False, True, 0)
+        self.add(vbox)
 
-  def __set_treestore(self, node):
-    def set_treestore(node, iter, type):
-      if node.tag == RELAXNG + "element":
-        name = schemausage.node_name(node)
-        if name == "comment":
-          return #early out to skip comment nodes
+    def __set_treestore(self, node):
+        def set_treestore(node, iter, type):
+            if node.tag == RELAXNG + "element":
+                name = schemausage.node_name(node)
+                if name == "comment":
+                    return  # early out to skip comment nodes
 
-        tag = name + (type if type else "")
-        child_iter = self.treestore.append(iter, [tag, 2])
-        self.mapping[self.tree.getpath(node)] = self.treestore.get_path(child_iter)
-        type = None
-      elif node.tag == RELAXNG + "choice" and all(n.tag != RELAXNG + "value" for n in node):
-        tag = "choice" + (type if type else "")
-        child_iter = self.treestore.append(iter, [tag, 2])
-        self.mapping[self.tree.getpath(node)] = self.treestore.get_path(child_iter)
-        type = None
-      elif node.tag == RELAXNG + "optional":
-        child_iter = iter
-        type = " ?"
-      elif node.tag == RELAXNG + "oneOrMore":
-        child_iter = iter
-        type = " +"
-      elif node.tag == RELAXNG + "zeroOrMore":
-        child_iter = iter
-        type = " *"
-      elif node.tag == RELAXNG + "ref":
-        query = '/t:grammar/t:define[@name="' + node.get("name") + '"]'
-        if query not in cache:
-          cache[query] = self.tree.xpath(query, namespaces={'t': RELAXNGNS})[0]
-        node = cache[query]
-        child_iter = iter
-      elif node.tag == RELAXNG + "group" or node.tag == RELAXNG + "interleave":
-        child_iter = iter
-      else:
-        return
+                tag = name + (type if type else "")
+                child_iter = self.treestore.append(iter, [tag, 2])
+                self.mapping[self.tree.getpath(node)] = self.treestore.get_path(
+                    child_iter
+                )
+                type = None
+            elif node.tag == RELAXNG + "choice" and all(
+                n.tag != RELAXNG + "value" for n in node
+            ):
+                tag = "choice" + (type if type else "")
+                child_iter = self.treestore.append(iter, [tag, 2])
+                self.mapping[self.tree.getpath(node)] = self.treestore.get_path(
+                    child_iter
+                )
+                type = None
+            elif node.tag == RELAXNG + "optional":
+                child_iter = iter
+                type = " ?"
+            elif node.tag == RELAXNG + "oneOrMore":
+                child_iter = iter
+                type = " +"
+            elif node.tag == RELAXNG + "zeroOrMore":
+                child_iter = iter
+                type = " *"
+            elif node.tag == RELAXNG + "ref":
+                query = '/t:grammar/t:define[@name="' + node.get("name") + '"]'
+                if query not in cache:
+                    cache[query] = self.tree.xpath(query, namespaces={"t": RELAXNGNS})[
+                        0
+                    ]
+                node = cache[query]
+                child_iter = iter
+            elif node.tag == RELAXNG + "group" or node.tag == RELAXNG + "interleave":
+                child_iter = iter
+            else:
+                return
 
-      for child in node:
-        set_treestore(child, child_iter, type)
+            for child in node:
+                set_treestore(child, child_iter, type)
 
-    cache = {}
-    set_treestore(node, None, None)
+        cache = {}
+        set_treestore(node, None, None)
 
-  def __set_useage(self, useage):
-    for xpath in useage:
-      try:
-        iter = self.treestore.get_iter(self.mapping[xpath])
-        self.treestore.set_value(iter, 1, 0)
-      except KeyError:
-        pass #probably a comment node
+    def __set_useage(self, useage):
+        for xpath in useage:
+            try:
+                iter = self.treestore.get_iter(self.mapping[xpath])
+                self.treestore.set_value(iter, 1, 0)
+            except KeyError:
+                pass  # probably a comment node
 
-  def __floodfill(self, iter, parent = 2):
-    """
-    Floodfill the tree with the correct useage.
-    """
-    if parent == 0: #parent is not used
-      self.treestore.set_value(iter, 1, 0) #color us not used
+    def __floodfill(self, iter, parent=2):
+        """
+        Floodfill the tree with the correct useage.
+        """
+        if parent == 0:  # parent is not used
+            self.treestore.set_value(iter, 1, 0)  # color us not used
 
-    useage = self.treestore.get_value(iter, 1)
+        useage = self.treestore.get_value(iter, 1)
 
-    child = self.treestore.iter_children(iter)
-    while child is not None:
-      change = self.__floodfill(child, useage)
-      if change != 2 and useage == 2:
-        self.treestore.set(iter, 1, 1)
-      child = self.treestore.iter_next(child)
+        child = self.treestore.iter_children(iter)
+        while child is not None:
+            change = self.__floodfill(child, useage)
+            if change != 2 and useage == 2:
+                self.treestore.set(iter, 1, 1)
+            child = self.treestore.iter_next(child)
 
-    return self.treestore.get_value(iter, 1)
- 
+        return self.treestore.get_value(iter, 1)
 
-  def __update(self, schema, paths):
-    self.tree = schema.tree
-    start = self.tree.xpath('/t:grammar/t:start', namespaces={'t': RELAXNGNS})[0]
-    self.mapping = {}
+    def __update(self, schema, paths):
+        self.tree = schema.tree
+        start = self.tree.xpath("/t:grammar/t:start", namespaces={"t": RELAXNGNS})[0]
+        self.mapping = {}
 
-    def async_update(self, start, schema, paths, context):
-      glib.idle_add(self.statusbar.push, context, "Parsing schema")
-      self.__set_treestore(start[0])
-      glib.idle_add(self.statusbar.push, context, "Schema parsed... finding usage")
-      self.__set_useage(schemausage.find_unusedset(schema, paths))
-      glib.idle_add(self.statusbar.push, context, "Usage found")
-      self.__floodfill(self.treestore.get_iter_first())
-      glib.idle_add(self.statusbar.push, context, "")
-      glib.idle_add(self.treeview.set_model, self.treestore)
+        def async_update(self, start, schema, paths, context):
+            glib.idle_add(self.statusbar.push, context, "Parsing schema")
+            self.__set_treestore(start[0])
+            glib.idle_add(
+                self.statusbar.push, context, "Schema parsed... finding usage"
+            )
+            self.__set_useage(schemausage.find_unusedset(schema, paths))
+            glib.idle_add(self.statusbar.push, context, "Usage found")
+            self.__floodfill(self.treestore.get_iter_first())
+            glib.idle_add(self.statusbar.push, context, "")
+            glib.idle_add(self.treeview.set_model, self.treestore)
 
-    t = threading.Thread(target = async_update, args = (self, start, schema, paths, self.statusbar.get_context_id("update")))
-    t.start()
+        t = threading.Thread(
+            target=async_update,
+            args=(self, start, schema, paths, self.statusbar.get_context_id("update")),
+        )
+        t.start()
 
-  def set_celltext(self, column, cell, model, iter, data=None):
-    tag, useage = model.get(iter, 0, 1)
-    cell.set_property("text", tag)
+    def set_celltext(self, column, cell, model, iter, data=None):
+        tag, useage = model.get(iter, 0, 1)
+        cell.set_property("text", tag)
 
-    if useage == 0:
-      cell.set_property("foreground", "red")
-    elif useage == 1:
-      cell.set_property("foreground", "indianred")
-    else:
-      cell.set_property("foreground", "black")
+        if useage == 0:
+            cell.set_property("foreground", "red")
+        elif useage == 1:
+            cell.set_property("foreground", "indianred")
+        else:
+            cell.set_property("foreground", "black")

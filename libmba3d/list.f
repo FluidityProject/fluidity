@@ -14,16 +14,16 @@ C     (d) exclude an element from the list
 C     (e) careful check the list data
 C
 C *** Remarsk:
-C         1. This is the new version of list routines. It requires 
-C            double memory for L2E (compared to the old version), 
-C            and use iCntl(4) instead of nstep. Besides, it uses 
+C         1. This is the new version of list routines. It requires
+C            double memory for L2E (compared to the old version),
+C            and use iCntl(4) instead of nstep. Besides, it uses
 C            iCntl as the input data to be defined outside:
 C
 C            iCntl(1) is typical interval length, we recommEnd sqrt(nEStar)
-C            iCntl(2) is rank of interval length belonging to 
+C            iCntl(2) is rank of interval length belonging to
 C                     [iCntl(1)-iCntl(2), iCntl(1)+iCntl(2)]
 C            iCntl(3) is the pointer to the middle of L2E
-C            iCntl(4) is the output channel in case of debugging 
+C            iCntl(4) is the output channel in case of debugging
 C                     (=0 for no debugging)
 C
 C ================================================================
@@ -97,7 +97,7 @@ C ================================================================
 
 
       iPrevL2 = PrevL2iE( nL2, L2E, qE, iE, L1E )
-         
+
 
       If (L1E(1,iE).ne.0) Then
          L1E(2,L1E(1,iE)) = L1E(2,iE)
@@ -134,7 +134,7 @@ C ================================================================
              L2E(i) = L1E(2,L2E(i))
           End do
 c  ...    the last one may be just positive !!!
-          If(L2E(ipos2+nL2) - 1.ge.1) Then 
+          If(L2E(ipos2+nL2) - 1.ge.1) Then
               L2E(ipos2+nL2) = L2E(ipos2+nL2) - 1
           Else
               If (L2E(nL2).ne.0) Then
@@ -199,7 +199,7 @@ c ... add new element
       End if
 
  1    Continue
-      Return  
+      Return
       End Subroutine lstUpd
 
 
@@ -216,7 +216,7 @@ C ================================================================
 
       Integer            nstep,nthr,ipos2
 
-      Integer            ia,i,iPrevL2,ib 
+      Integer            ia,i,iPrevL2,ib
 
 C ================================================================
       nstep = iCntl(1)
@@ -263,7 +263,7 @@ C ================================================================
              L2E(i) = L1E(2,L2E(i))
           End do
 c  ...   the last one may be just positive !!!
-          If(L2E(ipos2+nL2) - 1.ge.1) Then 
+          If(L2E(ipos2+nL2) - 1.ge.1) Then
               L2E(ipos2+nL2) = L2E(ipos2+nL2) - 1
           Else
               If (L2E(nL2).ne.0) Then
@@ -278,7 +278,7 @@ c  ...   the last one may be just positive !!!
       LHol(1) = LHol(1) + 1
       LHol(LHol(1)+1) = iE
 
-      Return  
+      Return
       End Subroutine lstDel
 
 
@@ -297,7 +297,7 @@ C ================================================================
       Integer           iPrevL1,iNextL1,iPrevL2,iLast,i,k,ib
 
       Logical           flagFP
-  
+
 C ================================================================
       nstep = iCntl(1)
       nthr  = iCntl(2)
@@ -376,7 +376,7 @@ C ================================================================
       Integer          L2E(*), nL2
       Double Precision qE(*),qiE
 
-      Integer          i1,i2,i3  
+      Integer          i1,i2,i3
 
 C ================================================================
       If (qiE.lt.qE(L2E(1))) Then
@@ -393,14 +393,14 @@ C ================================================================
       Do while (.true.)
         i3 = (i1+i2)/2
         If (i1.eq.i2) Then
-          PrevL2 = i1 
+          PrevL2 = i1
           Return
         End if
         If (i1.eq.i2-1) Then
           If (qiE.lt.qE(L2E(i2))) Then
-              PrevL2 = i1 
+              PrevL2 = i1
           Else
-              PrevL2 = i2 
+              PrevL2 = i2
           End if
           Return
         End if
@@ -450,7 +450,7 @@ C ================================================================
         End if
         If (i1.eq.i2-1) Then
           If (qiE.lt.qE(L2E(i2))) Then
-              i = i1 +1 
+              i = i1 +1
           Else
               i = i2 +1
           End if
@@ -467,7 +467,7 @@ C ================================================================
       Do ii = i, 2, -1
        j = L2E(ii)
        Do while (.true.)
-          If(j.eq.iE) Goto 33 
+          If(j.eq.iE) Goto 33
           k = L1E(1,j)
           If(k.eq.L2E(ii-1)) Goto 44
           j = k
@@ -484,7 +484,7 @@ C ================================================================
            Do ii = nL2, 2, -1
             j = L2E(ii)
             Do while (.true.)
-               If(j.eq.iE) Goto 888 
+               If(j.eq.iE) Goto 888
                k = L1E(1,j)
                If(k.eq.L2E(ii-1)) Goto 999
                j = k
@@ -498,7 +498,7 @@ C ================================================================
       Return
       End Function PrevL2iE
 
-  
+
 
 C ================================================================
       Integer Function PrevL1(L1E, L2E, iPrevL2, qE, qiE)

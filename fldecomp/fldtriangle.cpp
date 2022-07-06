@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -37,13 +37,13 @@
 
 
 
-void write_partitions_triangle(bool verbose, 
+void write_partitions_triangle(bool verbose,
                   string filename, string file_format,
                   int nparts, int nnodes, int dim, int no_coords,
                   const vector<double>&x, const vector<int>& decomp,
-                  int nloc, const vector<int>& ENList, 
-                  const vector<int>& regionIds, 
-                  int snloc, const deque< vector<int> >& SENList, 
+                  int nloc, const vector<int>& ENList,
+                  const vector<int>& regionIds,
+                  int snloc, const deque< vector<int> >& SENList,
                   const vector<int>& boundaryIds)
 {
   // Construct:
@@ -57,7 +57,7 @@ void write_partitions_triangle(bool verbose,
   //   halo2    - receive nodes (numbered from one) in the second halo for
   //              each partition
   // where in each case partitions are numbered from zero.
-  
+
 
   if(verbose)
     cout<<"void write_partitions_triangle( ... )";
@@ -79,14 +79,14 @@ void write_partitions_triangle(bool verbose,
   for(int part=0; part<nparts; part++){
     if(verbose)
       cout<<"Making partition "<<part<<endl;
-    
+
     deque<int> *nodes = new deque<int>;
     deque<int> *elements = new deque<int>;
 
     vector<bool> *halo_nodes = new vector<bool>(nnodes, false);
     vector<bool> *more_halo_nodes = new vector<bool>(nnodes, false);
-    
-    // Find owned nodes 
+
+    // Find owned nodes
     for(int nid=0; nid<nnodes; nid++){
       if(decomp[nid]==part)
         nodes->push_back(nid+1);
@@ -103,16 +103,16 @@ void write_partitions_triangle(bool verbose,
       if(decomp[ENList[eid*nloc] - 1]!=part){
         halo_count++;
       }
-      
+
       for(int j=1;j<nloc;j++){
         owned_elm->first = min(owned_elm->first, decomp[ENList[eid*nloc+j] - 1]);
         if(decomp[ENList[eid*nloc+j] - 1]!=part){
           halo_count++;
         }
-      } 
-      
+      }
+
       if(halo_count<nloc){
-        sorted_elements->push_back(*owned_elm);        
+        sorted_elements->push_back(*owned_elm);
         if(halo_count>0){
           for(int j=0;j<nloc;j++){
             int nid = ENList[eid*nloc+j] - 1;
@@ -139,7 +139,7 @@ void write_partitions_triangle(bool verbose,
 
     if(verbose)
       cout<<"Sorted elements\n";
-    
+
     // Find halo2 elements and nodes
     set<int> *halo2_elements = new set<int>;
     for(int eid=0; eid<nelms; eid++){
@@ -147,9 +147,9 @@ void write_partitions_triangle(bool verbose,
       bool touches_halo1=false;
       for(int j=0;j<nloc;j++){
         int fnid = ENList[eid*nloc+j];
-        
+
         touches_halo1 = touches_halo1 || (*halo_nodes)[fnid-1];
-        
+
         if(decomp[fnid-1]==part)
           owned_node_count++;
       }
@@ -171,12 +171,12 @@ void write_partitions_triangle(bool verbose,
 
     for(int i=0;i<nparts;i++)
       halo2[part][i].insert(halo1[part][i].begin(), halo1[part][i].end());
-    
+
     for(int i=0;i<nnodes;i++)
       if((*halo_nodes)[i])
         nodes->push_back(i+1);
     delete halo_nodes;
-    
+
     for(int i=0;i<nnodes;i++)
       if((*more_halo_nodes)[i])
         nodes->push_back(i+1);
@@ -188,17 +188,17 @@ void write_partitions_triangle(bool verbose,
 
     if(verbose)
       cout<<"Partition: "<<part<<", Private nodes: "<<npnodes[part]<<", Total nodes: "<<nodes->size()<<"\n";
-    
+
     // Write out data for each partition
     if(verbose)
       cout<<"Write mesh data for partition "<<part<<"\n";
-    
-    // Map from global node numbering (numbered from one) to partition node 
+
+    // Map from global node numbering (numbered from one) to partition node
     // numbering (numbered from one)
     for(size_t j=0;j<nodes->size();j++){
       renumber[part].insert(renumber[part].end(), pair<int, int>((*nodes)[j], j+1));
     }
-    
+
     // Coordinate data
     vector<double> *partX = new vector<double>(nodes->size()*no_coords);
     for(size_t j=0;j<nodes->size();j++){
@@ -213,7 +213,7 @@ void write_partitions_triangle(bool verbose,
 
     vector<int> *partRegionIds = new vector<int>;
     partRegionIds->reserve(elements->size());
-    
+
     // Map from partition node numbers (numbered from one) to partition
     // element numbers (numbered from zero)
     vector< set<int> > *partNodesToEid = new vector< set<int> >(nodes->size()+1);
@@ -229,7 +229,7 @@ void write_partitions_triangle(bool verbose,
       partRegionIds->push_back(regionIds[*iter]);
       ecnt++;
     }
-    
+
     // Surface element data
     vector<int> *partSENList = new vector<int>;
     vector<int> *partBoundaryIds = new vector<int>;
@@ -242,7 +242,7 @@ void write_partitions_triangle(bool verbose,
          (*partNodesToEid)[renumber[part].find(SENList[j][0])->second].empty()){
         continue;
       }
-      
+
       bool SEOwned=false;
       set<int> &lpartNodesToEid = (*partNodesToEid)[renumber[part].find(SENList[j][0])->second];
       for(set<int>::const_iterator iter=lpartNodesToEid.begin();iter!=lpartNodesToEid.end();iter++){
@@ -252,7 +252,7 @@ void write_partitions_triangle(bool verbose,
           VENodes->insert((*partENList)[k]);
         }
         for(size_t k=1;k<SENList[j].size();k++){
-          if(renumber[part].find(SENList[j][k])==renumber[part].end() or 
+          if(renumber[part].find(SENList[j][k])==renumber[part].end() or
              VENodes->count(renumber[part].find(SENList[j][k])->second)==0){
             SEOwned=false;
             break;
@@ -344,44 +344,44 @@ void write_partitions_triangle(bool verbose,
       cout<<"Extracting halo data for partition "<<i<<"\n";
     map<int, vector< vector<int> > > send, recv;
     map<int, int> npnodes_handle;
-    
+
     recv[halo1_level].resize(nparts);
     send[halo1_level].resize(nparts);
-    
+
     recv[halo2_level].resize(nparts);
     send[halo2_level].resize(nparts);
-    
+
     for(int j=0;j<nparts;j++){
       for(set<int>::const_iterator it=halo1[i][j].begin();it!=halo1[i][j].end();++it){
         recv[halo1_level][j].push_back(renumber[i][*it]);
       }
       for(set<int>::const_iterator it=halo1[j][i].begin();it!=halo1[j][i].end();++it){
         send[halo1_level][j].push_back(renumber[i][*it]);
-      } 
-      
+      }
+
       for(set<int>::const_iterator it=halo2[i][j].begin();it!=halo2[i][j].end();++it){
         recv[halo2_level][j].push_back(renumber[i][*it]);
       }
       for(set<int>::const_iterator it=halo2[j][i].begin();it!=halo2[j][i].end();++it){
         send[halo2_level][j].push_back(renumber[i][*it]);
-      } 
+      }
     }
-    
+
     npnodes_handle[halo1_level]=npnodes[i];
     npnodes_handle[halo2_level]=npnodes[i];
-    
+
     ostringstream buffer;
     buffer<<filename<<"_"<<i<<".halo";
     if(verbose)
       cout<<"Writing out halos for partition "<<i<<" to file "<<buffer.str()<<"\n";
-    
+
     if(WriteHalos(buffer.str(), i, nparts, npnodes_handle, send, recv)){
       cerr<<"ERROR: failed to write halos to file "<<buffer.str()<<endl;
       exit(-1);
     }
     buffer.str("");
   }
-  
+
   return;
 }
 
@@ -420,7 +420,7 @@ int decomp_triangle( map<char, string> flArgs, bool verbose,
         <<", cannot be opened. Does it exist? Have you read permission?\n";
     exit(-1);
   }
-  
+
   int nnodes, dim, natt, nboundary;
   node_file>>nnodes>>dim>>natt>>nboundary;
   if(extruded){
@@ -429,7 +429,7 @@ int decomp_triangle( map<char, string> flArgs, bool verbose,
           <<"of attributes in the .node file.\n";
     }
   }
-  
+
   int no_coords; // The number of coordinates
   if(shell){
     no_coords=dim+1; // Shell meshes have and x, y and z coordinate.
@@ -441,7 +441,7 @@ int decomp_triangle( map<char, string> flArgs, bool verbose,
   vector<int> surface_nids;
   if(extruded||(natt==1))
     surface_nids.resize(nnodes);
-  
+
   {
     int id, pos=0;
     for(int i=0;i<nnodes;i++){
@@ -466,7 +466,7 @@ int decomp_triangle( map<char, string> flArgs, bool verbose,
         <<", cannot be opened. Does it exist? Have you read permission?\n";
     exit(-1);
   }
-  
+
   vector<int> ENList, regionIds;
   int nele, nloc;
   {
@@ -508,15 +508,15 @@ int decomp_triangle( map<char, string> flArgs, bool verbose,
     cout<<"Reading "<<filename_face<<endl;
 
   fstream face_file;
-  
+
   face_file.open(filename_face.c_str(), ios::in);
-  
+
   if(!face_file.is_open()){
     cerr<<"ERROR: Triangle file, "<<filename_face
         <<", cannot be opened. Does it exist? Have you read permission?\n";
     exit(-1);
   }
-  
+
   deque< vector<int> > SENList;
   deque< vector<int> > columnSENList;
   vector<int> topSENList;
@@ -552,7 +552,7 @@ int decomp_triangle( map<char, string> flArgs, bool verbose,
     }
     if(natt)
       boundaryIds.resize(nsele);
-    
+
     for(int i=0;i<nsele;i++){
       vector<int> facet(snloc);
       vector<int> facet_columns(snloc);
@@ -561,10 +561,10 @@ int decomp_triangle( map<char, string> flArgs, bool verbose,
         face_file>>facet[j];
         if(surface_nids.size())
           facet_columns[j]=surface_nids[facet[j]-1];
-      }     
-      SENList[i] = facet;     
+      }
+      SENList[i] = facet;
       if(surface_nids.size())
-        columnSENList[i] = facet_columns;     
+        columnSENList[i] = facet_columns;
       if(natt){
         face_file>>boundaryIds[i];
         if(boundaryIds[i]==bid){
@@ -587,13 +587,13 @@ int decomp_triangle( map<char, string> flArgs, bool verbose,
   }
   columnSENList.clear();
   face_file.close();
-  
+
   vector<int> decomp;
   int partition_method = -1;
-  
+
   if(flArgs.count('r')){
     partition_method = 0; // METIS PartGraphRecursive
-    
+
     if(flArgs.count('k')){
       cerr<<"WARNING: should not specify both -k and -r. Choosing -r.\n";
     }
@@ -601,7 +601,7 @@ int decomp_triangle( map<char, string> flArgs, bool verbose,
   if(flArgs.count('k')){
     partition_method = 1; // METIS PartGraphKway
   }
-  
+
   vector<int> npartitions;
   if(ncores>1){
     npartitions.push_back(nparts/ncores);
@@ -609,7 +609,7 @@ int decomp_triangle( map<char, string> flArgs, bool verbose,
   }else{
     npartitions.push_back(nparts);
   }
-  
+
   int edgecut=0;
   if(surface_nids.size()){
     // Partition the mesh
@@ -633,28 +633,27 @@ int decomp_triangle( map<char, string> flArgs, bool verbose,
     // Partition the mesh
     if(verbose)
       cout<<"Partitioning the mesh\n";
-    
+
     // Partition the mesh. Generates a map "decomp" from node number
     // (numbered from zero) to partition number (numbered from
     // zero).
-    edgecut = partition( ENList, dim, nloc, nnodes, npartitions, 
+    edgecut = partition( ENList, dim, nloc, nnodes, npartitions,
                          partition_method, decomp );
   }
-  
+
   if(flArgs.count('d')){
     cout<<"Edge-cut: "<<edgecut<<endl;
   }
-  
+
   // Process the partitioning
   if(verbose)
     cout<<"Processing the mesh partitions\n";
-  
+
   write_partitions_triangle(verbose, filename, file_format,
                             nparts, nnodes, dim, no_coords,
                             x, decomp,
                             nloc, ENList, regionIds,
                             snloc, SENList, boundaryIds);
-  
+
   return(0);
 }
-

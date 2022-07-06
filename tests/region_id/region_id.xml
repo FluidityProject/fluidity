@@ -5,8 +5,8 @@
   <tags>flml</tags>
     <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l region_id_input.flml </command_line>
-  </problem_definition>  
-  <variables>  
+  </problem_definition>
+  <variables>
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
@@ -177,7 +177,7 @@ from fluidity_tools import stat_parser as stat
 nodesend = stat("region_id.stat")["CoordinateMesh"]["nodes"][-1]
      </variable>
   </variables>
-    <pass_tests>  
+    <pass_tests>
       <test name="Solvers converged" language="python">
         assert(solvers_converged)
       </test>

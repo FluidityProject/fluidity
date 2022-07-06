@@ -9,7 +9,7 @@
     <command_line>fluidity -v2 -l Stokes-square-convection-1e4-p1dgp2.flml</command_line>
   </problem_definition>
 
-<variables>  
+<variables>
   <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
@@ -77,14 +77,9 @@ assert(abs(q_one-8.0594) &lt; 1.00)
 <test name="Nondimensional Temp Gradient at TopRightCorner Validity: 0.57 .lt. q_one .lt. 0.61" language="python">
 assert(abs(q_two-0.5888) &lt; 0.025)
 </test>
-</pass_tests>                                                                                                                                                                                                
+</pass_tests>
 
 <warn_tests>
 </warn_tests>
 
 </testproblem>
-
-
-
-
-

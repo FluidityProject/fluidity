@@ -13,7 +13,7 @@
             <ref name="comment"/>
           </element>
           <element name="format">
-            <a:documentation>Read the mesh from a vtu. Note that the mesh will have no 
+            <a:documentation>Read the mesh from a vtu. Note that the mesh will have no
 surface or region IDs.</a:documentation>
             <attribute name="name">
               <value>vtu</value>
@@ -23,7 +23,7 @@ surface or region IDs.</a:documentation>
           <element name="format">
             <a:documentation>ExodusII mesh format.
 
-&lt;b&gt;Note: Only works for serial mesh files and 
+&lt;b&gt;Note: Only works for serial mesh files and
 Checkpoints are dumped in the GMSH file format.&lt;/b&gt;</a:documentation>
             <attribute name="name">
               <value>exodusii</value>
@@ -59,7 +59,7 @@ Checkpoints are dumped in the GMSH file format.&lt;/b&gt;</a:documentation>
 Pn element type. "bubble" adds bubble functions that
 vanish on the element boundaries, and
 trace defines an element that is only defined on faces
-and is undefined on the element interior (used for 
+and is undefined on the element interior (used for
 enforcing continuity by Lagrange multipliers).</a:documentation>
                   <choice>
                     <value>lagrangian</value>
@@ -153,7 +153,7 @@ where X is a tuple of length geometry dimension and t is time</a:documentation>
                 <a:documentation>&lt;b&gt;Don't turn this on by hand!&lt;/b&gt;
 This option gets set by the periodise tool, to indicate
 that this mesh should have the periodic boundary conditions
-&lt;b&gt;removed&lt;/b&gt;. See the discussion on the wiki about 
+&lt;b&gt;removed&lt;/b&gt;. See the discussion on the wiki about
 parallel periodic boundary conditions.</a:documentation>
                 <empty/>
               </element>
@@ -397,7 +397,7 @@ Do not use if your function depends on x and/or y as it takes a column of depth 
       <element name="minimum_bottom_layer_fraction">
         <a:documentation>To prevent infinitesimally thin bottom layer if sizing function
 is an integer multiple of total depth, the bottom layer needs
-to have at least this fraction of the layer depth above it. 
+to have at least this fraction of the layer depth above it.
 
 Default is 1e-3.</a:documentation>
         <ref name="real"/>

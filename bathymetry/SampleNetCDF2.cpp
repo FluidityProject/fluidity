@@ -49,17 +49,17 @@ SampleNetCDF2::SampleNetCDF2(string filename){
 bool SampleNetCDF2::HasPoint(double longitude, double latitude) const{
   if(verbose)
     cout<<"double SampleNetCDF2::HasValue("<<longitude<<", "<<latitude<<") const\n";
-  
+
   if(longitude<x_range[0])
     return false;
   if(longitude>x_range[1])
     return false;
-  
+
   if(latitude<y_range[0])
     return false;
   if(latitude>y_range[1])
     return false;
-  
+
   return true;
 }
 
@@ -83,7 +83,7 @@ double SampleNetCDF2::GetValue(int ix, int iy) const{
 
   if(verbose)
     cout<<" = "<<data[iy*dimension[0]+ix]<<endl;
-  
+
   return data[iy*dimension[0]+ix];
 }
 
@@ -101,10 +101,10 @@ double SampleNetCDF2::GetValue(double longitude, double latitude) const{
 
   int i0 = (int)floor((longitude - x_range[0])/spacing[0]);
   int i1 =  (int)ceil((longitude - x_range[0])/spacing[0]);
-  
+
   int j0 = (int)floor((latitude - y_range[0])/spacing[1]);
   int j1 =  (int)ceil((latitude - y_range[0])/spacing[1]);
-  
+
   double x0 = x_range[0] + i0*spacing[0];
   double x1 = x_range[0] + i1*spacing[0];
 
@@ -117,7 +117,7 @@ double SampleNetCDF2::GetValue(double longitude, double latitude) const{
         <<"spacing   "<<spacing[0]<<", "<<spacing[1]<<endl
         <<"x range   "<<x_range[0]<<", "<<x_range[1]<<endl
         <<"y range   "<<y_range[0]<<", "<<y_range[1]<<endl;
-  
+
   double z00 = GetValue(i0, j0);
   double z01 = GetValue(i0, j1);
   double z10 = GetValue(i1, j0);
@@ -138,7 +138,7 @@ double SampleNetCDF2::GetValue(double longitude, double latitude) const{
     if(verbose)
       cout<<"Case 2\n";
     val =  z00 + (longitude-x0)*(z10-z00)/(x1-x0);
-    
+
     if(verbose)
       cout<<"z00, z, z10 = "<<z00<<", "<<val<<", "<<z10<<endl;
   }else{ // Bi-linear interpolation
@@ -146,18 +146,18 @@ double SampleNetCDF2::GetValue(double longitude, double latitude) const{
       cout<<"Case 3"<<endl;
     double dx = x1-x0;
     double dy = y1-y0;
-    
+
     val = (z00*(x1-longitude)*(y1-latitude) +
            z10*(longitude-x0)*(y1-latitude) +
            z01*(x1-longitude)*(latitude-y0) +
            z11*(longitude-x0)*(latitude-y0))/(dx*dy);
-    
+
     if(verbose)
       cout<<"z00, z10, z01, z11, val = "
           <<z00<<", "<<z10<<", "<<z01<<", "<<z11<<", "<<val<<endl;
   }
 
-  return val; 
+  return val;
 }
 
 void SampleNetCDF2::SetFile(string filename){
@@ -165,17 +165,17 @@ void SampleNetCDF2::SetFile(string filename){
     is_constant=true;
     return;
   }
-  
+
   NetCDF_reader reader(filename.c_str(), verbose);
-  
+
   reader.GetXRange(x_range[0], x_range[1]);
   reader.GetYRange(y_range[0], y_range[1]);
-  
+
   reader.GetSpacing(spacing[0], spacing[1]);
   reader.GetDimension(dimension[0], dimension[1]);
-  
+
   reader.Read(data);
-  
+
   is_constant = false;
 }
 

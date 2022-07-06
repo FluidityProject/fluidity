@@ -15,6 +15,4 @@ Note in Donea and Huerta the Peclet number = a*dx/2*nu
 If you wish to compare the value of phi for different Peclet numbers you need to
 1) create a directory for each Peclet number you wish to test
 2) run the test case in each of those directories, changing the diffusion (nu) accordingly (making sure the output is in those directories)
-3) edit and run the python script compare_Pe_stability.py (notes on this can be found in the script) 
-
-
+3) edit and run the python script compare_Pe_stability.py (notes on this can be found in the script)

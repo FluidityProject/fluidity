@@ -42,7 +42,6 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
 # OF THIS SOFTWARE.
 # --------------------------------------------------------------------
-
 ##
 # Tools to build element trees from XML, based on the SGMLOP parser.
 # <p>
@@ -52,7 +51,6 @@
 # (available from
 # <a href='http://effbot.org/downloads'>http://effbot.org/downloads</a>).
 ##
-
 import ElementTree
 
 ##
@@ -60,8 +58,8 @@ import ElementTree
 #
 # @see elementtree.ElementTree
 
-class TreeBuilder:
 
+class TreeBuilder:
     def __init__(self, html=0):
         try:
             import sgmlop
@@ -70,6 +68,7 @@ class TreeBuilder:
         self.__builder = ElementTree.TreeBuilder()
         if html:
             import htmlentitydefs
+
             self.entitydefs.update(htmlentitydefs.entitydefs)
         self.__parser = sgmlop.XMLParser()
         self.__parser.register(self)

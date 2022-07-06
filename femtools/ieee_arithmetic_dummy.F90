@@ -10,7 +10,7 @@ module ieee_arithmetic
   implicit none
 
   external :: c99_isnan
-  integer  :: c99_isnan 
+  integer  :: c99_isnan
 
   interface
     subroutine cget_nan(nan) bind(c)
@@ -24,7 +24,7 @@ module ieee_arithmetic
   interface ieee_value
     module procedure ieee_get_value_r4, ieee_get_value_r8
   end interface
-  
+
   contains
 
   function ieee_is_nan(x) result(nan)

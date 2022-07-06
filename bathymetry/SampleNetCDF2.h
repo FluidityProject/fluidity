@@ -37,13 +37,13 @@ class SampleNetCDF2{
   SampleNetCDF2();
   SampleNetCDF2(std::string);
   ~SampleNetCDF2();
-  
+
   double GetValue(double, double) const;
 
   bool HasPoint(double, double) const;
 
   void SetFile(std::string);
-  
+
   void VerboseOff();
   void VerboseOn();
 
@@ -52,13 +52,13 @@ class SampleNetCDF2{
   double GetValue(int, int) const;
 
   bool is_constant;
-  
+
   double x_range[2];          // Longitude
   double y_range[2];          // Latitude
-  
+
   double spacing[2];          // Grid spacing
   int dimension[2];           // Grid dimensions
-  
+
   std::vector<double> data;
   bool verbose;
 };

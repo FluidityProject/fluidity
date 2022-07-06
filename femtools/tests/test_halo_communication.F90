@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -30,7 +30,7 @@
 subroutine test_halo_communication
   !!< Test communication using halo_type derived type. Parallel test - requires
   !!< exactly two processes.
-  
+
 #ifdef HAVE_MPI
   use futils
   use halos
@@ -47,7 +47,7 @@ subroutine test_halo_communication
   logical :: fail
   real, dimension(7) :: real_data
   type(halo_type) :: halo
-  
+
   call mpi_comm_size(communicator, nprocs, ierr)
   call report_test("[mpi_comm_size]", ierr /= MPI_SUCCESS, .false., "Failed to read communicator size")
   call report_test("[2 processes]", nprocs /= 2, .false., "Incorrect number of processes")
@@ -60,7 +60,7 @@ subroutine test_halo_communication
     nsends(2) = 2
     nreceives(1) = 0
     nreceives(2) = 3
-    
+
     call allocate(halo, nsends, nreceives, communicator = communicator, name = "TestHalo")
 
     call zero(halo)
@@ -85,8 +85,8 @@ subroutine test_halo_communication
     call set_halo_receive(halo, 1, 2, 6)
   end if
 
-  call report_test("[valid_halo_communicator]", .not. valid_halo_communicator(halo), .false., "Invalid halo communicator") 
-  call report_test("[valid_halo_node_counts]", .not. valid_halo_node_counts(halo), .false., "Invalid halo node counts") 
+  call report_test("[valid_halo_communicator]", .not. valid_halo_communicator(halo), .false., "Invalid halo communicator")
+  call report_test("[valid_halo_node_counts]", .not. valid_halo_node_counts(halo), .false., "Invalid halo node counts")
   call report_test("[halo_valid_for_communication]", .not. halo_valid_for_communication(halo), .false., "Halo not valid for communication")
 
   ! Construct integer data to send/receive
@@ -154,7 +154,7 @@ subroutine test_halo_communication
   call report_test("[No pending communications]", pending_communication(halo), .false., "Pending communications")
 
   call deallocate(halo)
-  
+
   call report_test_no_references()
 
 #else
@@ -164,5 +164,5 @@ subroutine test_halo_communication
 
   call report_test("[test disabled]", .false., .true., "Test compiled without MPI support")
 #endif
-  
+
 end subroutine test_halo_communication

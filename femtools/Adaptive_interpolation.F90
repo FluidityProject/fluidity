@@ -201,7 +201,7 @@ module adaptive_interpolation_module
         if (shape_B%degree==0) then
           basis_at_quad_B = 1.0
         elseif (shape_B%degree==1) then
-          basis_at_quad_B = pos_at_quad_B 
+          basis_at_quad_B = pos_at_quad_B
         else
           do j=1,ele_ngi(supermesh, ele_C)
             basis_at_quad_B(:, j) = eval_shape(shape_B, pos_at_quad_B(:, j))
@@ -211,7 +211,7 @@ module adaptive_interpolation_module
         if (shape_A%degree==0) then
           basis_at_quad_A = 1.0
         elseif (shape_A%degree==1) then
-          basis_at_quad_A = pos_at_quad_A 
+          basis_at_quad_A = pos_at_quad_A
         else
           do j=1,ele_ngi(supermesh, ele_C)
             basis_at_quad_A(:, j) = eval_shape(shape_A, pos_at_quad_A(:, j))

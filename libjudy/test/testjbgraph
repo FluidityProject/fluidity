@@ -18,5 +18,5 @@ echo "This script takes 1 Minute to plot output on a 3.2Ghz Pentium P4C"
 # Judy1LHTime.plot == file to plot
 ./jbgraph -NL -Lx -y:1 -x100: -c6 -c7 -c8 Judy1LHTime.plot
 
-# Performance of other ADT's can be explored with StringCompare.c, 
+# Performance of other ADT's can be explored with StringCompare.c,
 # but you should have a very large (>100MB) text file to input.

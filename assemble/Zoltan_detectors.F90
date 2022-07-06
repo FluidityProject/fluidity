@@ -28,19 +28,19 @@ module zoltan_detectors
     ! to_pack_detector_list for the element we found the detector in
     integer, intent(out), dimension(:) :: ndets_in_ele
     type(detector_linked_list), dimension(:), intent(inout), target :: to_pack_detector_lists
-    integer(zoltan_int), intent(in) :: num_ids 
+    integer(zoltan_int), intent(in) :: num_ids
     integer(zoltan_int), intent(in), dimension(*) :: global_ids
     integer, intent(out), dimension(:) :: attributes_per_ele !Number of particle attributes per element
-    
+
     integer :: i, j, det_list, new_ele_owner, total_det_to_pack, detector_uen
     integer :: new_local_element_number, total_attributes
-    
+
     type(detector_list_ptr), dimension(:), pointer :: detector_list_array => null()
     type(detector_type), pointer :: detector => null(), detector_to_move => null()
     logical :: found_det_element
-    
+
     ewrite(1,*) "In prepare_detectors_for_packing"
-    
+
     assert(num_ids == size(ndets_in_ele))
     assert(num_ids == size(to_pack_detector_lists))
 
@@ -92,14 +92,14 @@ module zoltan_detectors
                    ! increment the number of detectors in that element
                    ndets_in_ele(j) = ndets_in_ele(j) + 1
                    attributes_per_ele(j) = attributes_per_ele(j) + total_attributes
-                
+
                    detector_to_move => detector
                    detector => detector%next
 
                    ! Update detector%element to be universal element number
                    ! so we can unpack to new element number
                    detector_to_move%element = detector_uen
-               
+
                    ! Move detector to list of detectors we need to pack
                    call move(detector_to_move, detector_list_array(det_list)%ptr, to_pack_detector_lists(j))
                    detector_to_move => null()
@@ -107,7 +107,7 @@ module zoltan_detectors
 
                 ! We found the right element, so we can skip the others
                 exit element_loop
-             end if          
+             end if
           end do element_loop
 
           ! If we didn't find an element for the detector, we have to advance it
@@ -123,9 +123,9 @@ module zoltan_detectors
     end do
     ewrite(2,*) "Moved", total_det_to_pack, "detectors to to_pack_detector_lists"
     ewrite(1,*) "Exiting prepare_detectors_for_packing"
-    
+
   end subroutine prepare_detectors_for_packing
 
 #endif
-  
+
 end module zoltan_detectors

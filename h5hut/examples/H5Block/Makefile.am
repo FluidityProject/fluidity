@@ -12,7 +12,7 @@ AM_CPPFLAGS += -I${abs_top_srcdir}/examples/include
 FFLAGS += -cpp $(AM_CPPFLAGS)
 AM_LDFLAGS += -L${abs_top_builddir}/src/h5core/.libs
 
-LDADD = 
+LDADD =
 
 if ENABLE_EXAMPLES
 if ENABLE_FORTRAN
@@ -22,7 +22,7 @@ endif
 
 LDADD += -lH5hut
 
-noinst_PROGRAMS = 
+noinst_PROGRAMS =
 
 if ENABLE_C
 noinst_PROGRAMS +=		\

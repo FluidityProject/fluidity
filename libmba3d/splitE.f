@@ -123,11 +123,11 @@ c ... creating 4 elements
      &        HesP(1, iP3), detG(iP3), XYP(1, iP3),
      &        HesPs, detGs, XYPs,
      &        hStar, qEs(kE), v)
-         
-         IPEs(1, kE) = iP1 
+
+         IPEs(1, kE) = iP1
          IPEs(2, kE) = iP2
-         IPEs(3, kE) = iP3 
-         IPEs(4, kE) = iPs 
+         IPEs(3, kE) = iP3
+         IPEs(4, kE) = iPs
          IPEs(5, kE) = IPE(5, iE1)
       End do
 
@@ -137,7 +137,7 @@ C!!!  Call lstUpd(nE, L1E, nL2, L2E, nStep, qE, iEs(nE1), qEs(nE1))
 C!!!  next line simulates lstAdd
       qE(iEs(nE1)) = qEs(nE1)
       Call eleDel(iEs(nE1), IPE, IEE)
-                                                                                
+
       Do n = lEold + 1, lE
          Call eleAdd(nE, MaxE, IHolE)
 C!!!     Call lstAdd(nE, L1E, nL2, L2E, nStep, IHolE,

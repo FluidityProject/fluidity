@@ -34,7 +34,7 @@ coriolis_options =
          ## Full Coriolis parameter:
          ##   f = 2 omega sin (latitude)
          ## where latitude=y/R_earth+latitude_0
-         ## 
+         ##
          ## Specify omega and R_earth and latitude_0
          element sine_of_latitude {
             ## Full Coriolis parameter:
@@ -46,14 +46,14 @@ coriolis_options =
             ## Full Coriolis parameter:
             ##   f = 2 omega sin (latitude)
             ## where latitude=y/R_earth+latitude_0
-            ## 
+            ##
             ## Suggested value for R_earth: 6.371e6
             element R_earth {
                real
             },
             ## Full Coriolis parameter:
             ##   f = 2 omega sin (latitude)
-            ## where 
+            ## where
             ##   latitude=y/R_earth+latitude_0
             ## latitude_0 is the latitude of y=0
             element latitude_0 {
@@ -63,7 +63,7 @@ coriolis_options =
          ## Full representation on sphere
          element on_sphere {
             ## Earth rotation rate
-            ## 
+            ##
             ## Suggested value: 2 pi / 86400 = 7.27220522e-5
             element omega {
                real

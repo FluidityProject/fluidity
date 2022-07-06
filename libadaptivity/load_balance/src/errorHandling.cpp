@@ -36,4 +36,3 @@ std::string mpiErrorMessage(const int err){
   delete [] msg;
   return mesg;
 }
-

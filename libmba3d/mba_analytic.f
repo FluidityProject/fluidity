@@ -10,9 +10,9 @@ C ================================================================
 c group (M)
      &      nP, MaxP, nF, MaxF, nE, MaxE,
      &      XYP, IPF, IPE, lbF, lbE,
-     &      nEStar, 
+     &      nEStar,
 c group (Dev)
-     &      nPv, nFv, nEv, IPV, IFV, IEV, 
+     &      nPv, nFv, nEv, IPV, IFV, IEV,
      &      flagAuto, status,
 c group (Q)
      &      MaxSkipE, MaxQItr,
@@ -54,7 +54,7 @@ C     Integer MaxP, MaxF, MaxE
       Integer IPV(*), lbF(*), lbE(*)
 
 C group (Dev)
-      Integer nFv, nEv, IFV(*), IEV(*) 
+      Integer nFv, nEv, IFV(*), IEV(*)
       Logical flagAuto
       Integer status
 
@@ -121,7 +121,7 @@ c     iW(1) is overloaded to return colors & nQItr
       iICP = iIPP + MaxP
       iIHolP = iICP + MaxP
       iIHolF = iIHolP + MaxP
-      iIHolE = iIHolF + MaxF 
+      iIHolE = iIHolF + MaxF
       iIEP = iIHolE + MaxE
       iIFE = iIEP + MaxP
       iIEE = iIFE + 4 * MaxE
@@ -208,7 +208,7 @@ c group (Q)
 c ... setting the fixed metric for the future loops
       nPw = nP
       nEw = nE
-      Call copyMeshData(nP, nE, XYP, rW(iHesP), IPE, 
+      Call copyMeshData(nP, nE, XYP, rW(iHesP), IPE,
      &                  rW(iXYPw), rW(iHesPw), iW(iIPEw))
 
 
@@ -216,8 +216,8 @@ c... runing the basic algorithm for the global grid
       flagAnalytic = .TRUE.
       Call ani2(
 c group (M)
-     &     nP, MaxP, nF, MaxF, nE, MaxE, 
-     &     XYP, iW(iIPF), iW(iIPE), 
+     &     nP, MaxP, nF, MaxF, nE, MaxE,
+     &     XYP, iW(iIPF), iW(iIPE),
      &     nEStar, hStar,
      &     iW(iICP), iW(iIPP), iW(iIEP),
      &     iW(iIFE), iW(iIEE),
@@ -227,11 +227,11 @@ c group (M)
      &     miLINTRP, mrLINTRP, iW(iIPEw), iW(iiSE),
      &     flagAuto, statusWork,
 c group (Dev)
-     &      nPv, nFv, nEv, IPV, IFV, IEV,  
+     &      nPv, nFv, nEv, IPV, IFV, IEV,
 c group (Q)
      &     MaxSkipE, MaxQItr, MaxBasketsGrid,
-     &     rW(iHesP), Quality, rQuality, 
-     &     rW(idG), rW(iqE), 
+     &     rW(iHesP), Quality, rQuality,
+     &     rW(idG), rW(iqE),
      &     nPw, nEw, rW(iXYPw), rW(iHesPw), rW(irSE),
      &     MetricFunction, flagAnalytic,
 c group (ERR)
@@ -278,7 +278,7 @@ c ... original structure of the data
       m = iIPE - 1
       Do n = 1, nE
          Do i = 1, 4
-            IPE(i, n) = iW(m + i) 
+            IPE(i, n) = iW(m + i)
          End do
          lbE(n) = iW(m + 5)
          m = m + 5
@@ -367,13 +367,13 @@ c ... setup of missing parameter
       flagAuto = .TRUE.
 
       MaxSkipE = 200
-      MaxQItr  = min(50 000, nE) 
+      MaxQItr  = min(50 000, nE)
       Quality  = 0.3D0
 
       iIPV = 1
       ilbE = iIPV + MaxF
       iIFV = ilbE + MaxE
-      iIEV = iIFV + nFV 
+      iIEV = iIFV + nFV
       iiEnd = iIEV + nEV + 1
 
 
@@ -385,13 +385,13 @@ c ... setup of missing parameter
 c group (M)
      &      nP, MaxP, nF, MaxF, nE, MaxE,
      &      XYP, IPF, IPE, lbF, iW(ilbE),
-     &      nEStar, 
+     &      nEStar,
 c group (Dev)
-     &      nPv, nFv, nEv, iW(iIPV), iW(iIFV), iW(iIEV), 
+     &      nPv, nFv, nEv, iW(iIPV), iW(iIFV), iW(iIEV),
      &      flagAuto, status,
 c group (Q)
      &      MaxSkipE, MaxQItr,
-     &      MetricFunction_ani, Quality, rQuality, 
+     &      MetricFunction_ani, Quality, rQuality,
 c group (W)
      &      MaxWr, MaxWi - iiEnd, rW, iW(iiEnd),
      &      iPrint, iERR)

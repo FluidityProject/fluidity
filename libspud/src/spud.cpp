@@ -41,7 +41,7 @@ namespace Spud{
 
   void OptionManager::clear_options() {
     manager.reset();
-    
+
     return;
   }
 
@@ -74,12 +74,12 @@ namespace Spud{
 
     return SPUD_NO_ERROR;
   }
-  
+
   OptionError OptionManager::get_number_of_children(const string& key, int& child_count){
     deque<string> kids;
 
     manager.options->list_children(key, kids);
-    
+
     child_count = kids.size();
 
     return check_key(key);
@@ -525,7 +525,7 @@ namespace Spud{
     if(move_err != SPUD_NO_ERROR){
       return move_err;
     }
-    
+
     return SPUD_NO_ERROR;
   }
 
@@ -534,7 +534,7 @@ namespace Spud{
     if(copy_err != SPUD_NO_ERROR){
       return copy_err;
     }
-    
+
     return SPUD_NO_ERROR;
   }
 
@@ -631,11 +631,11 @@ namespace Spud{
 
     return SPUD_NO_ERROR;
   }
-  
+
   void OptionManager::reset(){
     delete options;
     options = new Option;
-    
+
     return;
   }
 
@@ -1217,7 +1217,7 @@ namespace Spud{
       return SPUD_NO_ERROR;
     }
   }
-  
+
   OptionError OptionManager::Option::copy_option(const string& key1, const string& key2){
     if(verbose)
       cout << "OptionError OptionManager::Option::copy_option(const string& key1 = " << key1 << ", const string& key2 = " << key2 << ")\n";
@@ -1226,17 +1226,17 @@ namespace Spud{
     if(option1 == NULL){
       return SPUD_KEY_ERROR;
     }
-    
+
     const Option* option2 = get_child(key2);
     if(option2 != NULL){
       return SPUD_KEY_ERROR;
     }
-    
+
     string::size_type lastPos = key2.find_last_not_of("/");
     lastPos = key2.find_last_of("/", lastPos);
     string key2_parent = key2.substr(0, lastPos);
     string key2_name = key2.substr(lastPos + 1);
-    
+
     Option* option2_parent = create_child(key2_parent);
     if(option2_parent == NULL){
       return SPUD_KEY_ERROR;
@@ -1252,10 +1252,10 @@ namespace Spud{
       new_option1->set_attribute("name", name_attr);
       option2_parent->children.push_back(pair<string, Option*>(new_node_name + "::" + name_attr, new_option1));
     }
-         
+
     return SPUD_NO_ERROR;
-  }  
-  
+  }
+
   OptionError OptionManager::Option::move_option(const string& key1, const string& key2){
     if(verbose)
       cout << "OptionError OptionManager::Option::move_option(const string& key1 = " << key1 << ", const string& key2 = " << key2 << ")\n";
@@ -1264,17 +1264,17 @@ namespace Spud{
     if(option1 == NULL){
       return SPUD_KEY_ERROR;
     }
-    
+
     const Option* option2 = get_child(key2);
     if(option2 != NULL){
       return SPUD_KEY_ERROR;
     }
-    
+
     string::size_type lastPos = key2.find_last_not_of("/");
     lastPos = key2.find_last_of("/", lastPos);
     string key2_parent = key2.substr(0, lastPos);
     string key2_name = key2.substr(lastPos + 1);
-    
+
     Option* option2_parent = create_child(key2_parent);
     if(option2_parent == NULL){
       return SPUD_KEY_ERROR;
@@ -1290,9 +1290,9 @@ namespace Spud{
       new_option1->set_attribute("name", name_attr);
       option2_parent->children.push_back(pair<string, Option*>(new_node_name + "::" + name_attr, new_option1));
     }
-         
+
     delete_option(key1);
-    
+
     return SPUD_NO_ERROR;
   }
 
@@ -1807,7 +1807,7 @@ namespace Spud{
     // Extract the index from the name if necessary
     string::size_type pos = name.find_first_of("[", 0);
     string::size_type lastPos = name.find_first_of("]", 0);
-    if(lastPos < name.size() - 1){      
+    if(lastPos < name.size() - 1){
       return SPUD_KEY_ERROR;
     }
     if((lastPos-pos) > 0){

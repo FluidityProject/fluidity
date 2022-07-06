@@ -75,7 +75,7 @@ function get_number_of_harmonic_fields(state) result(N)
     integer :: ii
 
     N = 0
-    
+
     do ii=1,scalar_field_count(state)
        iter_field => extract_scalar_field(state,ii)
        if (trim(iter_field%option_path)=='')then
@@ -115,7 +115,7 @@ subroutine calculate_free_surface_history(state, s_field)
 
 ! get history options
    base_path=trim(complete_field_path(s_field%option_path)) // "/algorithm/"
-   
+
    ! levels: the number of levels which will be saved. Too old levels will be overwritten by new ones.
    call get_option(trim(base_path) // "levels", levels, default=50)
    levels=max(levels,0)
@@ -161,7 +161,7 @@ subroutine calculate_free_surface_history(state, s_field)
        ewrite(4,*) "Still spinning up."
        return
    endif
-   
+
    ! check if we want to save the current timestep at all
    if (mod(timestep_counter,stride)/=0) then
        ewrite(4,*) "Ignoring this timestep"
@@ -174,7 +174,7 @@ subroutine calculate_free_surface_history(state, s_field)
    end if
 
    ! get index where we want to save the new snapshot.
-   new_snapshot_index=mod(timestep_counter/stride,levels)+1 
+   new_snapshot_index=mod(timestep_counter/stride,levels)+1
 
   ! Save current free surface field in the history.
   ! Note: Since diagnositcs are executed after the solving step, we actually save the fields at current_time+timestep
@@ -182,7 +182,7 @@ subroutine calculate_free_surface_history(state, s_field)
   call set_option(trim(base_path) // "saved_snapshots_times", saved_snapshots_times, stat)
   assert(any(stat == (/SPUD_NO_ERROR, SPUD_NEW_KEY_WARNING/)))
   ewrite(4,*) 'Filling history level: ', min(timestep_counter/stride+1,levels), '/', levels
- 
+
   ! lets copy a snapshot of freesurface to s_field(new_snapshot_index)
   hist_fs_field => extract_scalar_field(state,'harmonic'//int2str(new_snapshot_index))
   call set(hist_fs_field,fs_field)
@@ -200,11 +200,11 @@ subroutine calculate_tidal_harmonics(state, s_field)
    real, dimension(:), allocatable :: saved_snapshots_times
    integer :: i, current_snapshot_index
    integer :: when_to_calculate
-   
+
 
    ! Check dump period - if we're about to dump output, calculate, regardless of
    ! other options
-   if (.not. do_write_state(current_time, timestep+1)) then 
+   if (.not. do_write_state(current_time, timestep+1)) then
        ! Note: diagnostics are done at the end of the timestemp, dumps at the
        ! begining. Hence the +1 on the timestep number above - we're
        ! anticipating a dump at the start of the next timestep
@@ -219,7 +219,7 @@ subroutine calculate_tidal_harmonics(state, s_field)
    end if
 
    ! Only if Harmonics weren't already calculated in this timestep
-   if (last_update/=timestep) then 
+   if (last_update/=timestep) then
       ewrite(3,*) "In tidal_harmonics"
       allocate(harmonic_fields(get_number_of_harmonic_fields(state)))
       allocate(sigma(nLevels_))
@@ -284,7 +284,7 @@ subroutine getFreeSurfaceHistoryData(state, ignoretimestep, saved_snapshots_time
    else
        call set_option(trim(free_surface_history_path) //"saved_snapshots_times", saved_snapshots_times,stat)
    end if
-   current_snapshot_index=mod(timestep_counter/stride,levels)+1 
+   current_snapshot_index=mod(timestep_counter/stride,levels)+1
 end subroutine getFreeSurfaceHistoryData
 
 
@@ -331,7 +331,7 @@ subroutine getHarmonicFields(state, harmonic_fields, nohfs, sigma, M)
                   call get_option(trim(base_path) // 'target', target)
                   harmonic_fields(nohfs)%target=target
                   ! Check if we have this constituent frequency already in sigma and if not, save it
-                  
+
                   call get_option(trim(base_path) // '/constituent', freq)
                   do i=1,M
                     if (abs(sigma(i)-freq) <= 1.0E-14) then
@@ -350,7 +350,7 @@ subroutine getHarmonicFields(state, harmonic_fields, nohfs, sigma, M)
            end if
        end if
     end do s_field_loop
-    ewrite(4,*) 'Found ',  nohfs, ' constituents to analyse.' 
+    ewrite(4,*) 'Found ',  nohfs, ' constituents to analyse.'
     ewrite(4,*) 'Found ', M, ' frequencies to analyse.'
 
    if ( M .le. 0 ) then
@@ -517,4 +517,3 @@ end subroutine save_harmonic_x_in_fields
   end subroutine harmonic_analysis_at_single_node
 
 end module tidal_diagnostics
-

@@ -45,11 +45,11 @@ class SpudShapeError(Exception):
 class SpudNewKeyWarning(Exception):
   def __init__(self, msg = "The option being inserted is not already in the dictionary."):
     self.message = msg
-  
+
 class SpudAttrSetFailedWarning(Exception):
   def __init__(self, msg = "The option being set as an attribute can not be set as an attribute."):
     self.message = msg
-  
+
 spud_exceptions = {SPUD_KEY_ERROR: SpudKeyError,
                    SPUD_TYPE_ERROR: SpudTypeError,
                    SPUD_RANK_ERROR: SpudRankError,
@@ -91,12 +91,12 @@ cget_child_name.restype = c_int
 def get_child_name(s, idx):
   val = create_string_buffer(OPTION_PATH_LEN)
   out = cget_child_name(s, c_int(len(s)), c_int(idx), val, c_int(len(val)))
-  
+
   if out != SPUD_NO_ERROR:
     raise spud_exceptions[out]
-    
+
   return val.value.strip()
-  
+
 cget_number_of_children = libspud.spud_get_number_of_children
 cget_number_of_children.argtypes = [c_char_p, c_int, POINTER(c_int)]
 cget_number_of_children.restype = c_int
@@ -104,26 +104,26 @@ cget_number_of_children.restype = c_int
 def get_number_of_children(s):
   val = c_int()
   out = cget_number_of_children(s, c_int(len(s)), byref(val))
-  
+
   if out != SPUD_NO_ERROR:
     raise spud_exceptions[out]
-  
+
   return val.value
-    
+
 coption_count = libspud.spud_option_count
 coption_count.argtypes = [c_char_p, c_int]
 coption_count.restype = c_int
 
 def option_count(s):
   return coption_count(s, c_int(len(s)))
-   
+
 chave_option = libspud.spud_have_option
 chave_option.argtypes = [c_char_p, c_int]
 chave_option.restype = c_int
 
 def have_option(s):
   out = chave_option(s, c_int(len(s)))
-  
+
   if out == 1:
     return True
   else:
@@ -141,7 +141,7 @@ def get_option_type(s):
     raise spud_exceptions[out]
 
   return pytype_map[val.value]
-  
+
 cget_option_rank = libspud.spud_get_option_rank
 cget_option_rank.argtypes = [c_char_p, c_int, POINTER(c_int)]
 cget_option_rank.restype = c_int
@@ -152,7 +152,7 @@ def get_option_rank(s):
   if out != SPUD_NO_ERROR:
     raise spud_exceptions[out]
   return rank.value
-  
+
 cget_option_shape = libspud.spud_get_option_shape
 cget_option_shape.argtypes = [c_char_p, c_int, POINTER(c_int)]
 cget_option_shape.restype = int
@@ -229,10 +229,10 @@ def set_option(s, val):
           rank += 1
           subval = subval[0]
         else:
-          break 
+          break
       py_type = type(subval)
     # elif ...
-      # could put numpy array handling in here 
+      # could put numpy array handling in here
       # (they'd be easier but didn't want to
       #  add a numpy dependency)
     else:
@@ -262,26 +262,26 @@ def set_option(s, val):
 
   if out != SPUD_NO_ERROR:
     raise spud_exceptions[out]
-    
+
 cset_option_attribute = libspud.spud_set_option_attribute
 cset_option_attribute.argtypes = [c_char_p, c_int, c_char_p, c_int]
 cset_option_attribute.restype = c_int
 
 def set_option_attribute(s, val):
   out = cset_option_attribute(s, c_int(len(s)), val, c_int(len(val)))
-  
+
   if out != SPUD_NO_ERROR:
     raise spud_exceptions[out]
 
   return
-  
+
 cdelete_option = libspud.spud_delete_option
 cdelete_option.argtypes = [c_char_p, c_int]
 cdelete_option.restype = c_int
 
 def delete_option(s):
   out = cdelete_option(s, c_int(len(s)))
-  
+
   if out != SPUD_NO_ERROR:
     raise spud_exceptions[out]
 
@@ -293,7 +293,7 @@ cmove_option.restype = c_int
 
 def move_option(s1, s2):
   out = cmove_option(s1, c_int(len(s1)), s2, c_int(len(s2)))
-  
+
   if out != SPUD_NO_ERROR:
     raise spud_exceptions[out]
 

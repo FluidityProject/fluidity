@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation; either
@@ -96,7 +96,7 @@ contains
     type(vector_field), intent(in):: positions
     !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
     integer, optional, intent(in):: number_of_partitions
-    
+
     character(len=longStringLen) :: meshFile
     integer :: numParts, fileDesc
 
@@ -105,9 +105,9 @@ contains
     else
       numParts = getnprocs()
     end if
-    
+
     ! Write out data only for those processes that contain data - SPMD requires
-    ! that there be no early return    
+    ! that there be no early return
     if( getprocno() <= numParts ) then
 
       fileDesc=free_unit()
@@ -116,7 +116,7 @@ contains
 
       open( fileDesc, file=trim(meshFile), status="replace", access="stream", &
            action="write", err=101 )
-      
+
     end if
 
     if( getprocno() <= numParts ) then
@@ -136,7 +136,7 @@ contains
       close( fileDesc )
 
     end if
-      
+
     return
 
 101 FLExit("Failed to open " // trim(meshFile) // " for writing")
@@ -162,7 +162,7 @@ contains
 
 
     if(useBinaryGMSH) then
-       ! GMSH binary format 
+       ! GMSH binary format
        GMSHFileFormat="1"
     else
        GMSHFileFormat="0"
@@ -334,7 +334,7 @@ contains
     write(fd, "(I0)" ) numGMSHElems
 
     ! Faces written out first
-    
+
     ! Number of tags associated with elements
     if(needs_element_owners) then
       ! write surface id and element owner
@@ -368,16 +368,16 @@ contains
           else
              write(fd, 6969, err=301) f, faceType, numTags, surface_element_id(mesh, f), 0, lnodelist
           end if
-          
+
        case (4)
-         
+
           if(useBinaryGMSH) then
              write(fd, err=301) f, surface_element_id(mesh, f), 0, 0, face_ele(mesh, f), lnodelist
           else
              write(fd, 6969, err=301) f, faceType, numTags, surface_element_id(mesh,f), 0, 0, &
                   face_ele(mesh,f), lnodelist
           end if
-          
+
        end select
 
        deallocate(lnodelist)
@@ -399,14 +399,14 @@ contains
 
        ! Output element data
        if(associated(mesh%region_ids)) then
-         
+
           if(useBinaryGMSH) then
              write(fd, err=301) elemID, ele_region_id(mesh, e), 0, lnodelist
           else
              write(fd, 6969, err=301) elemID, elemType, 2, &
                   ele_region_id(mesh, e), 0, lnodelist
           end if
-          
+
        else
 
           if(useBinaryGMSH) then
@@ -424,7 +424,7 @@ contains
     if(useBinaryGMSH) then
        write(fd, err=301) newLineChar
     end if
-    
+
     ! Back to ASCII for end of elements section
     call ascii_formatting( fd, lfilename, "write" )
     write(fd, "(A)") "$EndElements"

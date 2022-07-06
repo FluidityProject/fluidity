@@ -26,13 +26,13 @@
 
 module unittest_tools
   !!< This module contains utility functions for the libspud unit testing framework.
-  
+
   implicit none
 
   private
-  
+
   public :: report_test, int2str_len, int2str
-  
+
 contains
 
   subroutine report_test(title, fail, warn, msg)
@@ -55,13 +55,13 @@ contains
     end if
 
   end subroutine report_test
-  
+
   pure function int2str_len(i)
 
     !!< Count number of digits in i.
 
     integer, intent(in) :: i
-    integer :: int2str_len 
+    integer :: int2str_len
 
     if(i==0) then
        int2str_len=1
@@ -84,5 +84,5 @@ contains
     write(int2str,"(i0)") i
 
   end function int2str
-  
+
 end module unittest_tools

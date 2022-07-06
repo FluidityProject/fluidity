@@ -100,7 +100,7 @@ contains
   subroutine checkpoint_simulation(state, prefix, postfix, cp_no, protect_simulation_name, &
     keep_initial_data, ignore_detectors, number_of_partitions)
     !!< Checkpoint the whole simulation
-    
+
     type(state_type), dimension(:), intent(in) :: state
     !! Default value simulation_name
     character(len = *), optional, intent(in) :: prefix
@@ -110,8 +110,8 @@ contains
     !! If present and .false., do not protect the simulation_name when
     !! checkpointing the options tree
     logical, optional, intent(in) :: protect_simulation_name
-    !! If present and .true.: do not checkpoint fields that can be reinitialsed and do not 
-    !! checkpoint extruded meshes if the extrusion can be repeated using the initial sizing_function, 
+    !! If present and .true.: do not checkpoint fields that can be reinitialsed and do not
+    !! checkpoint extruded meshes if the extrusion can be repeated using the initial sizing_function,
     !! i.e. if this run has not been started with a checkpointed extruded mesh (extrude/checkpoint_from_file)
     logical, optional, intent(in) :: keep_initial_data
     !! When using flredecomp to re-partition the domain, the detectors
@@ -134,7 +134,7 @@ contains
     if(len_trim(lprefix) == 0) then
       FLAbort("Checkpoint prefix cannot have length zero")
     end if
-    
+
     if(present(postfix)) then
       lpostfix = postfix
     else
@@ -156,7 +156,7 @@ contains
       call checkpoint_options(lprefix, postfix = lpostfix, cp_no = cp_no, &
         & protect_simulation_name = .not. present_and_false(protect_simulation_name))
     end if
-    
+
   end subroutine checkpoint_simulation
 
   subroutine checkpoint_detectors(state, prefix, postfix, cp_no)
@@ -184,7 +184,7 @@ contains
     ewrite(1, *) "Checkpointing detectors"
 
     assert(len_trim(prefix) > 0)
-    
+
     if(present(postfix)) then
       lpostfix = postfix
     else
@@ -195,7 +195,7 @@ contains
     lagrangian_dete = option_count("/io/detectors/lagrangian_detector")
     det_arrays = option_count("/io/detectors/detector_array")
     array_dete_lag = 0
- 
+
     do i = 1, det_arrays
       path = "/io/detectors/detector_array[" // int2str(i - 1) // "]"
       if(have_option(trim(path) // "/lagrangian")) then
@@ -229,17 +229,17 @@ contains
       open(unit = det_unit, &
         & file = trim(detectors_cp_filename) // '_det.groups', &
         & action = "write")
-      do i = 1, size(default_stat%detector_group_names) 
+      do i = 1, size(default_stat%detector_group_names)
         write(det_unit,'(a,i0)') &
           & default_stat%detector_group_names(i), default_stat%number_det_in_each_group(i)
       end do
       close(det_unit)
-    
+
     end if
 
-    !!< Writes detector last position into detectors file using MPI output 
+    !!< Writes detector last position into detectors file using MPI output
     ! commands so that when running in parallel all processors can write at the same time information into the file at the right location.
-    
+
     call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(detectors_cp_filename) // '_det.positions.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, fhdet, IERROR)
 
     ewrite(1,*) "after opening the IERROR is:", IERROR
@@ -284,15 +284,15 @@ contains
     call update_detectors_options(trim(detectors_cp_filename) // "_det", "binary")
 
     if (fhdet/=0) then
-       call MPI_FILE_CLOSE(fhdet, IERROR) 
+       call MPI_FILE_CLOSE(fhdet, IERROR)
        if (IERROR/=0) then
           ewrite(0,*) "Warning: failed to close .detector checkpoint file open with mpi_file_open"
        end if
     end if
-    
+
     ewrite(1, *) "Exiting detectors"
 
-  end subroutine checkpoint_detectors  
+  end subroutine checkpoint_detectors
 
   subroutine update_detectors_options(filename,format)
 
@@ -310,7 +310,7 @@ contains
     python_functions_or_files = option_count("/io/detectors/detector_array")
     python_or_file_dete = 0
 
-    do i = 0, static_dete-1  
+    do i = 0, static_dete-1
        call delete_option("/io/detectors/static_detector[" // int2str(0) // "]")
     end do
 
@@ -330,17 +330,17 @@ contains
 
         if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
             FLAbort("Failed to set detectors options format when checkpointing detectors with option path " // "/io/detectors/static_detector")
-        end if  
+        end if
     end do
 
-    do i = 0, lagrangian_dete-1  
+    do i = 0, lagrangian_dete-1
        call delete_option("/io/detectors/lagrangian_detector[" // int2str(0) // "]")
     end do
 
     do i = 0, lagrangian_dete-1
 
        temp_string=default_stat%detector_group_names(i+1+static_dete)
-        
+
        call set_option_attribute("/io/detectors/lagrangian_detector::" // trim(temp_string) // "/from_checkpoint_file/file_name", trim(filename), stat)
 
         if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
@@ -351,12 +351,12 @@ contains
 
         if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
             FLAbort("Failed to set detectors options format when checkpointing detectors with option path " // "/io/detectors/lagrangian_detector")
-        end if  
+        end if
     end do
 
     allocate(type_detectors(python_functions_or_files))
 
-    do i = 0, python_functions_or_files-1  
+    do i = 0, python_functions_or_files-1
 
          if (have_option("/io/detectors/detector_array[" // int2str(0) // "]"//"/lagrangian")) then
              type_detectors(i+1)='LAGRANGIAN'
@@ -368,7 +368,7 @@ contains
 
     end do
 
-    do i = 0, python_functions_or_files-1  
+    do i = 0, python_functions_or_files-1
         temp_string=default_stat%detector_group_names(i+1+static_dete+lagrangian_dete)
 
         ewrite(1,*) 'In update_detectors_options'
@@ -378,7 +378,7 @@ contains
         ewrite(1,*) temp_string
 
         call set_option("/io/detectors/detector_array::" // trim(temp_string) // "/number_of_detectors/", &
-                & default_stat%number_det_in_each_group(i+1+static_dete+lagrangian_dete), stat = stat) 
+                & default_stat%number_det_in_each_group(i+1+static_dete+lagrangian_dete), stat = stat)
 
         ewrite(1,*) 'In update_detectors_options'
         ewrite(1,*) default_stat%number_det_in_each_group(i+1+static_dete+lagrangian_dete)
@@ -387,9 +387,9 @@ contains
 
         ewrite(1,*) 'In update_detectors_options'
         ewrite(1,*) default_stat%number_det_in_each_group(i+1+static_dete+lagrangian_dete)
-        
+
         if (type_detectors(i+1)=='LAGRANGIAN') then
-             call add_option("/io/detectors/detector_array::" // trim(temp_string) // "/lagrangian", stat = stat) 
+             call add_option("/io/detectors/detector_array::" // trim(temp_string) // "/lagrangian", stat = stat)
              assert(any(stat == (/SPUD_NO_ERROR, SPUD_NEW_KEY_WARNING/)))
         else
              call add_option("/io/detectors/detector_array::" // trim(temp_string) // "/static", stat = stat)
@@ -406,7 +406,7 @@ contains
 
         if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
             FLAbort("Failed to set detectors options format when checkpointing detectors with option path " // "/io/detectors/detector_array")
-        end if  
+        end if
     end do
 
   deallocate(type_detectors)
@@ -420,8 +420,8 @@ contains
     character(len = *), intent(in) :: prefix
     character(len = *), optional, intent(in) :: postfix
     integer, optional, intent(in) :: cp_no
-    !! If present and .true.: do not checkpoint fields that can be reinitialsed and do not 
-    !! checkpoint extruded meshes if the extrusion can be repeated using the initial sizing_function, 
+    !! If present and .true.: do not checkpoint fields that can be reinitialsed and do not
+    !! checkpoint extruded meshes if the extrusion can be repeated using the initial sizing_function,
     !! i.e. if this run has not been started with a checkpointed extruded mesh (extrude/checkpoint_from_file)
     logical, optional, intent(in) :: keep_initial_data
     !! If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
@@ -453,7 +453,7 @@ contains
     integer :: i, n_meshes, stat1, stat2, nparts
     type(mesh_type), pointer :: mesh, external_mesh
     logical :: from_file, extruded
-    
+
     assert(len_trim(prefix) > 0)
 
     if (present(number_of_partitions)) then
@@ -466,12 +466,12 @@ contains
     do i = 0, n_meshes - 1
       ! Dump each mesh listed under /geometry/mesh that is from_file
       mesh_path = "/geometry/mesh[" // int2str(i) // "]"
-      
+
       from_file = have_option(trim(mesh_path) // "/from_file")
       extruded = have_option(trim(mesh_path) // "/from_mesh/extrude") .and. &
         .not. (present_and_true(keep_initial_data) .and. &
                .not. have_option(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file"))
-        
+
       if(from_file .or. extruded) then
         ! Find the mesh (looking in first state)
         call get_option(trim(mesh_path) // "/name", mesh_name)
@@ -633,7 +633,7 @@ contains
                 ! and either the field is prognostic, prescribed and interpolated, or diagnostic and checkpointed
                 if(have_option(trim(s_field%option_path) // "/prognostic") &
                     & .or. (have_option(trim(s_field%option_path) // "/prescribed") &
-                    & .and. interpolate_field(s_field)) & 
+                    & .and. interpolate_field(s_field)) &
                     & .or. have_option(trim(s_field%option_path) // "/diagnostic/output/checkpoint")) then
                   ! but not aliased
                   if(.not. aliased(s_field)) then
@@ -822,7 +822,7 @@ contains
     end subroutine update_value_options
 
   end subroutine checkpoint_fields
-  
+
   subroutine checkpoint_options(prefix, postfix, cp_no, protect_simulation_name)
     !!< Checkpoint the entire options tree. Outputs to an FLML file with name:
     !!<   [prefix][_cp_no][_postfix].flml
@@ -848,7 +848,7 @@ contains
 
     if(lprotect_simulation_name) then
       call get_option("/simulation_name", simulation_name)
-      
+
       ! Temporarily change the simulation name. This is used to protect
       ! checkpointed files (as these will necessarily themselves have
       ! checkpointing enabled).

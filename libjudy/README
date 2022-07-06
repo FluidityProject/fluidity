@@ -54,8 +54,8 @@ COPYING		Judy deliverable license notice (the LGPL).
 ChangeLog	List of changes per version of Judy.
 
 configure	Autoconf configure script to allow a portable build e
-                environment. 
-		
+                environment.
+
 src/		Header and source files used to build the package.
 doc/		Documents, both external (to the package) and internal.
 test/		Test support and some timing programs.
@@ -65,53 +65,53 @@ tool/		Primitive tool (jhton) to convert *.html files to "man" pages.
 3. HOW TO INSTALL
 -----------------
 
-For a quick description see the INSTALL file. 
+For a quick description see the INSTALL file.
 
 Judy is now based on the GNU Auto tools. This means that you can do the standard
 configure, make, make check and make install and everything should work, with
-one minor difference and a little caveat. 
+one minor difference and a little caveat.
 
 Judy is capable of being built as a 32-bit or a 64-bit library. Configure
 will test to detect the native environment and default to that. Therefor if you
 explicitly want to to compile for the non-native environment you need to tell
 Judy what you want. You can run ./configure with one of the following flags:
-          
-	  --enable-32-bit 
-          --enable-64-bit 
+
+	  --enable-32-bit
+          --enable-64-bit
 
 The caveat comes in on machines that support both at 32-bit and 64-bit runtime
 environments such as RISC platforms and x86-64. In this case your compiler will
 either use 32-bit or 64-bit as default. If you plan to use the default you can
-follow the above instructions and be finished. 
+follow the above instructions and be finished.
 
 However, if you wish to compile for the non-default target type. YOU ARE
 RESPONSIBLE FOR SETTING THE CORRECT FLAGS! Such as CFLAGS to make your compiler
-switch modes LDFLAGS to make your linker behave, etc. 
+switch modes LDFLAGS to make your linker behave, etc.
 
 For example: On HP-UX PA-RISC the compiler generates 32-bit code by default. If
-I wish to stick with the defaults I can simply build Judy by: 
+I wish to stick with the defaults I can simply build Judy by:
    ./configure
    make
    make check
-   make install 
+   make install
 
 If I want to build Judy as a 64-bit library on HP-UX PA-RISC I have to do:
-   CFLAGS=+DD64 ./configure --enable-64-bit 
-   make 
-   make check 
-   make install 
+   CFLAGS=+DD64 ./configure --enable-64-bit
+   make
+   make check
+   make install
 
 If I want to build Judy native (64-bit) on Linux AMD64 I have to do:
    ./configure
    make
    make check
-   make install 
+   make install
 
 If I want to build Judy 32-bit on Linux AMD64 I have to do:
-   ./configure --enable-32-bit 
-   make 
-   make check 
-   make install 
+   ./configure --enable-32-bit
+   make
+   make check
+   make install
 
 4. LICENSE
 ----------
@@ -130,7 +130,7 @@ See the ChangeLog file.
 6. REPORTING BUGS
 -----------------
 
-If you encounter a bug, please submit it to the project bug list, 
+If you encounter a bug, please submit it to the project bug list,
 located on the project page:
 
     https://sourceforge.net/projects/judy/
@@ -138,12 +138,12 @@ located on the project page:
 7. KNOWN ISSUES
 ---------------
 
-When compiling on HP-UX, you may get a message like: 
- error 1000: Unexpected symbol: 
+When compiling on HP-UX, you may get a message like:
+ error 1000: Unexpected symbol:
 
 This is a problem with the HP's compiler in that it doesn't like a typedef'ed
 type following a static inline.
 
-You can work around it by running this command from the Judy directory. 
+You can work around it by running this command from the Judy directory.
 
 find ./ -name \*.[ch] | xargs perl -i.BAK -pe 's/static inline/static/g'

@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation; either
@@ -25,7 +25,7 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 
-#include "fdebug.h" 
+#include "fdebug.h"
 
 subroutine test_adapt_state_unittest
 
@@ -39,7 +39,7 @@ subroutine test_adapt_state_unittest
   use unittest_tools
   use vtk_interfaces
   use populate_state_module, only: compute_domain_statistics
-  
+
   implicit none
 
   type(mesh_type), pointer :: mesh
@@ -50,7 +50,7 @@ subroutine test_adapt_state_unittest
   type(tensor_field) :: metric
 
   integer :: i
-  
+
   call vtk_read_state("data/pseudo2d.vtu", state_read)
 
   mesh_field => extract_vector_field(state_read, "Coordinate")
@@ -68,40 +68,40 @@ subroutine test_adapt_state_unittest
 
   mesh_field => extract_vector_field(state, "Coordinate")
   mesh => extract_mesh(state, "CoordinateMesh")
- 
+
   call allocate(pressure, mesh, "Pressure")
   call allocate(velocity, mesh_dim(mesh), mesh, "Velocity")
-  
+
   do i = 1, node_count(mesh)
     call set(pressure, i, mesh_field%val(1,i) ** 2.0)
     call set(velocity, i, node_val(mesh_field, i))
   end do
-  
+
   call adaptivity_options(state, pressure, 1.0, .false.)
 
   call insert(state, pressure, "Pressure")
   call insert(state, velocity, "Velocity")
   call deallocate(pressure)
   call deallocate(velocity)
-  
+
   state_array(1) = state
   call compute_domain_statistics(state_array)
-  
+
   call adaptivity_bounds(state_array(1), 0.01, 1.0, name = "CoordinateMesh")
 
   call allocate(metric, mesh, "Metric")
   call assemble_metric(state_array, metric)
-  
+
   call adapt_state_unittest(state_array, metric)
   call report_test("[adapt_state_unittest]", .false., .false., "adapt_state_unittest failure")
   state = state_array(1)
 
   mesh_field => extract_vector_field(state, "Coordinate")
-  call vtk_write_fields("data/test_adapt_state_unittest_out", 0, mesh_field, mesh_field%mesh) 
+  call vtk_write_fields("data/test_adapt_state_unittest_out", 0, mesh_field, mesh_field%mesh)
 
   call deallocate(state)
   call deallocate(metric)
-  
+
   call report_test_no_references()
 
 end subroutine test_adapt_state_unittest

@@ -10,5 +10,3 @@ clean:
 
 run: input
 	${ROOT}/bin/fluidity -v3 -l shelf.flml
-
-

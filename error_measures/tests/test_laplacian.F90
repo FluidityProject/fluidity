@@ -18,7 +18,7 @@ subroutine test_laplacian
   use vector_tools
 
   implicit none
-  
+
   type(vector_field), target :: positions
   type(scalar_field), target :: psi, rhs, soln, load
   type(mesh_type) :: psi_mesh
@@ -28,7 +28,7 @@ subroutine test_laplacian
   type(element_type), target :: psi_shape
   type(state_type), dimension(:), pointer :: state
 
-  interface 
+  interface
      function rhs_func(X)
        ! A function which evaluates the right hand side at a number of
        ! points. Each column of X describes a set of points at which the
@@ -37,13 +37,13 @@ subroutine test_laplacian
        real, dimension(size(X,2)) :: rhs_func
      end function rhs_func
   end interface
-  interface 
+  interface
      function solution(X)
        real, dimension(:), intent(in) :: X
        real :: solution
      end function solution
   end interface
-  interface 
+  interface
      function loaddata(X)
        real, dimension(:), intent(in) :: X
        real :: loaddata
@@ -94,7 +94,7 @@ subroutine test_laplacian
     call insert(state(mesh), soln, "AnalyticalSolution")
     call deallocate(soln)
   end do
-  
+
   ! Do the actual finite element calculation.
   call run_model(state(solution_mesh))
   call analyse_output(state(solution_mesh), solution)
@@ -109,7 +109,7 @@ subroutine test_laplacian
 !    if (mesh /= solution_mesh) then
 !      soln_B => extract_scalar_field(state(mesh), "Forward solution")
 !      positions_B => extract_vector_field(state(mesh), "Coordinate")
-!      call interpolate_fields(positions_A, soln_A, positions_B, soln_B)  
+!      call interpolate_fields(positions_A, soln_A, positions_B, soln_B)
 !    end if
 !
 !    call discrete_residual(state(mesh))
@@ -124,7 +124,7 @@ subroutine test_laplacian
   end if
 
 contains
-  
+
   subroutine run_model(state)
     type(state_type), intent(in) :: state
 
@@ -140,13 +140,13 @@ contains
     call zero(psi)
     call set_solver_options(psi, ksptype='cg', pctype="sor", rtol=1e-7)
     call petsc_solve(psi, A, rhs)
-    
+
     ! since A_ij=\int \nabla N_i \nabla N_j we actually wanted to solve
     ! -A psi=rhs
     call scale(psi, -1.0)
-    
+
     call deallocate(A)
-    
+
   end subroutine run_model
 
   subroutine assemble_equations(state, A)
@@ -162,22 +162,22 @@ contains
     positions => extract_vector_field(state, "Coordinate")
     psi => extract_scalar_field(state, "ForwardSolution")
     rhs => extract_scalar_field(state, "RightHandSide")
-    
+
     ! Calculate the sparsity of A based on the connectivity of psi.
     A_sparsity=make_sparsity(psi%mesh, psi%mesh, name='LaplacianSparsity')
     call allocate(A, A_sparsity)
     call zero(A)
-    
+
     ! Assemble A element by element.
     do ele=1, element_count(psi)
        call assemble_element_contribution(A, positions, psi, ele)
     end do
 
     call set(A, find_zero_zero(positions, psi%mesh), find_zero_zero(positions, psi%mesh), INFINITY)
-    
+
   end subroutine assemble_equations
 
-  subroutine assemble_element_contribution(A, positions, psi, ele) 
+  subroutine assemble_element_contribution(A, positions, psi, ele)
     type(csr_matrix), intent(inout) :: A
     type(vector_field), intent(in) :: positions
     type(scalar_field), intent(in) :: psi
@@ -189,7 +189,7 @@ contains
     real, dimension(ele_loc(psi,ele), &
          ele_ngi(psi,ele), positions%dim) :: dshape_psi
     ! Coordinate transform * quadrature weights.
-    real, dimension(ele_ngi(positions,ele)) :: detwei    
+    real, dimension(ele_ngi(positions,ele)) :: detwei
     ! Node numbers of psi element.
     integer, dimension(:), pointer :: ele_psi
     ! Shape functions.
@@ -214,7 +214,7 @@ contains
   subroutine set_rhs(rhs, positions, rhs_func)
     type(scalar_field), intent(inout) :: rhs
     type(vector_field), intent(in) :: positions
-    interface 
+    interface
       function rhs_func(X)
         ! A function which evaluates the right hand side at a number of
         ! points. Each column of X describes a set of points at which the
@@ -226,7 +226,7 @@ contains
     ! Locations of quadrature points
     real, dimension(positions%dim,ele_ngi(positions,1)) :: X_quad
     ! Coordinate transform * quadrature weights.
-    real, dimension(ele_ngi(positions,1)) :: detwei    
+    real, dimension(ele_ngi(positions,1)) :: detwei
     ! Node numbers of rhs element.
     integer, dimension(:), pointer :: ele_rhs
     ! Shape functions.
@@ -243,10 +243,10 @@ contains
       call addto(rhs, ele_rhs, shape_rhs(shape_psi, detwei * rhs_func(X_quad)))
     end do
   end subroutine set_rhs
-  
+
   subroutine analyse_output(state, solution)
     type(state_type), intent(inout) :: state
-    interface 
+    interface
        function solution(X)
          real, dimension(:), intent(in) :: X
          real :: solution
@@ -257,7 +257,7 @@ contains
     type(scalar_field) :: err
     type(vector_field), pointer :: positions
     ! Coordinate transform * quadrature weights.
-    real, dimension(:), allocatable :: detwei    
+    real, dimension(:), allocatable :: detwei
     ! Shape functions.
     type(element_type), pointer :: shape_psi
     integer :: ele
@@ -424,13 +424,13 @@ function rhs_func(X)
   ! Right hand side function for laplacian operator.
   !
   ! Each column of X is interpreted as a position at which RHS should be
-  ! evaluated. 
+  ! evaluated.
   use fetools
   implicit none
   real, dimension(:,:), intent(in) :: X
   real, dimension(size(X,2)) :: rhs_func
   real, parameter :: PI=3.1415926535897931
-  
+
   !rhs_func=-8.0*PI**2*cos(X(X_,:)*(2.0*PI))*cos(X(Y_,:)*(2.0*PI))
   rhs_func = -121 * PI * PI * cos(11 * PI * X(X_,:))
   rhs_func = rhs_func  -1*PI*sin(PI*(2*X(Y_,:) + 1)/2)
@@ -443,7 +443,7 @@ function solution(X)
   real, dimension(:), intent(in) :: X
   real :: solution
   real, parameter :: PI=3.1415926535897931
-  
+
   !solution=cos(X(X_,:)*(2.0*PI))*cos(X(Y_,:)*(2.0*PI))
   solution = cos(11*PI * X(X_))
   solution = solution + sin(PI*(2*X(Y_) + 1)/2)/PI
@@ -457,7 +457,7 @@ function loaddata(X)
   real, dimension(:), intent(in) :: X
   real :: loaddata
   real, parameter :: PI=3.1415926535897931
-  
+
   !loaddata=cos(X(X_,:)*(2.0*PI))*cos(X(Y_,:)*(2.0*PI))
   loaddata = -121 * PI * PI * cos(11 * PI * X(X_))
   loaddata = loaddata  -1*PI*sin(PI*(2*X(Y_) + 1)/2)

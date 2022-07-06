@@ -50,7 +50,7 @@ namespace Spud{
   class OptionManager{
 
     public:
-    
+
       static void clear_options();
       static void* get_manager();
       static void set_manager(void* m);
@@ -104,7 +104,7 @@ namespace Spud{
 
       static OptionError move_option(const std::string& key1, const std::string& key2);
       static OptionError copy_option(const std::string& key1, const std::string& key2);
-       
+
       static OptionError delete_option(const std::string& key);
 
       static void print_options();
@@ -118,7 +118,7 @@ namespace Spud{
       ~OptionManager();
 
       OptionManager& operator=(const OptionManager& manager);
-      
+
       static OptionError check_key(const std::string& key);
 
       static OptionError check_rank(const std::string& key, const int& rank);
@@ -126,9 +126,9 @@ namespace Spud{
       static OptionError check_type(const std::string& key, const OptionType& type);
 
       static OptionError check_option(const std::string& key, const OptionType& type, const int& rank);
-      
+
       static OptionManager manager;
-      
+
       void reset();
 
       class Option{
@@ -403,14 +403,14 @@ namespace Spud{
           logical_t is_attribute;
 
           logical_t verbose;
-          
+
       };
-      
+
       static bool deallocated;
       Option* options;
-      
+
   };
-  
+
   inline void clear_options(){
     OptionManager::clear_options();
   }

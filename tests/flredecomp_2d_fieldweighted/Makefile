@@ -7,4 +7,3 @@ input:  clean
 
 clean:
 	rm -f *.pvtu *.stat *.msh *.halo *.detectors fluidity.* Parallel* *.pyc
-

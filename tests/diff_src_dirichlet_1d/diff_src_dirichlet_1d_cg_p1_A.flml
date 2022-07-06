@@ -189,18 +189,18 @@
             <string_value type="code" language="python" lines="20">def val(X,t):
    # get the 1d coord
    x = X[0]
-   
+
    # define the analytic input
    x_left   = 0.0
    x_right  = 10.0
    src      = 2.13
    bc_right = 2.0
-   
+
    # calc the analytic solution
    T = (src/2.0)*(x_right**2 - x**2) \
      + (src*x_left)*(x - x_right) \
      + bc_right
-   
+
    return T</string_value>
           </python>
         </value>

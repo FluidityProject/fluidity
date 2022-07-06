@@ -1,18 +1,27 @@
 #!/usr/bin/env python3
-
 from optparse import OptionParser
+
 import fluidity.diagnostics.gmshtools as gmshtools
+import numpy
 from fluidity.diagnostics.elements import Element
 from fluidity.diagnostics.meshes import Mesh
-from polyhedra import icosahedron, subdivide
-import numpy
+from polyhedra import icosahedron
+from polyhedra import subdivide
 
-optparser=OptionParser(usage='usage: %prog <filename> <radius> <subdivisions>',
-                       add_help_option=True,
-                       description="""Creates an icohedral gmsh mesh of the 2-sphere in 3D.""")
-optparser.add_option("--ascii", "-a",
-                  help="Convert to ASCII Gmsh format",
-                     action="store_const", const=True, dest="ascii", default=False)
+optparser = OptionParser(
+    usage="usage: %prog <filename> <radius> <subdivisions>",
+    add_help_option=True,
+    description="""Creates an icohedral gmsh mesh of the 2-sphere in 3D.""",
+)
+optparser.add_option(
+    "--ascii",
+    "-a",
+    help="Convert to ASCII Gmsh format",
+    action="store_const",
+    const=True,
+    dest="ascii",
+    default=False,
+)
 
 (options, argv) = optparser.parse_args()
 try:
@@ -28,7 +37,9 @@ for i in xrange(subdivisions):
     subdivide(nodes, faces)
 
 nodes = radius * numpy.array(nodes)
-mesh = Mesh(3, nodes, volumeElements=[], surfaceElements=[Element(face) for face in faces])
+mesh = Mesh(
+    3, nodes, volumeElements=[], surfaceElements=[Element(face) for face in faces]
+)
 
 # now we can write the gmsh file:
 gmshtools.WriteMsh(mesh, "%s.msh" % (filename), binary=not options.ascii)

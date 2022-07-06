@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
+import sys
 
 import numpy
-from numpy import array,argsort,corrcoef,size
-import sys
+from numpy import argsort
+from numpy import array
+from numpy import corrcoef
+from numpy import size
+
 
 def main():
 
@@ -10,8 +14,9 @@ def main():
     y = [0, 1, 2, 3, 4, 5, 6]
 
     print(interpolate(x, y, 5.5))
-    assert(interpolate(x, y, 5.5) == 5.5)
+    assert interpolate(x, y, 5.5) == 5.5
     print("Success")
+
 
 def interpolate(x, y, x0):
     """
@@ -25,19 +30,19 @@ def interpolate(x, y, x0):
     i_b = -1
     i = 0
     for point in x:
-        if (point <= x0):
+        if point <= x0:
             x_a = point
             i_a = i
-        if (point > x0):
+        if point > x0:
             x_b = point
             i_b = i
             break
-        i = i+1
+        i = i + 1
 
-    if (i_a == -1 or i_b == -1):
+    if i_a == -1 or i_b == -1:
         sys.exit("Error interpolating")
 
-    y0 = y[i_a] + (y[i_b]-y[i_a])*(x0-x_a)/(x_b-x_a)
+    y0 = y[i_a] + (y[i_b] - y[i_a]) * (x0 - x_a) / (x_b - x_a)
 
     return y0
 

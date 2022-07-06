@@ -56,7 +56,7 @@ unn_t & unn_t::operator=(const unn_t &a){
 }
 unn_t & unn_t::operator=(const string &a){
   char num[UNN_LEN+1];
-  
+
   if( a.size() < UNN_LEN ){
     sprintf(num, "%*s", UNN_LEN, a.c_str());
     for(int i=0;i<UNN_LEN;i++){
@@ -69,7 +69,7 @@ unn_t & unn_t::operator=(const string &a){
     strncpy(num, a.c_str(), UNN_LEN);
   }
   num[UNN_LEN] = '\0';
-  
+
   s = num;
   return(*this);
 }

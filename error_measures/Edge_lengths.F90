@@ -11,7 +11,7 @@ module edge_length_module
   implicit none
 
   private
-  
+
   public :: get_edge_lengths, get_directional_edge_lengths
 
   interface get_edge_lengths
@@ -28,7 +28,7 @@ module edge_length_module
     integer :: i, j, dim
     real, dimension(mesh_dim(metric%mesh), mesh_dim(metric%mesh)) :: evectors
     real, dimension(mesh_dim(metric%mesh)) :: evalues, desired_lengths
-    
+
     dim = mesh_dim(metric%mesh)
 
     do i=1,metric%mesh%nodes
@@ -47,7 +47,7 @@ module edge_length_module
     ewrite(2,*) "minval(edgelengths) == ", minval(field%val)
     ewrite(2,*) "minloc(edgelengths) == ", minloc(field%val)
   end subroutine get_edge_lengths_field
-  
+
   subroutine get_edge_lengths_tensor(metric, tensor)
     !!< Replace the eigenvalues with the edge length corresponding to those
     !!< eigenvalues.

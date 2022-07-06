@@ -67,8 +67,8 @@ input_choice_real_plus_map =
          }?,
          ## If you are reading data from a file whose top layer height
          ## is not equal to zero, set the height of that top layer here.
-         ## Note however that the height of the top layer in the the 
-         ## extruded mesh will still be equal to zero (if planar) or 
+         ## Note however that the height of the top layer in the the
+         ## extruded mesh will still be equal to zero (if planar) or
          ## the radius of the shell mesh (if spherical), the given domain
          ## will in effect have been shifted down.
          element surface_height {
@@ -111,7 +111,7 @@ input_choice_real_plus_field =
          attribute parent_field_name { xsd:string }
       }
    )
-   
+
 input_choice_real_contents =
    ## Constant value
    element constant {
@@ -141,7 +141,7 @@ bc_smoothing =
       }?
    )
 
-initial_condition_scalar = 
+initial_condition_scalar =
    (
       ## Initial condition for WholeMesh
       ##
@@ -184,8 +184,8 @@ input_choice_initial_condition_real =
       }|
       ## Initialise the field from an existing file (indended
       ## primarily for use in checkpointing). The file mesh must match
-      ## the mesh of this field  (except for piecewise constant fields 
-      ## which will be remapped back from the discontinuous nodal values). 
+      ## the mesh of this field  (except for piecewise constant fields
+      ## which will be remapped back from the discontinuous nodal values).
       ## In parallel the process number is
       ## appended to the filename, e.g. if the file_name attribute is
       ## set to "input.vtu", process 0 reads from "input-0.vtu".
@@ -210,7 +210,7 @@ input_choice_initial_condition_real =
       ## Initialize a single field from data contained within a NetCDF file.
       ## Data should be in the form x, y, z(y,x) where x and y are the coordinates
       ## (either cartesian or longitude-latitude) and z is the value of the initial
-      ## condition to be imposed (or in the GEBCO, COARDS or CF-1.0 formats). 
+      ## condition to be imposed (or in the GEBCO, COARDS or CF-1.0 formats).
       ## Note: This option currently only supports 'single layer' data sets.
       ##
       ## Current format options are: raw
@@ -243,8 +243,8 @@ input_choice_initial_condition_pressure =
       }|
       ## Initialise the field from an existing file (indended
       ## primarily for use in checkpointing). The file mesh must match
-      ## the mesh of this field  (except for piecewise constant fields 
-      ## which will be remapped back from the discontinuous nodal values). 
+      ## the mesh of this field  (except for piecewise constant fields
+      ## which will be remapped back from the discontinuous nodal values).
       ## In parallel the process number is
       ## appended to the filename, e.g. if the file_name attribute is
       ## set to "input.vtu", process 0 reads from "input-0.vtu".
@@ -277,7 +277,7 @@ input_choice_initial_condition_pressure =
       ## Initialize a single field from data contained within a NetCDF file.
       ## Data should be in the form x, y, z(y,x) where x and y are the coordinates
       ## (either cartesian or longitude-latitude) and z is the value of the initial
-      ## condition to be imposed (or in the GEBCO, COARDS or CF-1.0 formats). 
+      ## condition to be imposed (or in the GEBCO, COARDS or CF-1.0 formats).
       ## Note: This option currently only supports 'single layer' data sets.
       ##
       ## Current format options are: raw
@@ -324,7 +324,7 @@ input_choice_real_dim_vector_plus_file =
           }
       }
    )
-   
+
 input_choice_real_dim_vector_contents =
    ## Constant value
    element constant {
@@ -421,7 +421,7 @@ input_choice_real_dim_symmetric_tensor =
       }|
       ## Python command prescribing symmetric tensor input.
       ##
-      ## Note that it is for the python function to determine 
+      ## Note that it is for the python function to determine
       ## that the results it produces are, in fact, symmetric.
       ##
       ## An example that returns the three-dimensional identity:
@@ -519,8 +519,8 @@ input_choice_real_dim_minus_one_tensor =
    )
 
 
-region_ids = 
-   ( 
+region_ids =
+   (
       ## Optional region ids to associate different values
       ## to different regions of the mesh.
       ## Leave unselected if you`re not using multiple regions or
@@ -531,11 +531,11 @@ region_ids =
       }
    )
 
-input_choice_real_bc_component = 
+input_choice_real_bc_component =
    (
       input_choice_real_plus_field|
       element synthetic_eddy_method {
-         ## use a large number to ensure Gaussian 
+         ## use a large number to ensure Gaussian
          ## behaviour of the fluctuating component
          element number_of_eddies {
            integer
@@ -553,13 +553,13 @@ input_choice_real_bc_component =
          ## Reynolds stresses profile
          ##
          ## usually a function of height,
-         ## assumes that the remaining stresses are negligible 
+         ## assumes that the remaining stresses are negligible
          element Re_stresses_profile {
            input_choice_real
          }
       }|
       element foam_flow {
-         ## use the normal component of the remapped foam velocity 
+         ## use the normal component of the remapped foam velocity
          element factor {
            integer
          }?
@@ -580,7 +580,7 @@ vtu_input_format =
          comment
       }
    )
-    
+
 netcdf_input_format =
    (
       ## NetCDF CF 1.4 (http://cf-pcmdi.llnl.gov/)

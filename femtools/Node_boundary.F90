@@ -134,7 +134,7 @@ module node_boundary
       if (mesh_dim(mesh) == 3 .and. domain_is_2d()) expected_boundcount = 1
       if (minval(boundcount) > 0) expected_boundcount = 1
       count_zero_boundaries = count(boundcount == 0)
-      ! if only 20% of nodes are not on boundaries, 
+      ! if only 20% of nodes are not on boundaries,
       ! assume it's pseudo2d
       if (mesh_dim(mesh) == 3) then
         if ((float(count_zero_boundaries(1)) / float(size(boundcount))) < 0.20) then
@@ -251,12 +251,12 @@ module node_boundary
     logical :: bool
     bool = (pseudo2d_coord == 2)
   end function domain_is_2d_y
-  
+
   function domain_is_2d_z() result(bool)
     !!< Is the domain pseudo2d in the z direction?
     logical :: bool
     bool = (pseudo2d_coord == 3)
-    
+
   end function domain_is_2d_z
-  
+
 end module node_boundary

@@ -109,7 +109,7 @@ C ... checking the case when deleting is impossible
 C ... analyzing the superelement entries
       Call makSF(iPd, lF, iFs, lE, iEs, IPEs, IPF, IFE, MaxS,
      &           lP1, iP1s, lP2, iP2s, ICP2s,
-     &           lS, IPSs, IESs, lDF, iDFs, lDE, iDEs, 
+     &           lS, IPSs, IESs, lDF, iDFs, lDE, iDEs,
      &           flagFACE, flagEDGE)
 C ... intersection of two interfaces at the point has more than 3 edges
       If(flagEDGE .AND. lP1.GE.3) Goto 1000
@@ -205,7 +205,7 @@ c  ...  checking in details this face
 
 
 c  ...  trying for the quality
-         lEadd = 0D0 
+         lEadd = 0D0
          newVolume = 0D0
          Do 50 k = 1, lS
             iP1 = iPSs(1, k)

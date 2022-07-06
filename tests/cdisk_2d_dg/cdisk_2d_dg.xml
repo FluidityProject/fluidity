@@ -39,7 +39,7 @@ barycentre_angle = dot(xy[0], xy[1])
     <variable name = "solvers_converged" language = "python">
 import os
 files = os.listdir("./")
-solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
     </variables>
     <pass_tests>

@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -43,17 +43,17 @@ subroutine set_global_debug_level(level)
   use fldebug_parameters
   implicit none
   integer, intent(in) :: level
-  
+
   global_debug_level=level
-  current_debug_level=global_debug_level  
-  
+  current_debug_level=global_debug_level
+
 end subroutine set_global_debug_level
 
 subroutine reset_debug_level
   ! Temporarily set the verbosity of the program.
   use fldebug_parameters
   implicit none
- 
+
   current_debug_level=global_debug_level
 
 end subroutine reset_debug_level
@@ -62,9 +62,9 @@ function debug_level()
   ! Simply return the current debug level. This makes the debug level
   ! effectively global.
   use fldebug_parameters
-  implicit none  
+  implicit none
   integer :: debug_level
-  
+
   debug_level=current_debug_level
 
 end function debug_level
@@ -73,9 +73,9 @@ function get_global_debug_level()
   ! Simply return the global debug level. This makes the debug level
   ! effectively global.
   use fldebug_parameters
-  implicit none  
+  implicit none
   integer :: get_global_debug_level
-  
+
   get_global_debug_level=global_debug_level
 
 end function get_global_debug_level

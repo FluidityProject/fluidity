@@ -72,7 +72,7 @@ public:
     // [0,MAX_REAL] for a ray; [-e,e] for a segment, where e > 0; [0,0] for
     // a point, and [MAX_REAL,-MAX_REAL] for the empty set.  If the interval
     // is [min,max], the adjustments are as follows.
-    // 
+    //
     // CT_RAY:  If max is MAX_REAL and if min is not zero, then P is modified
     // to P' = P+min*D so that the ray is represented by P'+t*D for t >= 0.
     // If min is -MAX_REAL and max is finite, then the origin and direction

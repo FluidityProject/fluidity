@@ -361,7 +361,7 @@ ConvertBranchLtoU:
 
 // Set the proper NULL type for most of the uncompressed branchs JPs:
 
-            JU_JPSETADT(&newJP, 0, 0, 
+            JU_JPSETADT(&newJP, 0, 0,
                     JU_JPTYPE(Pjp) - cJU_JPBRANCH_L2 + cJU_JPNULL1);
 
 // Initialize:  Pre-set uncompressed branch to mostly JPNULL*s:
@@ -536,7 +536,7 @@ JudyBranchB:
 // The new expanse always an cJU_JPIMMED_*_01 containing just the new Index, so
 // finish setting up an Immed JP.
 
-            JU_JPSETADT(&newJP, 0, Index, 
+            JU_JPSETADT(&newJP, 0, Index,
                 JU_JPTYPE(Pjp) + cJU_JPIMMED_1_01-cJU_JPBRANCH_B2);
 
 // Get 1 of the 8 JP arrays and calculate number of JPs in subexpanse array:

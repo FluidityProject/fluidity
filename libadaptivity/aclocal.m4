@@ -59,9 +59,9 @@ AC_ARG_WITH(blas_dir,
 
 case $with_blas_dir in
       yes | no | "") ;;
-     -L*) LDFLAGS="$LDFLAGS $with_blas_dir" 
+     -L*) LDFLAGS="$LDFLAGS $with_blas_dir"
 	      acx_blas_dir="$with_blas_dir" ;;
-      *) LDFLAGS="$LDFLAGS -L$with_blas_dir" 
+      *) LDFLAGS="$LDFLAGS -L$with_blas_dir"
 	      acx_blas_dir="-L$with_blas_dir" ;;
 esac
 
@@ -109,12 +109,12 @@ fi
 # Intel mkl BLAS. Unfortunately some of Intel's blas routines are
 # in their lapack library...
 if test $acx_blas_ok = no; then
-	AC_CHECK_LIB(mkl_def, $sgemm, 
+	AC_CHECK_LIB(mkl_def, $sgemm,
 	[acx_blas_ok=yes; acx_blas_libs="-lmkl_def -lm"],
 	[],[-lm])
 fi
 if test $acx_blas_ok = no; then
-	AC_CHECK_LIB(mkl_ipf, $sgemm, 
+	AC_CHECK_LIB(mkl_ipf, $sgemm,
 	[acx_blas_ok=yes; acx_blas_libs="-lmkl_ipf -lguide -lm"],
 	[],[-lguide -lm])
 fi
@@ -129,8 +129,8 @@ if test $acx_blas_ok = no; then
 	unset ac_cv_lib_mkl_def_sgemm
 	AC_CHECK_LIB(mkl_lapack, lsame, [
 	    acx_lapack_ok=yes;
-		AC_CHECK_LIB(mkl_def, $sgemm, 
-			[acx_blas_ok=yes; 
+		AC_CHECK_LIB(mkl_def, $sgemm,
+			[acx_blas_ok=yes;
 			acx_blas_libs="-lmkl_def -lmkl_lapack -lm -lpthread"],
 			[],[-lm -lpthread
 		])
@@ -152,7 +152,7 @@ fi
 
 # ia64-hp-hpux11.22 BLAS library?
 if test $acx_blas_ok = no; then
-        AC_CHECK_LIB(veclib, $sgemm, 
+        AC_CHECK_LIB(veclib, $sgemm,
 		[acx_blas_ok=yes; acx_blas_libs="-lveclib8"])
 fi
 
@@ -219,10 +219,10 @@ if test $acx_blas_ok = no; then
 	AC_CHECK_LIB(blas, $sgemm, [acx_blas_ok=yes; acx_blas_libs="-lblas"])
 fi
 
-# blas on SGI/CRAY 
+# blas on SGI/CRAY
 if test $acx_blas_ok = no; then
     unset ac_cv_lib_blas_sgemm
-	AC_CHECK_LIB(blas, $sgemm, 
+	AC_CHECK_LIB(blas, $sgemm,
 	[acx_blas_ok=yes; acx_blas_libs="-lblas -lcraylibs"],[],[-lcraylibs])
 fi
 
@@ -234,7 +234,7 @@ if test $acx_blas_ok = no; then
 	AC_MSG_RESULT($acx_blas_ok)
 	LIBS="$save_LIBS"
 fi
- 
+
 BLAS_LIBS="$acx_blas_libs"
 AC_SUBST(BLAS_LIBS)
 
@@ -261,7 +261,7 @@ dnl hold the requisite library linkages.
 dnl
 dnl To link with LAPACK, you should link with:
 dnl
-dnl 	$LAPACK_LIBS $BLAS_LIBS $LIBS 
+dnl 	$LAPACK_LIBS $BLAS_LIBS $LIBS
 dnl
 dnl in that order.  BLAS_LIBS is the output variable of the ACX_BLAS
 dnl macro, called automatically.  FLIBS is the output variable of the
@@ -308,9 +308,9 @@ AC_ARG_WITH(lapack_dir,
 
 case $with_lapack_dir in
       yes | no | "") ;;
-     -L*) LDFLAGS="$LDFLAGS $with_lapack_dir" 
+     -L*) LDFLAGS="$LDFLAGS $with_lapack_dir"
 	      acx_lapack_dir="$with_lapack_dir" ;;
-      *) LDFLAGS="$LDFLAGS -L$with_lapack_dir" 
+      *) LDFLAGS="$LDFLAGS -L$with_lapack_dir"
 	      acx_lapack_dir="-L$with_lapack_dir" ;;
 esac
 
@@ -350,7 +350,7 @@ if test $acx_lapack_ok = no; then
 if test "x$LAPACK_LIBS" != x; then
 	save_LIBS="$LIBS"; LIBS="$LAPACK_LIBS $LIBS"
 	AC_MSG_CHECKING([for $dsyev in $LAPACK_LIBS])
-	AC_TRY_LINK_FUNC($dsyev, [acx_lapack_ok=yes; 
+	AC_TRY_LINK_FUNC($dsyev, [acx_lapack_ok=yes;
 	     acx_lapack_libs=$LAPACK_LIBS])
 	AC_MSG_RESULT($acx_lapack_ok)
 	LIBS="$save_LIBS"
@@ -359,14 +359,14 @@ fi
 
 # Intel MKL LAPACK?
 if test $acx_lapack_ok = no; then
-	AC_CHECK_LIB(mkl_lapack, $dsyev, 
+	AC_CHECK_LIB(mkl_lapack, $dsyev,
 	[acx_lapack_ok=yes; acx_lapack_libs="-lmkl_lapack -lguide"],
 	[],[])
 fi
 
 # Sun sunperf?
 if test $acx_lapack_ok = no; then
-	AC_CHECK_LIB(sunperf, $dsyev, 
+	AC_CHECK_LIB(sunperf, $dsyev,
 	[acx_lapack_ok=yes; acx_lapack_libs="-lsunperf"],
 	[],[])
 fi
@@ -441,12 +441,12 @@ if test -e $PETSc_LIBS_PATH/libpetsc.a || test -e $PETSc_LIBS_PATH/libpetsc.so; 
 	echo "note: using $PETSc_LIBS_PATH/libpetsc (.a/.so)"
 else
 	AC_MSG_NOTICE( [Could not physically find PETSc library... exiting] )
-fi 
+fi
 if test -e $PETSc_INCLUDES_PATH/petsc.h; then
 	echo "note: using $PETSc_INCLUDES_PATH/petsc.h"
 else
 	AC_MSG_NOTICE( [Could not physically find PETSc header file... exiting] )
-fi 
+fi
 
 # Ensure the comiler finds the library...
 tmpLIBS=$LIBS
@@ -468,7 +468,7 @@ AC_CHECK_LIB(
     [AC_MSG_ERROR( [Could not link in the PETSc library... exiting] )] )])
 AC_CHECK_HEADER(
 	[petsc.h],
-	[AC_DEFINE( 
+	[AC_DEFINE(
 		[HAVE_PETSc_H],,
 		[Define to 1 if you have the <petsc.h> header file.])],
 	[AC_MSG_ERROR( [Could not compile in the PETSc headers... exiting] )] )
@@ -499,7 +499,7 @@ ParMetis_LIBS_PATH="$ParMetis/lib"
 # Check that the compiler uses the library we specified...
 if test -e $ParMetis_LIBS_PATH/libparmetis.a; then
 	echo "note: using $ParMetis_LIBS_PATH/libparmetis.a"
-fi 
+fi
 
 # Ensure the comiler finds the library...
 tmpLIBS=$LIBS

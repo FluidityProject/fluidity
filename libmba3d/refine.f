@@ -11,7 +11,7 @@ C
 C ================================================================
       Subroutine initializeRefinement(
 C ================================================================
-     &      nP, nE, XYP, IPE, 
+     &      nP, nE, XYP, IPE,
      &      MapMtr, Ref2MapMtr)
 C ================================================================
 C   Fill mapping matrix for each tetrahedron to make it equilateral
@@ -88,15 +88,15 @@ C This routine may be called ONLY after initializeRefinement
 C ================================================================
       Subroutine uniformRefinement(
 C ================================================================
-     &      nP, MaxP, nF, MaxF, nE, MaxE,  
+     &      nP, MaxP, nF, MaxF, nE, MaxE,
      &      XYP, IPF, IPE, lbF, lbE,
      &      MapMtr, Ref2MapMtr,
      &      iW, MaxWi)
 C ================================================================
 C    MapMtr - data array of length 9*nEcoarse
 C    Ref2MapMtr - data array (lengths on input and output are 9*nE)
-C    iW(*) - working array of size MaxWi which is at least 
-C            nP + 14 * nE 
+C    iW(*) - working array of size MaxWi which is at least
+C            nP + 14 * nE
 C ================================================================
       Real*8  XYP(3, *), MapMtr(9, *)
       Integer IPE(4, *), IPF(3, *), lbF(*), lbE(*), Ref2MapMtr(*)
@@ -120,7 +120,7 @@ C ================================================================
 C ================================================================
       inEP = 1
       iIEP = inEP + nP
-      iIRE = iIEP + 4 * nE 
+      iIRE = iIEP + 4 * nE
       iIPE = iIRE + 6 * nE
       iEnd = iIPE + 4 * nE
 
@@ -182,8 +182,8 @@ c ... find optimal splitting of inner octahedron (ii=1,2,3)
           Do i = 1, 4
             Do k = 1, 4
                j = nPo + iW(iIRE + 6 * n + refOct(k,i,ii) - 7)
-               jj= Ref2MapMtr(n) 
-               if (jj.lt.0) jj = -jj 
+               jj= Ref2MapMtr(n)
+               if (jj.lt.0) jj = -jj
                call FixedMap(XYP(1, j), MapMtr(1, jj), XYPt(1, k))
             End do
             call calREG(XYPt(1,1),XYPt(1,2),XYPt(1,3),XYPt(1,4), Qt)
@@ -246,12 +246,12 @@ c ... splitting faces
                      Goto 10
                   End if
                End do
-  10        Continue 
+  10        Continue
          End do
          lbF(jF) = lbF(n)
 
          Do i1 = 1, 3
-            iF = (3 - i1) * nFo + n 
+            iF = (3 - i1) * nFo + n
 
             i2 = loop(i1 + 1)
             i3 = loop(i2 + 1)
@@ -273,7 +273,7 @@ C This routine may be called ONLY after initializeRefinement
 C ================================================================
       Subroutine localRefinement(
 C ================================================================
-     &      nP, MaxP, nF, MaxF, nE, MaxE,  
+     &      nP, MaxP, nF, MaxF, nE, MaxE,
      &      XYP, IPF, IPE, lbF, lbE,
      &      MapMtr, Ref2MapMtr, SplitFlag,
      &      iW, MaxWi)
@@ -285,7 +285,7 @@ C
 C  Remarks:
 C    MapMtr - data array of length 9*nEcoarse
 C    Ref2MapMtr - data array (lengths on input and output are 9*nE)
-C    iW(*) - working array of size MaxWi which is at least 
+C    iW(*) - working array of size MaxWi which is at least
 C            nP + 14 * nE + 3*nR + 4*min(MaxF,4*nF)
 C ================================================================
       Real*8  XYP(3, *), MapMtr(9, *)
@@ -299,7 +299,7 @@ C (Local variables)
       Real*8  XYPt(3, 4), Qt, minQt(3)
 
       Logical flagE
-      Integer refCrnr(4,4), refOct(4,4,3), loop(4), 
+      Integer refCrnr(4,4), refOct(4,4,3), loop(4),
      &        facedge(3,4), facount(4), medge(6), opposite(3)
 
 C ================================================================
@@ -314,9 +314,9 @@ C ================================================================
 C ================================================================
       iIRE = 1
       iIPE = iIRE + 6 * nE
-      inEP = iIPE + 4 * nE 
+      inEP = iIPE + 4 * nE
       iIEP = inEP + nP
-      iEnd = iIEP + 4 * nE 
+      iEnd = iIEP + 4 * nE
 
 
       Call listE2R(nP, nR, nE, IPE, iW(iIRE), iW(inEP), iW(iIEP))
@@ -336,7 +336,7 @@ C ================================================================
 
 c ... mark new points on edges
       Do n = 1, nR
-         iW(ilbR + n - 1) = 0 
+         iW(ilbR + n - 1) = 0
       End do
 
 c ... mark mother edges
@@ -352,7 +352,7 @@ c ... mark mother edges
 c ... count mother edges
       mR = 0
       Do iRt = 1, nR
-         If(iW(ilbR + iRt - 1).GT.0) Then 
+         If(iW(ilbR + iRt - 1).GT.0) Then
             nP = nP + 1
             mR = mR + 1
             iW(ilbR + iRt - 1) = mR
@@ -388,7 +388,7 @@ c        count new points for faces of each tet
             facount(j1) = 0
          End do
 
-         Do i1 = 1, 3          
+         Do i1 = 1, 3
             Do i2 = i1 + 1, 4  ! loop over edges
                k = k + 1
                iRt = iW(iIRE + 6 * (n-1) + k - 1)
@@ -498,7 +498,7 @@ c                 Loop over faces (j1) having k-th edge
          Do j1 = 1, 4
             If(facount(j1).eq.2) Call errMes(1002, 'localRefinement',
      &                          'facount=2')
-c If this error happen, it implies that algorithm for removing situation 
+c If this error happen, it implies that algorithm for removing situation
 c with 2 new points at a face has to be refined!
          End do
       End do
@@ -576,7 +576,7 @@ c           tet is split into 2 tets,n and nE+1. iP1,iP2 are endpoints of mother
             End do
 
          Else If(newP.EQ.2) Then
-c           tet is split into 4 tets, n, nE+1,nE+2,nE+3. 
+c           tet is split into 4 tets, n, nE+1,nE+2,nE+3.
             nE = nE + 3
             If(nE.GT.MaxE) Call errMes(1006, 'localRefinement',
      &                                'local parameter MaxE is small')
@@ -688,7 +688,7 @@ c  ...  interior tet
                   IPE(k, nE) = nPo + iRc
                End do
                lbE(nE) = IPEs(5)
-               Ref2MapMtr(nE) = IPEs(6) 
+               Ref2MapMtr(nE) = IPEs(6)
 
 c  ...  vertex-based tet (i<4) or original tet (i=4)
                If(i.EQ.4) Then
@@ -707,13 +707,13 @@ c  ...  vertex-based tet (i<4) or original tet (i=4)
                End do
                IPE(4, iE) = IPEs(i)
                lbE(iE) = IPEs(5)
-               Ref2MapMtr(iE) = IPEs(6) 
+               Ref2MapMtr(iE) = IPEs(6)
             End do
          End if
       End do
 
 
-c ... splitting faces 
+c ... splitting faces
       nF = 0
       Do n = 1, nFo
          iP1 = IPF(1, n)
@@ -737,7 +737,7 @@ c        count new points at face and fill medge
                 End if
             End if
          End do
-         
+
          If(newP.EQ.0) Then
             nF = nF + 1
             If(nF.GT.MaxF) Call errMes(1007, 'localRefinement',
@@ -771,11 +771,11 @@ c        count new points at face and fill medge
             iW(iIPF + (nF-2)*4  ) = iPa
             iW(iIPF + (nF-2)*4+1) = iPb
             iW(iIPF + (nF-2)*4+2) = nPo + medge(1)
-            iW(iIPF + (nF-2)*4+3) = lbF(n) 
+            iW(iIPF + (nF-2)*4+3) = lbF(n)
             iW(iIPF + (nF-1)*4  ) = iPa
             iW(iIPF + (nF-1)*4+1) = iPc
             iW(iIPF + (nF-1)*4+2) = nPo + medge(1)
-            iW(iIPF + (nF-1)*4+3) = lbF(n) 
+            iW(iIPF + (nF-1)*4+3) = lbF(n)
 
          Else If(newP.EQ.3) Then
 c ... define opposite
@@ -798,17 +798,17 @@ c           interior triangle
             iW(iIPF + (nF-4)*4  ) = iPa
             iW(iIPF + (nF-4)*4+1) = iPb
             iW(iIPF + (nF-4)*4+2) = iPc
-            iW(iIPF + (nF-4)*4+3) = lbF(n) 
+            iW(iIPF + (nF-4)*4+3) = lbF(n)
             Do k = 1, 3 ! corner triangles
                iW(iIPF + (nF-k)*4  ) = opposite(k)
                iW(iIPF + (nF-k)*4+1) = nPo + medge(k)
                iW(iIPF + (nF-k)*4+2) = nPo + medge(loop(k+1))
-               iW(iIPF + (nF-k)*4+3) = lbF(n) 
+               iW(iIPF + (nF-k)*4+3) = lbF(n)
             End do
          Else
             Call errMes(1008, 'localRefinement',
      &                  'newP for face  is wrong')
-         End if 
+         End if
       End do
 
       Do n = 1, nF
@@ -825,7 +825,7 @@ c           interior triangle
 C ================================================================
       Subroutine calREG(xy1, xy2, xy3, xy4, qE)
 C ================================================================
-C Computing regularity quality of tetrahedron {xy1, ..., xy4} 
+C Computing regularity quality of tetrahedron {xy1, ..., xy4}
 C ================================================================
       Real*8 xy1(3), xy2(3), xy3(3), xy4(3)
       Real*8 qE
@@ -867,9 +867,9 @@ C ================================================================
       End do
 
       volume = calVol(xy1, xy2, xy3, xy4)
-      Vk = dabs(volume) 
+      Vk = dabs(volume)
 
-      qE = 1832.8208D0 * Vk / (Pk ** 3) 
+      qE = 1832.8208D0 * Vk / (Pk ** 3)
 
       Return
       End Subroutine calREG

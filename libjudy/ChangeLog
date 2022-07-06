@@ -11,7 +11,7 @@ o Fixed messages from "make check" (doug).
 
 1.0.3  Version (Feb 2006 ) by (twh)
 o fixed make files to break out each copy element
-to be a unique target, this also seems to have 
+to be a unique target, this also seems to have
 resolved the issue where running make check rebuilds
 the entire library again.
 
@@ -35,7 +35,7 @@ o Added build.bat to support building on Windows
 o Complete Autoconfisication of Judy
 o Removed previous build environment
 o Change INSTALL_IT back to INSTALL
-o Moving to 1.0.0 to denote API change. 
+o Moving to 1.0.0 to denote API change.
 
 
 0.1.6 Version (1June2004) by (dlb)
@@ -43,7 +43,7 @@ o Moving to 1.0.0 to denote API change.
 o See src/sh_build in case of 'make' failures
 o The is an endian-neutral version I.E. (jp_DcdPop0 deleted)
 o Should not require any special platform specific compile flags
-o Includes JudyHS*() -- very fast, scalable string version 
+o Includes JudyHS*() -- very fast, scalable string version
 o JudyHS*() is still preliminary and may need additional functionality.
 o See test/manual/StringCompare.c for comparing different 'string' ADT's
 o Deleted files: JudyMalloc.h, JudySL.h, JudySearch*

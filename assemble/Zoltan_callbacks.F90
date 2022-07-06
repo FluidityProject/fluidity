@@ -27,7 +27,7 @@ module zoltan_callbacks
   use zoltan_detectors
 
   implicit none
-  
+
   private
 
   public :: zoltan_cb_owned_node_count, zoltan_cb_get_owned_nodes, zoltan_cb_pack_field_sizes,&
@@ -35,14 +35,14 @@ module zoltan_callbacks
        zoltan_cb_pack_halo_nodes, zoltan_cb_unpack_halo_nodes, zoltan_cb_get_edge_list,&
        zoltan_cb_get_num_edges, zoltan_cb_pack_node_sizes, zoltan_cb_pack_nodes,&
        zoltan_cb_unpack_nodes, local_vertex_order
-  
+
 contains
 
   function zoltan_cb_owned_node_count(data, ierr) result(count)
     integer(zoltan_int) :: count
     integer(zoltan_int), dimension(*) :: data ! not used
     integer(zoltan_int), intent(out) :: ierr
-    
+
     ewrite(1,*) "In zoltan_cb_owned_node_count"
 
     count = halo_nowned_nodes(zoltan_global_zz_halo)
@@ -54,32 +54,32 @@ contains
 
   subroutine zoltan_cb_get_owned_nodes(data, num_gid_entries, num_lid_entries, global_ids, local_ids, wgt_dim, obj_wgts, ierr)
     integer(zoltan_int), dimension(*), intent(in) :: data ! not used
-    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries 
-    integer(zoltan_int), intent(out), dimension(*) :: global_ids 
-    integer(zoltan_int), intent(out), dimension(*) :: local_ids 
-    integer(zoltan_int), intent(in) :: wgt_dim 
-    real(zoltan_float), intent(out), dimension(*) :: obj_wgts 
+    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries
+    integer(zoltan_int), intent(out), dimension(*) :: global_ids
+    integer(zoltan_int), intent(out), dimension(*) :: local_ids
+    integer(zoltan_int), intent(in) :: wgt_dim
+    real(zoltan_float), intent(out), dimension(*) :: obj_wgts
     integer(zoltan_int), intent(out) :: ierr
-    
+
     integer :: count, i
     real(zoltan_float) :: max_obj_wgt, min_obj_wgt
-    
+
     ewrite(1,*) "In zoltan_cb_get_owned_nodes"
-    
+
     assert(num_gid_entries == 1)
     assert(num_lid_entries == 1)
     assert(wgt_dim == 1)
-    
+
     count = halo_nowned_nodes(zoltan_global_zz_halo)
-    
+
     call get_owned_nodes(zoltan_global_zz_halo, local_ids(1:count))
     global_ids(1:count) = halo_universal_number(zoltan_global_zz_halo, local_ids(1:count))
-    
+
     if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug")) then
        ewrite(1,*) "zoltan_cb_get_owned nodes found local_ids: ", local_ids(1:count)
        ewrite(1,*) "zoltan_cb_get_owned nodes found global_ids: ", global_ids(1:count)
     end if
-    
+
     if(zoltan_global_migrate_extruded_mesh) then
        ! weight the nodes according to the number of nodes in the column beneath it
        do i = 1, count
@@ -105,17 +105,17 @@ contains
        end if
 
     end if
-    
+
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_get_owned_nodes
 
-  subroutine zoltan_cb_get_num_edges(data, num_gid_entries, num_lid_entries, num_obj, global_ids, local_ids, num_edges, ierr)  
-    integer(zoltan_int), dimension(*), intent(in) :: data 
+  subroutine zoltan_cb_get_num_edges(data, num_gid_entries, num_lid_entries, num_obj, global_ids, local_ids, num_edges, ierr)
+    integer(zoltan_int), dimension(*), intent(in) :: data
     integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_obj
     integer(zoltan_int), intent(in), dimension(*) :: global_ids
     integer(zoltan_int), intent(in), dimension(*) :: local_ids
     integer(zoltan_int), intent(out),dimension(*) :: num_edges
-    integer(zoltan_int), intent(out) :: ierr  
+    integer(zoltan_int), intent(out) :: ierr
 
     integer :: count
     integer :: node
@@ -133,7 +133,7 @@ contains
       num_edges(node) = row_length(zoltan_global_zz_sparsity_one, local_ids(node))
     end do
 
-    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_edge_counts")) then      
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_edge_counts")) then
        write(filename, '(A,I0,A)') 'edge_counts_', getrank(),'.dat'
        open(666, file = filename)
        do node=1,count
@@ -147,7 +147,7 @@ contains
 
   subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_obj, global_ids, local_ids, &
        &  num_edges, nbor_global_id, nbor_procs, wgt_dim, ewgts, ierr)
-    integer(zoltan_int), intent(in) :: data 
+    integer(zoltan_int), intent(in) :: data
     integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_obj
     integer(zoltan_int), intent(in), dimension(*) :: global_ids
     integer(zoltan_int), intent(in), dimension(*) :: local_ids
@@ -156,40 +156,40 @@ contains
     integer(zoltan_int), intent(out), dimension(*) :: nbor_procs
     integer(zoltan_int), intent(in) :: wgt_dim
     real(zoltan_float), intent(out), dimension(*) :: ewgts
-    integer(zoltan_int), intent(out) :: ierr 
+    integer(zoltan_int), intent(out) :: ierr
     integer :: count, err
     integer :: node, i, j
     integer :: head
     integer, dimension(:), pointer :: neighbours
-    character (len = OPTION_PATH_LEN) :: filename    
-    
-    ! variables for recording various element quality functional values 
+    character (len = OPTION_PATH_LEN) :: filename
+
+    ! variables for recording various element quality functional values
     real :: quality, min_quality, my_min_quality
-    
+
     ! variables for recording the local maximum/minimum edge weights and local 90th percentile edge weight
     real(zoltan_float) :: min_weight, max_weight, ninety_weight, my_max_weight, my_min_weight
-    
+
     integer, dimension(:), pointer :: my_nelist, nbor_nelist
-    
+
     integer :: total_num_edges, my_num_edges
-    
+
     real :: value
-    
+
     ewrite(1,*) "In zoltan_cb_get_edge_list"
-    
+
     assert(num_gid_entries == 1)
     assert(num_lid_entries == 1)
     assert(wgt_dim == 1)
-    
+
     count = zoltan_global_zz_halo%nowned_nodes
     assert(count == num_obj)
-    
+
     my_num_edges = sum(num_edges(1:num_obj))
-    
+
     if (.NOT. zoltan_global_calculate_edge_weights) then
-       
+
        ! Three reasons why we might not want to use edge-weighting:
-       ! - last iteration 
+       ! - last iteration
        !   hopefully the mesh is of sufficient quality by now we only
        !   want to optimize the edge cut to minimize halo communication
        ! - flredecomping
@@ -197,7 +197,7 @@ contains
        ! - empty partitions
        !   when load balancing with edge-weights on we couldn't avoid
        !   creating empty paritions so try load balancing without them
-       ewgts(1:my_num_edges) = 1.0       
+       ewgts(1:my_num_edges) = 1.0
        head = 1
        do node=1,count
           ! find nodes neighbours
@@ -216,62 +216,62 @@ contains
        call MPI_ALLREDUCE(my_num_edges,total_num_edges,1,MPI_INTEGER,MPI_SUM, &
             MPI_COMM_FEMTOOLS,err)
     end if
-    
+
     head = 1
-    
+
     ! Aim is to assign high edge weights to poor quality elements
     ! so that when we load balance poor quality elements are placed
     ! in the centre of partitions and can be adapted
-    
+
     ! loop over the nodes you own
     do node=1,count
-       
+
        ! find nodes neighbours
        neighbours => row_m_ptr(zoltan_global_zz_sparsity_one, local_ids(node))
-       
+
        ! check the number of neighbours matches the number of edges
        assert(size(neighbours) == num_edges(node))
-       
+
        ! find global ids for each neighbour
        nbor_global_id(head:head+size(neighbours)-1) = halo_universal_number(zoltan_global_zz_halo, neighbours)
-       
+
        ! find owning proc for each neighbour
        nbor_procs(head:head+size(neighbours)-1) = halo_node_owners(zoltan_global_zz_halo, neighbours) - 1
-       
+
        ! get elements associated with current node
        my_nelist => row_m_ptr(zoltan_global_zz_nelist, local_ids(node))
-       
+
        my_min_quality = 1.0
-       
+
        ! find quality of worst element node is associated with
        do i=1,size(my_nelist)
           quality = minval(ele_val(zoltan_global_element_quality, my_nelist(i)))
-          
+
           if (quality .LT. my_min_quality) then
              my_min_quality = quality
           end if
        end do
-       
+
        ! loop over all neighbouring nodes
        do j=1,size(neighbours)
-          
+
           min_quality = my_min_quality
-          
+
           ! get elements associated with neighbour node
           nbor_nelist => row_m_ptr(zoltan_global_zz_nelist, neighbours(j))
-          
+
           ! loop over all the elements of the neighbour node
           do i=1, size(nbor_nelist)
              ! determine the quality of the element
              quality = minval(ele_val(zoltan_global_element_quality, nbor_nelist(i)))
-             
+
              ! store the element quality if it's less (worse) than any previous elements
              if (quality .LT. min_quality) then
                 min_quality = quality
              end if
           end do
 
-          ! check if the quality is within the tolerance         
+          ! check if the quality is within the tolerance
           if (min_quality .GT. zoltan_global_quality_tolerance) then
              ! if it is
              ewgts(head + j - 1) = 1.0
@@ -280,15 +280,15 @@ contains
              ewgts(head + j - 1) = ceiling((1.0 - min_quality) * 20)
           end if
        end do
-       
+
        head = head + size(neighbours)
     end do
-    
+
     assert(head == sum(num_edges(1:num_obj))+1)
-    
+
     ! calculate the local maximum edge weight
     my_max_weight = maxval(ewgts(1:head-1))
-    
+
     ! calculate the local minimum edge weight
     my_min_weight = minval(ewgts(1:head-1))
 
@@ -298,9 +298,9 @@ contains
     ! calculate global minimum edge weight
     call MPI_ALLREDUCE(my_min_weight,min_weight,1,MPI_REAL,MPI_MIN, MPI_COMM_FEMTOOLS,err)
 
-    ! calculate the local 90th percentile edge weight   
+    ! calculate the local 90th percentile edge weight
     ninety_weight = max_weight * 0.90
-    
+
     ! don't want to adjust the weights if all the elements are of a similar quality
     if (min_weight < ninety_weight) then
        ! make the worst 10% of elements uncuttable
@@ -310,7 +310,7 @@ contains
           end if
        end do
     end if
-    
+
     if (zoltan_global_output_edge_weights) then
        head = 1
        do node=1,count
@@ -320,7 +320,7 @@ contains
           head = head + size(neighbours)
        end do
     end if
-    
+
     if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_edge_weights")) then
        write(filename, '(A,I0,A)') 'edge_weights_', getrank(),'.dat'
        open(666, file = filename)
@@ -336,15 +336,15 @@ contains
 
   ! Here is how we pack nodal positions for phase one migration:
   ! --------------------------------------------------------------------------------------------------------------
-  ! | position | sz of lv-1 nnlist | lv-1 nnlist | sz of lv-2 nnlist | lv-2 nnlist | owners of level-2 nnlist | 
+  ! | position | sz of lv-1 nnlist | lv-1 nnlist | sz of lv-2 nnlist | lv-2 nnlist | owners of level-2 nnlist |
   ! | sz of nelist | nelist | sz of snelist | snelist | snelist ids | containing element of snelist |
   ! --------------------------------------------------------------------------------------------------------------
-  subroutine zoltan_cb_pack_node_sizes(data, num_gid_entries,  num_lid_entries, num_ids, global_ids, local_ids, sizes, ierr) 
-    integer(zoltan_int), dimension(*), intent(in) :: data 
+  subroutine zoltan_cb_pack_node_sizes(data, num_gid_entries,  num_lid_entries, num_ids, global_ids, local_ids, sizes, ierr)
+    integer(zoltan_int), dimension(*), intent(in) :: data
     integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids
     integer(zoltan_int), intent(in), dimension(*) :: global_ids,  local_ids
-    integer(zoltan_int), intent(out), dimension(*) :: sizes 
-    integer(zoltan_int), intent(out) :: ierr  
+    integer(zoltan_int), intent(out), dimension(*) :: sizes
+    integer(zoltan_int), intent(out) :: ierr
 
     integer :: i, node
     character (len = OPTION_PATH_LEN) :: filename
@@ -378,15 +378,15 @@ contains
   end subroutine zoltan_cb_pack_node_sizes
 
 
-  subroutine zoltan_cb_pack_nodes(data, num_gid_entries, num_lid_entries, num_ids, global_ids, local_ids, dest, sizes, idx, buf, ierr)  
-    integer(zoltan_int), dimension(*), intent(in) :: data 
-    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids 
-    integer(zoltan_int), intent(in), dimension(*) :: global_ids 
-    integer(zoltan_int), intent(in), dimension(*) :: local_ids 
+  subroutine zoltan_cb_pack_nodes(data, num_gid_entries, num_lid_entries, num_ids, global_ids, local_ids, dest, sizes, idx, buf, ierr)
+    integer(zoltan_int), dimension(*), intent(in) :: data
+    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids
+    integer(zoltan_int), intent(in), dimension(*) :: global_ids
+    integer(zoltan_int), intent(in), dimension(*) :: local_ids
     integer(zoltan_int), intent(in), dimension(*) :: dest
-    integer(zoltan_int), intent(in), dimension(*) :: sizes 
-    integer(zoltan_int), intent(in), dimension(*) :: idx 
-    integer(zoltan_int), intent(out), dimension(*) :: buf 
+    integer(zoltan_int), intent(in), dimension(*) :: sizes
+    integer(zoltan_int), intent(in), dimension(*) :: idx
+    integer(zoltan_int), intent(out), dimension(*) :: buf
     integer(zoltan_int), intent(out) :: ierr
 
     integer :: i, j, node, ratio, head
@@ -403,12 +403,12 @@ contains
         buf(head:head+ratio-1) = transfer(node_val(zoltan_global_zz_positions, j, node), buf(head:head+ratio-1))
         head = head + ratio
       end do
-      
+
       if(zoltan_global_preserve_columns) then
         buf(head) = zoltan_global_universal_columns(node)
         head = head + 1
       end if
-      
+
       buf(head) = row_length(zoltan_global_zz_sparsity_one, node)
       head = head + 1
 
@@ -452,14 +452,14 @@ contains
 
 
   subroutine zoltan_cb_unpack_nodes(data, num_gid_entries, num_ids, global_ids, sizes, idx, buf, ierr)
-    integer(zoltan_int), dimension(*), intent(inout) :: data 
-    integer(zoltan_int), intent(in) :: num_gid_entries 
-    integer(zoltan_int), intent(in) :: num_ids 
+    integer(zoltan_int), dimension(*), intent(inout) :: data
+    integer(zoltan_int), intent(in) :: num_gid_entries
+    integer(zoltan_int), intent(in) :: num_ids
     integer(zoltan_int), intent(in), dimension(*) :: global_ids
-    integer(zoltan_int), intent(in), dimension(*) :: sizes 
-    integer(zoltan_int), intent(in), dimension(*) :: idx 
-    integer(zoltan_int), intent(in), dimension(*), target :: buf 
-    integer(zoltan_int), intent(out) :: ierr  
+    integer(zoltan_int), intent(in), dimension(*) :: sizes
+    integer(zoltan_int), intent(in), dimension(*) :: idx
+    integer(zoltan_int), intent(in), dimension(*), target :: buf
+    integer(zoltan_int), intent(out) :: ierr
 
     integer :: i, ratio, head, sz, j
     type(integer_set) :: new_nodes_we_have_recorded, new_nodes_we_still_need, halo_nodes_we_currently_own
@@ -472,7 +472,7 @@ contains
     integer :: old_owner, new_owner
     integer, dimension(:), pointer :: current_buf
     integer :: rank
-    
+
     ewrite(1,*) "In zoltan_cb_unpack_nodes"
     ! assert new linear mesh and positions not allocated
     assert(.not. associated(new_mesh%refcount))
@@ -521,7 +521,7 @@ contains
        call insert(zoltan_global_new_nodes, universal_number)
     end do
 
-    ! All the other nodes that will form the halo of the new nodes we are receiving 
+    ! All the other nodes that will form the halo of the new nodes we are receiving
     ratio = real_size / integer_size
     do i=1,num_ids
        current_buf => buf(idx(i):idx(i) + sizes(i)/integer_size)
@@ -655,7 +655,7 @@ contains
        call set(zoltan_global_new_positions, new_local_number, new_coord)
 
        if(zoltan_global_preserve_columns) then
-          zoltan_global_new_positions%mesh%columns(new_local_number) = fetch(zoltan_global_universal_to_new_local_numbering_m1d, buf(head)) 
+          zoltan_global_new_positions%mesh%columns(new_local_number) = fetch(zoltan_global_universal_to_new_local_numbering_m1d, buf(head))
           head = head + 1
        end if
 
@@ -752,15 +752,15 @@ contains
 
   ! Here is how we pack halo nodes for phase two migration:
   ! -------------------------------------------------------------------------------------
-  ! | position | new owner | size of nelist | nelist | size of snelist | 
+  ! | position | new owner | size of nelist | nelist | size of snelist |
   ! | snelist | surface ids | the containing volume element for each surface element |
   ! -------------------------------------------------------------------------------------
-  subroutine zoltan_cb_pack_halo_node_sizes(data, num_gid_entries,  num_lid_entries, num_ids, global_ids, local_ids, sizes, ierr) 
-    integer(zoltan_int), dimension(*), intent(in) :: data 
+  subroutine zoltan_cb_pack_halo_node_sizes(data, num_gid_entries,  num_lid_entries, num_ids, global_ids, local_ids, sizes, ierr)
+    integer(zoltan_int), dimension(*), intent(in) :: data
     integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids
     integer(zoltan_int), intent(in), dimension(*) :: global_ids,  local_ids
-    integer(zoltan_int), intent(out), dimension(*) :: sizes 
-    integer(zoltan_int), intent(out) :: ierr  
+    integer(zoltan_int), intent(out), dimension(*) :: sizes
+    integer(zoltan_int), intent(out) :: ierr
 
     integer :: i, node
     character (len = OPTION_PATH_LEN) :: filename
@@ -773,7 +773,7 @@ contains
                 2 * integer_size + row_length(zoltan_global_zz_nelist, node) * integer_size + &
                 1 * integer_size + key_count(zoltan_global_old_snelist(node)) * 3 * integer_size
       if(zoltan_global_preserve_mesh_regions) then
-        sizes(i) = sizes(i) + row_length(zoltan_global_zz_nelist, node) * integer_size 
+        sizes(i) = sizes(i) + row_length(zoltan_global_zz_nelist, node) * integer_size
       end if
       if(zoltan_global_preserve_columns) then
         sizes(i) = sizes(i) + integer_size
@@ -793,24 +793,24 @@ contains
   end subroutine zoltan_cb_pack_halo_node_sizes
 
 
-  subroutine zoltan_cb_pack_halo_nodes(data, num_gid_entries, num_lid_entries, num_ids, global_ids, local_ids, dest, sizes, idx, buf, ierr)  
-    integer(zoltan_int), dimension(*), intent(in) :: data 
-    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids 
-    integer(zoltan_int), intent(in), dimension(*) :: global_ids 
-    integer(zoltan_int), intent(in), dimension(*) :: local_ids 
+  subroutine zoltan_cb_pack_halo_nodes(data, num_gid_entries, num_lid_entries, num_ids, global_ids, local_ids, dest, sizes, idx, buf, ierr)
+    integer(zoltan_int), dimension(*), intent(in) :: data
+    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids
+    integer(zoltan_int), intent(in), dimension(*) :: global_ids
+    integer(zoltan_int), intent(in), dimension(*) :: local_ids
     integer(zoltan_int), intent(in), dimension(*) :: dest
-    integer(zoltan_int), intent(in), dimension(*) :: sizes 
-    integer(zoltan_int), intent(in), dimension(*) :: idx 
-    integer(zoltan_int), intent(out), dimension(*), target :: buf 
+    integer(zoltan_int), intent(in), dimension(*) :: sizes
+    integer(zoltan_int), intent(in), dimension(*) :: idx
+    integer(zoltan_int), intent(out), dimension(*), target :: buf
     integer(zoltan_int), intent(out) :: ierr
-    
+
     integer :: i, j, node, ratio, head, new_owner, rank
     integer, dimension(:), pointer :: current_buf
-    
+
     ewrite(1,*) "In zoltan_cb_pack_halo_nodes"
     ratio = real_size / integer_size
     rank = getrank()
-    
+
     do i=1,num_ids
        current_buf => buf(idx(i):idx(i)+sizes(i)/integer_size)
        head = 1
@@ -819,34 +819,34 @@ contains
           current_buf(head:head+ratio-1) = transfer(node_val(zoltan_global_zz_positions, j, node), current_buf(head:head+ratio-1))
           head = head + ratio
        end do
-       
+
        if(zoltan_global_preserve_columns) then
           current_buf(head) = zoltan_global_universal_columns(node)
           head = head + 1
        end if
-       
+
        ! Now compute the new owner
        if (has_key(zoltan_global_nodes_we_are_sending, node)) then
           new_owner = fetch(zoltan_global_nodes_we_are_sending, node)
        else
           new_owner = rank
        end if
-       
+
        current_buf(head) = new_owner
        head = head + 1
-       
+
        current_buf(head) = row_length(zoltan_global_zz_nelist, node)
        head = head + 1
-       
+
        current_buf(head:head+row_length(zoltan_global_zz_nelist, node)-1) = halo_universal_number(zoltan_global_zz_ele_halo, row_m_ptr(zoltan_global_zz_nelist, node))
        head = head + row_length(zoltan_global_zz_nelist, node)
-       
+
        if(zoltan_global_preserve_mesh_regions) then
           ! put in the region_ids in the same amount of space as the nelist - this is complete overkill!
           current_buf(head:head+row_length(zoltan_global_zz_nelist, node)-1) = fetch(zoltan_global_universal_element_number_to_region_id, halo_universal_number(zoltan_global_zz_ele_halo, row_m_ptr(zoltan_global_zz_nelist, node)))
           head = head + row_length(zoltan_global_zz_nelist, node)
        end if
-       
+
        current_buf(head) = key_count(zoltan_global_old_snelist(node))
        head = head + 1
        current_buf(head:head+key_count(zoltan_global_old_snelist(node))-1) = set2vector(zoltan_global_old_snelist(node))
@@ -855,7 +855,7 @@ contains
        head = head + key_count(zoltan_global_old_snelist(node))
        current_buf(head:head+key_count(zoltan_global_old_snelist(node))-1) = fetch(zoltan_global_universal_surface_number_to_element_owner, set2vector(zoltan_global_old_snelist(node)))
        head = head + key_count(zoltan_global_old_snelist(node))
-       
+
        !assert(head == (sizes(i)/integer_size)+1)
     end do
     ierr = ZOLTAN_OK
@@ -863,25 +863,25 @@ contains
 
 
   subroutine zoltan_cb_unpack_halo_nodes(data, num_gid_entries, num_ids, global_ids, sizes, idx, buf, ierr)
-    integer(zoltan_int), dimension(*), intent(inout) :: data 
-    integer(zoltan_int), intent(in) :: num_gid_entries 
-    integer(zoltan_int), intent(in) :: num_ids 
+    integer(zoltan_int), dimension(*), intent(inout) :: data
+    integer(zoltan_int), intent(in) :: num_gid_entries
+    integer(zoltan_int), intent(in) :: num_ids
     integer(zoltan_int), intent(in), dimension(*) :: global_ids
-    integer(zoltan_int), intent(in), dimension(*) :: sizes 
-    integer(zoltan_int), intent(in), dimension(*) :: idx 
-    integer(zoltan_int), intent(in), dimension(*), target :: buf 
-    integer(zoltan_int), intent(out) :: ierr  
-    
+    integer(zoltan_int), intent(in), dimension(*) :: sizes
+    integer(zoltan_int), intent(in), dimension(*) :: idx
+    integer(zoltan_int), intent(in), dimension(*), target :: buf
+    integer(zoltan_int), intent(out) :: ierr
+
     integer :: i, j
     real, dimension(zoltan_global_zz_positions%dim) :: new_coord
     integer :: head
     integer :: ratio
     integer :: new_local_number, new_owner, sz
-    
+
     ewrite(1,*) "In zoltan_cb_unpack_halo_nodes"
-    
+
     ratio = real_size/integer_size
-    
+
     do i=1,num_ids
        new_local_number = fetch(zoltan_global_universal_to_new_local_numbering, global_ids(i))
        new_coord = 0
@@ -891,15 +891,15 @@ contains
           head = head + ratio
        end do
        call set(zoltan_global_new_positions, new_local_number, new_coord)
-       
+
        if(zoltan_global_preserve_columns) then
           zoltan_global_new_positions%mesh%columns(new_local_number) = fetch(zoltan_global_universal_to_new_local_numbering_m1d, buf(head))
           head = head + 1
        end if
-       
+
        new_owner = buf(head)
        head = head + 1
-       
+
        ! record the nelist information
        sz = buf(head)
        do j=1,sz
@@ -914,10 +914,10 @@ contains
        else
           head = head + sz + 1
        end if
-       
+
        ! and record who owns this in the halo
        call insert(zoltan_global_receives(new_owner+1), global_ids(i))
-       
+
        ! and record the snelist information
        sz = buf(head)
        do j=1,sz
@@ -928,72 +928,72 @@ contains
        end do
        head = head + 3*sz + 1
     end do
-    
+
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_unpack_halo_nodes
 
 
-  subroutine zoltan_cb_pack_field_sizes(data, num_gid_entries,  num_lid_entries, num_ids, global_ids, local_ids, sizes, ierr) 
-    integer(zoltan_int), dimension(*), intent(in) :: data 
+  subroutine zoltan_cb_pack_field_sizes(data, num_gid_entries,  num_lid_entries, num_ids, global_ids, local_ids, sizes, ierr)
+    integer(zoltan_int), dimension(*), intent(in) :: data
     integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids
     integer(zoltan_int), intent(in), dimension(*) :: global_ids,  local_ids
-    integer(zoltan_int), intent(out), dimension(*) :: sizes 
-    integer(zoltan_int), intent(out) :: ierr  
-    
+    integer(zoltan_int), intent(out), dimension(*) :: sizes
+    integer(zoltan_int), intent(out) :: ierr
+
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
     integer :: state_no, field_no, sz, i
     character (len = OPTION_PATH_LEN) :: filename
-    
+
     ewrite(1,*) "In zoltan_cb_pack_field_sizes"
 
     allocate(zoltan_global_to_pack_detectors_list(num_ids))
     ! Allocate array containing the number of particle attributes per element
     allocate(zoltan_global_attributes_per_ele(num_ids))
     zoltan_global_attributes_per_ele(:) = 0
-    
+
     ! if there are some detectors on this process
     if (get_num_detector_lists() .GT. 0) then
        ! create two arrays, one with the number of detectors in each element to be transferred
        ! and one that holds a list of detectors to be transferred for each element
        call prepare_detectors_for_packing(zoltan_global_ndets_in_ele, zoltan_global_to_pack_detectors_list, num_ids, global_ids, zoltan_global_attributes_per_ele)
     end if
-    
+
     ! The person doing this for mixed meshes in a few years time: this is one of the things
     ! you need to change. Make it look at the loc for each element.
-    
+
     sz = 0
-    
+
     do state_no=1,size(zoltan_global_source_states)
-       
+
        do field_no=1,scalar_field_count(zoltan_global_source_states(state_no))
           sfield => extract_scalar_field(zoltan_global_source_states(state_no), field_no)
           sz = sz + ele_loc(sfield, 1)
        end do
-       
+
        do field_no=1,vector_field_count(zoltan_global_source_states(state_no))
           vfield => extract_vector_field(zoltan_global_source_states(state_no), field_no)
           sz = sz + ele_loc(vfield, 1) * vfield%dim
        end do
-       
+
        do field_no=1,tensor_field_count(zoltan_global_source_states(state_no))
           tfield => extract_tensor_field(zoltan_global_source_states(state_no), field_no)
           sz = sz + ele_loc(tfield, 1) * product(tfield%dim)
        end do
-       
+
     end do
-    
-    
-    do i=1,num_ids    
+
+
+    do i=1,num_ids
        ! fields data + number of detectors in element + attribute_info per detector (*3 for 3 attribute types) +  detector data + attributes +
        ! reserve space for sz scalar values and for sending old unns of the linear mesh
        sizes(i) = (sz * real_size) + real_size + (3*real_size*zoltan_global_ndets_in_ele(i)) + (zoltan_global_ndets_in_ele(i) * zoltan_global_ndata_per_det * real_size) &
             + (zoltan_global_attributes_per_ele(i) * real_size) + ele_loc(zoltan_global_zz_mesh, 1) * integer_size
     end do
-    
+
     deallocate(zoltan_global_attributes_per_ele)
-    
+
     if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_field_sizes")) then
        write(filename, '(A,I0,A)') 'field_sizes_', getrank(),'.dat'
        open(666, file = filename)
@@ -1002,23 +1002,23 @@ contains
        end do
        close(666)
     end if
-    
+
     ierr = ZOLTAN_OK
-    
+
   end subroutine zoltan_cb_pack_field_sizes
 
 
-  subroutine zoltan_cb_pack_fields(data, num_gid_entries, num_lid_entries, num_ids, global_ids, local_ids, dest, sizes, idx, buf, ierr)  
-    integer(zoltan_int), dimension(*), intent(in) :: data 
-    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids 
-    integer(zoltan_int), intent(in), dimension(*) :: global_ids 
-    integer(zoltan_int), intent(in), dimension(*) :: local_ids 
+  subroutine zoltan_cb_pack_fields(data, num_gid_entries, num_lid_entries, num_ids, global_ids, local_ids, dest, sizes, idx, buf, ierr)
+    integer(zoltan_int), dimension(*), intent(in) :: data
+    integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids
+    integer(zoltan_int), intent(in), dimension(*) :: global_ids
+    integer(zoltan_int), intent(in), dimension(*) :: local_ids
     integer(zoltan_int), intent(in), dimension(*) :: dest
-    integer(zoltan_int), intent(in), dimension(*) :: sizes 
-    integer(zoltan_int), intent(in), dimension(*) :: idx 
-    integer(zoltan_int), intent(out), dimension(*), target :: buf 
+    integer(zoltan_int), intent(in), dimension(*) :: sizes
+    integer(zoltan_int), intent(in), dimension(*) :: idx
+    integer(zoltan_int), intent(out), dimension(*), target :: buf
     integer(zoltan_int), intent(out) :: ierr
-    
+
     real, dimension(:), allocatable :: rbuf ! easier to write reals to real memory
     integer :: rhead, i, j, k, state_no, field_no, loc, sz, total_det_packed
     type(scalar_field), pointer :: sfield
@@ -1028,22 +1028,22 @@ contains
     integer, dimension(3) :: attribute_size !buffer containing the size of particle attributes
     integer :: total_attributes !total number of attributes carried by a particle
 
-    type(detector_type), pointer :: detector => null(), detector_to_delete => null()    
+    type(detector_type), pointer :: detector => null(), detector_to_delete => null()
 
     ewrite(1,*) "In zoltan_cb_pack_fields"
 
     total_det_packed=0
     do i=1,num_ids
-       
+
        ! work back number of scalar values 'sz' from the formula above in zoltan_cb_pack_field_sizes
        sz = (sizes(i) - ele_loc(zoltan_global_zz_mesh, old_local_element_number) * integer_size) / real_size
        allocate(rbuf(sz))
-       
+
        old_universal_element_number = global_ids(i)
        old_local_element_number = fetch(zoltan_global_uen_to_old_local_numbering, old_universal_element_number)
-       
+
        rhead = 1
-       
+
        do state_no=1,size(zoltan_global_source_states)
           do field_no=1,scalar_field_count(zoltan_global_source_states(state_no))
              sfield => extract_scalar_field(zoltan_global_source_states(state_no), field_no)
@@ -1051,7 +1051,7 @@ contains
              rbuf(rhead:rhead + loc - 1) = ele_val(sfield, old_local_element_number)
              rhead = rhead + loc
           end do
-          
+
           do field_no=1,vector_field_count(zoltan_global_source_states(state_no))
              vfield => extract_vector_field(zoltan_global_source_states(state_no), field_no)
              if (index(vfield%name,"Coordinate")==len_trim(vfield%name)-9) cycle
@@ -1059,7 +1059,7 @@ contains
              rbuf(rhead:rhead + loc*vfield%dim - 1) = reshape(ele_val(vfield, old_local_element_number), (/loc*vfield%dim/))
              rhead = rhead + loc * vfield%dim
           end do
-          
+
           do field_no=1,tensor_field_count(zoltan_global_source_states(state_no))
              tfield => extract_tensor_field(zoltan_global_source_states(state_no), field_no)
              loc = ele_loc(tfield, old_local_element_number)
@@ -1067,9 +1067,9 @@ contains
                   = reshape(ele_val(tfield, old_local_element_number), (/ loc*product(tfield%dim) /))
              rhead = rhead + loc * product(tfield%dim)
           end do
-          
+
        end do
-       
+
        ! packing the number of detectors in the element
        rbuf(rhead) = zoltan_global_ndets_in_ele(i)
        rhead = rhead + 1
@@ -1099,39 +1099,39 @@ contains
           detector_to_delete => detector
           ! move on our iterating pointer so it's not left on a deleted node
           detector => detector%next
-          
+
           ! delete the detector we just packed from the to_pack list
           call delete(detector_to_delete, zoltan_global_to_pack_detectors_list(i))
 
           rhead = rhead + zoltan_global_ndata_per_det+total_attributes
           total_det_packed=total_det_packed+1
        end do
-       
+
        assert(rhead==sz+1)
-       
+
        ! At the start, write the old unns of this element
        loc = ele_loc(zoltan_global_zz_mesh, old_local_element_number)
        buf(idx(i):idx(i) + loc -1) = halo_universal_number(zoltan_global_zz_halo, ele_nodes(zoltan_global_zz_mesh, old_local_element_number))
-       
+
        ! Determine the size of the real data in integer_size units
        dataSize = sz * real_size / integer_size
        assert( dataSize==size(transfer(rbuf, buf(idx(i):idx(i)+1))) )
        ! Now we know the size, we can copy in the right amount of data.
        buf(idx(i) + loc:idx(i) + loc + dataSize - 1) = transfer(rbuf, buf(idx(i):idx(i)+1))
-       
+
        deallocate(rbuf)
 
        assert(zoltan_global_to_pack_detectors_list(i)%length == 0)
-       
+
     end do
 
     deallocate(zoltan_global_to_pack_detectors_list)
 
-    ewrite(2,*) "Packed ", total_det_packed, " detectors"    
+    ewrite(2,*) "Packed ", total_det_packed, " detectors"
     ewrite(1,*) "Exiting zoltan_cb_pack_fields"
-    
+
     ierr = ZOLTAN_OK
-    
+
   end subroutine zoltan_cb_pack_fields
 
 
@@ -1144,7 +1144,7 @@ contains
     integer, dimension(:), intent(in):: old_unns, new_gnns
     integer, dimension(size(old_unns)):: local_vertex_order
     integer:: i, j, gnn
-    
+
     do i=1, size(old_unns)
       gnn = fetch(zoltan_global_universal_to_new_local_numbering, old_unns(i))
       do j=1, size(new_gnns)
@@ -1159,25 +1159,25 @@ contains
       end if
       local_vertex_order(i) = j
     end do
-    
+
   end function local_vertex_order
-  
+
 
   subroutine zoltan_cb_unpack_fields(data, num_gid_entries, num_ids, global_ids, sizes, idx, buf, ierr)
-    integer(zoltan_int), dimension(*), intent(inout) :: data 
-    integer(zoltan_int), intent(in) :: num_gid_entries 
-    integer(zoltan_int), intent(in) :: num_ids 
+    integer(zoltan_int), dimension(*), intent(inout) :: data
+    integer(zoltan_int), intent(in) :: num_gid_entries
+    integer(zoltan_int), intent(in) :: num_ids
     integer(zoltan_int), intent(in), dimension(*) :: global_ids
-    integer(zoltan_int), intent(in), dimension(*) :: sizes 
-    integer(zoltan_int), intent(in), dimension(*) :: idx 
-    integer(zoltan_int), intent(in), dimension(*), target :: buf 
-    integer(zoltan_int), intent(out) :: ierr  
-    
+    integer(zoltan_int), intent(in), dimension(*) :: sizes
+    integer(zoltan_int), intent(in), dimension(*) :: idx
+    integer(zoltan_int), intent(in), dimension(*), target :: buf
+    integer(zoltan_int), intent(out) :: ierr
+
     type(element_type), pointer :: eshape
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
-    real, dimension(:), allocatable :: rbuf ! easier to read reals 
+    real, dimension(:), allocatable :: rbuf ! easier to read reals
     integer, dimension(:), pointer :: nodes
     integer, dimension(1:ele_loc(zoltan_global_new_positions,1)):: vertex_order
     integer :: rhead, i, state_no, field_no, loc, sz, dataSize, k
@@ -1188,32 +1188,32 @@ contains
 
     integer, dimension(3) :: attribute_size !buffer containing the size of particle attributes
     integer :: total_attributes !total number of attributes carried by a particle
-    
+
     ewrite(1,*) "In zoltan_cb_unpack_fields"
 
     total_det_unpacked=0
-    
+
     do i=1,num_ids
-       
+
        old_universal_element_number = global_ids(i)
        new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
-       
+
        loc = ele_loc(zoltan_global_new_positions, new_local_element_number)
        ! work out the order of the send data, using the unns of the vertices in the send order
        ! this returns the local (within the element) node numbers of the vertices in send order
        vertex_order = local_vertex_order(buf(idx(i):idx(i) + loc -1), ele_nodes(zoltan_global_new_positions, new_local_element_number))
-       
+
        ! work back number of scalar values 'sz' from the formula above in zoltan_cb_pack_field_sizes
        sz = (sizes(i) - ele_loc(zoltan_global_zz_mesh, new_local_element_number) * integer_size) / real_size
        allocate(rbuf(sz))
        ! Determine the size of the real data in integer_size units
        dataSize = sz * real_size / integer_size
        rbuf = transfer(buf(idx(i) + loc:idx(i) + loc + dataSize - 1), rbuf, sz)
-       
+
        rhead = 1
-       
+
        do state_no=1, size(zoltan_global_target_states)
-          
+
           do field_no=1,scalar_field_count(zoltan_global_target_states(state_no))
              sfield => extract_scalar_field(zoltan_global_target_states(state_no), field_no)
              eshape => ele_shape(sfield, new_local_element_number)
@@ -1223,7 +1223,7 @@ contains
                   rbuf(rhead:rhead + loc - 1))
              rhead = rhead + loc
           end do
-          
+
           do field_no=1,vector_field_count(zoltan_global_target_states(state_no))
              vfield => extract_vector_field(zoltan_global_target_states(state_no), field_no)
              if (index(vfield%name,"Coordinate")==len_trim(vfield%name)-9) cycle
@@ -1234,7 +1234,7 @@ contains
                   reshape(rbuf(rhead:rhead + loc*vfield%dim - 1), (/vfield%dim, loc/)))
              rhead = rhead + loc * vfield%dim
           end do
-          
+
           do field_no=1,tensor_field_count(zoltan_global_target_states(state_no))
              tfield => extract_tensor_field(zoltan_global_target_states(state_no), field_no)
              eshape => ele_shape(tfield, new_local_element_number)
@@ -1245,15 +1245,15 @@ contains
                   (/tfield%dim(1), tfield%dim(2), loc/)))
              rhead = rhead + loc * product(tfield%dim)
           end do
-          
+
        end do
-       
+
        ndetectors_in_ele = rbuf(rhead)
        rhead = rhead + 1
-       
+
        ! check if there are any detectors associated with this element
        if(ndetectors_in_ele > 0) then
-          
+
           do det=1,ndetectors_in_ele
              ! allocate a detector
              shape=>ele_shape(zoltan_global_new_positions,1)
@@ -1274,27 +1274,27 @@ contains
 
              ! Make sure the unpacked detector is in this element
              assert(new_local_element_number==detector%element)
-                   
+
              call insert(detector, zoltan_global_unpacked_detectors_list)
              detector => null()
-             
+
              rhead = rhead + zoltan_global_ndata_per_det + total_attributes
-             total_det_unpacked=total_det_unpacked+1           
-          end do          
+             total_det_unpacked=total_det_unpacked+1
+          end do
        end if
-       
-       assert(rhead==sz+1)       
-       deallocate(rbuf)       
+
+       assert(rhead==sz+1)
+       deallocate(rbuf)
     end do
-    
+
     assert(total_det_unpacked==zoltan_global_unpacked_detectors_list%length)
-    ewrite(2,*) "Unpacked", zoltan_global_unpacked_detectors_list%length, "detectors"    
+    ewrite(2,*) "Unpacked", zoltan_global_unpacked_detectors_list%length, "detectors"
     ewrite(1,*) "Exiting zoltan_cb_unpack_fields"
-    
+
     ierr = ZOLTAN_OK
-    
+
   end subroutine zoltan_cb_unpack_fields
-  
+
 #endif
-  
+
 end module zoltan_callbacks

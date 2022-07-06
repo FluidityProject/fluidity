@@ -93,7 +93,7 @@ seed48(unsigned short xseed[3]) __THROW
 	__rand48_Add = RAND48_ADD;
 	return sseed;
 }
-	
+
 	extern long
 nrand48(unsigned short xseed[3]) __THROW
 {

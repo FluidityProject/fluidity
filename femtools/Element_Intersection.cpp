@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -54,7 +54,7 @@ InstrumentedRegion::InstrumentedRegion(const Region& in)
   predicateCount = 0;
 }
 
-bool InstrumentedRegion::intersectsRegion(const Region& in) 
+bool InstrumentedRegion::intersectsRegion(const Region& in)
 {
   predicateCount++;
   return ((Region*)this)->intersectsRegion(in);
@@ -144,7 +144,7 @@ IData* MeshDataStream::getNext()
       }
     }
   }
-      
+
   SpatialIndex::Region region = SpatialIndex::Region(low, high, dim);
   IData* data = new RTree::Data(0, 0, region, ++index);
 
@@ -164,7 +164,7 @@ uint32_t MeshDataStream::size()
 void MeshDataStream::rewind()
 {
   index = 0;
-  
+
   return;
 }
 
@@ -173,7 +173,7 @@ int MeshDataStream::getPredicateCount()
   return predicateCount;
 }
 
-bool MeshDataStream::MDSInstrumentedRegion::intersectsRegion(const Region& in) 
+bool MeshDataStream::MDSInstrumentedRegion::intersectsRegion(const Region& in)
 {
   mds->predicateCount++;
   return ((Region*)this)->intersectsRegion(in);
@@ -224,7 +224,7 @@ IData* ExpandedMeshDataStream::getNext()
       }
     }
   }
-  
+
   for(int i = 0;i < dim;i++)
   {
     assert(high[i] > low[i]);
@@ -232,7 +232,7 @@ IData* ExpandedMeshDataStream::getNext()
     high[i] += expansion;
     low[i] -= expansion;
   }
-      
+
   SpatialIndex::Region region = SpatialIndex::Region(low, high, dim);
   IData* data = new RTree::Data(0, 0, region, ++index);
 
@@ -241,15 +241,15 @@ IData* ExpandedMeshDataStream::getNext()
 
 ElementIntersectionFinder::ElementIntersectionFinder()
 {
-  Initialise();  
-  
+  Initialise();
+
   return;
 }
 
 ElementIntersectionFinder::~ElementIntersectionFinder()
 {
   Free();
-  
+
   return;
 }
 
@@ -258,7 +258,7 @@ int ElementIntersectionFinder::Reset()
   int ntests = predicateCount;
   Free();
   Initialise();
-  
+
   return ntests;
 }
 
@@ -273,18 +273,18 @@ void ElementIntersectionFinder::SetInput(const double*& positions, const int& nn
   assert(loc >= 0);
 
   Reset();
-  
+
   this->dim = dim;
   this->loc = loc;
 
   MeshDataStream stream(positions, nnodes, dim,
-                        enlist, nelements, loc);  
+                        enlist, nelements, loc);
   // As in regressiontest/rtree/RTreeBulkLoad.cc in spatialindex 1.2.0
   id_type id = 1;
   rTree = RTree::createAndBulkLoadNewRTree(RTree::BLM_STR, stream, *storageManager, fillFactor, indexCapacity, leafCapacity, dim, SpatialIndex::RTree::RV_RSTAR, id);
 
   predicateCount += stream.getPredicateCount();
-  
+
   return;
 }
 
@@ -292,9 +292,9 @@ void ElementIntersectionFinder::SetTestElement(const double*& positions, const i
 {
   assert(positions);
   assert(dim == this->dim);
-  
+
   visitor.clear();
-  
+
   double high[dim], low[dim];
   for(int i = 0;i < dim;i++)
   {
@@ -315,19 +315,19 @@ void ElementIntersectionFinder::SetTestElement(const double*& positions, const i
       }
     }
   }
-  
+
   SpatialIndex::Region* region = new SpatialIndex::Region(low, high, dim);
   rTree->intersectsWithQuery(*region, visitor);
-  
+
   delete region;
-  
+
   return;
 }
 
 void ElementIntersectionFinder::QueryOutput(int& nelms) const
 {
   nelms = visitor.size();
-  
+
   return;
 }
 
@@ -335,7 +335,7 @@ void ElementIntersectionFinder::GetOutput(int& id, const int& index) const
 {
   assert(index > 0);
   assert(index <= (int) visitor.size());
-  
+
   id = visitor[index-1];
 
   return;
@@ -346,7 +346,7 @@ void ElementIntersectionFinder::Initialise()
   storageManager = StorageManager::createNewMemoryStorageManager();
   storage = StorageManager::createNewRandomEvictionsBuffer(*storageManager, capacity, writeThrough);
   rTree = NULL;
-  
+
   dim = 0;
   loc = 0;
 
@@ -364,7 +364,7 @@ void ElementIntersectionFinder::Free()
   delete storageManager;
 
   visitor.clear();
-  
+
   return;
 }
 
@@ -372,7 +372,7 @@ ElementIntersector::ElementIntersector()
 {
   positionsA = NULL;
   positionsB = NULL;
-  
+
   loc = 0;
 
   return;
@@ -409,7 +409,7 @@ void ElementIntersector::SetInput(double*& positionsA, double*& positionsB, cons
 
   assert(dim >= 0);
   assert(loc >= 0);
-  
+
   if(this->positionsA)
   {
     free(this->positionsA);
@@ -418,7 +418,7 @@ void ElementIntersector::SetInput(double*& positionsA, double*& positionsB, cons
   this->positionsA = (double*)malloc(loc * dim * sizeof(double));
   assert(this->positionsA);
   memcpy(this->positionsA, positionsA, loc * dim * sizeof(double));
-  
+
   if(this->positionsB)
   {
     free(this->positionsB);
@@ -427,9 +427,9 @@ void ElementIntersector::SetInput(double*& positionsA, double*& positionsB, cons
   this->positionsB = (double*)malloc(loc * dim * sizeof(double));
   assert(positionsB);
   memcpy(this->positionsB, positionsB, loc * dim * sizeof(double));
-  
+
   this->loc = loc;
-  
+
   return;
 }
 
@@ -467,7 +467,7 @@ void ElementIntersectorCGAL2D::Intersect()
   Point_2 pointB2(positionsB[2], positionsB[3]);
   Point_2 pointB3(positionsB[4], positionsB[5]);
   Triangle_2 triB = Triangle_2(pointB1, pointB2, pointB3);
-  
+
   assert(!triA.is_degenerate());
   assert(!triB.is_degenerate());
 
@@ -493,13 +493,13 @@ void ElementIntersectorCGAL2D::Intersect()
     }
   }
   else if ((CGAL::assign(ptlist, result)))
-  { 
+  {
     for(vector< Point_2 >::iterator iter = ptlist.begin();iter != ptlist.end();iter++)
     {
       triangulation->push_back(*iter);
     }
   }
- 
+
 #else
   cerr << "Cannot compute 2D element intersections without CGAL" << endl;
   exit(-1);
@@ -517,7 +517,7 @@ void ElementIntersectorCGAL2D::QueryOutput(int& nnodes, int& nelms) const
   cerr << "Cannot compute 2D element intersections without CGAL" << endl;
   exit(-1);
 #endif
-  
+
   return;
 }
 
@@ -525,7 +525,7 @@ void ElementIntersectorCGAL2D::GetOutput(double*& positions, int*& enlist) const
 {
 #ifdef HAVE_LIBCGAL
   assert(triangulation);
-  
+
   map<Point_2, size_t> coordToId;
   size_t index = 0;
   int nnodes = triangulation->number_of_vertices();
@@ -535,7 +535,7 @@ void ElementIntersectorCGAL2D::GetOutput(double*& positions, int*& enlist) const
     positions[index + nnodes] = CGAL::to_double(iter->y());
     coordToId[*iter] = index + 1;
   }
-  
+
   index = 0;
   for(Finite_faces_iterator iter = triangulation->faces_begin();iter != triangulation->faces_end();iter++)
   {
@@ -575,7 +575,7 @@ void ElementIntersectorCGAL3D::Intersect()
 #ifdef HAVE_LIBCGAL
   assert(positionsA);
   assert(positionsB);
-  
+
   Polyhedron tetA, tetB;
   tetA.make_tetrahedron(
     Point_3(positionsA[0], positionsA[1], positionsA[2]),
@@ -587,7 +587,7 @@ void ElementIntersectorCGAL3D::Intersect()
     Point_3(positionsB[3], positionsB[4], positionsB[5]),
     Point_3(positionsB[6], positionsB[7], positionsB[8]),
     Point_3(positionsB[9], positionsB[10], positionsB[11]));
-    
+
   Nef_polyhedron NA(tetA);
   Nef_polyhedron NB(tetB);
 
@@ -607,7 +607,7 @@ void ElementIntersectorCGAL3D::Intersect()
   {
     Polyhedron pIntersection;
     intersection.convert_to_Polyhedron(pIntersection);
-    
+
     triangulation = new Triangulation(pIntersection.points_begin(), pIntersection.points_end());
   }
 #else
@@ -628,7 +628,7 @@ void ElementIntersectorCGAL3D::QueryOutput(int& nnodes, int& nelms) const
   cerr << "Cannot compute 3D element intersections without CGAL" << endl;
   exit(-1);
 #endif
-  
+
   return;
 }
 
@@ -636,7 +636,7 @@ void ElementIntersectorCGAL3D::GetOutput(double*& positions, int*& enlist) const
 {
 #ifdef HAVE_LIBCGAL
   assert(triangulation);
-  
+
   map<Point_3, size_t> coordToId;
   size_t index = 0;
   int nnodes = triangulation->number_of_vertices();
@@ -647,7 +647,7 @@ void ElementIntersectorCGAL3D::GetOutput(double*& positions, int*& enlist) const
     positions[index + 2 * nnodes] = CGAL::to_double(iter->z());
     coordToId[*iter] = index + 1;
   }
-  
+
   index = 0;
   for(Finite_cells_iterator iter = triangulation->finite_cells_begin();iter != triangulation->finite_cells_end();iter++)
   {
@@ -667,7 +667,7 @@ void ElementIntersectorCGAL3D::GetOutput(double*& positions, int*& enlist) const
 ElementIntersector1D::ElementIntersector1D()
 {
   exactness = 0;
-  
+
   intersection = false;
 
   return;
@@ -685,20 +685,20 @@ void ElementIntersector1D::Intersect()
 
   double rightA = max(positionsA[0], positionsA[1]);
   double leftB = min(positionsB[0], positionsB[1]);
-  
+
   if(leftB > rightA)
   {
     intersection = false;
     return;
   }
-  
+
   intersection = true;
   double leftA = min(positionsA[0], positionsA[1]);
   double rightB = max(positionsB[0], positionsB[1]);
-  
+
   positionsC[0] = max(leftA, leftB);
   positionsC[1] = min(rightA, rightB);
-  
+
   return;
 }
 
@@ -714,7 +714,7 @@ void ElementIntersector1D::QueryOutput(int& nnodes, int& nelms) const
     nnodes = 0;
     nelms = 0;
   }
-  
+
   return;
 }
 
@@ -726,7 +726,7 @@ void ElementIntersector1D::GetOutput(double*& positions, int*& enlist) const{
     enlist[0] = 1;
     enlist[1] = 2;
   }
-  
+
   return;
 }
 
@@ -734,7 +734,7 @@ ElementIntersector2D::ElementIntersector2D()
 {
   intersection = NULL;
   exactness = 0;
-  
+
   return;
 }
 ElementIntersector2D::~ElementIntersector2D()
@@ -744,7 +744,7 @@ ElementIntersector2D::~ElementIntersector2D()
     delete intersection;
     intersection = NULL;
   }
-  
+
   return;
 }
 
@@ -832,7 +832,7 @@ void ElementIntersector2D::Intersect()
   else
   {
     cerr << "Invalid number of element nodes" << endl;
-    exit(-1);  
+    exit(-1);
   }
 }
 
@@ -844,22 +844,22 @@ void ElementIntersector2D::QueryOutput(int& nnodes, int& nelms) const
     nelms = nnodes - 2;
   else
     nelms = 0;
-  
+
   return;
 }
 
 void ElementIntersector2D::GetOutput(double*& positions, int*& enlist) const
 {
   assert(intersection);
- 
-  int nnodes = intersection->GetQuantity(); 
+
+  int nnodes = intersection->GetQuantity();
   for (int node = 0; node < nnodes; node++)
   {
     Vector2 V = intersection->GetPoint(node);
     positions[node] = V[0];
     positions[node + nnodes] = V[1];
   }
-  
+
   for (int ele = 0; ele < intersection->GetQuantity() - 2; ele++)
   {
     enlist[ele * 3] = 1;
@@ -877,7 +877,7 @@ WmElementIntersector3D::WmElementIntersector3D()
   elements = -1;
   nodes = -1;
   exactness = 0;
-  
+
   return;
 }
 WmElementIntersector3D::~WmElementIntersector3D()
@@ -892,7 +892,7 @@ WmElementIntersector3D::~WmElementIntersector3D()
     delete volumes;
     volumes = NULL;
   }
-  
+
   return;
 }
 
@@ -900,7 +900,7 @@ void WmElementIntersector3D::Intersect()
 {
   assert(positionsA);
   assert(positionsB);
-  
+
   if(intersection)
   {
     delete intersection;
@@ -996,10 +996,10 @@ void WmElementIntersector3D::QueryOutput(int& nnodes, int& nelms) const
 {
   assert(elements >= 0);
   assert(nodes >= 0);
-  
+
   nelms = elements;
   nnodes = nodes;
-  
+
   return;
 }
 
@@ -1035,7 +1035,7 @@ void WmElementIntersector3D::GetOutput(double*& positions, int*& enlist) const
       }
     }
   }
-  
+
   return;
 }
 
@@ -1048,7 +1048,7 @@ extern "C"
   int cIntersectorGetDimension()
   {
     assert(elementIntersector);
-    
+
     return elementIntersector->GetDim();
   }
 
@@ -1060,11 +1060,11 @@ extern "C"
       {
         return;
       }
-    
+
       delete elementIntersector;
       elementIntersector = NULL;
     }
-    
+
     ElementIntersector1D* intersector_1;
     ElementIntersector2D* intersector_2;
     WmElementIntersector3D* intersector_3;
@@ -1086,7 +1086,7 @@ extern "C"
         cerr << "Invalid element intersector dimension" << endl;
         exit(-1);
     }
-    
+
     return;
   }
 
@@ -1097,7 +1097,7 @@ extern "C"
     exact = 1 means exact (using cgal)*/
 
     int dim;
-    
+
     assert(elementIntersector);
     dim = elementIntersector->GetDim();
     if((int) elementIntersector->GetExactness() == *exact)
@@ -1108,7 +1108,7 @@ extern "C"
     {
       delete elementIntersector;
     }
-    
+
     ElementIntersector1D* intersector_1_inexact;
     ElementIntersector2D* intersector_2_inexact;
     ElementIntersectorCGAL2D* intersector_2_exact;
@@ -1156,7 +1156,7 @@ extern "C"
         cerr << "Invalid element intersector dimension" << endl;
         exit(-1);
     }
-    
+
     return;
   }
 
@@ -1165,36 +1165,36 @@ extern "C"
     assert(elementIntersector);
     assert(*dim >= 0);
     assert(*loc >= 0);
-    
+
     elementIntersector->SetInput(positionsA, positionsB, *dim, *loc);
-    
+
     return;
   }
 
   void cIntersectorDrive()
   {
     assert(elementIntersector);
-  
+
     elementIntersector->Intersect();
-    
+
     return;
   }
-  
+
   void cIntersectorQuery(int* nnodes, int* nelms)
   {
     assert(elementIntersector);
-  
+
     elementIntersector->QueryOutput(*nnodes, *nelms);
-    
+
     return;
   }
-  
+
   void cIntersectorGetOutput(const int* nnodes, const int* nelms, const int* dim, const int* loc, double* positions, int* enlist)
   {
     assert(elementIntersector);
-  
+
 #ifdef DDEBUG
-    int nnodesQuery, nelmsQuery;  
+    int nnodesQuery, nelmsQuery;
     elementIntersector->QueryOutput(nnodesQuery, nelmsQuery);
     assert(*nnodes == nnodesQuery);
     assert(*nelms == nelmsQuery);
@@ -1219,14 +1219,14 @@ extern "C"
 #endif
 
     elementIntersector->GetOutput(positions, enlist);
-  
+
     return;
   }
 
   void cIntersectionFinderReset(int* ntests)
   {
     *ntests = elementIntersectionFinder.Reset();
-    
+
     return;
   }
 
@@ -1236,9 +1236,9 @@ extern "C"
     assert(*loc >= 0);
     assert(*nnodes >= 0);
     assert(*nelements >= 0);
- 
+
     elementIntersectionFinder.SetInput(positions, *nnodes, *dim, enlist, *nelements, *loc);
-    
+
     return;
   }
 
@@ -1246,23 +1246,23 @@ extern "C"
   {
     assert(*dim >= 0);
     assert(*loc >= 0);
-    
+
     elementIntersectionFinder.SetTestElement(positions, *dim, *loc);
-    
+
     return;
   }
 
   void cIntersectionFinderQueryOutput(int* nelms)
   {
     elementIntersectionFinder.QueryOutput(*nelms);
-    
+
     return;
   }
 
   void cIntersectionFinderGetOutput(int* id, const int* index)
   {
     elementIntersectionFinder.GetOutput(*id, *index);
-    
+
     return;
   }
 }

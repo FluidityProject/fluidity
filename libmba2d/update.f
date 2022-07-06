@@ -24,7 +24,7 @@ C ==========================================================
       Return
 
  1000 Continue
-      Call errMes(1003, 'pntAdd', 
+      Call errMes(1003, 'pntAdd',
      &           'local variable MaxP is too small')
       End
 
@@ -93,7 +93,7 @@ C ==========================================================
       Return
 
  1000 Continue
-      Call errMes(1004, 'facAdd', 
+      Call errMes(1004, 'facAdd',
      &           'local variable MaxF is too small')
       End
 
@@ -140,7 +140,7 @@ C ==========================================================
       Do i = 1, 4
          IPF(i, iF) = 0
       End do
-      iFnc(iF) = 0 
+      iFnc(iF) = 0
 
       IHolF(1) = nHolF
       nF = nF - 1
@@ -160,7 +160,7 @@ C ==========================================================
       Return
 
  1000 Continue
-      Call errMes(1006, 'eleAdd', 
+      Call errMes(1006, 'eleAdd',
      &           'local variable MaxE is too small')
       End
 
@@ -218,7 +218,7 @@ C ==========================================================
          End do
 
  10      If(IFE(i1, iE).NE.0) Then
-C  ...  analyzing the detailed structure of this face 
+C  ...  analyzing the detailed structure of this face
 C  ...  the face may be interior and with boundary points
             Call makSP(iP1, IEP, IPE, IEE, MaxS, kE, iEu)
             Do 15 k = 1, kE
@@ -228,7 +228,7 @@ C  ...  the face may be interior and with boundary points
                End do
                Do j1 = 1, 3
                   j2 = iref(j1 + 1)
-                  
+
                   jP1 = IPE(j1, iEt)
                   jP2 = IPE(j2, iEt)
                   If(check22(iP1, iP2, jP1, jP2)) goto 30
@@ -237,7 +237,7 @@ C  ...  the face may be interior and with boundary points
 
             IEE(i1, iE) = 0
          End if
-         
+
          Do 20 k = 1, lE
             kE = iEs(k)
             If(kE.LE.0)  goto 20
@@ -273,13 +273,12 @@ C ==========================================================
 
       Do i = 1, 3
          iEt = IEE(i, iE)
-         If(iEt.NE.0) Then 
-            Do j = 1, 3   
+         If(iEt.NE.0) Then
+            Do j = 1, 3
                If(IEE(j, iEt).EQ.iE) IEE(j, iEt) = 0
             End do
             IEE(i, iE) = 0
-         End if 
+         End if
       End do
       Return
       End
-

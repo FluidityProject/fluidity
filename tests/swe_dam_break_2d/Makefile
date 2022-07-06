@@ -5,7 +5,7 @@ preprocess:
 
 run:
 	../../bin/fluidity -v2 -l swe_dam_break_2d.flml
-	
+
 clean:
 	rm -f *.node *.ele *.bound
 	rm -f *.vtu *.stat

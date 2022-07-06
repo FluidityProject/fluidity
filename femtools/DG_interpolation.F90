@@ -163,7 +163,7 @@ module dg_interpolation_module
             end if
           end do
         end if
-          
+
         ! Combined outer_product and tensormul_3_1 to see if it is faster.
         mat = 0.0
         do j=1,ngi

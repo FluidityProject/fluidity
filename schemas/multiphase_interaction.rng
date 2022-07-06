@@ -68,7 +68,7 @@ where Re_p is the particle Reynolds number.</a:documentation>
   </define>
   <define name="heat_transfer">
     <element name="heat_transfer">
-      <a:documentation>Heat transfer term for the 
+      <a:documentation>Heat transfer term for the
 multiphase internal energy equation.
 Note: Only for fluid-particle phase pairs.</a:documentation>
       <ref name="heat_transfer_coefficient"/>

@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -43,10 +43,10 @@ use supermesh_construction
 use intersection_finder_module
 
 implicit none
-    
+
   interface mean
      module procedure mean_scalar
-  end interface 
+  end interface
 
   interface maxval
      module procedure maxval_scalar
@@ -67,15 +67,15 @@ implicit none
   interface field_stats
      module procedure field_stats_scalar, field_stats_vector, field_stats_tensor
   end interface
-    
+
   interface field_cv_stats
      module procedure field_cv_stats_scalar
   end interface
-    
+
   interface field_con_stats
      module procedure field_con_stats_scalar, field_con_stats_vector
   end interface
-    
+
   interface field_integral
      module procedure integral_scalar, integral_vector
   end interface
@@ -107,12 +107,12 @@ implicit none
          dot_product, outer_product, norm2_difference, magnitude,&
 	 magnitude_tensor, merge_meshes, distance, divergence_field_stats,&
 	 field_con_stats, function_val_at_quad_scalar, trace, mesh_integral
-    
+
   integer, parameter, public :: CONVERGENCE_INFINITY_NORM=0, CONVERGENCE_L2_NORM=1, CONVERGENCE_CV_L2_NORM=2
-  
+
   contains
 
-  function magnitude(field) 
+  function magnitude(field)
     !!< Return a scalar field which is the magnitude of the vector field.
     type(scalar_field) :: magnitude
     type(vector_field), intent(inout) :: field
@@ -120,14 +120,14 @@ implicit none
     integer :: node
 
     call allocate(magnitude, field%mesh,trim(field%name)//"Magnitude")
-    
+
     do node=1,node_count(field)
        magnitude%val(node)=norm2(node_val(field, node))
     end do
 
   end function magnitude
 
-  function magnitude_tensor(field) 
+  function magnitude_tensor(field)
     !!< Return a scalar field which is the magnitude of the tensor field.
     type(scalar_field) :: magnitude_tensor
     type(tensor_field), intent(inout) :: field
@@ -135,7 +135,7 @@ implicit none
     integer :: node
 
     call allocate(magnitude_tensor, field%mesh,trim(field%name)//"Magnitude")
-    
+
     do node=1,node_count(field)
        magnitude_tensor%val(node)=norm2(node_val(field, node))
     end do
@@ -146,15 +146,15 @@ implicit none
     !!< Return the mean value of a field
     real :: mean
     type(scalar_field), intent(in) :: field
-    
+
     mean = sum(field%val)/size(field%val)
   end function mean_scalar
-  
+
   pure function maxval_scalar(field) result (max)
     !!< Return the maximum value in a field.
     real :: max
     type(scalar_field), intent(in) :: field
-    
+
     max=maxval(field%val)
 
   end function maxval_scalar
@@ -163,7 +163,7 @@ implicit none
     !!< Return the maximum value in a field.
     real :: min
     type(scalar_field), intent(in) :: field
-    
+
     min=minval(field%val)
 
   end function minval_scalar
@@ -210,7 +210,7 @@ implicit none
     real :: norm
     type(scalar_field), intent(in) :: field
     type(scalar_field), intent(in) :: cv_mass
-    
+
     assert(node_count(field)==node_count(cv_mass))
 
     norm = dot_product(cv_mass%val, field%val**2)
@@ -276,9 +276,9 @@ implicit none
     real :: integral
     type(scalar_field), intent(in) :: field
     type(scalar_field), intent(in) :: cv_mass
-    
+
     assert(node_count(field)==node_count(cv_mass))
-    
+
     integral = dot_product(cv_mass%val, field%val)
 
     call allsum(integral)
@@ -302,11 +302,11 @@ implicit none
     logical :: found_id
 
     integral=0
-    
+
     ! Ideally there needs to be an assertion that the fields are associated
     ! with the same positions mesh X
-    
-    ! assert that each scalar field has the same number of elements 
+
+    ! assert that each scalar field has the same number of elements
     ! and the same dim as positions mesh X
     do s = 1,size(fields)
 
@@ -318,15 +318,15 @@ implicit none
 
     ! if region_ids is present assert that it has something
     if (present(region_ids)) then
-         
+
       assert(size(region_ids) > 0)
-      
+
     end if
 
     velement_loop: do ele=1, element_count(fields(1)%ptr)
 
       if(element_owned(fields(1)%ptr, ele)) then
-         
+
         ! if present only conisder input region_ids
         region_id_present: if (present(region_ids)) then
 
@@ -390,14 +390,14 @@ implicit none
     !! Minimum value in the field.
     real, intent(out), optional :: min
     !! Maximum value in the field.
-    real, intent(out), optional :: max  
+    real, intent(out), optional :: max
     !! L2 norm of the field. This requires positions to be specified as
     !! well.
     real, intent(out), optional :: norm2
     !! Integral of the field. This requires positions to be specified as
     !! well.
     real, intent(out), optional :: integral
-    
+
     if (present(min)) then
        min=minval(field%val)
        call allmin(min)
@@ -411,7 +411,7 @@ implicit none
     if (present(X).and.present(norm2)) then
 
        norm2=norm2_scalar(field, X)
-       
+
     elseif (present(norm2)) then
        FLAbort("Cannot evaluate L2 norm without providing positions field")
     end if
@@ -419,7 +419,7 @@ implicit none
     if (present(X).and.present(integral)) then
 
        integral=integral_scalar(field, X)
-       
+
     elseif (present(integral)) then
        FLAbort("Cannot evaluate integral without providing positions field")
     end if
@@ -436,7 +436,7 @@ implicit none
     !! Integral of the field. This requires positions to be specified as
     !! well.
     real, intent(out), optional :: integral
-    
+
     if (present(norm2)) then
 
        norm2=norm2_scalar_cv(field, cv_mass)
@@ -474,7 +474,7 @@ implicit none
     call deallocate(mag)
 
   end subroutine field_stats_vector
-    
+
   subroutine field_stats_tensor(field, X, min, max, norm2)
     !!< Return scalar statistical information about field. For a tensor
     !!< field the statistics are calculated on the magnitude of the field.
@@ -509,23 +509,23 @@ implicit none
     integer, intent(in), optional :: norm
     type(vector_field), intent(in), optional :: coordinates
     type(scalar_field), intent(in), optional :: cv_mass
-    
+
     type(scalar_field) :: difference
     integer :: l_norm
-    
+
     if(present(norm)) then
       l_norm = norm
     else
       l_norm = CONVERGENCE_INFINITY_NORM
     end if
-    
+
     assert(field%mesh==nlfield%mesh)
-    
+
     call allocate(difference, field%mesh, "Difference")
     call set(difference, field)
     call addto(difference, nlfield, -1.0)
     call absolute_value(difference)
-    
+
     select case(l_norm)
     case(CONVERGENCE_INFINITY_NORM)
       error = maxval(difference%val)
@@ -541,7 +541,7 @@ implicit none
     case default
       FLAbort("Unknown norm for convergence statistics.")
     end select
-    
+
     call deallocate(difference)
 
   end subroutine field_con_stats_scalar
@@ -568,7 +568,7 @@ implicit none
     call deallocate(nlmag)
 
   end subroutine field_con_stats_vector
-  
+
   subroutine divergence_field_stats(field, X, field_min, field_max, field_norm2, field_integral)
     !!< Return scalar statistical informaion about the divergence of field.
     type(vector_field) :: field
@@ -577,22 +577,22 @@ implicit none
     !! Minimum value in the field.
     real, intent(out) :: field_min
     !! Maximum value in the field.
-    real, intent(out) :: field_max  
+    real, intent(out) :: field_max
     !! L2 norm of the field. This requires positions to be specified as
     !! well.
     real, intent(out) :: field_norm2
     !! Integral of the field. This requires positions to be specified as
     !! well.
     real, intent(out) :: field_integral
-    
+
     integer :: ele
     real :: ele_min, ele_max, ele_norm2, ele_integral
-    
+
     field_min = huge(0.0)
     field_max = -huge(0.0)
     field_norm2 = 0.0
     field_integral = 0.0
-    
+
     do ele = 1, ele_count(field)
       call divergence_field_stats_element(ele, field, X, ele_min, ele_max, ele_norm2, ele_integral)
       field_min = min(field_min, ele_min)
@@ -600,33 +600,33 @@ implicit none
       field_norm2 = field_norm2 + ele_norm2
       field_integral = field_integral + ele_integral
     end do
-    
+
     call allmin(field_min)
     call allmax(field_max)
     call allsum(field_norm2)
     field_norm2 = sqrt(field_norm2)
     call allsum(field_integral)
-        
+
     contains
-    
+
     subroutine divergence_field_stats_element(ele, field, X, ele_min, ele_max, ele_norm2, ele_integral)
       integer, intent(in) :: ele
       type(vector_field), intent(in) :: field, X
       real, intent(inout) :: ele_min, ele_max, ele_norm2, ele_integral
-    
+
       real, dimension(ele_loc(field, ele), ele_ngi(field, ele), mesh_dim(field)) :: df_t
       real, dimension(ele_ngi(field, ele)) :: detwei, field_div_at_quad
 
       call transform_to_physical(X, ele, &
            & ele_shape(field, ele), dshape = df_t, detwei = detwei)
-      
+
       field_div_at_quad = ele_div_at_quad(field, ele, df_t)
-      
+
       ele_min      = minval(field_div_at_quad)
       ele_max      = maxval(field_div_at_quad)
       ele_norm2    = dot_product(field_div_at_quad*field_div_at_quad, detwei)
       ele_integral = dot_product(field_div_at_quad, detwei)
-    
+
     end subroutine divergence_field_stats_element
 
   end subroutine divergence_field_stats
@@ -644,9 +644,9 @@ implicit none
     end do
 
     dist = sqrt(dist)
-    
+
   end function distance
-    
+
   subroutine trace(tensor, output)
     type(tensor_field), intent(in) :: tensor
     type(scalar_field), intent(inout) :: output
@@ -740,7 +740,7 @@ implicit none
        end do
     end if
   end function outer_product_vector
-       
+
   function function_val_at_quad_scalar(fxn, positions, ele)
     interface
       function fxn(pos)
@@ -817,7 +817,7 @@ implicit none
 
     do ele_B=1,ele_count(positionsB)
       call local_coords_matrix(positionsB, ele_B, inversion_matrix_B)
-      ! Construct the supermesh associated with ele_B. 
+      ! Construct the supermesh associated with ele_B.
       call construct_supermesh(positionsB, ele_B, positionsA, map_BA(ele_B), supermesh_positions_shape, supermesh)
 
       ! Interpolate fieldA onto the supermesh.
@@ -840,7 +840,7 @@ implicit none
     end do
 
   end function norm2_difference_single
-  
+
   function norm2_difference_multiple(fieldA, positionsA, fieldB, positionsB) result(norm)
     !! Return ||fieldA - fieldB||_2.
     !! Since positionsA and positionsB are different, we need to supermesh!
@@ -884,7 +884,7 @@ implicit none
 
     do ele_B=1,ele_count(positionsB)
       call local_coords_matrix(positionsB, ele_B, inversion_matrix_B)
-      ! Construct the supermesh associated with ele_B. 
+      ! Construct the supermesh associated with ele_B.
       call construct_supermesh(positionsB, ele_B, positionsA, map_BA(ele_B), supermesh_positions_shape, supermesh)
 
       ! Interpolate fieldA onto the supermesh.
@@ -909,21 +909,21 @@ implicit none
     end do
 
   end function norm2_difference_multiple
-  
+
   function merge_meshes(meshes, name)
     !! merges a set of disjoint meshes, elements and nodes
     !! are consecutively numbered following the order of the input meshes
     type(mesh_type), dimension(:), intent(in):: meshes
     character(len=*), intent(in), optional:: name
     type(mesh_type):: merge_meshes
-    
+
     integer:: nodes, elements, ndglno_count, i
-    
+
     elements=0
     do i=1, size(meshes)
       elements=elements+element_count(meshes(i))
     end do
-      
+
     nodes=0
     do i=1, size(meshes)
       nodes=nodes+node_count(meshes(i))
@@ -931,7 +931,7 @@ implicit none
 
     call allocate(merge_meshes, nodes, elements, meshes(1)%shape, &
       name=name)
-    
+
     nodes=0
     ndglno_count=0
     do i=1, size(meshes)
@@ -940,7 +940,7 @@ implicit none
       ndglno_count=ndglno_count+size(meshes(i)%ndglno)
       nodes=nodes+node_count(meshes(i))
     end do
-    
+
   end function merge_meshes
-  
+
 end module fields_calculations

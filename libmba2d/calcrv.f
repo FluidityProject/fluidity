@@ -94,7 +94,7 @@ c         End do
 C ================================================================
       Subroutine scaleBack(XYPi, XYPo)
 C ================================================================
-C  Routine computes physical coordinates of point XYPi 
+C  Routine computes physical coordinates of point XYPi
 C ================================================================
       real  XYPi(2), XYPo(2)
 
@@ -108,9 +108,3 @@ C ================================================================
 
       Return
       End
-
-
-
-
-
-

@@ -313,7 +313,7 @@ contains
 
   function volume(positions)
     type(vector_field), intent(in) :: positions
-    
+
     real :: volume
 
     integer :: i

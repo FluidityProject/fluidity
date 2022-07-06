@@ -2,7 +2,7 @@
 default: run
 
 run: input
-	../../bin/fluidity -v 3 -l missingdata.flml 
+	../../bin/fluidity -v 3 -l missingdata.flml
 
 %.flml: valid.flml
 	@sed -e 's/valid\.nc/$*.nc/' $^ > $@
@@ -15,4 +15,3 @@ input: clean
 clean:
 	rm -f *.nc *.pyc *.ele *.node *.face *.vtu *.stat *.s *.err matrixdump* fluidity.*
 	rm -f missingdata.flml missingdimension.flml missingvariable.flml incorrectdimension.flml incorrectvariable.flml
-

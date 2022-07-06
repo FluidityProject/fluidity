@@ -17,7 +17,7 @@ Line(4) = {4,1};
 Line(5) = {5,6};
 Line(6) = {6,7};
 Line(7) = {7,8};
-Line(8) = {8,5};    
+Line(8) = {8,5};
 Line(9) = {1,5};
 Line(10) = {2,6};
 Line(11) = {4,8};
@@ -43,4 +43,3 @@ Physical Surface(35) = {28};
 Surface Loop(36) = {22,28,20,26,24,18};
 Volume(37) = {36};
 Physical Volume(38) = {37};
-

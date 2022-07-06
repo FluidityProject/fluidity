@@ -44,7 +44,7 @@ subroutine test_gradation
   call vtk_read_state("data/gradation_input.vtu", state)
   mesh => extract_mesh(state, "Mesh")
   positions => extract_vector_field(state, "Coordinate")
-  
+
   call allocate(field, mesh, "Field")
   call allocate(metric, mesh, "Metric")
   call set_from_function(field, func, positions)

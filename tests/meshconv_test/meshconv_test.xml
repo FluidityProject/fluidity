@@ -13,7 +13,7 @@
     <variable name = "solvers_converged" language = "python">
 import os
 files = os.listdir("./")
-solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
     <!-- Below variables for exo2gmsh -->
     <variable name="ElapsedTime_exo2gmsh" language="python">from fluidity_tools import stat_parser
@@ -109,4 +109,3 @@ fluidity_tools.compare_variable(BoundaryCondition_parallel_gmsh2triangle, 1, 1.0
     </test>
   </pass_tests>
 </testproblem>
-

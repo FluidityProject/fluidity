@@ -38,7 +38,7 @@ extern "C" {
   void spud_clear_options();
   void* spud_get_manager();
   void spud_set_manager(void* m);
-  
+
   int spud_load_options(const char* filename, const int filename_len);
   int spud_write_options(const char* filename, const int filename_len);
 
@@ -64,7 +64,7 @@ extern "C" {
 
   int spud_move_option(const char* key1, const int key1_len, const char* key2, const int key2_len);
   int spud_copy_option(const char* key1, const int key1_len, const char* key2, const int key2_len);
-   
+
   int spud_delete_option(const char* key, const int key_len);
 
   void spud_print_options();

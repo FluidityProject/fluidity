@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -44,13 +44,13 @@ module Coordinates
   use halos
 
   implicit none
-  
+
   private
-  
+
   logical::initialised=.false.
   real, parameter:: rad_to_deg = 180.0/pi
   real, parameter:: deg_to_rad = pi/180.0
-  
+
   public:: &
        LongitudeLatitude,  &
        spherical_polar_2_cartesian, cartesian_2_spherical_polar, &
@@ -95,12 +95,12 @@ module Coordinates
   end interface
 
 contains
-    
+
   subroutine LongitudeLatitude_single(xyz, longitude, latitude)
     real, dimension(:), intent(in):: xyz
     real, intent(out):: longitude, latitude
     real r
-    
+
     assert( size(xyz)==3 )
     r = sqrt(sum(xyz**2))
     if(r<1.0) then
@@ -112,33 +112,33 @@ contains
 
     longitude = rad_to_deg*atan2(xyz(2), xyz(1))
     latitude = 90.0 - rad_to_deg*acos(xyz(3)/r)
-    
+
   end subroutine LongitudeLatitude_single
-  
+
   subroutine LongitudeLatitude_multiple(xyz, longitude, latitude)
     real, dimension(:,:), intent(in):: xyz
     real, dimension(:), intent(out):: longitude, latitude
-    
+
     integer i
-    
+
      do i=1, size(xyz,2)
         call LongitudeLatitude_single( xyz(:,i), &
             longitude(i), latitude(i))
      end do
-  
+
   end subroutine LongitudeLatitude_multiple
-    
+
   elemental subroutine ll2r3_rotate(longitude, latitude, u, v, r3u, r3v, r3w)
     real, intent(in)::longitude, latitude, u, v
     real, intent(out)::r3u, r3v, r3w
     real t
-    
+
     r3w = v*cos(deg_to_rad*latitude)
     t = v*sin(deg_to_rad*latitude)
 
     r3v = u*cos(deg_to_rad*longitude) - t*sin(deg_to_rad*longitude)
     r3u = -(u*sin(deg_to_rad*longitude) + t*cos(deg_to_rad*longitude))
-    
+
   end subroutine ll2r3_rotate
 
   subroutine spherical_polar_2_cartesian(radius,theta,phi,x,y,z)
@@ -150,18 +150,18 @@ contains
     real, intent(in) :: theta   !Polar angle, in radians
     real, intent(in) :: phi     !Azimuthal angle, in radians
     real, intent(out) :: x,y,z  !Cartesian coordinates
-    
+
     x = radius*sin(theta)*cos(phi)
-    y = radius*sin(theta)*sin(phi)      
+    y = radius*sin(theta)*sin(phi)
     z = radius*cos(theta)
-    
+
   end subroutine spherical_polar_2_cartesian
-  
+
   subroutine spherical_polar_2_cartesian_c(radius,theta,phi,x,y,z) bind(c)
     !C-inter-operable subroutine for calculation of Cartesian coordinates
     ! from spherical-polar coordinates.
     implicit none
-    
+
     real(kind=c_double) :: radius  !Distance from centre of sphere
     real(kind=c_double) :: theta   !Polar angle, in radians
     real(kind=c_double) :: phi     !Azimuthal angle, in radians
@@ -206,7 +206,7 @@ contains
     !C-inter-operable subroutine for calculation of spherical-polar coordinates
     ! from Cartesian coordinates.
     implicit none
-    
+
     real(kind=c_double) :: x,y,z   !cartesian coordinates
     real(kind=c_double) :: radius  !Distance from centre of sphere
     real(kind=c_double) :: theta   !Polar angle, in radians
@@ -231,7 +231,7 @@ contains
     phi = real(phi_f, kind=c_double)
 
   end subroutine cartesian_2_spherical_polar_c
-  
+
   subroutine spherical_polar_2_cartesian_field(spherical_polar_coordinate_field, &
                                                cartesian_coordinate_field)
     !Subroutine for conversion of a spherical-polar coordinate field into a cartesian
@@ -242,7 +242,7 @@ contains
     type(vector_field) :: cartesian_coordinate_field
     integer :: node
     real, dimension(3) :: XYZ, RTP !arrays containing a single node's position vector
-                                   ! in cartesian & spherical-polar bases 
+                                   ! in cartesian & spherical-polar bases
 
     do node=1,node_count(spherical_polar_coordinate_field)
       RTP = node_val(spherical_polar_coordinate_field, node)
@@ -262,7 +262,7 @@ contains
     type(vector_field) :: spherical_polar_coordinate_field
     integer :: node
     real, dimension(3) :: XYZ, RTP !arrays containing a single node's position vector
-                                   ! components in cartesian & spherical-polar bases 
+                                   ! components in cartesian & spherical-polar bases
 
     do node=1,node_count(cartesian_coordinate_field)
       XYZ = node_val(cartesian_coordinate_field, node)
@@ -275,7 +275,7 @@ contains
   subroutine lon_lat_height_2_spherical_polar(longitude, latitude, height, &
                                               radius, theta, phi, &
                                               referenceRadius)
-    !Subroutine for conversion of longitude-latitude-height coordinates on a 
+    !Subroutine for conversion of longitude-latitude-height coordinates on a
     !  sphere to spherical-polar coordinates. Longitude and latitude must be
     !  in degrees, polar coordinates are returned into radians
     implicit none
@@ -346,7 +346,7 @@ contains
   subroutine lon_lat_height_2_cartesian(longitude, latitude, height, &
                                         x, y, z, &
                                         referenceRadius)
-    !Subroutine for conversion of longitude-latitude-height coordinates into 
+    !Subroutine for conversion of longitude-latitude-height coordinates into
     ! Cartesian coordinates. If referenceRadius is specified, height is measured
     ! as the radial distance relative to that radius, i.e. it is the distance
     ! relative to the surface of the sphere.
@@ -389,7 +389,7 @@ contains
     ! is always measured as the radial distance relative to that radius and denotes
     ! the distance from the surface of the sphere.
     implicit none
-    
+
     real(kind=c_double) :: longitude        !Longitude, in radians.
     real(kind=c_double) :: latitude         !Latitude, in radians.
     real(kind=c_double) :: height           !Distance from surface of sphere.
@@ -614,7 +614,7 @@ contains
     real, intent(in) :: zonalComponent      !Vector component tangential to parallel
     real, intent(in) :: meridionalComponent !Vector component tangential to meridian
     real, intent(in) :: verticalComponent   !Vecor component in the vertical (radial)
-    real, intent(in) :: longitude 
+    real, intent(in) :: longitude
     real, intent(in) :: latitude
     real, intent(in) :: height
     real, intent(out) :: xComp          !1st vector component in cartesian basis
@@ -684,7 +684,7 @@ contains
     real, intent(out) :: zonalComponent      !Vector component tangential to parallel
     real, intent(out) :: meridionalComponent !Vector component tangential to meridian
     real, intent(out) :: verticalComponent   !Vector component in the vertical (radial)
-    real, intent(out) :: longitude 
+    real, intent(out) :: longitude
     real, intent(out) :: latitude
     real, intent(out) :: height
     real, intent(in), optional :: referenceRadius
@@ -737,7 +737,7 @@ contains
                                                            ! to meridian
     real(kind=c_double), intent(in) :: verticalComponent   !Vecor component in the
                                                            ! vertical (radial)
-    real(kind=c_double), intent(in) :: longitude 
+    real(kind=c_double), intent(in) :: longitude
     real(kind=c_double), intent(in) :: latitude
     real(kind=c_double), intent(in) :: height
     real(kind=c_double), intent(out) :: xComp      !1st vector component in
@@ -757,7 +757,7 @@ contains
     real :: zonalComponent_f      !Vector component tangential to parallel
     real :: meridionalComponent_f !Vector component tangential to meridian
     real :: verticalComponent_f   !Vecor component in the vertical (radial)
-    real :: longitude_f 
+    real :: longitude_f
     real :: latitude_f
     real :: height_f
     real :: xComp_f          !1st vector component in cartesian basis
@@ -898,7 +898,7 @@ contains
     type(vector_field) :: cartesian_coordinate_field
     integer :: node
     real, dimension(3) :: XYZ, RTP !arrays containing a signel node's position vector
-                                   ! in cartesian & spherical-polar bases 
+                                   ! in cartesian & spherical-polar bases
     real, dimension(3) :: cartesianComponents, sphericalPolarComponents
 
     assert(node_count(spherical_polar_coordinate_field) == node_count(cartesian_coordinate_field))
@@ -934,7 +934,7 @@ contains
     type(vector_field) :: spherical_polar_coordinate_field
     integer :: node
     real, dimension(3) :: XYZ, RTP !arrays containing a signel node's position vector
-                                   ! in cartesian & spherical-polar bases 
+                                   ! in cartesian & spherical-polar bases
     real, dimension(3) :: cartesianComponents, sphericalPolarComponents
 
     assert(node_count(spherical_polar_coordinate_field) == node_count(cartesian_coordinate_field) )
@@ -945,7 +945,7 @@ contains
       call vector_cartesian_2_spherical_polar(cartesianComponents(1), &
                                               cartesianComponents(2), &
                                               cartesianComponents(3), &
-                                              XYZ(1), XYZ(2), XYZ(3), & 
+                                              XYZ(1), XYZ(2), XYZ(3), &
                                               sphericalPolarComponents(1), &
                                               sphericalPolarComponents(2), &
                                               sphericalPolarComponents(3), &
@@ -964,7 +964,7 @@ contains
     ! be a 3x3 tensor.
     implicit none
 
-    real, intent(in), dimension(3,3) :: sphericalPolarComponents   !Tensor 
+    real, intent(in), dimension(3,3) :: sphericalPolarComponents   !Tensor
                                       ! components in spherical-polar basis
     real, intent(in) :: radius        !Distance from centre of sphere
     real, intent(in) :: theta         !Polar angle, in radians
@@ -993,23 +993,23 @@ contains
   end subroutine tensor_spherical_polar_2_cartesian
 
   subroutine higher_order_sphere_projection(positions, s_positions)
-    !!< Given a P1 'positions' field and a Pn 's_positions' field, bends the 
+    !!< Given a P1 'positions' field and a Pn 's_positions' field, bends the
     !!< elements of the 's_positions' field onto the sphere
     type(vector_field), intent(inout):: positions
     type(vector_field), intent(inout):: s_positions
-    
+
     real rold, rnew
     integer i
-  
+
     type(scalar_field):: radius, s_radius
     real, dimension(positions%dim):: xyz
 
     ewrite(1,*) 'In higher_order_sphere_projection'
-    
+
     call allocate(s_radius, s_positions%mesh, "HigherOrderRadius")
     radius=magnitude(positions)
     call remap_field(radius, s_radius)
-    
+
     ! then bend by adjusting to the linearly interpolated radius
     do i=1, node_count(s_positions)
        xyz=node_val(s_positions, i)
@@ -1017,10 +1017,10 @@ contains
        rnew=node_val(s_radius, i)
        call set(s_positions, i, xyz*rnew/rold)
     end do
-    
+
     call deallocate(s_radius)
-    call deallocate(radius)    
-  
+    call deallocate(radius)
+
   end subroutine higher_order_sphere_projection
 
   function radial_inward_normal_at_quad_ele(positions, ele_number) result(quad_val)
@@ -1158,7 +1158,7 @@ contains
     real, dimension(u%dim):: ct_xyz, ct_rot
     real, dimension(:), pointer:: rowval
     integer:: node, i, j, k, rotated_node
-    
+
     type(state_type), intent(in) :: state
     type(vector_field), pointer :: position
     type(vector_field) :: u_position
@@ -1267,8 +1267,8 @@ contains
     ! rotate rhs:
     ! need to have separate copy of the field, because of intent(out) and intent(in)
     ! of mult_T call, as result%val points at the same space as rhs%val, this directly
-    ! puts the result in rhs as well 
-    result=rhs 
+    ! puts the result in rhs as well
+    result=rhs
     call mult_T(result, rotation_sphere, rhs)
     if (dg) then
       ! We have just poluted the halo rows of the rhs. This is incorrect
@@ -1309,7 +1309,7 @@ contains
     logical:: parallel
 
     type(vector_field), pointer :: position
-    type(vector_field) :: u_position    
+    type(vector_field) :: u_position
 
     ewrite(1,*) "Inside create_rotation_matrix_sphere"
 
@@ -1385,12 +1385,12 @@ contains
 
     type(vector_field), intent(inout):: vfield
     type(state_type), intent(inout):: state
-    
+
     type(vector_field), pointer:: u
     type(vector_field):: result
     type(petsc_csr_matrix), pointer:: rotation_sphere
     integer :: stat
-    
+
     rotation_sphere => extract_petsc_csr_matrix(state, "RotationMatrixSphere", stat=stat)
     if (stat/=0) then
       allocate(rotation_sphere)
@@ -1398,7 +1398,7 @@ contains
       call create_rotation_matrix_sphere(rotation_sphere, u, state)
       call insert(state, rotation_sphere, "RotationMatrixSphere")
     end if
-    
+
     result=vfield ! see note in rotate_momentum_equation
     call mult_T(result, rotation_sphere, vfield)
 
@@ -1408,17 +1408,17 @@ contains
     end if
 
   end subroutine rotate_velocity_sphere
-  
+
   subroutine rotate_velocity_back_sphere(vfield, state)
 
     type(vector_field), intent(inout):: vfield
     type(state_type), intent(inout):: state
-    
+
     type(vector_field), pointer:: u
     type(vector_field):: result
     type(petsc_csr_matrix), pointer:: rotation_sphere
     integer :: stat
-    
+
     rotation_sphere => extract_petsc_csr_matrix(state, "RotationMatrixSphere", stat=stat)
     if (stat/=0) then
       allocate(rotation_sphere)
@@ -1426,7 +1426,7 @@ contains
       call create_rotation_matrix_sphere(rotation_sphere, u, state)
       call insert(state, rotation_sphere, "RotationMatrixSphere")
     end if
-    
+
     result=vfield ! see note in rotate_momentum_equation
     call mult(result, rotation_sphere, vfield)
 

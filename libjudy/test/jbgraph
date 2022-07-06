@@ -86,7 +86,7 @@
 
     EXT_OPT="${EXT_OPT:-}"		# Allow external option setting.
 
-# GNU_GEOMETRY default:  
+# GNU_GEOMETRY default:
 # - Note, this will respect an environment variable, which could be set as:
 # - export OPT_JBGRAPH_geometry="600x450+20+20" # 4x3 aspect ratio.
 
@@ -96,7 +96,7 @@
 
 # GNU_PSFILE name, (default):
 
-    GNU_PSFILE="${OPT_JBGRAPH_psfile:-$COMMAND.GNU_PSFILE}" 
+    GNU_PSFILE="${OPT_JBGRAPH_psfile:-$COMMAND.GNU_PSFILE}"
 
     LP_DEV_DEF="${LP_DEV:-pastel}"	# Printer device (default).
     LP_OPT_DEF="${LP_OPT:--olandscape}"	# Printer options (default).
@@ -178,7 +178,7 @@
 
 
 # M A I N:   MAIN PROGRAM:
-# 
+#
 # - Begin main script, functions first.
 
 {
@@ -231,7 +231,7 @@ FUNCTION__getopt()			# Use function getopt.
     -g geometry description.
 	 default=\"${GNU_GEOMETRY_DEF}\", # 4x3 aspect ratio.
 
-    -E use embedded options, default, Turn off with -NE. 
+    -E use embedded options, default, Turn off with -NE.
       Sets TITLE, COLHEAD, GETOPT from the FIRST data file encountered.
       Example:  embedded options in the data file begin in column 1:
       # TITLE This is the title to pass to gnuplot
@@ -246,7 +246,7 @@ FUNCTION__getopt()			# Use function getopt.
 	 Example:  \"-on2\" will print two copies, emits \"-n2\"
     -D LP_DEV printer device;  default \"${LP_DEV_DEF}\".
 
-    -C GNU_CMDFILE name;  default is generated and removed: 
+    -C GNU_CMDFILE name;  default is generated and removed:
          ${OUTPUT_DIR}/{DATE_TIME}.GNU_CMDFILE
 	 Useful to do your own gnuplot command editing and debugging.
     -P GNU_PSFILE name.  default is generated and removed:
@@ -528,7 +528,7 @@ FUNCTION__getopt()			# Use function getopt.
 
         -v)
 	    OPT_v="${1}"
-            v=""			# Set verbose on.	
+            v=""			# Set verbose on.
 	    ${v}echo "${C}.${0}:  OPT_v=${OPT_v}, # -v verbose mode."
 	    ${v}echo
             ;;				# ( for vi parenthesis matching
@@ -674,7 +674,7 @@ FUNCTION_gnuplot_init()			# Initialize gnuplot command file.
 FUNCTION_gnuplot_plot()			# Plot these files.
 {
 # FORMAT THE PLOT AND REPLOT COMMANDS
-# 
+#
 # - output to GNU_CMDFILE.
 
     ${v}echo "${C}.${0}:  beginning at `date`"	# beginning of function
@@ -743,7 +743,7 @@ FUNCTION_gnuplot_display()			# Plots the datapoints.
         echo set output \"${GNU_PSFILE}\"
         echo replot
       } >> ${GNU_CMDFILE}
-    fi  
+    fi
 
     LINE=""				# External response
     while [ "${LINE}" != "q" ]

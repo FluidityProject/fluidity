@@ -42,7 +42,7 @@ This will be used as the basename of output files. </a:documentation>
         <ref name="real"/>
       </element>
       <element name="time_integration_scheme">
-        <a:documentation>The algorithm which will be used to move the projectiles. 
+        <a:documentation>The algorithm which will be used to move the projectiles.
 explicit_euler is the first order unstable numeric scheme.
 analytic is the analytic solution.</a:documentation>
         <element name="string_value">
@@ -64,7 +64,7 @@ analytic is the analytic solution.</a:documentation>
   <define name="projectile">
     <element name="projectile">
       <attribute name="name">
-        <a:documentation>An object with a velocity. Projectiles move during the simulation 
+        <a:documentation>An object with a velocity. Projectiles move during the simulation
 and are accelerated by gravity.
 
 The projectile name identifies this projectile in the output.</a:documentation>

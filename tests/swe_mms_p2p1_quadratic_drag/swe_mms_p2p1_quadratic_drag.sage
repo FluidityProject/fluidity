@@ -29,10 +29,10 @@ print '    return', str(u).replace('e^', 'exp').replace('^', '**').replace('0000
 print ''
 print 'def v(X):'
 print '    return', str(v).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'x[0]').replace('y', 'x[1]')
-print ''  
+print ''
 print 'def h(X):'
 print '    return', str(h).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'x[0]').replace('y', 'x[1]')
-print '' 
+print ''
 print 'def forcing_u(X):'
 print '    return', str(Su).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'x[0]').replace('y', 'x[1]')
 print ''

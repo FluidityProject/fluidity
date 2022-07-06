@@ -18,11 +18,11 @@ Directory contents
 ------------------
 
 * ballistics.F90 - Fortran source of the ballistics simulation.
-* ballistics.rnc, ballistics.rng - compact and xml versions of the 
+* ballistics.rnc, ballistics.rng - compact and xml versions of the
                                    ballistics schema file.
-* ballistics.xml - sample ballistics options file generated using 
-                   diamond and the spud schema. 
-* show_ballistics - Python script providing a plot of the 
+* ballistics.xml - sample ballistics options file generated using
+                   diamond and the spud schema.
+* show_ballistics - Python script providing a plot of the
                     ballistic tracks generated.
 
 Compiling and running

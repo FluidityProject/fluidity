@@ -47,7 +47,7 @@ LIBFLUIDITY=../../lib/lib$(FLUIDITY).a
 FORTRANTESTS= $(basename $(wildcard *.F90))
 
 
-CTESTS= $(basename $(wildcard *.c)) $(basename $(wildcard *.cpp)) 
+CTESTS= $(basename $(wildcard *.c)) $(basename $(wildcard *.cpp))
 
 TESTS=$(CTESTS) $(FORTRANTESTS)
 
@@ -75,15 +75,15 @@ unittest: $(TEST_BINARIES)
 # creates a TESTNAME_main_f.o from test_main_f.cpp which calls the subroutine
 # TESTNAME, that should be a subroutine in TESTNAME.F90
 %_main.o: test_main.cpp
-	$(CXX) $(CXXFLAGS) -D TESTNAME=$(subst _main.o,,$@)_ -o $@ -c $^ 
+	$(CXX) $(CXXFLAGS) -D TESTNAME=$(subst _main.o,,$@)_ -o $@ -c $^
 
 # link this TESTNAME_main.o with TESTNAME.o from TESTNAME.F90
 test_python_state:  python_state.o test_python_state_main.o test_python_state.o python_statec.o lib/
-	$(CXX) $(LDFLAGS) -o $@ $(filter %.o,$^) $(LIBS) 
+	$(CXX) $(LDFLAGS) -o $@ $(filter %.o,$^) $(LIBS)
 
 # link this TESTNAME_main_f.o with TESTNAME.o from TESTNAME.F90
 %: %_main.o %.o lib/
-	$(CXX) $(LDFLAGS) -o $@ $(filter %.o,$^) $(LIBFLUIDITY) $(LIBS) 
+	$(CXX) $(LDFLAGS) -o $@ $(filter %.o,$^) $(LIBFLUIDITY) $(LIBS)
 
 # make a temp sym-link to the directory containing fluidity, adapt and sam libs
 lib/:

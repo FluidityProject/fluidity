@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -28,10 +28,10 @@
 program testpolynomials
   use polynomials
   ! Implicit none.
-  
+
   type(polynomial), dimension(10) :: poly
 
-  
+
 
   poly(1)=(/1.0, 1.0/)
   poly(2)=(/2.0, 1.0/)
@@ -40,5 +40,5 @@ program testpolynomials
   print '(100f10.3)', poly(1)*poly(1)*poly(1)+poly(2)
   print '(100f10.3)', 2.0*poly(2)
   print '(100f10.3)', ddx(poly(1)*poly(1)*poly(1))
-  
+
 end program testpolynomials

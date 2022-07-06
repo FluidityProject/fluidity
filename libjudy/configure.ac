@@ -44,13 +44,13 @@ dnl careful thinking.  Fortunately, concern (2) doesn't become important
 dnl until other SDKs rely on the libJudy SDK.
 dnl
 dnl Of course, it's safe to avoid changing the libJudy ABI. :-)
-dnl 
+dnl
 dnl The version scheme used by Libtool tracks interfaces, where an interface is
 dnl the set of exported entry points into the library. All Libtool libraries
 dnl start with -version-info set to 0:0:0 - this will be the default version
 dnl number if you don't explicitly set it on the Libtool link command line. The
 dnl meaning of these numbers (from left to right) is as follows:
-dnl 
+dnl
 dnl  current:
 dnl     The number of the current interface exported by the library. A current
 dnl     value of 0, means that you are calling the interface exported by this
@@ -60,7 +60,7 @@ dnl  revision:
 dnl     The implementation number of the most recent interface exported by this
 dnl     library. In this case, a revision value of 0 means that this is the
 dnl     first implementation of the interface.
-dnl 
+dnl
 dnl     If the next release of this library exports the same interface, but has
 dnl     different implementation (perhaps some bugs have been fixed), the
 dnl     revision number will be higher, but current number will be the same. In
@@ -75,7 +75,7 @@ dnl     interface number, current, or any of the previous two interfaces.
 dnl
 dnl By definition age must be less than or equal to current. At the outset, only
 dnl the first ever interface is implemented, so age can only be 0.
-dnl 
+dnl
 
 VERSION_INFO="-version-info 1:3:0"
 AC_SUBST(VERSION_INFO)
@@ -87,7 +87,7 @@ dnl Judy can be compiled in one of three flavors: "product" (the default),
 dnl "debug", or "cov".  We allow the user to select flavors using
 dnl --enable-debug and --enable-ccover arguments to automake, which is
 dnl the typical way of doing things.
-dnl 
+dnl
 dnl Note how we perform string comparison:
 dnl
 dnl   if test "x$enable_debug" = xyes; then
@@ -178,10 +178,10 @@ AC_C_BIGENDIAN(, AC_DEFINE(JU_LITTLE_ENDIAN, 1,
 
 dnl  Figure out if we are 32-bit or 64-bit (LP64)
 AC_CHECK_SIZEOF(void *)
-if test "$ac_cv_sizeof_void_p" = 8; then 
+if test "$ac_cv_sizeof_void_p" = 8; then
     AC_MSG_RESULT(Detected 64-bit Build Environment)
     CFLAGS="-DJU_64BIT $CFLAGS"
-else 
+else
     AC_MSG_RESULT(Detected 32-bit Build Environment)
       CFLAGS="-UJU_64BIT $CFLAGS"
 fi
@@ -213,7 +213,7 @@ fi
 #  dnl Determine whether or not we're compiling for a 64-bit system by looking
 #  dnl at the size of a 'long'.  This will define SIZEOF_LONG in config.h.  We
 #  dnl append some text to the bottom of config.h to set JU_64BIT appropriately.
-#  dnl we try to do the correct thing if the user doesn't chose for us. 
+#  dnl we try to do the correct thing if the user doesn't chose for us.
 #  AC_CHECK_SIZEOF(long)
 #  AH_BOTTOM([/* Define JU_64BIT to 1 if we're on a 64-bit system. */
 #  if SIZEOF_LONG == 8

@@ -25,7 +25,7 @@ main()
     LineNumb++;            // line number
 
 //    store string into array
-        JHSI(PValue, PJArray, Index, strlen(Index)); 
+        JHSI(PValue, PJArray, Index, strlen(Index));
         if (*PValue)            // check if duplicate
     {
             Dups++;            // yes, count
@@ -36,7 +36,7 @@ main()
         *PValue = LineNumb;        // store Line number
     }
     }
-    printf("%lu Duplicates, free JudyHS array of %lu Lines\n", 
+    printf("%lu Duplicates, free JudyHS array of %lu Lines\n",
             Dups, LineNumb - Dups);
     JHSFA(Bytes, PJArray);              // free array
     printf("The JudyHS array allocated %lu bytes of memory\n", Bytes);

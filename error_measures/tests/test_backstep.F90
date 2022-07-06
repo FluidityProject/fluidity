@@ -66,7 +66,7 @@ subroutine test_backstep
   mesh => extract_mesh(state, "Mesh")
   positions => extract_vector_field(state, "Coordinate")
   field => extract_scalar_field(state, "Temperature")
-  call vtk_write_fields("data/backstep", 1, positions, mesh, sfields=(/field/)) 
+  call vtk_write_fields("data/backstep", 1, positions, mesh, sfields=(/field/))
 
   call deallocate(metric)
   call deallocate(state)

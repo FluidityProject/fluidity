@@ -10,7 +10,7 @@ subroutine test_remove_tensor_field
   type(mesh_type), pointer  :: mesh
   type(tensor_field) :: t_field
   logical :: fail
-  
+
   call vtk_read_state("data/mesh_0.vtu", state)
   mesh => extract_mesh(state, "Mesh")
   call allocate(t_field, mesh, "TensorField")

@@ -20,7 +20,7 @@ C                  1011 - reserved boundary identificator is used
 C                  1012 - local parameter MaxJP is small
 C                  1013 - local parameter MaxIA is small
 C                  1014 - local parameter MaxA  is small
-C                  1101 - one of the local mesh parameters 
+C                  1101 - one of the local mesh parameters
 C                        (MaxP, MaxF or MaxE) is small
 C
 C User errors:     2001 : 2003 - errors due to probably incorrect
@@ -39,7 +39,7 @@ C Internal errors: 5001 : 5022 - errors in mesh checking (1st level)
 C                  5101 : 5102 - errors in list updating
 C                  5201 : 5201 - errors in mesh checking (2nd level)
 C                  6001 : 6005 - system errors
-C                  6101 : 6102 - errorneous input for LINTRP3D 
+C                  6101 : 6102 - errorneous input for LINTRP3D
 C                  6103 : 6105 - errors in LINTRP3D algorithm
 C                  7001 : 7002 - errors in applications working with
 C                                curvilinear boundaries

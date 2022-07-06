@@ -15,7 +15,7 @@ subroutine compute_les_velocity_goal
   use mpi
   use interpolation_error
   implicit none
-  
+
   type(state_type) :: state, state_array(1)
   type(mesh_type), pointer :: mesh
   type(vector_field), pointer :: positions
@@ -74,7 +74,7 @@ subroutine compute_les_velocity_goal
   state_array(1) = state
   write(0,*) "goal_les_velocity(state) == ", goal_les_velocity(state_array)
   call form_goal_metric(state_array, metric, goal_les_velocity, goal_les_velocity_grad, opts)
-  call form_gradation_metric(positions, metric) 
+  call form_gradation_metric(positions, metric)
   call get_edge_lengths(metric, edgelen)
   call vtk_write_fields("data/goal_error_adapted", 0, positions, mesh, sfields=(/edgelen/), &
                         vfields=(/velocity/), tfields=(/metric/))
@@ -96,11 +96,11 @@ subroutine compute_les_velocity_goal
     call deallocate(edgelen); call allocate(edgelen, mesh, "Edge lengths")
     state_array(1) = state
     call form_goal_metric(state_array, metric, goal_les_velocity, goal_les_velocity_grad, opts)
-    call form_gradation_metric(positions, metric) 
+    call form_gradation_metric(positions, metric)
     call get_edge_lengths(metric, edgelen)
     call vtk_write_fields("data/goal_error_adapted", i+1, positions, mesh, sfields=(/les, edgelen/), &
                           vfields=(/velocity/), tfields=(/metric/))
-    call adapt_state(state, metric) 
+    call adapt_state(state, metric)
   end do
 
   mesh => extract_mesh(state, "Mesh")
@@ -108,7 +108,7 @@ subroutine compute_les_velocity_goal
   velocity => extract_vector_field(state, "Velocity")
   les => extract_scalar_field(state, "Temperature")
 
-  call vtk_write_fields("data/goal_error_adapted", i+2, positions,  mesh, sfields=(/les/), vfields=(/velocity/)) 
+  call vtk_write_fields("data/goal_error_adapted", i+2, positions,  mesh, sfields=(/les/), vfields=(/velocity/))
 
   state_array(1) = state
   write(0,*) "goal_les_velocity(state) == ", goal_les_velocity(state_array)

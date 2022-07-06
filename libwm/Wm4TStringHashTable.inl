@@ -185,7 +185,7 @@ TVALUE* TStringHashTable<TVALUE>::GetNext (std::string* pkKey) const
             *pkKey = m_pkItem->m_kKey;
             return &m_pkItem->m_tValue;
         }
-        
+
         for (m_iIndex++; m_iIndex < m_iTableSize; m_iIndex++)
         {
             if (m_apkTable[m_iIndex])

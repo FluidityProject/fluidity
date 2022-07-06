@@ -1,5 +1,5 @@
 !    Copyright (C) 2008 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -67,7 +67,7 @@ contains
     turbine_model = velocity_bc_type(1,face)
 
     turbine_fluxfac=-1.0
-    select case (turbine_model) 
+    select case (turbine_model)
     case(5)
          turbine_fluxfac=1.0
          return
@@ -108,14 +108,14 @@ contains
         !
         penalty_val=ele_val(velocity_bc, face)
 #ifdef DDEBUG
-        ! The penalty values should be the same on both turbine sides! 
+        ! The penalty values should be the same on both turbine sides!
         penalty_val_2=ele_val(velocity_bc, face_2)
         assert(all(penalty_val(1,:)==penalty_val_2(1,:)))
 #endif
 
         start=ele_loc(u,ele)+(ni-1)*face_loc(U, face_2)+1
         finish=start+face_loc(U, face_2)-1
-    
+
         u_shape=>face_shape(U, face)
         u_shape_2=>face_shape(U, face_2)
 
@@ -123,13 +123,13 @@ contains
         ! Change of coordinates on face.
         !----------------------------------------------------------------------
         call transform_facet_to_physical(X, face,&
-           &                          detwei_f=detwei) 
+           &                          detwei_f=detwei)
 
         penalty_domain_connecting_in=shape_shape(U_shape, U_shape, detwei)
         penalty_domain_connecting_out=shape_shape(U_shape, U_shape_2, detwei)
         ! Multiply Matrix with the penalty function -- !!!to be reviewed!!! --
         do i=1, face_loc(U,face_2)
-            penalty_domain_connecting_in(i,:)=penalty_domain_connecting_in(i,:)*penalty_val(1,:) 
+            penalty_domain_connecting_in(i,:)=penalty_domain_connecting_in(i,:)*penalty_val(1,:)
             penalty_domain_connecting_out(i,:)=penalty_domain_connecting_out(i,:)*penalty_val(1,:)
         end do
         u_face_l=face_local_nodes(U, face)

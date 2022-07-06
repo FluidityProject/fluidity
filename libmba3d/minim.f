@@ -128,7 +128,7 @@ C  ...  checking for inverted elements
             Do i = 1, 3
                XYP(i, iPs) = XYPu(i)
             End do
- 
+
             mBad = 0
             Do n = 1, lE
                If(qEs(n).LE.0D0) mBad = mBad + 1
@@ -136,7 +136,7 @@ C  ...  checking for inverted elements
             If(mBad.GT.nBad) f1 = f0 + 1D0
 
 C  ...  checking for the tetrahedrons orientation
-         Else    
+         Else
             Call calSO(XYP, IPE, lE, iEs, iOs)
             Call chkSO(iPs, XYPs, XYP, IPE, lE, iEs, iOs, flagOrient)
             If(.NOT.flagOrient) f1 = f0 + 1D0

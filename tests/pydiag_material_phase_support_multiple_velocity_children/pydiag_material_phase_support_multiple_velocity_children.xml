@@ -11,27 +11,27 @@
     <!-- A dummy fluids test case to check that for velocity children fields set with python diagnostics with material_phase_support set to multiple there is access to all states. -->
   </problem_definition>
   <variables>
-    <variable name="vel_abs_phase1" language="python">    
+    <variable name="vel_abs_phase1" language="python">
 from fluidity_tools import stat_parser as stat
 vel_abs_phase1 = stat("pydiag_material_phase_support_multiple_velocity_children.stat")["phase1"]["VelocityAbsorption%1"]["max"][-1]
     </variable>
-    <variable name="vel_abs_phase2" language="python">    
+    <variable name="vel_abs_phase2" language="python">
 from fluidity_tools import stat_parser as stat
 vel_abs_phase2 = stat("pydiag_material_phase_support_multiple_velocity_children.stat")["phase2"]["VelocityAbsorption%2"]["max"][-1]
     </variable>
-    <variable name="vel_src_phase1" language="python">    
+    <variable name="vel_src_phase1" language="python">
 from fluidity_tools import stat_parser as stat
 vel_src_phase1 = stat("pydiag_material_phase_support_multiple_velocity_children.stat")["phase1"]["VelocitySource%1"]["max"][-1]
     </variable>
-    <variable name="vel_src_phase2" language="python">    
+    <variable name="vel_src_phase2" language="python">
 from fluidity_tools import stat_parser as stat
 vel_src_phase2 = stat("pydiag_material_phase_support_multiple_velocity_children.stat")["phase2"]["VelocitySource%2"]["max"][-1]
     </variable>
-    <variable name="vel_visc_phase1" language="python">    
+    <variable name="vel_visc_phase1" language="python">
 from fluidity_tools import stat_parser as stat
 vel_visc_phase1 = stat("pydiag_material_phase_support_multiple_velocity_children.stat")["phase1"]["Viscosity%11"]["max"][-1]
     </variable>
-    <variable name="vel_visc_phase2" language="python">    
+    <variable name="vel_visc_phase2" language="python">
 from fluidity_tools import stat_parser as stat
 vel_visc_phase2 = stat("pydiag_material_phase_support_multiple_velocity_children.stat")["phase2"]["Viscosity%22"]["max"][-1]
     </variable>

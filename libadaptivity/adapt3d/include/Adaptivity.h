@@ -108,7 +108,7 @@ class Adaptivity{
 
   /// Get the gimension of the mesh
   void getMeshDimensions(int *_NNodes, int *_NElements, int *_NSElements);
-  
+
   /// Get the surface lables.
   void get_surface_ids(std::vector<int> &sids);
 
@@ -175,7 +175,7 @@ class Adaptivity{
 
   int newNNodes, newNElements, newNSElements;
 
-#ifdef HAVE_VTK  
+#ifdef HAVE_VTK
   vtkUnstructuredGrid *ug;
 #else
   void *ug;
@@ -186,10 +186,10 @@ class Adaptivity{
   std::vector<int> ENList, SENList, surfID;
   const int *volumeID;
   int numberingOffset;
-  
+
   //New mesh.
   afloat_t *newX, *newY, *newZ;
-  
+
   // Extra stuff required for parallel computations
   int NPrivateNodes, NProcs;
   const int *ATOSEN, *ATOREC;
@@ -202,7 +202,7 @@ class Adaptivity{
 
   // Metric being used for directing mesh adaptivity.
   std::vector<afloat_t> Metric;
-  
+
   // Adaptivity options
   int MaxNumberAdaptIterations;
   int AdaptOpts[6];
@@ -216,7 +216,7 @@ class Adaptivity{
   int TOGTHR; // .TRUE.  | lumps node movement adaptivity in with connectivity changes
   int chcnsy; // .FALSE. | do consistancy checks
   int dbg;    // .FALSE. | debug adaptivity
-  
+
   int nloc, snloc;
 
   // MESTP1 is the value of functional after which elements are
@@ -228,17 +228,17 @@ class Adaptivity{
   // The new mesh will be stored in these buffers.
   std::vector<int> intBuffer;
   std::vector<afloat_t> floatBuffer;
-  
+
   // Store fields.
   int nfields;
   std::vector<afloat_t> fields;
   std::vector<int> nfreedom;
-    
+
   // Interpolate fields
   bool interpolate;
 
   // These base pointers store the new mesh in the buffers
-  int 
+  int
     NWSZEN, NWSZSN, NWSZNN, NWNDLC, NWSROW,
     NWENLB, NWENLS, NWSNLB, NWSNLS, NWSFID,
     NWELRG, NWNODX, NWNODY, NWNODZ,

@@ -47,7 +47,7 @@ module interpolation_error
     l2 = sqrt(l2)
 
     call vtk_write_fields("l2_error", 0, positions, field%mesh, sfields=(/debug/))
-  
+
   end function compute_interpolation_error_l2
 
   function compute_interpolation_error_inf(solution, field, positions) result(maxn)
@@ -77,7 +77,7 @@ module interpolation_error
     end do
 
     call vtk_write_fields("inf_error", 0, positions, field%mesh, sfields=(/debug/))
-  
+
   end function compute_interpolation_error_inf
 
   function compute_interpolation_error_h1(gradsoln, field, positions) result(h1)
@@ -123,7 +123,7 @@ module interpolation_error
 
     call vtk_write_fields("h1_error", 0, positions, field%mesh, sfields=(/debug/))
     call deallocate(debug)
-  
+
   end function compute_interpolation_error_h1
 
 end module interpolation_error

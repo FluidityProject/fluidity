@@ -11,7 +11,7 @@ default: input
 input: src/$(MESH).tar.bz2
 	tar -xvjf src/$(MESHARCH).tar.bz2
 	../../bin/triangle2gmsh cube
-	
+
 clean: clean-mesh clean-run-debug
 clean-mesh:
 	rm -f $(MESH).msh $(MESH).ele $(MESH).node $(MESH).face
@@ -33,7 +33,7 @@ clean-run-debug: clean-run
 	rm -f adapted_mesh.face adapted_mesh.ele adapted_mesh.node
 	rm -f adapted_mesh_?*.face adapted_mesh_?*.ele adapted_mesh_?*.node
 	rm -f adapted_state_?*.pvtu adapted_state_?*.vtu
-	
+
 run: clean-run input
 ifdef NP
 	mpiexec -n $(NP) ../../bin/flredecomp -i 1 -o $(NP) -v -l $(FLMLMODEL) $(FLMLMODEL)_flredecomp

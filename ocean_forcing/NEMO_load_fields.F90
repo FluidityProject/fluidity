@@ -42,7 +42,7 @@ subroutine insert_nemo_scalar_field(field)
   end if
 
   no_nemo_scalar_fields = no_nemo_scalar_fields+1
-  
+
 end subroutine
 
 subroutine insert_nemo_vector_field(field)
@@ -61,7 +61,7 @@ subroutine insert_nemo_vector_field(field)
   end if
 
   no_nemo_vector_fields = no_nemo_vector_fields+1
-  
+
 end subroutine
 
 subroutine set_nemo_fields(state)
@@ -93,7 +93,7 @@ subroutine set_nemo_fields(state)
           case ("Free-surface height")
             call remap_field(pressure_t, sfield)
         end select
-      
+
       endif
     enddo
     do i=1, no_nemo_vector_fields
@@ -108,7 +108,7 @@ subroutine set_nemo_fields(state)
           case ("Velocity")
             call remap_field(velocity_t, vfield)
         end select
-      
+
       endif
     enddo
     first_time=.false.
@@ -119,7 +119,7 @@ subroutine set_nemo_fields(state)
     sfield => extract_scalar_field(state, nemo_scalar_field_names(i))
 
     if (have_option(trim(sfield%option_path)//"/prescribed")) then
-      
+
       call get_option(trim(sfield%option_path) // "/prescribed/value/NEMO_data/format", format)
 
       select case (format)
@@ -169,7 +169,7 @@ subroutine load_nemo_values(state)
   ! A radius array and a depth array to pass to get_nemo_variables
   real, dimension(:), allocatable :: radius, depth
   real :: rsphere
-  
+
   ! The input mesh was previously set in the flml file. As this is no longer
   ! the case it is by default set to the coordinate mesh. This may need to be
   ! re-though in the future.
@@ -184,7 +184,7 @@ subroutine load_nemo_values(state)
 
   do i=1,NNodes
       temp_vector_3D = node_val(position,i)
-      X(i) = temp_vector_3D(1) 
+      X(i) = temp_vector_3D(1)
       Y(i) = temp_vector_3D(2)
       Z(i) = temp_vector_3D(3)
       radius(i) = sqrt(X(i)*X(i)+Y(i)*Y(i)+Z(i)*Z(i))

@@ -97,7 +97,7 @@ Exhaustive_DEPENDENCIES = ../../libspatialindex.la
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
-am__v_lt_1 = 
+am__v_lt_1 =
 am_Generator_OBJECTS = RandomGenerator.$(OBJEXT) Generator.$(OBJEXT)
 Generator_OBJECTS = $(am_Generator_OBJECTS)
 Generator_DEPENDENCIES = ../../libspatialindex.la
@@ -114,11 +114,11 @@ am__v_P_1 = :
 AM_V_GEN = $(am__v_GEN_@AM_V@)
 am__v_GEN_ = $(am__v_GEN_@AM_DEFAULT_V@)
 am__v_GEN_0 = @echo "  GEN     " $@;
-am__v_GEN_1 = 
+am__v_GEN_1 =
 AM_V_at = $(am__v_at_@AM_V@)
 am__v_at_ = $(am__v_at_@AM_DEFAULT_V@)
 am__v_at_0 = @
-am__v_at_1 = 
+am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -132,7 +132,7 @@ LTCXXCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 AM_V_CXX = $(am__v_CXX_@AM_V@)
 am__v_CXX_ = $(am__v_CXX_@AM_DEFAULT_V@)
 am__v_CXX_0 = @echo "  CXX     " $@;
-am__v_CXX_1 = 
+am__v_CXX_1 =
 CXXLD = $(CXX)
 CXXLINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
@@ -140,7 +140,7 @@ CXXLINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
-am__v_CXXLD_1 = 
+am__v_CXXLD_1 =
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -150,7 +150,7 @@ LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 AM_V_CC = $(am__v_CC_@AM_V@)
 am__v_CC_ = $(am__v_CC_@AM_DEFAULT_V@)
 am__v_CC_0 = @echo "  CC      " $@;
-am__v_CC_1 = 
+am__v_CC_1 =
 CCLD = $(CC)
 LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
@@ -158,7 +158,7 @@ LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
-am__v_CCLD_1 = 
+am__v_CCLD_1 =
 SOURCES = $(Exhaustive_SOURCES) $(Generator_SOURCES) \
 	$(TPRTreeLoad_SOURCES) $(TPRTreeQuery_SOURCES)
 DIST_SOURCES = $(Exhaustive_SOURCES) $(Generator_SOURCES) \
@@ -308,14 +308,14 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AM_CPPFLAGS = -I../../include 
+AM_CPPFLAGS = -I../../include
 Generator_SOURCES = RandomGenerator.cc Generator.cc RandomGenerator.h
 Generator_LDADD = ../../libspatialindex.la
-Exhaustive_SOURCES = Exhaustive.cc 
+Exhaustive_SOURCES = Exhaustive.cc
 Exhaustive_LDADD = ../../libspatialindex.la
-TPRTreeLoad_SOURCES = TPRTreeLoad.cc 
+TPRTreeLoad_SOURCES = TPRTreeLoad.cc
 TPRTreeLoad_LDADD = ../../libspatialindex.la
-TPRTreeQuery_SOURCES = TPRTreeQuery.cc 
+TPRTreeQuery_SOURCES = TPRTreeQuery.cc
 TPRTreeQuery_LDADD = ../../libspatialindex.la
 all: all-am
 
@@ -361,19 +361,19 @@ clean-noinstPROGRAMS:
 	echo " rm -f" $$list; \
 	rm -f $$list
 
-Exhaustive$(EXEEXT): $(Exhaustive_OBJECTS) $(Exhaustive_DEPENDENCIES) $(EXTRA_Exhaustive_DEPENDENCIES) 
+Exhaustive$(EXEEXT): $(Exhaustive_OBJECTS) $(Exhaustive_DEPENDENCIES) $(EXTRA_Exhaustive_DEPENDENCIES)
 	@rm -f Exhaustive$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(Exhaustive_OBJECTS) $(Exhaustive_LDADD) $(LIBS)
 
-Generator$(EXEEXT): $(Generator_OBJECTS) $(Generator_DEPENDENCIES) $(EXTRA_Generator_DEPENDENCIES) 
+Generator$(EXEEXT): $(Generator_OBJECTS) $(Generator_DEPENDENCIES) $(EXTRA_Generator_DEPENDENCIES)
 	@rm -f Generator$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(Generator_OBJECTS) $(Generator_LDADD) $(LIBS)
 
-TPRTreeLoad$(EXEEXT): $(TPRTreeLoad_OBJECTS) $(TPRTreeLoad_DEPENDENCIES) $(EXTRA_TPRTreeLoad_DEPENDENCIES) 
+TPRTreeLoad$(EXEEXT): $(TPRTreeLoad_OBJECTS) $(TPRTreeLoad_DEPENDENCIES) $(EXTRA_TPRTreeLoad_DEPENDENCIES)
 	@rm -f TPRTreeLoad$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(TPRTreeLoad_OBJECTS) $(TPRTreeLoad_LDADD) $(LIBS)
 
-TPRTreeQuery$(EXEEXT): $(TPRTreeQuery_OBJECTS) $(TPRTreeQuery_DEPENDENCIES) $(EXTRA_TPRTreeQuery_DEPENDENCIES) 
+TPRTreeQuery$(EXEEXT): $(TPRTreeQuery_OBJECTS) $(TPRTreeQuery_DEPENDENCIES) $(EXTRA_TPRTreeQuery_DEPENDENCIES)
 	@rm -f TPRTreeQuery$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(TPRTreeQuery_OBJECTS) $(TPRTreeQuery_LDADD) $(LIBS)
 

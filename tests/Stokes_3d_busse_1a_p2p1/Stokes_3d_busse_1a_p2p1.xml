@@ -8,7 +8,7 @@
     <command_line>fluidity -v2 -l Stokes-3d-busse-1a-p2p1.flml </command_line>
   </problem_definition>
 
-<variables>  
+<variables>
   <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
@@ -40,14 +40,9 @@ assert(abs(nu_top-3.65) &lt; 0.05)
 assert(abs(rms_vel-41.0) &lt; 0.1)
 </test>
 
-</pass_tests>                                                                                                                                                                                                
+</pass_tests>
 
 <warn_tests>
 </warn_tests>
 
 </testproblem>
-
-
-
-
-

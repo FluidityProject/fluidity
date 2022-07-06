@@ -66,15 +66,15 @@ C ==========================================================
      &               nEt(k), tE(ir))
 
          If(.NOT.flagAnalytic) Then
-         Call LINTRP(nEw, IPEw, nPw, XYPw, 3, HesPw, 1, 
+         Call LINTRP(nEw, IPEw, nPw, XYPw, 3, HesPw, 1,
      &               prjXYPs, HesPs, iSE, rSE, .FALSE.)
-      Else 
+      Else
             Call scaleBack(prjXYPs, XYPo)
             Call iniQ_analytic(1, XYPo, MetricFunction, HesPs)
          End if
-      Else 
+      Else
          If(.NOT.flagAnalytic) Then
-         Call LINTRP(nEw, IPEw, nPw, XYPw, 3, HesPw, 1, 
+         Call LINTRP(nEw, IPEw, nPw, XYPw, 3, HesPw, 1,
      &               XYPs, HesPs, iSE, rSE, .FALSE.)
          Else
             Call scaleBack(XYPs, XYPo)
@@ -113,9 +113,9 @@ c  ...  updating the quality
                      jP2 = IPE(2, jE)
                      jP3 = IPE(3, jE)
 
-                     If(check1j(iP1, IPE(1, jE))) Then 
-                        if(jP2.EQ.iP1) jP2 = jP1 
-                        if(jP3.EQ.iP1) jP3 = jP1 
+                     If(check1j(iP1, IPE(1, jE))) Then
+                        if(jP2.EQ.iP1) jP2 = jP1
+                        if(jP3.EQ.iP1) jP3 = jP1
 
                         Call calQE(
      &                       HesPs,        XYPs,
@@ -140,13 +140,13 @@ c  ...  updating the quality
      &                       hStar, qEt)
 
                         Call findSE(lE, iEs, jE, m)
-                        If(m.LE.0) Call errMes(6002, 
-     &                                  'NLnFnc', 'System error') 
+                        If(m.LE.0) Call errMes(6002,
+     &                                  'NLnFnc', 'System error')
                         qEs(m) = min(qEs(m), qEt)
                      End if
  10               Continue
                End if
-               
+
                goto 50
             End if
          End do

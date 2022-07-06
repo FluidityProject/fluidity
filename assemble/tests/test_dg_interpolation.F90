@@ -53,14 +53,14 @@ subroutine test_dg_interpolation
   call set_option(trim(intp_new%option_path)//"/prognostic/spatial_discretisation/&
        &discontinuous_galerkin/slope_limiter::Cockburn_Shu/TVB_factor", &
        &5.0,stat=stat)
-  
+
   call set_option(trim(intp_new%option_path)// &
        &"/prognostic/spatial_discretisation/&
        &discontinuous_galerkin/slope_limiter::Cockburn_Shu/limit_factor", &
        &1.1,stat=stat)
 !  call limit_slope_dg(inTp_new, dummy_vfield, &
 !       & X_new, states_new(1), limiter=LIMITER_COCKBURN)
-  
+
   call deallocate(interpolation_state_old(1))
   call deallocate(interpolation_state_new(1))
   new_integral = field_integral(intp_new, x_new)

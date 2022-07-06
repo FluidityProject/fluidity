@@ -7,7 +7,7 @@ use sparse_tools
 implicit none
 
 contains
-  
+
   function local_node_map(m, m_f, bdy, bdy_2) result(local_glno)
     ! Fill in the number map for the DG double element.
     type(element_type), intent(in) :: m, m_f
@@ -23,7 +23,7 @@ contains
        local_glno(bdy(i),1)=i
     end forall
 
-    ! Remaining spots go to elements. 
+    ! Remaining spots go to elements.
     j=m_f%loc
     do i=1, m%loc
        if(local_glno(i,1)==0) then
@@ -39,7 +39,7 @@ contains
        local_glno(bdy_2(i),2)=i
     end forall
 
-    ! Remaining spots go to elements. 
+    ! Remaining spots go to elements.
     j=m%loc
     do i=1, m%loc
        if(local_glno(i,2)==0) then
@@ -84,7 +84,7 @@ contains
        end if
     end do
 
-    ! last 2 places are for the nodes in element 2 away from the 
+    ! last 2 places are for the nodes in element 2 away from the
     ! shared b_seg
     forall(i=1:2)
        local_glno(b_seg_2(i),2)=i+3
@@ -106,15 +106,15 @@ contains
     ! need a local b_seg ordering
     ! nodes not on the b_seg, node on the b_seg.
     ! b_seg_nh_lno gives local node numbers for h on b_seg
-    ! these are the same as the local node numbers which are 
+    ! these are the same as the local node numbers which are
     ! not on the b_seg for u
     ! on the b_seg, basis functions for u nodes not on the b_seg
     ! take value 0.5 on the side of the b_seg they are on, and
     ! value -0.5 on the other side
     ! we'll need to calculate which one is which
-    ! we already have that information as the local node number 
+    ! we already have that information as the local node number
     ! for the b_seg h node is the same as the volume u node opposite
-    ! the basis function corresponding to the node that is on 
+    ! the basis function corresponding to the node that is on
     ! the b_seg is ==1 on the b_seg
 
     integer, intent(in):: loc, f_loc
@@ -137,7 +137,7 @@ contains
           coeff(i,:) = 1.0
        case (1)
           coeff(i,:) = (/ -0.5, 0.5 /)
-       case (2)             
+       case (2)
           coeff(i,:) = (/ 0.5, -0.5 /)
        case default
           ERROR('NC coefficients disaster -- cjc')
@@ -152,11 +152,11 @@ contains
     ! This is simply a wrapper for lapack.
     real, dimension(:,:), intent(in) :: A
     real, dimension(:,:), intent(inout) :: B
-    
+
     integer, dimension(size(A,1)) :: ipiv
     integer :: info
-    
-    interface 
+
+    interface
 #ifdef DOUBLEP
        SUBROUTINE DGESV( N, NRHS, A, LDA, IPIV, B, LDB, INFO )
          INTEGER :: INFO, LDA, LDB, N, NRHS
@@ -171,21 +171,20 @@ contains
        END SUBROUTINE SGESV
 #endif
     end interface
-    
+
     ASSERT(size(A,1)==size(A,2))
     ASSERT(size(A,1)==size(B,1))
-    
+
 #ifdef DOUBLEP
     call dgesv(size(A,1), size(B,2), A, size(A,1), ipiv, B, size(B,1),&
-         & info)  
+         & info)
 #else
     call sgesv(size(A,1), size(B,2), A, size(A,1), ipiv, B, size(B,1),&
-         & info)  
+         & info)
 #endif
-    
+
     ASSERT(info==0)
 
   end subroutine solve
-  
+
 end module dgtools
-  

@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -39,7 +39,7 @@ extern "C" {
   void set_pseudo2d_domain_fc(int* val);
 }
 
-int main(int argc, char **argv) 
+int main(int argc, char **argv)
 {
   int val = 0;
 
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 #ifdef HAVE_MPI
   MPI_Init(&argc, &argv);
 #endif
-#ifdef HAVE_PETSC  
+#ifdef HAVE_PETSC
   PetscErrorCode ierr = PetscInitialize(&argc, &argv, NULL, PETSC_NULL);
 #endif
   check_options();

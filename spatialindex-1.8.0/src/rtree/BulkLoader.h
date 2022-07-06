@@ -5,7 +5,7 @@
  * Copyright (c) 2002, Marios Hadjieleftheriou
  *
  * All rights reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
@@ -40,7 +40,7 @@ namespace SpatialIndex
 				Record();
 				Record(const Region& r, id_type id, uint32_t len, byte* pData, uint32_t s);
 				~Record();
-				
+
 				bool operator<(const Record& r) const;
 
 				void storeToFile(Tools::TemporaryFile& f);

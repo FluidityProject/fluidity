@@ -95,7 +95,7 @@ man3_MANS = man/man3/Judy \
 
 
 
-man/man3/Judy: 
+man/man3/Judy:
 	../tool/jhton ext/Judy_3.htm | grep -v '^[   ]*$$' | sed -e 's/\.C//' >  man/man3/Judy
 
 man/man3/Judy1:
@@ -118,10 +118,10 @@ man/man3/Judy1:
 
 man/man3/Judy1_funcs:
 	../tool/jhton ext/Judy1_funcs_3.htm | grep -v '^[   ]*$$' | sed -e 's/\.C//' > man/man3/Judy1_funcs
-	cd man/man3; ln -s Judy1_funcs Judy1Test 
-	cd man/man3; ln -s Judy1_funcs Judy1Set 
-	cd man/man3; ln -s Judy1_funcs Judy1Unset 
-	cd man/man3; ln -s Judy1_funcs Judy1First 
+	cd man/man3; ln -s Judy1_funcs Judy1Test
+	cd man/man3; ln -s Judy1_funcs Judy1Set
+	cd man/man3; ln -s Judy1_funcs Judy1Unset
+	cd man/man3; ln -s Judy1_funcs Judy1First
 	cd man/man3; ln -s Judy1_funcs Judy1Next
 	cd man/man3; ln -s Judy1_funcs Judy1Last
 	cd man/man3; ln -s Judy1_funcs Judy1Prev
@@ -194,7 +194,7 @@ man/man3/JudySL_funcs:
 
 man/man3/JudyHS:
 	../tool/jhton ext/JudyHS_3.htm | grep -v '^[   ]*$$' | sed -e 's/\.C//' > man/man3/JudyHS
-	cd man/man3; ln -s JudyHS JHSG 
+	cd man/man3; ln -s JudyHS JHSG
 	cd man/man3; ln -s JudyHS JHSI
 	cd man/man3; ln -s JudyHS JHSD
 	cd man/man3; ln -s JudyHS JHSFA

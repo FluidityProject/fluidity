@@ -1,5 +1,5 @@
 %
-% pdftricks.sty 
+% pdftricks.sty
 %
 % Copyright (c) 2001-3, Radhakrishnan CV <cvr@river-valley.com>
 %                       Rajagopal CV <cvr3@river-valley.com>
@@ -10,7 +10,7 @@
 %
 % Tel: +91 471 233 7501
 %
-%                     Antoine Chambert-Loir 
+%                     Antoine Chambert-Loir
 %                     <chambert@math.polytechnique.fr>
 %                     http://www.math.polytechnique.fr/~chambert
 %
@@ -28,7 +28,7 @@
 % but WITHOUT ANY WARRANTY; without even the implied warranty of
 % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 % GNU General Public License for more details.
-% 
+%
 % You should have received a copy of the GNU General Public License
 % along with this program (gpl.txt); if not, write to the Free
 % Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
@@ -58,13 +58,13 @@
 \DeclareOption{debug}{\@debugtrue}
 \DeclareOption{noshell}{\PDFTshellfalse}
 \DeclareOption{shell}{\PDFTshelltrue}
-\DeclareOption{miktex}{\global\miktextrue}  
+\DeclareOption{miktex}{\global\miktextrue}
 \ExecuteOptions{shell}
 \ProcessOptions\relax
 \ifPDFTshell
 % we must set it to false if \write18 doesn't work.
 % Hack given by Thierry Bouche (Thanks !)
-\def\tmpfile{/tmp/w18-test-\the\year\the\month\the\day\the\time} 
+\def\tmpfile{/tmp/w18-test-\the\year\the\month\the\day\the\time}
 \ifmiktex%
  \immediate\write18{rem >"\tmpfile"}%%%%%% LDL-2
 \else
@@ -200,10 +200,10 @@
      ******************************************}
     }{}
     \ifmiktex%
-    \immediate\write18{del \PDFTfigname.aux \PDFTfigname.dvi 
+    \immediate\write18{del \PDFTfigname.aux \PDFTfigname.dvi
        \PDFTfigname.log \PDFTfigname.eps}     %%%%%% LDL-6
     \else
-    \immediate\write18{rm \PDFTfigname.aux \PDFTfigname.dvi 
+    \immediate\write18{rm \PDFTfigname.aux \PDFTfigname.dvi
      \PDFTfigname.log \PDFTfigname.eps} %%%%%% LDL-5
    \fi\fi
    \fi
@@ -245,7 +245,7 @@
 \definecolor{gray10}{gray}{.90}
 \RequirePackage{keyval}
 \def\configure[#1][#2]{\setkeys{#1}{#2}
-  \PDFTWarning{pdftricks}{Reconfigured #1 parameter(s)\MessageBreak  
+  \PDFTWarning{pdftricks}{Reconfigured #1 parameter(s)\MessageBreak
    #2\MessageBreak}}
 \define@key{pdfgraphic}{width}     {\gdef\@PDFgraphicwidth{#1}%
                                     \global\@pdfGINwidthtrue}
@@ -310,7 +310,7 @@
 \def\@empty{}
 \def\@cvrstop#1\@@#2{}
 %%
-%% Equivalent of \@tfor and \@for where any delimiter can be 
+%% Equivalent of \@tfor and \@for where any delimiter can be
 %% provided instead of LaTeX's default comma character
 %%
 \long\def\cvr@delimfor#1#2#3{\DeclareArray{#1}\clearArray{#1}%
@@ -352,11 +352,11 @@
    \setcounter{f@irstCtr}{#1}
    \setcounter{s@econdCtr}{#2}
    \stepcounter{s@econdCtr}
-   \loop\ifnum\thes@econdCtr > \thef@irstCtr% 
+   \loop\ifnum\thes@econdCtr > \thef@irstCtr%
       \expandafter\edef\csname Fig\thef@irstCtr\endcsname{TRUE}
       \stepcounter{f@irstCtr}
    \repeat%
-   \else\ifx\c@c\s@s% 
+   \else\ifx\c@c\s@s%
       \expandafter\edef\csname Fig#1\endcsname{TRUE}
    \fi\fi\d@d}
 

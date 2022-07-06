@@ -15,7 +15,7 @@ module smoothing_module
   implicit none
 
   private
-  
+
   public :: smooth_scalar, smooth_vector, smooth_tensor
   public :: anisotropic_smooth_scalar, anisotropic_smooth_vector, anisotropic_smooth_tensor
   public :: length_scale_scalar, length_scale_tensor
@@ -33,7 +33,7 @@ contains
     !output field, should have same mesh as input field
     type(scalar_field), intent(inout) :: field_out
     character(len=*), intent(in) :: path
-    
+
     !local variables
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
@@ -43,10 +43,10 @@ contains
     !allocate smoothing matrix
     M_sparsity=make_sparsity(field_in%mesh, &
          & field_in%mesh, name='HelmholtzScalarSparsity')
-    call allocate(M, M_sparsity, name="HelmholtzScalarSmoothingMatrix")   
-    call deallocate(M_sparsity) 
+    call allocate(M, M_sparsity, name="HelmholtzScalarSmoothingMatrix")
+    call deallocate(M_sparsity)
     call zero(M)
-    
+
     !allocate RHSFIELD
     call allocate(rhsfield, field_in%mesh, "HelmholtzScalarSmoothingRHS")
     call zero(rhsfield)
@@ -79,7 +79,7 @@ contains
     !output field, should have same mesh as input field
     type(vector_field), intent(inout) :: field_out
     character(len=*), intent(in) :: path
-    
+
     !local variables
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
@@ -89,10 +89,10 @@ contains
     !allocate smoothing matrix
     M_sparsity=make_sparsity(field_in%mesh, &
          & field_in%mesh, name='HelmholtzVectorSparsity')
-    call allocate(M, M_sparsity, name="HelmholtzVectorSmoothingMatrix")   
-    call deallocate(M_sparsity) 
+    call allocate(M, M_sparsity, name="HelmholtzVectorSmoothingMatrix")
+    call deallocate(M_sparsity)
     call zero(M)
-    
+
     !allocate RHSFIELD
     call allocate(rhsfield, field_in%dim, field_in%mesh, "HelmholtzVectorSmoothingRHS")
     call zero(rhsfield)
@@ -102,7 +102,7 @@ contains
        call assemble_smooth_vector(M, rhsfield, positions, field_in, alpha, ele)
     end do
 
-    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"    
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"
     do dim=1, field_in%dim
       call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_in, dim=dim)
     end do
@@ -126,7 +126,7 @@ contains
     !output field, should have same mesh as input field
     type(tensor_field), intent(inout) :: field_out
     character(len=*), intent(in) :: path
-    
+
     !local variables
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
@@ -136,10 +136,10 @@ contains
     !allocate smoothing matrix
     M_sparsity=make_sparsity(field_in%mesh, &
          & field_in%mesh, name='HelmholtzTensorSparsity')
-    call allocate(M, M_sparsity, name="HelmholtzTensorSmoothingMatrix")   
-    call deallocate(M_sparsity) 
+    call allocate(M, M_sparsity, name="HelmholtzTensorSmoothingMatrix")
+    call deallocate(M_sparsity)
     call zero(M)
-    
+
     !allocate RHSFIELD
     call allocate(rhsfield, field_in%mesh, "HelmholtzTensorSmoothingRHS")
     call zero(rhsfield)
@@ -168,7 +168,7 @@ contains
     !output field, should have same mesh as input field
     type(scalar_field), intent(inout) :: field_out
     character(len=*), intent(in)      :: path
-    
+
     !local variables
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
@@ -207,7 +207,7 @@ contains
     !output field, should have same mesh as input field
     type(vector_field), intent(inout) :: field_out
     character(len=*), intent(in) :: path
-    
+
     !local variables
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
@@ -225,7 +225,7 @@ contains
        call assemble_anisotropic_smooth_vector(M, rhsfield, positions, field_in, alpha, ele)
     end do
 
-    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"    
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"
     do dim=1, field_in%dim
       call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_in, dim=dim)
     end do
@@ -247,7 +247,7 @@ contains
     !output field, should have same mesh as input field
     type(tensor_field), intent(inout) :: field_out
     character(len=*), intent(in) :: path
-    
+
     !local variables
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
@@ -257,10 +257,10 @@ contains
     !allocate smoothing matrix
     M_sparsity=make_sparsity(field_in%mesh, &
          & field_in%mesh, name='HelmholtzTensorSparsity')
-    call allocate(M, M_sparsity, name="HelmholtzTensorSmoothingMatrix")   
-    call deallocate(M_sparsity) 
+    call allocate(M, M_sparsity, name="HelmholtzTensorSmoothingMatrix")
+    call deallocate(M_sparsity)
     call zero(M)
-    
+
     !allocate RHSFIELD
     call allocate(rhsfield, field_in%mesh, "HelmholtzTensorSmoothingRHS")
     call zero(rhsfield)
@@ -295,12 +295,12 @@ contains
     real, dimension(ele_loc(field_in,ele), &
          ele_ngi(field_in,ele), positions%dim) :: dshape_field_in
     ! Coordinate transform * quadrature weights.
-    real, dimension(ele_ngi(positions,ele)) :: detwei    
+    real, dimension(ele_ngi(positions,ele)) :: detwei
     ! Node numbers of field_in element.
     integer, dimension(:), pointer :: ele_field_in
     ! Shape functions.
     type(element_type), pointer :: shape_field_in
-    ! Local Helmholtz matrix 
+    ! Local Helmholtz matrix
     real, dimension(ele_loc(field_in, ele), ele_loc(field_in, ele)) &
          & :: field_in_mat
     ! Local right hand side.
@@ -356,12 +356,12 @@ contains
     real, dimension(ele_loc(field_in,ele), &
          ele_ngi(field_in,ele), positions%dim) :: dshape_field_in
     ! Coordinate transform * quadrature weights.
-    real, dimension(ele_ngi(positions,ele)) :: detwei    
+    real, dimension(ele_ngi(positions,ele)) :: detwei
     ! Node numbers of field_in element.
     integer, dimension(:), pointer :: ele_field_in
     ! Shape functions.
     type(element_type), pointer :: shape_field_in
-    ! Local Helmholtz matrix 
+    ! Local Helmholtz matrix
     real, dimension(ele_loc(field_in, ele), ele_loc(field_in, ele)) &
          & :: field_in_mat
     ! Local right hand side.
@@ -417,12 +417,12 @@ contains
     real, dimension(ele_loc(field_in,ele), &
          ele_ngi(field_in,ele), positions%dim) :: dshape_field_in
     ! Coordinate transform * quadrature weights.
-    real, dimension(ele_ngi(positions,ele)) :: detwei    
+    real, dimension(ele_ngi(positions,ele)) :: detwei
     ! Node numbers of field_in element.
     integer, dimension(:), pointer :: ele_field_in
     ! Shape functions.
     type(element_type), pointer :: shape_field_in
-    ! Local Helmholtz matrix 
+    ! Local Helmholtz matrix
     real, dimension(ele_loc(field_in, ele), ele_loc(field_in, ele)) &
          & :: field_in_mat
     ! Local right hand side.
@@ -553,7 +553,7 @@ contains
     real, dimension(positions%dim,positions%dim,ele_ngi(positions,ele))          :: field_in_quad
     real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele))           :: mesh_tensor_quad
     real, dimension(ele_loc(field_in,ele), ele_ngi(field_in,ele), positions%dim) :: dshape_field_in
-    real, dimension(ele_ngi(positions,ele))                                      :: detwei    
+    real, dimension(ele_ngi(positions,ele))                                      :: detwei
     integer, dimension(:), pointer                                               :: ele_field_in
     type(element_type), pointer                                                  :: shape_field_in
     real, dimension(ele_loc(field_in, ele), ele_loc(field_in, ele))              :: field_in_mat
@@ -597,7 +597,7 @@ contains
     s=s**(2./dim)
 
   end function length_scale_scalar
-  
+
   function length_scale_tensor(du_t, shape) result(t)
     !! Computes a length scale tensor to be used in LES (units are in length^2)
     !! derivative of velocity shape function (nloc x ngi x dim)

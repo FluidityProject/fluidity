@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -25,8 +25,8 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 
-#include "fdebug.h"  
-  
+#include "fdebug.h"
+
 module pseudo_consistent_interpolation
 
   use fldebug
@@ -38,16 +38,16 @@ module pseudo_consistent_interpolation
   use node_ownership
 
   implicit none
-  
+
   private
-  
+
   public :: pseudo_consistent_interpolate
-  
+
   interface pseudo_consistent_interpolate
     module procedure pseudo_consistent_interpolate_state, &
       & pseudo_consistent_interpolate_states
   end interface pseudo_consistent_interpolate
-  
+
   !! The tolerance used for boundary node detection
   real, parameter :: ownership_tolerance = 1.0e3 * epsilon(0.0)
 
@@ -56,7 +56,7 @@ contains
   subroutine pseudo_consistent_interpolate_state(old_state, new_state)
     type(state_type), intent(in) :: old_state
     type(state_type), intent(inout) :: new_state
-       
+
     type(integer_set), dimension(:), allocatable :: map
 
     type(vector_field), pointer :: old_position
@@ -94,7 +94,7 @@ contains
     field_count_s = scalar_field_count(old_state)
     field_count_v = vector_field_count(old_state)
     field_count_t = tensor_field_count(old_state)
-    
+
     if(field_count_s > 0) then
       allocate(old_fields_s(field_count_s))
       allocate(new_fields_s(field_count_s))
@@ -133,11 +133,11 @@ contains
       ! skip coordinate fields
       if (.not. (old_fields_v(j)%name=="Coordinate" .or. &
          old_fields_v(j)%name==trim(old_fields_v(j)%mesh%name)//"Coordinate")) then
-           
+
          new_fields_v(j) = extract_vector_field(new_state, i)
          ! Zero the new fields.
          call zero(new_fields_v(j))
-         j=j+1         
+         j=j+1
       end if
     end do
     field_count_v = j - 1
@@ -156,7 +156,7 @@ contains
         call zero(new_fields_t(field_t))
       end do
     end if
-    
+
     if(field_count_s > 0) then
       old_mesh => old_fields_s(1)%mesh
       new_mesh => new_fields_s(1)%mesh
@@ -169,12 +169,12 @@ contains
     else
       return
     end if
-    
+
     if(continuity(new_mesh) == 0) then
       ewrite(0, *) "For mesh " // trim(new_mesh%name)
       ewrite(0, *) "Warning: Pseudo consistent interpolation applied for fields on a continuous mesh"
-    end if 
-      
+    end if
+
     old_position => extract_vector_field(old_state, "Coordinate")
     new_position=get_coordinate_field(new_state, new_mesh)
 
@@ -233,9 +233,9 @@ contains
     deallocate(map)
     deallocate(local_coord)
     deallocate(shape_fns)
-    
+
     call deallocate(new_position)
-    
+
     do field_s = 1, field_count_s
       call halo_update(new_fields_s(field_s))
     end do
@@ -245,35 +245,35 @@ contains
     do field_t = 1, field_count_t
       call halo_update(new_fields_t(field_t))
     end do
-    
+
     ewrite(1, *) "Exiting pseudo_consistent_interpolate_state"
-  
+
   end subroutine pseudo_consistent_interpolate_state
 
   subroutine pseudo_consistent_interpolate_states(old_states, new_states)
     type(state_type), dimension(:), intent(in) :: old_states
     type(state_type), dimension(size(old_states)), intent(inout) :: new_states
-    
+
     integer :: i, j
     type(mesh_type), pointer:: old_mesh, new_mesh
     type(state_type) :: old_mesh_state
     type(vector_field), pointer :: old_positions
-    
+
     do i = 1, size(new_states)
       do j = 1, mesh_count(new_states(i))
         new_mesh => extract_mesh(new_states(i), j)
         old_mesh => extract_mesh(old_states(i), new_mesh%name)
         call select_state_by_mesh(old_states(i), new_mesh%name, old_mesh_state)
-        
+
         old_positions => extract_vector_field(old_states(i), "Coordiante")
         call insert(old_mesh_state, old_positions, old_positions%name)
-        
+
         call pseudo_consistent_interpolate(old_mesh_state, new_states(i))
-        
+
         call deallocate(old_mesh_state)
       end do
     end do
-    
+
   end subroutine pseudo_consistent_interpolate_states
-  
+
 end module pseudo_consistent_interpolation

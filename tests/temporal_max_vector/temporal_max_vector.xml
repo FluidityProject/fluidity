@@ -24,7 +24,7 @@ val_vel_max = s["Water"]["MaxVel%magnitude"]["max"][-1]
       assert(solvers_converged)
     </test>
     <test name="assert correct vel max" language="python">
-import math        
+import math
 assert(abs(val_vel_max-math.sqrt(200)) &lt; 0.0001)
     </test>
   </pass_tests>

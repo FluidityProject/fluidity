@@ -27,7 +27,7 @@ module exodusii_f_interface
        integer(kind=c_int) :: mode
        integer(kind=c_int) :: comp_ws
        integer(kind=c_int) :: io_ws
-       real(kind=c_float) :: version 
+       real(kind=c_float) :: version
        integer(kind=c_int) :: exoid
      end function c_read_ex_open
   end interface
@@ -122,7 +122,7 @@ module exodusii_f_interface
 
   ! Get block parameters
   interface f_ex_get_elem_block_parameters
-    function c_ex_get_elem_block_parameters(exoid, num_elem_blk, & 
+    function c_ex_get_elem_block_parameters(exoid, num_elem_blk, &
                                             block_ids, num_elem_in_block, &
                                             num_nodes_per_elem) result(error) bind(c)
       use, intrinsic :: iso_c_binding
@@ -134,7 +134,7 @@ module exodusii_f_interface
       integer(kind=c_int) :: error
     end function c_ex_get_elem_block_parameters
   end interface
-  
+
   interface f_ex_get_elem_connectivity
     function c_ex_get_elem_connectivity(exoid, block_id, elem_connectivity) result(error) bind(c)
       use, intrinsic :: iso_c_binding

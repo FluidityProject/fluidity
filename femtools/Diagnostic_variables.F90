@@ -1,4 +1,4 @@
-!    Copyright (C) 2006 Imperial College London and others.   
+!    Copyright (C) 2006 Imperial College London and others.
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -8,7 +8,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -141,7 +141,7 @@ module diagnostic_variables
     !! Output unit for diagnostics file.
     !! (assumed non-opened as long these are 0)
     integer :: diag_unit=0, conv_unit=0, &
-      & detector_checkpoint_unit=0, detector_file_unit=0 
+      & detector_checkpoint_unit=0, detector_file_unit=0
 
     !! Are we writing to a convergence file?
     logical :: write_convergence_file=.false.
@@ -173,7 +173,7 @@ module diagnostic_variables
     type(detector_linked_list) :: detector_list
 
     type(registered_diagnostic_item), pointer :: registered_diagnostic_first => NULL()
-    
+
     !! Recording wall time since the system start
     integer :: current_count, count_rate, count_max
     integer(kind = c_long) :: elapsed_count
@@ -439,7 +439,7 @@ contains
     !!< Return whether the supplied field should be included in the .detector file
     logical :: detector_field_scalar
     type(scalar_field), target, intent(in) :: sfield
-    
+
     if (sfield%option_path=="".or.aliased(sfield)) then
        detector_field_scalar=.false.
     else
@@ -477,7 +477,7 @@ contains
     !!< Return the number of walltime seconds since the beginning of the
     !!< simulation.
     real :: elapsed_walltime
-    
+
     integer :: new_count
 
     call system_clock(new_count)
@@ -528,7 +528,7 @@ contains
       return
     end if
     default_stat%initialised=.true.
-    
+
     ! All processes must assemble the mesh and field lists
 
     ! Mesh field list
@@ -588,7 +588,7 @@ contains
     end do
 
     ! Only the first process should write statistics information (and hence
-    ! write the headers)    
+    ! write the headers)
     if(getprocno() == 1) then
       default_stat%diag_unit=free_unit()
       open(unit=default_stat%diag_unit, file=trim(filename)//'.stat', action="write")
@@ -631,18 +631,18 @@ contains
           column = column + 1
           buffer = field_tag(name = memory_type_names(i), column = column,&
                & statistic = "current", material_phase_name="Memory")
-          write(default_stat%diag_unit, "(a)"), trim(buffer)         
+          write(default_stat%diag_unit, "(a)"), trim(buffer)
           column = column + 1
           buffer = field_tag(name = memory_type_names(i), column = column,&
                & statistic = "min", material_phase_name="Memory")
-          write(default_stat%diag_unit, "(a)"), trim(buffer)         
+          write(default_stat%diag_unit, "(a)"), trim(buffer)
           column = column + 1
           buffer = field_tag(name = memory_type_names(i), column = column,&
                & statistic = "max", material_phase_name="Memory")
-          write(default_stat%diag_unit, "(a)"), trim(buffer)         
+          write(default_stat%diag_unit, "(a)"), trim(buffer)
       end do
 #endif
-      
+
       phaseloop: do phase=1,size(state)
 
          material_phase_name=trim(state(phase)%name)
@@ -666,7 +666,7 @@ contains
               buffer=field_tag(name=sfield%name, column=column, statistic="integral", material_phase_name=material_phase_name)
               write(default_stat%diag_unit, '(a)') trim(buffer)
             end if
-            
+
             ! Control volume stats
             if(have_option(trim(complete_field_path(sfield%option_path, stat=stat)) // "/stat/include_cv_stats")) then
               column=column+1
@@ -676,13 +676,13 @@ contains
               buffer=field_tag(name=sfield%name, column=column, statistic="cv_integral", material_phase_name=material_phase_name)
               write(default_stat%diag_unit, '(a)') trim(buffer)
             end if
-            
+
             ! Mixing stats
             do j = 0, option_count(trim(complete_field_path(sfield%option_path, stat=stat)) // "/stat/include_mixing_stats") - 1
               call get_option(trim(complete_field_path(sfield%option_path)) &
               & // "/stat/include_mixing_stats["// int2str(j) // "]/name", mixing_stats_name)
               shape_option=option_shape(trim(complete_field_path(sfield%option_path)) // &
-                   & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds")   
+                   & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds")
 
               if(have_option(trim(complete_field_path(sfield%option_path)) // &
                   & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds/constant")) then
@@ -698,9 +698,9 @@ contains
                   no_mixing_bins = size(mixing_bin_bounds)
                   deallocate(mixing_bin_bounds)
               else
-                  FLExit("Unable to determine mixing bin bounds type. Check options under include_mixing_stats")                  
+                  FLExit("Unable to determine mixing bin bounds type. Check options under include_mixing_stats")
               end if
-          
+
               buffer = field_tag(name=sfield%name, column=column+1, statistic="mixing_bins%" // trim(mixing_stats_name),&
                    & material_phase_name=material_phase_name, components=(no_mixing_bins))
 
@@ -708,7 +708,7 @@ contains
               column = column + (no_mixing_bins)
 
             end do
-            
+
             ! Surface integrals
             do j = 0, option_count(trim(complete_field_path(sfield%option_path, stat = stat)) // "/stat/surface_integral") - 1
               call get_option(trim(complete_field_path(sfield%option_path)) &
@@ -726,7 +726,7 @@ contains
               buffer = field_tag(sfield%name, column, "surface_l2norm%" // trim(surface_integral_name), material_phase_name)
               write(default_stat%diag_unit, "(a)") trim(buffer)
            end do
-           
+
          end do
 
          do i = 1, size(default_stat%vfield_list(phase)%ptr)
@@ -905,13 +905,13 @@ contains
          end do
 
       end do phaseloop
-      
+
       ! Now add the registered diagnostics
       call register_diagnostics
       call print_registered_diagnostics
 
       iterator => default_stat%registered_diagnostic_first
-      do while (associated(iterator)) 
+      do while (associated(iterator))
         do i = 1, iterator%dim
           column = column + 1
           if (iterator%dim==1) then
@@ -927,10 +927,10 @@ contains
                  & statistic=iterator%statistic)
           end if
           write(default_stat%diag_unit, '(a)') trim(buffer)
-        end do  
+        end do
         iterator => iterator%next
       end do
-      
+
       !Now particle groups and subgroups
       particle_groups = option_count("/particles/particle_group")
       if (particle_groups/=0) then
@@ -948,7 +948,7 @@ contains
             end do
          end do
       end if
-               
+
 
       write(default_stat%diag_unit, '(a)') "</header>"
       flush(default_stat%diag_unit)
@@ -962,17 +962,17 @@ contains
 
 
   subroutine set_diagnostic(name, statistic, material_phase, value)
-    character(len=*), intent(in) :: name, statistic 
+    character(len=*), intent(in) :: name, statistic
     character(len=*), intent(in), optional ::  material_phase
     real, dimension(:), intent(in) :: value
     integer :: i
-    
-    type(registered_diagnostic_item), pointer :: iterator => NULL()
-    
-    if(getprocno() == 1) then
-      iterator => default_stat%registered_diagnostic_first 
 
-      do while (.true.) 
+    type(registered_diagnostic_item), pointer :: iterator => NULL()
+
+    if(getprocno() == 1) then
+      iterator => default_stat%registered_diagnostic_first
+
+      do while (.true.)
         if (.not. associated(iterator)) then
           ewrite(0, *) "The diagnostic with name=" // trim(name) //  " statistic=" // trim(statistic)  //  &
                & "material_phase=" //  trim(material_phase) // " does not exist."
@@ -987,7 +987,7 @@ contains
             if (size(iterator%value) /= size(value)) then
               ewrite(0, *) "The registered diagnostic with name=" // trim(name) // " statistic=" // &
                        & trim(statistic) //  "material_phase=" // trim(material_phase) //  " has dimension " // &
-                       & int2str(iterator%dim) // " but a value of dimension " // int2str(size(value))  // & 
+                       & int2str(iterator%dim) // " but a value of dimension " // int2str(size(value))  // &
                        & " was supplied in set_diagnostic."
               FLAbort("Error in set_diagnostic.")
             end if
@@ -1005,20 +1005,20 @@ contains
   end subroutine set_diagnostic
 
   function get_diagnostic(name, statistic, material_phase) result(value)
-    character(len=*), intent(in) :: name, statistic 
+    character(len=*), intent(in) :: name, statistic
     character(len=*), intent(in), optional ::  material_phase
     real, dimension(:), pointer :: value
     integer :: i
-    
+
     type(registered_diagnostic_item), pointer :: iterator
 
     iterator => null()
     value => null()
-    
-    if(getprocno() == 1) then
-      iterator => default_stat%registered_diagnostic_first 
 
-      do while (.true.) 
+    if(getprocno() == 1) then
+      iterator => default_stat%registered_diagnostic_first
+
+      do while (.true.)
         if (.not. associated(iterator)) then
           ewrite(0, *) "The diagnostic with name=" // trim(name) //  " statistic=" // trim(statistic)  //  &
                & "material_phase=" //  trim(material_phase) // " does not exist."
@@ -1044,10 +1044,10 @@ contains
   iterator => default_stat%registered_diagnostic_first
 
   ewrite(1, *) "Registered diagnostics:"
-  do while(associated(iterator)) 
+  do while(associated(iterator))
     if (iterator%have_material_phase) then
       ewrite(1, *) "Name: ", trim(iterator%name),           ", ", &
-                 & "Statistic: ", trim(iterator%statistic), ", ", &             
+                 & "Statistic: ", trim(iterator%statistic), ", ", &
                  & "Dimension: ", int2str(iterator%dim),    ", ", &
                  & "Material phase: ", trim(iterator%material_phase)
     else
@@ -1062,7 +1062,7 @@ contains
 
   subroutine register_diagnostic(dim, name, statistic, material_phase)
     integer, intent(in) :: dim
-    character(len=*), intent(in) :: name, statistic 
+    character(len=*), intent(in) :: name, statistic
     character(len=*), intent(in), optional ::  material_phase
     type(registered_diagnostic_item), pointer :: diagnostic_item, iterator => NULL()
 
@@ -1112,7 +1112,7 @@ contains
         default_stat%registered_diagnostic_first => diagnostic_item
       else
         iterator => default_stat%registered_diagnostic_first
-        do while(associated(iterator%next)) 
+        do while(associated(iterator%next))
           iterator => iterator%next
         end do
         iterator%next => diagnostic_item
@@ -1124,17 +1124,17 @@ contains
   ! Clean up the list of registered diagnostics
   subroutine destroy_registered_diagnostics
     type(registered_diagnostic_item), pointer :: next, iterator
-    
+
     if(getprocno() == 1) then
       iterator => default_stat%registered_diagnostic_first
 
-      do while (associated(iterator)) 
+      do while (associated(iterator))
         next => iterator%next
         deallocate(iterator%value)
         deallocate(iterator)
         iterator => next
       end do
-  
+
       ! the first registered diagnostic needs to be nullified because
       ! when adjointing, all the diagnostics are initialised/registered again
       nullify(default_stat%registered_diagnostic_first)
@@ -1164,7 +1164,7 @@ contains
     integer, intent(in) :: unit
     !! If present and .true., indicates binary output format
     logical, optional, intent(in) :: binary_format
-    
+
     character(len=254) :: buffer, value_buffer
 
 #ifdef __FLUIDITY_VERSION__
@@ -1174,7 +1174,7 @@ contains
 #endif
     buffer=constant_tag(name="FluidityVersion", type="string", value=trim(value_buffer))
     write(unit, '(a)') trim(buffer)
-    
+
     value_buffer = __DATE__ // " " // __TIME__
     buffer=constant_tag(name="CompileTime", type="string", value=trim(value_buffer))
     write(unit, '(a)') trim(buffer)
@@ -1182,11 +1182,11 @@ contains
     value_buffer=date_and_time_string()
     buffer=constant_tag(name="StartTime", type="string", value=trim(value_buffer))
     write(unit, '(a)') trim(buffer)
-    
+
     call get_environment_variable("HOSTNAME", value_buffer, default = "Unknown")
     buffer=constant_tag(name="HostName", type="string", value=trim(value_buffer))
     write(unit, '(a)') trim(buffer)
-    
+
     ! Constant values
     if(present_and_true(binary_format)) then
       buffer = constant_tag(name = "format", type = "string", value = "binary")
@@ -1199,10 +1199,10 @@ contains
       buffer = constant_tag(name = "format", type = "string", value = "plain_text")
       write(unit, '(a)') trim(buffer)
     end if
-    
-  contains 
-    
-    function date_and_time_string() 
+
+  contains
+
+    function date_and_time_string()
       character(len=254) :: date_and_time_string
 
       character(len=8) :: date
@@ -1210,7 +1210,7 @@ contains
       character(len=5) :: zone
 
       call date_and_time(date, time, zone)
-      
+
       date_and_time_string=date//" "//time//zone
 
     end function date_and_time_string
@@ -1317,7 +1317,7 @@ contains
     write(default_stat%conv_unit, '(a)') "</header>"
 
   end subroutine initialise_convergence
-  
+
   subroutine initialise_steady_state(filename, state)
     !!< Set up the steady state file headers.
 
@@ -1343,10 +1343,10 @@ contains
     else
       FLExit("Unable to determine steady state output format. Check options under /timestepping/steady_state/steady_state_file")
     end if
-    
+
     ! Only the first process should write steady state information
     if(getprocno() /= 1) return
-    
+
     default_stat%steady_state_unit=free_unit()
     open(unit=default_stat%steady_state_unit, file=trim(filename)//'.steady_state', action="write")
 
@@ -1377,17 +1377,17 @@ contains
 
        do i = 1, vector_field_count(state(phase))
          vfield => extract_vector_field(state(phase), i)
-         if(.not. steady_state_field(vfield)) cycle         
+         if(.not. steady_state_field(vfield)) cycle
          ! Vector fields
-         
+
          column = column + 1
          buffer = field_tag(name=trim(vfield%name) // "%magnitude", column=column, &
            & statistic="error", material_phase_name=material_phase_name)
          write(default_stat%steady_state_unit, '(a)') trim(buffer)
 
-         if(.not. steady_state_field(vfield, test_for_components = .true.)) cycle         
+         if(.not. steady_state_field(vfield, test_for_components = .true.)) cycle
          ! Vector field components
-         
+
          do j = 1, mesh_dim(vfield%mesh)
            vfield_comp = extract_scalar_field(vfield, j)
 
@@ -1406,7 +1406,7 @@ contains
 
     write(default_stat%steady_state_unit, '(a)') "</header>"
     flush(default_stat%steady_state_unit)
-    
+
     if(default_stat%binary_steady_state_output) then
         close(default_stat%steady_state_unit)
 
@@ -1450,7 +1450,7 @@ contains
        ! In serial make sure the detector is in the domain
        ! unless we have the write_nan_outside override
        if (element<0 .and. .not.detector_list%write_nan_outside) then
-          ewrite(-1,*) "Dealing with detector ", id, " proc_id ",proc_id 
+          ewrite(-1,*) "Dealing with detector ", id, " proc_id ",proc_id
           FLExit("Trying to initialise detector outside of computational domain")
        end if
     end if
@@ -1790,7 +1790,7 @@ contains
     character(len=*), intent(in) :: name
     integer, intent(in) :: column
     character(len=*), intent(in) :: statistic
-    character(len=*), intent(in), optional :: material_phase_name 
+    character(len=*), intent(in), optional :: material_phase_name
     integer, intent(in), optional :: components
     character(len=254) :: field_tag
 
@@ -1807,7 +1807,7 @@ contains
     end if
 
     if (present(components)) then
-        write(components_buffer,'(a,i0,a)') ' components="', components, '"' 
+        write(components_buffer,'(a,i0,a)') ' components="', components, '"'
     else
         components_buffer = ''
     end if
@@ -1821,14 +1821,14 @@ contains
   function constant_tag(name, type, value)
     !!< Create a field tag for the given entries.
     character(len=*), intent(in) :: name, type, value
-    
+
     character(len=254) :: constant_tag
-    
+
     constant_tag='<constant name="'//trim(name)&
          &//'" type="'//trim(type)//'" value="'//trim(value)//'" />'
 
   end function constant_tag
-  
+
   subroutine write_diagnostics(state, time, dt, timestep)
     !!< Write the diagnostics to the previously opened diagnostics file.
 
@@ -1906,20 +1906,20 @@ contains
 
           ! Standard scalar field stats
           if(stat_field(sfield, state(phase))) then
-          
+
             call field_stats(sfield, Xfield, fmin, fmax, fnorm2, fintegral)
             if(getprocno() == 1) then
               write(default_stat%diag_unit, trim(format4), advance="no") fmin, fmax, fnorm2,&
                    & fintegral
             end if
-            
+
           end if
 
           ! Control volume stats
           if(have_option(trim(complete_field_path(sfield%option_path,stat=stat)) //&
                & "/stat/include_cv_stats")) then
-            
-            ! Get the CV mass matrix 
+
+            ! Get the CV mass matrix
             cv_mass => get_cv_mass(state(phase), sfield%mesh)
 
             call field_cv_stats(sfield, cv_mass, fnorm2_cv, fintegral_cv)
@@ -1939,7 +1939,7 @@ contains
                       & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds/constant")
                   ewrite(1,*) 'shape_option = ', shape_option
                   no_mixing_bins = shape_option(1)
-                
+
             else if(have_option(trim(complete_field_path(sfield%option_path)) // &
                 & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds/python")) then
                 call get_option(trim(complete_field_path(sfield%option_path)) // &
@@ -1949,14 +1949,14 @@ contains
                 no_mixing_bins = size(mixing_bin_bounds)
                 deallocate(mixing_bin_bounds)
             else
-                FLExit("Unable to determine mixing bin bounds type. Check options under include_mixing_stats")                  
+                FLExit("Unable to determine mixing bin bounds type. Check options under include_mixing_stats")
             end if
-                    
+
             allocate(f_mix_fraction(1:no_mixing_bins))
             f_mix_fraction = 0.0
-            
-            call mixing_stats(f_mix_fraction, sfield, Xfield, mixing_stats_count = j)          
-         
+
+            call mixing_stats(f_mix_fraction, sfield, Xfield, mixing_stats_count = j)
+
             if(getprocno() == 1) then
                do k=1, (size(f_mix_fraction))
                   write(default_stat%diag_unit, trim(format), advance="no") f_mix_fraction(k)
@@ -1966,7 +1966,7 @@ contains
             deallocate(f_mix_fraction)
 
           end do
-         
+
          ! Surface integrals
          option_path = trim(complete_field_path(sfield%option_path, stat = stat)) // "/stat/surface_integral"
          do j = 0, option_count(option_path) - 1
@@ -1995,7 +1995,7 @@ contains
          ! Output statistics for each vector field
          vfield => extract_vector_field(state(phase), &
            & default_stat%vfield_list(phase)%ptr(i))
-          
+
          xfield=get_diagnostic_coordinate_field(state(phase), vfield%mesh)
 
          ! Standard scalar field stats for vector field magnitude
@@ -2021,7 +2021,7 @@ contains
              end if
            end do
          end if
-         
+
          ! Surface integrals
          option_path = trim(complete_field_path(vfield%option_path, stat = stat)) // "/stat/surface_integral"
          do j = 0, option_count(option_path) - 1
@@ -2044,7 +2044,7 @@ contains
 
          ! drag calculation
          if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces")) then
-           call write_body_forces(state(phase), vfield)  
+           call write_body_forces(state(phase), vfield)
          end if
 
          if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/divergence_stats")) then
@@ -2052,23 +2052,23 @@ contains
            if(getprocno() == 1) then
              write(default_stat%diag_unit, trim(format4), advance="no") fmin, fmax, fnorm2,&
                    & fintegral
-           end if            
+           end if
          end if
 
          ! momentum conservation error calculation
          if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/calculate_momentum_conservation_error")) then
            call write_momentum_conservation_error(state(phase), vfield)
          end if
-         
+
          call deallocate(xfield)
-         
+
        end do vector_field_loop
 
        tensor_field_loop: do i = 1, size(default_stat%tfield_list(phase)%ptr)
          ! Output statistics for each tensor field
          tfield => extract_tensor_field(state(phase), &
            & default_stat%tfield_list(phase)%ptr(i))
-          
+
          xfield=get_diagnostic_coordinate_field(state(phase), tfield%mesh)
 
          ! Standard scalar field stats for tensor field magnitude
@@ -2096,9 +2096,9 @@ contains
              end do
            end do
          end if
-         
+
          call deallocate(xfield)
-         
+
        end do tensor_field_loop
 
     end do phaseloop
@@ -2106,12 +2106,12 @@ contains
     ! Registered diagnostics
     call print_registered_diagnostics
     iterator => default_stat%registered_diagnostic_first
-    do while (associated(iterator)) 
+    do while (associated(iterator))
       ! Only the first process should write statistics information
-      if(getprocno() == 1) then   
+      if(getprocno() == 1) then
         do k=1, iterator%dim
           write(default_stat%diag_unit, trim(format), advance = "no") iterator%value(k)
-        end do    
+        end do
       end if
       iterator => iterator%next
     end do
@@ -2146,23 +2146,23 @@ contains
       flush(default_stat%diag_unit)
     end if
 
-    ! Now output any detectors.    
+    ! Now output any detectors.
     call write_detectors(state, default_stat%detector_list, time, dt)
 
     call profiler_toc("I/O")
-  
+
   contains
-  
+
     subroutine write_body_forces(state, vfield)
       type(state_type), intent(in) :: state
       type(vector_field), intent(in) :: vfield
       type(tensor_field), pointer :: viscosity
 
-      logical :: have_viscosity      
+      logical :: have_viscosity
       integer :: i, s
       real :: force(vfield%dim), pressure_force(vfield%dim), viscous_force(vfield%dim)
       character(len = FIELD_NAME_LEN) :: surface_integral_name
-    
+
       viscosity=>extract_tensor_field(state, "Viscosity", stat)
       have_viscosity = stat == 0
 
@@ -2174,7 +2174,7 @@ contains
             ! calculate the forces on the surface
             call diagnostic_body_drag(state, force, surface_integral_name, pressure_force = pressure_force, viscous_force = viscous_force)
           else
-            call diagnostic_body_drag(state, force, surface_integral_name, pressure_force = pressure_force)   
+            call diagnostic_body_drag(state, force, surface_integral_name, pressure_force = pressure_force)
           end if
           if(getprocno() == 1) then
             do i=1, mesh_dim(vfield%mesh)
@@ -2191,46 +2191,46 @@ contains
           end if
         else
             ! calculate the forces on the surface
-            call diagnostic_body_drag(state, force, surface_integral_name) 
+            call diagnostic_body_drag(state, force, surface_integral_name)
             if(getprocno() == 1) then
              do i=1, mesh_dim(vfield%mesh)
                 write(default_stat%diag_unit, trim(format), advance="no") force(i)
              end do
-            end if     
+            end if
         end if
       end do
-      
+
     end subroutine write_body_forces
 
     subroutine write_momentum_conservation_error(state, v_field)
       type(state_type), intent(in) :: state
       type(vector_field), intent(inout) :: v_field
-      
+
       type(vector_field), pointer :: velocity, old_velocity
       type(vector_field), pointer :: new_positions, nl_positions, old_positions
       type(scalar_field), pointer :: old_pressure, new_pressure
       type(scalar_field) :: nl_pressure, vel_comp
       real :: theta, dt
       integer :: sele, dim
-      
+
       real, dimension(v_field%dim) :: momentum_cons, velocity_int, old_velocity_int, pressure_surface_int
-      
+
       velocity => extract_vector_field(state, "Velocity")
       old_velocity => extract_vector_field(state, "OldVelocity")
-      
+
       new_positions => extract_vector_field(state, "IteratedCoordinate")
       nl_positions => extract_vector_field(state, "Coordinate")
       old_positions => extract_vector_field(state, "OldCoordinate")
-      
+
       new_pressure => extract_scalar_field(state, "Pressure")
       old_pressure => extract_scalar_field(state, "OldPressure")
-      
+
       call get_option("/timestepping/timestep", dt)
       call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/theta", theta)
-      
+
       call allocate(nl_pressure, new_pressure%mesh, "NonlinearPressure")
       call set(nl_pressure, new_pressure, old_pressure, theta)
-      
+
       do dim = 1, velocity%dim
         vel_comp = extract_scalar_field(velocity, dim)
         call field_stats(vel_comp, new_positions, velocity_int(dim))
@@ -2238,22 +2238,22 @@ contains
         vel_comp = extract_scalar_field(old_velocity, dim)
         call field_stats(vel_comp, old_positions, old_velocity_int(dim))
       end do
-      
+
       ! pressure surface integral
       pressure_surface_int = 0.0
       do sele = 1, surface_element_count(v_field)
-      
+
         pressure_surface_int = pressure_surface_int + pressure_surface_integral_face(sele, nl_pressure, nl_positions)
-        
+
       end do
-      
+
       ewrite(2,*) 'velocity_int = ', velocity_int
       ewrite(2,*) 'old_velocity_int = ', old_velocity_int
       ewrite(2,*) '(velocity_int-old_velocity_int)/dt = ', (velocity_int-old_velocity_int)/dt
       ewrite(2,*) 'pressure_surface_int = ', pressure_surface_int
-      
+
       momentum_cons = (velocity_int-old_velocity_int)/dt - pressure_surface_int
-      
+
       if(getprocno() == 1) then
         do dim=1, velocity%dim
           write(default_stat%diag_unit, trim(format), advance="no") momentum_cons(dim)
@@ -2261,30 +2261,30 @@ contains
       end if
 
       call deallocate(nl_pressure)
-     
+
     end subroutine write_momentum_conservation_error
 
     function pressure_surface_integral_face(sele, nl_pressure, nl_positions) result(pn)
-    
+
       integer :: sele
       type(scalar_field) :: nl_pressure
       type(vector_field) :: nl_positions
       real, dimension(mesh_dim(nl_pressure)) :: pn
-      
+
       real, dimension(mesh_dim(nl_pressure), face_ngi(nl_pressure, sele)) :: normal
       real, dimension(face_ngi(nl_pressure, sele)) :: detwei
-      
+
       integer :: dim
-    
+
       call transform_facet_to_physical( &
         nl_positions, sele, detwei_f = detwei, normal = normal)
-        
+
       do dim = 1, size(normal, 1)
-      
+
         pn(dim) = dot_product(face_val_at_quad(nl_pressure, sele), detwei*normal(dim, :))
 
       end do
-      
+
     end function pressure_surface_integral_face
 
   end subroutine write_diagnostics
@@ -2303,7 +2303,7 @@ contains
     type(scalar_field) :: vfield_comp, nlvfield_comp
     type(scalar_field), pointer :: sfield, nlsfield
     type(vector_field), pointer :: vfield, nlvfield
-    
+
     type(vector_field), pointer :: coordinates
     integer :: convergence_norm
 
@@ -2320,7 +2320,7 @@ contains
          write(default_stat%conv_unit, iformat, advance="no") it
       end if
     end if
-    
+
     coordinates => extract_vector_field(state(1), "Coordinate")
     convergence_norm = convergence_norm_integer("/timestepping/nonlinear_iterations/tolerance")
 
@@ -2425,7 +2425,7 @@ contains
     type(vector_field), pointer :: vfield, oldvfield
 
     logical :: acceleration
-    
+
     type(vector_field), pointer :: coordinates
     integer :: convergence_norm
 
@@ -2444,7 +2444,7 @@ contains
     convergence_norm = convergence_norm_integer("/timestepping/steady_state/tolerance")
 
     procno = getprocno()
-    if(default_stat%write_steady_state_file .and. procno == 1) then    
+    if(default_stat%write_steady_state_file .and. procno == 1) then
       call get_option("/timestepping/current_time", elapsed_time)
       if(default_stat%binary_steady_state_output) then
         write(default_stat%steady_state_unit) elapsed_time
@@ -2533,16 +2533,16 @@ contains
     end do phaseloop
 
     ewrite(1, *) "maxchange = ", maxchange
-    
+
     if(default_stat%write_steady_state_file .and. procno == 1) then
       if(default_stat%binary_steady_state_output) then
         write(default_stat%steady_state_unit) maxchange
       else
-        write(default_stat%steady_state_unit, format, advance = "no") maxchange      
+        write(default_stat%steady_state_unit, format, advance = "no") maxchange
         ! Output end of line
         write(default_stat%steady_state_unit,'(a)') ""
       end if
-      
+
       flush(default_stat%steady_state_unit)
     end if
 
@@ -2729,10 +2729,10 @@ contains
   end subroutine write_detectors
 
   subroutine list_det_into_csr_sparsity(detector_list,ihash_sparsity,list_into_array,element_detector_list,count)
-!! This subroutine creates a hash table called ihash_sparsity and a csr_sparsity matrix called element_detector_list that we use to find out 
-!! how many detectors a given element has and we also obtain the location (row index) of those detectors in an array called list_into_array. 
-!! This array contains the information of detector_list but in an array format, each row of the array contains the information of a detector. 
-!! By accessing the array at that/those row indexes we can extract the information (position, id_number, type, etc.) of each detector present 
+!! This subroutine creates a hash table called ihash_sparsity and a csr_sparsity matrix called element_detector_list that we use to find out
+!! how many detectors a given element has and we also obtain the location (row index) of those detectors in an array called list_into_array.
+!! This array contains the information of detector_list but in an array format, each row of the array contains the information of a detector.
+!! By accessing the array at that/those row indexes we can extract the information (position, id_number, type, etc.) of each detector present
 !! in the element (each row index corresponds to a detector)
 
     type(detector_linked_list), intent(inout) :: detector_list
@@ -2740,7 +2740,7 @@ contains
     type(csr_sparsity), intent(inout) :: element_detector_list
     real, dimension(:,:), allocatable, intent(inout) :: list_into_array
     integer, intent(in) :: count
-    
+
     integer, dimension(:), allocatable:: detector_count ! detectors per element
     integer, dimension(:), pointer:: detectors
     type(detector_type), pointer :: node
@@ -2748,7 +2748,7 @@ contains
     integer :: dim, i, ele, no_rows, entries, row, pos
 
     if (detector_list%length/=0) then
-   
+
        node => detector_list%first
 
        dim=size(node%position)
@@ -2761,13 +2761,13 @@ contains
              list_into_array(i,dim+3)=0.0
 
              node => node%next
-    
+
        end do
 
-       ! create map between element and rows, where each row corresponds to an element 
+       ! create map between element and rows, where each row corresponds to an element
        ! with one or more detectors
-    
-       ! loop over detectors: 
+
+       ! loop over detectors:
        ! detector is in element ele
 
        no_rows=count
@@ -2787,7 +2787,7 @@ contains
          end if
          node => node%next
 
-      end do 
+      end do
 
       ! set up %findrm, the beginning of each row in memory
       pos=1 ! position in colm
@@ -2802,8 +2802,8 @@ contains
       ! loop over detectors:
 
       do i=1, detector_list%length
-      
-         ele=list_into_array(i,dim+1)  
+
+         ele=list_into_array(i,dim+1)
          if (has_key(ihash_sparsity, ele)) then
             row=fetch(ihash_sparsity, ele)
             detectors => row_m_ptr(element_detector_list, row)
@@ -2818,7 +2818,7 @@ contains
     end if
 
   end subroutine list_det_into_csr_sparsity
-    
+
   subroutine close_diagnostic_files()
     !! Closes .stat, .convergence and .detector file (if openened)
     !! Gives a warning for iostat/=0, no point to flabort though.
@@ -2864,13 +2864,13 @@ contains
 
     REAL :: VOL,MAXVOL,MINVOL
     INTEGER :: ELE, I, minvol_ele, maxvol_ele
-    
+
     real, dimension(:), allocatable :: detwei
     type(vector_field) :: coordinate
 
     ! Only do this at all if there will be output.
-    if (debug_level()<1) return 
-    
+    if (debug_level()<1) return
+
     call get_option("/timestepping/timestep", dt)
     call get_option("/timestepping/finish_time", ltime)
 
@@ -2880,14 +2880,14 @@ contains
     ewrite(1,*)'-'
     ewrite(1,*)'The time step (DT) is:                                 ',DT
     ewrite(1,*)'The end time (LTIME) is set to:                        ',LTIME
-    ewrite(1,*)'This corresponds to this many time steps in simulation:',LTIME/DT 
+    ewrite(1,*)'This corresponds to this many time steps in simulation:',LTIME/DT
     ewrite(1,*)'-'
 
     coordinate=extract_vector_field(state(1), "Coordinate")
 
     ! Edge lengths are suspended until someone generalises them
     !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    !                    ELEMENT VOLUMES      
+    !                    ELEMENT VOLUMES
     !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     MAXVOL = -huge(1.0)
     MINVOL =  huge(1.0)
@@ -2895,7 +2895,7 @@ contains
     allocate(detwei(ele_ngi(coordinate,1)))
 
     do ele = 1, element_count(coordinate)
-       
+
        call transform_to_physical(coordinate, ele, detwei)
        vol=sum(detwei)
 
@@ -2907,17 +2907,17 @@ contains
           minvol=vol
           minvol_ele=ele
        end if
-       
+
     end do
-    
+
     call allmax(maxvol)
     call allmin(minvol)
     ewrite(1,*)'The maximum volume of element in the mesh is:',maxvol
     ewrite(1,*)'The minimum volume of element in the mesh is:',minvol
     ewrite(1,*)'The ratio of max to min volumes is:          ',maxvol/minvol
-            
+
     !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    !                    Fields you've given     
+    !                    Fields you've given
     !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     ewrite(1,*)'The following material phases and their ', &
       'contents are in existence'
@@ -2926,14 +2926,14 @@ contains
     end do
 
   END SUBROUTINE RUN_DIAGNOSTICS
-  
+
   subroutine diagnostic_variables_check_options
-  
+
 #ifndef STREAM_IO
     if(have_option("/io/detectors/binary_output")) then
       FLExit("Cannot use binary detector output format - no stream I/O support")
     end if
-    
+
     if(have_option("/timestepping/steady_state/steady_state_file/binary_output")) then
       FLExit("Cannot use binary steady state output format - no stream I/O support")
     end if

@@ -1,8 +1,8 @@
 // Gmsh project created on Fri Dec  4 14:59:47 2009
-// We reproduce a subduction zone on a (660x600) km domain. 
-// The kinematically moving slab (see image, on the left) subducts under a 50km-thick plate (up, right) and hence dynamically inducing a flow in the upper-mantle wedge (down, on the right). 
-// We therefore are trying to match the benchmark results established by vanKeken2008 for this problem, computing the thermal field throughout the domain by use of finite element methods. 
-// The structured, non-adaptive mesh shown in the images contains for instance the sought information at the mesh nodes, spaced out 2.5 km from each other near the critical point of contact between the three// different regions of our domain, and 7.5km everywhere else. In this particular case, the test uses a prescribed wedge flow (Batchelor1967) and is mainly intended to check for the validity of initial condi// tions at the various boundaries. 
+// We reproduce a subduction zone on a (660x600) km domain.
+// The kinematically moving slab (see image, on the left) subducts under a 50km-thick plate (up, right) and hence dynamically inducing a flow in the upper-mantle wedge (down, on the right).
+// We therefore are trying to match the benchmark results established by vanKeken2008 for this problem, computing the thermal field throughout the domain by use of finite element methods.
+// The structured, non-adaptive mesh shown in the images contains for instance the sought information at the mesh nodes, spaced out 2.5 km from each other near the critical point of contact between the three// different regions of our domain, and 7.5km everywhere else. In this particular case, the test uses a prescribed wedge flow (Batchelor1967) and is mainly intended to check for the validity of initial condi// tions at the various boundaries.
 
 
 Point(1) = {0,0,0,2000};

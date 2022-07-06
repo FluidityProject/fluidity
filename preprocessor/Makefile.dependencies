@@ -122,4 +122,3 @@ synthetic_bc.o ../include/synthetic_bc.mod: synthetic_bc.F90 \
    ../include/global_parameters.mod ../include/mpi_interfaces.mod \
    ../include/parallel_tools.mod ../include/state_module.mod \
    ../include/transform_elements.mod
-

@@ -12,5 +12,5 @@ Physical Line(4) = {4};
 // Sides of the channel (y=0 and y=1e5)
 Physical Line(5) = {1};
 Physical Line(6) = {2};
-// 
+//
 Physical Surface(1) = {5};

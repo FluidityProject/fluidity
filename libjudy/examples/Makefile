@@ -10,4 +10,4 @@ Judy1OpCheck: Judy1Op.c Judy1OpCheck.c
 	$(CC) $(CCFLAGS) -o $@ $^ $(LIBS)
 
 clean:
-	rm -f Judy1DupCheck Judy1OpCheck *.o 
+	rm -f Judy1DupCheck Judy1OpCheck *.o

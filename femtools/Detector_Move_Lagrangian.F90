@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -44,7 +44,7 @@ module detector_move_lagrangian
   use detector_parallel
 
   implicit none
-  
+
   private
 
   public :: move_lagrangian_detectors, read_detector_move_options
@@ -54,7 +54,7 @@ module detector_move_lagrangian
 contains
 
   subroutine read_detector_move_options(detector_list, detector_path)
-    ! Subroutine to allocate the detector parameters, 
+    ! Subroutine to allocate the detector parameters,
     ! including RK stages and update vector
     type(detector_linked_list), intent(inout) :: detector_list
     character(len=*), intent(in) :: detector_path
@@ -213,7 +213,7 @@ contains
           detector_timestepping_loop: do
 
              !Detectors leaving the domain from non-owned elements
-             !are entering a domain on another processor rather 
+             !are entering a domain on another processor rather
              !than leaving the physical domain. In this subroutine
              !such detectors are removed from the detector list
              !and added to the send_list_array
@@ -229,7 +229,7 @@ contains
              call allmax(all_send_lists_empty)
              if (all_send_lists_empty==0) exit
 
-             !This call serialises send_list_array, sends it, 
+             !This call serialises send_list_array, sends it,
              !receives serialised receive_list_array, and unserialises that.
              call exchange_detectors(state(1),detector_list, send_list_array, &
                include_update_vector=.true.)
@@ -242,11 +242,11 @@ contains
 
     deallocate(send_list_array)
 
-    ! Make sure all local detectors are owned and distribute the ones that 
+    ! Make sure all local detectors are owned and distribute the ones that
     ! stoppped moving in a halo element
     call distribute_detectors(state(1), detector_list)
 
-    ! This needs to be called after distribute_detectors because the exchange  
+    ! This needs to be called after distribute_detectors because the exchange
     ! routine serialises det%k and det%update_vector if it finds the RK-GS option
     call deallocate_rk_guided_search(detector_list)
 
@@ -282,10 +282,10 @@ contains
   subroutine deallocate_rk_guided_search(detector_list)
     ! Deallocate the RK stages and update vector
     type(detector_linked_list), intent(inout) :: detector_list
-      
+
     type(detector_type), pointer :: det0
     integer :: j0
-      
+
     det0 => detector_list%first
     do j0=1, detector_list%length
        if(allocated(det0%k)) then
@@ -305,13 +305,13 @@ contains
     type(vector_field), intent(in) :: vfield
     real, intent(in) :: dt0
     integer, intent(in) :: stage0
-    
+
     type(rk_gs_parameters), pointer :: parameters
     type(detector_type), pointer :: det0
     integer :: j0
 
     parameters => detector_list%move_parameters
-    
+
     det0 => detector_list%first
     do while (associated(det0))
 
@@ -347,9 +347,9 @@ contains
   subroutine move_detectors_guided_search(detector_list,xfield,send_list_array,search_tolerance)
     !Subroutine to find the element containing the update vector:
     ! - Detectors leaving the computational domain are set to DELETE
-    ! - Detectors leaving the processor domain are added to the list 
+    ! - Detectors leaving the processor domain are added to the list
     !   of detectors to communicate to the other processor.
-    !   This works by searching for the element containing the next point 
+    !   This works by searching for the element containing the next point
     !   in the RK through element faces.
     !   This is done by computing the local coordinates of the target point,
     !   finding the local coordinate closest to -infinity
@@ -366,7 +366,7 @@ contains
     logical :: make_delete
 
     deleted_detectors=0
-    
+
     !Loop over all the detectors
     det0 => detector_list%first
     do while (associated(det0))
@@ -386,7 +386,7 @@ contains
                 exit search_loop
              end if
 
-             !The arrival point is not in this element, try to get closer to it by 
+             !The arrival point is not in this element, try to get closer to it by
              !searching in the coordinate direction in which it is furthest away
              neigh = minval(minloc(arrival_local_coords))
              neigh_list=>ele_neigh(xfield,det0%element)

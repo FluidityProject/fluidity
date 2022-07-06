@@ -9,8 +9,8 @@
       <command_line>mpiexec fluidity gls-StationPapa-orig.flml;
                     mpiexec fluidity gls-StationPapa-param.flml;
       </command_line>
-  </problem_definition>  
-  <variables>  
+  </problem_definition>
+  <variables>
     <variable name="depths" language="python">
 import vtktools
 import sys
@@ -43,9 +43,9 @@ ind = get_1d_indices(pos)
 k = u.GetScalarField('GLSTurbulentKineticEnergy')
 TKE_param = vtktools.arr( [k[i] for i in ind] )
     </variable>
-  </variables>    
+  </variables>
 
-  <pass_tests> 
+  <pass_tests>
     <test name="Extra parameterisation increases TKE" language="python">
 # just below MLD
 assert TKE_param[36] &gt; TKE_orig[36]

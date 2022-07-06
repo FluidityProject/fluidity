@@ -5,14 +5,14 @@
 
 !! Most importantly states can be added to the dictionary via:
 !!  python_add_state(State::S)
-!! The last added state will be available as 'state', while all states added 
+!! The last added state will be available as 'state', while all states added
 !! are accessible via the 'states' dictionary.
-!! Adding a state twice will result in overwriting the information. All states 
-!! are uniquely identified by their name attribute. 
+!! Adding a state twice will result in overwriting the information. All states
+!! are uniquely identified by their name attribute.
 
 !! These should be called once (either from C or Fortran) before and after anything else of this module is used:
-!! python_init() initializes the Python interpreter; 
-!! python_end() finalizes 
+!! python_init() initializes the Python interpreter;
+!! python_end() finalizes
 
 !! Files belonging to this module:
 !! python_state.F90
@@ -30,12 +30,12 @@ module python_state
   use element_numbering
   use elements
   use fields
-  use state_module 
-   
+  use state_module
+
   implicit none
-  
+
   private
-  
+
   public :: python_init, python_reset
   public :: python_add_array, python_add_field
   public :: python_add_state, python_add_states, python_add_states_time
@@ -66,7 +66,7 @@ module python_state
       character(len = slen), intent(in) :: s
       integer, intent(out) :: stat
     end subroutine python_run_stringc
-    
+
     subroutine python_run_filec(s, slen, stat)
       implicit none
       integer, intent(in) :: slen
@@ -141,7 +141,7 @@ module python_state
       character(len=oplen) :: option_path
       character(len=mesh_name_len) :: mesh_name
     end subroutine python_add_scalar
-    
+
     subroutine python_add_csr_matrix(valuesSize, values, col_indSize, col_ind, row_ptrSize, &
       row_ptr, name, namelen, state_name,snlen, numCols)
       implicit none
@@ -152,7 +152,7 @@ module python_state
       character(len=namelen) :: name
       character(len=snlen) :: state_name
     end subroutine python_add_csr_matrix
-    
+
     subroutine python_add_vector(numdim,sx,x,&
       &name,nlen,field_type,option_path,oplen,state_name,snlen,&
       &mesh_name,mesh_name_len)
@@ -238,7 +238,7 @@ module python_state
 
 
 
-  !! The function versions called in Fortran, mainly simplified arguments, then 
+  !! The function versions called in Fortran, mainly simplified arguments, then
   !! unwrapped and called to the interface to C
  contains
 
@@ -253,7 +253,7 @@ module python_state
     call python_add_scalar(size(S%val,1),S%val,&
       trim(S%name),slen, S%field_type,S%option_path,oplen,trim(st%name),snlen,S%mesh%name,mesh_name_len)
   end subroutine python_add_scalar_directly
-  
+
   subroutine python_add_csr_matrix_directly(csrMatrix,st)
     type(csr_matrix) :: csrMatrix
     type(state_type) :: st
@@ -262,8 +262,8 @@ module python_state
     real, dimension(:), pointer :: values
     integer, dimension(:), pointer :: col_ind
     integer, dimension(:), pointer :: row_ptr
-    
-    csrSparsity = csrMatrix%sparsity 
+
+    csrSparsity = csrMatrix%sparsity
     values => csrMatrix%val
 
     ! For CSR_INTEGER matrices, %val is not allocated. To ensure that python state
@@ -290,16 +290,16 @@ module python_state
     type(state_type) :: st
     integer :: snlen,slen,oplen,mesh_name_len
     real, dimension(0), target :: zero
-    
+
     slen = len(trim(V%name))
     snlen = len(trim(st%name))
     oplen = len(trim(V%option_path))
     mesh_name_len = len(trim(V%mesh%name))
-    
+
     assert(v%dim==size(v%val,1))
     call python_add_vector(V%dim, size(V%val,2), V%val, &
       trim(V%name), slen, V%field_type, V%option_path, oplen,trim(st%name),snlen,V%mesh%name,mesh_name_len)
-    
+
   end subroutine python_add_vector_directly
 
   subroutine python_add_tensor_directly(T,st)
@@ -323,7 +323,7 @@ module python_state
     slen = len(trim(M%name))
     snlen = len(trim(st%name))
     oplen = len(trim(M%option_path))
-    
+
     if(associated(M%region_ids)) then
       call python_add_mesh(M%ndglno,size(M%ndglno,1),M%elements,M%nodes,&
         trim(M%name),slen,M%option_path,oplen,&
@@ -340,7 +340,7 @@ module python_state
   end subroutine python_add_mesh_directly
 
   subroutine python_add_element_directly(E,M,st)
-    !! Add an element to the mesh M, by adding first the element and then its 
+    !! Add an element to the mesh M, by adding first the element and then its
     !! attributes one by one the element's
     !! 1) basic attributes
     !! 2) quadrature
@@ -378,7 +378,7 @@ module python_state
       coords(l,:) = local_coords(l, E)
     end do
 
-    call python_add_element(E%dim, E%loc, E%ngi, E%degree,&   
+    call python_add_element(E%dim, E%loc, E%ngi, E%degree,&
       &trim(st%name),snlen,trim(M%name),mlen,&
       &E%n,size(E%n,1), size(E%n,2),E%dn, size(E%dn,1), size(E%dn,2), size(E%dn,3),&
       &size(E%spoly,1),size(E%spoly,2),size(E%dspoly,1),size(E%dspoly,2), family_name, len_trim(family_name), &
@@ -431,7 +431,7 @@ module python_state
       end do
     end if
     if ( associated(S%scalar_fields) )  then
-      do i=1,(size(S%scalar_fields)) 
+      do i=1,(size(S%scalar_fields))
         call python_add_field(S%scalar_fields(i)%ptr,S)
       end do
     end if
@@ -450,8 +450,8 @@ module python_state
         call python_add_field(S%csr_matrices(i)%ptr,S)
       end do
     end if
-    
-    
+
+
   end subroutine python_add_state
 
   subroutine python_add_states(S)
@@ -461,7 +461,7 @@ module python_state
     do i = 1, size(S)
        call python_add_state(S(i))
     end do
-    
+
   end subroutine python_add_states
 
   subroutine python_add_states_time(S)
@@ -490,8 +490,8 @@ module python_state
     !!< an argument.
     type(state_type), target, intent(inout) :: state
 
-    type(state_type), dimension(1) :: states    
- 
+    type(state_type), dimension(1) :: states
+
     states(1)=state
 
     call python_shell_states(states)
@@ -501,18 +501,18 @@ module python_state
   subroutine python_shell_states(states)
     !!< Launch a python shell with access to the current state(s) provided. This is mostly
     !!< useful for debugging.
-  
+
     type(state_type), dimension(:), target, intent(inout) :: states
 
-#ifdef HAVE_NUMPY    
-    
+#ifdef HAVE_NUMPY
+
 
     ! Clean up to make sure that nothing else interferes
     call python_reset()
-    
+
     call python_add_states(states)
-      
-    call python_run_string("import fluidity_tools")  
+
+    call python_run_string("import fluidity_tools")
 
     call python_run_string("fluidity_tools.shell()()")
 
@@ -585,14 +585,14 @@ module python_state
 
   subroutine python_run_string(s, stat)
     !!< Wrapper for function for python_run_stringc
-    
+
     character(len = *), intent(in) :: s
     integer, optional, intent(out) :: stat
-    
+
     integer :: lstat
-        
+
     if(present(stat)) stat = 0
-        
+
     call python_run_stringc(s, len_trim(s), lstat)
     if(lstat /= 0) then
       if(present(stat)) then
@@ -603,15 +603,15 @@ module python_state
         FLExit("Dying")
       end if
     end if
-    
+
   end subroutine python_run_string
-  
+
   subroutine python_run_file(s, stat)
     !!< Wrapper for function for python_run_filec
-    
+
     character(len = *), intent(in) :: s
     integer, optional, intent(out) :: stat
-    
+
     integer :: lstat
 
     if(present(stat)) stat = 0
@@ -626,7 +626,7 @@ module python_state
         FLExit("Dying")
       end if
     end if
-    
+
   end subroutine python_run_file
 
   function python_fetch_real(name) result(output)

@@ -56,7 +56,7 @@ OBJS = Extrude.o Advancing_front.o Metric_based_extrude.o Combine_Meshes.o
 
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $<
 .cpp.o:
 	@echo "        CXX $<"
 	$(CXX) $(CXXFLAGS) -I../include -c $<

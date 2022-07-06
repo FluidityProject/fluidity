@@ -24,7 +24,7 @@
   !    License along with this library; if not, write to the Free Software
   !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
   !    USA
-  
+
 
 #include "fdebug.h"
 
@@ -68,7 +68,7 @@ contains
     ! <<\gamma, [u]>> = 0
     ! (i.e. for unit testing)
     ! otherwise solve:
-    ! <w,u> + dt*theta*<w,fu^\perp> - dt*theta*g <div w,d> + <<[w],d>> = 
+    ! <w,u> + dt*theta*<w,fu^\perp> - dt*theta*g <div w,d> + <<[w],d>> =
     ! -dt*<w f(u^n)^\perp> + dt*g*<div w, d^n>
     ! <\phi,\eta> +  dt*theta*<\phi,div u> = <\ph
     ! <<\gamma, [u]>> = 0
@@ -135,7 +135,7 @@ contains
     !allocate hybridized RHS
     call allocate(lambda_rhs,lambda%mesh,"LambdaRHS")
     call zero(lambda_rhs)
-    
+
     !get parameters
     call get_option("/physical_parameters/gravity/magnitude", g)
     !theta
@@ -146,7 +146,7 @@ contains
          &p&
          &rognostic/mean_layer_thickness",D0)
     call get_option("/timestepping/timestep", dt)
-    
+
     !Assemble matrices
     do ele = 1, ele_count(D)
        call assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
@@ -215,13 +215,13 @@ contains
        ewrite(1,*)'JUMPS MIN:MAX',minval(lambda_rhs%val),&
             &maxval(lambda_rhs%val)
        assert(maxval(abs(lambda_rhs%val))<1.0e-10)
-       
+
        ewrite(1,*) 'D MAXABS', maxval(abs(D%val))
        do ele = 1, ele_count(U)
           call check_continuity_ele(U_cart,X,ele)
        end do
     end if
-    
+
     call deallocate(lambda_mat)
     call deallocate(lambda_rhs)
     call deallocate(lambda)
@@ -229,7 +229,7 @@ contains
     ewrite(1,*) 'END subroutine solve_hybridized_helmholtz'
 
   end subroutine solve_hybridized_helmholtz
- 
+
   subroutine assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
        g,dt,theta,D0,lambda_mat,lambda_rhs,U_rhs,D_rhs,&
        continuity_mat,projection,poisson,u_rhs_local)
@@ -316,7 +316,7 @@ contains
     ! ( M    C  -L)(u)   (v)
     ! ( -C^T N  0 )(h) = (j)
     ! ( L^T  0  0 )(l)   (0)
-    ! 
+    !
     ! (u)   (M    C)^{-1}(v)   (M    C)^{-1}(L)
     ! (h) = (-C^T N)     (j) + (-C^T N)     (0)(l)
     ! so
@@ -329,7 +329,7 @@ contains
          & g,dt,theta,D0,have_constraint,local_solver_rhs,&
          projection)
 
-    !!!Construct the continuity matrix that multiplies lambda in 
+    !!!Construct the continuity matrix that multiplies lambda in
     !!! the U equation
     !allocate l_continuity_mat
     l_continuity_mat = 0.
@@ -500,7 +500,7 @@ contains
     ! ( M    C  -L)(u)   (0)
     ! ( -C^T N  0 )(h) = (j)
     ! ( L^T  0  0 )(l)   (0)
-    ! 
+    !
     ! (u)   (M    C)^{-1}(0)   (M    C)^{-1}(L)
     ! (h) = (-C^T N)     (j) + (-C^T N)     (0)(l)
 
@@ -518,7 +518,7 @@ contains
           end if
        end if
     end do
-    
+
     D_solved = rhs_loc(d_start:d_end)
     if(.not.(present_and_true(projection))) then
        if(present(D_out)) then
@@ -541,7 +541,7 @@ contains
              ewrite(1,*) 'Constraint check', constraint_check
              FLAbort('Constraint not enforced')
           end if
-       end do       
+       end do
     end if
 
   end subroutine reconstruct_U_d_ele
@@ -551,13 +551,13 @@ contains
        & local_solver_rhs,projection,poisson)
     !Subroutine to get the matrix and rhs for obtaining U and D within
     !element ele from the lagrange multipliers on the boundaries.
-    !This matrix-vector system is referred to as the "local solver" in the 
+    !This matrix-vector system is referred to as the "local solver" in the
     !literature e.g.
     !Cockburn et al, Unified hybridization of discontinuous Galerkin, mixed
     ! and continuous Galerkin methods for second order elliptic problems,
     ! SIAM J. Numer. Anal., 2009
     implicit none
-    !If projection is present and true, set dt to zero and just project U 
+    !If projection is present and true, set dt to zero and just project U
     !into div-conforming space
     real, intent(in) :: g,dt,theta,D0
     type(vector_field), intent(in) :: U,X,down
@@ -611,12 +611,12 @@ contains
     if(present(local_solver_rhs)) then
        local_solver_rhs = 0.
     end if
-    
+
     u_shape=ele_shape(u, ele)
     D_shape=ele_shape(d, ele)
     D_ele => ele_nodes(D, ele)
     U_ele => ele_nodes(U, ele)
-    
+
     if(present_and_true(projection)) then
        f_gi = 0.
     else
@@ -644,7 +644,7 @@ contains
     end do
 
     !<w,u> + dt*theta*<w,fu^\perp> - g*dt*theta<div w,h> = -<w.n,l>
-    !dt*theta*<\phi,div u>         + D_0<\phi,h>         = 0 
+    !dt*theta*<\phi,div u>         + D_0<\phi,h>         = 0
 
     !pressure mass matrix (done in global coordinates)
     local_solver_matrix(d_start:d_end,d_start:d_end)=&
@@ -709,7 +709,7 @@ contains
           end do
        end do
     end if
-        
+
   end subroutine get_local_solver
 
   subroutine get_up_gi(X,ele,up_gi,orientation)
@@ -729,7 +729,7 @@ contains
 
     call compute_jacobian(X, ele, J)
 
-    select case(mesh_dim(X)) 
+    select case(mesh_dim(X))
     case (2)
        !Coriolis only makes sense for 2d surfaces embedded in 3d
        do gi = 1, ele_ngi(X,ele)
@@ -759,7 +759,7 @@ contains
   end subroutine get_up_gi
 
   function get_orientation(X_val, up) result (orientation)
-    !function compares the orientation of the element with the 
+    !function compares the orientation of the element with the
     !up direction
     implicit none
     real, dimension(:,:), intent(in) :: X_val           !(dim,loc)
@@ -778,14 +778,14 @@ contains
           do gi = 1, size(up,2)
              if(dot_product(crossprod,up(:,gi))<0.0) then
                 FLAbort('Something nasty with down direction')
-             end if             
+             end if
           end do
           orientation = 1
        else
           do gi = 1, size(up,2)
              if(dot_product(crossprod,up(:,gi))>0.0) then
                 FLAbort('Something nasty with down direction')
-             end if             
+             end if
           end do
           orientation = -1
        end if
@@ -874,7 +874,7 @@ contains
              forall(i=1:face_ngi(U,face)) norm(1,i)=1.
           else if(face==2) then
              forall(i=1:face_ngi(U,face)) norm(1,i)=-1.
-          else 
+          else
              FLAbort('Funny face?')
           end if
           weight = 1.0
@@ -887,7 +887,7 @@ contains
           else if(face==3) then
              forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/1/sqrt(2.),1&
                   &/sqrt(2.)/)
-          else 
+          else
              FLAbort('Funny face?')
           end if
 
@@ -964,7 +964,7 @@ contains
     do dim1 = 1, mdim
        call solve(l_u_mat,u_rhs(dim1,:))
     end do
-    
+
     do dim1 = 1, U_cart%dim
        call set(U_cart,dim1,u_ele,u_rhs(dim1,:))
     end do
@@ -1070,7 +1070,7 @@ contains
        ewrite(1,*) jump_at_quad/max(maxval(abs(u1)),maxval(abs(u2)))
        FLAbort('stopping because of jumps')
     end if
-    
+
   end subroutine check_continuity_face
 
   function get_face_normal_manifold(X,ele,face) result (normal)
@@ -1232,7 +1232,7 @@ contains
     uloc = ele_loc(U,ele)
     dloc = ele_loc(d,ele)
     U_shape = ele_shape(U,ele)
-    
+
     !Calculate indices in a vector containing all the U and D dofs in
     !element ele, First the u1 components, then the u2 components, then the
     !D components are stored.
@@ -1242,7 +1242,7 @@ contains
        u_start(dim1) = uloc*(dim1-1)+1
        u_end(dim1) = uloc*dim1
     end do
-    
+
     if(.not.(present(D_rhs).or.present(u_rhs))) then
        !We are in timestepping mode.
        rhs_loc(d_start:d_end) = ele_val(D,ele)
@@ -1256,9 +1256,9 @@ contains
        have_u_rhs = present(u_rhs)
        if(have_d_rhs) l_d_rhs => d_rhs
        if(have_u_rhs) l_u_rhs => u_rhs
-       
+
        call compute_jacobian(X, ele, J=J, detJ=detJ,detwei=detwei)
-       
+
        Rhs_loc = 0.
        if(have_d_rhs) then
           Rhs_loc(d_start:d_end) = shape_rhs(ele_shape(D,ele),&
@@ -1308,11 +1308,11 @@ contains
     real, dimension(ele_loc(D,ele),ele_loc(D,ele)) :: d_mass_mat
     !
     call compute_jacobian(X, ele, J=J, detJ=detJ,detwei=detwei)
-    
+
     u_shape = ele_shape(U,ele)
     d_shape = ele_shape(D,ele)
     U_loc = ele_val(U,ele)
-    
+
     div = 0.
     do dim1 = 1, U%dim
        div = div + &
@@ -1582,7 +1582,7 @@ contains
     call set(D,ele_nodes(D,ele),d_rhs)
 
   end subroutine project_streamfunction_for_balance_ele
-  
+
   subroutine set_pressure_force_ele(force,D,X,g,ele)
     implicit none
     type(vector_field), intent(inout) :: force
@@ -1595,7 +1595,7 @@ contains
     real, dimension(mesh_dim(D),ele_loc(force,ele)) :: &
          & rhs_loc
     real, dimension(ele_loc(force,ele),ele_loc(force,ele)) :: &
-         & l_mass_mat    
+         & l_mass_mat
     integer :: dim1,dim2,gi,uloc
     real, dimension(mesh_dim(force), X%dim, ele_ngi(force,ele)) :: J
     real, dimension(ele_ngi(force,ele)) :: detJ
@@ -1649,7 +1649,7 @@ contains
     real, dimension(ele_ngi(D_rhs,ele)) :: div_gi
     real, dimension(ele_loc(D_rhs,ele)) :: D_rhs_loc
     real, dimension(ele_loc(D_rhs,ele),ele_loc(D_rhs,ele)) :: d_mass
-    integer :: dim1 
+    integer :: dim1
     type(element_type) :: U_shape, D_shape
     real :: g
 
@@ -1657,7 +1657,7 @@ contains
     !Can be done locally since d commutes with pullback
 
     call get_option("/physical_parameters/gravity/magnitude", g)
-    
+
     U_shape = ele_shape(Coriolis_term,ele)
     D_shape = ele_shape(D_rhs,ele)
     Coriolis_loc = ele_val(Coriolis_term,ele)
@@ -1695,7 +1695,7 @@ contains
     real, dimension(X%dim) :: up_vec
     integer :: dim1, dim2,uloc,gi
     type(element_type) :: u_shape
-    
+
     uloc = ele_loc(u_local,ele)
     u_shape = ele_shape(u_local,ele)
 
@@ -1739,7 +1739,7 @@ contains
             &Coriolis_rhs((dim1-1)*uloc+1:dim1*uloc))
     end do
   end subroutine set_coriolis_term_ele
-  
+
   subroutine set_local_velocity_from_streamfunction_ele(&
        &U_local,psi,down,X,ele)
     implicit none

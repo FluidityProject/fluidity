@@ -5,7 +5,7 @@ C  This routine creates a metric at point (x,y). The
 C  metric is a 2x2 positive definite symmetric tensor:
 C
 C                M11   M12
-C      Metric =     
+C      Metric =
 C                M12   M22
 C
 C  Only the upper triangular part of Metric must be defined.
@@ -44,6 +44,3 @@ C ==========================================================
 
       Return
       End
-
-
-

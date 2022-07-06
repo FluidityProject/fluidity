@@ -1025,7 +1025,7 @@
       size[0] = array_size(temp_array,0);
       size[1] = array_size(temp_array,1);
     }
-    
+
     if (!require_size(temp_array, size, 2)) SWIG_fail;
 
     array[i] = (DATA_TYPE*) array_data(temp_array);
@@ -1261,7 +1261,7 @@
       size[1] = array_size(temp_array,1);
       size[2] = array_size(temp_array,2);
     }
-    
+
     if (!require_size(temp_array, size, 3)) SWIG_fail;
 
     array[i] = (DATA_TYPE*) array_data(temp_array);
@@ -1663,7 +1663,7 @@
       size[0] = array_size(temp_array,0);
       size[1] = array_size(temp_array,1);
     }
-    
+
     if (!require_size(temp_array, size, 2)) SWIG_fail;
 
     array[i] = (DATA_TYPE*) array_data(temp_array);
@@ -1848,7 +1848,7 @@
       size[1] = array_size(temp_array,1);
       size[2] = array_size(temp_array,2);
     }
-    
+
     if (!require_size(temp_array, size, 3)) SWIG_fail;
 
     array[i] = (DATA_TYPE*) array_data(temp_array);
@@ -2431,7 +2431,7 @@
 %#else
     PyObject* cap = PyCObject_FromVoidPtr((void*)(*$1), free);
 %#endif
-  
+
 %#if NPY_API_VERSION < 0x00000007
   PyArray_BASE(array) = cap;
 %#else
@@ -2465,7 +2465,7 @@
 %#else
     PyObject* cap = PyCObject_FromVoidPtr((void*)(*$1), free);
 %#endif
-  
+
 %#if NPY_API_VERSION < 0x00000007
   PyArray_BASE(array) = cap;
 %#else

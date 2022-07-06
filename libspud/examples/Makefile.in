@@ -25,7 +25,7 @@
 #    USA
 
 FC      = @FC@
-FCFLAGS = -I../include @FCFLAGS@ 
+FCFLAGS = -I../include @FCFLAGS@
 
 CXX = @CXX@ -I../include
 CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include

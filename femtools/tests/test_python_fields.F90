@@ -1,5 +1,5 @@
 subroutine test_python_fields
-  
+
   use fields
   use vtk_interfaces
   use state_module
@@ -42,7 +42,7 @@ subroutine test_python_fields
     call compute_nodes_python(sfield)
     call compute_nodes_stored(positions)
   end do
-  
+
   call deallocate(sfield)
 end subroutine test_python_fields
 
@@ -77,4 +77,3 @@ subroutine compute_nodes_stored(vfield)
     whatever_n = ele_val(vfield, ele, 1)
   end do
 end subroutine compute_nodes_stored
-

@@ -1,5 +1,5 @@
 subroutine test_quad_quadrature
-  
+
   use unittest_tools
   use elements
   use fetools
@@ -27,7 +27,7 @@ subroutine test_quad_quadrature
   allocate(J_tri(2,2,tri_quadrature%ngi))
   allocate(detwei_quad(quad_quadrature%ngi))
   allocate(detwei_tri(tri_quadrature%ngi))
- 
+
   quad_shape=make_element_shape(vertices=4, dim=2, degree=1, &
        &quad= quad_quadrature)
   tri_shape=make_element_shape(vertices=3, dim=2, degree=2, &

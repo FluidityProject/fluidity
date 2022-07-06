@@ -2,7 +2,7 @@
  *    Copyright (c) 2004-2006 by Gerard Gorman
  *    Copyright (c) 2006- Imperial College London
  *    See COPYING file for copying and redistribution conditions.
- *   
+ *
  *    This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
  *    License as published by the Free Software Foundation,
@@ -44,7 +44,7 @@ class SampleNetCDF{
 
   // Overloaded operators.
   const SampleNetCDF& operator=(const SampleNetCDF &in);
-  
+
   void Close();
   double GetValue(double, double) const;
 
@@ -52,20 +52,20 @@ class SampleNetCDF{
 
   void SetFile(std::string);
   void SetVariable(std::string);
-  
+
   void VerboseOff();
   void VerboseOn();
-  
+
  private:
   void Debug(char *) const;
   double GetValue(int, int) const;
 
   double x_range[2];          // Longitude
   double y_range[2];          // Latitude
-  
+
   double spacing[2];          // Grid spacing
   int dimension[2];           // Grid dimensions
-  
+
   std::vector<double> data;
   bool verbose;
 

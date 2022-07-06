@@ -39,11 +39,11 @@ CC      = @CC@
 CCFLAGS = $(CPPFLAGS) @CCFLAGS@
 
 CXX     = @CXX@
-CXXFLAGS= $(CPPFLAGS) @CXXFLAGS@ 
+CXXFLAGS= $(CPPFLAGS) @CXXFLAGS@
 
 LINKER  = @CXX@
 LDFLAGS = @LDFLAGS@
- 
+
 LIBS    = ../lib/libadaptivity.a @LIBS@ @FLIBS@
 
 MAKE    = @MAKE@

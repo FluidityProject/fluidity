@@ -25,7 +25,7 @@ C Pre-conditions:  1. connectivity structure {IPE(4, *), XYP(3, *)}
 C                  2. tensor metric field HesP(6, *)
 C
 C Post-conditions: 1. determinant of the tensor metric, detG(*)
-C                  2. quality of mesh elements, qE(*) 
+C                  2. quality of mesh elements, qE(*)
 C
 C Remark: nLoop is used in parallel and simulation codes.
 C         It should equal to 1 in sequential code.
@@ -61,11 +61,11 @@ C ================================================================
             d2 = detG(i2)
             d3 = detG(i3)
             d4 = detG(i4)
-           
-            dsum = dsqrt(d1 * T2B + (d2 + d3 + d4) * T2A) 
-     &           + dsqrt(d2 * T2B + (d3 + d4 + d1) * T2A) 
-     &           + dsqrt(d3 * T2B + (d4 + d1 + d2) * T2A) 
-     &           + dsqrt(d4 * T2B + (d1 + d2 + d3) * T2A) 
+
+            dsum = dsqrt(d1 * T2B + (d2 + d3 + d4) * T2A)
+     &           + dsqrt(d2 * T2B + (d3 + d4 + d1) * T2A)
+     &           + dsqrt(d3 * T2B + (d4 + d1 + d2) * T2A)
+     &           + dsqrt(d4 * T2B + (d1 + d2 + d3) * T2A)
 
             Vn = calVol(XYP(1, i1), XYP(1, i2),
      &                  XYP(1, i3), XYP(1, i4))
@@ -93,7 +93,7 @@ C ================================================================
 c ... set quality of fixed elements to 1
       Do n = 1, nEv
          qE(IEV(n)) = 1D0
-      End do 
+      End do
 
       Return
       End Subroutine makQ
@@ -103,7 +103,7 @@ c ... set quality of fixed elements to 1
 C ================================================================
       Subroutine updQa(n, XYP, IPE, IEE, qE)
 C ================================================================
-C Initial quality modification for tangled elements and 
+C Initial quality modification for tangled elements and
 C their closest (face-) neighboors.
 C ================================================================
       Real*8  XYP(3, *), qE(*)
@@ -301,13 +301,13 @@ C ================================================================
         End do
 
         Do i = 1, 3
-          HesP(1) = HesP(1) + E(i) * A(1, i) ** 2 
+          HesP(1) = HesP(1) + E(i) * A(1, i) ** 2
           HesP(2) = HesP(2) + E(i) * A(2, i) ** 2
           HesP(3) = HesP(3) + E(i) * A(3, i) ** 2
 
-          HesP(4) = HesP(4) + E(i) * A(1, i) * A(2, i) 
-          HesP(5) = HesP(5) + E(i) * A(2, i) * A(3, i) 
-          HesP(6) = HesP(6) + E(i) * A(1, i) * A(3, i) 
+          HesP(4) = HesP(4) + E(i) * A(1, i) * A(2, i)
+          HesP(5) = HesP(5) + E(i) * A(2, i) * A(3, i)
+          HesP(6) = HesP(6) + E(i) * A(1, i) * A(3, i)
         End do
 
         detG = HesP(1) * (HesP(2) * HesP(3) - HesP(5) ** 2) -
@@ -402,14 +402,14 @@ C ================================================================
       End do
 
       d1 = det1
-      d2 = det2 
-      d3 = det3 
-      d4 = det4 
-           
-      dsum = dsqrt(d1 * T2B + (d2 + d3 + d4) * T2A) 
-     &     + dsqrt(d2 * T2B + (d3 + d4 + d1) * T2A) 
-     &     + dsqrt(d3 * T2B + (d4 + d1 + d2) * T2A) 
-     &     + dsqrt(d4 * T2B + (d1 + d2 + d3) * T2A) 
+      d2 = det2
+      d3 = det3
+      d4 = det4
+
+      dsum = dsqrt(d1 * T2B + (d2 + d3 + d4) * T2A)
+     &     + dsqrt(d2 * T2B + (d3 + d4 + d1) * T2A)
+     &     + dsqrt(d3 * T2B + (d4 + d1 + d2) * T2A)
+     &     + dsqrt(d4 * T2B + (d1 + d2 + d3) * T2A)
 
       volume = calVol(xy1, xy2, xy3, xy4)
       Vk = volume * dsum / 4
@@ -616,8 +616,8 @@ C ==========================================================
 C  Three Fortran routines below create a metric field which
 C  is 3x3 variable positive definite diagonal tensor HesP,
 C
-C             M11   M12   M13 
-C      HesP = M12   M22   M23 
+C             M11   M12   M13
+C      HesP = M12   M22   M23
 C             M13   M23   M33
 C
 C  where Mij = Mij(x, y, z).
@@ -657,7 +657,7 @@ C ================================================================
       Real*8 Function avgQ(nE, qE, L1E, L2E)
 C ================================================================
       Real*8  qE(*)
-      Integer L2E(*), L1E(2, *) 
+      Integer L2E(*), L1E(2, *)
 
       avgQ = 0D0
 

@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -39,10 +39,10 @@ subroutine probe_vtu(vtu_filename_, vtu_filename_len, fieldname_, &
   use state_module
   use vtk_interfaces
   use iso_c_binding
-  
+
   implicit none
-  
-  
+
+
   character(kind=c_char, len=1) :: vtu_filename_(*)
   character(kind=c_char, len=1) :: fieldname_(*)
   integer(kind=c_int), value :: dim, vtu_filename_len, fieldname_len
@@ -62,7 +62,7 @@ subroutine probe_vtu(vtu_filename_, vtu_filename_len, fieldname_, &
   character(len=vtu_filename_len) :: vtu_filename
   character(len=fieldname_len) :: fieldname
 
-  
+
   ewrite(1, *) "In probe_vtu"
 
   do i=1, vtu_filename_len
@@ -72,17 +72,17 @@ subroutine probe_vtu(vtu_filename_, vtu_filename_len, fieldname_, &
     fieldname(i:i)=fieldname_(i)
   end do
 
-  
-  
+
+
   call vtk_read_state(vtu_filename, state = state)
-  
+
   positions => extract_vector_field(state, "Coordinate")
   if(positions%dim /= dim) then
     FLExit("Expected " // int2str(dim) // " dimensional probe coord")
   else if(ele_numbering_family(ele_shape(positions, 1)) /= FAMILY_SIMPLEX) then
     FLExit("Mesh in vtu " // vtu_filename // " is not composed of linear simplices")
   end if
-  
+
   if(dim > 0) coord(1) = x
   if(dim > 1) coord(2) = y
   if(dim > 2) coord(3) = z
@@ -91,7 +91,7 @@ subroutine probe_vtu(vtu_filename_, vtu_filename_len, fieldname_, &
   if(ele < 0) then
     FLExit("Probe point not contained in vtu " // vtu_filename)
   end if
-  
+
   s_field => extract_scalar_field(state, fieldname, allocated = allocated, stat = stat)
   if(stat == 0) then
     format = "(" // real_format() // ")"
@@ -118,11 +118,11 @@ subroutine probe_vtu(vtu_filename_, vtu_filename_len, fieldname_, &
       end if
     end if
   end if
-  
+
   call deallocate(state)
-  
+
   call print_references(0)
-  
+
   ewrite(1, *) "Exiting probe_vtu"
 
 end subroutine probe_vtu

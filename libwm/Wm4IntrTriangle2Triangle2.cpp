@@ -16,7 +16,7 @@
 #include "Wm4FoundationPCH.h"
 #include "Wm4IntrTriangle2Triangle2.h"
 
-inline int imod(int i, int j) 
+inline int imod(int i, int j)
 {
   return (i % j) < 0 ? (i % j) + (j < 0 ? -j : j) : i % j;
 }

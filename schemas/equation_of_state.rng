@@ -65,12 +65,12 @@ The name of this dependency must correspond to a scalar field in this material_p
                 <data type="string"/>
               </attribute>
               <element name="reference_value">
-                <a:documentation>The reference or background value 
+                <a:documentation>The reference or background value
 for the generic scalar field.</a:documentation>
                 <ref name="real"/>
               </element>
               <element name="expansion_coefficient">
-                <a:documentation>The expansion coefficient associated 
+                <a:documentation>The expansion coefficient associated
 with this generic scalar field.</a:documentation>
                 <ref name="real"/>
               </element>
@@ -158,15 +158,15 @@ be the surface pressure, 1.0e05.</a:documentation>
         <element name="foam">
           <a:documentation>Foam EoS
 Used with compressible simulations of liquid drainage in foams.
-It describes the liquid content in the foam as the product of the 
-Plateau border cross sectional area and the local Plateau 
+It describes the liquid content in the foam as the product of the
+Plateau border cross sectional area and the local Plateau
 border length per unit volume (lambda). </a:documentation>
           <empty/>
         </element>
       </choice>
       <optional>
         <element name="subtract_out_reference_profile">
-          <a:documentation>This splits up the Density and Pressure fields into a hydrostatic (reference) component (') and a perturbed component (''). 
+          <a:documentation>This splits up the Density and Pressure fields into a hydrostatic (reference) component (') and a perturbed component ('').
 The hydrostatic (reference) components, denoted p' and rho', should satisfy the balance:
 grad(p') = rho'*g
 

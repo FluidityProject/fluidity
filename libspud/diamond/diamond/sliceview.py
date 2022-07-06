@@ -12,7 +12,6 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
-
 from gi.repository import GObject as gobject
 from gi.repository import Gtk as gtk
 
@@ -21,95 +20,99 @@ from . import databuttonswidget
 from . import datawidget
 from . import mixedtree
 
+
 class SliceView(gtk.Window):
-  
-  __gsignals__ = { "on-store" : (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, ()),
-                   "update-name"  : (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, ())}
 
-  def __init__(self, parent):
-    gtk.Window.__init__(self)
-    
-    self.set_default_size(800, 600)
-    self.set_title("Slice View")
-    self.set_modal(True)
-    self.set_transient_for(parent)
+    __gsignals__ = {
+        "on-store": (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, ()),
+        "update-name": (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, ()),
+    }
 
-    mainvbox = gtk.VBox()
-    self.vbox = gtk.VBox()
+    def __init__(self, parent):
+        gtk.Window.__init__(self)
 
-    scrolledWindow = gtk.ScrolledWindow()
-    scrolledWindow.set_policy(gtk.PolicyType.NEVER, gtk.PolicyType.AUTOMATIC)
-    scrolledWindow.add_with_viewport(self.vbox)
+        self.set_default_size(800, 600)
+        self.set_title("Slice View")
+        self.set_modal(True)
+        self.set_transient_for(parent)
 
-    self.databuttons = databuttonswidget.DataButtonsWidget()
+        mainvbox = gtk.VBox()
+        self.vbox = gtk.VBox()
 
-    self.statusbar = gtk.Statusbar()
+        scrolledWindow = gtk.ScrolledWindow()
+        scrolledWindow.set_policy(gtk.PolicyType.NEVER, gtk.PolicyType.AUTOMATIC)
+        scrolledWindow.add_with_viewport(self.vbox)
 
-    mainvbox.pack_start(scrolledWindow, True, True, 0)
-    mainvbox.pack_start(self.databuttons, False, True, 0)
-    mainvbox.pack_start(self.statusbar, False, True, 0)
+        self.databuttons = databuttonswidget.DataButtonsWidget()
 
-    self.add(mainvbox)
-    self.show_all()
+        self.statusbar = gtk.Statusbar()
 
-  def update(self, node, tree):
-    nodes = self.get_nodes(node, tree)
-    if not nodes:
-      self.destroy()
+        mainvbox.pack_start(scrolledWindow, True, True, 0)
+        mainvbox.pack_start(self.databuttons, False, True, 0)
+        mainvbox.pack_start(self.statusbar, False, True, 0)
 
-    for n in nodes:
-      self.vbox.pack_start(self.control(n), True, True, 0)
+        self.add(mainvbox)
+        self.show_all()
 
-    maxwidth = 0
-    for child in self.vbox.get_children():
-      width, height = child.label.get_size_request()
-      maxwidth = max(maxwidth, width)
-    
-    for child in self.vbox.get_children():
-      child.label.set_size_request(maxwidth, -1)
+    def update(self, node, tree):
+        nodes = self.get_nodes(node, tree)
+        if not nodes:
+            self.destroy()
 
-    self.check_resize()
+        for n in nodes:
+            self.vbox.pack_start(self.control(n), True, True, 0)
 
-  def get_nodes(self, node, tree):
-   nodes = []
+        maxwidth = 0
+        for child in self.vbox.get_children():
+            width, height = child.label.get_size_request()
+            maxwidth = max(maxwidth, width)
 
-   for child in tree.get_children():
-     if child.active:
-       if child.name == node.name and child.is_sliceable():
-         nodes.append(child.get_mixed_data())
-       nodes += self.get_nodes(node, child)
-   
-   return nodes
+        for child in self.vbox.get_children():
+            child.label.set_size_request(maxwidth, -1)
 
-  def control(self, node):
-    hbox = gtk.HBox()
+        self.check_resize()
 
-    label = gtk.Label(node.get_name_path())
-    hbox.label = label
+    def get_nodes(self, node, tree):
+        nodes = []
 
-    data = datawidget.DataWidget()
-    data.geometry_dim_tree = self.geometry_dim_tree
-    data.connect("on-store", self.on_store)
-    data.set_buttons(self.databuttons)
-    data.update(node)
+        for child in tree.get_children():
+            if child.active:
+                if child.name == node.name and child.is_sliceable():
+                    nodes.append(child.get_mixed_data())
+                nodes += self.get_nodes(node, child)
 
-    attributes = attributewidget.AttributeWidget()
-    attributes.connect("on-store", self.on_store)
-    attributes.connect("update-name", self.update_name)
-    attributes.update(node)
+        return nodes
 
-    hbox.pack_start(label, True, True, 0)
-    hbox.pack_start(data, True, True, 0)
-    hbox.pack_start(attributes, True, True, 0)
-    
-    hbox.show_all()
+    def control(self, node):
+        hbox = gtk.HBox()
 
-    return hbox
+        label = gtk.Label(node.get_name_path())
+        hbox.label = label
 
-  def on_store(self, widget = None):
-    self.emit("on-store")
+        data = datawidget.DataWidget()
+        data.geometry_dim_tree = self.geometry_dim_tree
+        data.connect("on-store", self.on_store)
+        data.set_buttons(self.databuttons)
+        data.update(node)
 
-  def update_name(self, widget = None):
-    self.emit("update-name") 
+        attributes = attributewidget.AttributeWidget()
+        attributes.connect("on-store", self.on_store)
+        attributes.connect("update-name", self.update_name)
+        attributes.update(node)
+
+        hbox.pack_start(label, True, True, 0)
+        hbox.pack_start(data, True, True, 0)
+        hbox.pack_start(attributes, True, True, 0)
+
+        hbox.show_all()
+
+        return hbox
+
+    def on_store(self, widget=None):
+        self.emit("on-store")
+
+    def update_name(self, widget=None):
+        self.emit("update-name")
+
 
 gobject.type_register(SliceView)

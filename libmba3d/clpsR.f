@@ -54,7 +54,7 @@ C group (Q)
       Real*8  HesP(6, *), rQuality
       Real*8  detG(*), qE(*)
       Logical flagAnalytic
- 
+
       Integer  MetricFunction
       EXTERNAL MetricFunction
 
@@ -117,7 +117,7 @@ C ... add miscaleneous restrictions including missing algorithms
 C ... number of inverted elements (the code is missing)
       flagTM = ifXnode(status, ANITangledMesh)
       if(flagTM) Then
-         Goto 1000  
+         Goto 1000
 
 C        nBad = 0
 C        If(qEs(iE1).LE.0D0) nBad = nBad + 1
@@ -150,7 +150,7 @@ C ... finding a point in which we collapse the edge
             Call iniQ_analytic(1, XYPo, MetricFunction, HesPs)
          End if
 
- 
+
          Call calDet(HesPs, detGs)
 
       Else If(ifXnode(ICP1, jSnode) .AND. ICP2.EQ.jInode .OR.
@@ -188,7 +188,7 @@ C ...    changing order of points to be consistent with the previous case
          Goto 1000
       End if
 
- 
+
 C ... saving the initial superelement structure
       Call copySE(lFu, lEu, iFu, iEu, IPFu, IPEu, qEu,
      &            lF,  lE,  iFs, iEs, IPFs, IPEs, qEs)
@@ -197,8 +197,8 @@ C ... saving the initial superelement structure
 C ... making a virtual evaluation of the quality
       Do 10 n = 1, lE
          iE = iEs(n)
-         
-         If(check1j(iP1, IPE(1, iE)) .AND. 
+
+         If(check1j(iP1, IPE(1, iE)) .AND.
      &      check1j(iP2, IPE(1, iE))) Then
             iEs(n) = -iEs(n)
             Goto 10
@@ -227,22 +227,22 @@ C ... making a virtual evaluation of the quality
 c  ...  check orientation of neigboors
                iEt = IEE(i1, iE)
                If(iEt.GT.0) Then
-                  Call chkSOtet(iP1, iP2, iPa, iPb, XYPs, XYP, 
-     &                          IPE(1, iEt), v, flagOrient) 
+                  Call chkSOtet(iP1, iP2, iPa, iPb, XYPs, XYP,
+     &                          IPE(1, iEt), v, flagOrient)
                   If(.NOT.flagOrient) Goto 1000
                End if
 
                iEt = IEE(i3, iE)
                If(iEt.GT.0) Then
-                  Call chkSOtet(iP1, iP2, iPb, iPc, XYPs, XYP, 
-     &                          IPE(1, iEt), v, flagOrient) 
+                  Call chkSOtet(iP1, iP2, iPb, iPc, XYPs, XYP,
+     &                          IPE(1, iEt), v, flagOrient)
                   If(.NOT.flagOrient) Goto 1000
                End if
 
                iEt = IEE(i4, iE)
                If(iEt.GT.0) Then
-                  Call chkSOtet(iP1, iP2, iPc, iPa, XYPs, XYP, 
-     &                          IPE(1, iEt), v, flagOrient) 
+                  Call chkSOtet(iP1, iP2, iPc, iPa, XYPs, XYP,
+     &                          IPE(1, iEt), v, flagOrient)
                   If(.NOT.flagOrient) Goto 1000
                End if
 
@@ -272,7 +272,7 @@ C ... checking for boundary elements
 
 C ... checking for surrounding points (not ICP1 but ICP(iP1))
 c ... We need to study only pathes which were ending at iP2.
-c ... Thus, each boundary point connected to iP2 should have 
+c ... Thus, each boundary point connected to iP2 should have
 c ... another interior point neighboor.
       If(ifXnode(status, ANIUse2ArmRule)) Then
          If(ifXnode(ICP(iP1), jBnode) .AND. ICP(iP2).EQ.jInode) Then
@@ -332,12 +332,12 @@ C ... updating the grid
 
 
 C ================================================================
-      Subroutine chkSOtet(iP1, iP2, iPa, iPb, 
-     &                    XYPs, XYP, IPE, v1, flag) 
+      Subroutine chkSOtet(iP1, iP2, iPa, iPb,
+     &                    XYPs, XYP, IPE, v1, flag)
 C ================================================================
-C Routine checks orientation of {iP1, iPa, iPb, *} and IPE. 
+C Routine checks orientation of {iP1, iPa, iPb, *} and IPE.
 C
-C flag = .TRUE. if the tets are oriented correctly. 
+C flag = .TRUE. if the tets are oriented correctly.
 C flag = .TRUE. if the second tet has both iP1 and iP2
 C ================================================================
       Integer iP1, iP2, iPa, iPb, IPE(4)
@@ -352,13 +352,13 @@ C ================================================================
 
          If(.NOT.check13(iPt, iP1, iPa, iPb) .AND. iPt.NE.iP2) Then
             v2 = calVol(XYPs, XYP(1, iPa), XYP(1, iPb), XYP(1, iPt))
-            flag = (v1 * v2).LT.0D0 
+            flag = (v1 * v2).LT.0D0
             Goto 9000
          End if
       End do
 
       flag = .TRUE.
-      
+
  9000 Return
       End Subroutine chkSOtet
 C

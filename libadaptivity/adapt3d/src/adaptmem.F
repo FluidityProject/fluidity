@@ -1,25 +1,25 @@
 C Copyright (C) 2006 Imperial College London and others.
-C 
+C
 C Please see the AUTHORS file in the main source directory for a full list
 C of copyright holders.
-C 
+C
 C Adrian Umpleby
 C Applied Modelling and Computation Group
 C Department of Earth Science and Engineering
 C Imperial College London
-C 
+C
 C adrian@Imperial.ac.uk
-C 
+C
 C This library is free software; you can redistribute it and/or
 C modify it under the terms of the GNU Lesser General Public
 C License as published by the Free Software Foundation; either
 C version 2.1 of the License.
-C 
+C
 C This library is distributed in the hope that it will be useful,
 C but WITHOUT ANY WARRANTY; without even the implied warranty of
 C MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 C Lesser General Public License for more details.
-C 
+C
 C You should have received a copy of the GNU Lesser General Public
 C License along with this library; if not, write to the Free Software
 C Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -35,7 +35,7 @@ C> An error results in negative return values for SZRL and SZINT.
 C>
 C> Note that only the first three (NNOD,NELM,TOTFRE) can be passed down as
 C> a constant, since any of the others which are given non-positive values
-C> will be returned as a different value (as outlined below). 
+C> will be returned as a different value (as outlined below).
 C>
 C> If one of XPCTEL or XPCTND is not provided (i.e. <=0) then it is worked
 C> out based upon the ratio of NELM to NNOD in the current mesh (which may

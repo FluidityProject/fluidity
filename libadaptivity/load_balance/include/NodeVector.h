@@ -42,8 +42,8 @@
 
 #include "samtypes.h"
 
-// This describes the extra bits ans pieces that are required for the 
-// mixed formulation stuff. In particular, issues related to the 
+// This describes the extra bits ans pieces that are required for the
+// mixed formulation stuff. In particular, issues related to the
 // pressure nodes with in mixed formulation.
 
 template<class NodeType>
@@ -52,7 +52,7 @@ class NodeVector: public std::deque<NodeType>{
   NodeVector();
   NodeVector(const NodeVector&);
   ~NodeVector();
-  
+
   // Overloaded operators.
   NodeVector &operator=(const NodeVector<NodeType> &);
 #ifndef NDEBUG
@@ -78,7 +78,7 @@ class NodeVector: public std::deque<NodeType>{
  private:
   int MyRank;
   int init_flag;
-  
+
   bool complete_unn2gnn;
   bool complete_pcnt;
 
@@ -124,27 +124,27 @@ NodeVector<NodeType>& NodeVector<NodeType>::operator=(const NodeVector<NodeType>
   this->insert( (*this).end(), in.begin(), in.end() );
   complete_unn2gnn = in.complete_unn2gnn;
   complete_pcnt    = in.complete_pcnt;
-  
+
   if(complete_unn2gnn){
     unn2gnn = in.unn2gnn;
   }
-  
+
   return *this;
 }
 
 #ifndef NDEBUG
 template<class NodeType>
-NodeType& NodeVector<NodeType>::operator[](const unsigned i){  
+NodeType& NodeVector<NodeType>::operator[](const unsigned i){
   // don't forgive out of bounds referencing
-  assert(i<len); 
+  assert(i<len);
   return *(this->begin() + i);
 }
 
 template<class NodeType>
-const NodeType& NodeVector<NodeType>::operator[](const unsigned i) const{  
+const NodeType& NodeVector<NodeType>::operator[](const unsigned i) const{
   // don't forgive out of bounds referencing
-  assert(i<len); 
-  
+  assert(i<len);
+
   return *(this->begin() + i);
 }
 #endif
@@ -154,10 +154,10 @@ template<class NodeType>
 void NodeVector<NodeType>::push_back(const NodeType& node){
 #ifdef HAVE_MPI
   complete_unn2gnn = false;
-  
+
   // Add node.
   this->insert(this->end(), node);
-  
+
   // Update count
   len++;
   if(init_flag){
@@ -184,35 +184,35 @@ void NodeVector<NodeType>::expand(const unsigned newlen){
   made_edit();
 
   assert(newlen >= len);
-  
+
   this->resize( newlen );
   len = newlen;
-  
+
 }
 
 template<class NodeType>
 NodeType& NodeVector<NodeType>::unn(const unsigned in){
-  
+
   // If the LUT is incomplete, generate a new one before continuing.
   if(!complete_unn2gnn)
     refresh_unn2gnn();
-  
+
   // Locate the entry
   std::map<unsigned, unsigned>::const_iterator n = unn2gnn.find(in);
-  
+
   // If we cannot get a reference, try building a new map
   if(n == unn2gnn.end()){
     refresh_unn2gnn();
     n = unn2gnn.find(in);
-    
+
     if(n == unn2gnn.end()){
       assert(false);
     }
   }
-  
+
   // Return the node reference.
   return *(this->begin() + (*n).second);
-  
+
 }
 
 template<class NodeType>
@@ -230,7 +230,7 @@ template<class NodeType>
 unsigned NodeVector<NodeType>::psize(){
   if(!complete_pcnt)
     refresh_pcnt();
-  
+
   return plen;
 }
 
@@ -246,36 +246,36 @@ template<class NodeType>
 bool NodeVector<NodeType>::contains_unn(const unsigned unn){
   if(!complete_unn2gnn)
     refresh_unn2gnn();
-  
+
   return( unn2gnn.find(unn) != unn2gnn.end() );
 }
 
 template<class NodeType>
 void NodeVector<NodeType>::refresh_unn2gnn(){
-  
+
   unn2gnn.clear();
-  
+
   unsigned gnn = 0;
   for(typename NodeVector<NodeType>::iterator it = this->begin(); it != this->end(); ++it){
-    
-    // Get the 
+
+    // Get the
     unsigned _unn = (*it).get_unn();
-    
+
     // Re-set the gnn
     (*it).set_gnn( gnn );
 
     // Once again, we don't forgive mistakes;
     // duplicate entries are unacceptable.
     assert(unn2gnn.find(_unn) == unn2gnn.end());
-    
+
     // Set the map entry
     unn2gnn[ _unn ] = gnn;
-    
+
     gnn++;
   }
-  
+
   complete_unn2gnn = true;
-  
+
   return;
 }
 
@@ -293,5 +293,3 @@ void NodeVector<NodeType>::refresh_pcnt(){
 #endif
 }
 #endif
-
-

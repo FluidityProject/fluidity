@@ -21,7 +21,7 @@ subroutine test_pseudo_supermesh
   X_init = extract_vector_field(vtk_state, "Coordinate")
 
   call add_faces(X_init%mesh)
-  ! add_faces() replaces mesh%shape, so we need to swap out the mesh already 
+  ! add_faces() replaces mesh%shape, so we need to swap out the mesh already
   ! stored in state in order not to mess up the refcounts
   call insert(vtk_state, X_init%mesh, X_init%mesh%name)
 

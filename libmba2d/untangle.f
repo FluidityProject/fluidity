@@ -1,7 +1,7 @@
 C ================================================================
       Subroutine updQa(n, XYP, IPE, IEE, qE)
 C ================================================================
-C Initial quality modification for tangled elements and their 
+C Initial quality modification for tangled elements and their
 C edge-neighboors.
 C ================================================================
       real  XYP(2, *), qE(*)
@@ -124,7 +124,7 @@ C ================================================================
 C ================================================================
       Logical Function  chkTangled(lE, iEs, IPEs)
 C ================================================================
-C Local mesh modifications for tangled mesh may result is a 
+C Local mesh modifications for tangled mesh may result is a
 C topologically wrong mesh (chkTangled = TRUE).
 C ================================================================
       Integer iEs(*), IPEs(3, *)
@@ -145,7 +145,7 @@ c ...  more than two triangles with a common edge
        Do 20 n = 1, lE
           iEt = iEs(n)
           If(iEt.LE.0) goto 20
-          
+
           tEdge = 0
           Do i1 = 1, 3
              i2 = ip(i1 + 1)
@@ -165,19 +165,18 @@ c ...  more than two triangles with a common edge
                    jP2 = IPEs(j2, m)
                    If(check22(iP1, iP2, jP1, jP2)) nEdge = nEdge + 1
                 End do
- 10          Continue            
+ 10          Continue
              If(nEdge.GT.2) goto 1000
              tEdge = tEdge + nEdge
-          End do 
+          End do
 
 c  ...  no neighboors
           If(tEdge.EQ.0) goto 1000
  20    Continue
-       
+
 
 c ...  there is no topological defects
        chkTangled = .FALSE.
 
  1000  Return
        End
-

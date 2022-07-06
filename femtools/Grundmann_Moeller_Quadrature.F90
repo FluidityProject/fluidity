@@ -47,7 +47,7 @@ module grundmann_moeller_quadrature
   !
   !  Licensing:
   !
-  !    This code is distributed under the GNU LGPL license. 
+  !    This code is distributed under the GNU LGPL license.
   !
   !  Modified:
   !
@@ -145,7 +145,7 @@ module grundmann_moeller_quadrature
   !
   !  Licensing:
   !
-  !    This code is distributed under the GNU LGPL license. 
+  !    This code is distributed under the GNU LGPL license.
   !
   !  Modified:
   !
@@ -187,23 +187,23 @@ module grundmann_moeller_quadrature
 
     return
   end subroutine
-  
+
   subroutine gm_rule_set_sp(rule, dim_num, point_num, w, x)
     integer, intent(in) :: rule
     integer, intent(in) :: dim_num
     integer, intent(in) :: point_num
     real(kind = c_float), dimension(point_num), intent(out) :: w
     real(kind = c_float), dimension(dim_num, point_num), intent(out) :: x
-    
+
     real(kind = c_double), dimension(point_num) :: lw
     real(kind = c_double), dimension(dim_num, point_num) :: lx
-    
+
     call gm_rule_set(rule, dim_num, point_num, lw, lx)
     w = lw
     x = lx
-  
+
   end subroutine gm_rule_set_sp
-  
+
   subroutine gm_rule_set_orig ( rule, dim_num, point_num, w, x )
 
   !*****************************************************************************80
@@ -217,14 +217,14 @@ module grundmann_moeller_quadrature
   !    overflow.  Thanks to John Peterson for pointing out the problem on
   !    26 June 2008.
   !
-  !    This rule returns weights and abscissas of a Grundmann-Moeller 
+  !    This rule returns weights and abscissas of a Grundmann-Moeller
   !    quadrature rule for the DIM_NUM-dimensional unit simplex.
   !
   !    The dimension POINT_NUM can be determined by calling GM_RULE_SIZE.
   !
   !  Licensing:
   !
-  !    This code is distributed under the GNU LGPL license. 
+  !    This code is distributed under the GNU LGPL license.
   !
   !  Modified:
   !
@@ -237,7 +237,7 @@ module grundmann_moeller_quadrature
   !  Reference:
   !
   !    Axel Grundmann, Michael Moeller,
-  !    Invariant Integration Formulas for the N-Simplex 
+  !    Invariant Integration Formulas for the N-Simplex
   !    by Combinatorial Methods,
   !    SIAM Journal on Numerical Analysis,
   !    Volume 15, Number 2, April 1978, pages 282-290.
@@ -332,7 +332,7 @@ module grundmann_moeller_quadrature
         end if
 
       end do
-    
+
     end do
 
     return
@@ -349,14 +349,14 @@ module grundmann_moeller_quadrature
   !    application of the formula results in overflows and inaccuracies
   !    very quickly.
   !
-  !    This rule returns weights and abscissas of a Grundmann-Moeller 
+  !    This rule returns weights and abscissas of a Grundmann-Moeller
   !    quadrature rule for the DIM_NUM-dimensional unit simplex.
   !
   !    The dimension POINT_NUM can be determined by calling GM_RULE_SIZE.
   !
   !  Licensing:
   !
-  !    This code is distributed under the GNU LGPL license. 
+  !    This code is distributed under the GNU LGPL license.
   !
   !  Modified:
   !
@@ -369,7 +369,7 @@ module grundmann_moeller_quadrature
   !  Reference:
   !
   !    Axel Grundmann, Michael Moeller,
-  !    Invariant Integration Formulas for the N-Simplex 
+  !    Invariant Integration Formulas for the N-Simplex
   !    by Combinatorial Methods,
   !    SIAM Journal on Numerical Analysis,
   !    Volume 15, Number 2, April 1978, pages 282-290.
@@ -446,7 +446,7 @@ module grundmann_moeller_quadrature
         end if
 
       end do
-    
+
     end do
 
     return
@@ -463,12 +463,12 @@ module grundmann_moeller_quadrature
   !    with a GM rule of given index.
   !
   !    After calling this rule, the user can use the value of POINT_NUM to
-  !    allocate space for the weight vector as W(POINT_NUM) and the abscissa 
+  !    allocate space for the weight vector as W(POINT_NUM) and the abscissa
   !    vector as X(DIM_NUM,POINT_NUM), and then call GM_RULE_SET.
   !
   !  Licensing:
   !
-  !    This code is distributed under the GNU LGPL license. 
+  !    This code is distributed under the GNU LGPL license.
   !
   !  Modified:
   !
@@ -481,7 +481,7 @@ module grundmann_moeller_quadrature
   !  Reference:
   !
   !    Axel Grundmann, Michael Moeller,
-  !    Invariant Integration Formulas for the N-Simplex 
+  !    Invariant Integration Formulas for the N-Simplex
   !    by Combinatorial Methods,
   !    SIAM Journal on Numerical Analysis,
   !    Volume 15, Number 2, April 1978, pages 282-290.
@@ -526,7 +526,7 @@ module grundmann_moeller_quadrature
   !
   !  Licensing:
   !
-  !    This code is distributed under the GNU LGPL license. 
+  !    This code is distributed under the GNU LGPL license.
   !
   !  Modified:
   !
@@ -603,7 +603,7 @@ module grundmann_moeller_quadrature
   !
   !  Licensing:
   !
-  !    This code is distributed under the GNU LGPL license. 
+  !    This code is distributed under the GNU LGPL license.
   !
   !  Modified:
   !
@@ -643,7 +643,7 @@ module grundmann_moeller_quadrature
   !
   !  Licensing:
   !
-  !    This code is distributed under the GNU LGPL license. 
+  !    This code is distributed under the GNU LGPL license.
   !
   !  Modified:
   !
@@ -700,7 +700,7 @@ module grundmann_moeller_quadrature
   !
   !  Licensing:
   !
-  !    This code is distributed under the GNU LGPL license. 
+  !    This code is distributed under the GNU LGPL license.
   !
   !  Modified:
   !
@@ -745,7 +745,7 @@ module grundmann_moeller_quadrature
   !
   !  Licensing:
   !
-  !    This code is distributed under the GNU LGPL license. 
+  !    This code is distributed under the GNU LGPL license.
   !
   !  Modified:
   !
@@ -788,7 +788,7 @@ module grundmann_moeller_quadrature
   !
   !    Input, integer ( kind = 4 ) N, the number of entries in the vector.
   !
-  !    Input/output, integer ( kind = 4 ) SEED, the "seed" value, which 
+  !    Input/output, integer ( kind = 4 ) SEED, the "seed" value, which
   !    should NOT be 0.  On output, SEED has been updated.
   !
   !    Output, real ( kind = 8 ) R(N), the vector of pseudorandom values.
@@ -843,7 +843,7 @@ module grundmann_moeller_quadrature
   !
   !  Licensing:
   !
-  !    This code is distributed under the GNU LGPL license. 
+  !    This code is distributed under the GNU LGPL license.
   !
   !  Modified:
   !
@@ -905,7 +905,7 @@ module grundmann_moeller_quadrature
   !
   !  Licensing:
   !
-  !    This code is distributed under the GNU LGPL license. 
+  !    This code is distributed under the GNU LGPL license.
   !
   !  Modified:
   !
@@ -972,15 +972,15 @@ module grundmann_moeller_quadrature
   !
   !  Discussion:
   !
-  !    The interior of the unit DIM_NUM-dimensional simplex is the set of 
-  !    points X(1:DIM_NUM) such that each X(I) is nonnegative, and 
+  !    The interior of the unit DIM_NUM-dimensional simplex is the set of
+  !    points X(1:DIM_NUM) such that each X(I) is nonnegative, and
   !    sum(X(1:DIM_NUM)) <= 1.
   !
   !    This routine is valid for any spatial dimension DIM_NUM.
   !
   !  Licensing:
   !
-  !    This code is distributed under the GNU LGPL license. 
+  !    This code is distributed under the GNU LGPL license.
   !
   !  Modified:
   !
@@ -993,7 +993,7 @@ module grundmann_moeller_quadrature
   !  Reference:
   !
   !    Reuven Rubinstein,
-  !    Monte Carlo Optimization, Simulation, and Sensitivity 
+  !    Monte Carlo Optimization, Simulation, and Sensitivity
   !    of Queueing Networks,
   !    Krieger, 1992,
   !    ISBN: 0894647644,
@@ -1005,7 +1005,7 @@ module grundmann_moeller_quadrature
   !
   !    Input, integer ( kind = 4 ) POINT_NUM, the number of points.
   !
-  !    Input/output, integer ( kind = 4 ) SEED, a seed for the random 
+  !    Input/output, integer ( kind = 4 ) SEED, a seed for the random
   !    number generator.
   !
   !    Output, real ( kind = 8 ) X(DIM_NUM,POINT_NUM), the points.
@@ -1063,7 +1063,7 @@ module grundmann_moeller_quadrature
   !
   !  Licensing:
   !
-  !    This code is distributed under the GNU LGPL license. 
+  !    This code is distributed under the GNU LGPL license.
   !
   !  Modified:
   !
@@ -1080,12 +1080,12 @@ module grundmann_moeller_quadrature
   !    Input, integer ( kind = 4 ) POINT_NUM, the number of points to transform.
   !
   !    Input, real ( kind = 8 ) T(DIM_NUM,DIM_NUM+1), the vertices of the
-  !    general simplex.  
+  !    general simplex.
   !
-  !    Input, real ( kind = 8 ) REF(DIM_NUM,POINT_NUM), points in the 
+  !    Input, real ( kind = 8 ) REF(DIM_NUM,POINT_NUM), points in the
   !    reference triangle.
   !
-  !    Output, real ( kind = 8 ) PHY(DIM_NUM,POINT_NUM), corresponding points 
+  !    Output, real ( kind = 8 ) PHY(DIM_NUM,POINT_NUM), corresponding points
   !    in the physical triangle.
   !
     implicit none
@@ -1105,7 +1105,7 @@ module grundmann_moeller_quadrature
   !  direction, add that proportion of the difference between the images
   !  of the origin and the vertex.
   !
-    do dim = 1, dim_num 
+    do dim = 1, dim_num
 
       phy(dim,1:point_num) = t(dim,1)
 
@@ -1132,7 +1132,7 @@ module grundmann_moeller_quadrature
   !
   !  Licensing:
   !
-  !    This code is distributed under the GNU LGPL license. 
+  !    This code is distributed under the GNU LGPL license.
   !
   !  Modified:
   !
@@ -1173,7 +1173,7 @@ module grundmann_moeller_quadrature
   !
   !  Licensing:
   !
-  !    This code is distributed under the GNU LGPL license. 
+  !    This code is distributed under the GNU LGPL license.
   !
   !  Modified:
   !

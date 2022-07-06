@@ -20,7 +20,7 @@ subroutine test_integer_hash_table
   do i=4,6
     fail = (fetch(ihash, i) /= i*10)
     call report_test("[fetch]", fail, .false., "Should give i*10")
-  end do 
+  end do
 
   fail = has_key(ihash, 99)
   call report_test("[integer_hash_table_has_value]", fail, .false., "Should be .false.!")
