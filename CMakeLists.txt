@@ -100,8 +100,10 @@ if(TCMALLOC_FOUND)
 endif()
 
 # Check for UDUNITS
-pkg_search_module(UDUNITS REQUIRED udunits)
-message(STATUS "Found UDUNITS ${UDUNITS_VERSION}")
+pkg_search_module(UDUNITS QUIET udunits)
+if(UDUNITS_FOUND)
+  message(STATUS "Found UDUNITS ${UDUNITS_VERSION}")
+endif()
 
 # Check for libsupermesh
 pkg_search_module(LIBSUPERMESH QUIET libsupermesh)
@@ -156,11 +158,16 @@ set_target_properties(Judy
 )
 
 # Add Zoltan
+set(ZOLTAN_CONFIGURE "../libzoltan/configure --enable-f90interface --with-gnumake --with-scotch --with-parmetis")
 if(${CMAKE_C_COMPILER_VERSION} GREATER_EQUAL 10)
-  set(ZOLTAN_CONFIGURE ../libzoltan/configure FCFLAGS=-fallow-argument-mismatch --enable-f90interface --with-gnumake --with-scotch --with-scotch-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-scotch-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib --with-parmetis --with-parmetis-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-parmetis-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib)
-else()
-  set(ZOLTAN_CONFIGURE ../libzoltan/configure --enable-f90interface --with-gnumake --with-scotch --with-scotch-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-scotch-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib --with-parmetis --with-parmetis-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-parmetis-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib)
+  string(APPEND ZOLTAN_CONFIGURE " FCFLAGS=-fallow-argument-mismatch")
 endif()
+if(DEFINED ENV{PETSC_ARCH})
+  string(APPEND ZOLTAN_CONFIGURE " --with-scotch-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-scotch-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib --with-parmetis-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-parmetis-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib")
+  else()
+  string(APPEND ZOLTAN_CONFIGURE " --with-scotch-incdir=$ENV{PETSC_DIR}/include --with-scotch-libdir=$ENV{PETSC_DIR}/lib --with-parmetis-incdir=$ENV{PETSC_DIR}/include --with-parmetis-libdir=$ENV{PETSC_DIR}/lib")
+endif()
+separate_arguments(ZOLTAN_CONFIGURE UNIX_COMMAND ${ZOLTAN_CONFIGURE})
 ExternalProject_Add(libzoltan
   PREFIX Zoltan
   GIT_REPOSITORY https://github.com/sandialabs/Zoltan
@@ -329,8 +336,8 @@ target_compile_definitions(fluidity PUBLIC
   $<$<BOOL:${EXODUSII_LIBRARY}>:HAVE_LIBEXOIIV2C>
   HAVE_LIBNETCDF
   $<$<BOOL:${LIBSUPERMESH_FOUND}>:HAVE_LIBSUPERMESH>
-  $<$<BOOL:${LIBTCMALLOC_FOUND}>:HAVE_LIBTCMALLOC>
-  HAVE_LIBUDUNITS
+  $<$<BOOL:${TCMALLOC_FOUND}>:HAVE_LIBTCMALLOC>
+  $<$<BOOL:${UDUNITS_FOUND}>:HAVE_LIBUDUNITS>
   HAVE_MEMORY_STATS
   HAVE_MBA_2D
   # HAVE_MBA_3D
@@ -385,7 +392,7 @@ target_link_libraries(fluidity
   # ${ARPACK_STATIC_LDFLAGS}
   ${NETCDF_STATIC_LDFLAGS}
   $<$<BOOL:${TCMALLOC_STATIC_LDFLAGS}>:${TCMALLOC_STATIC_LDFLAGS}>
-  ${UDUNITS_STATIC_LDFLAGS}
+  $<$<BOOL:${UDUNITS_STATIC_LDFLAGS}>:${UDUNITS_STATIC_LDFLAGS}>
   $<$<BOOL:${LIBSUPERMESH_STATIC_LDFLAGS}>:${LIBSUPERMESH_STATIC_LDFLAGS}>
 
   $<$<BOOL:${EXODUSII_LIBRARY}>:${EXODUSII_LIBRARY}>
