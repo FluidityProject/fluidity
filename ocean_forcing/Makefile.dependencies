@@ -71,3 +71,4 @@ load_netcdf.o ../include/load_netcdf_module.mod: load_netcdf.F90 \
    ../include/coordinates.mod ../include/fdebug.h ../include/field_options.mod \
    ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod
+

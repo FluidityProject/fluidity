@@ -143,3 +143,4 @@ Tidal_Diagnostics.o ../include/tidal_diagnostics.mod: Tidal_Diagnostics.F90 \
    ../include/initialise_fields_module.mod ../include/state_fields_module.mod \
    ../include/state_module.mod ../include/tidal_module.mod \
    ../include/vector_tools.mod ../include/write_state_module.mod
+

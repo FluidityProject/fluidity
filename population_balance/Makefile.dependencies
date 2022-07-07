@@ -9,3 +9,4 @@ DQMOM.o ../include/dqmom.mod: DQMOM.F90 ../include/elements.mod \
    ../include/solvers.mod ../include/sparse_tools.mod \
    ../include/state_fields_module.mod ../include/state_module.mod \
    ../include/vector_tools.mod
+

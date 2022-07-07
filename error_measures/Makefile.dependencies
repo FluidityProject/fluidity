@@ -280,3 +280,4 @@ Richardson_metric.o ../include/richardson_metric_module.mod: \
    ../include/merge_tensors.mod ../include/metric_tools.mod \
    ../include/state_module.mod ../include/unittest_tools.mod \
    ../include/vector_tools.mod
+
