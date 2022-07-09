@@ -91,11 +91,11 @@
         </initial_position>
         <attributes>
           <scalar_attribute name="TempFlag">
-            <value_on_spawn>
+            <value_on_initialisation>
               <constant>
                 <real_value rank="0">0</real_value>
               </constant>
-            </value_on_spawn>
+            </value_on_initialisation>
             <value_on_advection>
               <python_fields>
                 <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):

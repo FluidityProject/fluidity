@@ -1122,8 +1122,11 @@ contains
           ! single-valued attribute
           attr_key = trim(subgroup_path) // '/attributes/scalar_attribute['//int2str(i_single-1)//']'
           i_single = i_single + 1
-          if (have_option(trim(attr_key)//'/constant')) then
-             call get_option(trim(attr_key)//'/constant', constant)
+          if (have_option(trim(attr_key)//'/value_on_initialisation/constant')) then
+             call get_option(trim(attr_key)//'/value_on_initialisation/constant', constant)
+             attribute_array(attr_idx:attr_idx,:) = constant
+          else if (have_option(trim(attr_key)//'/value_on_advection/constant')) then
+             call get_option(trim(attr_key)//'/value_on_advection/constant', constant)
              attribute_array(attr_idx:attr_idx,:) = constant
           end if
           attr_idx = attr_idx + 1
@@ -1138,8 +1141,12 @@ contains
           ! single-valued attribute
           attr_key = trim(subgroup_path) // '/attributes/vector_attribute['//int2str(i_single-1)//']'
           i_single = i_single + 1
-          if (have_option(trim(attr_key)//'/constant')) then
-             call get_option(trim(attr_key)//'/constant', vconstant)
+          if (have_option(trim(attr_key)//'/value_on_initialisation/constant')) then
+             call get_option(trim(attr_key)//'/value_on_initialisation/constant', vconstant)
+             ! broadcast vector constant out to all particles
+             attribute_array(attr_idx:attr_idx+dim-1,:) = spread(vconstant, 2, nparticles)
+          else if (have_option(trim(attr_key)//'/value_on_advection/constant')) then
+             call get_option(trim(attr_key)//'/value_on_advection/constant', vconstant)
              ! broadcast vector constant out to all particles
              attribute_array(attr_idx:attr_idx+dim-1,:) = spread(vconstant, 2, nparticles)
           end if
@@ -1155,8 +1162,12 @@ contains
           ! single-valued attribute
           attr_key = trim(subgroup_path) // '/attributes/tensor_attribute['//int2str(i_single-1)//']'
           i_single = i_single + 1
-          if (have_option(trim(attr_key)//'/constant')) then
-             call get_option(trim(attr_key)//'/constant', tconstant)
+          if (have_option(trim(attr_key)//'/value_on_initialisation/constant')) then
+             call get_option(trim(attr_key)//'/value_on_initialisation/constant', tconstant)
+             ! flatten tensor, then broadcast out to all particles
+             attribute_array(attr_idx:attr_idx+dim**2-1,:) = spread(reshape(tconstant, [dim**2]), 2, nparticles)
+          else if (have_option(trim(attr_key)//'/value_on_advection/constant')) then
+             call get_option(trim(attr_key)//'/value_on_advection/constant', tconstant)
              ! flatten tensor, then broadcast out to all particles
              attribute_array(attr_idx:attr_idx+dim**2-1,:) = spread(reshape(tconstant, [dim**2]), 2, nparticles)
           end if
@@ -1447,8 +1458,8 @@ contains
         is_array = .true.
       end if
 
-      if (initial .and. have_option(trim(attr_key)//'/value_on_spawn')) then
-        value_attr_str = "/value_on_spawn"
+      if (initial .and. have_option(trim(attr_key)//'/value_on_initialisation')) then
+        value_attr_str = "/value_on_initialisation"
       else
         value_attr_str = "/value_on_advection"
       end if
@@ -1494,6 +1505,12 @@ contains
         is_array = .true.
       end if
 
+      if (initial .and. have_option(trim(attr_key)//'/value_on_initialisation')) then
+        value_attr_str = "/value_on_initialisation"
+      else
+        value_attr_str = "/value_on_advection"
+      end if
+
       if (have_option(trim(attr_key)//trim(value_attr_str)//'/constant')) then
         call get_option(trim(attr_key)//trim(value_attr_str)//'/constant', vconstant)
         ! broadcast vector constant out to all particles
@@ -1534,6 +1551,12 @@ contains
         attr_key = trim(subgroup_path) // '/attributes/tensor_attribute_array['//int2str(i_array-1)//']'
         i_array = i_array + 1
         is_array = .true.
+      end if
+
+      if (initial .and. have_option(trim(attr_key)//'/value_on_initialisation')) then
+        value_attr_str = "/value_on_initialisation"
+      else
+        value_attr_str = "/value_on_advection"
       end if
 
       if (have_option(trim(attr_key)//trim(value_attr_str)//'/constant')) then
@@ -2171,33 +2194,33 @@ contains
        FLAbort("Failed to set particles options filename when checkpointing particles with option path " // "/particles/particle_array::" // trim(temp_string))
     end if
 
-    do j = 1, tot_atts
-      particles_s = have_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/scalar_attribute["//int2str(j-1)//"]/constant")
-      particles_v = have_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/vector_attribute["//int2str(j-1)//"]/constant")
-      particles_t = have_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/tensor_attribute["//int2str(j-1)//"]/constant")
-      if (particles_s) then
-        call delete_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/scalar_attribute["//int2str(j-1)//"]/constant")
-        call set_option_attribute(trim(subgroup_path_name) // trim(temp_string) // "/attributes/scalar_attribute["//int2str(j-1)// &
-             "]/from_checkpoint_file/file_name", trim(filename) // "." // trim(temp_string), stat)
-          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-             FLAbort("Failed to set scalar field particles filename when checkpointing")
-          end if
-       else if (particles_v) then
-          call delete_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/vector_attribute["//int2str(j-1)//"]/constant")
-          call set_option_attribute(trim(subgroup_path_name) // trim(temp_string) // "/attributes/vector_attribute["//int2str(j-1)// &
-               "]/from_checkpoint_file/file_name", trim(filename) // "." // trim(temp_string), stat)
-          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-             FLAbort("Failed to set vector field particles filename when checkpointing")
-          end if
-       else if (particles_t) then
-          call delete_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/tensor_attribute["//int2str(j-1)//"]/constant")
-          call set_option_attribute(trim(subgroup_path_name) // trim(temp_string) // "/attributes/tensor_attribute["//int2str(j-1)// &
-               "]/from_checkpoint_file/file_name", trim(filename) // "." // trim(temp_string), stat)
-          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-             FLAbort("Failed to set tensor field particles filename when checkpointing")
-          end if
-       end if
-    end do
+    ! do j = 1, tot_atts
+    !   particles_s = have_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/scalar_attribute["//int2str(j-1)//"]/constant")
+    !   particles_v = have_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/vector_attribute["//int2str(j-1)//"]/constant")
+    !   particles_t = have_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/tensor_attribute["//int2str(j-1)//"]/constant")
+    !   if (particles_s) then
+    !     call delete_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/scalar_attribute["//int2str(j-1)//"]/constant")
+    !     call set_option_attribute(trim(subgroup_path_name) // trim(temp_string) // "/attributes/scalar_attribute["//int2str(j-1)// &
+    !          "]/from_checkpoint_file/file_name", trim(filename) // "." // trim(temp_string), stat)
+    !       if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
+    !          FLAbort("Failed to set scalar field particles filename when checkpointing")
+    !       end if
+    !    else if (particles_v) then
+    !       call delete_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/vector_attribute["//int2str(j-1)//"]/constant")
+    !       call set_option_attribute(trim(subgroup_path_name) // trim(temp_string) // "/attributes/vector_attribute["//int2str(j-1)// &
+    !            "]/from_checkpoint_file/file_name", trim(filename) // "." // trim(temp_string), stat)
+    !       if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
+    !          FLAbort("Failed to set vector field particles filename when checkpointing")
+    !       end if
+    !    else if (particles_t) then
+    !       call delete_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/tensor_attribute["//int2str(j-1)//"]/constant")
+    !       call set_option_attribute(trim(subgroup_path_name) // trim(temp_string) // "/attributes/tensor_attribute["//int2str(j-1)// &
+    !            "]/from_checkpoint_file/file_name", trim(filename) // "." // trim(temp_string), stat)
+    !       if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
+    !          FLAbort("Failed to set tensor field particles filename when checkpointing")
+    !       end if
+    !    end if
+    ! end do
 
   end subroutine update_particle_subgroup_options
 

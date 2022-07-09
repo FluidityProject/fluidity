@@ -537,7 +537,7 @@ This function will only be called after simulation start. To initialise starting
                                 </element>
                               </optional>
                               <optional>
-                                <element name="value_on_spawn">
+                                <element name="value_on_initialisation">
                                   <a:documentation>Attribute value on particle spawn (at the beginning of, or during the simulation)</a:documentation>
                                   <ref name="generic_scalar_particle_attribute_choice"/>
                                 </element>
@@ -562,7 +562,7 @@ This function will only be called after simulation start. To initialise starting
                                 </element>
                               </optional>
                               <optional>
-                                <element name="value_on_spawn">
+                                <element name="value_on_initialisation">
                                   <a:documentation>Attribute value on particle spawn (at the beginning of, or during the simulation)</a:documentation>
                                   <ref name="generic_scalar_particle_attribute_array"/>
                                 </element>
@@ -584,7 +584,7 @@ This function will only be called after simulation start. To initialise starting
                                 </element>
                               </optional>
                               <optional>
-                                <element name="value_on_spawn">
+                                <element name="value_on_initialisation">
                                   <a:documentation>Attribute value on particle spawn (at the beginning of, or during the simulation)</a:documentation>
                                   <ref name="generic_vector_particle_attribute_choice"/>
                                 </element>
@@ -609,7 +609,7 @@ This function will only be called after simulation start. To initialise starting
                                 </element>
                               </optional>
                               <optional>
-                                <element name="value_on_spawn">
+                                <element name="value_on_initialisation">
                                   <a:documentation>Attribute value on particle spawn (at the beginning of, or during the simulation)</a:documentation>
                                   <ref name="generic_vector_particle_attribute_array"/>
                                 </element>
@@ -631,7 +631,7 @@ This function will only be called after simulation start. To initialise starting
                                 </element>
                               </optional>
                               <optional>
-                                <element name="value_on_spawn">
+                                <element name="value_on_initialisation">
                                   <a:documentation>Attribute value on particle spawn (at the beginning of, or during the simulation)</a:documentation>
                                   <ref name="generic_tensor_particle_attribute_choice"/>
                                 </element>
@@ -656,7 +656,7 @@ This function will only be called after simulation start. To initialise starting
                                 </element>
                               </optional>
                               <optional>
-                                <element name="value_on_spawn">
+                                <element name="value_on_initialisation">
                                   <a:documentation>Attribute value on particle spawn (at the beginning of, or during the simulation)</a:documentation>
                                   <ref name="generic_tensor_particle_attribute_array"/>
                                 </element>
@@ -4999,7 +4999,7 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <optional>
           <element name="store_old_attribute">
             <a:documentation>Store attribute values from previous timestep on particles.
-Irrelevant for "value_on_spawn".</a:documentation>
+Irrelevant for "value_on_initialisation".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
@@ -5053,7 +5053,7 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <optional>
           <element name="store_old_attribute">
             <a:documentation>Store attribute values from previous timestep on particles.
-Irrelevant for "value_on_spawn".</a:documentation>
+Irrelevant for "value_on_initialisation".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
@@ -5116,7 +5116,7 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <optional>
           <element name="store_old_attribute">
             <a:documentation>Store attribute values from previous timestep on particles.
-Irrelevant for "value_on_spawn".</a:documentation>
+Irrelevant for "value_on_initialisation".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
@@ -5178,7 +5178,7 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <optional>
           <element name="store_old_attribute">
             <a:documentation>Store attribute values from previous timestep on particles.
-Irrelevant for "value_on_spawn".</a:documentation>
+Irrelevant for "value_on_initialisation".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
@@ -5236,7 +5236,7 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <optional>
           <element name="store_old_attribute">
             <a:documentation>Store attribute values from previous timestep on particles.
-Irrelevant for "value_on_spawn".</a:documentation>
+Irrelevant for "value_on_initialisation".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
@@ -5303,7 +5303,7 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <optional>
           <element name="store_old_attribute">
             <a:documentation>Store attribute values from previous timestep on particles.
-Irrelevant for "value_on_spawn".</a:documentation>
+Irrelevant for "value_on_initialisation".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
