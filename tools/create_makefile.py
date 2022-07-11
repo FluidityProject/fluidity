@@ -197,6 +197,10 @@ def generate_dependencies(fortran):
     for f in sorted(dependencies.keys()):
         dep_strings += dependencies[f].as_strings()
 
+    if dependencies:
+        # strip the final \n
+        dep_strings = dep_strings[:-1]
+
     return dep_strings
 
 
