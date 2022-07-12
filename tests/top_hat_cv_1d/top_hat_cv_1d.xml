@@ -33,11 +33,11 @@ s = fluidity_tools.stat_parser("top_hat_cv.stat")
 t_integrals = s["Fluid"]["Tracer"]["integral"]
     </variable>
     <variable name="initial_vtu" language="python">
-import fluidity.diagnostics.vtutools as vtktools
+import vtktools
 initial_vtu = vtktools.vtu("top_hat_cv_0.vtu")
     </variable>
     <variable name="final_vtu" language="python">
-import fluidity.diagnostics.vtutools as vtktools
+import vtktools
 final_vtu = vtktools.vtu("top_hat_cv_80.vtu")
     </variable>
   </variables>

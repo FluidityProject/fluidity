@@ -47,19 +47,19 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
     <variable name="p1p1_0" language="python">
 import fluidity.diagnostics.fluiditytools as fluidity_tools
-import fluidity.diagnostics.vtutools as vtktools
+import vtktools
 
 p1p1_0 = vtktools.vtu(fluidity_tools.FindFinalVtu("sc_barotropic_fplane_balance_p1p1_0"))
     </variable>
     <variable name="p1p1_1" language="python">
 import fluidity.diagnostics.fluiditytools as fluidity_tools
-import fluidity.diagnostics.vtutools as vtktools
+import vtktools
 
 p1p1_1 = vtktools.vtu(fluidity_tools.FindFinalVtu("sc_barotropic_fplane_balance_p1p1_1"))
     </variable>
     <variable name="p1p1gp2_1" language="python">
 import fluidity.diagnostics.fluiditytools as fluidity_tools
-import fluidity.diagnostics.vtutools as vtktools
+import vtktools
 
 p1p1gp2_1 = vtktools.vtu(fluidity_tools.FindFinalVtu("sc_barotropic_fplane_balance_p1p1gp2_1"))
     </variable>
@@ -97,7 +97,7 @@ import numpy
 
 import fluidity.diagnostics.calc as calc
 import fluidity.diagnostics.fluiditytools as fluidity_tools
-import fluidity.diagnostics.vtutools as vtktools
+import vtktools
 
 vel = p1p1_0.GetVectorField("Velocity")
 vmag = [calc.L2Norm(val) for val in vel]
