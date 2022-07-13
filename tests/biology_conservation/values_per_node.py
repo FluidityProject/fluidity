@@ -5,10 +5,7 @@ import sys
 from math import sqrt
 
 import vtktools
-from numpy import arange
-from numpy import argsort
-from numpy import array
-from numpy import concatenate
+from numpy import arange, argsort, array, concatenate
 
 
 def values_per_node(file):

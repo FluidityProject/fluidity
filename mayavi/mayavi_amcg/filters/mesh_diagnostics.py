@@ -5,15 +5,8 @@
 from enthought.mayavi.core.dataset_manager import DatasetManager
 from enthought.mayavi.core.filter import Filter
 from enthought.mayavi.core.traits import DEnum
-from enthought.traits.api import Bool
-from enthought.traits.api import Enum
-from enthought.traits.api import Float
-from enthought.traits.api import Instance
-from enthought.traits.api import Tuple
-from enthought.traits.ui.api import Group
-from enthought.traits.ui.api import Item
-from enthought.traits.ui.api import TupleEditor
-from enthought.traits.ui.api import View
+from enthought.traits.api import Bool, Enum, Float, Instance, Tuple
+from enthought.traits.ui.api import Group, Item, TupleEditor, View
 from enthought.tvtk.api import tvtk
 from numpy import array
 from sets import Set

@@ -2,16 +2,7 @@
 import sys
 
 import vtktools
-from numpy import abs
-from numpy import amax
-from numpy import array
-from numpy import exp
-from numpy import max
-from numpy import pi
-from numpy import sin
-from numpy import size
-from numpy import sqrt
-from numpy import zeros
+from numpy import abs, amax, array, exp, max, pi, sin, size, sqrt, zeros
 
 
 def tetvol(X, Y, Z):

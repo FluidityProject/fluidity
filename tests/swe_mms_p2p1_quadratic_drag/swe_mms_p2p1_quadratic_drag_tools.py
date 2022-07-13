@@ -1,8 +1,4 @@
-from math import cos
-from math import pi
-from math import sin
-from math import sqrt
-from math import tanh
+from math import cos, pi, sin, sqrt, tanh
 
 
 def u(x):

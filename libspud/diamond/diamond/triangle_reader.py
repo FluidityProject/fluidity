@@ -1,22 +1,15 @@
 # Author: Daryl Harrison
 # Enthought library imports.
 from os import path
-from re import compile
-from re import MULTILINE
+from re import MULTILINE, compile
 
 from enthought.mayavi.core.file_data_source import FileDataSource
 from enthought.mayavi.core.pipeline_info import PipelineInfo
 from enthought.mayavi.core.traits import DEnum
-from enthought.traits.api import Instance
-from enthought.traits.api import Int
-from enthought.traits.api import List
-from enthought.traits.api import String
-from enthought.traits.ui.api import Item
-from enthought.traits.ui.api import View
+from enthought.traits.api import Instance, Int, List, String
+from enthought.traits.ui.api import Item, View
 from enthought.tvtk.api import tvtk
-from numpy import append
-from numpy import array
-from numpy import fromstring
+from numpy import append, array, fromstring
 
 # Local imports.
 

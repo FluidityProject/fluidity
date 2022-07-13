@@ -11,14 +11,8 @@ from enthought.mayavi.components.implicit_plane import ImplicitPlane
 from enthought.mayavi.core.common import error
 from enthought.mayavi.core.pipeline_info import PipelineInfo
 from enthought.mayavi.filters.filter_base import FilterBase
-from enthought.traits.api import Button
-from enthought.traits.api import Instance
-from enthought.traits.api import Int
-from enthought.traits.api import Trait
-from enthought.traits.api import TraitMap
-from enthought.traits.ui.api import Group
-from enthought.traits.ui.api import Item
-from enthought.traits.ui.api import View
+from enthought.traits.api import Button, Instance, Int, Trait, TraitMap
+from enthought.traits.ui.api import Group, Item, View
 from enthought.tvtk.api import tvtk
 
 # Local imports

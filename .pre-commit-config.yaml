@@ -19,11 +19,17 @@ repos:
     rev: 22.6.0
     hooks:
     -   id: black
--   repo: https://github.com/asottile/reorder_python_imports
-    rev: v3.3.0
+-   repo: https://github.com/PyCQA/isort
+    rev: 5.10.1
     hooks:
-    -   id: reorder-python-imports
+    -   id: isort
+        args: ["--profile", "black", "--filter-files"]
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.34.0
+    rev: v2.37.1
     hooks:
     -   id: pyupgrade
+-   repo: https://github.com/PyCQA/flake8
+    rev: 4.0.1
+    hooks:
+    -   id: flake8
+        args: ["--max-line-length", "88", "--extend-ignore", "E203,E722"]

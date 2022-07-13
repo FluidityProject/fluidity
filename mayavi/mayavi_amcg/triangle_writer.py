@@ -3,9 +3,7 @@
 # Local imports.
 from os import path
 
-from enthought.traits.api import HasTraits
-from enthought.traits.api import Instance
-from enthought.traits.api import String
+from enthought.traits.api import HasTraits, Instance, String
 from enthought.tvtk.api import tvtk
 
 

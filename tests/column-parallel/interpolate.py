@@ -2,10 +2,7 @@
 import sys
 
 import numpy
-from numpy import argsort
-from numpy import array
-from numpy import corrcoef
-from numpy import size
+from numpy import argsort, array, corrcoef, size
 
 
 def main():

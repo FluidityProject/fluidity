@@ -1,11 +1,6 @@
 import math
 
-from numpy import cos
-from numpy import exp
-from numpy import linspace
-from numpy import pi
-from numpy import poly1d
-from numpy import sin
+from numpy import cos, exp, linspace, pi, poly1d, sin
 from scipy.special import erf
 
 

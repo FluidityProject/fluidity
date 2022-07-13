@@ -1,6 +1,5 @@
 # Plots the drag coefficient against the particle Reynolds number.
-from math import pi
-from math import sqrt
+from math import pi, sqrt
 
 import pylab
 from fluidity_tools import stat_parser

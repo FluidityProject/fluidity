@@ -20,11 +20,7 @@ import sys
 
 from lxml import etree
 
-from . import choice
-from . import debug
-from . import plist
-from . import preprocess
-from . import tree
+from . import choice, debug, plist, preprocess, tree
 
 
 def memoise(f):

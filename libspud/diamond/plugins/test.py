@@ -1,5 +1,4 @@
-from diamond.plugins import cb_decorator
-from diamond.plugins import register_plugin
+from diamond.plugins import cb_decorator, register_plugin
 
 
 def plugin_applies(xpath):

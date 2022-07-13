@@ -2,23 +2,23 @@
 import os
 import re
 import string
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import vtktools
-from numpy import argsort
-from numpy import size
-from pylab import arange
-from pylab import close
-from pylab import cm
-from pylab import colorbar
-from pylab import date2num
-from pylab import figure
-from pylab import legend
-from pylab import mpl
-from pylab import savefig
-from pylab import xlabel
-from pylab import ylabel
+from numpy import argsort, size
+from pylab import (
+    arange,
+    close,
+    cm,
+    colorbar,
+    date2num,
+    figure,
+    legend,
+    mpl,
+    savefig,
+    xlabel,
+    ylabel,
+)
 
 
 #### taken from http://www.codinghorror.com/blog/archives/001018.html    #######

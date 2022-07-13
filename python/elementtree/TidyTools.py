@@ -24,8 +24,7 @@ import os
 import string
 import sys
 
-from ElementTree import Element
-from ElementTree import ElementTree
+from ElementTree import Element, ElementTree
 
 NS_XHTML = "{http://www.w3.org/1999/xhtml}"
 

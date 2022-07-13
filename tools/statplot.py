@@ -12,12 +12,12 @@ import numpy  # noqa: E402
 from gi.repository import Gdk, Gtk  # noqa: E402
 from lxml import etree  # noqa: E402
 from matplotlib import rc  # noqa: E402
-from matplotlib.backends.backend_gtk3 import (
+from matplotlib.backends.backend_gtk3 import (  # noqa: E402
     NavigationToolbar2GTK3 as NavigationToolbar,
-)  # noqa: E402
-from matplotlib.backends.backend_gtk3agg import (
+)
+from matplotlib.backends.backend_gtk3agg import (  # noqa: E402
     FigureCanvasGTK3Agg as FigureCanvas,
-)  # noqa: E402
+)
 from matplotlib.figure import Figure  # noqa: E402
 
 rc("text", usetex=False)

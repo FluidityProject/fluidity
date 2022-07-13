@@ -6,8 +6,7 @@
 """
 import os
 import sys
-from math import fabs
-from math import sqrt
+from math import fabs, sqrt
 
 import numpy
 import pylab

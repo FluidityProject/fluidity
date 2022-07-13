@@ -5,8 +5,7 @@ import fluidity.diagnostics.gmshtools as gmshtools
 import numpy
 from fluidity.diagnostics.elements import Element
 from fluidity.diagnostics.meshes import Mesh
-from polyhedra import icosahedron
-from polyhedra import subdivide
+from polyhedra import icosahedron, subdivide
 
 optparser = OptionParser(
     usage="usage: %prog <filename> <radius> <subdivisions>",

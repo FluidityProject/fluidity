@@ -1,5 +1,4 @@
-from math import exp
-from math import pi
+from math import exp, pi
 
 # prognostic variable
 

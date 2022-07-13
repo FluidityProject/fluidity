@@ -18,10 +18,7 @@ from gi.repository import Gtk as gtk
 from gi.repository import GtkSource as gtksource
 from gi.repository import Pango as pango
 
-from . import datatype
-from . import dialogs
-from . import mixedtree
-from . import plist
+from . import datatype, dialogs, mixedtree, plist
 
 
 class DataWidget(gtk.VBox):

@@ -1,5 +1,4 @@
-from math import cos
-from math import pi
+from math import cos, pi
 
 from pylab import *
 from scipy import *

@@ -23,8 +23,7 @@ import zlib
 from gi.repository import GObject as gobject
 from lxml import etree
 
-from . import debug
-from . import mixedtree
+from . import debug, mixedtree
 
 
 class Tree(gobject.GObject):
@@ -203,9 +202,9 @@ class Tree(gobject.GObject):
         return new_copy
 
     def recompute_validity(self):
-        from . import (
+        from . import (  # try to get around circular import (in interface.py) by importing here
             choice,
-        )  # try to get around circular import (in interface.py) by importing here
+        )
 
         new_valid = True
 
@@ -377,9 +376,9 @@ class Tree(gobject.GObject):
         return new_tree
 
     def print_recursively(self, indent=""):
-        from . import (
+        from . import (  # try to get around circular import (in interface.py) by importing here
             choice,
-        )  # try to get around circular import (in interface.py) by importing here
+        )
 
         s = self.__str__()
         debug.dprint(

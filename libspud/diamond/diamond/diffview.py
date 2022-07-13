@@ -23,10 +23,7 @@ from gi.repository import GObject as gobject
 from gi.repository import Gtk as gtk
 from lxml import etree
 
-from . import attributewidget
-from . import databuttonswidget
-from . import datawidget
-from . import mixedtree
+from . import attributewidget, databuttonswidget, datawidget, mixedtree
 from .config import config
 
 

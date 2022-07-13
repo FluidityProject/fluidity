@@ -4,8 +4,7 @@ import fileinput
 import math
 import os
 import re
-from xml.dom.minidom import Document
-from xml.dom.minidom import parseString
+from xml.dom.minidom import Document, parseString
 
 import numpy
 

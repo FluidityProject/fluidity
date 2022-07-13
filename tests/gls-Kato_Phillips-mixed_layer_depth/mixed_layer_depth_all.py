@@ -7,10 +7,7 @@ import sys
 
 import vtktools
 from matplotlib.ticker import MaxNLocator
-from numpy import arange
-from numpy import argsort
-from numpy import array
-from numpy import concatenate
+from numpy import arange, argsort, array, concatenate
 from pylab import *
 from scipy.interpolate import UnivariateSpline
 

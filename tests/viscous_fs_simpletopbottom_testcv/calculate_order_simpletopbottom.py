@@ -1,5 +1,4 @@
-from math import log
-from math import sqrt
+from math import log, sqrt
 
 import solution
 from fluidity_tools import stat_parser as stat

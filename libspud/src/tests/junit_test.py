@@ -3,8 +3,7 @@ import glob
 import os
 import subprocess
 
-from junit_xml import TestCase
-from junit_xml import TestSuite
+from junit_xml import TestCase, TestSuite
 
 tests = glob.glob("bin/*")
 

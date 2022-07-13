@@ -1,7 +1,5 @@
 import os.path
-
-from distutils.core import Extension
-from distutils.core import setup
+from distutils.core import Extension, setup
 
 module1 = Extension(
     "libspud",

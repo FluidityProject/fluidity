@@ -3,11 +3,7 @@ import glob
 
 import vtktools
 from fluidity_tools import stat_parser
-from numpy import arange
-from numpy import array
-from numpy import concatenate
-from numpy import newaxis
-from numpy import ones
+from numpy import arange, array, concatenate, newaxis, ones
 from pylab import *
 
 colx = ones((21, 1)) * 0.1

@@ -34,13 +34,11 @@ import shlex
 import shutil
 import string
 import time
-from subprocess import PIPE
-from subprocess import Popen
+from subprocess import PIPE, Popen
 
 import numpy
 import scipy.optimize
-from fluidity_tools import stat_creator
-from fluidity_tools import stat_parser
+from fluidity_tools import stat_creator, stat_parser
 
 import libspud
 

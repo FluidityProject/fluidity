@@ -1,16 +1,7 @@
 #!/usr/bin/env python3
 import vtktools
-from numpy import cos
-from numpy import exp
-from numpy import pi
-from numpy import sin
-from numpy import sqrt
-from pylab import find
-from pylab import legend
-from pylab import plot
-from pylab import show
-from pylab import xlabel
-from pylab import ylabel
+from numpy import cos, exp, pi, sin, sqrt
+from pylab import find, legend, plot, show, xlabel, ylabel
 
 u = vtktools.vtu("ekman_2.vtu")
 xyz = u.GetLocations()

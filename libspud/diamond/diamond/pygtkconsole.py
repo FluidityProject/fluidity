@@ -9,11 +9,11 @@ import builtins
 import code
 import sys
 
+import __main__
 from gi.repository import Gdk as gdk
 from gi.repository import Gtk as gtk
 from gi.repository import Pango as pango
 
-import __main__
 from . import debug
 
 banner = (

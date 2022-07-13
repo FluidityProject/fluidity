@@ -8,14 +8,8 @@ import matplotlib.pyplot as plt
 import settings
 from fluidity_tools import stat_parser as stat
 from matplotlib.mlab import stineman_interp
-from matplotlib.pyplot import figure
-from matplotlib.pyplot import show
-from numpy import cos
-from numpy import exp
-from numpy import linspace
-from numpy import pi
-from numpy import poly1d
-from numpy import sin
+from matplotlib.pyplot import figure, show
+from numpy import cos, exp, linspace, pi, poly1d, sin
 from scipy.special import erf
 
 

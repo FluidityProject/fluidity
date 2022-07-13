@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 import argparse
-from math import acos
-from math import atan
-from math import cos
-from math import sin
-from math import sqrt
+from math import acos, atan, cos, sin, sqrt
 
 import vtktools
 

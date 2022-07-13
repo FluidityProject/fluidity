@@ -1,6 +1,5 @@
 import glob
 import os.path
-
 from distutils.core import setup
 
 try:

@@ -1,14 +1,7 @@
-from math import cos
-from math import cosh
-from math import exp
-from math import log
-from math import pi
-from math import sin
-from math import sinh
+from math import cos, cosh, exp, log, pi, sin, sinh
 
 from fluidity_tools import stat_parser as stat
-from numpy import interp
-from numpy import sqrt
+from numpy import interp, sqrt
 from scipy.integrate import quad
 
 wavelengthfactor = 1.0

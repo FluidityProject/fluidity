@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
 import vtktools
-from numpy import arange
-from numpy import array
-from numpy import concatenate
-from numpy import newaxis
-from numpy import ones
-from pylab import plot
-from pylab import show
+from numpy import arange, array, concatenate, newaxis, ones
+from pylab import plot, show
 
 colxz = ones((39, 1)) * 0.005
 coly = arange(-0.95, 0.99, 0.05)[:, newaxis]

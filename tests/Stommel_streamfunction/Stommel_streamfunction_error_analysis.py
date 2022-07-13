@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 import sys
 
-from numpy import abs
-from numpy import amax
-from numpy import arange
-from numpy import array
-from numpy import dot
-from numpy import exp
-from numpy import max
-from numpy import pi
-from numpy import reshape
-from numpy import sin
-from numpy import size
-from numpy import sqrt
-from numpy import transpose
-from numpy import zeros
+from numpy import (
+    abs,
+    amax,
+    arange,
+    array,
+    dot,
+    exp,
+    max,
+    pi,
+    reshape,
+    sin,
+    size,
+    sqrt,
+    transpose,
+    zeros,
+)
 from pylab import *
 
 sys.path.append("/home/piggott/bin/")

@@ -352,7 +352,7 @@ class vtu:
         """Return the distance in physical space between x and y."""
         posx = self.ugrid.GetPoint(x)
         posy = self.ugrid.GetPoint(y)
-        return math.sqrt(sum([(posx[i] - posy[i]) ** 2 for i in range(len(posx))]))
+        return math.sqrt(sum((posx[i] - posy[i]) ** 2 for i in range(len(posx))))
 
     def Crop(self, min_x, max_x, min_y, max_y, min_z, max_z):
         """Trim off the edges defined by a bounding box."""

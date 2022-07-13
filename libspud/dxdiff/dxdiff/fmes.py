@@ -19,8 +19,7 @@ from collections import deque
 
 from lxml import etree
 
-from . import lcs
-from . import utils
+from . import lcs, utils
 from .bimap import Bimap
 from .editscript import EditScript
 

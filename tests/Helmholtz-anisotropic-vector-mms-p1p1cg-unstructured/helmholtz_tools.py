@@ -1,5 +1,4 @@
-from math import cos
-from math import sin
+from math import cos, sin
 
 # simulated variables
 

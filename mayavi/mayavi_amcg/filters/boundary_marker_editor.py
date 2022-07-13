@@ -5,18 +5,17 @@
 # Author: Daryl Harrison
 from enthought.mayavi.core.dataset_manager import DatasetManager
 from enthought.mayavi.core.filter import Filter
-from enthought.traits.api import Bool
-from enthought.traits.api import Button
-from enthought.traits.api import File
-from enthought.traits.api import Float
-from enthought.traits.api import Instance
-from enthought.traits.api import List
-from enthought.traits.api import Range
-from enthought.traits.api import String
-from enthought.traits.ui.api import Group
-from enthought.traits.ui.api import Item
-from enthought.traits.ui.api import ListEditor
-from enthought.traits.ui.api import View
+from enthought.traits.api import (
+    Bool,
+    Button,
+    File,
+    Float,
+    Instance,
+    List,
+    Range,
+    String,
+)
+from enthought.traits.ui.api import Group, Item, ListEditor, View
 from enthought.tvtk.api import tvtk
 from numpy import *
 

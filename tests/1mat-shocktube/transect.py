@@ -3,15 +3,8 @@ import glob
 import operator
 
 import vtktools
-from numpy import arange
-from numpy import array
-from numpy import concatenate
-from numpy import newaxis
-from numpy import ones
-from pylab import axis
-from pylab import figure
-from pylab import plot
-from pylab import show
+from numpy import arange, array, concatenate, newaxis, ones
+from pylab import axis, figure, plot, show
 
 vtus = glob.glob("1material_shocktube_*[0-9].vtu")
 

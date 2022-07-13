@@ -21,8 +21,7 @@ from gi.repository import GObject as gobject
 from gi.repository import Gtk as gtk
 from gi.repository import Pango as pango
 
-from . import debug
-from . import dialogs
+from . import debug, dialogs
 
 
 class DiamondSchemaError:

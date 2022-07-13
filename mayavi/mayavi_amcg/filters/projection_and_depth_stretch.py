@@ -8,25 +8,21 @@
 # Local imports
 from enthought.mayavi.core.common import debug
 from enthought.mayavi.core.filter import Filter
-from enthought.traits.api import Array
-from enthought.traits.api import Float
-from enthought.traits.api import Instance
-from enthought.traits.api import List
-from enthought.traits.api import String
-from enthought.traits.ui.api import Group
-from enthought.traits.ui.api import Item
-from enthought.traits.ui.api import View
+from enthought.traits.api import Array, Float, Instance, List, String
+from enthought.traits.ui.api import Group, Item, View
 from enthought.tvtk.api import tvtk
-from numpy import arccos
-from numpy import arctan2
-from numpy import array
-from numpy import column_stack
-from numpy import cross
-from numpy import linalg
-from numpy import sqrt
-from numpy import sum
-from numpy import vdot
-from numpy import zeros
+from numpy import (
+    arccos,
+    arctan2,
+    array,
+    column_stack,
+    cross,
+    linalg,
+    sqrt,
+    sum,
+    vdot,
+    zeros,
+)
 
 # Enthought library imports.
 

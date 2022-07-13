@@ -1,9 +1,7 @@
 import os
 
 from fluidity_tools import stat_parser
-from numpy import abs
-from numpy import array
-from numpy import max
+from numpy import abs, array, max
 from sympy import *
 
 meshtemplate = """

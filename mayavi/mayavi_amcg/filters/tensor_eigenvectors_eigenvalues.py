@@ -5,14 +5,8 @@ from math import *
 
 from enthought.mayavi.core.filter import Filter
 from enthought.mayavi.core.traits import DEnum
-from enthought.traits.api import Bool
-from enthought.traits.api import Instance
-from enthought.traits.api import Int
-from enthought.traits.api import List
-from enthought.traits.api import String
-from enthought.traits.ui.api import Group
-from enthought.traits.ui.api import Item
-from enthought.traits.ui.api import View
+from enthought.traits.api import Bool, Instance, Int, List, String
+from enthought.traits.ui.api import Group, Item, View
 from enthought.tvtk.api import tvtk
 from numpy import *
 

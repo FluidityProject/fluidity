@@ -18,8 +18,7 @@ from gi.repository import GObject as gobject
 from gi.repository import Gtk as gtk
 from gi.repository import Pango as pango
 
-from . import datatype
-from . import dialogs
+from . import datatype, dialogs
 
 
 class AttributeWidget(gtk.Frame):

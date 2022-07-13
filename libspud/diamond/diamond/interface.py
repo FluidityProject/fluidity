@@ -26,25 +26,27 @@ from gi.repository import Gtk as gtk
 from gi.repository import Pango as pango
 from lxml import etree
 
-from . import attributewidget
-from . import choice
-from . import commentwidget
-from . import config
-from . import databuttonswidget
-from . import datatype
-from . import datawidget
-from . import debug
-from . import descriptionwidget
-from . import dialogs
-from . import diffview
-from . import mixedtree
-from . import plist
-from . import plugins
-from . import schema
-from . import scherror
-from . import sliceview
-from . import tree
-from . import useview
+from . import (
+    attributewidget,
+    choice,
+    commentwidget,
+    config,
+    databuttonswidget,
+    datatype,
+    datawidget,
+    debug,
+    descriptionwidget,
+    dialogs,
+    diffview,
+    mixedtree,
+    plist,
+    plugins,
+    schema,
+    scherror,
+    sliceview,
+    tree,
+    useview,
+)
 
 try:
     gtk.Tooltip()

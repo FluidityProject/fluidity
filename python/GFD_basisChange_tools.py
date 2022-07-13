@@ -24,12 +24,7 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
-from math import acos
-from math import atan2
-from math import cos
-from math import pi
-from math import sin
-from math import sqrt
+from math import acos, atan2, cos, pi, sin, sqrt
 
 
 def cartesian_2_sphericalPolar(positionVectorCartesian):
