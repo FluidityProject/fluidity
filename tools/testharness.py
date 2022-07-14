@@ -118,7 +118,8 @@ def filter_tests(xml_files, test_suite):
 def gather_tests():
     """Look for tests given the program input arguments."""
     if args.file:  # Specific test requested
-        xml_files = [Path(args.file)]
+        # xml_files = [Path(args.file)]
+        xml_files = [fluidity_root.rglob(args.file)]
     elif args.from_file:  # Specific list of tests requested
         with open(args.from_file, "r") as fid:
             xml_files = [Path(test_name.rstrip()) for test_name in fid]
@@ -459,7 +460,10 @@ parser.add_argument(
     help="specify which kind of tests to run; choose either serial or parallel",
     metavar="TYPE",
 )
-parser.add_argument("-f", "--file", help="run a single test — expects an XML filepath")
+# parser.add_argument(
+#     "-f", "--file", help="run a single test — expects an XML filepath"
+# )
+parser.add_argument("-f", "--file", help="run a single test — expects an XML file")
 parser.add_argument(
     "--from-file",
     help="path to a file where to read which tests to run — one XML filepath per line",
@@ -495,20 +499,22 @@ parser.add_argument(
 parser.add_argument(
     "-o",
     "--omit-tags",
-    action="extend",
-    nargs="*",
-    default=[],
+    # action="extend",
+    # nargs="*",
+    # default=[],
+    action="append",
     help="tags identifying which tests to exclude",
-    metavar="TAG",
+    # metavar="TAG",
 )
 parser.add_argument(
     "-t",
     "--tags",
-    action="extend",
-    nargs="*",
-    default=[],
+    # action="extend",
+    # nargs="*",
+    # default=[],
+    action="append",
     help="tags identifying which tests to run",
-    metavar="TAG",
+    # metavar="TAG",
 )
 parser.add_argument("-v", "--valgrind", action="store_true", help="enable Valgrind")
 parser.add_argument("-x", "--xml-output", help="XML output filename", metavar="OUTPUT")
