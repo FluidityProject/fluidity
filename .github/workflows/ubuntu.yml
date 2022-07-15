@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Build Bionic", "Build Focal" ]
+        name: [ "Build Bionic", "Build Focal", "Build Jammy" ]
         include:
 
           - name: "Build Bionic"
@@ -25,6 +25,9 @@ jobs:
 
           - name: "Build Focal"
             release: focal
+
+          - name: "Build Jammy"
+            release: jammy
 
     steps:
 
@@ -56,23 +59,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Unit Bionic", "Short Bionic", "Medium Bionic", "Unit Focal", "Short Focal", "Medium Focal" ]
+        name: [ "Short Bionic", "Unit Focal", "Short Focal", "Medium Focal", "Unit Jammy", "Short Jammy", "Medium Jammy" ]
         include:
-
-          - name: "Unit Bionic"
-            release: bionic
-            command: "make unittest"
-            output: "test_results_unittests.xml"
-
+        
           - name: "Short Bionic"
             release: bionic
             command: "make THREADS=2 test"
             output: "test_results.xml"
-
-          - name: "Medium Bionic"
-            release: bionic
-            command: "make THREADS=2 mediumtest"
-            output: "test_results_medium.xml"
 
           - name: "Unit Focal"
             release: focal
@@ -86,6 +79,21 @@ jobs:
 
           - name: "Medium Focal"
             release: focal
+            command: "make THREADS=2 mediumtest"
+            output: "test_results_medium.xml"
+
+          - name: "Unit Jammy"
+            release: jammy
+            command: "make unittest"
+            output: "test_results_unittests.xml"
+          
+          - name: "Short Jammy"
+            release: jammy
+            command: "make THREADS=2 test"
+            output: "test_results.xml"
+
+          - name: "Medium Jammy"
+            release: jammy
             command: "make THREADS=2 mediumtest"
             output: "test_results_medium.xml"
 
@@ -227,8 +235,8 @@ jobs:
       - name: ${{ matrix.name }} Longtesting
         run: |
          chmod 777 .
-         docker pull fluidity/actions:focal-${{ github.sha }}
-         docker run -v $PWD:/host fluidity/actions:focal-${{ github.sha }} /bin/bash -c "git clone https://github.com/fluidityproject/longtests && bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && cp -v test_results_${{ matrix.name }}.xml /host"
+         docker pull fluidity/actions:jammy-${{ github.sha }}
+         docker run -v $PWD:/host fluidity/actions:jammy-${{ github.sha }} /bin/bash -c "git clone https://github.com/fluidityproject/longtests && bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && cp -v test_results_${{ matrix.name }}.xml /host"
 
       - uses: actions/upload-artifact@v2
         with:
