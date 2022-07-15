@@ -162,7 +162,6 @@ module manifold_projections
     real, dimension(mesh_dim(U_local), X%dim, ele_ngi(X,ele)) :: J
     real, dimension(ele_ngi(X,ele)) :: detwei, detJ
     real, dimension(U_cartesian%dim, ele_ngi(X,ele)) :: U_quad
-    real, dimension(mesh_dim(U_local)*ele_loc(U_local,ele)) :: l_rhs
     real, dimension(mesh_dim(U_local), mesh_dim(U_local), ele_loc(U_local,ele), ele_loc(U_local,ele)) :: l_mass
     real, dimension(mesh_dim(U_local)*ele_loc(U_local,ele), mesh_dim(U_local)*ele_loc(U_local,ele)) :: l_big_mat
     real, dimension(mesh_dim(U_local)*ele_loc(U_local,ele)) :: tmp
@@ -172,7 +171,7 @@ module manifold_projections
     real, dimension(X%dim, ele_loc(U_cartesian,ele)) :: rhs
     type(element_type), pointer :: U_shape
     integer, dimension(:), pointer :: U_ele
-    integer :: dim, dim1, dim2, gi, loc, nloc
+    integer :: dim, dim1, dim2, gi, nloc
 
     dim=U_local%dim
 
@@ -318,12 +317,9 @@ module manifold_projections
     real, dimension(ele_loc(U_cartesian,ele), ele_loc(U_cartesian,ele)) :: mass
     real, dimension(mesh_dim(U_local), X%dim, ele_ngi(X,ele)) :: J
     real, dimension(ele_ngi(U_local,ele)) :: detwei
-    real, dimension(U_local%dim, ele_ngi(X,ele)) :: U_quad
-    real, dimension(X%dim, ele_ngi(X,ele)) :: U_cartesian_gi
-    real, dimension(X%dim, ele_loc(U_cartesian,ele)) :: rhs
     real, dimension(U_cartesian%dim, ele_loc(U_cartesian, ele)) :: tmp, U_cartesian_ele
     type(element_type), pointer :: U_shape
-    integer :: d, gi
+    integer :: d
 
     call compute_jacobian(X, ele, J=J, detwei=detwei)
 

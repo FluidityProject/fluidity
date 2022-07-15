@@ -562,7 +562,7 @@ set_option_aux_list_doubles(PyObject *pylist, const char *key, int key_len, int 
 static PyObject*
 set_option_aux_string(PyObject *pystring, const char *key, int key_len, int type, int rank, int *shape)
 {   // this function is for setting option when the second argument is of type string
-    char *val = PyString_AsString(pystring);
+    const char *val = PyString_AsString(pystring);
     int outcomeSetOption = spud_set_option(key, key_len, val, type, rank, shape);
     return error_checking(outcomeSetOption, "set option aux string");
 }

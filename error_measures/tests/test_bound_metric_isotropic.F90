@@ -1,6 +1,5 @@
 subroutine test_bound_metric_isotropic
 
-  use global_parameters, only: current_debug_level
   use node_boundary, only: pseudo2d_coord
   use metric_assemble
   use adapt_state_module

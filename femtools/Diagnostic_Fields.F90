@@ -883,7 +883,7 @@ contains
     integer :: lstat, i
 
     real :: g
-    type(scalar_field), pointer :: pert_rho_field, rho_field
+    type(scalar_field), pointer :: rho_field
     type(scalar_field), pointer :: isopycnal_coordinate
 
     rho_field => extract_scalar_field(state, "Density", lstat)
@@ -2541,13 +2541,13 @@ contains
       type(vector_field), pointer :: U, X
       type(tensor_field), pointer :: visc
       integer, dimension(:), allocatable :: faceglobalnodes
-      integer :: i,j,snloc,ele,sele,globnod,face,node,stat
+      integer :: i,j,snloc,ele,sele,globnod,face
       real :: speed,density,drag_coefficient
 
       !! for DG
       !! Field that holds the gradient of velocity in boundary elements
       type(tensor_field), target :: dummy_visc
-      integer :: grad_u_stat, visc_stat
+      integer :: visc_stat
       !! surface mesh, element and node list
       type(mesh_type), pointer :: surface_mesh
       integer, dimension(:), allocatable :: surface_element_list
@@ -2695,7 +2695,7 @@ contains
      real, intent(in) :: density
 
      integer :: i, j, i_gi, ele, dim
-     type(element_type), pointer :: f_shape, shape, X_f_shape, X_shape
+     type(element_type), pointer :: f_shape, shape
      real, dimension(face_ngi(X, face)) :: detwei
      real, dimension(X%dim, face_ngi(X, face)) :: normal, normal_shear_at_quad, X_ele
      real, dimension(X%dim) :: abs_normal
@@ -2760,10 +2760,10 @@ contains
      integer, intent(in) :: ele
      real, intent(in) :: density
 
-     integer :: i, j, i_gi
+     integer :: i, i_gi
      type(element_type), pointer :: shape
      real, dimension(ele_ngi(bss, ele)) :: detwei
-     real, dimension(X%dim, ele_ngi(bss, ele)) :: normal, normal_shear_at_quad, X_at_quad
+     real, dimension(X%dim, ele_ngi(bss, ele)) :: normal, normal_shear_at_quad
      real, dimension(X%dim) :: abs_normal
      real, dimension(X%dim, X%dim, ele_ngi(grad_U, ele)) :: grad_U_at_quad, visc_at_quad, shear_at_quad
      real, dimension(X%dim, ele_loc(bss, ele)) :: rhs

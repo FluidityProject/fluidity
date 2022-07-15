@@ -74,7 +74,7 @@ contains
     case(4)
          call construct_turbine_interface_penalty(theta, dt, ele, face, face_2, ni, &
             & big_m_tensor_addto, rhs_addto, X, U,&
-            & velocity_bc, velocity_bc_type)
+            & velocity_bc)
     case default
          FLAbort("Unknown turbine model found.")
     end select
@@ -82,7 +82,7 @@ contains
 
   subroutine construct_turbine_interface_penalty(theta, dt, ele, face, face_2, ni, &
        & big_m_tensor_addto, rhs_addto, X, U,  &
-       velocity_bc, velocity_bc_type)
+       velocity_bc)
 
     real, intent(in) :: theta, dt
     integer, intent(in) :: ele, face, face_2, ni
@@ -92,7 +92,6 @@ contains
     type(vector_field), intent(in) :: X, U
     !! Boundary conditions associated with this interface (if any).
     type(vector_field), intent(in) :: velocity_bc
-    integer, dimension(:,:), intent(in) :: velocity_bc_type
 
     real, dimension(face_loc(U,face),face_loc(U,face_2)) :: penalty_domain_connecting_in, penalty_domain_connecting_out
     integer :: dim, i, start, finish

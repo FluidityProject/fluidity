@@ -26,7 +26,8 @@ banner = (
 
 class Completer:
     """
-    Taken from rlcompleter, with readline references stripped, and a local dictionary to use.
+    Taken from rlcompleter, with readline references stripped, and a local dictionary to
+    use.
     """
 
     def __init__(self, locals):
@@ -59,13 +60,13 @@ class Completer:
 
         matches = []
         n = len(text)
-        for list in [
+        for item_list in [
             keyword.kwlist,
             list(builtins.__dict__.keys()),
             list(__main__.__dict__.keys()),
             list(self.locals.keys()),
         ]:
-            for word in list:
+            for word in item_list:
                 if word[:n] == text and word != "__builtins__":
                     matches.append(word)
         return matches
@@ -131,7 +132,7 @@ class OutputStream:
 
         end = self.buffer.get_end_iter()
 
-        if not self.view == None:
+        if self.view is not None:
             self.view.scroll_to_mark(self.mark, 0, True, 1, 1)
 
         self.buffer.insert_with_tags(end, text, self.style)
@@ -231,7 +232,7 @@ class GTKInterpreterConsole(gtk.ScrolledWindow):
 
     def write_line(self, text, style=None):
         start, end = self.text.get_buffer().get_bounds()
-        if style == None:
+        if style is None:
             self.text.get_buffer().insert(end, text)
         else:
             self.text.get_buffer().insert_with_tags(end, text, style)
@@ -268,8 +269,8 @@ class GTKInterpreterConsole(gtk.ScrolledWindow):
                 self.current_history = 0
             return self.show_history()
         elif event.keyval == gdk.keyval_from_name("Home"):
-            l = self.text.get_buffer().get_line_count() - 1
-            start = self.text.get_buffer().get_iter_at_line_offset(l, 4)
+            line_count = self.text.get_buffer().get_line_count() - 1
+            start = self.text.get_buffer().get_iter_at_line_offset(line_count, 4)
             self.text.get_buffer().place_cursor(start)
             return True
         elif (
@@ -292,9 +293,9 @@ class GTKInterpreterConsole(gtk.ScrolledWindow):
 
     def current_line_bounds(self):
         txt_buffer = self.text.get_buffer()
-        l = txt_buffer.get_line_count() - 1
+        line_count = txt_buffer.get_line_count() - 1
 
-        start = txt_buffer.get_iter_at_line(l)
+        start = txt_buffer.get_iter_at_line(line_count)
         if start.get_chars_in_line() >= 4:
             start.forward_chars(4)
         end = txt_buffer.get_end_iter()
@@ -330,7 +331,7 @@ class GTKInterpreterConsole(gtk.ScrolledWindow):
 
         completions = []
         p = self.completer.complete(token, len(completions))
-        while p != None:
+        while p is not None:
             completions.append(p)
             p = self.completer.complete(token, len(completions))
 

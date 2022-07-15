@@ -118,7 +118,6 @@ contains
     type(tensor_field), pointer :: zero_conc_viscosity
     type(scalar_field) :: rhs
     integer :: sediment_classes, i
-    character(len = FIELD_NAME_LEN) :: field_name
 
     ewrite(1,*) 'In calculate_sediment_concentration_dependent_viscosity'
 

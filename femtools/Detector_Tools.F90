@@ -830,14 +830,11 @@ contains
     logical, intent(in) :: is_array
 
     ! locals
-    integer :: i, j, field_idx
-    integer :: dim, stat, phase
+    integer :: i
+    integer :: dim, stat
     integer :: nparts
     real, dimension(:), pointer :: lvx, lvy, lvz
     real, dimension(0), target :: zero
-    type(scalar_field), pointer :: sfield
-    type(vector_field), pointer :: vfield
-    type(tensor_field), pointer :: tfield
     real, allocatable, dimension(:,:) :: field_vals, old_field_vals
     type(detector_type), pointer :: particle
 
@@ -992,14 +989,11 @@ contains
     logical, intent(in) :: is_array
 
     ! locals
-    integer :: i, j, field_idx
-    integer :: dim, stat, phase
+    integer :: i
+    integer :: dim, stat
     integer :: nparts
     real, dimension(:), pointer :: lvx, lvy, lvz
     real, dimension(0), target :: zero
-    type(scalar_field), pointer :: sfield
-    type(vector_field), pointer :: vfield
-    type(tensor_field), pointer :: tfield
     real, allocatable, dimension(:,:) :: field_vals, old_field_vals
     type(detector_type), pointer :: particle
 
@@ -1072,7 +1066,7 @@ contains
     real, dimension(:), pointer :: lvx,lvy,lvz
     real, dimension(0), target :: zero
     real, dimension(:,:,:,:), allocatable :: tensor_res
-    integer :: i, j, k, dim, idx
+    integer :: dim
     integer :: nparts
     integer :: stat
 
@@ -1161,14 +1155,11 @@ contains
     logical, intent(in) :: is_array
 
     ! locals
-    integer :: i, j, field_idx
-    integer :: dim, stat, phase
+    integer :: i
+    integer :: dim, stat
     integer :: nparts
     real, dimension(:), pointer :: lvx, lvy, lvz
     real, dimension(0), target :: zero
-    type(scalar_field), pointer :: sfield
-    type(vector_field), pointer :: vfield
-    type(tensor_field), pointer :: tfield
     real, allocatable, dimension(:,:) :: field_vals, old_field_vals
     type(detector_type), pointer :: particle
     real, dimension(:,:,:,:), allocatable :: tensor_res

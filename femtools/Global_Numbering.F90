@@ -871,7 +871,7 @@ contains
       integer :: processors, this_proc, halo, n, proc
 
       type(ilist), dimension(:), allocatable :: sends, receives
-      integer, dimension(:), pointer :: ele_nodes, ele_owners
+      integer, dimension(:), pointer :: ele_nodes
       type(inode), pointer :: list_node => null()
 
       processors=getnprocs()

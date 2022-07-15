@@ -490,7 +490,7 @@ c ... fill in holes in edges
          End do
 
          IPF(1, kF) = 0
- 200     nF = nF - 1
+200     nF = nF - 1
 
       icnt = 0
       Do n = 1, nF

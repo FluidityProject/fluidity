@@ -3,23 +3,24 @@ import argparse
 import glob
 import os
 import shutil
-import sys
 
 
 def main():
 
     parser = argparse.ArgumentParser(
         prog="rename_checkpoint",
-        description="""This takes a list of vtu files in the working directory produced """
-        + """from a serial checkpointed flml file with names base_filename_checkpoint_i.vtu """
-        + """for all i and renames them as base_filename_index+i.vtu.  """
-        + """ """
-        + """Can additionally take a list of vtu and pvtu files in the current directory produced """
-        + """from a checkpointed parallel flml file with names base_filename_checkpoint_i_j.vtu """
-        + """and base_filename_checkpoint_i.pvtu for all i (index) and j (processor number) """
-        + """and renames them as base_filename_index+i_j.vtu and base_filename_index+i.pvtu.  """
-        + """ """
-        + """WARNING: This may overwrite files if the backup filenames being written to exist already!""",
+        description="""This takes a list of vtu files in the working directory produced
+        from a serial checkpointed flml file with names base_filename_checkpoint_i.vtu
+        for all i and renames them as base_filename_index+i.vtu.
+
+        Can additionally take a list of vtu and pvtu files in the current directory
+        produced from a checkpointed parallel flml file with names
+        base_filename_checkpoint_i_j.vtu and base_filename_checkpoint_i.pvtu for all
+        i (index) and j (processor number) and renames them as
+        base_filename_index+i_j.vtu and base_filename_index+i.pvtu.
+
+        WARNING: This may overwrite files if the backup filenames being written to exist
+        already!""",
     )
     parser.add_argument(
         "-v",
@@ -32,7 +33,8 @@ def main():
     parser.add_argument(
         "-s",
         "--stat",
-        help="Also process the stat files associated with the basename output and basename_checkpoint to produce a single stat file",
+        help="""Also process the stat files associated with the basename output and
+        basename_checkpoint to produce a single stat file""",
         action="store_true",
         dest="stat",
         default=False,
@@ -46,7 +48,8 @@ def main():
         "final_index",
         type=int,
         metavar="final_index",
-        help="Final index of the non-checkpoint run. checkpoint_0 will then match this index",
+        help="""Final index of the non-checkpoint run. checkpoint_0 will then match this
+        index""",
     )
 
     args = parser.parse_args()
@@ -137,8 +140,9 @@ def rename_vtu(base_filename, filelist, index, verbose=False):
             if len(filesplit) == 1:
                 newindex = index + int(filesplit[0])
                 newfilename = base_filename + "_" + str(newindex) + ".pvtu"
-                # if in format where all vtus live in a directory assocaited with a pvtu move that directory
-                # also set directory name so when rewriting pvtu can add correct directory name
+                # if in format where all vtus live in a directory assocaited with a pvtu
+                # move that directory and also set directory name so when rewriting pvtu
+                # can add correct directory name
                 checkpoint_directory = "."
                 if os.path.exists(filelist[i].split(".pvtu")[0]):
                     if os.path.exists(base_filename + "_" + str(newindex)):

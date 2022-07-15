@@ -47,7 +47,6 @@ module Coordinates
 
   private
 
-  logical::initialised=.false.
   real, parameter:: rad_to_deg = 180.0/pi
   real, parameter:: deg_to_rad = pi/180.0
 

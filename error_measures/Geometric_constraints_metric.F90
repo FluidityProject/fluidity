@@ -26,7 +26,7 @@ module geometric_constraints_metric
   private
   public :: use_geometric_constraints_metric,&
             initialise_geometric_constraints_metric,&
-	    form_geometric_constraints_metric
+            form_geometric_constraints_metric
 
   logical :: use_geometric_constraints_metric = .false.
   logical :: geometric_constraints_initialised = .false.
@@ -46,7 +46,6 @@ module geometric_constraints_metric
     type(state_type), intent(in) :: state
 
     integer :: dim
-    integer :: stat, stat2
 
     type(vector_field) :: metric_positions
     real, dimension(error_metric%dim(1) * error_metric%dim(2) * node_count(error_metric)) :: geometric_edge_lengths_raw

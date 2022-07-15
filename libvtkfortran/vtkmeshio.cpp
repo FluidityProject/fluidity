@@ -463,12 +463,15 @@ int readVTKFile(const char * const filename,
   if( strncmp(ext,".vtk",4)==0 ) {
     //printf("Reading from VTK file: %s\n",filename);
     read1 = vtkDataSetReader::New();
+
     if( read1==NULL ) {
       cerr<<"ERROR: Failed to read!\n";
       return -1;
     }
+
     read1->SetFileName(filename);
     filetype = read1->ReadOutputType();
+
     if( filetype == VTK_POLY_DATA )
       sprintf(typnam,"vtkPolyData");
     else if( filetype == VTK_STRUCTURED_POINTS )
@@ -497,12 +500,14 @@ int readVTKFile(const char * const filename,
           <<filetype<<" must be vktUnstructuredGrid\n";
       return -1;
     }
+
     if( strlen(typnam) != 3 ) { // length 3 was used above for VTK_UNSTRUCTURED_GRID
       cerr<<"ERROR: Cannot read file containing "<<typnam<<" must be vktUnstructuredGrid\n";
       return -1;
-    }else
+    } else
       dataSet = read1->GetUnstructuredGridOutput();
-      read1->Update();
+
+    read1->Update();
   } else if( strncmp(ext,".vtu",4)==0 ) {
     //printf("Reading from VTK XML file: %s\n",filename);
     read2 = vtkXMLUnstructuredGridReader::New();
@@ -585,11 +590,11 @@ int readVTKFile(const char * const filename,
     while( T != NULL ) {
       T = flds->GetArray(i);
       if( T == NULL )
-        0;
+        ;
       else {
         int k=T->GetNumberOfComponents();
         if(T->GetName()==NULL) {
-          0;
+          ;
         } else {
           unsigned int l = strlen(T->GetName());
           if( addall==0 ) {
@@ -608,14 +613,14 @@ int readVTKFile(const char * const filename,
             }
             if(gotfld==NULL)
               //printf(" (not in user's field list)\n");
-              0;
+              ;
             else if( gotfld->interperr>0.0 )
               //printf("\n");
-              0;
+              ;
               //cerr<<" (adapt err = "<<gotfld->interperr<<")\n";
             else if( gotfld->interperr==0.0 )
               //printf("\n");
-              0;
+              ;
               //cerr<<" (only for output)\n";
           } else {
             Field_Info *newfld=(Field_Info *)malloc(sizeof(Field_Info));
@@ -653,7 +658,7 @@ int readVTKFile(const char * const filename,
       P = props->GetArray(i);
       if( P == NULL )
         //printf("does not exist\n");
-        0;
+        ;
       else {
         int k=P->GetNumberOfComponents();
         //cerr<<"  type: "<<T->GetDataType();
@@ -661,7 +666,7 @@ int readVTKFile(const char * const filename,
         //printf("  components: %d",k);
         if(P->GetName()==NULL) {
           //printf("\n");
-          0;
+          ;
         } else {
           unsigned int l = strlen(P->GetName());
           if( addall==0 ) {
@@ -680,14 +685,14 @@ int readVTKFile(const char * const filename,
             }
             if(gotfld==NULL)
               //printf(" (not in user's field list)\n");
-              0;
+              ;
             else if( gotfld->interperr>0.0 )
               //printf("\n");
-              0;
+              ;
               //cerr<<" (adapt err = "<<gotfld->interperr<<")\n";
             else if( gotfld->interperr==0.0 )
               //printf("\n");
-              0;
+              ;
               //cerr<<" (only for output)\n";
           } else {
             Field_Info *newfld=(Field_Info *)malloc(sizeof(Field_Info));
@@ -801,9 +806,8 @@ int readVTKFile(const char * const filename,
     for(int i=0; i<nnodes; i++)
       used[i] = 0;
     for(vtkIdType i=0; i<ncells; i++) {
-      vtkIdType npts=0, ct;
+      vtkIdType npts=0;
       GetCellPointer *pts;
-      ct = dataSet->GetCellType(i);
       dataSet->GetCellPoints(i,npts,pts);
       if( curdim == 1 ) {
         if( npts != 2 ) npts = 0;
@@ -950,6 +954,7 @@ int readVTKFile(const char * const filename,
     int *ENLST = NULL, *ENLBS = NULL;
     int tetcnt = 0, szenls = 0, curdim = *ndim;
     // this zeros inside-out counter - what's returned may be rubbish
+    [[maybe_unused]]
     int iocnt=AddOneTetra(0,0,0,0,0,NULL,NULL,*X,*Y,*Z);
 //    printf("Counting allowable %dd cells...\n",*ndim);
     for(vtkIdType i=0; i<ncells; i++){
@@ -1056,6 +1061,7 @@ int readVTKFile(const char * const filename,
     if( onlyinfo != 0 ) npass = 1;
     for(int pass=0; pass<npass; pass++) {
       // this zeros inside-out counter - what's returned may be rubbish
+      [[maybe_unused]]
       int iocnt=AddOneTetra(0,0,0,0,0,NULL,NULL,*X,*Y,*Z);
       tetcnt = 0;
       val = 0;
@@ -1251,7 +1257,7 @@ int fgetvtksizes(char *fortname, int *namelen,
                   int *NDIM, int *maxlen )
 {
   int status=0;
-  int *ENLBAS=NULL, *ENLIST=NULL, *SNLIST=NULL;
+  int *ENLBAS=NULL, *ENLIST=NULL;
   REAL *X=NULL, *Y=NULL, *Z=NULL, *F=NULL, *P=NULL;
 
   // the filename string passed down from Fortan needs terminating,

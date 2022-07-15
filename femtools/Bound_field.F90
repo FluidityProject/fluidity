@@ -45,12 +45,6 @@ module bound_field_module
   use halos
   implicit none
 
-  type(scalar_field), save :: func_target_field, func_lumped_mass
-  real, save :: integral_value
-  type(csr_matrix), pointer, save :: func_mass_matrix
-  real, dimension(:, :), allocatable, save :: func_detwei
-
-  integer, save :: functional_type
   integer, parameter, public :: FUNCTIONAL_VEC_L2=0, &
                                 FUNCTIONAL_LUMPED_VEC_L2=1, &
                                 FUNCTIONAL_FUNC_L2=2

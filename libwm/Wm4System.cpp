@@ -21,16 +21,9 @@ using namespace Wm4;
 #include <sys/stat.h>
 
 // support for GetTime
-#ifdef __APPLE__
 #include <sys/time.h>
 static timeval gs_kInitial;
 static bool gs_bInitializedTime = false;
-#else
-#include <sys/timeb.h>
-static long gs_lInitialSec = 0;
-static long gs_lInitialUSec = 0;
-static bool gs_bInitializedTime = false;
-#endif
 
 // support for locating the application directory
 #ifdef __APPLE__
@@ -104,7 +97,6 @@ void System::EndianCopy (int iSize, int iQuantity, const void* pvSrc,
 //----------------------------------------------------------------------------
 double System::GetTime ()
 {
-#ifdef __APPLE__
     if (!gs_bInitializedTime)
     {
         gs_bInitializedTime = true;
@@ -118,30 +110,6 @@ double System::GetTime ()
     timersub(&kCurrent,&gs_kInitial,&kDelta);
 
     return 0.001*(double)(1000*kDelta.tv_sec + kDelta.tv_usec/1000);
-#else
-    struct timeb kTB;
-
-    if (!gs_bInitializedTime)
-    {
-        gs_bInitializedTime = true;
-        ftime(&kTB);
-        gs_lInitialSec = (long)kTB.time;
-        gs_lInitialUSec = 1000*kTB.millitm;
-    }
-
-    ftime(&kTB);
-    long lCurrentSec = (long)kTB.time;
-    long lCurrentUSec = 1000*kTB.millitm;
-    long lDeltaSec = lCurrentSec - gs_lInitialSec;
-    long lDeltaUSec = lCurrentUSec -gs_lInitialUSec;
-    if (lDeltaUSec < 0)
-    {
-        lDeltaUSec += 1000000;
-        lDeltaSec--;
-    }
-
-    return 0.001*(double)(1000*lDeltaSec + lDeltaUSec/1000);
-#endif
 }
 //----------------------------------------------------------------------------
 bool System::Load (const char* acFilename, char*& racBuffer, int& riSize)

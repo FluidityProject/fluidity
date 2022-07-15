@@ -550,7 +550,6 @@ contains
     integer, dimension(surface_element_count(output)) :: surface_elements
     integer, dimension(:), pointer :: surface_nodes, source_surface_nodes,&
          output_surface_nodes
-    real :: face_area, face_integral
 
     type(vector_field) :: surface_source, surface_positions
     type(scalar_field) :: surface_output

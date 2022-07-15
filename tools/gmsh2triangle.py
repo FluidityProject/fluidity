@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-import os.path
-import re
+
 import sys
 from optparse import OptionParser
 
@@ -9,8 +8,9 @@ from optparse import OptionParser
 optparser = OptionParser(
     usage="usage: %prog [options] <filename>",
     add_help_option=True,
-    description="""This takes a Gmsh 2.0 .msh ascii file """
-    + """and produces .node, .ele and .edge or .face files.""",
+    description="""
+This takes a Gmsh 2.0 .msh ascii file and produces .node, .ele and .edge or
+.face files.""",
 )
 
 optparser.add_option(
@@ -27,7 +27,7 @@ optparser.add_option(
 optparser.add_option(
     "--shell",
     "-s",
-    help="interpret a 3d input mesh as a 2d mesh on a spherical shell",
+    help="interpret a 3d input mesh as a 2d " "mesh on a spherical shell",
     action="store_const",
     const=True,
     dest="spherical_shell",
@@ -37,8 +37,10 @@ optparser.add_option(
 optparser.add_option(
     "--internal-boundary",
     "-i",
-    help="mesh contains internal faces - this option is required if you have assigned "
-    + "a physical boundary id to lines (2D) or surfaces (3D) that are not on the domain boundary",
+    help="mesh contains "
+    "internal faces - this option is required if you have "
+    "assigned a physical boundary id to lines (2D) or "
+    "surfaces (3D) that are not on the domain boundary",
     action="store_const",
     const=True,
     dest="internal_faces",

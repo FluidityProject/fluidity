@@ -1,11 +1,4 @@
-import math
-import os
-import re
-import sys
-from math import sqrt
-
 import vtktools
-from numpy import arange, argsort, array, concatenate
 
 
 def values_per_node(file):

@@ -33,7 +33,7 @@ C ================================================================
       Logical flag
 
 C ================================================================
-      real  minXYP(2), maxXYP(2), scale, size
+      real  minXYP(2), maxXYP(2), scale
 
       real  refXYP(2), scaXYP(2)
       Common /rescale/refXYP, scaXYP

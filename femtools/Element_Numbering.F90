@@ -103,29 +103,6 @@ module element_numbering
        & quad_numbering
   type(ele_numbering_type), dimension(0:0), target, save :: point_numbering
 
-  ! Map from local node numbers to local edge numbers
-  integer, dimension(4,4) :: LOCAL_EDGE_NUM=reshape(&
-       (/0,1,2,4,&
-       1,0,3,5,&
-       2,3,0,6,&
-       4,5,6,0/), (/4,4/))
-
-  ! map from pair of local linear tet node numbers to local number of
-  ! inbetween quadratic node
-  integer, parameter, dimension(4,4) :: ilink2=reshape(&
-      (/ 1, 2, 4, 7, &
-         2, 3, 5, 8, &
-         4, 5, 6, 9, &
-         7, 8, 9, 10 /), (/ 4, 4 /) )
-
-  ! map from pair of local linear tet node numbers to local number of
-  ! for surface triangle
-  ! ! THIS IS NOT IN THE ONE TRUE ORDERING - THIS SHOULD CHANGE ! !
-  integer, parameter, dimension(3,3) :: silink2=reshape(&
-      (/ 1, 4, 6, &
-         4, 2, 5, &
-         6, 5, 3 /), (/ 3, 3 /) )
-
   logical, private, save :: initialised=.false.
 
   interface local_coords

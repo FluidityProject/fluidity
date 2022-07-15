@@ -67,8 +67,7 @@ contains
     type(state_type), dimension(size(state)) :: calculated_state
     type(state_type), dimension(size(submaterials)) :: calculated_submaterials
     type(scalar_field), pointer :: bulk_density, buoyancy_density, sfield
-    type(vector_field), pointer :: vfield, x, velocity
-    type(vector_field) :: prescribed_source
+    type(vector_field), pointer :: vfield, velocity
     type(tensor_field), pointer :: tfield
 
     integer :: stat, i

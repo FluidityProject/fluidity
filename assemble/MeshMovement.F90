@@ -26,7 +26,6 @@ module meshmovement
   use sparsity_patterns_meshes
 
   implicit none
-  integer,save :: MeshCount=0
 
   interface
 

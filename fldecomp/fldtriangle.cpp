@@ -301,7 +301,7 @@ void write_partitions_triangle(bool verbose,
       elefile<<elements->size()<<" "<<nloc<<" 1\n";
     else
       elefile<<elements->size()<<" "<<nloc<<" 0\n";
-    for(int i=0;i<elements->size();i++){
+    for(size_t i=0;i<elements->size();i++){
       elefile<<i+1<<" ";
       for(int j=0;j<nloc;j++)
         elefile<<(*partENList)[i*nloc+j]<<" ";

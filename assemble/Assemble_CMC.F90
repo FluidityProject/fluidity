@@ -151,8 +151,6 @@ contains
       ! (i.e. DiagonalSchurComplement):
       type(vector_field) :: inner_m_diagonal
 
-      integer :: i
-
       ewrite(1,*) 'Entering assemble_diagonal_schur'
 
       call zero(schur_diagonal_matrix)

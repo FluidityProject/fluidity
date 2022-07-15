@@ -216,7 +216,7 @@ contains
       shapes_c(i)%degree = degree
       shapes_c(i)%numbering => find_element_numbering(&
             vertices = base_shape_c%numbering%vertices, &
-	    dimension = dim, degree = degree)
+            dimension = dim, degree = degree)
       shapes_c(i)%quadrature = quad
       call incref(quad)
 

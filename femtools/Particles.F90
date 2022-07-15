@@ -56,7 +56,7 @@ module particles
 
   public :: initialise_particles, move_particles, write_particles_loop, destroy_particles, &
             update_particle_attributes_and_fields, checkpoint_particles_loop, &
-	    get_particle_arrays, particle_lists, initialise_constant_particle_attributes, &
+            get_particle_arrays, particle_lists, initialise_constant_particle_attributes, &
             initialise_particles_during_simulation
 
 
@@ -141,7 +141,7 @@ contains
     integer, dimension(:), allocatable :: particle_arrays
     integer :: totaldet_global
     logical :: from_file, do_output, do_analytical, store_old_fields
-    integer :: n_fields, n_oldfields, phase, f
+    integer :: n_fields, n_oldfields
     integer :: s_field, v_field, t_field ! field index variables
     integer :: s_oldfield, v_oldfield, t_oldfield
     integer, dimension(3) :: field_counts, old_field_counts
@@ -434,14 +434,12 @@ contains
 
     integer :: i, k, j, dim, id_number
     integer :: particle_groups, particle_subgroups, list_counter, sub_particles
-    integer, dimension(:), allocatable :: init_check
 
     type(vector_field), pointer :: xfield
     type(attr_counts_type) :: attr_counts
-    type(attr_names_type) :: attr_names, old_attr_names, field_names, old_field_names
+    type(attr_names_type) :: attr_names, old_attr_names
     type(attr_write_type) :: attr_write
-    type(detector_type), pointer :: particle
-    integer, dimension(3) :: field_counts, old_field_counts
+    integer, dimension(3) :: old_field_counts
 
     character(len=OPTION_PATH_LEN) :: group_path, subgroup_path
     character(len=FIELD_NAME_LEN) :: subname
@@ -1310,7 +1308,7 @@ contains
     real :: constant
     real, allocatable, dimension(:) :: vconstant
     real, allocatable, dimension(:,:) :: tconstant
-    integer :: i, j, nparticles, l, m, n, dim, attr_idx, i_single, i_array
+    integer :: i, j, nparticles, m, n, dim, attr_idx, i_single, i_array
     integer :: nscalar, nvector, ntensor
     integer, dimension(3) :: old_attr_counts, field_counts, old_field_counts
     logical :: is_array
@@ -2154,7 +2152,7 @@ contains
     integer, optional, intent(out) :: group_attribute
     integer, optional, intent(in) :: att_n
 
-    character(len=OPTION_PATH_LEN) :: group_name, attribute_name, subgroup_name
+    character(len=OPTION_PATH_LEN) :: group_name, attribute_name
     integer :: particle_groups, array_counter, particle_subgroups, particle_attributes
     integer :: i, j, k, l
 

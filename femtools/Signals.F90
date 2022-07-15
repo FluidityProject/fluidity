@@ -31,8 +31,6 @@ module signals
   use signal_vars
   implicit none
 
-  logical, save, private :: initialised=.false.
-
 #ifdef SIGNAL_HAVE_FLAG
   interface
      function signal(signum, proc, flag)

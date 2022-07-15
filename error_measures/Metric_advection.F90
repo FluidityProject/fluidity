@@ -122,7 +122,7 @@ contains
     ! iterators
     integer :: rk_it, adv_it, i, sub, j, period_in_timesteps
     ! time (to output to file), timestep, iterations tolerance, subcycling timestep
-    real :: actual_dt, adapt_dt, error, sub_dt
+    real :: actual_dt, adapt_dt, sub_dt
     real :: max_cfl, scale_adv
 
     ! degree of quadrature to use on each control volume face
@@ -138,7 +138,7 @@ contains
     type(cv_options_type) :: tfield_options
 
     ! success indicators?
-    integer :: stat, cfl_stat
+    integer :: stat
     ! type of courant number we want to use
     character(len=FIELD_NAME_LEN) :: cfl_type
     ! the courant number field
@@ -536,20 +536,17 @@ contains
     ! local memory:
     ! allocatable memory for coordinates, velocity, normals, determinants, nodes
     ! and the cfl number at the gauss pts and nodes
-    real, dimension(:,:), allocatable :: x_ele, x_ele_bdy
-    real, dimension(:,:), allocatable :: x_f, u_f, u_bdy_f
-    real, dimension(:,:), allocatable :: normal, normal_bdy
-    real, dimension(:), allocatable :: detwei, detwei_bdy
+    real, dimension(:,:), allocatable :: x_ele
+    real, dimension(:,:), allocatable :: x_f, u_f
+    real, dimension(:,:), allocatable :: normal
+    real, dimension(:), allocatable :: detwei
     real, dimension(:), allocatable :: normgi
     integer, dimension(:), pointer :: nodes, x_nodes, upwind_nodes
-    integer, dimension(:), allocatable :: nodes_bdy
     real, dimension(:), allocatable :: cfl_ele
 
     ! allocatable memory for the values of the field at the nodes
-    ! and on the boundary and for ghost values outside the boundary
+    ! and on the boundary
     real, dimension(:), allocatable :: tfield_ele, oldtfield_ele
-    real, dimension(:), allocatable :: tfield_ele_bdy, oldtfield_ele_bdy
-    real, dimension(:), allocatable :: ghost_tfield_ele_bdy, ghost_oldtfield_ele_bdy
 
     ! some memory used in assembly of the face values
     real :: tfield_theta_val, tfield_pivot_val
@@ -559,7 +556,7 @@ contains
     logical, dimension(:), allocatable :: notvisited
 
     ! loop integers
-    integer :: ele, sele, iloc, oloc, face, gi, ggi
+    integer :: ele, iloc, oloc, face, gi, ggi
 
 
     ! mesh sparsity for upwind value matrices
@@ -574,34 +571,12 @@ contains
     ! time and face discretisation
     real :: ptheta, ftheta, beta
 
-    ! the type of the bc if integrating over domain boundaries
-    integer, dimension(:), allocatable :: tfield_bc_type
-    ! fields for the bcs over the entire surface mesh
-    type(scalar_field) :: tfield_bc
-
-    ! Bilinear form for the tensor twisting terms.
-    real, dimension(tfield%dim(1), tfield%dim(2), ele_loc(tfield,1), ele_loc(tfield,1)) :: &
-         Twist_mat
-    ! Twist terms applied to explicit T_guess values.
-    real, dimension(ele_loc(tfield,1)) :: Twist_rhs
-    ! Transformed gradient function for velocity.
-    real, dimension(ele_loc(relu, 1), ele_ngi(relu, 1), mesh_dim(tfield)) ::&
-      & du_t
-    type(element_type), pointer :: u_shape, t_shape
-
     type(scalar_field) :: tfield_scomp, oldtfield_scomp
-    type(tensor_field), pointer :: U_nl_J
-    type(tensor_field) :: bounded_U_nl_J
 
     real, dimension(:,:), allocatable :: mat_local
     real, dimension(:,:,:), allocatable :: rhs_local
 
-    integer :: i, j, k, dimi, dimj
-
-    real, dimension(relu%dim, relu%dim) :: id, value, strain, rotate
-    type(tensor_field), pointer :: max_eigenbound
-    real :: frob_norm
-    integer :: node
+    integer :: i, j, dimi, dimj
 
     ewrite(2,*) 'assemble_advection_m_cv'
 

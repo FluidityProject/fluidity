@@ -68,9 +68,8 @@ module node_boundary
     integer :: latest_eventcount
     integer :: i, j
     integer, dimension(:), pointer :: surf_ids
-    integer, dimension(:), pointer :: neighbours
     type(ilist), dimension(:), allocatable :: tags
-    integer :: snloc, face
+    integer :: snloc
     real, dimension(mesh_dim(mesh)) :: dimlen
     integer, dimension(1) :: minloc_out
 

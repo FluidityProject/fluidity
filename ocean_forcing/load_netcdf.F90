@@ -24,9 +24,7 @@ subroutine set_scalar_field_from_netcdf(field,path,position)
   type(scalar_field), intent(inout) :: field
   character(len=*), intent(in) :: path
   type(vector_field), intent(in) :: position
-  character(len=OPTION_PATH_LEN) :: field_name, format
-  real :: gravity_magnitude
-  integer :: stat
+  character(len=OPTION_PATH_LEN) :: format
 
   ! Are we getting data on a cartesian or lon-lat grid?
   on_sphere = have_option('/geometry/spherical_earth/')

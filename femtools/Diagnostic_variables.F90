@@ -30,6 +30,7 @@
 module diagnostic_variables
   !!< A module to calculate and output diagnostics. This replaces the .s file.
   use iso_c_binding, only: c_long
+  use ieee_arithmetic, only: ieee_value, ieee_quiet_nan
   use fldebug
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, &
 & PYTHON_FUNC_LEN, integer_size, real_size
@@ -47,7 +48,6 @@ module diagnostic_variables
   use halos_base
   use halos_debug
   use halos_allocates
-  use ieee_arithmetic
   use sparse_tools
   use embed_python
   use fields_base
@@ -66,7 +66,6 @@ module diagnostic_variables
   use halos_registration
   use field_derivatives
   use field_options
-  use c_interfaces
   use fefields
   use meshdiagnostics
   use sparsity_patterns
@@ -631,15 +630,15 @@ contains
           column = column + 1
           buffer = field_tag(name = memory_type_names(i), column = column,&
                & statistic = "current", material_phase_name="Memory")
-          write(default_stat%diag_unit, "(a)"), trim(buffer)
+          write(default_stat%diag_unit, "(a)") trim(buffer)
           column = column + 1
           buffer = field_tag(name = memory_type_names(i), column = column,&
                & statistic = "min", material_phase_name="Memory")
-          write(default_stat%diag_unit, "(a)"), trim(buffer)
+          write(default_stat%diag_unit, "(a)") trim(buffer)
           column = column + 1
           buffer = field_tag(name = memory_type_names(i), column = column,&
                & statistic = "max", material_phase_name="Memory")
-          write(default_stat%diag_unit, "(a)"), trim(buffer)
+          write(default_stat%diag_unit, "(a)") trim(buffer)
       end do
 #endif
 
@@ -1008,7 +1007,6 @@ contains
     character(len=*), intent(in) :: name, statistic
     character(len=*), intent(in), optional ::  material_phase
     real, dimension(:), pointer :: value
-    integer :: i
 
     type(registered_diagnostic_item), pointer :: iterator
 
@@ -1164,6 +1162,7 @@ contains
     integer, intent(in) :: unit
     !! If present and .true., indicates binary output format
     logical, optional, intent(in) :: binary_format
+    integer :: stat
 
     character(len=254) :: buffer, value_buffer
 
@@ -1183,7 +1182,10 @@ contains
     buffer=constant_tag(name="StartTime", type="string", value=trim(value_buffer))
     write(unit, '(a)') trim(buffer)
 
-    call get_environment_variable("HOSTNAME", value_buffer, default = "Unknown")
+    call get_environment_variable(name="HOSTNAME", value=value_buffer, status=stat)
+    if (stat /= 0) then
+      ewrite(-1, *) "GET_ENVIRONMENT_VARIABLE('HOSTNAME') returned no-zero status: ", stat
+    end if
     buffer=constant_tag(name="HostName", type="string", value=trim(value_buffer))
     write(unit, '(a)') trim(buffer)
 
@@ -1483,7 +1485,7 @@ contains
     character(len=FIELD_NAME_LEN) ::funcnam, temp_name, detector_name
     character(len=PYTHON_FUNC_LEN) :: func
 
-    integer :: column, i, j, k, phase, m, IERROR, field_count, totaldet_global
+    integer :: i, j, k, phase, m, field_count, totaldet_global
     integer :: static_dete, python_functions_or_files, total_dete, total_dete_groups
     integer :: python_dete, ndete, dim, group_size, proc_num
     integer(kind=8) :: h5_ierror
@@ -1496,7 +1498,6 @@ contains
     real:: current_time
     character(len = OPTION_PATH_LEN) :: detectors_cp_filename, detector_file_filename
 
-    type(detector_type), pointer :: detector
     type(element_type), pointer :: shape
 
     ! Idempotency check
@@ -2556,11 +2557,9 @@ contains
     type(detector_linked_list), intent(inout) :: detector_list
     real, intent(in) :: time, dt
 
-    character(len=10) :: format_buffer
     character(len=FIELD_NAME_LEN) :: vfield_name
-    integer :: i, j, k, phase, ele, check_no_det, totaldet_global, dim
+    integer :: i, j, phase, check_no_det, totaldet_global, dim
     integer(kind=8) :: h5_ierror
-    real :: value
     integer, dimension(:), allocatable :: detector_ids
     real, dimension(:), allocatable :: detector_scalar_values
     real, dimension(:,:), allocatable :: detector_vector_values, positions
@@ -2643,7 +2642,7 @@ contains
                ! check this detector belongs to an element
                if (detector%element<0) then
                  if (detector_list%write_nan_outside) then
-                   call cget_nan(detector_scalar_values(j))
+                   detector_scalar_values(j) = ieee_value(0.0, ieee_quiet_nan)
                  else
                    FLExit("Trying to write detector that is outside of domain.")
                  end if
@@ -2678,8 +2677,7 @@ contains
              do j = 1, detector_list%length
                if (detector%element<0) then
                  if (detector_list%write_nan_outside) then
-                   call cget_nan(value)
-                   detector_vector_values(j,:) = value
+                   detector_vector_values(j,:) = ieee_value(0.0, ieee_quiet_nan)
                  else
                    FLExit("Trying to write detector that is outside of domain.")
                  end if
@@ -2744,7 +2742,6 @@ contains
     integer, dimension(:), allocatable:: detector_count ! detectors per element
     integer, dimension(:), pointer:: detectors
     type(detector_type), pointer :: node
-    type(vector_field), pointer :: vfield, xfield
     integer :: dim, i, ele, no_rows, entries, row, pos
 
     if (detector_list%length/=0) then
@@ -2823,7 +2820,7 @@ contains
     !! Closes .stat, .convergence and .detector file (if openened)
     !! Gives a warning for iostat/=0, no point to flabort though.
 
-    integer:: stat, IERROR
+    integer:: stat
     integer(kind=8) :: h5_ierror
 
     if (default_stat%diag_unit/=0) then

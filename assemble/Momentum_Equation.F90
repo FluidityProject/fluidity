@@ -210,8 +210,6 @@
 
          ! Change in pressure
          type(scalar_field) :: delta_p
-         ! Change in velocity
-         type(vector_field) :: delta_u
 
          ! Dummy fields
          type(scalar_field), pointer :: dummyscalar, dummydensity, dummypressure

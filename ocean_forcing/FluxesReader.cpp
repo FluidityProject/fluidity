@@ -167,7 +167,7 @@ double FluxesReader::GetScalar(string scalar, double xlong, double ylat){
 
   double values[2];
   size_t time_level=0;
-  size_t nvalues=0, stride=longitude.size();
+  size_t stride=longitude.size();
 
   for(map<int, map<string, vector<double> > >::const_iterator itime=fields.begin(); itime!=fields.end(); itime++){
     const vector<double> &fld=itime->second.find(scalar)->second;
@@ -771,8 +771,6 @@ int FluxesReader::Update(){
   pair<size_t, size_t> time_interval = GetInterval(time_set, lut_time);
   size_t t0=time_interval.first;
   size_t t1=time_interval.second;
-
-  bool need_second_frame = (t0!=t1);
 
   // Deleted data which is no longer needed
   if(!fields.empty())

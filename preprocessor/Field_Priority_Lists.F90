@@ -62,7 +62,7 @@ contains
     integer, intent(in) :: ntsol
 
     logical, save:: initialised=.false.
-    integer :: nsol, nphases,nfields,ncars,p,f,i, tmpint
+    integer :: nsol, nphases, nfields, p, f, tmpint
     character(len=FIELD_NAME_LEN) :: tmpstring
     logical :: aliased, pressure
 
@@ -328,7 +328,7 @@ contains
 
   subroutine get_ntsol(ntsol)
     integer, intent(out) :: ntsol
-    integer :: nphases,nfields,ncars,p,f
+    integer :: nphases, nfields, p, f
     character(len=FIELD_NAME_LEN) :: tmpstring
     logical :: aliased, pressure
 

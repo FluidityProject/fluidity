@@ -10772,7 +10772,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
     FCFLAGS="$old_fcflags"
 
     FFLAGS="-fbounds-check -Wall ${FFLAGS}"
-    FCFLAGS="-fbounds-check -Wall -Wimplicit-interface -Wno-surprising ${FCFLAGS}"
+    FCFLAGS="-fbounds-check -Wall -Wno-surprising -Wno-unused-function -Wno-unused-dummy-argument ${FCFLAGS}"
     CFLAGS="-fbounds-check -Wall ${CFLAGS}"
     CXXFLAGS="-fbounds-check -Wall ${CXXFLAGS}"
     if test "$DARWIN" = "no" ; then

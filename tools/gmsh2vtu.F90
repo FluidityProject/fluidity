@@ -39,7 +39,7 @@ subroutine gmsh2vtu(filename_, filename_len) bind(c)
 
   character(len=filename_len) :: filename
 
-  integer :: stat, i
+  integer :: i
   type(vector_field), target :: positions
   type(scalar_field) :: regions
 

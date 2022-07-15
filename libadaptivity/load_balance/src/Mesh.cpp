@@ -713,6 +713,8 @@ samfloat_t Mesh::idealElementDensity(const unsigned eid)
 {
   assert(element_list[eid].get_flags()&ELM_VOLUME);
 
+  samfloat_t det{};
+
   if (dimension == 3)
   {
 
@@ -758,10 +760,8 @@ samfloat_t Mesh::idealElementDensity(const unsigned eid)
     c3/=len;
 
     // det = | r_a r_b r_c |
-    samfloat_t det = a1*(b2*c3 - b3*c2) - b1*(a2*c3 - a3*c2) + c1*(a2*b3 - a3*b2);
+    det = a1*(b2*c3 - b3*c2) - b1*(a2*c3 - a3*c2) + c1*(a2*b3 - a3*b2);
     CHECK(det);
-
-    return sqrt(det)*elementVolume(eid);
   }
   else if (dimension == 2)
   {
@@ -779,9 +779,9 @@ samfloat_t Mesh::idealElementDensity(const unsigned eid)
     }
     unsigned len = nodes.size();
     a1 /= len; a2 /= len; b1 /= len; b2 /= len;
-    samfloat_t det = a1*b2 - a2*b1;
-    return sqrt(det)*elementVolume(eid);
+    det = a1*b2 - a2*b1;
   }
+  return sqrt(det)*elementVolume(eid);
 }
 
 // Returns a node->element list

@@ -134,7 +134,7 @@ contains
     type(detector_linked_list) :: detector_bcast_list, lost_detectors_list
     type(detector_type), pointer :: detector, node_to_send, bcast_detector
     type(vector_field), pointer :: xfield
-    integer :: i,j,k, nprocs, all_send_lists_empty, processor_owner, bcast_count, &
+    integer :: i, k, nprocs, all_send_lists_empty, processor_owner, bcast_count, &
                ierr, ndata_per_det, bcast_rounds, round, accept_detector
     integer, dimension(:), allocatable :: ndets_being_bcast
     real, allocatable :: send_buff(:), recv_buff(:)

@@ -390,8 +390,6 @@ contains
   subroutine bulk_parameterisations_check_options
 
     character(len=FIELD_NAME_LEN) :: buffer
-    integer                       :: stat
-    real                          :: nbcs
     integer                       :: dimension
 
     ! Don't do BP if it's not included in the model!
@@ -570,7 +568,7 @@ contains
     real :: dqer, dter, hlb, hsb
     integer :: ibg, l, le
     real :: p, q, qs, qsr, rain, rf,rgas
-    real :: rhoa, rnl, rns, t, taub, tdk, intime, tkt, ts, tsea
+    real :: rhoa, rnl, rns, t, taub, tdk, tkt, ts, tsea
     real :: tsr, twave, us, usr, visa, wbar, wg, zi, zo, zoq, zot
 
     ! U  true wind speed, m/s  etl sonic anemometer
@@ -704,7 +702,6 @@ contains
       real lwave,cwave,Rns,Rnl,du,dt,dq,qout,dels,qcol,alq,xlamx,alfac,bf,cc,cd10,ch10,charn,ct,ct10,dtmp,dwat,hl_webb
       real jwave, l10,pi,ribcu,ribu,rr,ta,u10,ut,zet,zetu,zo10,zot10
       real hsb, hlb, tau, zo, zot, zoq, L, usr, tsr, qsr, dter, dqer, tkt, RF, wbar, Cd, Ch, Ce, Cdn_10, Chn_10, Cen_10, ug
-      real p30
       integer i,nits
 
       u=x(1) !wind speed (m/s)  at height zu (m)
@@ -908,7 +905,7 @@ contains
 
     function psiuo(zet)
 
-      real :: psiuo, zet, z, psik, psic, f, c, x
+      real :: psiuo, zet, psik, psic, f, c, x
 
       x=(1.-15.*zet)**.25
       psik=2.*log((1.+x)/2.)+log((1.+x*x)/2.)-2.*atan(x)+2.*atan(1.)

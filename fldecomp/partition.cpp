@@ -196,6 +196,7 @@ namespace Fluidity{
 
     // Partition graph
     decomp.resize(nnodes);
+    [[maybe_unused]]
     int wgtflag=0, numflag=1, edgecut=0;
 #ifdef PARMETIS_V3
     int options[] = {0};
@@ -259,6 +260,7 @@ namespace Fluidity{
 
         vector<int> pdecomp, ncores(npartitions[1], 0);
         set<int> parts;
+        [[maybe_unused]]
         int sedgecut = gpartition(pgraph, npartitions[1], partition_method, pdecomp);
         for(map<int, int>::const_iterator it=renumber.begin();it!=renumber.end();++it){
           ncores[pdecomp[it->second]]++;

@@ -13,33 +13,33 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
 import io
-import io as StringIO
 import os.path
 import re
-import sys
-import tempfile
 import time
 
-from gi.repository import Gdk as gdk
-from gi.repository import GObject as gobject
-from gi.repository import Gtk as gtk
-from gi.repository import Pango as pango
-from lxml import etree
+import gi
 
-from . import (
+gi.require_version("Gdk", "4.0")
+gi.require_version("Gtk", "4.0")
+gi.require_version("Pango", "1.0")
+
+from gi.repository import Gdk as gdk  # noqa: E402
+from gi.repository import GObject as gobject  # noqa: E402
+from gi.repository import Gtk as gtk  # noqa: E402
+from gi.repository import Pango as pango  # noqa: E402
+
+from . import (  # noqa: E402
     attributewidget,
     choice,
     commentwidget,
     config,
     databuttonswidget,
-    datatype,
     datawidget,
     debug,
     descriptionwidget,
     dialogs,
     diffview,
     mixedtree,
-    plist,
     plugins,
     schema,
     scherror,
@@ -50,17 +50,20 @@ from . import (
 
 try:
     gtk.Tooltip()
-except:
+except AttributeError:
     debug.deprint("Interface warning: Unable to use GTK tooltips")
 
 """
 Here are some notes about the code:
 
 Important fields:
-  file_path: the directory containing the current file (the working directory or directory of last opened / saved file if no file is open)
+  file_path: the directory containing the current file (the working directory or
+             directory of last opened / saved file if no file is open)
   filename: output filename of the current file
-  data_paths: paths (from the root node) to important Diamond data (e.g. geometry dimension)
-  geometry_dim_tree: MixedTree, with parent equal to the geometry dimension tree and child equal to the geometry dimension data subtree
+  data_paths: paths (from the root node) to important Diamond data (e.g. geometry
+              dimension)
+  geometry_dim_tree: MixedTree, with parent equal to the geometry dimension tree and
+                     child equal to the geometry dimension data subtree
   gladefile: input Glade file
   gui: GUI GladeXML object
   logofile: the GUI logo file
@@ -71,15 +74,20 @@ Important fields:
   comment: RHS comment entry widget
   node_data: RHS data entry widget
   node_data_buttons_hbox: container for "Revert Data" and "Store Data" buttons
-  node_data_interacted: used to determine if a node data widget has been interacted with without data being stored
+  node_data_interacted: used to determine if a node data widget has been interacted with
+                        without data being stored
   node_data_frame: frame containing data entry widgets
-  options_tree_select_func_enabled: boolean, true if the options tree select function is enabled (used to overcome a nasty clash with the treeview clicked signal) - re-enabled on next options_tree_select_func call
+  options_tree_select_func_enabled: boolean, true if the options tree select function is
+                                    enabled (used to overcome a nasty clash with the
+                                    treeview clicked signal) - re-enabled on next
+                                    options_tree_select_func call
   selected_node: a tree.Tree or MixedTree containing data to be displayed on the RHS
   selected_iter: last iter set by on_select_row
   s: current schema
   saved: boolean, false if the current file has been edited
   schemafile: the current RNG schema file
-  schemafile_path: the directory containing the current schema file (the working directory if no schema is open)
+  schemafile_path: the directory containing the current schema file (the working
+                   directory if no schema is open)
   signals: dictionary containing signal handlers for signals set up in the Glade file
   statusbar: GUI status bar
   tree: LHS tree root
@@ -89,7 +97,8 @@ Important fields:
 Important routines:
   cellcombo_changed: called when a choice is selected on the left-hand pane
   init_treemodel: set up the treemodel and treeview
-  on_treeview_clicked: when a row is clicked, process the consequences (e.g. activate inactive instance)
+  on_treeview_clicked: when a row is clicked, process the consequences (e.g. activate
+                       inactive instance)
   set_treestore: stuff the treestore with a given tree.Tree
   on_find_find_button & search_treestore: the find functionality
   on_select_row: when a row is selected, update the options frame
@@ -101,7 +110,6 @@ If there are bugs in writing out, see tree.write.
 
 
 class Diamond:
-
     fontsize = 12
 
     def __init__(
@@ -169,11 +177,11 @@ class Diamond:
 
         self.logofile = logofile
         if self.logofile is not None:
-            for l in self.logofile:
+            for item in self.logofile:
                 try:
-                    gtk.Window.set_default_icon_from_file(l)
+                    gtk.Window.set_default_icon_from_file(item)
                     break
-                except:
+                except Exception:
                     pass
 
         self.init_treemodel()
@@ -215,7 +223,7 @@ class Diamond:
         ret = os.system("which %s > /dev/null" % name)
         return ret == 0
 
-    ### MENU ###
+    # MENU
 
     def update_title(self):
         """
@@ -280,7 +288,7 @@ class Diamond:
             s_read = schema.Schema(schemafile)
             self.s = s_read
             self.statusbar.set_statusbar("Loaded schema from " + schemafile)
-        except:
+        except Exception:
             dialogs.error_tb(
                 self.main_window, 'Unable to open schema file "' + schemafile + '"'
             )
@@ -364,7 +372,7 @@ class Diamond:
 
             self.tree = tree_read
             self.filename = filename
-        except:
+        except Exception:
             dialogs.error_tb(self.main_window, 'Unable to open file "' + filename + '"')
             return
 
@@ -407,11 +415,11 @@ class Diamond:
         return
 
     def save_continue(self):
-
         if not self.saved:
             prompt_response = dialogs.prompt(
                 self.main_window,
-                "Unsaved data. Do you want to save the current document before continuing?",
+                "Unsaved data. Do you want to save the current document before"
+                " continuing?",
                 gtk.MessageType.WARNING,
                 True,
             )
@@ -507,7 +515,7 @@ class Diamond:
             self.main_window.get_window().set_cursor(gdk.Cursor(gdk.CursorType.WATCH))
             try:
                 self.tree.write(self.filename)
-            except:
+            except Exception:
                 dialogs.error_tb(
                     self.main_window, 'Saving to "' + self.filename + '" failed'
                 )
@@ -552,7 +560,8 @@ class Diamond:
         )
 
         if filename is not None:
-            # Check that the selected file has a file extension. If not, add a .xml extension.
+            # Check that the selected file has a file extension. If not, add a .xml
+            # extension.
             if len(filename.split(".")) <= 1:
                 filename += ".xml"
 
@@ -597,7 +606,7 @@ class Diamond:
 
         try:
             gtk.main_quit()
-        except:
+        except Exception:
             debug.dprint("Failed to quit - already quit?")
 
         return
@@ -612,8 +621,7 @@ class Diamond:
         Go to a node, identified by an XPath
         """
 
-        dialog = dialogs.GoToDialog(self)
-        spudpath = dialog.run()
+        dialogs.GoToDialog(self)
 
         return
 
@@ -756,18 +764,18 @@ class Diamond:
         )
 
         if self.logofile is not None:
-            for l in self.logofile:
+            for item in self.logofile:
                 try:
-                    logo = gdk.pixbuf_new_from_file(l)
+                    logo = gdk.pixbuf_new_from_file(item)
                     about.set_logo(logo)
                     break
-                except:
+                except Exception:
                     pass
 
         try:
             image = about.get_children()[0].get_children()[0].get_children()[0]
             image.set_tooltip_text("Diamond: it's clearer than GEM")
-        except:
+        except Exception:
             pass
 
         about.run()
@@ -824,7 +832,7 @@ class Diamond:
         else:
             node = self.selected_node
 
-        if node != None and node.active:
+        if node is not None and node.active:
             ios = io.StringIO()
             node.write(ios)
 
@@ -845,8 +853,7 @@ class Diamond:
         if self.selected_iter is not None:
             node = self.treestore.get_value(self.selected_iter, 0)
 
-        if node != None:
-
+        if node is not None:
             expand = not node.active
             if expand:
                 self.expand_tree(self.selected_iter)
@@ -931,7 +938,6 @@ class Diamond:
         useview.UseView(self.s, self.suffix)
 
     def on_slice(self, widget=None):
-
         if self.selected_node is None:
             self.statusbar.set_statusbar("No element selected.  Cannot slice.")
             return
@@ -1026,7 +1032,7 @@ class Diamond:
 
         return
 
-    ## LHS ###
+    # LHS
 
     def init_datatree(self):
         """
@@ -1037,11 +1043,11 @@ class Diamond:
             self.set_treestore(None, [])
             self.tree = None
         else:
-            l = self.s.valid_children(":start")
+            child = self.s.valid_children(":start")
 
-            self.tree = l[0]
+            self.tree = child[0]
             self.signals = {}
-            self.set_treestore(None, l)
+            self.set_treestore(None, child)
 
         root_iter = self.treestore.get_iter_first()
         self.treeview.freeze_child_notify()
@@ -1215,9 +1221,10 @@ class Diamond:
             for opt in choice_or_tree.choices():
                 self.expand_choice_or_tree(opt)
         else:
-            l = self.s.valid_children(choice_or_tree.schemaname)
-            l = choice_or_tree.find_or_add(l)
-            for opt in l:
+            child = choice_or_tree.find_or_add(
+                self.s.valid_children(choice_or_tree.schemaname)
+            )
+            for opt in child:
                 self.expand_choice_or_tree(opt)
 
         return
@@ -1238,9 +1245,8 @@ class Diamond:
         if active_tree.active is False or choice_or_tree.active is False:
             return
 
-        l = self.s.valid_children(active_tree.schemaname)
-        l = active_tree.find_or_add(l)
-        self.set_treestore(iter, l)
+        child = active_tree.find_or_add(self.s.valid_children(active_tree.schemaname))
+        self.set_treestore(iter, child)
 
         child_iter = self.treestore.iter_children(iter)
         while child_iter is not None:
@@ -1525,7 +1531,6 @@ class Diamond:
         pathinfo = treeview.get_path_at_pos(int(event.x), int(event.y))
 
         if event.button == 1:
-
             if pathinfo is not None:
                 path = pathinfo[0]
                 col = pathinfo[1]
@@ -1678,10 +1683,8 @@ class Diamond:
         xml = f.getvalue()
         xml = plugin.execute(xml, self.current_xpath)
         if xml:
-            ios = io.StringIO(xml)
-
             try:
-                tree_read = self.s.read(filename)
+                tree_read = self.s.read(self.filename)
 
                 if tree_read is None:
                     self.statusbar.set_statusbar("Unable to read plugin result")
@@ -1689,7 +1692,7 @@ class Diamond:
 
                 self.display_validation_errors(self.s.read_errors())
                 self.tree = tree_read
-            except:
+            except Exception:
                 dialogs.error_tb(self.main_window, "Unable to read plugin result")
                 return
 
@@ -1717,7 +1720,7 @@ class Diamond:
         Get the iter to the selected row.
         """
 
-        if selection == None:
+        if selection is None:
             selection = self.treeview.get_selection()
 
         (model, paths) = selection.get_selected_rows()
@@ -1844,7 +1847,7 @@ class Diamond:
                     painted_tree.name, painted_tree.schemaname, datatype="fixed"
                 )
                 data_tree.data = painted_tree.data
-                painted_tree = MixedTree(painted_tree, data_tree)
+                painted_tree = mixedtree.MixedTree(painted_tree, data_tree)
             elif (
                 isinstance(self.geometry_dim_tree, mixedtree.MixedTree)
                 and active_tree is self.geometry_dim_tree.parent
@@ -1955,7 +1958,7 @@ class Diamond:
             try:
                 test = int(opt)
                 assert test > 0
-            except:
+            except Exception:
                 return
 
         # A valid geometry dimension element has been located
@@ -2069,7 +2072,7 @@ class Diamond:
 
         return
 
-    ### RHS ###
+    # RHS
 
     def add_custom_widgets(self):
         """
@@ -2136,7 +2139,7 @@ class DiamondFindDialog:
         Open up the find dialog. It has to be created each time from the glade file.
         """
 
-        if not self.search_dialog is None:
+        if self.search_dialog is not None:
             return
 
         signals = {
@@ -2210,7 +2213,7 @@ class DiamondFindDialog:
         Close the search widget.
         """
 
-        if not self.search_dialog is None:
+        if self.search_dialog is not None:
             self.search_dialog.hide()
             self.search_dialog = None
         self.parent.statusbar.clear_statusbar()

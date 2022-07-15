@@ -164,7 +164,7 @@ module field_derivatives
       real, dimension(mesh_dim(field), face_loc(field, face)) :: face_rhs
       integer, dimension(face_loc(field, face))  :: lnodes
 
-      integer :: i, j
+      integer :: i
 
       face_rhs = 0.0
       vector = 0.0
@@ -264,9 +264,6 @@ module field_derivatives
       type(element_type), pointer, intent(in) :: shape
       real, dimension(mesh_dim(field), ele_loc(field, ele_number)) :: loc_grad
       real, dimension(mesh_dim(field), field%mesh%shape%ngi) :: quad_grad
-
-      type(scalar_field) :: field_component
-      integer :: j
 
       loc_grad = dg_ele_grad(field, ele_number, X, bc_value, bc_type)
 
@@ -574,10 +571,8 @@ module field_derivatives
       type(scalar_field), dimension(infield%dim) :: pardiff
       type(scalar_field) :: component
 
-      real, dimension(t_field%dim(1),t_field%dim(2)) :: t
       logical, dimension(infield%dim) :: derivatives
       integer :: i, j
-      integer :: node
 
       !! Field over the entire surface mesh containing bc values:
       type(vector_field) :: bc_value
@@ -1674,19 +1669,9 @@ module field_derivatives
       type(scalar_field), intent(in), optional :: bc_value
       integer, dimension(:), intent(in), optional :: bc_type
 
-      ! variables for interior integral
-      type(element_type), pointer :: shape
-      real, dimension(ele_loc(infield, ele), ele_ngi(infield, ele), positions%dim) :: dshape
-      real, dimension(ele_ngi(infield, ele)) :: detwei
-      real, dimension(positions%dim, ele_ngi(infield, ele)) :: grad_gi
       real, dimension(positions%dim, ele_loc(infield, ele)) :: rhs
 
-      ! variables for surface integral
-      integer :: ni, ele_2, face, face_2, i
-      integer, dimension(:), pointer :: neigh
-
-      ! inverse mass
-      real, dimension(ele_loc(infield, ele), ele_loc(infield, ele)) :: inv_mass
+      integer :: i
 
       ! In parallel, we only construct the equations on elements we own, or
       ! those in the L1 halo.

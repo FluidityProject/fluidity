@@ -234,7 +234,7 @@ contains
     character(len = *), optional, intent(in) :: velocity_name
 
     character(len = FIELD_NAME_LEN) :: lvelocity_name, velocity_equation_type
-    integer :: i, j, stat
+    integer :: i, stat
     integer, dimension(:), allocatable :: t_bc_types
     type(scalar_field) :: t_bc, t_bc_2
     type(scalar_field), pointer :: absorption, sinking_velocity, source
@@ -255,8 +255,6 @@ contains
     type(integer_set), dimension(:), pointer :: colours
     integer :: clr, nnid, len, ele
     integer :: num_threads, thread_num
-    !! Did we successfully prepopulate the transform_to_physical_cache?
-    logical :: cache_valid
 
     type(element_type), dimension(:), allocatable :: supg_element
 

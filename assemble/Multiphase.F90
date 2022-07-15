@@ -289,7 +289,7 @@
 
          integer :: i, dim
          logical :: not_found ! Error flag. Have we found the fluid phase?
-         integer :: istate_fluid, istate_particle
+         integer :: istate_fluid
 
          ! Types of drag correlation
          integer, parameter :: DRAG_CORRELATION_TYPE_STOKES = 1, DRAG_CORRELATION_TYPE_WEN_YU = 2, DRAG_CORRELATION_TYPE_ERGUN = 3, DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN = 4, DRAG_CORRELATION_TYPE_LAIN_1_1999= 5, DRAG_CORRELATION_TYPE_LAIN_2_2002 = 6
@@ -701,7 +701,7 @@
 
          logical :: is_particle_phase
          logical :: not_found ! Error flag. Have we found the fluid phase?
-         integer :: i, istate_fluid, istate_particle
+         integer :: i, istate_fluid
 
 
          ewrite(1, *) "Entering add_heat_transfer"

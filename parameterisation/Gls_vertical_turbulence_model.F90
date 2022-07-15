@@ -73,7 +73,7 @@ module gls
   real, save               :: ct1,ctt
   real, save               :: cc2,cc3,cc4,cc5,cc6
   real, save               :: ct2,ct3,ct4,ct5
-  real, save               :: cPsi1,cPsi2,cPsi3,cPsi3_plus,cPsi3_minus
+  real, save               :: cPsi1,cPsi2,cPsi3_plus,cPsi3_minus
   real, save               :: relaxation
 
 
@@ -357,7 +357,6 @@ subroutine gls_tke(state)
     type(scalar_field), pointer      :: source, absorption, scalarField
     type(tensor_field), pointer      :: tke_diff, background_diff
     type(scalar_field), pointer      :: tke
-    real                             :: prod, buoyan, diss
     integer                          :: i, stat, ele
     character(len=FIELD_NAME_LEN)    :: bc_type
     type(scalar_field), pointer      :: scalar_surface
@@ -533,7 +532,6 @@ subroutine gls_psi(state)
 
     type(scalar_field), pointer      :: source, absorption, tke,  psi, scalarField
     type(tensor_field), pointer      :: psi_diff, background_diff
-    real                             :: prod, buoyan,diss,PsiOverTke
     character(len=FIELD_NAME_LEN)    :: bc_type
     integer                          :: i, stat, ele
     type(scalar_field), pointer      :: scalar_surface
@@ -551,7 +549,6 @@ subroutine gls_psi(state)
 
     ! Temporary tensor to hold  rotated values (note: must be a 3x3 mat)
     real, dimension(3,3)             :: psi_sphere_node
-    real                             :: src, absn
 
     ewrite(1,*) "In gls_psi"
 
@@ -854,7 +851,7 @@ subroutine gls_diffusivity(state)
     type(tensor_field), pointer      :: eddy_diff_KH,eddy_visc_KM,viscosity,background_diff,background_visc
     real                             :: exp1, exp2, exp3, x
     integer                          :: i, stat
-    real                             :: psi_limit, tke_cur, limit, epslim
+    real                             :: psi_limit, tke_cur, epslim
     real, parameter                  :: galp = 0.748331 ! sqrt(0.56)
     type(vector_field), pointer      :: positions, velocity
     type(scalar_field)               :: remaped_K_M, tke
@@ -1755,7 +1752,6 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
     real, dimension(2)                   :: temp_vector_2D
     real, dimension(3)                   :: temp_vector_3D
     logical                              :: surface_allocated
-    integer                              :: stat
 
     MaxIter = 10
     z0s_min = 0.003

@@ -18,7 +18,6 @@ subroutine test_quad_quadrature
   real, dimension(6,6) :: l_tri_mass
   real, dimension(4,4) :: global_tri_mass
   real, dimension(4,6) :: local2global
-  integer :: i
 
   quad_quadrature = make_quadrature(vertices=4,dim=2,degree=2)
   tri_quadrature = make_quadrature(vertices=3,dim=2,degree=4)

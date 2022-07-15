@@ -242,8 +242,6 @@ contains
     end interface
     integer, intent(in) :: ele
 
-    ! Locations of nodes.
-    real, dimension(positions%dim,ele_loc(positions,ele)) :: X_ele
     ! Locations of quadrature points
     real, dimension(positions%dim,ele_ngi(positions,ele)) :: X_quad
     ! Derivatives of shape function:
@@ -254,7 +252,7 @@ contains
     ! Node numbers of psi element.
     integer, dimension(:), pointer :: ele_psi
     ! Shape functions.
-    type(element_type), pointer :: shape_psi, shape_X
+    type(element_type), pointer :: shape_psi
     ! Local Laplacian matrix
     real, dimension(ele_loc(psi, ele), ele_loc(psi, ele)) :: psi_mat
     ! Local right hand side.

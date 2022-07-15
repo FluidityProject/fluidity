@@ -190,7 +190,7 @@ int main(int argc, char **argv){
   if(verbose)
     cout<<"Reading in mesh file with base name "<<filename<<"\n";
 
-
+  [[maybe_unused]]
   int exitVal;
 
   // Call either decomp or GMSH decomposition routines

@@ -10,8 +10,6 @@ from __future__ import print_function
 
 import copy
 import functools
-import operator
-import sys
 
 import numpy
 
@@ -64,8 +62,8 @@ class Field:
         return self.mesh.ele_loc(ele_number)
 
     def ele_nodes(self, ele_number):
-        # Return a pointer to a vector containing the global node numbers of
-        # element ele_number, i.e. all node numbers associated with the element ele_number
+        # Return a pointer to a vector containing the global node numbers of element
+        # ele_number, i.e. all node numbers associated with the element ele_number
         return self.mesh.ele_nodes(ele_number)
 
     def ele_shape(self, ele_number):
@@ -178,8 +176,8 @@ class TensorField(Field):
         self.node_count = self.val.shape[0]
 
 
-### This is an example of wrapping up a class in a try block
-# to prevent scipy being imported
+# This is an example of wrapping up a class in a try block to prevent scipy from being
+# imported
 try:
     import scipy
     import scipy.sparse
@@ -236,7 +234,7 @@ class Mesh:
             nodes.append(self.ndglno[base + i] - 1)
         return nodes
 
-    def ele_region_id(ele_number):
+    def ele_region_id(self, ele_number):
         # Return the region_id of element ele_number
         return self.mesh.region_ids[ele_number]
 
@@ -264,8 +262,10 @@ class Element:
         self.loc = loc  # Number of nodes
         self.ngi = ngi  # Number of gauss points
         self.degree = degree  # Polynomial degree of element
-        # Shape functions: n is for the primitive function, dn is for partial derivatives, dn_s is for partial derivatives on surfaces
-        # n is loc x ngi, dn is loc x ngi x dim
+        # Shape functions:
+        # - n is for the primitive function (loc x ngi)
+        # - dn is for partial derivatives (loc x ngi x dim)
+        # - dn_s is for partial derivatives on surfaces
         self.n = n
         self.dn = dn
         self.coords = coords
@@ -344,7 +344,8 @@ class Transform:
         self.ele_num = ele_num
         self.element = field.mesh.shape
         self.field = field
-        # Jacobian matrix and its inverse at each quadrature point (dim x dim x field.mesh.shape.ngi)
+        # Jacobian matrix and its inverse at each quadrature point
+        # (dim x dim x field.mesh.shape.ngi)
         # Facilitates access to this information externally
         self.J = [
             numpy.zeros((field.dimension, self.element.dimension))
@@ -356,8 +357,8 @@ class Transform:
         ]
         self.detwei = numpy.zeros(self.element.ngi)
         self.det = numpy.zeros(self.element.ngi)
-        # Calculate detwei, i.e. the gauss weights transformed by the coordinate transform
-        # from real to computational space
+        # Calculate detwei, i.e. the gauss weights transformed by the coordinate
+        # transform from real to computational space
         self.transform_to_physical_detwei(field)
 
     def set_J(self, J, gi):
@@ -416,7 +417,6 @@ class Transform:
         # dshape_loc = size(self.gradient)
         dshape_loc = len(dshape.dn)
         dshape_dim = dshape.dn.shape[2]
-        field = self.field
 
         shape_dshape = numpy.zeros((shape.loc, dshape_loc, dshape_dim))
         for i in range(shape.loc):

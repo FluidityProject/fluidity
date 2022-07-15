@@ -33,7 +33,6 @@ subroutine Meshconv(c_input_basename, input_basename_len, c_input_mesh_format, i
   !!< Converts a mesh file of a given mesh format into the specified output mesh format.
 
   use fldebug
-  use global_parameters, only: OPTION_PATH_LEN, is_active_process, no_active_processes, topology_mesh_name
   use fields
   use parallel_tools, only: isparallel, parallel_filename, getnprocs
   use halos_registration, only: read_halos, write_halos

@@ -40,7 +40,7 @@ module sparsity_patterns
 
   public :: make_sparsity, make_sparsity_transpose, make_sparsity_mult,&
             make_sparsity_dg_mass, make_sparsity_compactdgdouble,&
-	    make_sparsity_lists, lists2csr_sparsity
+            make_sparsity_lists, lists2csr_sparsity
 
 contains
 

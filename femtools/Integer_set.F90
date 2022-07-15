@@ -2,7 +2,7 @@
 
 module integer_set_module
   ! Don't use this directly, use data_structures
-  use iso_c_binding, only: c_ptr
+  use iso_c_binding, only: c_ptr, c_int
   use fldebug
   type integer_set
     type(c_ptr) :: address
@@ -24,37 +24,37 @@ module integer_set_module
     end subroutine integer_set_delete_c
 
     subroutine integer_set_insert_c(i, v, c) bind(c)
-      use iso_c_binding, only: c_ptr
+      use iso_c_binding, only: c_ptr, c_int
       type(c_ptr), intent(inout) :: i
-      integer, intent(in) :: v
-      integer, intent(out) :: c
+      integer(c_int), intent(in) :: v
+      integer(c_int), intent(out) :: c
     end subroutine integer_set_insert_c
 
     pure subroutine integer_set_length_c(i, l) bind(c)
-      use iso_c_binding, only: c_ptr
+      use iso_c_binding, only: c_ptr, c_int
       type(c_ptr), intent(in) :: i
-      integer, intent(out) :: l
+      integer(c_int), intent(out) :: l
     end subroutine integer_set_length_c
 
     subroutine integer_set_fetch_c(i, idx, val) bind(c)
-      use iso_c_binding, only: c_ptr
+      use iso_c_binding, only: c_ptr, c_int
       type(c_ptr), intent(in) :: i
-      integer, intent(in) :: idx
-      integer, intent(out) :: val
+      integer(c_int), intent(in) :: idx
+      integer(c_int), intent(out) :: val
     end subroutine integer_set_fetch_c
 
     subroutine integer_set_remove_c(i, idx, stat) bind(c)
-      use iso_c_binding, only: c_ptr
+      use iso_c_binding, only: c_ptr, c_int
       type(c_ptr), intent(in) :: i
-      integer, intent(in) :: idx
-      integer, intent(out) :: stat
+      integer(c_int), intent(in) :: idx
+      integer(c_int), intent(out) :: stat
     end subroutine integer_set_remove_c
 
     subroutine integer_set_has_value_c(i, val, bool) bind(c)
-      use iso_c_binding, only: c_ptr
+      use iso_c_binding, only: c_ptr, c_int
       type(c_ptr), intent(in) :: i
-      integer, intent(in) :: val
-      integer, intent(out) :: bool
+      integer(c_int), intent(in) :: val
+      integer(c_int), intent(out) :: bool
     end subroutine integer_set_has_value_c
   end interface
 

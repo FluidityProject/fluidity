@@ -1,13 +1,10 @@
-import glob
 import math
 import os
-import sys
 
 import le_tools
 import numpy
 import pylab
 import scipy.stats
-import vtk
 from fluidity_tools import stat_parser
 
 ################################################
@@ -19,7 +16,10 @@ def Froudenumber(flmlname):
     print("\n********** Calculating the Froude number\n")
     # warn user about assumptions
     print(
-        "Froude number calculations makes three assumptions: \n i) domain height = 0.1m \n ii) mid point domain is at x = 0.4 \n iii) initial temperature difference is 1.0 degC"
+        """Froude number calculations makes three assumptions:
+i) domain height = 0.1m
+ii) mid point domain is at x = 0.4
+iii) initial temperature difference is 1.0 degC"""
     )
     domainheight = 0.1
     domainmid = 0.4
@@ -30,11 +30,6 @@ def Froudenumber(flmlname):
 
     # get list of vtus
     filelist = le_tools.GetFiles("./")
-    logs = [
-        "diagnostics/logs/time.log",
-        "diagnostics/logs/X_ns.log",
-        "diagnostics/logs/X_fs.log",
-    ]
     try:
         # if have extracted information already just use that
         os.stat("diagnostics/logs/time.log")
@@ -75,13 +70,13 @@ def Froudenumber(flmlname):
     start_val, end_val, average_flag_ns = le_tools.GetAverageRange(
         X_ns, 0.2, domainheight
     )
-    if average_flag_ns == True:
+    if average_flag_ns is True:
         U_average[0].append(pylab.average(U_ns[start_val:end_val]))
 
     start_val, end_val, average_flag_fs = le_tools.GetAverageRange(
         X_fs, 0.25, domainheight
     )
-    if average_flag_fs == True:
+    if average_flag_fs is True:
         U_average[1].append(pylab.average(U_fs[start_val:end_val]))
 
     # plot
@@ -125,7 +120,7 @@ def Froudenumber(flmlname):
     pylab.xlabel("$X/H$", fontsize=fs)
     pylab.ylabel("$Fr$", fontsize=fs)
     pylab.title("no-slip", fontsize=fs)
-    if average_flag_ns == True:
+    if average_flag_ns is True:
         pylab.axvline(2.0, color="k")
         pylab.axvline(3.0, color="k")
         pylab.text(
@@ -165,7 +160,7 @@ def Froudenumber(flmlname):
     pylab.xlabel("$X/H$", fontsize=fs)
     pylab.ylabel("$Fr$", fontsize=fs)
     pylab.title("free-slip", fontsize=fs)
-    if average_flag_fs == True:
+    if average_flag_fs is True:
         pylab.text(
             0.05,
             0.01,
@@ -191,7 +186,9 @@ def mixing(flmlname):
     print("\n********** Calculating the mixing diagnostics\n")
     # warn user about assumptions
     print(
-        "Background potential energy calculations makes two assumptions: \n i) domain height = 0.1m \n ii) initial temperature difference is 1.0 degC"
+        """Background potential energy calculations makes two assumptions:
+i) domain height = 0.1m
+ii) initial temperature difference is 1.0 degC"""
     )
     domainheight = 0.1
     rho_zero, T_zero, alpha, g = le_tools.Getconstantsfromflml(flmlname)
@@ -294,7 +291,10 @@ def mixing(flmlname):
     pylab.text(
         time[-1] / 100,
         1.5e-3,
-        "From bottom to top contours correspond to values \n $T = -0.5, \\, -0.25, \\, 0.0, \\, 0.25, \\, 0.5$ \nwhere the values for $T=-0.5$ and $0.5$ take the values\n$z_* = 0.0$ and $0.1$ respectively",
+        """From bottom to top contours correspond to values
+$T = -0.5, \\, -0.25, \\, 0.0, \\, 0.25, \\, 0.5$
+where the values for $T=-0.5$ and $0.5$ take the values
+$z_* = 0.0$ and $0.1$ respectively""",
         bbox=dict(facecolor="white", edgecolor="black"),
     )
     pylab.axis([0, time[-1], 0, domainheight])

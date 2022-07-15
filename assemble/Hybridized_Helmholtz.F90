@@ -87,18 +87,17 @@ contains
     character(len=OPTION_PATH_LEN), intent(in), optional :: solver_option_path
     !
     type(vector_field), pointer :: X, U, down, U_cart
-    type(scalar_field), pointer :: D,f, lambda_nc
+    type(scalar_field), pointer :: D, f
     type(scalar_field) :: lambda
     type(scalar_field), target :: lambda_rhs, u_cpt
     type(csr_sparsity) :: lambda_sparsity, continuity_sparsity
-    type(csr_matrix) :: lambda_mat, continuity_block_mat,continuity_block_mat1
+    type(csr_matrix) :: lambda_mat, continuity_block_mat
     type(block_csr_matrix) :: continuity_mat
     type(mesh_type), pointer :: lambda_mesh
     real :: D0, dt, g, theta
-    integer :: ele,i1, stat, dim1
+    integer :: ele, i1, dim1
     logical :: l_compute_cartesian,l_check_continuity, l_output_dense
     real, dimension(:,:), allocatable :: lambda_mat_dense
-    character(len=OPTION_PATH_LEN) :: constraint_option_string
 
     ewrite(1,*) '  subroutine solve_hybridized_helmholtz('
 
@@ -257,21 +256,20 @@ contains
          &l_continuity_mat, l_continuity_mat2
     real, allocatable, dimension(:,:) :: helmholtz_loc_mat
     real, allocatable, dimension(:,:,:) :: continuity_face_mat
-    real, allocatable, dimension(:,:) :: scalar_continuity_face_mat
     integer :: ni, face
     integer, dimension(:), pointer :: neigh
-    real, dimension(ele_loc(lambda_rhs,ele)) :: lambda_rhs_loc,lambda_rhs_loc2
+    real, dimension(ele_loc(lambda_rhs,ele)) :: lambda_rhs_loc
     real, dimension(:),allocatable,target :: Rhs_loc
     real, dimension(:,:), allocatable :: local_solver_matrix, local_solver_rhs
     type(element_type) :: U_shape
-    integer :: stat, d_start, d_end, dim1, mdim, uloc,dloc, lloc
+    integer :: d_start, d_end, dim1, mdim, uloc,dloc, lloc
     integer, dimension(mesh_dim(U)) :: U_start, U_end
     type(real_vector), dimension(mesh_dim(U)) :: rhs_u_ptr
     real, dimension(:), pointer :: rhs_d_ptr
     type(real_matrix), dimension(mesh_dim(U)) :: &
          & continuity_mat_u_ptr
     logical :: have_constraint
-    integer :: constraint_choice, n_constraints, constraints_start
+    integer :: n_constraints
 
     !Get some sizes
     lloc = ele_loc(lambda_rhs,ele)
@@ -414,9 +412,6 @@ contains
     integer :: d_start, d_end, dim1, mdim, uloc,dloc,lloc
     integer, dimension(mesh_dim(U)) :: U_start, U_end
     type(real_vector), dimension(mesh_dim(U)) :: rhs_u_ptr
-    real, dimension(:), pointer :: rhs_d_ptr
-    type(real_matrix), dimension(mesh_dim(U)) :: &
-         & continuity_mat_u_ptr
     real, dimension(ele_loc(lambda,ele)) :: lambda_val
     real, dimension(:),allocatable,target :: Rhs_loc
     real, dimension(:,:), allocatable :: local_solver_matrix, local_solver_rhs
@@ -573,7 +568,6 @@ contains
     real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
     real, dimension(ele_ngi(x,ele)) :: f_gi
     real, dimension(X%dim, ele_ngi(X,ele)) :: up_gi
-    real, dimension(X%dim) :: up_vec
     real, dimension(mesh_dim(U),ele_loc(U,ele),ele_loc(D,ele)) :: l_div_mat
     real, dimension(mesh_dim(U), mesh_dim(U), ele_ngi(U,ele)) :: Metric, &
          &Metricf
@@ -1091,8 +1085,6 @@ contains
     real, dimension(X%dim) :: ele_normal_gi, edge_tangent_gi, X_mid_ele,&
          &X_mid_face
     type(element_type) :: X_shape, X_face_shape
-    real, dimension(X%dim,ele_loc(X,ele)) :: X_ele
-    real, dimension(X%dim,face_loc(X,face)) :: X_face
 
     call compute_jacobian(X, ele, J=J, detwei=detwei)
     call compute_jacobian(X,face, J=J_f, detwei=detwei_f, facet=.true.)
@@ -1692,7 +1684,6 @@ contains
     real, dimension(mesh_dim(U_local)*ele_loc(U_local,ele)) :: coriolis_rhs
     real, dimension(mesh_dim(U_local), ele_ngi(U_local,ele)) :: U_gi
     real, dimension(mesh_dim(U_local), ele_ngi(U_local,ele)) :: coriolis_gi
-    real, dimension(X%dim) :: up_vec
     integer :: dim1, dim2,uloc,gi
     type(element_type) :: u_shape
 

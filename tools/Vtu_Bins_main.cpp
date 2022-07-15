@@ -124,7 +124,7 @@ int main(int argc, char **argv){
 
   size_t nbounds =  argc - optind - 2;
   double bounds[nbounds];
-  for(int i = 0;i < nbounds;i++){
+  for(size_t i = 0;i < nbounds;i++){
     bounds[i] = atof(argv[optind + 2 + i]);
   }
 

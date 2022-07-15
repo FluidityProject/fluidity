@@ -31,7 +31,6 @@ module gradation_metric
   ! Bottom line: if you want to change whether gradation is used
   ! or the gradation constant, CHANGE THE VALUES in INITIALISE_GRADATION_METRIC
   logical :: use_gradation_metric = .false.
-  logical :: gradation_initialised = .false.
   real :: gamma0 = 1.5 !!< Gamma is a measure of the smoothness of the transition
                        !!< an edge. Gamma0 is the maximum allowed value for gamma.
 

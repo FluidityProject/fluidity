@@ -386,6 +386,7 @@ void PetscInit(int argc, char** argv){
   strncpy(petscargv[0], argv[0], strlen(argv[0]) + 1);
 
   static char help[] = "Use --help to see the help.\n\n";
+  [[maybe_unused]]
   PetscErrorCode ierr = PetscInitialize(&petscargc, &petscargv, NULL, help);
   // PetscInitializeFortran needs to be called when initialising PETSc from C, but calling it from Fortran
   // This sets all kinds of objects such as PETSC_NULL_OBJECT, PETSC_COMM_WORLD, etc., etc.

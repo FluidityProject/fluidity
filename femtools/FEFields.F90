@@ -805,7 +805,7 @@ contains
     type(mesh_type), intent(inout) :: subdomain_mesh
     integer, dimension(:) :: node_list, inverse_node_list
 
-    integer :: nhalos, communicator, nprocs, procno, ihalo, iproc, nowned_nodes
+    integer :: nhalos, communicator, nprocs, procno, ihalo, nowned_nodes
 
     ewrite(1, *) "In generate_subdomain_halos"
 

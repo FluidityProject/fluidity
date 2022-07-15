@@ -1,24 +1,18 @@
 import glob
-import math
-import os
-import sys
 
 import numpy
-import pylab
 import scipy.stats
 import vtk
 import vtktools
 from fluidity_tools import stat_parser
 from lxml import etree
-from numpy import arange
 
-################################################################################################
-# ----------------------------------------------------------------------------------------------#
-################################################################################################
+########################################################################################
+# -------------------------------------------------------------------------------------#
+########################################################################################
 
 
 def GetFiles(directory):
-
     # gets list of (p)vtus and sorts them into ascending time order
 
     def key(s):
@@ -27,15 +21,15 @@ def GetFiles(directory):
     list = glob.glob(directory + "*.pvtu")
     if len(list) == 0:
         list = glob.glob(directory + "*.vtu")
-    list = [l for l in list if "check" not in l]
-    list = [l for l in list if "Mesh" not in l]
+    # list = [l for l in list if "check" not in l]
+    list = [item for item in list if "Mesh" not in item]
 
     return sorted(list, key=key)
 
 
-################################################################################################
-# ----------------------------------------------------------------------------------------------#
-################################################################################################
+########################################################################################
+# -------------------------------------------------------------------------------------#
+########################################################################################
 
 
 def GetXandt(filelist):
@@ -43,7 +37,6 @@ def GetXandt(filelist):
     X_ns = []
     X_fs = []
     for files in filelist:
-
         data = vtktools.vtu(files)
 
         time.append(data.GetScalarField("Time")[0])
@@ -69,9 +62,9 @@ def GetXandt(filelist):
     return time, X_ns, X_fs
 
 
-################################################################################################
-# ----------------------------------------------------------------------------------------------#
-################################################################################################
+########################################################################################
+# -------------------------------------------------------------------------------------#
+########################################################################################
 
 
 def GetU(t, X):
@@ -86,15 +79,16 @@ def GetU(t, X):
     return U
 
 
-################################################################################################
-# ----------------------------------------------------------------------------------------------#
-################################################################################################
+########################################################################################
+# -------------------------------------------------------------------------------------#
+########################################################################################
 
 
 def LeastSquares(x_values, y_values, p0):
     # calculate a least squares approximation to the data (x_values,y_values)
     # starts from a guess at the initial solution given in 'predictedform'
-    # p0 should be an array containing the initial guess of the coefficients in 'predictedform'
+    # p0 should be an array containing the initial guess of the coefficients in
+    # 'predictedform'
     # plsq returns the coefficients of p for the best fit
 
     plsq = scipy.optimize.leastsq(
@@ -108,7 +102,7 @@ def LeastSquares(x_values, y_values, p0):
     return (plsq, lsq)
 
 
-################################################################################################
+########################################################################################
 
 
 def residuals(p, x, y):
@@ -116,7 +110,7 @@ def residuals(p, x, y):
     return err
 
 
-################################################################################################
+########################################################################################
 
 
 def predictedform(p, x):
@@ -126,9 +120,9 @@ def predictedform(p, x):
     return pf
 
 
-################################################################################################
-# ----------------------------------------------------------------------------------------------#
-################################################################################################
+########################################################################################
+# -------------------------------------------------------------------------------------#
+########################################################################################
 
 
 def GetAverageRange(X, lower_lim, domainheight):
@@ -146,9 +140,9 @@ def GetAverageRange(X, lower_lim, domainheight):
     return start_val, end_val, average
 
 
-################################################################################################
-# ----------------------------------------------------------------------------------------------#
-################################################################################################
+########################################################################################
+# -------------------------------------------------------------------------------------#
+########################################################################################
 
 
 def ReadLog(log_name):
@@ -157,22 +151,22 @@ def ReadLog(log_name):
     file_name = open(log_name, "r")
     file_read = []
     for line in file_name:
-        l = line
-        file_read.append(float(l.split("\n")[0]))
+        file_read.append(float(line.split("\n")[0]))
     file_name.close()
     return file_read
 
 
-################################################################################################
-# ----------------------------------------------------------------------------------------------#
-################################################################################################
+########################################################################################
+# -------------------------------------------------------------------------------------#
+########################################################################################
 
 
 def GetstatFiles(directory):
     # gets a list of stat files, accounting for checkpointing
     # in order of first to last (time-wise)
-    # also get a time index )time_index_end) for each stat file where
-    # statfile_i['ElapsedTime']['value'][index] = statfile_i+1['ElapsedTime']['value'][0]
+    # also get a time index (time_index_end) for each stat file where
+    # statfile_i['ElapsedTime']['value'][index]
+    # = statfile_i+1['ElapsedTime']['value'][0]
 
     time_index_end = []
     stat_files = glob.glob(directory + "*.stat")
@@ -187,9 +181,8 @@ def GetstatFiles(directory):
     vals = zip(time_end, stat_files)
 
     vals.sort(key=key)
-    unzip = lambda l: tuple(apply(zip, l))
 
-    time_end, stat_files = unzip(vals)
+    time_end, stat_files = tuple(zip(vals))
     for i in range(len(stat_files) - 1):
         stat_0 = stat_parser(stat_files[i])
         time_0 = stat_0["ElapsedTime"]["value"]
@@ -212,21 +205,20 @@ def key(tup):
     return tup[0]
 
 
-################################################################################################
-# ----------------------------------------------------------------------------------------------#
-################################################################################################
+########################################################################################
+# -------------------------------------------------------------------------------------#
+########################################################################################
 
 
 def not_comment(x):
     # function to filter stream
-    return not "comment" in x.tag
+    return "comment" not in x.tag
 
 
-################################################################################################
+########################################################################################
 
 
 def Getflmlvalue(flml_name, xpath):
-
     # We will be filtering the children of the elements later,
     # to remove comments.
 
@@ -245,7 +237,7 @@ def Getflmlvalue(flml_name, xpath):
     return child.text
 
 
-################################################################################################
+########################################################################################
 
 
 def Getflmlnodename(flml_name, xpath):
@@ -256,11 +248,10 @@ def Getflmlnodename(flml_name, xpath):
     return names
 
 
-################################################################################################
+########################################################################################
 
 
 def Getconstantsfromflml(flmlname):
-
     material_phase_name = (
         '"' + Getflmlnodename(flmlname, "/fluidity_options/material_phase")[0] + '"'
     )
@@ -276,17 +267,16 @@ def Getconstantsfromflml(flmlname):
     T_zero = float(
         Getflmlvalue(
             flmlname,
-            "/fluidity_options/material_phase[@name="
-            + material_phase_name
-            + "]/equation_of_state/fluids/linear/temperature_dependency/reference_temperature",
+            f"""/fluidity_options/material_phase[@name={material_phase_name}]\
+/equation_of_state/fluids/linear/temperature_dependency/reference_temperature""",
         )
     )
     alpha = float(
         Getflmlvalue(
             flmlname,
-            "/fluidity_options/material_phase[@name="
-            + material_phase_name
-            + "]/equation_of_state/fluids/linear/temperature_dependency/thermal_expansion_coefficient",
+            f"""/fluidity_options/material_phase[@name={material_phase_name}]\
+/equation_of_state/fluids/linear/temperature_dependency\
+/thermal_expansion_coefficient""",
         )
     )
     g = float(
@@ -298,20 +288,17 @@ def Getconstantsfromflml(flmlname):
     return rho_zero, T_zero, alpha, g
 
 
-################################################################################################
+########################################################################################
 
 
 def Getmixingbinboundsfromflml(flmlname):
-
     material_phase_name = (
         '"' + Getflmlnodename(flmlname, "/fluidity_options/material_phase")[0] + '"'
     )
 
-    xpath = (
-        "/fluidity_options/material_phase[@name="
-        + material_phase_name
-        + ']/scalar_field[@name="Temperature"]/prognostic/stat/include_mixing_stats[@name="cv_normalised"]/mixing_bin_bounds/python'
-    )
+    xpath = f"""/fluidity_options/material_phase[@name={material_phase_name}]\
+/scalar_field[@name="Temperature"]/prognostic/stat\
+/include_mixing_stats[@name="cv_normalised"]/mixing_bin_bounds/python"""
     python_func = Getflmlvalue(flmlname, xpath)
     func_dictionary = {}
     exec(python_func, func_dictionary)
@@ -321,6 +308,6 @@ def Getmixingbinboundsfromflml(flmlname):
     return bounds
 
 
-################################################################################################
-# ----------------------------------------------------------------------------------------------#
-################################################################################################
+########################################################################################
+# -------------------------------------------------------------------------------------#
+########################################################################################

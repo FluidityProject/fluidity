@@ -164,14 +164,12 @@ contains
     type(scalar_field), pointer :: source, absorption
     type(tensor_field), pointer :: diffusivity
 
-    integer :: i, j, stat
+    integer :: stat
 
     !! Coloring  data structures for OpenMP parallization
     type(integer_set), dimension(:), pointer :: colours
     integer :: clr, nnid, len, ele
     integer :: thread_num
-    !! Did we successfully prepopulate the transform_to_physical_cache?
-    logical :: cache_valid
 
     ewrite(1,*) "In assemble_advection_diffusion_fv"
 

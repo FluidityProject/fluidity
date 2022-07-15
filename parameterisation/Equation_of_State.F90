@@ -55,9 +55,8 @@ contains
 
     type(vector_field), pointer:: u
     type(scalar_field), pointer:: T, S, oldT, oldS, topdis
-    type(scalar_field) DeltaT, DeltaS, remapT, remapS, fluidconcentration,&
-         & sedimentdensity
-    character(len=OPTION_PATH_LEN) option_path, dep_option_path, sediment_field_name, class_name, sfield_name
+    type(scalar_field) DeltaT, DeltaS, remapT, remapS, sedimentdensity
+    character(len=OPTION_PATH_LEN) option_path, dep_option_path, sfield_name
     logical, dimension(:), allocatable:: done
     logical include_depth_below
     real T0, S0, gamma, rho_0, salt, temp, dist, dens, theta

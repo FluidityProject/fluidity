@@ -1,10 +1,9 @@
-## To Do:
-## Make stats fields read-only
-## More descriptive description
+# To Do:
+# Make stats fields read-only
+# More descriptive description
 # Author: Daryl Harrison
 from enthought.mayavi.core.dataset_manager import DatasetManager
 from enthought.mayavi.core.filter import Filter
-from enthought.mayavi.core.traits import DEnum
 from enthought.traits.api import Bool, Enum, Float, Instance, Tuple
 from enthought.traits.ui.api import Group, Item, TupleEditor, View
 from enthought.tvtk.api import tvtk

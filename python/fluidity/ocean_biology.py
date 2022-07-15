@@ -1,6 +1,3 @@
-import fluidity_tools
-
-
 def pznd(state, parameters):
     """Calculate sources and sinks for a simple PZND model"""
 
@@ -11,7 +8,7 @@ def pznd(state, parameters):
     Z = state.scalar_fields["Zooplankton"]
     N = state.scalar_fields["Nutrient"]
     D = state.scalar_fields["Detritus"]
-    I = state.scalar_fields[
+    I_PAR = state.scalar_fields[
         "_PAR"
     ]  # Note: *NOT* PhotosyntheticRadation field, but the internal _PAR field, which
     # has been projected onto the same mesh as phytoplankton and has been converted from
@@ -20,13 +17,11 @@ def pznd(state, parameters):
     Znew = state.scalar_fields["IteratedZooplankton"]
     Nnew = state.scalar_fields["IteratedNutrient"]
     Dnew = state.scalar_fields["IteratedDetritus"]
-    coords = state.vector_fields["Coordinate"]
 
     P_source = state.scalar_fields["PhytoplanktonSource"]
     Z_source = state.scalar_fields["ZooplanktonSource"]
     N_source = state.scalar_fields["NutrientSource"]
     D_source = state.scalar_fields["DetritusSource"]
-    N_abs = state.scalar_fields["NutrientAbsorption"]
     try:
         PP = state.scalar_fields["PrimaryProduction"]
     except KeyError:
@@ -55,7 +50,7 @@ def pznd(state, parameters):
         Z_n = max(0.5 * (Z.node_val(n) + Znew.node_val(n)), 0.0)
         N_n = max(0.5 * (N.node_val(n) + Nnew.node_val(n)), 0.0)
         D_n = max(0.5 * (D.node_val(n) + Dnew.node_val(n)), 0.0)
-        I_n = max(I.node_val(n), 0.0)
+        I_n = max(I_PAR.node_val(n), 0.0)
 
         if I_n < 0.0001:
             I_n = 0.0
@@ -153,7 +148,8 @@ def check_pznd_parameters(parameters):
     if "p_P" not in parameters:
         stderr.write("PZND parameter p_P missing.\n")
         stderr.write(
-            "p_P is the relative grazing preference of zooplankton for phytoplankton.\n\n"
+            "p_P is the relative grazing preference of zooplankton for"
+            " phytoplankton.\n\n"
         )
         valid = False
 
@@ -166,7 +162,6 @@ def check_pznd_parameters(parameters):
 
 
 def lotka_volterra(state, parameters):
-
     if not check_lotka_volterra_parameters(parameters):
         raise TypeError("Missing Parameter")
 
@@ -230,10 +225,11 @@ def six_component(state, parameters):
     """Calculate sources and sinks for pczdna biology model"""
 
     # Based on the equations in
-    # Popova, E. E.; Coward, A. C.; Nurser, G. A.; de Cuevas, B.; Fasham, M. J. R. & Anderson, T. R.
-    # Mechanisms controlling primary and new production in a global ecosystem model - Part I:
-    # Validation of the biological simulation Ocean Science, 2006, 2, 249-266.
-    # DOI: 10.5194/os-2-249-2006
+    # Popova, E. E., Coward, A. C., Nurser, G. A., De Cuevas, B., Fasham, M. J. R.,
+    # & Anderson, T. R. (2006). Mechanisms controlling primary and new production in a
+    # global ecosystem model–Part I: Validation of the biological simulation.
+    # Ocean Science, 2(2), 249-266.
+    # https://doi.org/10.5194/os-2-249-2006
     import math
 
     if not check_six_component_parameters(parameters):
@@ -245,7 +241,7 @@ def six_component(state, parameters):
     N = state.scalar_fields["Nutrient"]
     A = state.scalar_fields["Ammonium"]
     D = state.scalar_fields["Detritus"]
-    I = state.scalar_fields[
+    I_PAR = state.scalar_fields[
         "_PAR"
     ]  # Note: *NOT* PhotosyntheticRadation field, but the internal _PAR field, which
     # has been projected onto the same mesh as phytoplankton and has been converted from
@@ -262,7 +258,6 @@ def six_component(state, parameters):
     C_source = state.scalar_fields["ChlorophyllSource"]
     Z_source = state.scalar_fields["ZooplanktonSource"]
     N_source = state.scalar_fields["NutrientSource"]
-    N_abs = state.scalar_fields["NutrientAbsorption"]
     A_source = state.scalar_fields["AmmoniumSource"]
     D_source = state.scalar_fields["DetritusSource"]
     try:
@@ -295,7 +290,6 @@ def six_component(state, parameters):
     theta_m = parameters["theta_m"]
     lambda_bio = parameters["lambda_bio"]
     lambda_A = parameters["lambda_A"]
-    photicZoneLimit = parameters["photic_zone_limit"]
     p_D = 1 - p_P
 
     for n in range(P.node_count):
@@ -306,7 +300,7 @@ def six_component(state, parameters):
         A_n = max(0.5 * (A.node_val(n) + Anew.node_val(n)), 0.0)
         C_n = max(0.5 * (C.node_val(n) + Cnew.node_val(n)), 0.0)
         D_n = max(0.5 * (D.node_val(n) + Dnew.node_val(n)), 0.0)
-        I_n = max(I.node_val(n), 0.0)
+        I_n = max(I_PAR.node_val(n), 0.0)
         depth = abs(coords.node_val(n)[2])
 
         if I_n < 0.0001:
@@ -347,11 +341,15 @@ def six_component(state, parameters):
         # It looks a bit different from the original version, however
         # it is the same function with differently normalised parameters to
         # simplify tuning
-        # G_P=(g * epsilon * p_P * P_n**2 * Z_n)/(g+epsilon*(p_P*P_n**2 + p_D*D_n**2))
+        # G_P = (g * epsilon * p_P * P_n**2 * Z_n) / (
+        #     g + epsilon * (p_P * P_n**2 + p_D * D_n**2)
+        # )
         G_P = (g * p_P * P_n**2 * Z_n) / (epsilon + (p_P * P_n**2 + p_D * D_n**2))
 
         # Zooplankton grazing of detritus. (p_D - 1-p_P)
-        # G_D=(g * epsilon * (1-p_P) * D_n**2 * Z_n)/(g+epsilon*(p_P*P_n**2 + p_D*D_n**2))
+        # G_D = (g * epsilon * (1 - p_P) * D_n**2 * Z_n) / (
+        #     g + epsilon * (p_P * P_n**2 + p_D * D_n**2)
+        # )
         G_D = (g * (1 - p_P) * D_n**2 * Z_n) / (
             epsilon + (p_P * P_n**2 + p_D * D_n**2)
         )
@@ -430,7 +428,8 @@ def check_six_component_parameters(parameters):
     if "epsilon" not in parameters:
         stderr.write("PCZNDA parameter epsilon missing.\n")
         stderr.write(
-            "epsilon is the grazing parameter relating the rate of prey item to prey density.\n\n"
+            "epsilon is the grazing parameter"
+            " relating the rate of prey item to prey density.\n\n"
         )
         valid = False
 
@@ -481,7 +480,8 @@ def check_six_component_parameters(parameters):
     if "p_P" not in parameters:
         stderr.write("PCZNDA parameter p_P missing.\n")
         stderr.write(
-            "p_P is the relative grazing preference of zooplankton for phytoplankton.\n\n"
+            "p_P is the relative grazing preference"
+            " of zooplankton for phytoplankton.\n\n"
         )
         valid = False
 
@@ -525,7 +525,6 @@ def check_six_component_parameters(parameters):
 
 
 def photic_zone(z, limit, transition_length):
-
     depth = abs(z)
     if depth < limit:
         return 1.0

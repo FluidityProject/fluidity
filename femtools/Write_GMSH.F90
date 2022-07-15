@@ -193,11 +193,9 @@ contains
     ! Writes out nodes for the given position field
     integer fd
     character(len=*) :: lfilename
-    character(len=longStringLen) :: charBuf
-    character(len=longStringLen) :: idStr, xStr, yStr, zStr
     type(vector_field), intent(in):: field
     logical :: useBinaryGMSH
-    integer numNodes, numDimen, numCoords, i, j
+    integer numNodes, numDimen, numCoords, i
     real :: coords(3)
 
     numNodes = node_count(field)
@@ -257,7 +255,6 @@ contains
     logical :: useBinaryGMSH
 
     character(len=*) :: lfilename
-    character(len=longStringLen) :: charBuf
 
     integer :: fd, numGMSHElems, numElements, numFaces
     integer :: numTags, nloc, sloc, faceType, elemType
@@ -447,7 +444,6 @@ contains
     type(vector_field), intent(in) :: field
     logical :: useBinaryGMSH
 
-    character(len=longStringLen) :: charBuf
     integer :: numNodes, timeStepNum, numComponents, i
     real :: columnID
 

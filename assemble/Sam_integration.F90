@@ -1191,7 +1191,7 @@ module sam_integration
 
        type(state_type), dimension(:), intent(inout) :: states
 
-       integer :: i, j, k
+       integer :: i, j
        type(scalar_field), pointer :: s_field
        type(tensor_field), pointer :: t_field
        type(vector_field), pointer :: v_field
@@ -1252,7 +1252,6 @@ module sam_integration
        integer, dimension(:), pointer :: ndglno
        integer, dimension(:), allocatable :: surfid, sndgln
        integer :: nloc, snloc
-       real, dimension(:), pointer :: x, y, z
        real, dimension(:), allocatable :: metric_handle
        integer :: nfields
        real, dimension(:), pointer :: fields
@@ -1702,9 +1701,6 @@ module sam_integration
   end subroutine check_sam_linear_remap_validity
 
   subroutine sam_integration_check_options
-
-    integer :: i
-    character (len=OPTION_PATH_LEN) :: continuity_var
 
     !!< Check libsam integration related options
 

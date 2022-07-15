@@ -123,7 +123,6 @@ contains
     PetscBool flag
     PetscErrorCode ierr
     KSPConvergedReason reason
-    type(petsc_numbering_type) petsc_numbering
     type(csr_matrix) A
     real value
     real time1, time2, time3
@@ -277,7 +276,6 @@ contains
     type(petsc_numbering_type):: petsc_numbering
     type(element_type):: shape
     type(quadrature_type):: quad
-    type(mesh_type), pointer:: linear_mesh
     type(mesh_type):: mesh
     type(state_type), pointer:: states(:)
     type(petsc_csr_matrix):: A
@@ -691,12 +689,12 @@ contains
   type(petsc_numbering_type), intent(in):: petsc_numbering
 
     VecScatter scatter
-    IS row_indexset, col_indexset
+    IS row_indexset
     Mat new_matrix
     Vec new_x, new_rhs
     PetscErrorCode ierr
-    integer, dimension(:), allocatable:: allcols, unns
-    integer i, n, m, ncomponents
+    integer, dimension(:), allocatable:: unns
+    integer n, m, ncomponents
 
     integer mm,nn
 

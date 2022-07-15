@@ -31,15 +31,12 @@ subroutine unifiedmesh(filename1_, filename1_len, &
   type(vector_field) :: positionsA, positionsB
   type(ilist), dimension(:), allocatable :: map_BA
   real, dimension(:), allocatable :: tri_detwei
-  integer :: ele_A, ele_B
-  type(inode), pointer :: llnode
-  type(vector_field) :: intersection
   type(element_type) :: supermesh_shape
   type(quadrature_type) :: supermesh_quad
   integer :: i, dim
 
   type(mesh_type) :: accum_mesh
-  type(vector_field) :: accum_positions, accum_positions_tmp
+  type(vector_field) :: accum_positions
 
   do i=1, filename1_len
     filename1(i:i)=filename1_(i)

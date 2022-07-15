@@ -1182,7 +1182,7 @@ contains
     integer, dimension(1:ele_loc(zoltan_global_new_positions,1)):: vertex_order
     integer :: rhead, i, state_no, field_no, loc, sz, dataSize, k
     integer :: old_universal_element_number, new_local_element_number
-    integer :: ndetectors_in_ele, det, new_ele_owner, total_det_unpacked
+    integer :: ndetectors_in_ele, det, total_det_unpacked
     type(detector_type), pointer :: detector => null()
     type(element_type), pointer :: shape => null()
 

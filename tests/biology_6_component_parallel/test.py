@@ -1,5 +1,5 @@
-import fluidity.ocean_biology as biology
-import fluidity.state_types as state_types
+# import fluidity.ocean_biology as biology
+# import fluidity.state_types as state_types
 
 per_day = 1.0 / (3600 * 24)
 
@@ -22,4 +22,4 @@ p["zeta"] = 12.8
 p["photic_zone_depth"] = 116
 p["psi"] = 2.9
 
-biology.pczdna(state, p)
+# biology.pczdna(state, p)

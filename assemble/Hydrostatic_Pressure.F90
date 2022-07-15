@@ -115,7 +115,7 @@ module hydrostatic_pressure
   subroutine calculate_hydrostatic_pressure_gradient(state)
     type(state_type), intent(inout) :: state
 
-    integer :: i, stat
+    integer :: stat
     type(vector_field), pointer :: hpg
 
     hpg => extract_vector_field(state, hpg_name, stat = stat)

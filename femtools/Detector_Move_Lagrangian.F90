@@ -173,7 +173,6 @@ contains
     type(vector_field) :: vfield_stage
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
     integer :: k, all_send_lists_empty, nprocs, stage, cycle
-    logical :: any_lagrangian
     real :: rk_dt
 
     ewrite(1,*) "In move_lagrangian_detectors"

@@ -35,7 +35,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
 
   use checkpoint
   use fldebug
-  use global_parameters, only: is_active_process, no_active_processes, topology_mesh_name, OPTION_PATH_LEN
+  use global_parameters, only: is_active_process, no_active_processes, OPTION_PATH_LEN
   use parallel_tools
   use populate_state_module
   use particles
@@ -75,7 +75,6 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   character(len=OPTION_PATH_LEN) :: filename
   integer :: nprocs
   type(state_type), dimension(:), pointer :: state
-  type(vector_field) :: extruded_position
   logical :: any_field_from_file, write_extruded_mesh_only, input_extruded_mesh_from_file
   integer :: i, nstates
 #ifdef HAVE_ZOLTAN

@@ -438,7 +438,6 @@ contains
     type(tensor_field), intent(inout) :: t_field
 
     character(len = OPTION_PATH_LEN) :: path
-    logical :: allocated
     real :: alpha
     type(vector_field), pointer :: positions
     type(tensor_field), pointer :: source_field

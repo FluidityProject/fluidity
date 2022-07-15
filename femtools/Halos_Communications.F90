@@ -456,8 +456,6 @@ contains
     type(vector_field), intent(inout) :: v_field
     logical, intent(in), optional :: verbose ! set to .false. to leave out any verbosity 1 or 2 messages
 
-    integer :: i
-
     if (.not. present_and_false(verbose)) then
       ewrite(2, *) "Updating halo " // trim(halo%name) // " for field " // trim(v_field%name)
     end if
@@ -479,8 +477,6 @@ contains
     type(halo_type), intent(in) :: halo
     type(tensor_field), intent(inout) :: t_field
     logical, intent(in), optional :: verbose ! set to .false. to leave out any verbosity 1 or 2 messages
-
-    integer :: i, j
 
     if (.not. present_and_false(verbose)) then
       ewrite(2, *) "Updating halo " // trim(halo%name) // " for field " // trim(t_field%name)

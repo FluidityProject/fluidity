@@ -85,7 +85,6 @@ contains
     character(len=OPTION_PATH_LEN) :: format, field_name, filename
     character(len=PYTHON_FUNC_LEN) :: func
     real :: current_time
-    real :: gravity_magnitude
 
     real value
     integer nid

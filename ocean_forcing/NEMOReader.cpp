@@ -817,8 +817,6 @@ int NEMOReader::Update(){
   size_t t0=time_interval.first;
   size_t t1=time_interval.second;
 
-  bool need_second_frame = (t0!=t1);
-
   // Deleted data which is no longer needed
   if(!fields.empty())
     if((fields.begin()->first != (int)t0)&&

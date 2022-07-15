@@ -78,12 +78,10 @@ void ParseArguments(int argc, char** argv){
     optionMap["infile"] = argv[argc-1];
     argc--;
 
-    bool flag = false;
     fstream fin;
     fin.open(optionMap["infile"].c_str(),ios::in);
     if(!fin.is_open()){
       cerr<<"ERROR: no such file: "<<optionMap["infile"]<<endl;
-      flag=true;
     }
     fin.close();
   }
@@ -223,6 +221,7 @@ int main(int argc, char** argv){
 
   cout<<"Converting from : "<<optionMap["incoord"]<<" to: "<<optionMap["outcoord"]<<endl;
 
+  [[maybe_unused]]
   int err = projections(npts, x, y, z, optionMap["incoord"], optionMap["outcoord"]);
 
   for(vtkIdType i=0;i<npts;i++){

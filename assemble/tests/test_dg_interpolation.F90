@@ -20,7 +20,7 @@ subroutine test_dg_interpolation
 
   type(state_type), dimension(:), pointer :: states_old => null()
   type(state_type), dimension(:), pointer :: states_new => null()
-  type(vector_field), pointer :: x_old, x_new, dummy_vfield
+  type(vector_field), pointer :: x_old, x_new
   type(scalar_field), pointer :: intp_old, intp_new
   type(state_type), dimension(1) :: interpolation_state_old, interpolation_state_new
   logical :: fail

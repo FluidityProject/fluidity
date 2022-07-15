@@ -32,7 +32,7 @@ subroutine test_block_csr_transpose_symmetric_sparsity
   use unittest_tools
 
   type(csr_sparsity) :: sparsity
-  type(csr_matrix) :: A, B
+  type(csr_matrix) :: A
   type(block_csr_matrix) :: block_mat, block_mat_T, block_mat_TT
   integer :: i, j
 

@@ -16,7 +16,7 @@ subroutine test_compute_inner_product_sa
 
   type(vector_field) :: positions_a, positions_b, positions_remap
   type(mesh_type) :: mesh_a, mesh_b, mesh_b_proj
-  type(scalar_field) :: field_a, field_b, field_b_proj, field_b_proj2
+  type(scalar_field) :: field_a, field_b, field_b_proj
   type(element_type) :: shape, positions_shape
   type(state_type), dimension(1) :: state_a, state_b
   integer :: i

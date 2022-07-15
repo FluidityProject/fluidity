@@ -31,7 +31,7 @@ use fldebug
 use sparse_tools
 use fields
 use sparse_tools_petsc
-use c_interfaces
+
 implicit none
 
   interface mult
@@ -68,8 +68,8 @@ private
 
 public :: mult, mult_addto, mult_T, mult_T_addto, mult_diag, addto_diag,&
           extract_diagonal, mult_div_tensorinvscalar_div_t,&
-	  mult_div_tensorinvscalar_vector, mult_div_invscalar_div_t,&
-	  mult_div_vector_div_t, mult_div_invvector_div_t
+          mult_div_tensorinvscalar_vector, mult_div_invscalar_div_t,&
+          mult_div_vector_div_t, mult_div_invvector_div_t
 
 contains
 
@@ -80,7 +80,7 @@ contains
     type(scalar_field), intent(in), target :: b
     real, dimension(:), allocatable :: tmp
 
-    if (compare_pointers(c_loc(x), c_loc(b))) then
+    if (c_associated(c_loc(x), c_loc(b))) then
       FLAbort("You can't pass the same field in for x and b.")
     end if
 

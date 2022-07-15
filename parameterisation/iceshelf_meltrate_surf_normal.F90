@@ -55,13 +55,10 @@ implicit none
   private
   real, save                      :: c0, cI, L, TI, &
                                      a, b, gammaT, gammaS,Cd, dist_meltrate
-  integer, save                   :: nnodes,dimen
 
   type(vector_field), save        :: surface_positions
   type(vector_field), save        :: funky_positions
   type(integer_set), save         :: sf_nodes !Nodes at the surface
-  !BC
-  integer, dimension(:), pointer, save :: ice_element_list
   ! these are the fields and variables for the surface values
   type(scalar_field), save             :: ice_surfaceT,ice_surfaceS! these are used to populate the bcs
   public :: melt_surf_init, melt_allocate_surface, melt_surf_calc, melt_bc
@@ -84,7 +81,6 @@ contains
      character(len=FIELD_NAME_LEN)       :: bc_type
     type(integer_set)                   :: surface_ids
     integer, dimension(:),allocatable   :: surf_id
-    integer, dimension(:), allocatable  :: sf_nodes_ar
     integer, dimension(2) :: shape_option
     type(mesh_type), pointer            :: mesh
     type(mesh_type)                     :: surface_mesh
@@ -158,10 +154,9 @@ subroutine melt_allocate_surface(state)
     type(vector_field), pointer         :: positions
     type(mesh_type), pointer            :: mesh
     type(mesh_type)                     :: surface_mesh
-    type(integer_set)                   :: surface_elements
     integer, dimension(:), pointer      :: surface_nodes ! allocated and returned by create_surface_mesh
     integer, dimension(:), allocatable  :: surface_element_list
-    integer    :: ele, face,i,j,k
+    integer    :: face,i,j,k
 !! The local coordinates of the coordinate in the owning element
 !!    real, dimension(:), allocatable    :: local_coord, local_coord_surf
     real, dimension(:), allocatable     :: coord
@@ -170,7 +165,6 @@ subroutine melt_allocate_surface(state)
     real, dimension(:), allocatable     :: av_normal !Average of normal
 !!    integer, dimension(:), pointer      :: ele_faces,face_neighs
     type(element_type), pointer     :: x_shape_f
-    real                                :: al,be,ga
     real, dimension(:), allocatable     :: xyz !New location of surface_mesh, dist_meltrate away from the boundary
 !integer, save         :: melt_surfaceID
     character(len=OPTION_PATH_LEN)      :: path
@@ -182,7 +176,6 @@ subroutine melt_allocate_surface(state)
     integer, dimension(:,:), allocatable :: node_occupants
     integer                             :: st,en,node,dim_vec
     real                                :: area_sum
-    integer, dimension(:), allocatable  :: sf_nodes_ar
     integer, dimension(2) :: shape_option
 
     ewrite(1,*) "-------Begin melt_allocate_surface---------"
@@ -340,16 +333,15 @@ end subroutine melt_allocate_surface
     type(scalar_field), pointer         :: T_loc,S_loc,P_loc
     type(vector_field), pointer         :: V_loc,Location,Location_org
     real, dimension(:), allocatable     :: vel
-    integer                             :: i,j,k
+    integer                             :: i,j
     ! Some internal variables
     real                                :: speed, T,S,P,Aa,Bb,Cc,topo
     real                                ::loc_Tb,loc_Sb,loc_meltrate,loc_heatflux,loc_saltflux
     ! Aa*Sb^2+Bv*Sb+Cc
     real :: arg = -1.0
     !Sink mesh part
-    integer                             :: ele,face,node,stat,the_node
+    integer                             :: ele,node,stat,the_node
     real, dimension(:), allocatable     :: local_coord,coord
-    type(element_type), pointer         :: x_shape_f
     integer, dimension(:), allocatable  :: surface_node_list,node_lists
     type(scalar_field)                  :: re_temperature,re_salinity,re_pressure
     type(vector_field)                  :: re_velocity
@@ -619,7 +611,6 @@ subroutine melt_surf_mesh(mesh,surface_ids,surface_mesh,surface_nodes,surface_el
     integer, dimension(:), pointer, intent(out)       :: surface_nodes ! allocated and returned by create_surface_mesh
     integer, dimension(:), allocatable, intent(out)   :: surface_element_list
     !    integer, dimension(:), allocatable                :: surface_nodes_out
-    type(scalar_field)                                :: surface_field
     type(integer_set)                                 :: surface_elements
     integer :: i
     ! create a set of surface elements that have surface id in 'surface_ids'

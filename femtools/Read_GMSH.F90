@@ -535,7 +535,7 @@ contains
              read(charBuf, *, iostat=stat ) entityTag, bounds, numPhysicalTags, tags
           else
              read(fd) entityTag, bounds, ltmp
-             numPhysicalTags=ltmp
+             numPhysicalTags = ltmp
              allocate(tags(numPhysicalTags))
              read(fd) tags
              read(fd) ltmp
@@ -590,7 +590,7 @@ contains
 
     character(len=longStringLen) :: charBuf
     character :: newlineChar
-    integer :: i, j, numNodes
+    integer :: i, numNodes
 
 
     read(fd, *) charBuf
@@ -653,8 +653,7 @@ contains
     type(GMSHnode), pointer :: nodes(:)
 
     character(len=longStringLen) :: charBuf
-    character :: newlineChar
-    integer :: i, j, k,  numEntities, numNodes, numEntityNodes, stat, minN, maxN, meta(3)
+    integer :: i, j, k,  numEntities, numNodes, numEntityNodes, minN, maxN, meta(3)
 
     read(fd, *, pos=beforeHeaderPos) charBuf
     if( trim(charBuf) /= "$Nodes" ) then
@@ -719,7 +718,7 @@ contains
     character(len=longStringLen) :: charBuf
     character :: newlineChar
     integer(kind=c_long) :: numEntities, numNodes, numEntityNodes, minN, maxN
-    integer :: i, j, k, stat,  meta(3)
+    integer :: i, j, k, meta(3)
     integer(kind=c_long)  :: ltmp
 
     read(fd, *, pos=beforeHeaderPos) charBuf
@@ -746,17 +745,17 @@ contains
     do j=1, numEntities
        read(fd) meta(1), meta(2), meta(3), numEntityNodes
        if (versionNumber%minor == 1) then
-          do i=k+1, k+numEntityNodes
+          do i=k+1, k + numEntityNodes
              read(fd) ltmp
              nodes(i)%nodeID = ltmp
           end do
-          do i=k+1, k+numEntityNodes
+          do i=k+1, k + numEntityNodes
              read(fd) nodes(i)%x
              ! Set column ID to -1: this will be changed later if $NodeData exists
              nodes(i)%columnID = -1
           end do
        else
-          do i= k+1, k+numEntityNodes
+          do i= k+1, k + numEntityNodes
              read(fd) nodes(i)%nodeID, nodes(i)%x
              ! Set column ID to -1: this will be changed later if $NodeData exists
              nodes(i)%columnID = -1
@@ -896,9 +895,8 @@ contains
 
     integer :: numEntities, numAllElements, minEle, maxEle, numTags
     character(len=longStringLen) :: charBuf
-    character :: newlineChar
-    integer :: numFaces, faceType, numElements, elementType
-    integer :: e, i, j, k, numLocNodes, tmp1, tmp2, tmp3
+    integer :: elementType
+    integer :: e, j, k, numLocNodes
     integer :: entityDim, entityTag, tag_index
     integer :: numentityelements
 
@@ -1070,10 +1068,10 @@ contains
     integer(kind=c_long) :: numEntities, numAllElements, minEle, maxEle, numTags
     character(len=longStringLen) :: charBuf
     character :: newlineChar
-    integer :: numFaces, faceType, numElements, elementType
-    integer :: e, i, j, k, numLocNodes, tmp1, tmp2, tmp3
+    integer :: elementType
+    integer :: e, j, k, numLocNodes
     integer :: entityDim, entityTag, tag_index
-    integer(kind=c_long) ::  ltmp, numentityelements
+    integer(kind=c_long) ::  numentityelements
 
     integer(kind=c_long), allocatable :: vltmp(:)
 

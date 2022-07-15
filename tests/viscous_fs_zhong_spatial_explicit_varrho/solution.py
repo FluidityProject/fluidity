@@ -1,8 +1,6 @@
-from math import cos, cosh, exp, log, pi, sin, sinh
+from math import cos, cosh, exp, pi, sinh
 
-from fluidity_tools import stat_parser as stat
 from numpy import interp, sqrt
-from scipy.integrate import quad
 
 wavelengthfactor = 1.0
 
@@ -1335,9 +1333,6 @@ def nond_error_amp(statn, t):
 
 def nond_F_ss(x):
     k = nond_wavenumber()
-    F0 = nond_eta0()
-    G0 = nond_xi0()
-    delta_rho = (rho0 - rhou) * nond_factor() / rho0
     zprime = depth / D
     T0 = deltaT
     alphag = nond_factor()
@@ -1357,13 +1352,10 @@ def nond_F_ss(x):
 
 def nond_G_ss(x):
     k = nond_wavenumber()
-    F0 = nond_eta0()
-    G0 = nond_xi0()
     delta_rho = (rho0 - rhou) * nond_factor() / rho0
     zprime = depth / D
     T0 = deltaT
     alphag = nond_factor()
-    rhog = nond_factor()  # use this as a proxy for the nondimensional factorisation
     return (
         -(
             alphag * k * sinh(k * zprime) * cosh(k)

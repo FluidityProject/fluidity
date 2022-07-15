@@ -1461,16 +1461,15 @@ contains
     type(scalar_field) :: lowerbound, upperbound, inverse_lumped_mass
     type(csr_matrix), pointer :: mass
 
-    type(csr_sparsity), pointer :: eelist
-    integer :: ele, i, j, k, row, column
+    integer :: ele, i, j, row, column
     integer :: rows, columns
-    real :: node_max, node_min, extra_val, extra_val2
+    real :: node_max, node_min
 
-    integer, dimension(:), pointer :: nodelist, faces, neighbouring_ele_nodes
-    integer, dimension(:), allocatable :: face_nodes, neighbouring_nodes
+    integer, dimension(:), pointer :: nodelist, faces
+    integer, dimension(:), allocatable :: neighbouring_nodes
     integer :: neighbouring_face, neighbouring_ele
     logical, save :: first=.true.
-    logical :: midpoint, extrapolate, pre_dist_mass
+    logical :: midpoint, extrapolate
 
     real :: beta=1.0, mean_val
     type(vector_field), pointer :: position
@@ -1480,9 +1479,7 @@ contains
     real, dimension(:,:), allocatable :: grad_t
     real :: grad, e_dist
 
-    real, dimension(ele_loc(t,1)) :: weight, tracer_val
-    logical, dimension(ele_loc(t,1)) :: nweight, pweight
-    real :: nodeval, nodemin, nodemax, adjust
+    real, dimension(ele_loc(t,1)) :: tracer_val
 
     integer, dimension(:,:,:), allocatable, save :: nodes_array
 !     real, dimension(2,4) :: local_values

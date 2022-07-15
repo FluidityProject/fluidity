@@ -30,8 +30,8 @@ subroutine test_multigrid
   type(dynamic_csr_matrix) dcsr1, dcsr2
   type(csr_matrix) csr1, csr2
   type(scalar_field):: sfield1, sfield2
-  character(len=OPTION_PATH_LEN) solver_option_path1, name1
-  character(len=OPTION_PATH_LEN) solver_option_path2, name2
+  character(len=OPTION_PATH_LEN) solver_option_path1
+  character(len=OPTION_PATH_LEN) solver_option_path2
   integer literations1, literations2
   logical lstartfromzero1, lstartfromzero2
   integer i

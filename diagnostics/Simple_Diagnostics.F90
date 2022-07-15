@@ -105,7 +105,7 @@ contains
     type(vector_field), pointer :: position
     type(scalar_field) :: magnitude_max_vel, magnitude_vel
     character(len = OPTION_PATH_LEN) :: path
-    integer :: i, d
+    integer :: i
     real :: current_time, spin_up_time
     source_field => vector_source_field(state, v_field)
     assert(node_count(v_field) == node_count(source_field))
@@ -207,7 +207,7 @@ contains
     type(scalar_field), intent(inout) :: s_field
 
     type(scalar_field), pointer :: source_field
-    real :: a, b, spin_up_time, current_time, dt, averaging_period
+    real :: a, b, spin_up_time, current_time, dt
     integer :: stat
     logical :: absolute_vals=.false.
 

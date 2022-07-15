@@ -238,9 +238,9 @@ int diffuse_boundaries(deque< deque< vector<float> > > &dat, float minv, int ite
       }
 
     // Start diffusing
-    for(size_t its=0;its<iterations;its++){
-    for(size_t j=0; j<(size_t)jdim0; j++){
-       for(size_t i=0; i<(size_t)idim0; i++){
+    for(size_t its=0; its < (size_t) iterations; its++){
+    for(size_t j=0; j < (size_t) jdim0; j++){
+       for(size_t i=0; i < (size_t) idim0; i++){
       if(null_points[j*idim0+i]){
         float sum=(*tdat)[k][j*idim0+i];
         int npts=1;

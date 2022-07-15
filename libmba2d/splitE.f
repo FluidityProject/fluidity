@@ -63,7 +63,7 @@ C group (Local variables)
 
       Integer ip(4)
       Integer minClr
-      Logical flagFirst, ifXnode
+      Logical ifXnode
 
 C ====================================================
       flag = .FALSE.
