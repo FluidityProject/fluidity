@@ -119,7 +119,7 @@ def gather_tests():
     """Look for tests given the program input arguments."""
     if args.file:  # Specific test requested
         # xml_files = [Path(args.file)]
-        xml_files = [fluidity_root.rglob(args.file)]
+        xml_files = [xml_file for xml_file in fluidity_root.rglob(args.file)]
     elif args.from_file:  # Specific list of tests requested
         with open(args.from_file, "r") as fid:
             xml_files = [Path(test_name.rstrip()) for test_name in fid]
@@ -500,9 +500,9 @@ parser.add_argument(
     "-o",
     "--omit-tags",
     # action="extend",
-    # nargs="*",
-    # default=[],
     action="append",
+    # nargs="*",
+    default=[],
     help="tags identifying which tests to exclude",
     # metavar="TAG",
 )
@@ -510,9 +510,9 @@ parser.add_argument(
     "-t",
     "--tags",
     # action="extend",
-    # nargs="*",
-    # default=[],
     action="append",
+    # nargs="*",
+    default=[],
     help="tags identifying which tests to run",
     # metavar="TAG",
 )
