@@ -1,7 +1,7 @@
 import os
 
+import sympy as sp
 from fluidity_tools import stat_parser
-from sympy import *
 
 meshtemplate = """
 Point(1) = {0, 0, 0, <dx>};
@@ -25,8 +25,7 @@ Physical Surface(1) = {6};
 
 
 def generate_meshfile(name, layers):
-
-    file(name, "w").write(
+    open(name, "w").write(
         meshtemplate.replace("<dx>", str(1.0 / layers)).replace("<layers>", str(layers))
     )
 
@@ -58,10 +57,9 @@ def forcing(X):
     return (X[1] ** 3, 0)
 
 
-# Numeric verision of the forcing function, for efficiency.
+# Numeric version of the forcing function, for efficiency.
 def numeric_forcing(X):
     """Forcing function. Must be an analytic function of X[1] only"""
-    from math import pi, sin
 
     return (X[1] ** 3, 0)
 
@@ -75,29 +73,31 @@ coriolis = 1.0
 # coriolis=0.0
 
 
-def analytic_solution(forcing):
+def analytic_solution_second_order(forcing):
     """Solve the ode d^2u/dx^2 = F/mu subject to u(0)=0, u(1)=0"""
 
-    x = Symbol("x")
+    x = sp.Symbol("x")
     # Constants of integration.
-    c1 = Symbol("c_1")
-    c2 = Symbol("c_2")
+    c1 = sp.Symbol("c_1")
+    c2 = sp.Symbol("c_2")
 
-    general = integrate(integrate(-forcing((0, x))[0] / mu, x) + c1, x) + c2
+    general = sp.integrate(sp.integrate(-forcing((0, x))[0] / mu, x) + c1, x) + c2
 
-    constants = solve((Eq(general.subs(x, 0), 0), Eq(general.subs(x, 1), 0)), c1, c2)
+    constants = sp.solve(
+        (sp.Eq(general.subs(x, 0), 0), sp.Eq(general.subs(x, 1), 0)), c1, c2
+    )
 
     specific = general.subs(constants)
 
     return specific
 
 
-def solution(forcing):
+def solution_second_order(forcing):
     """Return a function which is the solution to:
     d^2u/dx^2 = F/mu subject to u(0)=0, u(1)=0"""
 
     def sol(sx):
-        return analytic_solution(forcing).subs(Symbol("x"), sx[1])
+        return analytic_solution_second_order(forcing).subs(sp.Symbol("x"), sx[1])
 
     return sol
 
@@ -105,31 +105,30 @@ def solution(forcing):
 absorption = 0.5
 
 
-def analytic_solution(forcing):
+def analytic_solution_first_order(forcing):
     """Return the steady state of the ode du/dt = F - Au"""
 
-    x = Symbol("x")
+    x = sp.Symbol("x")
 
     u = forcing((0.0, x))[0] / absorption
 
     return u
 
 
-def solution(forcing):
+def solution_first_order(forcing):
     """Return a function which is the solution to:
     ode du/dt = F - Au"""
 
     def sol(sx):
-        return analytic_solution(forcing).subs(Symbol("x"), sx[1])
+        return analytic_solution_first_order(forcing).subs(sp.Symbol("x"), sx[1])
 
     return sol
 
 
 def analytic_pressure_solution(forcing):
+    u = analytic_solution_first_order(forcing)
 
-    u = analytic_solution(forcing)
-
-    return integrate(-coriolis * u + forcing((0, Symbol("x")))[1], Symbol("x"))
+    return sp.integrate(-coriolis * u + forcing((0, sp.Symbol("x")))[1], sp.Symbol("x"))
 
 
 def pressure_solution(forcing):
@@ -137,6 +136,6 @@ def pressure_solution(forcing):
     dp/dx = f x u The constant of integration is set to 0."""
 
     def sol(sx):
-        return analytic_pressure_solution(forcing).subs(Symbol("x"), sx[1])
+        return analytic_pressure_solution(forcing).subs(sp.Symbol("x"), sx[1])
 
     return sol

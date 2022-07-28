@@ -1,20 +1,20 @@
-import math
 import os
 import re
 import sys
 from math import sqrt
 
+import numpy as np
 import vtktools
-from numpy import arange, argsort, array, concatenate, zeros
-from scipy.interpolate import UnivariateSpline
 
 
-#### taken from http://www.codinghorror.com/blog/archives/001018.html  #######
-def sort_nicely(l):
+# taken from http://www.codinghorror.com/blog/archives/001018.html
+def sort_nicely(obj_to_sort):
     """Sort the given list in the way that humans expect."""
-    convert = lambda text: int(text) if text.isdigit() else text
-    alphanum_key = lambda key: [convert(c) for c in re.split("([0-9]+)", key)]
-    l.sort(key=alphanum_key)
+    obj_to_sort.sort(
+        key=lambda item: [
+            int(text) if text.isdigit() else text for text in re.split("([0-9]+)", item)
+        ]
+    )
 
 
 ##############################################################################
@@ -32,7 +32,7 @@ def MLD(filelist):
     for file in filelist:
         try:
             os.stat(file)
-        except:
+        except FileNotFoundError:
             print("No such file: %s" % file)
             sys.exit(1)
 
@@ -51,20 +51,16 @@ def MLD(filelist):
                 xyzkk.append((pos[i, 0], -pos[i, 1], pos[i, 2], (kk[i])))
 
         xyzkkarr = vtktools.arr(xyzkk)
-        III = argsort(xyzkkarr[:, 1])
+        III = np.argsort(xyzkkarr[:, 1])
         xyzkkarrsort = xyzkkarr[III, :]
         # march down the column, grabbing the last value above tk0 and the first
         # one less than tke0. Interpolate between to get the MLD
-        kea = 1000
-        keb = 0
         zza = 0
         zzb = 0
         for values in xyzkkarrsort:
             if values[3] > tke0:
-                kea = values[3]
                 zza = -values[1]
-            if values[3] < tke0:
-                keb = values[3]
+            elif values[3] < tke0:
                 zzb = -values[1]
                 break
 

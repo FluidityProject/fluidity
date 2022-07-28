@@ -7,7 +7,7 @@ statfile_fine = "cylindrical_C.stat"
 
 
 def velocity_convergence(file_coarse, file_fine):
-    ######## Velocity Errors: #######
+    # Velocity Errors
     anal = stat(statfile_fine)["Fields"]["AnalyticalVelocity%magnitude"]["l2norm"][-1]
     error_coarse = (
         stat(file_coarse)["Fields"]["VelocityError%magnitude"]["l2norm"][-1] / anal
@@ -20,7 +20,7 @@ def velocity_convergence(file_coarse, file_fine):
 
 
 def surface_velocity_convergence(file_coarse, file_fine):
-    ######## Surface Velocity Errors: #######
+    # Surface Velocity Errors
     anal = stat(statfile_fine)["Fields"]["AnalyticalVelocity"]["surface_l2norm%Top"][-1]
     error_coarse = (
         stat(file_coarse)["Fields"]["VelocityError"]["surface_l2norm%Top"][-1] / anal
@@ -33,7 +33,7 @@ def surface_velocity_convergence(file_coarse, file_fine):
 
 
 def CMB_velocity_convergence(file_coarse, file_fine):
-    ######## CMB Velocity Errors: #######
+    # CMB Velocity Errors
     anal = stat(statfile_fine)["Fields"]["AnalyticalVelocity"]["surface_l2norm%Bottom"][
         -1
     ]
@@ -48,7 +48,7 @@ def CMB_velocity_convergence(file_coarse, file_fine):
 
 
 def pressure_convergence(file_coarse, file_fine):
-    ######## Pressure Errors: #######
+    # Pressure Errors
     anal = stat(statfile_fine)["Fields"]["AnalyticalPressure"]["l2norm"][-1]
     error_coarse = stat(file_coarse)["Fields"]["PressureError"]["l2norm"][-1] / anal
     error_fine = stat(file_fine)["Fields"]["PressureError"]["l2norm"][-1] / anal
@@ -57,7 +57,7 @@ def pressure_convergence(file_coarse, file_fine):
 
 
 def normalstress_convergence(file_coarse, file_fine):
-    ######## Normalstress Errors: #######
+    # Normalstress Errors
     anal = stat(statfile_fine)["Fields"]["AnalyticalNormalStress"]["l2norm"][-1]
     error_coarse = stat(file_coarse)["Fields"]["NormalStressError"]["l2norm"][-1] / anal
     error_fine = stat(file_fine)["Fields"]["NormalStressError"]["l2norm"][-1] / anal
@@ -66,7 +66,7 @@ def normalstress_convergence(file_coarse, file_fine):
 
 
 def surface_normalstress_convergence(file_coarse, file_fine):
-    ######## Surface Normalstress Errors: #######
+    # Surface Normalstress Errors
     anal = stat(statfile_fine)["Fields"]["AnalyticalNormalStress"][
         "surface_l2norm%Top"
     ][-1]
@@ -82,7 +82,7 @@ def surface_normalstress_convergence(file_coarse, file_fine):
 
 
 def CMB_normalstress_convergence(file_coarse, file_fine):
-    ######## CMB Normalstress Errors: #######
+    # CMB Normalstress Errors
     anal = stat(statfile_fine)["Fields"]["AnalyticalNormalStress"][
         "surface_l2norm%Bottom"
     ][-1]

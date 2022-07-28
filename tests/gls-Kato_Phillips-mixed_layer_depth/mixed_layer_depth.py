@@ -1,22 +1,21 @@
 #!/usr/bin/env python3
-import math
 import os
 import re
 import sys
 
+import matplotlib.pyplot as plt
+import numpy as np
 import vtktools
-from matplotlib.ticker import MaxNLocator
-from numpy import arange, argsort, array, concatenate
-from pylab import *
-from scipy.interpolate import UnivariateSpline
 
 
-#### taken from http://www.codinghorror.com/blog/archives/001018.html  #######
-def sort_nicely(l):
+# taken from http://www.codinghorror.com/blog/archives/001018.html
+def sort_nicely(obj_to_sort):
     """Sort the given list in the way that humans expect."""
-    convert = lambda text: int(text) if text.isdigit() else text
-    alphanum_key = lambda key: [convert(c) for c in re.split("([0-9]+)", key)]
-    l.sort(key=alphanum_key)
+    obj_to_sort.sort(
+        key=lambda item: [
+            int(text) if text.isdigit() else text for text in re.split("([0-9]+)", item)
+        ]
+    )
 
 
 ##############################################################################
@@ -26,21 +25,19 @@ filelist = sys.argv[1:]
 
 sort_nicely(filelist)
 
-
 x0 = 0
-
 
 tke0 = 1.0e-5
 
 last_mld = 0
-fig = figure()
+fig = plt.figure()
 times = []
 depths = []
 for file in filelist:
     print(file)
     try:
         os.stat(file)
-    except:
+    except FileNotFoundError:
         print("No such file: %s" % file)
         sys.exit(1)
 
@@ -61,7 +58,7 @@ for file in filelist:
             xyzkk.append((pos[i, 0], -pos[i, 1], pos[i, 2], (kk[i])))
 
     xyzkkarr = vtktools.arr(xyzkk)
-    III = argsort(xyzkkarr[:, 1])
+    III = np.argsort(xyzkkarr[:, 1])
     xyzkkarrsort = xyzkkarr[III, :]
     # march down the column, grabbing the last value above tk0 and the first
     # one less than tke0. Interpolate between to get the MLD
@@ -86,11 +83,11 @@ for file in filelist:
     depths.append(-1.0 * mld)
     last_mld = mld
 
-plot(times, depths, "b-")
+plt.plot(times, depths, "b-")
 
-times2 = arange(0, 10 * 60 * 60, 60)
-Dm = 1.05 * 0.0098 * (1.0 / sqrt(0.01)) * sqrt(times2)
-plot(times2 / 3600.0, Dm, "k--")
+times2 = np.arange(0, 10 * 60 * 60, 60)
+Dm = 1.05 * 0.0098 * (1.0 / np.sqrt(0.01)) * np.sqrt(times2)
+plt.plot(times2 / 3600.0, Dm, "k--")
 
 
-show()
+plt.show()

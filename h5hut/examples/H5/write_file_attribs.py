@@ -1,6 +1,6 @@
 #!/usr/bin/env python
+import H5hut
 import numpy as np
-from H5hut import *
 
 FNAME = "example_file_attribs.h5"
 
@@ -26,12 +26,12 @@ float64_value = np.array(
     dtype="float64",
 )
 
-f = H5OpenFile(FNAME, H5_O_WRONLY, H5_PROP_DEFAULT)
+f = H5hut.H5OpenFile(FNAME, H5hut.H5_O_WRONLY, H5hut.H5_PROP_DEFAULT)
 
-H5WriteFileAttrib(f, ATTR_STRING, string_value)
-H5WriteFileAttrib(f, ATTR_INT32, int32_value)
-H5WriteFileAttrib(f, ATTR_INT64, int64_value)
-H5WriteFileAttrib(f, ATTR_FLOAT32, float32_value)
-H5WriteFileAttrib(f, ATTR_FLOAT64, float64_value)
+H5hut.H5WriteFileAttrib(f, ATTR_STRING, string_value)
+H5hut.H5WriteFileAttrib(f, ATTR_INT32, int32_value)
+H5hut.H5WriteFileAttrib(f, ATTR_INT64, int64_value)
+H5hut.H5WriteFileAttrib(f, ATTR_FLOAT32, float32_value)
+H5hut.H5WriteFileAttrib(f, ATTR_FLOAT64, float64_value)
 
-H5CloseFile(f)
+H5hut.H5CloseFile(f)

@@ -1,8 +1,8 @@
 import os
 
+import sympy as sp
 from fluidity_tools import stat_parser
-from numpy import abs, array, max
-from sympy import *
+from numpy import array
 
 meshtemplate = """
 Point(1) = {0, 0, 0, <dx>};
@@ -26,8 +26,7 @@ Physical Surface(1) = {6};
 
 
 def generate_meshfile(name, layers):
-
-    file(name + ".geo", "w").write(
+    open(name + ".geo", "w").write(
         meshtemplate.replace("<dx>", str(1.0 / layers)).replace("<layers>", str(layers))
     )
 
@@ -62,7 +61,6 @@ def forcing(X):
 # Numeric verision of the forcing function, for efficiency.
 def numeric_forcing(X):
     """Forcing function. Must be an analytic function of X[1] only"""
-    from math import pi, sin
 
     return (X[1] ** 3, 0)
 
@@ -77,16 +75,18 @@ coriolis = 1.0
 
 
 def analytic_solution(forcing):
-    """Solve the ode d^2u/dx^2 = F/mu subject to u(0)=0, u(1)=0"""
+    """sp.solve the ode d^2u/dx^2 = F/mu subject to u(0)=0, u(1)=0"""
 
-    x = Symbol("x")
+    x = sp.Symbol("x")
     # Constants of integration.
-    c1 = Symbol("c_1")
-    c2 = Symbol("c_2")
+    c1 = sp.Symbol("c_1")
+    c2 = sp.Symbol("c_2")
 
-    general = integrate(integrate(-forcing((0, x))[0] / mu, x) + c1, x) + c2
+    general = sp.integrate(sp.integrate(-forcing((0, x))[0] / mu, x) + c1, x) + c2
 
-    constants = solve((Eq(general.subs(x, 0), 0), Eq(general.subs(x, 1), 0)), c1, c2)
+    constants = sp.solve(
+        (sp.Eq(general.subs(x, 0), 0), sp.Eq(general.subs(x, 1), 0)), c1, c2
+    )
 
     specific = general.subs(constants)
 
@@ -98,7 +98,7 @@ def solution(forcing):
     d^2u/dx^2 = F/mu subject to u(0)=0, u(1)=0"""
 
     def sol(sx):
-        return analytic_solution(forcing).subs(Symbol("x"), sx[1])
+        return analytic_solution(forcing).subs(sp.Symbol("x"), sx[1])
 
     return sol
 
@@ -108,7 +108,7 @@ def solution(forcing):
 # def analytic_solution(forcing):
 #     '''Return the steady state of the ode du/dt = F - Au'''
 
-#     x=Symbol('x')
+#     x=sp.Symbol('x')
 
 #     u=forcing((0.0,x))[0]/absorption
 
@@ -119,16 +119,15 @@ def solution(forcing):
 #     ode du/dt = F - Au'''
 
 #     def sol(sx):
-#         return analytic_solution(forcing).subs(Symbol('x'),sx[1])
+#         return analytic_solution(forcing).subs(sp.Symbol('x'),sx[1])
 
 #     return sol
 
 
 def analytic_pressure_solution(forcing):
-
     u = analytic_solution(forcing)
 
-    return integrate(-coriolis * u + forcing((0, Symbol("x")))[1], Symbol("x"))
+    return sp.integrate(-coriolis * u + forcing((0, sp.Symbol("x")))[1], sp.Symbol("x"))
 
 
 def pressure_solution(forcing):
@@ -136,7 +135,7 @@ def pressure_solution(forcing):
     dp/dx = f x u The constant of integration is set to 0."""
 
     def sol(sx):
-        return analytic_pressure_solution(forcing).subs(Symbol("x"), sx[1])
+        return analytic_pressure_solution(forcing).subs(sp.Symbol("x"), sx[1])
 
     return sol
 
@@ -145,7 +144,6 @@ def plot_theory():
     """Produce a plot showing the forcing, analytic velocity solution and
     analytic pressure solution"""
     from pylab import (
-        axis,
         figure,
         frange,
         plot,
@@ -205,7 +203,7 @@ def plot_theory():
 def plot_stored_results():
     import pickle
 
-    (dx, error) = pickle.load(file("error_results"))
+    (dx, error) = pickle.load(open("error_results"))
 
     plot_results(dx, error)
 
@@ -217,21 +215,7 @@ def plot_results(dx, error):
     "error". Error should be a two column matrix with the first column being
     the velocity error and the second column the pressure error.
     """
-    from pylab import (
-        axis,
-        figure,
-        frange,
-        legend,
-        loglog,
-        plot,
-        quiver,
-        subplot,
-        subplots_adjust,
-        xlabel,
-        xticks,
-        ylabel,
-        yticks,
-    )
+    from pylab import figure, legend, loglog, xlabel, xticks, yticks
 
     figure()
 

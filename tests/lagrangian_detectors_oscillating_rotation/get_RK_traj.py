@@ -1,29 +1,33 @@
 from math import cos, pi
 
-from pylab import *
-from scipy import *
+import matplotlib.pyplot as plt
+import numpy as np
 
-##Set initial x/y coordinates of detectors
-x = 0.5 + 0.25 * arange(0, 100.0) / 100.0
-y = zeros(100) + 0.5
+# Set initial x/y coordinates of detectors
+x = 0.5 + 0.25 * np.arange(0, 100.0) / 100.0
+y = np.zeros(100) + 0.5
 
-##Set timestep parameters and number of cycles
+# Set timestep parameters and number of cycles
 t = 0.0
 n_cycles = 1
 dt = 0.01 / n_cycles
 tmax = 8
 
-##Velocity function defined for an oscillatory rotating velocity field
+
+# Velocity function defined for an oscillatory rotating velocity field
 def vel(x, y, t):
     return [-(y - 0.5) * (cos(pi / 2.0 * t)), (x - 0.5) * (cos(pi / 2.0 * t))]
 
 
-##Classical 4th order Runge-Kutta scheme
-##k1 defined at initial coordinates and time
-##k2 defined at initial coordinates plus a half step based on k1, and initial time plus a half step of dt
-##k3 defined at initial coordinates plus a half step based on k2, and initial time plus a half step of dt
-##k4 defined at initial coordinates plus a full step based on k3, and initial time plus a full step of dt
-##Final weightings of each parameter introduced from the 4th order butcher array
+# Classical 4th order Runge-Kutta scheme
+# k1 defined at initial coordinates and time
+# k2 defined at initial coordinates plus a half step based on k1, and initial time plus
+# a half step of dt
+# k3 defined at initial coordinates plus a half step based on k2, and initial time plus
+# a half step of dt
+# k4 defined at initial coordinates plus a full step based on k3, and initial time plus
+# a full step of dt
+# Final weightings of each parameter introduced from the 4th order butcher array
 while t < tmax:
     [k1_x, k1_y] = vel(x, y, t)
     [k2_x, k2_y] = vel(x + 0.5 * dt * k1_x, y + 0.5 * dt * k1_y, t + 0.5 * dt)
@@ -32,8 +36,8 @@ while t < tmax:
     x = x + dt * (k1_x / 6.0 + k2_x / 3.0 + k3_x / 3.0 + k4_x / 6.0)
     y = y + dt * (k1_y / 6.0 + k2_y / 3.0 + k3_y / 3.0 + k4_y / 6.0)
     t = t + dt
-plot(x, y, ".")
-show()
+plt.plot(x, y, ".")
+plt.show()
 
 x.tofile("Xvals.txt", sep=" ")
 y.tofile("Yvals.txt", sep=" ")

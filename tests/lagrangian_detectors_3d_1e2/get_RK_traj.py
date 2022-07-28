@@ -1,9 +1,9 @@
-from pylab import *
-from scipy import *
+import matplotlib.pyplot as plt
+import numpy as np
 
 num_detectors = 100
-x = 0.5 + 0.25 * arange(0, float(num_detectors)) / float(num_detectors)
-y = zeros(num_detectors) + 0.5
+x = 0.5 + 0.25 * np.arange(0, float(num_detectors)) / float(num_detectors)
+y = np.zeros(num_detectors) + 0.5
 
 t = 0.0
 n_cycles = 1
@@ -24,7 +24,7 @@ while t < tmax:
     x = x + dt * (k1_x / 6.0 + k2_x / 3.0 + k3_x / 3.0 + k4_x / 6.0)
     y = y + dt * (k1_y / 6.0 + k2_y / 3.0 + k3_y / 3.0 + k4_y / 6.0)
 
-plot(x, y, ".")
+plt.plot(x, y, ".")
 # show()
 
 x.tofile("Xvals.txt", sep=" ")

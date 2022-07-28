@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
 import glob
-import math
 import os
 import re
 import sys
 
+import matplotlib.pyplot as plt
+import numpy as np
 import vtktools
-from matplotlib.ticker import MaxNLocator
-from numpy import arange, argsort, array, concatenate
-from pylab import *
-from scipy.interpolate import UnivariateSpline
 
 
-#### taken from http://www.codinghorror.com/blog/archives/001018.html  #######
-def sort_nicely(l):
+# taken from http://www.codinghorror.com/blog/archives/001018.html
+def sort_nicely(obj_to_sort):
     """Sort the given list in the way that humans expect."""
-    convert = lambda text: int(text) if text.isdigit() else text
-    alphanum_key = lambda key: [convert(c) for c in re.split("([0-9]+)", key)]
-    l.sort(key=alphanum_key)
+    obj_to_sort.sort(
+        key=lambda item: [
+            int(text) if text.isdigit() else text for text in re.split("([0-9]+)", item)
+        ]
+    )
 
 
 ##############################################################################
@@ -34,7 +33,7 @@ def MLD(filelist):
     for file in filelist:
         try:
             os.stat(file)
-        except:
+        except FileNotFoundError:
             print("No such file: %s" % file)
             sys.exit(1)
 
@@ -52,21 +51,15 @@ def MLD(filelist):
                 xyzkk.append((pos[i, 0], -pos[i, 1], pos[i, 2], (kk[i])))
 
         xyzkkarr = vtktools.arr(xyzkk)
-        III = argsort(xyzkkarr[:, 1])
+        III = np.argsort(xyzkkarr[:, 1])
         xyzkkarrsort = xyzkkarr[III, :]
         # march down the column, grabbing the last value above tk0 and the first
         # one less than tke0. Interpolate between to get the MLD
-        kea = 1000
-        keb = 0
         zza = 0
-        zzb = 0
         for values in xyzkkarrsort:
             if values[3] > tke0:
-                kea = values[3]
                 zza = -values[1]
-            if values[3] < tke0:
-                keb = values[3]
-                zzb = -values[1]
+            elif values[3] < tke0:
                 break
 
         mld = zza
@@ -105,10 +98,10 @@ files_to_look_through_kw = [
 files_to_look_through_kkl = ["Kato_Phillips-mld-k_kl-CA", "Kato_Phillips-mld-k_kl-KC"]
 colours = ["r", "g", "b", "#8000FF"]
 
-times2 = arange(0, 10, 0.1)
-Dm = 1.05 * 1.0e-2 * (1.0 / sqrt(0.01)) * sqrt(times2 * 60 * 60)
+times2 = np.arange(0, 10, 0.1)
+Dm = 1.05 * 1.0e-2 * (1.0 / np.sqrt(0.01)) * np.sqrt(times2 * 60 * 60)
 
-figke = figure(figsize=(9.172, 4.5), dpi=90)
+figke = plt.figure(figsize=(9.172, 4.5), dpi=90)
 ax = figke.add_subplot(111)
 i = 0
 for simulation in files_to_look_through_ke:
@@ -120,12 +113,12 @@ for simulation in files_to_look_through_ke:
 
 ax.plot(times2, Dm, "k-", label="Analytical")
 ax.set_ylim(ax.get_ylim()[::-1])
-xlabel("Time (hours)")
-ylabel("ML Depth (m)")
-legend(loc=0)
-savefig(path + "/ke.png", dpi=90, format="png")
+plt.xlabel("Time (hours)")
+plt.ylabel("ML Depth (m)")
+plt.legend(loc=0)
+plt.savefig(path + "/ke.png", dpi=90, format="png")
 
-figkw = figure(figsize=(9.172, 4.5), dpi=90)
+figkw = plt.figure(figsize=(9.172, 4.5), dpi=90)
 ax = figkw.add_subplot(111)
 i = 0
 for simulation in files_to_look_through_kw:
@@ -137,13 +130,13 @@ for simulation in files_to_look_through_kw:
 
 ax.plot(times2, Dm, "k-", label="Analytical")
 ax.set_ylim(ax.get_ylim()[::-1])
-xlabel("Time (hours)")
-ylabel("ML Depth (m)")
-legend(loc=0)
-savefig(path + "/kw.png", dpi=90, format="png")
+plt.xlabel("Time (hours)")
+plt.ylabel("ML Depth (m)")
+plt.legend(loc=0)
+plt.savefig(path + "/kw.png", dpi=90, format="png")
 
 
-figgen = figure(figsize=(9.172, 4.5), dpi=90)
+figgen = plt.figure(figsize=(9.172, 4.5), dpi=90)
 ax = figgen.add_subplot(111)
 i = 0
 for simulation in files_to_look_through_gen:
@@ -155,12 +148,12 @@ for simulation in files_to_look_through_gen:
 
 ax.plot(times2, Dm, "k-", label="Analytical")
 ax.set_ylim(ax.get_ylim()[::-1])
-xlabel("Time (hours)")
-ylabel("ML Depth (m)")
-legend(loc=0)
-savefig(path + "/gen.png", dpi=90, format="png")
+plt.xlabel("Time (hours)")
+plt.ylabel("ML Depth (m)")
+plt.legend(loc=0)
+plt.savefig(path + "/gen.png", dpi=90, format="png")
 
-figkkl = figure(figsize=(9.172, 4.5), dpi=90)
+figkkl = plt.figure(figsize=(9.172, 4.5), dpi=90)
 ax = figkkl.add_subplot(111)
 i = 0
 for simulation in files_to_look_through_kkl:
@@ -172,7 +165,7 @@ for simulation in files_to_look_through_kkl:
 
 ax.plot(times2, Dm, "k-", label="Analytical")
 ax.set_ylim(ax.get_ylim()[::-1])
-xlabel("Time (hours)")
-ylabel("ML Depth (m)")
-legend(loc=0)
-savefig(path + "/kkl.png", dpi=90, format="png")
+plt.xlabel("Time (hours)")
+plt.ylabel("ML Depth (m)")
+plt.legend(loc=0)
+plt.savefig(path + "/kkl.png", dpi=90, format="png")
