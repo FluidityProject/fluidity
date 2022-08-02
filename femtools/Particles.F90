@@ -1192,7 +1192,7 @@ contains
     type(state_type), dimension(:), intent(in) :: state
     real, intent(in) :: time
     real, intent(in) :: dt
-    logical, intent(in), optional :: initial
+    logical, intent(in) :: initial
 
     character(len = OPTION_PATH_LEN) :: group_path, subgroup_path, particles_filename
 
@@ -1220,22 +1220,16 @@ contains
           cycle
         end if
 
-        ! If initial is not present, then we are in adapt_at_first_timestep
-        if (.not. present(initial)) then
-          ! If from_file exists, then it could be a checkpoint
-          if (have_option(trim(subgroup_path) // "/initial_position/from_file")) then
-            call get_option(trim(subgroup_path) // "/initial_position/from_file/file_name", particles_filename)
-            if (index(particles_filename, 'checkpoint_particles') /= 0 &
-                .and. index(particles_filename, 'h5part') /= 0) then
-              ! Assume this is a checkpoint
-              initial_aux = .false.
-            else
-              ! Assume this is simulation start
-              initial_aux = .true.
-            end if
-          ! Particles are initialised from Python: we are at simulation start
+        ! Determine if this is the initial timestep of the whole simulation
+        if (have_option(trim(subgroup_path) // "/initial_position/from_file")) then
+          ! If from_file exists, then this is likely a simulation restart from a checkpoint
+          call get_option(trim(subgroup_path) // "/initial_position/from_file/file_name", particles_filename)
+          if (index(particles_filename, 'checkpoint_particles') /= 0 &
+              .and. index(particles_filename, 'h5part') /= 0) then
+            ! Assume this is a simulation restart from a checkpoint
+            initial_aux = .false.
           else
-            initial_aux = .true.
+            initial_aux = initial
           end if
         else
           initial_aux = initial
