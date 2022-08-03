@@ -97,18 +97,18 @@
         </initial_position>
         <attributes>
           <scalar_attribute name="TempFlag">
-            <value_on_initialisation>
+            <initial_attribute_value>
               <constant>
                 <real_value rank="0">0</real_value>
               </constant>
-            </value_on_initialisation>
-            <value_on_advection>
+            </initial_attribute_value>
+            <attribute_value>
               <python_fields>
                 <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
     from numpy import sign
     return abs(sign(fields["Temperature"] - fields["old%Temperature"]))</string_value>
               </python_fields>
-            </value_on_advection>
+            </attribute_value>
           </scalar_attribute>
         </attributes>
       </particle_subgroup>
@@ -154,50 +154,50 @@
         </initial_position>
         <attributes>
           <scalar_attribute name="Xval">
-            <value_on_advection>
+            <attribute_value>
               <python_fields>
                 <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
     return X[0]</string_value>
                 <store_old_attribute/>
               </python_fields>
-            </value_on_advection>
+            </attribute_value>
           </scalar_attribute>
           <scalar_attribute name="Yval">
-            <value_on_advection>
+            <attribute_value>
               <python_fields>
                 <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
     return X[1]</string_value>
                 <store_old_attribute/>
               </python_fields>
-            </value_on_advection>
+            </attribute_value>
           </scalar_attribute>
           <scalar_attribute name="Xflag">
-            <value_on_initialisation>
+            <initial_attribute_value>
               <constant>
                 <real_value rank="0">0</real_value>
               </constant>
-            </value_on_initialisation>
-            <value_on_advection>
+            </initial_attribute_value>
+            <attribute_value>
               <python_fields>
                 <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
     from numpy import sign
     return sign(X[0] - fields["old%Xval"])</string_value>
               </python_fields>
-            </value_on_advection>
+            </attribute_value>
           </scalar_attribute>
           <scalar_attribute name="Yflag">
-            <value_on_initialisation>
+            <initial_attribute_value>
               <constant>
                 <real_value rank="0">0</real_value>
               </constant>
-            </value_on_initialisation>
-            <value_on_advection>
+            </initial_attribute_value>
+            <attribute_value>
               <python_fields>
                 <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
     from numpy import sign
     return sign(X[1] - fields["old%Yval"])</string_value>
               </python_fields>
-            </value_on_advection>
+            </attribute_value>
           </scalar_attribute>
         </attributes>
       </particle_subgroup>

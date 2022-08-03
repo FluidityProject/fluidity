@@ -537,13 +537,14 @@ This function will only be called after simulation start. To initialise starting
                                 </element>
                               </optional>
                               <optional>
-                                <element name="value_on_initialisation">
-                                  <a:documentation>Attribute value on particle spawn (at the beginning of, or during the simulation)</a:documentation>
+                                <element name="initial_attribute_value">
+                                  <a:documentation>This field sets the attribute value either at the beginning of the simulation or while "initialise_during_simulation". It is not called upon simulation restart from a checkpoint if an H5Part file is provided in "initial_position".
+This field should only be strictly required in conjunction with "initialise_during_simulation" when the calculation of the initial attribute value must be distinguished from that later on during the simulation, as is the case for an initial-value problem.</a:documentation>
                                   <ref name="generic_scalar_particle_attribute_choice"/>
                                 </element>
                               </optional>
-                              <element name="value_on_advection">
-                                <a:documentation>Attribute value at each timestep after advection occurs</a:documentation>
+                              <element name="attribute_value">
+                                <a:documentation>This field sets the attribute value at each time step.</a:documentation>
                                 <ref name="generic_scalar_particle_attribute_choice"/>
                               </element>
                             </element>
@@ -562,13 +563,14 @@ This function will only be called after simulation start. To initialise starting
                                 </element>
                               </optional>
                               <optional>
-                                <element name="value_on_initialisation">
-                                  <a:documentation>Attribute value on particle spawn (at the beginning of, or during the simulation)</a:documentation>
+                                <element name="initial_attribute_value">
+                                  <a:documentation>This field sets the attribute value either at the beginning of the simulation or while "initialise_during_simulation". It is not called upon simulation restart from a checkpoint if an H5Part file is provided in "initial_position".
+This field should only be strictly required in conjunction with "initialise_during_simulation" when the calculation of the initial attribute value must be distinguished from that later on during the simulation, as is the case for an initial-value problem.</a:documentation>
                                   <ref name="generic_scalar_particle_attribute_array"/>
                                 </element>
                               </optional>
-                              <element name="value_on_advection">
-                                <a:documentation>Attribute value at each timestep after advection occurs</a:documentation>
+                              <element name="attribute_value">
+                                <a:documentation>This field sets the attribute value at each time step.</a:documentation>
                                 <ref name="generic_scalar_particle_attribute_array"/>
                               </element>
                             </element>
@@ -584,13 +586,14 @@ This function will only be called after simulation start. To initialise starting
                                 </element>
                               </optional>
                               <optional>
-                                <element name="value_on_initialisation">
-                                  <a:documentation>Attribute value on particle spawn (at the beginning of, or during the simulation)</a:documentation>
+                                <element name="initial_attribute_value">
+                                  <a:documentation>This field sets the attribute value either at the beginning of the simulation or while "initialise_during_simulation". It is not called upon simulation restart from a checkpoint if an H5Part file is provided in "initial_position".
+This field should only be strictly required in conjunction with "initialise_during_simulation" when the calculation of the initial attribute value must be distinguished from that later on during the simulation, as is the case for an initial-value problem.</a:documentation>
                                   <ref name="generic_vector_particle_attribute_choice"/>
                                 </element>
                               </optional>
-                              <element name="value_on_advection">
-                                <a:documentation>Attribute value at each timestep after advection occurs</a:documentation>
+                              <element name="attribute_value">
+                                <a:documentation>This field sets the attribute value at each time step.</a:documentation>
                                 <ref name="generic_vector_particle_attribute_choice"/>
                               </element>
                             </element>
@@ -609,13 +612,14 @@ This function will only be called after simulation start. To initialise starting
                                 </element>
                               </optional>
                               <optional>
-                                <element name="value_on_initialisation">
-                                  <a:documentation>Attribute value on particle spawn (at the beginning of, or during the simulation)</a:documentation>
+                                <element name="initial_attribute_value">
+                                  <a:documentation>This field sets the attribute value either at the beginning of the simulation or while "initialise_during_simulation". It is not called upon simulation restart from a checkpoint if an H5Part file is provided in "initial_position".
+This field should only be strictly required in conjunction with "initialise_during_simulation" when the calculation of the initial attribute value must be distinguished from that later on during the simulation, as is the case for an initial-value problem.</a:documentation>
                                   <ref name="generic_vector_particle_attribute_array"/>
                                 </element>
                               </optional>
-                              <element name="value_on_advection">
-                                <a:documentation>Attribute value at each timestep after advection occurs</a:documentation>
+                              <element name="attribute_value">
+                                <a:documentation>This field sets the attribute value at each time step.</a:documentation>
                                 <ref name="generic_vector_particle_attribute_array"/>
                               </element>
                             </element>
@@ -631,13 +635,14 @@ This function will only be called after simulation start. To initialise starting
                                 </element>
                               </optional>
                               <optional>
-                                <element name="value_on_initialisation">
-                                  <a:documentation>Attribute value on particle spawn (at the beginning of, or during the simulation)</a:documentation>
+                                <element name="initial_attribute_value">
+                                  <a:documentation>This field sets the attribute value either at the beginning of the simulation or while "initialise_during_simulation". It is not called upon simulation restart from a checkpoint if an H5Part file is provided in "initial_position".
+This field should only be strictly required in conjunction with "initialise_during_simulation" when the calculation of the initial attribute value must be distinguished from that later on during the simulation, as is the case for an initial-value problem.</a:documentation>
                                   <ref name="generic_tensor_particle_attribute_choice"/>
                                 </element>
                               </optional>
-                              <element name="value_on_advection">
-                                <a:documentation>Attribute value at each timestep after advection occurs</a:documentation>
+                              <element name="attribute_value">
+                                <a:documentation>This field sets the attribute value at each time step.</a:documentation>
                                 <ref name="generic_tensor_particle_attribute_choice"/>
                               </element>
                             </element>
@@ -656,13 +661,14 @@ This function will only be called after simulation start. To initialise starting
                                 </element>
                               </optional>
                               <optional>
-                                <element name="value_on_initialisation">
-                                  <a:documentation>Attribute value on particle spawn (at the beginning of, or during the simulation)</a:documentation>
+                                <element name="initial_attribute_value">
+                                  <a:documentation>This field sets the attribute value either at the beginning of the simulation or while "initialise_during_simulation". It is not called upon simulation restart from a checkpoint if an H5Part file is provided in "initial_position".
+This field should only be strictly required in conjunction with "initialise_during_simulation" when the calculation of the initial attribute value must be distinguished from that later on during the simulation, as is the case for an initial-value problem.</a:documentation>
                                   <ref name="generic_tensor_particle_attribute_array"/>
                                 </element>
                               </optional>
-                              <element name="value_on_advection">
-                                <a:documentation>Attribute value at each timestep after advection occurs</a:documentation>
+                              <element name="attribute_value">
+                                <a:documentation>This field sets the attribute value at each time step.</a:documentation>
                                 <ref name="generic_tensor_particle_attribute_array"/>
                               </element>
                             </element>
@@ -4998,8 +5004,8 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
-            <a:documentation>Store attribute values from previous timestep on particles.
-Irrelevant for "value_on_initialisation".</a:documentation>
+            <a:documentation>Enable storing the current attribute value. It will be available in the next time step.
+This field only has an effect if set under "attribute_value".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
@@ -5052,8 +5058,8 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
-            <a:documentation>Store attribute values from previous timestep on particles.
-Irrelevant for "value_on_initialisation".</a:documentation>
+            <a:documentation>Enable storing of the current attribute value and make it available at the next timestep.
+This field only has an effect if set under "attribute_value".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
@@ -5115,8 +5121,8 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
-            <a:documentation>Store attribute values from previous timestep on particles.
-Irrelevant for "value_on_initialisation".</a:documentation>
+            <a:documentation>Enable storing the current attribute value. It will be available in the next time step.
+This field only has an effect if set under "attribute_value".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
@@ -5177,8 +5183,8 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
-            <a:documentation>Store attribute values from previous timestep on particles.
-Irrelevant for "value_on_initialisation".</a:documentation>
+            <a:documentation>Enable storing the current attribute value. It will be available in the next time step.
+This field only has an effect if set under "attribute_value".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
@@ -5235,8 +5241,8 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
-            <a:documentation>Store attribute values from previous timestep on particles.
-Irrelevant for "value_on_initialisation".</a:documentation>
+            <a:documentation>Enable storing the current attribute value. It will be available in the next time step.
+This field only has an effect if set under "attribute_value".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
@@ -5302,8 +5308,8 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
-            <a:documentation>Store attribute values from previous timestep on particles.
-Irrelevant for "value_on_initialisation".</a:documentation>
+            <a:documentation>Enable storing the current attribute value. It will be available in the next time step.
+This field only has an effect if set under "attribute_value".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>

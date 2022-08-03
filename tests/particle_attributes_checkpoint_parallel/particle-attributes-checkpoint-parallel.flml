@@ -71,28 +71,28 @@
         </initial_position>
         <attributes>
           <scalar_attribute name="Chem1">
-            <value_on_advection>
+            <attribute_value>
               <constant>
                 <real_value rank="0">5</real_value>
               </constant>
-            </value_on_advection>
+            </attribute_value>
           </scalar_attribute>
           <scalar_attribute name="Chem2">
-            <value_on_advection>
+            <attribute_value>
               <python_fields>
                 <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
     return fields["old%Temperature"]</string_value>
                 <store_old_attribute/>
               </python_fields>
-            </value_on_advection>
+            </attribute_value>
           </scalar_attribute>
           <scalar_attribute name="Chem3">
-            <value_on_advection>
+            <attribute_value>
               <python_fields>
                 <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
     return fields["old%Chem2"]</string_value>
               </python_fields>
-            </value_on_advection>
+            </attribute_value>
           </scalar_attribute>
         </attributes>
       </particle_subgroup>
@@ -108,29 +108,29 @@
         </initial_position>
         <attributes>
           <scalar_attribute name="Chem1">
-            <value_on_advection>
+            <attribute_value>
               <python>
                 <string_value type="code" language="python" lines="20">def val(X, t, dt):
     return X[0] + t</string_value>
               </python>
-            </value_on_advection>
+            </attribute_value>
           </scalar_attribute>
           <scalar_attribute name="Chem2">
-            <value_on_advection>
+            <attribute_value>
               <python_fields>
                 <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
     return X[0] + t + fields["Salinity"] + fields["Temperature"]</string_value>
                 <store_old_attribute/>
               </python_fields>
-            </value_on_advection>
+            </attribute_value>
           </scalar_attribute>
           <scalar_attribute name="Chem3">
-            <value_on_advection>
+            <attribute_value>
               <python_fields>
                 <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
     return fields["old%Chem2"]</string_value>
               </python_fields>
-            </value_on_advection>
+            </attribute_value>
           </scalar_attribute>
         </attributes>
       </particle_subgroup>
@@ -148,12 +148,12 @@
         </initial_position>
         <attributes>
           <scalar_attribute name="Chem4">
-            <value_on_advection>
+            <attribute_value>
               <python_fields>
                 <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
     return fields["Temperature"] - fields["old%Temperature"]</string_value>
               </python_fields>
-            </value_on_advection>
+            </attribute_value>
           </scalar_attribute>
         </attributes>
       </particle_subgroup>
@@ -171,21 +171,21 @@
         </initial_position>
         <attributes>
           <scalar_attribute name="Time">
-            <value_on_advection>
+            <attribute_value>
               <python_fields>
                 <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
     return t</string_value>
                 <store_old_attribute/>
               </python_fields>
-            </value_on_advection>
+            </attribute_value>
           </scalar_attribute>
           <scalar_attribute name="dt">
-            <value_on_advection>
+            <attribute_value>
               <python_fields>
                 <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
     return t - fields["old%Time"]</string_value>
               </python_fields>
-            </value_on_advection>
+            </attribute_value>
           </scalar_attribute>
         </attributes>
       </particle_subgroup>

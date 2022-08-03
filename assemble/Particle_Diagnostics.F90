@@ -94,9 +94,12 @@ module particle_diagnostics
        do j = 1,particle_arrays(i)
           particle => particle_lists(list_counter)%first
           subgroup_path = trim(group_path) // "/particle_subgroup["//int2str(j-1)//"]"
-          if (option_count(trim(subgroup_path) // "/attributes/scalar_attribute/value_on_advection/constant") + &
-               & option_count(trim(subgroup_path) // "/attributes/vector_attribute/value_on_advection/constant") + &
-               & option_count(trim(subgroup_path) // "/attributes/tensor_attribute/value_on_advection/constant")>0) then
+          if (option_count(trim(subgroup_path) // "/attributes/scalar_attribute/initial_attribute_value/constant") + &
+               & option_count(trim(subgroup_path) // "/attributes/scalar_attribute/attribute_value/constant") + &
+               & option_count(trim(subgroup_path) // "/attributes/vector_attribute/initial_attribute_value/constant") + &
+               & option_count(trim(subgroup_path) // "/attributes/vector_attribute/attribute_value/constant") + &
+               & option_count(trim(subgroup_path) // "/attributes/tensor_attribute/initial_attribute_value/constant") + &
+               & option_count(trim(subgroup_path) // "/attributes/tensor_attribute/attribute_value/constant")>0) then
              call initialise_constant_particle_attributes(state, subgroup_path, particle_lists(list_counter))
           end if
           list_counter = list_counter + 1

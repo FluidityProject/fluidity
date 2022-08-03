@@ -125,11 +125,11 @@
         </initial_position>
         <attributes>
           <scalar_attribute name="Chem1">
-            <value_on_advection>
+            <attribute_value>
               <constant>
                 <real_value rank="0">0</real_value>
               </constant>
-            </value_on_advection>
+            </attribute_value>
           </scalar_attribute>
         </attributes>
       </particle_subgroup>
@@ -158,11 +158,11 @@
         </initial_position>
         <attributes>
           <scalar_attribute name="Chem1">
-            <value_on_advection>
+            <attribute_value>
               <constant>
                 <real_value rank="0">1</real_value>
               </constant>
-            </value_on_advection>
+            </attribute_value>
           </scalar_attribute>
         </attributes>
       </particle_subgroup>

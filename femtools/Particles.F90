@@ -327,12 +327,12 @@ contains
 
           ! If any attributes are from fields, we'll need to store old fields too
           store_old_fields = .false.
-          if (option_count(trim(subgroup_path) // "/attributes/scalar_attribute/value_on_advection/python_fields") > 0 .or. &
-              option_count(trim(subgroup_path) // "/attributes/scalar_attribute_array/value_on_advection/python_fields") > 0 .or. &
-              option_count(trim(subgroup_path) // "/attributes/vector_attribute/value_on_advection/python_fields") > 0 .or. &
-              option_count(trim(subgroup_path) // "/attributes/vector_attribute_array/value_on_advection/python_fields") > 0 .or. &
-              option_count(trim(subgroup_path) // "/attributes/tensor_attribute/value_on_advection/python_fields") > 0 .or. &
-              option_count(trim(subgroup_path) // "/attributes/tensor_attribute_array/value_on_advection/python_fields") > 0) then
+          if (option_count(trim(subgroup_path) // "/attributes/scalar_attribute/attribute_value/python_fields") > 0 .or. &
+              option_count(trim(subgroup_path) // "/attributes/scalar_attribute_array/attribute_value/python_fields") > 0 .or. &
+              option_count(trim(subgroup_path) // "/attributes/vector_attribute/attribute_value/python_fields") > 0 .or. &
+              option_count(trim(subgroup_path) // "/attributes/vector_attribute_array/attribute_value/python_fields") > 0 .or. &
+              option_count(trim(subgroup_path) // "/attributes/tensor_attribute/attribute_value/python_fields") > 0 .or. &
+              option_count(trim(subgroup_path) // "/attributes/tensor_attribute_array/attribute_value/python_fields") > 0) then
              store_old_fields = .true.
           end if
 
@@ -496,12 +496,12 @@ contains
 
           ! If any attributes are from fields, we'll need to store old fields too
           store_old_fields = .false.
-          if (option_count(trim(subgroup_path) // "/attributes/scalar_attribute/value_on_advection/python_fields") > 0 .or. &
-              option_count(trim(subgroup_path) // "/attributes/scalar_attribute_array/value_on_advection/python_fields") > 0 .or. &
-              option_count(trim(subgroup_path) // "/attributes/vector_attribute/value_on_advection/python_fields") > 0 .or. &
-              option_count(trim(subgroup_path) // "/attributes/vector_attribute_array/value_on_advection/python_fields") > 0 .or. &
-              option_count(trim(subgroup_path) // "/attributes/tensor_attribute/value_on_advection/python_fields") > 0 .or. &
-              option_count(trim(subgroup_path) // "/attributes/tensor_attribute_array/value_on_advection/python_fields") > 0) then
+          if (option_count(trim(subgroup_path) // "/attributes/scalar_attribute/attribute_value/python_fields") > 0 .or. &
+              option_count(trim(subgroup_path) // "/attributes/scalar_attribute_array/attribute_value/python_fields") > 0 .or. &
+              option_count(trim(subgroup_path) // "/attributes/vector_attribute/attribute_value/python_fields") > 0 .or. &
+              option_count(trim(subgroup_path) // "/attributes/vector_attribute_array/attribute_value/python_fields") > 0 .or. &
+              option_count(trim(subgroup_path) // "/attributes/tensor_attribute/attribute_value/python_fields") > 0 .or. &
+              option_count(trim(subgroup_path) // "/attributes/tensor_attribute_array/attribute_value/python_fields") > 0) then
             store_old_fields = .true.
           end if
 
@@ -564,8 +564,8 @@ contains
     single_count = option_count(key)
     array_count = option_count(array_key)
 
-    single_old_count = option_count(key//"/value_on_advection/python_fields/store_old_attribute")
-    array_old_count = option_count(trim(array_key)//"/value_on_advection/python_fields/store_old_attribute")
+    single_old_count = option_count(key//"/attribute_value/python_fields/store_old_attribute")
+    array_old_count = option_count(trim(array_key)//"/attribute_value/python_fields/store_old_attribute")
 
     allocate(names(single_count + array_count))
     allocate(old_names(single_old_count + array_old_count))
@@ -587,7 +587,7 @@ contains
 
       to_write(i) = .not. have_option(trim(subkey)//"/exclude_from_output")
 
-      if (have_option(trim(subkey)//"/value_on_advection/python_fields/store_old_attribute")) then
+      if (have_option(trim(subkey)//"/attribute_value/python_fields/store_old_attribute")) then
         ! prefix with "old%" to distinguish from current attribute
         old_names(old_i) = "old%" // trim(names(i))
         old_dims(old_i) = 0
@@ -603,7 +603,7 @@ contains
 
       to_write(i+single_count) = .not. have_option(trim(subkey)//"/exclude_from_output")
 
-      if (have_option(trim(subkey)//"/value_on_advection/python_fields/store_old_attribute")) then
+      if (have_option(trim(subkey)//"/attribute_value/python_fields/store_old_attribute")) then
         old_names(old_i) = "old%" // trim(names(i+single_count))
         old_dims(old_i) = dims(i+single_count)
         old_i = old_i + 1
@@ -1122,11 +1122,11 @@ contains
           ! single-valued attribute
           attr_key = trim(subgroup_path) // '/attributes/scalar_attribute['//int2str(i_single-1)//']'
           i_single = i_single + 1
-          if (have_option(trim(attr_key)//'/value_on_initialisation/constant')) then
-             call get_option(trim(attr_key)//'/value_on_initialisation/constant', constant)
+          if (have_option(trim(attr_key)//'/initial_attribute_value/constant')) then
+             call get_option(trim(attr_key)//'/initial_attribute_value/constant', constant)
              attribute_array(attr_idx:attr_idx,:) = constant
-          else if (have_option(trim(attr_key)//'/value_on_advection/constant')) then
-             call get_option(trim(attr_key)//'/value_on_advection/constant', constant)
+          else if (have_option(trim(attr_key)//'/attribute_value/constant')) then
+             call get_option(trim(attr_key)//'/attribute_value/constant', constant)
              attribute_array(attr_idx:attr_idx,:) = constant
           end if
           attr_idx = attr_idx + 1
@@ -1141,12 +1141,12 @@ contains
           ! single-valued attribute
           attr_key = trim(subgroup_path) // '/attributes/vector_attribute['//int2str(i_single-1)//']'
           i_single = i_single + 1
-          if (have_option(trim(attr_key)//'/value_on_initialisation/constant')) then
-             call get_option(trim(attr_key)//'/value_on_initialisation/constant', vconstant)
+          if (have_option(trim(attr_key)//'/initial_attribute_value/constant')) then
+             call get_option(trim(attr_key)//'/initial_attribute_value/constant', vconstant)
              ! broadcast vector constant out to all particles
              attribute_array(attr_idx:attr_idx+dim-1,:) = spread(vconstant, 2, nparticles)
-          else if (have_option(trim(attr_key)//'/value_on_advection/constant')) then
-             call get_option(trim(attr_key)//'/value_on_advection/constant', vconstant)
+          else if (have_option(trim(attr_key)//'/attribute_value/constant')) then
+             call get_option(trim(attr_key)//'/attribute_value/constant', vconstant)
              ! broadcast vector constant out to all particles
              attribute_array(attr_idx:attr_idx+dim-1,:) = spread(vconstant, 2, nparticles)
           end if
@@ -1162,12 +1162,12 @@ contains
           ! single-valued attribute
           attr_key = trim(subgroup_path) // '/attributes/tensor_attribute['//int2str(i_single-1)//']'
           i_single = i_single + 1
-          if (have_option(trim(attr_key)//'/value_on_initialisation/constant')) then
-             call get_option(trim(attr_key)//'/value_on_initialisation/constant', tconstant)
+          if (have_option(trim(attr_key)//'/initial_attribute_value/constant')) then
+             call get_option(trim(attr_key)//'/initial_attribute_value/constant', tconstant)
              ! flatten tensor, then broadcast out to all particles
              attribute_array(attr_idx:attr_idx+dim**2-1,:) = spread(reshape(tconstant, [dim**2]), 2, nparticles)
-          else if (have_option(trim(attr_key)//'/value_on_advection/constant')) then
-             call get_option(trim(attr_key)//'/value_on_advection/constant', tconstant)
+          else if (have_option(trim(attr_key)//'/attribute_value/constant')) then
+             call get_option(trim(attr_key)//'/attribute_value/constant', tconstant)
              ! flatten tensor, then broadcast out to all particles
              attribute_array(attr_idx:attr_idx+dim**2-1,:) = spread(reshape(tconstant, [dim**2]), 2, nparticles)
           end if
@@ -1452,10 +1452,10 @@ contains
         is_array = .true.
       end if
 
-      if (initial .and. have_option(trim(attr_key)//'/value_on_initialisation')) then
-        value_attr_str = "/value_on_initialisation"
+      if (initial .and. have_option(trim(attr_key)//'/initial_attribute_value')) then
+        value_attr_str = "/initial_attribute_value"
       else
-        value_attr_str = "/value_on_advection"
+        value_attr_str = "/attribute_value"
       end if
 
       if (have_option(trim(attr_key)//trim(value_attr_str)//'/constant')) then
@@ -1499,10 +1499,10 @@ contains
         is_array = .true.
       end if
 
-      if (initial .and. have_option(trim(attr_key)//'/value_on_initialisation')) then
-        value_attr_str = "/value_on_initialisation"
+      if (initial .and. have_option(trim(attr_key)//'/initial_attribute_value')) then
+        value_attr_str = "/initial_attribute_value"
       else
-        value_attr_str = "/value_on_advection"
+        value_attr_str = "/attribute_value"
       end if
 
       if (have_option(trim(attr_key)//trim(value_attr_str)//'/constant')) then
@@ -1547,10 +1547,10 @@ contains
         is_array = .true.
       end if
 
-      if (initial .and. have_option(trim(attr_key)//'/value_on_initialisation')) then
-        value_attr_str = "/value_on_initialisation"
+      if (initial .and. have_option(trim(attr_key)//'/initial_attribute_value')) then
+        value_attr_str = "/initial_attribute_value"
       else
-        value_attr_str = "/value_on_advection"
+        value_attr_str = "/attribute_value"
       end if
 
       if (have_option(trim(attr_key)//trim(value_attr_str)//'/constant')) then
@@ -1602,12 +1602,12 @@ contains
         n = p_list%attr_names%sn(i)
         if (n == 0) then
           store_old_attr(attr_idx) = have_option(trim(subgroup_path) // &
-               '/attributes/scalar_attribute['//int2str(i_single-1)//']/value_on_advection/python_fields/store_old_attribute')
+               '/attributes/scalar_attribute['//int2str(i_single-1)//']/attribute_value/python_fields/store_old_attribute')
           i_single = i_single + 1
           attr_idx = attr_idx + 1
         else
           store_old_attr(attr_idx:attr_idx+n-1) = have_option(trim(subgroup_path) // &
-               '/attributes/scalar_attribute_array['//int2str(i_array-1)//']/value_on_advection/python_fields/store_old_attribute')
+               '/attributes/scalar_attribute_array['//int2str(i_array-1)//']/attribute_value/python_fields/store_old_attribute')
           i_array = i_array + 1
           attr_idx = attr_idx + n
         end if
@@ -1619,12 +1619,12 @@ contains
         n = p_list%attr_names%vn(i)
         if (n == 0) then
           store_old_attr(attr_idx:attr_idx+dim-1) = have_option(trim(subgroup_path) // &
-               '/attributes/vector_attribute['//int2str(i_single-1)//']/value_on_advection/python_fields/store_old_attribute')
+               '/attributes/vector_attribute['//int2str(i_single-1)//']/attribute_value/python_fields/store_old_attribute')
           i_single = i_single + 1
           attr_idx = attr_idx + dim
         else
           store_old_attr(attr_idx:attr_idx + n*dim-1) = have_option(trim(subgroup_path) // &
-               '/attributes/vector_attribute_array['//int2str(i_array-1)//']/value_on_advection/python_fields/store_old_attribute')
+               '/attributes/vector_attribute_array['//int2str(i_array-1)//']/attribute_value/python_fields/store_old_attribute')
           i_array = i_array + 1
           attr_idx = attr_idx + n*dim
         end if
@@ -1636,12 +1636,12 @@ contains
         n = p_list%attr_names%tn(i)
         if (n == 0) then
           store_old_attr(attr_idx:attr_idx + dim**2 - 1) = have_option(trim(subgroup_path) // &
-               '/attributes/tensor_attribute['//int2str(i_single-1)//']/value_on_advection/python_fields/store_old_attribute')
+               '/attributes/tensor_attribute['//int2str(i_single-1)//']/attribute_value/python_fields/store_old_attribute')
           i_single = i_single + 1
           attr_idx = attr_idx + dim**2
         else
           store_old_attr(attr_idx:attr_idx + n*dim**2 - 1) = have_option(trim(subgroup_path) // &
-               '/attributes/tensor_attribute_array['//int2str(i_array-1)//']/value_on_advection/python_fields/store_old_attribute')
+               '/attributes/tensor_attribute_array['//int2str(i_array-1)//']/attribute_value/python_fields/store_old_attribute')
           i_array = i_array + 1
           attr_idx = attr_idx + n*dim**2
         end if
@@ -2188,33 +2188,33 @@ contains
        FLAbort("Failed to set particles options filename when checkpointing particles with option path " // "/particles/particle_array::" // trim(temp_string))
     end if
 
-    ! do j = 1, tot_atts
-    !   particles_s = have_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/scalar_attribute["//int2str(j-1)//"]/constant")
-    !   particles_v = have_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/vector_attribute["//int2str(j-1)//"]/constant")
-    !   particles_t = have_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/tensor_attribute["//int2str(j-1)//"]/constant")
-    !   if (particles_s) then
-    !     call delete_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/scalar_attribute["//int2str(j-1)//"]/constant")
-    !     call set_option_attribute(trim(subgroup_path_name) // trim(temp_string) // "/attributes/scalar_attribute["//int2str(j-1)// &
-    !          "]/from_checkpoint_file/file_name", trim(filename) // "." // trim(temp_string), stat)
-    !       if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-    !          FLAbort("Failed to set scalar field particles filename when checkpointing")
-    !       end if
-    !    else if (particles_v) then
-    !       call delete_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/vector_attribute["//int2str(j-1)//"]/constant")
-    !       call set_option_attribute(trim(subgroup_path_name) // trim(temp_string) // "/attributes/vector_attribute["//int2str(j-1)// &
-    !            "]/from_checkpoint_file/file_name", trim(filename) // "." // trim(temp_string), stat)
-    !       if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-    !          FLAbort("Failed to set vector field particles filename when checkpointing")
-    !       end if
-    !    else if (particles_t) then
-    !       call delete_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/tensor_attribute["//int2str(j-1)//"]/constant")
-    !       call set_option_attribute(trim(subgroup_path_name) // trim(temp_string) // "/attributes/tensor_attribute["//int2str(j-1)// &
-    !            "]/from_checkpoint_file/file_name", trim(filename) // "." // trim(temp_string), stat)
-    !       if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-    !          FLAbort("Failed to set tensor field particles filename when checkpointing")
-    !       end if
-    !    end if
-    ! end do
+    do j = 1, tot_atts
+      particles_s = have_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/scalar_attribute["//int2str(j-1)//"]/attribute_value/constant")
+      particles_v = have_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/vector_attribute["//int2str(j-1)//"]/attribute_value/constant")
+      particles_t = have_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/tensor_attribute["//int2str(j-1)//"]/attribute_value/constant")
+      if (particles_s) then
+        call delete_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/scalar_attribute["//int2str(j-1)//"]/attribute_value/constant")
+        call set_option_attribute(trim(subgroup_path_name) // trim(temp_string) // "/attributes/scalar_attribute["//int2str(j-1)// &
+             "]/from_checkpoint_file/file_name", trim(filename) // "." // trim(temp_string), stat)
+          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
+             FLAbort("Failed to set scalar field particles filename when checkpointing")
+          end if
+       else if (particles_v) then
+          call delete_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/vector_attribute["//int2str(j-1)//"]/attribute_value/constant")
+          call set_option_attribute(trim(subgroup_path_name) // trim(temp_string) // "/attributes/vector_attribute["//int2str(j-1)// &
+               "]/from_checkpoint_file/file_name", trim(filename) // "." // trim(temp_string), stat)
+          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
+             FLAbort("Failed to set vector field particles filename when checkpointing")
+          end if
+       else if (particles_t) then
+          call delete_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/tensor_attribute["//int2str(j-1)//"]/attribute_value/constant")
+          call set_option_attribute(trim(subgroup_path_name) // trim(temp_string) // "/attributes/tensor_attribute["//int2str(j-1)// &
+               "]/from_checkpoint_file/file_name", trim(filename) // "." // trim(temp_string), stat)
+          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
+             FLAbort("Failed to set tensor field particles filename when checkpointing")
+          end if
+       end if
+    end do
 
   end subroutine update_particle_subgroup_options
 

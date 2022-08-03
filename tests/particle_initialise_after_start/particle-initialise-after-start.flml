@@ -81,18 +81,18 @@
         </initialise_during_simulation>
         <attributes>
           <scalar_attribute name="Chem1">
-            <value_on_initialisation>
+            <initial_attribute_value>
               <constant>
                 <real_value rank="0">0</real_value>
               </constant>
-            </value_on_initialisation>
-            <value_on_advection>
+            </initial_attribute_value>
+            <attribute_value>
               <python_fields>
                 <string_value type="code" language="python" lines="20">def val(X, t, dt, fields):
     return fields['old%Chem1'] + 1</string_value>
                 <store_old_attribute/>
               </python_fields>
-            </value_on_advection>
+            </attribute_value>
           </scalar_attribute>
         </attributes>
       </particle_subgroup>
