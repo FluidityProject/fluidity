@@ -22,25 +22,17 @@ for statfile in glob.glob('*.stat'):
     print(statfile, 'end_time: ', times[-1])
 </variable>
     <variable name="errors" language="python">
-from lxml import etree
 import math
+
 import numpy
 from fluidity_tools import stat_parser
-import sys
-from packaging import version
+from lxml import etree
 
-if version.parse(sys.version.split(" ")[0]) >= version.parse("3.8"):
-    import importlib.metadata as im
-    if version.parse(im.version("scipy")) >= version.parse("1.6"):
-        from scipy.integrate import cumulative_trapezoid, trapezoid
-    else:
-        from scipy.integrate import cumtrapz as cumulative_trapezoid, trapz as trapezoid
-else:
-    from pkg_resources import get_distribution
-    if version.parse(get_distribution("scipy").version) >= version.parse("1.6"):
-        from scipy.integrate import cumulative_trapezoid, trapezoid
-    else:
-        from scipy.integrate import cumtrapz as cumulative_trapezoid, trapz as trapezoid
+try:
+    from scipy.integrate import cumulative_trapezoid, trapezoid
+except ImportError:
+    from scipy.integrate import cumtrapz as cumulative_trapezoid
+    from scipy.integrate import trapz as trapezoid
 
 ################################################################################################
 
