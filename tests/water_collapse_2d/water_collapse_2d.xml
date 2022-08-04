@@ -58,7 +58,6 @@ import vtk
 import glob
 import sys
 import os
-import scipy.stats
 import operator
 
 def get_last_dump():
@@ -99,7 +98,6 @@ import vtk
 import glob
 import sys
 import os
-import scipy.stats
 import operator
 
 def get_last_dump():
@@ -140,7 +138,6 @@ import vtk
 import glob
 import sys
 import os
-import scipy.stats
 import operator
 
 def get_last_dump():

@@ -8,7 +8,7 @@ RUN apt-get -y update && \
       rm -rf /var/cache/apt/archives && \
       rm -rf /var/lib/apt/lists
 
-RUN python3 -m pip install --upgrade numpy
+RUN python3 -m pip install --upgrade numpy scipy
 
 RUN adduser fluidity sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers

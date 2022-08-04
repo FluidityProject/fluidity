@@ -1474,8 +1474,6 @@ contains
              old_attr_names, old_attr_counts, old_attr_dims, old_attributes, &
              field_names, field_counts, old_field_names, old_field_counts, &
              func, time, dt, is_array, first_newly_init_part=first_newly_init_part)
-      else if (have_option(trim(attr_key)//trim(value_attr_str)//'/from_checkpoint_file')) then
-        ! don't do anything, the attribute was already loaded from file
       end if
 
       attr_idx = attr_idx + n
@@ -1522,8 +1520,6 @@ contains
              old_attr_names, old_attr_counts, old_attr_dims, old_attributes, &
              field_names, field_counts, old_field_names, old_field_counts, &
              func, time, dt, is_array, first_newly_init_part=first_newly_init_part)
-      else if (have_option(trim(attr_key)//trim(value_attr_str)//'/from_checkpoint_file')) then
-        ! don't do anything, the attribute was already loaded from file
       end if
 
       attr_idx = attr_idx + n*dim
@@ -1570,8 +1566,6 @@ contains
              old_attr_names, old_attr_counts, old_attr_dims, old_attributes, &
              field_names, field_counts, old_field_names, old_field_counts, &
              func, time, dt, is_array, first_newly_init_part=first_newly_init_part)
-      else if (have_option(trim(attr_key)//trim(value_attr_str)//'/from_checkpoint_file')) then
-        ! don't do anything, the attribute was already loaded from file
       end if
 
       attr_idx = attr_idx + n*dim**2
@@ -2187,34 +2181,6 @@ contains
     if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
        FLAbort("Failed to set particles options filename when checkpointing particles with option path " // "/particles/particle_array::" // trim(temp_string))
     end if
-
-    do j = 1, tot_atts
-      particles_s = have_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/scalar_attribute["//int2str(j-1)//"]/attribute_value/constant")
-      particles_v = have_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/vector_attribute["//int2str(j-1)//"]/attribute_value/constant")
-      particles_t = have_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/tensor_attribute["//int2str(j-1)//"]/attribute_value/constant")
-      if (particles_s) then
-        call delete_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/scalar_attribute["//int2str(j-1)//"]/attribute_value/constant")
-        call set_option_attribute(trim(subgroup_path_name) // trim(temp_string) // "/attributes/scalar_attribute["//int2str(j-1)// &
-             "]/from_checkpoint_file/file_name", trim(filename) // "." // trim(temp_string), stat)
-          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-             FLAbort("Failed to set scalar field particles filename when checkpointing")
-          end if
-       else if (particles_v) then
-          call delete_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/vector_attribute["//int2str(j-1)//"]/attribute_value/constant")
-          call set_option_attribute(trim(subgroup_path_name) // trim(temp_string) // "/attributes/vector_attribute["//int2str(j-1)// &
-               "]/from_checkpoint_file/file_name", trim(filename) // "." // trim(temp_string), stat)
-          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-             FLAbort("Failed to set vector field particles filename when checkpointing")
-          end if
-       else if (particles_t) then
-          call delete_option(trim(subgroup_path_name) // trim(temp_string) // "/attributes/tensor_attribute["//int2str(j-1)//"]/attribute_value/constant")
-          call set_option_attribute(trim(subgroup_path_name) // trim(temp_string) // "/attributes/tensor_attribute["//int2str(j-1)// &
-               "]/from_checkpoint_file/file_name", trim(filename) // "." // trim(temp_string), stat)
-          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-             FLAbort("Failed to set tensor field particles filename when checkpointing")
-          end if
-       end if
-    end do
 
   end subroutine update_particle_subgroup_options
 

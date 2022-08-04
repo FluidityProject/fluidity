@@ -28,7 +28,6 @@ import sys
 from lxml import etree
 import re
 import os
-import scipy.stats
 import scipy.integrate
 import math
 import vtktools
@@ -84,7 +83,7 @@ def IntegrateTrapezoidal(x,y):
 
     integral = 0.0
     for i in range(len(index)-1):
-        integral = integral + abs(scipy.integrate.trapz(y[index[i]:index[i+1]+1], x=x[index[i]:index[i+1]+1]))
+        integral = integral + abs(scipy.integrate.trapezoid(y[index[i]:index[i+1]+1], x=x[index[i]:index[i+1]+1]))
 
     return integral
 
@@ -131,7 +130,7 @@ for statfile in ['lock_exchange_2d.stat', 'lock_exchange_2d_parallel.stat']:
 
 # Potential energy
     PE = stat["fluid"]["GravitationalPotentialEnergyDensity"]["integral"]
-    PE_t = scipy.diff(PE)/dt
+    PE_t = numpy.diff(PE)/dt
 
 # Background potential energy
 # Minimum potential energy available through an adiabatic restratification of the fluid
@@ -181,30 +180,30 @@ for statfile in ['lock_exchange_2d.stat', 'lock_exchange_2d_parallel.stat']:
 
 # Potential energy diffused through boundaries
     PEflux = stat["fluid"]["GravitationalPotentialEnergyDensity"]["surface_integral%PEFlux"]*kappa
-    PEout = scipy.integrate.cumtrapz(PEflux,time)
+    PEout = scipy.integrate.cumulative_trapezoid(PEflux,time)
 
 # Potential change through diffusion within the domain
     DD = stat["fluid"]["DiffusiveDissipation"]["integral"]*2.0*kappa
-    DDtot = scipy.integrate.cumtrapz(DD,time)
+    DDtot = scipy.integrate.cumulative_trapezoid(DD,time)
 
 # Kinetic energy - taken from KineticEnergyDensity (non-Boussinesq)
 # and Velocity (Boussinesq) for illustration
     KE_1 = stat["fluid"]["KineticEnergyDensity"]["integral"]
-    KE_1_t = scipy.diff(KE_1)/dt
+    KE_1_t = numpy.diff(KE_1)/dt
 
     KE_2 = (stat["fluid"]["Velocity%magnitude"]["l2norm"]**2.0)*0.5*rho_0
-    KE_2_t = scipy.diff(KE_2)/dt
+    KE_2_t = numpy.diff(KE_2)/dt
 
     KE = KE_1
     KE_t = KE_1_t
 
 # Diffusive transport of kinetic energy out of domain
     DT = stat["fluid"]["KineticEnergyDensity"]["surface_integral%DiffusiveTransport"]*nu
-    DTtot = scipy.integrate.cumtrapz(DT,time)
+    DTtot = scipy.integrate.cumulative_trapezoid(DT,time)
 
 # Kinetic energy lost through viscous dissipation
     VD = stat["fluid"]["ViscousDiss"]["integral"]*rho_0*-1.0
-    VDtot = scipy.integrate.cumtrapz(VD,time)
+    VDtot = scipy.integrate.cumulative_trapezoid(VD,time)
 
 # total energy change
 # subtract off initial values of KE and PE
