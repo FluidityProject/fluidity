@@ -22,17 +22,25 @@ for statfile in glob.glob('*.stat'):
     print(statfile, 'end_time: ', times[-1])
 </variable>
     <variable name="errors" language="python">
-import vtk
-import glob
-import sys
 from lxml import etree
-import re
-import os
-import scipy.integrate
 import math
-import vtktools
 import numpy
 from fluidity_tools import stat_parser
+import sys
+from packaging import version
+
+if version.parse(sys.version.split(" ")[0]) >= version.parse("3.8"):
+    import importlib.metadata as im
+    if version.parse(im.version("scipy")) >= version.parse("1.6"):
+        from scipy.integrate import cumulative_trapezoid, trapezoid
+    else:
+        from scipy.integrate import cumtrapz as cumulative_trapezoid, trapz as trapezoid
+else:
+    from pkg_resources import get_distribution
+    if version.parse(get_distribution("scipy").version) >= version.parse("1.6"):
+        from scipy.integrate import cumulative_trapezoid, trapezoid
+    else:
+        from scipy.integrate import cumtrapz as cumulative_trapezoid, trapz as trapezoid
 
 ################################################################################################
 
@@ -83,7 +91,7 @@ def IntegrateTrapezoidal(x,y):
 
     integral = 0.0
     for i in range(len(index)-1):
-        integral = integral + abs(scipy.integrate.trapezoid(y[index[i]:index[i+1]+1], x=x[index[i]:index[i+1]+1]))
+        integral = integral + abs(trapezoid(y[index[i]:index[i+1]+1], x=x[index[i]:index[i+1]+1]))
 
     return integral
 
@@ -180,11 +188,11 @@ for statfile in ['lock_exchange_2d.stat', 'lock_exchange_2d_parallel.stat']:
 
 # Potential energy diffused through boundaries
     PEflux = stat["fluid"]["GravitationalPotentialEnergyDensity"]["surface_integral%PEFlux"]*kappa
-    PEout = scipy.integrate.cumulative_trapezoid(PEflux,time)
+    PEout = cumulative_trapezoid(PEflux,time)
 
 # Potential change through diffusion within the domain
     DD = stat["fluid"]["DiffusiveDissipation"]["integral"]*2.0*kappa
-    DDtot = scipy.integrate.cumulative_trapezoid(DD,time)
+    DDtot = cumulative_trapezoid(DD,time)
 
 # Kinetic energy - taken from KineticEnergyDensity (non-Boussinesq)
 # and Velocity (Boussinesq) for illustration
@@ -199,11 +207,11 @@ for statfile in ['lock_exchange_2d.stat', 'lock_exchange_2d_parallel.stat']:
 
 # Diffusive transport of kinetic energy out of domain
     DT = stat["fluid"]["KineticEnergyDensity"]["surface_integral%DiffusiveTransport"]*nu
-    DTtot = scipy.integrate.cumulative_trapezoid(DT,time)
+    DTtot = cumulative_trapezoid(DT,time)
 
 # Kinetic energy lost through viscous dissipation
     VD = stat["fluid"]["ViscousDiss"]["integral"]*rho_0*-1.0
-    VDtot = scipy.integrate.cumulative_trapezoid(VD,time)
+    VDtot = cumulative_trapezoid(VD,time)
 
 # total energy change
 # subtract off initial values of KE and PE
