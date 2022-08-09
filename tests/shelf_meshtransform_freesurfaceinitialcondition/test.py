@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-import math
-
 import vtktools
 
 tolerance = 1.0e-12
@@ -11,21 +9,21 @@ location = u.GetLocations()
 for i in range(ilen):
     if location[i, 0] + tolerance < 0.0:
         raise Exception(
-            "Failure: Node outside of x in [0.0,1.0E6].  Lower bound exceeded."
+            "Failure: Node outside of x in [0.0,1.0E6]. Lower bound exceeded."
         )
     elif 1.0e6 < location[i, 0] - tolerance:
         raise Exception(
-            "Failure: Node outside of x in [0.0,1.0E6].  Upper bound exceeded."
+            "Failure: Node outside of x in [0.0,1.0E6]. Upper bound exceeded."
         )
 
 for i in range(ilen):
     if location[i, 1] + tolerance < -1.0e3:
         raise Exception(
-            "Failure: Node outside of y in [-1.0E3,1.0E2].  Lower bound exceeded."
+            "Failure: Node outside of y in [-1.0E3,1.0E2]. Lower bound exceeded."
         )
     elif 1.0e2 < location[i, 1] - tolerance:
         raise Exception(
-            "Failure: Node outside of y in [-1.0E3,1.0E2].  Upper bound exceeded."
+            "Failure: Node outside of y in [-1.0E3,1.0E2]. Upper bound exceeded."
         )
 
 count = 0
@@ -37,12 +35,14 @@ for i in range(ilen):
                 location[i, 1] - (-9.0e2 + (9.0e2 / 5.0e5) * location[i, 0])
             ) > tolerance:
                 raise Exception(
-                    "Failure: Surface node out of bounds in the region where the mesh is transformed.  Check scripts/gmsh_mesh_transform."
+                    "Failure: Surface node out of bounds in the region where the mesh "
+                    "is transformed. Check scripts/gmsh_mesh_transform."
                 )
         elif 5.0e5 <= location[i, 0] <= 1.0e6:
             if (location[i, 1] - 1.0e2) > tolerance:
                 raise Exception(
-                    "Failure: Surface node out of bounds in the region where the free-surface initial condition is applied."
+                    "Failure: Surface node out of bounds in the region where the "
+                    "free-surface initial condition is applied."
                 )
         else:
             raise Exception("Failure: Node outside of x in [0.0,1.0E6].")

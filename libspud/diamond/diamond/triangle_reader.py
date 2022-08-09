@@ -24,8 +24,8 @@ class TriangleReader(FileDataSource):
             Supports opening .egde files to construct a surface mesh comprised of lines
             and .ele files to construct a solid mesh comprised of triangles.
         3D <http://tetgen.berlios.de/fformats.html>
-            Supports opening .face files to construct a surface mesh comprised of triangles
-            and .ele files to construct a solid mesh comprised of tetrahedra.
+            Supports opening .face files to construct a surface mesh comprised of
+            triangles and .ele files to construct a solid mesh comprised of tetrahedra.
     Outputs an unstructured grid dataset.
     """
 

@@ -18,7 +18,8 @@ def generate_pvd(pvdfilename, list_vtu_filenames, list_time):
     pvdfile = open(pvdfilename, "w")
     # Write header:
     pvdfile.write(
-        '<?xml version="1.0"?>\n<VTKFile type="Collection" version="0.1" byte_order="LittleEndian">\n<Collection>\n'
+        '<?xml version="1.0"?>\n<VTKFile type="Collection" version="0.1" '
+        'byte_order="LittleEndian">\n<Collection>\n'
     )
     # Now write the information for the time series:
     for i in range(len(list_time)):
@@ -36,18 +37,24 @@ def generate_pvd(pvdfilename, list_vtu_filenames, list_time):
 
 # Function taken from:
 # http://stackoverflow.com/questions/2669059/how-to-sort-alpha-numeric-set-in-python
-def sorted_nicely(l):
+def sorted_nicely(iterable):
     """Sort the given iterable in the way that humans expect."""
-    convert = lambda text: int(text) if text.isdigit() else text
-    alphanum_key = lambda key: [convert(c) for c in re.split("([0-9]+)", key)]
-    return sorted(l, key=alphanum_key)
+    return sorted(
+        iterable,
+        key=lambda element: [
+            int(x) if x.isdigit() else x for x in re.split("([0-9]+)", element)
+        ],
+    )
 
 
 # Get basename of the simulation from command line or assemble it on your own:
 try:
     simulation_basename = sys.argv[1]
-except:
-    errmsg = "ERROR: You have to give 'genpvd' the basename of the considered vtu files.\nProgram will exit...\n"
+except IndexError:
+    errmsg = """\
+ERROR: You have to give 'genpvd' the basename of the considered vtu files.
+Program will exit...
+"""
     sys.stderr.write(errmsg)
     raise SystemExit("Simulation basename is required.")
 
@@ -67,17 +74,20 @@ if len(fluid_vtus) == 0:
     sys.stderr.write(errmsg)
     raise SystemExit("No vtu files found. Exit")
 
-# Loop over all the fluid vtus found and collect time data from them to assemble the pvd file:
+# Loop over all the fluid vtus found and collect time data from them to assemble the pvd
+# file:
 time = []
 for filename in fluid_vtus:
     sys.stdout.write("Processing file: " + filename + "\n")
-    # Drastically reducing the computational effort by only opening the first partition of the mesh (if it ran in parallel):
+    # Drastically reducing the computational effort by only opening the first partition
+    # of the mesh (if it ran in parallel):
     if filename.endswith(".pvtu"):
         simbasename = filename.replace(".pvtu", "")
         filename = simbasename + "/" + simbasename + "_0.vtu"
     # Get the unstructured mesh:
     data = vtk.vtu(filename)
-    # Only process the first node in the mesh, as the time is constant over the whole mesh:
+    # Only process the first node in the mesh, as the time is constant over the whole
+    # mesh:
     n0 = data.ugrid.GetCell(0).GetPointId(0)
     t = data.ugrid.GetPointData().GetArray("Time").GetTuple(n0)
     time.append(t[0])

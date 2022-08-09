@@ -13,8 +13,6 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
 import io
-import os.path
-import sys
 import threading
 
 import dxdiff.diff as xmldiff
@@ -23,7 +21,6 @@ from gi.repository import GObject as gobject
 from gi.repository import Gtk as gtk
 from lxml import etree
 
-from . import attributewidget, databuttonswidget, datawidget, mixedtree
 from .config import config
 
 

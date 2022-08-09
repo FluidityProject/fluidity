@@ -12,6 +12,7 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
+import re
 from . import plist
 
 
@@ -88,7 +89,7 @@ class MixedTree:
         else:
             text_re = re.compile(text, re.IGNORECASE)
 
-        if not self.child.data is None and not text_re.search(self.child.data) is None:
+        if self.child.data is not None and text_re.search(self.child.data) is not None:
             return True
         else:
             return False
@@ -133,8 +134,9 @@ class MixedTree:
             return False
 
         if "dim2" in list(self.child.attrs.keys()):
-            # If a dim2 attribute is specified, it must be of fixed type and the rank must be 2
-            # Also, the shape attribute must be a list of integers with cardinality equal to the rank
+            # If a dim2 attribute is specified, it must be of fixed type and the rank
+            # must be 2. Also, the shape attribute must be a list of integers with
+            # cardinality equal to the rank
             if (
                 self.child.attrs["dim2"][0] != "fixed"
                 or self.child.get_attr("rank") != "2"
@@ -160,7 +162,7 @@ class MixedTree:
             return False
 
         # If the shape has been set, check that it has a valid value
-        if self.child.get_attr("shape") != None:
+        if self.child.get_attr("shape") is not None:
             if geometry_dim_tree.data is None:
                 return False
 
@@ -212,7 +214,7 @@ class MixedTree:
             lang = self.get_attr("language")
             if lang == "python":
                 return True
-        except:
+        except Exception:
             pass
 
         if self.datatype is not str:
@@ -234,11 +236,11 @@ class MixedTree:
         try:
             lang = self.child.get_attr("language")
             return lang
-        except:
+        except Exception:
             try:
                 lang = self.get_attr("language")
                 return lang
-            except:
+            except Exception:
                 return "python"
 
     def get_name_path(self, leaf=True):

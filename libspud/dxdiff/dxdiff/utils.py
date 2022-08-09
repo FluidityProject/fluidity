@@ -14,15 +14,17 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
 
+import unittest
 
-def flatten(l):
+
+def flatten(iterable):
     """
     Flattens a list of lists into a list.
     """
-    return [item for sublist in l for item in sublist]
+    return [item for sublist in iterable for item in sublist]
 
 
-def nub(l, reverse=False):
+def nub(iterable, reverse=False):
     """
     Removes duplicates from a list.
     If reverse is true keeps the last duplicate item
@@ -31,7 +33,7 @@ def nub(l, reverse=False):
     if reverse:
         seen = {}
         result = []
-        for item in reversed(l):
+        for item in reversed(iterable):
             if item in seen:
                 continue
             seen[item] = 1
@@ -40,7 +42,7 @@ def nub(l, reverse=False):
     else:
         seen = {}
         result = []
-        for item in l:
+        for item in iterable:
             if item in seen:
                 continue
             seen[item] = 1
@@ -87,11 +89,9 @@ def irange(*args):
     return range(start, stop, step)
 
 
-##################
-### Unit Tests ###
-##################
-
-import unittest
+##############
+# Unit Tests #
+##############
 
 
 class __Test_flatten(unittest.TestCase):

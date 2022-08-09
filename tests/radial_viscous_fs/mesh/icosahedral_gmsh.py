@@ -27,12 +27,12 @@ try:
     filename = argv[0]
     radius = float(argv[1])
     subdivisions = int(argv[2])
-except:
+except IndexError:
     optparser.error("Incorrect number or value of arguments.")
 
 nodes, faces = icosahedron()
 
-for i in xrange(subdivisions):
+for i in range(subdivisions):
     subdivide(nodes, faces)
 
 nodes = radius * numpy.array(nodes)

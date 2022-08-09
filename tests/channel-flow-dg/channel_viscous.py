@@ -75,7 +75,7 @@ coriolis = 1.0
 
 
 def analytic_solution(forcing):
-    """sp.solve the ode d^2u/dx^2 = F/mu subject to u(0)=0, u(1)=0"""
+    """Solve the ode d^2u/dx^2 = F/mu subject to u(0)=0, u(1)=0"""
 
     x = sp.Symbol("x")
     # Constants of integration.

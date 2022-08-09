@@ -1,4 +1,4 @@
-from math import cos, pi, sin, tanh
+from math import cos, pi, sin
 
 
 def u1(X):

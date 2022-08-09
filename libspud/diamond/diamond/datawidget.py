@@ -462,7 +462,7 @@ class DataWidget(gtk.VBox):
 
         if self.node.data is None and not self.interacted:
             return True
-        elif not new_data in self.node.datatype[0]:
+        elif new_data not in self.node.datatype[0]:
             new_data = self.node.validity_check(self.node.datatype[1], new_data)
             if new_data is None:
                 return False

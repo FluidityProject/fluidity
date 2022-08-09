@@ -15,7 +15,7 @@
 from gi.repository import GObject as gobject
 from gi.repository import Gtk as gtk
 
-from . import attributewidget, databuttonswidget, datawidget, mixedtree
+from . import attributewidget, databuttonswidget, datawidget
 
 
 class SliceView(gtk.Window):

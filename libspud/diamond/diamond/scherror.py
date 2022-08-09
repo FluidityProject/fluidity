@@ -12,16 +12,14 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
-import os
 import re
 import subprocess
 import tempfile
 
 from gi.repository import GObject as gobject
 from gi.repository import Gtk as gtk
-from gi.repository import Pango as pango
 
-from . import debug, dialogs
+from . import dialogs
 
 
 class DiamondSchemaError:
@@ -104,13 +102,14 @@ class DiamondSchemaError:
             stderr=subprocess.PIPE,
             close_fds=True,
         )
-        (std_input, std_output, std_error) = (p.stdin, p.stdout, p.stderr)
+        std_error = p.stderr
         output = std_error.read().decode()
 
         output = output.replace("%s fails to validate" % self.tmp.name, "")
 
         if output.strip() == "%s validates" % self.tmp.name:
-            # No errors. Close the error list (if it is open) and display a congratulatory message box.
+            # No errors. Close the error list (if it is open) and display a
+            # congratulatory message box.
             self.destroy_error_list()
             dialogs.message_box(
                 self.parent.main_window,
@@ -141,7 +140,8 @@ class DiamondSchemaError:
                 # Parse each line of the xmllint --relaxng output.
                 # FORMAT:
                 # ELEMENT:LINE: element NAME:  Relax-NG validity error : ERROR MESSAGE
-                # (Capitals denotes variable data). Update the following code if the output changes.
+                # (Capitals denotes variable data). Update the following code if the
+                # output changes.
                 sub_tokens = tokens[0].split(":")
 
                 message = " ".join(tokens[7:])
@@ -163,8 +163,8 @@ class DiamondSchemaError:
 
     def on_validate_schematron(self, widget=None):
         """
-        Tools > Validate Schematron. This uses the etree.Schematron API, if it exists, to
-        validate the document tree against a supplied schematron file.
+        Tools > Validate Schematron. This uses the etree.Schematron API, if it exists,
+        to validate the document tree against a supplied schematron file.
         """
 
         if self.schematron_file is None:
@@ -182,7 +182,7 @@ class DiamondSchemaError:
             stderr=subprocess.PIPE,
             close_fds=True,
         )
-        (std_input, std_output, std_error) = (p.stdin, p.stdout, p.stderr)
+        std_error = p.stderr
         output = std_error.read().decode()
         output = output.replace("%s fails to validate" % tmp.name, "")
         output = output.strip()
@@ -195,7 +195,8 @@ class DiamondSchemaError:
                 "XML validation successful",
             )
 
-        # Clear the list, as there may still be errors from a previous schematron validation.
+        # Clear the list, as there may still be errors from a previous schematron
+        # validation.
         self.model.clear()
         self.errlist_type = 0
 

@@ -12,8 +12,6 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
-import base64
-import bz2
 import copy
 import io
 import sys
@@ -84,7 +82,7 @@ class Schema(object):
         children = []
         for child1 in element.iterchildren(tag=etree.Element):
             if self.tag(child1) == "ref":
-                if not "name" in list(child1.keys()):
+                if "name" not in list(child1.keys()):
                     debug.deprint("Warning: Encountered reference with no name")
                     continue
 
@@ -132,9 +130,10 @@ class Schema(object):
                     "/t:grammar/t:start",
                     namespaces={"t": "http://relaxng.org/ns/structure/1.0"},
                 )[0]
-            except:
+            except Exception:
                 debug.deprint(
-                    "No valid start node found. Are you using a library Relax-NG file like spud_base.rng?",
+                    "No valid start node found. Are you using a library Relax-NG file "
+                    "like spud_base.rng?",
                     0,
                 )
                 sys.exit(0)
@@ -152,7 +151,8 @@ class Schema(object):
 
         if eid == ":start" and len(results) != 1:
             debug.deprint(
-                "Error: there must be exactly one root element in an XML document, but found:",
+                "Error: there must be exactly one root element in an XML document, but "
+                "found:",
                 0,
             )
             for result in results:
@@ -241,12 +241,14 @@ class Schema(object):
                     if len(l_data) > 1:
                         if "name" in list(element.keys()):
                             debug.deprint(
-                                "Warning: Element %s has multiple datatypes - using first one"
+                                "Warning: Element %s has multiple datatypes - using "
+                                "first one"
                                 % newfacts["name"]
                             )
                         else:
                             debug.deprint(
-                                "Warning: Unnamed element has multiple datatypes - using first one"
+                                "Warning: Unnamed element has multiple datatypes - "
+                                "using first one"
                             )
 
                     if len(l_data) > 0:
@@ -264,15 +266,15 @@ class Schema(object):
 
     def cb_value(self, element, facts):
         if "datatype" in facts:
-            l = list(facts["datatype"])
+            datatype_list = list(facts["datatype"])
         else:
-            l = []
+            datatype_list = []
 
-        l.append(element.text)
-        facts["datatype"] = tuple(l)
+        datatype_list.append(element.text)
+        facts["datatype"] = tuple(datatype_list)
 
     def cb_attribute(self, element, facts):
-        if not "name" in list(element.keys()):
+        if "name" not in list(element.keys()):
             debug.deprint("Warning: Encountered attribute with no name")
             return
 
@@ -289,7 +291,7 @@ class Schema(object):
 
         try:
             datatype = newfacts["datatype"]
-        except:
+        except Exception:
             debug.deprint("Warning: Encountered attribute with no datatype")
             return
         curval = None
@@ -297,7 +299,7 @@ class Schema(object):
         if isinstance(datatype, tuple):
             new_datatype = []
             for x in datatype:
-                if not x is None:
+                if x is not None:
                     new_datatype.append(x)
             datatype = new_datatype
             if len(datatype) == 0:
@@ -335,11 +337,11 @@ class Schema(object):
     def cb_data(self, element, facts):
         if "datatype" in facts:
             if isinstance(facts["datatype"], tuple):
-                l = list(facts["datatype"])
+                datatype_list = list(facts["datatype"])
             else:
-                l = [facts["datatype"]]
+                datatype_list = [facts["datatype"]]
         else:
-            l = []
+            datatype_list = []
 
         mapping = {
             "integer": int,
@@ -355,11 +357,11 @@ class Schema(object):
         }
 
         datatype_name = element.get("type")
-        l.append(mapping[datatype_name])
-        if len(l) == 1:
-            facts["datatype"] = l[0]
+        datatype_list.append(mapping[datatype_name])
+        if len(datatype_list) == 1:
+            facts["datatype"] = datatype_list[0]
         else:
-            facts["datatype"] = tuple(l)
+            facts["datatype"] = tuple(datatype_list)
 
     def cb_optional(self, element, facts):
         facts["cardinality"] = "?"
@@ -402,7 +404,6 @@ class Schema(object):
             for child in self.element_children(element):
                 tag = self.tag(child)
                 f = self.callbacks[tag]
-                x = f(child, facts)
 
         else:
             if "schemaname" in facts:
@@ -449,13 +450,13 @@ class Schema(object):
                 c = str(len(d))
                 d = d[0]
 
-        l = plist.List(d, c)
+        plist_list = plist.List(d, c)
         if "datatype" in facts:
             e = list(facts["datatype"])
         else:
             e = []
 
-        e.append(l)
+        e.append(plist_list)
         facts["datatype"] = tuple(e)
 
     def cb_group(self, element, facts):
@@ -471,17 +472,17 @@ class Schema(object):
     def cb_text(self, element, facts):
         if "datatype" in facts:
             if isinstance(facts["datatype"], tuple):
-                l = list(facts["datatype"])
+                datatype_list = list(facts["datatype"])
             else:
-                l = [facts["datatype"]]
+                datatype_list = [facts["datatype"]]
         else:
-            l = []
+            datatype_list = []
 
-        l.append(str)
-        if len(l) == 1:
-            facts["datatype"] = l[0]
+        datatype_list.append(str)
+        if len(datatype_list) == 1:
+            facts["datatype"] = datatype_list[0]
         else:
-            facts["datatype"] = tuple(l)
+            facts["datatype"] = tuple(datatype_list)
 
     def cb_anyname(self, element, facts):
         debug.deprint("anyName element found. Yet to handle.", 0)
@@ -628,7 +629,7 @@ class Schema(object):
             if key in xmlkeys:
                 try:
                     to_set.set_attr(key, xmlnode.get(key))
-                except:
+                except Exception:
                     pass
             else:
                 self.added_attrs += [to_set.name + "/" + key]
@@ -639,7 +640,7 @@ class Schema(object):
                 text = xmlnode.text.strip()
                 if text != "":
                     to_set.set_data(text)
-            except:
+            except Exception:
                 pass
 
         # data.
@@ -650,16 +651,16 @@ class Schema(object):
                     if text != "":
                         to_set.set_data(text)
                         break
-                except:
+                except Exception:
                     pass
 
         to_set.recompute_validity()
         datatree.recompute_validity()
 
-    ###########################################################################################
+    ####################################################################################
     # construct the priority queue
     # we treat compulsory nodes first, then descend through the cardinalities
-    ###########################################################################################
+    ####################################################################################
 
     def construct_priority_queue(self, schemachildren):
         # priority_queue will store the schemachildren, in the order in which
@@ -688,10 +689,10 @@ class Schema(object):
 
         return priority_queue
 
-    ###########################################################################################
+    ####################################################################################
     # initialise the availability data
     # avail[name][xmlnode] records whether xmlnode is available or not
-    ###########################################################################################
+    ####################################################################################
     def init_avail_data(self, xmlnode, schemachildren):
         used = {}
         avail = {}
@@ -709,12 +710,12 @@ class Schema(object):
 
         return (used, avail)
 
-    ###########################################################################################
+    ####################################################################################
     # assign the available xml nodes to the children the schema says should be there
     # in order of priority.
     # xmls[schemachild.schemaname] is the list of xml nodes
     # that schemachild should take
-    ###########################################################################################
+    ####################################################################################
     def assign_xml_nodes(self, priority_queue, xmlnode, avail):
         xmls = {}
 
@@ -772,10 +773,10 @@ class Schema(object):
 
         return xmls
 
-    ###########################################################################################
+    ####################################################################################
     # now that we have assigned the xml nodes, loop through and grab them
     # stuff the tree data in bins[schemachild.schemaname]
-    ###########################################################################################
+    ####################################################################################
     def assign_xml_children(
         self, priority_queue, xmlnode, xmls, schemachildren, used, rootdoc
     ):
@@ -795,7 +796,8 @@ class Schema(object):
                     used[xmldata] = True
                     self.xml_read_merge(child, xmldata)
 
-                    # Was this part of the uncompressed XML file or part of a hidden comment?
+                    # Was this part of the uncompressed XML file or part of a hidden
+                    # comment?
                     if xmldata.getroottree().getroot() != rootdoc.getroot():
                         self.xml_read_core(
                             child.get_current_tree(), xmldata, xmldata.getroottree()
@@ -895,8 +897,8 @@ class Schema(object):
             child.children = copy.copy([])
             self.xml_read_core(child, schild.xmlnode, rootdoc)
 
-    # xml_read_core recurses throughout the tree, calling xml_read_merge on the current node "xmlnode" and
-    # and reading information about the node's children.
+    # xml_read_core recurses throughout the tree, calling xml_read_merge on the current
+    # node "xmlnode" and reading information about the node's children.
     def xml_read_core(self, datatree, xmlnode, rootdoc):
         """This is the part that recurses, you see."""
 

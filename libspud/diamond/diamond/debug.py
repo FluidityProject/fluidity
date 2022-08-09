@@ -54,7 +54,7 @@ class DebugLevel:
 
         try:
             self._level = min(level, self.GetMaxLevel())
-        except:
+        except Exception:
             self._level = level
 
         return

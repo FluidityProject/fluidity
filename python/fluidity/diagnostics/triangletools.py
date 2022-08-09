@@ -395,7 +395,8 @@ def WriteTriangle(mesh, baseName):
 
 def hasPeriodicBoundary(basename):
     """
-    The given file is checked for the number of ids defined the header of edge/face files and returns a boolean.
+    The given file is checked for the number of ids defined the header of edge/face
+    files and returns a boolean.
     """
 
     def hasEdgeFile(basename):

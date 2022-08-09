@@ -12,8 +12,6 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
-import sys
-
 from gi.repository import GObject as gobject
 from gi.repository import Gtk as gtk
 from gi.repository import Pango as pango
@@ -156,22 +154,18 @@ class AttributeWidget(gtk.Frame):
             try:
                 self.treeview.set_tooltip_text("")
                 self.treeview.set_property("has-tooltip", False)
-            except:
+            except Exception:
                 pass
             return
 
-        path = path_info[0]
         col = path_info[1]
         if col is not self.treeview.get_column(1):
             try:
                 self.treeview.set_tooltip_text("")
                 self.treeview.set_property("has-tooltip", False)
-            except:
+            except Exception:
                 pass
             return
-
-        iter = self.treeview.get_model().get_iter(path)
-        iter_key = self.treeview.get_model().get_value(iter, 0)
 
         return
 

@@ -63,7 +63,7 @@ for dir in [os.path.join(path, "schemata") for path in dirs]:
             # repository and there's pesky .svn folders around.
             try:
                 handle = open(os.path.join(dir, file))
-            except:
+            except FileNotFoundError:
                 debug.deprint(
                     "Failure to examine entry " + file + " in folder " + dir + "."
                 )
@@ -71,9 +71,8 @@ for dir in [os.path.join(path, "schemata") for path in dirs]:
             lines = [x.strip() for x in handle if x.strip()]
             if len(lines) < 2:
                 debug.deprint(
-                    'Warning: Found schema registration file "'
-                    + file
-                    + '", but file is improperly formatted - schema type not registered',
+                    f"""Warning: Found schema registration file "{file}", but file is \
+improperly formatted - schema type not registered""",
                     0,
                 )
                 continue

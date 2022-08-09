@@ -12,8 +12,6 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
-import sys
-
 from gi.repository import GObject as gobject
 from gi.repository import Gtk as gtk
 from gi.repository import Pango as pango
@@ -68,7 +66,7 @@ class CommentWidget(gtk.Frame):
             try:
                 self.textView.set_tooltip_text("")
                 self.textView.set_property("has-tooltip", False)
-            except:
+            except Exception:
                 pass
             self.interacted = False
             return
@@ -83,7 +81,7 @@ class CommentWidget(gtk.Frame):
             try:
                 self.textView.set_tooltip_text("")
                 self.textView.set_property("has-tooltip", False)
-            except:
+            except Exception:
                 pass
         else:
             if comment_tree.data is None:
@@ -139,7 +137,7 @@ class CommentWidget(gtk.Frame):
         """
 
         comment_tree = self.comment_tree
-        if not comment_tree is None and not self.interacted:
+        if comment_tree is not None and not self.interacted:
             self.interacted = True
             if comment_tree.data is None:
                 self.textView.get_buffer().set_text("")

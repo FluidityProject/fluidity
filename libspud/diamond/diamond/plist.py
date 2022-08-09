@@ -19,8 +19,8 @@ class List:
         self.datatype = datatype
         self.cardinality = cardinality
 
-    # The input to call is a string containing a list of elements seperated by "," or " ". It
-    # returns a string, containing the elements in val seperated by " ".
+    # The input to call is a string containing a list of elements separated by "," or
+    # " ". It returns a string, containing the elements in val separated by " ".
     def __call__(self, val):
         val = val.strip()
         if "," in val:
@@ -35,19 +35,21 @@ class List:
         elif self.cardinality == "":
             assert len(x) == 1
 
-        # Check the list cardinality (as an integer) matches up with the number of elements
-        # in the seperated val string.
+        # Check the list cardinality (as an integer) matches up with the number of
+        # elements in the separated val string.
         try:
             assert len(x) == int(self.cardinality)
         except ValueError:
-            pass  # The int conversion may fail (if cardinality is '+' or ''), so just ignore it.
+            # The int conversion may fail (if cardinality is '+' or ''), so just ignore
+            # it.
+            pass
 
-        # Make sure each element can be converted to type 'self.datatype'. An exception will be
-        # thrown if this is not possible.
+        # Make sure each element can be converted to type 'self.datatype'. An exception
+        # will be thrown if this is not possible.
         for y in x:
-            z = self.datatype(y)
+            self.datatype(y)
 
-        # Return a string of the elements in val, seperated by " ".
+        # Return a string of the elements in val, separated by " ".
         return " ".join(x)
 
     def __str__(self):

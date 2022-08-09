@@ -15,10 +15,12 @@
 import base64
 import bz2
 import copy
-import io
+
+from pickle import dumps
 
 from gi.repository import GObject as gobject
-from lxml import etree
+
+import fluidity.diagnostics.debug as debug
 
 from . import tree
 
@@ -102,7 +104,7 @@ class Choice(gobject.GObject):
         return self.get_current_tree().add_children(schema)
 
     def pickle(self):
-        return base64.b64encode(bz2.compress(pickle.dumps(self)))
+        return base64.b64encode(bz2.compress(dumps(self)))
 
     def recompute_validity(self):
         self.get_current_tree().recompute_validity()

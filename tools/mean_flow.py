@@ -27,7 +27,6 @@
 #    USA
 import getopt
 import sys
-from math import *
 
 import vtk
 
@@ -62,16 +61,11 @@ def probe(pd, filename):
 
 def usage():
     print(
-        "mean_flow <options> [vtu basename] [first dump id] [last dump id]\n\
- options:\n\
- -h, --help\n\
-   prints this message\n\
- -b, --bbox xmin/xmax/ymin/ymax/zmin/zmax\n\
-   bounding box of sampling window\n\
- -i, --intervals i/j/k\n\
-   number of sampling planes in each direction\
- -v, --verbose\n\
-   verbose output\n"
+        "mean_flow <options> [vtu basename] [first dump id] [last dump id]\n options:\n"
+        " -h, --help\n   prints this message\n -b, --bbox"
+        " xmin/xmax/ymin/ymax/zmin/zmax\n   bounding box of sampling window\n -i,"
+        " --intervals i/j/k\n   number of sampling planes in each direction -v,"
+        " --verbose\n   verbose output\n"
     )
 
 
@@ -132,16 +126,18 @@ def create_probe(filename):
 
     b = ugrid.GetBounds()
     pd.SetOrigin(b[0], b[2], b[4])
-    l = [b[1] - b[0], b[3] - b[2], b[5] - b[4]]
-    tot_len = float(l[0] + l[1] + l[2])
-    dims = intervals
-    pd.SetExtent(0, dims[0] - 1, 0, dims[1] - 1, 0, dims[2] - 1)
-    pd.SetUpdateExtent(0, dims[0] - 1, 0, dims[1] - 1, 0, dims[2] - 1)
-    pd.SetWholeExtent(0, dims[0] - 1, 0, dims[1] - 1, 0, dims[2] - 1)
-    pd.SetDimensions(dims)
-    dims = [max(1, x - 1) for x in dims]
-    l = [max(1e-3, x) for x in l]
-    sp = [l[0] / dims[0], l[1] / dims[1], l[2] / dims[2]]
+    dim_from_bounds = [b[1] - b[0], b[3] - b[2], b[5] - b[4]]
+    pd.SetExtent(0, intervals[0] - 1, 0, intervals[1] - 1, 0, intervals[2] - 1)
+    pd.SetUpdateExtent(0, intervals[0] - 1, 0, intervals[1] - 1, 0, intervals[2] - 1)
+    pd.SetWholeExtent(0, intervals[0] - 1, 0, intervals[1] - 1, 0, intervals[2] - 1)
+    pd.SetDimensions(intervals)
+    clipped_intervals = [max(1, x - 1) for x in intervals]
+    clipped_dim = [max(1e-3, x) for x in dim_from_bounds]
+    sp = [
+        clipped_dim[0] / clipped_intervals[0],
+        clipped_dim[1] / clipped_intervals[1],
+        clipped_dim[2] / clipped_intervals[2],
+    ]
     pd.SetSpacing(sp)
 
     return pd

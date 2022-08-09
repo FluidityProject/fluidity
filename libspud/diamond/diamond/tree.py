@@ -17,8 +17,6 @@ import bz2
 import copy
 import pickle
 import re
-import sys
-import zlib
 
 from gi.repository import GObject as gobject
 from lxml import etree
@@ -161,7 +159,7 @@ class Tree(gobject.GObject):
                 if isinstance(tempval, str):
                     data = tempval
                 return (False, data)
-            except:
+            except Exception:
                 pass
 
         return (True, data)
@@ -202,9 +200,8 @@ class Tree(gobject.GObject):
         return new_copy
 
     def recompute_validity(self):
-        from . import (  # try to get around circular import (in interface.py) by importing here
-            choice,
-        )
+        # try to get around circular import (in interface.py) by importing here
+        from . import choice
 
         new_valid = True
 
@@ -224,7 +221,7 @@ class Tree(gobject.GObject):
         # we are invalid.
         for attr in list(self.attrs.keys()):
             (datatype, val) = self.attrs[attr]
-            if not datatype is None and val is None:
+            if datatype is not None and val is None:
                 new_valid = False
 
         # if we're supposed to have data and don't,
@@ -376,9 +373,8 @@ class Tree(gobject.GObject):
         return new_tree
 
     def print_recursively(self, indent=""):
-        from . import (  # try to get around circular import (in interface.py) by importing here
-            choice,
-        )
+        # try to get around circular import (in interface.py) by importing here
+        from . import choice
 
         s = self.__str__()
         debug.dprint(
@@ -397,8 +393,7 @@ class Tree(gobject.GObject):
         return
 
     def add_children(self, schema):
-        l = schema.valid_children(self)
-        l = self.find_or_add(l)
+        self.find_or_add(schema.valid_children(self))
         for child in self.children:
             child.add_children(schema)
 
@@ -408,22 +403,22 @@ class Tree(gobject.GObject):
         else:
             text_re = re.compile(text, re.IGNORECASE)
 
-        if not text_re.search(self.name) is None:
+        if text_re.search(self.name) is not None:
             return True
 
-        if not self.doc is None:
-            if not text_re.search(self.doc) is None:
+        if self.doc is not None:
+            if text_re.search(self.doc) is not None:
                 return True
 
         for key in self.attrs:
-            if not text_re.search(key) is None:
+            if text_re.search(key) is not None:
                 return True
-            if not self.get_attr(key) is None:
-                if not text_re.search(self.get_attr(key)) is None:
+            if self.get_attr(key) is not None:
+                if text_re.search(self.get_attr(key)) is not None:
                     return True
 
-        if not self.data is None:
-            if not text_re.search(self.data) is None:
+        if self.data is not None:
+            if text_re.search(self.data) is not None:
                 return True
 
         return False
@@ -451,19 +446,19 @@ class Tree(gobject.GObject):
         Test whether the given node is a comment node.
         """
 
-        if not self.name == "comment":
+        if self.name != "comment":
             return False
 
-        if not self.attrs == {}:
+        if self.attrs != {}:
             return False
 
-        if not self.children == []:
+        if self.children != []:
             return False
 
-        if not self.datatype is str:
+        if self.datatype is not str:
             return False
 
-        if not self.cardinality == "?":
+        if self.cardinality != "?":
             return False
 
         return True
@@ -493,7 +488,7 @@ class Tree(gobject.GObject):
             lang = self.get_attr("language")
             if lang == "python":
                 return True
-        except:
+        except Exception:
             pass
 
         return False
@@ -509,7 +504,7 @@ class Tree(gobject.GObject):
         try:
             lang = self.get_attr("language")
             return lang
-        except:
+        except Exception:
             return "python"
 
     def get_display_name(self):

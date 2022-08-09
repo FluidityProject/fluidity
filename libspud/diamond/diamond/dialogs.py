@@ -16,9 +16,14 @@ import os
 import sys
 import traceback
 
-from gi.repository import Gtk as gtk
+import gi
 
-from . import pygtkconsole
+gi.require_version("Gtk", "4.0")
+gi.require_version("Gdk", "4.0")
+from gi.repository import Gdk as gdk  # noqa: E402
+from gi.repository import Gtk as gtk  # noqa: E402
+
+from . import pygtkconsole  # noqa: E402
 
 
 def prompt(parent, message, type=gtk.MessageType.QUESTION, has_cancel=False):
@@ -140,7 +145,7 @@ def get_filename(parent, title, action, filter_names_and_patterns={}, folder_uri
     )
     filew.set_default_response(gtk.ResponseType.OK)
 
-    if not folder_uri is None:
+    if folder_uri is not None:
         filew.set_current_folder_uri("file://" + os.path.abspath(folder_uri))
 
     for filtername in filter_names_and_patterns:
@@ -244,7 +249,7 @@ class RadioDialog:
         self.window.connect("key_press_event", self.key_press)
         self.window.set_title(title)
         self.window.set_position(gtk.WindowPosition.CENTER)
-        if not logo is None:
+        if logo is not None:
             self.window.set_icon_from_file(logo)
         self.window.show()
 
@@ -257,7 +262,7 @@ class RadioDialog:
         self.window.add(main_box)
         main_box.show()
 
-        if not logo is None:
+        if logo is not None:
             image = gtk.Image()
             image.set_from_file(logo)
             main_box.pack_start(image, True, True, 0)
