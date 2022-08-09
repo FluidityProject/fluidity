@@ -242,8 +242,7 @@ class Schema(object):
                         if "name" in list(element.keys()):
                             debug.deprint(
                                 "Warning: Element %s has multiple datatypes - using "
-                                "first one"
-                                % newfacts["name"]
+                                "first one" % newfacts["name"]
                             )
                         else:
                             debug.deprint(

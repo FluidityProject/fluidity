@@ -15,12 +15,10 @@
 import base64
 import bz2
 import copy
-
 from pickle import dumps
 
-from gi.repository import GObject as gobject
-
 import fluidity.diagnostics.debug as debug
+from gi.repository import GObject as gobject
 
 from . import tree
 
