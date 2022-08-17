@@ -309,48 +309,37 @@ all:
 	$(MAKE) default
 	$(MAKE) fltools
 
-clean-light:
+clean-light: clean-unittest
 	@echo "    CLEAN debug"
 	@cd debug; $(MAKE) clean
 	@echo "    CLEAN libwm"
 	@cd libwm; $(MAKE) clean
 	@echo "    CLEAN femtools"
 	@cd femtools; $(MAKE) clean
-	@echo "    CLEAN femtools/tests"
-	@cd femtools/tests; $(MAKE) clean
 	@echo "    CLEAN forward_interfaces"
 	@cd forward_interfaces; $(MAKE) clean
 	@echo "    CLEAN parameterisation"
 	@cd parameterisation; $(MAKE) clean
 	@echo "    CLEAN sediments"
 	@cd sediments; $(MAKE) clean
-	@echo "    CLEAN parameterisation/tests"
-	@cd parameterisation/tests; $(MAKE) clean
 	@echo "    CLEAN assemble"
 	@cd assemble;   $(MAKE) clean
-	@echo "    CLEAN assemble/tests"
-	@cd assemble/tests;   $(MAKE) clean
 	@echo "    CLEAN diagnostics"
 	@cd diagnostics;   $(MAKE) clean
 	@echo "    CLEAN preprocessor"
 	@cd preprocessor; $(MAKE) clean
 	@echo "    CLEAN population_balance"
 	@cd population_balance; $(MAKE) clean
-	@echo "    CLEAN error_measures/tests"
-	@cd error_measures/tests;   $(MAKE) clean
 	@echo "    CLEAN error_measures"
 	@cd error_measures;   $(MAKE) clean
 	@echo "    CLEAN horizontal_adaptivity"
 	@cd horizontal_adaptivity;   $(MAKE) clean
-	@echo "    CLEAN horizontal_adaptivity/tests"
-	@cd horizontal_adaptivity/tests;   $(MAKE) clean
 	@echo "    CLEAN tools"
 	@cd tools;    $(MAKE) clean
 	@echo "    CLEAN bathymetry"
 	@cd bathymetry;  $(MAKE) clean
 	@echo "    CLEAN ocean_forcing"
 	@cd ocean_forcing;  $(MAKE) clean
-	@cd ocean_forcing/tests;   $(MAKE) clean
 	@echo "    CLEAN fldecomp"
 	@cd fldecomp;	$(MAKE) clean
 ifeq (@HYPERLIGHT@,yes)
@@ -398,6 +387,22 @@ clean-test:
 	@echo "    CLEAN tests"
 	@cd tests; PYTHONPATH=../python ../tools/testharness.py --clean >/dev/null
 	@cd tests/data; $(MAKE) clean
+
+clean-unittest:
+	@echo "    CLEAN unittests"
+	@rm -rf bin/tests
+	@echo "    CLEAN femtools/tests"
+	@cd femtools/tests; $(MAKE) clean
+	@echo "    CLEAN parameterisation/tests"
+	@cd parameterisation/tests; $(MAKE) clean
+	@echo "    CLEAN assemble/tests"
+	@cd assemble/tests;   $(MAKE) clean
+	@echo "    CLEAN error_measures/tests"
+	@cd error_measures/tests;   $(MAKE) clean
+	@echo "    CLEAN horizontal_adaptivity/tests"
+	@cd horizontal_adaptivity/tests;   $(MAKE) clean
+	@echo "    CLEAN ocean_forcing/tests"
+	@cd ocean_forcing/tests;   $(MAKE) clean
 
 clean-all-tests: clean-test     
 	@echo "    CLEAN parallel/special/long tests"
@@ -489,7 +494,7 @@ endif
 
 unittest: build_unittest
 	@echo "RUN bin/tests"
-	@bin/unittestharness bin/tests
+	@bin/unittestharness -d bin/tests -x tests/test_results_unittests.xml
 
 bin/spud-preprocess:
 	@echo "Installing spudtools"
@@ -548,7 +553,7 @@ endif
 install: default fltools 
 	@mkdir -p $(DESTDIR)$(bindir) $(DESTDIR)$(docdir)/fluidity
 	find bin/ -maxdepth 1 -type f -exec cp '{}' $(DESTDIR)$(bindir) \;
-	rm -f $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval $(DESTDIR)$(bindir)/runut
+	rm -f $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval
 	[ -f manual/fluidity_manual.pdf ] && cp manual/fluidity_manual.pdf $(DESTDIR)$(docdir)/fluidity || true
 	mkdir -p $(DESTDIR)$(datadir)/fluidity
 	cp -R schemas $(DESTDIR)$(datadir)/fluidity/

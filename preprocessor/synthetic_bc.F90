@@ -33,6 +33,7 @@ use fldebug
 use spud
 use global_parameters, only: dt, option_path_len
 use elements
+use mpi_interfaces
 use parallel_tools
 use transform_elements
 use fetools
@@ -99,7 +100,6 @@ contains
       character(len=OPTION_PATH_LEN)       :: bc_path_i
 
 #ifdef HAVE_MPI
-      INCLUDE 'mpif.h'
       INTEGER IERR
 #endif
 

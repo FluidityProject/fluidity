@@ -83,9 +83,16 @@ module boundary_conditions
   end interface extract_scalar_surface_field
     
   interface has_surface_field
-     module procedure has_scalar_surface_field_specific, &
-       has_vector_surface_field_specific
+     module procedure has_scalar_surface_field_by_bc_number, &
+       has_vector_surface_field_by_bc_number, &
+       has_scalar_surface_field_by_bc_name, &
+       has_vector_surface_field_by_bc_name
   end interface
+
+  interface has_scalar_surface_field
+    module procedure vector_has_scalar_surface_field_by_bc_number, &
+      vector_has_scalar_surface_field_by_bc_name
+  end interface has_scalar_surface_field
     
   interface get_boundary_condition_count
      module procedure get_scalar_boundary_condition_count, &
@@ -792,9 +799,9 @@ contains
     
   end function extract_vector_scalar_surface_field_by_name
   
-  function has_scalar_surface_field_specific(field, n, name)
+  function has_scalar_surface_field_by_bc_number(field, n, name)
   !!< Tells whether a surface_field with the given is present
-  logical :: has_scalar_surface_field_specific
+  logical :: has_scalar_surface_field_by_bc_number
   type(scalar_field), intent(in):: field
   integer, intent(in):: n
   character(len=*), intent(in):: name
@@ -808,19 +815,19 @@ contains
     if (associated(bc%surface_fields)) then
       do i=1, size(bc%surface_fields)
         if (bc%surface_fields(i)%name==name) then
-          has_scalar_surface_field_specific=.true.
+          has_scalar_surface_field_by_bc_number=.true.
           return
         end if
       end do
     end if
     
-    has_scalar_surface_field_specific=.false.
+    has_scalar_surface_field_by_bc_number=.false.
     
-  end function has_scalar_surface_field_specific
+  end function has_scalar_surface_field_by_bc_number
   
-  function has_vector_surface_field_specific(field, n, name)
+  function has_vector_surface_field_by_bc_number(field, n, name)
   !!< Tells whether a surface_field with the given is present
-  logical :: has_vector_surface_field_specific
+  logical :: has_vector_surface_field_by_bc_number
   type(vector_field), intent(in):: field
   integer, intent(in):: n
   character(len=*), intent(in):: name
@@ -834,19 +841,19 @@ contains
     if (associated(bc%surface_fields)) then
       do i=1, size(bc%surface_fields)
         if (bc%surface_fields(i)%name==name) then
-          has_vector_surface_field_specific=.true.
+          has_vector_surface_field_by_bc_number=.true.
           return
         end if
       end do
     end if
     
-    has_vector_surface_field_specific=.false.
+    has_vector_surface_field_by_bc_number=.false.
     
-  end function has_vector_surface_field_specific
+  end function has_vector_surface_field_by_bc_number
 
-  function has_scalar_surface_field(field, n, name)
+  function vector_has_scalar_surface_field_by_bc_number(field, n, name)
   !!< Tells whether a surface_field with the given is present
-  logical :: has_scalar_surface_field
+  logical :: vector_has_scalar_surface_field_by_bc_number
   type(vector_field), intent(in):: field
   integer, intent(in):: n
   character(len=*), intent(in):: name
@@ -860,16 +867,79 @@ contains
     if (associated(bc%scalar_surface_fields)) then
       do i=1, size(bc%scalar_surface_fields)
         if (bc%scalar_surface_fields(i)%name==name) then
-          has_scalar_surface_field=.true.
+          vector_has_scalar_surface_field_by_bc_number=.true.
           return
         end if
       end do
     end if
     
-    has_scalar_surface_field=.false.
+    vector_has_scalar_surface_field_by_bc_number=.false.
     
-  end function has_scalar_surface_field
+  end function vector_has_scalar_surface_field_by_bc_number
   
+  function has_scalar_surface_field_by_bc_name(field, bc_name, name)
+  !!< Tells whether a surface_field with the given name is present
+  !!< If the bc_name does not exist an error is given
+  logical :: has_scalar_surface_field_by_bc_name
+  type(scalar_field), intent(in):: field
+  character(len=*), intent(in):: bc_name, name
+  
+    integer i
+
+    do i=1, size(field%bc%boundary_condition)
+      if (field%bc%boundary_condition(i)%name==bc_name) then
+        has_scalar_surface_field_by_bc_name = has_scalar_surface_field_by_bc_number(field, i, name)
+        return
+      end if
+    end do
+
+    ewrite(-1,*) 'Unknown boundary condition: ', name
+    FLAbort("Sorry!")
+
+  end function has_scalar_surface_field_by_bc_name
+
+  function has_vector_surface_field_by_bc_name(field, bc_name, name)
+  !!< Tells whether a surface_field with the given name is present
+  !!< If the bc_name does not exist an error is given
+  logical :: has_vector_surface_field_by_bc_name
+  type(vector_field), intent(in):: field
+  character(len=*), intent(in):: bc_name, name
+
+    integer i
+
+    do i=1, size(field%bc%boundary_condition)
+      if (field%bc%boundary_condition(i)%name==bc_name) then
+        has_vector_surface_field_by_bc_name = has_vector_surface_field_by_bc_number(field, i, name)
+        return
+      end if
+    end do
+
+    ewrite(-1,*) 'Unknown boundary condition: ', name
+    FLAbort("Sorry!")
+
+  end function has_vector_surface_field_by_bc_name
+
+  function vector_has_scalar_surface_field_by_bc_name(field, bc_name, name)
+  !!< Tells whether a scalar surface_field with the given name is present under a vector field bc
+  !!< If the bc_name does not exist an error is given
+  logical :: vector_has_scalar_surface_field_by_bc_name
+  type(vector_field), intent(in):: field
+  character(len=*), intent(in):: bc_name, name
+
+    integer i
+
+    do i=1, size(field%bc%boundary_condition)
+      if (field%bc%boundary_condition(i)%name==bc_name) then
+        vector_has_scalar_surface_field_by_bc_name = vector_has_scalar_surface_field_by_bc_number(field, i, name)
+        return
+      end if
+    end do
+
+    ewrite(-1,*) 'Unknown boundary condition: ', name
+    FLAbort("Sorry!")
+
+  end function vector_has_scalar_surface_field_by_bc_name
+
   integer function get_scalar_boundary_condition_count(field)
   !!< Get number of boundary conditions of a scalar field
   type(scalar_field), intent(in):: field

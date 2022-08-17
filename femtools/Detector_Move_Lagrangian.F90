@@ -231,7 +231,8 @@ contains
 
              !This call serialises send_list_array, sends it, 
              !receives serialised receive_list_array, and unserialises that.
-             call exchange_detectors(state(1),detector_list, send_list_array)
+             call exchange_detectors(state(1),detector_list, send_list_array, &
+               include_update_vector=.true.)
 
           end do detector_timestepping_loop
        end do RKstages_loop

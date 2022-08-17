@@ -21,6 +21,10 @@ void python_init_(void){
 #if PY_MAJOR_VERSION >= 3
   PyImport_AppendInittab("spud_manager", &PyInit_spud_manager);
 #endif
+  // Force the stdout and stderr streams to be unbuffered
+  // This is to ensure backtrace+error actually gets printed
+  // through PyErr_Print before we abort.
+  Py_UnbufferedStdioFlag = 1;   
   Py_Initialize();
   PyRun_SimpleString("import string");
 

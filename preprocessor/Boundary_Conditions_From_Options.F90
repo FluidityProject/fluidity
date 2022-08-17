@@ -987,6 +987,7 @@ contains
           end if
 
           have_sem_bc=.false.
+          have_smoothing = .false.
           do j=1,3
              bc_component_path=trim(bc_type_path)//"/"//aligned_components(j)
              applies(j)=have_option(trim(bc_component_path))

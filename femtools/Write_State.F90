@@ -57,6 +57,7 @@ contains
     
     integer ::  i, stat
     real :: current_cpu_time, current_wall_time
+    logical :: dump
     
     do_write_state = .false.
     
@@ -88,7 +89,14 @@ contains
           end if
         case(3) 
           if(have_option("/io/dump_period_in_timesteps")) then
-            if(int_dump_period == 0 .or. mod(timestep, int_dump_period) == 0) then
+            if (int_dump_period == 0) then
+              dump = .true.
+            else if (mod(timestep, int_dump_period) == 0) then
+              dump = .true.
+            else
+              dump = .false.
+            end if
+            if (dump) then
               if(have_option("/io/dump_period_in_timesteps/constant")) then
                 call get_option("/io/dump_period_in_timesteps/constant", int_dump_period)
               else if (have_option("/io/dump_period_in_timesteps/python")) then

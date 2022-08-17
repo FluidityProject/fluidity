@@ -4,7 +4,7 @@
   <name>ekman</name>
   <owner userid="skramer"/>
   <tags>flml</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v3 -l  ekman.flml</command_line>
   </problem_definition>
   <variables>

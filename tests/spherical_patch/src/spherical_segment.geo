@@ -72,8 +72,8 @@ lastPointOnParallel = IP + 60001;
 newParallelID = IL + 1000;
 Call DrawParallel;
 
-BSpline(IL + 1001) = {IP + 60001, IP + 60002};
-BSpline(IL + 1002) = {IP + 60000, IP + 60003};
+Line(IL + 1001) = {IP + 60001, IP + 60002};
+Line(IL + 1002) = {IP + 60000, IP + 60003};
 
 ////Draw North-most parallel of the Domain.
 pointsOnParallel = 200;            //Assign parameters to variables and then call function DrawParallel,

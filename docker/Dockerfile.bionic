@@ -9,39 +9,35 @@ MAINTAINER Tim Greaves
 # Installs shouldn't expect input
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Update the system
-RUN apt-get update
-RUN apt-get -y dist-upgrade
+# Package updates and installs
+RUN apt-get update && \
+     apt-get -y dist-upgrade && \
+     apt-get -y install gnupg dirmngr && \
+     echo "deb http://ppa.launchpad.net/fluidity-core/ppa/ubuntu bionic main" > /etc/apt/sources.list.d/fluidity-core-ppa-bionic.list && \
+     gpg --keyserver keyserver.ubuntu.com --recv 0D45605A33BAC3BE && \
+     gpg --export --armor 33BAC3BE | apt-key add - && \
+     apt-get update && \
+     echo "Europe/London" > /etc/timezone && \
+     apt-get -y install fluidity-dev texlive-pstricks texlive texlive-latex-extra texlive-science && \
+     rm -rf /var/cache/apt && \
+     rm -rf /var/lib/apt/lists
 
-# Install gpg
-RUN apt-get -y install gnupg dirmngr
+RUN apt-get update && \
+     apt-get -y install python3-pip && \
+     rm -rf /var/cache/apt && \
+     rm -rf /var/lib/apt/lists
 
-# Add the Fluidity repository
-RUN echo "deb http://ppa.launchpad.net/fluidity-core/ppa/ubuntu bionic main" > /etc/apt/sources.list.d/fluidity-core-ppa-bionic.list
+RUN python3 -m pip install --upgrade junit-xml
 
-# Import the Launchpad PPA public key
-RUN gpg --keyserver keyserver.ubuntu.com --recv 0D45605A33BAC3BE
-RUN gpg --export --armor 33BAC3BE | apt-key add -
-RUN apt-get update
+WORKDIR /usr/local
+RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-4.8.3-Linux64.tgz | tar --strip-components=1 -zxf -
 
-# Install Fluidity development environment
-RUN echo "Europe/London" > /etc/timezone
-RUN apt-get -y install fluidity-dev
-
-RUN mkdir /tmp/tex-install
-WORKDIR /tmp/tex-install 
-ADD installation.profile /tmp/tex-install/
-RUN curl -L http://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz | tar -zxvf - --strip-component=1
-RUN ./install-tl --profile=installation.profile
-WORKDIR /
-RUN rm -rf /tmp/tex-install
-
-ENV PATH="${PATH}:/usr/local/texlive/2019/bin/x86_64-linux"
 ENV PETSC_DIR /usr/lib/petscdir/3.8.3
 ENV LD_LIBRARY_PATH /usr/lib/petscdir/3.8.3/linux-gnu-c-opt/lib
 ENV LDFLAGS -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi
 ENV CPPFLAGS -I/usr/include/hdf5/openmpi
 ENV OMPI_MCA_btl_vader_single_copy_mechanism none
+ENV OMPI_MCA_rmaps_base_oversubscribe 1
 
 # Add a Fluidity user who will be the default user for this container
 # Make sure the user has a userid matching the host system

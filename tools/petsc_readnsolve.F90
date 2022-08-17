@@ -36,9 +36,7 @@ use populate_state_module
 use field_options
 use halos_registration
 use parallel_tools
-#ifdef HAVE_PETSC_MODULES
-  use petsc 
-#endif
+use petsc
 implicit none
 #include "petsc_legacy.h"
   ! options read from command-line (-prns_... options)
@@ -368,6 +366,9 @@ contains
       
       universal_nodes=petsc_numbering%universal_length
       
+      ! Escape division by zero in mod() by exiting prior to evaluation
+      if (universal_nodes==0) FLExit("Cannot have 0 nodes in specified mesh")
+
       ! and compare it with the size of the PETSc vector
       if (universal_nodes==n) then
         

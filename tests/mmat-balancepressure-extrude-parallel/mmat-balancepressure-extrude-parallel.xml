@@ -3,7 +3,7 @@
   <name>Control volume, multi-material surface integral pressure check</name>
   <owner userid="cwilson"/>
   <tags>flml parallel zoltan</tags>
-  <problem_definition length="medium" nprocs="2">
+  <problem_definition length="short" nprocs="2">
     <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-balancepressure-p0p1cv-gpp2 mmat-balancepressure-p0p1cv-gpp2_flredecomp &amp;&amp;
 	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-balancepressure-p0p1cv-hpp2dg mmat-balancepressure-p0p1cv-hpp2dg_flredecomp &amp;&amp;
 	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-balancepressure-p0p1-rhop0-vfracp0 mmat-balancepressure-p0p1-rhop0-vfracp0_flredecomp &amp;&amp;

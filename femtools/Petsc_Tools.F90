@@ -33,9 +33,7 @@ module Petsc_Tools
   use Reference_Counting
   use halo_data_types
   use halos_base
-#ifdef HAVE_PETSC_MODULES
-  use petsc 
-#endif
+  use petsc
   use Sparse_Tools
   use fields_data_types
   use fields_base
@@ -52,12 +50,7 @@ module Petsc_Tools
 ! it is possible (and not unlikely) that the uninitialised object happens to contain -1 which
 ! in petsc v3.8 is recognized as a NULL object. Therefore in petsc v3.8 we have to pass in an
 ! object that is known not to be a null vec
-#if PETSC_VERSION_MINOR>=8
   Vec, parameter, public :: PETSC_NOTANULL_VEC = tVec(1)
-#else
-  ! previously Vec was just an integer (and NULL was checked by comparing its memory address with the one cannonical PETSC_NULL_OBJECT)
-  Vec, parameter, public :: PETSC_NOTANULL_VEC = 1
-#endif
 
   PetscReal, parameter, private :: dummy_petsc_real = 0.0
   integer, parameter, public :: PetscReal_kind = kind(dummy_petsc_real)
@@ -124,12 +117,6 @@ module Petsc_Tools
   ! for unit-testing:
   logical, public, save :: petsc_test_error_handler_called = .false.
   public petsc_test_error_handler
-#if PETSC_VERSION_MINOR<5
-  public mykspgetoperators
-#endif
-#if PETSC_VERSION_MINOR<7
-  public NullPetscViewerAndFormatCreate
-#endif
   public IsNullMatNullSpace
 
 contains
@@ -1126,7 +1113,7 @@ contains
     end do
     
     call MatCreateAIJ(MPI_COMM_SELF, nprows, npcols, nprows, npcols, &
-      PETSC_NULL_INTEGER, nnz, 0, PETSC_NULL_INTEGER, M, ierr)
+      0, nnz, 0, PETSC_NULL_INTEGER, M, ierr)
     call MatSetup(M, ierr)
       
     call MatSetOption(M, MAT_USE_INODES, PETSC_FALSE, ierr)
@@ -1302,7 +1289,7 @@ contains
     end do
 
     call MatCreateAIJ(MPI_COMM_FEMTOOLS, nrowsp, ncolsp, nrows, ncols, &
-      PETSC_NULL_INTEGER, d_nnz, PETSC_NULL_INTEGER, o_nnz, M, ierr)
+      0, d_nnz, 0, o_nnz, M, ierr)
     call MatSetup(M, ierr)
       
     if (.not. present_and_true(use_inodes)) then
@@ -1538,54 +1525,17 @@ subroutine petsc_test_error_handler(comm,line, func, file, dir, n, p, mess, ctx,
   
 end subroutine petsc_test_error_handler
 
-! this is a wrapper around KSPGetOperators, that in petsc <3.5
-! has an extra mat_structure flag. We need to wrap this because
-! we need a local variable.
-! in include/petsc_legacy.h we #define KSPGetOperators -> mykspgetoperators
-#if PETSC_VERSION_MINOR<5
-subroutine mykspgetoperators(ksp, amat, pmat, ierr)
-  KSP, intent(in):: ksp
-  Mat, intent(in):: amat, pmat
-  PetscErrorCode, intent(out):: ierr
-
-  MatStructure:: mat_structure
-  
-  ! need small caps, to avoid #define from include/petsc_legacy.h
-  call  kspgetoperators(ksp, amat, pmat, mat_structure, ierr)
-
-end subroutine mykspgetoperators
-#endif
-
-#if PETSC_VERSION_MINOR<7
-subroutine NullPetscViewerAndFormatCreate(viewer, format, vf, ierr)
-  PetscViewer, intent(in) :: viewer
-  PetscEnum, intent(in) :: format
-  PetscObject, intent(out) :: vf
-  PetscErrorCode, intent(out) :: ierr
-
-  assert(viewer==PETSC_VIEWER_STDOUT_WORLD)
-  assert(format==PETSC_VIEWER_DEFAULT)
-  vf = PETSC_NULL_VIEWER
-  ierr = 0
-
-end subroutine NullPetscViewerAndFormatCreate
-#endif
-
 function IsNullMatNullSpace(nullsp)
   ! This function checks whether `nullsp` is a NULL nullspace
   ! (the equivalent of (MatNullspace *) null in C)
   MatNullSpace, intent(in) :: nullsp
   logical :: IsNullMatNullSpace
 
-#if PETSC_VERSION_MINOR>=8
     ! MatNullSpace(-1) is what is recognized as null in CHKFORTRANNULLOBJECT
     ! MatNullSpace(0) is what is returned by MatGetNullspace if no nullspace is present
     ! (because a wrapper on the output is missing, and there isn't a PETSC_NULL_MATNULLSPACE
     ! in the first place)
     IsNullMatNullSpace = nullsp%v==-1 .or. nullsp%v==0
-#else
-    IsNullMatNullSpace = nullsp==PETSC_NULL_OBJECT
-#endif
 
 end function IsNullMatNullSpace
 

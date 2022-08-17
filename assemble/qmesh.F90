@@ -69,7 +69,7 @@ contains
     real, intent(in) :: current_time
     integer, intent(in) :: timestep
     
-    logical :: do_adapt_mesh
+    logical :: do_adapt_mesh, dump
     
     integer :: int_adapt_period, i, stat
     real :: real_adapt_period, current_cpu_time
@@ -95,7 +95,14 @@ contains
         case(3)
           call get_option("/mesh_adaptivity/hr_adaptivity/period_in_timesteps", int_adapt_period, stat)
           if(stat == SPUD_NO_ERROR) then
-            if(int_adapt_period == 0 .or. mod(timestep, int_adapt_period) == 0) then
+            if (int_adapt_period == 0) then
+              dump = .true.
+            else if (mod(timestep, int_adapt_period) == 0) then
+              dump = .true.
+            else
+              dump = .false.
+            end if
+            if (dump) then
               do_adapt_mesh = .true.
               exit
             end if

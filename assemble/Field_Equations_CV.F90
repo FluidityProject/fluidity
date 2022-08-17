@@ -1974,8 +1974,8 @@ contains
                 if(include_advection) then
 
                   ! u.n
+                  divudotn = dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
                   if(move_mesh) then
-                    divudotn = dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
                     if((tfield_bc_type(sele)==BC_TYPE_ZEROFLUX .or. tfield_bc_type(sele)==BC_TYPE_FLUX)) then
                       ! If we have zero flux, or a flux BC, set u.n = 0
                       udotn = 0.0
@@ -1983,7 +1983,6 @@ contains
                       udotn = dot_product((u_bdy_f(:,ggi)-ug_bdy_f(:,ggi)), normal_bdy(:,ggi))
                     end if
                   else
-                    divudotn = dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
                     if((tfield_bc_type(sele)==BC_TYPE_ZEROFLUX .or. tfield_bc_type(sele)==BC_TYPE_FLUX)) then
                       udotn = 0.0
                     else
@@ -2642,7 +2641,6 @@ contains
 
       move_mesh = have_option("/mesh_adaptivity/mesh_movement")
       if(move_mesh) then
-        FLExit("Moving meshes not fully set-up with coupled cv.")
         if(.not.include_advection) then
           FLExit("Moving the mesh but not including advection is not possible yet.")
         end if
@@ -2769,11 +2767,10 @@ contains
                                       tdensity, oldtdensity, tdensity_options, &
                                       cvfaces, x_cvshape, x_cvbdyshape, &
                                       u_cvshape, u_cvbdyshape, t_cvshape, &
-                                      state, advu, x, x_tfield, cfl_no, &
+                                      ug_cvshape, ug_cvbdyshape, &
+                                      state, advu, ug, x, x_tfield, cfl_no, &
                                       getmat, sub_dt, &
                                       mesh_sparsity_x)
-
-
 
           do f = 1, nfields
 
@@ -2866,7 +2863,8 @@ contains
                                        tdensity, oldtdensity, tdensity_options, &
                                        cvfaces, x_cvshape, x_cvbdyshape, &
                                        u_cvshape, u_cvbdyshape, t_cvshape, &
-                                       state, advu, x, x_tfield, cfl_no, getmat, dt, &
+                                       ug_cvshape, ug_cvbdyshape, &
+                                       state, advu, ug, x, x_tfield, cfl_no, getmat, dt, &
                                        mesh_sparsity)
 
       !!< This subroutine assembles the advection matrix and rhs for
@@ -2898,11 +2896,13 @@ contains
       ! shape functions for region and surface
       type(element_type), intent(in) :: x_cvshape, x_cvbdyshape
       type(element_type), intent(in) :: u_cvshape, u_cvbdyshape
+      type(element_type), intent(in) :: ug_cvshape, ug_cvbdyshape
       type(element_type), intent(in) :: t_cvshape
       ! bucket full of fields
       type(state_type), dimension(:), intent(inout) :: state
       ! the advection velocity
       type(vector_field), intent(in) :: advu
+      type(vector_field), pointer :: ug
       ! the coordinates
       type(vector_field), intent(inout) :: x, x_tfield
       ! the cfl number
@@ -2921,6 +2921,7 @@ contains
       ! and the cfl number at the gauss pts and nodes
       real, dimension(:,:), allocatable :: x_ele, x_ele_bdy
       real, dimension(:,:), allocatable :: x_f, u_f, u_bdy_f
+      real, dimension(:,:), allocatable :: ug_f, ug_bdy_f
       real, dimension(:,:), allocatable :: normal, normal_bdy
       real, dimension(:), allocatable :: detwei, detwei_bdy
       real, dimension(:), allocatable :: normgi
@@ -2954,7 +2955,7 @@ contains
             oldtfield_upwind, tdensity_upwind, oldtdensity_upwind
 
       ! incoming or outgoing flow
-      real :: udotn, income, udotn_bdy
+      real :: udotn, divudotn, income, udotn_bdy
       logical :: inflow
       ! time and face discretisation
       real, dimension(size(tfield)) :: ptheta, beta
@@ -2979,6 +2980,7 @@ contains
       allocate(x_ele(x%dim,ele_loc(x,1)), &
                x_f(x%dim, x_cvshape%ngi), &
                u_f(advu%dim, u_cvshape%ngi), &
+               ug_f(advu%dim, ug_cvshape%ngi), &
                detwei(x_cvshape%ngi), &
                normal(x%dim, x_cvshape%ngi), &
                normgi(x%dim))
@@ -3053,6 +3055,7 @@ contains
         u_f=ele_val_at_quad(advu, ele, u_cvshape)
         nodes=>ele_nodes(tfield(1)%ptr, ele)
         x_nodes=>ele_nodes(x_tfield, ele)
+        if(move_mesh) ug_f=ele_val_at_quad(ug, ele, ug_cvshape)
         if((tfield_options(1)%upwind_scheme==CV_UPWINDVALUE_PROJECT_POINT).or.&
            (tfield_options(1)%upwind_scheme==CV_UPWINDVALUE_PROJECT_GRAD)) then
           upwind_nodes=>x_nodes
@@ -3107,7 +3110,13 @@ contains
                   normgi=orientate_cvsurf_normgi(node_val(x_tfield, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
 
                   ! calculate u.n
-                  udotn=dot_product(u_f(:,ggi), normgi(:))
+                  if(move_mesh) then
+                    udotn=dot_product((u_f(:,ggi)-ug_f(:,ggi)), normgi(:))
+                    divudotn=dot_product(u_f(:,ggi), normgi(:))
+                  else
+                    udotn=dot_product(u_f(:,ggi), normgi(:))
+                    divudotn=udotn
+                  end if
 
                   inflow = (udotn<=0.0)
 
@@ -3188,10 +3197,10 @@ contains
 
                         call addto_diag(A_m(f), nodes(iloc), &
                                   ptheta(f)*detwei(ggi)*udotn*(1.0-income)*tdensity_theta_val &
-                                  -ftheta*(1.-beta(f))*detwei(ggi)*udotn*tdensity_theta_val)
+                                  -ftheta*(1.-beta(f))*detwei(ggi)*divudotn*tdensity_theta_val)
                         call addto_diag(A_m(f), nodes(oloc), &
                                   ptheta(f)*detwei(ggi)*(-udotn)*income*tdensity_theta_val &
-                                  -ftheta*(1.-beta(f))*detwei(ggi)*(-udotn)*tdensity_theta_val) ! notvisited
+                                  -ftheta*(1.-beta(f))*detwei(ggi)*(-divudotn)*tdensity_theta_val) ! notvisited
 
                       end if
 
@@ -3199,11 +3208,11 @@ contains
                       call addto(rhs(f), nodes(iloc), &
                                     ptheta(f)*udotn*detwei(ggi)*tdensity_theta_val*tfield_pivot_val &
                                   - udotn*detwei(ggi)*tfield_theta_val*tdensity_theta_val &
-                                  + (1.-ftheta)*(1.-beta(f))*detwei(ggi)*udotn*tdensity_theta_val*oldtfield_ele(f,iloc))
+                                  + (1.-ftheta)*(1.-beta(f))*detwei(ggi)*divudotn*tdensity_theta_val*oldtfield_ele(f,iloc))
                       call addto(rhs(f), nodes(oloc), &
                                     ptheta(f)*(-udotn)*detwei(ggi)*tdensity_theta_val*tfield_pivot_val &
                                   - (-udotn)*detwei(ggi)*tfield_theta_val*tdensity_theta_val &
-                                  + (1.-ftheta)*(1.-beta(f))*detwei(ggi)*(-udotn)*tdensity_theta_val*oldtfield_ele(f,oloc)) ! notvisited
+                                  + (1.-ftheta)*(1.-beta(f))*detwei(ggi)*(-divudotn)*tdensity_theta_val*oldtfield_ele(f,oloc)) ! notvisited
                     else
                       ! if we need the matrix then assemble it now
                       if(getmat(f)) then
@@ -3214,10 +3223,10 @@ contains
 
                         call addto_diag(A_m(f), nodes(iloc), &
                                   ptheta(f)*detwei(ggi)*udotn*(1.0-income)*tdensity_theta_val &
-                                  -ftheta*(1.-beta(f))*detwei(ggi)*udotn)
+                                  -ftheta*(1.-beta(f))*detwei(ggi)*divudotn)
                         call addto_diag(A_m(f), nodes(oloc), &
                                   ptheta(f)*detwei(ggi)*(-udotn)*income*tdensity_theta_val &
-                                  -ftheta*(1.-beta(f))*detwei(ggi)*(-udotn)) ! notvisited
+                                  -ftheta*(1.-beta(f))*detwei(ggi)*(-divudotn)) ! notvisited
 
                       end if
 
@@ -3225,11 +3234,11 @@ contains
                       call addto(rhs(f), nodes(iloc), &
                                     ptheta(f)*udotn*detwei(ggi)*tfield_pivot_val &
                                   - udotn*detwei(ggi)*tfield_theta_val &
-                                  + (1.-ftheta)*(1.-beta(f))*detwei(ggi)*udotn*oldtfield_ele(f,iloc))
+                                  + (1.-ftheta)*(1.-beta(f))*detwei(ggi)*divudotn*oldtfield_ele(f,iloc))
                       call addto(rhs(f), nodes(oloc), &
                                     ptheta(f)*(-udotn)*detwei(ggi)*tfield_pivot_val &
                                   - (-udotn)*detwei(ggi)*tfield_theta_val &
-                                  + (1.-ftheta)*(1.-beta(f))*detwei(ggi)*(-udotn)*oldtfield_ele(f,oloc)) ! notvisited
+                                  + (1.-ftheta)*(1.-beta(f))*detwei(ggi)*(-divudotn)*oldtfield_ele(f,oloc)) ! notvisited
                     
                     end if
 
@@ -3247,6 +3256,7 @@ contains
               detwei_bdy(x_cvbdyshape%ngi), &
               normal_bdy(x%dim, x_cvbdyshape%ngi), &
               u_bdy_f(advu%dim, u_cvbdyshape%ngi), &
+              ug_bdy_f(advu%dim, ug_cvbdyshape%ngi), &
               tdensity_ele_bdy(nfields,face_loc(tdensity(1)%ptr,1)), &
               oldtdensity_ele_bdy(nfields,face_loc(oldtdensity(1)%ptr,1)), &
               tfield_ele_bdy(nfields,face_loc(tfield(1)%ptr,1)), &
@@ -3283,6 +3293,7 @@ contains
                               x_cvbdyshape, normal_bdy, detwei_bdy)
 
         u_bdy_f=face_val_at_quad(advu, sele, u_cvbdyshape)
+        if(move_mesh) ug_bdy_f=face_val_at_quad(ug, sele, ug_cvbdyshape)
 
         do f = 1, nfields
           ! deal with bcs for tfield
@@ -3335,8 +3346,13 @@ contains
                 ggi = (face-1)*cvfaces%shape%ngi + gi
 
                 ! u.n
-                udotn_bdy=dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
-
+                divudotn = dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
+                if(move_mesh) then
+                  udotn_bdy = dot_product((u_bdy_f(:,ggi)-ug_bdy_f(:,ggi)), normal_bdy(:,ggi))
+                else
+                  udotn_bdy = divudotn
+                end if
+                
                 if(udotn_bdy>0) then
                   income=0.0 ! flow leaving the domain
                 else
@@ -3372,27 +3388,27 @@ contains
                     if(getmat(f)) then
                       call addto_diag(A_m(f), nodes_bdy(iloc), &
                                         ptheta(f)*detwei_bdy(ggi)*udotn*(1.-income)*tdensity_theta_val &  ! if iloc is the donor we can do this implicitly
-                                      - ptheta(f)*(1.-beta(f))*detwei_bdy(ggi)*udotn_bdy*tdensity_theta_val)
+                                      - ptheta(f)*(1.-beta(f))*detwei_bdy(ggi)*divudotn*tdensity_theta_val)
                     end if
 
                     ! assemble rhs
                     call addto(rhs(f), nodes_bdy(iloc), &
                                 -ptheta(f)*udotn*detwei_bdy(ggi)*income*tdensity_theta_val*ghost_tfield_ele_bdy(f,iloc) & ! but we can't if it's the downwind
                                 -(1.-ptheta(f))*udotn*detwei_bdy(ggi)*tdensity_theta_val*oldtfield_face_val(f) &
-                                +(1.-ptheta(f))*(1.-beta(f))*udotn_bdy*detwei_bdy(ggi)*tdensity_theta_val*oldtfield_ele_bdy(f,iloc))
+                                +(1.-ptheta(f))*(1.-beta(f))*divudotn*detwei_bdy(ggi)*tdensity_theta_val*oldtfield_ele_bdy(f,iloc))
                   else
                     ! assemble matrix
                     if(getmat(f)) then
                       call addto_diag(A_m(f), nodes_bdy(iloc), &
                                         ptheta(f)*detwei_bdy(ggi)*udotn*(1.-income) &  ! if iloc is the donor we can do this implicitly
-                                      - ptheta(f)*(1.-beta(f))*detwei_bdy(ggi)*udotn_bdy)
+                                      - ptheta(f)*(1.-beta(f))*detwei_bdy(ggi)*divudotn)
                     end if
 
                     ! assemble rhs
                     call addto(rhs(f), nodes_bdy(iloc), &
                                 -ptheta(f)*udotn*detwei_bdy(ggi)*income*ghost_tfield_ele_bdy(f,iloc) & ! but we can't if it's the downwind
                                 -(1.-ptheta(f))*udotn*detwei_bdy(ggi)*oldtfield_face_val(f) &
-                                +(1.-ptheta(f))*(1.-beta(f))*udotn_bdy*detwei_bdy(ggi)*oldtfield_ele_bdy(f,iloc))                  
+                                +(1.-ptheta(f))*(1.-beta(f))*divudotn*detwei_bdy(ggi)*oldtfield_ele_bdy(f,iloc))                  
                   end if
 
                 end do surface_field_loop
@@ -3407,7 +3423,7 @@ contains
 
       end do surface_element_loop
 
-      deallocate(x_ele_bdy, detwei_bdy, normal_bdy, u_bdy_f)
+      deallocate(x_ele_bdy, detwei_bdy, normal_bdy, u_bdy_f, ug_bdy_f)
       deallocate(nodes_bdy)
       deallocate(tdensity_ele_bdy, oldtdensity_ele_bdy, tfield_ele_bdy, oldtfield_ele_bdy)
       deallocate(ghost_tdensity_ele_bdy, ghost_oldtdensity_ele_bdy, &
@@ -3427,7 +3443,7 @@ contains
         call deallocate(oldtfield_upwind(f))
       end do
 
-      deallocate(x_ele, x_f, detwei, normal, normgi, u_f)
+      deallocate(x_ele, x_f, detwei, normal, normgi, u_f, ug_f)
       deallocate(cfl_ele, tfield_ele, oldtfield_ele, tdensity_ele, oldtdensity_ele)
       deallocate(notvisited)
 

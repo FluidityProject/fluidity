@@ -7,7 +7,7 @@ input:
 	
 clean: clean-mesh clean-run-debug
 clean-mesh:
-	rm -f *.ele *.edge *.node
+	rm -f *.geo *.msh *.ele *.edge *.node
 clean-run:
 	rm -f $(FLMLMODEL)_?*.pvtu $(FLMLMODEL)_?*.vtu
 	rm -f $(FLMLMODEL).detectors $(FLMLMODEL).stat tmpf*

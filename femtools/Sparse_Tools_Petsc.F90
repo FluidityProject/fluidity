@@ -37,9 +37,7 @@ module sparse_tools_petsc
   use parallel_tools
   use halo_data_types
   use halos_allocates
-#ifdef HAVE_PETSC_MODULES
   use petsc
-#endif
   use Sparse_Tools
   use fields_data_types
   use fields_base
@@ -413,7 +411,7 @@ contains
       ! Create serial block matrix:
       call MatCreateBAIJ(MPI_COMM_SELF, element_size, &
          urows, ucols, urows, ucols, &
-         PETSC_NULL_INTEGER, dnnz, 0, PETSC_NULL_INTEGER, matrix%M, ierr)
+         0, dnnz, 0, PETSC_NULL_INTEGER, matrix%M, ierr)
          
     elseif (use_element_blocks) then
       
@@ -423,7 +421,7 @@ contains
       call MatCreateBAIJ(MPI_COMM_FEMTOOLS, element_size, &
          nprows*blocks(1), npcols*blocks(2), &
          urows, ucols, &
-         PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, matrix%M, ierr)
+         0, dnnz, 0, onnz, matrix%M, ierr)
     
     else if (.not. IsParallel()) then
 
@@ -431,7 +429,7 @@ contains
       
       ! Create serial matrix:
       call MatCreateAIJ(MPI_COMM_SELF, urows, ucols, urows, ucols, &
-         PETSC_NULL_INTEGER, dnnz, 0, PETSC_NULL_INTEGER, matrix%M, ierr)
+         0, dnnz, 0, PETSC_NULL_INTEGER, matrix%M, ierr)
       call MatSetBlockSizes(matrix%M, lgroup_size(1), lgroup_size(2), ierr)
       
     else
@@ -441,7 +439,7 @@ contains
       
       call MatCreateAIJ(MPI_COMM_FEMTOOLS, nprows*blocks(1), npcols*blocks(2), &
          urows, ucols, &
-         PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, matrix%M, ierr)
+         0, dnnz, 0, onnz, matrix%M, ierr)
       call MatSetBlockSizes(matrix%M, lgroup_size(1), lgroup_size(2), ierr)
       
     endif

@@ -2163,7 +2163,8 @@ module zoltan_integration
        detector => detector_send_list%first
        do i=1,send_count
           ! Pack the particle information and delete from send_list (delete advances particle to detector%next)
-          call pack_detector(detector, send_buff(i,1:zoltan_global_ndata_per_det+total_attributes), zoltan_global_ndims, attribute_size=detector_list%total_attributes)
+          call pack_detector(detector, send_buff(i,1:zoltan_global_ndata_per_det+total_attributes), zoltan_global_ndims, &
+               attribute_size_in=detector_list%total_attributes)
           call delete(detector, detector_send_list)
        end do
 
@@ -2191,9 +2192,10 @@ module zoltan_integration
                    ! Allocate and unpack the particle
                    shape=>ele_shape(zoltan_global_new_positions,1)                     
                    call allocate(detector, zoltan_global_ndims, local_coord_count(shape), detector_list%total_attributes)
-                   call unpack_detector(detector, recv_buff(k, 1:zoltan_global_ndata_per_det+total_attributes), zoltan_global_ndims, attribute_size=detector_list%total_attributes)
-                   
-                   if (has_key(zoltan_global_uen_to_new_local_numbering, detector%element)) then 
+                   call unpack_detector(detector, recv_buff(k, 1:zoltan_global_ndata_per_det+total_attributes), zoltan_global_ndims, &
+                     attribute_size_in=detector_list%total_attributes)
+
+                   if (has_key(zoltan_global_uen_to_new_local_numbering, detector%element)) then
                       new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, detector%element)
                       if (element_owned(zoltan_global_new_positions%mesh, new_local_element_number)) then
                          detector%element = new_local_element_number

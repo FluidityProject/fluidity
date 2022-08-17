@@ -305,7 +305,7 @@ class Mesh(events.Evented):
         for element in self.GetSurfaceElements():
           idList = vtk.vtkIdList()
           type = vtktools.VtkType(dim = dim - 1, nodeCount = element.NodeCount())
-          for node in vtktools.ToVtkNodeOrder(element.GetNodes(), type):
+          for node in element.GetNodes():
             idList.InsertNextId(node)
           cell = ugrid.InsertNextCell(type.GetVtkTypeId(), idList)
           if len(element.GetIds()) > 0:
@@ -319,7 +319,7 @@ class Mesh(events.Evented):
         for element in self.GetVolumeElements():
           idList = vtk.vtkIdList()
           type = vtktools.VtkType(dim = dim, nodeCount = element.NodeCount())
-          for node in vtktools.ToVtkNodeOrder(element.GetNodes(), type):
+          for node in element.GetNodes():
             idList.InsertNextId(node)
           cellId = ugrid.InsertNextCell(type.GetVtkTypeId(), idList)
           if len(element.GetIds()) > 0:
@@ -408,7 +408,7 @@ def VtuToMesh(vtu, idsName = "IDs"):
       id = cellData.GetTuple1(i)
     
     type = vtktools.VtkType(vtkTypeId = cell.GetCellType())
-    element = elements.Element(nodes = vtktools.FromVtkNodeOrder([nodeIds.GetId(i) for i in range(nodeIds.GetNumberOfIds())], type), ids = id)
+    element = elements.Element(nodes = [nodeIds.GetId(i) for i in range(nodeIds.GetNumberOfIds())], ids = id)
     
     if type.GetDim() == dim - 1:
       mesh.AddSurfaceElement(element)

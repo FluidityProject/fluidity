@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -47,16 +47,16 @@ module vtk_interfaces
   use fields
   use state_module
   use vtkfortran
-  
+
   implicit none
 
   private
 
   public :: vtk_write_state, vtk_write_fields, vtk_read_state, &
     vtk_write_surface_mesh, vtk_write_internal_face_mesh, &
-    vtk_get_sizes, vtk_read_file
-  
-  interface 
+    vtk_get_sizes, vtk_read_file, vtk_mesh2fluidity_numbering, fluidity_mesh2vtk_numbering
+
+  interface
        subroutine vtk_read_file(&
           filename, namelen, nnod, nelm, szenls,&
           nfield_components, nprop_components,&
@@ -74,7 +74,7 @@ module vtk_interfaces
        real x(nnod), y(nnod), z(nnod)
        integer field_components(nfields), prop_components(nproperties)
        real fields(nnod,nfields), &
-            properties(nelm,nproperties) 
+            properties(nelm,nproperties)
        integer enlbas(nelm+1), enlist(szenls)
        character(len=maxnamelen) field_names(nfields)
        character(len=maxnamelen) prop_names(nproperties)
@@ -93,16 +93,16 @@ module vtk_interfaces
        integer nfields, nproperties, ndimensions, maxnamelen
      end subroutine vtk_get_sizes
   end interface
-  
-  interface vtkwriteghostlevels
-     subroutine vtkwriteghostlevels(ghost_levels)
+
+  interface vtkwritecellghostarray
+     subroutine vtkwritecellghostarray(ghosts)
        implicit none
-       integer ghost_levels(*)
-     end subroutine vtkwriteghostlevels
+       integer ghosts(*)
+     end subroutine vtkwritecellghostarray
   end interface
 
 contains
-    
+
   subroutine vtk_write_state(filename, index, model, state, write_region_ids, write_columns, stat)
     !!< Write the state variables out to a vtu file. Two different elements
     !!< are supported along with fields corresponding to each of them.
@@ -140,7 +140,7 @@ contains
       model_mesh => extract_mesh(state(1), 1)
     else
       ewrite(-1,*) "In vtk_write_state:"
-      FLExit("Don't know which mesh to use as model.")      
+      FLExit("Don't know which mesh to use as model.")
     end if
 
     size_lsfields = 0
@@ -149,14 +149,14 @@ contains
         size_lsfields = size_lsfields + size(state(i)%scalar_fields)
       end if
     end do
-    
+
     allocate(lsfields(size_lsfields))
     counter = 0
     do i = 1, size(state)
       if (associated(state(i)%scalar_fields)) then
         do f = 1, size(state(i)%scalar_fields)
           counter = counter + 1
-          lsfields(counter)=state(i)%scalar_fields(f)%ptr       
+          lsfields(counter)=state(i)%scalar_fields(f)%ptr
           if (size(state) > 1) then
             lsfields(counter)%name = trim(state(i)%name)//'::'//trim(lsfields(counter)%name)
           end if
@@ -170,7 +170,7 @@ contains
         size_lvfields = size_lvfields + size(state(i)%vector_fields)
       end if
     end do
-    
+
     allocate(lvfields(size_lvfields))
     counter = 0
     do i = 1, size(state)
@@ -191,7 +191,7 @@ contains
         size_ltfields = size_ltfields + size(state(i)%tensor_fields)
       end if
     end do
-    
+
     allocate(ltfields(size_ltfields))
     counter = 0
     do i = 1, size(state)
@@ -241,7 +241,7 @@ contains
     !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
     integer, optional, intent(in):: number_of_partitions
     integer, intent(out), optional :: stat
-    
+
     integer :: NNod, sz_enlist, i, dim, j, k, nparts
     real, dimension(:,:,:), allocatable, target :: t_field_buffer, tensor_values
     real, dimension(:,:), allocatable, target :: v_field_buffer
@@ -253,12 +253,12 @@ contains
     type(vector_field) :: v_model(3)
     type(tensor_field) :: t_model
     logical :: dgify_fields ! should we DG-ify the fields -- make them discontinous?
-    integer, allocatable, dimension(:)::ghost_levels
+    integer, allocatable, dimension(:) :: ghosts
     real, allocatable, dimension(:,:) :: tempval
     integer :: lstat
-    
+
     if (present(stat)) stat = 0
-    
+
     dgify_fields = .false.
     if (present(sfields)) then
       do i=1,size(sfields)
@@ -275,7 +275,7 @@ contains
         if ( (tfields(i)%mesh%continuity .lt. 0 .and. tfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
       end do
     end if
-    
+
     if (present(number_of_partitions)) then
       nparts = number_of_partitions
     else
@@ -283,23 +283,23 @@ contains
     end if
 
     if(model%shape%degree /= 0) then
-  
+
       ! Note that the following fails for variable element types.
       sz_enlist = element_count(model)*ele_loc(model, 1)
-  
+
       allocate(ndglno(sz_enlist),ENList(sz_enlist), ELsize(element_count(model)),ELtype(element_count(model)))
-  
+
       if (dgify_fields.and.(continuity(model)>=0)) then
-        
+
         ! Note that the following fails for variable element types.
         NNod=sz_enlist
-        
+
         allocate(field_buffer(NNod), v_field_buffer(NNod, 3), t_field_buffer(NNod, 3, 3))
         v_field_buffer=0.0
-        
+
         call make_global_numbering_DG(NNod, ndglno, element_count(model),&
           & ele_shape(model,1))
-      
+
         ! Discontinuous version of model.
         model_mesh=wrap_mesh(ndglno, ele_shape(model,1), "DGIfiedModelMesh")
         ! Fix bug in gfortran
@@ -310,7 +310,7 @@ contains
           allocate(model_mesh%region_ids(ele_count(model_mesh)))
           model_mesh%region_ids = model%region_ids
         end if
-        ! Copy element_halos to ensure vtkGhostLevels are output 
+        ! Copy element_halos to ensure values for the vtk CellGhostArray are output
         if (associated(model%element_halos)) then
           allocate(model_mesh%element_halos(size(model%element_halos)))
           do i = 1, size(model_mesh%element_halos)
@@ -318,7 +318,7 @@ contains
           end do
         end if
       else
-        
+
         NNod=node_count(model)
         allocate(field_buffer(NNod), v_field_buffer(NNod, 3), t_field_buffer(NNod, 3, 3))
         v_field_buffer=0.0
@@ -333,17 +333,17 @@ contains
 
       ! Note that the following fails for variable element types.
       sz_enlist = element_count(position%mesh)*ele_loc(position%mesh, 1)
-  
+
       allocate(ndglno(sz_enlist),ENList(sz_enlist), ELsize(element_count(model)),ELtype(element_count(model)))
-  
+
       if(dgify_fields) then
-        
+
         ! Note that the following fails for variable element types.
         NNod=sz_enlist
-        
+
         allocate(field_buffer(NNod), v_field_buffer(NNod, 3), t_field_buffer(NNod, 3, 3))
         v_field_buffer=0.0
-        
+
         call make_global_numbering_DG(NNod, ndglno, element_count(position%mesh),&
           & ele_shape(position%mesh,1))
         ! Discontinuous version of position mesh.
@@ -357,11 +357,11 @@ contains
           model_mesh%region_ids = model%region_ids
         end if
       else
-        
+
         NNod=node_count(position%mesh)
         allocate(field_buffer(NNod), v_field_buffer(NNod, 3), t_field_buffer(NNod, 3, 3))
         v_field_buffer=0.0
-        
+
         model_mesh = position%mesh
         ! Grab an extra reference to make the deallocate at the end safe.
         call incref(model_mesh)
@@ -370,7 +370,7 @@ contains
     end if
 
     l_model= wrap_scalar_field(model_mesh, field_buffer, "TempVTKModel")
-    
+
     ! vector fields may be of any dimension
     do i=1, 3
       call allocate(v_model(i), i, model_mesh, name="TempVTKModel")
@@ -388,7 +388,7 @@ contains
     !----------------------------------------------------------------------
     ! Open the file
     !----------------------------------------------------------------------
-    
+
     if (present(index)) then
        ! Write index number:
        if(nparts > 1) then
@@ -475,12 +475,12 @@ contains
 
     !----------------------------------------------------------------------
     ! Output scalar fields
-    !----------------------------------------------------------------------    
-    
+    !----------------------------------------------------------------------
+
     if (present(sfields)) then
        do i=1,size(sfields)
           if(mesh_dim(sfields(i))/=mesh_dim(l_model)) cycle
-          
+
           if (sfields(i)%mesh%shape%degree /= 0) then
 
             call remap_field(from_field=sfields(i), to_field=l_model, stat=lstat)
@@ -509,7 +509,7 @@ contains
               end if
             end if
             ! we've just allowed remapping from a higher order to a lower order continuous field
-            
+
             call vtkwritesn(l_model%val, trim(sfields(i)%name))
 
           else
@@ -526,9 +526,9 @@ contains
             end if
 
           end if
-          
+
        end do
-       
+
       ! set first field to be active:
       if (size(sfields)>0) call vtksetactivescalars( sfields(1)%name )
     end if
@@ -556,23 +556,23 @@ contains
      end if
 
     !----------------------------------------------------------------------
-    ! Output ghost levels
+    ! Output values for the vtk CellGhostArray
     !----------------------------------------------------------------------
     if(element_halo_count(model_mesh) > 0) then
-       allocate(ghost_levels(element_count(model_mesh)))
-       ghost_levels = 0
+       allocate(ghosts(element_count(model_mesh)))
+       ghosts = 0
        do i=1, element_count(model_mesh)
-         if(.not. element_owned(model, i)) ghost_levels(i) = 1
+         if(.not. element_owned(model, i)) ghosts(i) = 1
        end do
-       
-       call vtkWriteGhostLevels(ghost_levels)
+
+       call vtkwritecellghostarray(ghosts)
     end if
 
-    
+
     !----------------------------------------------------------------------
     ! Output vector fields
-    !----------------------------------------------------------------------    
-    
+    !----------------------------------------------------------------------
+
     if (present(vfields)) then
        do i=1,size(vfields)
           if(trim(vfields(i)%name)=="Coordinate") then
@@ -608,7 +608,7 @@ contains
               end if
             end if
             ! we've just allowed remapping from a higher order to a lower order continuous field
-          
+
             do k=1, vfields(i)%dim
               v_field_buffer(:,k)=v_model(vfields(i)%dim)%val(k,:)
             end do
@@ -658,17 +658,17 @@ contains
 
     !----------------------------------------------------------------------
     ! Output tensor fields
-    !----------------------------------------------------------------------    
-    
+    !----------------------------------------------------------------------
+
     if (present(tfields)) then
 
        do i=1,size(tfields)
           dim = tfields(i)%dim(1)
           ! Can't output non-square tensors.
           if(tfields(i)%dim(1)/=tfields(i)%dim(2)) cycle
-          
+
           if(tfields(i)%dim(1)/=t_model%dim(1)) cycle
-          
+
           if(tfields(i)%mesh%shape%degree /= 0) then
 
             call remap_field(from_field=tfields(i), to_field=t_model, stat=lstat)
@@ -697,7 +697,7 @@ contains
               end if
             end if
             ! we've just allowed remapping from a higher order to a lower order continuous field
-            
+
             allocate(tensor_values(node_count(t_model), 3, 3))
             tensor_values=0.0
             do j=1,dim
@@ -705,7 +705,7 @@ contains
                 tensor_values(:, j, k) = t_model%val(j, k, :)
               end do
             end do
-  
+
             call vtkwritetn(tensor_values(:, 1, 1), &
                             tensor_values(:, 1, 2), &
                             tensor_values(:, 1, 3), &
@@ -752,10 +752,10 @@ contains
         end if
 
        end do
-       
+
       ! set first field to be active:
       if (size(tfields)>0) call vtksetactivetensors( tfields(1)%name )
-      
+
     end if
 
 
@@ -774,7 +774,7 @@ contains
     else
        call vtkclose()
     end if
-    
+
   end subroutine vtk_write_fields
 
   function fluidity_mesh2vtk_numbering(ndglno, element) result (renumber)
@@ -812,7 +812,7 @@ contains
     end forall
 
   end function vtk_mesh2fluidity_numbering
-  
+
   function vtk_element_type(element) result (type)
     ! Return the vtk element type corresponding to element.
     ! return 0 if no match is found.
@@ -912,7 +912,7 @@ contains
     ! to that expected by VTK.
     type(element_type), intent(in) :: element
     integer, dimension(element%loc) :: order
-    
+
     integer :: type
 
     type=vtk_element_type(element)
@@ -931,15 +931,13 @@ contains
     case(VTK_QUADRATIC_TRIANGLE)
        order=(/1,3,6,2,5,4/)
     case(VTK_QUAD)
-       ! this is already reordered inside libvtkfortran :(
-       order=(/1,2,3,4/)
+       order=(/1,2,4,3/)
     case(VTK_TETRA)
        order=(/1,2,3,4/)
     case(VTK_QUADRATIC_TETRA)
        order=(/1,3,6,10,2,5,4,7,8,9/)
     case(VTK_HEXAHEDRON)
-       ! this is already reordered inside libvtkfortran :(
-       order=(/1,2,3,4,5,6,7,8/)
+       order=(/1,2,4,3,5,6,8,7/)
     ! NOTE: quadratic quads and hexes are not supported as
     ! vtk quadratic quads/hexes are only quadratic along the edges
     ! i.e. there are no internal nodes.
@@ -988,7 +986,7 @@ contains
 
     ! needed for fgetvtksizes, to tell it to work out the dimension
     dim = 0
-    
+
     call vtk_get_sizes(trim(filename), len_trim(filename), nodes, elements,&
          & sz_enlist, nfield_components, nprop_components, &
          & nfields, nprops, dim, maxnamelen)
@@ -1031,7 +1029,7 @@ contains
     if (present(quad_degree)) then
        quaddegree=quad_degree
     end if
-    
+
     allocate(X(nodes), Y(nodes), Z(nodes))
     allocate(FIELDS(nodes, nfield_components), PROPERTIES(elements, nprop_components))
     allocate(field_components(nfields), prop_components(nprops))
@@ -1072,7 +1070,7 @@ contains
        nvertices=nloc
        degree=1
     end if
-    
+
     quad = make_quadrature(vertices=nvertices, dim=dim, degree=quaddegree)
     shape = make_element_shape(vertices=nvertices, dim=dim, degree=degree, quad=quad)
     call allocate(mesh, nodes, elements, shape, name="Mesh")
@@ -1094,7 +1092,7 @@ contains
     end if
 
     call insert(state, position_field, "Coordinate")
-    
+
     if (nprops>0) then
       ! cell-wise data is stored in the arrays properties(:,1:nprops)
       ! this is returned as fields on a p0 mesh
@@ -1103,11 +1101,11 @@ contains
       call deallocate(shape)
       call insert(state, p0_mesh, name="P0Mesh")
     end if
-    
+
     ! insert point-wise fields
     call vtk_insert_fields_in_state(state, &
       mesh, field_components, fields, field_names, dim)
-      
+
     if (nprops>0) then
       ! insert cell-wise fields
       call vtk_insert_fields_in_state(state, &
@@ -1124,7 +1122,7 @@ contains
     call deallocate(position_field)
 
   end subroutine vtk_read_state
-    
+
   subroutine vtk_insert_fields_in_state(state, &
     mesh, components, fields, names, ndim)
   ! insert the fields returned by vtk_read_file in state
@@ -1134,17 +1132,17 @@ contains
     real, dimension(:,:):: fields
     character(len=*), dimension(:), intent(in):: names
     integer, intent(in):: ndim
-    
+
     type(tensor_field):: tfield
     type(vector_field):: vfield
     type(scalar_field):: sfield
     integer:: i, j, k, component, ndim2
-    
+
     component = 1
     do i=1, size(names)
-      
+
       if (components(i)==9 .or. components(i)==4) then
-        
+
         if (components(i)==9) then
           ndim2=3
         else
@@ -1164,7 +1162,7 @@ contains
         end do
         call insert(state, tfield, names(i))
         call deallocate(tfield)
-        
+
       else if (components(i)==2 .or. components(i)==3) then
         ! Let's make a vector field.
         call allocate(vfield, ndim, mesh, NAMES(i))
@@ -1177,7 +1175,7 @@ contains
         end do
         call insert(state, vfield, NAMES(i))
         call deallocate(vfield)
-        
+
       else if (components(i)==1) then
         ! a scalar field
         call allocate(sfield, mesh, names(i))
@@ -1185,35 +1183,35 @@ contains
         call insert(state, sfield, names(i))
         component = component+1
         call deallocate(sfield)
-        
+
       else
-      
+
         ewrite(-1,*) "In vtk_read_state ***"
         ewrite(-1,*) "Field ", trim(names(i)), " has ", components(i), " components."
         FLAbort("Don't know what to do with that number of components")
-        
+
       end if
-      
+
     end do
-    
+
   end subroutine vtk_insert_fields_in_state
-    
+
   subroutine vtk_write_surface_mesh(filename, index, position)
     character(len=*), intent(in):: filename
     integer, intent(in), optional:: index
     type(vector_field), intent(in), target:: position
-      
+
     type(vector_field):: surface_position
     type(scalar_field), dimension(:), allocatable:: sfields
     type(mesh_type), pointer:: mesh
     type(mesh_type):: pwc_mesh
     integer, dimension(:), allocatable:: surface_element_list
     integer:: i
-    
+
     if (position%dim==1) return
 
-    mesh => position%mesh    
-    
+    mesh => position%mesh
+
     assert( has_faces(mesh) )
     pwc_mesh = piecewise_constant_mesh(mesh%faces%surface_mesh, "PWCSurfaceMesh")
     if (associated(mesh%faces%coplanar_ids)) then
@@ -1221,66 +1219,66 @@ contains
     else
       allocate( sfields(1) )
     end if
-    
+
     call allocate( sfields(1), pwc_mesh, name="BoundaryIDs")
     call set(sfields(1), (/ ( i, i=1,node_count(pwc_mesh)) /), &
       float(mesh%faces%boundary_ids))
-    
+
     if (associated(mesh%faces%coplanar_ids)) then
       call allocate( sfields(2), pwc_mesh, name="CoplanarIDs")
       call set(sfields(2), (/ ( i, i=1,node_count(pwc_mesh)) /), &
         float(mesh%faces%coplanar_ids))
     end if
     call deallocate(pwc_mesh)
-    
+
     allocate(surface_element_list(1:surface_element_count(position)))
     call allocate(surface_position, position%dim, mesh%faces%surface_mesh, "SurfacePositions")
     do i=1, surface_element_count(position)
       surface_element_list(i)=i
     end do
     call remap_field_to_surface(position, surface_position, surface_element_list)
-        
+
     call vtk_write_fields(filename, index=index, position=surface_position, &
       model=mesh%faces%surface_mesh, sfields=sfields)
-      
+
     call deallocate(sfields(1))
     if (associated(mesh%faces%coplanar_ids)) then
       call deallocate(sfields(2))
     end if
     call deallocate(surface_position)
-    
-    deallocate(sfields, surface_element_list)    
-    
+
+    deallocate(sfields, surface_element_list)
+
   end subroutine vtk_write_surface_mesh
-    
+
   subroutine vtk_write_internal_face_mesh(filename, index, position, face_sets)
     character(len=*), intent(in):: filename
     integer, intent(in), optional:: index
     type(vector_field), intent(in), target:: position
     type(integer_set), dimension(:), intent(in), optional :: face_sets
-    
+
     type(vector_field):: face_position
     type(mesh_type):: face_mesh, pwc_mesh
     integer:: i, j, faces, nloc
     type(scalar_field), dimension(:), allocatable :: sfields
     integer :: face, opp_face
-    
+
     if (position%dim==1) return
 
     ! this isn't really exposed through the interface
     faces=size(position%mesh%faces%face_element_list)
-    
+
     nloc=face_loc(position,1)
-    
+
     call allocate( face_mesh, node_count(position), faces, &
       position%mesh%faces%shape, name="InternalFaceMesh")
-      
+
     do i=1, faces
       face_mesh%ndglno( (i-1)*nloc+1:i*nloc ) = face_global_nodes(position, i)
     end do
-      
+
     call allocate( face_position, position%dim, face_mesh, name="InternalFaceMeshCoordinate")
-    
+
     ! the node number is the same, so we can just copy, even though the mesh is entirely different
     do i=1, position%dim
       face_position%val(i,:)=position%val(i,:)
@@ -1309,17 +1307,17 @@ contains
       do i=1,size(face_sets)
         call deallocate(sfields(i))
       end do
-      
+
       deallocate(sfields)
       call deallocate(pwc_mesh)
     else
       call vtk_write_fields(filename, index=index, position=face_position, &
         model=face_mesh)
     end if
-    
+
     call deallocate(face_position)
     call deallocate(face_mesh)
-    
+
   end subroutine vtk_write_internal_face_mesh
 
 end module vtk_interfaces
