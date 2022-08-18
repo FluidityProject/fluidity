@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-import sys
 
 import vtktools
-from numpy import abs, amax, array, exp, max, pi, sin, size, sqrt, zeros
+from numpy import abs, max, size, sqrt, zeros
 
 
 def tetvol(X, Y, Z):
@@ -56,7 +55,6 @@ def l2(file, numericalfield, analyticalfield):
     err_x = ex - uv
 
     norm_x = 0.0
-    diff = zeros(size(x), float)
     for nod in range(size(x)):
         norm_x = norm_x + ML[nod] * (err_x[nod]) ** 2
 

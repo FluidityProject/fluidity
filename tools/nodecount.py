@@ -11,7 +11,7 @@ def try_int(s):
     "Convert to integer if possible."
     try:
         return int(s)
-    except:
+    except Exception:
         return s
 
 
@@ -20,6 +20,10 @@ def natsort_key(s):
     import re
 
     return map(try_int, re.findall(r"(\d+|\D+)", s))
+
+
+def cmp(a, b):
+    return (a > b) - (a < b)
 
 
 def natcmp(a, b):

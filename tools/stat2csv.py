@@ -16,7 +16,7 @@ sys.path.insert(
     0,
     os.path.join(os.path.dirname(__file__), os.pardir, "tools"),
 )
-import fluidity_tools
+import fluidity_tools  # noqa: E402
 
 
 def Help():
@@ -77,7 +77,7 @@ except getopt.GetoptError:
 
 try:
     inputFile = args[0]
-except:
+except IndexError:
     Help()
     sys.exit(1)
 

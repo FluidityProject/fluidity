@@ -10,13 +10,15 @@ import diamond.schema as schema
 
 def Help():
     debug.dprint(
-        "Usage: update_options [OPTIONS] ... [FILES]\n"
-        + "\n"
-        + "Updates flml, and adml files. If FILES is not specified, all .flml, and .adml files in\n"
-        + "tests/*/., tests/*/*/., longtests/*/., longtests/*/*/. and examples/*/. will be updated. Options:\n"
-        + "\n"
-        + "-h  Display this help\n"
-        + "-v  Verbose mode",
+        """Usage: update_options [OPTIONS] ... [FILES]
+
+Updates flml, and adml files. If FILES is not specified, all .flml, and .adml files in
+tests/*/., tests/*/*/., longtests/*/., longtests/*/*/. and examples/*/. will be updated.
+
+Options:
+
+-h  Display this help
+-v  Verbose mode""",
         0,
     )
 

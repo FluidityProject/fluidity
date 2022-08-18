@@ -3,14 +3,14 @@
 import getopt
 import sys
 
+import vtktools
+
 try:
     import psyco
 
     psyco.full()
-except:
+except Exception:
     pass
-
-import vtktools
 
 
 def EPrint(message):
@@ -32,11 +32,14 @@ def Help():
     print(
         "Usage: vtudiff [OPTIONS] ... INPUT1 INPUT2 OUTPUT [FIRST] [LAST]\n"
         + "\n"
-        + "Generates vtus with fields equal to the difference between the corresponding\n"
-        + "fields in two input vtus (INPUT1 - INPUT2). The fields of INPUT2 are projected\n"
+        + "Generates vtus with fields equal to the difference between the"
+        " corresponding\n"
+        + "fields in two input vtus (INPUT1 - INPUT2). The fields of INPUT2 are"
+        " projected\n"
         + "onto the cell points of INPUT1.\n"
         + "\n"
-        + "If FIRST is supplied, treats INPUT1 and INPUT2 as project names, and generates\n"
+        + "If FIRST is supplied, treats INPUT1 and INPUT2 as project names, and"
+        " generates\n"
         + "a different vtu for the specified range of output files.\n"
         + "\n"
         + "Options:\n"
@@ -62,7 +65,7 @@ def Error(message, displayHelp=True):
 
 try:
     opts, args = getopt.getopt(sys.argv[1:], "ms")
-except:
+except Exception:
     Help()
     sys.exit(1)
 
@@ -75,7 +78,7 @@ try:
     inputFilename1 = args[0]
     inputFilename2 = args[1]
     outputFilename = args[2]
-except:
+except IndexError:
     Help()
     sys.exit(1)
 
@@ -85,11 +88,11 @@ if len(args) > 3:
         if len(args) > 4:
             try:
                 lastId = int(args[4])
-            except:
+            except Exception:
                 Error("Invalid last ID entered")
         else:
             lastId = firstId
-    except:
+    except Exception:
         Error("Invalid first ID entered")
 else:
     firstId = None
@@ -116,18 +119,18 @@ else:
 for i in range(len(inputFilenames1)):
     try:
         vtu1 = vtktools.vtu(inputFilenames1[i])
-    except:
+    except Exception:
         Error('Unable to read input vtu "' + inputFilenames1[i] + '"', False)
     try:
         vtu2 = vtktools.vtu(inputFilenames2[i])
-    except:
+    except Exception:
         Error('Unable to read input vtu "' + inputFilenames2[i] + '"', False)
 
     diffVtu = vtktools.VtuDiff(vtu1, vtu2, outputFilenames[i])
 
     try:
         diffVtu.Write()
-    except:
+    except Exception:
         Help()
         Error('Unable to write output file "' + outputFilenames[i] + '"', False)
 

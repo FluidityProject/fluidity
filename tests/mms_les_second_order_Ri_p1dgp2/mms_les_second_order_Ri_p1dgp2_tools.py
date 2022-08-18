@@ -1,4 +1,4 @@
-from math import cos, pi, sin, sqrt, tanh
+from math import cos, sin
 
 
 def nu_T(X):

@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-import os.path
-import re
 import sys
 from optparse import OptionParser
 
@@ -15,7 +13,6 @@ def write_side_boundary(
     mesh, face_start, start, stride1, stride2, N1, N2, boundarymarker
 ):
     # adds the faces of one side of the box to the .face file
-    face_number = face_start
     for i2 in range(N2 - 1):
         for i1 in range(N1 - 1):
             node1 = start + i1 * stride1 + i2 * stride2 + 1
@@ -38,7 +35,8 @@ def write_side_boundary(
 # Script starts here.
 optparser = OptionParser(
     add_help_option=True,
-    description="""Creates mesh that lines up in all directions, so that you can make it into a singly, doubly or triply periodic mesh.""",
+    description="""Creates mesh that lines up in all directions, so that you can make it
+into a singly, doubly or triply periodic mesh.""",
 )
 
 optparser.set_usage(
@@ -81,9 +79,7 @@ dz = Lz / (Nz - 1)
 # We're building a 3D mesh
 mesh = meshes.Mesh(3)
 
-
-###
-### Add node coordinates
+# Add node coordinates
 for i in range(nodes):
     zlayer = int(i / (Nx * Ny))
     j = i - zlayer * (Nx * Ny)
@@ -95,8 +91,7 @@ for i in range(nodes):
     column = j + 1
     mesh.AddNodeCoord([x, y, z])
 
-###
-### Create and add facets / surface elements
+# Create and add facets / surface elements
 faces = 4 * ((Nx - 1) * (Ny - 1) + (Ny - 1) * (Nz - 1) + (Nx - 1) * (Nz - 1))
 # bottom side
 face_number = 1
@@ -117,8 +112,7 @@ face_number = face_number + 2 * (Ny - 1) * (Nz - 1)
 # right side
 write_side_boundary(mesh, face_number, Nx - 1, Nx, Nx * Ny, Ny, Nz, 6)
 
-###
-### Create and add volume elements
+# Create and add volume elements
 elements = 6 * (Nx - 1) * (Ny - 1) * (Nz - 1)
 region_id = 0  # this doesn't change at the moment
 ele_number = 1

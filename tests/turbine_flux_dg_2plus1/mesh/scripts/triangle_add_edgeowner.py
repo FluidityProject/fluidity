@@ -2,13 +2,12 @@
 import copy
 import sys
 
-import numpy
 import triangle
-from sets import Set
 
 # input surface_id, filename
 
-# 5.5.2010: this script adds a new attribute to the .edge file which holds the "owner" element number of this edge
+# 5.5.2010: this script adds a new attribute to the .edge file which holds the "owner"
+# element number of this edge
 
 
 # Here is an examle geo file for this script:
@@ -57,13 +56,14 @@ from sets import Set
 # Physical Surface(12) = {11, 12};
 
 
-########################################################################################################
+########################################################################################
 def nodedupl_recursion(elein, edgein, nodeid, boundary_id):
-    global copy_eles, copy_edges, copy_nodes, debug, copy_surface_ids, copy_surface_id, copy_surfaceowner_ids, copy_region_ids
+    global copy_eles, copy_edges, copy_nodes, debug, copy_surface_ids, copy_surface_id
+    global copy_surfaceowner_ids, copy_region_ids
 
     next_edgein = triangle.get_partner_edge(edgein, nodeid, boundary_id)
 
-    if next_edgein == None:
+    if next_edgein is None:
         print("Reached one end of the surface boundary.")
         return
     if debug > 1:
@@ -82,7 +82,7 @@ def nodedupl_recursion(elein, edgein, nodeid, boundary_id):
     if debug > 1:
         print("Duplicate edge ", next_edgein + 1)
     copy_edges.append(triangle.edges[next_edgein])
-    copy_surface_ids.append(new_surface_id)
+    # copy_surface_ids.append(new_surface_id)
     copy_surfaceowner_ids.append(
         next_elein_list[len(next_elein_list) - 1] + 1
     )  # update copy_surfaceowner_ids for the new edge
@@ -108,12 +108,13 @@ def nodedupl_recursion(elein, edgein, nodeid, boundary_id):
     )
 
 
-########################################################################################################
+########################################################################################
 if not len(sys.argv) == 2:
     print("Usage: seperate_internal_boundary.py file")
     print("")
     print(
-        "output fixed .edge, .ele and .node file with new edge attribute holding the element owner of the edge. "
+        "output fixed .edge, .ele and .node file with new edge attribute holding the"
+        " element owner of the edge. "
     )
     print("")
     print("The outout files will be have the suffix edgow")

@@ -13,22 +13,36 @@ optparser = OptionParser(
 )
 
 optparser.set_usage(
-    "Usage:\n"
-    + "  %prog (<constants>) (<region>) <transformation> <mesh>\n"
-    + "<constants>       is a list of constant associations separated by commas, for use in region and transformation (optional, although when specified, <region> is required - use 'True' for whole domain (i.e. the default behaviour)).\n"
-    + "<region>          is a python expression which evaluates to true over the region to be transformed (optional, default is True - i.e. the whole domain).\n"
-    + "<transformation>  is a python expression giving the coordinate transformation.\n"
-    + "<mesh>            is the name of the gmsh mesh file.\n"
-    + "Note: Creates a backup of the original mesh file with a '.bak' extension\n"
-    "\n" + "Examples\n"
-    "- To rescale the z-dimension by a factor of 1000.\n"
-    "  %prog '(x,y,1000*z)' mesh.msh\n"
-    "- To project all points that lie within a circle of centre (xcentre,ycentre) in z by a distance zprojection.\n"
-    "  %prog 'xcentre=50, ycentre=50, radius=20, zprojection=50' '(x-xcentre)**2 + (y-ycentre)**2 < radius**2' '(x, y, z+zprojection)' mesh.msh\n"
-    "- To project all points that lie within a circle of centre (xcentre,ycentre) in z in the shape of a cone, by a distance zprojection at the centre.\n"
-    "  %prog 'xcentre=50, ycentre=50, radius=20, zprojection=50' '(x-xcentre)**2 + (y-ycentre)**2 < radius**2' '(x, y, z + zprojection * (1 - sqrt((x-xcentre)**2 + (y-ycentre)**2) / radius ) )' mesh.msh\n"
-    "- To add an ice shelf to a meshed box for x in [0,shelflength] and z in [0,shelfslopeheight + minoceandepth].  Note this applies to both 2d and 3d domains and the ocean domain can extend further.\n"
-    "  %prog 'shelflength = 550, shelfslopeheight = 800, minoceandepth = 100' 'x < shelflength' '(x, y, (z/(shelfslopeheight + minoceandepth)) * ((x/shelflength) * shelfslopeheight + minoceandepth))' mesh.msh\n"
+    """Usage:
+  %prog (<constants>) (<region>) <transformation> <mesh>
+<constants>       is a list of constant associations separated by commas, for use in
+                  region and transformation (optional, although when specified, <region>
+                  is required - use 'True' for whole domain -> the default behaviour).
+<region>          is a python expression which evaluates to true over the region to be
+                  transformed (optional, default is True - i.e. the whole domain).
+<transformation>  is a python expression giving the coordinate transformation.
+<mesh>            is the name of the gmsh mesh file.
+Note: Creates a backup of the original mesh file with a '.bak' extension
+
+Examples
+- To rescale the z-dimension by a factor of 1000.
+  %prog '(x,y,1000*z)' mesh.msh
+- To project all points that lie within a circle of centre (xcentre,ycentre) in z by a
+  distance zprojection.
+  %prog 'xcentre=50, ycentre=50, radius=20, zprojection=50' '(x-xcentre)**2
+  + (y-ycentre)**2 < radius**2' '(x, y, z+zprojection)' mesh.msh
+- To project all points that lie within a circle of centre (xcentre,ycentre) in z in the
+  shape of a cone, by a distance zprojection at the centre.
+  %prog 'xcentre=50, ycentre=50, radius=20, zprojection=50' '(x-xcentre)**2
+  + (y-ycentre)**2 < radius**2' '(x, y, z + zprojection * (1 - sqrt((x-xcentre)**2
+  + (y-ycentre)**2) / radius ) )' mesh.msh
+- To add an ice shelf to a meshed box for x in [0,shelflength] and z in
+  [0,shelfslopeheight + minoceandepth].  Note this applies to both 2d and 3d domains and
+  the ocean domain can extend further.
+  %prog 'shelflength = 550, shelfslopeheight = 800, minoceandepth = 100'
+  'x < shelflength' '(x, y, (z/(shelfslopeheight + minoceandepth)) * ((x/shelflength)
+  * shelfslopeheight + minoceandepth))' mesh.msh
+"""
 )
 
 (options, argv) = optparser.parse_args()

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import argparse
 
+import numpy as np
 import vtktools
-from pylab import *
 
 parser = argparse.ArgumentParser(
     description="Project a .vtu from the sphere to a plane."
@@ -26,7 +26,8 @@ parser.add_argument(
     dest="earth_radius",
     default=None,
     type=float,
-    help="Radius of the earth, used to determine z=0 level (default: maximum l2norm of input x,y,z coordinates)",
+    help="""Radius of the earth, used to determine z=0 level (default: maximum l2norm of
+input x,y,z coordinates)""",
 )
 parser.add_argument(
     "-inv",
@@ -38,31 +39,28 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-deg2rad = 180 / pi
-
 if args.inverse:
     raise Exception("Inverse operation not coded yet.")
 
 print("Performing spherical to planar")
-for vtu in range(size(args.input_vtu)):
-    vtu_name = args.input_vtu[vtu]
+for vtu_name in args.input_vtu:
     output_filename = args.output_prefix + vtu_name
     vtu_object = vtktools.vtu(vtu_name)
     print("Done importing ", vtu_name)
 
     pos = vtu_object.GetLocations()
-    radius = sqrt(sum(pos**2, axis=1))
+    radius = np.sqrt(sum(pos**2, axis=1))
     if args.earth_radius is None:
         rearth = radius.max()
     else:
         rearth = args.earth_radius
     print("Earth radius = ", rearth)
 
-    theta = arccos(pos[:, 2] / radius)
-    theta = pi / 2.0 - theta
-    phi = arctan2(pos[:, 1], pos[:, 0])
-    new_pos = array(
-        [phi * deg2rad, theta * deg2rad, (radius - rearth) / args.depth_scale]
+    theta = np.arccos(pos[:, 2] / radius)
+    theta = np.pi / 2.0 - theta
+    phi = np.arctan2(pos[:, 1], pos[:, 0])
+    new_pos = np.array(
+        [np.rad2deg(phi), np.rad2deg(theta), (radius - rearth) / args.depth_scale]
     ).T
 
     for i in range(len(new_pos)):

@@ -9,7 +9,8 @@ def addAdditionalIds(mesh):
     # only modify the tags of the surface elements:
     for ele in mesh.GetSurfaceElements():
         ids = ele.GetIds()
-        # squeezing in two zeros, first is tag is the physical ID, last one is the ElementOwner (ID):
+        # squeezing in two zeros, first is tag is the physical ID, last one is the
+        # ElementOwner (ID):
         ele.SetIds([ids[0], 0, 0, ids[1]])
 
 

@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
-import copy
 import sys
 
-import numpy
 import triangle
 from sets import Set
 
 # input surface_id, filename
 
 
-# This scripts removes superposed nodes, including elements and edges, in a triangle file set.
+# This scripts removes superposed nodes, including elements and edges, in a triangle
+# file set.
 # It should be called before seperate_internal_boundary2.py to avoid empty elements
 #
 # Changelog:
 # 4.4.10 Initial version
 # 5.5.10 Some more detailed help
-# 5.5.10 Version 2 of this script can handle .edge with (more than just the boundary id) attributes.
+# 5.5.10 Version 2 of this script can handle .edge with (more than just the boundary id)
+# attributes.
 #
 
 
@@ -69,18 +69,16 @@ from sets import Set
 #  triangle_add_edgeowner.py mesh4
 #  triangle_remove_superposed_nodes2.py mesh4_edgow 23
 
-########################################################################################################
+########################################################################################
 if not len(sys.argv) == 3:
-    print("Usage: seperate_internal_boundary.py file boundary_id")
-    print("")
     print(
-        "output fixed .ele and .node file with removed superposed nodes on the given boundary"
+        """Usage: seperate_internal_boundary.py file boundary_id
+
+output fixed .ele and .node file with removed superposed nodes on the given boundary
+
+The nodes have to have a distance less than 1e-8 to be considered as superposed
+The outout files will be have the suffix nosup"""
     )
-    print("")
-    print(
-        "The nodes have to have a distance less than 1e-8 to be considered as superposed"
-    )
-    print("The outout files will be have the suffix nosup")
 
     exit()
 
@@ -143,7 +141,7 @@ for nodeid in nodeid_to_test:
                 if len(Set(triangle.edges[index])) != len(
                     triangle.edges[index]
                 ):  # We dont need edges with nodes k+1 and nodeid
-                    edgesid_del.add(index + 1)
+                    edgeid_del.add(index + 1)
                     print("Remove unnecessary edge ", index + 1)
 
 nodeid_delar = list(nodeid_del)
@@ -163,7 +161,7 @@ for e in edgeid_delar:
     triangle.delete_edgeid(e)
 for e in eleid_delar:
     triangle.delete_eleid(e)
-# Note: Delete nodes at last to make sure that they are not used by any elements or edges
+# Delete nodes at last to make sure that they are not used by any elements or edges
 for n in nodeid_delar:
     triangle.delete_nodeid(n)
 

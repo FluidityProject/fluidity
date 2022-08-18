@@ -6,8 +6,9 @@ import sys
 
 # List of dependencies we don't want in makefiles. Dependencies starting
 # with these strings will be dropped.
-dep_exclusions = [  # Because switching on and off mba changes the module files loaded, these
-    # are special-cased in the Makefiles.
+dep_exclusions = [
+    # Because switching on and off mba changes the module files loaded, these are
+    # special-cased in the Makefiles.
     "../include/mba2d_module.mod",
     "../include/mba3d_mba_nodal.mod",
     # Remove dependencies on confdefs.h because it causes
@@ -169,8 +170,7 @@ def generate_dependencies(fortran):
             pipe = os.popen(
                 'make GENFLAGS="-cpp -M -MF ' + obj + '_dependencies" ' + obj
             )
-            stdout = pipe.readlines()
-            if pipe.close() == None:
+            if pipe.close() is None:
 
                 this_deps = dependency_list(
                     obj, f, open(obj + "_dependencies", "r").readlines()
@@ -266,7 +266,7 @@ if __name__ == "__main__":
             elif os.path.isfile("Makefile.dependencies.old"):
                 raise OSError("Dependencies have disappeared!")
 
-    except:
+    except Exception:
         # If anything fails, move the previous makefiled dependencies back.
         os.system("mv Makefile.dependencies.old Makefile.dependencies")
 

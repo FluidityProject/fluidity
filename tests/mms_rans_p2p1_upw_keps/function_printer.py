@@ -2,15 +2,15 @@ import sys
 
 import matplotlib
 import matplotlib.pyplot as plt
-from mms_keps_p1p1_bouss_tools import *
-from numpy import *
+import numpy as np
 
 """
 run using:
 python3 function_printer.py AA BB CC DD .. n_rows
 where:
-	AA, BB, CC, DD are names of functions in mms_keps_p1p1_bouss_tools.py (any number can be entered)
-	n_rows is the number of rows to display the functions on
+    - AA, BB, CC, DD are names of functions in mms_keps_p1p1_bouss_tools.py
+      (any number can be entered)
+    - n_rows is the number of rows to display the functions on
 """
 
 functions = []
@@ -25,11 +25,11 @@ plt.subplots_adjust(
 )
 
 res = 50
-X = linspace(0.0, pi, res)
-Y = linspace(0.0, pi, res)
+X = np.linspace(0.0, np.pi, res)
+Y = np.linspace(0.0, np.pi, res)
 x = [0, 0]
 
-data = empty([len(functions), res, res])
+data = np.empty([len(functions), res, res])
 for z, function in enumerate(functions):
     for j, x[0] in enumerate(X):
         for i, x[1] in enumerate(Y):

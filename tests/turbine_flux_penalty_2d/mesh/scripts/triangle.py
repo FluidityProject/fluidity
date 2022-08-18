@@ -79,7 +79,7 @@ def save_edgefile(edges, atr1, filename):
             "Error in save_edgefile(): Length of edge list is ",
             len(edges),
             "  but length of atr1 list is: ",
-            len(par1),
+            len(atr1),
         )
         exit()
     k = 1
@@ -349,7 +349,8 @@ def get_eles_on_ele_side(elein, nodeid, edgein, boundary_id):
     global eles, edges
     if not has_ele_edge_on_boundaryid(elein, nodeid, boundary_id):
         print(
-            "Error in get_eles_on_ele_side: Given Element has no edge with secified boundary id"
+            "Error in get_eles_on_ele_side: Given Element has no edge with specified "
+            "boundary id"
         )
         sys.exit()
     ret = [elein]
@@ -417,5 +418,5 @@ def delete_eleid(eleid):
 def delete_edgeid(edgeid):
     global edges, surface_ids
     edges.pop(edgeid - 1)
-    surface_ids.pop(nodeid - 1)
-    edge_attribute1.pop(nodeid - 1)
+    surface_ids.pop(edgeid - 1)
+    edge_attribute1.pop(edgeid - 1)

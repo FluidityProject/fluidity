@@ -100,7 +100,7 @@ for file in diagFiles:
         args = newArgs
 
         for arg in args:
-            if not arg in diagnosticArguments:
+            if arg not in diagnosticArguments:
                 Error('For subroutine "' + name + '", invalid argument "' + arg + '"')
 
         if "state" in args:

@@ -1,4 +1,4 @@
-from math import cos, exp, pi, sin, sqrt, tanh
+from math import cos, exp, sin, sqrt
 
 
 def y_wall(X):

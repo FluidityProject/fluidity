@@ -25,11 +25,10 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
-import os
 import sys
 from optparse import OptionParser
 
-from numpy import *
+import numpy as np
 
 parser = OptionParser(
     usage="usage: %prog [options] left right name", add_help_option=True
@@ -73,7 +72,7 @@ try:
     right = float(argv[1])
     dx = options.dx
     name = argv[2]
-except:
+except Exception:
     parser.print_help()
     sys.exit(1)
 
@@ -86,7 +85,7 @@ if options.dx:
     dx = options.dx
     # This ensures the rightmost point is actually present.
     right = right + 0.01 * dx
-    nodes = arange(left, right, dx)
+    nodes = np.arange(left, right, dx)
 elif options.variable_dx:
     exec(open(options.variable_dx).read())
     nodes = [left]
@@ -98,7 +97,7 @@ else:
     dx = right - left
     # This ensures the rightmost point is actually present.
     right = right + 0.01 * dx
-    nodes = arange(left, right, dx)
+    nodes = np.arange(left, right, dx)
 
 if options.reverse:
     nodes = nodes[::-1]

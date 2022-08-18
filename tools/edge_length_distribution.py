@@ -6,9 +6,8 @@ import os
 import sys
 from optparse import OptionParser
 
-import numpy
+import matplotlib.pyplot as plt
 import vtktools
-from pylab import *
 
 #######################################################
 
@@ -18,7 +17,11 @@ def usage():
     parser = OptionParser(
         usage="Usage: %prog <filename> [options]",
         add_help_option=True,
-        description="This takes the vtus that begin with filename and plots a histogram of the distribution of edge lengths in those vtus. N.B. i) it will make and put plots in a folder called 'edge_length_distribution_plots' ii) it will write two log files 'time.log' and 'edge_lengths.log' to 'edge_length_distribution_plots', see option --plotonly for more information iii) it does not include checkpoint files",
+        description="""This takes the vtus that begin with filename and plots a
+histogram of the distribution of edge lengths in those vtus. N.B. i) it will make and
+put plots in a folder called 'edge_length_distribution_plots' ii) it will write two log
+files 'time.log' and 'edge_lengths.log' to 'edge_length_distribution_plots', see option
+--plotonly for more information iii) it does not include checkpoint files""",
     )
     #
     parser.add_option(
@@ -35,7 +38,8 @@ def usage():
         "--end",
         dest="end_vtu",
         type="int",
-        help="the last dump id of files to be included, if not used all vtus with id >= start_vtu will be included",
+        help="""the last dump id of files to be included, if not used all vtus with
+id >= start_vtu will be included""",
     )
     #
     parser.add_option(
@@ -68,7 +72,10 @@ def usage():
         "--plotonly",
         dest="plot_only",
         action="store_true",
-        help="will allow plots to be made from the data in the log files 'time.log' and 'edge_lengths.log' rather than extracting the information from the vtus as this can take a while. Note: you must have run the script once WITHOUT this option otherwise the log files will not exist",
+        help="""will allow plots to be made from the data in the log files 'time.log'
+and 'edge_lengths.log' rather than extracting the information from the vtus as this can
+take a while. Note: you must have run the script once WITHOUT this option otherwise the
+log files will not exist""",
     )
     #
     parser.add_option(
@@ -102,10 +109,10 @@ def GetFiles(filename, vtu_type):
     def key(s):
         return int(s.split("_")[-1].split(".")[0])
 
-    list = glob.glob("./" + filename + "*." + vtu_type)
-    list = [l for l in list if "checkpoint." + vtu_type not in l]
+    my_list = glob.glob("./" + filename + "*." + vtu_type)
+    my_list = [item for item in my_list if "checkpoint." + vtu_type not in item]
 
-    return sorted(list, key=key)
+    return sorted(my_list, key=key)
 
 
 ######################################################
@@ -140,13 +147,13 @@ def GetEdgeLengths(data):
 def PlotEdgeLengths(edge_lengths_all, time, options):
 
     for i in range(len(edge_lengths_all)):
-        figure(num=None, figsize=(16.5, 11.5))
-        hist(edge_lengths_all[i], options.no_bins)
-        xlabel("edge length")
-        ylabel("number of edges")
-        title("t = " + str(time[i]))
-        grid("True")
-        savefig(
+        plt.figure(num=None, figsize=(16.5, 11.5))
+        plt.hist(edge_lengths_all[i], options.no_bins)
+        plt.xlabel("edge length")
+        plt.ylabel("number of edges")
+        plt.title("t = " + str(time[i]))
+        plt.grid("True")
+        plt.savefig(
             "./edge_length_distribution_plots/edge_length_distribution_"
             + str(time[i])
             + ".png"
@@ -167,19 +174,19 @@ def PlotMaxMin(edge_lengths_all, time):
         min_edgelength.append(min(edge_lengths))
         max_edgelength.append(max(edge_lengths))
 
-    figure(num=None, figsize=(16.5, 11.5))
-    plot(time, min_edgelength)
-    xlabel("time")
-    ylabel("minimum edge length")
-    grid("True")
-    savefig("./edge_length_distribution_plots/min_edge_length.png")
+    plt.figure(num=None, figsize=(16.5, 11.5))
+    plt.plot(time, min_edgelength)
+    plt.xlabel("time")
+    plt.ylabel("minimum edge length")
+    plt.grid("True")
+    plt.savefig("./edge_length_distribution_plots/min_edge_length.png")
 
-    figure(num=None, figsize=(16.5, 11.5))
-    plot(time, max_edgelength)
-    xlabel("time")
-    ylabel("maximum edge length")
-    grid("True")
-    savefig("./edge_length_distribution_plots/max_edge_length.png")
+    plt.figure(num=None, figsize=(16.5, 11.5))
+    plt.plot(time, max_edgelength)
+    plt.xlabel("time")
+    plt.ylabel("maximum edge length")
+    plt.grid("True")
+    plt.savefig("./edge_length_distribution_plots/max_edge_length.png")
 
     return
 
@@ -193,12 +200,12 @@ def PlotCumulative(edge_lengths_all, options):
     for edge_lengths in edge_lengths_all:
         all_vals = all_vals + edge_lengths
 
-    figure(num=None, figsize=(16.5, 11.5))
-    hist(all_vals, options.no_bins)
-    xlabel("edge length")
-    ylabel("number of edges")
-    grid("True")
-    savefig("./edge_length_distribution_plots/cumulative_edge_lengths.png")
+    plt.figure(num=None, figsize=(16.5, 11.5))
+    plt.hist(all_vals, options.no_bins)
+    plt.xlabel("edge length")
+    plt.ylabel("number of edges")
+    plt.grid("True")
+    plt.savefig("./edge_length_distribution_plots/cumulative_edge_lengths.png")
 
     return
 
@@ -216,7 +223,7 @@ if len(args) < 1:
 filename = args[0]
 
 vtu_type = "vtu"
-if options.use_pvtu == True:
+if options.use_pvtu is True:
     vtu_type = "pvtu"
 filelist = GetFiles(filename, vtu_type)
 time = []
@@ -227,13 +234,15 @@ try:
 except OSError:
     pass
 
-if options.plot_only == True:
+if options.plot_only is True:
 
     try:
         time_log = open("edge_length_distribution_plots/time.log", "r")
     except IOError:
         print(
-            "\n No file 'edge_length_distribution_plots/time.log' \n Try running WITHOUT option --plotonly"
+            """
+No file 'edge_length_distribution_plots/time.log'
+Try running WITHOUT option --plotonly"""
         )
         sys.exit(1)
 
@@ -241,7 +250,9 @@ if options.plot_only == True:
         edge_lengths_log = open("edge_length_distribution_plots/edge_lengths.log", "r")
     except IOError:
         print(
-            "\n No file 'edge_length_distribution_plots/edge_lengths.log' \n Try running WITHOUT option --plotonly"
+            """
+No file 'edge_length_distribution_plots/edge_lengths.log'
+Try running WITHOUT option --plotonly"""
         )
         sys.exit(1)
 
@@ -250,14 +261,13 @@ if options.plot_only == True:
     for line in time_log:
         time.append(float(line.split("\n")[0]))
     for line in edge_lengths_log:
-        exec("l = %s" % line)
-        edge_lengths_all.append(l)
+        edge_lengths_all.append(line)
 
 else:
 
     time_log = open("edge_length_distribution_plots/time.log", "w")
     edge_lengths_log = open("edge_length_distribution_plots/edge_lengths.log", "w")
-    if options.end_vtu == None:
+    if options.end_vtu is None:
         options.end_vtu = len(filelist)
     for vtufile in filelist[options.start_vtu : options.end_vtu + 1]:
         data = vtktools.vtu(vtufile)
@@ -283,8 +293,8 @@ else:
 
 PlotEdgeLengths(edge_lengths_all, time, options)
 
-if options.plot_maxmin == True:
+if options.plot_maxmin is True:
     PlotMaxMin(edge_lengths_all, time)
 
-if options.plot_cumulative == True:
+if options.plot_cumulative is True:
     PlotCumulative(edge_lengths_all, options)

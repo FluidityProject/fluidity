@@ -17,19 +17,16 @@ import glob
 import itertools
 import os
 import shutil
-import string
 import sys
 
 import libspud
 
 
 def main():
-
     parser = argparse.ArgumentParser(
-        description="""This script produces the FLML and input files required for parameter """
-        + """sweeps. The user supplies a template file, output location and a text """
-        + """file that contains the option paths and parameter sets that are to be """
-        + """used."""
+        description="""This script produces the FLML and input files required for
+parameter sweeps. The user supplies a template file, output location and a text file
+that contains the option paths and parameter sets that are to be used."""
     )
 
     parser.add_argument(
@@ -39,16 +36,16 @@ def main():
         help="Verbose output: mainly progress reports",
         default=False,
     )
-    #    parser.add_argument(
-    #            "-m",
-    #            "--move-files",
-    #            help="A file to move along with the flml, for example forcing NetCDF, initialisation files, etc." +
-    #                 "Files will need to be in the template directory."+
-    #                 "\nYou do not need to move the mesh files.\n"+
-    #                 "Add as many -m flags as requried",
-    #            action="append",
-    #            dest="extras",
-    #            )
+    #     parser.add_argument(
+    #         "-m",
+    #         "--move-files",
+    #         help="""A file to move along with the flml, for example forcing NetCDF,
+    # initialisation files, etc. Files will need to be in the template directory.
+    # You do not need to move the mesh files.
+    # Add as many -m flags as requried""",
+    #         action="append",
+    #         dest="extras",
+    #     )
 
     # positional args:
     parser.add_argument(
@@ -57,11 +54,17 @@ def main():
     )
     parser.add_argument(
         "output_dir",
-        help="A directory where output will be stored. Will be created is it doesn't exist",
+        help=(
+            "A directory where output will be stored. Will be created is it doesn't"
+            " exist"
+        ),
     )
     parser.add_argument(
         "param_space_file",
-        help="A text file containing a human-readable name; option path; comma-seperated list of values",
+        help=(
+            "A text file containing a human-readable name; option path; comma-seperated"
+            " list of values"
+        ),
     )
 
     args = parser.parse_args()
@@ -73,14 +76,16 @@ def main():
     # check template dir exists
     if not os.path.exists(template_dir):
         print(
-            "Your template directory does not exist or you don't have permissions to read it"
+            "Your template directory does not exist or you don't have permissions to"
+            " read it"
         )
         sys.exit(-1)
 
     # check it contains an FLML
     if len(glob.glob(os.path.join(template_dir, "*.flml"))) == 0:
         print(
-            "Your template directory does not contain an FLML file. Can't do much without it."
+            "Your template directory does not contain an FLML file. Can't do much"
+            " without it."
         )
         sys.exit(-1)
     elif len(glob.glob(template_dir + "*.flml")) > 1:
@@ -92,7 +97,8 @@ def main():
     direc = template_dir.rsplit("/")[0]
 
     # then we have the output directory
-    # We'll create a dir called "runs" and dump output in there, with a directory listing file
+    # We'll create a dir called "runs" and dump output in there, with a directory
+    # listing file
     # strip of any trailing /
     if output_dir[-1] == "/":
         output_dir = output_dir[:-1]
@@ -142,14 +148,13 @@ def main():
 
 # set up parameter space
 def read_param_space(param_space_file):
-
     f = open(param_space_file, "r")
 
     param_space = []
     paths = []
     names = []
-    for l in f:
-        line = l.strip()
+    for raw_line in f:
+        line = raw_line.strip()
         data = line.split(";")
         name = data[0]
         path = data[1]
@@ -162,15 +167,11 @@ def read_param_space(param_space_file):
 
 
 def gen_param_combinations(param_space):
-
     # thought this was going to be difficult, but it's one line...
     return list(itertools.product(*param_space))
 
 
 def gen_flmls(params, template_dir, output_dir, paths, names, verbose):
-
-    import types
-
     # get flml file from template_dir - first one we come across
     # If you have more in there, tough.
     full_flml = glob.glob(os.path.join(template_dir, "*.flml"))[0]
@@ -211,7 +212,6 @@ def gen_flmls(params, template_dir, output_dir, paths, names, verbose):
             # get type
             path_type = libspud.get_option_type(path)
             path_rank = libspud.get_option_rank(path)
-            path_shape = libspud.get_option_shape(path)
             if path_type is float and path_rank == 0:
                 libspud.set_option(path, float(p_set[i]))
             elif path_rank == 1 and path_type is float:

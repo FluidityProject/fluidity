@@ -1,29 +1,29 @@
 #!/usr/bin/env python3
 import glob
+import multiprocessing
 import os.path
 import sys
 import time
+import traceback
+import xml.parsers.expat
 from io import StringIO
 
 try:
     import fluidity.regressiontest as regressiontest
 except ImportError:
-    # try again by adding the path "../python" relative to testharness' own location to sys.path
+    # try again by adding the path "../python" relative to testharness' own location to
+    # sys.path
     head, tail = os.path.split(sys.argv[0])
     python_path = os.path.abspath(os.path.join(head, "..", "python"))
     sys.path.append(python_path)
     import fluidity.regressiontest as regressiontest
 
-import multiprocessing
-import traceback
 
 try:
     import Queue
 except ImportError:
     import queue as Queue
 
-import string
-import xml.parsers.expat
 
 try:
     from junit_xml import TestCase, TestSuite
@@ -48,7 +48,6 @@ except ImportError:
 sys.path.insert(
     0, os.path.join(os.getcwd(), os.path.dirname(sys.argv[0]), os.pardir, "python")
 )
-import fluidity.regressiontest as regressiontest
 
 try:
     import xml.etree.ElementTree as etree
@@ -89,8 +88,6 @@ class TestHarness:
         self.iolock = multiprocessing.Lock()
         self.xml_outfile = xml_outfile
         self.exit_fails = exit_fails
-
-        fluidity_command = self.decide_fluidity_command()
 
         if file == "":
             print("Test criteria:")
@@ -144,7 +141,7 @@ class TestHarness:
             files = None
 
         if files:
-            for (subdir, xml_file) in [os.path.split(x) for x in xml_files]:
+            for subdir, xml_file in [os.path.split(x) for x in xml_files]:
                 temp_files = files
                 for file in temp_files:
                     if xml_file == file:
@@ -166,7 +163,8 @@ class TestHarness:
                 sys.exit(1)
             return
 
-        # step 3. form a cut-down list of the xml files matching the correct length and the correct parallelism.
+        # step 3. form a cut-down list of the xml files matching the correct length and
+        # the correct parallelism.
         working_set = []
         for xml_file in xml_files:
             p = etree.parse(xml_file)
@@ -227,7 +225,7 @@ class TestHarness:
         else:
             tagged_set = working_set
 
-        for (subdir, xml_file) in [os.path.split(x) for x in tagged_set]:
+        for subdir, xml_file in [os.path.split(x) for x in tagged_set]:
             # need to grab nprocs here to pass through to modify_command_line
             p = etree.parse(os.path.join(subdir, xml_file))
             prob_defn = p.findall("problem_definition")[0]
@@ -281,11 +279,15 @@ class TestHarness:
                 else:
                     flucmd = debugBinary
 
-                # no longer valid since debugging doesn't change the name - any suitable alternative tests?
+                # no longer valid since debugging doesn't change the name - any suitable
+                # alternative tests?
                 # if self.valgrind is True:
-                #  if flucmd != debugBinary:
-                #     print("Error: you really should compile with debugging for use with valgrind!")
-                #     sys.exit(1)
+                #     if flucmd != debugBinary:
+                #         print(
+                #             "Error: you really should compile with debugging for use"
+                #             " with valgrind!"
+                #         )
+                #         sys.exit(1)
 
                 return flucmd
 
@@ -296,7 +298,7 @@ class TestHarness:
         print(flucmd)
 
         def f(s):
-            if not flucmd in [None, "fluidity"]:
+            if flucmd not in [None, "fluidity"]:
                 s = s.replace("fluidity ", flucmd + " ")
 
             if self.valgrind:
@@ -307,7 +309,8 @@ class TestHarness:
                     + s
                 )
 
-            # when calling genpbs, genpbs should take care of inserting the right -n <NPROCS> magic
+            # when calling genpbs, genpbs should take care of inserting the right
+            # -n <NPROCS> magic
             if not self.genpbs:
                 s = s.replace("mpiexec ", "mpiexec -n %(nprocs)d " % {"nprocs": nprocs})
 
@@ -316,7 +319,7 @@ class TestHarness:
         return f
 
     def log(self, str):
-        if self.verbose == True:
+        if self.verbose is True:
             print(str)
 
     def clean(self):
@@ -396,7 +399,7 @@ class TestHarness:
                             test.fl_logs(nLogLines=0)
                         try:
                             self.teststatus += test.test()
-                        except:
+                        except Exception:
                             self.log(
                                 "Error: %s raised an exception while testing:"
                                 % test.filename
@@ -488,7 +491,7 @@ class TestHarness:
                     self.teststatus += ["W"]
                     test.pass_status = ["W"]
 
-            except:
+            except Exception:
                 self.log("Error: %s raised an exception while running:" % test.filename)
                 lines = traceback.format_exception(
                     sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
@@ -504,7 +507,7 @@ class TestHarness:
                     print(buf.read())
 
     def list(self):
-        for (subdir, test) in self.tests:
+        for subdir, test in self.tests:
             print(os.path.join(subdir, test.filename))
 
 
@@ -523,7 +526,9 @@ if __name__ == "__main__":
         "-p",
         "--parallelism",
         dest="parallel",
-        help="parallelism of problem: options are serial, parallel or any (default=any)",
+        help=(
+            "parallelism of problem: options are serial, parallel or any (default=any)"
+        ),
         default="any",
     )
     parser.add_option(
@@ -668,10 +673,12 @@ if __name__ == "__main__":
             print("I see you are using valgrind!")
             print("A couple of points to remember.")
             print(
-                "a) The log file will be produced in the directory containing the tests."
+                "a) The log file will be produced in the directory containing the"
+                " tests."
             )
             print(
-                "b) Valgrind typically takes O(100) times as long. I hope your test is short."
+                "b) Valgrind typically takes O(100) times as long. I hope your test is"
+                " short."
             )
             print("-" * 80)
 
