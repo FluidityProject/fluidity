@@ -2,21 +2,20 @@
 import glob
 import os
 import re
+import subprocess
 import sys
 
-# List of dependencies we don't want in makefiles. Dependencies starting
-# with these strings will be dropped.
+# List of dependencies we don't want in makefiles. Dependencies starting with these
+# strings will be dropped.
 dep_exclusions = [
     # Because switching on and off mba changes the module files loaded, these are
     # special-cased in the Makefiles.
     "../include/mba2d_module.mod",
     "../include/mba3d_mba_nodal.mod",
-    # Remove dependencies on confdefs.h because it causes
-    # lots of spurious rebuilds.
+    # Remove dependencies on confdefs.h because it causes lots of spurious rebuilds.
     "../include/confdefs.h",
-    # Get rid of absolute paths.
-    # We are only interested in dependencies from within the
-    # Fluidity tree  so we dump the ones from outside.
+    # Get rid of absolute paths. We are only interested in dependencies from within the
+    # Fluidity tree so we dump the ones from outside.
     "/",
     # libspud is really external
     "../include/spud.mod",
@@ -167,11 +166,10 @@ def generate_dependencies(fortran):
             obj = os.path.splitext(f)[0] + ".o"
             os.system("rm " + obj + " 2>/dev/null || true")
 
-            pipe = os.popen(
-                'make GENFLAGS="-cpp -M -MF ' + obj + '_dependencies" ' + obj
+            process = subprocess.Popen(
+                ["make", f"GENFLAGS=-cpp -M -MF {obj}_dependencies", f"{obj}"]
             )
-            if pipe.close() is None:
-
+            if process.wait() == 0:
                 this_deps = dependency_list(
                     obj, f, open(obj + "_dependencies", "r").readlines()
                 )
