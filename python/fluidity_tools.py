@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import array
-import fileinput
 import math
 import os
 import re

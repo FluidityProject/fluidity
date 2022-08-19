@@ -1,26 +1,16 @@
-## To Do:
-## If a value outside of the original range is applied, the scalar bar range is not updated.
-## Refers to TriangleWriter in _save_fired() - change to correct location
-## More descriptive description
+# To Do:
+# If a value outside of the original range is applied, the scalar bar range is not
+# updated.
+# Refers to TriangleWriter in _save_fired() - change to correct location
+# More descriptive description
 # Author: Daryl Harrison
-from enthought.mayavi.core.dataset_manager import DatasetManager
-from enthought.mayavi.core.filter import Filter
-from enthought.traits.api import (
-    Bool,
-    Button,
-    File,
-    Float,
-    Instance,
-    List,
-    Range,
-    String,
-)
-from enthought.traits.ui.api import Group, Item, ListEditor, View
-from enthought.tvtk.api import tvtk
-from numpy import *
+import numpy as np
+from traits.api import Bool, Button, File, Instance, List, Range
+from traitsui.api import Group, Item, ListEditor, View
+from tvtk.api import tvtk
 
-# Local imports
-# Enthought library imports
+from mayavi.core.api import Filter
+from mayavi.core.dataset_manager import DatasetManager
 
 
 ################################################################################
@@ -74,7 +64,10 @@ class BoundaryMarkerEditor(Filter):
                 Item(name="save", label="Save"),
                 show_labels=False,
                 show_border=True,
-                label="Save changes to file (give only a basename, without the file extension)",
+                label=(
+                    "Save changes to file (give only a basename, without the file"
+                    " extension)"
+                ),
             ),
         ),
         height=500,
@@ -125,7 +118,7 @@ class BoundaryMarkerEditor(Filter):
         self.pipeline_changed = True
 
     def get_all_cell_neigbours(self, cell_id, cell):
-        neighbour_cell_ids = array([], dtype=int)
+        neighbour_cell_ids = np.array([], dtype=int)
 
         for i in range(cell.number_of_edges):
             # Get points belonging to ith edge
@@ -136,8 +129,8 @@ class BoundaryMarkerEditor(Filter):
             self._current_grid.get_cell_neighbors(
                 cell_id, edge_point_ids, current_neighbour_cell_ids
             )
-            neighbour_cell_ids = append(
-                neighbour_cell_ids, array(current_neighbour_cell_ids)
+            neighbour_cell_ids = np.append(
+                neighbour_cell_ids, np.array(current_neighbour_cell_ids)
             )
 
         return neighbour_cell_ids.tolist()
@@ -166,7 +159,7 @@ class BoundaryMarkerEditor(Filter):
                     current_cell_normal,
                 )
 
-                if dot(cell_normal, current_cell_normal) > (1 - self.epsilon):
+                if np.dot(cell_normal, current_cell_normal) > (1 - self.epsilon):
                     self.modify_cell(current_cell_id, self.label_to_apply)
                     cells_pending.extend(
                         self.get_all_cell_neigbours(current_cell_id, current_cell)
@@ -196,8 +189,8 @@ class BoundaryMarkerEditor(Filter):
 
         unmasked_cells_list = tvtk.IdList()
         cell_ids = list(range(self._input_grid.number_of_cells))
-        # _cell_mappings is indexed by cell_id of the original input grid, and each value
-        # is the new cell_id of the corresponding cell in the masked grid
+        # _cell_mappings is indexed by cell_id of the original input grid, and each
+        # value is the new cell_id of the corresponding cell in the masked grid
         self._cell_mappings = list(
             map(
                 lambda masked, cell_id: None

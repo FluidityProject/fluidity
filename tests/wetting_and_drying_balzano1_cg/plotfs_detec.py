@@ -1,16 +1,10 @@
 #!/usr/bin/env python3
 import getopt
-import math
-import re
 import sys
 
 import matplotlib.pyplot as plt
-import vtktools
 from fluidity_tools import stat_parser
-from matplotlib.mlab import stineman_interp
-from matplotlib.pyplot import figure, show
-from numpy import cos, exp, linspace, pi, poly1d, sin
-from scipy.special import erf
+from matplotlib.pyplot import figure
 
 
 def mirror(x):
@@ -31,7 +25,7 @@ def bathymetry_function(X):
     return -5.0 * X / 13800
 
 
-################# Main ###########################
+# Main #
 def main(argv=None):
 
     filename = ""
@@ -57,7 +51,7 @@ def main(argv=None):
         usage()
         sys.exit(2)
 
-    ####################### Print time plot  ###########################
+    # Print time plot  #
     print("Generating time plot")
 
     s = stat_parser(filename)
@@ -85,9 +79,9 @@ def main(argv=None):
     ax2 = fig2.add_subplot(111)
 
     if wetting:
-        ##plot_start=90 # in timesteps
-        plot_start = 18  # in timesteps, after 18 timesteps the waterlevel reaches its lowest point
-        ##plot_end=114 # in timesteps
+        # plot_start=90 # in timesteps
+        plot_start = 18  # after 18 timesteps the waterlevel reaches its lowest point
+        # plot_end=114 # in timesteps
         plot_end = 54  # in timesteps
         plot_name = "Wetting"
     else:
@@ -144,7 +138,7 @@ def main(argv=None):
 
             if save == "":
                 plt.draw()
-                raw_input("Please press Enter")
+                input("Please press Enter")
             else:
                 plt.savefig(
                     save + "_" + plot_name + ".pdf",

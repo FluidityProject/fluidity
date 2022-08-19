@@ -1,10 +1,6 @@
 # Author: Daryl Harrison
-# Enthought library imports.
-# Local imports.
-from os import path
-
-from enthought.traits.api import HasTraits, Instance, String
-from enthought.tvtk.api import tvtk
+from traits.api import HasTraits, Instance, String
+from tvtk.api import tvtk
 
 
 ######################################################################
@@ -24,7 +20,8 @@ class TriangleWriter(HasTraits):
     basename = String
 
     def __init__(self, input_grid, output_basename):
-        # Expects basename without file extension. Appropriate .node, .face, .ele files will be created.
+        # Expects basename without file extension. Appropriate .node, .face, .ele files
+        # will be created.
 
         self.grid = input_grid
         self.basename = output_basename
@@ -95,7 +92,8 @@ class TriangleWriter(HasTraits):
         f = open(self.basename + ".face", "w")
 
         faces = self.grid.number_of_cells
-        # Assuming that the first of any arrays is the boundary marker, and it must be an IntArray
+        # Assuming that the first of any arrays is the boundary marker, and it must be
+        # an IntArray
         boundary_marker = (
             self.grid.cell_data.number_of_arrays > 0
             and self.grid.cell_data.get_array(0).data_type == 6

@@ -2,16 +2,13 @@
 # Make stats fields read-only
 # More descriptive description
 # Author: Daryl Harrison
-from enthought.mayavi.core.dataset_manager import DatasetManager
-from enthought.mayavi.core.filter import Filter
-from enthought.traits.api import Bool, Enum, Float, Instance, Tuple
-from enthought.traits.ui.api import Group, Item, TupleEditor, View
-from enthought.tvtk.api import tvtk
 from numpy import array
-from sets import Set
+from traits.api import Bool, Enum, Float, Instance, Tuple
+from traitsui.api import Group, Item, TupleEditor, View
+from tvtk.api import tvtk
 
-# Local imports
-# Enthought library imports
+from mayavi.core.dataset_manager import DatasetManager
+from mayavi.core.filter import Filter
 
 
 ################################################################################
@@ -218,11 +215,11 @@ class MeshDiagnostics(Filter):
 
     def _add_stiff_elements(self, surface_points):
         stiff_elements = []
-        surface_points = Set(surface_points)
+        surface_points = set(surface_points)
 
         for i in range(self._surface_grid.number_of_cells):
             cell = self._surface_grid.get_cell(i)
-            points = Set(cell.points)
+            points = set(cell.points)
             val = int(points.issubset(surface_points))
             stiff_elements.append(val)
 

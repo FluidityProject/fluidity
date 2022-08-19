@@ -1,6 +1,5 @@
-from enthought.mayavi.core.metadata import FilterMetadata, SourceMetadata
-from enthought.mayavi.core.pipeline_info import PipelineInfo
-from enthought.mayavi.core.registry import registry
+from mayavi.core.api import PipelineInfo, SourceMetadata, registry
+from mayavi.core.metadata import FilterMetadata
 
 # Metadata for the new filters we want to add
 boundary_marker_editor = FilterMetadata(
@@ -18,7 +17,9 @@ field_operations = FilterMetadata(
 projection_and_depth_stretch = FilterMetadata(
     id="ProjectionAndDepthStretch",
     menu_name="ProjectionAndDepthStretch",
-    factory="mayavi_amcg.filters.projection_and_depth_stretch.ProjectionAndDepthStretch",
+    factory=(
+        "mayavi_amcg.filters.projection_and_depth_stretch.ProjectionAndDepthStretch"
+    ),
 )
 
 mesh_diagnostics = FilterMetadata(
@@ -30,7 +31,10 @@ mesh_diagnostics = FilterMetadata(
 tensor_eigenvectors_eigenvalues = FilterMetadata(
     id="TensorEigenvectorsEigenvalues",
     menu_name="TensorEigenvectorsEigenvalues",
-    factory="mayavi_amcg.filters.tensor_eigenvectors_eigenvalues.TensorEigenvectorsEigenvalues",
+    factory=(
+        "mayavi_amcg.filters.tensor_eigenvectors_eigenvalues."
+        "TensorEigenvectorsEigenvalues"
+    ),
 )
 
 # Register the filters with the mayavi registry
@@ -49,7 +53,10 @@ triangle_reader_info = SourceMetadata(
     help="Load Triangle files",
     menu_name="&Triangle files",
     extensions=["face", "edge", "ele"],
-    wildcard="Triangle files (*.face)|*.face|Triangle files (*.edge)|*.edge|Triangle files (*.ele)|*.ele",
+    wildcard=(
+        "Triangle files (*.face)|*.face|Triangle files (*.edge)|*.edge|Triangle files"
+        " (*.ele)|*.ele"
+    ),
     output_info=PipelineInfo(
         datasets=["unstructured_grid"], attribute_types=["any"], attributes=["any"]
     ),

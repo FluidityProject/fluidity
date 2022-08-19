@@ -1,14 +1,14 @@
-## To Do:
-## More descriptive description and use to correct terminology
+# To Do:
+# More descriptive description and use to correct terminology
 # Author: Daryl Harrison
-from math import *
 
-from enthought.mayavi.core.filter import Filter
-from enthought.mayavi.core.traits import DEnum
-from enthought.traits.api import Bool, Instance, Int, List, String
-from enthought.traits.ui.api import Group, Item, View
-from enthought.tvtk.api import tvtk
-from numpy import *
+import numpy as np
+from traits.api import Bool, Instance, Int, List, String
+from traitsui.api import Group, Item, View
+from tvtk.api import tvtk
+
+from mayavi.core.filter import Filter
+from mayavi.core.trait_defs import DEnum
 
 # Local imports.
 # Enthought library imports.
@@ -61,12 +61,12 @@ class TensorEigenvectorsEigenvalues(Filter):
             return
 
         self.grid = tvtk.UnstructuredGrid()
-        ## This doesn't work - there must be more to copy.
+        # This doesn't work - there must be more to copy.
         # self.grid.points = tvtk.Points()
         # self.grid.points.deep_copy(self.inputs[0].outputs[0].points)
         self.grid.deep_copy(self.inputs[0].outputs[0])
 
-        self.dimensions = size(self.grid.points[0])
+        self.dimensions = self.grid.points[0].size
 
         for i in range(self.dimensions):
             self._dimension_list.append(i)
@@ -134,13 +134,13 @@ class TensorEigenvectorsEigenvalues(Filter):
             )
 
             input_grid = self.inputs[0].outputs[0]
-            tensor_field = array(input_grid.point_data.get_array(self.active_tensor))
+            tensor_field = np.array(input_grid.point_data.get_array(self.active_tensor))
 
             result = [
-                linalg.eig(reshape(x, (self.dimensions, self.dimensions)))
+                np.linalg.eig(np.reshape(x, (self.dimensions, self.dimensions)))
                 for x in tensor_field
             ]
-            sorted_indices = [argsort(x[0]) for x in result]
+            sorted_indices = [np.argsort(x[0]) for x in result]
 
             for i in range(self.dimensions):
                 eigenvalues = list(map(lambda x, y: x[0][y[i]], result, sorted_indices))
@@ -164,15 +164,13 @@ class TensorEigenvectorsEigenvalues(Filter):
         if not (self.active_tensor in self.processed_tensors_for_edgelengths):
             self.processed_tensors_for_edgelengths.append(self.active_tensor)
 
-            input_grid = self.inputs[0].outputs[0]
-
             for i in range(self.dimensions):
-                eigenvalues = array(
+                eigenvalues = np.array(
                     self.grid.point_data.get_array(
                         self.active_tensor + "_eigenvalues_" + repr(i)
                     )
                 )
-                edgelengths = [1 / sqrt(x) for x in eigenvalues]
+                edgelengths = [1 / np.sqrt(x) for x in eigenvalues]
 
                 edgelengths_field = tvtk.FloatArray(
                     name=self.active_tensor + "_edgelengths_" + repr(i)
@@ -181,29 +179,29 @@ class TensorEigenvectorsEigenvalues(Filter):
                 self.grid.point_data.add_array(edgelengths_field)
 
     def calculate_propotionaleigenvectors(self):
-        if not (
-            self.active_tensor in self.processed_tensors_for_proportionaleigenvectors
+        if (
+            self.active_tensor
+            not in self.processed_tensors_for_proportionaleigenvectors
         ):
             self.processed_tensors_for_proportionaleigenvectors.append(
                 self.active_tensor
             )
 
             self.calculate_edgelengths()
-            input_grid = self.inputs[0].outputs[0]
 
             for i in range(self.dimensions):
-                eigenvectors = array(
+                eigenvectors = np.array(
                     self.grid.point_data.get_array(
                         self.active_tensor + "_eigenvectors_" + repr(i)
                     )
                 )
-                edgelengths = array(
+                edgelengths = np.array(
                     self.grid.point_data.get_array(
                         self.active_tensor + "_edgelengths_" + repr(i)
                     )
                 )
                 proportionaleigenvectors = list(
-                    map(multiply, eigenvectors, edgelengths)
+                    map(np.multiply, eigenvectors, edgelengths)
                 )
 
                 proportionaleigenvectors_field = tvtk.FloatArray(

@@ -1,3 +1,5 @@
+# Author: Samir Talwar <samir.talwar06@imperial.ac.uk>
+# License: BSD Style.
 """This filter enables one to select a portion of an input dataset
 using a plane and clip it so only one side remains.
 
@@ -5,18 +7,13 @@ Many thanks to Prabhu for ScalarCutPlane and TransformData.
 Wouldn't have been able to code this otherwise.
 
 """
-# Author: Samir Talwar <samir.talwar06@imperial.ac.uk>
-# License: BSD Style.
-from enthought.mayavi.components.implicit_plane import ImplicitPlane
-from enthought.mayavi.core.common import error
-from enthought.mayavi.core.pipeline_info import PipelineInfo
-from enthought.mayavi.filters.filter_base import FilterBase
-from enthought.traits.api import Button, Instance, Int, Trait, TraitMap
-from enthought.traits.ui.api import Group, Item, View
-from enthought.tvtk.api import tvtk
+from traits.api import Button, Instance
+from traitsui.api import Group, Item, View
+from tvtk.api import tvtk
 
-# Local imports
-# Enthought library imports.
+from mayavi.components.implicit_plane import ImplicitPlane
+from mayavi.core.api import PipelineInfo
+from mayavi.filters.filter_base import FilterBase
 
 
 ######################################################################

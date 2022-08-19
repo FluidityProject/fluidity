@@ -1,16 +1,10 @@
 #!/usr/bin/env python3
 import getopt
-import math
-import re
 import sys
 
 import matplotlib.pyplot as plt
-import vtktools
 from fluidity_tools import stat_parser
-from matplotlib.mlab import stineman_interp
-from matplotlib.pyplot import figure, show
-from numpy import cos, exp, linspace, pi, poly1d, sin
-from scipy.special import erf
+from matplotlib.pyplot import figure
 
 
 def mirror(x):
@@ -35,14 +29,12 @@ def bathymetry_function(X):
         return -X / 920 + 100.0 / 23
 
 
-################# Main ###########################
+# Main #
 def main(argv=None):
-
     filename = ""
     timestep_ana = 0.0
     dzero = 0.01
     save = ""  # If nonempty, we save the plots as images instead if showing them
-    wetting = False
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], "", ["file=", "save="])
@@ -59,7 +51,7 @@ def main(argv=None):
         usage()
         sys.exit(2)
 
-    ####################### Print time plot  ###########################
+    # Print time plot  #
     print("Generating time plot")
 
     s = stat_parser(filename)
@@ -90,7 +82,7 @@ def main(argv=None):
 
     plot_start = 580  # in timesteps
     plot_end = 581  # in timesteps
-    plot_name = ""
+    # plot_name = ""
 
     for t in range(0, len(timesteps)):
         # ignore the first waveperiod
@@ -141,7 +133,7 @@ def main(argv=None):
 
             if save == "":
                 plt.draw()
-                raw_input("Please press Enter")
+                input("Please press Enter")
             else:
                 plt.savefig(
                     save + ".pdf", facecolor="white", edgecolor="black", dpi=100

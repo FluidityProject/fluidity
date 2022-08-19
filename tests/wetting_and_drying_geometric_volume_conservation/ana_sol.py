@@ -1,8 +1,6 @@
 from __future__ import print_function
 
-import math
-
-from numpy import cos, exp, linspace, pi, poly1d, sin
+from numpy import cos, exp, pi, poly1d
 from scipy.special import erf
 
 
@@ -14,24 +12,23 @@ def erfc(z):
         return 1.0 - erf(z)
 
 
-def analytic_solution_simple(
-    t, x, a_0, L, g, eta
-):  # time, x_value, initial maximum perturbation (at the very left), wavelength, gravity, viscosity
+def analytic_solution_simple(t, x, a_0, L, g, eta):
+    """time, x_value, initial maximum perturbation (at the very left), wavelength,
+    gravity, viscosity"""
     k = 2 * pi / L  # wave number 2pi/wavelength
     gamma = 2 * eta * k**2
     a = a_0 * cos(pi * x)
     return a * exp(-gamma * t)
 
 
-# Formulas were compared with the same formula hacked into matlab
-# based on
+# Formulas were compared with the same formula hacked into matlab based on
 # Motion of two superposed viscous fluids
 # A Prosperetti - Physics of Fluids, 1981
 # doi:10.1063/1.863522
 # assumes that fluid in the tank has same viscosity as fluid above
-def analytic_solution(
-    t, x, a_0, L, g, eta
-):  # time, x_value, initial maximum perturbation (at the very left), wavelength, gravity, viscosity
+def analytic_solution(t, x, a_0, L, g, eta):
+    """time, x_value, initial maximum perturbation (at the very left), wavelength,
+    gravity, viscosity"""
     debug = False
     eta = eta / 2.0
     k = 2.0 * pi / L  # wave number 2pi/wavelength

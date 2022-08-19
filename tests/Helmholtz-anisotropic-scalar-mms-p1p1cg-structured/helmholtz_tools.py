@@ -34,8 +34,6 @@ def gaussian_1x1(XX):
 
 
 def velocity(XX):
-    x = XX[0]
-    y = XX[1]
     u = 0.0
     v = 0.0
     return [u, v]

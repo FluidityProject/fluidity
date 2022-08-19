@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-import glob
 import os
-import sys
-
-import numpy
-import vtktools
 
 pwd = os.getenv("PWD")
 print(pwd)

@@ -1,30 +1,20 @@
-## To Do:
-## More descriptive description and use to correct terminology
-##
-## Points to Note:
-## Filter only works if it lies directly below the source in the pipeline. It only operates on point data.
-# Original code by Tim Bond <http://amcg.ese.ic.ac.uk/index.php?title=Local:Using_Mayavi2>
+# To Do:
+# More descriptive description and use to correct terminology
+#
+# Points to Note:
+# Filter only works if it lies directly below the source in the pipeline. It only
+# operates on point data.
+# Original code by Tim Bond
+# <http://amcg.ese.ic.ac.uk/index.php?title=Local:Using_Mayavi2>
 # Author: Daryl Harrison
 # Local imports
-from enthought.mayavi.core.common import debug
-from enthought.mayavi.core.filter import Filter
-from enthought.traits.api import Array, Float, Instance, List, String
-from enthought.traits.ui.api import Group, Item, View
-from enthought.tvtk.api import tvtk
-from numpy import (
-    arccos,
-    arctan2,
-    array,
-    column_stack,
-    cross,
-    linalg,
-    sqrt,
-    sum,
-    vdot,
-    zeros,
-)
+from numpy import arccos, arctan2, array, column_stack, cross, sqrt, vdot, zeros
+from traits.api import Array, Float, Instance, List, String
+from traitsui.api import Group, Item, View
+from tvtk.api import tvtk
 
-# Enthought library imports.
+from mayavi.core.common import debug
+from mayavi.core.filter import Filter
 
 
 ######################################################################
@@ -91,14 +81,13 @@ class ProjectionAndDepthStretch(Filter):
         if len(self.inputs) == 0:
             return
 
-        magn = linalg.norm
         earth_radius = 6378000.0
 
         # By default we set the input to the first output of the first input
         self.grid = tvtk.UnstructuredGrid()
         self.grid.deep_copy(
             self.inputs[0].reader.output
-        )  ## WAY OF DOING THIS WITHOUT A DEEP COPY?
+        )  # WAY OF DOING THIS WITHOUT A DEEP COPY?
         # self.inputs[0].outputs[0] ## DOESN'T WORK WITH update_data()
 
         # Split array by column into the cartesian coordinates
@@ -127,7 +116,8 @@ class ProjectionAndDepthStretch(Filter):
 
         self._apply_stretch()
 
-        # Propagate the data_changed event - let modules that depend on this filter know that pipeline has changed
+        # Propagate the data_changed event - let modules that depend on this filter know
+        # that pipeline has changed
         self.pipeline_changed = True
 
     def update_data(
@@ -149,7 +139,8 @@ class ProjectionAndDepthStretch(Filter):
         if self.inputs[0].reader.output.point_data.vectors:
             self.active_vector = self.inputs[0].reader.output.point_data.vectors.name
 
-        # Propagate the data_changed event - let modules that depend on this filter know that data has changed
+        # Propagate the data_changed event - let modules that depend on this filter know
+        # that data has changed
         self.data_changed = True
 
     def _active_scalar_changed(self, value):

@@ -1,49 +1,36 @@
-## To Do:
-## Test, test, test (in particular, check div - can't tell if output is correct)
-## More descriptive description and use correct terminology
-## Disable UI when calculating
-## Assuming UnstructuredGrid (input and saving) - make this general
-## Only works with PointData at present
-## Nicer to check ALL preconditions before performing operation, rather than step-by-step
-## 'Are you sure?' dialog boxes for clearing form, overwriting field, removing field
-## Use of Enum, DEnum for selecting input fields, rather than text input
-## Use Collection to add SetActiveAttribute group
-##
-## Points to Note:
-## Grad, Div, Curl, d/dx, d/dy, d/dx all use tvtk.CellDerivatives and tvtk.CellDataToPointData,
-## so numerically may not be accurate - also involves a lot of superfluous processing
+# To Do:
+# Test, test, test (in particular, check div - can't tell if output is correct)
+# More descriptive description and use correct terminology
+# Disable UI when calculating
+# Assuming UnstructuredGrid (input and saving) - make this general
+# Only works with PointData at present
+# Nicer to check ALL preconditions before performing operation, rather than step-by-step
+# 'Are you sure?' dialog boxes for clearing form, overwriting field, removing field
+# Use of Enum, DEnum for selecting input fields, rather than text input
+# Use Collection to add SetActiveAttribute group
+#
+# Points to Note:
+# Grad, Div, Curl, d/dx, d/dy, d/dx all use tvtk.CellDerivatives and
+# tvtk.CellDataToPointData, so numerically may not be accurate - also involves a lot of
+# superfluous processing
 # Author: Daryl Harrison
-from math import *
 
-from enthought.mayavi.core.filter import Filter
-from enthought.traits.api import (
-    Button,
-    Code,
-    Enum,
-    File,
-    Float,
-    Instance,
-    List,
-    String,
-    Tuple,
-)
-from enthought.traits.ui.api import Group, Item, ListEditor, TupleEditor, View
-from enthought.traits.ui.menu import OKButton
-from enthought.tvtk.api import tvtk
-from numpy import *
+import numpy as np
+from traits.api import Button, Code, Enum, File, Float, Instance, List, String, Tuple
+from traitsui.api import Group, Item, ListEditor, TupleEditor, View
+from traitsui.menu import OKButton
+from tvtk.api import tvtk
 
-# Local imports
-# Enthought library imports
+from mayavi.core.filter import Filter
 
-# from enthought.mayavi.core.traits import DEnum
 
 ################################################################################
 # `FieldOperations` class.
 ################################################################################
 class FieldOperations(Filter):
     """
-    Performs standard field operations. Use this filter in conjunction with SetActiveAttribute filter
-    to view new/modified fields.
+    Performs standard field operations. Use this filter in conjunction with
+    SetActiveAttribute filter to view new/modified fields.
     """
 
     # The version of this class.  Used for persistence.
@@ -75,7 +62,12 @@ class FieldOperations(Filter):
         "Python function",
     )
     custom_function = Code(
-        "\n# Define a single-line operation in terms of\n# the variable 'inputs' which is an array of\n# input arrays. math and numpy are imported.\n# The operation must return a single array.\n"
+        """
+# Define a single-line operation in terms of
+# the variable 'inputs' which is an array of
+# input arrays. math and numpy are imported.
+# The operation must return a single array.
+"""
     )
 
     # Input and output fields
@@ -185,7 +177,8 @@ class FieldOperations(Filter):
             return
 
         self.grid = tvtk.UnstructuredGrid()
-        ## Way of doing this without a deep_copy (idea: copy input to output, with additional arrays tagged on)?
+        # Way of doing this without a deep_copy (idea: copy input to output, with
+        # additional arrays tagged on)?
         self.grid.deep_copy(self.inputs[0].outputs[0])
 
         # Add a blank input field by default
@@ -269,72 +262,132 @@ class FieldOperations(Filter):
 
         if operation == "Sum":
             self.check_min_input_size(input_arrays, 2)
-            function = lambda x: add.reduce(x)
+
+            def function(x):
+                return np.add.reduce(x)
+
         elif operation == "Multiply":
             self.check_min_input_size(input_arrays, 2)
-            function = lambda x: multiply.reduce(x)
+
+            def function(x):
+                return np.multiply.reduce(x)
+
         elif operation == "Dot product":
             vector_op = True
             self.check_exact_input_size(input_arrays, 2)
-            function = lambda x: list(map(dot, x[0], x[1]))
+
+            def function(x):
+                return list(map(np.dot, x[0], x[1]))
+
         elif operation == "Cross product":
             vector_op = True
             self.check_exact_input_size(input_arrays, 2)
-            function = lambda x: cross(x[0], x[1])
+
+            def function(x):
+                return np.cross(x[0], x[1])
+
         elif operation == "Python function":
             custom_fn = True
             try:
-                function = lambda inputs: eval(self.custom_function)
-            except:
+
+                def function(inputs):
+                    return eval(self.custom_function)
+
+            except Exception:
                 raise Exception("There is an error in your custom Python function.")
 
         else:
             multiple_inputs = False
             if operation == "Reciprocal":
-                function = lambda x: 1 / x
+
+                def function(x):
+                    return 1 / x
+
             elif operation == "Exponential":
-                function = lambda x: exp(x)
+
+                def function(x):
+                    return np.exp(x)
+
             elif operation == "Natural log":
-                function = lambda x: log(x)
+
+                def function(x):
+                    return np.log(x)
+
             elif operation == "Step":
-                function = lambda x: [(x > 0) + 0 for x in x]
+
+                def function(x):
+                    return [(x > 0) + 0 for x in x]
+
             elif operation == "Scale/Offset":
-                function = lambda x: x
+
+                def function(x):
+                    return x
+
             elif operation == "d/dx":
                 scalar_op = True
-                function = lambda x: self.derivative(x, 0)
+
+                def function(x):
+                    return self.derivative(x, 0)
+
             elif operation == "d/dy":
                 scalar_op = True
-                function = lambda x: self.derivative(x, 1)
+
+                def function(x):
+                    return self.derivative(x, 1)
+
             elif operation == "d/dz":
                 scalar_op = True
-                function = lambda x: self.derivative(x, 2)
+
+                def function(x):
+                    return self.derivative(x, 2)
+
             elif operation == "Curl":
                 vector_op = True
-                function = lambda x: self.grad_curl(x, True)
+
+                def function(x):
+                    return self.grad_curl(x, True)
+
             elif operation == "Grad":
                 scalar_op = True
-                function = lambda x: self.grad_curl(x, False)
+
+                def function(x):
+                    return self.grad_curl(x, False)
+
             elif operation == "Div":
                 vector_op = True
                 function = self.divergence
             elif operation == "Normalize":
                 vector_op = True
-                function = lambda x: list(
-                    map(multiply, x, 1 / array(list(map(linalg.norm, x))))
-                )
+
+                def function(x):
+                    return list(
+                        map(np.multiply, x, 1 / np.array(list(map(np.linalg.norm, x))))
+                    )
+
             elif operation == "2-norm":
                 vector_op = True
-                function = lambda x: list(map(linalg.norm, x))
+
+                def function(x):
+                    return list(map(np.linalg.norm, x))
+
             elif operation == "x-component":
                 vector_op = True
-                function = lambda x: self.get_axis(x, 0)
+
+                def function(x):
+                    return self.get_axis(x, 0)
+
             elif operation == "y-component":
                 vector_op = True
-                function = lambda x: self.get_axis(x, 1)
+
+                def function(x):
+                    return self.get_axis(x, 1)
+
             elif operation == "z-component":
                 vector_op = True
-                function = lambda x: self.get_axis(x, 2)
+
+                def function(x):
+                    return self.get_axis(x, 2)
+
             else:
                 raise Exception("Undefined operation.")
             self.check_exact_input_size(input_arrays, 1)
@@ -346,7 +399,7 @@ class FieldOperations(Filter):
             if custom_fn:
                 try:
                     result = function(input_data)
-                except:
+                except Exception:
                     raise Exception("There is an error in your custom Python function.")
             else:
                 result = function(input_data)
@@ -359,7 +412,7 @@ class FieldOperations(Filter):
 
         # Scale and offset result array if necessary
         if scale_factor != 1.0 or offset != 0.0:
-            result = array(result) * scale_factor + offset
+            result = np.array(result) * scale_factor + offset
 
         # Store result (replaces array with name output_array_name if it exists)
         output_array = tvtk.FloatArray(name=output_array_name)
@@ -367,7 +420,7 @@ class FieldOperations(Filter):
         self.grid.point_data.add_array(output_array)
         self.pipeline_changed = True
 
-        ## print array(result)
+        # print array(result)
 
     def retrieve_arrays(self, input_arrays, scalar_op, vector_op):
         input_data = []
@@ -382,27 +435,27 @@ class FieldOperations(Filter):
                 raise Exception("Input field '" + array_name + "' does not exist.")
 
             if num_components is None:  # first array we're processing
-                num_components = size(arr[0])
+                num_components = arr[0].size
                 if vector_op and num_components < 2:
                     raise Exception("Input field '" + array_name + "' is not a vector.")
                 if scalar_op and num_components != 1:
                     raise Exception("Input field '" + array_name + "' is not a scalar.")
             else:
                 # check that all input arrays have the same number of components
-                if num_components != size(arr[0]):
+                if num_components != arr[0].size:
                     raise Exception(
                         "Incompatible input arrays (e.g. scalar and vector)."
                     )
 
             # Scale and offset input array if necessary
             if scale_factor != 1.0 or offset != 0.0:
-                arr = array(arr) * scale_factor + offset
+                arr = np.array(arr) * scale_factor + offset
 
-            input_data.append(array(arr))
+            input_data.append(np.array(arr))
         return input_data
 
     def check_min_input_size(self, input_array_names, n):
-        if size(input_array_names, 0) < n:
+        if input_array_names.size[0] < n:
             multiple = ""
             if n > 1:
                 multiple = "s"
@@ -415,7 +468,7 @@ class FieldOperations(Filter):
             )
 
     def check_exact_input_size(self, input_array_names, n):
-        if size(input_array_names, 0) != n:
+        if input_array_names.size[0] != n:
             multiple = ""
             if n > 1:
                 multiple = "s"
@@ -462,7 +515,7 @@ class FieldOperations(Filter):
         derivative_y = self.derivative(y_component, 1)
         derivative_z = self.derivative(z_component, 2)
 
-        return add.reduce([derivative_x, derivative_y, derivative_z])
+        return np.add.reduce([derivative_x, derivative_y, derivative_z])
 
     def derivative(self, array, axis):
         array = self.grad_curl(array, False)

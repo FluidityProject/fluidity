@@ -106,7 +106,8 @@ def print_misplaced(data, namelist, silent, args):
             return 0
 
     def insert_sort(modules, comp):
-        """Perform an insertion sort to check that modules are always inserted before any others which use them."""
+        """Perform an insertion sort to check that modules are always inserted before
+        any others which use them."""
         out = []
 
         if modules:

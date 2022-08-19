@@ -3,7 +3,6 @@ import glob
 import os
 import re
 import sys
-from math import log
 
 import extract_data
 import numpy
@@ -15,42 +14,40 @@ def get_filelist(sample, start):
     def key(s):
         return int(s.split("_")[-1].split(".")[0])
 
-    list = glob.glob("*vtu")
-    list = [l for l in list if "checkpoint" not in l]
-    vtu_nos = [float(s.split("_")[-1].split(".")[0]) for s in list]
-    vals = zip(vtu_nos, list)
-    unzip = lambda l: tuple(zip(*l))
-    vtu_nos, list = unzip(sorted(vals))
+    vtu_list = glob.glob("*vtu")
+    vtu_list = [item for item in vtu_list if "checkpoint" not in item]
+    vtu_nos = [float(s.split("_")[-1].split(".")[0]) for s in vtu_list]
+    vtu_nos, vtu_list = zip(*sorted(zip(vtu_nos, vtu_list)))
     shortlist = []
 
-    for file in list:
+    for file in vtu_list:
         try:
             os.stat(file)
-        except:
-            f_log.write("No such file: %s" % files)
+        except Exception:
+            # f_log.write("No such file: %s" % files)
             sys.exit(1)
 
-        ##### Start at the (start+1)th file.
-        ##### Add every nth file by taking integer multiples of n; limit at 10 vtus max.
+        # Start at the (start+1)th file.
+        # Add every nth file by taking integer multiples of n; limit at 10 vtus max.
         vtu_no = float(file.split("_")[-1].split(".")[0])
-        # if ((max(vtu_nos)-start)/sample > 10):
-        #  sample=int((max(vtu_nos)-start)/10)
+        # if (max(vtu_nos) - start) / sample > 10:
+        #     sample = int((max(vtu_nos) - start) / 10)
 
         if vtu_no > start:
             if vtu_no % sample == 0:
                 shortlist.append(file)
-            ##### Append final file if a large number of files remain.
+            # Append final file if a large number of files remain.
             elif vtu_no == len(vtu_nos) - 1 and (max(vtu_nos) - sample / 4.0) > vtu_no:
                 shortlist.append(file)
 
     return shortlist
 
 
-#### taken from http://www.codinghorror.com/blog/archives/001018.html  #######
+# taken from http://www.codinghorror.com/blog/archives/001018.html
 def tryint(s):
     try:
         return int(s)
-    except:
+    except Exception:
         return s
 
 
@@ -61,9 +58,9 @@ def alphanum_key(s):
     return [tryint(c) for c in re.split("([0-9]+)", s)]
 
 
-def sort_nicely(l):
+def sort_nicely(my_list):
     """Sort the given list in the way that humans expect."""
-    l.sort(key=alphanum_key)
+    my_list.sort(key=alphanum_key)
 
 
 ##############################################################################
@@ -74,36 +71,34 @@ def sort_nicely(l):
 
 # Reattachment length:
 def reatt_length(filelist, zarray):
-
     print("Calculating reattachment point locations using change of x-velocity sign\n")
 
-    nums = []
     results = []
     files = []
-    ##### check for no files
+    # check for no files
     if len(filelist) == 0:
         print("No files!")
         sys.exit(1)
     for file in filelist:
         try:
             os.stat(file)
-        except:
+        except Exception:
             print("No such file: %s" % file)
             sys.exit(1)
         files.append(file)
     sort_nicely(files)
 
     for file in files:
-        ##### Read in data from vtu
+        # Read in data from vtu
         datafile = vtktools.vtu(file)
-        ##### Get time for plot:
+        # Get time for plot:
         t = min(datafile.GetScalarField("Time"))
         print(file, ", elapsed time = ", t)
         if t < 0.0:
             continue
         else:
             print("extracting data...")
-            ##### points near bottom surface, 0 < x < 25
+            # points near bottom surface, 0 < x < 25
             x2array = []
             pts = []
             no_pts = 52
@@ -118,40 +113,40 @@ def reatt_length(filelist, zarray):
         x2array = numpy.array(x2array)
         pts = numpy.array(pts)
 
-        ##### Get x-velocity on bottom boundary
+        # Get x-velocity on bottom boundary
         uvw = datafile.ProbeData(pts, "AverageVelocity")
         u = uvw[:, 0]
         u = u.reshape([x2array.size, zarray.size])
         pts = pts.reshape([x2array.size, zarray.size, 3])
 
-        ##### Find all potential reattachment points:
+        # Find all potential reattachment points:
         points = []
         for j in range(len(u[0, :])):
             for i in range(len(u[:, 0]) - 1):
-                ##### Hack to ignore division by zero entries in u.
-                ##### All u should be nonzero away from boundary!
+                # Hack to ignore division by zero entries in u.
+                # All u should be nonzero away from boundary!
                 if (
                     (u[i, j] / u[i + 1, j]) < 0.0
                     and u[i + 1, j] > 0.0
                     and not numpy.isinf(u[i, j] / u[i + 1, j])
                 ):
-                    ##### interpolate between nodes
+                    # interpolate between nodes
                     p = x2array[i] + (x2array[i + 1] - x2array[i]) * (0.0 - u[i, j]) / (
                         u[i + 1, j] - u[i, j]
                     )
-                    ##### Ignore spurious corner points
+                    # Ignore spurious corner points
                     if p > 1.0:
                         points.append(p)
-                        ##### We have our first point on this plane so...
+                        # We have our first point on this plane so...
                         break
 
-        ##### This is the spanwise-averaged reattachment point:
+        # This is the spanwise-averaged reattachment point:
         if len(points) > 0:
             avpt = sum(points) / len(points)
         else:
             avpt = 0.0
         print("spanwise averaged reattachment point: ", avpt)
-        ##### Get time for plot:
+        # Get time for plot:
         t = min(datafile.GetScalarField("Time"))
         results.append([avpt, t])
 
@@ -162,14 +157,13 @@ def reatt_length(filelist, zarray):
 
 # Velocity profiles:
 def velo(filelist, xarray, zarray, yarray):
-
     print("\nRunning mean velocity profile script on files at times...\n")
-    ##### check for no files
+    # check for no files
     if len(filelist) < 0:
         print("No files!")
         sys.exit(1)
 
-    ##### create array of points
+    # create array of points
     pts = []
     for i in range(len(xarray)):
         for j in range(len(zarray)):
@@ -177,7 +171,7 @@ def velo(filelist, xarray, zarray, yarray):
                 pts.append([xarray[i], zarray[j], yarray[k]])
     pts = numpy.array(pts)
 
-    ##### Create output array of correct shape
+    # Create output array of correct shape
     profiles = numpy.zeros([xarray.size, yarray.size], float)
 
     file = filelist[-1]
@@ -187,13 +181,13 @@ def velo(filelist, xarray, zarray, yarray):
     t = min(datafile.GetScalarField("Time"))
     print(file, ", elapsed time = ", t)
 
-    ##### Get x-velocity
+    # Get x-velocity
     uvw = datafile.ProbeData(pts, "AverageVelocity")
     umax = 1.55
     u = uvw[:, 0] / umax
     u = u.reshape([xarray.size, zarray.size, yarray.size])
 
-    ##### Spanwise averaging
+    # Spanwise averaging
     usum = numpy.zeros([xarray.size, yarray.size], float)
     usum = numpy.array(usum)
     for i in range(len(zarray)):
@@ -211,7 +205,7 @@ def velo(filelist, xarray, zarray, yarray):
 
 
 def plot_length(rl):
-    ##### Plot time series of reattachment length
+    # Plot time series of reattachment length
 
     av_length = sum(rl[:, 0]) / len(rl[:, 0])
     avg = numpy.zeros([len(rl[:, 0])])
@@ -219,7 +213,6 @@ def plot_length(rl):
     Lemoinkim = numpy.zeros([len(rl[:, 0])])
     Lemoinkim[:] = 6.28
 
-    plot1 = pylab.figure()
     pylab.title("Time series of reattachment length")
     pylab.xlabel("Time (s)")
     pylab.ylabel("Reattachment Length (L/h)")
@@ -243,7 +236,6 @@ def plot_length(rl):
 
 
 def plot_velo(vprofiles, xarray, yarray):
-
     # get profiles from ERCOFTAC data
     y4, U4, y6, U6, y10, U10, y19, U19 = extract_data.ercoftacvelocityprofiles()
     # get profiles from Le&Moin data
@@ -266,8 +258,7 @@ def plot_velo(vprofiles, xarray, yarray):
         jd_u19,
     ) = extract_data.velocityprofileslemoin()
 
-    ##### Plot velocity profiles at different points behind step using pylab(matplotlib)
-    plot1 = pylab.figure(figsize=(16.5, 8.5))
+    # Plot velocity profiles at different points behind step using pylab(matplotlib)
     pylab.suptitle("Evolution of mean U-velocity", fontsize=20)
 
     size = 15
@@ -326,96 +317,22 @@ def plot_velo(vprofiles, xarray, yarray):
 
 
 def main():
-    ##### Only process every nth file by taking integer multiples of n:
+    # Only process every nth file by taking integer multiples of n:
     filelist = get_filelist(sample=1, start=0)
 
-    ##### Points to generate profiles:
+    # Points to generate profiles:
     xarray = numpy.array([4.0, 6.0, 10.0, 19.0])
     zarray = numpy.linspace(0.0, 4.0, 41)
-    yarray = numpy.array(
-        [
-            0.01,
-            0.02,
-            0.03,
-            0.04,
-            0.05,
-            0.06,
-            0.07,
-            0.08,
-            0.09,
-            0.1,
-            0.11,
-            0.12,
-            0.13,
-            0.14,
-            0.15,
-            0.16,
-            0.17,
-            0.18,
-            0.19,
-            0.2,
-            0.21,
-            0.22,
-            0.23,
-            0.24,
-            0.25,
-            0.3,
-            0.4,
-            0.5,
-            0.6,
-            0.7,
-            0.8,
-            0.9,
-            1.0,
-            1.1,
-            1.2,
-            1.3,
-            1.4,
-            1.5,
-            1.6,
-            1.7,
-            1.8,
-            1.9,
-            2.0,
-            2.1,
-            2.2,
-            2.3,
-            2.4,
-            2.5,
-            2.6,
-            2.7,
-            2.8,
-            2.9,
-            3.0,
-            3.1,
-            3.2,
-            3.3,
-            3.4,
-            3.5,
-            3.6,
-            3.7,
-            3.8,
-            3.9,
-            4.0,
-            4.1,
-            4.2,
-            4.3,
-            4.4,
-            4.5,
-            4.6,
-            4.7,
-            4.8,
-            4.9,
-            5.0,
-        ]
+    yarray = numpy.hstack(
+        (numpy.linspace(0.01, 0.25, 25), numpy.linspace(0.3, 0.5, 48))
     )
 
-    ##### Call reattachment_length function
+    # Call reattachment_length function
     reattachment_length = numpy.array(reatt_length(filelist, zarray))
     numpy.save("reatt_length", reattachment_length)
     plot_length(reattachment_length)
 
-    ##### Call velo function
+    # Call velo function
     zarray = numpy.array([2.0])
     vprofiles = velo(filelist, xarray, zarray, yarray)
     numpy.save("velo_profiles", vprofiles)

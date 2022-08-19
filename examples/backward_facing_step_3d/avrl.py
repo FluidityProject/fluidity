@@ -30,7 +30,7 @@ def main():
     print("Only run inside numpy_data directory")
     try:
         name = sys.argv[1]
-    except:
+    except Exception:
         print("argument is name of numpy data file")
 
     npy, av = moving_average(name)

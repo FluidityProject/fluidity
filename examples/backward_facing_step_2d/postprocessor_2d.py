@@ -7,46 +7,43 @@ import sys
 import numpy
 import pylab
 import vtktools
-from matplotlib import rc
 
 
 def get_filelist(sample, start):
     def key(s):
         return int(s.split("_")[-1].split(".")[0])
 
-    list = glob.glob("*vtu")
-    list = [l for l in list if "check" not in l]
-    vtu_nos = [float(s.split("_")[-1].split(".")[0]) for s in list]
-    vals = zip(vtu_nos, list)
-    unzip = lambda l: tuple(zip(*l))
-    vtu_nos, list = unzip(sorted(vals))
+    vtu_list = glob.glob("*vtu")
+    vtu_list = [item for item in vtu_list if "checkpoint" not in item]
+    vtu_nos = [float(s.split("_")[-1].split(".")[0]) for s in vtu_list]
+    vtu_nos, vtu_list = zip(*sorted(zip(vtu_nos, vtu_list)))
     shortlist = []
 
     for file in list:
         try:
             os.stat(file)
-        except:
-            f_log.write("No such file: %s" % files)
+        except Exception:
+            # f_log.write("No such file: %s" % files)
             sys.exit(1)
 
-        ##### Start at the (start+1)th file.
-        ##### Add every nth file by taking integer multiples of n.
+        # Start at the (start+1)th file.
+        # Add every nth file by taking integer multiples of n.
         vtu_no = float(file.split("_")[-1].split(".")[0])
         if vtu_no > start:
             if vtu_no % sample == 0:
                 shortlist.append(file)
-            ##### Append final file if a large number of files remain.
+            # Append final file if a large number of files remain.
             elif vtu_no == len(vtu_nos) - 1 and (max(vtu_nos) - sample / 4.0) > vtu_no:
                 shortlist.append(file)
 
     return shortlist
 
 
-#### taken from http://www.codinghorror.com/blog/archives/001018.html  #######
+# taken from http://www.codinghorror.com/blog/archives/001018.html
 def tryint(s):
     try:
         return int(s)
-    except:
+    except Exception:
         return s
 
 
@@ -57,9 +54,9 @@ def alphanum_key(s):
     return [tryint(c) for c in re.split("([0-9]+)", s)]
 
 
-def sort_nicely(l):
+def sort_nicely(my_list):
     """Sort the given list in the way that humans expect."""
-    l.sort(key=alphanum_key)
+    my_list.sort(key=alphanum_key)
 
 
 ##############################################################################
@@ -74,30 +71,29 @@ def reattachment_length(filelist):
 
     print("Calculating reattachment point locations using change of x-velocity sign\n")
 
-    nums = []
     results = []
     files = []
-    ##### check for no files
+    # check for no files
     if len(filelist) == 0:
         print("No files!")
         sys.exit(1)
     for file in filelist:
         try:
             os.stat(file)
-        except:
+        except Exception:
             print("No such file: %s" % file)
             sys.exit(1)
         files.append(file)
     sort_nicely(files)
 
     for file in files:
-        ##### Read in data from vtu
+        # Read in data from vtu
         datafile = vtktools.vtu(file)
-        ##### Get time for plot:
+        # Get time for plot:
         t = min(datafile.GetScalarField("Time"))
         print(file, ", elapsed time = ", t)
 
-        ##### points near bottom surface, 0 < x < 20
+        # points near bottom surface, 0 < x < 20
         pts = []
         no_pts = 82
         offset = 0.01
@@ -108,35 +104,35 @@ def reattachment_length(filelist):
 
         pts = numpy.array(pts)
 
-        ##### Get x-velocity on bottom boundary
+        # Get x-velocity on bottom boundary
         uvw = datafile.ProbeData(pts, "AverageVelocity")
         u = []
         u = uvw[:, 0]
         points = 0.0
 
         for i in range(len(u) - 1):
-            ##### Hack to ignore division by zero entries in u.
-            ##### All u should be nonzero away from boundary!
+            # Hack to ignore division by zero entries in u.
+            # All u should be nonzero away from boundary!
             if (
                 (u[i] / u[i + 1]) < 0.0
                 and u[i + 1] > 0.0
                 and not numpy.isinf(u[i] / u[i + 1])
             ):
-                ##### interpolate between nodes. Correct for origin not at step.
+                # interpolate between nodes. Correct for origin not at step.
                 p = (
                     pts[i][0]
                     + (pts[i + 1][0] - pts[i][0]) * (0.0 - u[i]) / (u[i + 1] - u[i])
                     - 5.0
                 )
                 print("p ", p)
-                ##### Ignore spurious corner points
+                # Ignore spurious corner points
                 if p > 2:
                     points = p
-                    ##### We have our first point on this plane so...
+                    # We have our first point on this plane so...
                     break
         print("reattachment point found at: ", points)
 
-        ##### Append actual reattachment point and time:
+        # Append actual reattachment point and time:
         results.append([points, t])
 
     return results
@@ -149,7 +145,7 @@ def meanvelo(file, x, y):
 
     print("\nRunning velocity profile script on files at times...\n")
 
-    ##### create array of points. Correct for origin not at step.
+    # create array of points. Correct for origin not at step.
     pts = []
     for i in range(len(x)):
         for j in range(len(y)):
@@ -160,7 +156,7 @@ def meanvelo(file, x, y):
 
     datafile = vtktools.vtu(file)
 
-    ##### Get x-velocity
+    # Get x-velocity
     uvw = datafile.ProbeData(pts, "AverageVelocity")
     u = uvw[:, 0]
     u = u.reshape([x.size, y.size])
@@ -177,15 +173,14 @@ def meanvelo(file, x, y):
 
 
 def plot_length(type, reattachment_length):
-    ##### Plot time series of reattachment length using pylab(matplotlib)
-    ##### Kim's (1978) experimental result, Re=132000
+    # Plot time series of reattachment length using pylab(matplotlib)
+    # Kim's (1978) experimental result, Re=132000
     kim = numpy.zeros([len(reattachment_length[:, 1])])
     kim[:] = 7.0
-    ##### Ilinca's (1997) best numerical result (adaptive mesh 2, 6960 points)
+    # Ilinca's (1997) best numerical result (adaptive mesh 2, 6960 points)
     ilinca = numpy.zeros([len(reattachment_length[:, 1])])
     ilinca[:] = 6.21
 
-    plot1 = pylab.figure()
     pylab.title("Time series of reattachment length: Re=132000, " + str(type))
     pylab.xlabel("Time (s)")
     pylab.ylabel("Reattachment Length (L/h)")
@@ -212,7 +207,7 @@ def plot_length(type, reattachment_length):
 
 
 def plot_meanvelo(type, profiles, xarray, yarray):
-    ##### Plot evolution of velocity profiles at different points behind step
+    # Plot evolution of velocity profiles at different points behind step
 
     # get profiles from Ilinca's experimental/numerical data
     datafile = open("../Ilinca-data/Ilinca-U-expt-1.33.dat", "r")
@@ -290,7 +285,6 @@ def plot_meanvelo(type, profiles, xarray, yarray):
         Un16.append(float(line.split()[0]))
         yn16.append(float(line.split()[1]))
 
-    plot1 = pylab.figure(figsize=(20, 8))
     pylab.suptitle("U-velocity profile: Re=132000, " + str(type), fontsize=20)
 
     size = 15
@@ -451,19 +445,18 @@ def plot_meanvelo(type, profiles, xarray, yarray):
 
 
 def main():
-    ##### Which run is being processed?
+    # Which run is being processed?
     type = sys.argv[1]
 
-    ##### Only process every nth file:
+    # Only process every nth file:
     filelist = get_filelist(sample=5, start=0)
 
-    ##### Call reattachment_length function
+    # Call reattachment_length function
     reatt_length = numpy.array(reattachment_length(filelist))
-    av_length = sum(reatt_length[:, 0]) / len(reatt_length[:, 0])
     numpy.save("reattachment_length_kim_" + str(type), reatt_length)
     plot_length(type, reatt_length)
 
-    ##### Points to generate profiles:
+    # Points to generate profiles:
     xarray = numpy.array([1.33, 2.66, 5.33, 8.0, 16.0])
     yarray = numpy.array(
         [
@@ -510,7 +503,7 @@ def main():
         ]
     )
 
-    ##### Call meanvelo function
+    # Call meanvelo function
     profiles = meanvelo(filelist[-1], xarray, yarray)
     numpy.save("velocity_profiles_kim_" + str(type), profiles)
     plot_meanvelo(type, profiles, xarray, yarray)

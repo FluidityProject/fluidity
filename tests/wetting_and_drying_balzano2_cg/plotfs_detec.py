@@ -1,16 +1,10 @@
 #!/usr/bin/env python3
 import getopt
-import math
-import re
 import sys
 
 import matplotlib.pyplot as plt
-import vtktools
 from fluidity_tools import stat_parser
-from matplotlib.mlab import stineman_interp
-from matplotlib.pyplot import figure, show
-from numpy import cos, exp, linspace, pi, poly1d, sin
-from scipy.special import erf
+from matplotlib.pyplot import figure
 
 
 def mirror(x):
@@ -36,9 +30,8 @@ def bathymetry_function(X):
         return -X / 1380 + 50.0 / 23
 
 
-################# Main ###########################
+# Main #
 def main(argv=None):
-
     filename = ""
     timestep_ana = 0.0
     dzero = 0.01
@@ -62,7 +55,7 @@ def main(argv=None):
         usage()
         sys.exit(2)
 
-    ####################### Print time plot  ###########################
+    # Print time plot  #
     print("Generating time plot")
 
     s = stat_parser(filename)
@@ -90,9 +83,9 @@ def main(argv=None):
     ax2 = fig2.add_subplot(111)
 
     if wetting:
-        ##plot_start=90 # in timesteps
-        plot_start = 22  # in timesteps, after 18 timesteps the waterlevel reaches its lowest point
-        ##plot_end=114 # in timesteps
+        # plot_start=90 # in timesteps
+        plot_start = 22  # after 18 timesteps the waterlevel reaches its lowest point
+        # plot_end=114 # in timesteps
         plot_end = 54  # in timesteps
         plot_name = "Wetting"
     else:
@@ -134,7 +127,6 @@ def main(argv=None):
 
         # plt.legend()
         if t == plot_end:
-            plt.ylim(-2.2, 1.4)
             # change from meters in kilometers in the x-axis
             # return locs, labels where locs is an array of tick locations and
             # labels is an array of tick labels.
@@ -143,13 +135,14 @@ def main(argv=None):
                 labels[i] = str(locs[i] / 1000)
             plt.xticks(locs, labels)
 
+            plt.ylim(-2.2, 1.4)
             # plt.title(plot_name)
             plt.xlabel("Position [km]")
             plt.ylabel("Free surface [m]")
 
             if save == "":
                 plt.draw()
-                raw_input("Please press Enter")
+                input("Please press Enter")
             else:
                 plt.savefig(
                     save + "_" + plot_name + ".pdf",

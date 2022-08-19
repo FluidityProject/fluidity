@@ -21,12 +21,14 @@ from pylab import (
 )
 
 
-#### taken from http://www.codinghorror.com/blog/archives/001018.html    #######
-def sort_nicely(l):
+# taken from http://www.codinghorror.com/blog/archives/001018.html
+def sort_nicely(obj_to_sort):
     """Sort the given list in the way that humans expect."""
-    convert = lambda text: int(text) if text.isdigit() else text
-    alphanum_key = lambda key: [convert(c) for c in re.split("([0-9]+)", key)]
-    l.sort(key=alphanum_key)
+    obj_to_sort.sort(
+        key=lambda item: [
+            int(text) if text.isdigit() else text for text in re.split("([0-9]+)", item)
+        ]
+    )
 
 
 ##############################################################################
@@ -54,7 +56,8 @@ def get_vtus(directory):
 
 
 def get_1d_indices(pos, x0=0, y0=0, tolerance=1.0e-5):
-    """Return the field indices corresponding to the ordered depth values at position (x0, y0)"""
+    """Return the field indices corresponding to the ordered depth values at position
+    (x0, y0)"""
     ind = argsort(-pos[:, 2])
     indices = []
     for i in ind:
@@ -67,7 +70,7 @@ def get_1d_indices(pos, x0=0, y0=0, tolerance=1.0e-5):
 
 
 ##############################################################################
-#### Mixed layer depth
+# Mixed layer depth
 ##############################################################################
 
 
@@ -107,14 +110,14 @@ def calc_mld(files, start, x0=0.0, y0=0.0):
     times = []
     dates = []
     for file in files:
-
         try:
             os.stat(file)
-        except:
+        except Exception:
             print("No such file: %s" % file)
-            sys.exit(1)
+            raise SystemExit
 
-        # open vtu and derive the field indices of the edge at (x=0,y=0) ordered by depth
+        # open vtu and derive the field indices of the edge at (x=0,y=0) ordered by
+        # depth
         u = vtktools.vtu(file)
         pos = u.GetLocations()
         ind = get_1d_indices(pos, x0, y0)
@@ -127,7 +130,8 @@ def calc_mld(files, start, x0=0.0, y0=0.0):
         times.append(time[0])  # seconds
         dates.append(date2num(start + timedelta(seconds=time[0])))  # integer datetime
 
-        # grab density profile and calculate MLD_den (using 2 different deviation parameters
+        # grab density profile and calculate MLD_den (using 2 different deviation
+        # parameters
         d = u.GetScalarField("Density")
         den = vtktools.arr([d[i] * 1000 for i in ind])
         mld.append(calc_mld_den(den, depth))  # den0 = 0.03 is default
@@ -142,14 +146,14 @@ def calc_mld_tke_files(files, start, x0=0.0, y0=0.0):
     times = []
     dates = []
     for file in files:
-
         try:
             os.stat(file)
-        except:
+        except Exception:
             print("No such file: %s" % file)
-            sys.exit(1)
+            raise SystemExit
 
-        # open vtu and derive the field indices of the edge at (x=0,y=0) ordered by depth
+        # open vtu and derive the field indices of the edge at (x=0,y=0) ordered by
+        # depth
         u = vtktools.vtu(file)
         pos = u.GetLocations()
         ind = get_1d_indices(pos, x0, y0)
@@ -187,7 +191,7 @@ def calc_mld_temp(temp, depth, temp0=0.1):
 
 
 ##############################################################################
-#### Plotting functions
+# Plotting functions
 ##############################################################################
 
 
@@ -216,7 +220,7 @@ def plot_2d_data(
 
     # convert time profiles in seconds into months
     start = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
-    if dates == None:
+    if dates is None:
         dates = time_secs
         i = 0
         for time in time_secs:
@@ -225,19 +229,19 @@ def plot_2d_data(
             i += 1
 
     # see if finishing date is given, default to last time given
-    if finish_date != None:
+    if finish_date is not None:
         finish = datetime.strptime(finish_date, "%Y-%m-%d %H:%M:%S")
     else:
         finish = dates[-1][0]
 
     # define min/max and spacing of data if not given (so we see all of the data)
-    if minimum == None:
+    if minimum is None:
         minimum = data.min()
         minimum = minimum - (0.1 * minimum)
-    if maximum == None:
+    if maximum is None:
         maximum = data.max()
         maximum = maximum + (0.1 * maximum)
-    if spacing == None:
+    if spacing is None:
         spacing = (maximum - minimum) / 256.0
 
     # plot 2d colour graph...
@@ -250,7 +254,7 @@ def plot_2d_data(
         dates, depths, data, arange(minimum, maximum, spacing), cmap=colour_scale
     )
     pp = colorbar(cs, format="%.2f")
-    if mld_data != None:
+    if mld_data is not None:
         ax.plot(dates[:, 0], mld_data, "w", alpha=0.7)
 
     dateFmt = mpl.dates.DateFormatter("%m/%Y")
