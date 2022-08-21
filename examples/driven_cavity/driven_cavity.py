@@ -4,11 +4,10 @@ import glob
 import math
 import os
 
-import numpy
+import matplotlib.pyplot as plt
+import numpy as np
 import vtktools
 from fluidity_tools import stat_parser
-from numpy import abs, array, max
-from sympy import *
 
 meshtemplate = """
 Point (1) = {0.0, 0.0, 0, 1.0};
@@ -34,7 +33,6 @@ Field[1].F = "1./<NN>";
 
 
 def generate_meshfile(name, NN):
-
     with open(name + ".geo", "w") as file:
         file.write(meshtemplate.replace("<NN>", str(NN)))
 
@@ -50,31 +48,19 @@ def plot_results(NN, error):
     "error". Error is a matrix with eight columns, one for each of the
     error metrics computed.
     """
-    from pylab import (
-        axis,
-        figure,
-        legend,
-        loglog,
-        savefig,
-        title,
-        xlabel,
-        xticks,
-        ylabel,
-        yticks,
-    )
 
-    figure()
+    plt.figure()
     dx = 1.0 / NN
-    loglog(dx, error, "o-")
-    loglog(dx, 100 * dx**2)
-    yticks(yticks()[0], map(lambda x: "%3.1e" % x, yticks()[0]))
-    xticks(xticks()[0], map(lambda x: "%3.1e" % x, xticks()[0]))
-    xlabel("mesh spacing")
-    ylabel("RMS error")
+    plt.loglog(dx, error, "o-")
+    plt.loglog(dx, 100 * dx**2)
+    plt.yticks(plt.yticks()[0], map(lambda x: "%3.1e" % x, plt.yticks()[0]))
+    plt.xticks(plt.xticks()[0], map(lambda x: "%3.1e" % x, plt.xticks()[0]))
+    plt.xlabel("mesh spacing")
+    plt.ylabel("RMS error")
 
-    title("Convergence in the driven cavity test problem")
+    plt.title("Convergence in the driven cavity test problem")
 
-    legend(
+    plt.legend(
         (
             "error1",
             "error2",
@@ -88,7 +74,7 @@ def plot_results(NN, error):
         )
     )
 
-    savefig("driven_cavity_error_plot.png")
+    plt.savefig("driven_cavity_error_plot.png")
 
 
 def retrieve_results(NN):
@@ -99,8 +85,8 @@ def retrieve_results(NN):
     directory.
 
     The columns of the results are the: Erturk et al 2005 u and v errors,
-    the Botella et al 1998 u, v, and p errors and the Brunean et al 2006 kinetic energy and
-    streamfunction errors.
+    the Botella et al 1998 u, v, and p errors and the Brunean et al 2006 kinetic energy
+    and streamfunction errors.
     The errors are the RMS difference between highly accurate
     tabulated values available in the papers:
 
@@ -115,12 +101,9 @@ def retrieve_results(NN):
     Computers & Fluids 35, 326-348, 2006, doi:10.1016/j.compfluid.2004.12.004
 
     """
-    from numpy import zeros
-
-    error = zeros((len(NN), 8))
+    error = np.zeros((len(NN), 8))
 
     for i, NN in enumerate(NN):
-
         error[i, 0] = erturk_u(NN)
         error[i, 1] = erturk_v(NN)
         error[i, 2] = botella_u(NN)
@@ -139,17 +122,17 @@ def erturk_u(NN):
     vtu_nos_not_sorted = [
         int(file.split(".vtu")[0].split("_")[-1]) for file in filelist_not_sorted
     ]
-    filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
+    filelist = [filelist_not_sorted[i] for i in np.argsort(vtu_nos_not_sorted)]
     file = filelist[-1]
     print(file)
     try:
         os.stat(file)
-    except:
+    except Exception:
         print("No such file: %s" % file)
-        sys.exit(1)
+        raise SystemExit
 
     u = vtktools.vtu(file)
-    pts = vtktools.arr(
+    pts = np.array(
         [
             [0.5, 0.000, 0.000, 0.0000],
             [0.5, 0.000, 0.000, 0.0000],
@@ -197,17 +180,17 @@ def erturk_v(NN):
     vtu_nos_not_sorted = [
         int(file.split(".vtu")[0].split("_")[-1]) for file in filelist_not_sorted
     ]
-    filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
+    filelist = [filelist_not_sorted[i] for i in np.argsort(vtu_nos_not_sorted)]
     file = filelist[-1]
     print(file)
     try:
         os.stat(file)
-    except:
+    except Exception:
         print("No such file: %s" % file)
-        sys.exit(1)
+        raise SystemExit
 
     u = vtktools.vtu(file)
-    pts = vtktools.arr(
+    pts = np.array(
         [
             [0.000, 0.5, 0.0, 0.0000],
             [0.015, 0.5, 0.0, 0.1019],
@@ -249,22 +232,23 @@ def erturk_v(NN):
 
 
 def botella_u(NN):
-    # Botella and Peyret (1998) Table 9. NB.our velocity at the lid is reverse theirs therefore minus signs in u below
+    # Botella and Peyret (1998) Table 9. NB.our velocity at the lid is reverse theirs
+    # therefore minus signs in u below
     filelist_not_sorted = glob.glob("driven_cavity-%d/*.vtu" % NN)
     vtu_nos_not_sorted = [
         int(file.split(".vtu")[0].split("_")[-1]) for file in filelist_not_sorted
     ]
-    filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
+    filelist = [filelist_not_sorted[i] for i in np.argsort(vtu_nos_not_sorted)]
     file = filelist[-1]
     print(file)
     try:
         os.stat(file)
-    except:
+    except Exception:
         print("No such file: %s" % file)
-        sys.exit(1)
+        raise SystemExit
 
     u = vtktools.vtu(file)
-    pts = vtktools.arr(
+    pts = np.array(
         [
             [0.5, 0.0000, 0.0, 0.0000000],
             [0.5, 0.0547, 0.0, -0.1812881],
@@ -305,17 +289,17 @@ def botella_v(NN):
     vtu_nos_not_sorted = [
         int(file.split(".vtu")[0].split("_")[-1]) for file in filelist_not_sorted
     ]
-    filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
+    filelist = [filelist_not_sorted[i] for i in np.argsort(vtu_nos_not_sorted)]
     file = filelist[-1]
     print(file)
     try:
         os.stat(file)
-    except:
+    except Exception:
         print("No such file: %s" % file)
-        sys.exit(1)
+        raise SystemExit
 
     u = vtktools.vtu(file)
-    pts = vtktools.arr(
+    pts = np.array(
         [
             [1.0000, 0.5, 0.0, 0.0000000],
             [0.9688, 0.5, 0.0, -0.2279225],
@@ -357,17 +341,17 @@ def botella_p1(NN):
     vtu_nos_not_sorted = [
         int(file.split(".vtu")[0].split("_")[-1]) for file in filelist_not_sorted
     ]
-    filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
+    filelist = [filelist_not_sorted[i] for i in np.argsort(vtu_nos_not_sorted)]
     file = filelist[-1]
     print(file)
     try:
         os.stat(file)
-    except:
+    except Exception:
         print("No such file: %s" % file)
-        sys.exit(1)
+        raise SystemExit
 
     u = vtktools.vtu(file)
-    pts = vtktools.arr(
+    pts = np.array(
         [
             [0.5, 0.0000, 0.0, 0.110591],
             [0.5, 0.0547, 0.0, 0.109689],
@@ -393,7 +377,7 @@ def botella_p1(NN):
     (ilen, jlen) = velocity.shape
     pressure = u.ProbeData(pts, "Pressure")
 
-    pts0 = vtktools.arr(
+    pts0 = np.array(
         [[0.5, 0.5, 0.0]]
     )  # We're going to subtract off the pressure at the centre point
     press0 = u.ProbeData(pts0, "Pressure")
@@ -415,17 +399,17 @@ def botella_p2(NN):
     vtu_nos_not_sorted = [
         int(file.split(".vtu")[0].split("_")[-1]) for file in filelist_not_sorted
     ]
-    filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
+    filelist = [filelist_not_sorted[i] for i in np.argsort(vtu_nos_not_sorted)]
     file = filelist[-1]
     print(file)
     try:
         os.stat(file)
-    except:
+    except Exception:
         print("No such file: %s" % file)
-        sys.exit(1)
+        raise SystemExit
 
     u = vtktools.vtu(file)
-    pts = vtktools.arr(
+    pts = np.array(
         [
             [1.0000, 0.5, 0.0, 0.077455],
             [0.9688, 0.5, 0.0, 0.078837],
@@ -451,7 +435,7 @@ def botella_p2(NN):
     (ilen, jlen) = velocity.shape
     pressure = u.ProbeData(pts, "Pressure")
 
-    pts0 = vtktools.arr(
+    pts0 = np.array(
         [[0.5, 0.5, 0.0]]
     )  # We're going to subtract off the pressure at the centre point
     press0 = u.ProbeData(pts0, "Pressure")

@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-import math
-import sys
-
-import vtk
 import vtktools
-from scipy import sqrt
 
 ugrid = u = vtktools.vtu("med_10.pvtu")
 # e.g. x="math.sin(x)"

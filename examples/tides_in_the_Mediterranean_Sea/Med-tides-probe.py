@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-import math
-
+import matplotlib.pyplot as plt
 import vtktools
-from numpy import array
+from numpy import array, sqrt
 
 u = vtktools.vtu("tidesmedsea-flat.vtu")
 g = open("Med-GEBCO-5m-gauges-fes2004-O1-102", "w")
 
-pts = vtktools.arr(
+pts = array(
     [
         # [-5.3500, 36.1333, -2.00],
         # [-4.4500, 36.7000, 0.00],
@@ -153,7 +152,6 @@ M2_tideGauge_amp = array(
         [11.0],
     ]
 )
-from math import sqrt
 
 ampdiff = ampcm - M2_tideGauge_amp
 ampdiff2 = ampdiff**2
@@ -386,53 +384,50 @@ O1a = sum(sum(O1ampdiff2)) / 62
 O1RMS = sqrt(O1a)
 print("RMS difference of O1 Amp (cm):", O1RMS)
 
-import fluidity_tools
-from matplotlib import pylab
 
-pylab.plot(ampcm, M2_tideGauge_amp)
-pylab.xlabel("Fluidity")
-pylab.ylabel("Tide Gauge")
-pylab.show()
-
-import matplotlib
-
-matplotlib.pyplot.scatter(M2_tideGauge_amp, ampcm, s=20, c="b", marker="o")
-# pylab.xlabel("Tide Gauge M2 Amplitude (cm)")
-# pylab.ylabel("Fluidity M2 Amplitude (cm)")
-# x=([0,70])
-# y=([0,70])
-# matplotlib.pyplot.plot(y,x, label="y=x")
-# pylab.ylim(ymax=70.0,ymin=0.0)
-# pylab.xlim(xmax=70.0,xmin=0.0)
-# pylab.show()
+plt.plot(ampcm, M2_tideGauge_amp)
+plt.xlabel("Fluidity")
+plt.ylabel("Tide Gauge")
+plt.show()
 
 
-# matplotlib.pyplot.scatter(S2_tide_guage_data_amp,S2ampcm,s=20, c='b', marker='o')
-# pylab.xlabel("Tide Gauge S2 Amplitude (cm)")
-# pylab.ylabel("Fluidity S2 Amplitude (cm)")
-# x=([0,70])
-# y=([0,70])
-# matplotlib.pyplot.plot(y,x, label="y=x")
-# pylab.ylim(ymax=70.0,ymin=0.0)
-# pylab.xlim(xmax=70.0,xmin=0.0)
-# pylab.show()
+plt.scatter(M2_tideGauge_amp, ampcm, s=20, c="b", marker="o")
+# plt.xlabel("Tide Gauge M2 Amplitude (cm)")
+# plt.ylabel("Fluidity M2 Amplitude (cm)")
+# x = [0, 70]
+# y = [0, 70]
+# plt.plot(y, x, label="y=x")
+# plt.ylim(ymax=70.0, ymin=0.0)
+# plt.xlim(xmax=70.0, xmin=0.0)
+# plt.show()
 
-# matplotlib.pyplot.scatter(K1_tide_guage_data_amp,K1ampcm,s=20, c='b', marker='o')
-# pylab.xlabel("Tide Gauge K1 Amplitude (cm)")
-# pylab.ylabel("Fluidity K1 Amplitude (cm)")
-# x=([0,20])
-# y=([0,20])
-# matplotlib.pyplot.plot(y,x, label="y=x")
-# pylab.ylim(ymax=20.0,ymin=0.0)
-# pylab.xlim(xmax=20.0,xmin=0.0)
-# pylab.show()
 
-# matplotlib.pyplot.scatter(O1_tide_guage_data_amp,O1ampcm,s=20, c='b', marker='o')
-# pylab.xlabel("Tide Gauge O1 Amplitude (cm)")
-# pylab.ylabel("Fluidity O1 Amplitude (cm)")
-# x=([0,20])
-# y=([0,20])
-# matplotlib.pyplot.plot(y,x, label="y=x")
-# pylab.ylim(ymax=20.0,ymin=0.0)
-# pylab.xlim(xmax=20.0,xmin=0.0)
-# pylab.show()
+# plt.scatter(S2_tide_guage_data_amp, S2ampcm, s=20, c="b", marker="o")
+# plt.xlabel("Tide Gauge S2 Amplitude (cm)")
+# plt.ylabel("Fluidity S2 Amplitude (cm)")
+# x = [0, 70]
+# y = [0, 70]
+# plt.plot(y, x, label="y=x")
+# plt.ylim(ymax=70.0, ymin=0.0)
+# plt.xlim(xmax=70.0, xmin=0.0)
+# plt.show()
+
+# plt.scatter(K1_tide_guage_data_amp, K1ampcm, s=20, c="b", marker="o")
+# plt.xlabel("Tide Gauge K1 Amplitude (cm)")
+# plt.ylabel("Fluidity K1 Amplitude (cm)")
+# x = [0, 20]
+# y = [0, 20]
+# plt.plot(y, x, label="y=x")
+# plt.ylim(ymax=20.0, ymin=0.0)
+# plt.xlim(xmax=20.0, xmin=0.0)
+# plt.show()
+
+# plt.scatter(O1_tide_guage_data_amp, O1ampcm, s=20, c="b", marker="o")
+# plt.xlabel("Tide Gauge O1 Amplitude (cm)")
+# plt.ylabel("Fluidity O1 Amplitude (cm)")
+# x = [0, 20]
+# y = [0, 20]
+# plt.plot(y, x, label="y=x")
+# plt.ylim(ymax=20.0, ymin=0.0)
+# plt.xlim(xmax=20.0, xmin=0.0)
+# plt.show()

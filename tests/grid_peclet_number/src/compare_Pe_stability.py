@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # This script will plot the final numerical (solid line) and exact (dotted line)
-# solutions to phi_x - diff*phi_xx = 1, phi = 0 x = 0,1 (Donea and Huerta pgs 38, 40, a = 1)
+# solutions to phi_x - diff*phi_xx = 1, phi = 0 x = 0,1
+# (Donea and Huerta pgs 38, 40, a = 1)
 # for different Peclet numbers (runs of which should be in separate directories)
 # and will give the grid Peclet number expected and as calculated in
 # fluidity (as an average over the values in the final output vtu)
@@ -8,16 +9,15 @@
 # need to be specified (below). N.B. it assumes they are in the same
 # directory (if they are not just alter the paths)
 import glob
-import re
 
+import matplotlib.pyplot as plt
 import numpy
 import vtktools
 from lxml import etree
-from pylab import *
 
-################################################################################################
-# ----------------------------------------------------------------------------------------------#
-################################################################################################
+########################################################################################
+# ------------------------------------------------------------------------------------ #
+########################################################################################
 
 
 def GetFiles(directory):
@@ -36,19 +36,19 @@ def GetFiles(directory):
     return filelist_sorted
 
 
-################################################################################################
-# ----------------------------------------------------------------------------------------------#
-################################################################################################
+#######################################################################################
+# ----------------------------------------------------------------------------------- #
+#######################################################################################
 
 
 def not_comment(x):
     # function to filter stream for use in GetmixingbinsBounds
-    return not "comment" in x.tag
+    return "comment" not in x.tag
 
 
-################################################################################################
-# ----------------------------------------------------------------------------------------------#
-################################################################################################
+#######################################################################################
+# ----------------------------------------------------------------------------------- #
+#######################################################################################
 
 
 def GetDiffusivity(flml_name):
@@ -61,7 +61,11 @@ def GetDiffusivity(flml_name):
     filename = flml_name
 
     # The path to the node in the tree
-    xpath = '/fluidity_options/material_phase[@name="fluid"]/scalar_field[@name="Tracer"]/prognostic/tensor_field[@name="Diffusivity"]/prescribed/value[@name="WholeMesh"]/isotropic/constant'
+    xpath = (
+        '/fluidity_options/material_phase[@name="fluid"]'
+        '/scalar_field[@name="Tracer"]/prognostic/tensor_field[@name="Diffusivity"]'
+        '/prescribed/value[@name="WholeMesh"]/isotropic/constant'
+    )
 
     # Open it up
     tree = etree.parse(open(filename))
@@ -73,9 +77,9 @@ def GetDiffusivity(flml_name):
     return float(child.text)
 
 
-################################################################################################
-# ----------------------------------------------------------------------------------------------#
-################################################################################################
+#######################################################################################
+# ----------------------------------------------------------------------------------- #
+#######################################################################################
 
 
 dx = 0.1
@@ -95,24 +99,24 @@ line_colour = ["b", "g", "r", "c", "m", "y", "k"]
 
 x_val = [i * dx for i in range(0, 11)]
 
-figure(num=None, figsize=(16.5, 11.5))
+plt.figure(num=None, figsize=(16.5, 11.5))
 
 for directory in directories:
     filelist = GetFiles(directory)
 
     data = vtktools.vtu(filelist[-1])
 
-    Pec = average(data.GetScalarField("GridPecletNumber"))
+    Pec = numpy.average(data.GetScalarField("GridPecletNumber"))
     phi = data.GetScalarField("Tracer")
     nu = GetDiffusivity(directory + "/grid_peclet_number.flml")
-    plot(x_val, phi, line_colour[0] + "-", label=str(a * dx / nu) + ", " + str(Pec))
+    plt.plot(x_val, phi, line_colour[0] + "-", label=str(a * dx / nu) + ", " + str(Pec))
 
-    exact = [x - ((1 - math.exp(x / nu)) / (1 - math.exp(1.0 / nu))) for x in x_val]
-    plot(x_val, exact, line_colour[0] + "--")
+    exact = [x - ((1 - numpy.exp(x / nu)) / (1 - numpy.exp(1.0 / nu))) for x in x_val]
+    plt.plot(x_val, exact, line_colour[0] + "--")
     line_colour.remove(line_colour[0])
 
-xlabel("$x$")
-ylabel(r"$\phi$")
-grid("True")
-legend(loc=0)
-savefig("phivsx.png")
+plt.xlabel("$x$")
+plt.ylabel(r"$\phi$")
+plt.grid("True")
+plt.legend(loc=0)
+plt.savefig("phivsx.png")

@@ -50,7 +50,7 @@ for file in filelist:
                 )
             )
 
-    xyzkkarr = vtktools.arr(xyzkk)
+    xyzkkarr = np.array(xyzkk)
     III = np.argsort(xyzkkarr[:, 1])
     xyzkkarrsort = xyzkkarr[III, :]
 

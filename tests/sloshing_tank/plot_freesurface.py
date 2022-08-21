@@ -1,16 +1,11 @@
 #!/usr/bin/env python3
 import getopt
-import math
 import sys
 
-import ana_sol
 import matplotlib.pyplot as plt
 import settings
 from fluidity_tools import stat_parser as stat
-from matplotlib.mlab import stineman_interp
-from matplotlib.pyplot import figure, show
-from numpy import cos, exp, linspace, pi, poly1d, sin
-from scipy.special import erf
+from matplotlib.pyplot import figure
 
 
 # Usage
@@ -19,9 +14,8 @@ def usage():
     print("All the other options are read from settings.py")
 
 
-################# Main ###########################
+# Main #
 def main(argv=None):
-
     a_0 = settings.a0  # initial maximum perturbation
     g = settings.g  # gravity
     eta = settings.eta  # viscosity
@@ -54,7 +48,7 @@ def main(argv=None):
     print("\tL=", L)  # wavelength
     print("\ttimestep=", timestep)  # timestep
 
-    ####################### Print time plot  ###########################
+    # Print time plot  #
     print("Generating time plot")
 
     x_time = stat(filename)["ElapsedTime"]["value"]
@@ -74,7 +68,7 @@ def main(argv=None):
     plt.ylabel("Free surface [m]")
 
     plt.draw()
-    raw_input("Please press Enter")
+    input("Please press Enter")
     # plt.cla()
 
 

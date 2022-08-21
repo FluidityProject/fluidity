@@ -4,21 +4,10 @@ import re
 import string
 from datetime import datetime, timedelta
 
+import matplotlib.pyplot as plt
 import vtktools
-from numpy import argsort, size
-from pylab import (
-    arange,
-    close,
-    cm,
-    colorbar,
-    date2num,
-    figure,
-    legend,
-    mpl,
-    savefig,
-    xlabel,
-    ylabel,
-)
+from matplotlib.dates import DateFormatter, MonthLocator, date2num
+from numpy import arange, argsort, array, size
 
 
 # taken from http://www.codinghorror.com/blog/archives/001018.html
@@ -123,7 +112,7 @@ def calc_mld(files, start, x0=0.0, y0=0.0):
         ind = get_1d_indices(pos, x0, y0)
 
         # from this we can derive the 1D profile of any field like this:
-        depth = vtktools.arr([-pos[i, 2] for i in ind])
+        depth = array([-pos[i, 2] for i in ind])
 
         # handle time for different types of plots
         time = u.GetScalarField("Time")
@@ -133,7 +122,7 @@ def calc_mld(files, start, x0=0.0, y0=0.0):
         # grab density profile and calculate MLD_den (using 2 different deviation
         # parameters
         d = u.GetScalarField("Density")
-        den = vtktools.arr([d[i] * 1000 for i in ind])
+        den = array([d[i] * 1000 for i in ind])
         mld.append(calc_mld_den(den, depth))  # den0 = 0.03 is default
 
     return mld, times, dates
@@ -159,7 +148,7 @@ def calc_mld_tke_files(files, start, x0=0.0, y0=0.0):
         ind = get_1d_indices(pos, x0, y0)
 
         # from this we can derive the 1D profile of any field like this:
-        depth = vtktools.arr([-pos[i, 2] for i in ind])
+        depth = array([-pos[i, 2] for i in ind])
 
         # handle time for different types of plots
         time = u.GetScalarField("Time")
@@ -168,7 +157,7 @@ def calc_mld_tke_files(files, start, x0=0.0, y0=0.0):
 
         # grab density profile and calculate MLD
         d = u.GetScalarField("GLSTurbulentKineticEnergy")
-        tke = vtktools.arr([d[i] for i in ind])
+        tke = array([d[i] for i in ind])
         mld.append(calc_mld_tke(tke, depth))
 
     return mld, times, dates
@@ -209,14 +198,13 @@ def plot_2d_data(
     minimum=None,
     maximum=None,
     spacing=None,
-    colour_scale=cm.jet,
     dates=None,
 ):
     """ """
     # turn given 2d-arrays into numpy arrays (in case they are not already)
-    data = vtktools.arr(data)
-    time_secs = vtktools.arr(time_secs)
-    depths = vtktools.arr(depths)
+    data = array(data)
+    time_secs = array(time_secs)
+    depths = array(depths)
 
     # convert time profiles in seconds into months
     start = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
@@ -245,21 +233,17 @@ def plot_2d_data(
         spacing = (maximum - minimum) / 256.0
 
     # plot 2d colour graph...
-    fig = figure(figsize=(15, 8), dpi=90)
+    fig = plt.figure(figsize=(15, 8), dpi=90)
     ax = fig.add_axes([0.1, 0.18, 0.9, 0.7])
-    cs = ax.contour(
-        dates, depths, data, arange(minimum, maximum, spacing), cmap=colour_scale
-    )
-    cs = ax.contourf(
-        dates, depths, data, arange(minimum, maximum, spacing), cmap=colour_scale
-    )
-    pp = colorbar(cs, format="%.2f")
+    cs = ax.contour(dates, depths, data, arange(minimum, maximum, spacing))
+    cs = ax.contourf(dates, depths, data, arange(minimum, maximum, spacing))
+    pp = plt.colorbar(cs, format="%.2f")
     if mld_data is not None:
         ax.plot(dates[:, 0], mld_data, "w", alpha=0.7)
 
-    dateFmt = mpl.dates.DateFormatter("%m/%Y")
+    dateFmt = DateFormatter("%m/%Y")
     ax.xaxis.set_major_formatter(dateFmt)
-    monthsLoc = mpl.dates.MonthLocator(interval=interval)
+    monthsLoc = MonthLocator(interval=interval)
     ax.xaxis.set_major_locator(monthsLoc)
     labels = ax.get_xticklabels()
     for label in labels:
@@ -267,12 +251,12 @@ def plot_2d_data(
     ax.set_ylim(max_depth, 0)
     ax.set_xlim(start, finish)
     pp.set_label(axis_label)
-    xlabel("Date (mm/yyyy)")
-    ylabel("Depth (m)")
+    plt.xlabel("Date (mm/yyyy)")
+    plt.ylabel("Depth (m)")
 
     form = file_path.split(".")[-1].strip()
-    savefig(file_path, dpi=90, format=form)
-    close(fig)
+    plt.savefig(file_path, dpi=90, format=form)
+    plt.close(fig)
 
 
 def plot_1d_comparison(
@@ -290,32 +274,32 @@ def plot_1d_comparison(
     finish_time = date2num(datetime.strptime(finish_date, "%Y-%m-%d %H:%M:%S"))
 
     # plot 1d graph...
-    fig = figure(figsize=(15, 8), dpi=90)
+    fig = plt.figure(figsize=(15, 8), dpi=90)
     ax = fig.add_axes([0.05, 0.12, 0.9, 0.85])
     max_value = 0.0
     for key, data_arr in data_dict.iteritems():
         ax.plot(time_dict[key], data_arr, style_dict[key], label=key)
-        data_arr = vtktools.arr(data_arr)
+        data_arr = array(data_arr)
         if data_arr.max() > max_value:
             max_value = data_arr.max()
     max_value += max_value * 0.1
 
-    dateFmt = mpl.dates.DateFormatter("%m/%Y")
+    dateFmt = DateFormatter("%m/%Y")
     ax.xaxis.set_major_formatter(dateFmt)
-    monthsLoc = mpl.dates.MonthLocator(interval=interval)
+    monthsLoc = MonthLocator(interval=interval)
     ax.xaxis.set_major_locator(monthsLoc)
     labels = ax.get_xticklabels()
     for label in labels:
         label.set_rotation(30)
     ax.set_ylim(max_value, 0)
     ax.set_xlim(start_time, finish_time)
-    xlabel("Date (mm/yyyy)")
-    ylabel(axis_label)
-    legend(loc=0)
+    plt.xlabel("Date (mm/yyyy)")
+    plt.ylabel(axis_label)
+    plt.legend(loc=0)
 
     form = file_path.split(".")[-1].strip()
-    savefig(file_path, dpi=90, format=form)
-    close(fig)
+    plt.savefig(file_path, dpi=90, format=form)
+    plt.close(fig)
 
 
 # width defines bar width

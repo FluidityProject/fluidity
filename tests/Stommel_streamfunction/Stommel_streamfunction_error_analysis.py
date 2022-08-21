@@ -1,27 +1,8 @@
 #!/usr/bin/env python3
 import sys
 
-from numpy import (
-    abs,
-    amax,
-    arange,
-    array,
-    dot,
-    exp,
-    max,
-    pi,
-    reshape,
-    sin,
-    size,
-    sqrt,
-    transpose,
-    zeros,
-)
-from pylab import *
-
-sys.path.append("/home/piggott/bin/")
-import nodecount
 import vtktools
+from numpy import abs, amax, dot, exp, pi, reshape, sin, size, sqrt, transpose, zeros
 
 
 def function_psi(X, Y):
@@ -31,7 +12,6 @@ def function_psi(X, Y):
     rho = 1.0
     beta = 100.0
     alpha = beta / r
-    D = 200
     F = 0.1
     gamma = F * pi / (rho * r * b)
     A = -alpha / 2 + sqrt(0.25 * (alpha**2) + (pi / b) ** 2)
@@ -74,15 +54,14 @@ def function_trivol(X, Y):
     return abs(VOL / 2)
 
 
-n = nodecount.nodecount(sys.argv[1])
-print(n)
-
+# n = nodecount.nodecount(sys.argv[1])
+# print(n)
 
 ug = vtktools.vtu(sys.argv[1])
-##ug=vtktools.vtu('Stommel-NEW5_3e-6----_6.vtu')
+# ug = vtktools.vtu("Stommel-NEW5_3e-6----_6.vtu")
 ug.GetFieldNames()
-##p=ug.GetScalarField('Pressure')
-##uvw=ug.GetVectorField('Velocity')
+# p = ug.GetScalarField("Pressure")
+# uvw = ug.GetVectorField("Velocity")
 temp = ug.GetScalarField("Temperature")
 
 psi = ug.GetScalarField("Analytical")
@@ -107,10 +86,11 @@ err = abs(psi - temp)
 norm1 = dot(ML, err)
 norm2 = dot(ML, err**2)
 snorm2 = sqrt(abs(norm2))
-##print norm1
-##print snorm2
-##print amax(err)
-print(n, norm1, snorm2, amax(err))
+# print(norm1)
+# print(snorm2)
+# print(amax(err))
+# print(n, norm1, snorm2, amax(err))
+print(norm1, snorm2, amax(err))
 ug.AddScalarField("Analytical Solution", psi)
 ug.AddScalarField("Error (difference)", err)
 ug.Write("error.vtu")

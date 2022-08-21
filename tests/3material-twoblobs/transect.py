@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 import glob
 
+import matplotlib.pyplot as plt
 import vtktools
-from fluidity_tools import stat_parser
-from numpy import arange, array, concatenate, newaxis, ones
-from pylab import *
+from numpy import arange, concatenate, newaxis, ones, zeros
 
 colx = ones((21, 1)) * 0.1
 colz = zeros((21, 1))
@@ -27,7 +26,7 @@ for vtu in vtus:
     waterdropletsum = vtktools.vtu.ProbeData(
         vtufile, coordinates, "Water::SumMaterialVolumeFractions"
     )
-    plot(
+    plt.plot(
         coordinates[:, 1],
         water,
         coordinates[:, 1],
@@ -37,15 +36,15 @@ for vtu in vtus:
         coordinates[:, 1],
         waterdropletsum,
     )
-    axis([-0.55, 0.55, -0.5, 1.5])
-    xlabel("Distance")
-    ylabel("VolumeFraction")
-    legend(("Water", "Droplet", "Air", "Sum"), loc="center left")
+    plt.axis([-0.55, 0.55, -0.5, 1.5])
+    plt.xlabel("Distance")
+    plt.ylabel("VolumeFraction")
+    plt.legend(("Water", "Droplet", "Air", "Sum"), loc="center left")
     if len(vtunumber) == 1:
         vtunumber = "000" + vtunumber
     elif len(vtunumber) == 2:
         vtunumber = "00" + vtunumber
     elif len(vtunumber) == 3:
         vtunumber = "0" + vtunumber
-    savefig("./" + vtu[:19] + vtunumber + ".png")
-    cla()
+    plt.savefig("./" + vtu[:19] + vtunumber + ".png")
+    plt.cla()

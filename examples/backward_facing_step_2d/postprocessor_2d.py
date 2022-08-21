@@ -19,7 +19,7 @@ def get_filelist(sample, start):
     vtu_nos, vtu_list = zip(*sorted(zip(vtu_nos, vtu_list)))
     shortlist = []
 
-    for file in list:
+    for file in vtu_list:
         try:
             os.stat(file)
         except Exception:

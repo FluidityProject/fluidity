@@ -50,7 +50,7 @@ def MLD(filelist):
             if abs(pos[i, 0] - x0) < 0.1:
                 xyzkk.append((pos[i, 0], -pos[i, 1], pos[i, 2], (kk[i])))
 
-        xyzkkarr = vtktools.arr(xyzkk)
+        xyzkkarr = np.array(xyzkk)
         III = np.argsort(xyzkkarr[:, 1])
         xyzkkarrsort = xyzkkarr[III, :]
         # march down the column, grabbing the last value above tk0 and the first

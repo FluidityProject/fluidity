@@ -6,11 +6,7 @@ import re
 from xml.dom.minidom import Document, parseString
 
 import numpy
-
-try:
-    import vtktools
-except:
-    pass
+import vtktools
 
 
 def parse_s(str):
@@ -206,8 +202,8 @@ def tsunami_hit(fieldname, sfile, tol=0.00025):
 
 def getDistanceMeshDensity(file):
     v = vtktools.vtu(file)
-    l = [0.0] * v.ugrid.GetNumberOfPoints()
-    a = vtktools.arr(l)
+    point_list = [0.0] * v.ugrid.GetNumberOfPoints()
+    a = numpy.array(point_list)
     for i in range(v.ugrid.GetNumberOfPoints()):
         neighbours = v.GetPointPoints(i)
         sum = 0.0
@@ -219,8 +215,8 @@ def getDistanceMeshDensity(file):
 
 def getElementMeshDensity(file):
     v = vtktools.vtu(file)
-    l = [0.0] * v.ugrid.GetNumberOfPoints()
-    a = vtktools.arr(l)
+    point_list = [0.0] * v.ugrid.GetNumberOfPoints()
+    a = numpy.array(point_list)
     c = v.ugrid.GetCell(1)
 
     for i in range(v.ugrid.GetNumberOfPoints()):
@@ -309,7 +305,8 @@ class stat_creator(dict):
             # Now call the write function again to actually write the first values
             self.write()
             return
-        # Here the header is written and we only want to append data. So lets load the file in append mode
+        # Here the header is written and we only want to append data. So lets load the
+        # file in append mode
         f = open(self.filename, "a")
         # Check that the dictionary and the header are consistent
         if set(self) != set(self.header):
@@ -341,7 +338,6 @@ class stat_parser(dict):
        p['Material1']['Speed']['max']"""
 
     def __init__(self, filename, subsample=1):
-
         assert subsample > 0
 
         statfile = open(filename, "r")

@@ -196,7 +196,6 @@ def make_graphs(tree, namelist):
         visited = set()
 
         def add_used(name, out, visited):
-
             if name in visited:
                 return out
 
@@ -256,7 +255,6 @@ if __name__ == "__main__":
     out = print_misplaced(tree, namelist, options.silent or options.graph, args)
 
     if options.graph:
-
         make_graphs(tree, namelist)
 
     if out:

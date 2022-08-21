@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import string
+import sys
 
-import numpy
-from pylab import *
+import matplotlib.pyplot as plt
 
 ####################
 #                  #
@@ -17,7 +17,7 @@ params = {
     "axes.labelsize": 14,
     "text.fontsize": 14,
 }
-rcParams.update(params)
+plt.rcParams.update(params)
 
 filelist = sys.argv[1:]
 files = []
@@ -62,7 +62,7 @@ for file in files:
 
     f.close()
 
-    fig = figure()
+    fig = plt.figure()
     ax = fig.add_subplot(221)
     ax = fig.add_subplot(221)
     ax.plot(timestep, q_era40, "b", label="ERA40 Q")
@@ -93,4 +93,4 @@ for file in files:
     ax.set_xlabel("Time")
     ax.legend(loc=0)
 
-    show()
+    plt.show()
