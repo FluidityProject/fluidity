@@ -119,74 +119,116 @@ if(EXODUSII_LIBRARY)
 endif()
 
 # Add libspatialindex
-FetchContent_Declare(libspatialindex
-  GIT_REPOSITORY https://github.com/libspatialindex/libspatialindex
-  GIT_TAG origin/master
-  LOG_DOWNLOAD ON
-  LOG_CONFIGURE ON
-  LOG_BUILD ON
-  LOG_INSTALL ON
-)
+if(DEFINED USE_BUNDLED_LIBSPATIALINDEX)
+  FetchContent_Declare(libspatialindex
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/spatialindex-1.8.0
+    LOG_CONFIGURE ON
+    LOG_BUILD ON
+    LOG_INSTALL ON
+  )
+else()
+  FetchContent_Declare(libspatialindex
+    GIT_REPOSITORY https://github.com/libspatialindex/libspatialindex
+    GIT_TAG origin/master
+    LOG_DOWNLOAD ON
+    LOG_CONFIGURE ON
+    LOG_BUILD ON
+    LOG_INSTALL ON
+  )
+endif()
 FetchContent_MakeAvailable(libspatialindex)
 
 # Add Judy
-ExternalProject_Add(libjudy
-  PREFIX libjudy
-  URL https://sourceforge.net/projects/judy/files/judy/Judy-1.0.5/Judy-1.0.5.tar.gz/download
-  CONFIGURE_COMMAND ./configure --enable-64-bit --prefix=<SOURCE_DIR>
-  BUILD_COMMAND make
-  BUILD_IN_SOURCE TRUE
-  INSTALL_COMMAND make install exec_prefix=<SOURCE_DIR>
-  TEST_COMMAND make check
-  TEST_BEFORE_INSTALL TRUE
-  LOG_DOWNLOAD ON
-  LOG_CONFIGURE ON
-  LOG_BUILD ON
-  LOG_INSTALL ON
-  LOG_TEST ON
-)
+if(DEFINED USE_BUNDLED_LIBJUDY)
+  ExternalProject_Add(libjudy
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/libjudy
+    CONFIGURE_COMMAND ./configure --enable-64-bit --prefix=<SOURCE_DIR>
+    BUILD_COMMAND make
+    BUILD_IN_SOURCE TRUE
+    INSTALL_COMMAND make install exec_prefix=<SOURCE_DIR>
+    TEST_COMMAND make check
+    TEST_BEFORE_INSTALL TRUE
+    LOG_CONFIGURE ON
+    LOG_BUILD ON
+    LOG_INSTALL ON
+    LOG_TEST ON
+  )
+else()
+  ExternalProject_Add(libjudy
+    PREFIX libjudy
+    URL https://sourceforge.net/projects/judy/files/judy/Judy-1.0.5/Judy-1.0.5.tar.gz/download
+    CONFIGURE_COMMAND ./configure --enable-64-bit --prefix=<SOURCE_DIR>
+    BUILD_COMMAND make
+    BUILD_IN_SOURCE TRUE
+    INSTALL_COMMAND make install exec_prefix=<SOURCE_DIR>
+    TEST_COMMAND make check
+    TEST_BEFORE_INSTALL TRUE
+    LOG_DOWNLOAD ON
+    LOG_CONFIGURE ON
+    LOG_BUILD ON
+    LOG_INSTALL ON
+    LOG_TEST ON
+  )
+endif()
 ExternalProject_Add_Step(libjudy byproducts
   DEPENDEES install
   BYPRODUCTS <SOURCE_DIR>/lib/libJudy.a
   LOG ON
 )
 ExternalProject_Get_property(libjudy SOURCE_DIR)
-set(libjudy_SOURCE_DIR ${SOURCE_DIR})
+
 add_library(Judy STATIC IMPORTED)
 set_target_properties(Judy
-  PROPERTIES IMPORTED_LOCATION ${libjudy_SOURCE_DIR}/lib/libJudy.a
+  PROPERTIES IMPORTED_LOCATION ${SOURCE_DIR}/lib/libJudy.a
 )
 
+set(LIBJUDY_INCLUDE_DIR ${SOURCE_DIR}/src)
+
 # Add Zoltan
-set(ZOLTAN_CONFIGURE "../libzoltan/configure --enable-f90interface --with-gnumake --with-scotch --with-parmetis")
-if(${CMAKE_C_COMPILER_VERSION} GREATER_EQUAL 10)
-  string(APPEND ZOLTAN_CONFIGURE " FCFLAGS=-fallow-argument-mismatch")
+if(DEFINED USE_EXISTING_ZOLTAN)
+  find_library(ZOLTAN_LIBRARY zoltan HINTS ${USE_EXISTING_ZOLTAN} REQUIRED)
+  find_path(ZOLTAN_INCLUDE_DIR zoltan.h HINTS ${USE_EXISTING_ZOLTAN} REQUIRED)
+
+  add_library(Zoltan STATIC IMPORTED)
+  set_target_properties(Zoltan PROPERTIES IMPORTED_LOCATION ${ZOLTAN_LIBRARY})
+
+else()
+  set(ZOLTAN_CONFIGURE "../libzoltan/configure --enable-f90interface --with-gnumake --with-scotch --with-parmetis")
+
+  if(${CMAKE_C_COMPILER_VERSION} GREATER_EQUAL 10)
+    string(APPEND ZOLTAN_CONFIGURE " FCFLAGS=-fallow-argument-mismatch")
+  endif()
+
+  if(DEFINED ENV{PETSC_ARCH})
+    string(APPEND ZOLTAN_CONFIGURE " --with-scotch-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-scotch-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib --with-parmetis-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-parmetis-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib")
+    else()
+    string(APPEND ZOLTAN_CONFIGURE " --with-scotch-incdir=$ENV{PETSC_DIR}/include --with-scotch-libdir=$ENV{PETSC_DIR}/lib --with-parmetis-incdir=$ENV{PETSC_DIR}/include --with-parmetis-libdir=$ENV{PETSC_DIR}/lib")
+  endif()
+
+  separate_arguments(ZOLTAN_CONFIGURE UNIX_COMMAND ${ZOLTAN_CONFIGURE})
+
+  ExternalProject_Add(libzoltan
+    PREFIX Zoltan
+    GIT_REPOSITORY https://github.com/sandialabs/Zoltan
+    GIT_TAG origin/main
+    CONFIGURE_COMMAND ${ZOLTAN_CONFIGURE}
+    BUILD_COMMAND make everything
+    BUILD_BYPRODUCTS <BINARY_DIR>/src/libzoltan.a
+    INSTALL_COMMAND ""
+    LOG_DOWNLOAD ON
+    LOG_CONFIGURE ON
+    LOG_BUILD ON
+  )
+  ExternalProject_Get_property(libzoltan BINARY_DIR)
+
+  add_library(Zoltan STATIC IMPORTED)
+  add_dependencies(Zoltan libzoltan)
+  set_target_properties(Zoltan
+    PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/src/libzoltan.a
+  )
+  
+  set(ZOLTAN_INCLUDE_DIR ${BINARY_DIR}/src)
 endif()
-if(DEFINED ENV{PETSC_ARCH})
-  string(APPEND ZOLTAN_CONFIGURE " --with-scotch-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-scotch-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib --with-parmetis-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-parmetis-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib")
-  else()
-  string(APPEND ZOLTAN_CONFIGURE " --with-scotch-incdir=$ENV{PETSC_DIR}/include --with-scotch-libdir=$ENV{PETSC_DIR}/lib --with-parmetis-incdir=$ENV{PETSC_DIR}/include --with-parmetis-libdir=$ENV{PETSC_DIR}/lib")
-endif()
-separate_arguments(ZOLTAN_CONFIGURE UNIX_COMMAND ${ZOLTAN_CONFIGURE})
-ExternalProject_Add(libzoltan
-  PREFIX Zoltan
-  GIT_REPOSITORY https://github.com/sandialabs/Zoltan
-  GIT_TAG origin/main
-  CONFIGURE_COMMAND ${ZOLTAN_CONFIGURE}
-  BUILD_COMMAND make everything
-  BUILD_BYPRODUCTS <BINARY_DIR>/src/libzoltan.a
-  INSTALL_COMMAND ""
-  LOG_DOWNLOAD ON
-  LOG_CONFIGURE ON
-  LOG_BUILD ON
-)
-ExternalProject_Get_property(libzoltan BINARY_DIR)
-set(Zoltan_BINARY_DIR ${BINARY_DIR})
-add_library(Zoltan STATIC IMPORTED)
-add_dependencies(Zoltan libzoltan)
-set_target_properties(Zoltan
-  PROPERTIES IMPORTED_LOCATION ${Zoltan_BINARY_DIR}/src/libzoltan.a
-)
 
 # Generate some source files
 add_custom_command(
@@ -369,8 +411,8 @@ target_include_directories(fluidity PUBLIC
   $<$<BOOL:${EXODUSII_INCLUDE_DIR}>:${EXODUSII_INCLUDE_DIR}>
 
   ${libspatialindex_SOURCE_DIR}/include
-  ${libjudy_SOURCE_DIR}/src
-  ${Zoltan_BINARY_DIR}/src
+  ${LIBJUDY_INCLUDE_DIR}
+  ${ZOLTAN_INCLUDE_DIR}
 
   ${CMAKE_BINARY_DIR}/include
   ${CMAKE_SOURCE_DIR}/include
@@ -429,6 +471,16 @@ add_subdirectory(tools)
 add_executable(fluidity_binary main.cpp)
 set_target_properties(fluidity_binary PROPERTIES OUTPUT_NAME fluidity)
 target_link_libraries(fluidity_binary fluidity)
+
+# Install Python packages included in Fluidity's repository
+add_custom_target(install_python_packages)
+add_dependencies(install_python_packages fluidity_python spud_diamond spud_dxdiff spud_python)
+
+# Uninstall Python packages included in Fluidity's repository
+add_custom_target(uninstall_python_packages
+  COMMAND ${Python3_EXECUTABLE} -m pip uninstall -y diamond dxdiff fluidity libspud
+  VERBATIM
+)
 
 # Build the fluidity manual
 add_custom_target(manual

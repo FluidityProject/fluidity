@@ -41,7 +41,7 @@ RUN apt-get update && apt-get install -y \
   texlive-latex-extra \
   texlive-pstricks \
   texlive-science \
- && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/local
 
@@ -85,6 +85,7 @@ WORKDIR /home/Softwares/fluidity/build
 
 RUN cmake -G Ninja -D GITHUB_ACTIONS=1 ..
 RUN ninja
+RUN ninja install_python_packages
 RUN ninja manual
 
 RUN python3 -m pip install --user assess
