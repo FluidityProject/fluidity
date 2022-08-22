@@ -62,8 +62,7 @@ def Help():
         " error\n"
         + "\n"
         + "* Note: The locations of Spud schemas can also be defined in various"
-        " schemata folders,\n"
-        + "  see the Spud manual for further details.",
+        " schemata folders,\n" + "  see the Spud manual for further details.",
         0,
     )
 
