@@ -17,20 +17,14 @@ Annulus meshing tools
 """
 import copy
 import math
-import os
 import unittest
 
 import fluidity.diagnostics.calc as calc
 import fluidity.diagnostics.debug as debug
 import fluidity.diagnostics.elements as elements
-import fluidity.diagnostics.filehandling as filehandling
 import fluidity.diagnostics.meshes as meshes
-import fluidity.diagnostics.numbers as numbers
 import fluidity.diagnostics.optimise as optimise
-import fluidity.diagnostics.polytools as polytools
 import fluidity.diagnostics.simplices as simplices
-import fluidity.diagnostics.triangletools as triangletools
-import fluidity.diagnostics.utils as utils
 
 
 def SliceCoordsConstant(minVal, maxVal, divisions):
@@ -124,8 +118,6 @@ def GenerateAnnulusNodeToRZPhi(nRCoords, nZCoords, phiPoints):
     """
 
     nodeToRzphi = []
-    index = 0
-    index = 0
     for i in range(nRCoords):
         for j in range(nZCoords):
             for k in range(phiPoints):
@@ -585,7 +577,7 @@ def GenerateAnnulusVerticalIntegralBins(
         for j in range(nZCoords - 1):
             targetIndex = i * phiDivisions
             for k in range(phiDivisions):
-                for l in range(6):
+                for _ in range(6):
                     vBins[targetIndex].append(integratedIndex)
                     integratedIndex += 1
                 targetIndex += 1

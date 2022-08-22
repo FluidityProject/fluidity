@@ -26,7 +26,6 @@ def parse(code):
 
     # My beautiful regex, made with the help of http://re.dabase.com/
     regex = re.compile(r"""states\[(?P<n>[n0-9+-]*)\]""")
-    n = 0
 
     return sorted(set(map(eval, re.findall(regex, code))))
 
@@ -58,8 +57,8 @@ def make_adj_variables(d):
         for timestep in d[key]:
             if timestep < 0:
                 print(
-                    "Warning: dependencies function returned a variable with timestep %d."
-                    % timestep
+                    "Warning: dependencies function returned a variable with "
+                    f"timestep {timestep}."
                 )
             else:
                 newd = {}

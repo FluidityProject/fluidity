@@ -106,7 +106,7 @@ class TestProblem:
         self.random_string()
 
     def log(self, str):
-        if self.verbose == True:
+        if self.verbose is True:
             print(self.filename[:-4] + ": " + str)
 
     def random_string(self):
@@ -209,7 +209,7 @@ class TestProblem:
         if nLogLines is None or nLogLines > 0:
             for filename in logs:
                 log = open(filename, "r").read().split("\n")
-                if not nLogLines is None:
+                if nLogLines is not None:
                     log = log[-nLogLines:]
                 self.log("Log: " + filename)
                 for line in log:
@@ -236,7 +236,7 @@ class TestProblem:
             tmpdict = {}
             try:
                 var.run(tmpdict)
-            except:
+            except Exception:
                 self.log("failure.")
                 self.pass_status.append("F")
                 tc = TestCase(
@@ -262,10 +262,10 @@ class TestProblem:
                 tc = TestCase(
                     test.name, "{}.{}".format(self.length, self.filename[:-4])
                 )
-                if status == True:
+                if status is True:
                     self.log("success.")
                     self.pass_status.append("P")
-                elif status == False:
+                elif status is False:
                     self.log("failure.")
                     self.pass_status.append("F")
                     tc.add_failure_info("Failure")
@@ -284,10 +284,10 @@ class TestProblem:
             for test in self.warn_tests:
                 self.log("Running %s:" % test.name)
                 status = test.run(varsdict)
-                if status == True:
+                if status is True:
                     self.log("success.")
                     self.warn_status.append("P")
-                elif status == False:
+                elif status is False:
                     self.log("warning.")
                     self.warn_status.append("W")
                 else:
@@ -315,10 +315,9 @@ class Test(TestOrVariable):
     """A test for the model output"""
 
     def run_bash(self, varsdict):
-
         varstr = ""
         for var in varsdict.keys():
-            varstr = varstr + ('export {}="{}"; '.format(var, varsdict[var]))
+            varstr = varstr + 'export {}="{}"; '.format(var, varsdict[var])
 
         retcode = os.system(varstr + self.code)
         if retcode == 0:
@@ -334,7 +333,7 @@ class Test(TestOrVariable):
         except AssertionError:
             # in case of an AssertionError, we assume the test has just failed
             return False
-        except:
+        except Exception:
             # tell us what else went wrong:
             traceback.print_exc()
             return False
@@ -354,10 +353,10 @@ class Variable(TestOrVariable):
         try:
             print(self.code)
             exec(self.code, varsdict)
-        except:
+        except Exception:
             print("Variable computation raised an exception")
             print("-" * 80)
-            for (lineno, line) in enumerate(self.code.split("\n")):
+            for lineno, line in enumerate(self.code.split("\n")):
                 print("%3d  %s" % (lineno + 1, line))
             print("-" * 80)
             traceback.print_exc()
@@ -386,7 +385,6 @@ class ThreadIterator(list):
         return self.next()
 
     def next(self):
-
         if len(self.list) == 0:
             raise StopIteration
 

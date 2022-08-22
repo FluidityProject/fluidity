@@ -12,36 +12,36 @@
   </problem_definition>
   <variables>
     <variable name="depths" language="python">
+import numpy as np
 import vtktools
-import sys
-sys.path.append("gls-ocean-param")
 from gls_ocean_param import get_1d_indices
-u=vtktools.vtu("gls-StationPapa-orig_1.vtu")
+
+u = vtktools.vtu("gls-StationPapa-orig_1.vtu")
 pos = u.GetLocations()
 ind = get_1d_indices(pos)
-depths = vtktools.arr([-pos[i,2] for i in ind])
+depths = np.array([-pos[i, 2] for i in ind])
     </variable>
     <variable name="TKE_orig" language="python">
+import numpy as np
 import vtktools
-import sys
-sys.path.append("gls-ocean-param")
 from gls_ocean_param import get_1d_indices
-u=vtktools.vtu("gls-StationPapa-orig_1.vtu")
+
+u = vtktools.vtu("gls-StationPapa-orig_1.vtu")
 pos = u.GetLocations()
 ind = get_1d_indices(pos)
-k = u.GetScalarField('GLSTurbulentKineticEnergy')
-TKE_orig = vtktools.arr( [k[i] for i in ind] )
+k = u.GetScalarField("GLSTurbulentKineticEnergy")
+TKE_orig = np.array([k[i] for i in ind])
     </variable>
     <variable name="TKE_param" language="python">
+import numpy as np
 import vtktools
-import sys
-sys.path.append("gls-ocean-param")
 from gls_ocean_param import get_1d_indices
-u=vtktools.vtu("gls-StationPapa-param_1.vtu")
+
+u = vtktools.vtu("gls-StationPapa-param_1.vtu")
 pos = u.GetLocations()
 ind = get_1d_indices(pos)
-k = u.GetScalarField('GLSTurbulentKineticEnergy')
-TKE_param = vtktools.arr( [k[i] for i in ind] )
+k = u.GetScalarField("GLSTurbulentKineticEnergy")
+TKE_param = np.array([k[i] for i in ind])
     </variable>
   </variables>
 

@@ -58,9 +58,9 @@
 from __future__ import print_function
 
 import string
+from xml.etree.ElementTree import XMLParser
 
 import ElementTree
-import xmllib
 
 ##
 # ElementTree builder for XML source data.
@@ -68,14 +68,14 @@ import xmllib
 # @see elementtree.ElementTree
 
 
-class TreeBuilder(xmllib.XMLParser):
+class TreeBuilder(XMLParser):
     def __init__(self, html=0):
         self.__builder = ElementTree.TreeBuilder()
         if html:
-            import htmlentitydefs
+            from html.entities import entitydefs
 
-            self.entitydefs.update(htmlentitydefs.entitydefs)
-        xmllib.XMLParser.__init__(self)
+            self.entitydefs.update(entitydefs)
+        XMLParser.__init__(self)
 
     ##
     # Feeds data to the parser.
@@ -83,7 +83,7 @@ class TreeBuilder(xmllib.XMLParser):
     # @param data Encoded data.
 
     def feed(self, data):
-        xmllib.XMLParser.feed(self, data)
+        XMLParser.feed(self, data)
 
     ##
     # Finishes feeding data to the parser.
@@ -92,7 +92,7 @@ class TreeBuilder(xmllib.XMLParser):
     # @defreturn Element
 
     def close(self):
-        xmllib.XMLParser.close(self)
+        XMLParser.close(self)
         return self.__builder.close()
 
     def handle_data(self, data):
@@ -119,8 +119,6 @@ def fixname(name, split=string.split):
 
 
 if __name__ == "__main__":
-    import sys
-
     # sanity check: look for known namespace bugs in xmllib
     p = TreeBuilder()
     text = """\

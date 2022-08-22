@@ -21,21 +21,16 @@ import subprocess
 import tempfile
 import unittest
 
+import fluidity.diagnostics.calc as calc
+import fluidity.diagnostics.debug as debug
+import fluidity.diagnostics.filehandling as filehandling
+import fluidity.diagnostics.utils as utils
+from fluidity_tools import stat_parser
+
 try:
     import numpy
 except ImportError:
     debug.deprint("Warning: Failed to import numpy module")
-
-import fluidity.diagnostics.debug as debug
-
-try:
-    from fluidity_tools import *
-except:
-    debug.deprint("Warning: Failed to import fluidity_tools module")
-
-import fluidity.diagnostics.calc as calc
-import fluidity.diagnostics.filehandling as filehandling
-import fluidity.diagnostics.utils as utils
 
 
 def FluidityBinary(
@@ -74,7 +69,7 @@ class Stat:
     def __init__(self, filename=None, delimiter="%", includeMc=False, subsample=1):
         self.SetDelimiter(delimiter)
         self._s = {}
-        if not filename is None:
+        if filename is not None:
             self.Read(filename, includeMc=includeMc, subsample=subsample)
 
         return
@@ -96,8 +91,8 @@ class Stat:
                     if key in s:
                         if isinstance(s[key], dict):
                             try:
-                                # Tolerate a failure when recursing, as the key may have been
-                                # eroneously split
+                                # Tolerate a failure when recursing, as the key may have
+                                # been eroneously split
                                 return SItem(
                                     s[key],
                                     utils.FormLine(
@@ -154,7 +149,7 @@ class Stat:
             pathSplit = path.split(delimiter)
             index = 0
             newPath = pathSplit[index]
-            while not newPath in s.keys():
+            while newPath not in s.keys():
                 index += 1
                 newPath += delimiter + pathSplit[index]
 
@@ -260,7 +255,7 @@ class Stat:
         def ParseRawS(s, delimiter):
             newS = {}
             for key1 in s.keys():
-                assert not key1 in ["val", "value"]
+                assert key1 not in ["val", "value"]
                 if isinstance(s[key1], dict):
                     if len(s[key1]) == 1 and ("val" in s[key1] or "value" in s[key1]):
                         newS[str(key1)] = list(s[key1].values())[0]
@@ -276,8 +271,8 @@ class Stat:
                         if includeMc:
                             # Add in this vector
 
-                            # stat_parser gives this in an inconvenient matrix order. Take the
-                            # transpose here to make life easier.
+                            # stat_parser gives this in an inconvenient matrix order.
+                            # Take the transpose here to make life easier.
                             newS[str(key1)] = s[key1].transpose()
 
                         # Add in the vector field components
@@ -373,7 +368,7 @@ def JoinStat(*args):
         stat = stats[i]
         for key in stat.keys():
             arr = stat[key]
-            if not key in data:
+            if key not in data:
                 shape = list(arr.shape)
                 shape[0] = dataIndices[-1]
                 data[key] = numpy.empty(shape, dtype=arr.dtype)
@@ -474,8 +469,8 @@ def DetectorArrays(stat):
                 # This array name references a field component
 
                 # We need to append the component to the array name. This needs to be
-                # added to the last but one part of the stat path (the final entry is the
-                # name of this detector array as configured in Fluidity).
+                # added to the last but one part of the stat path (the final entry is
+                # the name of this detector array as configured in Fluidity).
                 splitName = stat.SplitPath(arrayName)
                 splitName[-2] = stat.FormPath(
                     splitName[-2], stat.SplitPath(keySplit[-1])[1]
@@ -554,7 +549,7 @@ def SplitVtuFilename(filename):
         if utils.IsIntString(val):
             idIndex = i + 1
             break
-    assert not idIndex is None
+    assert idIndex is not None
 
     project = utils.FormLine(split[:idIndex], delimiter="_", newline=False)
     id = int(split[idIndex])
@@ -706,7 +701,7 @@ def FindPFilenames(basename, extension):
 
 class fluiditytoolsUnittests(unittest.TestCase):
     def testFluidityToolsSupport(self):
-        import fluidity_tools
+        import fluidity_tools  # noqa: F401
 
         return
 

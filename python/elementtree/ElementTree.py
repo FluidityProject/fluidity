@@ -546,8 +546,12 @@ class QName:
 
     def __cmp__(self, other):
         if isinstance(other, QName):
-            return cmp(self.text, other.text)
-        return cmp(self.text, other)
+            return self.cmp(self.text, other.text)
+        return self.cmp(self.text, other)
+
+    @staticmethod
+    def cmp(a, b):
+        return (a > b) - (a < b)
 
 
 ##
@@ -1115,7 +1119,7 @@ class TreeBuilder:
 
     def close(self):
         assert len(self._elem) == 0, "missing end tags"
-        assert self._last != None, "missing toplevel element"
+        assert self._last is not None, "missing toplevel element"
         return self._last
 
     def _flush(self):
@@ -1214,9 +1218,9 @@ class XMLTreeBuilder:
             parser.StartElementHandler = self._start_list
         except AttributeError:
             pass
-        encoding = None
-        if not parser.returns_unicode:
-            encoding = "utf-8"
+        # encoding = None
+        # if not parser.returns_unicode:
+        #     encoding = "utf-8"
         # target.xml(encoding, None)
         self._doctype = None
         self.entity = {}

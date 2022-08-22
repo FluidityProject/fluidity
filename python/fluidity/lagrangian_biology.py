@@ -9,7 +9,7 @@ def read_chl_h42(filename):
 
     try:
         os.stat(filename)
-    except:
+    except Exception:
         print("No such file: " + str(filename))
         sys.exit(1)
     f = open(filename, "r")
@@ -34,8 +34,9 @@ def read_chl_h42(filename):
 
 
 def derive_PAR_irradiance(state):
-    """Solar irradiance in PAR is derived from 36 individual wavebands as modelled by Hyperlight
-    The spectral bands are in Wm-2nm-1, and the PAR total is in mumol phot m-2s-1
+    """Solar irradiance in PAR is derived from 36 individual wavebands as modelled by
+    Hyperlight. The spectral bands are in Wm-2nm-1 and the PAR total is in
+    mumol phot m-2s-1.
     """
 
     planck = 6.626e-34
@@ -48,8 +49,8 @@ def derive_PAR_irradiance(state):
     par_irrad = state.scalar_fields["IrradiancePAR"]
     for n in range(par_irrad.node_count):
         irrad_sum = 0.0
-        for l in range(0, 35):
-            wavelength = 350 + l * 10
+        for i in range(0, 35):
+            wavelength = 350 + i * 10
             field_name = "Irradiance_" + str(wavelength)
             spectral_irrad = state.scalar_fields[field_name]
             irrad_sum = (

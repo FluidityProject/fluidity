@@ -15,16 +15,14 @@
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
 import getopt
 import os.path
-import string
 import sys
-import traceback
 
 import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GtkSource", "3.0")
-from gi.repository import Gdk as gdk
-from gi.repository import Gtk as gtk
+from gi.repository import Gdk as gdk  # noqa: E402
+from gi.repository import Gtk as gtk  # noqa: E402
 
 # do this right at the start, so we can find the diamond modules
 diamond_path = os.path.join(os.path.realpath(os.path.dirname(__file__)), os.pardir)
@@ -34,7 +32,7 @@ dxdiff_path = os.path.join(
 )
 sys.path.insert(0, dxdiff_path)
 
-import diamond.debug as debug
+import diamond.debug as debug  # noqa: E402
 
 
 def Help():
@@ -45,7 +43,8 @@ def Help():
     debug.dprint(
         "Usage: diamond [OPTIONS] ... [FILE]\n"
         + "\n"
-        + "A Relax NG aware XML editor. [FILE] is the XML file to be opened (a new file is\n"
+        + "A Relax NG aware XML editor. [FILE] is the XML file to be opened (a new file"
+        " is\n"
         + "created if this is not supplied).\n"
         + "\n"
         + "Options:\n"
@@ -59,9 +58,11 @@ def Help():
         + "-u [DIRECTORY]   Find unused schema entries in the given directory\n"
         + "--ub [DIRECTORY] Find unused schema entries, batch mode\n"
         + "-v               Verbosity switch - if supplied Diamond prints additional\n"
-        + "                 debugging information to standard output and standard error\n"
+        + "                 debugging information to standard output and standard"
+        " error\n"
         + "\n"
-        + "* Note: The locations of Spud schemas can also be defined in various schemata folders,\n"
+        + "* Note: The locations of Spud schemas can also be defined in various"
+        " schemata folders,\n"
         + "  see the Spud manual for further details.",
         0,
     )
@@ -70,10 +71,9 @@ def Help():
 
 
 def main():
-
     try:
         opts, args = getopt.gnu_getopt(sys.argv[1:], "hvfs:a:t:d:u:", ["ub="])
-    except:
+    except Exception:
         Help()
         sys.exit(1)
 
@@ -97,7 +97,7 @@ def main():
                     os._exit(0)
             else:
                 os._exit(0)
-        except:
+        except Exception:
             pass
 
     import diamond.config as config
@@ -106,7 +106,6 @@ def main():
     import diamond.plugins as plugins
     import diamond.schema as schema
     import diamond.schemausage as schemausage
-    import diamond.tree as tree
     import diamond.useview as useview
 
     try:
@@ -124,7 +123,7 @@ def main():
     ]:
         try:
             os.stat(possible_logofile)
-            if logofile == None:
+            if logofile is None:
                 logofile = []
             logofile.append(possible_logofile)
         except OSError:
@@ -153,24 +152,26 @@ def main():
 
     # schemafile is not given so look up actual path
     if input_schemafile is None:
-
         # if the user has specified a file to work on, use the suffix as a key
         if input_filename is not None:
             suffix = input_filename.split(".")[-1]
             try:
                 schemata = config.schemata[suffix]
-            except:
+            except Exception:
                 debug.deprint("Could not find schema matching suffix %s." % suffix, 0)
                 debug.deprint(
-                    "Have you registered it in /usr/share/diamond/schemata, /etc/diamond/schemata, $HOME/.diamond/schemata",
+                    "Have you registered it in /usr/share/diamond/schemata,"
+                    " /etc/diamond/schemata, $HOME/.diamond/schemata",
                     0,
                 )
                 debug.deprint(
-                    "or a schemata directory beneath a location listed in the environment variable $DIAMOND_CONFIG_PATH?",
+                    "or a schemata directory beneath a location listed in the"
+                    " environment variable $DIAMOND_CONFIG_PATH?",
                     0,
                 )
                 debug.deprint(
-                    "To register a schema, place a file in one of those directories, and let its name be the suffix of your language.",
+                    "To register a schema, place a file in one of those directories,"
+                    " and let its name be the suffix of your language.",
                     0,
                 )
                 debug.deprint("The file should consist of:", 0)
@@ -182,15 +183,18 @@ def main():
         elif len(config.schemata) == 0:
             debug.deprint("Could not find a schema file.", 0)
             debug.deprint(
-                "Have you registered it in /usr/share/diamond/schemata, /etc/diamond/schemata, $HOME/.diamond/schemata",
+                "Have you registered it in /usr/share/diamond/schemata,"
+                " /etc/diamond/schemata, $HOME/.diamond/schemata",
                 0,
             )
             debug.deprint(
-                "or a schemata directory beneath a location listed in the environment variable $DIAMOND_CONFIG_PATH?",
+                "or a schemata directory beneath a location listed in the environment"
+                " variable $DIAMOND_CONFIG_PATH?",
                 0,
             )
             debug.deprint(
-                "To register a schema, place a file in one of those directories, and let its name be the suffix of your language.",
+                "To register a schema, place a file in one of those directories, and"
+                " let its name be the suffix of your language.",
                 0,
             )
             debug.deprint("The file should consist of:", 0)

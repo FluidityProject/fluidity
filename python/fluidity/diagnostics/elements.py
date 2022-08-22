@@ -15,13 +15,12 @@
 """
 Finite element element classes
 """
-import copy
 import unittest
 
 import fluidity.diagnostics.debug as debug
 
 try:
-    import numpy
+    import numpy  # noqa: F401
 except ImportError:
     debug.deprint("Warning: Failed to import numpy module")
 try:
@@ -29,13 +28,11 @@ try:
 except ImportError:
     debug.deprint("Warning: Failed to import scipy module")
 try:
-    import scipy.interpolate
+    import scipy.interpolate  # noqa: F401
 except ImportError:
     debug.deprint("Warning: Failed to import scipy.interpolate module")
 
-import fluidity.diagnostics.calc as calc
 import fluidity.diagnostics.events as events
-import fluidity.diagnostics.optimise as optimise
 import fluidity.diagnostics.utils as utils
 
 
@@ -130,10 +127,10 @@ class ElementType(events.Evented):
 
         if dim is None:
             assert nodeCount is None
-            assert not elementTypeId is None
+            assert elementTypeId is not None
             self.SetElementTypeId(elementTypeId)
         else:
-            assert not nodeCount is None
+            assert nodeCount is not None
             assert elementTypeId is None
             assert dim >= 0
             assert nodeCount >= 0
@@ -217,13 +214,12 @@ class Element(events.Evented):
             self.AddNode(node)
         self.SetIds(ids)
 
-        if not dim is None:
+        if dim is not None:
             self.SetDim(dim)
 
         return
 
     def __str__(self):
-
         if self.HasDim():
             dimension = str(self.GetDim())
         else:

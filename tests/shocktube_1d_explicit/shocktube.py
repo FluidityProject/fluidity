@@ -19,6 +19,7 @@ ur = 0.0
 rhor = 0.2
 ier = 2.5
 
+
 # this eos is assumed in the eqns below (so can't change this):
 def p_eos(ie, rho):
     return rho * ie * (gamma - 1.0)
@@ -185,7 +186,7 @@ def solution(x, t):
             if x / t < s1:  # left
                 return (pl, ul, rhol)
             else:  # between u-a shock and contact disc.
-                return (psl, us, rhosl)
+                return (ps, us, rhosl)
 
     else:
         # after the contact discontinuity:
@@ -194,7 +195,7 @@ def solution(x, t):
             # u+a is a rarefaction wave
             if x / t > ur + ar:  # right
                 return (pr, ur, rhor)
-            elif x / t > usr + asr:  # within the rarefaction wave
+            elif x / t > us + asr:  # within the rarefaction wave
                 p = pr * (
                     2.0 / (gamma + 1.0)
                     + (gamma - 1.0) / (gamma + 1.0) / ar * (ur - x / t)

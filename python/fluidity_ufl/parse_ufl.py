@@ -1,6 +1,5 @@
 class Function:
     def __init__(self, field):
-
         self.rank = field.rank
         self.test = False
         self.trial = False
@@ -13,7 +12,6 @@ class Function:
         self.form_gradient = False
 
     def __mul__(self, other):
-
         if isinstance(other, Form):
             return Form.__rmul__(self)
         else:
@@ -23,7 +21,6 @@ class Function:
             return product
 
     def __getitem__(self, i):
-
         try:
             if len(i) != self.rank:
                 raise TypeError("Wrong number of subscripts")
@@ -109,8 +106,7 @@ class Measure:
     def __init__(self, name):
         self.name = name
 
-    def __mul__(self, other):
-
+    def __mul__(self, other, form):
         if isinstance(other, form):
             return form.__mul__(self)
         else:
@@ -138,12 +134,9 @@ k = index()
 
 dx = Measure("dx")
 
-state = state_type()
-
 
 class Integral:
     def __init__(self, source=None):
-
         self.test = None
         self.trial = None
         self.measure = None
@@ -169,11 +162,11 @@ class Integral:
             for ii in source.indices:
                 if isinstance(ii, index):
                     if ii.id in self.sum_indices:
-                        self.sum_indices[ii.id] = product.sum_indices[ii.id] + 1
+                        self.sum_indices[ii.id] += 1
                     else:
                         self.sum_indices[ii.id] = 1
                 elif isinstance(ii, slice):
-                    self.rank = product.rank + 1
+                    self.rank += 1
 
         elif isinstance(source, Measure):
             self.measure = source
@@ -224,7 +217,6 @@ class Integral:
         product.scalars.append(-1)
 
     def __rmul__(self, other):
-
         # Multiplication is commutative!
         return self.__mul__(other)
 
@@ -326,8 +318,7 @@ class field:
         self.solve = None
 
     def __iadd__(self, other):
-
-        if x.solve:
+        if self.solve:
             raise AttributeError("Cannot assemble x by both addition and solve.")
 
         if not isinstance(other, Form):
@@ -371,7 +362,6 @@ class __fake_field_dict__:
             return vectorField(name)
         elif self.rank == 2:
             return tensorField(name)
-        endif
 
 
 class state_type:
@@ -383,7 +373,6 @@ class state_type:
 
 class Matrix:
     def __init__(self, test, trial):
-
         if not isinstance(test, TestFunction):
             raise TypeError("The test function of matrix must have type TestFunction")
 
@@ -396,7 +385,6 @@ class Matrix:
         self.addtos = []
 
     def __iadd__(self, other):
-
         if not isinstance(other, Form):
             raise TypeError("Only know how to add forms to matrices.")
 
@@ -433,17 +421,19 @@ def solve(x, A, b):
     x.solve = (A, b)
 
 
-def parse_file(file):
-
+def parse_file(filename):
     global_dict = {}
     local_dict = {}
 
     exec("from parse_ufl import *", global_dict)
 
-    execfile(file, global_dict, local_dict)
+    exec(compile(open(filename, "rb").read(), filename, "exec"), globals, locals)
 
     return local_dict
 
 
 class formsum(list):
     pass
+
+
+state = state_type()

@@ -39,7 +39,6 @@ NS_XHTML = "{http://www.w3.org/1999/xhtml}"
 
 
 def tidy(file, new_inline_tags=None):
-
     command = ["tidy", "-qn", "-asxml"]
 
     if new_inline_tags:
@@ -54,9 +53,9 @@ def tidy(file, new_inline_tags=None):
     try:
         tree = ElementTree()
         tree.parse(file + ".out")
-    except:
+    except Exception:
         print("*** %s:%s" % sys.exc_info()[:2])
-        print("*** %s is not valid XML " "(check %s.err for info)" % (file, file))
+        print("*** {} is not valid XML (check {}.err for info)".format(file, file))
         tree = None
     else:
         if os.path.isfile(file + ".out"):
@@ -81,7 +80,7 @@ def getbody(file, **options):
 
     # get xhtml tree
     try:
-        tree = apply(tidy, (file,), options)
+        tree = tidy(file, options)
         if tree is None:
             return
     except IOError as v:
@@ -110,7 +109,6 @@ def getbody(file, **options):
 
 
 def getzonebody(file, **options):
-
     body = getbody(file, **options)
     if body is None:
         return
@@ -127,9 +125,6 @@ def getzonebody(file, **options):
 
 
 if __name__ == "__main__":
-
-    import sys
-
     for arg in sys.argv[1:]:
         for file in glob.glob(arg):
             print(file, "...", tidy(file))

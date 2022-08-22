@@ -866,7 +866,7 @@ def RotatedVector(vector, angle, axis=None):
         angle += math.atan2(vector[1], vector[0])
         return [r * math.cos(angle), r * math.sin(angle)]
     elif len(vector) == 3:
-        assert not axis is None
+        assert axis is not None
         assert len(axis) == 3
         if (
             hasattr(RotatedVector, "_angle")
@@ -1094,16 +1094,16 @@ def CrossProduct(vector1, vector2):
 
 class calcUnittests(unittest.TestCase):
     def testNumpySupport(self):
-        import numpy
+        import numpy  # noqa: F401
 
         self.assertTrue(NumpySupport())
 
         return
 
     def testScipySupport(self):
-        import scipy
-        import scipy.linalg
-        import scipy.stats
+        import scipy  # noqa: F401
+        import scipy.linalg  # noqa: F401
+        import scipy.stats  # noqa: F401
 
         return
 
@@ -1385,7 +1385,7 @@ class calcUnittests(unittest.TestCase):
     def testHuge(self):
         self.assertTrue(isinstance(Huge(), int))
         self.assertFalse(isinstance(Huge() + 1, int))
-        self.assertTrue(isinstance(Huge() + 1, long))
+        self.assertTrue(isinstance(Huge() + 1, int))
 
         return
 

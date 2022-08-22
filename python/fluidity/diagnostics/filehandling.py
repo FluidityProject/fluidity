@@ -19,11 +19,9 @@ import glob
 import os
 import shutil
 import stat
-import subprocess
 import tempfile
 import unittest
 
-import fluidity.diagnostics.debug as debug
 import fluidity.diagnostics.utils as utils
 
 

@@ -16,29 +16,18 @@
 ERA data set handling routines
 """
 import datetime
-import math
 import os
 import unittest
 
 import fluidity.diagnostics.debug as debug
-from scipy.version import version as SciPyVersion
 
-if tuple(int(x) for x in SciPyVersion.split(".")) < (0, 9, 0):
-    try:
-        import Scientific.IO.NetCDF as netcdf
-    except:
-        debug.deprint(
-            "Warning: Your SciPy version is too old (<0.9.0) and \nthe Scientific.IO.NetCDF module failed to import"
-        )
-else:
-    try:
-        import scipy.io.netcdf as netcdf
-    except:
-        debug.deprint("Warning: Failed to import scipy.io.netcdf module")
+try:
+    import scipy.io.netcdf as netcdf
+except ImportError:
+    debug.deprint("Warning: Failed to import scipy.io.netcdf module")
 
 
 import fluidity.diagnostics.calc as calc
-import fluidity.diagnostics.filehandling as filehandling
 import fluidity.diagnostics.structured_fields as structured_fields
 
 
@@ -201,7 +190,6 @@ class Era15:
         return self._file.variables.keys()
 
     def DatetimeToHours(self, time):
-
         delta = time - self._epoch
 
         return delta.days * 24.0 + delta.seconds / 3600.0
@@ -211,8 +199,6 @@ class Era15:
         Tri-linearly interpolate the supplied field at the supplied latitude,
         longitude and time
         """
-
-        data = self._file.variables[name]
 
         if latitude > self._latitudes[0] or latitude < self._latitudes[-1]:
             debug.deprint("latitude = " + str(latitude))
@@ -292,13 +278,8 @@ class Era15:
 
 class eraUnittests(unittest.TestCase):
     def testNetcdfSupport(self):
-
-        from scipy.version import version as SciPyVersion
-
-        if tuple(int(x) for x in SciPyVersion.split(".")) < (0, 9, 0):
-            import Scientific.IO.NetCDF
-        else:
-            import scipy.io.netcdf
+        import scipy.io.netcdf  # noqa: F401
+        from scipy.version import version as SciPyVersion  # noqa: F401
 
         return
 

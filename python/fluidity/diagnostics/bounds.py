@@ -18,7 +18,6 @@ Geometric bounds utilities
 import unittest
 
 import fluidity.diagnostics.calc as calc
-import fluidity.diagnostics.optimise as optimise
 
 
 class BoundingBox:

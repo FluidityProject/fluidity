@@ -47,37 +47,16 @@
 ##
 # Tools to build element trees from HTML files.
 ##
-import re
 import string
 import sys
+from email.parser import HeaderParser
+from html.entities import entitydefs
+from html.parser import HTMLParser
 
 import ElementTree
-import htmlentitydefs
-import mimetools
-import StringIO
 
 AUTOCLOSE = "p", "li", "tr", "th", "td", "head", "body"
 IGNOREEND = "img", "hr", "meta", "link", "br"
-
-if sys.version[:3] == "1.5":
-    is_not_ascii = re.compile(r"[\x80-\xff]").search  # 1.5.2
-else:
-    is_not_ascii = re.compile(eval(r'u"[\u0080-\uffff]"')).search
-
-try:
-    from HTMLParser import HTMLParser
-except ImportError:
-    from sgmllib import SGMLParser
-
-    # hack to use sgmllib's SGMLParser to emulate 2.2's HTMLParser
-    class HTMLParser(SGMLParser):
-        # the following only works as long as this class doesn't
-        # provide any do, start, or end handlers
-        def unknown_starttag(self, tag, attrs):
-            self.handle_starttag(tag, attrs)
-
-        def unknown_endtag(self, tag):
-            self.handle_endtag(tag)
 
 
 ##
@@ -103,7 +82,6 @@ except ImportError:
 
 
 class HTMLTreeBuilder(HTMLParser):
-
     # FIXME: shouldn't this class be named Parser, not Builder?
 
     def __init__(self, builder=None, encoding=None):
@@ -136,9 +114,8 @@ class HTMLTreeBuilder(HTMLParser):
                 elif k == "content":
                     content = v
             if http_equiv == "content-type" and content:
-                # use mimetools to parse the http header
-                header = mimetools.Message(
-                    StringIO.StringIO("{}: {}\n\n".format(http_equiv, content))
+                header = HeaderParser().parsestr(
+                    "{}: {}\n\n".format(http_equiv, content)
                 )
                 encoding = header.getparam("charset")
                 if encoding:
@@ -178,13 +155,13 @@ class HTMLTreeBuilder(HTMLParser):
         if 0 <= char < 128:
             self.__builder.data(chr(char))
         else:
-            self.__builder.data(unichr(char))
+            self.__builder.data(chr(char))
 
     ##
     # (Internal) Handles entity references.
 
     def handle_entityref(self, name):
-        entity = htmlentitydefs.entitydefs.get(name)
+        entity = entitydefs.get(name)
         if entity:
             if len(entity) == 1:
                 entity = ord(entity)
@@ -193,7 +170,7 @@ class HTMLTreeBuilder(HTMLParser):
             if 0 <= entity < 128:
                 self.__builder.data(chr(entity))
             else:
-                self.__builder.data(unichr(entity))
+                self.__builder.data(chr(entity))
         else:
             self.unknown_entityref(name)
 
@@ -201,9 +178,9 @@ class HTMLTreeBuilder(HTMLParser):
     # (Internal) Handles character data.
 
     def handle_data(self, data):
-        if isinstance(data, type("")) and is_not_ascii(data):
+        if isinstance(data, type("")) and not data.isascii():
             # convert to unicode, but only if necessary
-            data = unicode(data, self.encoding, "ignore")
+            data = data.decode(self.encoding, "ignore")
         self.__builder.data(data)
 
     ##
@@ -234,6 +211,4 @@ def parse(source, encoding=None):
 
 
 if __name__ == "__main__":
-    import sys
-
     ElementTree.dump(parse(open(sys.argv[1])))

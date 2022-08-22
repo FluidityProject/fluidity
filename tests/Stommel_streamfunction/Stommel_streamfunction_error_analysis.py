@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 
+import nodecount
 import vtktools
 from numpy import abs, amax, dot, exp, pi, reshape, sin, size, sqrt, transpose, zeros
 
@@ -54,8 +55,8 @@ def function_trivol(X, Y):
     return abs(VOL / 2)
 
 
-# n = nodecount.nodecount(sys.argv[1])
-# print(n)
+n = nodecount.nodecount(sys.argv[1])
+print(n)
 
 ug = vtktools.vtu(sys.argv[1])
 # ug = vtktools.vtu("Stommel-NEW5_3e-6----_6.vtu")
@@ -89,8 +90,7 @@ snorm2 = sqrt(abs(norm2))
 # print(norm1)
 # print(snorm2)
 # print(amax(err))
-# print(n, norm1, snorm2, amax(err))
-print(norm1, snorm2, amax(err))
+print(n, norm1, snorm2, amax(err))
 ug.AddScalarField("Analytical Solution", psi)
 ug.AddScalarField("Error (difference)", err)
 ug.Write("error.vtu")
