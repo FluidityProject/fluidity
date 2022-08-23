@@ -140,19 +140,7 @@ FetchContent_MakeAvailable(libspatialindex)
 
 # Add Judy
 if(DEFINED USE_BUNDLED_LIBJUDY)
-  ExternalProject_Add(libjudy
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/libjudy
-    CONFIGURE_COMMAND ./configure --enable-64-bit --prefix=<SOURCE_DIR>
-    BUILD_COMMAND make
-    BUILD_IN_SOURCE TRUE
-    INSTALL_COMMAND make install exec_prefix=<SOURCE_DIR>
-    TEST_COMMAND make check
-    TEST_BEFORE_INSTALL TRUE
-    LOG_CONFIGURE ON
-    LOG_BUILD ON
-    LOG_INSTALL ON
-    LOG_TEST ON
-  )
+  # Use approach from cmake_build branch
 else()
   ExternalProject_Add(libjudy
     PREFIX libjudy
@@ -193,19 +181,32 @@ if(DEFINED USE_EXISTING_ZOLTAN)
   set_target_properties(Zoltan PROPERTIES IMPORTED_LOCATION ${ZOLTAN_LIBRARY})
 
 else()
-  set(ZOLTAN_CONFIGURE "../libzoltan/configure --enable-f90interface --with-gnumake --with-scotch --with-parmetis")
+  set(ZOLTAN_CONFIGURE
+    "../libzoltan/configure --enable-f90interface"
+    " --with-gnumake --with-scotch --with-parmetis"
+  )
 
   if(${CMAKE_C_COMPILER_VERSION} GREATER_EQUAL 10)
     string(APPEND ZOLTAN_CONFIGURE " FCFLAGS=-fallow-argument-mismatch")
   endif()
 
   if(DEFINED ENV{PETSC_ARCH})
-    string(APPEND ZOLTAN_CONFIGURE " --with-scotch-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-scotch-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib --with-parmetis-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include --with-parmetis-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib")
+    string(APPEND ZOLTAN_CONFIGURE
+      " --with-scotch-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include"
+      " --with-scotch-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib"
+      " --with-parmetis-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include"
+      " --with-parmetis-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib"
+    )
     else()
-    string(APPEND ZOLTAN_CONFIGURE " --with-scotch-incdir=$ENV{PETSC_DIR}/include --with-scotch-libdir=$ENV{PETSC_DIR}/lib --with-parmetis-incdir=$ENV{PETSC_DIR}/include --with-parmetis-libdir=$ENV{PETSC_DIR}/lib")
+    string(APPEND ZOLTAN_CONFIGURE
+      " --with-scotch-incdir=$ENV{PETSC_DIR}/include"
+      " --with-scotch-libdir=$ENV{PETSC_DIR}/lib"
+      " --with-parmetis-incdir=$ENV{PETSC_DIR}/include"
+      " --with-parmetis-libdir=$ENV{PETSC_DIR}/lib"
+    )
   endif()
 
-  separate_arguments(ZOLTAN_CONFIGURE UNIX_COMMAND ${ZOLTAN_CONFIGURE})
+  separate_arguments(ZOLTAN_CONFIGURE UNIX_COMMAND "${ZOLTAN_CONFIGURE}")
 
   ExternalProject_Add(libzoltan
     PREFIX Zoltan
@@ -474,7 +475,9 @@ target_link_libraries(fluidity_binary fluidity)
 
 # Install Python packages included in Fluidity's repository
 add_custom_target(install_python_packages)
-add_dependencies(install_python_packages fluidity_python spud_diamond spud_dxdiff spud_python)
+add_dependencies(install_python_packages
+  fluidity_python spud_diamond spud_dxdiff spud_python
+)
 
 # Uninstall Python packages included in Fluidity's repository
 add_custom_target(uninstall_python_packages
