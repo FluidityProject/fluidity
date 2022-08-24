@@ -16,6 +16,8 @@
 """
 Find the LCS (Longest Common Subsequence). Uses [http://www.xmailserver.org/diff2.pdf]
 """
+import unittest
+
 from .utils import irange
 
 
@@ -149,11 +151,9 @@ def patch(patch, a):
     return result
 
 
-##################
-### Unit Tests ###
-##################
-
-import unittest
+##############
+# Unit Tests #
+##############
 
 
 class __Test_lcs(unittest.TestCase):

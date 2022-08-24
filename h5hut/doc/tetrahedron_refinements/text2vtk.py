@@ -70,7 +70,7 @@ for line in fh:
         tet = []
     else:
         pt = re.sub(" ", "", line).split(",")
-        if not pt in pts:
+        if pt not in pts:
             pts.append(pt)
         tet.append(pts.index(pt))
 

@@ -3,8 +3,8 @@ import argparse
 import fileinput
 import math
 
+import matplotlib.pyplot as plt
 import numpy as np
-import pylab
 
 slide_start_x = 112500
 R = 150000  # slide total runout
@@ -23,7 +23,6 @@ cd = 0.0019
 
 
 def main():
-
     parser = argparse.ArgumentParser(
         prog="test slide function", description="""Test the prescribed slide function"""
     )
@@ -48,18 +47,17 @@ def main():
     parser.add_argument(
         "node_file",
         metavar="node_file",
-        help="The node file which provides a list of coords on which to check the funciton",
+        help="""The node file which provides a list of coords on which to check the
+        function""",
     )
 
     args = parser.parse_args()
-    verbose = args.verbose
     node_file = args.node_file
     time = args.time
     anim = args.animation
 
     dt = 100
     x_coords = []
-    slide_height = []
     vel = []
     i = 0
     # parse node file and get list of vertex coordinates
@@ -81,17 +79,14 @@ def main():
         "text.fontsize": 18,
         "figure.subplot.hspace": 0.5,
     }
-    pylab.rcParams.update(params)
-
-    fig = pylab.figure(figsize=(15, 8), dpi=90)
-    ax = fig.add_subplot(111)
+    plt.rcParams.update(params)
 
     if anim == 0:
         anim = time + 1
-        pylab.ioff()
+        plt.ioff()
     else:
         time = 0
-        pylab.ion()
+        plt.ion()
     for t in np.arange(time, anim, dt):
         i = 0
         vel = []
@@ -114,22 +109,20 @@ def main():
                 )
             )
             i = i + 1
-        pylab.plot(x_coords, shear)
-        pylab.draw()
+        plt.plot(x_coords, shear)
+        plt.draw()
 
     if anim == time + 1:
-        pylab.show()
+        plt.show()
 
 
 def set_slide_shear(X, t, u_s, u_w, x_loc):
-
     form = slide_form(X, x_loc)
     tau = 0.5 * 1000 * cd * (u_s - u_w) * form
     return tau
 
 
 def set_slide_front(t):
-
     import math
 
     if t > T:
@@ -151,16 +144,12 @@ def set_slide_front(t):
 
 
 def set_slide_height(X, t, x_loc):
-
-    import math
-
     form = slide_form(X, x_loc)
 
     return max_h * form
 
 
 def slide_form(X, x_loc):
-
     x_dash = X[0] - x_loc
 
     if -(L + 2 * S) < x_dash < -(L + S):

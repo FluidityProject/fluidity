@@ -1,8 +1,9 @@
 import os
 
+import matplotlib.pyplot as plt
+import numpy as np
+import sympy as sp
 from fluidity_tools import stat_parser
-from numpy import abs, array, max
-from sympy import *
 
 meshtemplate = """
 Point(1) = {0, 0, 0, <dx>};
@@ -26,10 +27,12 @@ Physical Surface(1) = {6};
 
 
 def generate_meshfile(name, layers):
-
-    file(name + ".geo", "w").write(
-        meshtemplate.replace("<dx>", str(1.0 / layers)).replace("<layers>", str(layers))
-    )
+    with open(name + ".geo", "w") as geo_file:
+        geo_file.write(
+            meshtemplate.replace("<dx>", str(1.0 / layers)).replace(
+                "<layers>", str(layers)
+            )
+        )
 
     os.system("gmsh -2 " + name + ".geo")
 
@@ -51,14 +54,16 @@ coriolis = 1.0
 def analytic_solution(forcing):
     """Solve the ode d^2u/dx^2 = F/mu subject to u(0)=0, u(1)=0"""
 
-    x = Symbol("x")
+    x = sp.Symbol("x")
     # Constants of integration.
-    c1 = Symbol("c_1")
-    c2 = Symbol("c_2")
+    c1 = sp.Symbol("c_1")
+    c2 = sp.Symbol("c_2")
 
-    general = integrate(integrate(-forcing((0, x))[0] / mu, x) + c1, x) + c2
+    general = sp.integrate(sp.integrate(-forcing((0, x))[0] / mu, x) + c1, x) + c2
 
-    constants = solve((Eq(general.subs(x, 0), 0), Eq(general.subs(x, 1), 0)), c1, c2)
+    constants = sp.solve(
+        (sp.Eq(general.subs(x, 0), 0), sp.Eq(general.subs(x, 1), 0)), c1, c2
+    )
 
     specific = general.subs(constants)
 
@@ -70,16 +75,15 @@ def solution(forcing):
     d^2u/dx^2 = F/mu subject to u(0)=0, u(1)=0"""
 
     def sol(sx):
-        return analytic_solution(forcing).subs(Symbol("x"), sx[1])
+        return analytic_solution(forcing).subs(sp.Symbol("x"), sx[1])
 
     return sol
 
 
 def analytic_pressure_solution(forcing):
-
     u = analytic_solution(forcing)
 
-    return integrate(-coriolis * u + forcing((0, Symbol("x")))[1], Symbol("x"))
+    return sp.integrate(-coriolis * u + forcing((0, sp.Symbol("x")))[1], sp.Symbol("x"))
 
 
 def pressure_solution(forcing):
@@ -87,7 +91,7 @@ def pressure_solution(forcing):
     dp/dx = f x u The constant of integration is set to 0."""
 
     def sol(sx):
-        return analytic_pressure_solution(forcing).subs(Symbol("x"), sx[1])
+        return analytic_pressure_solution(forcing).subs(sp.Symbol("x"), sx[1])
 
     return sol
 
@@ -95,23 +99,10 @@ def pressure_solution(forcing):
 def plot_theory():
     """Produce a plot showing the forcing, analytic velocity solution and
     analytic pressure solution"""
-    from pylab import (
-        axis,
-        figure,
-        frange,
-        plot,
-        quiver,
-        subplot,
-        subplots_adjust,
-        xlabel,
-        xticks,
-        ylabel,
-        yticks,
-    )
 
-    figure()
+    plt.figure()
 
-    y = frange(0.0, 1, 0.05)
+    y = np.linspace(0, 1, 21)
 
     psol = pressure_solution(forcing)
 
@@ -121,34 +112,34 @@ def plot_theory():
 
     x = 0 * y
 
-    us = array([float(usol(pos)) for pos in zip(x, y)])
+    us = np.array([float(usol(pos)) for pos in zip(x, y)])
 
-    ps = array([float(psol(pos)) for pos in zip(x, y)])
+    ps = np.array([float(psol(pos)) for pos in zip(x, y)])
 
-    uf = array([forcing(pos) for pos in zip(x, y)])[:, 0]
+    uf = np.array([forcing(pos) for pos in zip(x, y)])[:, 0]
 
-    subplots_adjust(wspace=0.25)
-    subplot(1, 3, 1)
+    plt.subplots_adjust(wspace=0.25)
+    plt.subplot(1, 3, 1)
 
-    quiver(x[1:-1], y[1:-1], uf[1:-1], v[1:-1], scale=1)
-    plot(uf, y)
-    xticks([0, 0.5, 1], map(str, [0, 0.5, 1]))
-    yticks([0, 0.2, 0.4, 0.6, 0.8, 1], map(str, [0, 0.2, 0.4, 0.6, 0.8, 1]))
-    ylabel("y")
-    xlabel("u source")
+    plt.quiver(x[1:-1], y[1:-1], uf[1:-1], v[1:-1], scale=1)
+    plt.plot(uf, y)
+    plt.xticks([0, 0.5, 1], map(str, [0, 0.5, 1]))
+    plt.yticks([0, 0.2, 0.4, 0.6, 0.8, 1], map(str, [0, 0.2, 0.4, 0.6, 0.8, 1]))
+    plt.ylabel("y")
+    plt.xlabel("u source")
 
-    subplot(1, 3, 2)
-    plot(us, y)
-    quiver(x[1:-1], y[1:-1], us[1:-1], v[1:-1], scale=0.03)
-    xticks([0, 0.01, 0.02, 0.03], map(str, [0, 0.01, 0.02, 0.03]))
-    yticks([])
-    xlabel("u solution")
+    plt.subplot(1, 3, 2)
+    plt.plot(us, y)
+    plt.quiver(x[1:-1], y[1:-1], us[1:-1], v[1:-1], scale=0.03)
+    plt.xticks([0, 0.01, 0.02, 0.03], map(str, [0, 0.01, 0.02, 0.03]))
+    plt.yticks([])
+    plt.xlabel("u solution")
 
-    subplot(1, 3, 3)
-    plot(ps, y)
-    xticks([-0.02, -0.01, 0], map(str, [-0.02, -0.01, 0]))
-    yticks([])
-    xlabel("p solution")
+    plt.subplot(1, 3, 3)
+    plt.plot(ps, y)
+    plt.xticks([-0.02, -0.01, 0], map(str, [-0.02, -0.01, 0]))
+    plt.yticks([])
+    plt.xlabel("p solution")
 
     return uf, us, ps
 
@@ -160,30 +151,19 @@ def plot_results(dx, error):
     "error". Error should be a two column matrix with the first column being
     the velocity error and the second column the pressure error.
     """
-    from pylab import (
-        axis,
-        figure,
-        legend,
-        loglog,
-        title,
-        xlabel,
-        xticks,
-        ylabel,
-        yticks,
-    )
 
-    figure()
+    plt.figure()
 
-    loglog(dx, error)
-    loglog(dx, 0.03 * dx**2)
-    yticks(yticks()[0], map(lambda x: "%3.1e" % x, yticks()[0]))
-    xticks(xticks()[0], map(lambda x: "%3.1e" % x, xticks()[0]))
+    plt.loglog(dx, error)
+    plt.loglog(dx, 0.03 * dx**2)
+    plt.yticks(plt.yticks()[0], map(lambda x: "%3.1e" % x, plt.yticks()[0]))
+    plt.xticks(plt.xticks()[0], map(lambda x: "%3.1e" % x, plt.xticks()[0]))
 
-    xlabel("dx")
+    plt.xlabel("dx")
 
-    title("Convergence of the rotating channel")
+    plt.title("Convergence of the rotating channel")
 
-    legend(("u error", "p error", "O(dx^2)"))
+    plt.legend(("u error", "p error", "O(dx^2)"))
 
 
 def retrieve_results(layers):

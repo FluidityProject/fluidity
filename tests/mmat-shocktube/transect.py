@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import vtktools
-from numpy import arange, array, concatenate, newaxis, ones
+from numpy import arange, concatenate, newaxis, ones
 from pylab import plot, show
 
 colxz = ones((39, 1)) * 0.005

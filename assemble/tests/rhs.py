@@ -1,5 +1,5 @@
 def val(X, t):
-    from math import cos, pi, sin
+    from math import cos, pi
 
     eps0 = 0.001
     return cos(pi * X[0] * eps0) * cos(

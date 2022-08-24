@@ -18,7 +18,8 @@ assert libspud.get_option_type("/problem_type") is str
 assert libspud.get_option_rank("/geometry/dimension") == 0
 assert (
     libspud.get_option_rank(
-        "/physical_parameters/gravity/vector_field::GravityDirection/prescribed/value/constant"
+        "/physical_parameters/gravity/vector_field"
+        "::GravityDirection/prescribed/value/constant"
     )
     == 1
 )
@@ -34,7 +35,10 @@ libspud.set_option("/geometry/dimension", 3)
 
 assert libspud.get_option("/geometry/dimension") == 3
 
-list_path = "/material_phase::Material1/scalar_field::MaterialVolumeFraction/prognostic/boundary_conditions::LetNoOneLeave/surface_ids"
+list_path = (
+    "/material_phase::Material1/scalar_field"
+    "::MaterialVolumeFraction/prognostic/boundary_conditions::LetNoOneLeave/surface_ids"
+)
 assert libspud.get_option_shape(list_path) == (4, -1)
 assert libspud.get_option_rank(list_path) == 1
 assert libspud.get_option(list_path) == [7, 8, 9, 10]
@@ -44,7 +48,10 @@ assert libspud.get_option_shape(list_path) == (5, -1)
 assert libspud.get_option_rank(list_path) == 1
 assert libspud.get_option(list_path) == [11, 12, 13, 14, 15]
 
-tensor_path = "/material_phase::Material1/tensor_field::DummyTensor/prescribed/value::WholeMesh/anisotropic_asymmetric/constant"
+tensor_path = (
+    "/material_phase::Material1/tensor_field::DummyTensor/prescribed/value"
+    "::WholeMesh/anisotropic_asymmetric/constant"
+)
 assert libspud.get_option_shape(tensor_path) == (2, 2)
 assert libspud.get_option_rank(tensor_path) == 2
 
@@ -59,7 +66,7 @@ assert libspud.get_option(tensor_path) == [[5.0, 6.0, 2.0], [7.0, 8.0, 1.0]]
 try:
     libspud.add_option("/foo")
     assert False
-except libspud.SpudNewKeyWarning as e:
+except libspud.SpudNewKeyWarning:
     pass
 
 assert libspud.option_count("/foo") == 1
@@ -70,7 +77,7 @@ assert libspud.get_option("/problem_type") == "helloworld"
 try:
     libspud.set_option_attribute("/foo/bar", "foobar")
     assert False
-except libspud.SpudNewKeyWarning as e:
+except libspud.SpudNewKeyWarning:
     pass
 
 assert libspud.get_option("/foo/bar") == "foobar"
@@ -81,20 +88,20 @@ assert libspud.option_count("/foo") == 0
 try:
     libspud.get_option("/foo")
     assert False
-except libspud.SpudKeyError as e:
+except libspud.SpudKeyError:
     pass
 
 try:
     libspud.get_option("/geometry")
     assert False
-except libspud.SpudTypeError as e:
+except libspud.SpudTypeError:
     pass
 
 libspud.write_options("test_out.flml")
 
 try:
     libspud.set_option("/test", 4.3)
-except libspud.SpudNewKeyWarning as e:
+except libspud.SpudNewKeyWarning:
     pass
 
 assert libspud.get_option("/test") == 4.3
@@ -122,7 +129,7 @@ assert libspud.get_option("/test") == [2.3, 3.3]
 try:
     libspud.set_option("/test")
     assert False
-except libspud.SpudError as e:
+except libspud.SpudError:
     pass
 
 

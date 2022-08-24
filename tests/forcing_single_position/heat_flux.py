@@ -1,14 +1,8 @@
-import math
-import os
-import sys
-
-import numpy
 import vtktools
 from numpy import finfo
 
 
 def flux(file, x, y):
-
     u = vtktools.vtu(file)
     flux = u.GetScalarField("HeatFlux")
     pos = u.GetLocations()

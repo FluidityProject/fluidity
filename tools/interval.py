@@ -87,6 +87,7 @@ if options.dx:
     right = right + 0.01 * dx
     nodes = np.arange(left, right, dx)
 elif options.variable_dx:
+    val = None
     exec(open(options.variable_dx).read())
     nodes = [left]
     while nodes[-1] < (right - float(str(val(right)))):

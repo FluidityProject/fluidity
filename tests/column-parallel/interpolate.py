@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 import sys
 
-import numpy
-from numpy import argsort, array, corrcoef, size
-
 
 def main():
-
     x = [0, 1, 2, 3, 4, 5, 6]
     y = [0, 1, 2, 3, 4, 5, 6]
 

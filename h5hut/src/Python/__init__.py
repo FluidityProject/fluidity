@@ -1,9 +1,6 @@
-# TODO: use the rewrite to swap depending whether mpi is there are not..
-import sys
+# TODO: use the rewrite to swap depending whether mpi is there or not.
 
 import H5hut as H5hut_rewrite
-import numpy
-from H5hut import *
 
 __h5hut_table__ = {}
 
@@ -51,7 +48,7 @@ def {0}(*args, **kwargs):
 
 
 def __update_types__():
-    import inspect
+    # import inspect
     import sys
 
     import numpy

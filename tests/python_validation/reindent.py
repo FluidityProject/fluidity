@@ -70,15 +70,11 @@ def main():
     import getopt
 
     global verbose, recurse, dryrun, makebackup, nspaces
-    try:
-        opts, args = getopt.getopt(
-            sys.argv[1:],
-            "drnvNh",
-            ["dryrun", "recurse", "nobackup", "verbose", "spaces", "help"],
-        )
-    except getopt.error(msg):
-        usage(msg)
-        return
+    opts, args = getopt.getopt(
+        sys.argv[1:],
+        "drnvNh",
+        ["dryrun", "recurse", "nobackup", "verbose", "spaces", "help"],
+    )
     for o, a in opts:
         if o in ("-d", "--dryrun"):
             dryrun += 1
@@ -126,8 +122,8 @@ def check(file):
         )
     try:
         f = open(file)
-    except IOError(msg):
-        errprint("{}: I/O Error: {}".format(file, str(msg)))
+    except IOError as e:
+        errprint(f"{file}: I/O Error: {e}")
         return
 
     r = Reindenter(f)

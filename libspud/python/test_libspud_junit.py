@@ -27,15 +27,13 @@ def exception_test(test_str, exception):
         eval(test_str)
         suite.test_cases[-1].add_failure_info("No exception")
     except exception as e:
-        return
-    # reach here on test failure
-    suite.test_cases[-1].add_failure_info("Exception", str(e))
+        suite.test_cases[-1].add_failure_info("Exception", str(e))
 
 
 try:
     suite.test_cases.append(TestCase("libspud for python.load_options"))
     libspud.load_options(dirpath + "/test.flml")
-except:
+except Exception:
     suite.test_cases[-1].add_failure_info("Exception")
     with open("test_results.xml", "w") as handle:
         suite.to_file(handle, [suite])
@@ -53,7 +51,8 @@ test("libspud.get_option_type('/problem_type') is str")
 
 test("libspud.get_option_rank('/geometry/dimension') == 0")
 test(
-    "libspud.get_option_rank('/physical_parameters/gravity/vector_field::GravityDirection/prescribed/value/constant') == 1"
+    "libspud.get_option_rank('/physical_parameters/gravity/vector_field"
+    "::GravityDirection/prescribed/value/constant') == 1"
 )
 
 test("libspud.get_option_shape('/geometry/dimension') == (-1, -1)")
@@ -67,7 +66,10 @@ libspud.set_option("/geometry/dimension", 3)
 
 test("libspud.get_option('/geometry/dimension') == 3")
 
-list_path = "/material_phase::Material1/scalar_field::MaterialVolumeFraction/prognostic/boundary_conditions::LetNoOneLeave/surface_ids"
+list_path = (
+    "/material_phase::Material1/scalar_field::MaterialVolumeFraction"
+    "/prognostic/boundary_conditions::LetNoOneLeave/surface_ids"
+)
 test("libspud.get_option_shape(list_path) == (4, -1)")
 test("libspud.get_option_rank(list_path) == 1")
 test("libspud.get_option(list_path) == [7, 8, 9, 10]")
@@ -77,7 +79,10 @@ test("libspud.get_option_shape(list_path) == (5, -1)")
 test("libspud.get_option_rank(list_path) == 1")
 test("libspud.get_option(list_path)==[11, 12, 13, 14, 15]")
 
-tensor_path = "/material_phase::Material1/tensor_field::DummyTensor/prescribed/value::WholeMesh/anisotropic_asymmetric/constant"
+tensor_path = (
+    "/material_phase::Material1/tensor_field"
+    "::DummyTensor/prescribed/value::WholeMesh/anisotropic_asymmetric/constant"
+)
 test("libspud.get_option_shape(tensor_path) == (2, 2)")
 test("libspud.get_option_rank(tensor_path) == 2")
 

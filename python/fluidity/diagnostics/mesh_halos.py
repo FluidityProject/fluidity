@@ -22,35 +22,15 @@ Finite element halo classes
 import os
 import tempfile
 import unittest
-
-import fluidity.diagnostics.debug as debug
-
-try:
-    import xml.dom.ext
-except ImportError:
-    pass
-try:
-    import xml.dom.minidom
-except ImportError:
-    debug.deprint("Warning: Failed to import xml.dom.minidom module")
+import xml.dom.minidom
 
 import fluidity.diagnostics.filehandling as filehandling
-import fluidity.diagnostics.optimise as optimise
 import fluidity.diagnostics.utils as utils
 
 
 def XmlSupport():
     try:
-        import xml.dom.minidom
-
-        return True
-    except ImportError:
-        return False
-
-
-def XmlExtSupport():
-    try:
-        import xml.dom.ext
+        import xml.dom.minidom  # noqa: F401
 
         return True
     except ImportError:
@@ -76,13 +56,13 @@ class Halo:
         self._nProcesses = nProcesses
         self._nOwnedNodes = None
 
-        if not nOwnedNodes is None:
+        if nOwnedNodes is not None:
             self.SetNOwnedNodes(nOwnedNodes)
-        if not sends is None:
+        if sends is not None:
             self.SetSends(sends)
         else:
             self._sends = [[] for i in range(nProcesses)]
-        if not receives is None:
+        if receives is not None:
             self.SetReceives(receives)
         else:
             self._receives = [[] for i in range(nProcesses)]
@@ -96,7 +76,7 @@ class Halo:
         return self._nProcesses
 
     def HasNOwnedNodes(self):
-        return not self._nOwnedNodes is None
+        return self._nOwnedNodes is not None
 
     def GetNOwnedNodes(self):
         assert self.HasNOwnedNodes()
@@ -384,7 +364,7 @@ def ReadHalos(filename):
         for haloDataEle in haloDataEles:
             process = int(haloDataEle.attributes["process"].nodeValue)
             assert process >= 0 and process < nprocs
-            assert not process in processes
+            assert process not in processes
             processes.append(process)
 
             sendEle = haloDataEle.getElementsByTagName("send")
@@ -396,7 +376,7 @@ def ReadHalos(filename):
                 if child.nodeType == child.TEXT_NODE:
                     sends = map(int, child.nodeValue.split())
                     break
-            if not sends is None:
+            if sends is not None:
                 if level > 0:
                     halo.SetSends(utils.OffsetList(sends, -1), process=process)
                 else:
@@ -411,7 +391,7 @@ def ReadHalos(filename):
                 if child.nodeType == child.TEXT_NODE:
                     receives = map(int, child.nodeValue.split())
                     break
-            if not receives is None:
+            if receives is not None:
                 if level > 0:
                     halo.SetReceives(utils.OffsetList(receives, -1), process=process)
                 else:
@@ -498,10 +478,7 @@ def WriteHalos(halos, filename):
             receiveEle.appendChild(receiveText)
 
     handle = open(filename, "w")
-    if XmlExtSupport():
-        xml.dom.ext.PrettyPrint(xmlfile, handle)
-    else:
-        xmlfile.writexml(handle)
+    handle.write(xmlfile.toprettyxml())
     handle.flush()
     handle.close()
 
@@ -510,7 +487,7 @@ def WriteHalos(halos, filename):
 
 class mesh_halosUnittests(unittest.TestCase):
     def testXmlSupport(self):
-        import xml.dom.minidom
+        import xml.dom.minidom  # noqa: F401
 
         self.assertTrue(XmlSupport())
 

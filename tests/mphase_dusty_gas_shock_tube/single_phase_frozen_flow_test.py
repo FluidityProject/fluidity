@@ -13,7 +13,9 @@ params = {
 }
 pylab.rcParams.update(params)
 
-filename = "single_phase_frozen_flow_test_378.vtu"  # This corresponds to approximately t = 3.77e-4 seconds (normalised time of tau = 4 in the paper by Miura & Glass (1982))
+# This corresponds to approximately t = 3.77e-4 seconds (normalised time of tau = 4 in
+# the paper by Miura & Glass (1982))
+filename = "single_phase_frozen_flow_test_378.vtu"
 vt = vtktools.vtu(filename)
 
 # Time and coordinates
@@ -29,7 +31,8 @@ rho_air = vt.GetScalarField("Density")
 ie_air = vt.GetScalarField("InternalEnergy")
 
 # Plot the numerical results.
-# Note that we have divided the results by the reference velocity/pressure/density/internal energy to normalise them.
+# Note that we have divided the results by the reference
+# velocity/pressure/density/internal energy to normalise them.
 # x is normalised by the reference length.
 pylab.figure(1)
 pylab.subplot(321)

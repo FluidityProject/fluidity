@@ -84,9 +84,9 @@ def ReadGid(filename):
         elif word == "Nnode":
             nnode = int(lineSplit[i + 1])
             assert nnode >= 0
-    assert not dimension is None
-    assert not elemType is None
-    assert not nnode is None
+    assert dimension is not None
+    assert elemType is not None
+    assert nnode is not None
 
     debug.dprint("Dimension = " + str(dimension))
     debug.dprint("Element type = " + elemType)

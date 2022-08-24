@@ -2,6 +2,8 @@
 import sys
 from optparse import OptionParser
 
+import driven_cavity
+
 #####################################################################
 # Script starts here.
 optparser = OptionParser(
@@ -14,12 +16,10 @@ optparser = OptionParser(
 
 try:
     NN = int(argv[0])
-except:
+except Exception:
     optparser.print_help()
     sys.exit(1)
 
 sys.path.append(".")
-
-import driven_cavity
 
 driven_cavity.generate_meshfile("driven_cavity", NN)

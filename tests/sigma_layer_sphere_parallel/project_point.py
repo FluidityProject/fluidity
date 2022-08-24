@@ -2,15 +2,13 @@
 import argparse
 import math
 
-import matplotlib
-
 
 def main():
     def coords(s):
         try:
             x, y = map(float, s.split(","))
             return x, y
-        except:
+        except Exception:
             raise argparse.ArgumentTypeError("Please specify lat,lon")
 
     parser = argparse.ArgumentParser(

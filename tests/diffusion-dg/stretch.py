@@ -3,7 +3,7 @@ import getopt
 import os
 import sys
 
-from numpy import *
+import numpy as np
 
 # Global variables
 filename = None
@@ -20,7 +20,6 @@ def get_options():
         )
     except getopt.GetoptError:
         print("ERROR: Bad arguments!")
-        print(usage())
         sys.exit(2)
 
     for o, a in opts:
@@ -34,12 +33,12 @@ def get_options():
 
 get_options()
 
-assert filename != None
-assert xscale != None
-assert yscale != None
+assert filename is not None
+assert xscale is not None
+assert yscale is not None
 
-r = fromfile(filename + ".node", sep=" ")
-R = reshape(r[4:-1], ((size(r) - 5) / 3, 3))
+r = np.fromfile(filename + ".node", sep=" ")
+R = np.reshape(r[4:-1], ((r.size - 5) / 3, 3))
 
 # print(xscale)
 # print(yscale)

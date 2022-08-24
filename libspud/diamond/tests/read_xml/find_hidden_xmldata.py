@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 import unittest
 
-import diamond.schema
+import diamond.schema as schema
 
 
 class FindHiddenModule(unittest.TestCase):
     def testNoMagicComments(self):
-        hiddens = schema.find_hidden_xmldata(
-            self.assertEqual(self.schema.tree.getroot(), None)
-        )
+        schema.find_hidden_xmldata(self.assertEqual(self.schema.tree.getroot(), None))
 
 
 if __name__ == "__main__":

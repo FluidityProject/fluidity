@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import numpy
 import vtktools
 
 basename = "Subduction_Mesh"

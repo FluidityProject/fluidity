@@ -135,7 +135,8 @@ class GmshElementType(elements.ElementType):
 def ByteSwap(fileHandle):
     """
     Given a file handle, read a single 32-bit int, which should have the value 1.
-    Determine whether this matches the endianness of the current architecture, or a swap is required.
+    Determine whether this matches the endianness of the current architecture, or a
+    swap is required.
     """
 
     iArr = array.array("i")
@@ -387,7 +388,6 @@ def ReadBinaryMshV4(fileHandle, dataSize):
     if swap:
         sArr.byteswap()
     numEntities = sArr[0]
-    numElems = sArr[1]
     for i in range(numEntities):
         iArr = array.array("i")
         sArr = array.array(sizeFormat)
@@ -398,7 +398,6 @@ def ReadBinaryMshV4(fileHandle, dataSize):
             iArr.byteswap()
             sArr.byteswap()
 
-        entityDim = iArr[0]
         entityTag = iArr[1]
         elementType = iArr[2]
         elemsInBlock = sArr[0]
@@ -580,12 +579,10 @@ def ReadAsciiMshV4(fileHandle):
     line = ReadNonCommentLine(fileHandle)
     lineSplit = line.split()
     numEntities = int(lineSplit[0])
-    numElems = int(lineSplit[1])
     for i in range(numEntities):
         line = ReadNonCommentLine(fileHandle)
         lineSplit = line.split()
 
-        entityDim = int(lineSplit[0])
         entityTag = int(lineSplit[1])
         elementType = int(lineSplit[2])
         elemsInBlock = int(lineSplit[3])

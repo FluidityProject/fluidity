@@ -4,21 +4,14 @@
    simulations of the shock tube experiment by Rogue et al. (1998).
    Written by Christian Jacobs.
 """
-import os
-import sys
-from math import fabs, sqrt
 
+import matplotlib.pyplot as plt
 import numpy
-import pylab
-import scipy
 import vtktools
-from fluidity_tools import stat_parser
 
 
 def get_cloud_front(path_prefix, n_files, resolution, threshold):
-
     # Size of the domain
-    lx = 0.025
     ly = 4.5
 
     # Arrays to store the results
@@ -36,9 +29,8 @@ def get_cloud_front(path_prefix, n_files, resolution, threshold):
             file = vtktools.vtu(
                 path + "/mphase_rogue_shock_tube_dense_bed_nylon_" + str(i) + ".pvtu"
             )
-        except:
+        except Exception:
             print("WARNING: Could not open VTU file!")
-            front_position[i] = 0
             times[i] = 0
             continue
         file.GetFieldNames()
@@ -87,9 +79,7 @@ for line in f:
     experimental_times.append(float(t))
     experimental_positions.append(float(p) * 100)
 f.close()
-pylab.plot(
-    experimental_times, experimental_positions, "-r", label="Experimental (upper)"
-)
+plt.plot(experimental_times, experimental_positions, "-r", label="Experimental (upper)")
 
 f = open("lower.prn", "r")
 experimental_times = []
@@ -99,9 +89,7 @@ for line in f:
     experimental_times.append(float(t))
     experimental_positions.append(float(p) * 100)
 f.close()
-pylab.plot(
-    experimental_times, experimental_positions, "-b", label="Experimental (lower)"
-)
+plt.plot(experimental_times, experimental_positions, "-b", label="Experimental (lower)")
 
 for i in range(0, len(upper_positions)):
     upper_positions[i] = (
@@ -110,11 +98,11 @@ for i in range(0, len(upper_positions)):
     lower_positions[i] = (
         lower_positions[i] - 1.35
     ) * 100  # Centre abscissa and convert to cm.
-pylab.plot(times, upper_positions, "ro", label="Fluidity (upper)")
-pylab.plot(times, lower_positions, "bo", label="Fluidity (lower)")
-pylab.axis([0, 0.004, 0, 10])
-pylab.title("Position of lower and upper front of a 2 cm particle bed")
-pylab.xlabel("Time (s)")
-pylab.ylabel("Distance from bottom of particle bed (cm)")
-pylab.legend(loc=2)
-pylab.savefig("test.png")
+plt.plot(times, upper_positions, "ro", label="Fluidity (upper)")
+plt.plot(times, lower_positions, "bo", label="Fluidity (lower)")
+plt.axis([0, 0.004, 0, 10])
+plt.title("Position of lower and upper front of a 2 cm particle bed")
+plt.xlabel("Time (s)")
+plt.ylabel("Distance from bottom of particle bed (cm)")
+plt.legend(loc=2)
+plt.savefig("test.png")

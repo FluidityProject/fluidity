@@ -13,11 +13,10 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
 """
-Diff xml trees using a modification of FMES [http://infolab.stanford.edu/pub/papers/tdiff3-8.ps]
+Diff xml trees using a modification of
+FMES [http://infolab.stanford.edu/pub/papers/tdiff3-8.ps]
 """
 from collections import deque
-
-from lxml import etree
 
 from . import lcs, utils
 from .bimap import Bimap
@@ -96,7 +95,6 @@ class Dom:
             return "/" + self.tag
 
     def find(self, path):
-
         if self.is_text():
             if path == "/text()":
                 return self
@@ -296,7 +294,6 @@ def depth_equal(f, t, M, n1, n2):
 def _match(nodes1, nodes2, M, equal):
     nodes = nodes1 + nodes2
     for label in utils.nub([node.label for node in nodes]):
-
         s1 = get_chain(nodes1, label)
         s2 = get_chain(nodes2, label)
 
@@ -380,15 +377,15 @@ def breadth_iter(tree):
 
 def postorder_iter(tree):
     S = []
-    O = []
+    o = []
     S.append(tree)
     while S:
         t = S.pop()
-        O.append(t)
+        o.append(t)
         for child in t.children:
             S.append(child)
-    while O:
-        t = O.pop()
+    while o:
+        t = o.pop()
         if t is not tree:
             yield t
 
@@ -469,7 +466,7 @@ def alignchildren(t1, t2, M, E, w, x):
         return (a, b) in M
 
     S = [(s1[x], s2[y]) for x, y in lcs.lcs(lcs.path(s1, s2, equal))]
-    for (a, b) in S:
+    for a, b in S:
         a.inorder = b.inorder = True
 
     for a in s1:

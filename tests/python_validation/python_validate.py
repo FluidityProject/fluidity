@@ -3,21 +3,20 @@
 
 python3 python_validate.py [-p] [-f] [file1 file2 file3]
 
--f  (--fixup)  Automatically attempt to fix obvious python3 errors using reindent and 2to3.
+-f  (--fixup)  Automatically attempt to fix obvious python3 errors using reindent and
+               2to3.
 -p  (--pep8)   Run flake8 to test adherence to pep8 coding standards.
 
-Script to attempt to validate python files and code snippets in the Fluidity code base against python3 syntax.
+Script to attempt to validate python files and code snippets in the Fluidity code base
+against python3 syntax.
 
 """
 import argparse
 import ast
-import io
 import os
 import pickle
 import subprocess
-import sys
 import tempfile
-import tokenize
 from xml.etree.ElementTree import ElementTree
 
 
@@ -44,7 +43,7 @@ def fix_snippet(name, snippet):
         out = temp.read()
     os.remove(temp_name)
     if out == snippet:
-        out == None
+        out = None
     return out
 
 
@@ -72,7 +71,7 @@ def process_snippet(name, snippet):
         lines = snippet.split("\n")
         nchar = len(str(len(lines)))
         for k, line in enumerate(lines):
-            fail += ("%{}d: %s\n".format(nchar)) % ((k + 1), repr(line)[1:-1])
+            fail += "%{}d: %s\n".format(nchar) % ((k + 1), repr(line)[1:-1])
         print(fail)
     return fail
 
@@ -81,9 +80,9 @@ def validate_file(filename, fix):
     """Run the validator on a whole file."""
     with open(filename, "r") as testfile:
         failed = process_snippet(filename, testfile.read())
-        if failed:
-            if fix:
-                print_as_function(filename)
+        # if failed:
+        #     if fix:
+        #         print_as_function(filename)
     return failed
 
 
@@ -92,42 +91,41 @@ def validate_xml_snippets(filename, test_pep8, fix):
 
     snippets = []
 
-    with open(filename, "r") as xmlfile:
-        tree = ElementTree(file=filename)
+    tree = ElementTree(file=filename)
 
-        # build iterator by hand, since not using lxml
-        exp_tree = {}
+    # build iterator by hand, since not using lxml
+    exp_tree = {}
 
-        def expand_tree(ele, path):
-            epath = path + ele.tag + "/"
-            exp_tree[epath] = ele
-            for child in ele:
-                expand_tree(child, epath)
+    def expand_tree(ele, path):
+        epath = path + ele.tag + "/"
+        exp_tree[epath] = ele
+        for child in ele:
+            expand_tree(child, epath)
 
-        expand_tree(tree.getroot(), "/")
+    expand_tree(tree.getroot(), "/")
 
-        for name, ele in exp_tree.items():
-            if ele.attrib.get("language", None) == "python":
-                snippets.append((name, ele.text, ele))
+    for name, ele in exp_tree.items():
+        if ele.attrib.get("language", None) == "python":
+            snippets.append((name, ele.text, ele))
 
-        failed = ""
-        modified = False
-        for name, snippet, ele in snippets:
-            name = name + ele.attrib.get("name", "")
-            if test_pep8:
-                flake8_snippet(name, snippet)
-            test = process_snippet(name, snippet)
-            if test:
-                failed += test
-                if fix:
-                    fixed = fix_snippet(name, snippet)
-                    if fixed:
-                        modified = True
-                        ele.text = fixed
-                else:
-                    return failed
-        if failed and modified:
-            tree.write(filename, xml_declaration=True, encoding="utf-8")
+    failed = ""
+    modified = False
+    for name, snippet, ele in snippets:
+        name = name + ele.attrib.get("name", "")
+        if test_pep8:
+            flake8_snippet(name, snippet)
+        test = process_snippet(name, snippet)
+        if test:
+            failed += test
+            if fix:
+                fixed = fix_snippet(name, snippet)
+                if fixed:
+                    modified = True
+                    ele.text = fixed
+            else:
+                return failed
+    if failed and modified:
+        tree.write(filename, xml_declaration=True, encoding="utf-8")
 
     return failed or False
 
@@ -136,7 +134,10 @@ def main():
     """Main python validation routine."""
 
     parser = argparse.ArgumentParser(
-        usage="<python_executable> python_validate.py [-f] [-p] [-w output] [file1 file2 file3]"
+        usage=(
+            "<python_executable> python_validate.py [-f] [-p] [-w output] [file1 file2"
+            " file3]"
+        )
     )
     parser.add_argument(
         "-f",
@@ -144,7 +145,10 @@ def main():
         action="store_true",
         dest="fix",
         default=False,
-        help="Automatically attempt to fix obvious python3 errors using reindent and 2to3",
+        help=(
+            "Automatically attempt to fix obvious python3 errors using reindent and"
+            " 2to3"
+        ),
     )
     parser.add_argument(
         "-w",

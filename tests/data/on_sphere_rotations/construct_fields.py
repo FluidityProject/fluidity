@@ -1,6 +1,3 @@
-import sys
-
-sys.path.append("../../../python/")
 import os
 
 import GFD_basisChange_tools as GFDtools
@@ -97,7 +94,8 @@ for point in vertices:
             VectorComponents_unitAzimuthal
         )
     )
-    # Append to appropriate lists the tensor and vector components in spherical-polar basis.
+    # Append to appropriate lists the tensor and vector components in spherical-polar
+    # basis.
     tensor_inPolar.append(TensorComponents_sphericalPolar)
     unitRadialVector_inPolar.append(VectorComponents_unitRadial)
     unitPolarVector_inPolar.append(VectorComponents_unitPolar)

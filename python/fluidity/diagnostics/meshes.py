@@ -17,21 +17,16 @@ Finite element mesh classes
 """
 import unittest
 
-import fluidity.diagnostics.debug as debug
-
-try:
-    import numpy
-except:
-    debug.deprint("Warning: Failed to import numpy module")
-
 import fluidity.diagnostics.bounds as bounds
 import fluidity.diagnostics.calc as calc
+import fluidity.diagnostics.debug as debug
 import fluidity.diagnostics.elements as elements
 import fluidity.diagnostics.events as events
 import fluidity.diagnostics.mesh_halos as mesh_halos
 import fluidity.diagnostics.optimise as optimise
 import fluidity.diagnostics.utils as utils
 import fluidity.diagnostics.vtutools as vtktools
+import numpy
 
 try:
     import vtk
@@ -232,7 +227,7 @@ class Mesh(events.Evented):
         return
 
     def HasHalos(self):
-        return not self._halos is None
+        return self._halos is not None
 
     def GetHalos(self):
         return self._halos
@@ -371,7 +366,7 @@ class Mesh(events.Evented):
         for i, element in enumerate(self.GetVolumeElements()):
             nodes = element.GetNodes()
             for node in nodes:
-                if not i in neList[node]:
+                if i not in neList[node]:
                     neList[node].append(i)
 
         for eList in neList:
@@ -387,7 +382,7 @@ class Mesh(events.Evented):
             nodes = element.GetNodes()
             for node in nodes:
                 for ele in neList[node]:
-                    if not ele == i and not ele in eeList[i]:
+                    if ele != i and ele not in eeList[i]:
                         eeList[i].append(ele)
 
         return eeList
@@ -432,7 +427,8 @@ def VtuToMesh(vtu, idsName="IDs"):
             mesh.AddVolumeElement(element)
         else:
             debug.deprint(
-                "Warning: Found element in vtu that is neither a surface nor volume element"
+                "Warning: Found element in vtu that is neither a surface nor volume"
+                " element"
             )
 
     return mesh

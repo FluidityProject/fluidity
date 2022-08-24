@@ -1583,14 +1583,14 @@ def VtuStripFloatingNodes(vtu):
 
 class vtutoolsUnittests(unittest.TestCase):
     def testVtkSupport(self):
-        import vtk
+        import vtk  # noqa: F401
 
         self.assertTrue(VtkSupport())
 
         return
 
     def testVtktoolsSupport(self):
-        import vtktools
+        import vtktools  # noqa: F401
 
         return
 

@@ -7,7 +7,6 @@ import sys
 import fluidity_tools
 import numpy
 import pylab
-import vtk
 import vtktools
 
 
@@ -17,7 +16,7 @@ def get_water_depths(filelist, xarray, delta):
     for f in filelist:
         try:
             os.stat(f)
-        except:
+        except Exception:
             print("No such file: %s" % f)
             sys.exit(1)
 

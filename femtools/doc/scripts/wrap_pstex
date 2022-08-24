@@ -3,7 +3,7 @@ import sys
 
 try:
     filename = sys.argv[1]
-except:
+except Exception:
     sys.stderr.write("Missing pstex_t filename\n")
     sys.exit(1)
 
@@ -22,7 +22,7 @@ footer = r"""}
 \end{document}
 """
 
-outfile = file(filename[:-8] + ".tex", "w")
+outfile = open(filename[:-8] + ".tex", "w")
 
 outfile.write(header + filename + footer)
 

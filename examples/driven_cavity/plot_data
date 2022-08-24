@@ -16,7 +16,7 @@ def usage():
 
 try:
     NN = numpy.array(map(int, sys.argv[1:]))
-except:
+except Exception:
     usage()
     sys.exit(1)
 

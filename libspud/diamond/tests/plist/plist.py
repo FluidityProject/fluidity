@@ -9,35 +9,36 @@ class PyListModule(unittest.TestCase):
     """#1: A simple list of integers, with cardinality ''. (One element only)."""
 
     def testSimple(self):
-        l = plist.List(int)
-        self.assertEqual(l.__str__(), "list of <type 'int'> of cardinality: ")
-        self.assertEqual(l.__repr__(), "list of <type 'int'> of cardinality: ")
-        self.assertEqual(l("0"), "0")
+        _list = plist.List(int)
+        self.assertEqual(_list.__str__(), "list of <type 'int'> of cardinality: ")
+        self.assertEqual(_list.__repr__(), "list of <type 'int'> of cardinality: ")
+        self.assertEqual(_list("0"), "0")
 
     """ #2: A simple list of integers, with cardinality '+'. """
 
     def testOneOrMore(self):
-        l = plist.List(int, "+")
-        self.assertEqual(l.__str__(), "list of <type 'int'> of cardinality: +")
-        self.assertEqual(l.__repr__(), "list of <type 'int'> of cardinality: +")
-        self.assertEqual(l("3,4,5"), "3 4 5")
+        _list = plist.List(int, "+")
+        self.assertEqual(_list.__str__(), "list of <type 'int'> of cardinality: +")
+        self.assertEqual(_list.__repr__(), "list of <type 'int'> of cardinality: +")
+        self.assertEqual(_list("3,4,5"), "3 4 5")
 
     """ #3: A list of two strings, with cardinality 2. """
 
     def testTwoStrings(self):
-        l = plist.List(str, "2")
-        self.assertEqual(l.__str__(), "list of <type 'str'> of cardinality: 2")
-        self.assertEqual(l.__repr__(), "list of <type 'str'> of cardinality: 2")
-        self.assertEqual(l("first second"), "first second")
+        _list = plist.List(str, "2")
+        self.assertEqual(_list.__str__(), "list of <type 'str'> of cardinality: 2")
+        self.assertEqual(_list.__repr__(), "list of <type 'str'> of cardinality: 2")
+        self.assertEqual(_list("first second"), "first second")
 
-    """ #4: A list of none type, which should throw an non-callable exception when called. """
+    """ #4: A list of none type, which should throw an non-callable exception when \
+called. """
 
     def testNoneType(self):
-        l = plist.List(None)
+        _list = plist.List(None)
         try:
-            l("3,4,5")
+            _list("3,4,5")
             self.fail()
-        except:
+        except Exception:
             pass
 
 

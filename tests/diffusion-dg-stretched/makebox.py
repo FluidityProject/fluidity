@@ -1,9 +1,5 @@
 import os
 
-from fluidity_tools import stat_parser
-from numpy import abs, array, max
-from sympy import *
-
 meshtemplate = """
 Point(1) = {0.0,0.0,0,0.1};
 Extrude {<width>,0,0} {
@@ -21,7 +17,6 @@ Physical Surface(10) = {5};
 
 
 def generate_meshfile(name, layers, width):
-
     geo = meshtemplate.replace("<layers>", str(layers))
     geo = geo.replace("<width>", str(width))
     open(name + ".geo", "w").write(geo)

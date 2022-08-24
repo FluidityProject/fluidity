@@ -1,8 +1,6 @@
 from __future__ import print_function
 
 import glob
-import os
-import sys
 
 import numpy
 import params
@@ -10,7 +8,8 @@ import vtk
 
 
 def check_min_max_radii():
-    # Loop over vtu's and check that each core does not extend from inner radius to outer radius:
+    # Loop over vtu's and check that each core does not extend from inner radius to
+    # outer radius:
     filelist = glob.glob("Stokes_sphere_0/Stokes_sphere_0_*.vtu")
     filelist.sort()
 
@@ -20,7 +19,8 @@ def check_min_max_radii():
     for filename in filelist:
         print("Working on file:", filename)
 
-        # Set up reader (note that vtktools does this automatically, but vtktools isn't being used here):
+        # Set up reader (note that vtktools does this automatically, but vtktools isn't
+        # being used here):
         if filename[-4:] == ".vtu":
             reader = vtk.vtkXMLUnstructuredGridReader()
         else:

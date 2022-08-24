@@ -1,5 +1,4 @@
 #! /usr/bin/env python3
-import sys
 
 import fluidity.diagnostics.gmshtools as gmshtools
 import numpy

@@ -1,8 +1,6 @@
 import os
 
 from fluidity_tools import stat_parser
-from numpy import abs, array, max
-from sympy import *
 
 meshtemplate = """
 Point(1) = {0.0,0.0,0,0.1};
@@ -21,7 +19,6 @@ Physical Volume(29) = {1};
 
 
 def generate_meshfile(name, layers):
-
     geo = meshtemplate.replace("<layers>", str(layers))
     open(name + ".geo", "w").write(geo)
 

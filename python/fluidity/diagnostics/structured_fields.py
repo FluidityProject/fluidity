@@ -19,23 +19,14 @@ import copy
 import math
 import unittest
 
-import fluidity.diagnostics.debug as debug
-
-try:
-    import numpy
-except:
-    debug.deprint("Warning: Failed to import numpy module")
-try:
-    import vtk
-except:
-    debug.deprint("Warning: Failed to import vtk module")
-
 import fluidity.diagnostics.annulus_mesh as annulus_mesh
 import fluidity.diagnostics.calc as calc
+import fluidity.diagnostics.debug as debug
 import fluidity.diagnostics.elements as elements
 import fluidity.diagnostics.meshes as meshes
-import fluidity.diagnostics.optimise as optimise
 import fluidity.diagnostics.utils as utils
+import numpy
+import vtk
 
 
 class StructuredField2D:
@@ -55,13 +46,13 @@ class StructuredField2D:
         self._shape = shape
 
         self._NewData()
-        if not data is None:
+        if data is not None:
             self.SetData(data)
 
         return
 
     def _DataLen(self):
-        assert not self._shape is None
+        assert self._shape is not None
         if len(self._shape) == 0:
             return 0
 
@@ -217,8 +208,8 @@ class StructuredField2D:
                         )
                     )
                 else:
-                    # Default to triangle mesh, as quad quadrature is currently broken in
-                    # Fluidity
+                    # Default to triangle mesh, as quad quadrature is currently broken
+                    # in Fluidity
                     mesh.AddVolumeElement(
                         elements.Element(
                             [yxToNode[j][i], yxToNode[j + 1][i], yxToNode[j][i + 1]]
@@ -237,7 +228,7 @@ class StructuredField2D:
         return mesh
 
     def ToVtu(self, axis=(0.0, 1.0, 0.0), quadMesh=False):
-        assert not self._shape is None
+        assert self._shape is not None
 
         vtu = self.Mesh(quadMesh=quadMesh).ToVtu()
 

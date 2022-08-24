@@ -4,8 +4,10 @@ from numpy import array
 from numpy.linalg import norm
 
 # 8-3-2017 s.kramer@imperial.ac.uk:
-# the icosahedron() code is partly based on http://blog.andreaskahler.com/2009/06/creating-icosphere-mesh-in-code.html
-# the subdivide() routine is based on http://prideout.net/blog/?p=44 , but completely rewritten to actually produce a valid mesh
+# the icosahedron() code is partly based on
+# http://blog.andreaskahler.com/2009/06/creating-icosphere-mesh-in-code.html
+# the subdivide() routine is based on http://prideout.net/blog/?p=44,
+# but completely rewritten to actually produce a valid mesh
 # with unique vertices and not depend on euclid
 
 
@@ -70,15 +72,15 @@ def create_new_node(face, i, j, verts, new_nodes):
 
 
 def subdivide(verts, faces):
-
     """Subdivide each triangle into four triangles, pushing verts to the unit sphere"""
 
-    # map between pairs of existing verts (indices) and the new node (number) created inbetween
+    # map between pairs of existing verts (indices) and the new node (number) created
+    # inbetween
     new_nodes = {}
 
-    # we instantiate the enumerated list first, as we only want to loop over already existing faces
+    # we instantiate the enumerated list first, as we only want to loop over already
+    # existing faces
     for fi, face in list(enumerate(faces)):
-
         # Create three new verts at the midpoints of each edge:
         i = create_new_node(face, 0, 1, verts, new_nodes)
         j = create_new_node(face, 1, 2, verts, new_nodes)

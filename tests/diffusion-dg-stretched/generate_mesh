@@ -2,6 +2,8 @@
 import sys
 from optparse import OptionParser
 
+import makebox
+
 #####################################################################
 # Script starts here.
 optparser = OptionParser(
@@ -23,7 +25,5 @@ print("dx = ", dx)
 #    sys.exit(1)
 
 sys.path.append(".")
-
-import makebox
 
 makebox.generate_meshfile("box", layers, width)

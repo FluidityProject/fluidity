@@ -3,7 +3,6 @@ from math import log
 
 import numpy as np
 from fluidity_tools import stat_parser as stat
-from vtktools import *
 
 meshes = [["A", "B"], ["B", "C"]]  # , ['C','D']]
 
@@ -17,7 +16,6 @@ print("TracerError:")
 print("-------------------------------------------")
 
 for i, mesh in enumerate(meshes):
-
     a_error = stat("MMS_" + str(mesh[0]) + ".stat")["NS"]["TracerError"]["l2norm"][-1]
     b_error = stat("MMS_" + str(mesh[1]) + ".stat")["NS"]["TracerError"]["l2norm"][-1]
 

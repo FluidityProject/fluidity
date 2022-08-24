@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-import glob
 import sys
-
-import numpy
 
 
 def inflow_data(plane):
@@ -65,7 +62,6 @@ def inflow_data(plane):
 
 
 def main():
-
     plane = sys.argv[1]
     inflow_data(plane)
 

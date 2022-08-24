@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import os
 import re
 
 from lxml import etree

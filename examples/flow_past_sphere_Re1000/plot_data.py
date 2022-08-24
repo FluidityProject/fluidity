@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import math
-import os
 
 import fluidity_tools
 import pylab

@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 import sys
-from math import log
 
-import helmholtz_tools as h
-import numpy as np
-import pylab
+import matplotlib.pyplot as plt
 
 
 def plot_convergence(name1, logfile1, name2, logfile2):
-
     file1 = open(str(logfile1), "r").readlines()
     data1 = [float(line.split()[1]) for line in file1]
     iso1 = data1[0::3]
@@ -24,10 +20,9 @@ def plot_convergence(name1, logfile1, name2, logfile2):
     # x axis
     xlabels = ["A:B", "B:C", "C:D", "D:E"]
     x = [1, 2, 3, 4]
-    ordertwo = [2, 2, 2, 2]
-    plot1 = pylab.figure(figsize=(6.5, 6.5))
+    plt.figure(figsize=(6.5, 6.5))
     size = 15
-    ax = pylab.subplot(111)
+    ax = plt.subplot(111)
     ax.plot(x, iso1, linestyle="solid", color="red", lw=2)
     ax.plot(x, aniso1, linestyle="dashed", color="red", lw=2)
     ax.plot(x, ml1, linestyle="dashdot", color="red", lw=2)
@@ -35,8 +30,8 @@ def plot_convergence(name1, logfile1, name2, logfile2):
     ax.plot(x, aniso2, linestyle="dashed", color="blue", lw=2)
     ax.plot(x, ml2, linestyle="dashdot", color="blue", lw=2)
     # ax.plot(x,ordertwo, linestyle='dashed',color='black')
-    # pylab.legend((str(name1)+'_iso',str(name1)+'_aniso',str(name2)+'_iso',str(name2)+'_aniso'),loc="best")
-    pylab.legend(
+    # plt.legend((str(name1)+'_iso',str(name1)+'_aniso',str(name2)+'_iso',str(name2)+'_aniso'),loc="best")
+    plt.legend(
         (
             str(name1) + "_iso",
             str(name1) + "_aniso",
@@ -47,9 +42,9 @@ def plot_convergence(name1, logfile1, name2, logfile2):
         ),
         loc="best",
     )
-    leg = pylab.gca().get_legend()
+    leg = plt.gca().get_legend()
     ltext = leg.get_texts()
-    pylab.setp(ltext, fontsize=size, color="black")
+    plt.setp(ltext, fontsize=size, color="black")
     frame = leg.get_frame()
     frame.set_fill(False)
     frame.set_visible(False)
@@ -65,11 +60,11 @@ def plot_convergence(name1, logfile1, name2, logfile2):
     ax.set_xticks(x)
     ax.set_xticklabels(xlabels)
 
-    # pylab.axis([1,4,0.5,2.25])
+    # plt.axis([1,4,0.5,2.25])
     ax.set_xlabel("Mesh comparison", ha="center", fontsize=size)
     ax.set_ylabel("filter convergence rate", fontsize=size)
-    pylab.savefig("convplot.eps")
-    pylab.savefig("convplot.pdf")
+    plt.savefig("convplot.eps")
+    plt.savefig("convplot.pdf")
 
     return
 
@@ -78,7 +73,6 @@ def plot_convergence(name1, logfile1, name2, logfile2):
 
 
 def plot_commerror(name1, logfile1, name2, logfile2):
-
     file1 = open(str(logfile1), "r").readlines()
     data1 = [float(line.split()[1]) for line in file1]
     iso1 = data1[0::3]
@@ -94,21 +88,28 @@ def plot_commerror(name1, logfile1, name2, logfile2):
     # x axis
     x = [8, 16, 32, 64, 128]
     xlabels = ["A", "B", "C", "D", "E"]
-    orderone = [1, 0.5, 0.25, 0.125, 0.0625]
-    ordertwo = [i**2 for i in orderone]
-    plot1 = pylab.figure(figsize=(6, 6.5))
+    plt.figure(figsize=(6, 6.5))
     size = 15
-    ax = pylab.subplot(111)
+    ax = plt.subplot(111)
     ax.plot(x, iso1, linestyle="solid", color="red", lw=2)
     ax.plot(x, aniso1, linestyle="dashed", color="red", lw=2)
     ax.plot(x, ml1, linestyle="dashdot", color="red", lw=2)
     ax.plot(x, iso2, linestyle="solid", color="blue", lw=2)
     ax.plot(x, aniso2, linestyle="dashed", color="blue", lw=2)
     ax.plot(x, ml2, linestyle="dashdot", color="blue", lw=2)
-    # ax.plot(x,orderone, linestyle='solid',color='black',lw=2)
-    # ax.plot(x,ordertwo, linestyle='dashed',color='black')
-    # pylab.legend((str(name1)+'_iso',str(name1)+'_aniso',str(name2)+'_iso',str(name2)+'_aniso','order 1'),loc="best")
-    pylab.legend(
+    # ax.plot(x, orderone, linestyle="solid", color="black", lw=2)
+    # ax.plot(x, ordertwo, linestyle="dashed", color="black")
+    # plt.legend(
+    #     (
+    #         str(name1) + "_iso",
+    #         str(name1) + "_aniso",
+    #         str(name2) + "_iso",
+    #         str(name2) + "_aniso",
+    #         "order 1",
+    #     ),
+    #     loc="best",
+    # )
+    plt.legend(
         (
             str(name1) + "_iso",
             str(name1) + "_aniso",
@@ -119,9 +120,9 @@ def plot_commerror(name1, logfile1, name2, logfile2):
         ),
         loc="best",
     )
-    leg = pylab.gca().get_legend()
+    leg = plt.gca().get_legend()
     ltext = leg.get_texts()
-    pylab.setp(ltext, fontsize=size, color="black")
+    plt.setp(ltext, fontsize=size, color="black")
     frame = leg.get_frame()
     frame.set_fill(False)
     frame.set_visible(False)
@@ -133,18 +134,18 @@ def plot_commerror(name1, logfile1, name2, logfile2):
         tick.label1.set_fontsize(size)
 
     # set axes to logarithmic
-    pylab.gca().set_xscale("log", basex=2)
-    pylab.gca().set_yscale("log", basex=2)
+    plt.gca().set_xscale("log", basex=2)
+    plt.gca().set_yscale("log", basex=2)
 
-    pylab.axis([8, 128, 1.0e-4, 2])
+    plt.axis([8, 128, 1.0e-4, 2])
     ax.set_xticks(x)
     ax.set_xticklabels(xlabels)
 
-    # pylab.axis([1,5,1.e-6,1.])
+    # plt.axis([1,5,1.e-6,1.])
     ax.set_xlabel("Mesh resolution", ha="center", fontsize=size)
     ax.set_ylabel("commutation error", fontsize=size)
-    pylab.savefig("commerrorplot.eps")
-    pylab.savefig("commerrorplot.pdf")
+    plt.savefig("commerrorplot.eps")
+    plt.savefig("commerrorplot.pdf")
 
     return
 
@@ -153,7 +154,6 @@ def plot_commerror(name1, logfile1, name2, logfile2):
 
 
 def plot_commconv(name1, logfile1, name2, logfile2):
-
     file1 = open(str(logfile1), "r").readlines()
     data1 = [float(line.split()[1]) for line in file1]
     iso1 = data1[0::3]
@@ -169,19 +169,26 @@ def plot_commconv(name1, logfile1, name2, logfile2):
     # x axis
     xlabels = ["A:B", "B:C", "C:D", "D:E"]
     x = [1, 2, 3, 4]
-    orderone = [1, 1, 1, 1]
-    plot1 = pylab.figure(figsize=(6.5, 6.5))
+    plt.figure(figsize=(6.5, 6.5))
     size = 15
-    ax = pylab.subplot(111)
+    ax = plt.subplot(111)
     ax.plot(x, iso1, linestyle="solid", color="red", lw=2)
     ax.plot(x, aniso1, linestyle="dashed", color="red", lw=2)
     ax.plot(x, ml1, linestyle="dashdot", color="red", lw=2)
     ax.plot(x, iso2, linestyle="solid", color="blue", lw=2)
     ax.plot(x, aniso2, linestyle="dashed", color="blue", lw=2)
     ax.plot(x, ml2, linestyle="dashdot", color="blue", lw=2)
-    # ax.plot(x,orderone, linestyle='dashed',color='black')
-    # pylab.legend((str(name1)+'_iso',str(name1)+'_aniso',str(name2)+'_iso',str(name2)+'_aniso'),loc="best")
-    pylab.legend(
+    # ax.plot(x, orderone, linestyle="dashed", color="black")
+    # plt.legend(
+    #     (
+    #         str(name1) + "_iso",
+    #         str(name1) + "_aniso",
+    #         str(name2) + "_iso",
+    #         str(name2) + "_aniso",
+    #     ),
+    #     loc="best",
+    # )
+    plt.legend(
         (
             str(name1) + "_iso",
             str(name1) + "_aniso",
@@ -192,9 +199,9 @@ def plot_commconv(name1, logfile1, name2, logfile2):
         ),
         loc="center",
     )
-    leg = pylab.gca().get_legend()
+    leg = plt.gca().get_legend()
     ltext = leg.get_texts()
-    pylab.setp(ltext, fontsize=size, color="black")
+    plt.setp(ltext, fontsize=size, color="black")
     frame = leg.get_frame()
     frame.set_fill(False)
     frame.set_visible(False)
@@ -210,17 +217,16 @@ def plot_commconv(name1, logfile1, name2, logfile2):
     ax.set_xticks(x)
     ax.set_xticklabels(xlabels)
 
-    # pylab.axis([1,4,0.,1.])
+    # plt.axis([1,4,0.,1.])
     ax.set_xlabel("Mesh comparison", ha="center", fontsize=size)
     ax.set_ylabel("commutation error convergence rate", fontsize=size)
-    pylab.savefig("commconvplot.eps")
-    pylab.savefig("commconvplot.pdf")
+    plt.savefig("commconvplot.eps")
+    plt.savefig("commconvplot.pdf")
 
     return
 
 
 def main():
-
     name1 = "unstructured"
     name2 = "structured"
 
