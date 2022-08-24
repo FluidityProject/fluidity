@@ -78,7 +78,7 @@ RUN make -j all check
 
 WORKDIR /home/Softwares
 
-RUN git clone -b cmake_build_2022 https://github.com/FluidityProject/fluidity.git
+RUN git clone -b cmake_build_2022_minimal https://github.com/FluidityProject/fluidity.git
 
 WORKDIR /home/Softwares/fluidity/build
 
