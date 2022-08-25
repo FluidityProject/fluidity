@@ -487,7 +487,7 @@ add_custom_target(uninstall_python_packages
 
 # Build the fluidity manual
 add_custom_target(manual
-  COMMAND make
+  COMMAND BUILD_TOOL=cmake make
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/manual
   VERBATIM
 )
