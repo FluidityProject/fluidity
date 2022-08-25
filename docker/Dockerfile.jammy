@@ -83,7 +83,7 @@ RUN git clone -b cmake_build_2022_minimal https://github.com/FluidityProject/flu
 WORKDIR /home/Softwares/fluidity/build
 
 RUN cmake -G Ninja -D GITHUB_ACTIONS=1 ..
-RUN ninja -j 0
+RUN ninja -j 4
 RUN ninja install_python_packages
 RUN ninja manual
 

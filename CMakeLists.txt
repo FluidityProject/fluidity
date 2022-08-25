@@ -476,6 +476,7 @@ target_link_libraries(fluidity_binary fluidity)
 # Install Python packages included in Fluidity's repository
 add_custom_target(install_python_packages 
   COMMAND ${CMAKE_MAKE_PROGRAM} fluidity_python spud_diamond spud_dxdiff spud_python
+  VERBATIM
 )
 
 # Uninstall Python packages included in Fluidity's repository
