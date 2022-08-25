@@ -31,7 +31,7 @@ use fldebug
 use sparse_tools
 use fields
 use sparse_tools_petsc
-use c_interfaces
+
 implicit none
 
   interface mult
@@ -80,7 +80,7 @@ contains
     type(scalar_field), intent(in), target :: b
     real, dimension(:), allocatable :: tmp
 
-    if (compare_pointers(c_loc(x), c_loc(b))) then
+    if (c_associated(c_loc(x), c_loc(b))) then
       FLAbort("You can't pass the same field in for x and b.")
     end if
 
