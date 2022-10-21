@@ -43,7 +43,7 @@ Checkpoints are dumped in the GMSH file format.&lt;/b&gt;</a:documentation>
         <ref name="comment"/>
       </element>
       <element name="from_mesh">
-        <a:documentation>Make mesh from existing mesh. </a:documentation>
+        <a:documentation>Make mesh from existing mesh.</a:documentation>
         <ref name="mesh_choice"/>
         <optional>
           <element name="mesh_shape">
@@ -388,7 +388,7 @@ varies both in the horizontal as in the vertical.</a:documentation>
       <optional>
         <element name="varies_only_in_depth">
           <a:documentation>If your sizing function only varies in depth enable this option.
-Do not use if your function depends on x and/or y as it takes a column of depth values and re-uses it. </a:documentation>
+Do not use if your function depends on x and/or y as it takes a column of depth values and re-uses it.</a:documentation>
           <empty/>
         </element>
       </optional>

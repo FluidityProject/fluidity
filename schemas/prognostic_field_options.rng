@@ -82,7 +82,7 @@ sediment grain</a:documentation>
             <element name="viscosity">
               <a:documentation>Viscosity value to use within this algorithm. This allows the user to override
 use of the material viscosity used for the rest of the simulation for calculating
-sediment reentrainment. </a:documentation>
+sediment reentrainment.</a:documentation>
               <ref name="real"/>
             </element>
           </optional>
@@ -972,7 +972,7 @@ alternating directions. Devised by C.Pain.</a:documentation>
               <element name="interior_penalty">
                 <a:documentation>Classical interior penalty scheme
 see, e.g., SIAM Journal on Numerical Analysis
-Vol. 39, No. 5 (2002), pp. 1749-1779 </a:documentation>
+Vol. 39, No. 5 (2002), pp. 1749-1779</a:documentation>
                 <element name="penalty_parameter">
                   <a:documentation>Penalty_parameter
 The penalty term Int [u][v] dS on element boundaries
@@ -1613,7 +1613,7 @@ theta*g*dt*drho/dr_grav</a:documentation>
               <element name="min_gradient">
                 <a:documentation>Use this option to set a 'minimum' drho/dr_grav
 to be used in the implicit buoyancy calculation.
-Note that the default value is zero. </a:documentation>
+Note that the default value is zero.</a:documentation>
                 <ref name="real"/>
               </element>
             </optional>
@@ -2414,7 +2414,7 @@ Only applicable to control volume spatial discretisations.</a:documentation>
           <ref name="integer_vector"/>
         </element>
         <element name="secondary_boundary">
-          <a:documentation>Secondary boundaries have a value given by the flux between this boundary and the primary boundary.  </a:documentation>
+          <a:documentation>Secondary boundaries have a value given by the flux between this boundary and the primary boundary.</a:documentation>
           <element name="primary_point">
             <a:documentation>A point on or behind the primary boundary *from* which the flux line should extend.
 Note: Path should not go through periodic boundary</a:documentation>

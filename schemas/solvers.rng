@@ -97,9 +97,9 @@ by the PETSc library. Many more methods are provided.
   </define>
   <!--
     ####################################################################
-
+    
     options for the different iterative ksp methods
-
+    
     ####################################################################
   -->
   <define name="kspgmres_options">
@@ -165,9 +165,9 @@ http://www-unix.mcs.anl.gov/petsc/petsc-2/snapshots/petsc-dev/docs/manualpages/K
   </define>
   <!--
     ####################################################################
-
+    
     options for the different preconditioners
-
+    
     ####################################################################
   -->
   <define name="pcsor_options">
@@ -436,7 +436,7 @@ by the PETSc library. Many more methods are provided.
       <a:documentation>GAMG preconditioner.
 For vector solves, this preconditioner should be used in conjunction
 with the multigrid_near_null_space option to improve convergence. The
-near null-space option is not applicable for scalar solves.  </a:documentation>
+near null-space option is not applicable for scalar solves.</a:documentation>
       <attribute name="name">
         <value>gamg</value>
       </attribute>
@@ -472,9 +472,9 @@ FIXME: maybe some hints what a useful setup is</a:documentation>
   </define>
   <!--
     ####################################################################
-
+    
     all the other solver options
-
+    
     ####################################################################
   -->
   <define name="generic_solver_options_scalar">

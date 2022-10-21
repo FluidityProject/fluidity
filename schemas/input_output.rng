@@ -615,14 +615,14 @@ for ABL simulations use a log profile</a:documentation>
           <a:documentation>Reynolds stresses profile
 
 usually a function of height,
-assumes that the remaining stresses are negligible </a:documentation>
+assumes that the remaining stresses are negligible</a:documentation>
           <ref name="input_choice_real"/>
         </element>
       </element>
       <element name="foam_flow">
         <optional>
           <element name="factor">
-            <a:documentation>use the normal component of the remapped foam velocity </a:documentation>
+            <a:documentation>use the normal component of the remapped foam velocity</a:documentation>
             <ref name="integer"/>
           </element>
         </optional>

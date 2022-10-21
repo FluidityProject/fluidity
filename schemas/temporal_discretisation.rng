@@ -99,7 +99,7 @@ higher order solution is pivotted.
   <define name="temporal_discontinuous_galerkin_options">
     <element name="discontinuous_galerkin">
       <a:documentation>This enables DG-specific timestepping options, such as
-explicit advection subcycling. </a:documentation>
+explicit advection subcycling.</a:documentation>
       <optional>
         <choice>
           <element name="maximum_courant_number_per_subcycle">

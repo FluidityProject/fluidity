@@ -107,7 +107,7 @@ temporal_discretisation).</a:documentation>
     <element name="discontinuous_galerkin">
       <a:documentation>Discontinuous galerkin formulation. You can also use this
 formulation with a continuous field in which case a simple
-galerkin formulation will result. </a:documentation>
+galerkin formulation will result.</a:documentation>
       <ref name="dg_advection_scheme"/>
       <ref name="dg_diffusion_scheme"/>
       <ref name="dg_upwind_stabilisation"/>
@@ -251,7 +251,7 @@ scaled by C_0</a:documentation>
         <element name="interior_penalty">
           <a:documentation>Classical interior penalty scheme
 see, e.g., SIAM Journal on Numerical Analysis
-Vol. 39, No. 5 (2002), pp. 1749-1779 </a:documentation>
+Vol. 39, No. 5 (2002), pp. 1749-1779</a:documentation>
           <element name="penalty_parameter">
             <a:documentation>Penalty_parameter
 The penalty term Int [u][v] dS on element boundaries

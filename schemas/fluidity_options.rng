@@ -238,7 +238,7 @@ checkpoints may be overwritten.</a:documentation>
         </element>
         <optional>
           <element name="detectors">
-            <a:documentation>Specification of detectors. Note that when running in parallel the detector output is in binary format even if binary_output is not enabled. When running in serial, although the output is in principle still generated in ascii format if binary_output is not enabled, it is not certain that it is working well. Hence, it is recommended to enable binary_output and work with binary files. </a:documentation>
+            <a:documentation>Specification of detectors. Note that when running in parallel the detector output is in binary format even if binary_output is not enabled. When running in serial, although the output is in principle still generated in ascii format if binary_output is not enabled, it is not certain that it is working well. Hence, it is recommended to enable binary_output and work with binary files.</a:documentation>
             <zeroOrMore>
               <choice>
                 <element name="static_detector">
@@ -777,7 +777,7 @@ Manual suggests 0.0</a:documentation>
                     <a:documentation>If enabled, signals model termination if a timestep less
 than or equal to the minimum_timestep is requested. The
 model will stop at the end of the timestep in order to
-allow for the latest output to be written. </a:documentation>
+allow for the latest output to be written.</a:documentation>
                     <ref name="comment"/>
                   </element>
                 </optional>
@@ -886,7 +886,7 @@ file.</a:documentation>
               <a:documentation>Subgridscale parameterisations</a:documentation>
               <optional>
                 <element name="LANS">
-                  <a:documentation>Lagrangian-averaged Navier-Stokes equations </a:documentation>
+                  <a:documentation>Lagrangian-averaged Navier-Stokes equations</a:documentation>
                   <choice>
                     <element name="alpha_isotropic_homogeneous">
                       <a:documentation>smoothing length specified as isotropic homogeneous</a:documentation>
@@ -2286,7 +2286,7 @@ A flux value will be outflow for boundary_condition_name_1 and inflow for bounda
                   </element>
                 </element>
                 <element name="flux">
-                  <a:documentation>Implements the turbine model by using the fluxes from the discontinues galerkin model. Works only if dg is used. </a:documentation>
+                  <a:documentation>Implements the turbine model by using the fluxes from the discontinues galerkin model. Works only if dg is used.</a:documentation>
                   <choice>
                     <a:documentation>Model type</a:documentation>
                     <element name="penalty">
@@ -2868,7 +2868,7 @@ breakage, aggegation and internal dispersion</a:documentation>
                   <a:documentation/>
                   <optional>
                     <element name="C5">
-                      <a:documentation>enter the value of the coefficient C5 in Laakkonen's aggregation rate expression. default: 0.88  </a:documentation>
+                      <a:documentation>enter the value of the coefficient C5 in Laakkonen's aggregation rate expression. default: 0.88</a:documentation>
                       <ref name="real"/>
                     </element>
                   </optional>
@@ -2970,7 +2970,7 @@ weight of approx 1e-10 is used.</a:documentation>
       </element>
       <optional>
         <element name="minimum_weighted_abscissa">
-          <a:documentation>In case the user wants to apply a minimum cap for weighted abscissas. Not Recommended. </a:documentation>
+          <a:documentation>In case the user wants to apply a minimum cap for weighted abscissas. Not Recommended.</a:documentation>
           <ref name="real"/>
         </element>
       </optional>
@@ -3019,7 +3019,7 @@ fields as absorption terms.</a:documentation>
               <a:documentation>For including a sponge region for weights and weighted_abscissas (which are
 applied as absorption terms) a sponge field is defined which will be analogous to
 an absorption term. This field is zero everywhere except where a large absorption
-is present. </a:documentation>
+is present.</a:documentation>
               <element name="sponge_scalar_field_name">
                 <a:documentation>Name of the scalar field which is the sponge scalar field. Note: This sponge field must
 be defined the the same material phase.</a:documentation>
@@ -3038,7 +3038,7 @@ fields as absorption terms wherever the source is negative.</a:documentation>
               <a:documentation>For including a sponge region for weights and weighted_abscissas (which are
 applied as absorption terms) a sponge field is defined which will be analogous to
 an absorption term. This field is zero everywhere except where a large absorption
-is present. </a:documentation>
+is present.</a:documentation>
               <element name="sponge_scalar_field_name">
                 <a:documentation>Name of the scalar field which is the sponge scalar field. Note: This sponge field must
 be defined the the same material phase.</a:documentation>
@@ -3068,7 +3068,7 @@ sediment field under prognostic/SinkingVelocity
 due to turbulence. This must be set on the same boundaries as the SedimentDepositon
 field
 
-- see the manual for more details on how to use this model </a:documentation>
+- see the manual for more details on how to use this model</a:documentation>
           <attribute name="rank">
             <value>0</value>
           </attribute>
@@ -4004,7 +4004,7 @@ formulations</a:documentation>
       <element name="normal_direction">
         <a:documentation>Select if you want to specify the unit normal direction
 of the rotation matrix.
-If off then fluidity computes the normal.  </a:documentation>
+If off then fluidity computes the normal.</a:documentation>
         <ref name="input_choice_real_dim_vector"/>
       </element>
     </optional>
@@ -4012,7 +4012,7 @@ If off then fluidity computes the normal.  </a:documentation>
       <element name="tangent_direction_1">
         <a:documentation>Select if you want to specify the first unit tangent direction
 of the rotation matrix (in dim &gt; 1 simulations).
-If off then fluidity computes the tangent.  </a:documentation>
+If off then fluidity computes the tangent.</a:documentation>
         <ref name="input_choice_real_dim_vector"/>
       </element>
     </optional>
@@ -4020,7 +4020,7 @@ If off then fluidity computes the tangent.  </a:documentation>
       <element name="tangent_direction_2">
         <a:documentation>Select if you want to specify the second unit tangent direction
 of the rotation matrix (in dim &gt; 2 simulations).
-If off then fluidity computes the tangent.  </a:documentation>
+If off then fluidity computes the tangent.</a:documentation>
         <ref name="input_choice_real_dim_vector"/>
       </element>
     </optional>
@@ -4083,12 +4083,12 @@ normals and tangenials 1/2</a:documentation>
   <define name="free_surface_diagnostic_options">
     <optional>
       <ref name="free_surface_history_algorithm">
-        <a:documentation>Activate this for tidal harmonic analysis </a:documentation>
+        <a:documentation>Activate this for tidal harmonic analysis</a:documentation>
       </ref>
     </optional>
     <optional>
       <ref name="tidal_harmonic_algorithm">
-        <a:documentation>Activate this for tidal harmonic analysis </a:documentation>
+        <a:documentation>Activate this for tidal harmonic analysis</a:documentation>
       </ref>
     </optional>
   </define>
@@ -4733,7 +4733,7 @@ enabled) and file (if /io/convergence_file is enabled)</a:documentation>
           <ref name="comment"/>
         </element>
         <element name="exclude_from_convergence">
-          <a:documentation>Exclude this field from convergence testing and file </a:documentation>
+          <a:documentation>Exclude this field from convergence testing and file</a:documentation>
           <ref name="comment"/>
         </element>
       </choice>
@@ -4768,7 +4768,7 @@ i.e. excluding the components</a:documentation>
           <ref name="comment"/>
         </element>
         <element name="exclude_from_convergence">
-          <a:documentation>Exclude this field entirely from convergence testing and file </a:documentation>
+          <a:documentation>Exclude this field entirely from convergence testing and file</a:documentation>
           <ref name="comment"/>
         </element>
       </choice>
@@ -4818,7 +4818,7 @@ i.e. excluding the components</a:documentation>
           <ref name="comment"/>
         </element>
         <element name="exclude_from_steady_state">
-          <a:documentation>Exclude this field entirely from convergence testing and file </a:documentation>
+          <a:documentation>Exclude this field entirely from convergence testing and file</a:documentation>
           <ref name="comment"/>
         </element>
       </choice>
@@ -6075,7 +6075,7 @@ lambda = 1.71/(bubble_radius)^2</a:documentation>
         </choice>
       </element>
       <!--
-
+        
         Insert new prescribed scalar fields here using the template:
                element scalar_field {
                    attribute rank { "0" },
@@ -6090,11 +6090,11 @@ lambda = 1.71/(bubble_radius)^2</a:documentation>
                       }
                    )
                }
-
+        
         - - Last is a list of fields that are primarily diagnostic,
            but can be aliased. An example is Tidal Range.
         - - The list is in order of most frequently used.
-
+        
       -->
       <element name="___Diagnostic_Fields_Below___">
         <a:documentation>Diagnostic scalar fields below this</a:documentation>
@@ -7024,7 +7024,7 @@ of this field is continuous.</a:documentation>
             <optional>
               <element name="lump_mass">
                 <a:documentation>Lump the mass matrix of the galerkin projection
-less accurate but faster and might give smoother result.                  </a:documentation>
+less accurate but faster and might give smoother result.</a:documentation>
                 <empty/>
               </element>
             </optional>
@@ -7194,7 +7194,7 @@ Sums up the divergence of each phase's apparent velocity, i.e. \sum{ div(vfrac*u
             <element name="test_with_cv_dual">
               <a:documentation>Test the divergence operator with the CV dual function space.
 This is useful if the pressure is solved with a CV discretisation
-or with a CG but with the continuity tested with the CV dual. </a:documentation>
+or with a CG but with the continuity tested with the CV dual.</a:documentation>
               <ref name="comment"/>
             </element>
           </optional>
@@ -7302,11 +7302,11 @@ representation of velocity and an les model have been selected.</a:documentation
         </choice>
       </element>
       <!--
-
+        
         - - List of fields that are primarily prognostic,
            but can be aliased.
         - - The list is in order of most frequently used.
-
+        
       -->
       <element name="___Prognostic_fields_below___">
         <a:documentation>Prescribed vector fields below this</a:documentation>
@@ -7327,11 +7327,11 @@ associated with buoyancy. Requires a discontinuous mesh.</a:documentation>
         </element>
       </element>
       <!--
-
+        
         - - List of fields that are primarily prescribed,
            but can be aliased.
         - - The list is in order of most frequently used.
-
+        
       -->
       <element name="___Prescribed_fields_below___">
         <a:documentation>Prescribed vector fields below this</a:documentation>
@@ -7359,7 +7359,7 @@ for VelocitySource.</a:documentation>
         </choice>
       </element>
       <!--
-
+        
         Insert new prescribed vector fields here using the template:
                element vector_field {
                    attribute rank { "1" },
@@ -7374,11 +7374,11 @@ for VelocitySource.</a:documentation>
                       }
                    )
                }
-
+        
         - - Last is a list of fields that are primarily diagnostic,
            but can be aliased. An example is Tidal Range.
         - - The list is in order of most frequently used.
-
+        
       -->
       <element name="___Diagnostic_Fields_Below___">
         <a:documentation>Diagnostic vector fields below this</a:documentation>
@@ -7475,7 +7475,7 @@ and the Foam Velocity is obtained by taking its gradient.</a:documentation>
       <element name="vector_field">
         <a:documentation>Foam Liquid Content times Velocity field.
 Its surface integral gives the liquid
-volumetric flow in the flowing foam </a:documentation>
+volumetric flow in the flowing foam</a:documentation>
         <attribute name="rank">
           <value>1</value>
         </attribute>
@@ -7765,7 +7765,7 @@ of this field is continuous.</a:documentation>
             <optional>
               <element name="lump_mass">
                 <a:documentation>Lump the mass matrix of the galerkin projection
-less accurate but faster and might give smoother result.                  </a:documentation>
+less accurate but faster and might give smoother result.</a:documentation>
                 <empty/>
               </element>
             </optional>
@@ -7863,11 +7863,11 @@ algorithm option).</a:documentation>
         </choice>
       </element>
       <!--
-
+        
         - - Second is a list of tensor fields that are primarily prescribed,
            but can be aliased.
         - - The list is in order of most frequently used.
-
+        
       -->
       <element name="___Prescribed_fields_below___">
         <a:documentation>Prescribed scalar fields below this</a:documentation>
@@ -7901,7 +7901,7 @@ in a multimaterial simulation.</a:documentation>
         </choice>
       </element>
       <!--
-
+        
         Insert new prescribed tensor fields here using the template:
                element tensor_field {
                    attribute rank { "2" },
@@ -7916,11 +7916,11 @@ in a multimaterial simulation.</a:documentation>
                       }
                    )
                }|
-
+        
         - - Last is a list of fields that are primarily diagnostic,
            but can be aliased.
         - - The list is in order of most frequently used.
-
+        
       -->
       <element name="___Diagnostic_Fields_Below___">
         <a:documentation>Diagnostic tensor fields below this</a:documentation>
@@ -8358,7 +8358,7 @@ divided by the total volume of the domain</a:documentation>
 (continuous galerkin) or within the control volume (control_volumes).</a:documentation>
           <optional>
             <element name="normalise">
-              <a:documentation>if select normalise the volume fractions will be divided by the total volume of the domain  </a:documentation>
+              <a:documentation>if select normalise the volume fractions will be divided by the total volume of the domain</a:documentation>
               <empty/>
             </element>
           </optional>
@@ -8369,7 +8369,7 @@ divided by the total volume of the domain</a:documentation>
 e.g. the values -1.5 0.0 1.5 2.0 will return 4 bins
 and the fraction of the field in each bin with,
 -1.5&lt;=field&lt;0.0, 0.0&lt;=field&lt;1.5, 1.5&lt;=field&lt;2.0, 2.0&lt;=field,
-will be calculated.  </a:documentation>
+will be calculated.</a:documentation>
         <choice>
           <element name="constant">
             <a:documentation>list of bin bounds</a:documentation>
@@ -8402,7 +8402,7 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
       <empty/>
     </element>
   </define>
-  <!-- Options for inclusion of calculations of surface integrals in the .stat file   -->
+  <!-- Options for inclusion of calculations of surface integrals in the .stat file -->
   <define name="surface_integral_stats_base.surface_integral">
     <attribute name="name">
       <data type="string"/>
@@ -8467,7 +8467,7 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
         <element name="iceshelf_meltrate">
           <optional>
             <element name="Holland08">
-              <a:documentation>The type of parameterisation </a:documentation>
+              <a:documentation>The type of parameterisation</a:documentation>
               <element name="c0">
                 <a:documentation>Specific heat capacity of water [Jkg^{-1}]. Default value 3974.</a:documentation>
                 <ref name="real"/>
@@ -8481,19 +8481,19 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
                 <ref name="real"/>
               </element>
               <element name="TI">
-                <a:documentation>Temperature of ice [C]. Default value -25, pretty cold </a:documentation>
+                <a:documentation>Temperature of ice [C]. Default value -25, pretty cold</a:documentation>
                 <ref name="real"/>
               </element>
               <element name="a">
-                <a:documentation>Tb=aSb+b+cB, See equation (4) of Holland08. Default value -0.0573C. </a:documentation>
+                <a:documentation>Tb=aSb+b+cB, See equation (4) of Holland08. Default value -0.0573C.</a:documentation>
                 <ref name="real"/>
               </element>
               <element name="b">
-                <a:documentation>Tb=aSb+b+cB, See equation (4) of Holland08. Default value 0.0832C. </a:documentation>
+                <a:documentation>Tb=aSb+b+cB, See equation (4) of Holland08. Default value 0.0832C.</a:documentation>
                 <ref name="real"/>
               </element>
               <element name="Cd">
-                <a:documentation>Drag coefficient, 1.5e-3, see Holland and Jenkins's(1999) Cd. </a:documentation>
+                <a:documentation>Drag coefficient, 1.5e-3, see Holland and Jenkins's(1999) Cd.</a:documentation>
                 <ref name="real"/>
               </element>
               <optional>
@@ -8589,7 +8589,7 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
               <optional>
                 <element name="scalar_field">
                   <a:documentation>Temperature of the far field, which is "melt_LayerLength" away from the ice.
-This variable feeds into the three equations. </a:documentation>
+This variable feeds into the three equations.</a:documentation>
                   <attribute name="rank">
                     <value>0</value>
                   </attribute>
@@ -8606,7 +8606,7 @@ This variable feeds into the three equations. </a:documentation>
               <optional>
                 <element name="scalar_field">
                   <a:documentation>Salinity of the far field, which is "melt_LayerLength" away from the ice.
-This variable feeds into the three equations. </a:documentation>
+This variable feeds into the three equations.</a:documentation>
                   <attribute name="rank">
                     <value>0</value>
                   </attribute>
@@ -8640,7 +8640,7 @@ We need to use the pressure at the ice-ocean interface.</a:documentation>
               <optional>
                 <element name="vector_field">
                   <a:documentation>Velocity of the far field, which is "melt_LayerLength" away from the ice.
-This variable feeds into the three equations. </a:documentation>
+This variable feeds into the three equations.</a:documentation>
                   <attribute name="rank">
                     <value>0</value>
                   </attribute>
@@ -8690,7 +8690,7 @@ melt_LayerLength = ||Location - Location_org||</a:documentation>
               </optional>
               <optional>
                 <element name="calculate_boundaries">
-                  <a:documentation>Boundary stuff   </a:documentation>
+                  <a:documentation>Boundary stuff</a:documentation>
                   <element name="string_value">
                     <choice>
                       <value>neumann</value>
@@ -8941,7 +8941,7 @@ These &lt;b&gt;must&lt;/b&gt; be on the velocity mesh</a:documentation>
       </optional>
       <optional>
         <element name="tidal_forcing">
-          <a:documentation>Tidal forcing options </a:documentation>
+          <a:documentation>Tidal forcing options</a:documentation>
           <optional>
             <element name="M2">
               <a:documentation>M2</a:documentation>
@@ -9108,17 +9108,17 @@ that uses a constant beta value</a:documentation>
       <a:documentation>Model of biological processes in the ocean.</a:documentation>
       <choice>
         <element name="pznd">
-          <a:documentation>A simple model of phytoplankton, zooplankton, general nutrient and detritus. </a:documentation>
+          <a:documentation>A simple model of phytoplankton, zooplankton, general nutrient and detritus.</a:documentation>
           <choice>
             <element name="source_and_sink_algorithm">
               <a:documentation>Python code specifying the source and sink relationships
 between the biological tracers. This is usually achieved by
-importing fluidity.ocean_biology and calling a scheme from there. </a:documentation>
+importing fluidity.ocean_biology and calling a scheme from there.</a:documentation>
               <ref name="python_code"/>
             </element>
             <element name="disable_sources_and_sinks">
               <a:documentation>Do not calculate sources and sinks.
-This option is generally only useful for testing. </a:documentation>
+This option is generally only useful for testing.</a:documentation>
               <empty/>
             </element>
           </choice>
@@ -9162,7 +9162,7 @@ those fields exist.</a:documentation>
             </element>
             <element name="disable_sources_and_sinks">
               <a:documentation>Do not calculate biology
-This option is generally only useful for testing. </a:documentation>
+This option is generally only useful for testing.</a:documentation>
               <empty/>
             </element>
           </choice>
@@ -9203,7 +9203,7 @@ This option is generally only useful for testing. </a:documentation>
       <element name="discontinuous_galerkin">
         <a:documentation>Discontinuous galerkin formulation. You can also use this
 formulation with a continuous field in which case a simple
-galerkin formulation will result. </a:documentation>
+galerkin formulation will result.</a:documentation>
         <empty/>
       </element>
     </element>
@@ -9427,7 +9427,7 @@ options too and it must be on the same mesh as used for the
 solenoidal projection above.
 
 Note well: this only really makes sense for scalar fields linked to nondivergent
-vector fields, such as pressure to incompressible velocity!                  </a:documentation>
+vector fields, such as pressure to incompressible velocity!</a:documentation>
               <attribute name="name">
                 <value>Pressure</value>
               </attribute>
@@ -9441,7 +9441,7 @@ options too and it must be on the same mesh as used for the
 solenoidal projection above.
 
 Note well: this only really makes sense for scalar fields linked to nondivergent
-vector fields, such as pressure to incompressible velocity!                  </a:documentation>
+vector fields, such as pressure to incompressible velocity!</a:documentation>
               <attribute name="name">
                 <data type="string" datatypeLibrary=""/>
               </attribute>

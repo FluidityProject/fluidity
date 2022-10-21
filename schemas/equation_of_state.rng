@@ -120,7 +120,7 @@ full Stiffened Gas EoS</a:documentation>
 pressure to that at constant volume
 
 Requires an energy field.
-If activated then a full Stiffened Gas EoS </a:documentation>
+If activated then a full Stiffened Gas EoS</a:documentation>
               <ref name="real"/>
             </element>
           </optional>
@@ -160,7 +160,7 @@ be the surface pressure, 1.0e05.</a:documentation>
 Used with compressible simulations of liquid drainage in foams.
 It describes the liquid content in the foam as the product of the
 Plateau border cross sectional area and the local Plateau
-border length per unit volume (lambda). </a:documentation>
+border length per unit volume (lambda).</a:documentation>
           <empty/>
         </element>
       </choice>
