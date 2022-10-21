@@ -22,7 +22,7 @@ int
 main (
         int argc, char* argv[]
         ){
-	
+
         // initialize MPI & H5hut
         MPI_Init (&argc, &argv);
         MPI_Comm comm = MPI_COMM_WORLD;
@@ -49,15 +49,15 @@ main (
                 num_particles++;
 
         // adjust start
-        if (comm_rank < remainder) 
+        if (comm_rank < remainder)
                 start += comm_rank;
         else
                 start += remainder;
-        
+
         // Note:
 	// setting end = start - 1 forces the selection of zero particles!
         h5_int64_t end = start + num_particles - 1;
-        
+
         printf ("[proc %d]: set view to [%lld..%lld]\n", comm_rank, (long long)start, (long long)end);
         H5PartSetView (file, start, end);
 

@@ -78,7 +78,7 @@ mpi_init (
 #ifdef H5_HAVE_PARALLEL
 	TRY (h5priv_mpi_comm_size (f->props->comm, &f->nprocs));
 	TRY (h5priv_mpi_comm_rank (f->props->comm, &f->myproc));
-	
+
 	/* xfer_prop:  also used for parallel I/O, during actual writes
 	   rather than the access_prop which is for file creation. */
 	TRY (f->props->xfer_prop = hdf5_create_property(H5P_DATASET_XFER));
@@ -189,7 +189,7 @@ h5_set_prop_file_mpio_collective (
         ) {
         h5_prop_file_t* props = (h5_prop_file_t*)_props;
         H5_CORE_API_ENTER (h5_err_t, "props=%p, comm=%p", props, comm);
-        
+
         if (props->class != H5_PROP_FILE) {
                 H5_RETURN_ERROR (
 			H5_ERR_INVAL,
@@ -217,7 +217,7 @@ h5_set_prop_file_mpio_independent (
         ) {
         h5_prop_file_t* props = (h5_prop_file_t*)_props;
         H5_CORE_API_ENTER (h5_err_t, "props=%p, comm=%p", props, comm);
-        
+
         if (props->class != H5_PROP_FILE) {
                 H5_RETURN_ERROR (
 			H5_ERR_INVAL,
@@ -242,7 +242,7 @@ h5_set_prop_file_mpio_posix (
         ) {
         h5_prop_file_t* props = (h5_prop_file_t*)_props;
         H5_CORE_API_ENTER (h5_err_t, "props=%p, comm=%p", props, comm);
-        
+
         if (props->class != H5_PROP_FILE) {
                 H5_RETURN_ERROR (
 			H5_ERR_INVAL,
@@ -268,7 +268,7 @@ h5_set_prop_file_core_vfd (
         h5_prop_file_t* props = (h5_prop_file_t*)_props;
         H5_CORE_API_ENTER (h5_err_t, "props=%p, increment=%lld",
 			   props, (long long int)increment);
-        
+
         if (props->class != H5_PROP_FILE) {
                 H5_RETURN_ERROR (
 			H5_ERR_INVAL,
@@ -442,7 +442,7 @@ open_file (
                 f->props->width_iteration_idx, (long long)f->iteration_idx);
 
         TRY (hdf5_set_errorhandler (H5E_DEFAULT, hdf5_error_handler, NULL));
-        
+
         f->props->xfer_prop = f->props->access_prop = H5P_DEFAULT;
         TRY (f->props->create_prop = hdf5_create_property (H5P_FILE_CREATE));
 	TRY (mpi_init (f));              // noop if serial
@@ -477,7 +477,7 @@ open_file (
 			"Invalid file access mode '%lld'.",
 			(long long int)f->props->flags & 0xff);
 	}
-	
+
 	if (f->file < 0)
 		H5_RETURN_ERROR (
 			H5_ERR_HDF5,
@@ -501,12 +501,12 @@ h5_open_file2 (
 	H5_CORE_API_ENTER (h5_file_t,
 			   "filename='%s', mode=%d, props=%p",
 			   filename, mode, props);
-                
+
 	h5_file_p f = NULL;
 	TRY (f = h5_calloc (1, sizeof (*f)));
-	
+
         TRY (f->props = (h5_prop_file_t*)h5_create_prop (H5_PROP_FILE));
-                
+
         if (props != H5_PROP_DEFAULT) {
                 if (props->class != H5_PROP_FILE) {
                         H5_RETURN_ERROR (
@@ -539,7 +539,7 @@ h5_open_file2 (
 
 /*!
   \ingroup h5_core_filehandling
-  
+
   Open file with name \c filename. This function is available in the paralell
   and serial version. In the serial case \c comm may have any value.
 
@@ -579,7 +579,7 @@ h5_open_file1 (
 /*!
   \ingroup h5_core_filehandling
 
-  The h5_close_file() call writes all buffered data to disk, releases 
+  The h5_close_file() call writes all buffered data to disk, releases
   all previously allocated memory and terminates access to the associated
   HDF5 file.
 
@@ -759,7 +759,7 @@ h5_get_num_iterations (
 
   Start traversing iterations.
 
-  \return \c H5_SUCCESS or error code 
+  \return \c H5_SUCCESS or error code
 */
 h5_err_t
 h5_start_traverse_iterations (
@@ -772,7 +772,7 @@ h5_start_traverse_iterations (
 	  otherwise
 	  loop over all steps and get smallest step number
 	 */
-	
+
 	H5_RETURN (h5_error_not_implemented ());
 }
 
@@ -781,7 +781,7 @@ h5_start_traverse_iterations (
 
   Go to next iteration.
 
-  \return \c H5_SUCCESS or error code 
+  \return \c H5_SUCCESS or error code
 */
 h5_err_t
 h5_traverse_iterations (

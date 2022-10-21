@@ -52,7 +52,7 @@ h5upriv_open_file (
 
   \internal
 
-  De-initialize H5Block internal structure.  Open HDF5 objects are 
+  De-initialize H5Block internal structure.  Open HDF5 objects are
   closed and allocated memory freed.
 
   \return	H5_SUCCESS or error code
@@ -98,7 +98,7 @@ h5u_read_dataset (
 	hid_t dataset_id;
 	TRY (dataset_id = hdf5_open_dataset_by_name (f->iteration_gid, name));
 
-	
+
 	/* default spaces, if not using a view selection */
 	hid_t memspace_id = H5S_ALL;
 	hid_t space_id;
@@ -198,7 +198,7 @@ h5u_write (
 		TRY (hdf5_flush (f->iteration_gid, H5F_SCOPE_LOCAL));
 	}
 	H5_RETURN (H5_SUCCESS);
-}	
+}
 
 hid_t
 h5u_open_dataset (

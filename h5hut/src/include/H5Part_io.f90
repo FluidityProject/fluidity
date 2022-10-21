@@ -93,5 +93,5 @@
      END FUNCTION h5pt_readdata_i4
 
      !> @}
-     
+
   END INTERFACE

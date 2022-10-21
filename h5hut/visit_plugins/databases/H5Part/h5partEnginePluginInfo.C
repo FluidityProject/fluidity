@@ -36,4 +36,3 @@ h5partEnginePluginInfo::GetWriter(void)
 {
     return NULL;
 }
-

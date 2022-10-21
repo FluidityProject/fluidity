@@ -159,7 +159,7 @@ avtH5PartRandomSampleFilter::ExecuteData(vtkDataSet *in_ds, int, std::string)
 		} else {
 			idList->InsertNextId(index);
 		}
-		outPD->CopyData(inPD, index, newId);		
+		outPD->CopyData(inPD, index, newId);
     float pt[3];
 		in_ds->GetPoint(index, pt);
     pts->SetPoint(newId, pt);

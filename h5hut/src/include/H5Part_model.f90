@@ -11,7 +11,7 @@
      !! \ingroup h5part_f90_api
      !! \addtogroup h5part_model_f
      !! @{
-     
+
      !>
      !! See \ref H5PartSetNumParticles
      !! \return 0 on success or error code
@@ -101,7 +101,7 @@
      INTEGER*8 FUNCTION h5pt_getdatasetname (filehandle,index,name)
        INTEGER*8, INTENT(IN) :: filehandle         !< the handle returned during file open
        INTEGER*8, INTENT(IN) :: index              !< index of dataset to query (starting from 0)
-       CHARACTER(LEN=*), INTENT(OUT) :: name       !< buffer to read the dataset name into 
+       CHARACTER(LEN=*), INTENT(OUT) :: name       !< buffer to read the dataset name into
      END FUNCTION h5pt_getdatasetname
 
      !>
@@ -125,5 +125,5 @@
      END FUNCTION h5pt_getnpoints
 
      !> @}
-     
+
   END INTERFACE

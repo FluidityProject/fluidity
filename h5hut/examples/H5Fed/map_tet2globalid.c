@@ -13,7 +13,7 @@ struct vertex {
 	h5_float64_t P[3];
 };
 
-typedef struct vertex vertex_t; 
+typedef struct vertex vertex_t;
 
 struct tet {
 	h5_glb_id_t global_id;
@@ -40,7 +40,7 @@ main (
 	printf ( "    Number of meshes: %d\n", num_meshes );
 
 	h5_id_t mesh_id = 0;
-	
+
 	h5_err_t h5err = H5FedOpenMesh ( f, mesh_id, TETRAHEDRAL_MESH );
 	if ( h5err < 0 ) {
 		fprintf ( stderr, "!!! Can't open mesh %d\n", mesh_id );
